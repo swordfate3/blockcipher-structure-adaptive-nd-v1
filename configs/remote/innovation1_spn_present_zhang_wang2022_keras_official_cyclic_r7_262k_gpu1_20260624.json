@@ -28,7 +28,7 @@
   "gpu_guard": true,
   "launcher_tail_source": "project",
   "branch": "main",
-  "project_id": "blockcipher-structure-adaptive-nd-v1",
+  "project_id": "blockcipher-structure-adaptive-nd",
   "clone_url": "https://github.com/swordfate3/blockcipher-structure-adaptive-nd-v1.git",
   "repo_url": "https://github.com/swordfate3/blockcipher-structure-adaptive-nd-v1.git",
   "result_sync": "local_tmux_monitor_scp_fallback",
