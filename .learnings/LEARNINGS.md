@@ -298,3 +298,38 @@ Promote this rule to `AGENTS.md` under Remote Windows GPU Rules / Verification. 
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260624-001] correction
+
+**Logged**: 2026-06-24T16:03:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: docs
+
+### Summary
+Generated result plots must include human-readable coordinate axes, tick labels, and grid lines; bare lines without coordinate values are not acceptable.
+
+### Details
+The user corrected the first SVG output from `scripts/plot-results`: it drew train/validation curves, but the plot did not have enough coordinate values to interpret the metric scale and epoch positions like a normal deep learning training curve. A result figure should support human inspection without reading the raw JSON/CSV.
+
+Correct plotting expectations:
+
+- X axis should show epoch tick values, not only first/last labels.
+- Y axis should show metric tick values, including intermediate values such as `0.25`, `0.5`, `0.75` for accuracy/AUC.
+- Light grid lines should align with tick labels so the reader can estimate values.
+- Axis labels such as `epoch`, `accuracy`, `auc`, and `loss` should be visible.
+- Train and validation curves should remain visually distinct and annotated.
+
+### Suggested Action
+Keep visualization tests that assert generated SVG contains readable axis labels and intermediate tick values. When adding new plots, inspect the rendered artifact or its SVG text for axes, tick labels, and grid lines before calling the visualization complete.
+
+### Metadata
+- Source: user_feedback
+- Related Files: src/blockcipher_nd/evaluation/plots.py, scripts/plot-results, tests/test_project_structure.py
+- Tags: visualization, svg, training-curves, docs, result-reporting
+- Pattern-Key: visualization.training_curves.require_readable_axes
+- Recurrence-Count: 1
+- First-Seen: 2026-06-24
+- Last-Seen: 2026-06-24
+
+---

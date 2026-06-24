@@ -237,7 +237,12 @@ def test_training_history_plot_outputs_svg_and_csv(tmp_path):
 
     assert plot_report["series"] == 6
     assert csv_report["rows"] == 2
-    assert "<svg" in svg_path.read_text(encoding="utf-8")
+    svg_text = svg_path.read_text(encoding="utf-8")
+    assert "<svg" in svg_text
+    assert ">epoch<" in svg_text
+    assert ">0.25<" in svg_text
+    assert ">0.5<" in svg_text
+    assert ">0.75<" in svg_text
     csv_text = csv_path.read_text(encoding="utf-8")
     assert "train_accuracy" in csv_text
     assert "val_auc" in csv_text

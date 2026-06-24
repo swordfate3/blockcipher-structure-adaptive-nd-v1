@@ -190,16 +190,38 @@ def render_metric_panel(
     if min_value == max_value:
         min_value -= 0.5
         max_value += 0.5
+    x_ticks = axis_ticks(min_epoch, max_epoch, preferred=6, integer=True)
+    y_ticks = axis_ticks(min_value, max_value, preferred=5)
 
     elements = [
         svg_text(x, y + 18, metric, size=16, weight="700"),
-        f'<line x1="{x}" y1="{y + plot_height}" x2="{x + width}" y2="{y + plot_height}" stroke="#cbd5e1"/>',
-        f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + plot_height}" stroke="#cbd5e1"/>',
-        svg_text(x - 10, y + 4, format_value(max_value), size=12, anchor="end", fill="#64748b"),
-        svg_text(x - 10, y + plot_height, format_value(min_value), size=12, anchor="end", fill="#64748b"),
-        svg_text(x, y + plot_height + 30, f"epoch {format_value(min_epoch)}", size=12, fill="#64748b"),
-        svg_text(x + width, y + plot_height + 30, f"epoch {format_value(max_epoch)}", size=12, anchor="end", fill="#64748b"),
+        svg_text(x + width / 2, y + plot_height + 42, "epoch", size=12, anchor="middle", fill="#475569"),
+        svg_text(x - 54, y + plot_height / 2, metric, size=12, anchor="middle", fill="#475569"),
     ]
+    for tick in y_ticks:
+        tick_y = scale_y(tick, min_value, max_value, y, plot_height)
+        elements.extend(
+            [
+                f'<line x1="{x}" y1="{tick_y:.2f}" x2="{x + width}" y2="{tick_y:.2f}" stroke="#e2e8f0"/>',
+                f'<line x1="{x - 5}" y1="{tick_y:.2f}" x2="{x}" y2="{tick_y:.2f}" stroke="#94a3b8"/>',
+                svg_text(x - 10, tick_y + 4, format_value(tick), size=12, anchor="end", fill="#475569"),
+            ]
+        )
+    for tick in x_ticks:
+        tick_x = scale_x(tick, min_epoch, max_epoch, x, width)
+        elements.extend(
+            [
+                f'<line x1="{tick_x:.2f}" y1="{y}" x2="{tick_x:.2f}" y2="{y + plot_height}" stroke="#f1f5f9"/>',
+                f'<line x1="{tick_x:.2f}" y1="{y + plot_height}" x2="{tick_x:.2f}" y2="{y + plot_height + 5}" stroke="#94a3b8"/>',
+                svg_text(tick_x, y + plot_height + 20, format_epoch_tick(tick), size=12, anchor="middle", fill="#475569"),
+            ]
+        )
+    elements.extend(
+        [
+            f'<line x1="{x}" y1="{y + plot_height}" x2="{x + width}" y2="{y + plot_height}" stroke="#64748b"/>',
+            f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + plot_height}" stroke="#64748b"/>',
+        ]
+    )
     for item in series:
         color = PLOT_COLORS.get(item["split"], "#334155")
         path_data = " ".join(
@@ -223,6 +245,30 @@ def render_metric_panel(
             )
         )
     return elements
+
+
+def axis_ticks(
+    min_value: float,
+    max_value: float,
+    *,
+    preferred: int,
+    integer: bool = False,
+) -> list[float]:
+    if preferred <= 1 or min_value == max_value:
+        return [min_value]
+    if integer:
+        start = int(round(min_value))
+        end = int(round(max_value))
+        if start == end:
+            return [float(start)]
+        span = end - start
+        step = max(1, round(span / (preferred - 1)))
+        ticks = list(range(start, end + 1, step))
+        if ticks[-1] != end:
+            ticks.append(end)
+        return [float(tick) for tick in ticks]
+    step = (max_value - min_value) / (preferred - 1)
+    return [min_value + step * index for index in range(preferred)]
 
 
 def scale_x(value: float, min_value: float, max_value: float, x: int, width: int) -> float:
@@ -258,6 +304,12 @@ def format_value(value: float) -> str:
     if abs(value) >= 10:
         return f"{value:.1f}"
     return f"{value:.4g}"
+
+
+def format_epoch_tick(value: float) -> str:
+    if abs(value - round(value)) < 1e-9:
+        return str(int(round(value)))
+    return format_value(value)
 
 
 def run_label(row: dict[str, Any], run_index: int) -> str:
