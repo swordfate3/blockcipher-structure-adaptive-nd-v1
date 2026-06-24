@@ -24,6 +24,7 @@
 
 ## Remote Monitoring And Retrieval
 
+- After launching or handing off a remote experiment, do not personally supervise it from the main thread. Start or verify a local tmux monitor/watcher that waits for completion artifacts, retrieves results automatically, writes logs/markers, and lets the main thread report from local artifacts.
 - Do not SSH-poll from the main thread after a remote launch or handoff is recorded. Leave tmux/watchers/monitors to wait for artifacts.
 - Resume interactive remote contact only when a local controlled dry-run says both `should_ssh=true` and `ssh_allowed=true`, or when local monitor health becomes unhealthy.
 - Local tmux sessions are for local monitors/result retrieval. If a supported monitor is missing, restart the local tmux monitor only; do not touch remote training unless the controlled gate allows it.

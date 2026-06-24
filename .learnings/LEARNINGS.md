@@ -333,3 +333,34 @@ Keep visualization tests that assert generated SVG contains readable axis labels
 - Last-Seen: 2026-06-24
 
 ---
+
+## [LRN-20260624-002] correction
+
+**Logged**: 2026-06-24T20:30:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: infra
+
+### Summary
+Remote experiment launches should not be personally supervised from the main thread; use tmux monitors to watch and retrieve results automatically.
+
+### Details
+The user clarified the intended remote workflow: after a remote GPU experiment is launched or handed off, the main agent should not keep personally supervising it through repeated SSH checks or manual polling. The correct pattern is to start a local tmux monitor/watcher that waits for completion artifacts, retrieves the result archive or raw fallback outputs, writes local logs/markers, and then lets the main thread continue or report only from local artifacts.
+
+This strengthens the existing "do not SSH-poll from the main thread" rule. Manual remote contact should be reserved for controlled exceptions such as a local monitor health failure, a dry-run gate that explicitly allows SSH, or a user-requested repair. Normal long-running training should be monitored by tmux and retrieval scripts, not by interactive supervision.
+
+### Suggested Action
+For future remote runs, always launch or verify a supported local tmux monitor immediately after the remote command is handed off. Report the monitor session/log/marker paths to the user. Inspect results only after the monitor has pulled them back locally, unless the controlled gate says remote inspection is allowed.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, scripts/monitor_remote_results.py, outputs/remote_results/
+- Tags: remote-training, tmux, monitoring, retrieval, ssh, workflow
+- See Also: LRN-20260621-003, LRN-20260622-001
+- Pattern-Key: remote_training.tmux_monitor_retrieves_results
+- Recurrence-Count: 1
+- First-Seen: 2026-06-24
+- Last-Seen: 2026-06-24
+- Promoted: AGENTS.md
+
+---
