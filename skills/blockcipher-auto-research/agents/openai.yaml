@@ -1,0 +1,3 @@
+display_name: Blockcipher自动科研
+short_description: 面向本项目的受控神经区分器实验循环与证据门控
+default_prompt: 用这个项目内skill设计并执行一次可复现的blockcipher神经区分器实验
