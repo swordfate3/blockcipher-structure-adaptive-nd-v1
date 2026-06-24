@@ -117,24 +117,24 @@ Before and after reading historical memory files for a major task, check whether
 **Area**: infra
 
 ### Summary
-After every completed code/config/script change, make a scoped git commit and push so the workspace does not accumulate dirty state.
+After every completed repository modification, make a scoped git commit and push when a remote exists so the workspace does not accumulate dirty state.
 
 ### Details
 The user corrected a workflow failure: remote experiments are intended to pull code from GitHub, but the workspace had accumulated many uncommitted changes. To avoid committing unrelated dirty files, a remote run was started with `scp` overlays into `G:\lxy`, which made the run less reproducible than a clean GitHub commit-based launch.
 
 Correct workflow:
 
-- Complete code/config/script edits.
+- Complete any repository edit, including code, config, scripts, tests, README/docs, `.learnings/`, `AGENTS.md`, generated project files, or memory-rule updates.
 - Run appropriate verification.
 - Commit only the scoped files for the completed task.
-- Push the branch to the remote repository.
+- Push the branch to the remote repository when a remote is configured; if no remote exists, report that push is not possible.
 - Keep the workspace clean for agent-authored changes before starting new work or launching remote experiments.
 - Remote experiments should default to a GitHub-pushed commit. Dirty/scp overlay launches are emergency-only and must be explicitly labeled as such in status reports and handoff notes.
 
 This rule does not authorize reverting or committing unrelated user changes. If unrelated dirty files already exist, isolate the task's files in a scoped commit and report the remaining unrelated dirty state separately.
 
 ### Suggested Action
-Promote this to `AGENTS.md` under workspace hygiene and remote workflow. Before future remote launches, run `git status --short`, ensure required files are committed and pushed, and avoid relying on scp overlays for normal experiment reproducibility.
+Promote this to `AGENTS.md` under workspace hygiene and remote workflow. After any file modification, run the relevant verification, make a scoped commit for the files just changed, and push if a remote is configured. Before future remote launches, run `git status --short`, ensure required files are committed and pushed, and avoid relying on scp overlays for normal experiment reproducibility.
 
 ### Metadata
 - Source: user_feedback
@@ -142,10 +142,15 @@ Promote this to `AGENTS.md` under workspace hygiene and remote workflow. Before 
 - Tags: git, commit, push, workspace-hygiene, remote-reproducibility
 - See Also: LRN-20260621-003
 - Pattern-Key: workflow.git_commit_push_after_code_changes
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-06-22
-- Last-Seen: 2026-06-22
+- Last-Seen: 2026-06-24
 - Promoted: AGENTS.md
+
+### Recurrence Update
+- **Updated**: 2026-06-24T15:08:01+08:00
+- **Source**: user_feedback
+- **Notes**: User explicitly reminded that every modification should be committed, not only code/config/script edits. This includes README/docs, `.learnings/`, `AGENTS.md`, and other memory or documentation updates. Push remains required when a remote is configured; if no remote exists, commit locally and report that push cannot be performed.
 
 ---
 

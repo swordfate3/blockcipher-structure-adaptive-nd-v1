@@ -45,6 +45,7 @@
 - Before remote launches, audit generated scripts for `cmd.exe /c`, absence of `cmd.exe /k`, and no generated project paths outside `G:\lxy`.
 - Before remote launches, audit generated-data paths: any dataset/feature generation for medium or larger remote jobs must write cache/progress under `G:\lxy` and must not wait until after full generation/training to emit the first durable artifact.
 - When searching for Windows paths such as `G:\lxy` with `rg`, use fixed-string mode (`rg -F`) or proper escaping to avoid regex backslash parse errors.
-- After completing code, config, generated-script, memory-rule, or test edits, run the relevant verification, make a scoped git commit, and push it. Do not leave agent-authored completed work as an uncommitted pile.
+- After any repository file modification, run the relevant verification, make a scoped git commit for the files just changed, and push when a remote is configured. This applies to code, config, scripts, tests, README/docs, `.learnings/`, `AGENTS.md`, generated project files, and memory-rule updates. Do not leave agent-authored completed work as an uncommitted pile.
+- If no Git remote is configured, still make the local scoped commit and report that push was not possible because no remote exists.
 - Do not include unrelated user or historical dirty files in that commit. If the worktree already has unrelated changes, commit only the task-scoped files and report the remaining dirty state separately.
 - Remote experiments should normally launch from a GitHub-pushed commit. Avoid scp/dirty-overlay launches except for explicitly labeled emergency repair; if used, record that the run is dirty-overlay evidence and follow up with a proper commit/push immediately.
