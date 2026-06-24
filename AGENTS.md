@@ -50,3 +50,4 @@
 - If no Git remote is configured, still make the local scoped commit and report that push was not possible because no remote exists.
 - Do not include unrelated user or historical dirty files in that commit. If the worktree already has unrelated changes, commit only the task-scoped files and report the remaining dirty state separately.
 - Remote experiments should normally launch from a GitHub-pushed commit. Avoid scp/dirty-overlay launches except for explicitly labeled emergency repair; if used, record that the run is dirty-overlay evidence and follow up with a proper commit/push immediately.
+- Before using an existing remote clone as the source for a GitHub-pushed run, perform a read-only `git status --short --branch` gate. If the clone has historical local changes or cannot fast-forward cleanly, do not reset it without explicit approval; use a run-owned clean clone under `G:\lxy` instead.

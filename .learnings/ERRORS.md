@@ -134,3 +134,44 @@ Do not parallelize dependent artifact producer/consumer commands. Generate artif
 - **Notes**: Re-ran the artifact inspection after plot generation completed.
 
 ---
+
+## [ERR-20260624-003] remote_dirty_clone_checkout_blocked_launch
+
+**Logged**: 2026-06-24T21:23:10+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Remote 262k PRESENT run did not start because the canonical remote clone had historical local changes and `git checkout main` aborted before training.
+
+### Error
+```text
+error: Your local changes to the following files would be overwritten by checkout:
+  experiments/innovation1/README.md
+  experiments/innovation1/audit_arx_feature_separation.py
+  ...
+Aborting
+```
+
+### Context
+- Run attempted: `zhang_wang_present_r7_262k_official_cyclic_20260624`.
+- Remote project root attempted first: `G:\lxy\blockcipher-structure-adaptive-nd`.
+- The first Windows `start /b cmd.exe /c ...` launch also silently failed because the command chained `if not exist <launcher_logs> mkdir ... && start ...`; when the directory already existed, the `start` segment was skipped.
+- A direct tmux-held SSH launcher then reached the remote script, but the remote script exited during `git checkout main` because the historical clone had unrelated dirty files from older project layouts.
+- The training itself had not hung; it had never entered training in the first attempt.
+
+### Suggested Fix
+For GitHub-pushed formal or medium remote runs, do not assume a historical remote clone is clean. Use a run-owned clean clone directory under `G:\lxy`, or perform a read-only `git status --short --branch` gate before launch and switch to a clean clone when dirty. Do not use `git reset --hard` on the shared historical clone without explicit user approval. Avoid chaining Windows `if not exist ... && start ...` when the `start` command must always run.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /tmp/remote_zw262k/run_zhang_wang_present_r7_262k_official_cyclic_20260624.cmd, AGENTS.md
+- See Also: ERR-20260622-001, LRN-20260622-001, LRN-20260624-002
+
+### Resolution
+- **Resolved**: 2026-06-24T21:24:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Relaunched through local tmux using a new clean clone directory `G:\lxy\blockcipher-structure-adaptive-nd-v1-clean`; remote progress reached dataset cache generation for `262144/class`.
+
+---
