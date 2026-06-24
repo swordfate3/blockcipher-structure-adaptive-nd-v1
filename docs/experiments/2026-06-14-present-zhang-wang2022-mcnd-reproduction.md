@@ -61,7 +61,10 @@ official_checkpoint_smoke_eval_accuracy: 0.755
 official_checkpoint_confirm_eval_raw_pair_count: 160000
 official_checkpoint_confirm_eval_grouped_rows: 10000
 official_checkpoint_confirm_eval_accuracy: 0.7131
-project_reproduction_status: official_checkpoint_eval_confirmed_below_reference_at_10k_grouped_rows_not_paper_scale
+official_checkpoint_large_eval_raw_pair_count: 1000000
+official_checkpoint_large_eval_grouped_rows: 62500
+official_checkpoint_large_eval_accuracy: 0.721536
+project_reproduction_status: official_checkpoint_eval_confirmed_at_reference_level_on_62500_grouped_rows_not_from_scratch_training
 strict_reference: Zhang/Wang 2022 Table 4, PRESENT-80, 7-round Case2, m=16, accuracy 0.7205
 ```
 
@@ -77,6 +80,15 @@ because the confirmation run is below the official validation/evaluation scale.
 This distinction is intentionally mirrored in
 `experiments/innovation1/audit_spn_claim_gate.py` and
 `experiments/innovation1/summarize_spn_route_queue.py`.
+
+Update on 2026-06-24: the official Case2 r7/m16 checkpoint was evaluated again
+on `1,000,000` raw official-protocol pairs, corresponding to `62,500` grouped
+rows at `m=16`. The checkpoint reached `accuracy = 0.721536`, which is
+`+0.001036` above the Table 4 reference `0.7205`. This confirms the official
+checkpoint and official data generator can reproduce the reported 7-round
+PRESENT signal at a substantially larger independent evaluation scale than the
+earlier 10k grouped-row check. It is still a checkpoint reproduction, not a
+from-scratch paper-scale retraining run.
 
 ## Official Code Audit Snapshot
 
@@ -243,6 +255,52 @@ This is stronger than the smoke test because it uses 10000 grouped rows, but it
 is still below paper scale. The result supports that the official checkpoint and
 official data generator produce a real r7 signal, but it does not independently
 match or exceed the paper's 0.7205 reference at this smaller confirmation scale.
+```
+
+## Official Checkpoint 62.5k-Row Confirmation
+
+Command:
+
+```bash
+F:\Anaconda\envs\tensorflow_gpu2\python.exe \
+  G:/lxy/zhang_wang2022_code_audit/evaluate_zhang_wang_official_checkpoint.py \
+  --audit-root G:/lxy/zhang_wang2022_code_audit \
+  --raw-pair-count 1000000 \
+  --batch-size 1000 \
+  --run-eval \
+  --output G:/lxy/zhang_wang2022_code_audit/outputs/official_checkpoint_eval_1000000.json
+```
+
+Retrieved local artifact:
+
+```text
+outputs/remote_results/zhang_wang_present_r7_m16_checkpoint_eval_1000000/official_checkpoint_eval_1000000.json
+```
+
+Result:
+
+```text
+status = evaluated
+raw_pair_count = 1000000
+grouped_eval_rows = 62500
+positive_rows = 31250
+negative_rows = 31250
+accuracy = 0.721536
+accuracy_minus_reference = +0.001036
+tpr = 0.704288
+tnr = 0.738784
+mse = 0.1829306853
+```
+
+Interpretation:
+
+```text
+This is the strongest checkpoint reproduction currently recorded in this
+project. It confirms that the official Zhang/Wang 2022 Case2 r7/m16 checkpoint,
+when evaluated with the official PRESENT data generator on 62500 fresh grouped
+rows, reaches the reported 0.7205-level 7-round signal. This should be cited as
+official-checkpoint verification, not as a from-scratch PyTorch or paper-scale
+training reproduction.
 ```
 
 ## Official Code Audit Checklist
