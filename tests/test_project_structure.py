@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from blockcipher_nd.engine.matrix_runner import parse_args
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
@@ -233,7 +234,10 @@ def test_zhang_wang_official_anchor_model_alias_builds():
         model_options=task["model_options"],
     )
 
-    assert model.__class__.__name__ == "PresentInceptionMCNDDistinguisher"
+    assert model.__class__.__name__ == "PresentZhangWangKerasMCNDDistinguisher"
+    with torch.no_grad():
+        logits = model(torch.zeros(2, pair_bits * task["pairs_per_sample"]))
+    assert logits.shape == (2, 1)
 
 
 def test_result_plan_alignment_is_planning_api(tmp_path):

@@ -15,6 +15,7 @@ from blockcipher_nd.models.structure import (
     PresentPLayerMixerPairSetDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
+    PresentZhangWangKerasMCNDDistinguisher,
     SpnCellPairSetDBitNetDistinguisher,
     SpnNibbleConvPairSetDistinguisher,
     SpnTokenMixerPairSetDistinguisher,
@@ -33,7 +34,18 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
-    if name in {"present_inception_mcnd", "present_zhang_wang_keras_mcnd"}:
+    if name == "present_zhang_wang_keras_mcnd":
+        return PresentZhangWangKerasMCNDDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            activation=str(options.get("activation", "relu")),
+            dropout=float(options.get("dropout", 0.0)),
+            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+        )
+    if name == "present_inception_mcnd":
         return PresentInceptionMCNDDistinguisher(
             input_bits=input_bits,
             pair_bits=pair_bits or 128,
