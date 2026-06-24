@@ -19,6 +19,7 @@ runs/
 wandb/
 mlruns/
 checkpoints/
+papers/
 *.ckpt
 *.pt
 *.pth
