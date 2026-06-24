@@ -128,6 +128,46 @@ docs/
 outputs/, runs/                 生成产物目录，不作为源码提交
 ```
 
+## 运行流程
+
+主训练流程从命令行入口开始，配置矩阵会被展开成多个 task，每个 task 经过数据集构造、模型构建、可选预训练、正式训练和结果记录，最后再做结果-计划对齐。
+
+```mermaid
+flowchart TD
+    A[用户执行 scripts/train] --> B{是否传入 --plan}
+    B -->|是| C[读取 configs/experiment/*.csv]
+    B -->|否| D[由 CLI 参数展开 cipher/model/round/seed 组合]
+    C --> E[planning.matrix 构造 task 列表]
+    D --> E
+
+    E --> F[engine.matrix_runner 遍历 task]
+    F --> G[engine.task_runner 执行单个 task]
+
+    G --> H[registry.cipher_factory 构造训练/验证密码]
+    G --> I[engine.modeling 选择模型 key 与 pair_bits]
+    H --> J[data.differential 构造 DatasetConfig]
+    J --> K{是否启用 dataset cache}
+    K -->|否| L[data.differential.generator 内存生成数据]
+    K -->|是| M[data.cache.disk 分块生成/复用 features.npy labels.npy]
+
+    I --> N[registry.model_factory 构造神经区分器]
+    N --> O[注入结构特征与模型选项]
+    L --> P{是否启用 pretraining}
+    M --> P
+    O --> P
+
+    P -->|是| Q[engine.pretraining 低轮数 curriculum 预训练]
+    P -->|否| R[training.trainer 正式训练]
+    Q --> R
+
+    R --> S[training.metrics 计算 accuracy/AUC/loss]
+    S --> T[engine.results 组装 JSONL 结果行]
+    T --> U[写入 outputs/*.jsonl]
+    U --> V[scripts/validate-results 检查结果与计划对齐]
+```
+
+PRESENT candidate-evidence 等专项路线也遵循相同原则：`scripts/` 只负责进入任务，核心数据集、模型和评估逻辑放在 `src/blockcipher_nd/tasks/innovation1/` 及其下游模块中。
+
 ## 常用命令
 
 查看主训练 CLI：
