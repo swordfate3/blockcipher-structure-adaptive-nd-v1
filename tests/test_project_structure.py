@@ -44,6 +44,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/spn-active-pattern"),
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
+        Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
 
@@ -182,3 +183,110 @@ def test_result_plan_alignment_is_planning_api(tmp_path):
     assert report["status"] == "pass"
     assert report["plan_rows"] == 1
     assert report["result_rows"] == 1
+
+
+def test_training_history_plot_outputs_svg_and_csv(tmp_path):
+    from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
+
+    results_path = tmp_path / "results.jsonl"
+    svg_path = tmp_path / "curves.svg"
+    csv_path = tmp_path / "history.csv"
+    results_path.write_text(
+        json.dumps(
+            {
+                "cipher": "SPECK32/64",
+                "model": "mlp",
+                "selected_model": "mlp",
+                "rounds": 1,
+                "seed": 0,
+                "samples_per_class": 8,
+                "pairs_per_sample": 1,
+                "history": [
+                    {
+                        "epoch": 1.0,
+                        "train_loss": 0.7,
+                        "train_eval_loss": 0.69,
+                        "train_accuracy": 0.55,
+                        "train_auc": 0.58,
+                        "val_loss": 0.71,
+                        "val_accuracy": 0.5,
+                        "val_auc": 0.52,
+                        "learning_rate": 0.001,
+                    },
+                    {
+                        "epoch": 2.0,
+                        "train_loss": 0.65,
+                        "train_eval_loss": 0.64,
+                        "train_accuracy": 0.65,
+                        "train_auc": 0.7,
+                        "val_loss": 0.68,
+                        "val_accuracy": 0.6,
+                        "val_auc": 0.62,
+                        "learning_rate": 0.001,
+                    },
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    plot_report = plot_jsonl_training_curves(results_path, svg_path)
+    csv_report = write_history_csv(results_path, csv_path)
+
+    assert plot_report["series"] == 6
+    assert csv_report["rows"] == 2
+    assert "<svg" in svg_path.read_text(encoding="utf-8")
+    csv_text = csv_path.read_text(encoding="utf-8")
+    assert "train_accuracy" in csv_text
+    assert "val_auc" in csv_text
+
+
+def test_training_history_records_train_and_validation_metrics():
+    from blockcipher_nd.ciphers.arx.speck import Speck32_64
+    from blockcipher_nd.data.differential import DifferentialDatasetConfig
+    from blockcipher_nd.data.differential.generator import make_differential_dataset
+    from blockcipher_nd.models.baseline.mlp import MlpDistinguisher
+    from blockcipher_nd.training import TrainingConfig, train_binary_classifier
+
+    cipher = Speck32_64(rounds=1, key=0)
+    train_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x40,
+            samples_per_class=8,
+            seed=0,
+            shuffle=True,
+        )
+    )
+    validation_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x40,
+            samples_per_class=8,
+            seed=1,
+            shuffle=True,
+        )
+    )
+    model = MlpDistinguisher(input_bits=train_dataset.features.shape[1], hidden_bits=8)
+
+    result = train_binary_classifier(
+        model,
+        train_dataset,
+        validation_dataset,
+        TrainingConfig(epochs=1, batch_size=4, device="cpu"),
+    )
+
+    epoch = result.history[0]
+    for key in [
+        "train_loss",
+        "train_eval_loss",
+        "train_accuracy",
+        "train_auc",
+        "val_loss",
+        "val_accuracy",
+        "val_auc",
+        "learning_rate",
+    ]:
+        assert key in epoch

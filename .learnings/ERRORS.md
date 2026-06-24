@@ -63,3 +63,74 @@ Remote runs should be based on committed and pushed code. If an overlay is unavo
 - See Also: LRN-20260622-001
 
 ---
+
+## [ERR-20260624-001] test_internal_class_name_guess
+
+**Logged**: 2026-06-24T15:30:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: tests
+
+### Summary
+New training-history test failed because it guessed a cipher class name instead of using the actual exported class or factory.
+
+### Error
+```text
+ImportError: cannot import name 'Speck32Cipher' from 'blockcipher_nd.ciphers.arx.speck'
+```
+
+### Context
+- Command attempted: `uv run pytest -q`
+- Test added: `test_training_history_records_train_and_validation_metrics`
+- Mistake: imported non-existent `Speck32Cipher`; the module defines `Speck32_64`.
+
+### Suggested Fix
+When writing tests against project internals, inspect the target module or use stable factory APIs such as `build_cipher` instead of guessing class names from memory.
+
+### Metadata
+- Reproducible: yes
+- Related Files: tests/test_project_structure.py, src/blockcipher_nd/ciphers/arx/speck.py
+- See Also: LRN-20260622-001
+
+### Resolution
+- **Resolved**: 2026-06-24T15:31:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Test import was changed to the actual `Speck32_64` class.
+
+---
+
+## [ERR-20260624-002] parallel_artifact_read_race
+
+**Logged**: 2026-06-24T15:33:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+An artifact verification command read a CSV before the parallel plot generation command had finished creating it.
+
+### Error
+```text
+head: cannot open '/tmp/blockcipher_verify_history.csv' for reading: No such file or directory
+```
+
+### Context
+- Commands attempted in parallel:
+  - `uv run python scripts/plot-results --results ... --history-csv /tmp/blockcipher_verify_history.csv`
+  - `head -5 /tmp/blockcipher_verify_history.csv`
+- The reader command raced ahead of the writer command.
+
+### Suggested Fix
+Do not parallelize dependent artifact producer/consumer commands. Generate artifacts first, then inspect them in a later command.
+
+### Metadata
+- Reproducible: yes
+- Related Files: scripts/plot-results, src/blockcipher_nd/evaluation/plots.py
+- See Also: ERR-20260624-001
+
+### Resolution
+- **Resolved**: 2026-06-24T15:34:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the artifact inspection after plot generation completed.
+
+---

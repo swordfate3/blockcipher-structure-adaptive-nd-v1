@@ -106,13 +106,26 @@ def train_binary_classifier(
             batch_size=config.batch_size,
             device=str(selected_device),
         )
+        train_metrics = evaluate_binary_classifier(
+            model,
+            train_dataset,
+            batch_size=config.batch_size,
+            device=str(selected_device),
+        )
         history.append(
             {
                 "epoch": float(epoch),
                 "train_loss": total_loss / max(1, total_seen),
+                "train_eval_loss": train_metrics["loss"],
+                "train_accuracy": train_metrics["accuracy"],
+                "train_auc": train_metrics["auc"],
+                "train_best_accuracy": train_metrics["best_accuracy"],
+                "train_calibrated_accuracy": train_metrics["calibrated_accuracy"],
                 "val_loss": validation_metrics["loss"],
                 "val_accuracy": validation_metrics["accuracy"],
                 "val_auc": validation_metrics["auc"],
+                "val_best_accuracy": validation_metrics["best_accuracy"],
+                "val_calibrated_accuracy": validation_metrics["calibrated_accuracy"],
                 "learning_rate": current_learning_rate(optimizer),
             }
         )
@@ -142,6 +155,9 @@ def train_binary_classifier(
             epoch=epoch,
             epochs=config.epochs,
             train_loss=history[-1]["train_loss"],
+            train_eval_loss=history[-1]["train_eval_loss"],
+            train_accuracy=history[-1]["train_accuracy"],
+            train_auc=history[-1]["train_auc"],
             val_loss=history[-1]["val_loss"],
             val_accuracy=history[-1]["val_accuracy"],
             val_auc=history[-1]["val_auc"],

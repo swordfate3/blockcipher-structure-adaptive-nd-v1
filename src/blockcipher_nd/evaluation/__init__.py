@@ -1,3 +1,8 @@
+from blockcipher_nd.evaluation.plots import (
+    plot_jsonl_training_curves,
+    training_curve_series,
+    write_history_csv,
+)
 from blockcipher_nd.evaluation.summary import (
     HPARAM_SUMMARY_FIELDS,
     INNOVATION_ONE_GROUP_FIELDS,
@@ -19,5 +24,8 @@ __all__ = [
     "innovation_one_summary_fields",
     "innovation_one_summary_rows",
     "load_jsonl_rows",
+    "plot_jsonl_training_curves",
+    "training_curve_series",
+    "write_history_csv",
     "write_csv_rows",
 ]

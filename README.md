@@ -119,6 +119,7 @@ scripts/
   spn-active-pattern            PRESENT active-pattern 路线
   audit-spn-features            SPN 特征分离审计
   validate-results              结果和计划对齐检查
+  plot-results                  从 JSONL 生成训练曲线 SVG 和 history CSV
   evaluate-zhang-wang-checkpoint
 
 docs/
@@ -164,6 +165,7 @@ flowchart TD
     S --> T[engine.results 组装 JSONL 结果行]
     T --> U[写入 outputs/*.jsonl]
     U --> V[scripts/validate-results 检查结果与计划对齐]
+    U --> W[scripts/plot-results 生成训练曲线 SVG/CSV]
 ```
 
 PRESENT candidate-evidence 等专项路线也遵循相同原则：`scripts/` 只负责进入任务，核心数据集、模型和评估逻辑放在 `src/blockcipher_nd/tasks/innovation1/` 及其下游模块中。
@@ -260,6 +262,15 @@ uv run python scripts/validate-results \
   --output outputs/example_matrix_alignment.json
 ```
 
+从 JSONL 生成训练曲线图和每 epoch 指标 CSV：
+
+```bash
+uv run python scripts/plot-results \
+  --results outputs/example_matrix.jsonl \
+  --output outputs/example_matrix_curves.svg \
+  --history-csv outputs/example_matrix_history.csv
+```
+
 ## 训练数据和缓存
 
 普通小规模训练可以直接使用内存数据集。中等规模或远程训练应使用磁盘缓存，避免一次性在内存中生成全部样本。
@@ -298,6 +309,24 @@ metadata.json
 
 对于配置矩阵实验，建议训练完成后使用 `scripts/validate-results` 做结果-计划对齐检查。
 
+`history` 字段保存逐 epoch 指标，便于观察训练和验证变化。每个 epoch 记录通常包含：
+
+- `epoch`
+- `train_loss`
+- `train_eval_loss`
+- `train_accuracy`
+- `train_auc`
+- `train_best_accuracy`
+- `train_calibrated_accuracy`
+- `val_loss`
+- `val_accuracy`
+- `val_auc`
+- `val_best_accuracy`
+- `val_calibrated_accuracy`
+- `learning_rate`
+
+可以使用 `scripts/plot-results` 从 JSONL 直接生成 SVG 训练曲线，并可选导出扁平化 history CSV。
+
 ## 证据口径
 
 本项目涉及论文实验和远程训练，汇报时必须区分不同证据等级。
@@ -325,6 +354,7 @@ metadata.json
 uv run pytest -q
 uv run python scripts/train --help
 uv run python scripts/spn-candidate-evidence --help
+uv run python scripts/plot-results --help
 ```
 
 ## 当前结构原则
