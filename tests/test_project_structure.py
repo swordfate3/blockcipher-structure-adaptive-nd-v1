@@ -9,10 +9,12 @@ import numpy as np
 from blockcipher_nd.engine.matrix_runner import parse_args
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.engine.modeling import infer_pair_bits
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
 from blockcipher_nd.registry.cipher_factory import build_cipher
+from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
 
 
@@ -174,6 +176,24 @@ def test_zhang_wang_official_anchor_plan_generates_dataset():
     assert dataset.features.shape == (4, 2048)
     assert dataset.metadata["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert set(np.unique(dataset.labels).tolist()) == {0, 1}
+
+
+def test_zhang_wang_official_anchor_model_alias_builds():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+    pair_bits = infer_pair_bits(64, task["feature_encoding"])
+
+    model = build_model(
+        task["model_key"],
+        input_bits=pair_bits * task["pairs_per_sample"],
+        hidden_bits=8,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options=task["model_options"],
+    )
+
+    assert model.__class__.__name__ == "PresentInceptionMCNDDistinguisher"
 
 
 def test_result_plan_alignment_is_planning_api(tmp_path):

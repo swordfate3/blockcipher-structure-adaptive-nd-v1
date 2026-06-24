@@ -33,7 +33,7 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
-    if name == "present_inception_mcnd":
+    if name in {"present_inception_mcnd", "present_zhang_wang_keras_mcnd"}:
         return PresentInceptionMCNDDistinguisher(
             input_bits=input_bits,
             pair_bits=pair_bits or 128,
