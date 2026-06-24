@@ -77,9 +77,9 @@ the checkpoint was loaded with the official `present.py` data generator. A small
 smoke evaluation and a larger `10000` grouped-row confirmation evaluation were
 completed. This still is not an independently verified paper-scale reproduction
 because the confirmation run is below the official validation/evaluation scale.
-This distinction is intentionally mirrored in
-`experiments/innovation1/audit_spn_claim_gate.py` and
-`experiments/innovation1/summarize_spn_route_queue.py`.
+This distinction is intentionally mirrored in the project evidence-gate rules in
+`AGENTS.md` and the Innovation 1 experiment configuration notes under
+`configs/experiment/innovation1/`.
 
 Update on 2026-06-24: the official Case2 r7/m16 checkpoint was evaluated again
 on `1,000,000` raw official-protocol pairs, corresponding to `62,500` grouped
@@ -121,7 +121,7 @@ Size: 8067280 bytes
 Project wrapper:
 
 ```text
-experiments/innovation1/evaluate_zhang_wang_official_checkpoint.py
+scripts/evaluate-zhang-wang-checkpoint
 outputs/zhang_wang_official_checkpoint_audit.json
 outputs/official_checkpoint_audit.json
 outputs/official_checkpoint_eval_smoke_16000.json
@@ -323,8 +323,8 @@ Before treating the Zhang/Wang number as verified, complete this checklist:
   optimizer, cyclic learning-rate schedule, epoch count, batch size, and early
   stopping.
 - Run the official script unchanged and record the achieved r6/r7 metrics.
-- Run `experiments/innovation1/evaluate_zhang_wang_official_checkpoint.py
-  --run-eval` inside an isolated TensorFlow/Keras environment and record the
+- Run `scripts/evaluate-zhang-wang-checkpoint --run-eval` inside an isolated
+  TensorFlow/Keras environment and record the
   checkpoint evaluation accuracy.
 - Run a paper-scale or at least larger checkpoint evaluation using
   `raw_pair_count=1000000` if CPU time is acceptable, or an intermediate
@@ -367,32 +367,124 @@ line-by-line reproduction. The next validation criterion is empirical: 6-round
 PRESENT should separate clearly before spending large GPU time on 7-round or
 8-round experiments.
 
-## Plans
+## PyTorch Official-Protocol Training Track
 
-Smoke plan:
-
-```text
-experiments/innovation1/plans/innovation1_spn_present_zhang_wang2022_mcnd_smoke.csv
-```
-
-Medium plan:
+Current project-side reproduction uses:
 
 ```text
-experiments/innovation1/plans/innovation1_spn_present_zhang_wang2022_mcnd_medium.csv
-```
-
-Medium run protocol:
-
-```text
-rounds: 6, 7
-seeds: 0, 1, 2
-samples_per_class: 8192
-pairs_per_sample: 16
-feature_encoding: ciphertext_pair_bits
+model: present_zhang_wang_keras_mcnd
+sample_structure: zhang_wang_case2_official_mcnd
 negative_mode: encrypted_random_plaintexts
-sample_structure: zhang_wang_case2_mcnd
-key_rotation_interval: 1024
+feature_encoding: ciphertext_pair_bits
+pairs_per_sample: 16
+loss: mse
 ```
+
+Important implementation fixes now in `main`:
+
+```text
+efcc36d fix: match official present mcnd pair keys
+69371d9 fix: add official present keras mcnd model
+```
+
+These align the data protocol and model layout with the official Case2
+checkpoint more closely than the earlier scaffold:
+
+- `zhang_wang_case2_official_mcnd` uses an independent random PRESENT-80 key for
+  every basic ciphertext pair inside the `m=16` sample.
+- `present_zhang_wang_keras_mcnd` follows the official Keras-layout MCND model:
+  grouped pair tensors, nibble/word permutation, `Conv1D` branches with kernel
+  sizes `1/2/4`, five residual convolution blocks, global pooling, and a
+  sigmoid-style binary head.
+
+### Retrieved PyTorch Diagnostics
+
+The old pre-fix 8k/class anchor runs were near random and are useful only as
+diagnostics:
+
+```text
+old model, before per-pair-key fix:
+  r6 accuracy=0.5033, AUC=0.5008
+  r7 accuracy=0.4983, AUC=0.4978
+
+old model, after per-pair-key fix:
+  r6 accuracy=0.5005, AUC=0.4962
+  r7 accuracy=0.4979, AUC=0.4963
+```
+
+After switching to the Keras-layout model, the same 8k/class budget started to
+learn the official-protocol signal:
+
+```text
+run_id: zhang_wang_pytorch_official_anchor_diag20_keraslayout_20260624
+r6 accuracy=0.816406, AUC=0.897294, calibrated_accuracy=0.817871
+r7 accuracy=0.513672, AUC=0.536711, calibrated_accuracy=0.527588
+```
+
+The first retrieved r7 64k/class medium diagnostic completed on 2026-06-24:
+
+```text
+run_id: zhang_wang_present_r7_64k_keraslayout_20260624
+local artifacts: outputs/remote_results/zhang_wang_present_r7_64k_keraslayout_20260624/
+source commit: 69371d9141a7d3798b8b52b6606c57b6f0fdb279
+samples_per_class: 65536
+pairs_per_sample: 16
+batch_size: 512
+learning_rate: 0.0001
+lr_scheduler: none
+checkpoint_metric: val_loss
+restore_best_checkpoint: true
+epochs_ran: 10
+best_epoch: 2
+accuracy: 0.611740
+calibrated_accuracy: 0.614655
+AUC: 0.658023
+best history AUC: 0.674439 at epoch 4
+```
+
+Interpretation:
+
+```text
+This is a medium diagnostic, not formal training and not a successful
+from-scratch reproduction of the 0.7205 paper reference. It is nevertheless a
+strong alignment signal: r7 improved from near-random 8k/class diagnostics to
+AUC 0.658 and calibrated accuracy 0.615 at 65536/class after the pair-key and
+Keras-layout fixes.
+```
+
+The 64k curve also shows training instability: training AUC eventually reaches
+about `0.99`, while validation AUC peaks near `0.674` and threshold accuracy
+falls back toward chance in later epochs. This motivates training-protocol
+alignment before scaling to 1M/class.
+
+### Next Medium Diagnostic
+
+The next planned run is a single-row 262144/class diagnostic:
+
+```text
+plan: configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_262k.csv
+remote config: configs/remote/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_262k_gpu1_20260624.json
+run_id: zhang_wang_present_r7_262k_official_cyclic_20260624
+samples_per_class: 262144
+batch_size: 1024
+lr_scheduler: official_cyclic
+learning_rate: 0.0001
+max_learning_rate: 0.002
+checkpoint_metric: val_auc
+restore_best_checkpoint: true
+```
+
+This run tests three changes together against the retrieved 64k result:
+
+- use an official-style 10-epoch high-to-low cyclic learning-rate schedule;
+- select the checkpoint by `val_auc` rather than `val_loss`;
+- increase batch size from `512` to `1024`.
+
+The expected status remains `MEDIUM diagnostic`. If it moves calibrated accuracy
+toward roughly `0.66-0.69`, the next step is a larger `>=1000000/class`
+multi-seed formal reproduction attempt. If it stalls far below the checkpoint
+reference, inspect remaining official-training differences before spending 1M
+scale budget.
 
 ## Interpretation Rules
 

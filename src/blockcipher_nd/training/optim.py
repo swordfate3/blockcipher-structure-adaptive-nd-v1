@@ -47,6 +47,36 @@ class Lion(torch.optim.Optimizer):
         return loss
 
 
+class OfficialEpochCyclicLR:
+    """Zhang/Wang-style epoch LR cycle: high to low over a fixed epoch window."""
+
+    def __init__(
+        self,
+        optimizer: torch.optim.Optimizer,
+        *,
+        base_lr: float,
+        max_lr: float,
+        cycle_epochs: int = 10,
+    ) -> None:
+        self.optimizer = optimizer
+        self.base_lr = float(base_lr)
+        self.max_lr = float(max_lr)
+        self.cycle_epochs = max(1, int(cycle_epochs))
+
+    def step_epoch(self, epoch: int) -> None:
+        position = (max(1, epoch) - 1) % self.cycle_epochs
+        if self.cycle_epochs == 1:
+            lr = self.base_lr
+        else:
+            fraction = position / float(self.cycle_epochs - 1)
+            lr = self.max_lr - fraction * (self.max_lr - self.base_lr)
+        for group in self.optimizer.param_groups:
+            group["lr"] = lr
+
+    def step(self) -> None:
+        return None
+
+
 def make_loss(loss: str) -> nn.Module:
     if loss == "bce":
         return nn.BCEWithLogitsLoss()
@@ -92,9 +122,16 @@ def make_scheduler(
     optimizer: torch.optim.Optimizer,
     config: TrainingConfig,
     train_size: int,
-) -> torch.optim.lr_scheduler.LRScheduler | None:
+) -> torch.optim.lr_scheduler.LRScheduler | OfficialEpochCyclicLR | None:
     if config.lr_scheduler == "none":
         return None
+    if config.lr_scheduler == "official_cyclic":
+        return OfficialEpochCyclicLR(
+            optimizer,
+            base_lr=config.learning_rate,
+            max_lr=config.max_learning_rate or config.learning_rate * 20.0,
+            cycle_epochs=10,
+        )
     if config.lr_scheduler == "cyclic":
         steps_per_epoch = max(1, (train_size + config.batch_size - 1) // config.batch_size)
         return torch.optim.lr_scheduler.CyclicLR(

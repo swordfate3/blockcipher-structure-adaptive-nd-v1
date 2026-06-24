@@ -9,6 +9,7 @@ from blockcipher_nd.data.differential import DifferentialDataset, DiskDifferenti
 from blockcipher_nd.training.data import make_loader, select_device
 from blockcipher_nd.training.metrics import evaluate_binary_classifier
 from blockcipher_nd.training.optim import (
+    OfficialEpochCyclicLR,
     compute_loss,
     current_learning_rate,
     make_loss,
@@ -57,6 +58,8 @@ def train_binary_classifier(
     epochs_without_improvement = 0
     stopped_epoch = 0
     for epoch in range(1, config.epochs + 1):
+        if isinstance(scheduler, OfficialEpochCyclicLR):
+            scheduler.step_epoch(epoch)
         emit_progress(
             progress_callback,
             "epoch_start",
@@ -75,7 +78,7 @@ def train_binary_classifier(
             loss = compute_loss(loss_fn, logits, labels, config.loss)
             loss.backward()
             optimizer.step()
-            if scheduler is not None:
+            if scheduler is not None and not isinstance(scheduler, OfficialEpochCyclicLR):
                 scheduler.step()
             total_loss += float(loss.detach().cpu()) * len(labels)
             total_seen += len(labels)

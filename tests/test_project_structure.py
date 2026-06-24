@@ -28,6 +28,49 @@ def test_matrix_runner_lives_in_engine_package():
     assert args.learning_rate == 1e-3
 
 
+def test_official_epoch_cyclic_lr_matches_zhang_wang_schedule():
+    from blockcipher_nd.training.optim import make_scheduler
+    from blockcipher_nd.training.types import TrainingConfig
+
+    model = torch.nn.Linear(1, 1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    config = TrainingConfig(
+        epochs=12,
+        batch_size=4,
+        learning_rate=0.0001,
+        lr_scheduler="official_cyclic",
+        max_learning_rate=0.002,
+    )
+    scheduler = make_scheduler(optimizer, config, train_size=16)
+
+    observed = []
+    for epoch in range(1, 12):
+        scheduler.step_epoch(epoch)
+        observed.append(round(optimizer.param_groups[0]["lr"], 10))
+
+    assert observed[0] == 0.002
+    assert observed[9] == 0.0001
+    assert observed[10] == 0.002
+    assert observed[:10] == sorted(observed[:10], reverse=True)
+
+
+def test_zhang_wang_262k_official_cyclic_plan_is_medium_diagnostic():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_262k.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+
+    assert task["rounds"] == 7
+    assert task["samples_per_class"] == 262144
+    assert task["pairs_per_sample"] == 16
+    assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+    assert task["model_key"] == "present_zhang_wang_keras_mcnd"
+    assert task["lr_scheduler"] == "official_cyclic"
+    assert task["max_learning_rate"] == 0.002
+    assert task["checkpoint_metric"] == "val_auc"
+    assert task["restore_best_checkpoint"] is True
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()

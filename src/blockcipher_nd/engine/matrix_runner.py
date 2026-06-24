@@ -54,7 +54,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--lr-scheduler",
         default="none",
-        choices=["none", "cyclic", "cosine_warmup"],
+        choices=["none", "cyclic", "cosine_warmup", "official_cyclic"],
         help="Optional learning-rate scheduler.",
     )
     parser.add_argument(
