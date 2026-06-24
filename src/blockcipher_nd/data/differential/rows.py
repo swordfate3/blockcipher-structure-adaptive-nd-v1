@@ -19,7 +19,7 @@ def generate_positive_row(
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_positive_row(config, rng, block_bits, mask, row_index)
-    if config.sample_structure == "zhang_wang_case2_independent_mcnd":
+    if config.sample_structure in {"zhang_wang_case2_independent_mcnd", "zhang_wang_case2_official_mcnd"}:
         return _generate_independent_positive_row(config, rng, block_bits, mask, row_index)
     return _generate_independent_positive_row(config, rng, block_bits, mask, row_index)
 
@@ -34,7 +34,7 @@ def generate_negative_row(
         return _generate_integral_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_negative_row(config, rng, block_bits, row_index)
-    if config.sample_structure == "zhang_wang_case2_independent_mcnd":
+    if config.sample_structure in {"zhang_wang_case2_independent_mcnd", "zhang_wang_case2_official_mcnd"}:
         return _generate_independent_negative_row(config, rng, block_bits, row_index)
     return _generate_independent_negative_row(config, rng, block_bits, row_index)
 

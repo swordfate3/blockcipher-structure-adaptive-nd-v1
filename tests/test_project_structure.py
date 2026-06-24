@@ -7,8 +7,12 @@ from pathlib import Path
 import numpy as np
 
 from blockcipher_nd.engine.matrix_runner import parse_args
+from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
+from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
+from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
+from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
 
 
@@ -145,6 +149,31 @@ def test_candidate_evidence_cache_writes_and_reuses(tmp_path):
     progress_text = progress_path.read_text(encoding="utf-8")
     assert "candidate_cache_done" in progress_text
     assert "candidate_cache_reuse" in progress_text
+
+
+def test_zhang_wang_official_anchor_plan_generates_dataset():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+    cipher = build_cipher(task["cipher_key"], rounds=task["rounds"], key=task["train_key"])
+
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=task["input_difference"],
+            samples_per_class=2,
+            seed=task["seed"],
+            feature_encoding=task["feature_encoding"],
+            pairs_per_sample=task["pairs_per_sample"],
+            negative_mode=task["negative_mode"],
+            sample_structure=task["sample_structure"],
+        )
+    )
+
+    assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert dataset.features.shape == (4, 2048)
+    assert dataset.metadata["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert set(np.unique(dataset.labels).tolist()) == {0, 1}
 
 
 def test_result_plan_alignment_is_planning_api(tmp_path):

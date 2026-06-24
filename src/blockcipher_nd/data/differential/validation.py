@@ -16,6 +16,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "zhang_wang_case2_mcnd",
         "zhang_wang_case2_independent_mcnd",
+        "zhang_wang_case2_official_mcnd",
     }:
         raise ValueError(f"unsupported sample_structure: {config.sample_structure}")
     if config.sample_structure == "plaintext_integral_nibble":
@@ -26,7 +27,11 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         max_nibble = config.cipher.block_bits // 4
         if config.integral_active_nibble < 0 or config.integral_active_nibble >= max_nibble:
             raise ValueError("integral_active_nibble is outside the cipher block")
-    if config.sample_structure in {"zhang_wang_case2_mcnd", "zhang_wang_case2_independent_mcnd"} and config.pairs_per_sample < 1:
+    if config.sample_structure in {
+        "zhang_wang_case2_mcnd",
+        "zhang_wang_case2_independent_mcnd",
+        "zhang_wang_case2_official_mcnd",
+    } and config.pairs_per_sample < 1:
         raise ValueError(f"{config.sample_structure} requires pairs_per_sample >= 1")
     base_pair_bits = pair_bits_for_encoding(config.cipher.block_bits, config.feature_encoding)
     for index in config.selected_bit_indices:

@@ -126,6 +126,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "plaintext_integral_nibble",
             "zhang_wang_case2_mcnd",
             "zhang_wang_case2_independent_mcnd",
+            "zhang_wang_case2_official_mcnd",
         ],
         help="How multiple pairs inside one sample are organized.",
     )
