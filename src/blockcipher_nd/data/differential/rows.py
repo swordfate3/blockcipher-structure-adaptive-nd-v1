@@ -4,7 +4,7 @@ import numpy as np
 
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.encoding import encode_pair
-from blockcipher_nd.data.differential.keys import cipher_for_row
+from blockcipher_nd.data.differential.keys import cipher_for_row, random_cipher_for_pair
 from blockcipher_nd.data.differential.random import random_int
 
 
@@ -19,7 +19,9 @@ def generate_positive_row(
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_positive_row(config, rng, block_bits, mask, row_index)
-    if config.sample_structure in {"zhang_wang_case2_independent_mcnd", "zhang_wang_case2_official_mcnd"}:
+    if config.sample_structure == "zhang_wang_case2_official_mcnd":
+        return _generate_official_mcnd_positive_row(config, rng, block_bits, mask)
+    if config.sample_structure == "zhang_wang_case2_independent_mcnd":
         return _generate_independent_positive_row(config, rng, block_bits, mask, row_index)
     return _generate_independent_positive_row(config, rng, block_bits, mask, row_index)
 
@@ -34,7 +36,9 @@ def generate_negative_row(
         return _generate_integral_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_negative_row(config, rng, block_bits, row_index)
-    if config.sample_structure in {"zhang_wang_case2_independent_mcnd", "zhang_wang_case2_official_mcnd"}:
+    if config.sample_structure == "zhang_wang_case2_official_mcnd":
+        return _generate_official_mcnd_negative_row(config, rng, block_bits)
+    if config.sample_structure == "zhang_wang_case2_independent_mcnd":
         return _generate_independent_negative_row(config, rng, block_bits, row_index)
     return _generate_independent_negative_row(config, rng, block_bits, row_index)
 
@@ -70,6 +74,44 @@ def _generate_independent_negative_row(
             ciphertext_a = random_int(rng, block_bits)
             ciphertext_b = random_int(rng, block_bits)
         else:
+            plaintext_a = random_int(rng, block_bits)
+            plaintext_b = random_int(rng, block_bits)
+            ciphertext_a = cipher.encrypt(plaintext_a)
+            ciphertext_b = cipher.encrypt(plaintext_b)
+        encoded_pairs.extend(encode_pair(ciphertext_a, ciphertext_b, block_bits, config, cipher))
+    return encoded_pairs
+
+
+def _generate_official_mcnd_positive_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    mask: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    for _pair_index in range(config.pairs_per_sample):
+        cipher = random_cipher_for_pair(config, rng)
+        plaintext = random_int(rng, block_bits)
+        paired = (plaintext ^ config.input_difference) & mask
+        ciphertext_a = cipher.encrypt(plaintext)
+        ciphertext_b = cipher.encrypt(paired)
+        encoded_pairs.extend(encode_pair(ciphertext_a, ciphertext_b, block_bits, config, cipher))
+    return encoded_pairs
+
+
+def _generate_official_mcnd_negative_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    for _pair_index in range(config.pairs_per_sample):
+        if config.negative_mode == "random_ciphertext":
+            ciphertext_a = random_int(rng, block_bits)
+            ciphertext_b = random_int(rng, block_bits)
+            cipher = config.cipher
+        else:
+            cipher = random_cipher_for_pair(config, rng)
             plaintext_a = random_int(rng, block_bits)
             plaintext_b = random_int(rng, block_bits)
             ciphertext_a = cipher.encrypt(plaintext_a)

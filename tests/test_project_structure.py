@@ -175,7 +175,47 @@ def test_zhang_wang_official_anchor_plan_generates_dataset():
     assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert dataset.features.shape == (4, 2048)
     assert dataset.metadata["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert dataset.metadata["key_schedule"] == "per_pair_random"
     assert set(np.unique(dataset.labels).tolist()) == {0, 1}
+
+
+def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
+    from blockcipher_nd.ciphers.spn.present import Present80
+
+    observed_keys: list[int] = []
+    original_encrypt = Present80.encrypt
+
+    def record_key(self, plaintext):
+        observed_keys.append(self.key)
+        return original_encrypt(self, plaintext)
+
+    monkeypatch.setattr(Present80, "encrypt", record_key)
+    cipher = build_cipher("present80", rounds=7, key=0)
+
+    make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x9,
+            samples_per_class=1,
+            seed=0,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="zhang_wang_case2_official_mcnd",
+        )
+    )
+
+    positive_keys = observed_keys[:32]
+    negative_keys = observed_keys[32:]
+    assert len(positive_keys) == 32
+    assert len(negative_keys) == 32
+    assert len(set(positive_keys[::2])) == 16
+    assert len(set(negative_keys[::2])) == 16
+    for pair_index in range(16):
+        offset = pair_index * 2
+        assert positive_keys[offset] == positive_keys[offset + 1]
+        assert negative_keys[offset] == negative_keys[offset + 1]
 
 
 def test_zhang_wang_official_anchor_model_alias_builds():

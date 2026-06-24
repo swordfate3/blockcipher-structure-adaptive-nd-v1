@@ -16,6 +16,13 @@ def cipher_for_row(config: DifferentialDatasetConfig, rng: np.random.Generator, 
     return _cipher_with_key(config.cipher, row_key)
 
 
+def random_cipher_for_pair(config: DifferentialDatasetConfig, rng: np.random.Generator):
+    if not hasattr(config.cipher, "key_bits"):
+        raise ValueError("random pair key schedule requires cipher.key_bits")
+    pair_key = random_int(rng, int(config.cipher.key_bits))
+    return _cipher_with_key(config.cipher, pair_key)
+
+
 def _key_for_block(config: DifferentialDatasetConfig, rng: np.random.Generator, block_index: int) -> int:
     if not hasattr(config.cipher, "key_bits"):
         raise ValueError("rotating key schedule requires cipher.key_bits")
