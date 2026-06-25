@@ -134,6 +134,29 @@ def test_present_nibble_paligned_mcnd_64k_screen_plan_is_same_budget_diagnostic(
         assert "MEDIUM 65536/class diagnostic" in task["matching_evidence"]
 
 
+def test_present_nibble_paligned_mcnd_262k_scalecheck_plan_is_same_budget_diagnostic():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_262k_scalecheck.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_paligned_mcnd",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class diagnostic" in task["matching_evidence"]
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()
