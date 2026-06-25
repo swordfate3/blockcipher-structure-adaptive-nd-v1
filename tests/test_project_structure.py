@@ -25,12 +25,15 @@ from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candida
 
 
 def test_matrix_runner_lives_in_engine_package():
-    args = parse_args(["--ciphers", "speck32", "--models", "mlp", "--rounds", "1"])
+    args = parse_args(
+        ["--ciphers", "speck32", "--models", "mlp", "--rounds", "1", "--dataset-cache-workers", "2"]
+    )
 
     assert args.ciphers == ["speck32"]
     assert args.models == ["mlp"]
     assert args.rounds == [1]
     assert args.learning_rate == 1e-3
+    assert args.dataset_cache_workers == 2
 
 
 def test_official_epoch_cyclic_lr_matches_zhang_wang_schedule():

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 import json
 from pathlib import Path
 from typing import Any, Callable
@@ -23,12 +24,15 @@ def make_chunked_differential_dataset(
     *,
     cache_dir: str | Path,
     chunk_size: int = 8192,
+    workers: int = 1,
     reuse: bool = True,
     progress_callback: ProgressCallback | None = None,
     progress_context: dict[str, Any] | None = None,
 ) -> DiskDifferentialDataset:
     if chunk_size < 1:
         raise ValueError("chunk_size must be at least 1")
+    if workers < 1:
+        raise ValueError("workers must be at least 1")
     validate_differential_config(config)
 
     cache_path = Path(cache_dir)
@@ -52,6 +56,7 @@ def make_chunked_differential_dataset(
                 total_rows=total_rows,
                 input_bits=input_bits,
                 chunk_size=chunk_size,
+                workers=workers,
             )
             features = np.load(features_path, mmap_mode="r")
             labels = np.load(labels_path, mmap_mode="r")
@@ -72,6 +77,7 @@ def make_chunked_differential_dataset(
         total_rows=total_rows,
         input_bits=input_bits,
         chunk_size=chunk_size,
+        workers=workers,
         requested_shuffle=config.shuffle,
         physical_shuffle=False,
     )
@@ -87,20 +93,21 @@ def make_chunked_differential_dataset(
         dtype=np.uint8,
         shape=(total_rows,),
     )
-    rng = np.random.default_rng(config.seed)
     block_bits = config.cipher.block_bits
     mask = (1 << block_bits) - 1
+    rng = np.random.default_rng(config.seed)
 
     row_index = 0
-    for start in range(0, config.samples_per_class, chunk_size):
-        count = min(chunk_size, config.samples_per_class - start)
-        chunk = _generate_chunk(
-            count=count,
-            input_bits=input_bits,
-            row_factory=lambda offset: generate_positive_row(
-                config, rng, block_bits, mask, row_index=start + offset
-            ),
-        )
+    for start, count, chunk in _iter_generated_chunks(
+        config=config,
+        rng=rng,
+        input_bits=input_bits,
+        block_bits=block_bits,
+        mask=mask,
+        chunk_size=chunk_size,
+        workers=workers,
+        label=1,
+    ):
         features[row_index : row_index + count] = chunk
         labels[row_index : row_index + count] = 1
         row_index += count
@@ -116,15 +123,16 @@ def make_chunked_differential_dataset(
             chunk_rows=count,
         )
 
-    for start in range(0, config.samples_per_class, chunk_size):
-        count = min(chunk_size, config.samples_per_class - start)
-        chunk = _generate_chunk(
-            count=count,
-            input_bits=input_bits,
-            row_factory=lambda offset: generate_negative_row(
-                config, rng, block_bits, row_index=start + offset
-            ),
-        )
+    for start, count, chunk in _iter_generated_chunks(
+        config=config,
+        rng=rng,
+        input_bits=input_bits,
+        block_bits=block_bits,
+        mask=mask,
+        chunk_size=chunk_size,
+        workers=workers,
+        label=0,
+    ):
         features[row_index : row_index + count] = chunk
         labels[row_index : row_index + count] = 0
         row_index += count
@@ -154,6 +162,7 @@ def make_chunked_differential_dataset(
         "total_rows": total_rows,
         "input_bits": input_bits,
         "generation_chunk_size": chunk_size,
+        "generation_workers": workers,
         "cache_status": "created",
         "requested_shuffle": config.shuffle,
         "physical_shuffle": False,
@@ -175,6 +184,93 @@ def make_chunked_differential_dataset(
         metadata=metadata,
         cache_dir=cache_path,
     )
+
+
+def _iter_generated_chunks(
+    *,
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    input_bits: int,
+    block_bits: int,
+    mask: int,
+    chunk_size: int,
+    workers: int,
+    label: int,
+):
+    specs = [
+        (start, min(chunk_size, config.samples_per_class - start))
+        for start in range(0, config.samples_per_class, chunk_size)
+    ]
+    if workers == 1:
+        for start, count in specs:
+            yield start, count, _generate_chunk(
+                count=count,
+                input_bits=input_bits,
+                row_factory=_row_factory(config, rng, block_bits, mask, start, label),
+            )
+        return
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [
+            executor.submit(
+                _generate_chunk_worker,
+                config,
+                input_bits,
+                block_bits,
+                mask,
+                start,
+                count,
+                label,
+            )
+            for start, count in specs
+        ]
+        for (start, count), future in zip(specs, futures):
+            yield start, count, future.result()
+
+
+def _generate_chunk_worker(
+    config: DifferentialDatasetConfig,
+    input_bits: int,
+    block_bits: int,
+    mask: int,
+    start: int,
+    count: int,
+    label: int,
+) -> np.ndarray:
+    rng = np.random.default_rng(_chunk_seed(config.seed, start, label))
+    return _generate_chunk(
+        count=count,
+        input_bits=input_bits,
+        row_factory=_row_factory(config, rng, block_bits, mask, start, label),
+    )
+
+
+def _row_factory(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    mask: int,
+    start: int,
+    label: int,
+) -> Callable[[int], list[int]]:
+    if label == 1:
+        return lambda offset: generate_positive_row(
+            config,
+            rng,
+            block_bits,
+            mask,
+            row_index=start + offset,
+        )
+    return lambda offset: generate_negative_row(
+        config,
+        rng,
+        block_bits,
+        row_index=start + offset,
+    )
+
+
+def _chunk_seed(seed: int, start: int, label: int) -> int:
+    return seed + 1_000_003 * (start + 1) + 97_531 * label
 
 
 def _generate_chunk(

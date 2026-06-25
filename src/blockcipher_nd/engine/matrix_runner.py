@@ -164,6 +164,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Rows per class generated before flushing to dataset cache.",
     )
     parser.add_argument(
+        "--dataset-cache-workers",
+        type=int,
+        default=1,
+        help=(
+            "Worker processes used for disk-backed dataset generation. "
+            "The default 1 preserves the historical deterministic row stream."
+        ),
+    )
+    parser.add_argument(
         "--progress-output",
         default=None,
         help="Optional JSONL path for run progress events.",

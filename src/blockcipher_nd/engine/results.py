@@ -56,6 +56,7 @@ def build_task_result(
             **training_result.metadata,
             "dataset_cache_root": args.dataset_cache_root,
             "dataset_cache_chunk_size": args.dataset_cache_chunk_size if args.dataset_cache_root else None,
+            "dataset_cache_workers": args.dataset_cache_workers if args.dataset_cache_root else None,
             "input_bits": int(train_dataset.features.shape[1]),
             "feature_encoding": task["feature_encoding"],
             "pairs_per_sample": task["pairs_per_sample"],

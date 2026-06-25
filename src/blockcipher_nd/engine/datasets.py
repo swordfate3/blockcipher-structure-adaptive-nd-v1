@@ -28,6 +28,7 @@ def make_task_dataset(
         config,
         cache_dir=dataset_cache_dir(Path(args.dataset_cache_root), task, config, split),
         chunk_size=args.dataset_cache_chunk_size,
+        workers=args.dataset_cache_workers,
         progress_callback=progress_callback(
             progress_path,
             "dataset_cache",

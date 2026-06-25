@@ -280,6 +280,7 @@ uv run python scripts/plot-results \
 ```bash
 --dataset-cache-root outputs/dataset_cache/example
 --dataset-cache-chunk-size 8192
+--dataset-cache-workers 1
 --progress-output outputs/example_progress.jsonl
 ```
 
@@ -290,6 +291,8 @@ features.npy
 labels.npy
 metadata.json
 ```
+
+`--dataset-cache-workers` 用于并行生成 chunk。默认值为 `1`，保持历史单进程生成流；需要更快生成大规模样本时可以显式设为 `2`、`4` 或更高。多进程模式会为每个 chunk 使用独立随机流，适合新的 scale-check/筛选实验；若要严格复现旧单进程数据流，应保持默认值。
 
 缓存复用依赖完整 metadata 匹配，包括 cipher、rounds、seed、input_difference、feature_encoding、negative_mode、sample_structure、key_rotation_interval、selected_bit_indices 等关键字段。
 
