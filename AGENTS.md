@@ -21,6 +21,12 @@
 - Do not mix benchmark changes with model or feature changes unless the user explicitly asks to redesign the benchmark. Preserve validation data, labels, negative-sample definition, metric computation, and plan-alignment logic for comparable experiments.
 - Validate with the narrowest meaningful command or test before reporting completion. If validation fails, debug the actual failure rather than guessing or broadening the change.
 
+## Documentation Organization
+
+- New formal experiment plans, reproduction records, result analyses, and next-step execution plans belong under `docs/experiments/`.
+- New research blueprints, literature syntheses, theory notes, and broad method proposals belong under `docs/research/`.
+- Historical agent execution plans may remain under `docs/superpowers/plans/`, or be migrated to `docs/archive/agent-plans/` if the archive is reorganized. Do not create new current experiment plans under `docs/superpowers/`.
+
 ## Remote Windows GPU Rules
 
 - Remote workstation alias: `lxy-a6000`. Project-owned remote workspace and run artifacts must stay under `G:\lxy`.

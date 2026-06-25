@@ -403,3 +403,42 @@ Promote a concise version to `AGENTS.md` under a project research execution sect
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260625-002] best_practice
+
+**Logged**: 2026-06-25T16:10:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Use clear documentation destinations: formal experiment plans in `docs/experiments/`, research blueprints in `docs/research/`, and historical agent plans only in archive-style locations.
+
+### Details
+The user clarified the intended documentation organization after discussing whether `$using-superpowers` creates Markdown plans under `docs/superpowers/`. The correct project convention is:
+
+- New formal experiment plans, reproduction records, result analyses, and next-step execution plans belong under `docs/experiments/`.
+- New research blueprints, literature syntheses, theory notes, and broad method proposals belong under `docs/research/`.
+- Historical agent execution plans may remain under `docs/superpowers/plans/`, or be migrated to `docs/archive/agent-plans/` if the archive is reorganized.
+
+This separates current project-facing research artifacts from historical superpowers/planning workflow outputs. In particular, do not create new current experiment plans under `docs/superpowers/`; that directory should be treated as historical plan archive unless explicitly reorganized.
+
+### Suggested Action
+Promote this convention to `AGENTS.md` under documentation organization. When writing new project docs, choose the destination before creating the file:
+
+- `docs/experiments/` for executable experiment plans and result records.
+- `docs/research/` for broad research strategy and literature-backed blueprints.
+- `docs/superpowers/plans/` or `docs/archive/agent-plans/` only for historical agent execution plans.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, docs/research/, docs/superpowers/plans/
+- Tags: docs, documentation-organization, experiments, research, archive, superpowers
+- See Also: LRN-20260625-001
+- Pattern-Key: docs.destination.experiments_research_agent_archive
+- Recurrence-Count: 1
+- First-Seen: 2026-06-25
+- Last-Seen: 2026-06-25
+- Promoted: AGENTS.md
+
+---
