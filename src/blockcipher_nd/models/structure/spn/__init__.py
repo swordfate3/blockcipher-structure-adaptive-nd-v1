@@ -31,6 +31,9 @@ from blockcipher_nd.models.structure.spn.present_inception_mcnd import (
 from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
     PresentZhangWangKerasMCNDDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+    PresentNibblePAlignedMCNDDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
@@ -52,6 +55,7 @@ __all__ = [
     "PresentInceptionMCNDMatrixDistinguisher",
     "PresentInceptionMCNDPairStackMatrixDistinguisher",
     "PresentZhangWangKerasMCNDDistinguisher",
+    "PresentNibblePAlignedMCNDDistinguisher",
     "SpnCellPairSetDBitNetDistinguisher",
     "SpnNibbleConvPairSetDistinguisher",
     "SpnTokenMixerBlock",

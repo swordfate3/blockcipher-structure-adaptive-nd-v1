@@ -52,7 +52,8 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
                 for index in range(blocks)
             ]
         )
-        self.classifier = nn.Linear(self.channels, 1)
+        self.embedding_bits = self.channels
+        self.classifier = nn.Linear(self.embedding_bits, 1)
 
     def set_cipher_structure(self, structure: str) -> None:
         return None
@@ -61,6 +62,9 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
         return None
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return self.classifier(self.encode(features))
+
+    def encode(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
             raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
         hidden = features.float().reshape(features.shape[0], self.pairs_per_sample, 8, 16)
@@ -69,8 +73,7 @@ class PresentZhangWangKerasMCNDDistinguisher(nn.Module):
         hidden = self.initial_activation(self.initial_norm(hidden))
         for block in self.residual_blocks:
             hidden = block(hidden)
-        pooled = hidden.mean(dim=(1, 2))
-        return self.classifier(pooled)
+        return hidden.mean(dim=(1, 2))
 
 
 class _ZhangWangResidualBlock(nn.Module):

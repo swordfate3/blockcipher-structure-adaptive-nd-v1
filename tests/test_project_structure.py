@@ -95,6 +95,23 @@ def test_zhang_wang_1m_official_cyclic_plan_is_single_seed_paper_scale():
     assert "SINGLE_SEED" in task["matching_evidence"]
 
 
+def test_present_nibble_paligned_mcnd_smoke_plan_preserves_official_protocol():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+
+    assert task["rounds"] == 7
+    assert task["samples_per_class"] == 8
+    assert task["pairs_per_sample"] == 16
+    assert task["feature_encoding"] == "ciphertext_pair_bits"
+    assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+    assert task["model_key"] == "present_nibble_paligned_mcnd"
+    assert task["model_options"]["blocks"] == 1
+    assert task["model_options"]["spn_mixer_depth"] == 1
+    assert "SMOKE only" in task["matching_evidence"]
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()
@@ -267,6 +284,36 @@ def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():
     assert words[1] == cipher.inverse_permutation_layer(left ^ right)
 
 
+def test_present_nibble_paligned_mcnd_derives_same_spn_view_as_feature_encoder():
+    from blockcipher_nd.features.encoders.bitwise import pair_to_bits
+    from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+        PresentNibblePAlignedMCNDDistinguisher,
+    )
+
+    cipher = build_cipher("present80", rounds=7, key=0)
+    left = 0x0123456789ABCDEF
+    right = 0x1111111111111111
+    model = PresentNibblePAlignedMCNDDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        blocks=1,
+        spn_mixer_depth=1,
+    )
+    raw = torch.tensor([pair_to_bits(left, right, 64)], dtype=torch.float32)
+    expected = encode_ciphertext_pair(
+        left,
+        right,
+        width=64,
+        feature_encoding="present_nibble_paligned_view",
+        cipher=cipher,
+    )
+
+    observed = model._present_nibble_paligned_view(raw).reshape(-1).to(torch.uint8).tolist()
+
+    assert observed == expected
+
+
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
     from blockcipher_nd.ciphers.spn.present import Present80
 
@@ -324,6 +371,23 @@ def test_zhang_wang_official_anchor_model_alias_builds():
     assert model.__class__.__name__ == "PresentZhangWangKerasMCNDDistinguisher"
     with torch.no_grad():
         logits = model(torch.zeros(2, pair_bits * task["pairs_per_sample"]))
+    assert logits.shape == (2, 1)
+
+
+def test_present_nibble_paligned_mcnd_model_alias_builds():
+    pair_bits = infer_pair_bits(64, "ciphertext_pair_bits")
+    model = build_model(
+        "present_nibble_paligned_mcnd",
+        input_bits=pair_bits * 16,
+        hidden_bits=4,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={"blocks": 1, "spn_mixer_depth": 1},
+    )
+
+    assert model.__class__.__name__ == "PresentNibblePAlignedMCNDDistinguisher"
+    with torch.no_grad():
+        logits = model(torch.zeros(2, pair_bits * 16))
     assert logits.shape == (2, 1)
 
 
