@@ -106,12 +106,28 @@ def best_threshold_accuracy_and_threshold(
 ) -> tuple[float, float]:
     if len(labels) == 0:
         return 0.0, 0.5
-    thresholds = np.unique(scores)
+    order = np.argsort(scores, kind="mergesort")
+    sorted_scores = scores[order]
+    sorted_labels = labels[order].astype(np.float32, copy=False)
+    thresholds, start_indices, counts = np.unique(
+        sorted_scores,
+        return_index=True,
+        return_counts=True,
+    )
+    positive_by_threshold = np.add.reduceat(sorted_labels, start_indices)
+    negative_by_threshold = counts.astype(np.float64) - positive_by_threshold
+    suffix_positive = np.cumsum(positive_by_threshold[::-1])[::-1]
+    suffix_negative = np.cumsum(negative_by_threshold[::-1])[::-1]
+    total_negative = float((labels == 0).sum())
+
     best = 0.0
     best_threshold = 0.5
-    for threshold in thresholds:
-        predictions = (scores >= threshold).astype(np.float32)
-        accuracy = float((predictions == labels).mean())
+    total = float(len(labels))
+    for index, threshold in enumerate(thresholds):
+        true_positive = suffix_positive[index]
+        false_positive = suffix_negative[index]
+        true_negative = total_negative - false_positive
+        accuracy = float((true_positive + true_negative) / total)
         if accuracy > best:
             best = accuracy
             best_threshold = float(threshold)
