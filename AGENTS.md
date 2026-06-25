@@ -21,6 +21,11 @@
 - Do not mix benchmark changes with model or feature changes unless the user explicitly asks to redesign the benchmark. Preserve validation data, labels, negative-sample definition, metric computation, and plan-alignment logic for comparable experiments.
 - Validate with the narrowest meaningful command or test before reporting completion. If validation fails, debug the actual failure rather than guessing or broadening the change.
 
+## Factual Reporting Discipline
+
+- Before answering what the project currently uses or how a feature is implemented, inspect the relevant source, config, dependency files, logs, or artifacts first. Do not answer from expectation or memory for dependencies, plotting/rendering libraries, training protocols, remote scripts, artifact paths, experiment status, checkpoint selection, or metrics.
+- If a current-state answer has not been verified in files or command output, either check it before reporting or explicitly label it as an assumption. When a prior statement is wrong, correct it plainly and distinguish the old false claim from the newly verified state.
+
 ## Documentation Organization
 
 - New formal experiment plans, reproduction records, result analyses, and next-step execution plans belong under `docs/experiments/`.

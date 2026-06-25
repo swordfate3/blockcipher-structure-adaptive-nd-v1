@@ -442,3 +442,40 @@ Promote this convention to `AGENTS.md` under documentation organization. When wr
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260625-003] correction
+
+**Logged**: 2026-06-25T20:30:07+08:00
+**Priority**: critical
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Do not answer project implementation or tooling facts from memory; inspect source, config, logs, or artifacts before reporting them.
+
+### Details
+The user corrected a hallucinated implementation claim: the assistant previously stated that project plotting already used Matplotlib, but the actual implementation at that time was hand-written SVG in `src/blockcipher_nd/evaluation/plots.py`. The later visualization change did convert plotting to Matplotlib, but the earlier answer was still wrong because it was made without first checking the code.
+
+Correct behavior:
+
+- Before saying "the project currently uses X" or "this is implemented by Y", inspect relevant files with `rg`, `sed`, config/lockfile reads, tests, logs, or result artifacts.
+- This applies especially to dependencies, plotting/rendering libraries, training protocols, remote launch scripts, artifact paths, experiment status, metrics, checkpoint selection, and result gates.
+- If the evidence has not been checked in the current turn or handoff, state that the answer is an assumption or check before reporting.
+- When a prior statement is found to be wrong, correct it explicitly and separate the old false claim from the newly verified state.
+- Do not rely on a recent memory of a change unless the repository state or command output confirms it.
+
+### Suggested Action
+Promote a concise factual-reporting rule to `AGENTS.md`. For future implementation/status answers, first cite or consult the relevant source/config/artifact. If verification is not possible, qualify the uncertainty instead of making a definitive claim.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, src/blockcipher_nd/evaluation/plots.py, pyproject.toml, uv.lock, scripts/plot-results
+- Tags: hallucination, factual-reporting, source-verification, implementation-facts, visualization
+- See Also: LRN-20260624-001, LRN-20260625-001
+- Pattern-Key: workflow.factual_reporting.verify_before_claim
+- Recurrence-Count: 1
+- First-Seen: 2026-06-25
+- Last-Seen: 2026-06-25
+- Promoted: AGENTS.md
+
+---
