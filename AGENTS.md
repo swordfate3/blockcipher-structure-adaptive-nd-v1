@@ -13,6 +13,14 @@
 - Use `.learnings/LEARNINGS.md` for detailed lessons and promote short durable rules to this `AGENTS.md` when they affect future experiment interpretation, remote workflow, or reporting language.
 - After context-window loss or a new thread, re-check `.learnings/LEARNINGS.md` and this file before making claims about completed experiments or next steps.
 
+## Research Execution Style
+
+- Default project work should combine `skills/blockcipher-auto-research/SKILL.md` with the Karpathy-style coding discipline from `karpathy-guidelines`: use `blockcipher-auto-research` for the experiment loop and evidence gates, and use Karpathy-style restraint for implementation.
+- For research experiments, define the question, identify the same-budget baseline, change one hypothesis at a time, run fixed-budget training, produce JSONL/CSV/SVG/gate artifacts, compare at the same evidence scale, and document keep/discard/crash/diagnostic status.
+- For code changes, first read the relevant modules, state uncertainty when evidence is incomplete, prefer the smallest boring implementation that satisfies the observable goal, avoid unnecessary abstractions or dependencies, and keep edits scoped to the task.
+- Do not mix benchmark changes with model or feature changes unless the user explicitly asks to redesign the benchmark. Preserve validation data, labels, negative-sample definition, metric computation, and plan-alignment logic for comparable experiments.
+- Validate with the narrowest meaningful command or test before reporting completion. If validation fails, debug the actual failure rather than guessing or broadening the change.
+
 ## Remote Windows GPU Rules
 
 - Remote workstation alias: `lxy-a6000`. Project-owned remote workspace and run artifacts must stay under `G:\lxy`.

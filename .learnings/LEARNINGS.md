@@ -364,3 +364,42 @@ For future remote runs, always launch or verify a supported local tmux monitor i
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260625-001] best_practice
+
+**Logged**: 2026-06-25T15:55:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Use `blockcipher-auto-research` as the project research workflow and Karpathy-style guidelines as the default implementation discipline for this repository.
+
+### Details
+The user explicitly requested that future project work remember and follow the behavior methods from two skills:
+
+- `skills/blockcipher-auto-research/SKILL.md` should drive the project-local research loop: define the question, identify the same-budget baseline, change one hypothesis at a time, run fixed-budget experiments, generate JSONL/CSV/SVG/gate artifacts, apply evidence-scale language, document keep/discard/crash/diagnostic status, and commit/push scoped repository changes after verification.
+- `karpathy-guidelines` should guide coding behavior: read relevant code before editing, state uncertainty when evidence is incomplete, prefer simple boring implementations, avoid unnecessary abstractions/dependencies/frameworks, edit precisely, protect user work, validate against observable success criteria, and debug actual failures rather than guessing.
+
+Correct default going forward:
+
+- Treat `blockcipher-auto-research` as the workflow skeleton for Innovation 1 experiments and related reproduction work.
+- Treat Karpathy-style guidelines as the execution style for code/config/docs changes inside that workflow.
+- Use the combination to avoid untraceable experiment drift: do not change benchmark protocol, validation data, labels, negative-sample definition, metric computation, or plan-alignment logic while also changing model/feature hypotheses unless the user explicitly requests benchmark redesign.
+- Keep changes attributable to one research hypothesis whenever possible, then verify, commit, and push.
+
+### Suggested Action
+Promote a concise version to `AGENTS.md` under a project research execution section so future agents default to this combined method. Continue using `paper-code-reproducer` for honest paper-reproduction boundaries and `remote-windows-gpu-conda-ssh` for remote A6000 launch/monitor/retrieval rules when those tasks apply.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, skills/blockcipher-auto-research/SKILL.md, /home/fate/.agents/skills/karpathy-guidelines/SKILL.md
+- Tags: workflow, research, coding-discipline, innovation1, experiments, karpathy, auto-research
+- See Also: LRN-20260622-001, LRN-20260624-002
+- Pattern-Key: workflow.blockcipher_auto_research_plus_karpathy_guidelines
+- Recurrence-Count: 1
+- First-Seen: 2026-06-25
+- Last-Seen: 2026-06-25
+- Promoted: AGENTS.md
+
+---
