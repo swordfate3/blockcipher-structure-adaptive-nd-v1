@@ -4,6 +4,7 @@ import csv
 import json
 import os
 import tempfile
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -18,10 +19,14 @@ from matplotlib.ticker import MaxNLocator, PercentFormatter
 
 
 DEFAULT_METRICS = ("accuracy", "auc", "loss")
-PLOT_COLORS = {
-    "train": "#2563eb",
-    "val": "#dc2626",
-}
+MODEL_COLORS = (
+    "#0072B2",  # blue
+    "#D55E00",  # vermillion
+    "#009E73",  # bluish green
+    "#CC79A7",  # reddish purple
+    "#E69F00",  # orange
+    "#56B4E9",  # sky blue
+)
 PLOT_LINESTYLES = {
     "train": "--",
     "val": "-",
@@ -109,6 +114,8 @@ def training_curve_series(
                             "metric": metric,
                             "split": split,
                             "label": label,
+                            "run_index": run_index,
+                            "model": row.get("model", row.get("selected_model", "")),
                             "points": points,
                         }
                     )
@@ -150,13 +157,13 @@ def render_training_curves_svg(
         fig, axes = plt.subplots(
             len(metrics),
             1,
-            figsize=(12, max(3.2, 3.05 * len(metrics))),
+            figsize=(9.6, max(3.1, 2.55 * len(metrics) + 0.7)),
             sharex=True,
             constrained_layout=True,
         )
         if len(metrics) == 1:
             axes = [axes]
-        fig.suptitle(title, fontsize=15, fontweight="bold")
+        fig.suptitle(_display_title(title), fontsize=13.5, fontweight="bold", x=0.01, ha="left")
         for axis, metric in zip(axes, metrics):
             render_metric_panel(
                 axis,
@@ -172,6 +179,8 @@ def render_training_curves_svg(
                 loc="outside lower center",
                 ncol=min(4, len(labels)),
                 frameon=False,
+                handlelength=2.8,
+                columnspacing=1.2,
             )
         fig.savefig(output_path, format="svg", bbox_inches="tight")
         plt.close(fig)
@@ -191,47 +200,50 @@ def render_metric_panel(
     max_epoch = max(point[0] for point in all_points)
     min_value = min(point[1] for point in all_points)
     max_value = max(point[1] for point in all_points)
-    axis.set_title(_metric_title(metric), loc="left", fontweight="bold")
+    axis.set_title(_metric_title(metric), loc="left", fontweight="bold", fontsize=10.8, pad=6)
     axis.set_ylabel(_metric_ylabel(metric))
     axis.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=8))
     axis.yaxis.set_major_locator(MaxNLocator(nbins=6))
-    axis.grid(True, axis="y", color="#e2e8f0", linewidth=0.85)
-    axis.grid(True, axis="x", color="#f1f5f9", linewidth=0.6)
+    axis.grid(True, axis="y", color="#d9dee7", linewidth=0.7)
+    axis.grid(True, axis="x", color="#eef1f5", linewidth=0.55)
     _format_y_axis(axis, metric, min_value, max_value)
     for item in series:
-        color = PLOT_COLORS.get(item["split"], "#334155")
+        color = _series_color(item)
         epochs = [point[0] for point in item["points"]]
         values = [point[1] for point in item["points"]]
-        line_label = f"{_compact_label(item['label'])} {item['split']}"
+        line_label = f"{_compact_label(item)} {'train' if item['split'] == 'train' else 'val'}"
         axis.plot(
             epochs,
             values,
             label=line_label,
             color=color,
             linestyle=PLOT_LINESTYLES.get(item["split"], "-"),
-            linewidth=2.1 if item["split"] == "val" else 1.65,
-            marker="o" if len(values) <= 12 else None,
-            markersize=3.6,
-            alpha=0.95 if item["split"] == "val" else 0.75,
+            linewidth=2.15 if item["split"] == "val" else 1.45,
+            marker="o" if item["split"] == "val" and len(values) <= 14 else None,
+            markersize=3.2,
+            markeredgewidth=0,
+            alpha=0.96 if item["split"] == "val" else 0.46,
         )
         _annotate_validation_best(axis, metric, item, epochs, values, color)
     axis.set_xlim(max(0.0, min_epoch - 0.25), max_epoch + 0.35)
+    axis.margins(y=0.08)
 
 
 def _plot_rc_params() -> dict[str, Any]:
     return {
         "font.family": "DejaVu Sans",
-        "font.size": 10.5,
-        "axes.facecolor": "#ffffff",
-        "axes.edgecolor": "#94a3b8",
-        "axes.linewidth": 0.85,
+        "font.size": 9.8,
+        "axes.facecolor": "#fbfcfe",
+        "axes.edgecolor": "#8a93a3",
+        "axes.linewidth": 0.75,
         "axes.spines.top": False,
         "axes.spines.right": False,
-        "xtick.color": "#334155",
-        "ytick.color": "#334155",
-        "axes.labelcolor": "#334155",
-        "text.color": "#0f172a",
-        "legend.fontsize": 9.2,
+        "xtick.color": "#374151",
+        "ytick.color": "#374151",
+        "axes.labelcolor": "#374151",
+        "axes.titlecolor": "#111827",
+        "text.color": "#111827",
+        "legend.fontsize": 8.8,
         "savefig.facecolor": "#ffffff",
         "svg.fonttype": "none",
     }
@@ -239,11 +251,11 @@ def _plot_rc_params() -> dict[str, Any]:
 
 def _format_y_axis(axis, metric: str, min_value: float, max_value: float) -> None:
     if metric in {"accuracy", "auc"}:
-        lower = max(0.0, min(0.45, min_value - 0.03))
-        upper = min(1.0, max(0.75, max_value + 0.03))
+        lower = max(0.0, min(0.5, min_value - 0.025))
+        upper = min(1.0, max(0.75, max_value + 0.025))
         axis.set_ylim(lower, upper)
         axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
-        axis.axhline(0.5, color="#94a3b8", linewidth=0.9, linestyle=":", alpha=0.75)
+        axis.axhline(0.5, color="#8a93a3", linewidth=0.85, linestyle=":", alpha=0.72)
         return
     padding = max(1e-6, (max_value - min_value) * 0.08)
     axis.set_ylim(min_value - padding, max_value + padding)
@@ -265,15 +277,16 @@ def _annotate_validation_best(
     )
     best_epoch = epochs[best_index]
     best_value = values[best_index]
-    axis.scatter([best_epoch], [best_value], s=34, color=color, edgecolor="white", linewidth=0.9, zorder=4)
+    axis.scatter([best_epoch], [best_value], s=34, color=color, edgecolor="white", linewidth=0.85, zorder=4)
+    direction = 1 if int(item.get("run_index", 1)) % 2 else -1
     axis.annotate(
-        f"best {format_value(best_value)} @ {format_epoch_tick(best_epoch)}",
+        f"best {_format_metric_value(metric, best_value)} @ e{format_epoch_tick(best_epoch)}",
         xy=(best_epoch, best_value),
-        xytext=(6, 8),
+        xytext=(7, 7 * direction),
         textcoords="offset points",
-        fontsize=8.5,
+        fontsize=8.0,
         color=color,
-        bbox={"boxstyle": "round,pad=0.18", "facecolor": "#ffffff", "edgecolor": color, "alpha": 0.88},
+        bbox={"boxstyle": "round,pad=0.16", "facecolor": "#ffffff", "edgecolor": "#d1d5db", "alpha": 0.92},
     )
 
 
@@ -302,13 +315,38 @@ def _metric_ylabel(metric: str) -> str:
     return _metric_title(metric)
 
 
-def _compact_label(label: str) -> str:
-    if ": " in label:
-        label = label.split(": ", 1)[1]
-    parts = label.split()
-    if len(parts) <= 3:
-        return label
-    return " ".join(parts[-3:])
+def _display_title(title: str) -> str:
+    stem = title[:-6] if title.endswith(".jsonl") else title
+    cleaned = stem.replace("_", " ").replace("-", " ")
+    return "\n".join(textwrap.wrap(cleaned, width=78, max_lines=2, placeholder="..."))
+
+
+def _series_color(item: dict[str, Any]) -> str:
+    run_index = int(item.get("run_index", 1))
+    return MODEL_COLORS[(run_index - 1) % len(MODEL_COLORS)]
+
+
+def _compact_label(item: dict[str, Any]) -> str:
+    model = str(item.get("model") or item.get("label") or "")
+    aliases = {
+        "present_zhang_wang_keras_mcnd": "Zhang-Wang MCND",
+        "present_nibble_paligned_mcnd": "I1 nibble-P MCND",
+    }
+    if model in aliases:
+        return aliases[model]
+    if ": " in model:
+        model = model.split(": ", 1)[1]
+    model = model.replace("_", " ")
+    words = model.split()
+    if len(words) > 4:
+        model = " ".join(words[-4:])
+    return model or f"run {item.get('run_index', '')}".strip()
+
+
+def _format_metric_value(metric: str, value: float) -> str:
+    if metric in {"accuracy", "auc"}:
+        return f"{value * 100:.1f}%"
+    return format_value(value)
 
 
 def format_value(value: float) -> str:
