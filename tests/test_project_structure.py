@@ -509,7 +509,8 @@ def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     assert "Epoch" in svg_text
     assert "Accuracy (%)" in svg_text
     assert "AUC (%)" in svg_text
-    assert "best 62.0% @ e2" in svg_text
+    assert "Validation summary" in svg_text
+    assert "62.0% @ e2" in svg_text
     csv_text = csv_path.read_text(encoding="utf-8")
     assert "train_accuracy" in csv_text
     assert "val_auc" in csv_text

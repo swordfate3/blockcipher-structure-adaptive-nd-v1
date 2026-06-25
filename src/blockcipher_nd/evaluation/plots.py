@@ -15,20 +15,21 @@ import matplotlib
 matplotlib.use("Agg")
 
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator, PercentFormatter
 
 
 DEFAULT_METRICS = ("accuracy", "auc", "loss")
 MODEL_COLORS = (
-    "#0072B2",  # blue
-    "#D55E00",  # vermillion
-    "#009E73",  # bluish green
-    "#CC79A7",  # reddish purple
-    "#E69F00",  # orange
-    "#56B4E9",  # sky blue
+    "#2563EB",  # blue
+    "#DC2626",  # red
+    "#059669",  # green
+    "#7C3AED",  # violet
+    "#D97706",  # amber
+    "#0891B2",  # cyan
 )
 PLOT_LINESTYLES = {
-    "train": "--",
+    "train": (0, (2.0, 2.0)),
     "val": "-",
 }
 METRIC_LABELS = {
@@ -100,7 +101,7 @@ def training_curve_series(
     for run_index, row in enumerate(rows, start=1):
         label = run_label(row, run_index)
         for metric in metrics:
-            train_key = f"train_{metric}"
+            train_key = "train_eval_loss" if metric == "loss" else f"train_{metric}"
             val_key = f"val_{metric}"
             for split, key in (("train", train_key), ("val", val_key)):
                 points = [
@@ -154,16 +155,37 @@ def render_training_curves_svg(
     if not metrics:
         metrics = list(DEFAULT_METRICS)
     with plt.rc_context(_plot_rc_params()):
-        fig, axes = plt.subplots(
-            len(metrics),
-            1,
-            figsize=(9.6, max(3.1, 2.55 * len(metrics) + 0.7)),
-            sharex=True,
-            constrained_layout=True,
+        fig = plt.figure(
+            figsize=(10.8, max(4.6, 2.08 * len(metrics) + 1.35)),
+            constrained_layout=False,
         )
-        if len(metrics) == 1:
-            axes = [axes]
-        fig.suptitle(_display_title(title), fontsize=13.5, fontweight="bold", x=0.01, ha="left")
+        grid = fig.add_gridspec(
+            len(metrics) + 1,
+            1,
+            height_ratios=[1.0] * len(metrics) + [0.56],
+            hspace=0.28,
+        )
+        axes = [
+            fig.add_subplot(grid[index, 0], sharex=None if index == 0 else fig.axes[0])
+            for index in range(len(metrics))
+        ]
+        summary_axis = fig.add_subplot(grid[-1, 0])
+        fig.subplots_adjust(
+            left=0.085,
+            right=0.84,
+            top=0.88,
+            bottom=0.075,
+        )
+        fig.suptitle(_display_title(title), fontsize=14.6, fontweight="bold", x=0.085, y=0.965, ha="left")
+        fig.text(
+            0.085,
+            0.915,
+            _plot_subtitle(series),
+            fontsize=9.3,
+            color="#526070",
+            ha="left",
+            va="top",
+        )
         for axis, metric in zip(axes, metrics):
             render_metric_panel(
                 axis,
@@ -171,17 +193,8 @@ def render_training_curves_svg(
                 [item for item in series if item["metric"] == metric],
             )
         axes[-1].set_xlabel("Epoch")
-        handles, labels = _deduplicate_legend(axes)
-        if handles:
-            fig.legend(
-                handles,
-                labels,
-                loc="outside lower center",
-                ncol=min(4, len(labels)),
-                frameon=False,
-                handlelength=2.8,
-                columnspacing=1.2,
-            )
+        _render_summary_strip(summary_axis, series)
+        _render_style_legend(fig)
         fig.savefig(output_path, format="svg", bbox_inches="tight")
         plt.close(fig)
 
@@ -200,50 +213,53 @@ def render_metric_panel(
     max_epoch = max(point[0] for point in all_points)
     min_value = min(point[1] for point in all_points)
     max_value = max(point[1] for point in all_points)
-    axis.set_title(_metric_title(metric), loc="left", fontweight="bold", fontsize=10.8, pad=6)
+    axis.set_title(_metric_title(metric), loc="left", fontweight="bold", fontsize=11.2, pad=7)
     axis.set_ylabel(_metric_ylabel(metric))
     axis.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=8))
     axis.yaxis.set_major_locator(MaxNLocator(nbins=6))
-    axis.grid(True, axis="y", color="#d9dee7", linewidth=0.7)
-    axis.grid(True, axis="x", color="#eef1f5", linewidth=0.55)
+    axis.grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
+    axis.grid(False, axis="x")
     _format_y_axis(axis, metric, min_value, max_value)
     for item in series:
-        color = _series_color(item)
         epochs = [point[0] for point in item["points"]]
         values = [point[1] for point in item["points"]]
-        line_label = f"{_compact_label(item)} {'train' if item['split'] == 'train' else 'val'}"
+        is_validation = item["split"] == "val"
+        color = _series_color(item) if is_validation else "#94A3B8"
         axis.plot(
             epochs,
             values,
-            label=line_label,
+            label=f"{_compact_label(item)} {'validation' if is_validation else 'train'}",
             color=color,
             linestyle=PLOT_LINESTYLES.get(item["split"], "-"),
-            linewidth=2.15 if item["split"] == "val" else 1.45,
-            marker="o" if item["split"] == "val" and len(values) <= 14 else None,
-            markersize=3.2,
+            linewidth=2.55 if is_validation else 1.05,
+            marker="o" if is_validation and len(values) <= 16 else None,
+            markersize=3.7,
             markeredgewidth=0,
-            alpha=0.96 if item["split"] == "val" else 0.46,
+            alpha=0.98 if is_validation else 0.32,
+            solid_capstyle="round",
+            dash_capstyle="round",
         )
-        _annotate_validation_best(axis, metric, item, epochs, values, color)
-    axis.set_xlim(max(0.0, min_epoch - 0.25), max_epoch + 0.35)
+        _annotate_validation_best(axis, metric, item, epochs, values, _series_color(item))
+        _label_validation_endpoint(axis, item, epochs, values, color)
+    axis.set_xlim(max(0.0, min_epoch - 0.25), max_epoch + 1.05)
     axis.margins(y=0.08)
 
 
 def _plot_rc_params() -> dict[str, Any]:
     return {
         "font.family": "DejaVu Sans",
-        "font.size": 9.8,
-        "axes.facecolor": "#fbfcfe",
-        "axes.edgecolor": "#8a93a3",
-        "axes.linewidth": 0.75,
+        "font.size": 9.6,
+        "axes.facecolor": "#FFFFFF",
+        "axes.edgecolor": "#CBD5E1",
+        "axes.linewidth": 0.8,
         "axes.spines.top": False,
         "axes.spines.right": False,
-        "xtick.color": "#374151",
-        "ytick.color": "#374151",
-        "axes.labelcolor": "#374151",
-        "axes.titlecolor": "#111827",
-        "text.color": "#111827",
-        "legend.fontsize": 8.8,
+        "xtick.color": "#475569",
+        "ytick.color": "#475569",
+        "axes.labelcolor": "#334155",
+        "axes.titlecolor": "#0F172A",
+        "text.color": "#0F172A",
+        "legend.fontsize": 8.6,
         "savefig.facecolor": "#ffffff",
         "svg.fonttype": "none",
     }
@@ -255,7 +271,7 @@ def _format_y_axis(axis, metric: str, min_value: float, max_value: float) -> Non
         upper = min(1.0, max(0.75, max_value + 0.025))
         axis.set_ylim(lower, upper)
         axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
-        axis.axhline(0.5, color="#8a93a3", linewidth=0.85, linestyle=":", alpha=0.72)
+        axis.axhline(0.5, color="#94A3B8", linewidth=0.9, linestyle=(0, (1.5, 2.5)), alpha=0.78)
         return
     padding = max(1e-6, (max_value - min_value) * 0.08)
     axis.set_ylim(min_value - padding, max_value + padding)
@@ -277,32 +293,136 @@ def _annotate_validation_best(
     )
     best_epoch = epochs[best_index]
     best_value = values[best_index]
-    axis.scatter([best_epoch], [best_value], s=34, color=color, edgecolor="white", linewidth=0.85, zorder=4)
-    direction = 1 if int(item.get("run_index", 1)) % 2 else -1
-    axis.annotate(
-        f"best {_format_metric_value(metric, best_value)} @ e{format_epoch_tick(best_epoch)}",
-        xy=(best_epoch, best_value),
-        xytext=(7, 7 * direction),
-        textcoords="offset points",
-        fontsize=8.0,
+    axis.scatter([best_epoch], [best_value], s=38, color=color, edgecolor="white", linewidth=1.05, zorder=4)
+
+
+def _label_validation_endpoint(
+    axis,
+    item: dict[str, Any],
+    epochs: list[float],
+    values: list[float],
+    color: str,
+) -> None:
+    if item["split"] != "val" or not values:
+        return
+    axis.text(
+        epochs[-1] + 0.12,
+        _endpoint_label_y(item, values[-1]),
+        _compact_label(item),
         color=color,
-        bbox={"boxstyle": "round,pad=0.16", "facecolor": "#ffffff", "edgecolor": "#d1d5db", "alpha": 0.92},
+        fontsize=8.1,
+        fontweight="bold",
+        va="center",
+        ha="left",
+        clip_on=False,
+        bbox={
+            "boxstyle": "round,pad=0.12,rounding_size=0.04",
+            "facecolor": "#FFFFFF",
+            "edgecolor": "none",
+            "alpha": 0.82,
+        },
     )
 
 
-def _deduplicate_legend(axes) -> tuple[list[Any], list[str]]:
-    handles: list[Any] = []
-    labels: list[str] = []
-    seen: set[str] = set()
-    for axis in axes:
-        axis_handles, axis_labels = axis.get_legend_handles_labels()
-        for handle, label in zip(axis_handles, axis_labels):
-            if label in seen:
-                continue
-            seen.add(label)
-            handles.append(handle)
-            labels.append(label)
-    return handles, labels
+def _endpoint_label_y(item: dict[str, Any], value: float) -> float:
+    offset = (int(item.get("run_index", 1)) - 1) * 0.018
+    if item["metric"] == "loss":
+        offset *= -1
+    return value + offset
+
+
+def _render_style_legend(fig) -> None:
+    split_items = [
+        Line2D([0], [0], color="#475569", lw=2.1, linestyle="-", label="validation"),
+        Line2D([0], [0], color="#475569", lw=1.25, linestyle=PLOT_LINESTYLES["train"], alpha=0.45, label="train"),
+    ]
+    fig.legend(
+        handles=split_items,
+        loc="upper left",
+        bbox_to_anchor=(0.085, 0.898),
+        frameon=False,
+        ncol=2,
+        borderaxespad=0.0,
+        handlelength=2.6,
+        columnspacing=1.35,
+    )
+
+
+def _render_summary_strip(axis, series: list[dict[str, Any]]) -> None:
+    axis.axis("off")
+    rows = _summary_rows(series)
+    if not rows:
+        return
+    axis.text(
+        0.0,
+        0.92,
+        "Validation summary",
+        transform=axis.transAxes,
+        fontsize=9.2,
+        fontweight="bold",
+        color="#0F172A",
+        va="top",
+    )
+    columns = ["Model", "Final Acc", "Best Acc", "Final AUC", "Best AUC", "Best Loss"]
+    table_rows = [
+        [
+            row["label"],
+            _format_metric_value("accuracy", row.get("accuracy_final")) if row.get("accuracy_final") is not None else "-",
+            _format_best_cell("accuracy", row),
+            _format_metric_value("auc", row.get("auc_final")) if row.get("auc_final") is not None else "-",
+            _format_best_cell("auc", row),
+            _format_best_cell("loss", row),
+        ]
+        for row in rows[:4]
+    ]
+    table = axis.table(
+        cellText=table_rows,
+        colLabels=columns,
+        cellLoc="left",
+        colLoc="left",
+        bbox=[0.0, 0.02, 1.0, 0.72],
+        colWidths=[0.32, 0.13, 0.15, 0.13, 0.15, 0.12],
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8.0)
+    for (row_index, _column_index), cell in table.get_celld().items():
+        cell.set_edgecolor("#E2E8F0")
+        cell.set_linewidth(0.5)
+        cell.PAD = 0.08
+        if row_index == 0:
+            cell.set_facecolor("#F8FAFC")
+            cell.set_text_props(color="#334155", fontweight="bold")
+        else:
+            cell.set_facecolor("#FFFFFF" if row_index % 2 else "#FBFDFF")
+            cell.set_text_props(color="#0F172A")
+
+
+def _summary_rows(series: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[int, str], dict[str, Any]] = {}
+    for item in series:
+        if item["split"] != "val" or not item["points"]:
+            continue
+        key = (int(item.get("run_index", 0)), _compact_label(item))
+        row = grouped.setdefault(key, {"label": key[1], "run_index": key[0]})
+        values = [point[1] for point in item["points"]]
+        epochs = [point[0] for point in item["points"]]
+        metric = item["metric"]
+        best_index = min(range(len(values)), key=values.__getitem__) if metric == "loss" else max(
+            range(len(values)),
+            key=values.__getitem__,
+        )
+        row[f"{metric}_final"] = values[-1]
+        row[f"{metric}_best"] = values[best_index]
+        row[f"{metric}_best_epoch"] = epochs[best_index]
+    return [grouped[key] for key in sorted(grouped)]
+
+
+def _format_best_cell(metric: str, row: dict[str, Any]) -> str:
+    best = row.get(f"{metric}_best")
+    epoch = row.get(f"{metric}_best_epoch")
+    if best is None or epoch is None:
+        return "-"
+    return f"{_format_metric_value(metric, best)} @ e{format_epoch_tick(float(epoch))}"
 
 
 def _metric_title(metric: str) -> str:
@@ -317,8 +437,26 @@ def _metric_ylabel(metric: str) -> str:
 
 def _display_title(title: str) -> str:
     stem = title[:-6] if title.endswith(".jsonl") else title
+    title_aliases = {
+        "innovation1_spn_present_nibble_paligned_mcnd_r7_64k_screen_gpu1_20260625": (
+            "Innovation 1 PRESENT r7 Medium Screen"
+        ),
+        "zhang_wang_present_r7_262k_official_cyclic_20260624": "Zhang-Wang PRESENT r7 262k Diagnostic",
+    }
+    if stem in title_aliases:
+        return title_aliases[stem]
     cleaned = stem.replace("_", " ").replace("-", " ")
+    cleaned = " ".join(part for part in cleaned.split() if not part.startswith("gpu") and not part.isdigit())
     return "\n".join(textwrap.wrap(cleaned, width=78, max_lines=2, placeholder="..."))
+
+
+def _plot_subtitle(series: list[dict[str, Any]]) -> str:
+    rows = _summary_rows(series)
+    metric_names = ", ".join(_metric_title(metric) for metric in dict.fromkeys(item["metric"] for item in series))
+    if not metric_names:
+        metric_names = ", ".join(_metric_title(metric) for metric in DEFAULT_METRICS)
+    model_word = "model" if len(rows) == 1 else "models"
+    return f"{len(rows)} {model_word} compared | validation emphasized | {metric_names}"
 
 
 def _series_color(item: dict[str, Any]) -> str:
