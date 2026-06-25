@@ -1,16 +1,35 @@
 from __future__ import annotations
 
 import csv
-import html
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
+
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "blockcipher_matplotlib"))
+
+import matplotlib
+
+matplotlib.use("Agg")
+
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator, PercentFormatter
 
 
 DEFAULT_METRICS = ("accuracy", "auc", "loss")
 PLOT_COLORS = {
     "train": "#2563eb",
     "val": "#dc2626",
+}
+PLOT_LINESTYLES = {
+    "train": "--",
+    "val": "-",
+}
+METRIC_LABELS = {
+    "accuracy": "Accuracy",
+    "auc": "AUC",
+    "loss": "Loss",
 }
 
 
@@ -24,7 +43,7 @@ def plot_jsonl_training_curves(
     rows = load_jsonl_rows(results_path)
     series = training_curve_series(rows, metrics=metrics)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(render_training_curves_svg(series, title=title or results_path.name), encoding="utf-8")
+    render_training_curves_svg(series, output_path, title=title or results_path.name)
     return {
         "rows": len(rows),
         "series": len(series),
@@ -120,182 +139,176 @@ def history_records(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def render_training_curves_svg(
     series: list[dict[str, Any]],
+    output_path: Path,
     *,
     title: str,
-    width: int = 1120,
-    panel_height: int = 260,
-) -> str:
+) -> None:
     metrics = list(dict.fromkeys(item["metric"] for item in series))
     if not metrics:
         metrics = list(DEFAULT_METRICS)
-    margin_left = 70
-    margin_right = 30
-    margin_top = 56
-    margin_bottom = 48
-    gap = 42
-    height = margin_top + len(metrics) * panel_height + max(0, len(metrics) - 1) * gap + margin_bottom
-    body: list[str] = [
-        svg_text(width / 2, 30, title, size=20, anchor="middle", weight="700"),
-        svg_text(width - margin_right, 30, "blue=train, red=validation", size=13, anchor="end", fill="#475569"),
-    ]
-
-    for index, metric in enumerate(metrics):
-        y_top = margin_top + index * (panel_height + gap)
-        metric_series = [item for item in series if item["metric"] == metric]
-        body.extend(
-            render_metric_panel(
-                metric,
-                metric_series,
-                x=margin_left,
-                y=y_top,
-                width=width - margin_left - margin_right,
-                height=panel_height,
-            )
+    with plt.rc_context(_plot_rc_params()):
+        fig, axes = plt.subplots(
+            len(metrics),
+            1,
+            figsize=(12, max(3.2, 3.05 * len(metrics))),
+            sharex=True,
+            constrained_layout=True,
         )
-
-    return "\n".join(
-        [
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
-            '<rect width="100%" height="100%" fill="#ffffff"/>',
-            *body,
-            "</svg>",
-            "",
-        ]
-    )
+        if len(metrics) == 1:
+            axes = [axes]
+        fig.suptitle(title, fontsize=15, fontweight="bold")
+        for axis, metric in zip(axes, metrics):
+            render_metric_panel(
+                axis,
+                metric,
+                [item for item in series if item["metric"] == metric],
+            )
+        axes[-1].set_xlabel("Epoch")
+        handles, labels = _deduplicate_legend(axes)
+        if handles:
+            fig.legend(
+                handles,
+                labels,
+                loc="outside lower center",
+                ncol=min(4, len(labels)),
+                frameon=False,
+            )
+        fig.savefig(output_path, format="svg", bbox_inches="tight")
+        plt.close(fig)
 
 
 def render_metric_panel(
+    axis,
     metric: str,
     series: list[dict[str, Any]],
-    *,
-    x: int,
-    y: int,
-    width: int,
-    height: int,
-) -> list[str]:
-    plot_height = height - 42
+) -> None:
     all_points = [point for item in series for point in item["points"]]
     if not all_points:
-        return [
-            svg_text(x, y + 18, metric, size=16, weight="700"),
-            svg_text(x, y + 60, "no history points", size=13, fill="#64748b"),
-        ]
+        axis.set_title(_metric_title(metric), loc="left")
+        axis.text(0.5, 0.5, "No history points", transform=axis.transAxes, ha="center", va="center")
+        return
     min_epoch = min(point[0] for point in all_points)
     max_epoch = max(point[0] for point in all_points)
     min_value = min(point[1] for point in all_points)
     max_value = max(point[1] for point in all_points)
-    if metric in {"accuracy", "auc"}:
-        min_value = min(0.0, min_value)
-        max_value = max(1.0, max_value)
-    if min_value == max_value:
-        min_value -= 0.5
-        max_value += 0.5
-    x_ticks = axis_ticks(min_epoch, max_epoch, preferred=6, integer=True)
-    y_ticks = axis_ticks(min_value, max_value, preferred=5)
-
-    elements = [
-        svg_text(x, y + 18, metric, size=16, weight="700"),
-        svg_text(x + width / 2, y + plot_height + 42, "epoch", size=12, anchor="middle", fill="#475569"),
-        svg_text(x - 54, y + plot_height / 2, metric, size=12, anchor="middle", fill="#475569"),
-    ]
-    for tick in y_ticks:
-        tick_y = scale_y(tick, min_value, max_value, y, plot_height)
-        elements.extend(
-            [
-                f'<line x1="{x}" y1="{tick_y:.2f}" x2="{x + width}" y2="{tick_y:.2f}" stroke="#e2e8f0"/>',
-                f'<line x1="{x - 5}" y1="{tick_y:.2f}" x2="{x}" y2="{tick_y:.2f}" stroke="#94a3b8"/>',
-                svg_text(x - 10, tick_y + 4, format_value(tick), size=12, anchor="end", fill="#475569"),
-            ]
-        )
-    for tick in x_ticks:
-        tick_x = scale_x(tick, min_epoch, max_epoch, x, width)
-        elements.extend(
-            [
-                f'<line x1="{tick_x:.2f}" y1="{y}" x2="{tick_x:.2f}" y2="{y + plot_height}" stroke="#f1f5f9"/>',
-                f'<line x1="{tick_x:.2f}" y1="{y + plot_height}" x2="{tick_x:.2f}" y2="{y + plot_height + 5}" stroke="#94a3b8"/>',
-                svg_text(tick_x, y + plot_height + 20, format_epoch_tick(tick), size=12, anchor="middle", fill="#475569"),
-            ]
-        )
-    elements.extend(
-        [
-            f'<line x1="{x}" y1="{y + plot_height}" x2="{x + width}" y2="{y + plot_height}" stroke="#64748b"/>',
-            f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + plot_height}" stroke="#64748b"/>',
-        ]
-    )
+    axis.set_title(_metric_title(metric), loc="left", fontweight="bold")
+    axis.set_ylabel(_metric_ylabel(metric))
+    axis.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=8))
+    axis.yaxis.set_major_locator(MaxNLocator(nbins=6))
+    axis.grid(True, axis="y", color="#e2e8f0", linewidth=0.85)
+    axis.grid(True, axis="x", color="#f1f5f9", linewidth=0.6)
+    _format_y_axis(axis, metric, min_value, max_value)
     for item in series:
         color = PLOT_COLORS.get(item["split"], "#334155")
-        path_data = " ".join(
-            (
-                "M" if idx == 0 else "L"
-            )
-            + f" {scale_x(epoch, min_epoch, max_epoch, x, width):.2f} {scale_y(value, min_value, max_value, y, plot_height):.2f}"
-            for idx, (epoch, value) in enumerate(item["points"])
+        epochs = [point[0] for point in item["points"]]
+        values = [point[1] for point in item["points"]]
+        line_label = f"{_compact_label(item['label'])} {item['split']}"
+        axis.plot(
+            epochs,
+            values,
+            label=line_label,
+            color=color,
+            linestyle=PLOT_LINESTYLES.get(item["split"], "-"),
+            linewidth=2.1 if item["split"] == "val" else 1.65,
+            marker="o" if len(values) <= 12 else None,
+            markersize=3.6,
+            alpha=0.95 if item["split"] == "val" else 0.75,
         )
-        elements.append(
-            f'<path d="{path_data}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round"/>'
-        )
-        last_epoch, last_value = item["points"][-1]
-        elements.append(
-            svg_text(
-                scale_x(last_epoch, min_epoch, max_epoch, x, width) + 5,
-                scale_y(last_value, min_value, max_value, y, plot_height),
-                f"{item['split']} {format_value(last_value)}",
-                size=11,
-                fill=color,
-            )
-        )
-    return elements
+        _annotate_validation_best(axis, metric, item, epochs, values, color)
+    axis.set_xlim(max(0.0, min_epoch - 0.25), max_epoch + 0.35)
 
 
-def axis_ticks(
-    min_value: float,
-    max_value: float,
-    *,
-    preferred: int,
-    integer: bool = False,
-) -> list[float]:
-    if preferred <= 1 or min_value == max_value:
-        return [min_value]
-    if integer:
-        start = int(round(min_value))
-        end = int(round(max_value))
-        if start == end:
-            return [float(start)]
-        span = end - start
-        step = max(1, round(span / (preferred - 1)))
-        ticks = list(range(start, end + 1, step))
-        if ticks[-1] != end:
-            ticks.append(end)
-        return [float(tick) for tick in ticks]
-    step = (max_value - min_value) / (preferred - 1)
-    return [min_value + step * index for index in range(preferred)]
+def _plot_rc_params() -> dict[str, Any]:
+    return {
+        "font.family": "DejaVu Sans",
+        "font.size": 10.5,
+        "axes.facecolor": "#ffffff",
+        "axes.edgecolor": "#94a3b8",
+        "axes.linewidth": 0.85,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "xtick.color": "#334155",
+        "ytick.color": "#334155",
+        "axes.labelcolor": "#334155",
+        "text.color": "#0f172a",
+        "legend.fontsize": 9.2,
+        "savefig.facecolor": "#ffffff",
+        "svg.fonttype": "none",
+    }
 
 
-def scale_x(value: float, min_value: float, max_value: float, x: int, width: int) -> float:
-    if min_value == max_value:
-        return x + width / 2
-    return x + (value - min_value) / (max_value - min_value) * width
+def _format_y_axis(axis, metric: str, min_value: float, max_value: float) -> None:
+    if metric in {"accuracy", "auc"}:
+        lower = max(0.0, min(0.45, min_value - 0.03))
+        upper = min(1.0, max(0.75, max_value + 0.03))
+        axis.set_ylim(lower, upper)
+        axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
+        axis.axhline(0.5, color="#94a3b8", linewidth=0.9, linestyle=":", alpha=0.75)
+        return
+    padding = max(1e-6, (max_value - min_value) * 0.08)
+    axis.set_ylim(min_value - padding, max_value + padding)
 
 
-def scale_y(value: float, min_value: float, max_value: float, y: int, height: int) -> float:
-    return y + height - (value - min_value) / (max_value - min_value) * height
-
-
-def svg_text(
-    x: float,
-    y: float,
-    text: str,
-    *,
-    size: int,
-    anchor: str = "start",
-    fill: str = "#0f172a",
-    weight: str = "400",
-) -> str:
-    return (
-        f'<text x="{x:.2f}" y="{y:.2f}" font-family="Arial, sans-serif" '
-        f'font-size="{size}" font-weight="{weight}" text-anchor="{anchor}" fill="{fill}">'
-        f"{html.escape(str(text))}</text>"
+def _annotate_validation_best(
+    axis,
+    metric: str,
+    item: dict[str, Any],
+    epochs: list[float],
+    values: list[float],
+    color: str,
+) -> None:
+    if item["split"] != "val" or not values:
+        return
+    best_index = min(range(len(values)), key=values.__getitem__) if metric == "loss" else max(
+        range(len(values)),
+        key=values.__getitem__,
     )
+    best_epoch = epochs[best_index]
+    best_value = values[best_index]
+    axis.scatter([best_epoch], [best_value], s=34, color=color, edgecolor="white", linewidth=0.9, zorder=4)
+    axis.annotate(
+        f"best {format_value(best_value)} @ {format_epoch_tick(best_epoch)}",
+        xy=(best_epoch, best_value),
+        xytext=(6, 8),
+        textcoords="offset points",
+        fontsize=8.5,
+        color=color,
+        bbox={"boxstyle": "round,pad=0.18", "facecolor": "#ffffff", "edgecolor": color, "alpha": 0.88},
+    )
+
+
+def _deduplicate_legend(axes) -> tuple[list[Any], list[str]]:
+    handles: list[Any] = []
+    labels: list[str] = []
+    seen: set[str] = set()
+    for axis in axes:
+        axis_handles, axis_labels = axis.get_legend_handles_labels()
+        for handle, label in zip(axis_handles, axis_labels):
+            if label in seen:
+                continue
+            seen.add(label)
+            handles.append(handle)
+            labels.append(label)
+    return handles, labels
+
+
+def _metric_title(metric: str) -> str:
+    return METRIC_LABELS.get(metric, metric.replace("_", " ").title())
+
+
+def _metric_ylabel(metric: str) -> str:
+    if metric in {"accuracy", "auc"}:
+        return f"{_metric_title(metric)} (%)"
+    return _metric_title(metric)
+
+
+def _compact_label(label: str) -> str:
+    if ": " in label:
+        label = label.split(": ", 1)[1]
+    parts = label.split()
+    if len(parts) <= 3:
+        return label
+    return " ".join(parts[-3:])
 
 
 def format_value(value: float) -> str:
