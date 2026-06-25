@@ -71,6 +71,25 @@ def test_zhang_wang_262k_official_cyclic_plan_is_medium_diagnostic():
     assert task["restore_best_checkpoint"] is True
 
 
+def test_zhang_wang_1m_official_cyclic_plan_is_single_seed_paper_scale():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_1m.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+
+    assert task["rounds"] == 7
+    assert task["seed"] == 0
+    assert task["samples_per_class"] == 1_000_000
+    assert task["pairs_per_sample"] == 16
+    assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+    assert task["model_key"] == "present_zhang_wang_keras_mcnd"
+    assert task["lr_scheduler"] == "official_cyclic"
+    assert task["max_learning_rate"] == 0.002
+    assert task["checkpoint_metric"] == "val_auc"
+    assert task["restore_best_checkpoint"] is True
+    assert "SINGLE_SEED" in task["matching_evidence"]
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()

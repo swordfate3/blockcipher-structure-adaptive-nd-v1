@@ -457,14 +457,16 @@ about `0.99`, while validation AUC peaks near `0.674` and threshold accuracy
 falls back toward chance in later epochs. This motivates training-protocol
 alignment before scaling to 1M/class.
 
-### Next Medium Diagnostic
+### Retrieved 262k/Class Official-Cyclic Diagnostic
 
-The next planned run is a single-row 262144/class diagnostic:
+The single-row 262144/class diagnostic completed on 2026-06-24 and was
+retrieved into the local result archive:
 
 ```text
 plan: configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_262k.csv
 remote config: configs/remote/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_262k_gpu1_20260624.json
 run_id: zhang_wang_present_r7_262k_official_cyclic_20260624
+local artifacts: outputs/remote_results/zhang_wang_present_r7_262k_official_cyclic_20260624/
 samples_per_class: 262144
 batch_size: 1024
 lr_scheduler: official_cyclic
@@ -472,19 +474,120 @@ learning_rate: 0.0001
 max_learning_rate: 0.002
 checkpoint_metric: val_auc
 restore_best_checkpoint: true
+dataset storage: disk-backed cache
+source commit: 80e849db33f388ef0dd53f1f7050775af4eb853c
+gate: pass
 ```
 
-This run tests three changes together against the retrieved 64k result:
+This run tested three changes together against the retrieved 64k result:
 
 - use an official-style 10-epoch high-to-low cyclic learning-rate schedule;
 - select the checkpoint by `val_auc` rather than `val_loss`;
 - increase batch size from `512` to `1024`.
 
-The expected status remains `MEDIUM diagnostic`. If it moves calibrated accuracy
-toward roughly `0.66-0.69`, the next step is a larger `>=1000000/class`
-multi-seed formal reproduction attempt. If it stalls far below the checkpoint
-reference, inspect remaining official-training differences before spending 1M
-scale budget.
+Final restored best-checkpoint result:
+
+```text
+epochs requested: 20
+epochs_ran: 14
+stopped_epoch: 14
+best_epoch: 6
+accuracy: 0.7109107971
+calibrated_accuracy: 0.7119331360
+AUC: 0.7862925224
+loss: 0.5540635363
+best_accuracy: 0.7119331360
+calibrated_threshold: 0.5347244740
+best_checkpoint_metric: 0.7862925224
+selected_checkpoint: best
+```
+
+Per-epoch validation behavior:
+
+```text
+epoch 1:  val_acc=0.679062, val_auc=0.766090, val_loss=0.593941
+epoch 2:  val_acc=0.698204, val_auc=0.778329, val_loss=0.571884
+epoch 3:  val_acc=0.709324, val_auc=0.782754, val_loss=0.561044
+epoch 4:  val_acc=0.705853, val_auc=0.785527, val_loss=0.562508
+epoch 5:  val_acc=0.654308, val_auc=0.784695, val_loss=0.642250
+epoch 6:  val_acc=0.710911, val_auc=0.786293, val_loss=0.554064
+epoch 7:  val_acc=0.685722, val_auc=0.783938
+epoch 8:  val_acc=0.709194, val_auc=0.782776
+epoch 9:  val_acc=0.697941, val_auc=0.779502
+epoch 10: val_acc=0.701427, val_auc=0.773793
+epoch 11: val_acc=0.705391, val_auc=0.780267
+epoch 12: val_acc=0.682362, val_auc=0.778218
+epoch 13: val_acc=0.704628, val_auc=0.776908
+epoch 14: val_acc=0.699818, val_auc=0.773312
+```
+
+Scale comparison:
+
+```text
+64k/class Keras-layout:
+  accuracy            = 0.611740
+  calibrated_accuracy = 0.614655
+  AUC                 = 0.658023
+
+262k/class official-cyclic:
+  accuracy            = 0.710911
+  calibrated_accuracy = 0.711933
+  AUC                 = 0.786293
+
+improvement over 64k:
+  accuracy            = +0.099171
+  calibrated_accuracy = +0.097278
+  AUC                 = +0.128270
+```
+
+Reference comparison:
+
+```text
+Zhang/Wang Table 4 PRESENT-80 r7 Case2 m=16 accuracy: 0.7205
+PyTorch 262k/class official-cyclic accuracy:              0.710911
+gap:                                                       -0.009589
+PyTorch 262k/class calibrated_accuracy:                   0.711933
+calibrated gap:                                           -0.008567
+```
+
+Interpretation:
+
+```text
+This is a successful medium diagnostic, not a formal reproduction or
+breakthrough claim. The official-protocol PyTorch route is now close enough to
+the 0.7205 reference that the next useful baseline is a 1000000/class
+single-seed run. Multi-seed evidence is still required before making a formal
+from-scratch reproduction claim.
+```
+
+### Next Paper-Scale Single-Seed Baseline
+
+The next planned run is a single-row 1000000/class official-protocol baseline:
+
+```text
+plan: configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_1m.csv
+remote config: configs/remote/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_1m_gpu0_20260625.json
+run_id: zhang_wang_present_r7_1m_official_cyclic_seed0_20260625
+samples_per_class: 1000000
+pairs_per_sample: 16
+batch_size: 1024
+lr_scheduler: official_cyclic
+learning_rate: 0.0001
+max_learning_rate: 0.002
+checkpoint_metric: val_auc
+restore_best_checkpoint: true
+negative_mode: encrypted_random_plaintexts
+sample_structure: zhang_wang_case2_official_mcnd
+```
+
+Expected status:
+
+```text
+This is paper-scale for sample count but still single-seed. It can validate
+whether the from-scratch PyTorch implementation reaches the 0.7205-level
+reference under the official protocol, but publication-style claims still need
+multiple seeds and a clean result archive.
+```
 
 ## Interpretation Rules
 
