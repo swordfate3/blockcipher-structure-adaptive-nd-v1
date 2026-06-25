@@ -14,6 +14,7 @@ from blockcipher_nd.features.encoders.present_matrix import (
     present_pair_xor_paligned_sboxddt_top2_cell_matrix_bits,
     present_pair_xor_paligned_sinv_cell_matrix_bits,
     present_pair_xor_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits,
+    present_nibble_paligned_view_bits,
     present_xor_paligned_cell_matrix_bits,
 )
 from blockcipher_nd.features.encoders.present_sbox_ddt import (

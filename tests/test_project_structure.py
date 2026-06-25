@@ -11,6 +11,11 @@ from blockcipher_nd.engine.matrix_runner import parse_args
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.engine.modeling import infer_pair_bits
+from blockcipher_nd.features.registry import (
+    encode_ciphertext_pair,
+    is_supported_feature_encoding,
+    pair_bits_for_encoding,
+)
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
@@ -242,6 +247,26 @@ def test_zhang_wang_official_anchor_plan_generates_dataset():
     assert set(np.unique(dataset.labels).tolist()) == {0, 1}
 
 
+def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():
+    cipher = build_cipher("present80", rounds=7, key=0)
+    left = 0x0123456789ABCDEF
+    right = 0x1111111111111111
+
+    encoded = encode_ciphertext_pair(
+        left,
+        right,
+        width=64,
+        feature_encoding="present_nibble_paligned_view",
+        cipher=cipher,
+    )
+    words = _decode_present_cell_matrix_words(encoded, word_count=2, width=64)
+
+    assert is_supported_feature_encoding("present_nibble_paligned_view")
+    assert pair_bits_for_encoding(64, "present_nibble_paligned_view") == 128
+    assert words[0] == left ^ right
+    assert words[1] == cipher.inverse_permutation_layer(left ^ right)
+
+
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
     from blockcipher_nd.ciphers.spn.present import Present80
 
@@ -450,3 +475,20 @@ def test_training_history_records_train_and_validation_metrics():
         "learning_rate",
     ]:
         assert key in epoch
+
+
+def _decode_present_cell_matrix_words(encoded: list[int], *, word_count: int, width: int) -> list[int]:
+    cells = [[0, 0, 0, 0] for _ in range((word_count * width) // 4)]
+    offset = 0
+    for bit_index in range(4):
+        for cell in cells:
+            cell[bit_index] = encoded[offset]
+            offset += 1
+    bits = [bit for cell in cells for bit in cell]
+    words = []
+    for start in range(0, len(bits), width):
+        value = 0
+        for bit in bits[start : start + width]:
+            value = (value << 1) | bit
+        words.append(value)
+    return words

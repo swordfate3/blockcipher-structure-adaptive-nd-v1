@@ -324,6 +324,15 @@ def present_xor_paligned_cell_matrix_bits(
     )
 
 
+def present_nibble_paligned_view_bits(
+    left: int,
+    right: int,
+    width: int,
+    cipher: ReducedRoundCipher,
+) -> list[int]:
+    return present_xor_paligned_cell_matrix_bits(left, right, width, cipher)
+
+
 def words_to_present_cell_matrix_bits(words: list[int], width: int, feature_encoding: str) -> list[int]:
     if width % 4 != 0:
         raise ValueError(f"{feature_encoding} requires a 4-bit cell block size")

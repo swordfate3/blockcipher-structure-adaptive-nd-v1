@@ -19,6 +19,7 @@ from blockcipher_nd.features.encoders.present import (
     present_pair_xor_paligned_sboxddt_top2_cell_matrix_bits,
     present_pair_xor_paligned_sinv_cell_matrix_bits,
     present_pair_xor_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits,
+    present_nibble_paligned_view_bits,
     present_sbox_ddt_beam_statistics_words,
     present_sbox_ddt_score_nibble,
     present_structural_inverse_sbox_difference,
@@ -79,6 +80,7 @@ def encode_ciphertext_pair(
         "present_pair_xor_paligned_sboxddt_beam2_cell_matrix_bits": lambda: present_pair_xor_paligned_sboxddt_beam2_cell_matrix_bits(left, right, width, cipher),
         "present_pair_xor_paligned_sboxddt_beam4deep3_cell_matrix_bits": lambda: present_pair_xor_paligned_sboxddt_beam4deep3_cell_matrix_bits(left, right, width, cipher),
         "present_xor_paligned_cell_matrix_bits": lambda: present_xor_paligned_cell_matrix_bits(left, right, width, cipher),
+        "present_nibble_paligned_view": lambda: present_nibble_paligned_view_bits(left, right, width, cipher),
     }
     if feature_encoding in present_encoders:
         return present_encoders[feature_encoding]()
@@ -125,6 +127,7 @@ def pair_bits_for_encoding(block_bits: int, feature_encoding: str) -> int:
         "present_pair_xor_paligned_sboxddt_beam2_cell_matrix_bits": 12,
         "present_pair_xor_paligned_sboxddt_beam4deep3_cell_matrix_bits": 49,
         "present_xor_paligned_cell_matrix_bits": 2,
+        "present_nibble_paligned_view": 2,
         "ciphertext_xor_bits": 1,
         "ciphertext_xor_spn_aligned_bits": 2,
         "ciphertext_xor_spn_paligned_bits": 2,

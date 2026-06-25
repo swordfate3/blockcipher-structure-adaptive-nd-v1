@@ -21,6 +21,7 @@ FEATURE_ENCODINGS = {
     "present_pair_xor_paligned_sboxddt_beam4deep3_cell_matrix_bits",
     "present_pair_xor_cell_matrix_bits",
     "present_xor_paligned_cell_matrix_bits",
+    "present_nibble_paligned_view",
     "ciphertext_xor_bits",
     "ciphertext_xor_spn_aligned_bits",
     "ciphertext_xor_spn_paligned_bits",
