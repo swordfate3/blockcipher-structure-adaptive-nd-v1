@@ -175,3 +175,49 @@ For GitHub-pushed formal or medium remote runs, do not assume a historical remot
 - **Notes**: Relaunched through local tmux using a new clean clone directory `G:\lxy\blockcipher-structure-adaptive-nd-v1-clean`; remote progress reached dataset cache generation for `262144/class`.
 
 ---
+
+## [ERR-20260626-001] remote_https_clone_reset
+
+**Logged**: 2026-06-26T11:18:14+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Remote Windows scheduled run failed before training because GitHub HTTPS clone was reset.
+
+### Error
+```text
+Cloning into 'innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626'...
+fatal: unable to access 'https://github.com/swordfate3/blockcipher-structure-adaptive-nd-v1.git/': Recv failure: Connection was reset
+RUN_GATE_BLOCKED_GIT_FAILED
+```
+
+### Context
+- Run attempted: `innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626`.
+- Remote script used a run-owned clean clone under `G:\lxy\blockcipher-structure-adaptive-nd-runs`.
+- The script correctly avoided the dirty historical clone, but HTTPS clone failed before the run directory existed.
+- No training started; GPU remained idle and no progress JSONL existed.
+
+### Suggested Fix
+For remote Windows scheduled experiment launchers, prefer the known remote GitHub SSH key and SSH repo URL:
+
+```cmd
+set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
+set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
+set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
+```
+
+Keep generated scripts under `G:\lxy`, and only use HTTPS clone as a fallback when SSH auth is unavailable.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: /tmp/run_innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.cmd, /home/fate/.agents/skills/remote-windows-gpu-conda-ssh/SKILL.md
+- See Also: ERR-20260624-003
+
+### Resolution
+- **Resolved**: 2026-06-26T11:19:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Launcher was patched to use SSH repo URL plus the remote dedicated GitHub key, then re-uploaded for relaunch.
+
+---
