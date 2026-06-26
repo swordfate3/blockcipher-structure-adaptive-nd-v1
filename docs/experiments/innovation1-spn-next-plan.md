@@ -42,11 +42,15 @@ PyTorch 262k/class official-cyclic:
   status = successful medium diagnostic, not formal reproduction
 
 PyTorch 1M/class seed0 official-cyclic:
-  status = running remotely
   run_id = zhang_wang_present_r7_1m_official_cyclic_seed0_20260625
+  accuracy = 0.715281
+  calibrated_accuracy = 0.718555
+  AUC = 0.793897025948
+  best_epoch = 18
+  status = near-reference single-seed baseline; enough as Innovation1 baseline anchor
 ```
 
-短期判断必须等 `1M/class seed0` 拉回后再做。当前不能提前声称 from-scratch reproduction 已经达到 `0.7205`。
+短期判断：`1M/class seed0` 已经接近 Zhang/Wang `0.7205` 参考值，差距约 `0.001945` calibrated accuracy。它足以作为 Innovation1 后续同预算对照 baseline，但仍不能写成多 seed 正式复现。
 
 ## 2. 下一步决策门槛
 
@@ -63,10 +67,10 @@ accuracy 或 calibrated_accuracy >= 0.7205 附近
 
 动作：
 
-1. 更新 `docs/experiments/2026-06-14-present-zhang-wang2022-mcnd-reproduction.md`。
-2. 记录 gate、metrics、best epoch、history curve、与 262k 和 `0.7205` 的差距。
-3. 准备 `1M/class seed1` 和 `1M/class seed2` baseline 配置，确认 baseline 均值和方差。
-4. 同步准备第一个创新网络的 smoke 实现，但不要先上 1M 创新实验。
+1. 记录 `1M/class seed0` 已达到 near-reference reproduction anchor。
+2. 不再单独追 baseline seed1/seed2，除非后续 Innovation1 1M 结果需要方差解释。
+3. 直接推进 `I1-SPN-001-paper-scale seed0`：同一 1M/class 矩阵内比较 Zhang/Wang baseline 与 `present_nibble_paligned_mcnd`。
+4. 若 1M 创新仍正向，再开多 seed 正式实验。
 
 ### 2.2 如果 1M 略低但延续 262k 趋势
 
@@ -246,14 +250,15 @@ same input CNN or MLP
 
 ```text
 B0: 1M/class seed0 Zhang/Wang official-cyclic
-  status: running
-  action after retrieval: analyze and document
+  status: completed, fallback-retrieved, near-reference single-seed anchor
+  metrics: accuracy 0.715281, calibrated_accuracy 0.718555, AUC 0.793897025948
+  action: use as Innovation1 same-budget baseline anchor; no standalone rerun needed now
 
 B1: 1M/class seed1 Zhang/Wang official-cyclic
-  launch condition: B0 >= 0.715 or B0 near reference but needs stability
+  launch condition: only if Innovation1 1M result requires baseline variance analysis
 
 B2: 1M/class seed2 Zhang/Wang official-cyclic
-  launch condition: B1 needed for variance estimate
+  launch condition: only after B1 if preparing formal multi-seed reproduction statistics
 ```
 
 ### 4.2 Innovation track
@@ -277,7 +282,12 @@ I1-SPN-001-strong:
 
 I1-SPN-001-paper-scale:
   samples_per_class = 1000000
-  launch condition = 262k improvement is stable and worth scale-up
+  plan = configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv
+  remote_config = configs/remote/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.json
+  run_id = innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626
+  compare = same-budget Zhang/Wang baseline row in the same matrix
+  launch condition = satisfied: 64k and 262k positive signals survived, baseline anchor is near reference
+  status language = paper-scale single-seed diagnostic only
 ```
 
 ## 5. Keep / Discard 标准
@@ -346,19 +356,18 @@ planned / running / completed remotely / fallback-retrieved / verified-branch re
 不直接上 Transformer/MoE/大而全 adaptive router
 不把 related-key 结果和 ordinary E=R 结果混报
 不把 multi-pair 提升直接当 raw single-sample SOTA
-不在 1M baseline 未判定前启动 1M innovation run
+不把 single-seed 1M innovation 结果写成正式结论；若正向，必须进入多 seed
 不为了提升指标修改 validation data、labels、metric 或 result gate
 ```
 
 ## 8. 立即行动清单
 
-等待当前 1M baseline 结果拉回后：
+当前立即推进：
 
-1. 解析 result gate 和 metrics。
-2. 更新 Zhang/Wang 复现实验文档。
-3. 根据 `>=0.715 / <0.715` 决策是否补 seed1/seed2。
-4. 若 baseline 稳定，开始实现 `present_nibble_paligned_mcnd` 的最小 smoke 版本。
-5. smoke 通过后准备 64k/class screen 配置。
+1. 提交并推送 `I1-SPN-001-paper-scale seed0` plan CSV 与 remote config。
+2. 远程启动 `innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626`。
+3. 使用本地 tmux monitor 自动等待、拉回 logs/results。
+4. 完成后只按 paper-scale single-seed diagnostic 汇报；若正向，再准备 seed1/seed2。
 
 当前最推荐的下一步创新任务名称：
 

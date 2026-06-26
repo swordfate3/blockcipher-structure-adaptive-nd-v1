@@ -160,6 +160,44 @@ def test_present_nibble_paligned_mcnd_262k_scalecheck_plan_is_same_budget_diagno
         assert "MEDIUM 262144/class diagnostic" in task["matching_evidence"]
 
 
+def test_present_nibble_paligned_mcnd_1m_seed0_plan_is_same_budget_paper_scale_diagnostic():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_paligned_mcnd",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 1_000_000
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "PAPER_SCALE_SINGLE_SEED 1000000/class" in task["matching_evidence"]
+
+
+def test_present_nibble_paligned_mcnd_1m_remote_config_uses_parallel_dataset_cache():
+    path = Path("configs/remote/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["plan"].endswith(
+        "innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv"
+    )
+    assert config["expected_rows"] == 2
+    assert config["device"] == "cuda:1"
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_workers"] == 4
+    assert "1000000/class diagnostic" in config["claim_scope"]
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()

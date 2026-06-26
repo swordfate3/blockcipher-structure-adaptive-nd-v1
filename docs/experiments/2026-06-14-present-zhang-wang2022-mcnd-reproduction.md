@@ -562,12 +562,14 @@ from-scratch reproduction claim.
 
 ### Next Paper-Scale Single-Seed Baseline
 
-The next planned run is a single-row 1000000/class official-protocol baseline:
+The planned single-row 1000000/class official-protocol baseline has completed
+and was retrieved locally as fallback artifacts:
 
 ```text
 plan: configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_1m.csv
 remote config: configs/remote/innovation1_spn_present_zhang_wang2022_keras_official_cyclic_r7_1m_gpu0_20260625.json
 run_id: zhang_wang_present_r7_1m_official_cyclic_seed0_20260625
+local artifacts: outputs/remote_results/zhang_wang_present_r7_1m_official_cyclic_seed0_20260625_fastmetric/
 samples_per_class: 1000000
 pairs_per_sample: 16
 batch_size: 1024
@@ -580,13 +582,29 @@ negative_mode: encrypted_random_plaintexts
 sample_structure: zhang_wang_case2_official_mcnd
 ```
 
-Expected status:
+Result:
 
 ```text
-This is paper-scale for sample count but still single-seed. It can validate
-whether the from-scratch PyTorch implementation reaches the 0.7205-level
-reference under the official protocol, but publication-style claims still need
-multiple seeds and a clean result archive.
+accuracy            = 0.715281
+calibrated_accuracy = 0.718555
+AUC                 = 0.793897025948
+loss                = 0.5492007751159668
+best_epoch          = 18
+history_epochs      = 20
+stderr_bytes        = 0
+progress_status     = run_done
+result_rows         = 1
+```
+
+Interpretation:
+
+```text
+This is a near-reference from-scratch PyTorch baseline anchor. The calibrated
+accuracy is 0.001945 below the Zhang/Wang 0.7205 reference, which is acceptable
+for the current Innovation1 same-budget baseline purpose. It should not be
+reported as a full multi-seed formal reproduction. The next useful use of
+compute is the 1000000/class same-budget Innovation1 comparison, not another
+standalone seed0 baseline rerun.
 ```
 
 ## Interpretation Rules
