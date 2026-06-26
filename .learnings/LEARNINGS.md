@@ -479,3 +479,38 @@ Promote a concise factual-reporting rule to `AGENTS.md`. For future implementati
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260626-001] best_practice
+
+**Logged**: 2026-06-26T11:07:22+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Update `docs/experiments/` for meaningful experiment lifecycle events, and update `docs/research/` only for research-direction changes.
+
+### Details
+The user clarified that future agents should not mechanically write both `docs/experiments/` and `docs/research/` after every action. The correct documentation workflow is:
+
+- New formal or medium-scale experiment plans should be recorded under `docs/experiments/`.
+- Completed meaningful experiments should update the relevant `docs/experiments/` record with run id, configuration, evidence gate, metrics, result status, and next action.
+- Smoke tests, temporary debug runs, and local implementation checks do not require experiment documentation unless they change an evidence judgment, expose an important failure mode, or become part of the research record.
+- `docs/research/` is for research blueprints, theory notes, literature syntheses, method proposals, and major route changes. It should not become a run-by-run log.
+- When unsure, choose the smallest durable documentation update that preserves the evidence chain without creating noise.
+
+### Suggested Action
+Promote this as an execution rule in `AGENTS.md` under Documentation Organization. Future experiment launches and completions should first decide whether the event is documentation-worthy, then update only the appropriate destination.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, docs/research/
+- Tags: docs, experiments, research, documentation-workflow, evidence-chain
+- See Also: LRN-20260625-002
+- Pattern-Key: docs.update_lifecycle.experiments_vs_research
+- Recurrence-Count: 1
+- First-Seen: 2026-06-26
+- Last-Seen: 2026-06-26
+- Promoted: AGENTS.md
+
+---

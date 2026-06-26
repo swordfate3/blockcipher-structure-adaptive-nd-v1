@@ -31,6 +31,7 @@
 - New formal experiment plans, reproduction records, result analyses, and next-step execution plans belong under `docs/experiments/`.
 - New research blueprints, literature syntheses, theory notes, and broad method proposals belong under `docs/research/`.
 - Historical agent execution plans may remain under `docs/superpowers/plans/`, or be migrated to `docs/archive/agent-plans/` if the archive is reorganized. Do not create new current experiment plans under `docs/superpowers/`.
+- Do not update both `docs/experiments/` and `docs/research/` mechanically for every run or code change. New meaningful experiment launches and completed meaningful results should update the relevant `docs/experiments/` record with run id, protocol, gate, metrics, status, and next action. Smoke tests, temporary debug runs, and local implementation checks do not need docs unless they change the evidence judgment or expose an important failure mode. Update `docs/research/` only when the research route, theory, literature synthesis, or method blueprint changes.
 
 ## Remote Windows GPU Rules
 
