@@ -253,3 +253,40 @@ Before relying on remote plot generation, verify the remote environment has Matp
 - See Also: LRN-20260624-001, ERR-20260626-001
 
 ---
+
+## [ERR-20260627-002] plan_evidence_assertion_too_narrow
+
+**Logged**: 2026-06-27T19:48:50+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+New N2 plan test failed because it asserted one exact evidence phrase for all rows even though rows intentionally describe N2-a/N2-b/N2-c separately.
+
+### Error
+```text
+AssertionError: assert 'MEDIUM 262144/class N2 transition backbone diagnostic'
+in 'MEDIUM 262144/class N2-a pair-level evidence pooling diagnostic; not formal reproduction or breakthrough evidence'
+```
+
+### Context
+- Command attempted: `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_project_structure.py -q`
+- New test: `test_present_n2_transition_backbone_262k_plan_is_same_protocol`
+- The plan intentionally has row-specific evidence strings for baseline, SPN-only anchor, N2-a, N2-b, and N2-c.
+- The test should verify invariant scope markers such as `MEDIUM 262144/class`, `N2`, and non-formal claim language, not require identical evidence prose across all rows.
+
+### Suggested Fix
+When validating experiment matrices, assert protocol invariants and stable scope markers. Avoid brittle exact-substring checks if each row is supposed to carry model-specific evidence wording.
+
+### Metadata
+- Reproducible: yes
+- Related Files: tests/test_project_structure.py, configs/experiment/innovation1/innovation1_spn_present_n2_transition_backbone_r7_262k.csv
+- See Also: ERR-20260624-001
+
+### Resolution
+- **Resolved**: 2026-06-27T19:49:00+08:00
+- **Commit/PR**: pending
+- **Notes**: The assertion was relaxed to check stable evidence scope markers while preserving protocol checks.
+
+---

@@ -16,7 +16,10 @@ from blockcipher_nd.models.structure import (
     PresentNibblePAlignedGatedMCNDDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
     PresentNibblePAlignedSpnOnlyDistinguisher,
+    PresentNibblePAlignedTransitionDistinguisher,
+    PresentNibblePAlignedTransitionResidualDistinguisher,
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
+    PresentNibbleShuffledTransitionResidualDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
     PresentZhangWangKerasMCNDDistinguisher,
@@ -107,6 +110,51 @@ def build_spn_model(
             initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
             gate_scale=float(options.get("gate_scale", 0.25)),
+        )
+    if name == "present_nibble_paligned_transition":
+        return PresentNibblePAlignedTransitionDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            top_k=int_option(options, "top_k", 4) or 4,
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
+        )
+    if name == "present_nibble_paligned_transition_residual":
+        return PresentNibblePAlignedTransitionResidualDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            transition_token_dim=int_option(options, "transition_token_dim"),
+            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            top_k=int_option(options, "top_k", 4) or 4,
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
+        )
+    if name == "present_nibble_shuffled_transition_residual":
+        return PresentNibbleShuffledTransitionResidualDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            transition_token_dim=int_option(options, "transition_token_dim"),
+            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            top_k=int_option(options, "top_k", 4) or 4,
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
         )
     if name == "present_inception_mcnd":
         return PresentInceptionMCNDDistinguisher(

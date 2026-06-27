@@ -187,6 +187,35 @@ def test_present_n1v2_262k_structure_ablation_plan_is_same_protocol():
         assert "MEDIUM 262144/class structure ablation" in task["matching_evidence"]
 
 
+def test_present_n2_transition_backbone_262k_plan_is_same_protocol():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_n2_transition_backbone_r7_262k.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_paligned_spn_only",
+        "present_nibble_paligned_transition",
+        "present_nibble_paligned_transition_residual",
+        "present_nibble_shuffled_transition_residual",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class" in task["matching_evidence"]
+        assert "N2" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+
 def test_present_nibble_paligned_mcnd_1m_seed0_plan_is_same_budget_paper_scale_diagnostic():
     plan = "configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv"
     args = parse_args(["--plan", plan])
@@ -512,6 +541,9 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
         "present_nibble_paligned_spn_only",
         "present_nibble_paligned_gated_mcnd",
         "present_nibble_shuffled_paligned_gated_mcnd",
+        "present_nibble_paligned_transition",
+        "present_nibble_paligned_transition_residual",
+        "present_nibble_shuffled_transition_residual",
     ]:
         model = build_model(
             model_key,
@@ -521,6 +553,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
             model_options={
                 "blocks": 2,
                 "spn_mixer_depth": 1,
+                "transition_mixer_depth": 1,
                 "activation": "relu",
                 "norm": "layernorm",
             },

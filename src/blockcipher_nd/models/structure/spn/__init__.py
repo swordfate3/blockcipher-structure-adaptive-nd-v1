@@ -35,7 +35,10 @@ from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibblePAlignedGatedMCNDDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
     PresentNibblePAlignedSpnOnlyDistinguisher,
+    PresentNibblePAlignedTransitionDistinguisher,
+    PresentNibblePAlignedTransitionResidualDistinguisher,
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
+    PresentNibbleShuffledTransitionResidualDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
     SpnTokenMixerBlock,
@@ -61,7 +64,10 @@ __all__ = [
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibblePAlignedMCNDDistinguisher",
     "PresentNibblePAlignedSpnOnlyDistinguisher",
+    "PresentNibblePAlignedTransitionDistinguisher",
+    "PresentNibblePAlignedTransitionResidualDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
+    "PresentNibbleShuffledTransitionResidualDistinguisher",
     "SpnCellPairSetDBitNetDistinguisher",
     "SpnNibbleConvPairSetDistinguisher",
     "SpnTokenMixerBlock",

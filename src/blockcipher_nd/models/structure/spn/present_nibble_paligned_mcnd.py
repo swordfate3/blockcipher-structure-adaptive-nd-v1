@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from blockcipher_nd.models.common.components import build_activation, build_norm
+from blockcipher_nd.models.common.components import EvidencePooling, build_activation, build_norm
 from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
     PresentZhangWangKerasMCNDDistinguisher,
 )
@@ -234,6 +234,148 @@ class PresentNibbleShuffledPAlignedGatedMCNDDistinguisher(PresentNibblePAlignedG
         super().__init__(*args, **kwargs)
 
 
+class PresentNibblePAlignedTransitionDistinguisher(nn.Module):
+    """PRESENT SPN-only backbone with pair-level evidence pooling."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        spn_token_dim: int | None = None,
+        spn_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        pooling: str = "topk_logsumexp",
+        top_k: int = 4,
+        lse_temperature: float = 1.0,
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.spn_encoder = _PresentNibblePAlignedSpnEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            spn_token_dim=spn_token_dim,
+            spn_mixer_depth=spn_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+        )
+        self.evidence_pool = EvidencePooling(
+            self.spn_encoder.embedding_bits,
+            hidden_bits=max(32, base_channels * 4),
+            mode=pooling,
+            top_k=top_k,
+            lse_temperature=lse_temperature,
+            activation=activation,
+            norm=norm,
+        )
+        self.classifier = nn.Sequential(
+            build_norm(norm, self.spn_encoder.embedding_bits),
+            nn.Linear(self.spn_encoder.embedding_bits, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+        self.last_attention_weights: torch.Tensor | None = None
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.spn_encoder(features)
+        pooled, weights = self.evidence_pool(pair_embeddings)
+        self.last_attention_weights = weights.detach()
+        return self.classifier(pooled)
+
+
+class PresentNibblePAlignedTransitionResidualDistinguisher(nn.Module):
+    """PRESENT SPN backbone over DeltaC -> InvP(DeltaC) nibble transitions."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        transition_token_dim: int | None = None,
+        transition_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        pooling: str = "topk_logsumexp",
+        top_k: int = 4,
+        lse_temperature: float = 1.0,
+        p_alignment: str = "true",
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.transition_encoder = _PresentNibbleTransitionResidualEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            transition_token_dim=transition_token_dim,
+            transition_mixer_depth=transition_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            p_alignment=p_alignment,
+        )
+        self.evidence_pool = EvidencePooling(
+            self.transition_encoder.embedding_bits,
+            hidden_bits=max(32, base_channels * 4),
+            mode=pooling,
+            top_k=top_k,
+            lse_temperature=lse_temperature,
+            activation=activation,
+            norm=norm,
+        )
+        self.classifier = nn.Sequential(
+            build_norm(norm, self.transition_encoder.embedding_bits),
+            nn.Linear(self.transition_encoder.embedding_bits, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+        self.last_attention_weights: torch.Tensor | None = None
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.transition_encoder(features)
+        pooled, weights = self.evidence_pool(pair_embeddings)
+        self.last_attention_weights = weights.detach()
+        return self.classifier(pooled)
+
+
+class PresentNibbleShuffledTransitionResidualDistinguisher(
+    PresentNibblePAlignedTransitionResidualDistinguisher
+):
+    """Transition-residual control with deterministic shuffled pseudo P alignment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["p_alignment"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
 class _PresentNibblePAlignedSpnEncoder(nn.Module):
     def __init__(
         self,
@@ -343,6 +485,94 @@ class _PresentNibblePAlignedSpnEncoder(nn.Module):
         return projected.reshape(pair_features.shape[0], self.pairs_per_sample, self.embedding_bits)
 
 
+class _PresentNibbleTransitionResidualEncoder(nn.Module):
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        transition_token_dim: int | None = None,
+        transition_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        p_alignment: str = "true",
+    ) -> None:
+        super().__init__()
+        if pair_bits != 128:
+            raise ValueError("PRESENT transition residual encoder expects raw 128-bit ciphertext pairs")
+        if input_bits % pair_bits != 0:
+            raise ValueError("input_bits must be a multiple of pair_bits")
+        if transition_mixer_depth < 1:
+            raise ValueError("transition_mixer_depth must be >= 1")
+        if p_alignment not in {"true", "shuffled"}:
+            raise ValueError(f"unsupported p_alignment: {p_alignment}")
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.pairs_per_sample = input_bits // pair_bits
+        self.nibbles_per_pair = 16
+        self.transition_token_dim = transition_token_dim or max(16, base_channels * 2)
+        self.embedding_bits = max(32, base_channels * 4)
+
+        self.transition_encoder = nn.Sequential(
+            nn.Linear(12, self.transition_token_dim),
+            build_activation(activation),
+            build_norm(norm, self.transition_token_dim),
+        )
+        self.position_embedding = nn.Parameter(
+            torch.zeros(1, self.nibbles_per_pair, self.transition_token_dim)
+        )
+        nn.init.trunc_normal_(self.position_embedding, std=0.02)
+        self.mixers = nn.ModuleList(
+            [
+                SpnTokenMixerBlock(
+                    nibbles_per_pair=self.nibbles_per_pair,
+                    token_dim=self.transition_token_dim,
+                    token_mlp_ratio=token_mlp_ratio,
+                    activation=activation,
+                    norm=norm,
+                    dropout=dropout,
+                )
+                for _ in range(transition_mixer_depth)
+            ]
+        )
+        self.norm = build_norm(norm, self.transition_token_dim)
+        self.projection = nn.Sequential(
+            nn.Linear(self.transition_token_dim * 4, self.embedding_bits),
+            build_activation(activation),
+            nn.Dropout(dropout),
+        )
+
+        if p_alignment == "true":
+            inverse_p = [_present_inverse_p_index(index) for index in range(64)]
+        else:
+            generator = torch.Generator().manual_seed(20260627)
+            inverse_p = torch.randperm(64, generator=generator).tolist()
+        self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        raw_pairs = features.float().reshape(features.shape[0], self.pairs_per_sample, 2, 64)
+        difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
+        aligned_difference = difference.index_select(dim=2, index=self.inverse_p_indices)
+        source = difference.reshape(features.shape[0] * self.pairs_per_sample, 16, 4)
+        target = aligned_difference.reshape(features.shape[0] * self.pairs_per_sample, 16, 4)
+        transition = torch.cat([source, target, target - source], dim=2)
+        hidden = self.transition_encoder(transition) + self.position_embedding
+        for mixer in self.mixers:
+            hidden = mixer(hidden)
+        hidden = self.norm(hidden)
+        mean_embedding = hidden.mean(dim=1)
+        max_embedding = hidden.max(dim=1).values
+        active = (source + target).mean(dim=2, keepdim=True)
+        active_embedding = torch.sum(hidden * active, dim=1) / active.sum(dim=1).clamp_min(1.0)
+        transition_embedding = (hidden[:, 8:, :].mean(dim=1) - hidden[:, :8, :].mean(dim=1))
+        projected = self.projection(
+            torch.cat([mean_embedding, max_embedding, active_embedding, transition_embedding], dim=1)
+        )
+        return projected.reshape(features.shape[0], self.pairs_per_sample, self.embedding_bits)
+
+
 def _present_inverse_p_index(target_bit_index: int) -> int:
     source_lsb_index = _present_inverse_p_lsb_index(63 - target_bit_index)
     return 63 - source_lsb_index
@@ -359,4 +589,7 @@ __all__ = [
     "PresentNibblePAlignedSpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
+    "PresentNibblePAlignedTransitionDistinguisher",
+    "PresentNibblePAlignedTransitionResidualDistinguisher",
+    "PresentNibbleShuffledTransitionResidualDistinguisher",
 ]

@@ -550,3 +550,56 @@ Promote this rule to `AGENTS.md` under Documentation Organization. Future remote
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260627-002] research
+
+**Logged**: 2026-06-27T19:41:43+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+After the 262k N1-v2 structure ablation, do not scale the current gated-MCND route as the main Innovation 1 path; prioritize SPN-only and transition-aware SPN backbones.
+
+### Details
+The completed and locally retrieved run `i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627` tested N0 Zhang/Wang MCND, N1-v1 late fusion, SPN-only, true-P gated MCND, and shuffled-P gated MCND at `262144/class` with strict `encrypted_random_plaintexts` negatives and Zhang/Wang Case2 official MCND sample structure.
+
+Observed AUC:
+
+- `present_zhang_wang_keras_mcnd`: `0.784541`
+- `present_nibble_paligned_mcnd`: `0.784299`
+- `present_nibble_paligned_spn_only`: `0.791488`
+- `present_nibble_paligned_gated_mcnd`: `0.784897`
+- `present_nibble_shuffled_paligned_gated_mcnd`: `0.784281`
+
+The true-P gated model was weakly positive against N0, N1-v1, and shuffled control, but it failed all planned continuation gates:
+
+- N1-v2 AUC vs N0: `+0.000356`, below required `+0.002`.
+- N1-v2 AUC vs N1-v1: `+0.000598`, below required `+0.001`.
+- N1-v2 AUC vs shuffled: `+0.000615`, below required `+0.001`.
+- N1-v2 calibrated accuracy vs N0: `-0.000530`.
+
+The strongest diagnostic signal came from `SPN-only`, not MCND fusion. This suggests the PRESENT nibble/P-layer structure view contains useful real-vs-random signal, but the current gate/fusion design dilutes or fails to inject it into the MCND backbone.
+
+This is medium diagnostic evidence, not formal multi-seed `>=1000000/class` evidence. However, it is enough to reject scaling the exact current `present_nibble_paligned_gated_mcnd` design as the main next route.
+
+### Suggested Action
+For the next Innovation 1 experiment, design a minimal SPN transition-aware backbone around the SPN-only signal. Keep the benchmark fixed and compare at the same `262144/class` evidence scale:
+
+1. Keep N0 baseline and current SPN-only as anchors.
+2. Add N2 transition-aware models that treat 16 PRESENT nibbles and P-layer transitions as the primary representation.
+3. Include true-P versus shuffled-P controls for attribution.
+4. Do not change validation data, labels, negative mode, metric computation, or Zhang/Wang Case2 sample construction.
+5. Only consider 1M/multi-seed scaling if N2 beats SPN-only and the true-P route beats shuffled-P by the predeclared gate.
+
+### Metadata
+- Source: conversation
+- Related Files: docs/experiments/innovation1-n1v2-structure-ablation-plan.md, outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/
+- Tags: innovation1, spn, present, n1v2, spn-only, transition-aware-backbone, evidence-gates
+- See Also: LRN-20260621-001, LRN-20260623-001, LRN-20260627-001
+- Pattern-Key: innovation1.spn_present.prioritize_transition_backbone_after_n1v2
+- Recurrence-Count: 1
+- First-Seen: 2026-06-27
+- Last-Seen: 2026-06-27
+
+---
