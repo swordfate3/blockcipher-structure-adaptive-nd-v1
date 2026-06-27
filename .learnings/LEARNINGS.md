@@ -514,3 +514,39 @@ Promote this as an execution rule in `AGENTS.md` under Documentation Organizatio
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260627-001] correction
+
+**Logged**: 2026-06-27T11:35:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+When a meaningful remote experiment result is completed and retrieved, automatically update `docs/experiments/` before reporting; do not ask whether to document it.
+
+### Details
+The user corrected the reporting workflow after the `I1-SPN-001` 1M/class single-seed result completed. The assistant initially suggested documenting the result as a next step instead of doing it immediately. For this project, meaningful experiment results are part of the evidence chain and should be written to the relevant experiment document as soon as the result is retrieved and parsed.
+
+Correct behavior:
+
+- If a meaningful experiment reaches a valid result gate and artifacts are retrieved, update the relevant `docs/experiments/` record in the same task turn.
+- Include run id, protocol scale, gate status, local/remote artifact paths, metrics, deltas versus baseline, claim scope, and next action.
+- Do not ask the user whether to write the result document; ask only if there is genuine ambiguity about which experiment record should own the result.
+- Smoke tests, temporary debug checks, and local implementation checks still do not need docs unless they change the evidence judgment or expose an important failure mode.
+
+### Suggested Action
+Promote this rule to `AGENTS.md` under Documentation Organization. Future remote-result handling should follow this sequence: retrieve artifacts, parse metrics, generate missing local plots/history if needed, update `docs/experiments/`, verify, commit, push, then report.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, outputs/remote_results/
+- Tags: docs, experiments, remote-results, evidence-chain, workflow
+- See Also: LRN-20260626-001, LRN-20260624-002
+- Pattern-Key: docs.results.auto_update_experiment_record
+- Recurrence-Count: 1
+- First-Seen: 2026-06-27
+- Last-Seen: 2026-06-27
+- Promoted: AGENTS.md
+
+---

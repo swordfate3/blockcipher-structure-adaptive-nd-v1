@@ -221,3 +221,35 @@ Keep generated scripts under `G:\lxy`, and only use HTTPS clone as a fallback wh
 - **Notes**: Launcher was patched to use SSH repo URL plus the remote dedicated GitHub key, then re-uploaded for relaunch.
 
 ---
+
+## [ERR-20260627-001] remote_plot_missing_matplotlib
+
+**Logged**: 2026-06-27T11:35:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+Remote training completed and result gate passed, but remote plot generation failed because the `torch310` environment did not have Matplotlib installed.
+
+### Error
+```text
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+### Context
+- Run ID: `i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626`
+- Remote training command completed successfully with `result_lines=2` and `expected_rows=2`.
+- Plot command failed inside `scripts/plot-results` when importing `blockcipher_nd.evaluation.plots`.
+- The repository depends on `matplotlib>=3.8`, but the remote `F:\Anaconda\envs\DWT\torch310` environment did not have it available during the scheduled task.
+- Workaround used: retrieve JSONL/logs and regenerate `curves.svg` plus `history.csv` locally with `uv run python scripts/plot-results`.
+
+### Suggested Fix
+Before relying on remote plot generation, verify the remote environment has Matplotlib installed or add a launcher preflight that records missing optional plotting dependencies. Keep local post-retrieval plot regeneration as a safe fallback when training results are valid but remote plotting fails.
+
+### Metadata
+- Reproducible: yes
+- Related Files: scripts/plot-results, src/blockcipher_nd/evaluation/plots.py, outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/logs/
+- See Also: LRN-20260624-001, ERR-20260626-001
+
+---

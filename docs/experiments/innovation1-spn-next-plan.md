@@ -284,10 +284,123 @@ I1-SPN-001-paper-scale:
   samples_per_class = 1000000
   plan = configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv
   remote_config = configs/remote/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.json
-  run_id = innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626
+  run_id = i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626
   compare = same-budget Zhang/Wang baseline row in the same matrix
   launch condition = satisfied: 64k and 262k positive signals survived, baseline anchor is near reference
+  status = completed, retrieved locally, plan-aligned
   status language = paper-scale single-seed diagnostic only
+```
+
+### 4.3 I1-SPN-001-paper-scale seed0 完成结果
+
+完成时间：
+
+```text
+2026-06-27
+```
+
+运行身份：
+
+```text
+run_id = i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626
+source_commit = 5530d9264386c50f7a6121259df4c7bcda0485a1
+remote_dir = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626
+local_artifacts = outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/
+```
+
+协议：
+
+```text
+cipher = PRESENT-80
+rounds = 7
+seed = 0
+samples_per_class = 1000000
+pairs_per_sample = 16
+feature_encoding = ciphertext_pair_bits
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+loss = mse
+lr_scheduler = official_cyclic
+learning_rate = 0.0001
+max_learning_rate = 0.002
+checkpoint_metric = val_auc
+restore_best_checkpoint = true
+early_stopping_patience = 8
+batch_size = 1024
+device = cuda:1
+dataset_cache_workers = 4
+```
+
+证据门：
+
+```text
+result_lines = 2
+expected_rows = 2
+status = completed, retrieved locally, plan-aligned
+strict negative = yes, encrypted_random_plaintexts
+single-seed = yes
+formal = no, paper-scale single-seed diagnostic only
+```
+
+Artifacts：
+
+```text
+results JSONL:
+outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626.jsonl
+
+history CSV:
+outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626_history.csv
+
+curves SVG:
+outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626_curves.svg
+
+result gate:
+outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/logs/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626_result_gate.txt
+```
+
+远程训练成功，但远程画图失败：
+
+```text
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+该问题不影响训练结果。JSONL/logs 已拉回，本地用 `scripts/plot-results` 重新生成了 `history.csv` 和 `curves.svg`。
+
+同 run 对照结果：
+
+| model | accuracy | calibrated_accuracy | AUC | loss | best_epoch | best_checkpoint_metric |
+|---|---:|---:|---:|---:|---:|---:|
+| `present_zhang_wang_keras_mcnd` | 0.715258 | 0.718335 | 0.793910375814 | 0.548134426178 | 17 | 0.793910375814 |
+| `present_nibble_paligned_mcnd` | 0.718995 | 0.719028 | 0.794619119358 | 0.543621080994 | 20 | 0.794619119358 |
+
+创新模型相对 baseline：
+
+```text
+accuracy_delta = +0.003737
+calibrated_accuracy_delta = +0.000693
+auc_delta = +0.000708743544
+loss_delta = -0.004513345184
+```
+
+判定：
+
+```text
+status = keep as positive but small paper-scale single-seed diagnostic
+```
+
+解释：
+
+- `present_nibble_paligned_mcnd` 在 `1M/class`、同 seed、同 protocol、同 run 的对照下，`accuracy`、`calibrated_accuracy`、`AUC`、`loss` 全部略优于 Zhang/Wang Keras-layout baseline。
+- 提升幅度较小，尤其 calibrated accuracy 只提升 `+0.000693`，不能写成突破，也不能作为正式多 seed 结论。
+- 该结果说明 N1 的 nibble/P-layer aligned view 在 paper-scale seed0 下没有消失，值得进入多 seed 方差确认。
+
+下一步：
+
+```text
+I1-SPN-001 seed1 / seed2:
+  目标 = 判断 +0.0007 AUC / +0.0007 calibrated_accuracy 是否稳定超过 seed 方差
+  保持 protocol 完全不变
+  优先复用/共享 dataset cache，避免重复生成 1M/class 数据
 ```
 
 ## 5. Keep / Discard 标准
@@ -364,10 +477,10 @@ planned / running / completed remotely / fallback-retrieved / verified-branch re
 
 当前立即推进：
 
-1. 提交并推送 `I1-SPN-001-paper-scale seed0` plan CSV 与 remote config。
-2. 远程启动 `innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626`。
-3. 使用本地 tmux monitor 自动等待、拉回 logs/results。
-4. 完成后只按 paper-scale single-seed diagnostic 汇报；若正向，再准备 seed1/seed2。
+1. `I1-SPN-001-paper-scale seed0` 已完成、已拉回、已记录，判定为 positive but small single-seed diagnostic。
+2. 下一步准备 `seed1/seed2` 同 protocol 多 seed 方差确认。
+3. 远程启动前优先处理共享 dataset cache 或 cache link，避免每个 seed/run 无谓重复生成可复用数据。
+4. 继续避免把 single-seed 1M 结果写成正式结论；若多 seed 仍正向，再整理为正式实验表。
 
 当前最推荐的下一步创新任务名称：
 
