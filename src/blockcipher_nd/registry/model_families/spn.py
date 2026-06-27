@@ -13,7 +13,10 @@ from blockcipher_nd.models.structure import (
     PresentPairSetHistogramHybridDistinguisher,
     PresentPairSetStatsHybridDistinguisher,
     PresentPLayerMixerPairSetDistinguisher,
+    PresentNibblePAlignedGatedMCNDDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
+    PresentNibblePAlignedSpnOnlyDistinguisher,
+    PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
     PresentZhangWangKerasMCNDDistinguisher,
@@ -60,6 +63,50 @@ def build_spn_model(
             dropout=float(options.get("dropout", 0.0)),
             initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+        )
+    if name == "present_nibble_paligned_spn_only":
+        return PresentNibblePAlignedSpnOnlyDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_paligned_gated_mcnd":
+        return PresentNibblePAlignedGatedMCNDDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+            gate_scale=float(options.get("gate_scale", 0.25)),
+        )
+    if name == "present_nibble_shuffled_paligned_gated_mcnd":
+        return PresentNibbleShuffledPAlignedGatedMCNDDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
+            gate_scale=float(options.get("gate_scale", 0.25)),
         )
     if name == "present_inception_mcnd":
         return PresentInceptionMCNDDistinguisher(
