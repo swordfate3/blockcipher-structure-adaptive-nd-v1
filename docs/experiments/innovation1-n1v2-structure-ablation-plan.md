@@ -786,16 +786,129 @@ record plotting failure in docs if it affects artifacts
 
 ## 7. 执行顺序
 
-- [ ] Task 1: 加模型构建/forward 失败测试。
-- [ ] Task 2: 实现 SPN-only、gated true-P、gated shuffled-P。
-- [ ] Task 3: 注册新 model keys。
-- [ ] Task 4: 加 262k structure ablation CSV 和解析测试。
-- [ ] Task 5: CPU smoke 验证 5 行模型都能训练 1 epoch。
-- [ ] Task 6: 提交并推送代码/config/docs。
-- [ ] Task 7: 远程启动 262k structure ablation，挂 tmux monitor 自动拉回。
-- [ ] Task 8: 结果完成后自动更新 `docs/experiments/`，再决定是否上 1M。
+- [x] Task 1: 加模型构建/forward 失败测试。
+- [x] Task 2: 实现 SPN-only、gated true-P、gated shuffled-P。
+- [x] Task 3: 注册新 model keys。
+- [x] Task 4: 加 262k structure ablation CSV 和解析测试。
+- [x] Task 5: CPU smoke 验证 5 行模型都能训练 1 epoch。
+- [x] Task 6: 提交并推送代码/config/docs。
+- [x] Task 7: 远程启动 262k structure ablation。
+- [x] Task 8: 结果完成后自动更新 `docs/experiments/`，再决定是否上 1M。
 
-## 8. 当前推荐决策
+## 8. 262k seed0 结果记录
+
+```text
+run_id = i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627
+status = completed remotely, fallback-retrieved locally, plan-aligned
+remote = lxy-a6000 GPU0
+source_commit = 822236302166b5add6f89063971704f9e2f8a1b5
+scale = 262144/class
+rounds = 7
+seed = 0
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+checkpoint_metric = val_auc
+local_dir = outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/
+```
+
+远程状态：
+
+```text
+result_lines = 5
+stderr = empty
+result_gate = result_lines=5, expected_rows=5
+```
+
+本地 gate：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_n1v2_structure_ablation_r7_262k.csv \
+  --results outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627.jsonl \
+  --expected-rows 5 \
+  --output outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627_local_result_gate.json
+```
+
+结果：
+
+```text
+status = pass
+plan_rows = 5
+result_rows = 5
+missing_result_keys = []
+unexpected_result_keys = []
+field_mismatches = []
+```
+
+本地重绘：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
+  --results outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627.jsonl \
+  --output outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627_curves.svg \
+  --history-csv outputs/remote_results/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627/i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627_history.csv \
+  --title i1_spn_n1v2_ablation_r7_262k_seed0_gpu0_20260627
+```
+
+指标：
+
+| model | role | accuracy | calibrated_accuracy | AUC | loss | epochs_ran | best_epoch |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `present_zhang_wang_keras_mcnd` | N0 baseline | 0.676277 | 0.711231 | 0.784541 | 0.612181 | 14 | 6 |
+| `present_nibble_paligned_mcnd` | N1-v1 late fusion | 0.673466 | 0.710648 | 0.784299 | 0.611594 | 13 | 5 |
+| `present_nibble_paligned_spn_only` | N1-S SPN-only | 0.716358 | 0.716434 | 0.791488 | 0.547521 | 20 | 14 |
+| `present_nibble_paligned_gated_mcnd` | N1-v2 true-P gated | 0.702484 | 0.710701 | 0.784897 | 0.566700 | 14 | 6 |
+| `present_nibble_shuffled_paligned_gated_mcnd` | N1-v2 shuffled control | 0.668278 | 0.710266 | 0.784281 | 0.622337 | 14 | 6 |
+
+N1-v2 true-P gated deltas：
+
+| comparison | delta_accuracy | delta_calibrated_accuracy | delta_AUC |
+|---|---:|---:|---:|
+| vs N0 baseline | +0.026207 | -0.000530 | +0.000356 |
+| vs N1-v1 late fusion | +0.029018 | +0.000053 | +0.000598 |
+| vs shuffled control | +0.034206 | +0.000435 | +0.000615 |
+| vs SPN-only | -0.013874 | -0.005733 | -0.006591 |
+
+门槛判定：
+
+```text
+N1-v2 AUC >= N0 AUC + 0.002       false, observed +0.000356
+N1-v2 AUC >= N1-v1 AUC + 0.001    false, observed +0.000598
+N1-v2 AUC >= shuffled AUC + 0.001 false, observed +0.000615
+N1-v2 calibrated_accuracy >= N0   false, observed -0.000530
+```
+
+结论：
+
+```text
+N1-v2 true-P gated = weak positive diagnostic, not enough to scale to 1M as the main route.
+SPN-only = strongest row in this 262k seed0 ablation.
+```
+
+解释：
+
+```text
+true-P gated 比 N0、N1-v1、shuffled control 的 AUC 都略高，但幅度没有达到预设门槛；
+calibrated_accuracy 也没有超过 N0。
+因此不能把 N1-v2 gated 写成有效结构创新。
+
+更重要的信号是 SPN-only 明显高于所有 MCND/gated 组合。
+这说明 PRESENT nibble/P-layer structure view 本身可能有真实区分信号，
+但当前的 gate/fusion 方式没有把这个信号稳定注入 MCND 主干。
+下一步应优先研究 SPN-only 为什么有效，以及如何围绕 SPN transition view 设计主干，
+而不是直接把 N1-v2 gated 扩到 1M。
+```
+
+当前状态：
+
+```text
+classification = medium diagnostic result, not formal evidence
+decision = do not scale current N1-v2 gated to 1M
+next_action = analyze SPN-only route and design N1-S/N2 transition-consistency follow-up
+```
+
+## 9. 当前推荐决策
 
 当前不建议：
 
@@ -803,11 +916,13 @@ record plotting failure in docs if it affects artifacts
 直接继续 N1-v1 1M 多 seed
 直接上 full SPN-GNN
 直接修改 benchmark
+直接把当前 N1-v2 gated 扩到 1M
 ```
 
 当前建议：
 
 ```text
-先做 N1-v2 结构消融。
-如果 gated true-P 不能明显超过 late-fusion 和 shuffled-P，就不要把 nibble/P-layer branch 作为主创新继续扩。
+围绕 262k 消融里最强的 SPN-only 结果继续做可归因分析。
+优先验证 SPN-only 的信号来源、泛化稳定性和与 MCND 融合失败原因。
+下一轮不改 benchmark，仍保持 strict negative 和 Zhang/Wang Case2 official MCND 数据构造。
 ```
