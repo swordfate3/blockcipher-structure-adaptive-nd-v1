@@ -275,5 +275,131 @@ next action
 - [x] Task 6: 加 smoke CSV 和 262k CSV。
 - [x] Task 7: CPU smoke 验证所有 N2 模型可训练 1 epoch。
 - [x] Task 8: 提交并推送代码/config/docs。
-- [ ] Task 9: 远程启动 262k N2 消融并挂本地 tmux monitor 自动拉回。
-- [ ] Task 10: 结果完成后自动更新本文件，再决定是否 seed1 或 1M。
+- [x] Task 9: 远程启动 262k N2 消融并挂本地 tmux monitor 自动拉回。
+- [x] Task 10: 结果完成后自动更新本文件，再决定是否 seed1 或 1M。
+
+## 8. 262k seed0 结果记录
+
+```text
+run_id = i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627
+status = completed remotely, fallback-retrieved locally, plan-aligned
+remote = lxy-a6000 GPU1
+source_commit = a0c05edc16fd4ad1ac2167d681bad857a1799fda
+scale = 262144/class
+rounds = 7
+seed = 0
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+checkpoint_metric = val_auc
+local_dir = outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/
+```
+
+远程 gate：
+
+```text
+result_lines = 5
+expected_rows = 5
+train_exit_code = 0
+gate_exit_code = 0
+stderr = empty
+```
+
+本地 gate：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_n2_transition_backbone_r7_262k.csv \
+  --results outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627.jsonl \
+  --expected-rows 5 \
+  --output outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627_local_result_gate.json
+```
+
+结果：
+
+```text
+status = pass
+plan_rows = 5
+result_rows = 5
+missing_result_keys = []
+unexpected_result_keys = []
+field_mismatches = []
+```
+
+本地重绘：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
+  --results outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627.jsonl \
+  --output outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627_curves.svg \
+  --history-csv outputs/remote_results/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627/i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627_history.csv \
+  --title i1_spn_n2_transition_r7_262k_seed0_gpu1_20260627
+```
+
+指标：
+
+| model | role | accuracy | calibrated_accuracy | AUC | loss | epochs_ran | best_epoch |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `present_zhang_wang_keras_mcnd` | N0 baseline | 0.704327 | 0.709827 | 0.783952 | 0.564545 | 14 | 6 |
+| `present_nibble_paligned_spn_only` | N1-S SPN-only anchor | 0.715187 | 0.715763 | 0.790665 | 0.548985 | 20 | 16 |
+| `present_nibble_paligned_transition` | N2-a evidence pooling | 0.694069 | 0.694187 | 0.763328 | 0.573728 | 18 | 10 |
+| `present_nibble_paligned_transition_residual` | N2-b true-P residual | 0.697327 | 0.698929 | 0.767918 | 0.570679 | 20 | 17 |
+| `present_nibble_shuffled_transition_residual` | N2-c shuffled residual | 0.691391 | 0.691719 | 0.760053 | 0.576825 | 20 | 20 |
+
+N2 deltas：
+
+| comparison | delta_accuracy | delta_calibrated_accuracy | delta_AUC |
+|---|---:|---:|---:|
+| N2-a vs N0 | -0.010258 | -0.015640 | -0.020624 |
+| N2-a vs N1-S | -0.021118 | -0.021576 | -0.027337 |
+| N2-b true residual vs N0 | -0.007000 | -0.010899 | -0.016034 |
+| N2-b true residual vs N1-S | -0.017860 | -0.016834 | -0.022747 |
+| N2-c shuffled residual vs N0 | -0.012936 | -0.018108 | -0.023899 |
+| N2-c shuffled residual vs N1-S | -0.023796 | -0.024044 | -0.030612 |
+| N2-b true residual vs N2-c shuffled | +0.005936 | +0.007210 | +0.007865 |
+
+门槛判定：
+
+```text
+best N2 AUC >= N1-S AUC + 0.001       false
+best N2 calibrated_accuracy >= N1-S   false
+true-P residual AUC >= shuffled +0.001 true, observed +0.007865
+```
+
+结论：
+
+```text
+N2 transition-aware backbone = negative as a scaling route.
+N2-b true-P residual > shuffled residual = positive attribution clue.
+```
+
+解释：
+
+```text
+N2-a evidence pooling 和 N2-b transition residual 都没有保住 SPN-only 的强信号，
+并且明显低于 N0 baseline 与 N1-S anchor。
+因此当前 N2 网络结构不能作为主路线继续放大到 1M。
+
+但 N2-b true-P residual 明显高于 N2-c shuffled residual，
+说明 PRESENT P-layer 对齐不是完全无效；
+问题更可能是当前 residual/pooling backbone 表达能力或 pair-set 建模方式不对，
+而不是 P-layer structure 本身完全没有信号。
+```
+
+当前状态：
+
+```text
+classification = medium diagnostic result, not formal evidence
+decision = do not scale current N2 to 1M or seed1
+keep = true-P vs shuffled attribution clue
+discard = N2-a evidence pooling and current N2-b residual as scaling routes
+next_action = SPN-only input ablation and pair-set consistency analysis
+```
+
+下一步建议：
+
+```text
+1. 做 SPN-only 输入消融：DeltaC-only / InvP-only / DeltaC+InvP / shuffled-InvP。
+2. 做 pair-set consistency 分析：16 pairs 之间的一致性、方差、top-k pair evidence、pair-pair interaction。
+3. 暂停继续堆 transition backbone；先定位 SPN-only 为什么强。
+```
