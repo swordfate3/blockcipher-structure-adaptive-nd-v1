@@ -361,3 +361,42 @@ Avoid `timeout /t ... /nobreak` in non-interactive SSH health checks. If a short
 - **Notes**: Re-ran the health check without `timeout`; remote logs/progress existed and training stderr was 0 bytes.
 
 ---
+
+## [ERR-20260628-003] shell_backticks_in_python_inline_check
+
+**Logged**: 2026-06-28T18:23:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Inline Python verification failed because a double-quoted shell command contained Markdown backticks, which Bash interpreted as command substitution.
+
+### Error
+```text
+/bin/bash: line 1: docs/experiments/: Is a directory
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+AssertionError
+```
+
+### Context
+- Command attempted: `python3 -c "from pathlib import Path; ... assert '... `docs/experiments/` ...' in a; ..."`
+- Purpose: lightweight verification after updating `AGENTS.md` and `.learnings/LEARNINGS.md`.
+- The file update was correct; the verification command was wrong because unescaped backticks inside the shell's double quotes triggered command substitution before Python ran.
+- Re-running with single quotes around the shell argument and no backtick-dependent assertion passed.
+
+### Suggested Fix
+For inline Python checks in shell commands, wrap the whole Python snippet in single quotes and avoid literal Markdown backticks in assertion strings. Prefer asserting stable plain substrings such as `docs/experiments` instead of Markdown-formatted text.
+
+### Metadata
+- Reproducible: yes
+- Related Files: AGENTS.md, .learnings/LEARNINGS.md
+- See Also: ERR-20260628-001
+
+### Resolution
+- **Resolved**: 2026-06-28T18:23:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the verification with safer quoting; it passed.
+
+---

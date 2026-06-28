@@ -693,3 +693,40 @@ Advance Innovation 1 as an InvP-centered route:
 - Last-Seen: 2026-06-28
 
 ---
+
+## [LRN-20260628-003] correction
+
+**Logged**: 2026-06-28T18:20:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Before starting or advancing meaningful training tasks, proactively write or update the experiment plan instead of waiting for the user to request it.
+
+### Details
+The user corrected the experiment workflow: future training launches should not depend on the user saying "写计划" first. For this project, a meaningful training task starts with a project-facing plan under `docs/experiments/`, then proceeds through implementation, smoke/readiness validation, scoped commit/push, remote launch from the pushed commit, local tmux monitoring, retrieval, result parsing, experiment-doc update, and final scoped commit/push.
+
+Correct behavior:
+
+- If the task is a meaningful new run, route, scale-up, or ablation, create or update the relevant `docs/experiments/` plan before launching.
+- The plan should include the research question, fixed protocol, same-budget baseline, rows/models, scale, evidence gate, artifact paths, cache/progress expectation, remote device/run id expectations, and next action.
+- Smoke/local checks remain readiness gates; if they pass and the user did not request smoke-only, continue to the planned non-smoke run.
+- Do not mechanically update `docs/research/` for every run; update it only when the broader research route, theory, or method blueprint changes.
+- Do not ask whether to write the plan for a meaningful training task; ask only when ownership of the document is genuinely ambiguous.
+
+### Suggested Action
+Promote this to `AGENTS.md` under Research Execution Style. Future experiment advancement should follow: plan first -> implement -> smoke -> commit/push -> remote launch -> tmux monitor -> retrieve -> update experiment docs -> commit/push.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, .learnings/LEARNINGS.md
+- Tags: experiments, planning, docs, remote-training, workflow
+- See Also: LRN-20260628-001, LRN-20260627-001
+- Pattern-Key: workflow.training.proactive_experiment_plan_first
+- Recurrence-Count: 1
+- First-Seen: 2026-06-28
+- Last-Seen: 2026-06-28
+- Promoted: AGENTS.md
+
+---
