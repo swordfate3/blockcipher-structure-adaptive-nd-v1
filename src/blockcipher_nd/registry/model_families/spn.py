@@ -15,6 +15,7 @@ from blockcipher_nd.models.structure import (
     PresentPLayerMixerPairSetDistinguisher,
     PresentNibbleDeltaOnlySpnOnlyDistinguisher,
     PresentNibblePAlignedGatedMCNDDistinguisher,
+    PresentNibbleInvPPairConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
     PresentNibblePAlignedSpnOnlyDistinguisher,
@@ -105,6 +106,21 @@ def build_spn_model(
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_invp_pair_consistency_spn_only":
+        return PresentNibbleInvPPairConsistencySpnOnlyDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            top_k=int_option(options, "top_k", 4) or 4,
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
         )
     if name == "present_nibble_shuffled_paligned_spn_only":
         return PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(

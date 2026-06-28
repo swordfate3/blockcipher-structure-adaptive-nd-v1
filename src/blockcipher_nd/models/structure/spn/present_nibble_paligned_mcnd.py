@@ -262,6 +262,77 @@ class PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(PresentNibblePAlignedSpn
         super().__init__(*args, **kwargs)
 
 
+class PresentNibbleInvPPairConsistencySpnOnlyDistinguisher(nn.Module):
+    """InvP(DeltaC) SPN-only model with low-cost pair-set consistency pooling."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        spn_token_dim: int | None = None,
+        spn_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        pooling: str = "topk_logsumexp",
+        top_k: int = 4,
+        lse_temperature: float = 1.0,
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.spn_encoder = _PresentNibblePAlignedSpnEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            spn_token_dim=spn_token_dim,
+            spn_mixer_depth=spn_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            view_mode="inv_p",
+        )
+        self.evidence_pool = EvidencePooling(
+            self.spn_encoder.embedding_bits,
+            hidden_bits=max(32, base_channels * 4),
+            mode=pooling,
+            top_k=top_k,
+            lse_temperature=lse_temperature,
+            activation=activation,
+            norm=norm,
+        )
+        classifier_bits = self.spn_encoder.embedding_bits * 4
+        self.classifier = nn.Sequential(
+            build_norm(norm, classifier_bits),
+            nn.Linear(classifier_bits, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+        self.last_attention_weights: torch.Tensor | None = None
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.spn_encoder(features)
+        pair_mean = pair_embeddings.mean(dim=1)
+        pair_max = pair_embeddings.max(dim=1).values
+        pair_std = pair_embeddings.std(dim=1, unbiased=False)
+        evidence, weights = self.evidence_pool(pair_embeddings)
+        self.last_attention_weights = weights.detach()
+        summary = torch.cat([pair_mean, pair_max, pair_std, evidence], dim=1)
+        return self.classifier(summary)
+
+
 class PresentNibblePAlignedTransitionDistinguisher(nn.Module):
     """PRESENT SPN-only backbone with pair-level evidence pooling."""
 
@@ -627,6 +698,7 @@ __all__ = [
     "PresentNibblePAlignedSpnOnlyDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
+    "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedSpnOnlyDistinguisher",

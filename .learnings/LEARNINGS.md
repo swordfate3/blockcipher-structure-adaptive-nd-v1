@@ -641,3 +641,55 @@ Promote this to `AGENTS.md` under research execution or remote workflow. Future 
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260628-002] research
+
+**Logged**: 2026-06-28T17:40:34+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+After SPN-only attribution, prioritize an InvP-centered PRESENT/SPN distinguisher route over generic DeltaC+InvP concatenation.
+
+### Details
+The completed remote run `i1_spn_only_attr_r7_262k_seed0_gpu1_20260628` showed that the strongest diagnostic row was `present_nibble_invp_only_spn_only`, not the previous `DeltaC + InvP(DeltaC)` anchor.
+
+At `262144/class`, strict `encrypted_random_plaintexts` negatives, Zhang/Wang Case2 official MCND protocol:
+
+- `present_zhang_wang_keras_mcnd`: AUC `0.783228`
+- `present_nibble_delta_only_spn_only`: AUC `0.782918`
+- `present_nibble_shuffled_paligned_spn_only`: AUC `0.784487`
+- `present_nibble_paligned_spn_only`: AUC `0.790665`
+- `present_nibble_invp_only_spn_only`: AUC `0.792536`
+
+Key attribution deltas:
+
+- InvP-only vs baseline: AUC `+0.009308`
+- InvP-only vs DeltaC-only: AUC `+0.009617`
+- InvP-only vs shuffled-P: AUC `+0.008048`
+- InvP-only vs DeltaC+InvP anchor: AUC `+0.001871`
+
+This supports the interpretation that inverse-P aligned `DeltaC` is the dominant useful signal in the current SPN-only family. Raw `DeltaC` concatenation may dilute or fail to improve the signal under the simple token-mixer architecture.
+
+This is medium diagnostic single-seed evidence, not formal `>=1000000/class` multi-seed evidence.
+
+### Suggested Action
+Advance Innovation 1 as an InvP-centered route:
+
+1. Add a compact InvP pair-set consistency model that reuses the existing InvP-only encoder and changes only pair aggregation.
+2. Compare against baseline, current SPN-only anchor, InvP-only, DeltaC-only, and shuffled-P under the same `262144/class` protocol.
+3. Treat local smoke as a launch gate; if smoke passes, automatically commit/push and launch the remote medium diagnostic with tmux monitor retrieval.
+4. Only consider 1M/class multi-seed scaling after InvP-only or InvP-centered consistency remains stable across at least one additional 262k seed or clearly beats the current InvP-only anchor.
+
+### Metadata
+- Source: conversation
+- Related Files: docs/experiments/innovation1-spn-only-attribution-plan.md, outputs/remote_results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628/
+- Tags: innovation1, spn, present, invp, p-layer, attribution, pair-consistency
+- See Also: LRN-20260627-002, LRN-20260628-001
+- Pattern-Key: innovation1.spn_present.invp_centered_route
+- Recurrence-Count: 1
+- First-Seen: 2026-06-28
+- Last-Seen: 2026-06-28
+
+---

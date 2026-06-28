@@ -33,6 +33,7 @@ from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
 )
 from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibbleDeltaOnlySpnOnlyDistinguisher,
+    PresentNibbleInvPPairConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
     PresentNibblePAlignedGatedMCNDDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
@@ -65,6 +66,7 @@ __all__ = [
     "PresentInceptionMCNDPairStackMatrixDistinguisher",
     "PresentZhangWangKerasMCNDDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
+    "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibblePAlignedMCNDDistinguisher",
