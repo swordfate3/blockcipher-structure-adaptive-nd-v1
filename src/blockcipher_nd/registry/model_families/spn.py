@@ -13,12 +13,15 @@ from blockcipher_nd.models.structure import (
     PresentPairSetHistogramHybridDistinguisher,
     PresentPairSetStatsHybridDistinguisher,
     PresentPLayerMixerPairSetDistinguisher,
+    PresentNibbleDeltaOnlySpnOnlyDistinguisher,
     PresentNibblePAlignedGatedMCNDDistinguisher,
+    PresentNibbleInvPOnlySpnOnlyDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
     PresentNibblePAlignedSpnOnlyDistinguisher,
     PresentNibblePAlignedTransitionDistinguisher,
     PresentNibblePAlignedTransitionResidualDistinguisher,
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
+    PresentNibbleShuffledPAlignedSpnOnlyDistinguisher,
     PresentNibbleShuffledTransitionResidualDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
@@ -69,6 +72,42 @@ def build_spn_model(
         )
     if name == "present_nibble_paligned_spn_only":
         return PresentNibblePAlignedSpnOnlyDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_delta_only_spn_only":
+        return PresentNibbleDeltaOnlySpnOnlyDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_invp_only_spn_only":
+        return PresentNibbleInvPOnlySpnOnlyDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_shuffled_paligned_spn_only":
+        return PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(
             input_bits=input_bits,
             pair_bits=pair_bits or 128,
             base_channels=hidden_bits,

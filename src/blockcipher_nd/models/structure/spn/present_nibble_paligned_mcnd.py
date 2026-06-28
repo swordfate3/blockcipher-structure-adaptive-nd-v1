@@ -105,6 +105,8 @@ class PresentNibblePAlignedSpnOnlyDistinguisher(nn.Module):
         activation: str = "relu",
         norm: str = "layernorm",
         dropout: float = 0.0,
+        view_mode: str = "delta_inv_p",
+        p_alignment: str = "true",
     ) -> None:
         super().__init__()
         self.input_bits = input_bits
@@ -119,6 +121,8 @@ class PresentNibblePAlignedSpnOnlyDistinguisher(nn.Module):
             activation=activation,
             norm=norm,
             dropout=dropout,
+            view_mode=view_mode,
+            p_alignment=p_alignment,
         )
         self.classifier = nn.Sequential(
             build_norm(norm, self.spn_encoder.embedding_bits * 2),
@@ -228,6 +232,30 @@ class PresentNibblePAlignedGatedMCNDDistinguisher(nn.Module):
 
 class PresentNibbleShuffledPAlignedGatedMCNDDistinguisher(PresentNibblePAlignedGatedMCNDDistinguisher):
     """Gated MCND control with a fixed shuffled pseudo P-layer alignment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["p_alignment"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
+class PresentNibbleDeltaOnlySpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
+    """SPN-only attribution control that keeps only DeltaC nibble tokens."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["view_mode"] = "delta"
+        super().__init__(*args, **kwargs)
+
+
+class PresentNibbleInvPOnlySpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
+    """SPN-only attribution control that keeps only InvP(DeltaC) nibble tokens."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["view_mode"] = "inv_p"
+        super().__init__(*args, **kwargs)
+
+
+class PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
+    """SPN-only attribution control with deterministic shuffled pseudo P alignment."""
 
     def __init__(self, *args, **kwargs) -> None:
         kwargs["p_alignment"] = "shuffled"
@@ -389,6 +417,7 @@ class _PresentNibblePAlignedSpnEncoder(nn.Module):
         norm: str = "layernorm",
         dropout: float = 0.0,
         p_alignment: str = "true",
+        view_mode: str = "delta_inv_p",
     ) -> None:
         super().__init__()
         if pair_bits != 128:
@@ -399,11 +428,14 @@ class _PresentNibblePAlignedSpnEncoder(nn.Module):
             raise ValueError("spn_mixer_depth must be >= 1")
         if p_alignment not in {"true", "shuffled"}:
             raise ValueError(f"unsupported p_alignment: {p_alignment}")
+        if view_mode not in {"delta_inv_p", "delta", "inv_p"}:
+            raise ValueError(f"unsupported view_mode: {view_mode}")
         self.input_bits = input_bits
         self.pair_bits = pair_bits
         self.pairs_per_sample = input_bits // pair_bits
-        self.spn_pair_bits = 128
-        self.spn_nibbles_per_pair = 32
+        self.view_mode = view_mode
+        self.spn_pair_bits = 128 if view_mode == "delta_inv_p" else 64
+        self.spn_nibbles_per_pair = self.spn_pair_bits // 4
         self.spn_token_dim = spn_token_dim or max(16, base_channels * 2)
         self.embedding_bits = max(32, base_channels * 4)
 
@@ -452,7 +484,13 @@ class _PresentNibblePAlignedSpnEncoder(nn.Module):
         raw_pairs = features.reshape(features.shape[0], self.pairs_per_sample, 2, 64)
         difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
         aligned_difference = difference.index_select(dim=2, index=self.inverse_p_indices)
-        cells = torch.cat([difference, aligned_difference], dim=2).reshape(
+        if self.view_mode == "delta":
+            view = difference
+        elif self.view_mode == "inv_p":
+            view = aligned_difference
+        else:
+            view = torch.cat([difference, aligned_difference], dim=2)
+        cells = view.reshape(
             features.shape[0],
             self.pairs_per_sample,
             self.spn_nibbles_per_pair,
@@ -587,8 +625,11 @@ def _present_inverse_p_lsb_index(target_lsb_index: int) -> int:
 __all__ = [
     "PresentNibblePAlignedMCNDDistinguisher",
     "PresentNibblePAlignedSpnOnlyDistinguisher",
+    "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
+    "PresentNibbleInvPOnlySpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
+    "PresentNibbleShuffledPAlignedSpnOnlyDistinguisher",
     "PresentNibblePAlignedTransitionDistinguisher",
     "PresentNibblePAlignedTransitionResidualDistinguisher",
     "PresentNibbleShuffledTransitionResidualDistinguisher",

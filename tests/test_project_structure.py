@@ -216,6 +216,34 @@ def test_present_n2_transition_backbone_262k_plan_is_same_protocol():
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
+def test_present_spn_only_attribution_262k_plan_is_same_protocol():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_spn_only_attribution_r7_262k.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_paligned_spn_only",
+        "present_nibble_delta_only_spn_only",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_shuffled_paligned_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class SPN-only attribution" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+
 def test_present_nibble_paligned_mcnd_1m_seed0_plan_is_same_budget_paper_scale_diagnostic():
     plan = "configs/experiment/innovation1/innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0.csv"
     args = parse_args(["--plan", plan])
@@ -456,6 +484,66 @@ def test_present_nibble_paligned_mcnd_derives_same_spn_view_as_feature_encoder()
     assert observed == expected
 
 
+def test_present_nibble_spn_only_attribution_views_are_distinct():
+    from blockcipher_nd.features.encoders.bitwise import pair_to_bits
+    from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+        PresentNibbleDeltaOnlySpnOnlyDistinguisher,
+        PresentNibbleInvPOnlySpnOnlyDistinguisher,
+        PresentNibblePAlignedSpnOnlyDistinguisher,
+        PresentNibbleShuffledPAlignedSpnOnlyDistinguisher,
+    )
+
+    left = 0x0123456789ABCDEF
+    right = 0x1111111111111111
+    raw = torch.tensor([pair_to_bits(left, right, 64)], dtype=torch.float32)
+    common = {
+        "input_bits": 128,
+        "pair_bits": 128,
+        "base_channels": 4,
+        "spn_mixer_depth": 1,
+    }
+
+    full = PresentNibblePAlignedSpnOnlyDistinguisher(**common)
+    delta = PresentNibbleDeltaOnlySpnOnlyDistinguisher(**common)
+    invp = PresentNibbleInvPOnlySpnOnlyDistinguisher(**common)
+    shuffled = PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(**common)
+
+    full_view = full.spn_encoder.present_nibble_paligned_view(raw)
+    delta_view = delta.spn_encoder.present_nibble_paligned_view(raw)
+    invp_view = invp.spn_encoder.present_nibble_paligned_view(raw)
+    shuffled_view = shuffled.spn_encoder.present_nibble_paligned_view(raw)
+    full_words = _decode_present_cell_matrix_words(
+        full_view.reshape(-1).to(torch.uint8).tolist(),
+        word_count=2,
+        width=64,
+    )
+    delta_words = _decode_present_cell_matrix_words(
+        delta_view.reshape(-1).to(torch.uint8).tolist(),
+        word_count=1,
+        width=64,
+    )
+    invp_words = _decode_present_cell_matrix_words(
+        invp_view.reshape(-1).to(torch.uint8).tolist(),
+        word_count=1,
+        width=64,
+    )
+    shuffled_words = _decode_present_cell_matrix_words(
+        shuffled_view.reshape(-1).to(torch.uint8).tolist(),
+        word_count=2,
+        width=64,
+    )
+
+    assert full_view.shape == (1, 1, 128)
+    assert delta_view.shape == (1, 1, 64)
+    assert invp_view.shape == (1, 1, 64)
+    assert shuffled_view.shape == (1, 1, 128)
+    assert full_words[0] == left ^ right
+    assert full_words[0] == delta_words[0]
+    assert full_words[1] == invp_words[0]
+    assert shuffled_words[0] == left ^ right
+    assert shuffled_words[1] != full_words[1]
+
+
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
     from blockcipher_nd.ciphers.spn.present import Present80
 
@@ -539,6 +627,9 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
 
     for model_key in [
         "present_nibble_paligned_spn_only",
+        "present_nibble_delta_only_spn_only",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_shuffled_paligned_spn_only",
         "present_nibble_paligned_gated_mcnd",
         "present_nibble_shuffled_paligned_gated_mcnd",
         "present_nibble_paligned_transition",
