@@ -730,3 +730,48 @@ Promote this to `AGENTS.md` under Research Execution Style. Future experiment ad
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260628-004] correction
+
+**Logged**: 2026-06-28T19:25:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: research
+
+### Summary
+Do not default every remote training experiment to large multi-model comparison matrices; keep incremental runs lean.
+
+### Details
+The user pointed out that repeatedly comparing many models in every remote experiment is cumbersome. The correct workflow is to separate attribution/audit experiments from incremental model-selection experiments:
+
+- Full comparison matrices are useful for stage gates, attribution studies, protocol audits, and checking whether a control invalidates a route.
+- Incremental model changes should usually compare only the new candidate against the strongest current same-protocol anchor, plus the minimum necessary baseline/control rows.
+- A normal incremental remote matrix should target 2-3 models and rarely exceed 4.
+- Do not keep re-running historical weaker controls in every new experiment once the attribution route is stable, unless the research question specifically requires them.
+- Existing already-launched remote jobs should normally be allowed to finish; apply the lean-matrix rule to the next planned runs.
+
+For Innovation 1, after InvP attribution has already shown `InvP-only` as the current strongest route, follow-up architecture experiments should usually compare:
+
+```text
+new candidate
+current strongest InvP anchor
+optional Zhang/Wang baseline or one critical control
+```
+
+instead of automatically including DeltaC-only, shuffled-P, old DeltaC+InvP, and every previous baseline in each run.
+
+### Suggested Action
+Promote this to `AGENTS.md` under Research Execution Style. Future experiment plans should explicitly justify any matrix larger than 3-4 rows and prefer lean comparisons for iteration speed and clarity.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, configs/experiment/innovation1/
+- Tags: experiments, model-matrix, remote-training, efficiency, innovation1
+- See Also: LRN-20260628-002, LRN-20260628-003
+- Pattern-Key: workflow.training.lean_experiment_matrix
+- Recurrence-Count: 1
+- First-Seen: 2026-06-28
+- Last-Seen: 2026-06-28
+- Promoted: AGENTS.md
+
+---
