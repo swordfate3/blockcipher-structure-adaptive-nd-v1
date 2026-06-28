@@ -202,3 +202,54 @@ formal reproduction
 breakthrough claim
 paper-scale multi-seed conclusion
 ```
+
+## Launch Record
+
+### 2026-06-28 Remote Medium Diagnostic
+
+Status:
+
+```text
+running remotely, local tmux monitor active
+```
+
+Run metadata:
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_centered_r7_262k_seed0_gpu1_20260628` |
+| Source branch | `main` |
+| Source commit at launch | `971144f` |
+| Remote | `lxy-a6000` |
+| Device | `cuda:1` |
+| Remote run dir | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_invp_centered_r7_262k_seed0_gpu1_20260628` |
+| Local monitor | `tmux: monitor_i1_invp_centered_20260628` |
+| Expected result rows | `6` |
+| Dataset cache root | `G:\lxy\blockcipher-structure-adaptive-nd-runs\shared_dataset_cache` |
+| Dataset cache workers | `4` |
+| Progress log | `logs\i1_invp_centered_r7_262k_seed0_gpu1_20260628_progress.jsonl` |
+
+Launch gate:
+
+```text
+local smoke passed
+tests/test_project_structure.py passed
+code/config/docs pushed to GitHub
+run-owned clean clone created under G:\lxy
+cmd.exe /c launcher used
+remote logs/progress created
+initial stderr was 0 bytes after launcher entered training
+```
+
+Local smoke artifact:
+
+```text
+outputs/smoke/innovation1_invp_centered_smoke.jsonl
+```
+
+Next automatic action:
+
+```text
+tmux monitor waits for done/failed marker, retrieves logs/results/results_archive via scp,
+then this document should be updated with gate status, metrics, deltas, and decision.
+```

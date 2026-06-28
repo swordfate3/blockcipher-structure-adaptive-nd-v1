@@ -326,3 +326,38 @@ Use `python3` for tiny local interpreter checks, and use `UV_CACHE_DIR=/tmp/uv-c
 - **Notes**: Re-ran the same path check with `python3`; it passed.
 
 ---
+
+## [ERR-20260628-002] windows_timeout_noninteractive_check
+
+**Logged**: 2026-06-28T17:49:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+`timeout /t ... /nobreak` can fail in non-interactive SSH health checks on the remote Windows workstation.
+
+### Error
+```text
+ERROR: Input redirection is not supported, exiting the process immediately.
+```
+
+### Context
+- Command attempted during remote launch health check for `i1_invp_centered_r7_262k_seed0_gpu1_20260628`.
+- The command used `cmd.exe /c timeout /t 5 /nobreak >NUL && ...` through SSH.
+- Task Scheduler launch itself succeeded; a follow-up check without `timeout` showed normal clone/pull, logs/progress files, and zero-byte training stderr.
+
+### Suggested Fix
+Avoid `timeout /t ... /nobreak` in non-interactive SSH health checks. If a short delay is needed, sleep locally before the SSH command or run a plain read-only check and let the tmux monitor handle later status.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /tmp/run_i1_invp_centered_r7_262k_seed0_gpu1_20260628.cmd, /tmp/launch_i1_invp_centered_r7_262k_seed0_gpu1_20260628.cmd
+- See Also: ERR-20260624-003
+
+### Resolution
+- **Resolved**: 2026-06-28T17:50:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the health check without `timeout`; remote logs/progress existed and training stderr was 0 bytes.
+
+---
