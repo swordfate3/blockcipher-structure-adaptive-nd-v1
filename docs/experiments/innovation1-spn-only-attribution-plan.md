@@ -166,7 +166,7 @@ Before remote launch, verify the run uses disk-backed dataset cache/progress art
 Status:
 
 ```text
-running remotely, local tmux monitor active
+completed remotely, fallback-retrieved locally, plan-aligned
 ```
 
 Run metadata:
@@ -208,4 +208,74 @@ Next automatic action:
 ```text
 tmux monitor waits for done/failed marker, retrieves logs/results/results_archive via scp,
 then this document should be updated with gate status, metrics, deltas, and decision.
+```
+
+Completion gate:
+
+```text
+result_lines=5
+expected_rows=5
+local_result_gate.status=pass
+stderr_bytes=0
+monitor_done=2026-06-28T17:04:33+08:00
+```
+
+Artifacts:
+
+```text
+outputs/remote_results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628/results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628.jsonl
+outputs/remote_results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628_local_result_gate.json
+outputs/remote_results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628_history.csv
+outputs/remote_results/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628/i1_spn_only_attr_r7_262k_seed0_gpu1_20260628_curves.svg
+```
+
+Metrics:
+
+| Model | Role | Accuracy | Calibrated Accuracy | AUC | Loss | Epochs Ran | Best Epoch |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `present_zhang_wang_keras_mcnd` | N0 baseline | 0.674992 | 0.709743 | 0.783228 | 0.607811 | 14 | 6 |
+| `present_nibble_paligned_spn_only` | Anchor: `DeltaC + true InvP(DeltaC)` | 0.715187 | 0.715763 | 0.790665 | 0.548985 | 20 | 16 |
+| `present_nibble_delta_only_spn_only` | DeltaC-only control | 0.708637 | 0.708794 | 0.782918 | 0.556032 | 20 | 18 |
+| `present_nibble_invp_only_spn_only` | InvP-only attribution | 0.716049 | 0.717358 | 0.792536 | 0.547602 | 20 | 16 |
+| `present_nibble_shuffled_paligned_spn_only` | shuffled-P control | 0.709686 | 0.710415 | 0.784487 | 0.555996 | 20 | 19 |
+
+Deltas:
+
+| Comparison | Accuracy Delta | Calibrated Accuracy Delta | AUC Delta |
+|---|---:|---:|---:|
+| Anchor vs baseline | +0.040195 | +0.006020 | +0.007437 |
+| Anchor vs DeltaC-only | +0.006550 | +0.006969 | +0.007747 |
+| Anchor vs shuffled-P | +0.005501 | +0.005348 | +0.006177 |
+| InvP-only vs baseline | +0.041058 | +0.007614 | +0.009308 |
+| InvP-only vs DeltaC-only | +0.007412 | +0.008564 | +0.009617 |
+| InvP-only vs Anchor | +0.000862 | +0.001594 | +0.001871 |
+| shuffled-P vs baseline | +0.034695 | +0.000671 | +0.001260 |
+
+Interpretation:
+
+```text
+The attribution gate is positive for true P-layer structure:
+Anchor > DeltaC-only and Anchor > shuffled-P.
+
+The strongest diagnostic row is InvP-only, not the two-view Anchor.
+This suggests that inverse-P aligned DeltaC is the dominant useful signal in the
+current SPN-only family, while adding raw DeltaC tokens may dilute or fail to
+improve that signal under this simple token-mixer architecture.
+```
+
+Decision:
+
+```text
+keep diagnostic evidence
+do not claim formal breakthrough
+promote InvP-centered SPN-only as the next architecture direction
+```
+
+Next action:
+
+```text
+Design the next medium diagnostic around InvP-centered structure:
+1. reproduce InvP-only vs Anchor at 262144/class with at least one additional seed;
+2. test a compact InvP-centered pair-set consistency model;
+3. only after stability, scale the strongest InvP/SPN-only route to 1000000/class + multi-seed.
 ```
