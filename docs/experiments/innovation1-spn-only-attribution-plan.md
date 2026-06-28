@@ -158,3 +158,54 @@ Before remote launch, verify the run uses disk-backed dataset cache/progress art
 3. Commit and push code/config/docs.
 4. Launch the `262144/class` attribution matrix remotely.
 5. On result retrieval, update this document with metrics, artifacts, gate status, and keep/discard decision.
+
+## Launch Record
+
+### 2026-06-28 Remote Medium Diagnostic
+
+Status:
+
+```text
+running remotely, local tmux monitor active
+```
+
+Run metadata:
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_spn_only_attr_r7_262k_seed0_gpu1_20260628` |
+| Source branch | `main` |
+| Source commit at launch | `71a2770` |
+| Remote | `lxy-a6000` |
+| Device | `cuda:1` |
+| Remote run dir | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_spn_only_attr_r7_262k_seed0_gpu1_20260628` |
+| Local monitor | `tmux: monitor_i1_spn_only_attr_20260628` |
+| Expected result rows | `5` |
+| Dataset cache root | `G:\lxy\blockcipher-structure-adaptive-nd-runs\shared_dataset_cache` |
+| Dataset cache workers | `4` |
+| Progress log | `logs\i1_spn_only_attr_r7_262k_seed0_gpu1_20260628_progress.jsonl` |
+
+Launch gate:
+
+```text
+local smoke passed
+tests/test_project_structure.py passed
+code/config/docs pushed to GitHub
+run-owned clean clone created under G:\lxy
+cmd.exe /c launcher used
+remote logs/progress created
+initial stderr was 0 bytes after launcher entered training
+```
+
+Local smoke artifact:
+
+```text
+outputs/smoke/innovation1_spn_only_attribution_smoke.jsonl
+```
+
+Next automatic action:
+
+```text
+tmux monitor waits for done/failed marker, retrieves logs/results/results_archive via scp,
+then this document should be updated with gate status, metrics, deltas, and decision.
+```
