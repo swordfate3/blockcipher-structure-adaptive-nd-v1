@@ -290,3 +290,39 @@ When validating experiment matrices, assert protocol invariants and stable scope
 - **Notes**: The assertion was relaxed to check stable evidence scope markers while preserving protocol checks.
 
 ---
+
+## [ERR-20260628-001] local_python_command_missing
+
+**Logged**: 2026-06-28T11:51:10+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+The local shell does not provide a bare `python` command; use `python3` or `uv run python` in this project.
+
+### Error
+```text
+/bin/bash: line 1: python: command not found
+```
+
+### Context
+- Command attempted: `python -c "from pathlib import Path; ..."`
+- Purpose: lightweight verification after updating `AGENTS.md` and `.learnings/LEARNINGS.md`.
+- Environment: local project shell.
+- Follow-up command with `python3` succeeded.
+
+### Suggested Fix
+Use `python3` for tiny local interpreter checks, and use `UV_CACHE_DIR=/tmp/uv-cache uv run python ...` for project Python commands that rely on the managed environment.
+
+### Metadata
+- Reproducible: yes
+- Related Files: AGENTS.md, .learnings/LEARNINGS.md
+- See Also: LRN-20260622-001
+
+### Resolution
+- **Resolved**: 2026-06-28T11:51:10+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the same path check with `python3`; it passed.
+
+---

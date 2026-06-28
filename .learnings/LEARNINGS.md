@@ -603,3 +603,41 @@ For the next Innovation 1 experiment, design a minimal SPN transition-aware back
 - Last-Seen: 2026-06-27
 
 ---
+
+## [LRN-20260628-001] correction
+
+**Logged**: 2026-06-28T00:00:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: infra
+
+### Summary
+After a new training experiment smoke test passes, automatically continue to the corresponding non-smoke remote training launch instead of stopping at the smoke report.
+
+### Details
+The user corrected the experiment workflow after the SPN-only attribution smoke test. For this project, when the user asks to "推进" a new training experiment and a smoke matrix is part of the setup, the smoke is only a gate. If smoke passes and code/config/docs have been verified, committed, and pushed, the agent should proceed to launch the planned medium/formal remote run using the pushed GitHub commit and the established tmux monitor/retrieval workflow.
+
+Correct behavior:
+
+- Treat local smoke as a readiness gate, not the final deliverable, unless the user explicitly asks for smoke/local verification only.
+- After smoke passes, commit and push scoped changes.
+- Create or verify the matching remote config/launcher for the non-smoke run.
+- Audit remote rules: `cmd.exe /c`, all artifacts under `G:\lxy`, disk-backed dataset cache/progress for `>=65536/class`, GitHub-pushed commit source.
+- Launch remote training and start/verify a local tmux monitor for automatic retrieval.
+- Report the run as `running`/`planned` with run id and monitor details, not as complete.
+
+### Suggested Action
+Promote this to `AGENTS.md` under research execution or remote workflow. Future "推进训练实验" tasks should run the full pipeline: implement -> smoke -> verify -> commit/push -> remote launch -> tmux monitor handoff.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, configs/experiment/innovation1/, configs/remote/, scripts/generated/remote/, docs/experiments/
+- Tags: experiments, smoke, remote-training, tmux-monitor, workflow, innovation1
+- See Also: LRN-20260622-001, LRN-20260627-001
+- Pattern-Key: workflow.training.smoke_then_remote_launch
+- Recurrence-Count: 1
+- First-Seen: 2026-06-28
+- Last-Seen: 2026-06-28
+- Promoted: AGENTS.md
+
+---
