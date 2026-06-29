@@ -33,7 +33,7 @@
   "project_id": "blockcipher-structure-adaptive-nd",
   "clone_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
   "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
-  "source_commit": "pending_commit_after_retry1_config",
+  "source_commit": "recorded_in_remote_run_script_git_revision",
   "result_sync": "local_tmux_monitor_scp_fallback",
   "claim_scope": "MEDIUM 262144/class seed1 fast confirmation retry1 only: compare Zhang/Wang baseline, InvP-only anchor, and InvP pair-consistency under the same official MCND protocol with train_eval_interval=0; not formal reproduction or breakthrough evidence",
   "launch_policy": "use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; fast eval skips per-epoch full train-set metrics only"
