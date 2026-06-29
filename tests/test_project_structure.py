@@ -910,6 +910,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["results_jsonl_exists"] is False
+    assert report["results_jsonl_line_count"] == 0
     assert report["heartbeat"]["is_stale"] is False
     assert report["artifact_files"] == [
         "monitor/monitor.log",
@@ -932,6 +933,21 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
 
     results = run_root / "results"
     results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+    )
+
+    assert report["status"] == "results_empty"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+    assert report["results_jsonl_exists"] is True
+    assert report["results_jsonl_line_count"] == 0
+
     (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")
     report = monitor_health_report(
         run_id=run_id,
@@ -943,6 +959,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["status"] == "result_ready"
     assert report["postprocess_allowed"] is True
     assert report["results_jsonl_exists"] is True
+    assert report["results_jsonl_line_count"] == 1
     assert report["postprocess_command"] == [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -1010,6 +1027,7 @@ def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
     status = _health_status(
         run_root_exists=True,
         results_jsonl_exists=False,
+        results_jsonl_line_count=0,
         done_markers=[],
         failed_markers=[],
         stderr_text="",

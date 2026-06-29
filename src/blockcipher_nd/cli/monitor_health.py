@@ -68,6 +68,7 @@ def monitor_health_report(
     monitor_log = monitor_dir / "monitor.log"
     ssh_stderr = monitor_dir / "monitor_ssh_stderr.log"
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
+    results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
     done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
     failed_markers = _relative_paths(run_root, sorted(run_root.glob("**/*failed*")))
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
@@ -78,6 +79,7 @@ def monitor_health_report(
     status = _health_status(
         run_root_exists=run_root.exists(),
         results_jsonl_exists=results_jsonl.exists(),
+        results_jsonl_line_count=results_jsonl_line_count,
         done_markers=done_markers,
         failed_markers=failed_markers,
         stderr_text=stderr_text,
@@ -109,11 +111,12 @@ def monitor_health_report(
         "ssh_stderr_tail": _tail_text(stderr_text, recent_lines),
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
+        "results_jsonl_line_count": results_jsonl_line_count,
         "done_markers": done_markers,
         "failed_markers": failed_markers,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
-        in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results"},
+        in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results", "results_empty"},
         "postprocess_allowed": status == "result_ready",
         "postprocess_command": postprocess_command,
     }
@@ -123,6 +126,7 @@ def _health_status(
     *,
     run_root_exists: bool,
     results_jsonl_exists: bool,
+    results_jsonl_line_count: int,
     done_markers: list[str],
     failed_markers: list[str],
     stderr_text: str,
@@ -132,8 +136,10 @@ def _health_status(
 ) -> str:
     if failed_markers:
         return "failed"
-    if results_jsonl_exists:
+    if results_jsonl_line_count > 0:
         return "result_ready"
+    if results_jsonl_exists:
+        return "results_empty"
     if done_markers:
         return "completed_missing_results"
     if not run_root_exists or not recent_monitor_lines:
@@ -262,6 +268,12 @@ def _tail_lines(path: Path, count: int) -> list[str]:
     return lines[-max(0, count) :]
 
 
+def _jsonl_nonempty_line_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    return sum(1 for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip())
+
+
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
@@ -301,7 +313,14 @@ def main(argv: list[str] | None = None) -> int:
     return (
         0
         if report["status"]
-        not in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results"}
+        not in {
+            "failed",
+            "unhealthy",
+            "missing_monitor",
+            "stale_monitor",
+            "completed_missing_results",
+            "results_empty",
+        }
         else 4
     )
 
