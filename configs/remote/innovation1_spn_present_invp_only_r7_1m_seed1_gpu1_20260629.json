@@ -35,6 +35,6 @@
   "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
   "source_commit": "recorded_in_remote_run_script_git_revision",
   "result_sync": "local_tmux_monitor_scp_fallback",
-  "claim_scope": "CONDITIONAL_PAPER_SCALE_CONFIRMATION 1000000/class InvP-only SPN seed1; launch only if seed0 clears the >= +0.003 AUC gate over Zhang/Wang 1M anchor; not formal breakthrough evidence alone",
+  "claim_scope": "CONDITIONAL_PAPER_SCALE_CONFIRMATION 1000000/class InvP-only SPN seed1; launch only if seed0 clears at least the weak-positive >= +0.001 AUC gate over Zhang/Wang 1M anchor; >= +0.003 is the strong single-seed gate; not formal breakthrough evidence alone",
   "launch_policy": "use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; fast eval skips per-epoch full train-set metrics only"
 }

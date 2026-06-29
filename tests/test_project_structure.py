@@ -430,6 +430,8 @@ def test_present_invp_only_1m_seed1_remote_config_uses_fast_parallel_dataset_cac
     assert config["dataset_cache"] is True
     assert config["dataset_cache_workers"] == 4
     assert "CONDITIONAL_PAPER_SCALE_CONFIRMATION" in config["claim_scope"]
+    assert ">= +0.001 AUC gate" in config["claim_scope"]
+    assert ">= +0.003 is the strong single-seed gate" in config["claim_scope"]
     assert "cmd.exe /c" in config["launch_policy"]
 
 
