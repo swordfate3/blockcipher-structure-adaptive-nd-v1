@@ -736,6 +736,7 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
         "innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json"
     )
     assert any("seed1" in step for step in summary["next_steps"])
+    assert any("check-remote-readiness" in step for step in summary["next_steps"])
     assert any("tmux watcher or sub-agent" in step for step in summary["next_steps"])
     markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
     assert "auc_delta_vs_zhang_wang_1m" in markdown
@@ -744,6 +745,7 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert "plan_doc" in markdown
     assert "Next Steps:" in markdown
     assert "Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json" in markdown
+    assert "scripts/check-remote-readiness" in markdown
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "**Status:** completed / postprocessed / branch gated" in plan_doc
     assert "<!-- invp-postprocess:unit_invp:start -->" in plan_doc

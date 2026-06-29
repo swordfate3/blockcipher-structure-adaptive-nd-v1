@@ -257,10 +257,11 @@ Conditional next step:
 
 ```text
 If InvP-only 1M beats the Zhang/Wang 1M anchor by >= +0.003 AUC,
-launch a 1M seed1 confirmation.
+run `scripts/check-remote-readiness` on the prepared seed1 remote config, then
+launch a 1M seed1 confirmation from the pushed commit.
 
-If InvP-only is weakly positive by +0.001 to +0.003 AUC, launch seed1 before
-claiming route strength.
+If InvP-only is weakly positive by +0.001 to +0.003 AUC, run the same remote
+readiness gate and launch seed1 before claiming route strength.
 
 If InvP-only is tied within the weak band or below the Zhang/Wang anchor, shift
 the next design iteration toward a true SPN-topology / DDT-aware graph backbone

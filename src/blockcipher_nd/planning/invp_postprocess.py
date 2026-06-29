@@ -157,8 +157,13 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Fix result retrieval, plan alignment, or metric availability before launching another run.",
         ]
     if next_action["branch"] == "seed1_confirmation":
+        readiness_command = (
+            "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+            f"--config {next_action['launch_remote_config']}"
+        )
         return [
             "Update and commit the experiment plan with this retrieved result.",
+            f"Run the remote readiness gate: {readiness_command}",
             f"Launch {next_action['launch_remote_config']} from the pushed commit.",
             "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
         ]
