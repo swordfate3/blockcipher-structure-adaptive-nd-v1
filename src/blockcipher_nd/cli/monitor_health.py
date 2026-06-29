@@ -162,6 +162,9 @@ def _postprocess_command(
     if status != "result_ready" or plan_path is None:
         return []
     command = [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
         "uv",
         "run",
         "python",

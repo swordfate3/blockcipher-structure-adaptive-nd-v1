@@ -847,6 +847,9 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is True
     assert report["results_jsonl_exists"] is True
     assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
         "uv",
         "run",
         "python",
