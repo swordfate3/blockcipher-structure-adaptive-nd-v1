@@ -767,6 +767,7 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert "| AUC | `0.797100000000` |" in plan_doc
     assert "| Decision | `launch_invp_seed1_confirmation` |" in plan_doc
     assert "| Next action branch | `seed1_confirmation` |" in plan_doc
+    assert "| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness" in plan_doc
     assert "| Next steps | `" in plan_doc
     assert "| Results JSONL | `" in plan_doc
 
@@ -787,7 +788,9 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
     plan_path = tmp_path / "plan.csv"
     results_path = tmp_path / "results.jsonl"
     output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "plan.md"
     _write_invp_postprocess_plan(plan_path)
+    plan_doc_path.write_text("# InvP Plan\n\n**Status:** running remotely / tmux monitor active\n", encoding="utf-8")
     _write_invp_postprocess_result(
         results_path,
         auc=0.7939,
@@ -802,6 +805,7 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
         output_dir=output_dir,
         run_id="unit_invp_tied",
         expected_rows=1,
+        plan_doc_path=plan_doc_path,
     )
 
     assert report["status"] == "pass"
@@ -829,6 +833,9 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
     assert "`Implement tensor-native DDT cell features from ciphertext_pair_bits.`" in markdown
     assert any("DDT graph route" in step for step in report["next_steps"])
     assert not any("seed1" in step.lower() for step in report["next_steps"])
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action implementation aliases | `present_nibble_ddt_graph; present_nibble_shuffled_ddt_graph` |" in plan_doc
+    assert "Implement tensor-native DDT cell features from ciphertext_pair_bits." in plan_doc
 
 
 def test_invp_only_postprocess_underperforming_result_keeps_ddt_checklist(tmp_path):

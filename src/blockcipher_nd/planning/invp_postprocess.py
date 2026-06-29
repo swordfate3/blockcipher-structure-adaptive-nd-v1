@@ -321,6 +321,10 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Decision", report["decision"]),
         ("Action", report["action"]),
         ("Next action branch", report["next_action"]["branch"]),
+        ("Next action readiness command", report["next_action"].get("readiness_command", "")),
+        ("Next action implementation aliases", _join_next_action_list(report["next_action"], "implementation_aliases")),
+        ("Next action implementation files", _join_next_action_list(report["next_action"], "implementation_files")),
+        ("Next action implementation checklist", _join_next_action_list(report["next_action"], "implementation_checklist")),
         ("Next steps", "; ".join(report["next_steps"])),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
@@ -334,6 +338,13 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
     lines = [f"### {report['run_id']} Postprocess Result", "", "| Field | Value |", "|---|---|"]
     lines.extend(f"| {field} | `{value}` |" for field, value in rows)
     return "\n".join(lines)
+
+
+def _join_next_action_list(next_action: dict[str, Any], key: str) -> str:
+    values = next_action.get(key, [])
+    if not isinstance(values, list):
+        return ""
+    return "; ".join(str(value) for value in values)
 
 
 def main(argv: list[str] | None = None) -> int:
