@@ -1046,6 +1046,32 @@ def test_monitor_health_requires_expected_result_rows(tmp_path):
     assert report["postprocess_allowed"] is True
 
 
+def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_running_empty"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-06-29T20:25:50+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    results = root / run_id / "results"
+    results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=1,
+        now=datetime.fromisoformat("2026-06-29T20:26:30+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["results_jsonl_exists"] is True
+    assert report["results_jsonl_line_count"] == 0
+    assert report["expected_rows"] == 1
+    assert report["needs_main_thread_intervention"] is False
+    assert report["postprocess_allowed"] is False
+
+
 def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_stale"

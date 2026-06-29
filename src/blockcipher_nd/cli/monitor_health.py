@@ -160,9 +160,9 @@ def _health_status(
         return "results_incomplete"
     if results_jsonl_line_count > 0:
         return "result_ready"
-    if results_jsonl_exists:
-        return "results_empty"
     if done_markers:
+        if results_jsonl_exists:
+            return "results_empty"
         return "completed_missing_results"
     if not run_root_exists or not recent_monitor_lines:
         return "missing_monitor"
@@ -174,6 +174,8 @@ def _health_status(
         return "stale_monitor"
     if any("running" in line for line in recent_monitor_lines):
         return "running"
+    if results_jsonl_exists:
+        return "results_empty"
     return "unknown"
 
 

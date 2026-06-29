@@ -334,3 +334,124 @@ rather than additional pair-consistency pooling.
 | Summary JSON | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_postprocess_summary.json` |
 | Summary Markdown | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_postprocess_summary.md` |
 <!-- invp-postprocess:i1_invp_only_r7_1m_seed0_gpu1_20260629:end -->
+
+## Seed1 Confirmation Launch Record
+
+The seed0 result cleared the strong single-seed gate:
+
+```text
+AUC = 0.797470988906
+Delta vs Zhang/Wang 1M AUC = +0.003573962958
+Decision = launch_invp_seed1_confirmation
+```
+
+Seed1 has therefore been launched as a confirmation run. This is still
+paper-scale confirmation evidence, not a formal multi-seed breakthrough claim.
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_only_r7_1m_seed1_gpu1_20260629` |
+| Source commit | `de6c9851d61b74571c132c470f48d3499abe7f8a` |
+| Plan CSV | `configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv` |
+| Remote config | `configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json` |
+| Remote task | `blockcipher_i1_invp_only_r7_1m_seed1_20260629` |
+| Remote root | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_invp_only_r7_1m_seed1_gpu1_20260629` |
+| Remote script root | `G:\lxy\blockcipher-structure-adaptive-nd\scripts\generated\remote` |
+| Local monitor | `tmux: monitor_i1_invp_only_seed1_1m_20260629` |
+| Local retrieval root | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/` |
+| Watcher owner | `sub-agent: Linnaeus` |
+| Device | `cuda:1` |
+| Expected rows | `1` |
+
+Launch gates:
+
+```text
+remote readiness = pass
+task scheduler command uses cmd.exe /c = yes
+remote project/run artifacts under G:\lxy = yes
+dataset cache root = G:\lxy\blockcipher-structure-adaptive-nd-runs\shared_dataset_cache
+initial remote logs appeared = yes
+launcher logs appeared = yes
+local tmux monitor started = yes
+```
+
+Bounded local monitor-health check for seed1 watchers:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --run-id i1_invp_only_r7_1m_seed1_gpu1_20260629 \
+  --tmux-session monitor_i1_invp_only_seed1_1m_20260629 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv \
+  --plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md
+```
+
+When seed1 is retrieved, validate and compare it against seed0 and the
+Zhang/Wang 1M anchor before making any route-strength claim. If seed1 confirms
+the strong positive direction, the next planning step is a multi-seed summary
+and a route-level evidence table; if seed1 collapses, treat seed0 as a positive
+single-seed diagnostic and run an attribution check before scaling further.
+
+## Stop / Continue Criteria
+
+This automation should not run experiments indefinitely. Use these explicit
+stop and branch rules after seed1 is retrieved.
+
+### Run-Level Stop
+
+Stop the current remote run and do not postprocess if any of these occur:
+
+```text
+failed marker appears
+results JSONL is missing after a done marker
+results JSONL line count is not the expected row count
+validate-results status is not pass
+negative_mode, sample_structure, validation key, metric, or plan row differs
+from the configured protocol
+```
+
+Action:
+
+```text
+Record the failure mode, commit the experiment note, and do not launch the next
+experiment until the failure is explained or a repair plan is written.
+```
+
+### Route-Level Stop Or Continue
+
+Use Zhang/Wang 1M AUC `0.793897025948` as the primary anchor.
+
+| Seed0 result | Seed1 result | Decision |
+|---|---|---|
+| `>= +0.003` AUC delta | `>= +0.003` AUC delta | confirm strong paper-scale route; write route-level summary and plan multi-seed/formal evidence |
+| `>= +0.003` AUC delta | `+0.001` to `+0.003` AUC delta | keep route as positive but not strong; run one more seed or attribution before any claim |
+| `>= +0.003` AUC delta | within `±0.001` | stop scaling InvP-only; treat seed0 as unstable positive diagnostic and run attribution/DDT route |
+| `>= +0.003` AUC delta | below `-0.001` | stop InvP-only as main candidate; investigate variance/protocol artifacts before further scale |
+
+The route is not a formal claim until it has at least:
+
+```text
+two or more retrieved and validated 1000000/class seeds
+same protocol and strict encrypted-random-plaintext negatives
+documented comparison against Zhang/Wang 1M anchor
+no unresolved validation, retrieval, or checkpoint-selection issue
+```
+
+### Stage-Level Stop
+
+Pause the automated research loop, rather than launching more GPU jobs, when:
+
+```text
+1. A route has two validated 1M/class seeds with consistent positive deltas and
+   the next step requires a paper-level multi-seed design decision.
+2. A route fails the seed1 confirmation gate and the next step requires a new
+   architecture or data-hypothesis document.
+3. The only remaining action is waiting for a remote result; in that case the
+   watcher/sub-agent owns monitoring and the main thread must stop polling.
+4. Evidence is contradictory, incomplete, fallback-retrieved, or not
+   plan-aligned; in that case write the limitation first and do not claim
+   route strength.
+```
+
+Stopping here means stopping the current automation branch, not abandoning the
+project. The next branch must start from a written plan with a new hypothesis
+and an explicit same-budget comparison.
