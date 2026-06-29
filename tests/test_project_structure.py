@@ -805,8 +805,54 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
     assert report["next_action"]["should_launch_remote"] is False
     assert report["next_action"]["requires_implementation"] is True
     assert report["next_action"]["plan_doc"].endswith("innovation1-spn-ddt-graph-conditional-plan.md")
+    assert report["next_action"]["implementation_aliases"] == [
+        "present_nibble_ddt_graph",
+        "present_nibble_shuffled_ddt_graph",
+    ]
+    assert "src/blockcipher_nd/registry/model_families/spn.py" in report["next_action"]["implementation_files"]
+    assert any(
+        "tensor-native DDT cell features" in step
+        for step in report["next_action"]["implementation_checklist"]
+    )
+    assert any("CPU smoke CSV" in step for step in report["next_action"]["implementation_checklist"])
     assert any("DDT graph route" in step for step in report["next_steps"])
     assert not any("seed1" in step.lower() for step in report["next_steps"])
+
+
+def test_invp_only_postprocess_underperforming_result_keeps_ddt_checklist(tmp_path):
+    plan_path = tmp_path / "plan.csv"
+    results_path = tmp_path / "results.jsonl"
+    output_dir = tmp_path / "postprocess"
+    _write_invp_postprocess_plan(plan_path)
+    _write_invp_postprocess_result(
+        results_path,
+        auc=0.7900,
+        accuracy=0.710,
+        calibrated_accuracy=0.711,
+        loss=0.56,
+    )
+
+    report = postprocess_invp_only_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_invp_under",
+        expected_rows=1,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "discard_invp_only_as_main_1m_candidate"
+    assert report["next_action"]["branch"] == "discard_invp_main"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["implementation_aliases"] == [
+        "present_nibble_ddt_graph",
+        "present_nibble_shuffled_ddt_graph",
+    ]
+    assert any(
+        "tensor-native DDT cell features" in step
+        for step in report["next_action"]["implementation_checklist"]
+    )
 
 
 def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):

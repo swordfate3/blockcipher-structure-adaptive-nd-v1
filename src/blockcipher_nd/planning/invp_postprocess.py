@@ -208,6 +208,17 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "requires_implementation": True,
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
             "first_remote_scale": "262144/class",
+            "implementation_aliases": [
+                "present_nibble_ddt_graph",
+                "present_nibble_shuffled_ddt_graph",
+            ],
+            "implementation_files": [
+                "src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py",
+                "src/blockcipher_nd/models/structure/spn/__init__.py",
+                "src/blockcipher_nd/registry/model_families/spn.py",
+                "tests/test_project_structure.py",
+            ],
+            "implementation_checklist": _ddt_graph_implementation_checklist(),
             "reason": decision,
         }
     if decision == "discard_invp_only_as_main_1m_candidate":
@@ -216,6 +227,11 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": True,
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
+            "implementation_aliases": [
+                "present_nibble_ddt_graph",
+                "present_nibble_shuffled_ddt_graph",
+            ],
+            "implementation_checklist": _ddt_graph_implementation_checklist(),
             "fallback": "return_to_completed_zhang_wang_or_paligned_mcnd_anchor",
             "reason": decision,
         }
@@ -229,6 +245,17 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
 
 def _readiness_command(config_path: str) -> str:
     return f"UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config {config_path}"
+
+
+def _ddt_graph_implementation_checklist() -> list[str]:
+    return [
+        "Implement tensor-native DDT cell features from ciphertext_pair_bits.",
+        "Add DDT graph and shuffled-DDT graph model classes.",
+        "Export and register present_nibble_ddt_graph and present_nibble_shuffled_ddt_graph.",
+        "Add alias build/forward tests and deterministic DDT feature sanity coverage.",
+        "Add and run a tiny CPU smoke CSV before creating any 262144/class remote config.",
+        "Commit/push code, tests, and smoke config before launching remote 262144/class.",
+    ]
 
 
 def update_plan_doc_with_postprocess_result(plan_doc_path: Path, report: dict[str, Any]) -> None:
