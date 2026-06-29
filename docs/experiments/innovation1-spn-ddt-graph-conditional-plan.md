@@ -332,6 +332,10 @@ src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py
 src/blockcipher_nd/models/structure/spn/__init__.py
   - export the two new model classes
 
+src/blockcipher_nd/models/structure/__init__.py
+  - export the two new model classes because the SPN registry imports from
+    blockcipher_nd.models.structure
+
 src/blockcipher_nd/registry/model_families/spn.py
   - register present_nibble_ddt_graph
   - register present_nibble_shuffled_ddt_graph
@@ -361,6 +365,61 @@ active InvP flag                   1
 
 Do not add beam-search trail statistics in the first graph route. Those are a
 separate hypothesis and should not be mixed into the first topology/DDT test.
+
+Implementation audit refinement, 2026-06-29:
+
+```text
+Prefer the simpler full-column DDT input for Branch B v1:
+
+aligned InvP(DeltaC) nibble bits       4
+DDT column counts by input difference 16
+total                                 20 features per nibble node
+```
+
+Reason:
+
+```text
+The full DDT column is tensor-native, avoids Python top-k/sort tie-breaking in
+the model forward pass, preserves all local S-box transition counts, and keeps
+the first DDT route attributable to topology + local transition priors rather
+than beam-search trail engineering.
+```
+
+Axis convention:
+
+```text
+PRESENT_SBOX_DDT[input_difference][output_difference]
+
+Model lookup should observe an aligned output difference and retrieve all
+candidate input-difference counts. Register or compute a transposed buffer:
+
+ddt_by_output[output_difference][input_difference]
+```
+
+Normalize DDT counts to probability-like features with `count / 16.0` before
+concatenating them with bit features.
+
+Expected Branch B v1 tensor flow:
+
+```text
+features                      (B, 128 * pairs_per_sample)
+raw pairs                     (B, P, 2, 64)
+DeltaC bits                   (B, P, 64)
+InvP-aligned DeltaC bits      (B, P, 64)
+aligned output nibble bits    (B * P, 16, 4)
+aligned output nibble ids     (B * P, 16)
+DDT column counts             (B * P, 16, 16)
+DDT graph token input         (B * P, 16, 20)
+token hidden                  (B * P, 16, token_dim)
+P-layer graph mixer output    (B * P, 16, token_dim)
+pair embedding                (B * P, embedding_bits)
+pair-set embeddings           (B, P, embedding_bits)
+EvidencePooling output        (B, embedding_bits)
+logits                        (B, 1)
+```
+
+Use `PresentPLayerMixerBlock(words_per_pair=1)` for the initial graph route.
+Do not pass 32 tokens to a mixer configured with `words_per_pair=1`.
 
 ### Graph/Mixer
 
@@ -454,6 +513,40 @@ For Branch B, use this exact order:
 Do not create remote config, launch script, or monitor handoff before step 6
 passes. The DDT route is conditional evidence, so a broken or partially defined
 config would add bookkeeping noise without advancing the research question.
+
+### Branch B Test Guardrails
+
+Add tests before the first smoke CSV is committed:
+
+```text
+1. DDT source table:
+   - PRESENT_SBOX_DDT has shape 16 x 16
+   - each input-difference row sums to 16
+   - transposed lookup matches the original table convention
+
+2. Tensor DDT features:
+   - known raw ciphertext pair bits produce deterministic InvP-aligned nibble ids
+   - ddt_by_output[output][input] equals PRESENT_SBOX_DDT[input][output]
+   - count normalization is exactly count / 16.0
+
+3. Alias build/forward:
+   - present_nibble_ddt_graph builds from the registry
+   - present_nibble_shuffled_ddt_graph builds from the registry
+   - input_bits = 2048 and pair_bits = 128 produce logits shaped (batch, 1)
+
+4. Control route:
+   - true and shuffled routes differ only in alignment/topology
+   - both routes keep the same feature encoding, pooling, hidden sizes, negative
+     mode, validation protocol, and metric computation
+
+5. Shape failures:
+   - non-2D inputs or mismatched input_bits/pair_bits raise ValueError in the
+     same style as existing PRESENT nibble models
+```
+
+Do not add a test that requires `present_nibble_ddt_graph` to exist before
+Branch B is selected. Until the InvP-only 1M gate chooses Branch B, the DDT
+aliases remain planned implementation aliases, not registered model keys.
 
 ## Current Waiting Condition
 
