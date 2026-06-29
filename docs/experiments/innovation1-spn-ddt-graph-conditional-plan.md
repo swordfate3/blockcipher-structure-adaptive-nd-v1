@@ -180,16 +180,30 @@ Existing useful code:
 
 ```text
 src/blockcipher_nd/models/structure/spn/present_p_layer_mixer.py
+  - _present_nibble_adjacency_indices()
+  - PresentPLayerMixerBlock
+
 src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py
+  - _PresentNibblePAlignedSpnEncoder
+  - _PresentNibbleTransitionResidualEncoder
+  - _present_inverse_p_index()
+  - existing InvP/Delta transition model and shuffled controls
+
 src/blockcipher_nd/features/encoders/present_sbox_ddt.py
+  - PRESENT_SBOX_DDT
+  - present_sbox_ddt_words()
+  - present_sbox_ddt_topk_words()
+
 src/blockcipher_nd/features/encoders/present_matrix.py
+  - integer reference implementation for pair-xor, InvP, and SBox-DDT feature words
 ```
 
 Likely smallest implementation:
 
 ```text
-1. Add a compact DDT cell-feature builder inside the SPN model module first.
-2. Reuse existing PRESENT P-layer adjacency logic.
+1. Add a compact DDT cell-feature builder inside present_nibble_paligned_mcnd.py first.
+2. Reuse or promote the existing PRESENT P-layer adjacency helper; do not create
+   a second incompatible graph convention.
 3. Register only two new keys initially:
    - present_nibble_ddt_graph
    - present_nibble_shuffled_ddt_graph
@@ -200,6 +214,41 @@ Likely smallest implementation:
 
 Do not make this generic for SKINNY/GIFT in the first implementation. Generic
 SPN graph abstractions are allowed only after PRESENT shows a positive route.
+
+### Code Audit Before Branch B
+
+Audit date: 2026-06-29.
+
+Current source state:
+
+```text
+Transition and InvP-only classes are currently in:
+  src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py
+
+There is no separate present_nibble_transition.py module.
+```
+
+Branch B should therefore start in the existing PRESENT nibble module, unless
+the file is split first as a narrow mechanical refactor. Do not create a new
+module and duplicate transition helpers without moving tests at the same time.
+
+The first DDT builder should be tensor-native and should consume the same raw
+`ciphertext_pair_bits` cache as InvP-only:
+
+```text
+raw pair bits -> DeltaC bits -> InvP(DeltaC) bits
+              -> DDT best input-difference bits
+              -> DDT confidence/count bits
+              -> active DeltaC / active InvP flags
+```
+
+Use `PRESENT_SBOX_DDT` as the source of truth for best input-difference and
+count/confidence values. Avoid the slower integer feature-encoding path for the
+training model; keep the integer `present_matrix.py` functions as a reference
+for tests and feature sanity checks.
+
+The shuffled control should alter only topology/alignment, not inputs, hidden
+size, pooling mode, training protocol, or negative-sample definition.
 
 ## Gate-To-Execution Branches
 
