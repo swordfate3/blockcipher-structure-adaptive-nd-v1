@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +23,7 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
+from blockcipher_nd.cli.monitor_health import _health_status
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
@@ -827,6 +829,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
         root=root,
         plan_path=plan,
         plan_doc_path=plan_doc,
+        now=datetime.fromisoformat("2026-06-29T15:05:00+08:00"),
     )
 
     assert report["status"] == "running"
@@ -834,6 +837,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["results_jsonl_exists"] is False
+    assert report["heartbeat"]["is_stale"] is False
     assert report["artifact_files"] == [
         "monitor/monitor.log",
         "monitor/monitor_ssh_stderr.log",
@@ -887,6 +891,54 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["failed_markers"] == ["failed.marker"]
+
+
+def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_stale"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text(
+        "2026-06-29T15:00:00+08:00 running\n",
+        encoding="utf-8",
+    )
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        stale_after_seconds=1800,
+        now=datetime.fromisoformat("2026-06-29T15:45:01+08:00"),
+    )
+
+    assert report["status"] == "stale_monitor"
+    assert report["heartbeat"]["is_stale"] is True
+    assert report["heartbeat"]["age_seconds"] == 2701
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+
+
+def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
+    status = _health_status(
+        run_root_exists=True,
+        results_jsonl_exists=False,
+        done_markers=[],
+        failed_markers=[],
+        stderr_text="",
+        recent_monitor_lines=["2026-06-29T16:38:40+08:00 running"],
+        heartbeat={"is_stale": False},
+        tmux={
+            "checked": True,
+            "session": "unit",
+            "exists": None,
+            "returncode": 1,
+            "stderr": "error connecting to /tmp/tmux-1000/default (Operation not permitted)",
+            "check_error": True,
+        },
+    )
+
+    assert status == "running"
 
 
 def test_seed1_remote_readiness_gate_passes_for_prepared_invp_confirmation():
