@@ -25,6 +25,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON report path.")
     parser.add_argument(
+        "--plan",
+        type=Path,
+        default=None,
+        help="Optional plan CSV path used to build a postprocess command when result_ready.",
+    )
+    parser.add_argument(
+        "--plan-doc",
+        type=Path,
+        default=None,
+        help="Optional experiment plan Markdown path for postprocess --update-plan-doc.",
+    )
+    parser.add_argument(
         "--recent-lines",
         type=int,
         default=8,
@@ -38,6 +50,8 @@ def monitor_health_report(
     run_id: str,
     root: Path = Path("outputs/remote_results"),
     tmux_session: str | None = None,
+    plan_path: Path | None = None,
+    plan_doc_path: Path | None = None,
     recent_lines: int = 8,
 ) -> dict[str, Any]:
     run_root = root / run_id
@@ -60,6 +74,14 @@ def monitor_health_report(
         recent_monitor_lines=recent_monitor_lines,
         tmux=tmux,
     )
+    postprocess_command = _postprocess_command(
+        status=status,
+        run_id=run_id,
+        results_jsonl=results_jsonl,
+        run_root=run_root,
+        plan_path=plan_path,
+        plan_doc_path=plan_doc_path,
+    )
     return {
         "status": status,
         "run_id": run_id,
@@ -80,6 +102,7 @@ def monitor_health_report(
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status in {"failed", "unhealthy", "missing_monitor"},
         "postprocess_allowed": status == "result_ready",
+        "postprocess_command": postprocess_command,
     }
 
 
@@ -127,6 +150,38 @@ def _tmux_status(session: str | None) -> dict[str, Any]:
     }
 
 
+def _postprocess_command(
+    *,
+    status: str,
+    run_id: str,
+    results_jsonl: Path,
+    run_root: Path,
+    plan_path: Path | None,
+    plan_doc_path: Path | None,
+) -> list[str]:
+    if status != "result_ready" or plan_path is None:
+        return []
+    command = [
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-invp-result",
+        "--plan",
+        str(plan_path),
+        "--results",
+        str(results_jsonl),
+        "--output-dir",
+        str(run_root),
+        "--run-id",
+        run_id,
+        "--expected-rows",
+        "1",
+    ]
+    if plan_doc_path is not None:
+        command.extend(["--update-plan-doc", str(plan_doc_path)])
+    return command
+
+
 def _tail_lines(path: Path, count: int) -> list[str]:
     if not path.exists():
         return []
@@ -160,6 +215,8 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         root=args.root,
         tmux_session=args.tmux_session,
+        plan_path=args.plan,
+        plan_doc_path=args.plan_doc,
         recent_lines=args.recent_lines,
     )
     text = json.dumps(report, indent=2, sort_keys=True)

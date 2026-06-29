@@ -191,11 +191,15 @@ Bounded local monitor-health check for sub-agent/watchers:
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
   --run-id i1_invp_only_r7_1m_seed0_gpu1_20260629 \
-  --tmux-session monitor_i1_invp_only_1m_20260629
+  --tmux-session monitor_i1_invp_only_1m_20260629 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv \
+  --plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md
 ```
 
 This command reads only local monitor artifacts and performs at most one local
 `tmux has-session` check. It must not be used as a main-thread polling loop.
+When the status is `result_ready`, the JSON report includes a
+`postprocess_command` that sub-agents/watchers can execute directly.
 
 Post-retrieval gate to run automatically:
 

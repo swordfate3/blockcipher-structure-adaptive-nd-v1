@@ -572,6 +572,9 @@ def test_invp_only_plan_records_bounded_monitor_health_command():
     assert "scripts/monitor-health" in plan
     assert "--run-id i1_invp_only_r7_1m_seed0_gpu1_20260629" in plan
     assert "--tmux-session monitor_i1_invp_only_1m_20260629" in plan
+    assert "--plan configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv" in plan
+    assert "--plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md" in plan
+    assert "`postprocess_command`" in plan
     assert "must not be used as a main-thread polling loop" in plan
 
 
@@ -808,11 +811,22 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     )
     (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
 
-    report = monitor_health_report(run_id=run_id, root=root)
+    plan = tmp_path / "plan.csv"
+    plan.write_text("header\n", encoding="utf-8")
+    plan_doc = tmp_path / "plan.md"
+    plan_doc.write_text("# plan\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+    )
 
     assert report["status"] == "running"
     assert report["needs_main_thread_intervention"] is False
     assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
     assert report["results_jsonl_exists"] is False
     assert report["artifact_files"] == [
         "monitor/monitor.log",
@@ -822,18 +836,47 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     results = run_root / "results"
     results.mkdir()
     (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")
-    report = monitor_health_report(run_id=run_id, root=root)
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+    )
 
     assert report["status"] == "result_ready"
     assert report["postprocess_allowed"] is True
     assert report["results_jsonl_exists"] is True
+    assert report["postprocess_command"] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-invp-result",
+        "--plan",
+        str(plan),
+        "--results",
+        str(results / f"{run_id}.jsonl"),
+        "--output-dir",
+        str(run_root),
+        "--run-id",
+        run_id,
+        "--expected-rows",
+        "1",
+        "--update-plan-doc",
+        str(plan_doc),
+    ]
 
     (run_root / "failed.marker").write_text("failed\n", encoding="utf-8")
-    report = monitor_health_report(run_id=run_id, root=root)
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+    )
 
     assert report["status"] == "failed"
     assert report["needs_main_thread_intervention"] is True
     assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
     assert report["failed_markers"] == ["failed.marker"]
 
 
