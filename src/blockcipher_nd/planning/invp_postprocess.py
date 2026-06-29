@@ -69,8 +69,11 @@ def postprocess_invp_only_result(
         "branch_status": branch_report["status"],
         "decision": branch_report["decision"],
         "action": branch_report["action"],
+        "reference_auc": branch_report["reference_auc"],
+        "paligned_mcnd_1m_auc": branch_report["paligned_mcnd_1m_auc"],
         "auc": branch_report["auc"],
         "auc_delta": branch_report["auc_delta"],
+        "auc_delta_vs_paligned_mcnd_1m": branch_report["auc_delta_vs_paligned_mcnd_1m"],
         "claim_scope": branch_report["claim_scope"],
     }
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
