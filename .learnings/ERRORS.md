@@ -476,3 +476,36 @@ For plan-based smoke tests, create a dedicated smoke CSV with small `samples_per
 - **Notes**: Interrupted the mistaken CPU run and switched to a dedicated small smoke CSV.
 
 ---
+
+## [ERR-20260629-003] remote_run_dir_precreated_clone_target
+
+**Logged**: 2026-06-29T11:25:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+Remote Windows run script failed before training because it created logs inside the same directory later used as the `git clone` destination.
+
+### Error
+```text
+RUN_GATE_BLOCKED_GIT_CLONE_FAILED
+fatal: destination path 'G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_invp_centered_seed1_fast_r7_262k_gpu1_20260629' already exists and is not an empty directory.
+```
+
+### Context
+- Run attempted: `i1_invp_centered_seed1_fast_r7_262k_gpu1_20260629`.
+- Operation: remote Task Scheduler launch for the seed1 InvP-centered 262144/class fast confirmation.
+- The run script set `RUN_DIR=%BASE_DIR%\%RUN_ID%`, created `%RUN_DIR%\logs`, then ran `git clone "%REPO_URL%" "%RUN_DIR%"`.
+- Because the clone destination was already non-empty, Git failed before checkout, dataset generation, or training.
+- This is a launcher/script gate failure, not experiment evidence.
+
+### Suggested Fix
+For run-owned clean clone scripts, either clone first into a new empty `%RUN_DIR%` and create `logs/results/results_archive` only after clone succeeds, or clone into a dedicated `%RUN_DIR%\repo` subdirectory and keep launcher logs outside the clone destination. Do not pre-create the clone destination with logs before `git clone`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /tmp/run_i1_invp_centered_seed1_fast_r7_262k_gpu1_20260629.cmd, configs/remote/innovation1_spn_present_invp_centered_seed1_fast_r7_262k_gpu1_20260629.json
+- See Also: ERR-20260624-003, ERR-20260626-001
+
+---
