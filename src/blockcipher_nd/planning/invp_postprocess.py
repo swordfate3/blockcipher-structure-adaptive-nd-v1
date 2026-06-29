@@ -123,6 +123,10 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- action: `{report['action']}`",
             f"- claim_scope: {report['claim_scope']}",
             "",
+            "Next Action:",
+            "",
+            *_markdown_next_action(report["next_action"]),
+            "",
             "Next Steps:",
             "",
             *[f"- {step}" for step in report["next_steps"]],
@@ -139,6 +143,30 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             "",
         ]
     )
+
+
+def _markdown_next_action(next_action: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for key in [
+        "branch",
+        "should_launch_remote",
+        "requires_implementation",
+        "launch_remote_config",
+        "readiness_command",
+        "run_id",
+        "plan_doc",
+        "first_remote_scale",
+        "fallback",
+        "reason",
+    ]:
+        if key in next_action:
+            lines.append(f"- {key}: `{next_action[key]}`")
+    for key in ["implementation_aliases", "implementation_files", "implementation_checklist"]:
+        values = next_action.get(key)
+        if isinstance(values, list) and values:
+            lines.append(f"- {key}:")
+            lines.extend(f"  - `{value}`" for value in values)
+    return lines
 
 
 def _format_value(value: Any) -> str:

@@ -753,6 +753,9 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert "auc_delta_vs_paligned_mcnd_1m" in markdown
     assert "launch_invp_seed1_confirmation" in markdown
     assert "plan_doc" in markdown
+    assert "Next Action:" in markdown
+    assert "- branch: `seed1_confirmation`" in markdown
+    assert "- readiness_command: `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness" in markdown
     assert "Next Steps:" in markdown
     assert "Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json" in markdown
     assert "scripts/check-remote-readiness" in markdown
@@ -815,6 +818,13 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
         for step in report["next_action"]["implementation_checklist"]
     )
     assert any("CPU smoke CSV" in step for step in report["next_action"]["implementation_checklist"])
+    markdown = (output_dir / "unit_invp_tied_postprocess_summary.md").read_text()
+    assert "Next Action:" in markdown
+    assert "- branch: `ddt_graph`" in markdown
+    assert "- implementation_aliases:" in markdown
+    assert "`present_nibble_ddt_graph`" in markdown
+    assert "- implementation_checklist:" in markdown
+    assert "`Implement tensor-native DDT cell features from ciphertext_pair_bits.`" in markdown
     assert any("DDT graph route" in step for step in report["next_steps"])
     assert not any("seed1" in step.lower() for step in report["next_steps"])
 
