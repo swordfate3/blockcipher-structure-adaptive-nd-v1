@@ -79,7 +79,7 @@ def monitor_health_report(
         "failed_markers": failed_markers,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status in {"failed", "unhealthy", "missing_monitor"},
-        "postprocess_allowed": results_jsonl.exists(),
+        "postprocess_allowed": status == "result_ready",
     }
 
 

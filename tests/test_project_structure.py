@@ -833,6 +833,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
 
     assert report["status"] == "failed"
     assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
     assert report["failed_markers"] == ["failed.marker"]
 
 
