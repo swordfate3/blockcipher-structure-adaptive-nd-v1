@@ -16,6 +16,10 @@ experiment-plan Markdown update via `--update-plan-doc`.
 Use `scripts/monitor-health` for a bounded local health check of a remote-result
 monitor directory. It reads local artifacts and optionally checks one tmux
 session once; it does not SSH-poll or supervise a remote run.
+It emits `postprocess_command` only for `result_ready`, which requires a
+retrieved JSONL with at least one non-empty row. `completed_missing_results`
+means a done marker exists but the JSONL is missing; `results_empty` means the
+JSONL exists but has no non-empty rows. Neither state should be postprocessed.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or

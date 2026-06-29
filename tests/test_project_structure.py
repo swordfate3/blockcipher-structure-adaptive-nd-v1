@@ -479,6 +479,16 @@ def test_scripts_are_thin_package_entrypoints():
         assert "blockcipher_nd.cli" in text
 
 
+def test_scripts_readme_documents_monitor_health_result_states():
+    text = Path("scripts/README.md").read_text(encoding="utf-8")
+
+    assert "`result_ready`" in text
+    assert "`completed_missing_results`" in text
+    assert "`results_empty`" in text
+    assert "at least one non-empty row" in text
+    assert "Neither state should be postprocessed" in text
+
+
 def test_invp_only_gate_selects_seed1_for_strong_delta(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(
