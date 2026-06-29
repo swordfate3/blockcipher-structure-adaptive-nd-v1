@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-29
 
-**Status:** running remotely / tmux monitor active
+**Status:** completed / postprocessed / branch gated
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `1000000/class` single-seed paper-scale diagnostic.
 
@@ -299,3 +299,38 @@ If InvP-only is tied within the weak band or below the Zhang/Wang anchor, shift
 the next design iteration toward a true SPN-topology / DDT-aware graph backbone
 rather than additional pair-consistency pooling.
 ```
+
+## Retrieved Result Record
+
+<!-- invp-postprocess:i1_invp_only_r7_1m_seed0_gpu1_20260629:start -->
+### i1_invp_only_r7_1m_seed0_gpu1_20260629 Postprocess Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_only_r7_1m_seed0_gpu1_20260629` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Branch status | `pass` |
+| AUC | `0.797470988906` |
+| Accuracy | `0.721264000000` |
+| Calibrated accuracy | `0.721351000000` |
+| Loss | `0.540575103607` |
+| Delta vs Zhang/Wang 1M AUC | `0.003573962958` |
+| Delta vs p-aligned MCND 1M AUC | `0.002851869548` |
+| Decision | `launch_invp_seed1_confirmation` |
+| Action | `launch_prepared_seed1_1m_config` |
+| Next action branch | `seed1_confirmation` |
+| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json` |
+| Next action implementation aliases | `` |
+| Next action implementation files | `` |
+| Next action implementation checklist | `` |
+| Next steps | `Update and commit the experiment plan with this retrieved result.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json; Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json from the pushed commit.; Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.` |
+| Claim scope | `1000000/class single-seed gate only; not formal multi-seed evidence and not a breakthrough claim` |
+| Results JSONL | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/results/i1_invp_only_r7_1m_seed0_gpu1_20260629.jsonl` |
+| Validation report | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_local_result_gate.json` |
+| Branch gate | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_branch_gate.json` |
+| Curves | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_curves.svg` |
+| History CSV | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_postprocess_summary.md` |
+<!-- invp-postprocess:i1_invp_only_r7_1m_seed0_gpu1_20260629:end -->
