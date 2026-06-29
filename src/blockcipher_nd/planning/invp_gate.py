@@ -9,6 +9,7 @@ from typing import Any
 DEFAULT_ZHANG_WANG_1M_AUC = 0.793897025948
 DEFAULT_STRONG_DELTA = 0.003
 DEFAULT_WEAK_DELTA = 0.001
+FLOAT_TOLERANCE = 1e-12
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -74,15 +75,15 @@ def gate_invp_only_result(
     action = "fix_result_or_alignment_before_branching"
     interpretation = "gate cannot be evaluated"
     if not errors and delta is not None:
-        if delta >= strong_delta:
+        if _at_least(delta, strong_delta):
             decision = "launch_invp_seed1_confirmation"
             action = "launch_prepared_seed1_1m_config"
             interpretation = "strong single-seed paper-scale improvement over reference"
-        elif delta >= weak_delta:
+        elif _at_least(delta, weak_delta):
             decision = "run_seed1_before_claiming"
             action = "launch_prepared_seed1_1m_config"
             interpretation = "weak positive survival; stability evidence required"
-        elif delta >= -weak_delta:
+        elif _at_least(delta, -weak_delta):
             decision = "enter_ddt_graph_route"
             action = "implement_ddt_graph_conditional_plan"
             interpretation = "medium-scale InvP signal is tied at paper scale"
@@ -141,6 +142,10 @@ def _optional_float_metric(metrics: dict[str, Any], key: str) -> float | None:
         return float(metrics[key])
     except (TypeError, ValueError):
         return None
+
+
+def _at_least(value: float, threshold: float) -> bool:
+    return value >= threshold - FLOAT_TOLERANCE
 
 
 def main(argv: list[str] | None = None) -> int:

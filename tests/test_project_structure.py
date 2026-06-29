@@ -515,6 +515,34 @@ def test_invp_only_gate_routes_tied_result_to_ddt_graph(tmp_path):
     assert report["action"] == "implement_ddt_graph_conditional_plan"
 
 
+def test_invp_only_gate_threshold_boundaries_are_stable(tmp_path):
+    reference_auc = 0.793897025948
+    cases = [
+        (reference_auc + 0.003, "launch_invp_seed1_confirmation"),
+        (reference_auc + 0.001, "run_seed1_before_claiming"),
+        (reference_auc - 0.001, "enter_ddt_graph_route"),
+        (reference_auc - 0.001001, "discard_invp_only_as_main_1m_candidate"),
+    ]
+
+    for index, (auc, expected_decision) in enumerate(cases):
+        result_path = tmp_path / f"results_{index}.jsonl"
+        result_path.write_text(
+            json.dumps(
+                {
+                    "model": "present_nibble_invp_only_spn_only",
+                    "metrics": {"auc": auc, "calibrated_accuracy": 0.719},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        report = gate_invp_only_result(result_path, reference_auc=reference_auc)
+
+        assert report["status"] == "pass"
+        assert report["decision"] == expected_decision
+
+
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(
