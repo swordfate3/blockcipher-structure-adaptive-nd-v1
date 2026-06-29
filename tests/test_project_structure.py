@@ -17,6 +17,7 @@ from blockcipher_nd.features.registry import (
     pair_bits_for_encoding,
 )
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
+from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
@@ -456,6 +457,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
         Path("scripts/gate-invp-result"),
+        Path("scripts/postprocess-invp-result"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -527,6 +529,101 @@ def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     assert report["decision"] == "invalid"
     assert any("expected_model" in error for error in report["errors"])
     assert "missing_or_invalid_metric=auc" in report["errors"]
+
+
+def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
+    plan_path = tmp_path / "plan.csv"
+    results_path = tmp_path / "results.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": "7",
+        "seed": "0",
+        "samples_per_class": "1000000",
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": "0x0",
+        "validation_key": "0x11111111111111111111",
+        "pairs_per_sample": "16",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": "0",
+        "key_rotation_interval": "0",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": "0",
+        "loss": "mse",
+        "learning_rate": "0.0001",
+        "optimizer": "adam",
+        "weight_decay": "0.00001",
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": "true",
+        "early_stopping_patience": "8",
+        "early_stopping_min_delta": "0.0001",
+        "model_key": "present_nibble_invp_only_spn_only",
+    }
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
+        writer.writeheader()
+        writer.writerow(plan_row)
+    result_row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 1_000_000,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": 0,
+        "validation_key": int("11111111111111111111", 16),
+        "pairs_per_sample": 16,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "key_rotation_interval": 0,
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "model": "present_nibble_invp_only_spn_only",
+        "selected_model": "present_nibble_invp_only_spn_only",
+        "metrics": {"auc": 0.7971, "accuracy": 0.72, "calibrated_accuracy": 0.723, "loss": 0.54},
+        "training": {
+            "loss": "mse",
+            "learning_rate": 0.0001,
+            "optimizer": "adam",
+            "weight_decay": 0.00001,
+            "checkpoint_metric": "val_auc",
+            "restore_best_checkpoint": True,
+            "early_stopping_patience": 8,
+            "early_stopping_min_delta": 0.0001,
+        },
+        "history": [
+            {
+                "epoch": 1,
+                "learning_rate": 0.002,
+                "train_accuracy": 0.71,
+                "train_auc": 0.79,
+                "train_eval_loss": 0.55,
+                "val_accuracy": 0.72,
+                "val_auc": 0.7971,
+                "val_loss": 0.54,
+            }
+        ],
+    }
+    results_path.write_text(json.dumps(result_row) + "\n", encoding="utf-8")
+
+    report = postprocess_invp_only_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_invp",
+        expected_rows=1,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "launch_invp_seed1_confirmation"
+    assert (output_dir / "unit_invp_local_result_gate.json").exists()
+    assert (output_dir / "unit_invp_curves.svg").exists()
+    assert (output_dir / "unit_invp_history.csv").exists()
+    assert (output_dir / "unit_invp_branch_gate.json").exists()
+    assert (output_dir / "unit_invp_postprocess_summary.json").exists()
 
 
 def test_differential_data_layer_has_small_modules():
