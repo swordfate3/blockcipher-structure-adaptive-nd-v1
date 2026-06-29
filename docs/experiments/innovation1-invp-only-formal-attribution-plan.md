@@ -1,0 +1,309 @@
+# Innovation 1 InvP-Only Formal Attribution Plan
+
+**Date:** 2026-06-30
+
+**Status:** planned / stage-level stop / no immediate remote launch
+
+**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
+encrypted-random-plaintext negatives. This document decides the next stage
+after the InvP-only `1000000/class` seed0+seed1 confirmation.
+
+## Stage Decision
+
+The current InvP-only route has enough evidence to stop blind GPU scaling, but
+not enough evidence for a formal paper-style claim.
+
+Decision:
+
+```text
+Do not launch another InvP-only 1M run immediately.
+Do not relaunch seed1.
+Do not switch to DDT-graph before preserving the InvP-only evidence chain.
+Next stage = formal evidence and attribution planning.
+```
+
+This is a stage-level stop, not abandonment of Innovation 1. The purpose is to
+turn the current positive route into a reproducible, attributable claim design
+before spending the next GPU slot.
+
+## Research Question
+
+Current question:
+
+```text
+Can the InvP-only SPN-aligned representation be promoted from two-seed
+confirmation evidence into formal route evidence, and what attribution controls
+are needed before making a paper-style claim?
+```
+
+The hypothesis to preserve:
+
+```text
+InvP(DeltaC), organized as PRESENT 4-bit SPN cells, gives the network a useful
+structure-aligned view of the last-round differential state. The observed gain
+should remain visible under fixed protocol, strict negatives, and matched
+same-budget controls.
+```
+
+## Current Evidence Table
+
+Primary same-protocol baseline:
+
+```text
+run_id = zhang_wang_present_r7_1m_official_cyclic_seed0_20260625
+model = present_zhang_wang_keras_mcnd
+accuracy = 0.715281
+calibrated_accuracy = 0.718555
+AUC = 0.793897025948
+loss = 0.549200775116
+status = retrieved / validated / plan-aligned 1M single-seed anchor
+```
+
+Secondary same-protocol internal reference:
+
+```text
+run_id = i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626
+model = present_nibble_paligned_mcnd
+AUC = 0.794619119358
+status = retrieved / validated / plan-aligned 1M single-seed reference
+```
+
+Confirmed InvP-only route:
+
+| Run | Seed | Model | Accuracy | Calibrated accuracy | AUC | AUC delta vs Zhang/Wang 1M | AUC delta vs p-aligned MCND 1M | Status |
+|---|---:|---|---:|---:|---:|---:|---:|---|
+| `i1_invp_only_r7_1m_seed0_gpu1_20260629` | 0 | `present_nibble_invp_only_spn_only` | 0.721264 | 0.721351 | 0.797470988906 | +0.003573962958 | +0.002851869548 | pass |
+| `i1_invp_only_r7_1m_seed1_gpu1_20260629` | 1 | `present_nibble_invp_only_spn_only` | 0.721599 | 0.721855 | 0.797347588554 | +0.003450562606 | +0.002728469196 | pass |
+
+Evidence level:
+
+```text
+1000000/class two-seed confirmation evidence.
+Not yet formal route evidence.
+Not a breakthrough claim.
+```
+
+## Existing Attribution Evidence
+
+The `262144/class` SPN-only attribution matrix already supports the idea that
+the signal is not only generic XOR information:
+
+| Model | Role | AUC |
+|---|---|---:|
+| `present_zhang_wang_keras_mcnd` | Zhang/Wang-style baseline | 0.783228 |
+| `present_nibble_paligned_spn_only` | DeltaC + true InvP(DeltaC) | 0.790665 |
+| `present_nibble_delta_only_spn_only` | DeltaC-only control | 0.782918 |
+| `present_nibble_invp_only_spn_only` | InvP-only route | 0.792536 |
+| `present_nibble_shuffled_paligned_spn_only` | shuffled-P control | 0.784487 |
+
+Interpretation:
+
+```text
+At 262144/class, InvP-only was the strongest attribution row.
+Anchor > DeltaC-only and Anchor > shuffled-P also supports true P-layer
+alignment as a useful structure signal.
+```
+
+This attribution evidence is medium diagnostic only. It is supportive context,
+not formal proof.
+
+## Claim Scope
+
+Allowed wording after the current stage:
+
+```text
+InvP-only has produced consistent positive two-seed 1000000/class confirmation
+evidence over the local Zhang/Wang 1M anchor under the same PRESENT-80 r7
+Case2 protocol.
+```
+
+Not allowed yet:
+
+```text
+breakthrough
+SOTA
+formal superiority
+proof that InvP-only is universally better
+claim that DDT/topology-aware graph is unnecessary
+claim that the paper reference 0.7205 has been formally surpassed
+```
+
+Formal route evidence would require:
+
+```text
+multi-seed design beyond two seeds
+matched same-protocol baseline variance or a justified fixed anchor
+attribution controls at paper scale or a clearly justified medium-scale
+  attribution-to-formal bridge
+complete artifacts, validation, gate summaries, and claim wording
+```
+
+## Planned Controls
+
+The next formal plan must preserve the benchmark:
+
+| Field | Fixed value |
+|---|---|
+| Cipher | `PRESENT-80` |
+| Rounds | `7` |
+| Difference profile | `present_zhang_wang2022_mcnd` |
+| Sample structure | `zhang_wang_case2_official_mcnd` |
+| Pairs per sample | `16` |
+| Negative mode | `encrypted_random_plaintexts` |
+| Train key | `0x00000000000000000000` |
+| Validation key | `0x11111111111111111111` |
+| Scheduler | `official_cyclic` |
+| Checkpoint metric | `val_auc` |
+| Restore best checkpoint | `true` |
+| Fast train eval | `--train-eval-interval 0` |
+
+Candidate controls for the next meaningful experiment:
+
+| Priority | Control | Purpose | Suggested scale |
+|---:|---|---|---|
+| 1 | `present_nibble_invp_only_spn_only` seed2/seed3 | estimate route variance | `1000000/class` |
+| 2 | `present_zhang_wang_keras_mcnd` seed1 | estimate baseline variance if needed | `1000000/class` |
+| 3 | `present_nibble_delta_only_spn_only` | test generic XOR explanation | `262144/class` repeat or `1000000/class` selected control |
+| 4 | `present_nibble_shuffled_paligned_spn_only` | test false alignment / parameter count | `262144/class` repeat or `1000000/class` selected control |
+| 5 | `present_nibble_ddt_graph` vs shuffled control | test next topology/DDT hypothesis | start at `262144/class` only after a new implementation plan |
+
+## Metric And Gate Policy
+
+Primary metric:
+
+```text
+validation AUC
+```
+
+Secondary metrics:
+
+```text
+calibrated_accuracy
+fixed-threshold accuracy
+validation loss
+train/validation history for overfit inspection
+```
+
+Checkpoint policy:
+
+```text
+checkpoint_metric = val_auc
+restore_best_checkpoint = true
+```
+
+Route confirmation gate already met:
+
+```text
+seed0 AUC delta vs Zhang/Wang 1M >= +0.003
+seed1 AUC delta vs Zhang/Wang 1M >= +0.003
+```
+
+Formal-evidence continue gate:
+
+```text
+If an additional InvP-only seed is launched, require AUC delta vs Zhang/Wang
+1M anchor >= +0.002 on the new seed, or require a baseline-variance analysis
+before weakening/strengthening the claim.
+```
+
+Attribution continue gate:
+
+```text
+InvP-only or true-P aligned route remains above DeltaC-only and shuffled-P
+controls by >= +0.001 AUC under matched protocol.
+```
+
+Stop gate:
+
+```text
+If new large-scale controls show the gain is explained by DeltaC-only,
+shuffled-P, or baseline variance, stop formalizing InvP-only as the main route
+and move to DDT-aware/topology-aware SPN models with a new plan.
+```
+
+## Next Branch Options
+
+### Branch A: Formal Multi-Seed Evidence
+
+Purpose:
+
+```text
+Estimate whether the two-seed InvP-only advantage is stable enough for
+paper-style route evidence.
+```
+
+Lean matrix:
+
+| Row | Model | Seeds | Scale |
+|---:|---|---|---|
+| 0 | `present_nibble_invp_only_spn_only` | 2, 3 | `1000000/class` |
+| 1 | `present_zhang_wang_keras_mcnd` | 1 if baseline variance is needed | `1000000/class` |
+
+Do not launch this branch until a remote config and readiness gate are written.
+
+### Branch B: Paper-Style Attribution
+
+Purpose:
+
+```text
+Prove the gain comes from SPN/InvP structure rather than generic difference
+features or extra capacity.
+```
+
+Lean matrix:
+
+| Row | Model | Role | Scale |
+|---:|---|---|---|
+| 0 | `present_nibble_invp_only_spn_only` | confirmed route | `1000000/class` seed2 or selected control |
+| 1 | `present_nibble_delta_only_spn_only` | generic XOR control | `1000000/class` selected control if GPU budget allows |
+| 2 | `present_nibble_shuffled_paligned_spn_only` | false-alignment control | `1000000/class` selected control if GPU budget allows |
+
+This branch is more informative for paper writing than immediately adding more
+InvP-only seeds, but it costs more GPU time if all controls are scaled to 1M.
+
+### Branch C: DDT-Aware / Topology-Aware New Route
+
+Purpose:
+
+```text
+Test whether explicit S-box DDT priors and P-layer graph topology add
+information beyond the now-confirmed InvP-only route.
+```
+
+This is a new hypothesis and must start from a separate plan plus local smoke.
+First non-smoke scale should be `262144/class`, not 1M.
+
+## Current Stage Action
+
+Chosen action for this turn:
+
+```text
+Stage-level stop after writing this plan.
+No remote launch in this turn.
+No new GPU job until the next branch is explicitly selected and its plan/config
+are ready.
+```
+
+Rationale:
+
+```text
+The current evidence already passed the two-seed confirmation gate. The next
+valuable work is not another blind GPU run, but choosing whether the paper
+needs variance evidence, attribution controls, or a new topology/DDT hypothesis.
+```
+
+## Completion Checklist
+
+This stage is complete when:
+
+```text
+this plan exists under docs/experiments/
+the InvP-only seed0/seed1 evidence table is recorded
+the claim scope is explicit
+the next branch options are explicit
+the decision not to launch a new remote job in this turn is explicit
+relevant verification passes
+the plan is committed and pushed
+no result_ready artifacts remain unprocessed
+no agent-authored tracked edits remain uncommitted
+```
