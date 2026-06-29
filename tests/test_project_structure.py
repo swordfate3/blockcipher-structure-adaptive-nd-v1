@@ -493,6 +493,8 @@ def test_invp_only_gate_selects_seed1_for_strong_delta(tmp_path):
     assert report["decision"] == "launch_invp_seed1_confirmation"
     assert report["action"] == "launch_prepared_seed1_1m_config"
     assert report["auc_delta"] > 0.003
+    assert report["paligned_mcnd_1m_auc"] == 0.794619119358
+    assert report["auc_delta_vs_paligned_mcnd_1m"] > 0.0
 
 
 def test_invp_only_gate_routes_tied_result_to_ddt_graph(tmp_path):
@@ -541,6 +543,7 @@ def test_invp_only_gate_threshold_boundaries_are_stable(tmp_path):
 
         assert report["status"] == "pass"
         assert report["decision"] == expected_decision
+        assert "auc_delta_vs_paligned_mcnd_1m" in report
 
 
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):

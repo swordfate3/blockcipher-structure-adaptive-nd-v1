@@ -228,6 +228,11 @@ Zhang/Wang 1M anchor AUC = 0.793897025948
 p-aligned MCND 1M AUC   = 0.794619119358
 ```
 
+The branch decision uses the Zhang/Wang 1M anchor as the primary reference.
+The postprocess branch gate also reports `auc_delta_vs_paligned_mcnd_1m` as a
+secondary context value, but that secondary delta must not by itself trigger
+seed1 or DDT graph.
+
 Conditional next step:
 
 ```text

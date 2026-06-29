@@ -7,6 +7,7 @@ from typing import Any
 
 
 DEFAULT_ZHANG_WANG_1M_AUC = 0.793897025948
+DEFAULT_PALIGNED_MCND_1M_AUC = 0.794619119358
 DEFAULT_STRONG_DELTA = 0.003
 DEFAULT_WEAK_DELTA = 0.001
 FLOAT_TOLERANCE = 1e-12
@@ -23,6 +24,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=float,
         default=DEFAULT_ZHANG_WANG_1M_AUC,
         help="Reference Zhang/Wang 1M AUC.",
+    )
+    parser.add_argument(
+        "--paligned-mcnd-auc",
+        type=float,
+        default=DEFAULT_PALIGNED_MCND_1M_AUC,
+        help="Secondary p-aligned MCND 1M AUC reference for reporting only.",
     )
     parser.add_argument(
         "--strong-delta",
@@ -51,6 +58,7 @@ def gate_invp_only_result(
     reference_auc: float = DEFAULT_ZHANG_WANG_1M_AUC,
     strong_delta: float = DEFAULT_STRONG_DELTA,
     weak_delta: float = DEFAULT_WEAK_DELTA,
+    paligned_mcnd_auc: float = DEFAULT_PALIGNED_MCND_1M_AUC,
     expected_model: str = "present_nibble_invp_only_spn_only",
     expected_rows: int = 1,
 ) -> dict[str, Any]:
@@ -70,6 +78,7 @@ def gate_invp_only_result(
     accuracy = _optional_float_metric(metrics, "accuracy")
     loss = _optional_float_metric(metrics, "loss")
     delta = None if auc is None else auc - reference_auc
+    paligned_delta = None if auc is None else auc - paligned_mcnd_auc
 
     decision = "invalid"
     action = "fix_result_or_alignment_before_branching"
@@ -100,8 +109,10 @@ def gate_invp_only_result(
         "expected_model": expected_model,
         "model": model,
         "reference_auc": reference_auc,
+        "paligned_mcnd_1m_auc": paligned_mcnd_auc,
         "auc": auc,
         "auc_delta": delta,
+        "auc_delta_vs_paligned_mcnd_1m": paligned_delta,
         "strong_delta": strong_delta,
         "weak_delta": weak_delta,
         "accuracy": accuracy,
@@ -155,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
         reference_auc=args.reference_auc,
         strong_delta=args.strong_delta,
         weak_delta=args.weak_delta,
+        paligned_mcnd_auc=args.paligned_mcnd_auc,
         expected_model=args.expected_model,
         expected_rows=args.expected_rows,
     )
