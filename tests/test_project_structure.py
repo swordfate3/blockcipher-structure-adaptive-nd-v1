@@ -737,8 +737,12 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert summary["next_action"]["launch_remote_config"].endswith(
         "innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json"
     )
+    assert summary["next_action"]["readiness_command"].startswith(
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config "
+    )
+    assert summary["next_action"]["launch_remote_config"] in summary["next_action"]["readiness_command"]
     assert any("seed1" in step for step in summary["next_steps"])
-    assert any("check-remote-readiness" in step for step in summary["next_steps"])
+    assert any(summary["next_action"]["readiness_command"] in step for step in summary["next_steps"])
     assert any("tmux watcher or sub-agent" in step for step in summary["next_steps"])
     markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
     assert "auc_delta_vs_zhang_wang_1m" in markdown

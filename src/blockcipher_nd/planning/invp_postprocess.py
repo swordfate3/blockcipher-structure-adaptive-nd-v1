@@ -157,13 +157,9 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Fix result retrieval, plan alignment, or metric availability before launching another run.",
         ]
     if next_action["branch"] == "seed1_confirmation":
-        readiness_command = (
-            "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-            f"--config {next_action['launch_remote_config']}"
-        )
         return [
             "Update and commit the experiment plan with this retrieved result.",
-            f"Run the remote readiness gate: {readiness_command}",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
             f"Launch {next_action['launch_remote_config']} from the pushed commit.",
             "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
         ]
@@ -194,11 +190,13 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         }
     decision = str(report["decision"])
     if decision in {"launch_invp_seed1_confirmation", "run_seed1_before_claiming"}:
+        launch_config = "configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json"
         return {
             "branch": "seed1_confirmation",
             "should_launch_remote": True,
             "requires_implementation": False,
-            "launch_remote_config": "configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json",
+            "launch_remote_config": launch_config,
+            "readiness_command": _readiness_command(launch_config),
             "run_id": "i1_invp_only_r7_1m_seed1_gpu1_20260629",
             "monitor_owner": "tmux watcher or sub-agent",
             "reason": decision,
@@ -227,6 +225,10 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         "requires_implementation": False,
         "reason": decision,
     }
+
+
+def _readiness_command(config_path: str) -> str:
+    return f"UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config {config_path}"
 
 
 def update_plan_doc_with_postprocess_result(plan_doc_path: Path, report: dict[str, Any]) -> None:
