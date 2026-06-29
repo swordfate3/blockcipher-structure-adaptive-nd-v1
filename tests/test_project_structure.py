@@ -684,16 +684,21 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert summary["auc_delta"] > 0.003
     assert summary["auc_delta_vs_paligned_mcnd_1m"] > 0.0
     assert summary["plan_doc"] == str(plan_doc_path)
+    assert any("seed1" in step for step in summary["next_steps"])
+    assert any("tmux watcher or sub-agent" in step for step in summary["next_steps"])
     markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
     assert "auc_delta_vs_zhang_wang_1m" in markdown
     assert "auc_delta_vs_paligned_mcnd_1m" in markdown
     assert "launch_invp_seed1_confirmation" in markdown
     assert "plan_doc" in markdown
+    assert "Next Steps:" in markdown
+    assert "Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json" in markdown
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "**Status:** completed / postprocessed / branch gated" in plan_doc
     assert "<!-- invp-postprocess:unit_invp:start -->" in plan_doc
     assert "| AUC | `0.797100000000` |" in plan_doc
     assert "| Decision | `launch_invp_seed1_confirmation` |" in plan_doc
+    assert "| Next steps | `" in plan_doc
     assert "| Results JSONL | `" in plan_doc
 
     postprocess_invp_only_result(
@@ -707,6 +712,98 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert plan_doc.count("<!-- invp-postprocess:unit_invp:start -->") == 1
     assert plan_doc.count("### unit_invp Postprocess Result") == 1
+
+
+def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
+    plan_path = tmp_path / "plan.csv"
+    results_path = tmp_path / "results.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": "7",
+        "seed": "0",
+        "samples_per_class": "1000000",
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": "0x0",
+        "validation_key": "0x11111111111111111111",
+        "pairs_per_sample": "16",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": "0",
+        "key_rotation_interval": "0",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": "0",
+        "loss": "mse",
+        "learning_rate": "0.0001",
+        "optimizer": "adam",
+        "weight_decay": "0.00001",
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": "true",
+        "early_stopping_patience": "8",
+        "early_stopping_min_delta": "0.0001",
+        "model_key": "present_nibble_invp_only_spn_only",
+    }
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
+        writer.writeheader()
+        writer.writerow(plan_row)
+    result_row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 1_000_000,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": 0,
+        "validation_key": int("11111111111111111111", 16),
+        "pairs_per_sample": 16,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "key_rotation_interval": 0,
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "model": "present_nibble_invp_only_spn_only",
+        "selected_model": "present_nibble_invp_only_spn_only",
+        "metrics": {"auc": 0.7939, "accuracy": 0.718, "calibrated_accuracy": 0.719, "loss": 0.55},
+        "training": {
+            "loss": "mse",
+            "learning_rate": 0.0001,
+            "optimizer": "adam",
+            "weight_decay": 0.00001,
+            "checkpoint_metric": "val_auc",
+            "restore_best_checkpoint": True,
+            "early_stopping_patience": 8,
+            "early_stopping_min_delta": 0.0001,
+        },
+        "history": [
+            {
+                "epoch": 1,
+                "learning_rate": 0.002,
+                "train_accuracy": 0.71,
+                "train_auc": 0.79,
+                "train_eval_loss": 0.55,
+                "val_accuracy": 0.718,
+                "val_auc": 0.7939,
+                "val_loss": 0.55,
+            }
+        ],
+    }
+    results_path.write_text(json.dumps(result_row) + "\n", encoding="utf-8")
+
+    report = postprocess_invp_only_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_invp_tied",
+        expected_rows=1,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "enter_ddt_graph_route"
+    assert any("DDT graph route" in step for step in report["next_steps"])
+    assert not any("seed1" in step.lower() for step in report["next_steps"])
 
 
 def test_differential_data_layer_has_small_modules():

@@ -86,6 +86,7 @@ def postprocess_invp_only_result(
         "loss": branch_report["loss"],
         "claim_scope": branch_report["claim_scope"],
     }
+    report["next_steps"] = _next_steps(report)
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     report["summary"] = str(summary_path)
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
@@ -121,6 +122,10 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- action: `{report['action']}`",
             f"- claim_scope: {report['claim_scope']}",
             "",
+            "Next Steps:",
+            "",
+            *[f"- {step}" for step in report["next_steps"]],
+            "",
             "Artifacts:",
             "",
             f"- results: `{report['results']}`",
@@ -141,6 +146,36 @@ def _format_value(value: Any) -> str:
     if isinstance(value, float):
         return f"{value:.12f}"
     return str(value)
+
+
+def _next_steps(report: dict[str, Any]) -> list[str]:
+    if report["status"] != "pass":
+        return [
+            "Do not branch yet; inspect validation_report and branch_gate errors.",
+            "Fix result retrieval, plan alignment, or metric availability before launching another run.",
+        ]
+    decision = str(report["decision"])
+    if decision in {"launch_invp_seed1_confirmation", "run_seed1_before_claiming"}:
+        return [
+            "Update and commit the experiment plan with this retrieved result.",
+            "Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
+        ]
+    if decision == "enter_ddt_graph_route":
+        return [
+            "Update and commit the InvP-only plan with this tied paper-scale result.",
+            "Implement the Branch B DDT graph route in docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md order.",
+            "Run local build/forward tests, add the smoke CSV, run CPU smoke, then commit/push before any 262144/class launch.",
+        ]
+    if decision == "discard_invp_only_as_main_1m_candidate":
+        return [
+            "Update and commit the InvP-only plan with this underperforming paper-scale result.",
+            "Do not launch InvP-only seed1 as a main-route confirmation.",
+            "Either implement the DDT graph conditional route or return to the completed Zhang/Wang/p-aligned MCND anchors.",
+        ]
+    return [
+        "Review the branch gate manually because the decision is not recognized by the postprocess next-step mapper.",
+    ]
 
 
 def update_plan_doc_with_postprocess_result(plan_doc_path: Path, report: dict[str, Any]) -> None:
@@ -177,6 +212,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Delta vs p-aligned MCND 1M AUC", _format_value(report["auc_delta_vs_paligned_mcnd_1m"])),
         ("Decision", report["decision"]),
         ("Action", report["action"]),
+        ("Next steps", "; ".join(report["next_steps"])),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
         ("Validation report", report["validation_report"]),
