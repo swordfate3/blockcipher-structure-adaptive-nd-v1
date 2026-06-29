@@ -585,6 +585,8 @@ def test_invp_only_plan_records_bounded_monitor_health_command():
     assert "--plan configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv" in plan
     assert "--plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md" in plan
     assert "`postprocess_command`" in plan
+    assert "`completed_missing_results`" in plan
+    assert "do not postprocess until the JSONL exists" in plan
     assert "must not be used as a main-thread polling loop" in plan
 
 

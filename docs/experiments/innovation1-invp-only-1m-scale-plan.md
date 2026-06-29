@@ -200,6 +200,8 @@ This command reads only local monitor artifacts and performs at most one local
 `tmux has-session` check. It must not be used as a main-thread polling loop.
 When the status is `result_ready`, the JSON report includes a
 `postprocess_command` that sub-agents/watchers can execute directly.
+If the status is `completed_missing_results`, a done marker has appeared but
+the retrieved JSONL is still missing; do not postprocess until the JSONL exists.
 
 Post-retrieval gate to run automatically:
 
