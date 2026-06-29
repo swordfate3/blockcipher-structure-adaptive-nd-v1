@@ -86,6 +86,7 @@ def postprocess_invp_only_result(
         "loss": branch_report["loss"],
         "claim_scope": branch_report["claim_scope"],
     }
+    report["next_action"] = _next_action(report)
     report["next_steps"] = _next_steps(report)
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     report["summary"] = str(summary_path)
@@ -149,25 +150,25 @@ def _format_value(value: Any) -> str:
 
 
 def _next_steps(report: dict[str, Any]) -> list[str]:
-    if report["status"] != "pass":
+    next_action = report["next_action"]
+    if next_action["branch"] == "invalid":
         return [
             "Do not branch yet; inspect validation_report and branch_gate errors.",
             "Fix result retrieval, plan alignment, or metric availability before launching another run.",
         ]
-    decision = str(report["decision"])
-    if decision in {"launch_invp_seed1_confirmation", "run_seed1_before_claiming"}:
+    if next_action["branch"] == "seed1_confirmation":
         return [
             "Update and commit the experiment plan with this retrieved result.",
-            "Launch configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json from the pushed commit.",
+            f"Launch {next_action['launch_remote_config']} from the pushed commit.",
             "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
         ]
-    if decision == "enter_ddt_graph_route":
+    if next_action["branch"] == "ddt_graph":
         return [
             "Update and commit the InvP-only plan with this tied paper-scale result.",
-            "Implement the Branch B DDT graph route in docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md order.",
+            f"Implement the Branch B DDT graph route in {next_action['plan_doc']} order.",
             "Run local build/forward tests, add the smoke CSV, run CPU smoke, then commit/push before any 262144/class launch.",
         ]
-    if decision == "discard_invp_only_as_main_1m_candidate":
+    if next_action["branch"] == "discard_invp_main":
         return [
             "Update and commit the InvP-only plan with this underperforming paper-scale result.",
             "Do not launch InvP-only seed1 as a main-route confirmation.",
@@ -176,6 +177,51 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     return [
         "Review the branch gate manually because the decision is not recognized by the postprocess next-step mapper.",
     ]
+
+
+def _next_action(report: dict[str, Any]) -> dict[str, Any]:
+    if report["status"] != "pass":
+        return {
+            "branch": "invalid",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": "postprocess_status_failed",
+        }
+    decision = str(report["decision"])
+    if decision in {"launch_invp_seed1_confirmation", "run_seed1_before_claiming"}:
+        return {
+            "branch": "seed1_confirmation",
+            "should_launch_remote": True,
+            "requires_implementation": False,
+            "launch_remote_config": "configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json",
+            "run_id": "i1_invp_only_r7_1m_seed1_gpu1_20260629",
+            "monitor_owner": "tmux watcher or sub-agent",
+            "reason": decision,
+        }
+    if decision == "enter_ddt_graph_route":
+        return {
+            "branch": "ddt_graph",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
+            "first_remote_scale": "262144/class",
+            "reason": decision,
+        }
+    if decision == "discard_invp_only_as_main_1m_candidate":
+        return {
+            "branch": "discard_invp_main",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
+            "fallback": "return_to_completed_zhang_wang_or_paligned_mcnd_anchor",
+            "reason": decision,
+        }
+    return {
+        "branch": "manual_review",
+        "should_launch_remote": False,
+        "requires_implementation": False,
+        "reason": decision,
+    }
 
 
 def update_plan_doc_with_postprocess_result(plan_doc_path: Path, report: dict[str, Any]) -> None:
@@ -212,6 +258,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Delta vs p-aligned MCND 1M AUC", _format_value(report["auc_delta_vs_paligned_mcnd_1m"])),
         ("Decision", report["decision"]),
         ("Action", report["action"]),
+        ("Next action branch", report["next_action"]["branch"]),
         ("Next steps", "; ".join(report["next_steps"])),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),

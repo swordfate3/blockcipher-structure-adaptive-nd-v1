@@ -684,6 +684,11 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert summary["auc_delta"] > 0.003
     assert summary["auc_delta_vs_paligned_mcnd_1m"] > 0.0
     assert summary["plan_doc"] == str(plan_doc_path)
+    assert summary["next_action"]["branch"] == "seed1_confirmation"
+    assert summary["next_action"]["should_launch_remote"] is True
+    assert summary["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json"
+    )
     assert any("seed1" in step for step in summary["next_steps"])
     assert any("tmux watcher or sub-agent" in step for step in summary["next_steps"])
     markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
@@ -698,6 +703,7 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert "<!-- invp-postprocess:unit_invp:start -->" in plan_doc
     assert "| AUC | `0.797100000000` |" in plan_doc
     assert "| Decision | `launch_invp_seed1_confirmation` |" in plan_doc
+    assert "| Next action branch | `seed1_confirmation` |" in plan_doc
     assert "| Next steps | `" in plan_doc
     assert "| Results JSONL | `" in plan_doc
 
@@ -802,6 +808,10 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
 
     assert report["status"] == "pass"
     assert report["decision"] == "enter_ddt_graph_route"
+    assert report["next_action"]["branch"] == "ddt_graph"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["plan_doc"].endswith("innovation1-spn-ddt-graph-conditional-plan.md")
     assert any("DDT graph route" in step for step in report["next_steps"])
     assert not any("seed1" in step.lower() for step in report["next_steps"])
 
