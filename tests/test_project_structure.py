@@ -578,16 +578,8 @@ def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     assert "missing_or_invalid_metric=auc" in report["errors"]
 
 
-def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
-    plan_path = tmp_path / "plan.csv"
-    results_path = tmp_path / "results.jsonl"
-    output_dir = tmp_path / "postprocess"
-    plan_doc_path = tmp_path / "invp-plan.md"
-    plan_doc_path.write_text(
-        "# InvP Plan\n\n**Status:** running remotely / tmux monitor active\n",
-        encoding="utf-8",
-    )
-    plan_row = {
+def _write_invp_postprocess_plan(path: Path) -> None:
+    row = {
         "cipher": "PRESENT-80",
         "structure": "SPN",
         "rounds": "7",
@@ -613,11 +605,21 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
         "early_stopping_min_delta": "0.0001",
         "model_key": "present_nibble_invp_only_spn_only",
     }
-    with plan_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row))
         writer.writeheader()
-        writer.writerow(plan_row)
-    result_row = {
+        writer.writerow(row)
+
+
+def _write_invp_postprocess_result(
+    path: Path,
+    *,
+    auc: float,
+    accuracy: float,
+    calibrated_accuracy: float,
+    loss: float,
+) -> None:
+    row = {
         "cipher": "PRESENT-80",
         "structure": "SPN",
         "rounds": 7,
@@ -635,7 +637,12 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
         "difference_member": 0,
         "model": "present_nibble_invp_only_spn_only",
         "selected_model": "present_nibble_invp_only_spn_only",
-        "metrics": {"auc": 0.7971, "accuracy": 0.72, "calibrated_accuracy": 0.723, "loss": 0.54},
+        "metrics": {
+            "auc": auc,
+            "accuracy": accuracy,
+            "calibrated_accuracy": calibrated_accuracy,
+            "loss": loss,
+        },
         "training": {
             "loss": "mse",
             "learning_rate": 0.0001,
@@ -652,14 +659,33 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
                 "learning_rate": 0.002,
                 "train_accuracy": 0.71,
                 "train_auc": 0.79,
-                "train_eval_loss": 0.55,
-                "val_accuracy": 0.72,
-                "val_auc": 0.7971,
-                "val_loss": 0.54,
+                "train_eval_loss": loss + 0.01,
+                "val_accuracy": accuracy,
+                "val_auc": auc,
+                "val_loss": loss,
             }
         ],
     }
-    results_path.write_text(json.dumps(result_row) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+
+def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
+    plan_path = tmp_path / "plan.csv"
+    results_path = tmp_path / "results.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "invp-plan.md"
+    plan_doc_path.write_text(
+        "# InvP Plan\n\n**Status:** running remotely / tmux monitor active\n",
+        encoding="utf-8",
+    )
+    _write_invp_postprocess_plan(plan_path)
+    _write_invp_postprocess_result(
+        results_path,
+        auc=0.7971,
+        accuracy=0.72,
+        calibrated_accuracy=0.723,
+        loss=0.54,
+    )
 
     report = postprocess_invp_only_result(
         plan_path=plan_path,
@@ -724,79 +750,14 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
     plan_path = tmp_path / "plan.csv"
     results_path = tmp_path / "results.jsonl"
     output_dir = tmp_path / "postprocess"
-    plan_row = {
-        "cipher": "PRESENT-80",
-        "structure": "SPN",
-        "rounds": "7",
-        "seed": "0",
-        "samples_per_class": "1000000",
-        "feature_encoding": "ciphertext_pair_bits",
-        "negative_mode": "encrypted_random_plaintexts",
-        "train_key": "0x0",
-        "validation_key": "0x11111111111111111111",
-        "pairs_per_sample": "16",
-        "sample_structure": "zhang_wang_case2_official_mcnd",
-        "integral_active_nibble": "0",
-        "key_rotation_interval": "0",
-        "difference_profile": "present_zhang_wang2022_mcnd",
-        "difference_member": "0",
-        "loss": "mse",
-        "learning_rate": "0.0001",
-        "optimizer": "adam",
-        "weight_decay": "0.00001",
-        "checkpoint_metric": "val_auc",
-        "restore_best_checkpoint": "true",
-        "early_stopping_patience": "8",
-        "early_stopping_min_delta": "0.0001",
-        "model_key": "present_nibble_invp_only_spn_only",
-    }
-    with plan_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
-        writer.writeheader()
-        writer.writerow(plan_row)
-    result_row = {
-        "cipher": "PRESENT-80",
-        "structure": "SPN",
-        "rounds": 7,
-        "seed": 0,
-        "samples_per_class": 1_000_000,
-        "feature_encoding": "ciphertext_pair_bits",
-        "negative_mode": "encrypted_random_plaintexts",
-        "train_key": 0,
-        "validation_key": int("11111111111111111111", 16),
-        "pairs_per_sample": 16,
-        "sample_structure": "zhang_wang_case2_official_mcnd",
-        "integral_active_nibble": 0,
-        "key_rotation_interval": 0,
-        "difference_profile": "present_zhang_wang2022_mcnd",
-        "difference_member": 0,
-        "model": "present_nibble_invp_only_spn_only",
-        "selected_model": "present_nibble_invp_only_spn_only",
-        "metrics": {"auc": 0.7939, "accuracy": 0.718, "calibrated_accuracy": 0.719, "loss": 0.55},
-        "training": {
-            "loss": "mse",
-            "learning_rate": 0.0001,
-            "optimizer": "adam",
-            "weight_decay": 0.00001,
-            "checkpoint_metric": "val_auc",
-            "restore_best_checkpoint": True,
-            "early_stopping_patience": 8,
-            "early_stopping_min_delta": 0.0001,
-        },
-        "history": [
-            {
-                "epoch": 1,
-                "learning_rate": 0.002,
-                "train_accuracy": 0.71,
-                "train_auc": 0.79,
-                "train_eval_loss": 0.55,
-                "val_accuracy": 0.718,
-                "val_auc": 0.7939,
-                "val_loss": 0.55,
-            }
-        ],
-    }
-    results_path.write_text(json.dumps(result_row) + "\n", encoding="utf-8")
+    _write_invp_postprocess_plan(plan_path)
+    _write_invp_postprocess_result(
+        results_path,
+        auc=0.7939,
+        accuracy=0.718,
+        calibrated_accuracy=0.719,
+        loss=0.55,
+    )
 
     report = postprocess_invp_only_result(
         plan_path=plan_path,
