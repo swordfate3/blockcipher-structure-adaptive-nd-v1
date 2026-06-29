@@ -509,3 +509,34 @@ For run-owned clean clone scripts, either clone first into a new empty `%RUN_DIR
 - See Also: ERR-20260624-003, ERR-20260626-001
 
 ---
+
+## [ERR-20260629-004] main_thread_tmux_postprocess_start
+
+**Logged**: 2026-06-29T14:55:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+Starting an extra tmux postprocess watcher from the main thread failed and also reflected the wrong monitoring ownership.
+
+### Error
+```text
+error connecting to /tmp/tmux-1000/default (Operation not permitted)
+```
+
+### Context
+- Operation attempted: create `/tmp/postprocess_i1_invp_only_r7_1m_seed0_gpu1_20260629.sh` and start a `postprocess_i1_invp_only_1m_20260629` tmux session.
+- Environment: sandboxed command context.
+- The attempt failed due to tmux socket permission/access behavior.
+- More importantly, the user corrected that monitoring tmux should be handled by a sub-agent/watcher and not repeatedly managed from the main thread.
+
+### Suggested Fix
+Do not add ad hoc main-thread tmux monitoring loops after a run has already been handed off. Delegate long-running monitor/postprocess loops to a sub-agent or established watcher. The main thread should process local artifacts after they are retrieved, or perform a single explicit status check only when the user asks.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: /tmp/postprocess_i1_invp_only_r7_1m_seed0_gpu1_20260629.sh, AGENTS.md, .learnings/LEARNINGS.md
+- See Also: LRN-20260629-001
+
+---

@@ -775,3 +775,40 @@ Promote this to `AGENTS.md` under Research Execution Style. Future experiment pl
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260629-001] correction
+
+**Logged**: 2026-06-29T14:55:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: infra
+
+### Summary
+Remote tmux monitoring should be delegated to a sub-agent or watcher; the main thread should not repeatedly loop over tmux status.
+
+### Details
+The user corrected a workflow drift: after remote GPU launch, I repeatedly checked tmux sessions and monitor logs from the main thread. This is not the intended project workflow. The correct pattern is:
+
+- Main thread launches or verifies exactly enough to hand off the remote run.
+- A tmux monitor, watcher, or sub-agent owns the monitoring loop and retrieval.
+- Main thread should not repeatedly inspect `tmux ls`, `monitor.log`, or remote progress just to see whether training finished.
+- Main thread resumes result processing only when local artifacts have arrived, when the user explicitly asks for a status check, or when a monitor health failure is detected by the delegated watcher/sub-agent.
+- If additional post-processing is needed after retrieval, it should also be delegated to a watcher/sub-agent where possible, not manually polled from the main thread.
+
+This refines the existing "do not SSH-poll from the main thread" rule: do not replace SSH polling with main-thread tmux polling. Monitoring loops belong outside the main research/implementation thread.
+
+### Suggested Action
+Promote to `AGENTS.md` under Remote Monitoring And Retrieval. Future remote launches should report the monitor/sub-agent handoff and then continue with non-monitoring work or wait for retrieved artifacts. If the user asks "continue" while a remote run is active, avoid repetitive tmux checks; do a single local artifact check if needed, then proceed with planning/implementation that does not require the running result.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, .learnings/LEARNINGS.md, outputs/remote_results/
+- Tags: remote-training, tmux, subagent, monitoring, workflow
+- See Also: LRN-20260624-001
+- Pattern-Key: remote_training.delegate_tmux_monitoring_to_subagent
+- Recurrence-Count: 1
+- First-Seen: 2026-06-29
+- Last-Seen: 2026-06-29
+- Promoted: AGENTS.md
+
+---
