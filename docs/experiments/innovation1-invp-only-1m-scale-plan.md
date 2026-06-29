@@ -186,6 +186,34 @@ immediate failed marker = no
 monitor status = running
 ```
 
+Status checkpoint, 2026-06-29:
+
+```text
+local retrieval root exists = yes
+retrieved result JSONL = no
+retrieved done marker = no
+retrieved failed marker = no
+postprocess allowed = no
+main-thread intervention needed = no
+```
+
+Current handoff:
+
+```text
+The local low-frequency watcher should continue to wait for result_ready and
+run postprocess only after the expected 1 result row is present. Do not launch
+the prepared seed1 config and do not implement the DDT graph route until the
+validated seed0 branch gate chooses exactly one branch.
+```
+
+Prepared branch state:
+
+```text
+seed1 readiness gate = pass as of 2026-06-29
+DDT graph conditional implementation guardrails = documented in
+  docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md
+```
+
 Bounded local monitor-health check for sub-agent/watchers:
 
 ```bash
