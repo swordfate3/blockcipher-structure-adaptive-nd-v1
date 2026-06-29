@@ -2,9 +2,9 @@
 
 **Date:** 2026-06-29
 
-**Status:** completed / postprocessed / branch gated
+**Status:** seed0+seed1 completed / retrieved / validated / postprocessed / route-confirmed
 
-**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `1000000/class` single-seed paper-scale diagnostic.
+**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `1000000/class` two-seed confirmation evidence. This is route-level confirmation, not a formal breakthrough claim.
 
 ## Motivation
 
@@ -70,18 +70,17 @@ This is intentionally a single-row run. The same-protocol Zhang/Wang 1M seed0
 baseline has already completed, so repeating it would spend GPU time without
 adding a new comparison point.
 
-Conditional seed1 confirmation config:
+Seed1 confirmation config:
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv
 ```
 
-This file is prepared but must not be launched until the seed0 result is
-retrieved, validated, and reaches at least the weak-positive `>= +0.001` AUC
-gate over the completed Zhang/Wang 1M anchor. A `>= +0.003` delta is the strong
-single-seed gate; `+0.001` to `+0.003` is weaker survival that still needs
-seed1 before any route-strength claim. It is intentionally single-row and
-same-protocol so the only planned change is `seed = 1`.
+This file was launched after seed0 cleared the strong `>= +0.003` AUC gate over
+the completed Zhang/Wang 1M anchor. It is intentionally single-row and
+same-protocol so the only planned change is `seed = 1`. Seed1 has now been
+retrieved, validated, and postprocessed; do not relaunch this same confirmation
+job.
 
 ## Fixed Protocol
 
@@ -89,7 +88,7 @@ same-protocol so the only planned change is `seed = 1`.
 |---|---|
 | Cipher | `PRESENT-80` |
 | Rounds | `7` |
-| Seed | `0` |
+| Seed | `0`, `1` |
 | Difference profile | `present_zhang_wang2022_mcnd` |
 | Sample structure | `zhang_wang_case2_official_mcnd` |
 | Pairs per sample | `16` |
@@ -126,8 +125,8 @@ Gates:
 Claim scope:
 
 ```text
-1000000/class single-seed paper-scale diagnostic only.
-Not formal multi-seed evidence.
+1000000/class two-seed confirmation evidence.
+Not formal route evidence without the planned multi-seed/attribution write-up.
 Not a breakthrough claim.
 ```
 
@@ -149,14 +148,15 @@ Conditional seed1 readiness:
 | Plan CSV | `configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv` |
 | Remote config | `configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json` |
 | Intended run ID | `i1_invp_only_r7_1m_seed1_gpu1_20260629` |
-| Status | prepared / not launched |
+| Status | launched / retrieved / validated / postprocessed |
 | Launch trigger | seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.001` |
 | Strong interpretation | seed0 delta `>= +0.003`; launch seed1 as paper-scale confirmation |
 | Weak-positive interpretation | seed0 delta `+0.001` to `+0.003`; launch seed1 before any route-strength claim |
 | No-launch trigger | seed0 delta `< +0.001`; use the DDT graph conditional plan or return to the baseline route |
 
-The seed1 config is preparation, not evidence. Do not report it as running or
-completed unless a separate remote launch record is added.
+The seed1 config is now completed confirmation evidence. Do not report it as
+formal route evidence until the route-level summary records the two-seed table,
+claim scope, remaining risks, and next formal design decision.
 
 ## Remote Launch Record
 
@@ -455,3 +455,82 @@ Pause the automated research loop, rather than launching more GPU jobs, when:
 Stopping here means stopping the current automation branch, not abandoning the
 project. The next branch must start from a written plan with a new hypothesis
 and an explicit same-budget comparison.
+
+<!-- invp-postprocess:i1_invp_only_r7_1m_seed1_gpu1_20260629:start -->
+### i1_invp_only_r7_1m_seed1_gpu1_20260629 Postprocess Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_only_r7_1m_seed1_gpu1_20260629` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Branch status | `pass` |
+| AUC | `0.797347588554` |
+| Accuracy | `0.721599000000` |
+| Calibrated accuracy | `0.721855000000` |
+| Loss | `0.540748940674` |
+| Delta vs Zhang/Wang 1M AUC | `0.003450562606` |
+| Delta vs p-aligned MCND 1M AUC | `0.002728469196` |
+| Decision | `confirm_invp_two_seed_route` |
+| Action | `pause_gpu_scaling_write_route_plan` |
+| Next action branch | `formal_multiseed_or_attribution_plan` |
+| Next action readiness command | `` |
+| Next action implementation aliases | `` |
+| Next action implementation files | `` |
+| Next action implementation checklist | `` |
+| Next steps | `Write route-level evidence summary and decide between formal multi-seed evidence plan or attribution plan before launching more GPU jobs.` |
+| Claim scope | `1000000/class two-seed confirmation evidence; not formal route evidence and not a breakthrough claim` |
+| Results JSONL | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/results/i1_invp_only_r7_1m_seed1_gpu1_20260629.jsonl` |
+| Validation report | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_local_result_gate.json` |
+| Branch gate | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_branch_gate.json` |
+| Curves | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_curves.svg` |
+| History CSV | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_invp_only_r7_1m_seed1_gpu1_20260629/i1_invp_only_r7_1m_seed1_gpu1_20260629_postprocess_summary.md` |
+<!-- invp-postprocess:i1_invp_only_r7_1m_seed1_gpu1_20260629:end -->
+
+## Route-Level Confirmation Summary
+
+Both `1000000/class` InvP-only confirmation seeds were retrieved, validated,
+postprocessed, and plan-aligned under the same PRESENT-80 r7 Zhang/Wang Case2
+protocol with strict encrypted-random-plaintext negatives.
+
+Primary anchor:
+
+```text
+Zhang/Wang 1M AUC = 0.793897025948
+```
+
+| Run | Seed | Accuracy | Calibrated accuracy | AUC | AUC delta vs Zhang/Wang 1M | AUC delta vs p-aligned MCND 1M | Status |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `i1_invp_only_r7_1m_seed0_gpu1_20260629` | 0 | 0.721264 | 0.721351 | 0.797470988906 | +0.003573962958 | +0.002851869548 | pass |
+| `i1_invp_only_r7_1m_seed1_gpu1_20260629` | 1 | 0.721599 | 0.721855 | 0.797347588554 | +0.003450562606 | +0.002728469196 | pass |
+
+Interpretation:
+
+```text
+The InvP-only SPN-aligned representation has now passed the two-seed
+1000000/class confirmation gate against the Zhang/Wang 1M anchor.
+This is route-level confirmation evidence, not a formal breakthrough claim.
+```
+
+Immediate branch decision:
+
+```text
+Pause automatic GPU scaling for this branch.
+Do not relaunch seed1.
+Do not start another InvP-only 1M run without a new formal multi-seed or
+paper-style attribution plan.
+```
+
+Next planning options:
+
+```text
+1. Write a formal multi-seed evidence plan for InvP-only, including seed count,
+   attribution checks, checkpoint policy, and publication claim wording.
+2. Write an attribution plan comparing raw MCND, p-aligned MCND, and InvP-only
+   under matched protocol to isolate whether the gain comes from P-layer
+   alignment, nibble grouping, architecture, or training variance.
+3. If the next hypothesis changes architecture, start a new docs/experiments
+   plan for DDT-aware or topology-aware SPN models before launching training.
+```
