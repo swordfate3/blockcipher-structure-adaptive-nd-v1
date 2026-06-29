@@ -655,11 +655,16 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert (output_dir / "unit_invp_history.csv").exists()
     assert (output_dir / "unit_invp_branch_gate.json").exists()
     assert (output_dir / "unit_invp_postprocess_summary.json").exists()
+    assert (output_dir / "unit_invp_postprocess_summary.md").exists()
     summary = json.loads((output_dir / "unit_invp_postprocess_summary.json").read_text())
     assert summary["reference_auc"] == 0.793897025948
     assert summary["paligned_mcnd_1m_auc"] == 0.794619119358
     assert summary["auc_delta"] > 0.003
     assert summary["auc_delta_vs_paligned_mcnd_1m"] > 0.0
+    markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
+    assert "auc_delta_vs_zhang_wang_1m" in markdown
+    assert "auc_delta_vs_paligned_mcnd_1m" in markdown
+    assert "launch_invp_seed1_confirmation" in markdown
 
 
 def test_differential_data_layer_has_small_modules():

@@ -79,12 +79,51 @@ def postprocess_invp_only_result(
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     _write_json(summary_path, report)
     report["summary"] = str(summary_path)
+    markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
+    report["summary_markdown"] = str(markdown_path)
     return report
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _markdown_summary(report: dict[str, Any]) -> str:
+    return "\n".join(
+        [
+            f"### {report['run_id']}",
+            "",
+            f"- status: `{report['status']}`",
+            f"- validation_status: `{report['validation_status']}`",
+            f"- branch_status: `{report['branch_status']}`",
+            f"- auc: `{_format_value(report['auc'])}`",
+            f"- auc_delta_vs_zhang_wang_1m: `{_format_value(report['auc_delta'])}`",
+            f"- auc_delta_vs_paligned_mcnd_1m: `{_format_value(report['auc_delta_vs_paligned_mcnd_1m'])}`",
+            f"- decision: `{report['decision']}`",
+            f"- action: `{report['action']}`",
+            f"- claim_scope: {report['claim_scope']}",
+            "",
+            "Artifacts:",
+            "",
+            f"- results: `{report['results']}`",
+            f"- validation_report: `{report['validation_report']}`",
+            f"- branch_gate: `{report['branch_gate']}`",
+            f"- curves: `{report['curves']}`",
+            f"- history_csv: `{report['history_csv']}`",
+            f"- summary: `{report['summary']}`",
+            "",
+        ]
+    )
+
+
+def _format_value(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, float):
+        return f"{value:.12f}"
+    return str(value)
 
 
 def main(argv: list[str] | None = None) -> int:
