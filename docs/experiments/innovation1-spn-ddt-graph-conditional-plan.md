@@ -19,18 +19,20 @@ monitor = tmux: monitor_i1_invp_only_1m_20260629
 
 While that run is active, do not launch another GPU job. This document defines
 the next design route if the 1M InvP-only gate shows that the medium-scale
-`InvP(DeltaC)` signal is weak or unstable at paper scale.
+`InvP(DeltaC)` signal is tied with or below the Zhang/Wang paper-scale anchor.
 
 ## Trigger
 
-Use this route only if the InvP-only 1M result is not strong enough:
+Use this route only if the InvP-only 1M result is tied or underperforming:
 
 ```text
-InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.003
+InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.001
 ```
 
 If InvP-only beats the Zhang/Wang 1M anchor by `>= +0.003` AUC, do not start
 this route immediately. Instead, run a 1M seed1 confirmation for InvP-only.
+If the result is weakly positive from `+0.001` to `+0.003` AUC, still run seed1
+before making a route-strength claim.
 
 ## Hypothesis
 
@@ -231,12 +233,12 @@ If the simplest InvP-only route clears the paper-scale gate, the next evidence
 gap is stability, not architectural complexity.
 ```
 
-### Branch B: InvP-only Is Weak/Tied At Paper Scale
+### Branch B: InvP-only Is Tied Or Underperforms At Paper Scale
 
 Condition:
 
 ```text
-InvP-only 1M AUC - 0.793897025948 < +0.003
+InvP-only 1M AUC - 0.793897025948 < +0.001
 ```
 
 Action:
@@ -253,9 +255,9 @@ Action:
 Reason:
 
 ```text
-If InvP-only does not create enough separation at 1M/class, the next useful
-question is whether explicit S-box differential priors and true P topology add
-information beyond the current learned InvP view.
+If InvP-only is tied with or below the Zhang/Wang anchor at 1M/class, the next
+useful question is whether explicit S-box differential priors and true P
+topology add information beyond the current learned InvP view.
 ```
 
 ## Minimal DDT Graph Ready Pack

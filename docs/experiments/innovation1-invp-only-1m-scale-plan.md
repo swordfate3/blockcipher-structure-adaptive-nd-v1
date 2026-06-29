@@ -77,9 +77,11 @@ configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv
 ```
 
 This file is prepared but must not be launched until the seed0 result is
-retrieved, validated, and clears the `>= +0.003` AUC gate over the completed
-Zhang/Wang 1M anchor. It is intentionally single-row and same-protocol so the
-only planned change is `seed = 1`.
+retrieved, validated, and reaches at least the weak-positive `>= +0.001` AUC
+gate over the completed Zhang/Wang 1M anchor. A `>= +0.003` delta is the strong
+single-seed gate; `+0.001` to `+0.003` is weaker survival that still needs
+seed1 before any route-strength claim. It is intentionally single-row and
+same-protocol so the only planned change is `seed = 1`.
 
 ## Fixed Protocol
 
@@ -148,8 +150,10 @@ Conditional seed1 readiness:
 | Remote config | `configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json` |
 | Intended run ID | `i1_invp_only_r7_1m_seed1_gpu1_20260629` |
 | Status | prepared / not launched |
-| Launch trigger | seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.003` |
-| No-launch trigger | seed0 delta `< +0.003`; use the DDT graph conditional plan instead |
+| Launch trigger | seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.001` |
+| Strong interpretation | seed0 delta `>= +0.003`; launch seed1 as paper-scale confirmation |
+| Weak-positive interpretation | seed0 delta `+0.001` to `+0.003`; launch seed1 before any route-strength claim |
+| No-launch trigger | seed0 delta `< +0.001`; use the DDT graph conditional plan or return to the baseline route |
 
 The seed1 config is preparation, not evidence. Do not report it as running or
 completed unless a separate remote launch record is added.
@@ -239,7 +243,10 @@ Conditional next step:
 If InvP-only 1M beats the Zhang/Wang 1M anchor by >= +0.003 AUC,
 launch a 1M seed1 confirmation.
 
-If InvP-only is only weakly positive or tied, shift the next design iteration
-toward a true SPN-topology / DDT-aware graph backbone rather than additional
-pair-consistency pooling.
+If InvP-only is weakly positive by +0.001 to +0.003 AUC, launch seed1 before
+claiming route strength.
+
+If InvP-only is tied within the weak band or below the Zhang/Wang anchor, shift
+the next design iteration toward a true SPN-topology / DDT-aware graph backbone
+rather than additional pair-consistency pooling.
 ```

@@ -546,6 +546,20 @@ def test_invp_only_gate_threshold_boundaries_are_stable(tmp_path):
         assert "auc_delta_vs_paligned_mcnd_1m" in report
 
 
+def test_invp_only_branch_plan_matches_gate_thresholds():
+    invp_plan = Path("docs/experiments/innovation1-invp-only-1m-scale-plan.md").read_text(
+        encoding="utf-8"
+    )
+    ddt_plan = Path("docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.001`" in invp_plan
+    assert "seed0 delta `< +0.001`" in invp_plan
+    assert "InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.001" in ddt_plan
+    assert "weakly positive from `+0.001` to `+0.003` AUC" in ddt_plan
+
+
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(
