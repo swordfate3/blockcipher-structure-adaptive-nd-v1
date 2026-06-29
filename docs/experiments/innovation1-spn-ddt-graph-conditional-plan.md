@@ -199,6 +199,182 @@ Likely smallest implementation:
 Do not make this generic for SKINNY/GIFT in the first implementation. Generic
 SPN graph abstractions are allowed only after PRESENT shows a positive route.
 
+## Gate-To-Execution Branches
+
+When the active InvP-only 1M run is retrieved, make exactly one branch decision
+from the validated local JSONL. Do not start both branches.
+
+### Branch A: InvP-only Survives Paper Scale
+
+Condition:
+
+```text
+InvP-only 1M AUC - 0.793897025948 >= +0.003
+```
+
+Action:
+
+```text
+1. Update docs/experiments/innovation1-invp-only-1m-scale-plan.md with the
+   retrieved metric, gate result, artifacts, and claim scope.
+2. Launch a seed1 confirmation for present_nibble_invp_only_spn_only at
+   1000000/class using the same protocol, strict negatives, and val_auc
+   checkpoint metric.
+3. Do not implement DDT graph before seed1 unless seed0/seed1 disagree enough
+   to require an attribution study.
+```
+
+Reason:
+
+```text
+If the simplest InvP-only route clears the paper-scale gate, the next evidence
+gap is stability, not architectural complexity.
+```
+
+### Branch B: InvP-only Is Weak/Tied At Paper Scale
+
+Condition:
+
+```text
+InvP-only 1M AUC - 0.793897025948 < +0.003
+```
+
+Action:
+
+```text
+1. Update docs/experiments/innovation1-invp-only-1m-scale-plan.md with the
+   retrieved metric, gate result, artifacts, and decision to enter this route.
+2. Implement the minimal DDT graph route below.
+3. Smoke locally with tiny samples.
+4. Commit/push implementation, smoke config, and tests.
+5. Launch the 262144/class attribution matrix only after smoke passes.
+```
+
+Reason:
+
+```text
+If InvP-only does not create enough separation at 1M/class, the next useful
+question is whether explicit S-box differential priors and true P topology add
+information beyond the current learned InvP view.
+```
+
+## Minimal DDT Graph Ready Pack
+
+This is the implementation checklist for Branch B. Keep it intentionally small
+so the first DDT result is attributable.
+
+### Source Changes
+
+```text
+src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py
+  - add _PresentNibbleDdtGraphEncoder
+  - add PresentNibbleDdtGraphDistinguisher
+  - add PresentNibbleShuffledDdtGraphDistinguisher
+
+src/blockcipher_nd/models/structure/spn/__init__.py
+  - export the two new model classes
+
+src/blockcipher_nd/registry/model_families/spn.py
+  - register present_nibble_ddt_graph
+  - register present_nibble_shuffled_ddt_graph
+
+tests/test_project_structure.py
+  - add forward/build coverage for both aliases
+  - add a view/feature sanity test that DDT features are deterministic and
+    differ from the no-DDT transition residual view
+```
+
+### Model Inputs
+
+Use raw `ciphertext_pair_bits`, not a precomputed DDT feature encoding, so this
+route stays comparable to the current InvP-only models and can reuse the same
+disk-backed dataset cache.
+
+Per nibble node, start with these 18 scalar/binary features:
+
+```text
+DeltaC nibble bits                 4
+InvP(DeltaC) nibble bits           4
+best DDT input-difference bits     4
+DDT confidence/count bucket bits   4
+active DeltaC flag                 1
+active InvP flag                   1
+```
+
+Do not add beam-search trail statistics in the first graph route. Those are a
+separate hypothesis and should not be mixed into the first topology/DDT test.
+
+### Graph/Mixer
+
+Use one deterministic message-passing block family:
+
+```text
+true route:
+  fixed PRESENT P-layer nibble adjacency from present_p_layer_mixer.py
+
+control route:
+  deterministic shuffled adjacency with a fixed seed
+
+shared:
+  same cell encoder
+  same hidden size
+  same mixer depth
+  same evidence pooling
+  same classifier head
+```
+
+The shuffled route is required in the first matrix. Without it, any positive
+result is only "more features helped", not "true SPN topology helped".
+
+### Smoke Plan
+
+Add a tiny smoke CSV before any remote launch:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
+```
+
+Rows:
+
+```text
+present_nibble_invp_only_spn_only
+present_nibble_ddt_graph
+present_nibble_shuffled_ddt_graph
+```
+
+Use:
+
+```text
+samples_per_class = 8
+pairs_per_sample = 16
+rounds = 7
+seed = 0
+feature_encoding = ciphertext_pair_bits
+negative_mode = encrypted_random_plaintexts
+checkpoint_metric = val_auc
+```
+
+### First Non-Smoke Plan
+
+Only after smoke passes, add:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv
+```
+
+Rows:
+
+```text
+present_nibble_invp_only_spn_only
+present_nibble_paligned_transition_residual
+present_nibble_ddt_graph
+present_nibble_shuffled_ddt_graph
+```
+
+Keep `present_nibble_paligned_transition_residual` as the no-DDT topology/residual
+anchor. Do not add Zhang/Wang to this matrix unless the retrieved 1M result shows
+baseline drift or protocol mismatch.
+
 ## Current Waiting Condition
 
 Before implementing or launching this route, inspect the completed artifacts for:
