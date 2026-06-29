@@ -1,0 +1,130 @@
+# Innovation 1 InvP-Only 1M Scale Plan
+
+**Date:** 2026-06-29
+
+**Status:** planned / remote launch next
+
+**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `1000000/class` single-seed paper-scale diagnostic.
+
+## Motivation
+
+Two medium-scale InvP-centered diagnostics now agree on the useful direction:
+the SPN-adapted inverse-P nibble view improves over the Zhang/Wang MCND anchor,
+while the extra pair-consistency aggregation is effectively tied with the
+simpler InvP-only route.
+
+Medium diagnostic evidence:
+
+| Run | Seed | Baseline AUC | InvP-only AUC | Pair-consistency AUC | InvP-only delta over baseline | Pair delta over InvP-only |
+|---|---:|---:|---:|---:|---:|---:|
+| `i1_invp_centered_r7_262k_seed0_gpu1_20260628` | 0 | 0.784347 | 0.792105 | 0.792800 | +0.007758 | +0.000695 |
+| `i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629` | 1 | 0.786113 | 0.792977 | 0.793216 | +0.006864 | +0.000239 |
+
+Interpretation:
+
+```text
+The robust signal is the InvP/SPN structural representation.
+The pair-consistency pooling is too small to justify the next 1M/class GPU slot.
+```
+
+## Research Question
+
+Does the simpler `present_nibble_invp_only_spn_only` route preserve the
+medium-scale advantage at `1000000/class`?
+
+Primary comparison anchor:
+
+```text
+Completed same-protocol Zhang/Wang 1M seed0 baseline:
+run_id = zhang_wang_present_r7_1m_official_cyclic_seed0_20260625
+accuracy = 0.715281
+calibrated_accuracy = 0.718555
+AUC = 0.793897025948
+loss = 0.549200775116
+```
+
+Secondary reference:
+
+```text
+Completed same-matrix p-aligned MCND 1M seed0:
+run_id = i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626
+present_nibble_paligned_mcnd AUC = 0.794619119358
+delta over same-run baseline = +0.000708743544
+```
+
+## Planned Matrix
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv
+```
+
+Rows:
+
+| Rank | Model key | Role |
+|---:|---|---|
+| 0 | `present_nibble_invp_only_spn_only` | strongest simple SPN/InvP candidate |
+
+This is intentionally a single-row run. The same-protocol Zhang/Wang 1M seed0
+baseline has already completed, so repeating it would spend GPU time without
+adding a new comparison point.
+
+## Fixed Protocol
+
+| Field | Value |
+|---|---|
+| Cipher | `PRESENT-80` |
+| Rounds | `7` |
+| Seed | `0` |
+| Difference profile | `present_zhang_wang2022_mcnd` |
+| Sample structure | `zhang_wang_case2_official_mcnd` |
+| Pairs per sample | `16` |
+| Samples per class | `1000000` |
+| Feature encoding | `ciphertext_pair_bits` |
+| Negative mode | `encrypted_random_plaintexts` |
+| Train key | `0x00000000000000000000` |
+| Validation key | `0x11111111111111111111` |
+| Scheduler | `official_cyclic` |
+| Checkpoint metric | `val_auc` |
+| Restore best checkpoint | `true` |
+| Fast train eval | `--train-eval-interval 0` |
+
+Do not change validation data, labels, negative mode, metric computation,
+keying protocol, or Zhang/Wang Case2 sample construction.
+
+## Decision Gates
+
+Primary comparison:
+
+```text
+InvP-only 1M AUC - completed Zhang/Wang 1M AUC
+```
+
+Gates:
+
+| Condition | Interpretation | Action |
+|---|---|---|
+| `>= +0.003` AUC over Zhang/Wang 1M anchor | meaningful paper-scale single-seed improvement | run 1M seed1 confirmation |
+| `+0.001` to `+0.003` AUC | weak but positive scale survival | run seed1 before claiming route strength |
+| within `±0.001` AUC | medium signal mostly collapses at 1M | prefer simpler baseline or revisit architecture |
+| below baseline by `> 0.001` AUC | route does not survive scale | discard InvP-only as main 1M candidate |
+
+Claim scope:
+
+```text
+1000000/class single-seed paper-scale diagnostic only.
+Not formal multi-seed evidence.
+Not a breakthrough claim.
+```
+
+## Execution Plan
+
+1. Add the single-row 1M CSV matrix.
+2. Add a remote config for `cuda:1`, `batch_size=1024`, shared disk-backed cache, and `train_eval_interval=0`.
+3. Run a small CPU smoke using a dedicated smoke CSV or the existing seed1 smoke pattern; do not use the 1M CSV for smoke.
+4. Commit and push plan/config before launch.
+5. Launch from the pushed commit into a run-owned clean clone under `G:\lxy\blockcipher-structure-adaptive-nd-runs`.
+6. Use `cmd.exe /c`, not `cmd.exe /k`.
+7. Use a local tmux monitor to retrieve artifacts automatically.
+8. After retrieval, validate plan alignment, generate history/curves locally, update this document, commit, and push.

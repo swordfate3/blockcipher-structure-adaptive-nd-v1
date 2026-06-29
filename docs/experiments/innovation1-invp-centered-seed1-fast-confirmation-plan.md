@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-29
 
-**Status:** planned / implementation next
+**Status:** completed / documented
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `262144/class` medium diagnostic.
 
@@ -140,4 +140,132 @@ It cannot support:
 formal reproduction
 breakthrough claim
 publication-scale multi-seed conclusion
+```
+
+## Completed Remote Run
+
+The seed1 fast confirmation completed and was retrieved by the local tmux
+monitor:
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629` |
+| Source commit | `b26aebea641f42db550036680798cb61a539412e` |
+| Remote root | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629` |
+| Local artifacts | `outputs/remote_results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629/` |
+| Result JSONL | `outputs/remote_results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629/results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629.jsonl` |
+| Local gate | `outputs/remote_results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629_local_result_gate.json` |
+| History CSV | `outputs/remote_results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629_history.csv` |
+| Curves SVG | `outputs/remote_results/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629/i1_invp_centered_seed1_fast_r7_262k_gpu1_retry1_20260629_curves.svg` |
+
+Gate:
+
+```text
+remote result_lines = 3
+remote expected_rows = 3
+local validation status = pass
+local result_rows = 3
+local expected_rows = 3
+stderr = empty
+status = completed, retrieved locally, plan-aligned
+```
+
+## Metrics
+
+Best validation metrics by `val_auc`:
+
+| Rank | Model | Best epoch | History epochs | Accuracy | Calibrated accuracy | AUC | Loss |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 0 | `present_zhang_wang_keras_mcnd` | 6 | 14 | 0.700138 | 0.712681 | 0.786113 | 0.567279 |
+| 1 | `present_nibble_invp_only_spn_only` | 20 | 20 | 0.718082 | 0.718239 | 0.792977 | 0.545585 |
+| 2 | `present_nibble_invp_pair_consistency_spn_only` | 20 | 20 | **0.718567** | **0.718674** | **0.793216** | **0.545394** |
+
+Deltas:
+
+```text
+pair-consistency - InvP-only:
+  AUC                 = +0.000239
+  accuracy            = +0.000484
+  calibrated_accuracy = +0.000435
+  loss                = -0.000190
+
+InvP-only - Zhang/Wang:
+  AUC                 = +0.006864
+  accuracy            = +0.017944
+  calibrated_accuracy = +0.005558
+  loss                = -0.021694
+
+pair-consistency - Zhang/Wang:
+  AUC                 = +0.007103
+  accuracy            = +0.018429
+  calibrated_accuracy = +0.005993
+  loss                = -0.021885
+```
+
+## Speed Result
+
+The fast evaluation mode behaved as intended. Per-epoch full train-set metrics
+were skipped:
+
+```text
+train_accuracy = null
+train_auc = null
+train_eval_loss = null
+```
+
+For the first completed epoch of the baseline row:
+
+```text
+current fast epoch duration = 120.9 seconds
+current fast train pass     = 97.8 seconds
+current fast validation     = about 21.9 seconds
+```
+
+The comparable seed0 run had:
+
+```text
+old epoch median = 164.4 seconds
+old epoch mean   = 179.1 seconds
+old epoch range  = 141.6 - 243.0 seconds
+```
+
+Interpretation:
+
+```text
+fast evaluation gives about 26% speedup versus the old median and about 32%
+versus the old mean on the observed comparable epoch timing. This is an
+execution improvement only, not cryptanalytic evidence.
+```
+
+## Decision
+
+The pair-consistency row remained numerically best, but its advantage over the
+simpler InvP-only row was only `+0.000239` AUC on seed1. The predeclared gate
+treats differences within `±0.001` AUC as effectively tied.
+
+Decision:
+
+```text
+Do not promote pair-consistency as the main route.
+Keep pair-consistency as a weak auxiliary candidate only.
+Promote the simpler InvP-only SPN route as the next scale-up target.
+```
+
+The stronger and more stable signal is the InvP/SPN structural view over the
+Zhang/Wang baseline:
+
+```text
+seed0 pair-consistency over baseline AUC = about +0.00845
+seed0 InvP-only over baseline AUC        = about +0.00776
+seed1 pair-consistency over baseline AUC = about +0.00710
+seed1 InvP-only over baseline AUC        = about +0.00686
+```
+
+Next action:
+
+```text
+Run present_nibble_invp_only_spn_only at 1000000/class as a single-row
+paper-scale diagnostic, comparing against the already completed same-protocol
+Zhang/Wang 1000000/class anchor. Do not spend the next GPU window on another
+pair-consistency diagnostic unless the 1M InvP-only result is unstable.
 ```
