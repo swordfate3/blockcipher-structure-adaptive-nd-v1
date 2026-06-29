@@ -18,6 +18,7 @@ from blockcipher_nd.features.registry import (
 )
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
@@ -464,6 +465,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/gate-invp-result"),
         Path("scripts/postprocess-invp-result"),
         Path("scripts/monitor-health"),
+        Path("scripts/check-remote-readiness"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -883,6 +885,38 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["failed_markers"] == ["failed.marker"]
+
+
+def test_seed1_remote_readiness_gate_passes_for_prepared_invp_confirmation():
+    report = remote_readiness_report(
+        Path("configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json")
+    )
+
+    assert report["status"] == "pass"
+    assert report["run_id"] == "i1_invp_only_r7_1m_seed1_gpu1_20260629"
+    assert report["plan_rows"] == 1
+    assert report["expected_rows"] == 1
+    assert report["max_samples_per_class"] == 1_000_000
+    assert report["errors"] == []
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+
+def test_remote_readiness_gate_rejects_bad_medium_scale_cache(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config["dataset_cache"] = False
+    config["dataset_cache_root"] = "C:\\Users\\bad\\cache"
+    path = tmp_path / "bad_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert any("dataset_cache must be true" in error for error in report["errors"])
+    assert any("dataset_cache_root must stay under" in error for error in report["errors"])
 
 
 def test_differential_data_layer_has_small_modules():
