@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-28
 
-**Status:** planned / implementation next
+**Status:** completed medium diagnostic / decision recorded
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives.
 
@@ -210,7 +210,7 @@ paper-scale multi-seed conclusion
 Status:
 
 ```text
-running remotely, local tmux monitor active
+completed remotely, retrieved by local tmux scp fallback, plan-aligned
 ```
 
 Run metadata:
@@ -252,4 +252,96 @@ Next automatic action:
 ```text
 tmux monitor waits for done/failed marker, retrieves logs/results/results_archive via scp,
 then this document should be updated with gate status, metrics, deltas, and decision.
+```
+
+## Result Record
+
+### 2026-06-28 Retrieved Result
+
+Status:
+
+```text
+completed remotely
+retrieved locally by tmux scp fallback
+plan-aligned
+not formal reproduction
+not breakthrough evidence
+```
+
+Completion and retrieval:
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_centered_r7_262k_seed0_gpu1_20260628` |
+| Remote completion marker | `logs\i1_invp_centered_r7_262k_seed0_gpu1_20260628_done.marker` |
+| Local monitor completion | `2026-06-28T23:41:49+08:00 done` |
+| Result rows | `6` |
+| Expected rows | `6` |
+| Local alignment gate | `pass` |
+| Remote stderr | `0 bytes` |
+| Source commit at launch | `971144f` |
+| Remote git status before run | `## main...origin/main` plus untracked run-local `logs/` |
+
+Local artifacts:
+
+| Artifact | Path |
+|---|---|
+| Results JSONL | `outputs/remote_results/i1_invp_centered_r7_262k_seed0_gpu1_20260628/results/i1_invp_centered_r7_262k_seed0_gpu1_20260628.jsonl` |
+| Progress JSONL | `outputs/remote_results/i1_invp_centered_r7_262k_seed0_gpu1_20260628/logs/i1_invp_centered_r7_262k_seed0_gpu1_20260628_progress.jsonl` |
+| Local gate | `outputs/remote_results/i1_invp_centered_r7_262k_seed0_gpu1_20260628/i1_invp_centered_r7_262k_seed0_gpu1_20260628_local_result_gate.json` |
+| History CSV | `outputs/remote_results/i1_invp_centered_r7_262k_seed0_gpu1_20260628/i1_invp_centered_r7_262k_seed0_gpu1_20260628_history.csv` |
+| Curves SVG | `outputs/remote_results/i1_invp_centered_r7_262k_seed0_gpu1_20260628/i1_invp_centered_r7_262k_seed0_gpu1_20260628_curves.svg` |
+
+Metrics:
+
+| Rank | Model | Accuracy | Calibrated Accuracy | AUC | Loss | Best Epoch | Epochs Ran |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 0 | `present_zhang_wang_keras_mcnd` | 0.706841 | 0.710552 | 0.784347 | 0.560659 | 6 | 14 |
+| 1 | `present_nibble_invp_only_spn_only` | 0.715893 | 0.716774 | 0.792105 | 0.547156 | 17 | 20 |
+| 2 | `present_nibble_invp_pair_consistency_spn_only` | **0.716969** | **0.717220** | **0.792800** | **0.545899** | 19 | 20 |
+| 3 | `present_nibble_paligned_spn_only` | 0.715004 | 0.716602 | 0.790835 | 0.549935 | 17 | 20 |
+| 4 | `present_nibble_delta_only_spn_only` | 0.708637 | 0.708794 | 0.782918 | 0.556032 | 18 | 20 |
+| 5 | `present_nibble_shuffled_paligned_spn_only` | 0.709686 | 0.710415 | 0.784487 | 0.555996 | 19 | 20 |
+
+Key deltas:
+
+| Comparison | AUC Delta | Interpretation |
+|---|---:|---|
+| Pair-consistency vs InvP-only | `+0.000695` | weak positive, below the predeclared `+0.002` continuation gate |
+| Pair-consistency vs Zhang/Wang baseline | `+0.008453` | strong medium-scale diagnostic improvement over same-protocol baseline |
+| Pair-consistency vs shuffled-P control | `+0.008312` | true InvP-centered route remains meaningfully above shuffled alignment |
+| InvP-only vs DeltaC-only | `+0.009187` | attribution remains stable: InvP carries the useful signal |
+| InvP-only vs shuffled-P control | `+0.007618` | attribution remains stable against shuffled-P |
+| Old DeltaC+InvP anchor vs InvP-only | `-0.001270` | adding raw `DeltaC` still does not improve the InvP-only route |
+
+Decision gate:
+
+```text
+Pair-consistency AUC did not beat InvP-only by +0.002, so it is not a clear
+aggregation improvement. However, it is best on AUC, calibrated accuracy, fixed
+threshold accuracy, and loss, and remains above baseline and shuffled-P.
+```
+
+Decision:
+
+```text
+Keep pair-consistency as weak-positive diagnostic evidence, not as a promoted
+main route yet. Do not scale this 6-row matrix again. Next run should use a
+lean 262144/class seed1 confirmation matrix with only:
+
+1. present_nibble_invp_pair_consistency_spn_only
+2. present_nibble_invp_only_spn_only
+3. optional present_zhang_wang_keras_mcnd baseline
+
+If pair-consistency remains best across seed1 or improves by >= +0.002 AUC,
+promote it to the candidate for 1M/class. If it stays within noise, keep the
+simpler InvP-only anchor as the main route.
+```
+
+Claim scope:
+
+```text
+This is medium diagnostic single-seed evidence at 262144/class. It supports
+InvP-centered SPN architecture selection, but it does not support formal
+reproduction, breakthrough claims, or publication-scale multi-seed conclusions.
 ```
