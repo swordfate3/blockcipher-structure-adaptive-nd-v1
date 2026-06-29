@@ -222,7 +222,8 @@ MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/pos
   --results outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/results/i1_invp_only_r7_1m_seed0_gpu1_20260629.jsonl \
   --output-dir outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629 \
   --run-id i1_invp_only_r7_1m_seed0_gpu1_20260629 \
-  --expected-rows 1
+  --expected-rows 1 \
+  --update-plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md
 ```
 
 Result interpretation will compare against:

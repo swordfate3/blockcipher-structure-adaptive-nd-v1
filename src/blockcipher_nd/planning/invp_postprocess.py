@@ -20,6 +20,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-id", required=True, help="Run id used in output filenames and plot title.")
     parser.add_argument("--expected-rows", type=int, default=1)
     parser.add_argument("--reference-auc", type=float, default=0.793897025948)
+    parser.add_argument(
+        "--update-plan-doc",
+        type=Path,
+        default=None,
+        help="Optional experiment plan Markdown file to update with the postprocess result.",
+    )
     return parser.parse_args(argv)
 
 
@@ -31,6 +37,7 @@ def postprocess_invp_only_result(
     run_id: str,
     expected_rows: int = 1,
     reference_auc: float = 0.793897025948,
+    plan_doc_path: Path | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     validation_report = validate_result_plan_alignment(
@@ -74,14 +81,20 @@ def postprocess_invp_only_result(
         "auc": branch_report["auc"],
         "auc_delta": branch_report["auc_delta"],
         "auc_delta_vs_paligned_mcnd_1m": branch_report["auc_delta_vs_paligned_mcnd_1m"],
+        "accuracy": branch_report["accuracy"],
+        "calibrated_accuracy": branch_report["calibrated_accuracy"],
+        "loss": branch_report["loss"],
         "claim_scope": branch_report["claim_scope"],
     }
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
-    _write_json(summary_path, report)
     report["summary"] = str(summary_path)
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
-    markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     report["summary_markdown"] = str(markdown_path)
+    if plan_doc_path is not None:
+        update_plan_doc_with_postprocess_result(plan_doc_path, report)
+        report["plan_doc"] = str(plan_doc_path)
+    _write_json(summary_path, report)
+    markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
 
@@ -99,6 +112,9 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- validation_status: `{report['validation_status']}`",
             f"- branch_status: `{report['branch_status']}`",
             f"- auc: `{_format_value(report['auc'])}`",
+            f"- accuracy: `{_format_value(report['accuracy'])}`",
+            f"- calibrated_accuracy: `{_format_value(report['calibrated_accuracy'])}`",
+            f"- loss: `{_format_value(report['loss'])}`",
             f"- auc_delta_vs_zhang_wang_1m: `{_format_value(report['auc_delta'])}`",
             f"- auc_delta_vs_paligned_mcnd_1m: `{_format_value(report['auc_delta_vs_paligned_mcnd_1m'])}`",
             f"- decision: `{report['decision']}`",
@@ -113,6 +129,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- curves: `{report['curves']}`",
             f"- history_csv: `{report['history_csv']}`",
             f"- summary: `{report['summary']}`",
+            *( [f"- plan_doc: `{report['plan_doc']}`"] if "plan_doc" in report else [] ),
             "",
         ]
     )
@@ -126,6 +143,54 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
+def update_plan_doc_with_postprocess_result(plan_doc_path: Path, report: dict[str, Any]) -> None:
+    text = plan_doc_path.read_text(encoding="utf-8")
+    status = "completed / postprocessed / branch gated" if report["status"] == "pass" else "retrieved / postprocess failed"
+    text = text.replace("**Status:** running remotely / tmux monitor active", f"**Status:** {status}", 1)
+    section = _plan_doc_result_section(report)
+    header = "## Retrieved Result Record"
+    if header not in text:
+        text = text.rstrip() + "\n\n" + header + "\n\n"
+    start = f"<!-- invp-postprocess:{report['run_id']}:start -->"
+    end = f"<!-- invp-postprocess:{report['run_id']}:end -->"
+    block = f"{start}\n{section}\n{end}"
+    if start in text and end in text:
+        before, remainder = text.split(start, 1)
+        _old, after = remainder.split(end, 1)
+        text = before.rstrip() + "\n\n" + block + after
+    else:
+        text = text.rstrip() + "\n\n" + block + "\n"
+    plan_doc_path.write_text(text, encoding="utf-8")
+
+
+def _plan_doc_result_section(report: dict[str, Any]) -> str:
+    rows = [
+        ("Run ID", report["run_id"]),
+        ("Postprocess status", report["status"]),
+        ("Validation status", report["validation_status"]),
+        ("Branch status", report["branch_status"]),
+        ("AUC", _format_value(report["auc"])),
+        ("Accuracy", _format_value(report["accuracy"])),
+        ("Calibrated accuracy", _format_value(report["calibrated_accuracy"])),
+        ("Loss", _format_value(report["loss"])),
+        ("Delta vs Zhang/Wang 1M AUC", _format_value(report["auc_delta"])),
+        ("Delta vs p-aligned MCND 1M AUC", _format_value(report["auc_delta_vs_paligned_mcnd_1m"])),
+        ("Decision", report["decision"]),
+        ("Action", report["action"]),
+        ("Claim scope", report["claim_scope"]),
+        ("Results JSONL", report["results"]),
+        ("Validation report", report["validation_report"]),
+        ("Branch gate", report["branch_gate"]),
+        ("Curves", report["curves"]),
+        ("History CSV", report["history_csv"]),
+        ("Summary JSON", report["summary"]),
+        ("Summary Markdown", report["summary_markdown"]),
+    ]
+    lines = [f"### {report['run_id']} Postprocess Result", "", "| Field | Value |", "|---|---|"]
+    lines.extend(f"| {field} | `{value}` |" for field, value in rows)
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = postprocess_invp_only_result(
@@ -135,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         expected_rows=args.expected_rows,
         reference_auc=args.reference_auc,
+        plan_doc_path=args.update_plan_doc,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["status"] == "pass" else 4

@@ -580,6 +580,11 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     plan_path = tmp_path / "plan.csv"
     results_path = tmp_path / "results.jsonl"
     output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "invp-plan.md"
+    plan_doc_path.write_text(
+        "# InvP Plan\n\n**Status:** running remotely / tmux monitor active\n",
+        encoding="utf-8",
+    )
     plan_row = {
         "cipher": "PRESENT-80",
         "structure": "SPN",
@@ -660,6 +665,7 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
         output_dir=output_dir,
         run_id="unit_invp",
         expected_rows=1,
+        plan_doc_path=plan_doc_path,
     )
 
     assert report["status"] == "pass"
@@ -675,10 +681,30 @@ def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tm
     assert summary["paligned_mcnd_1m_auc"] == 0.794619119358
     assert summary["auc_delta"] > 0.003
     assert summary["auc_delta_vs_paligned_mcnd_1m"] > 0.0
+    assert summary["plan_doc"] == str(plan_doc_path)
     markdown = (output_dir / "unit_invp_postprocess_summary.md").read_text()
     assert "auc_delta_vs_zhang_wang_1m" in markdown
     assert "auc_delta_vs_paligned_mcnd_1m" in markdown
     assert "launch_invp_seed1_confirmation" in markdown
+    assert "plan_doc" in markdown
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "**Status:** completed / postprocessed / branch gated" in plan_doc
+    assert "<!-- invp-postprocess:unit_invp:start -->" in plan_doc
+    assert "| AUC | `0.797100000000` |" in plan_doc
+    assert "| Decision | `launch_invp_seed1_confirmation` |" in plan_doc
+    assert "| Results JSONL | `" in plan_doc
+
+    postprocess_invp_only_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_invp",
+        expected_rows=1,
+        plan_doc_path=plan_doc_path,
+    )
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert plan_doc.count("<!-- invp-postprocess:unit_invp:start -->") == 1
+    assert plan_doc.count("### unit_invp Postprocess Result") == 1
 
 
 def test_differential_data_layer_has_small_modules():
