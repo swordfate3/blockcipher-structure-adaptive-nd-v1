@@ -16,6 +16,7 @@ from blockcipher_nd.features.registry import (
     is_supported_feature_encoding,
     pair_bits_for_encoding,
 )
+from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
@@ -454,6 +455,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/spn-active-pattern"),
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
+        Path("scripts/gate-invp-result"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -463,6 +465,68 @@ def test_scripts_are_thin_package_entrypoints():
         lines = [line for line in text.splitlines() if line.strip()]
         assert len(lines) <= 12, wrapper
         assert "blockcipher_nd.cli" in text
+
+
+def test_invp_only_gate_selects_seed1_for_strong_delta(tmp_path):
+    result_path = tmp_path / "results.jsonl"
+    result_path.write_text(
+        json.dumps(
+            {
+                "model": "present_nibble_invp_only_spn_only",
+                "metrics": {
+                    "auc": 0.7971,
+                    "accuracy": 0.72,
+                    "calibrated_accuracy": 0.723,
+                    "loss": 0.54,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = gate_invp_only_result(result_path, reference_auc=0.793897025948)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "launch_invp_seed1_confirmation"
+    assert report["action"] == "launch_prepared_seed1_1m_config"
+    assert report["auc_delta"] > 0.003
+
+
+def test_invp_only_gate_routes_tied_result_to_ddt_graph(tmp_path):
+    result_path = tmp_path / "results.jsonl"
+    result_path.write_text(
+        json.dumps(
+            {
+                "model": "present_nibble_invp_only_spn_only",
+                "metrics": {"auc": 0.7941, "calibrated_accuracy": 0.719},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = gate_invp_only_result(result_path, reference_auc=0.793897025948)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "enter_ddt_graph_route"
+    assert report["action"] == "implement_ddt_graph_conditional_plan"
+
+
+def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
+    result_path = tmp_path / "results.jsonl"
+    result_path.write_text(
+        json.dumps({"model": "present_zhang_wang_keras_mcnd", "metrics": {"accuracy": 0.7}})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = gate_invp_only_result(result_path)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert any("expected_model" in error for error in report["errors"])
+    assert "missing_or_invalid_metric=auc" in report["errors"]
 
 
 def test_differential_data_layer_has_small_modules():

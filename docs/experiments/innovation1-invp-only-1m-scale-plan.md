@@ -202,6 +202,14 @@ MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plo
   --title i1_invp_only_r7_1m_seed0_gpu1_20260629
 ```
 
+Post-retrieval branch gate command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-result \
+  --results outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/results/i1_invp_only_r7_1m_seed0_gpu1_20260629.jsonl \
+  --output outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_branch_gate.json
+```
+
 Result interpretation will compare against:
 
 ```text
