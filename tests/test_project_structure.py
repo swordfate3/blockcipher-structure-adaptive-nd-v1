@@ -835,6 +835,51 @@ def test_training_history_records_train_and_validation_metrics():
         assert key in epoch
 
 
+def test_training_fast_mode_can_skip_epoch_train_metrics():
+    from blockcipher_nd.ciphers.arx.speck import Speck32_64
+    from blockcipher_nd.data.differential import DifferentialDatasetConfig
+    from blockcipher_nd.data.differential.generator import make_differential_dataset
+    from blockcipher_nd.models.baseline.mlp import MlpDistinguisher
+    from blockcipher_nd.training import TrainingConfig, train_binary_classifier
+
+    cipher = Speck32_64(rounds=1, key=0)
+    train_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x40,
+            samples_per_class=8,
+            seed=0,
+            shuffle=True,
+        )
+    )
+    validation_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x40,
+            samples_per_class=8,
+            seed=1,
+            shuffle=True,
+        )
+    )
+    model = MlpDistinguisher(input_bits=train_dataset.features.shape[1], hidden_bits=8)
+
+    result = train_binary_classifier(
+        model,
+        train_dataset,
+        validation_dataset,
+        TrainingConfig(epochs=1, batch_size=4, device="cpu", train_eval_interval=0),
+    )
+
+    epoch = result.history[0]
+    assert epoch["train_eval_loss"] is None
+    assert epoch["train_accuracy"] is None
+    assert epoch["train_auc"] is None
+    assert epoch["val_loss"] is not None
+    assert epoch["val_accuracy"] is not None
+    assert epoch["val_auc"] is not None
+    assert result.metadata["train_eval_interval"] == 0
+
+
 def _decode_present_cell_matrix_words(encoded: list[int], *, word_count: int, width: int) -> list[int]:
     cells = [[0, 0, 0, 0] for _ in range((word_count * width) // 4)]
     offset = 0

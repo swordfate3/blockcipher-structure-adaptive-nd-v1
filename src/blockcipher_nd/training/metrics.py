@@ -43,6 +43,7 @@ def evaluate_binary_classifier(
 
     total_loss = 0.0
     labels: list[float] = []
+    probabilities: list[float] = []
     with torch.no_grad():
         for features, batch_labels in loader:
             features = features.to(selected_device)
@@ -50,14 +51,11 @@ def evaluate_binary_classifier(
             logits = model(features).squeeze(1)
             total_loss += float(loss_fn(logits, batch_labels).cpu())
             labels.extend(float(item) for item in batch_labels.cpu().numpy())
+            probs = torch.sigmoid(logits).detach().cpu().numpy()
+            probabilities.extend(float(item) for item in probs)
 
     label_array = np.array(labels, dtype=np.float32)
-    prob_array = predict_binary_probabilities(
-        model,
-        dataset,
-        batch_size=batch_size,
-        device=str(selected_device),
-    )
+    prob_array = np.array(probabilities, dtype=np.float32)
     predictions = (prob_array >= 0.5).astype(np.float32)
     accuracy = float((predictions == label_array).mean()) if len(label_array) else 0.0
     calibrated_accuracy, calibrated_threshold = best_threshold_accuracy_and_threshold(

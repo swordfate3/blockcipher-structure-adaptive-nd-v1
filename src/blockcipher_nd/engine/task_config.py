@@ -72,6 +72,7 @@ def build_training_config(
             else args.early_stopping_min_delta
         ),
         loss=str(task.get("loss") or args.loss),
+        train_eval_interval=int(args.train_eval_interval),
         seed=seed,
         device=args.device,
     )

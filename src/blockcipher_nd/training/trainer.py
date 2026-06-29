@@ -109,11 +109,15 @@ def train_binary_classifier(
             batch_size=config.batch_size,
             device=str(selected_device),
         )
-        train_metrics = evaluate_binary_classifier(
-            model,
-            train_dataset,
-            batch_size=config.batch_size,
-            device=str(selected_device),
+        train_metrics = (
+            evaluate_binary_classifier(
+                model,
+                train_dataset,
+                batch_size=config.batch_size,
+                device=str(selected_device),
+            )
+            if should_evaluate_train(epoch, config.train_eval_interval)
+            else skipped_train_metrics()
         )
         history.append(
             {
@@ -218,6 +222,7 @@ def train_binary_classifier(
         "restore_best_checkpoint": config.restore_best_checkpoint,
         "early_stopping_patience": config.early_stopping_patience,
         "early_stopping_min_delta": config.early_stopping_min_delta,
+        "train_eval_interval": config.train_eval_interval,
         "loss": config.loss,
         "best_epoch": best_epoch,
         "best_checkpoint_metric": best_metric_value,
@@ -242,6 +247,22 @@ def train_binary_classifier(
 def validate_checkpoint_metric(metric: str) -> None:
     if metric not in {"val_accuracy", "val_auc", "val_loss"}:
         raise ValueError(f"unsupported checkpoint metric: {metric}")
+
+
+def should_evaluate_train(epoch: int, interval: int) -> bool:
+    if interval < 0:
+        raise ValueError("train_eval_interval must be non-negative")
+    return interval > 0 and epoch % interval == 0
+
+
+def skipped_train_metrics() -> dict[str, float | None]:
+    return {
+        "loss": None,
+        "accuracy": None,
+        "auc": None,
+        "best_accuracy": None,
+        "calibrated_accuracy": None,
+    }
 
 
 def clone_state_dict_to_cpu(model: nn.Module) -> dict[str, torch.Tensor]:

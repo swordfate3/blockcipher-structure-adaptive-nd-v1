@@ -400,3 +400,39 @@ For inline Python checks in shell commands, wrap the whole Python snippet in sin
 - **Notes**: Re-ran the verification with safer quoting; it passed.
 
 ---
+
+## [ERR-20260629-001] project_import_with_bare_python3
+
+**Logged**: 2026-06-29T00:20:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Bare `python3 -c` could not import the project package because it was not running inside the project environment.
+
+### Error
+```text
+ModuleNotFoundError: No module named 'blockcipher_nd'
+```
+
+### Context
+- Command attempted: `python3 -c 'from blockcipher_nd.engine.matrix_runner import parse_args; ...'`
+- Purpose: quick CLI argument verification after adding `--train-eval-interval`.
+- The package import failed because bare `python3` did not have the project installed or `PYTHONPATH=src`.
+- Re-running with `UV_CACHE_DIR=/tmp/uv-cache uv run python ...` succeeded.
+
+### Suggested Fix
+Use `uv run python` for project-package import checks. Reserve bare `python3` for pure standard-library file/text checks, or set `PYTHONPATH=src` explicitly.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/engine/matrix_runner.py
+- See Also: ERR-20260628-001
+
+### Resolution
+- **Resolved**: 2026-06-29T00:20:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the same check with `uv run python`; it passed.
+
+---

@@ -87,6 +87,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Minimum checkpoint metric improvement required to reset patience.",
     )
     parser.add_argument(
+        "--train-eval-interval",
+        type=int,
+        default=1,
+        help=(
+            "Evaluate full training-set metrics every N epochs. "
+            "Use 0 to skip per-epoch train-set evaluation for faster medium/large runs."
+        ),
+    )
+    parser.add_argument(
         "--pretrain-rounds",
         type=int,
         default=None,

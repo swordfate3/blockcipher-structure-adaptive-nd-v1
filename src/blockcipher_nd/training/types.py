@@ -24,6 +24,7 @@ class TrainingConfig:
     early_stopping_patience: int = 0
     early_stopping_min_delta: float = 0.0
     loss: str = "bce"
+    train_eval_interval: int = 1
 
 
 @dataclass(frozen=True)

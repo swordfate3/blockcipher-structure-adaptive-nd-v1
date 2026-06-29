@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
+import torch
 
-from blockcipher_nd.training.metrics import best_threshold_accuracy_and_threshold
+from blockcipher_nd.data.differential import DifferentialDataset
+from blockcipher_nd.training.metrics import (
+    best_threshold_accuracy_and_threshold,
+    evaluate_binary_classifier,
+)
 
 
 def brute_force_best_threshold_accuracy(
@@ -39,3 +44,36 @@ def test_best_threshold_matches_bruteforce_for_many_unique_scores() -> None:
         labels,
         scores,
     )
+
+
+class CountingLinear(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = torch.nn.Linear(2, 1)
+        self.forward_calls = 0
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        self.forward_calls += 1
+        return self.linear(features)
+
+
+def test_evaluate_binary_classifier_uses_one_forward_pass_per_batch() -> None:
+    dataset = DifferentialDataset(
+        features=np.array(
+            [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+            ],
+            dtype=np.uint8,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.uint8),
+        metadata={"feature_encoding": "test"},
+    )
+    model = CountingLinear()
+
+    metrics = evaluate_binary_classifier(model, dataset, batch_size=2, device="cpu")
+
+    assert model.forward_calls == 2
+    assert set(metrics) >= {"loss", "accuracy", "auc", "calibrated_accuracy"}
