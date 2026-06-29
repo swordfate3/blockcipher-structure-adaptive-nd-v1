@@ -418,6 +418,8 @@ def test_present_invp_only_1m_seed1_plan_is_conditional_confirmation():
     assert task["checkpoint_metric"] == "val_auc"
     assert task["restore_best_checkpoint"] is True
     assert "CONDITIONAL_PAPER_SCALE_CONFIRMATION" in task["matching_evidence"]
+    assert ">= +0.001 weak-positive AUC gate" in task["matching_evidence"]
+    assert ">= +0.003 is the strong single-seed gate" in task["matching_evidence"]
 
 
 def test_present_invp_only_1m_seed1_remote_config_uses_fast_parallel_dataset_cache():
