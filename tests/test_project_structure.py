@@ -907,6 +907,20 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
         "monitor/monitor_ssh_stderr.log",
     ]
 
+    (run_root / "done.marker").write_text("done\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+    )
+
+    assert report["status"] == "completed_missing_results"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+    assert report["done_markers"] == ["done.marker"]
+
     results = run_root / "results"
     results.mkdir()
     (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")

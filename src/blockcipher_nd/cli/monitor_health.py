@@ -112,7 +112,8 @@ def monitor_health_report(
         "done_markers": done_markers,
         "failed_markers": failed_markers,
         "artifact_files": artifact_files,
-        "needs_main_thread_intervention": status in {"failed", "unhealthy", "missing_monitor", "stale_monitor"},
+        "needs_main_thread_intervention": status
+        in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results"},
         "postprocess_allowed": status == "result_ready",
         "postprocess_command": postprocess_command,
     }
@@ -131,8 +132,10 @@ def _health_status(
 ) -> str:
     if failed_markers:
         return "failed"
-    if results_jsonl_exists or done_markers:
+    if results_jsonl_exists:
         return "result_ready"
+    if done_markers:
+        return "completed_missing_results"
     if not run_root_exists or not recent_monitor_lines:
         return "missing_monitor"
     if stderr_text:
@@ -295,7 +298,12 @@ def main(argv: list[str] | None = None) -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(text + "\n", encoding="utf-8")
     print(text)
-    return 0 if report["status"] not in {"failed", "unhealthy", "missing_monitor", "stale_monitor"} else 4
+    return (
+        0
+        if report["status"]
+        not in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results"}
+        else 4
+    )
 
 
 if __name__ == "__main__":
