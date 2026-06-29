@@ -328,7 +328,10 @@ result is only "more features helped", not "true SPN topology helped".
 
 ### Smoke Plan
 
-Add a tiny smoke CSV before any remote launch:
+Add a tiny smoke CSV before any remote launch, but only after the model aliases
+exist and pass build/forward tests. Do not commit a CSV that references
+unregistered model keys, because that creates a broken experiment entrypoint
+that cannot be smoke-tested honestly.
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
@@ -374,6 +377,25 @@ present_nibble_shuffled_ddt_graph
 Keep `present_nibble_paligned_transition_residual` as the no-DDT topology/residual
 anchor. Do not add Zhang/Wang to this matrix unless the retrieved 1M result shows
 baseline drift or protocol mismatch.
+
+### Implementation Order Guardrail
+
+For Branch B, use this exact order:
+
+```text
+1. Implement encoder/model classes.
+2. Register and export aliases.
+3. Add unit tests for alias build/forward and deterministic DDT features.
+4. Add smoke CSV.
+5. Run CPU smoke.
+6. Commit/push code + tests + smoke config.
+7. Add 262144/class CSV and remote config.
+8. Launch remote 262144/class only from the pushed commit.
+```
+
+Do not create remote config, launch script, or monitor handoff before step 6
+passes. The DDT route is conditional evidence, so a broken or partially defined
+config would add bookkeeping noise without advancing the research question.
 
 ## Current Waiting Condition
 
