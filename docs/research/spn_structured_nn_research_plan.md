@@ -237,6 +237,42 @@ flowchart TD
 3. E > G：说明真实 P-layer 拓扑有价值。
 4. F < E：说明 DDT/active prior 有价值。
 
+### 7.1.1 当前 PRESENT 路线的分叉决策
+
+截至 2026-06-29，本项目已经完成若干 PRESENT-80 r7、Zhang/Wang Case2
+同协议诊断。当前最稳定的中等规模信号不是 pair-consistency pooling，
+而是 `InvP(DeltaC)` 这种 SPN 逆置换结构视图本身：
+
+| 路线 | 当前判断 |
+|---|---|
+| Zhang/Wang MCND baseline | 已有 262k 与 1M anchor，可作为同协议比较锚点 |
+| `present_nibble_invp_only_spn_only` | seed0/seed1 262k 都比 baseline 高约 `+0.0068` 到 `+0.0078` AUC，正在跑 1M 单行确认 |
+| `present_nibble_invp_pair_consistency_spn_only` | seed0/seed1 均略高于 InvP-only，但差值仅 `+0.0002` 到 `+0.0007` AUC，暂不作为主线 |
+| p-aligned MCND | 1M 单 seed 弱正向，AUC 约 `+0.0007`，不足以证明结构融合明显有效 |
+| transition residual / pair evidence pooling | 作为下一代结构路线保留，但需等待 InvP-only 1M gate 决定是否立即推进 |
+
+分叉规则：
+
+```text
+如果 InvP-only 1M AUC >= Zhang/Wang 1M anchor + 0.003：
+  先做 1M seed1 confirmation，把 InvP-only 作为论文主线候选。
+
+如果 InvP-only 1M 只在 +0.001 到 +0.003：
+  先做 seed1 或同预算小矩阵确认稳定性，不直接声称结构突破。
+
+如果 InvP-only 1M 在 ±0.001 内或低于 baseline：
+  说明 262k 的 InvP-only 中等信号没有稳定放大，应转入真正的
+  SPN topology / DDT-aware graph backbone，而不是继续微调 pair pooling。
+```
+
+下一代结构路线应聚焦：
+
+1. cell-level graph：16 个 PRESENT nibble cell 作为 node。
+2. true P-layer edges：用固定 PRESENT P-layer bit-to-cell 映射建边。
+3. DDT/active prior：给 node/edge 显式输入 active、Hamming weight、局部 DDT 合法性或概率等级。
+4. shuffled topology control：每个 topology claim 必须配 shuffled-P 控制。
+5. 同输入 MLP/token mixer control：证明提升来自结构归纳偏置，而不是特征拼接本身。
+
 ### 7.2 第二阶段：迁移到 SKINNY/GIFT
 
 目标不是马上追最高轮数，而是验证结构归纳偏置是否泛化。
@@ -392,4 +428,3 @@ y:             [batch]
 3. IEICE 2026 SPN framework：作为 SPN Conv2D/state-matrix baseline。
 4. ePrint 2026/535：作为 SPN-aware feature enhancement 的直接相关工作。
 5. ePrint 2026/748：作为 related-key multi-pair 方向的后续扩展参考。
-

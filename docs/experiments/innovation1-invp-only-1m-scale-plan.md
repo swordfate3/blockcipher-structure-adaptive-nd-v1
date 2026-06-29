@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-29
 
-**Status:** planned / remote launch next
+**Status:** running remotely / tmux monitor active
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives, `1000000/class` single-seed paper-scale diagnostic.
 
@@ -128,3 +128,69 @@ Not a breakthrough claim.
 6. Use `cmd.exe /c`, not `cmd.exe /k`.
 7. Use a local tmux monitor to retrieve artifacts automatically.
 8. After retrieval, validate plan alignment, generate history/curves locally, update this document, commit, and push.
+
+## Remote Launch Record
+
+The 1M InvP-only run has been launched from a pushed GitHub commit and handed
+off to a local tmux monitor.
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_only_r7_1m_seed0_gpu1_20260629` |
+| Source commit | `d9454ea17c6e0446ea934a3fb7ebfd6f56720aee` |
+| Plan CSV | `configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv` |
+| Remote config | `configs/remote/innovation1_spn_present_invp_only_r7_1m_seed0_gpu1_20260629.json` |
+| Remote root | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_invp_only_r7_1m_seed0_gpu1_20260629` |
+| Local monitor | `tmux: monitor_i1_invp_only_1m_20260629` |
+| Local retrieval root | `outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/` |
+| Device | `cuda:1` |
+| Expected rows | `1` |
+
+Launch health:
+
+```text
+remote scheduled task = blockcipher_i1_invp_only_1m_20260629
+initial logs appeared = yes
+progress.jsonl appeared = yes
+stdout/stderr files appeared = yes
+immediate failed marker = no
+monitor status = running
+```
+
+Post-retrieval gate to run automatically:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed0.csv \
+  --results outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/results/i1_invp_only_r7_1m_seed0_gpu1_20260629.jsonl \
+  --expected-rows 1 \
+  --output outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_local_result_gate.json
+```
+
+Post-retrieval plotting command:
+
+```bash
+MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
+  --results outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/results/i1_invp_only_r7_1m_seed0_gpu1_20260629.jsonl \
+  --output outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_curves.svg \
+  --history-csv outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/i1_invp_only_r7_1m_seed0_gpu1_20260629_history.csv \
+  --title i1_invp_only_r7_1m_seed0_gpu1_20260629
+```
+
+Result interpretation will compare against:
+
+```text
+Zhang/Wang 1M anchor AUC = 0.793897025948
+p-aligned MCND 1M AUC   = 0.794619119358
+```
+
+Conditional next step:
+
+```text
+If InvP-only 1M beats the Zhang/Wang 1M anchor by >= +0.003 AUC,
+launch a 1M seed1 confirmation.
+
+If InvP-only is only weakly positive or tied, shift the next design iteration
+toward a true SPN-topology / DDT-aware graph backbone rather than additional
+pair-consistency pooling.
+```
