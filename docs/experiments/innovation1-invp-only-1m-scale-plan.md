@@ -202,6 +202,8 @@ When the status is `result_ready`, the JSON report includes a
 `postprocess_command` that sub-agents/watchers can execute directly.
 If the status is `completed_missing_results`, a done marker has appeared but
 the retrieved JSONL is still missing; do not postprocess until the JSONL exists.
+If the status is `results_empty`, the JSONL path exists but has no non-empty
+rows; do not postprocess until at least one result row is present.
 
 Post-retrieval gate to run automatically:
 

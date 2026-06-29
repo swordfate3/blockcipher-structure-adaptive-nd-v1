@@ -596,7 +596,9 @@ def test_invp_only_plan_records_bounded_monitor_health_command():
     assert "--plan-doc docs/experiments/innovation1-invp-only-1m-scale-plan.md" in plan
     assert "`postprocess_command`" in plan
     assert "`completed_missing_results`" in plan
+    assert "`results_empty`" in plan
     assert "do not postprocess until the JSONL exists" in plan
+    assert "at least one result row is present" in plan
     assert "must not be used as a main-thread polling loop" in plan
 
 
