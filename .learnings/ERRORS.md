@@ -436,3 +436,43 @@ Use `uv run python` for project-package import checks. Reserve bare `python3` fo
 - **Notes**: Re-ran the same check with `uv run python`; it passed.
 
 ---
+
+## [ERR-20260629-002] plan_scale_not_overridden_by_cli_smoke
+
+**Logged**: 2026-06-29T00:45:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+CPU smoke accidentally started a `262144/class` PRESENT plan because plan CSV rows keep their own `samples_per_class`.
+
+### Error
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_centered_seed1_fast_r7_262k.csv \
+  --epochs 1 --batch-size 8 --hidden-bits 8 --device cpu \
+  --train-eval-interval 0 ...
+```
+
+This command did not make the run small because `--plan` row fields define `samples_per_class`.
+
+### Context
+- Task: local smoke for `innovation1_spn_present_invp_centered_seed1_fast_r7_262k.csv`.
+- The command correctly overrode `epochs`, `batch_size`, `hidden_bits`, `device`, and `train_eval_interval`.
+- It did not override `samples_per_class`, so the CPU smoke began generating the real `262144/class` dataset and had to be interrupted.
+
+### Suggested Fix
+For plan-based smoke tests, create a dedicated smoke CSV with small `samples_per_class` instead of assuming CLI scale flags override plan rows. Use full-size CSVs only for real remote/scale runs.
+
+### Metadata
+- Reproducible: yes
+- Related Files: configs/experiment/innovation1/innovation1_spn_present_invp_centered_seed1_fast_r7_262k.csv
+- See Also: ERR-20260629-001
+
+### Resolution
+- **Resolved**: 2026-06-29T00:45:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Interrupted the mistaken CPU run and switched to a dedicated small smoke CSV.
+
+---
