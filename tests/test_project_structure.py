@@ -17,6 +17,7 @@ from blockcipher_nd.features.registry import (
     pair_bits_for_encoding,
 )
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
+from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
@@ -460,6 +461,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/validate-results"),
         Path("scripts/gate-invp-result"),
         Path("scripts/postprocess-invp-result"),
+        Path("scripts/monitor-health"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -775,6 +777,52 @@ def test_invp_only_postprocess_next_steps_route_tied_result_to_ddt(tmp_path):
     assert report["next_action"]["plan_doc"].endswith("innovation1-spn-ddt-graph-conditional-plan.md")
     assert any("DDT graph route" in step for step in report["next_steps"])
     assert not any("seed1" in step.lower() for step in report["next_steps"])
+
+
+def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_run"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "monitor_start 2026-06-29T14:45:53+08:00",
+                "2026-06-29T15:00:02+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+
+    report = monitor_health_report(run_id=run_id, root=root)
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["postprocess_allowed"] is False
+    assert report["results_jsonl_exists"] is False
+    assert report["artifact_files"] == [
+        "monitor/monitor.log",
+        "monitor/monitor_ssh_stderr.log",
+    ]
+
+    results = run_root / "results"
+    results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")
+    report = monitor_health_report(run_id=run_id, root=root)
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["results_jsonl_exists"] is True
+
+    (run_root / "failed.marker").write_text("failed\n", encoding="utf-8")
+    report = monitor_health_report(run_id=run_id, root=root)
+
+    assert report["status"] == "failed"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["failed_markers"] == ["failed.marker"]
 
 
 def test_differential_data_layer_has_small_modules():

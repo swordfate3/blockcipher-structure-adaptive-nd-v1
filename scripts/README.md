@@ -12,3 +12,7 @@ write a deterministic seed1-vs-DDT branch report.
 Use `scripts/postprocess-invp-result` to run the full local post-retrieval chain:
 plan alignment validation, curve/history export, branch gating, and optional
 experiment-plan Markdown update via `--update-plan-doc`.
+
+Use `scripts/monitor-health` for a bounded local health check of a remote-result
+monitor directory. It reads local artifacts and optionally checks one tmux
+session once; it does not SSH-poll or supervise a remote run.
