@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import subprocess
 from datetime import datetime, timezone
@@ -29,7 +30,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--plan",
         type=Path,
         default=None,
-        help="Optional plan CSV path used to build a postprocess command when result_ready.",
+        help="Optional plan CSV path used to infer expected rows and build a postprocess command when result_ready.",
     )
     parser.add_argument(
         "--plan-doc",
@@ -49,6 +50,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=1800,
         help="Mark a running monitor stale when its newest timestamp is older than this many seconds.",
     )
+    parser.add_argument(
+        "--expected-rows",
+        type=int,
+        default=None,
+        help="Expected result rows. Defaults to the plan CSV row count when --plan is provided.",
+    )
     return parser.parse_args(argv)
 
 
@@ -59,6 +66,7 @@ def monitor_health_report(
     tmux_session: str | None = None,
     plan_path: Path | None = None,
     plan_doc_path: Path | None = None,
+    expected_rows: int | None = None,
     recent_lines: int = 8,
     stale_after_seconds: int = 1800,
     now: datetime | None = None,
@@ -69,6 +77,7 @@ def monitor_health_report(
     ssh_stderr = monitor_dir / "monitor_ssh_stderr.log"
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
+    expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
     done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
     failed_markers = _relative_paths(run_root, sorted(run_root.glob("**/*failed*")))
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
@@ -80,6 +89,7 @@ def monitor_health_report(
         run_root_exists=run_root.exists(),
         results_jsonl_exists=results_jsonl.exists(),
         results_jsonl_line_count=results_jsonl_line_count,
+        expected_rows=expected_result_rows,
         done_markers=done_markers,
         failed_markers=failed_markers,
         stderr_text=stderr_text,
@@ -112,11 +122,20 @@ def monitor_health_report(
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
         "results_jsonl_line_count": results_jsonl_line_count,
+        "expected_rows": expected_result_rows,
         "done_markers": done_markers,
         "failed_markers": failed_markers,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
-        in {"failed", "unhealthy", "missing_monitor", "stale_monitor", "completed_missing_results", "results_empty"},
+        in {
+            "failed",
+            "unhealthy",
+            "missing_monitor",
+            "stale_monitor",
+            "completed_missing_results",
+            "results_empty",
+            "results_incomplete",
+        },
         "postprocess_allowed": status == "result_ready",
         "postprocess_command": postprocess_command,
     }
@@ -127,6 +146,7 @@ def _health_status(
     run_root_exists: bool,
     results_jsonl_exists: bool,
     results_jsonl_line_count: int,
+    expected_rows: int | None,
     done_markers: list[str],
     failed_markers: list[str],
     stderr_text: str,
@@ -136,6 +156,8 @@ def _health_status(
 ) -> str:
     if failed_markers:
         return "failed"
+    if expected_rows is not None and results_jsonl_line_count > 0 and results_jsonl_line_count < expected_rows:
+        return "results_incomplete"
     if results_jsonl_line_count > 0:
         return "result_ready"
     if results_jsonl_exists:
@@ -274,6 +296,13 @@ def _jsonl_nonempty_line_count(path: Path) -> int:
     return sum(1 for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip())
 
 
+def _plan_row_count(path: Path | None) -> int | None:
+    if path is None or not path.exists():
+        return None
+    with path.open(newline="", encoding="utf-8") as handle:
+        return sum(1 for _row in csv.DictReader(handle))
+
+
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
@@ -302,6 +331,7 @@ def main(argv: list[str] | None = None) -> int:
         tmux_session=args.tmux_session,
         plan_path=args.plan,
         plan_doc_path=args.plan_doc,
+        expected_rows=args.expected_rows,
         recent_lines=args.recent_lines,
         stale_after_seconds=args.stale_after_seconds,
     )
@@ -320,6 +350,7 @@ def main(argv: list[str] | None = None) -> int:
             "stale_monitor",
             "completed_missing_results",
             "results_empty",
+            "results_incomplete",
         }
         else 4
     )

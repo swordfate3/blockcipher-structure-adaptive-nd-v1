@@ -972,6 +972,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["postprocess_allowed"] is True
     assert report["results_jsonl_exists"] is True
     assert report["results_jsonl_line_count"] == 1
+    assert report["expected_rows"] == 0
     assert report["postprocess_command"] == [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -1009,6 +1010,42 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["failed_markers"] == ["failed.marker"]
 
 
+def test_monitor_health_requires_expected_result_rows(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_matrix"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    results = root / run_id / "results"
+    results.mkdir()
+    result_path = results / f"{run_id}.jsonl"
+    result_path.write_text("{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+    )
+
+    assert report["status"] == "results_incomplete"
+    assert report["results_jsonl_line_count"] == 1
+    assert report["expected_rows"] == 2
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+
+    result_path.write_text("{}\n{}\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+
+
 def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_stale"
@@ -1040,6 +1077,7 @@ def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
         run_root_exists=True,
         results_jsonl_exists=False,
         results_jsonl_line_count=0,
+        expected_rows=None,
         done_markers=[],
         failed_markers=[],
         stderr_text="",
