@@ -70,6 +70,17 @@ This is intentionally a single-row run. The same-protocol Zhang/Wang 1M seed0
 baseline has already completed, so repeating it would spend GPU time without
 adding a new comparison point.
 
+Conditional seed1 confirmation config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv
+```
+
+This file is prepared but must not be launched until the seed0 result is
+retrieved, validated, and clears the `>= +0.003` AUC gate over the completed
+Zhang/Wang 1M anchor. It is intentionally single-row and same-protocol so the
+only planned change is `seed = 1`.
+
 ## Fixed Protocol
 
 | Field | Value |
@@ -128,6 +139,20 @@ Not a breakthrough claim.
 6. Use `cmd.exe /c`, not `cmd.exe /k`.
 7. Use a local tmux monitor to retrieve artifacts automatically.
 8. After retrieval, validate plan alignment, generate history/curves locally, update this document, commit, and push.
+
+Conditional seed1 readiness:
+
+| Field | Value |
+|---|---|
+| Plan CSV | `configs/experiment/innovation1/innovation1_spn_present_invp_only_r7_1m_seed1.csv` |
+| Remote config | `configs/remote/innovation1_spn_present_invp_only_r7_1m_seed1_gpu1_20260629.json` |
+| Intended run ID | `i1_invp_only_r7_1m_seed1_gpu1_20260629` |
+| Status | prepared / not launched |
+| Launch trigger | seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.003` |
+| No-launch trigger | seed0 delta `< +0.003`; use the DDT graph conditional plan instead |
+
+The seed1 config is preparation, not evidence. Do not report it as running or
+completed unless a separate remote launch record is added.
 
 ## Remote Launch Record
 
