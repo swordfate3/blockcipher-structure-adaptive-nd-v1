@@ -568,6 +568,10 @@ def test_invp_only_branch_plan_matches_gate_thresholds():
     assert "seed0 delta `< +0.001`" in invp_plan
     assert "InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.001" in ddt_plan
     assert "weakly positive from `+0.001` to `+0.003` AUC" in ddt_plan
+    assert "Weak-positive condition" in ddt_plan
+    assert "+0.001 <= InvP-only 1M AUC - 0.793897025948 < +0.003" in ddt_plan
+    assert "Run scripts/check-remote-readiness on the prepared seed1 remote config" in ddt_plan
+    assert "only if the readiness gate passes" in ddt_plan
 
 
 def test_invp_only_plan_records_bounded_monitor_health_command():

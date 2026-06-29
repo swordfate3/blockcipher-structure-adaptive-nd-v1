@@ -255,12 +255,18 @@ size, pooling mode, training protocol, or negative-sample definition.
 When the active InvP-only 1M run is retrieved, make exactly one branch decision
 from the validated local JSONL. Do not start both branches.
 
-### Branch A: InvP-only Survives Paper Scale
+### Branch A: InvP-only Survives Paper Scale Enough For Seed1
 
-Condition:
+Strong condition:
 
 ```text
 InvP-only 1M AUC - 0.793897025948 >= +0.003
+```
+
+Weak-positive condition:
+
+```text
++0.001 <= InvP-only 1M AUC - 0.793897025948 < +0.003
 ```
 
 Action:
@@ -268,18 +274,19 @@ Action:
 ```text
 1. Update docs/experiments/innovation1-invp-only-1m-scale-plan.md with the
    retrieved metric, gate result, artifacts, and claim scope.
-2. Launch a seed1 confirmation for present_nibble_invp_only_spn_only at
+2. Run scripts/check-remote-readiness on the prepared seed1 remote config.
+3. Launch a seed1 confirmation for present_nibble_invp_only_spn_only at
    1000000/class using the same protocol, strict negatives, and val_auc
-   checkpoint metric.
-3. Do not implement DDT graph before seed1 unless seed0/seed1 disagree enough
+   checkpoint metric, only if the readiness gate passes.
+4. Do not implement DDT graph before seed1 unless seed0/seed1 disagree enough
    to require an attribution study.
 ```
 
 Reason:
 
 ```text
-If the simplest InvP-only route clears the paper-scale gate, the next evidence
-gap is stability, not architectural complexity.
+If the simplest InvP-only route is at least weakly positive at paper scale,
+the next evidence gap is stability, not architectural complexity.
 ```
 
 ### Branch B: InvP-only Is Tied Or Underperforms At Paper Scale
