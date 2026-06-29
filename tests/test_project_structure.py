@@ -564,6 +564,17 @@ def test_invp_only_branch_plan_matches_gate_thresholds():
     assert "weakly positive from `+0.001` to `+0.003` AUC" in ddt_plan
 
 
+def test_invp_only_plan_records_bounded_monitor_health_command():
+    plan = Path("docs/experiments/innovation1-invp-only-1m-scale-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "scripts/monitor-health" in plan
+    assert "--run-id i1_invp_only_r7_1m_seed0_gpu1_20260629" in plan
+    assert "--tmux-session monitor_i1_invp_only_1m_20260629" in plan
+    assert "must not be used as a main-thread polling loop" in plan
+
+
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(
