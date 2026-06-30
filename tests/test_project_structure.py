@@ -441,8 +441,13 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
         assert "MEDIUM 262144/class pair-set aggregation-control" in config["claim_scope"]
         assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
 
-    assert remote_readiness_report(scorer_path)["status"] == "pass"
-    assert remote_readiness_report(learned_path)["status"] == "pass"
+    scorer_report = remote_readiness_report(scorer_path)
+    learned_report = remote_readiness_report(learned_path)
+    assert scorer_report["status"] == "pass"
+    assert learned_report["status"] == "pass"
+    assert "pairset_aggregation_stage_lock" in scorer_report["checked_invariants"]
+    assert "pairset_aggregation_stage_lock" in learned_report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in learned_report["checked_invariants"]
     assert "pairset_aggregation_stage_lock" in plan_doc
     assert "pairset_stage = single_pair_scorer_checkpoint" in plan_doc
     assert "checkpoint_output under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
@@ -2872,6 +2877,8 @@ def test_seed1_remote_readiness_gate_passes_for_prepared_invp_confirmation():
     assert report["max_samples_per_class"] == 1_000_000
     assert report["errors"] == []
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in report["checked_invariants"]
+    assert "pairset_aggregation_stage_lock" not in report["checked_invariants"]
 
 
 def test_remote_readiness_gate_rejects_bad_medium_scale_cache(tmp_path):
@@ -2937,6 +2944,7 @@ def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):
     assert report["max_samples_per_class"] == 2
     assert report["errors"] == []
     assert "candidate_trail_protocol_lock" in report["checked_invariants"]
+    assert "pairset_aggregation_stage_lock" not in report["checked_invariants"]
 
 
 def test_remote_readiness_gate_rejects_candidate_trail_without_feature_mode(tmp_path):

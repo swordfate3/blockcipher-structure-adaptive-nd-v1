@@ -118,6 +118,21 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
 
+    checked_invariants = [
+        "plan_exists",
+        "expected_rows_matches_plan",
+        "run_id_task_archive_alignment",
+        "github_ssh_repo",
+        "cmd_exe_c_only_policy",
+        "g_lxy_artifact_policy",
+        "medium_scale_dataset_cache",
+        "training_protocol_matches_plan",
+    ]
+    if _is_candidate_trail_config(config):
+        checked_invariants.append("candidate_trail_protocol_lock")
+    if _is_pairset_aggregation_config(config):
+        checked_invariants.append("pairset_aggregation_stage_lock")
+
     return {
         "status": "pass" if not errors else "fail",
         "config": str(config_path),
@@ -128,18 +143,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         "max_samples_per_class": _max_samples_per_class(tasks),
         "errors": errors,
         "warnings": warnings,
-        "checked_invariants": [
-            "plan_exists",
-            "expected_rows_matches_plan",
-            "run_id_task_archive_alignment",
-            "github_ssh_repo",
-            "cmd_exe_c_only_policy",
-            "g_lxy_artifact_policy",
-            "medium_scale_dataset_cache",
-            "training_protocol_matches_plan",
-            "candidate_trail_protocol_lock",
-            "pairset_aggregation_stage_lock",
-        ],
+        "checked_invariants": checked_invariants,
     }
 
 
