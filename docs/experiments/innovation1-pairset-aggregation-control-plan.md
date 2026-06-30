@@ -133,18 +133,105 @@ script = scripts/postprocess-pairset-aggregation
 tests = tests/test_pairset_aggregation_postprocess.py
 capability = validate learned result alignment, plot learned curves, run the
              pair-set aggregation gate, write summaries, and update plan docs
+
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_smoke.csv
+capability = train a tiny single-pair InvP-only scorer checkpoint for frozen
+             aggregation smoke; pairs_per_sample = 1; not accuracy evidence
+
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_smoke.csv
+capability = train tiny 16-pair InvP anchor and learned pair-consistency rows
+             for postprocess/gate smoke; not accuracy evidence
 ```
 
 Not implemented yet:
 
 ```text
-1. Smoke CSV for learned pair-set plus frozen aggregation control flow.
-2. Remote matrix/config rows for the meaningful pair-set aggregation-control run.
+1. Remote matrix/config rows for the meaningful pair-set aggregation-control run.
 ```
 
-Therefore this plan is still not launch-ready. The current code only makes the
-core aggregation math, scorer artifact persistence, and frozen aggregation CLI
-plus gate/postprocess decision testable and reusable.
+Therefore this plan is local-smoke-verified but still not remote-launch-ready.
+The current code and configs make the core aggregation math, scorer artifact
+persistence, frozen aggregation CLI, learned-pairset smoke matrix, and
+gate/postprocess decision path testable and reusable.
+
+## Local Smoke Readiness
+
+Purpose:
+
+```text
+Prove the pair-set attribution-control plumbing works end to end:
+single-pair checkpoint -> frozen aggregation summary -> learned pair-set
+results -> postprocess/gate artifacts.
+```
+
+Smoke commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_smoke.csv \
+  --epochs 1 \
+  --batch-size 4 \
+  --hidden-bits 8 \
+  --device cpu \
+  --checkpoint-output outputs/smoke/pairset_aggregation_control/single_pair_invp.pt \
+  --output outputs/smoke/pairset_aggregation_control/single_pair_results.jsonl \
+  --progress-output outputs/smoke/pairset_aggregation_control/single_pair_progress.jsonl
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_smoke.csv \
+  --epochs 1 \
+  --batch-size 4 \
+  --hidden-bits 8 \
+  --device cpu \
+  --output outputs/smoke/pairset_aggregation_control/learned_pairset_results.jsonl \
+  --progress-output outputs/smoke/pairset_aggregation_control/learned_pairset_progress.jsonl
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-pairset-aggregation \
+  --checkpoint outputs/smoke/pairset_aggregation_control/single_pair_invp.pt \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_smoke.csv \
+  --eval-row-index 0 \
+  --samples-per-class 8 \
+  --pairs-per-sample 16 \
+  --scorer-model-key present_nibble_invp_only_spn_only \
+  --scorer-hidden-bits 8 \
+  --scorer-model-options '{"spn_mixer_depth":1,"activation":"relu","norm":"layernorm"}' \
+  --scorer-pairs-per-sample 1 \
+  --aggregation-mode sum_logodds \
+  --batch-size 4 \
+  --device cpu \
+  --output outputs/smoke/pairset_aggregation_control/frozen_aggregation_summary.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-pairset-aggregation \
+  --plan configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_smoke.csv \
+  --learned-results outputs/smoke/pairset_aggregation_control/learned_pairset_results.jsonl \
+  --frozen-summary outputs/smoke/pairset_aggregation_control/frozen_aggregation_summary.json \
+  --output-dir outputs/smoke/pairset_aggregation_control/postprocess \
+  --run-id pairset_aggregation_control_smoke \
+  --expected-rows 2
+```
+
+Expected status:
+
+```text
+local smoke may pass or fail the research gate depending on random tiny metrics;
+only CLI execution, protocol alignment, artifact creation, and gate plumbing are
+meaningful at this scale.
+```
+
+Completed local smoke:
+
+```text
+date = 2026-06-30
+status = pass
+single_pair_checkpoint = outputs/smoke/pairset_aggregation_control/single_pair_invp.pt
+learned_rows = 2/2
+frozen_summary_status = pass
+postprocess_status = pass
+validation_status = pass
+pairset_aggregation_gate_status = pass
+generated_artifacts = curves.svg, history.csv, gate.json, summary.json, summary.md
+claim_scope = plumbing/readiness only; tiny metric decision is ignored
+```
 
 ## Candidate Matrix
 

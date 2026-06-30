@@ -272,6 +272,42 @@ def test_present_ddt_graph_262k_remote_config_is_method_extension_ready():
     assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
 
 
+def test_present_pairset_aggregation_control_smoke_plans_are_protocol_locked():
+    scorer_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_smoke.csv"
+    )
+    learned_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pairset_aggregation_control_smoke.csv"
+    )
+    scorer_tasks = build_tasks(parse_args(["--plan", scorer_plan]))
+    learned_tasks = build_tasks(parse_args(["--plan", learned_plan]))
+
+    assert [task["model_key"] for task in scorer_tasks] == [
+        "present_nibble_invp_only_spn_only",
+    ]
+    assert [task["model_key"] for task in learned_tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    assert scorer_tasks[0]["pairs_per_sample"] == 1
+    for task in [*scorer_tasks, *learned_tasks]:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 8
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+    for task in learned_tasks:
+        assert task["pairs_per_sample"] == 16
+
+
 def test_present_ddt_graph_remote_launch_assets_are_g_lxy_scoped():
     launcher = Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd")
     monitor = Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.sh")
