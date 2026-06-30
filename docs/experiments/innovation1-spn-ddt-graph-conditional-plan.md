@@ -582,6 +582,21 @@ weak_ddt_graph_signal   -> repeat 262144/class or run variance check before scal
 stop_ddt_graph_route    -> record tied/negative evidence and switch hypothesis
 ```
 
+Prepared positive-branch confirmation assets:
+
+```text
+seed1_plan = configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k_seed1.csv
+seed1_remote_config = configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json
+seed1_launcher = configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.cmd
+seed1_monitor = configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.sh
+claim_scope = conditional 262144/class medium confirmation only
+```
+
+These assets are intentionally prepared but not launched. They become actionable
+only if seed0 is retrieved, validated, plan-aligned, and the gate decision is
+`support_ddt_graph_route`. If seed0 is weak or tied/negative, do not launch this
+seed1 package; follow the weak/stop branch instead.
+
 Bounded monitor-health command after launch:
 
 ```bash

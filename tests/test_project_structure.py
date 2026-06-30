@@ -254,6 +254,35 @@ def test_present_ddt_graph_262k_plan_is_conditional_same_protocol_matrix():
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
+def test_present_ddt_graph_262k_seed1_plan_is_conditional_confirmation_matrix():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k_seed1.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_paligned_transition_residual",
+        "present_nibble_no_ddt_graph",
+        "present_nibble_ddt_graph",
+        "present_nibble_shuffled_ddt_graph",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 1
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "CONDITIONAL_MEDIUM_CONFIRMATION 262144/class N3" in task["matching_evidence"]
+        assert "support_ddt_graph_route" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+
 def test_present_ddt_graph_262k_remote_config_is_method_extension_ready():
     path = Path("configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json")
     config = json.loads(path.read_text(encoding="utf-8"))
@@ -270,6 +299,25 @@ def test_present_ddt_graph_262k_remote_config_is_method_extension_ready():
     assert "launch as DDT/topology method-extension after InvP attribution-control support" in config["launch_policy"]
     assert "MEDIUM 262144/class N3 DDT graph method-extension diagnostic" in config["claim_scope"]
     assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
+
+
+def test_present_ddt_graph_262k_seed1_remote_config_is_conditional_ready():
+    path = Path("configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["plan"].endswith("innovation1_spn_present_ddt_graph_r7_262k_seed1.csv")
+    assert config["expected_rows"] == 5
+    assert config["device"] == "cuda:1"
+    assert config["train_eval_interval"] == 0
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+    assert config["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "support_ddt_graph_route" in config["launch_policy"]
+    assert "CONDITIONAL_MEDIUM_CONFIRMATION 262144/class N3 DDT graph seed1" in config["claim_scope"]
+    assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
+    assert remote_readiness_report(path)["status"] == "pass"
 
 
 def test_present_pairset_aggregation_control_smoke_plans_are_protocol_locked():
@@ -433,23 +481,39 @@ def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_awar
 
 
 def test_present_ddt_graph_remote_launch_assets_are_g_lxy_scoped():
-    launcher = Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd")
-    monitor = Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.sh")
-    launcher_text = launcher.read_text(encoding="utf-8")
-    monitor_text = monitor.read_text(encoding="utf-8")
+    assets = [
+        (
+            Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd"),
+            Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.sh"),
+            "innovation1_spn_present_ddt_graph_r7_262k.csv",
+            "cuda:0",
+        ),
+        (
+            Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.cmd"),
+            Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.sh"),
+            "innovation1_spn_present_ddt_graph_r7_262k_seed1.csv",
+            "cuda:1",
+        ),
+    ]
 
-    assert "cmd.exe /k" not in launcher_text
-    assert "cmd.exe /k" not in monitor_text
-    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
-    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
-    assert "C:\\Users" not in launcher_text
-    assert "Desktop" not in launcher_text
-    assert "Downloads" not in launcher_text
-    assert "AppData" not in launcher_text
-    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
-    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
-    assert "--dataset-cache-root" in launcher_text
-    assert "postprocess-ddt-graph-result" in monitor_text
+    for launcher, monitor, plan_name, device in assets:
+        launcher_text = launcher.read_text(encoding="utf-8")
+        monitor_text = monitor.read_text(encoding="utf-8")
+
+        assert "cmd.exe /k" not in launcher_text
+        assert "cmd.exe /k" not in monitor_text
+        assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+        assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+        assert "C:\\Users" not in launcher_text
+        assert "Desktop" not in launcher_text
+        assert "Downloads" not in launcher_text
+        assert "AppData" not in launcher_text
+        assert plan_name in launcher_text
+        assert f"--device {device}" in launcher_text
+        assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+        assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+        assert "--dataset-cache-root" in launcher_text
+        assert "postprocess-ddt-graph-result" in monitor_text
 
 
 def test_present_spn_only_attribution_262k_plan_is_same_protocol():
