@@ -32,6 +32,7 @@ from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
     PresentZhangWangKerasMCNDDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+    PresentNibbleDDTGraphDistinguisher,
     PresentNibbleDeltaOnlySpnOnlyDistinguisher,
     PresentNibbleInvPPairConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
@@ -40,6 +41,7 @@ from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibblePAlignedSpnOnlyDistinguisher,
     PresentNibblePAlignedTransitionDistinguisher,
     PresentNibblePAlignedTransitionResidualDistinguisher,
+    PresentNibbleShuffledDDTGraphDistinguisher,
     PresentNibbleShuffledPAlignedSpnOnlyDistinguisher,
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
     PresentNibbleShuffledTransitionResidualDistinguisher,
@@ -65,6 +67,7 @@ __all__ = [
     "PresentInceptionMCNDMatrixDistinguisher",
     "PresentInceptionMCNDPairStackMatrixDistinguisher",
     "PresentZhangWangKerasMCNDDistinguisher",
+    "PresentNibbleDDTGraphDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
     "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
@@ -73,6 +76,7 @@ __all__ = [
     "PresentNibblePAlignedSpnOnlyDistinguisher",
     "PresentNibblePAlignedTransitionDistinguisher",
     "PresentNibblePAlignedTransitionResidualDistinguisher",
+    "PresentNibbleShuffledDDTGraphDistinguisher",
     "PresentNibbleShuffledPAlignedSpnOnlyDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledTransitionResidualDistinguisher",

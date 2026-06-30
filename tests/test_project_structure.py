@@ -1712,6 +1712,50 @@ def test_present_nibble_spn_only_attribution_views_are_distinct():
     assert shuffled_words[1] != full_words[1]
 
 
+def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
+    from blockcipher_nd.features.encoders.bitwise import pair_to_bits
+    from blockcipher_nd.features.encoders.present_sbox_ddt import PRESENT_SBOX_DDT
+    from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+        PresentNibbleDDTGraphDistinguisher,
+    )
+
+    cipher = build_cipher("present80", rounds=7, key=0)
+    left = 0x0123456789ABCDEF
+    right = 0x1111111111111111
+    raw = torch.tensor([pair_to_bits(left, right, 64)], dtype=torch.float32)
+    model = PresentNibbleDDTGraphDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        ddt_mixer_depth=1,
+    )
+    cell_features = model.ddt_encoder.ddt_cell_features(raw)
+    delta = left ^ right
+    aligned = cipher.inverse_permutation_layer(delta)
+    first_output_difference = (aligned >> 60) & 0xF
+    ranked = sorted(
+        range(16),
+        key=lambda input_difference: (
+            PRESENT_SBOX_DDT[input_difference][first_output_difference],
+            -input_difference,
+        ),
+        reverse=True,
+    )
+    top1, top2 = ranked[0], ranked[1]
+    top1_bits = [(top1 >> shift) & 1 for shift in range(3, -1, -1)]
+    top2_bits = [(top2 >> shift) & 1 for shift in range(3, -1, -1)]
+
+    assert cell_features.shape == (1, 1, 16, 23)
+    assert cell_features[0, 0, 0, 8:12].to(torch.uint8).tolist() == top1_bits
+    assert cell_features[0, 0, 0, 12:16].to(torch.uint8).tolist() == top2_bits
+    assert cell_features[0, 0, 0, 16].item() == PRESENT_SBOX_DDT[top1][first_output_difference] / 16
+    assert cell_features[0, 0, 0, 17].item() == PRESENT_SBOX_DDT[top2][first_output_difference] / 16
+    assert cell_features[0, 0, 0, 18].item() == (
+        PRESENT_SBOX_DDT[top1][first_output_difference]
+        - PRESENT_SBOX_DDT[top2][first_output_difference]
+    ) / 16
+
+
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
     from blockcipher_nd.ciphers.spn.present import Present80
 
@@ -1799,6 +1843,8 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
         "present_nibble_invp_only_spn_only",
         "present_nibble_invp_pair_consistency_spn_only",
         "present_nibble_shuffled_paligned_spn_only",
+        "present_nibble_ddt_graph",
+        "present_nibble_shuffled_ddt_graph",
         "present_nibble_paligned_gated_mcnd",
         "present_nibble_shuffled_paligned_gated_mcnd",
         "present_nibble_paligned_transition",
@@ -1814,6 +1860,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
                 "blocks": 2,
                 "spn_mixer_depth": 1,
                 "transition_mixer_depth": 1,
+                "ddt_mixer_depth": 1,
                 "activation": "relu",
                 "norm": "layernorm",
             },

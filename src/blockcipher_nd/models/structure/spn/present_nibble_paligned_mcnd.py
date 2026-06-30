@@ -3,7 +3,9 @@ from __future__ import annotations
 import torch
 from torch import nn
 
+from blockcipher_nd.features.encoders.present_sbox_ddt import PRESENT_SBOX_DDT
 from blockcipher_nd.models.common.components import EvidencePooling, build_activation, build_norm
+from blockcipher_nd.models.structure.spn.present_p_layer_mixer import PresentPLayerMixerBlock
 from blockcipher_nd.models.structure.spn.present_zhang_wang_keras import (
     PresentZhangWangKerasMCNDDistinguisher,
 )
@@ -475,6 +477,85 @@ class PresentNibbleShuffledTransitionResidualDistinguisher(
         super().__init__(*args, **kwargs)
 
 
+class PresentNibbleDDTGraphDistinguisher(nn.Module):
+    """PRESENT SPN-only graph using InvP-aligned cells and S-box DDT priors."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        ddt_token_dim: int | None = None,
+        ddt_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        pooling: str = "topk_logsumexp",
+        top_k: int = 4,
+        lse_temperature: float = 1.0,
+        p_alignment: str = "true",
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.ddt_encoder = _PresentNibbleDDTGraphEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            ddt_token_dim=ddt_token_dim,
+            ddt_mixer_depth=ddt_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            p_alignment=p_alignment,
+        )
+        self.evidence_pool = EvidencePooling(
+            self.ddt_encoder.embedding_bits,
+            hidden_bits=max(32, base_channels * 4),
+            mode=pooling,
+            top_k=top_k,
+            lse_temperature=lse_temperature,
+            activation=activation,
+            norm=norm,
+        )
+        classifier_bits = self.ddt_encoder.embedding_bits * 4
+        self.classifier = nn.Sequential(
+            build_norm(norm, classifier_bits),
+            nn.Linear(classifier_bits, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+        self.last_attention_weights: torch.Tensor | None = None
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.ddt_encoder(features)
+        pair_mean = pair_embeddings.mean(dim=1)
+        pair_max = pair_embeddings.max(dim=1).values
+        pair_std = pair_embeddings.std(dim=1, unbiased=False)
+        evidence, weights = self.evidence_pool(pair_embeddings)
+        self.last_attention_weights = weights.detach()
+        return self.classifier(torch.cat([pair_mean, pair_max, pair_std, evidence], dim=1))
+
+
+class PresentNibbleShuffledDDTGraphDistinguisher(PresentNibbleDDTGraphDistinguisher):
+    """DDT graph control with a deterministic shuffled pseudo P alignment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["p_alignment"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
 class _PresentNibblePAlignedSpnEncoder(nn.Module):
     def __init__(
         self,
@@ -682,6 +763,179 @@ class _PresentNibbleTransitionResidualEncoder(nn.Module):
         return projected.reshape(features.shape[0], self.pairs_per_sample, self.embedding_bits)
 
 
+class _PresentNibbleDDTGraphEncoder(nn.Module):
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        ddt_token_dim: int | None = None,
+        ddt_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        p_alignment: str = "true",
+    ) -> None:
+        super().__init__()
+        if pair_bits != 128:
+            raise ValueError("PRESENT DDT graph encoder expects raw 128-bit ciphertext pairs")
+        if input_bits % pair_bits != 0:
+            raise ValueError("input_bits must be a multiple of pair_bits")
+        if ddt_mixer_depth < 1:
+            raise ValueError("ddt_mixer_depth must be >= 1")
+        if p_alignment not in {"true", "shuffled"}:
+            raise ValueError(f"unsupported p_alignment: {p_alignment}")
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.pairs_per_sample = input_bits // pair_bits
+        self.nibbles_per_pair = 16
+        self.ddt_token_dim = ddt_token_dim or max(16, base_channels * 2)
+        self.embedding_bits = max(32, base_channels * 4)
+        self.cell_feature_bits = 23
+
+        self.cell_encoder = nn.Sequential(
+            nn.Linear(self.cell_feature_bits, self.ddt_token_dim),
+            build_activation(activation),
+            build_norm(norm, self.ddt_token_dim),
+        )
+        self.position_embedding = nn.Parameter(torch.zeros(1, self.nibbles_per_pair, self.ddt_token_dim))
+        nn.init.trunc_normal_(self.position_embedding, std=0.02)
+        self.mixers = nn.ModuleList(
+            [
+                PresentPLayerMixerBlock(
+                    words_per_pair=1,
+                    token_dim=self.ddt_token_dim,
+                    token_mlp_ratio=token_mlp_ratio,
+                    activation=activation,
+                    norm=norm,
+                    dropout=dropout,
+                )
+                for _ in range(ddt_mixer_depth)
+            ]
+        )
+        self.norm = build_norm(norm, self.ddt_token_dim)
+        self.projection = nn.Sequential(
+            nn.Linear(self.ddt_token_dim * 4, self.embedding_bits),
+            build_activation(activation),
+            nn.Dropout(dropout),
+        )
+
+        if p_alignment == "true":
+            inverse_p = [_present_inverse_p_index(index) for index in range(64)]
+        else:
+            generator = torch.Generator().manual_seed(20260627)
+            inverse_p = torch.randperm(64, generator=generator).tolist()
+        self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
+
+        ddt = torch.tensor(PRESENT_SBOX_DDT, dtype=torch.long)
+        top1: list[int] = []
+        top2: list[int] = []
+        count1: list[int] = []
+        count2: list[int] = []
+        margin: list[int] = []
+        for output_difference in range(16):
+            ranked = sorted(
+                range(16),
+                key=lambda input_difference: (
+                    PRESENT_SBOX_DDT[input_difference][output_difference],
+                    -input_difference,
+                ),
+                reverse=True,
+            )
+            first, second = ranked[0], ranked[1]
+            first_count = PRESENT_SBOX_DDT[first][output_difference]
+            second_count = PRESENT_SBOX_DDT[second][output_difference]
+            top1.append(first)
+            top2.append(second)
+            count1.append(first_count)
+            count2.append(second_count)
+            margin.append(max(0, first_count - second_count))
+        self.register_buffer("ddt_table", ddt, persistent=False)
+        self.register_buffer("ddt_top1", torch.tensor(top1, dtype=torch.long), persistent=False)
+        self.register_buffer("ddt_top2", torch.tensor(top2, dtype=torch.long), persistent=False)
+        self.register_buffer("ddt_count1", torch.tensor(count1, dtype=torch.float32), persistent=False)
+        self.register_buffer("ddt_count2", torch.tensor(count2, dtype=torch.float32), persistent=False)
+        self.register_buffer("ddt_margin", torch.tensor(margin, dtype=torch.float32), persistent=False)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        cell_features = self.ddt_cell_features(features.float())
+        batch, pairs, nibbles, channels = cell_features.shape
+        hidden = self.cell_encoder(cell_features.reshape(batch * pairs, nibbles, channels))
+        hidden = hidden + self.position_embedding
+        for mixer in self.mixers:
+            hidden = mixer(hidden)
+        hidden = self.norm(hidden)
+        mean_embedding = hidden.mean(dim=1)
+        max_embedding = hidden.max(dim=1).values
+        active_weights = cell_features.reshape(batch * pairs, nibbles, channels)[:, :, 19:21].sum(
+            dim=2,
+            keepdim=True,
+        )
+        active_embedding = torch.sum(hidden * active_weights, dim=1) / active_weights.sum(dim=1).clamp_min(1.0)
+        transition_embedding = hidden[:, 8:, :].mean(dim=1) - hidden[:, :8, :].mean(dim=1)
+        projected = self.projection(
+            torch.cat([mean_embedding, max_embedding, active_embedding, transition_embedding], dim=1)
+        )
+        return projected.reshape(batch, pairs, self.embedding_bits)
+
+    def ddt_cell_features(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        raw_pairs = features.reshape(features.shape[0], self.pairs_per_sample, 2, 64)
+        difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
+        aligned_difference = difference.index_select(dim=2, index=self.inverse_p_indices)
+
+        delta_nibbles = difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
+        invp_nibbles = aligned_difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
+        invp_values = _present_nibble_values(invp_nibbles)
+        top1_values = self.ddt_top1.index_select(dim=0, index=invp_values.reshape(-1)).reshape_as(invp_values)
+        top2_values = self.ddt_top2.index_select(dim=0, index=invp_values.reshape(-1)).reshape_as(invp_values)
+        count1 = self.ddt_count1.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
+            *invp_values.shape,
+            1,
+        )
+        count2 = self.ddt_count2.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
+            *invp_values.shape,
+            1,
+        )
+        margin = self.ddt_margin.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
+            *invp_values.shape,
+            1,
+        )
+
+        active_delta = (_present_nibble_values(delta_nibbles) > 0).to(features.dtype).unsqueeze(-1)
+        active_invp = (invp_values > 0).to(features.dtype).unsqueeze(-1)
+        hw_delta = delta_nibbles.mean(dim=-1, keepdim=True)
+        hw_invp = invp_nibbles.mean(dim=-1, keepdim=True)
+        return torch.cat(
+            [
+                delta_nibbles,
+                invp_nibbles,
+                _present_nibble_bits(top1_values, dtype=features.dtype),
+                _present_nibble_bits(top2_values, dtype=features.dtype),
+                count1.to(features.dtype) / 16.0,
+                count2.to(features.dtype) / 16.0,
+                margin.to(features.dtype) / 16.0,
+                active_delta,
+                active_invp,
+                hw_delta,
+                hw_invp,
+            ],
+            dim=-1,
+        )
+
+
+def _present_nibble_values(nibbles: torch.Tensor) -> torch.Tensor:
+    weights = torch.tensor([8, 4, 2, 1], dtype=nibbles.dtype, device=nibbles.device)
+    return torch.sum(nibbles * weights, dim=-1).long()
+
+
+def _present_nibble_bits(values: torch.Tensor, *, dtype: torch.dtype) -> torch.Tensor:
+    shifts = torch.tensor([3, 2, 1, 0], dtype=torch.long, device=values.device)
+    return ((values.unsqueeze(-1) >> shifts) & 1).to(dtype)
+
+
 def _present_inverse_p_index(target_bit_index: int) -> int:
     source_lsb_index = _present_inverse_p_lsb_index(63 - target_bit_index)
     return 63 - source_lsb_index
@@ -705,4 +959,6 @@ __all__ = [
     "PresentNibblePAlignedTransitionDistinguisher",
     "PresentNibblePAlignedTransitionResidualDistinguisher",
     "PresentNibbleShuffledTransitionResidualDistinguisher",
+    "PresentNibbleDDTGraphDistinguisher",
+    "PresentNibbleShuffledDDTGraphDistinguisher",
 ]
