@@ -41,7 +41,10 @@ postprocess entrypoint and expected row count.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or
-touch the remote workstation.
+touch the remote workstation. Route-specific entries in `checked_invariants`
+are included only when they apply, for example `candidate_trail_protocol_lock`
+for candidate-trail configs and `pairset_aggregation_stage_lock` for pair-set
+aggregation configs.
 
 Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
 reads `next_action`, runs local readiness checks for any declared remote config,

@@ -1200,6 +1200,12 @@ def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     assert "next-branch readiness artifact" in text
     assert "`postprocessed` means the watcher already ran the route-specific postprocess" in text
     assert "`postprocess_failed` means inspect the monitor" in text
+    assert "Route-specific entries in `checked_invariants`" in text
+    assert "`candidate_trail_protocol_lock`" in text
+    assert "candidate-trail configs" in text
+    assert "`pairset_aggregation_stage_lock`" in text
+    assert "pair-set" in text
+    assert "aggregation configs" in text
 
 
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
