@@ -718,6 +718,24 @@ def test_invp_attribution_docs_record_route_specific_monitor_health_command():
         assert "`results_incomplete`" in text
 
 
+def test_ddt_graph_plan_records_route_specific_monitor_health_command():
+    plan = Path("docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "scripts/monitor-health" in plan
+    assert "--run-id i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630" in plan
+    assert "--plan configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv" in plan
+    assert "--plan-doc docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md" in plan
+    assert "--expected-rows 5" in plan
+    assert "--postprocess-kind ddt_graph" in plan
+    assert "`postprocess_command`" in plan
+    assert "`result_ready`" in plan
+    assert "`completed_missing_results`" in plan
+    assert "`results_empty`" in plan
+    assert "`results_incomplete`" in plan
+
+
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(

@@ -574,6 +574,21 @@ weak_ddt_graph_signal   -> repeat 262144/class or run variance check before scal
 stop_ddt_graph_route    -> record tied/negative evidence and switch hypothesis
 ```
 
+Bounded monitor-health command after launch:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --run-id i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv \
+  --plan-doc docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md \
+  --expected-rows 5 \
+  --postprocess-kind ddt_graph
+```
+
+When `status` is `result_ready`, execute the emitted `postprocess_command`.
+Do not postprocess `completed_missing_results`, `results_empty`, or
+`results_incomplete`.
+
 Full postprocess command after retrieval:
 
 ```bash
