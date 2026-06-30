@@ -237,6 +237,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
             "first_remote_scale": "262144/class",
             "implementation_aliases": [
+                "present_nibble_no_ddt_graph",
                 "present_nibble_ddt_graph",
                 "present_nibble_shuffled_ddt_graph",
             ],
@@ -256,6 +257,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "requires_implementation": True,
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
             "implementation_aliases": [
+                "present_nibble_no_ddt_graph",
                 "present_nibble_ddt_graph",
                 "present_nibble_shuffled_ddt_graph",
             ],
@@ -278,8 +280,8 @@ def _readiness_command(config_path: str) -> str:
 def _ddt_graph_implementation_checklist() -> list[str]:
     return [
         "Implement tensor-native DDT cell features from ciphertext_pair_bits.",
-        "Add DDT graph and shuffled-DDT graph model classes.",
-        "Export and register present_nibble_ddt_graph and present_nibble_shuffled_ddt_graph.",
+        "Add no-DDT graph, DDT graph, and shuffled-DDT graph model classes.",
+        "Export and register present_nibble_no_ddt_graph, present_nibble_ddt_graph, and present_nibble_shuffled_ddt_graph.",
         "Add alias build/forward tests and deterministic DDT feature sanity coverage.",
         "Add and run a tiny CPU smoke CSV before creating any 262144/class remote config.",
         "Commit/push code, tests, and smoke config before launching remote 262144/class.",
