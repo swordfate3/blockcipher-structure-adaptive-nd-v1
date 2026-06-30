@@ -441,6 +441,50 @@ def test_present_invp_only_1m_seed1_remote_config_uses_fast_parallel_dataset_cac
     assert "cmd.exe /c" in config["launch_policy"]
 
 
+def test_present_invp_attribution_controls_1m_plan_is_lean_same_protocol():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv"
+    args = parse_args(["--plan", plan, "--train-eval-interval", "0"])
+    tasks = build_tasks(args)
+
+    assert args.train_eval_interval == 0
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_delta_only_spn_only",
+        "present_nibble_shuffled_paligned_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 1_000_000
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "PAPER_SCALE_ATTRIBUTION_CONTROL 1000000/class" in task["matching_evidence"]
+        assert "not formal breakthrough evidence" in task["matching_evidence"]
+
+
+def test_present_invp_attribution_controls_1m_remote_config_is_ready_shape():
+    path = Path(
+        "configs/remote/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.json"
+    )
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["plan"].endswith("innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv")
+    assert config["expected_rows"] == 2
+    assert config["device"] == "cuda:0"
+    assert config["train_eval_interval"] == 0
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_workers"] == 4
+    assert "PAPER_SCALE_ATTRIBUTION_CONTROL" in config["claim_scope"]
+    assert "DeltaC-only and shuffled-P controls" in config["claim_scope"]
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "G:\\lxy" in config["launch_policy"]
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()

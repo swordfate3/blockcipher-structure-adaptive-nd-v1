@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-30
 
-**Status:** planned / stage-level stop / no immediate remote launch
+**Status:** Branch B selected / 1M attribution controls prepared
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document decides the next stage
@@ -275,21 +275,46 @@ First non-smoke scale should be `262144/class`, not 1M.
 
 ## Current Stage Action
 
-Chosen action for this turn:
+Chosen action for the next meaningful run:
 
 ```text
-Stage-level stop after writing this plan.
-No remote launch in this turn.
-No new GPU job until the next branch is explicitly selected and its plan/config
-are ready.
+Branch B: Paper-Style Attribution.
+Prepare and launch a lean 1000000/class attribution-control matrix with:
+  - present_nibble_delta_only_spn_only
+  - present_nibble_shuffled_paligned_spn_only
 ```
 
 Rationale:
 
 ```text
-The current evidence already passed the two-seed confirmation gate. The next
-valuable work is not another blind GPU run, but choosing whether the paper
-needs variance evidence, attribution controls, or a new topology/DDT hypothesis.
+The current InvP-only route already passed the two-seed confirmation gate.
+The next valuable work is to test whether the observed gain is really explained
+by true InvP/P-layer alignment, rather than generic DeltaC information or false
+alignment with extra tokens.
+```
+
+Prepared artifacts:
+
+| Field | Value |
+|---|---|
+| Plan CSV | `configs/experiment/innovation1/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv` |
+| Remote config | `configs/remote/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.json` |
+| Run ID | `i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630` |
+| Expected rows | `2` |
+| Device | `cuda:0` |
+| Scale | `1000000/class` |
+| Claim scope | paper-scale attribution controls, not breakthrough or formal evidence alone |
+
+Gate:
+
+```text
+InvP-only remains structurally attributable if the completed InvP-only seed0/1
+AUC stays above both DeltaC-only and shuffled-P controls by >= +0.001 under the
+same protocol.
+
+If either control reaches or exceeds the InvP-only band, the current claim must
+be weakened: the gain may be explained by generic DeltaC information, false
+alignment, extra tokens, or seed variance.
 ```
 
 ## Completion Checklist
@@ -301,7 +326,7 @@ this plan exists under docs/experiments/
 the InvP-only seed0/seed1 evidence table is recorded
 the claim scope is explicit
 the next branch options are explicit
-the decision not to launch a new remote job in this turn is explicit
+the selected Branch B attribution controls are explicit
 relevant verification passes
 the plan is committed and pushed
 no result_ready artifacts remain unprocessed
