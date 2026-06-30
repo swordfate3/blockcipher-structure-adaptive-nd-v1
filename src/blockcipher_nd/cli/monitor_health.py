@@ -202,7 +202,13 @@ def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> l
     if postprocess_kind != "pairset_aggregation":
         return []
     frozen_summary = run_root / "results" / "frozen_aggregation_summary.json"
+    checkpoint = run_root / "checkpoints" / "single_pair_invp.pt"
     return [
+        {
+            "role": "single_pair_checkpoint",
+            "path": str(checkpoint),
+            "exists": checkpoint.exists(),
+        },
         {
             "role": "frozen_summary",
             "path": str(frozen_summary),

@@ -316,9 +316,10 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
 This command is for bounded local status checks only. It must not replace the
 tmux watcher loop and must not be used to SSH-poll the remote workstation from
 the main thread. For this route, `result_ready` requires both the learned
-pair-set JSONL and `results/frozen_aggregation_summary.json`; a learned JSONL
-without the frozen summary remains `waiting_for_auxiliary_artifacts` while the
-remote run is still active.
+pair-set JSONL, `checkpoints/single_pair_invp.pt`, and
+`results/frozen_aggregation_summary.json`; a learned JSONL without those
+auxiliary artifacts remains `waiting_for_auxiliary_artifacts` while the remote
+run is still active.
 
 ## Protocol
 

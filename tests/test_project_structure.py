@@ -1990,6 +1990,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     pairset_jsonl = pairset_results / f"{pairset_run}.jsonl"
     pairset_jsonl.write_text("{}\n{}\n", encoding="utf-8")
     frozen_summary = pairset_results / "frozen_aggregation_summary.json"
+    checkpoint = pairset_root / "checkpoints" / "single_pair_invp.pt"
 
     report = monitor_health_report(
         run_id=pairset_run,
@@ -2005,6 +2006,11 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["auxiliary_artifacts"] == [
+        {
+            "role": "single_pair_checkpoint",
+            "path": str(checkpoint),
+            "exists": False,
+        },
         {
             "role": "frozen_summary",
             "path": str(frozen_summary),
@@ -2022,9 +2028,25 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         postprocess_kind="pairset_aggregation",
     )
 
+    assert report["status"] == "waiting_for_auxiliary_artifacts"
+    assert report["postprocess_allowed"] is False
+    assert report["auxiliary_artifacts"][0]["exists"] is False
+    assert report["auxiliary_artifacts"][1]["exists"] is True
+
+    checkpoint.parent.mkdir()
+    checkpoint.write_bytes(b"checkpoint")
+    report = monitor_health_report(
+        run_id=pairset_run,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        expected_rows=2,
+        postprocess_kind="pairset_aggregation",
+    )
+
     assert report["status"] == "result_ready"
     assert report["expected_rows"] == 2
-    assert report["auxiliary_artifacts"][0]["exists"] is True
+    assert [artifact["exists"] for artifact in report["auxiliary_artifacts"]] == [True, True]
     assert report["postprocess_command"] == [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -2078,6 +2100,11 @@ def test_monitor_health_pairset_done_without_frozen_summary_needs_intervention(t
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["auxiliary_artifacts"] == [
+        {
+            "role": "single_pair_checkpoint",
+            "path": str(run_root / "checkpoints" / "single_pair_invp.pt"),
+            "exists": False,
+        },
         {
             "role": "frozen_summary",
             "path": str(results / "frozen_aggregation_summary.json"),
