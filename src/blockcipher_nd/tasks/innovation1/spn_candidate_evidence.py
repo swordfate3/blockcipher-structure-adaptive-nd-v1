@@ -14,7 +14,7 @@ from blockcipher_nd.tasks.innovation1.spn_candidate.baseline import (
     train_model,
 )
 from blockcipher_nd.tasks.innovation1.spn_candidate.dataset import make_candidate_dataset
-from blockcipher_nd.tasks.innovation1.protocols import LEGACY_MASKED_ZHANG_WANG_CASE2_MCND
+from blockcipher_nd.tasks.innovation1.protocols import OFFICIAL_ZHANG_WANG_CASE2_MCND
 
 
 DEFAULT_DIFFERENCE_PROFILE = "present_zhang_wang2022_mcnd"
@@ -28,12 +28,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--samples-per-class", type=int, default=4096)
     parser.add_argument("--pairs-per-sample", type=int, default=16)
     parser.add_argument("--negative-mode", default="encrypted_random_plaintexts")
-    parser.add_argument("--sample-structure", default=LEGACY_MASKED_ZHANG_WANG_CASE2_MCND)
+    parser.add_argument("--sample-structure", default=OFFICIAL_ZHANG_WANG_CASE2_MCND)
     parser.add_argument("--difference-profile", default=DEFAULT_DIFFERENCE_PROFILE)
     parser.add_argument("--difference-member", type=int, default=0)
     parser.add_argument("--train-key", type=lambda value: int(value, 0), default=0)
-    parser.add_argument("--validation-key", type=lambda value: int(value, 0), default=(1 << 80) - 1)
-    parser.add_argument("--key-rotation-interval", type=int, default=1024)
+    parser.add_argument("--validation-key", type=lambda value: int(value, 0), default=0x11111111111111111111)
+    parser.add_argument("--key-rotation-interval", type=int, default=0)
     parser.add_argument("--beam-width", type=int, default=4)
     parser.add_argument("--depth", type=int, default=3)
     parser.add_argument("--feature-cache-root", type=Path, default=None)

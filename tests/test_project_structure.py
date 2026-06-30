@@ -465,7 +465,7 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "`encrypted_random_plaintexts`" in plan
     assert "`0x11111111111111111111`" in plan
     assert "sample_structure = zhang_wang_case2_mcnd" in plan
-    assert "A readiness gate must reject" in plan
+    assert "A future remote readiness gate must still reject" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
@@ -861,7 +861,9 @@ def test_innovation1_task_defaults_preserve_current_or_explicit_legacy_protocols
 
     assert active_args.sample_structure == "zhang_wang_case2_official_mcnd"
     assert audit_args.sample_structure == "zhang_wang_case2_official_mcnd"
-    assert candidate_args.sample_structure == "zhang_wang_case2_mcnd"
+    assert candidate_args.sample_structure == "zhang_wang_case2_official_mcnd"
+    assert candidate_args.validation_key == 0x11111111111111111111
+    assert candidate_args.key_rotation_interval == 0
 
 
 def test_scripts_readme_documents_monitor_health_result_states():
@@ -2710,6 +2712,34 @@ def test_candidate_evidence_cache_writes_and_reuses(tmp_path):
     progress_text = progress_path.read_text(encoding="utf-8")
     assert "candidate_cache_done" in progress_text
     assert "candidate_cache_reuse" in progress_text
+
+
+def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):
+    progress_path = tmp_path / "official_progress.jsonl"
+    features, labels = make_candidate_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=5,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        beam_width=2,
+        depth=2,
+        feature_cache_root=tmp_path / "official_candidate_cache",
+        feature_cache_chunk_size=2,
+        progress_output=progress_path,
+        split="train",
+    )
+
+    assert features.shape == (6, 126)
+    assert labels.shape == (6,)
+    assert set(np.unique(labels).tolist()) == {0, 1}
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert "candidate_cache_done" in progress_text
+    assert '"sample_structure": "zhang_wang_case2_official_mcnd"' in progress_text
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():

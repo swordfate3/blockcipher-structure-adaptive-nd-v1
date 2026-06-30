@@ -117,10 +117,18 @@ Use the current official protocol:
 | Checkpoint metric | `val_auc` |
 | Dataset storage | disk-backed cache with progress/reuse metadata |
 
-The existing `spn-candidate-evidence` code path currently defaults to the
-legacy masked Case2 protocol. That path must be migrated or explicitly
-overridden before any current remote launch. A readiness gate must reject any
-candidate-trail remote config that still uses:
+Implementation update, 2026-07-01:
+
+```text
+scripts/spn-candidate-evidence now defaults to zhang_wang_case2_official_mcnd,
+validation_key = 0x11111111111111111111,
+key_rotation_interval = 0,
+and disk-backed candidate feature cache can generate/reuse official Case2
+candidate-trail features in local smoke.
+```
+
+A future remote readiness gate must still reject any candidate-trail remote
+config that uses:
 
 ```text
 sample_structure = zhang_wang_case2_mcnd
@@ -233,16 +241,29 @@ record as diagnostic/negative evidence and do not scale this branch
 Before any remote launch:
 
 ```text
-1. Add or migrate a current-protocol candidate-trail feature builder.
+1. Add a tiny local smoke plan under configs/experiment/innovation1/.
 2. Ensure disk-backed feature cache writes features.npy / labels.npy or
    equivalent chunks plus metadata and progress JSONL.
 3. Ensure parameter-matched cache reuse/resume behavior.
-4. Add a tiny local smoke plan under configs/experiment/innovation1/.
-5. Add unit tests for deterministic features, cache reuse, and protocol lock.
-6. Add postprocess/gate script before remote launch.
-7. Add remote config and generated cmd/monitor scripts only after smoke passes.
-8. Run scripts/check-remote-readiness before launch.
-9. Commit and push before launching from the pushed commit.
+4. Add unit tests for deterministic features, cache reuse, and protocol lock.
+5. Add postprocess/gate script before remote launch.
+6. Add remote config and generated cmd/monitor scripts only after smoke passes.
+7. Run scripts/check-remote-readiness before launch.
+8. Commit and push before launching from the pushed commit.
+```
+
+Completed local foundation:
+
+```text
+scripts/spn-candidate-evidence --samples-per-class 4 --pairs-per-sample 2
+  --feature-cache-root /tmp/spn_candidate_official_smoke/cache
+  --progress-output /tmp/spn_candidate_official_smoke/progress.jsonl
+
+result:
+  sample_structure = zhang_wang_case2_official_mcnd
+  negative_mode = encrypted_random_plaintexts
+  key_rotation_interval = 0
+  route = spn_candidate_evidence_baseline
 ```
 
 ## Claim Scope

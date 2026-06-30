@@ -9,8 +9,10 @@ from typing import Any
 import numpy as np
 
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
+from blockcipher_nd.data.differential.keys import random_cipher_for_pair
 from blockcipher_nd.data.differential.random import random_int
 from blockcipher_nd.features.spn_candidate_evidence import (
+    present_pair_candidate_evidence_features,
     present_pairset_candidate_evidence_features,
 )
 from blockcipher_nd.registry.cipher_factory import build_cipher
@@ -224,10 +226,38 @@ def _fill_candidate_cache(
 
 def _pairset_features(
     config: DifferentialDatasetConfig,
-    pairs: list[tuple[int, int]],
+    pairs: list[tuple[int, int] | tuple[int, int, Any]],
     row_cipher,
     metadata: dict[str, Any],
 ) -> np.ndarray:
+    if pairs and len(pairs[0]) == 3:
+        pair_features = [
+            present_pair_candidate_evidence_features(
+                int(pair[0]),
+                int(pair[1]),
+                width=config.cipher.block_bits,
+                cipher=pair[2],
+                beam_width=int(metadata["beam_width"]),
+                depth=int(metadata["depth"]),
+            )
+            for pair in pairs
+        ]
+        stacked = np.stack(pair_features, axis=0).astype(np.float32)
+        means = stacked.mean(axis=0)
+        stds = stacked.std(axis=0)
+        spans = stacked.max(axis=0) - stacked.min(axis=0)
+        global_stats = np.array(
+            [
+                float(stacked.mean()),
+                float(stacked.std()),
+                float(np.mean(stds)),
+                float(np.max(stds)),
+                float(np.mean(spans)),
+                float(np.max(spans)),
+            ],
+            dtype=np.float32,
+        )
+        return np.concatenate([means, stds, spans, global_stats]).astype(np.float32)
     return present_pairset_candidate_evidence_features(
         pairs,
         width=config.cipher.block_bits,
@@ -295,7 +325,20 @@ def _write_progress(path: Path | None, event: str, payload: dict[str, Any] | Non
         handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
-def _positive_pairs(config: DifferentialDatasetConfig, rng: np.random.Generator, cipher, mask: int) -> list[tuple[int, int]]:
+def _positive_pairs(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    cipher,
+    mask: int,
+) -> list[tuple[int, int] | tuple[int, int, Any]]:
+    if config.sample_structure == "zhang_wang_case2_official_mcnd":
+        pairs = []
+        for _pair_index in range(config.pairs_per_sample):
+            pair_cipher = random_cipher_for_pair(config, rng)
+            plaintext = random_int(rng, config.cipher.block_bits)
+            paired = (plaintext ^ config.input_difference) & mask
+            pairs.append((pair_cipher.encrypt(plaintext), pair_cipher.encrypt(paired), pair_cipher))
+        return pairs
     base = random_int(rng, cipher.block_bits)
     pairs = []
     for mask_delta in _plaintext_masks(config, rng):
@@ -305,7 +348,35 @@ def _positive_pairs(config: DifferentialDatasetConfig, rng: np.random.Generator,
     return pairs
 
 
-def _negative_pairs(config: DifferentialDatasetConfig, rng: np.random.Generator, cipher, mask: int) -> list[tuple[int, int]]:
+def _negative_pairs(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    cipher,
+    mask: int,
+) -> list[tuple[int, int] | tuple[int, int, Any]]:
+    if config.sample_structure == "zhang_wang_case2_official_mcnd":
+        pairs = []
+        for _pair_index in range(config.pairs_per_sample):
+            if config.negative_mode == "random_ciphertext":
+                pairs.append(
+                    (
+                        random_int(rng, config.cipher.block_bits),
+                        random_int(rng, config.cipher.block_bits),
+                        config.cipher,
+                    )
+                )
+            else:
+                pair_cipher = random_cipher_for_pair(config, rng)
+                plaintext_a = random_int(rng, config.cipher.block_bits)
+                plaintext_b = random_int(rng, config.cipher.block_bits)
+                pairs.append(
+                    (
+                        pair_cipher.encrypt(plaintext_a),
+                        pair_cipher.encrypt(plaintext_b),
+                        pair_cipher,
+                    )
+                )
+        return pairs
     base = random_int(rng, cipher.block_bits)
     pairs = []
     for mask_delta in _plaintext_masks(config, rng):
