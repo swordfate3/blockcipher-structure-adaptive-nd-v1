@@ -614,6 +614,14 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
   --postprocess-kind ddt_graph
 ```
 
+If tmux session liveness itself needs a bounded check in this local
+environment, use a direct tmux command rather than routing it through
+`uv run`, because subprocess tmux access can be sandbox-limited:
+
+```bash
+tmux has-session -t monitor_i1_spn_ddt_graph_262k_20260630
+```
+
 When `status` is `result_ready`, execute the emitted `postprocess_command`.
 Do not postprocess `completed_missing_results`, `results_empty`, or
 `results_incomplete`.
