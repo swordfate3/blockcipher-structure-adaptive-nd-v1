@@ -128,19 +128,23 @@ script = scripts/gate-pairset-aggregation
 tests = tests/test_pairset_aggregation_gate.py
 capability = compare learned pair-set AUC against frozen single-pair
              aggregation and the InvP anchor, then emit continue/weak/stop gate
+
+script = scripts/postprocess-pairset-aggregation
+tests = tests/test_pairset_aggregation_postprocess.py
+capability = validate learned result alignment, plot learned curves, run the
+             pair-set aggregation gate, write summaries, and update plan docs
 ```
 
 Not implemented yet:
 
 ```text
-1. Smoke CSV and remote matrix rows for frozen aggregation controls.
-2. Route-specific postprocess wrapper that chains learned result validation,
-   frozen aggregation evaluation, pair-set gate, and plan-doc update.
+1. Smoke CSV for learned pair-set plus frozen aggregation control flow.
+2. Remote matrix/config rows for the meaningful pair-set aggregation-control run.
 ```
 
 Therefore this plan is still not launch-ready. The current code only makes the
 core aggregation math, scorer artifact persistence, and frozen aggregation CLI
-plus gate decision testable and reusable.
+plus gate/postprocess decision testable and reusable.
 
 ## Candidate Matrix
 

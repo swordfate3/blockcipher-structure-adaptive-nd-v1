@@ -46,3 +46,8 @@ Use `scripts/gate-pairset-aggregation` after learned pair-set and frozen
 single-pair aggregation artifacts are available. It compares AUC margins against
 the predeclared InvP anchor and frozen aggregation control, then emits the
 continue/weak/stop decision for the pair-set route.
+
+Use `scripts/postprocess-pairset-aggregation` after learned pair-set JSONL and
+frozen aggregation summary artifacts are available. It validates learned results
+against the plan, exports learned training curves/history, runs the pair-set
+aggregation gate, writes summary artifacts, and can update the experiment plan.
