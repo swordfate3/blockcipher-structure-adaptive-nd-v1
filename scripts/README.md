@@ -9,6 +9,10 @@ or result validation implementations here.
 Use `scripts/gate-invp-result` after a retrieved InvP-only 1M JSONL result to
 write a deterministic seed1-vs-DDT branch report.
 
+Use `scripts/gate-invp-attribution-controls` after retrieved 1M DeltaC-only and
+shuffled-P control results to decide whether the completed InvP-only seed0/seed1
+advantage remains attributable to true SPN/InvP/P-layer alignment.
+
 Use `scripts/postprocess-invp-result` to run the full local post-retrieval chain:
 plan alignment validation, curve/history export, branch gating, and optional
 experiment-plan Markdown update via `--update-plan-doc`.

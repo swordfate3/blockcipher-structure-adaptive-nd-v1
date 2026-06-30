@@ -18,6 +18,7 @@ from blockcipher_nd.features.registry import (
     pair_bits_for_encoding,
 )
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
+from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -751,6 +752,92 @@ def _write_invp_postprocess_result(
         ],
     }
     path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+
+def _write_invp_attribution_control_result(
+    handle,
+    *,
+    model: str,
+    auc: float,
+    accuracy: float = 0.71,
+    calibrated_accuracy: float = 0.711,
+    loss: float = 0.55,
+) -> None:
+    row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 1_000_000,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": 0,
+        "validation_key": int("11111111111111111111", 16),
+        "pairs_per_sample": 16,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "key_rotation_interval": 0,
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "model": model,
+        "selected_model": model,
+        "metrics": {
+            "auc": auc,
+            "accuracy": accuracy,
+            "calibrated_accuracy": calibrated_accuracy,
+            "loss": loss,
+        },
+    }
+    handle.write(json.dumps(row) + "\n")
+
+
+def test_invp_attribution_controls_gate_supports_structural_attribution(tmp_path):
+    results_path = tmp_path / "controls.jsonl"
+    with results_path.open("w", encoding="utf-8") as handle:
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_delta_only_spn_only",
+            auc=0.7930,
+        )
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_shuffled_paligned_spn_only",
+            auc=0.7940,
+        )
+
+    report = gate_invp_attribution_controls(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_invp_structural_attribution"
+    assert report["action"] == "write_route_level_attribution_summary"
+    assert report["max_control_auc"] == 0.7940
+    assert report["attribution_margin"] > 0.003
+    assert report["controls"]["present_nibble_delta_only_spn_only"]["delta_vs_reference_auc"] < 0
+    assert report["controls"]["present_nibble_shuffled_paligned_spn_only"]["delta_vs_reference_auc"] > 0
+    assert "true InvP/P-layer alignment" in report["interpretation"]
+
+
+def test_invp_attribution_controls_gate_weakens_claim_when_control_matches(tmp_path):
+    results_path = tmp_path / "controls.jsonl"
+    with results_path.open("w", encoding="utf-8") as handle:
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_delta_only_spn_only",
+            auc=0.7980,
+        )
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_shuffled_paligned_spn_only",
+            auc=0.7940,
+        )
+
+    report = gate_invp_attribution_controls(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weaken_invp_structural_attribution"
+    assert report["action"] == "switch_to_new_spn_structure_hypothesis_or_variance_audit"
+    assert report["attribution_margin"] < 0
+    assert "not supported" in report["interpretation"]
 
 
 def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
