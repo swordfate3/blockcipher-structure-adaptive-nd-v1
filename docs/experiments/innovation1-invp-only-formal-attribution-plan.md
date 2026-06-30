@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-30
 
-**Status:** Branch B selected / 1M attribution controls prepared
+**Status:** Branch B completed / 1M attribution controls support InvP alignment
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document decides the next stage
@@ -34,6 +34,15 @@ Current question:
 Can the InvP-only SPN-aligned representation be promoted from two-seed
 confirmation evidence into formal route evidence, and what attribution controls
 are needed before making a paper-style claim?
+```
+
+Current answer:
+
+```text
+The retrieved paper-scale attribution controls support true InvP/P-layer
+alignment as the useful SPN structure signal. The route can move from
+attribution planning into the next-stage choice: formal multi-seed evidence,
+baseline variance, or a DDT/topology method-extension route.
 ```
 
 The hypothesis to preserve:
@@ -474,3 +483,42 @@ the plan is committed and pushed
 no result_ready artifacts remain unprocessed
 no agent-authored tracked edits remain uncommitted
 ```
+
+## Retrieved Attribution Control Result
+
+<!-- invp-attribution-postprocess:i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630:start -->
+### i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 Attribution Control Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Attribution status | `pass` |
+| Decision | `support_invp_structural_attribution` |
+| Action | `write_route_level_attribution_summary` |
+| Interpretation | `InvP-only remains above DeltaC-only and shuffled-P controls at paper scale; true InvP/P-layer alignment is supported as the useful SPN structure signal` |
+| InvP seed0 AUC | `0.797470988906` |
+| InvP seed1 AUC | `0.797347588554` |
+| InvP min AUC | `0.797347588554` |
+| Max control AUC | `0.793621524954` |
+| Attribution margin | `0.003726063600` |
+| Required margin | `0.001000000000` |
+| Next action branch | `route_level_attribution_summary` |
+| Next steps | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
+| Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
+| Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |
+| Attribution gate | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_attribution_gate.json` |
+| Curves | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_curves.svg` |
+| History CSV | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_postprocess_summary.md` |
+
+Control rows:
+
+| Model | AUC | Delta vs Zhang/Wang 1M |
+|---|---:|---:|
+| `present_nibble_delta_only_spn_only` | `0.792064879854` | `-0.001832146094` |
+| `present_nibble_shuffled_paligned_spn_only` | `0.793621524954` | `-0.000275500994` |
+<!-- invp-attribution-postprocess:i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630:end -->

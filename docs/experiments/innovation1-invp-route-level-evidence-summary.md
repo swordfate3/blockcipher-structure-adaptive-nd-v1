@@ -2,13 +2,15 @@
 
 **Date:** 2026-06-30
 
-**Status:** draft / waiting for 1M attribution-control retrieval
+**Status:** route-level attribution supported / awaiting next-stage choice
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document is the route-level evidence
-summary template for the current InvP-only SPN structure route. It must not be
-read as a completed formal claim until the pending attribution-control run is
-retrieved, validated, postprocessed, and documented.
+summary for the current InvP-only SPN structure route. It records two-seed
+paper-scale positive confirmation plus paper-scale attribution controls. It is
+still not a formal route-evidence claim by itself; the next stage must decide
+whether to add formal multi-seed variance, baseline variance, or a new
+DDT/topology method-extension route.
 
 ## Route Claim Under Test
 
@@ -87,13 +89,12 @@ The InvP-only SPN-aligned route has a stable positive signal over the local
 same-protocol Zhang/Wang 1M anchor across two seeds.
 ```
 
-Not allowed yet:
+Not allowed:
 
 ```text
-formal route evidence
 breakthrough
 SOTA
-proof of structural attribution
+formal route evidence without an explicit multi-seed/formal-evidence design
 ```
 
 ## Medium-Scale Attribution Context
@@ -113,9 +114,9 @@ alone:
 This context is diagnostic only. It motivates the 1M attribution controls but
 does not by itself prove paper-scale attribution.
 
-## Pending Paper-Scale Attribution Controls
+## Retrieved Paper-Scale Attribution Controls
 
-Pending run:
+Retrieved run:
 
 | Field | Value |
 |---|---|
@@ -124,14 +125,23 @@ Pending run:
 | Remote config | `configs/remote/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.json` |
 | Expected rows | `2` |
 | Scale | `1000000/class` |
-| Status | launched / watcher-managed / waiting for retrieval |
+| Status | retrieved / validated / postprocessed / attribution-gate pass |
 
 Rows:
 
 | Model | Purpose | Result |
 |---|---|---|
-| `present_nibble_delta_only_spn_only` | tests generic XOR/nibble difference explanation | pending |
-| `present_nibble_shuffled_paligned_spn_only` | tests false alignment / extra-token explanation | pending |
+| `present_nibble_delta_only_spn_only` | tests generic XOR/nibble difference explanation | AUC `0.792064879854` |
+| `present_nibble_shuffled_paligned_spn_only` | tests false alignment / extra-token explanation | AUC `0.793621524954` |
+
+Attribution gate:
+
+```text
+decision = support_invp_structural_attribution
+status = pass
+attribution_margin = 0.003726063600
+required_margin = 0.001000000000
+```
 
 Bounded monitor-health command:
 
@@ -248,12 +258,12 @@ Start the new route at 262144/class after smoke/readiness validation.
 
 ## Current Claim Boundary
 
-Until the attribution-control run is retrieved and postprocessed, the strongest
-allowed claim is:
+After the retrieved attribution-control run, the strongest allowed claim is:
 
 ```text
 InvP-only has produced stable two-seed 1000000/class positive confirmation over
-the local same-protocol Zhang/Wang 1M anchor.
+the local same-protocol Zhang/Wang 1M anchor, and paper-scale attribution
+controls support true InvP/P-layer alignment as the useful SPN structure signal.
 ```
 
 The route is not yet:
@@ -263,5 +273,43 @@ formal route evidence
 paper-ready proof
 SOTA
 breakthrough
-fully attributed
 ```
+
+## Retrieved Attribution Control Result
+
+<!-- invp-attribution-postprocess:i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630:start -->
+### i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 Attribution Control Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Attribution status | `pass` |
+| Decision | `support_invp_structural_attribution` |
+| Action | `write_route_level_attribution_summary` |
+| Interpretation | `InvP-only remains above DeltaC-only and shuffled-P controls at paper scale; true InvP/P-layer alignment is supported as the useful SPN structure signal` |
+| InvP seed0 AUC | `0.797470988906` |
+| InvP seed1 AUC | `0.797347588554` |
+| InvP min AUC | `0.797347588554` |
+| Max control AUC | `0.793621524954` |
+| Attribution margin | `0.003726063600` |
+| Required margin | `0.001000000000` |
+| Next action branch | `route_level_attribution_summary` |
+| Next steps | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
+| Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
+| Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |
+| Attribution gate | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_attribution_gate.json` |
+| Curves | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_curves.svg` |
+| History CSV | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_postprocess_summary.md` |
+
+Control rows:
+
+| Model | AUC | Delta vs Zhang/Wang 1M |
+|---|---:|---:|
+| `present_nibble_delta_only_spn_only` | `0.792064879854` | `-0.001832146094` |
+| `present_nibble_shuffled_paligned_spn_only` | `0.793621524954` | `-0.000275500994` |
+<!-- invp-attribution-postprocess:i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630:end -->
