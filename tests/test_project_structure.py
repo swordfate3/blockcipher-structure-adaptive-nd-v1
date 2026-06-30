@@ -1399,7 +1399,14 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     assert report["ddt_graph_status"] == "pass"
     assert report["decision"] == "support_ddt_graph_route"
     assert report["next_action"]["branch"] == "ddt_graph_seed1_confirmation"
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json"
+    )
+    assert report["next_action"]["readiness_command"].startswith(
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness"
+    )
+    assert report["next_action"]["run_id"] == "i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"
     assert (output_dir / "unit_ddt_graph_local_result_gate.json").exists()
     assert (output_dir / "unit_ddt_graph_curves.svg").exists()
     assert (output_dir / "unit_ddt_graph_history.csv").exists()
@@ -1409,11 +1416,14 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     markdown = (output_dir / "unit_ddt_graph_postprocess_summary.md").read_text()
     assert "support_ddt_graph_route" in markdown
     assert "present_nibble_ddt_graph" in markdown
+    assert "Launch configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json" in markdown
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "## Retrieved DDT Graph Result" in plan_doc
     assert "<!-- ddt-graph-postprocess:unit_ddt_graph:start -->" in plan_doc
     assert "| Decision | `support_ddt_graph_route` |" in plan_doc
     assert "| Next action branch | `ddt_graph_seed1_confirmation` |" in plan_doc
+    assert "| Next action should launch remote | `True` |" in plan_doc
+    assert "innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json" in plan_doc
 
     postprocess_ddt_graph_result(
         plan_path=plan_path,

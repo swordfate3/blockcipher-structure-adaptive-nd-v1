@@ -136,10 +136,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         }
     decision = str(report["decision"])
     if decision == "support_ddt_graph_route":
+        launch_config = "configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json"
         return {
             "branch": "ddt_graph_seed1_confirmation",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
+            "launch_remote_config": launch_config,
+            "readiness_command": _readiness_command(launch_config),
+            "run_id": "i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630",
+            "monitor_owner": "tmux watcher or sub-agent",
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
             "reason": decision,
         }
@@ -175,9 +180,12 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Fix retrieval, plan alignment, or metric availability before launching another run.",
         ]
     if branch == "ddt_graph_seed1_confirmation":
+        next_action = report["next_action"]
         return [
             "Update the experiment plan with this positive medium-scale diagnostic result.",
-            "Prepare a lean 262144/class seed1 confirmation before any 1M DDT graph scale-up.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not make paper-scale or breakthrough claims from this single 262144/class seed.",
         ]
     if branch == "ddt_graph_variance_check":
@@ -255,6 +263,10 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Calibrated delta vs InvP", _format_value(report["calibrated_delta_vs_invp"])),
         ("Required margin", _format_value(report["required_margin"])),
         ("Next action branch", report["next_action"]["branch"]),
+        ("Next action should launch remote", report["next_action"]["should_launch_remote"]),
+        ("Next action launch config", report["next_action"].get("launch_remote_config", "")),
+        ("Next action readiness command", report["next_action"].get("readiness_command", "")),
+        ("Next action run id", report["next_action"].get("run_id", "")),
         ("Next steps", "; ".join(report["next_steps"])),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
@@ -289,6 +301,10 @@ def _model_lines(models: dict[str, Any]) -> list[str]:
 def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _readiness_command(config_path: str) -> str:
+    return f"UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config {config_path}"
 
 
 def _merge_plan_doc_paths(plan_doc_path: Path | None, plan_doc_paths: list[Path] | None) -> list[Path]:
