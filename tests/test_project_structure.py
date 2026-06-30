@@ -2316,6 +2316,21 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["scp_stderr_missing_artifact_line_count"] == 4
     assert report["scp_stderr_persistent_missing_artifacts"] is True
 
+    synced_logs = run_root / "logs"
+    synced_logs.mkdir()
+    (synced_logs / "launch_env.txt").write_text("started\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        now=datetime.fromisoformat("2026-06-29T15:05:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["scp_stderr_persistent_missing_artifacts"] is True
+
     (monitor / "scp_stderr.log").write_text("scp: Connection reset by peer\n", encoding="utf-8")
     report = monitor_health_report(
         run_id=run_id,
@@ -2923,6 +2938,7 @@ def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
 def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
     status = _health_status(
         run_root_exists=True,
+        has_synced_remote_artifacts=False,
         results_jsonl_exists=False,
         results_jsonl_line_count=0,
         expected_rows=None,

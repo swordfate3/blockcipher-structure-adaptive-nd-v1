@@ -102,6 +102,7 @@ def monitor_health_report(
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     status = _health_status(
         run_root_exists=run_root.exists(),
+        has_synced_remote_artifacts=_has_synced_remote_artifacts(run_root, artifact_files),
         results_jsonl_exists=results_jsonl.exists(),
         results_jsonl_line_count=results_jsonl_line_count,
         expected_rows=expected_result_rows,
@@ -180,6 +181,7 @@ def monitor_health_report(
 def _health_status(
     *,
     run_root_exists: bool,
+    has_synced_remote_artifacts: bool,
     results_jsonl_exists: bool,
     results_jsonl_line_count: int,
     expected_rows: int | None,
@@ -211,7 +213,7 @@ def _health_status(
         return "unhealthy"
     if scp_stderr_report["errors"]:
         return "unhealthy"
-    if scp_stderr_report["persistent_missing_artifacts"]:
+    if scp_stderr_report["persistent_missing_artifacts"] and not has_synced_remote_artifacts:
         return "remote_artifacts_missing"
     if tmux["checked"] and tmux["exists"] is False:
         return "unhealthy"
@@ -336,6 +338,11 @@ def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
         "missing_artifact_line_count": len(missing_lines),
         "persistent_missing_artifacts": len(missing_lines) >= max(4, recent_lines // 2),
     }
+
+
+def _has_synced_remote_artifacts(run_root: Path, artifact_files: list[str]) -> bool:
+    del run_root
+    return any(not path.startswith("monitor/") for path in artifact_files)
 
 
 def _tmux_status(session: str | None) -> dict[str, Any]:
