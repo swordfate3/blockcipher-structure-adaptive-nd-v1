@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -232,6 +233,20 @@ def train_binary_classifier(
         "seed": config.seed,
         "device": str(selected_device),
     }
+    checkpoint_output = write_checkpoint_if_requested(
+        model,
+        config,
+        history=history,
+        final_metrics=final_metrics,
+        metadata=metadata,
+    )
+    if checkpoint_output is not None:
+        emit_progress(
+            progress_callback,
+            "checkpoint_written",
+            path=checkpoint_output,
+            selected_checkpoint=selected_checkpoint,
+        )
     emit_progress(
         progress_callback,
         "train_done",
@@ -242,6 +257,29 @@ def train_binary_classifier(
         calibrated_accuracy=final_metrics["calibrated_accuracy"],
     )
     return TrainingResult(history=history, final_metrics=final_metrics, metadata=metadata)
+
+
+def write_checkpoint_if_requested(
+    model: nn.Module,
+    config: TrainingConfig,
+    *,
+    history: list[dict[str, float]],
+    final_metrics: dict[str, float],
+    metadata: dict[str, Any],
+) -> str | None:
+    if config.checkpoint_output is None:
+        return None
+    path = Path(config.checkpoint_output)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    metadata["checkpoint_output"] = str(path)
+    payload = {
+        "state_dict": clone_state_dict_to_cpu(model),
+        "history": history,
+        "final_metrics": final_metrics,
+        "metadata": metadata,
+    }
+    torch.save(payload, path)
+    return str(path)
 
 
 def validate_checkpoint_metric(metric: str) -> None:

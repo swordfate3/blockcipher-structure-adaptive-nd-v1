@@ -75,6 +75,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Evaluate and report the best validation checkpoint instead of the final epoch.",
     )
     parser.add_argument(
+        "--checkpoint-output",
+        default=None,
+        help=(
+            "Optional .pt path for saving the selected PyTorch checkpoint. "
+            "Use with single-row runs or provide distinct paths per launch wrapper."
+        ),
+    )
+    parser.add_argument(
         "--early-stopping-patience",
         type=int,
         default=0,

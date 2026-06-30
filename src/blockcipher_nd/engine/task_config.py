@@ -73,6 +73,7 @@ def build_training_config(
         ),
         loss=str(task.get("loss") or args.loss),
         train_eval_interval=int(args.train_eval_interval),
+        checkpoint_output=args.checkpoint_output,
         seed=seed,
         device=args.device,
     )

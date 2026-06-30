@@ -8,6 +8,8 @@ from blockcipher_nd.training.metrics import (
     best_threshold_accuracy_and_threshold,
     evaluate_binary_classifier,
 )
+from blockcipher_nd.training.trainer import train_binary_classifier
+from blockcipher_nd.training.types import TrainingConfig
 
 
 def brute_force_best_threshold_accuracy(
@@ -77,3 +79,39 @@ def test_evaluate_binary_classifier_uses_one_forward_pass_per_batch() -> None:
 
     assert model.forward_calls == 2
     assert set(metrics) >= {"loss", "accuracy", "auc", "calibrated_accuracy"}
+
+
+def test_train_binary_classifier_writes_selected_checkpoint(tmp_path) -> None:
+    dataset = DifferentialDataset(
+        features=np.array(
+            [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+            ],
+            dtype=np.uint8,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.uint8),
+        metadata={"feature_encoding": "test"},
+    )
+    checkpoint_path = tmp_path / "selected.pt"
+    model = torch.nn.Linear(2, 1)
+
+    result = train_binary_classifier(
+        model,
+        dataset,
+        dataset,
+        TrainingConfig(
+            epochs=1,
+            batch_size=2,
+            device="cpu",
+            checkpoint_output=checkpoint_path,
+        ),
+    )
+
+    assert result.metadata["checkpoint_output"] == str(checkpoint_path)
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    assert set(payload) == {"state_dict", "history", "final_metrics", "metadata"}
+    assert payload["metadata"]["checkpoint_output"] == str(checkpoint_path)
+    assert set(payload["state_dict"]) == set(model.state_dict())

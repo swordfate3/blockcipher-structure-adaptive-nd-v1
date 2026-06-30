@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 
@@ -25,6 +26,7 @@ class TrainingConfig:
     early_stopping_min_delta: float = 0.0
     loss: str = "bce"
     train_eval_interval: int = 1
+    checkpoint_output: Path | str | None = None
 
 
 @dataclass(frozen=True)
