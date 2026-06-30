@@ -104,6 +104,28 @@ The frozen aggregator must not update weights on 16-pair samples. Otherwise it
 becomes another learned pair-set model and no longer controls for independent
 score aggregation.
 
+## Implementation Status
+
+Completed local foundation:
+
+```text
+module = src/blockcipher_nd/evaluation/pairset_aggregation.py
+tests = tests/test_pairset_aggregation.py
+capability = split a 16-pair sample into pair views, apply a frozen scorer to
+             each pair, aggregate logits/log-odds, and compute binary metrics
+```
+
+Not implemented yet:
+
+```text
+1. Persisting best training checkpoints as run artifacts.
+2. CLI for loading a saved single-pair InvP scorer checkpoint.
+3. Smoke CSV and remote matrix rows for frozen aggregation controls.
+```
+
+Therefore this plan is still not launch-ready. The current code only makes the
+core aggregation math testable and reusable.
+
 ## Candidate Matrix
 
 First non-smoke scale:

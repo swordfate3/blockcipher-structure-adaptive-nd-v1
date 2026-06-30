@@ -3,6 +3,13 @@ from blockcipher_nd.evaluation.plots import (
     training_curve_series,
     write_history_csv,
 )
+from blockcipher_nd.evaluation.pairset_aggregation import (
+    PairSetAggregationConfig,
+    aggregate_pair_logits,
+    pairset_aggregation_metrics,
+    pairset_aggregation_scores,
+    split_pairset_features,
+)
 from blockcipher_nd.evaluation.summary import (
     HPARAM_SUMMARY_FIELDS,
     INNOVATION_ONE_GROUP_FIELDS,
@@ -19,12 +26,17 @@ __all__ = [
     "HPARAM_SUMMARY_FIELDS",
     "INNOVATION_ONE_GROUP_FIELDS",
     "INNOVATION_ONE_METRIC_FIELDS",
+    "PairSetAggregationConfig",
+    "aggregate_pair_logits",
     "hparam_summary_row",
     "hparam_summary_rows",
     "innovation_one_summary_fields",
     "innovation_one_summary_rows",
     "load_jsonl_rows",
+    "pairset_aggregation_metrics",
+    "pairset_aggregation_scores",
     "plot_jsonl_training_curves",
+    "split_pairset_features",
     "training_curve_series",
     "write_history_csv",
     "write_csv_rows",
