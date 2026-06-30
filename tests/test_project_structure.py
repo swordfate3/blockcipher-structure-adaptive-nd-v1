@@ -1337,7 +1337,7 @@ def test_ddt_graph_gate_marks_weak_signal_when_margin_is_small(tmp_path):
 
     assert report["status"] == "pass"
     assert report["decision"] == "weak_ddt_graph_signal"
-    assert report["action"] == "repeat_262k_or_run_variance_check_before_scaling"
+    assert report["action"] == "run_prepared_262k_seed1_variance_check_before_scaling"
     assert 0 < report["margin_vs_best_control_auc"] < 0.001
 
 

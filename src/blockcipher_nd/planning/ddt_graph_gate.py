@@ -102,7 +102,7 @@ def gate_ddt_graph_result(
             )
         elif _at_least(margin_vs_best_control, 0.0) and calibrated_not_worse:
             decision = "weak_ddt_graph_signal"
-            action = "repeat_262k_or_run_variance_check_before_scaling"
+            action = "run_prepared_262k_seed1_variance_check_before_scaling"
             interpretation = (
                 "DDT graph is best but below the required margin; treat as weak diagnostic signal"
             )
