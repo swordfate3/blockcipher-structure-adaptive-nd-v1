@@ -2452,6 +2452,56 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "5",
     ]
 
+    candidate_run = "i1_candidate_trail_result_ready"
+    candidate_root = root / candidate_run
+    candidate_monitor = candidate_root / "monitor"
+    candidate_monitor.mkdir(parents=True)
+    (candidate_monitor / "monitor.log").write_text("2026-06-29T18:00:00+08:00 running\n", encoding="utf-8")
+    (candidate_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    candidate_results = candidate_root / "results"
+    candidate_results.mkdir()
+    candidate_jsonl = candidate_results / f"{candidate_run}.jsonl"
+    candidate_jsonl.write_text("{}\n{}\n{}\n", encoding="utf-8")
+    candidate_plan = (
+        Path("configs/experiment/innovation1/")
+        / "innovation1_spn_present_candidate_trail_consistency_smoke.json"
+    )
+    candidate_doc = tmp_path / "candidate-plan.md"
+
+    report = monitor_health_report(
+        run_id=candidate_run,
+        root=root,
+        plan_path=candidate_plan,
+        plan_doc_paths=[candidate_doc],
+        expected_rows=3,
+        postprocess_kind="candidate_trail",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 3
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-candidate-trail",
+        "--plan",
+        str(candidate_plan),
+        "--results",
+        str(candidate_jsonl),
+        "--output-dir",
+        str(candidate_root),
+        "--run-id",
+        candidate_run,
+        "--expected-rows",
+        "3",
+        "--update-plan-doc",
+        str(candidate_doc),
+    ]
+
     pairset_run = "i1_pairset_aggregation_control_unit"
     pairset_root = root / pairset_run
     pairset_monitor = pairset_root / "monitor"

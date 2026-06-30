@@ -59,7 +59,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--postprocess-kind",
-        choices=["invp", "invp_attribution", "ddt_graph", "pairset_aggregation"],
+        choices=["invp", "invp_attribution", "ddt_graph", "pairset_aggregation", "candidate_trail"],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
     )
@@ -424,6 +424,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-ddt-graph-result"
     if kind == "pairset_aggregation":
         return "scripts/postprocess-pairset-aggregation"
+    if kind == "candidate_trail":
+        return "scripts/postprocess-candidate-trail"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -436,6 +438,8 @@ def _default_expected_rows(kind: str) -> int:
         return 5
     if kind == "pairset_aggregation":
         return 2
+    if kind == "candidate_trail":
+        return 3
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
