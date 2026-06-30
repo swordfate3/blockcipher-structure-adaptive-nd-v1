@@ -454,6 +454,24 @@ def test_archived_active_pattern_remote_config_is_not_launchable():
     assert any("launch_enabled=false" in error for error in report["errors"])
 
 
+def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
+    plan = Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "planned / gated / do not launch" in plan
+    assert "i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630" in plan
+    assert "`zhang_wang_case2_official_mcnd`" in plan
+    assert "`encrypted_random_plaintexts`" in plan
+    assert "`0x11111111111111111111`" in plan
+    assert "sample_structure = zhang_wang_case2_mcnd" in plan
+    assert "A readiness gate must reject" in plan
+    assert "candidate_trail_consistency_linear" in plan
+    assert "candidate_trail_consistency_mlp" in plan
+    assert "candidate-trail consistency medium diagnostic positive" in plan
+    assert "formal route evidence" in plan
+
+
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
     launcher = Path(
         "configs/remote/generated/"
