@@ -167,7 +167,7 @@ DDT-graph is best but margin < 0.001
 Action:
 
 ```text
-repeat 262144/class seed1 before any 1M run
+run the prepared 262144/class seed1 package as a variance check before any 1M run
 ```
 
 Stop:
