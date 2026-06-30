@@ -2890,6 +2890,43 @@ def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tm
     monitor.mkdir(parents=True)
     (monitor / "monitor.log").write_text("2026-06-29T20:25:50+08:00 running\n", encoding="utf-8")
     (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / f"{run_id}_progress.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "event": "checkpoint_improved",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "index": 1,
+                        "total": 5,
+                        "epoch": 8,
+                        "epochs": 20,
+                        "metric": "val_auc",
+                        "value": 0.7908,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "event": "train_batch",
+                        "stage": "training",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "index": 1,
+                        "total": 5,
+                        "epoch": 9,
+                        "epochs": 20,
+                        "step": 306,
+                        "steps_per_epoch": 512,
+                        "train_rows_seen": 313344,
+                        "train_rows": 524288,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     results = root / run_id / "results"
     results.mkdir()
     (results / f"{run_id}.jsonl").write_text("", encoding="utf-8")
@@ -2907,6 +2944,19 @@ def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tm
     assert report["expected_rows"] == 1
     assert report["needs_main_thread_intervention"] is False
     assert report["postprocess_allowed"] is False
+    assert report["progress_summary"]["exists"] is True
+    assert report["progress_summary"]["latest_event"] == "train_batch"
+    assert report["progress_summary"]["model"] == "present_nibble_invp_only_spn_only"
+    assert report["progress_summary"]["index"] == 1
+    assert report["progress_summary"]["total"] == 5
+    assert report["progress_summary"]["epoch"] == 9
+    assert report["progress_summary"]["epochs"] == 20
+    assert report["progress_summary"]["step"] == 306
+    assert report["progress_summary"]["steps_per_epoch"] == 512
+    assert report["progress_summary"]["train_rows_seen"] == 313344
+    assert report["progress_summary"]["best_checkpoint_metric"] == 0.7908
+    assert report["progress_summary"]["best_epoch"] == 8
+    assert report["progress_summary"]["checkpoint_metric"] == "val_auc"
 
 
 def test_monitor_health_marks_stale_running_heartbeat(tmp_path):

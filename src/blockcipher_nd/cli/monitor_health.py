@@ -87,6 +87,7 @@ def monitor_health_report(
     scp_stderr = monitor_dir / "scp_stderr.log"
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
+    progress_summary = _progress_summary(run_root)
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
     if expected_result_rows is None and plan_path is not None:
         expected_result_rows = _default_expected_rows(postprocess_kind)
@@ -139,6 +140,7 @@ def monitor_health_report(
         "monitor_log_exists": monitor_log.exists(),
         "recent_monitor_lines": recent_monitor_lines,
         "heartbeat": heartbeat,
+        "progress_summary": progress_summary,
         "ssh_stderr_log": str(ssh_stderr),
         "ssh_stderr_exists": ssh_stderr.exists(),
         "ssh_stderr_empty": stderr_text == "",
@@ -338,6 +340,96 @@ def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
         "missing_artifact_line_count": len(missing_lines),
         "persistent_missing_artifacts": len(missing_lines) >= max(4, recent_lines // 2),
     }
+
+
+def _progress_summary(run_root: Path) -> dict[str, Any]:
+    paths = sorted(
+        (run_root / "logs").glob("*progress.jsonl"),
+        key=lambda path: (path.stat().st_mtime if path.exists() else 0.0, path.name),
+    )
+    if not paths:
+        return {
+            "path": None,
+            "exists": False,
+            "line_count": 0,
+            "parsed_line_count": 0,
+            "latest_event": None,
+        }
+    path = paths[-1]
+    latest: dict[str, Any] | None = None
+    best_metric: float | int | None = None
+    best_epoch: int | None = None
+    checkpoint_metric: str | None = None
+    line_count = 0
+    parsed_line_count = 0
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        line_count += 1
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        parsed_line_count += 1
+        latest = record
+        if "best_checkpoint_metric" in record:
+            best_metric = record.get("best_checkpoint_metric")
+            best_epoch = _optional_int(record.get("best_epoch"))
+        if record.get("event") == "checkpoint_improved":
+            best_metric = record.get("value")
+            best_epoch = _optional_int(record.get("epoch"))
+            checkpoint_metric = _optional_str(record.get("metric"))
+        elif "checkpoint_metric" in record:
+            checkpoint_metric = _optional_str(record.get("checkpoint_metric"))
+    if latest is None:
+        return {
+            "path": str(path),
+            "exists": True,
+            "line_count": line_count,
+            "parsed_line_count": parsed_line_count,
+            "latest_event": None,
+        }
+    return {
+        "path": str(path),
+        "exists": True,
+        "line_count": line_count,
+        "parsed_line_count": parsed_line_count,
+        "latest_event": latest.get("event"),
+        "stage": latest.get("stage"),
+        "model": latest.get("model"),
+        "index": _optional_int(latest.get("index")),
+        "total": _optional_int(latest.get("total")),
+        "epoch": _optional_int(latest.get("epoch")),
+        "epochs": _optional_int(latest.get("epochs")),
+        "step": _optional_int(latest.get("step")),
+        "steps_per_epoch": _optional_int(latest.get("steps_per_epoch")),
+        "train_rows_seen": _optional_int(latest.get("train_rows_seen")),
+        "train_rows": _optional_int(latest.get("train_rows")),
+        "validation_rows": _optional_int(latest.get("validation_rows")),
+        "val_accuracy": latest.get("val_accuracy"),
+        "val_auc": latest.get("val_auc"),
+        "val_loss": latest.get("val_loss"),
+        "best_checkpoint_metric": best_metric,
+        "best_epoch": best_epoch,
+        "checkpoint_metric": checkpoint_metric,
+    }
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)
 
 
 def _has_synced_remote_artifacts(run_root: Path, artifact_files: list[str]) -> bool:
