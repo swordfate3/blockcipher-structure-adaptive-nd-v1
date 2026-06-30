@@ -792,7 +792,7 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         self.nibbles_per_pair = 16
         self.ddt_token_dim = ddt_token_dim or max(16, base_channels * 2)
         self.embedding_bits = max(32, base_channels * 4)
-        self.cell_feature_bits = 23
+        self.cell_feature_bits = 20
 
         self.cell_encoder = nn.Sequential(
             nn.Linear(self.cell_feature_bits, self.ddt_token_dim),
@@ -828,35 +828,8 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
             inverse_p = torch.randperm(64, generator=generator).tolist()
         self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
 
-        ddt = torch.tensor(PRESENT_SBOX_DDT, dtype=torch.long)
-        top1: list[int] = []
-        top2: list[int] = []
-        count1: list[int] = []
-        count2: list[int] = []
-        margin: list[int] = []
-        for output_difference in range(16):
-            ranked = sorted(
-                range(16),
-                key=lambda input_difference: (
-                    PRESENT_SBOX_DDT[input_difference][output_difference],
-                    -input_difference,
-                ),
-                reverse=True,
-            )
-            first, second = ranked[0], ranked[1]
-            first_count = PRESENT_SBOX_DDT[first][output_difference]
-            second_count = PRESENT_SBOX_DDT[second][output_difference]
-            top1.append(first)
-            top2.append(second)
-            count1.append(first_count)
-            count2.append(second_count)
-            margin.append(max(0, first_count - second_count))
-        self.register_buffer("ddt_table", ddt, persistent=False)
-        self.register_buffer("ddt_top1", torch.tensor(top1, dtype=torch.long), persistent=False)
-        self.register_buffer("ddt_top2", torch.tensor(top2, dtype=torch.long), persistent=False)
-        self.register_buffer("ddt_count1", torch.tensor(count1, dtype=torch.float32), persistent=False)
-        self.register_buffer("ddt_count2", torch.tensor(count2, dtype=torch.float32), persistent=False)
-        self.register_buffer("ddt_margin", torch.tensor(margin, dtype=torch.float32), persistent=False)
+        ddt_by_output = torch.tensor(PRESENT_SBOX_DDT, dtype=torch.float32).transpose(0, 1).contiguous()
+        self.register_buffer("ddt_by_output", ddt_by_output, persistent=False)
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         cell_features = self.ddt_cell_features(features.float())
@@ -868,7 +841,7 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         hidden = self.norm(hidden)
         mean_embedding = hidden.mean(dim=1)
         max_embedding = hidden.max(dim=1).values
-        active_weights = cell_features.reshape(batch * pairs, nibbles, channels)[:, :, 19:21].sum(
+        active_weights = cell_features.reshape(batch * pairs, nibbles, channels)[:, :, :4].sum(
             dim=2,
             keepdim=True,
         )
@@ -889,38 +862,14 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         delta_nibbles = difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
         invp_nibbles = aligned_difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
         invp_values = _present_nibble_values(invp_nibbles)
-        top1_values = self.ddt_top1.index_select(dim=0, index=invp_values.reshape(-1)).reshape_as(invp_values)
-        top2_values = self.ddt_top2.index_select(dim=0, index=invp_values.reshape(-1)).reshape_as(invp_values)
-        count1 = self.ddt_count1.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
+        ddt_counts = self.ddt_by_output.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
             *invp_values.shape,
-            1,
+            16,
         )
-        count2 = self.ddt_count2.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
-            *invp_values.shape,
-            1,
-        )
-        margin = self.ddt_margin.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
-            *invp_values.shape,
-            1,
-        )
-
-        active_delta = (_present_nibble_values(delta_nibbles) > 0).to(features.dtype).unsqueeze(-1)
-        active_invp = (invp_values > 0).to(features.dtype).unsqueeze(-1)
-        hw_delta = delta_nibbles.mean(dim=-1, keepdim=True)
-        hw_invp = invp_nibbles.mean(dim=-1, keepdim=True)
         return torch.cat(
             [
-                delta_nibbles,
                 invp_nibbles,
-                _present_nibble_bits(top1_values, dtype=features.dtype),
-                _present_nibble_bits(top2_values, dtype=features.dtype),
-                count1.to(features.dtype) / 16.0,
-                count2.to(features.dtype) / 16.0,
-                margin.to(features.dtype) / 16.0,
-                active_delta,
-                active_invp,
-                hw_delta,
-                hw_invp,
+                ddt_counts.to(features.dtype) / 16.0,
             ],
             dim=-1,
         )
@@ -929,11 +878,6 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
 def _present_nibble_values(nibbles: torch.Tensor) -> torch.Tensor:
     weights = torch.tensor([8, 4, 2, 1], dtype=nibbles.dtype, device=nibbles.device)
     return torch.sum(nibbles * weights, dim=-1).long()
-
-
-def _present_nibble_bits(values: torch.Tensor, *, dtype: torch.dtype) -> torch.Tensor:
-    shifts = torch.tensor([3, 2, 1, 0], dtype=torch.long, device=values.device)
-    return ((values.unsqueeze(-1) >> shifts) & 1).to(dtype)
 
 
 def _present_inverse_p_index(target_bit_index: int) -> int:

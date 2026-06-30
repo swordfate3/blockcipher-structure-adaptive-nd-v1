@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-29
 
-**Status:** conditional / waiting for InvP-only 1M gate
+**Status:** conditional / implementation ready / waiting for attribution-control gate
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives. This plan is a next-route guardrail, not a launched run.
 
@@ -321,6 +321,25 @@ topology add information beyond the current learned InvP view.
 This is the implementation checklist for Branch B. Keep it intentionally small
 so the first DDT result is attributable.
 
+Implementation update, 2026-06-30:
+
+```text
+commit = ef8ee17 feat: add present ddt graph candidate
+model aliases implemented:
+  - present_nibble_ddt_graph
+  - present_nibble_shuffled_ddt_graph
+smoke plan:
+  configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
+first non-smoke conditional matrix:
+  configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv
+```
+
+The implementation was aligned to the Branch B v1 refinement below: each node
+uses `InvP(DeltaC)` nibble bits plus the full PRESENT S-box DDT output column
+normalized by `count / 16.0`. This keeps the first DDT route focused on local
+S-box transition priors and P-layer topology, not hand-picked top-k trail
+engineering.
+
 ### Source Changes
 
 ```text
@@ -352,7 +371,7 @@ Use raw `ciphertext_pair_bits`, not a precomputed DDT feature encoding, so this
 route stays comparable to the current InvP-only models and can reuse the same
 disk-backed dataset cache.
 
-Per nibble node, start with these 18 scalar/binary features:
+Earlier sketch, superseded by the full-column v1 refinement below:
 
 ```text
 DeltaC nibble bits                 4
@@ -457,7 +476,6 @@ configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
 Rows:
 
 ```text
-present_nibble_invp_only_spn_only
 present_nibble_ddt_graph
 present_nibble_shuffled_ddt_graph
 ```
@@ -494,6 +512,14 @@ present_nibble_shuffled_ddt_graph
 Keep `present_nibble_paligned_transition_residual` as the no-DDT topology/residual
 anchor. Do not add Zhang/Wang to this matrix unless the retrieved 1M result shows
 baseline drift or protocol mismatch.
+
+Launch guardrail:
+
+```text
+Do not launch this 262144/class matrix until the active 1M attribution-control
+run is retrieved, validated, and the gate selects the DDT/topology branch.
+Prepared matrix status is planned/ready, not launched/running evidence.
+```
 
 ### Implementation Order Guardrail
 

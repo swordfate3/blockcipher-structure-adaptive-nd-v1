@@ -224,6 +224,33 @@ def test_present_n2_transition_backbone_262k_plan_is_same_protocol():
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
+def test_present_ddt_graph_262k_plan_is_conditional_same_protocol_matrix():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_paligned_transition_residual",
+        "present_nibble_ddt_graph",
+        "present_nibble_shuffled_ddt_graph",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class N3" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+
 def test_present_spn_only_attribution_262k_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_spn_only_attribution_r7_262k.csv"
     args = parse_args(["--plan", plan])
@@ -1733,27 +1760,16 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
     delta = left ^ right
     aligned = cipher.inverse_permutation_layer(delta)
     first_output_difference = (aligned >> 60) & 0xF
-    ranked = sorted(
-        range(16),
-        key=lambda input_difference: (
-            PRESENT_SBOX_DDT[input_difference][first_output_difference],
-            -input_difference,
-        ),
-        reverse=True,
-    )
-    top1, top2 = ranked[0], ranked[1]
-    top1_bits = [(top1 >> shift) & 1 for shift in range(3, -1, -1)]
-    top2_bits = [(top2 >> shift) & 1 for shift in range(3, -1, -1)]
+    expected_output_bits = [(first_output_difference >> shift) & 1 for shift in range(3, -1, -1)]
+    expected_counts = [
+        PRESENT_SBOX_DDT[input_difference][first_output_difference] / 16
+        for input_difference in range(16)
+    ]
 
-    assert cell_features.shape == (1, 1, 16, 23)
-    assert cell_features[0, 0, 0, 8:12].to(torch.uint8).tolist() == top1_bits
-    assert cell_features[0, 0, 0, 12:16].to(torch.uint8).tolist() == top2_bits
-    assert cell_features[0, 0, 0, 16].item() == PRESENT_SBOX_DDT[top1][first_output_difference] / 16
-    assert cell_features[0, 0, 0, 17].item() == PRESENT_SBOX_DDT[top2][first_output_difference] / 16
-    assert cell_features[0, 0, 0, 18].item() == (
-        PRESENT_SBOX_DDT[top1][first_output_difference]
-        - PRESENT_SBOX_DDT[top2][first_output_difference]
-    ) / 16
+    assert model.ddt_encoder.ddt_by_output.shape == (16, 16)
+    assert cell_features.shape == (1, 1, 16, 20)
+    assert cell_features[0, 0, 0, :4].to(torch.uint8).tolist() == expected_output_bits
+    assert cell_features[0, 0, 0, 4:].tolist() == expected_counts
 
 
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
