@@ -157,11 +157,22 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "reason": decision,
         }
     if decision == "stop_ddt_graph_route":
+        launch_config = "configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json"
+        stage_a_config = (
+            "configs/remote/"
+            "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
+        )
         return {
-            "branch": "switch_spn_hypothesis",
-            "should_launch_remote": False,
-            "requires_implementation": True,
-            "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
+            "branch": "pairset_aggregation_control",
+            "should_launch_remote": True,
+            "requires_implementation": False,
+            "launch_remote_config": launch_config,
+            "stage_a_remote_config": stage_a_config,
+            "readiness_command": _readiness_command(launch_config),
+            "stage_a_readiness_command": _readiness_command(stage_a_config),
+            "run_id": "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630",
+            "monitor_owner": "tmux watcher or sub-agent",
+            "plan_doc": "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
             "reason": decision,
         }
     return {
@@ -194,11 +205,15 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Repeat 262144/class or run a variance check before scaling.",
             "Do not promote DDT graph as the main route yet.",
         ]
-    if branch == "switch_spn_hypothesis":
+    if branch == "pairset_aggregation_control":
+        next_action = report["next_action"]
         return [
             "Update the experiment plan with tied or negative DDT graph evidence.",
             "Do not scale this DDT graph route to 1M.",
-            "Switch to the next SPN structure-adaptive hypothesis.",
+            f"Run the stage-A readiness gate: {next_action['stage_a_readiness_command']}",
+            f"Run the stage-B readiness gate: {next_action['readiness_command']}",
+            f"Launch the staged pair-set aggregation control from {next_action['launch_remote_config']} after committing the DDT result record.",
+            "Hand off pair-set monitoring and retrieval to a local tmux watcher or sub-agent.",
         ]
     return ["Review the DDT graph gate manually before launching another experiment."]
 

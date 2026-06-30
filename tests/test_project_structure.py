@@ -1370,6 +1370,48 @@ def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
     assert any("missing_models" in error for error in report["errors"])
 
 
+def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
+    results_path = tmp_path / "ddt_graph_stop.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "ddt-plan.md"
+    plan_doc_path.write_text("# DDT Plan\n", encoding="utf-8")
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7962,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    report = postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph_stop",
+        expected_rows=5,
+        plan_doc_path=plan_doc_path,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_ddt_graph_route"
+    assert report["next_action"]["branch"] == "pairset_aggregation_control"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json"
+    )
+    assert report["next_action"]["stage_a_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
+    )
+    assert report["next_action"]["run_id"] == "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630"
+    assert any("pair-set aggregation control" in step for step in report["next_steps"])
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action branch | `pairset_aggregation_control` |" in plan_doc
+    assert "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json" in plan_doc
+
+
 def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
     results_path = tmp_path / "ddt_graph.jsonl"
