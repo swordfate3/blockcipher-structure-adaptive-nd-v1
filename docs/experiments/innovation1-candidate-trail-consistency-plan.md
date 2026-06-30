@@ -299,6 +299,29 @@ purpose = verify future candidate-trail remote launch plumbing can reference the
 This config is not a medium diagnostic. It remains a conditional smoke asset
 until the DDT/pair-set branch gate selects candidate-trail as the next route.
 
+Readiness limitation, 2026-07-01:
+
+```text
+Do not create or launch the 262144/class candidate-trail matrix yet.
+The current smoke implementation produces a compact aggregated feature vector
+for linear/mlp diagnostics, but it does not yet expose a stable cell/nibble axis
+that can support a meaningful `candidate_trail_consistency_shuffled_cells`
+control. A 4-row medium diagnostic without this control would weaken the route's
+attribution value.
+```
+
+Required implementation step before the first non-smoke remote run:
+
+```text
+1. Add a cell-structured candidate-trail feature representation, or an
+   equivalent deterministic transform that preserves a meaningful SPN cell axis.
+2. Add `candidate_trail_consistency_shuffled_cells` as a true false-alignment
+   control over that cell axis, not merely a renamed linear/mlp run.
+3. Add a local smoke proving the true and shuffled control rows produce
+   distinct feature tensors while preserving protocol fields.
+4. Only then add a 262144/class remote config with expected_rows = 4.
+```
+
 Gate tooling update, 2026-07-01:
 
 ```text

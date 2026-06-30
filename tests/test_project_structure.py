@@ -518,6 +518,10 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
+    assert "Do not create or launch the 262144/class candidate-trail matrix yet" in plan
+    assert "cell-structured candidate-trail feature representation" in plan
+    assert "candidate_trail_consistency_shuffled_cells" in plan
+    assert "expected_rows = 4" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
     assert "formal route evidence" in plan
 
