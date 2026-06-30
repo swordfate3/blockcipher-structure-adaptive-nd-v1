@@ -348,9 +348,11 @@ decisions =
   stop_candidate_trail_route
 ```
 
-The gate and postprocess wrappers are local tooling only. They do not make this
-route launchable without the remaining smoke plan, remote config, and readiness
-checks.
+The gate and postprocess wrappers are local tooling only. The smoke plan and
+conditional remote-smoke readiness asset exist and pass local checks, but they
+do not make the route medium-scale launchable. The 262144/class plan, remote
+config, generated launcher, and monitor should be created only after the
+DDT/pair-set branch gate selects candidate-trail as the next route.
 
 Output-contract update, 2026-07-01:
 
