@@ -29,6 +29,9 @@ It emits `postprocess_command` only for `result_ready`, which requires a
 retrieved JSONL with at least one non-empty row. `completed_missing_results`
 means a done marker exists but the JSONL is missing; `results_empty` means the
 JSONL exists but has no non-empty rows. Neither state should be postprocessed.
+`remote_artifacts_missing` means repeated local sync attempts could not find
+the remote run's `logs/` or `results/` directories; this usually requires a
+bounded launch-path check before assuming training is still running.
 `postprocessed` means the watcher already ran the route-specific postprocess
 successfully, so the next action is to inspect gate/readiness artifacts, update
 or commit docs if needed, and branch from the recorded decision rather than

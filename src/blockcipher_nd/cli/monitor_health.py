@@ -148,6 +148,8 @@ def monitor_health_report(
         "scp_stderr_tail": scp_stderr_report["tail"],
         "scp_stderr_warnings": scp_stderr_report["warnings"],
         "scp_stderr_errors": scp_stderr_report["errors"],
+        "scp_stderr_missing_artifact_line_count": scp_stderr_report["missing_artifact_line_count"],
+        "scp_stderr_persistent_missing_artifacts": scp_stderr_report["persistent_missing_artifacts"],
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
         "results_jsonl_line_count": results_jsonl_line_count,
@@ -161,6 +163,7 @@ def monitor_health_report(
             "failed",
             "unhealthy",
             "missing_monitor",
+            "remote_artifacts_missing",
             "stale_monitor",
             "postprocessed",
             "postprocess_failed",
@@ -208,6 +211,8 @@ def _health_status(
         return "unhealthy"
     if scp_stderr_report["errors"]:
         return "unhealthy"
+    if scp_stderr_report["persistent_missing_artifacts"]:
+        return "remote_artifacts_missing"
     if tmux["checked"] and tmux["exists"] is False:
         return "unhealthy"
     if heartbeat["is_stale"]:
@@ -328,6 +333,8 @@ def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
         "tail": tail,
         "warnings": warnings,
         "errors": errors,
+        "missing_artifact_line_count": len(missing_lines),
+        "persistent_missing_artifacts": len(missing_lines) >= max(4, recent_lines // 2),
     }
 
 
@@ -551,6 +558,7 @@ def main(argv: list[str] | None = None) -> int:
             "failed",
             "unhealthy",
             "missing_monitor",
+            "remote_artifacts_missing",
             "stale_monitor",
             "completed_missing_results",
             "completed_missing_auxiliary_artifacts",
