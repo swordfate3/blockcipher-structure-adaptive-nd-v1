@@ -40,6 +40,44 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260630-001] correction
+
+**Logged**: 2026-06-30T00:00:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: research
+
+### Summary
+Long-term Innovation 1 goals should be framed at the SPN method level, not as an overly detailed experiment SOP.
+
+### Details
+The user corrected the goal framing: the real objective is to develop SPN-structure-adaptive neural networks or SPN-adaptive data/feature representations, mainly for PRESENT/SPN, not to encode one specific run protocol, seed sequence, metric gate, remote launcher, or postprocess checklist as the long-term goal.
+
+Correct framing:
+
+- Long-term goal: iterate toward neural distinguishers that genuinely exploit SPN structure.
+- Innovation can come from SPN-aware network architecture or SPN-aware data/feature construction.
+- Concrete experiment details such as run id, seed, scale, remote config, checkpoint metric, and branch gate belong in `docs/experiments/`.
+- Broader research route, method hypothesis, and literature synthesis belong in `docs/research/`.
+- Positive results should move the project from exploration into confirmation, attribution, ablation, and formal evidence, rather than ending the research prematurely.
+
+The long-term goal should answer "what kind of method are we trying to create?" The experiment plan should answer "which exact run tests the next hypothesis?"
+
+### Suggested Action
+Promote a concise rule to `AGENTS.md`: frame long-term Innovation 1 goals around SPN-structure-adaptive neural distinguishers and keep concrete run protocol details in experiment plans. Use `docs/自动化目标规则.md` as the high-level goal document, not as a replacement for per-run plans.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/自动化目标规则.md, docs/experiments/, docs/research/
+- Tags: innovation1, spn, goal-framing, research-workflow, experiment-plans
+- Pattern-Key: innovation1.goal_framing.method_level_not_run_sop
+- Recurrence-Count: 1
+- First-Seen: 2026-06-30
+- Last-Seen: 2026-06-30
+- Promoted: AGENTS.md
+
+---
+
 ## [LRN-20260621-003] best_practice
 
 **Logged**: 2026-06-21T20:55:00+08:00
