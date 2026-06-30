@@ -317,6 +317,131 @@ be weakened: the gain may be explained by generic DeltaC information, false
 alignment, extra tokens, or seed variance.
 ```
 
+## Post-Retrieval Stage-Gate Playbook
+
+The attribution-control watcher must run:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-invp-attribution-controls \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv \
+  --results outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl \
+  --output-dir outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 \
+  --run-id i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 \
+  --expected-rows 2 \
+  --update-plan-doc docs/experiments/innovation1-invp-only-formal-attribution-plan.md
+```
+
+The stage decision must be read from:
+
+```text
+outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/
+  i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_attribution_gate.json
+  i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_postprocess_summary.json
+```
+
+Do not make a manual claim from raw accuracy/AUC alone. Use the attribution gate
+decision below.
+
+### Decision A: `support_invp_structural_attribution`
+
+Meaning:
+
+```text
+min(InvP-only seed0 AUC, InvP-only seed1 AUC)
+  - max(DeltaC-only AUC, shuffled-P AUC)
+>= +0.001
+```
+
+Interpretation:
+
+```text
+The paper-scale control rows support the claim that true InvP/P-layer aligned
+SPN representation carries useful signal beyond generic DeltaC and false
+alignment controls.
+```
+
+Action:
+
+```text
+Write a route-level attribution summary under docs/experiments/.
+Do not call this a breakthrough or SOTA result.
+Decide whether the next paper need is:
+  A. formal multi-seed InvP-only variance,
+  B. a Zhang/Wang baseline seed1 variance audit,
+  C. a new DDT/topology-aware route to improve beyond InvP-only.
+```
+
+Claim scope allowed:
+
+```text
+InvP-only has two-seed 1000000/class positive confirmation and paper-scale
+attribution controls supporting the SPN/InvP/P-layer alignment explanation.
+```
+
+### Decision B: `weak_attribution_support`
+
+Meaning:
+
+```text
+InvP-only remains above controls, but by less than the +0.001 AUC attribution
+margin.
+```
+
+Interpretation:
+
+```text
+The direction is still positive but too close for a strong route-level
+attribution claim.
+```
+
+Action:
+
+```text
+Do not formalize InvP-only yet.
+Prefer one targeted follow-up before switching routes:
+  - repeat the control row that came closest to InvP-only,
+  - or launch a baseline/InvP variance seed if the control result suggests
+    seed variance is dominating the margin.
+Keep the matrix lean; do not rerun every historical control.
+```
+
+### Decision C: `weaken_invp_structural_attribution`
+
+Meaning:
+
+```text
+At least one control reaches or exceeds the InvP-only two-seed confirmation band.
+```
+
+Interpretation:
+
+```text
+The current InvP-only route may still be useful, but the claim that its gain is
+specifically explained by true InvP/P-layer alignment is not supported by the
+paper-scale controls.
+```
+
+Action:
+
+```text
+Stop formalizing InvP-only as the main Innovation 1 structure claim.
+Do not launch more InvP-only scale runs as the next move.
+Switch to the next SPN structure hypothesis with a fresh plan:
+  - DDT-aware cell graph,
+  - SPN topology/message-passing backbone,
+  - richer candidate-trail/transition consistency representation.
+The next new-route non-smoke scale should start at 262144/class, not 1M.
+```
+
+In all cases, after postprocess:
+
+```text
+Update this document with retrieved metrics and the attribution gate.
+Run relevant tests.
+Commit and push the docs/tooling changes.
+Keep outputs/ artifacts ignored unless explicitly requested.
+```
+
 ## Completion Checklist
 
 This stage is complete when:
