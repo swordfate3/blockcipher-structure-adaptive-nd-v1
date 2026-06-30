@@ -707,6 +707,8 @@ def test_invp_attribution_docs_record_route_specific_monitor_health_command():
     for text in [plan, summary]:
         assert "scripts/monitor-health" in text
         assert "--run-id i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630" in text
+        assert "--plan-doc docs/experiments/innovation1-invp-only-formal-attribution-plan.md" in text
+        assert "--plan-doc docs/experiments/innovation1-invp-route-level-evidence-summary.md" in text
         assert "--expected-rows 2" in text
         assert "--postprocess-kind invp_attribution" in text
         assert "`postprocess_command`" in text
@@ -1688,6 +1690,8 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     plan.write_text("model_key\nrow_a\nrow_b\n", encoding="utf-8")
     plan_doc = tmp_path / "plan.md"
     plan_doc.write_text("# plan\n", encoding="utf-8")
+    summary_doc = tmp_path / "summary.md"
+    summary_doc.write_text("# summary\n", encoding="utf-8")
 
     attribution_run = "unit_attr"
     attribution_root = root / attribution_run
@@ -1705,6 +1709,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         root=root,
         plan_path=plan,
         plan_doc_path=plan_doc,
+        plan_doc_paths=[summary_doc],
         postprocess_kind="invp_attribution",
     )
 
@@ -1730,6 +1735,8 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "2",
         "--update-plan-doc",
         str(plan_doc),
+        "--update-plan-doc",
+        str(summary_doc),
     ]
 
     ddt_run = "unit_ddt"

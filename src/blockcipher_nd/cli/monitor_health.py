@@ -35,7 +35,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--plan-doc",
         type=Path,
-        default=None,
+        action="append",
+        default=[],
         help="Optional experiment plan Markdown path for postprocess --update-plan-doc.",
     )
     parser.add_argument(
@@ -72,6 +73,7 @@ def monitor_health_report(
     tmux_session: str | None = None,
     plan_path: Path | None = None,
     plan_doc_path: Path | None = None,
+    plan_doc_paths: list[Path] | None = None,
     expected_rows: int | None = None,
     postprocess_kind: str = "invp",
     recent_lines: int = 8,
@@ -110,7 +112,7 @@ def monitor_health_report(
         results_jsonl=results_jsonl,
         run_root=run_root,
         plan_path=plan_path,
-        plan_doc_path=plan_doc_path,
+        plan_doc_paths=_merge_plan_doc_paths(plan_doc_path, plan_doc_paths),
         expected_rows=expected_result_rows,
         postprocess_kind=postprocess_kind,
     )
@@ -266,7 +268,7 @@ def _postprocess_command(
     results_jsonl: Path,
     run_root: Path,
     plan_path: Path | None,
-    plan_doc_path: Path | None,
+    plan_doc_paths: list[Path],
     expected_rows: int | None,
     postprocess_kind: str,
 ) -> list[str]:
@@ -292,9 +294,18 @@ def _postprocess_command(
         "--expected-rows",
         str(_postprocess_expected_rows(postprocess_kind, expected_rows)),
     ]
-    if plan_doc_path is not None:
+    for plan_doc_path in plan_doc_paths:
         command.extend(["--update-plan-doc", str(plan_doc_path)])
     return command
+
+
+def _merge_plan_doc_paths(plan_doc_path: Path | None, plan_doc_paths: list[Path] | None) -> list[Path]:
+    merged: list[Path] = []
+    for path in [plan_doc_path, *(plan_doc_paths or [])]:
+        if path is None or path in merged:
+            continue
+        merged.append(path)
+    return merged
 
 
 def _postprocess_script(kind: str) -> str:
@@ -370,7 +381,7 @@ def main(argv: list[str] | None = None) -> int:
         root=args.root,
         tmux_session=args.tmux_session,
         plan_path=args.plan,
-        plan_doc_path=args.plan_doc,
+        plan_doc_paths=args.plan_doc,
         expected_rows=args.expected_rows,
         postprocess_kind=args.postprocess_kind,
         recent_lines=args.recent_lines,
