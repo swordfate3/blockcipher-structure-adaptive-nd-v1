@@ -3284,6 +3284,9 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert report["status"] == "pass"
     assert report["decision"] == "support_candidate_trail_route"
     assert report["next_action"]["branch"] == "candidate_trail_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert "launch_remote_config" not in report["next_action"]
     assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()
