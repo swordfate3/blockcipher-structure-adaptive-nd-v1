@@ -122,6 +122,55 @@ def present_pair_candidate_evidence_features(
     return np.array(features, dtype=np.float32)
 
 
+def present_pair_candidate_cell_features(
+    left: int,
+    right: int,
+    *,
+    width: int,
+    cipher: ReducedRoundCipher,
+    beam_width: int = 4,
+    depth: int = 3,
+    source: str = "structural_inverse",
+    cell_permutation: list[int] | None = None,
+) -> NDArray[np.float32]:
+    """Return layer/cell candidate-trail evidence with an explicit cell axis."""
+
+    layers = present_pair_candidate_evidence_layers(
+        left,
+        right,
+        width=width,
+        cipher=cipher,
+        beam_width=beam_width,
+        depth=depth,
+        source=source,
+    )
+    cells = width // 4
+    if cell_permutation is None:
+        cell_indices = list(range(cells))
+    else:
+        if sorted(cell_permutation) != list(range(cells)):
+            raise ValueError("cell_permutation must be a permutation of PRESENT cell indices")
+        cell_indices = cell_permutation
+    layers_features: list[list[list[float]]] = []
+    for layer in layers:
+        values_by_word = [
+            _nibbles(layer.top_word, width),
+            _nibbles(layer.confidence_word, width),
+            _nibbles(layer.margin_word, width),
+            _nibbles(layer.disagreement_word, width),
+            _nibbles(layer.confidence_union_word, width),
+            _nibbles(layer.margin_union_word, width),
+            _repeat_to_cells(_nibbles(layer.score_word, 4 * beam_width), cells),
+            _repeat_to_cells(_nibbles(layer.cumulative_word, 4 * beam_width), cells),
+            _repeat_to_cells(_nibbles(layer.active_word, 4 * beam_width), cells),
+        ]
+        layer_features = []
+        for cell_index in cell_indices:
+            layer_features.append([word_values[cell_index] / 15.0 for word_values in values_by_word])
+        layers_features.append(layer_features)
+    return np.array(layers_features, dtype=np.float32).reshape(-1)
+
+
 def present_pairset_candidate_evidence_features(
     pairs: list[tuple[int, int]],
     *,
@@ -167,8 +216,63 @@ def present_pairset_candidate_evidence_features(
     return np.concatenate([means, stds, spans, global_stats]).astype(np.float32)
 
 
+def present_pairset_candidate_cell_features(
+    pairs: list[tuple[int, int]],
+    *,
+    width: int,
+    cipher: ReducedRoundCipher,
+    beam_width: int = 4,
+    depth: int = 3,
+    source: str = "structural_inverse",
+    cell_permutation: list[int] | None = None,
+) -> NDArray[np.float32]:
+    """Return pair-level consistency over explicit PRESENT layer/cell features."""
+
+    if not pairs:
+        raise ValueError("pairs must not be empty")
+    pair_features = np.stack(
+        [
+            present_pair_candidate_cell_features(
+                left,
+                right,
+                width=width,
+                cipher=cipher,
+                beam_width=beam_width,
+                depth=depth,
+                source=source,
+                cell_permutation=cell_permutation,
+            )
+            for left, right in pairs
+        ],
+        axis=0,
+    ).astype(np.float32)
+    means = pair_features.mean(axis=0)
+    stds = pair_features.std(axis=0)
+    spans = pair_features.max(axis=0) - pair_features.min(axis=0)
+    global_stats = np.array(
+        [
+            float(pair_features.mean()),
+            float(pair_features.std()),
+            float(np.mean(stds)),
+            float(np.max(stds)),
+            float(np.mean(spans)),
+            float(np.max(spans)),
+        ],
+        dtype=np.float32,
+    )
+    return np.concatenate([means, stds, spans, global_stats]).astype(np.float32)
+
+
 def _nibbles(word: int, width: int) -> list[int]:
     return [int((word >> (4 * index)) & 0xF) for index in range(width // 4)]
+
+
+def _repeat_to_cells(values: list[int], cells: int) -> list[int]:
+    if len(values) == cells:
+        return values
+    if not values:
+        return [0] * cells
+    return [values[index % len(values)] for index in range(cells)]
 
 
 def _mean(values: list[int]) -> float:
@@ -207,7 +311,9 @@ def _entropy01(values: list[int]) -> float:
 
 __all__ = [
     "PresentPairCandidateEvidence",
+    "present_pair_candidate_cell_features",
     "present_pair_candidate_evidence_features",
     "present_pair_candidate_evidence_layers",
+    "present_pairset_candidate_cell_features",
     "present_pairset_candidate_evidence_features",
 ]

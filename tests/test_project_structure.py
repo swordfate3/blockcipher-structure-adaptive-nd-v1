@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from blockcipher_nd.engine.matrix_runner import parse_args
@@ -518,8 +519,9 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
-    assert "Do not create or launch the 262144/class candidate-trail matrix yet" in plan
-    assert "cell-structured candidate-trail feature representation" in plan
+    assert "Local cell-structured candidate-trail features are implemented" in plan
+    assert "feature_mode = cell_structured" in plan
+    assert "feature_mode = cell_structured_shuffled" in plan
     assert "candidate_trail_consistency_shuffled_cells" in plan
     assert "expected_rows = 4" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
@@ -939,6 +941,7 @@ def test_candidate_trail_smoke_config_preserves_official_protocol():
     assert args.validation_key == 0x11111111111111111111
     assert args.key_rotation_interval == 0
     assert args.model == "mlp"
+    assert args.feature_mode == "cell_structured"
     assert args.feature_cache_root == Path(config["feature_cache_root"])
     assert "SMOKE only" in config["description"]
     assert "not accuracy evidence" in config["description"]
@@ -963,8 +966,26 @@ def test_candidate_trail_config_can_be_overridden_from_cli(tmp_path):
 
     assert args.output == tmp_path / "override.jsonl"
     assert args.model == "linear"
+    assert args.feature_mode == "cell_structured"
     assert args.samples_per_class == 3
     assert args.sample_structure == "zhang_wang_case2_official_mcnd"
+
+
+def test_candidate_trail_rejects_mismatched_shuffled_feature_mode(tmp_path):
+    config_path = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json"
+    )
+    with pytest.raises(SystemExit, match="shuffled_cells requires feature_mode=cell_structured_shuffled"):
+        spn_candidate_evidence.parse_args(
+            [
+                "--config",
+                str(config_path),
+                "--output",
+                str(tmp_path / "bad.jsonl"),
+                "--model",
+                "shuffled_cells",
+            ]
+        )
 
 
 def test_scripts_readme_documents_monitor_health_result_states():
@@ -2982,6 +3003,44 @@ def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):
     assert '"sample_structure": "zhang_wang_case2_official_mcnd"' in progress_text
 
 
+def test_candidate_evidence_cell_structured_and_shuffled_controls_differ(tmp_path):
+    common = {
+        "rounds": 7,
+        "key": 0,
+        "input_difference": 0x9,
+        "seed": 7,
+        "samples_per_class": 2,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_rotation_interval": 0,
+        "beam_width": 2,
+        "depth": 2,
+        "feature_cache_chunk_size": 1,
+        "split": "train",
+    }
+    true_features, true_labels = make_candidate_dataset(
+        **common,
+        feature_mode="cell_structured",
+        feature_cache_root=tmp_path / "true_cache",
+        progress_output=tmp_path / "true_progress.jsonl",
+    )
+    shuffled_features, shuffled_labels = make_candidate_dataset(
+        **common,
+        feature_mode="cell_structured_shuffled",
+        feature_cache_root=tmp_path / "shuffled_cache",
+        progress_output=tmp_path / "shuffled_progress.jsonl",
+    )
+
+    assert true_features.shape == shuffled_features.shape == (4, 870)
+    assert np.array_equal(np.asarray(true_labels), np.asarray(shuffled_labels))
+    assert not np.array_equal(np.asarray(true_features), np.asarray(shuffled_features))
+    true_progress = (tmp_path / "true_progress.jsonl").read_text(encoding="utf-8")
+    shuffled_progress = (tmp_path / "shuffled_progress.jsonl").read_text(encoding="utf-8")
+    assert '"feature_mode": "cell_structured"' in true_progress
+    assert '"feature_mode": "cell_structured_shuffled"' in shuffled_progress
+
+
 def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
     output = tmp_path / "candidate.jsonl"
     spn_candidate_evidence.main(
@@ -3011,9 +3070,47 @@ def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
     assert row["route"] == "candidate_trail_consistency_mlp"
     assert row["model"] == "candidate_trail_consistency_mlp"
     assert row["training_model"] == "mlp"
+    assert row["training_model_family"] == "mlp"
+    assert row["feature_mode"] == "cell_structured"
     assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert row["negative_mode"] == "encrypted_random_plaintexts"
     assert row["key_rotation_interval"] == 0
+
+
+def test_candidate_evidence_cli_outputs_shuffled_cell_control_key(tmp_path):
+    output = tmp_path / "candidate_shuffled.jsonl"
+    spn_candidate_evidence.main(
+        [
+            "--output",
+            str(output),
+            "--samples-per-class",
+            "2",
+            "--pairs-per-sample",
+            "1",
+            "--epochs",
+            "1",
+            "--model",
+            "shuffled_cells",
+            "--feature-mode",
+            "cell_structured_shuffled",
+            "--feature-cache-root",
+            str(tmp_path / "cache"),
+            "--feature-cache-chunk-size",
+            "1",
+            "--progress-output",
+            str(tmp_path / "progress.jsonl"),
+            "--device",
+            "cpu",
+        ]
+    )
+
+    row = json.loads(output.read_text(encoding="utf-8"))
+    assert row["route"] == "candidate_trail_consistency_shuffled_cells"
+    assert row["model"] == "candidate_trail_consistency_shuffled_cells"
+    assert row["training_model"] == "shuffled_cells"
+    assert row["training_model_family"] == "mlp"
+    assert row["feature_mode"] == "cell_structured_shuffled"
+    assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
 
 
 def _write_candidate_trail_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:

@@ -12,7 +12,9 @@ from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.keys import random_cipher_for_pair
 from blockcipher_nd.data.differential.random import random_int
 from blockcipher_nd.features.spn_candidate_evidence import (
+    present_pair_candidate_cell_features,
     present_pair_candidate_evidence_features,
+    present_pairset_candidate_cell_features,
     present_pairset_candidate_evidence_features,
 )
 from blockcipher_nd.registry.cipher_factory import build_cipher
@@ -31,6 +33,7 @@ def make_candidate_dataset(
     key_rotation_interval: int,
     beam_width: int,
     depth: int,
+    feature_mode: str = "aggregate",
     feature_cache_root: Path | None = None,
     feature_cache_chunk_size: int = 4096,
     progress_output: Path | None = None,
@@ -60,6 +63,7 @@ def make_candidate_dataset(
         key_rotation_interval=key_rotation_interval,
         beam_width=beam_width,
         depth=depth,
+        feature_mode=feature_mode,
         width=cipher.block_bits,
     )
     if feature_cache_root is not None:
@@ -231,17 +235,7 @@ def _pairset_features(
     metadata: dict[str, Any],
 ) -> np.ndarray:
     if pairs and len(pairs[0]) == 3:
-        pair_features = [
-            present_pair_candidate_evidence_features(
-                int(pair[0]),
-                int(pair[1]),
-                width=config.cipher.block_bits,
-                cipher=pair[2],
-                beam_width=int(metadata["beam_width"]),
-                depth=int(metadata["depth"]),
-            )
-            for pair in pairs
-        ]
+        pair_features = [_pair_features(config, int(pair[0]), int(pair[1]), pair[2], metadata) for pair in pairs]
         stacked = np.stack(pair_features, axis=0).astype(np.float32)
         means = stacked.mean(axis=0)
         stds = stacked.std(axis=0)
@@ -258,10 +252,46 @@ def _pairset_features(
             dtype=np.float32,
         )
         return np.concatenate([means, stds, spans, global_stats]).astype(np.float32)
+    if str(metadata["feature_mode"]).startswith("cell_structured"):
+        return present_pairset_candidate_cell_features(
+            pairs,
+            width=config.cipher.block_bits,
+            cipher=row_cipher,
+            beam_width=int(metadata["beam_width"]),
+            depth=int(metadata["depth"]),
+            cell_permutation=_cell_permutation(config.cipher.block_bits, metadata),
+        )
     return present_pairset_candidate_evidence_features(
         pairs,
         width=config.cipher.block_bits,
         cipher=row_cipher,
+        beam_width=int(metadata["beam_width"]),
+        depth=int(metadata["depth"]),
+    )
+
+
+def _pair_features(
+    config: DifferentialDatasetConfig,
+    left: int,
+    right: int,
+    cipher,
+    metadata: dict[str, Any],
+) -> np.ndarray:
+    if str(metadata["feature_mode"]).startswith("cell_structured"):
+        return present_pair_candidate_cell_features(
+            left,
+            right,
+            width=config.cipher.block_bits,
+            cipher=cipher,
+            beam_width=int(metadata["beam_width"]),
+            depth=int(metadata["depth"]),
+            cell_permutation=_cell_permutation(config.cipher.block_bits, metadata),
+        )
+    return present_pair_candidate_evidence_features(
+        left,
+        right,
+        width=config.cipher.block_bits,
+        cipher=cipher,
         beam_width=int(metadata["beam_width"]),
         depth=int(metadata["depth"]),
     )
@@ -281,9 +311,12 @@ def _candidate_cache_metadata(
     key_rotation_interval: int,
     beam_width: int,
     depth: int,
+    feature_mode: str,
     width: int,
 ) -> dict[str, Any]:
-    feature_dim = depth * 20 * 3 + 6
+    if feature_mode not in {"aggregate", "cell_structured", "cell_structured_shuffled"}:
+        raise ValueError(f"unsupported candidate feature_mode: {feature_mode}")
+    feature_dim = _candidate_feature_dim(depth=depth, feature_mode=feature_mode, width=width)
     return {
         "cache_type": "spn_candidate_evidence",
         "cipher": "present80",
@@ -301,13 +334,31 @@ def _candidate_cache_metadata(
         "beam_width": beam_width,
         "depth": depth,
         "source": "structural_inverse",
+        "feature_mode": feature_mode,
         "width": width,
         "feature_dim": feature_dim,
         "feature_dtype": "float32",
         "label_dtype": "uint8",
         "shuffle": True,
-        "cache_version": 1,
+        "cell_shuffle_seed": 20260701 if feature_mode == "cell_structured_shuffled" else None,
+        "cache_version": 2,
     }
+
+
+def _candidate_feature_dim(*, depth: int, feature_mode: str, width: int) -> int:
+    if feature_mode == "aggregate":
+        return depth * 20 * 3 + 6
+    cells = width // 4
+    cell_feature_dim = depth * cells * 9
+    return cell_feature_dim * 3 + 6
+
+
+def _cell_permutation(width: int, metadata: dict[str, Any]) -> list[int] | None:
+    if metadata["feature_mode"] != "cell_structured_shuffled":
+        return None
+    cells = width // 4
+    rng = np.random.default_rng(int(metadata["cell_shuffle_seed"]))
+    return rng.permutation(cells).astype(int).tolist()
 
 
 def _candidate_cache_dir(cache_root: Path, metadata: dict[str, Any]) -> Path:

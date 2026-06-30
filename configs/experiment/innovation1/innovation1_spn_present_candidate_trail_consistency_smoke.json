@@ -15,6 +15,7 @@
   "key_rotation_interval": 0,
   "beam_width": 2,
   "depth": 2,
+  "feature_mode": "cell_structured",
   "feature_cache_root": "outputs/local_smoke/i1_candidate_trail_consistency_smoke_20260701/cache",
   "feature_cache_chunk_size": 1,
   "progress_output": "outputs/local_smoke/i1_candidate_trail_consistency_smoke_20260701/progress.jsonl",

@@ -22,6 +22,17 @@ DEFAULT_VALIDATION_KEY = 0x11111111111111111111
 MODEL_ROUTE_KEYS = {
     "linear": "candidate_trail_consistency_linear",
     "mlp": "candidate_trail_consistency_mlp",
+    "shuffled_cells": "candidate_trail_consistency_shuffled_cells",
+}
+MODEL_TRAINING_KEYS = {
+    "linear": "linear",
+    "mlp": "mlp",
+    "shuffled_cells": "mlp",
+}
+MODEL_FEATURE_MODES = {
+    "linear": "cell_structured",
+    "mlp": "cell_structured",
+    "shuffled_cells": "cell_structured_shuffled",
 }
 
 
@@ -44,10 +55,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--depth", type=int, default=None)
     parser.add_argument("--feature-cache-root", type=Path, default=None)
     parser.add_argument("--feature-cache-chunk-size", type=int, default=None)
+    parser.add_argument("--feature-mode", default=None)
     parser.add_argument("--progress-output", type=Path, default=None)
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--learning-rate", type=float, default=None)
-    parser.add_argument("--model", choices=["linear", "mlp"], default=None)
+    parser.add_argument("--model", choices=list(MODEL_ROUTE_KEYS), default=None)
     parser.add_argument("--device", default=None)
     args = parser.parse_args(argv)
     return _apply_config_defaults(args)
@@ -68,6 +80,7 @@ def main(argv: list[str] | None = None) -> None:
         key_rotation_interval=args.key_rotation_interval,
         beam_width=args.beam_width,
         depth=args.depth,
+        feature_mode=args.feature_mode,
         feature_cache_root=args.feature_cache_root,
         feature_cache_chunk_size=args.feature_cache_chunk_size,
         progress_output=args.progress_output,
@@ -86,6 +99,7 @@ def main(argv: list[str] | None = None) -> None:
         key_rotation_interval=args.key_rotation_interval,
         beam_width=args.beam_width,
         depth=args.depth,
+        feature_mode=args.feature_mode,
         feature_cache_root=args.feature_cache_root,
         feature_cache_chunk_size=args.feature_cache_chunk_size,
         progress_output=args.progress_output,
@@ -95,7 +109,7 @@ def main(argv: list[str] | None = None) -> None:
     model = train_model(
         train_features,
         train_labels,
-        model_name=args.model,
+        model_name=MODEL_TRAINING_KEYS[args.model],
         epochs=args.epochs,
         learning_rate=args.learning_rate,
         device=device,
@@ -114,6 +128,7 @@ def main(argv: list[str] | None = None) -> None:
         "route": route,
         "model": route,
         "training_model": args.model,
+        "training_model_family": MODEL_TRAINING_KEYS[args.model],
         "rounds": args.rounds,
         "seed": args.seed,
         "samples_per_class": args.samples_per_class,
@@ -129,6 +144,7 @@ def main(argv: list[str] | None = None) -> None:
         "depth": args.depth,
         "device": args.device,
         "feature_cache_enabled": args.feature_cache_root is not None,
+        "feature_mode": args.feature_mode,
         "feature_cache_root": str(args.feature_cache_root) if args.feature_cache_root is not None else None,
         "feature_cache_chunk_size": args.feature_cache_chunk_size,
         "progress_output": str(args.progress_output) if args.progress_output is not None else None,
@@ -159,6 +175,7 @@ def _apply_config_defaults(args: argparse.Namespace) -> argparse.Namespace:
         "depth": 3,
         "feature_cache_root": None,
         "feature_cache_chunk_size": 4096,
+        "feature_mode": None,
         "progress_output": None,
         "epochs": 30,
         "learning_rate": 1e-2,
@@ -196,6 +213,14 @@ def _apply_config_defaults(args: argparse.Namespace) -> argparse.Namespace:
         raise SystemExit("--output is required unless provided by --config")
     if args.model not in MODEL_ROUTE_KEYS:
         raise SystemExit(f"unsupported model in config: {args.model}")
+    if args.feature_mode is None:
+        args.feature_mode = MODEL_FEATURE_MODES[args.model]
+    elif args.feature_mode not in {"aggregate", "cell_structured", "cell_structured_shuffled"}:
+        raise SystemExit(f"unsupported feature_mode in config: {args.feature_mode}")
+    if args.model == "shuffled_cells" and args.feature_mode != "cell_structured_shuffled":
+        raise SystemExit("shuffled_cells requires feature_mode=cell_structured_shuffled")
+    if args.model != "shuffled_cells" and args.feature_mode == "cell_structured_shuffled":
+        raise SystemExit(f"{args.model} cannot use shuffled control feature_mode")
     return args
 
 
