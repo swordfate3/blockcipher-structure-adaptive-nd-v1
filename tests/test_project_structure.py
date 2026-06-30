@@ -2746,6 +2746,40 @@ def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):
     assert '"sample_structure": "zhang_wang_case2_official_mcnd"' in progress_text
 
 
+def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
+    output = tmp_path / "candidate.jsonl"
+    spn_candidate_evidence.main(
+        [
+            "--output",
+            str(output),
+            "--samples-per-class",
+            "2",
+            "--pairs-per-sample",
+            "1",
+            "--epochs",
+            "1",
+            "--model",
+            "mlp",
+            "--feature-cache-root",
+            str(tmp_path / "cache"),
+            "--feature-cache-chunk-size",
+            "1",
+            "--progress-output",
+            str(tmp_path / "progress.jsonl"),
+            "--device",
+            "cpu",
+        ]
+    )
+
+    row = json.loads(output.read_text(encoding="utf-8"))
+    assert row["route"] == "candidate_trail_consistency_mlp"
+    assert row["model"] == "candidate_trail_consistency_mlp"
+    assert row["training_model"] == "mlp"
+    assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert row["negative_mode"] == "encrypted_random_plaintexts"
+    assert row["key_rotation_interval"] == 0
+
+
 def _write_candidate_trail_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
     with path.open("a", encoding="utf-8") as handle:
         handle.write(

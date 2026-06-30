@@ -18,6 +18,10 @@ from blockcipher_nd.tasks.innovation1.protocols import OFFICIAL_ZHANG_WANG_CASE2
 
 
 DEFAULT_DIFFERENCE_PROFILE = "present_zhang_wang2022_mcnd"
+MODEL_ROUTE_KEYS = {
+    "linear": "candidate_trail_consistency_linear",
+    "mlp": "candidate_trail_consistency_mlp",
+}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -102,8 +106,11 @@ def main(argv: list[str] | None = None) -> None:
             .reshape(-1)
         )
     probabilities = 1.0 / (1.0 + np.exp(-logits))
+    route = MODEL_ROUTE_KEYS[args.model]
     result = {
-        "route": "spn_candidate_evidence_baseline",
+        "route": route,
+        "model": route,
+        "training_model": args.model,
         "rounds": args.rounds,
         "seed": args.seed,
         "samples_per_class": args.samples_per_class,
@@ -117,7 +124,6 @@ def main(argv: list[str] | None = None) -> None:
         "key_rotation_interval": args.key_rotation_interval,
         "beam_width": args.beam_width,
         "depth": args.depth,
-        "model": args.model,
         "device": args.device,
         "feature_cache_enabled": args.feature_cache_root is not None,
         "feature_cache_root": str(args.feature_cache_root) if args.feature_cache_root is not None else None,

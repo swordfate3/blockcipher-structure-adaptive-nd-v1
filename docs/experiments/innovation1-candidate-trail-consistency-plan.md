@@ -263,7 +263,8 @@ result:
   sample_structure = zhang_wang_case2_official_mcnd
   negative_mode = encrypted_random_plaintexts
   key_rotation_interval = 0
-  route = spn_candidate_evidence_baseline
+  route/model = candidate_trail_consistency_linear or candidate_trail_consistency_mlp
+  training_model = linear or mlp
 ```
 
 Gate tooling update, 2026-07-01:
@@ -284,6 +285,20 @@ decisions =
 The gate and postprocess wrappers are local tooling only. They do not make this
 route launchable without the remaining smoke plan, remote config, and readiness
 checks.
+
+Output-contract update, 2026-07-01:
+
+```text
+scripts/spn-candidate-evidence now writes gate-aligned result keys:
+  model = candidate_trail_consistency_linear for --model linear
+  model = candidate_trail_consistency_mlp    for --model mlp
+
+The original learner type remains visible as:
+  training_model = linear or mlp
+```
+
+This prevents a retrieved candidate-trail JSONL from passing training but later
+failing local gate/postprocess with `missing_candidate_models`.
 
 ## Claim Scope
 
