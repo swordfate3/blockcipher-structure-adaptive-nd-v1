@@ -87,6 +87,8 @@ def monitor_health_report(
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
+    if expected_result_rows is None and plan_path is not None:
+        expected_result_rows = _default_expected_rows(postprocess_kind)
     done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
     failed_markers = _relative_paths(run_root, sorted(run_root.glob("**/*failed*")))
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
@@ -439,7 +441,7 @@ def _default_expected_rows(kind: str) -> int:
     if kind == "pairset_aggregation":
         return 2
     if kind == "candidate_trail":
-        return 3
+        return 4
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -464,6 +466,8 @@ def _jsonl_nonempty_line_count(path: Path) -> int:
 
 def _plan_row_count(path: Path | None) -> int | None:
     if path is None or not path.exists():
+        return None
+    if path.suffix.lower() != ".csv":
         return None
     with path.open(newline="", encoding="utf-8") as handle:
         return sum(1 for _row in csv.DictReader(handle))

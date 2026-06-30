@@ -2502,6 +2502,49 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         str(candidate_doc),
     ]
 
+    candidate_default_run = "i1_candidate_trail_default_rows"
+    candidate_default_root = root / candidate_default_run
+    candidate_default_monitor = candidate_default_root / "monitor"
+    candidate_default_monitor.mkdir(parents=True)
+    (candidate_default_monitor / "monitor.log").write_text(
+        "2026-06-29T18:30:00+08:00 running\n",
+        encoding="utf-8",
+    )
+    (candidate_default_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    candidate_default_results = candidate_default_root / "results"
+    candidate_default_results.mkdir()
+    candidate_default_jsonl = candidate_default_results / f"{candidate_default_run}.jsonl"
+    candidate_default_jsonl.write_text("{}\n{}\n{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=candidate_default_run,
+        root=root,
+        plan_path=candidate_plan,
+        postprocess_kind="candidate_trail",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 4
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-candidate-trail",
+        "--plan",
+        str(candidate_plan),
+        "--results",
+        str(candidate_default_jsonl),
+        "--output-dir",
+        str(candidate_default_root),
+        "--run-id",
+        candidate_default_run,
+        "--expected-rows",
+        "4",
+    ]
+
     pairset_run = "i1_pairset_aggregation_control_unit"
     pairset_root = root / pairset_run
     pairset_monitor = pairset_root / "monitor"
