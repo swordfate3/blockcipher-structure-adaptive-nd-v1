@@ -20,6 +20,7 @@ from blockcipher_nd.features.registry import (
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
+from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -839,6 +840,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
         Path("scripts/gate-invp-result"),
+        Path("scripts/gate-candidate-trail"),
         Path("scripts/postprocess-invp-result"),
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
@@ -2740,6 +2742,61 @@ def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):
     progress_text = progress_path.read_text(encoding="utf-8")
     assert "candidate_cache_done" in progress_text
     assert '"sample_structure": "zhang_wang_case2_official_mcnd"' in progress_text
+
+
+def _write_candidate_trail_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": model,
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": calibrated,
+                        "calibrated_accuracy": calibrated,
+                        "loss": 0.55,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def test_candidate_trail_gate_supports_route_when_candidate_beats_anchor(tmp_path):
+    results = tmp_path / "candidate_trail.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7925)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7940)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_shuffled_cells", 0.7926)
+
+    report = gate_candidate_trail_result(results, expected_rows=4)
+
+    assert report["status"] == "pass"
+    assert report["best_candidate_model"] == "candidate_trail_consistency_mlp"
+    assert report["decision"] == "support_candidate_trail_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] > 0.001
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_candidate_trail_gate_marks_weak_or_stop_signal(tmp_path):
+    weak_results = tmp_path / "candidate_trail_weak.jsonl"
+    _write_candidate_trail_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(weak_results, "candidate_trail_consistency_linear", 0.7922)
+    _write_candidate_trail_result(weak_results, "candidate_trail_consistency_mlp", 0.7924)
+
+    weak = gate_candidate_trail_result(weak_results, expected_rows=3)
+    assert weak["decision"] == "weak_candidate_trail_signal"
+
+    stop_results = tmp_path / "candidate_trail_stop.jsonl"
+    _write_candidate_trail_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(stop_results, "candidate_trail_consistency_linear", 0.7910)
+    _write_candidate_trail_result(stop_results, "candidate_trail_consistency_mlp", 0.7915)
+
+    stop = gate_candidate_trail_result(stop_results, expected_rows=3)
+    assert stop["decision"] == "stop_candidate_trail_route"
+    assert stop["margin_vs_anchor_auc"] < 0
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():

@@ -266,6 +266,23 @@ result:
   route = spn_candidate_evidence_baseline
 ```
 
+Gate tooling update, 2026-07-01:
+
+```text
+script = scripts/gate-candidate-trail
+module = src/blockcipher_nd/planning/candidate_trail_gate.py
+purpose = compare candidate_trail_consistency_linear/mlp against
+          present_nibble_invp_only_spn_only and optional shuffled-cell control
+decisions =
+  support_candidate_trail_route
+  weak_candidate_trail_signal
+  stop_candidate_trail_route
+```
+
+The gate is local tooling only. It does not make this route launchable without
+the remaining smoke plan, postprocess wrapper, remote config, and readiness
+checks.
+
 ## Claim Scope
 
 Until at least `1000000/class` multi-seed evidence exists, this route can only
