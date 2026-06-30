@@ -114,6 +114,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     candidate_consistency = _candidate_trail_consistency(config)
     errors.extend(candidate_consistency["errors"])
     warnings.extend(candidate_consistency["warnings"])
+    pairset_consistency = _pairset_aggregation_consistency(config)
+    errors.extend(pairset_consistency["errors"])
+    warnings.extend(pairset_consistency["warnings"])
 
     return {
         "status": "pass" if not errors else "fail",
@@ -135,6 +138,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
             "medium_scale_dataset_cache",
             "training_protocol_matches_plan",
             "candidate_trail_protocol_lock",
+            "pairset_aggregation_stage_lock",
         ],
     }
 
@@ -236,6 +240,32 @@ def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]
     return {"errors": errors, "warnings": warnings}
 
 
+def _pairset_aggregation_consistency(config: dict[str, Any]) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_pairset_aggregation_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    stage = config.get("pairset_stage")
+    if stage == "single_pair_scorer_checkpoint":
+        _require_remote_path(config, "checkpoint_output", errors)
+    elif stage == "learned_pairset_plus_frozen_aggregation_gate":
+        _require_remote_path(config, "requires_checkpoint", errors)
+        _require_remote_path(config, "frozen_aggregation_output", errors)
+    else:
+        errors.append(f"pairset_aggregation unsupported or missing pairset_stage: {stage}")
+
+    return {"errors": errors, "warnings": warnings}
+
+
+def _require_remote_path(config: dict[str, Any], field: str, errors: list[str]) -> None:
+    value = _str_value(config.get(field))
+    if not value:
+        errors.append(f"pairset_aggregation missing {field}")
+    elif not value.startswith(REMOTE_ROOT):
+        errors.append(f"pairset_aggregation {field} must stay under {REMOTE_ROOT}: {value}")
+
+
 def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
     haystack = " ".join(
         _str_value(config.get(field))
@@ -256,6 +286,27 @@ def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
         "spn-candidate-evidence",
         "candidate_evidence",
         "candidate-evidence",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_pairset_aggregation_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "launch_policy",
+            "pairset_stage",
+        ]
+    ).lower()
+    markers = [
+        "pairset_aggregation",
+        "pair-set aggregation",
+        "pairset aggregation",
+        "frozen_aggregation",
     ]
     return any(marker in haystack for marker in markers)
 

@@ -444,6 +444,25 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
     assert remote_readiness_report(learned_path)["status"] == "pass"
 
 
+def test_pairset_aggregation_readiness_rejects_missing_stage_artifacts(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config.pop("requires_checkpoint")
+    config["frozen_aggregation_output"] = "C:\\Users\\bad\\frozen_aggregation_summary.json"
+    path = tmp_path / "bad_pairset_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert "pairset_aggregation_stage_lock" in report["checked_invariants"]
+    assert any("pairset_aggregation missing requires_checkpoint" in error for error in report["errors"])
+    assert any("pairset_aggregation frozen_aggregation_output must stay under" in error for error in report["errors"])
+
+
 def test_archived_active_pattern_remote_config_is_not_launchable():
     path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
     config = json.loads(path.read_text(encoding="utf-8"))
