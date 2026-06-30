@@ -29,6 +29,9 @@ It emits `postprocess_command` only for `result_ready`, which requires a
 retrieved JSONL with at least one non-empty row. `completed_missing_results`
 means a done marker exists but the JSONL is missing; `results_empty` means the
 JSONL exists but has no non-empty rows. Neither state should be postprocessed.
+Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`, or
+`--postprocess-kind ddt_graph` so the emitted command calls the matching
+postprocess entrypoint and expected row count.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or

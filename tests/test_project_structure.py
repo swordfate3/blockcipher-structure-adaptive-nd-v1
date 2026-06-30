@@ -1662,6 +1662,98 @@ def test_monitor_health_requires_expected_result_rows(tmp_path):
     assert report["postprocess_allowed"] is True
 
 
+def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
+    root = tmp_path / "remote_results"
+    plan = tmp_path / "plan.csv"
+    plan.write_text("model_key\nrow_a\nrow_b\n", encoding="utf-8")
+    plan_doc = tmp_path / "plan.md"
+    plan_doc.write_text("# plan\n", encoding="utf-8")
+
+    attribution_run = "unit_attr"
+    attribution_root = root / attribution_run
+    attribution_monitor = attribution_root / "monitor"
+    attribution_monitor.mkdir(parents=True)
+    (attribution_monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (attribution_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    attribution_results = attribution_root / "results"
+    attribution_results.mkdir()
+    attribution_jsonl = attribution_results / f"{attribution_run}.jsonl"
+    attribution_jsonl.write_text("{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=attribution_run,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        postprocess_kind="invp_attribution",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 2
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-invp-attribution-controls",
+        "--plan",
+        str(plan),
+        "--results",
+        str(attribution_jsonl),
+        "--output-dir",
+        str(attribution_root),
+        "--run-id",
+        attribution_run,
+        "--expected-rows",
+        "2",
+        "--update-plan-doc",
+        str(plan_doc),
+    ]
+
+    ddt_run = "unit_ddt"
+    ddt_root = root / ddt_run
+    ddt_monitor = ddt_root / "monitor"
+    ddt_monitor.mkdir(parents=True)
+    (ddt_monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (ddt_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    ddt_results = ddt_root / "results"
+    ddt_results.mkdir()
+    ddt_jsonl = ddt_results / f"{ddt_run}.jsonl"
+    ddt_jsonl.write_text("{}\n{}\n{}\n{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=ddt_run,
+        root=root,
+        plan_path=plan,
+        expected_rows=5,
+        postprocess_kind="ddt_graph",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 5
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-ddt-graph-result",
+        "--plan",
+        str(plan),
+        "--results",
+        str(ddt_jsonl),
+        "--output-dir",
+        str(ddt_root),
+        "--run-id",
+        ddt_run,
+        "--expected-rows",
+        "5",
+    ]
+
+
 def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_running_empty"

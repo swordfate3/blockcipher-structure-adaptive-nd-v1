@@ -56,6 +56,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Expected result rows. Defaults to the plan CSV row count when --plan is provided.",
     )
+    parser.add_argument(
+        "--postprocess-kind",
+        choices=["invp", "invp_attribution", "ddt_graph"],
+        default="invp",
+        help="Which local postprocess entrypoint to emit when the result is ready.",
+    )
     return parser.parse_args(argv)
 
 
@@ -67,6 +73,7 @@ def monitor_health_report(
     plan_path: Path | None = None,
     plan_doc_path: Path | None = None,
     expected_rows: int | None = None,
+    postprocess_kind: str = "invp",
     recent_lines: int = 8,
     stale_after_seconds: int = 1800,
     now: datetime | None = None,
@@ -104,6 +111,8 @@ def monitor_health_report(
         run_root=run_root,
         plan_path=plan_path,
         plan_doc_path=plan_doc_path,
+        expected_rows=expected_result_rows,
+        postprocess_kind=postprocess_kind,
     )
     return {
         "status": status,
@@ -258,9 +267,12 @@ def _postprocess_command(
     run_root: Path,
     plan_path: Path | None,
     plan_doc_path: Path | None,
+    expected_rows: int | None,
+    postprocess_kind: str,
 ) -> list[str]:
     if status != "result_ready" or plan_path is None:
         return []
+    script = _postprocess_script(postprocess_kind)
     command = [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -268,7 +280,7 @@ def _postprocess_command(
         "uv",
         "run",
         "python",
-        "scripts/postprocess-invp-result",
+        script,
         "--plan",
         str(plan_path),
         "--results",
@@ -278,11 +290,37 @@ def _postprocess_command(
         "--run-id",
         run_id,
         "--expected-rows",
-        "1",
+        str(_postprocess_expected_rows(postprocess_kind, expected_rows)),
     ]
     if plan_doc_path is not None:
         command.extend(["--update-plan-doc", str(plan_doc_path)])
     return command
+
+
+def _postprocess_script(kind: str) -> str:
+    if kind == "invp":
+        return "scripts/postprocess-invp-result"
+    if kind == "invp_attribution":
+        return "scripts/postprocess-invp-attribution-controls"
+    if kind == "ddt_graph":
+        return "scripts/postprocess-ddt-graph-result"
+    raise ValueError(f"unsupported postprocess kind: {kind}")
+
+
+def _default_expected_rows(kind: str) -> int:
+    if kind == "invp":
+        return 1
+    if kind == "invp_attribution":
+        return 2
+    if kind == "ddt_graph":
+        return 5
+    raise ValueError(f"unsupported postprocess kind: {kind}")
+
+
+def _postprocess_expected_rows(kind: str, expected_rows: int | None) -> int:
+    if expected_rows is not None and expected_rows > 0:
+        return expected_rows
+    return _default_expected_rows(kind)
 
 
 def _tail_lines(path: Path, count: int) -> list[str]:
@@ -334,6 +372,7 @@ def main(argv: list[str] | None = None) -> int:
         plan_path=args.plan,
         plan_doc_path=args.plan_doc,
         expected_rows=args.expected_rows,
+        postprocess_kind=args.postprocess_kind,
         recent_lines=args.recent_lines,
         stale_after_seconds=args.stale_after_seconds,
     )
