@@ -2949,6 +2949,7 @@ def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):
     assert report["expected_rows"] == 1
     assert report["max_samples_per_class"] == 2
     assert report["errors"] == []
+    assert "medium_scale_dataset_cache" not in report["checked_invariants"]
     assert "candidate_trail_protocol_lock" in report["checked_invariants"]
     assert "pairset_aggregation_stage_lock" not in report["checked_invariants"]
 

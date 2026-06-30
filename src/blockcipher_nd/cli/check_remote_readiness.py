@@ -88,7 +88,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     elif not monitor_script.endswith(".sh"):
         errors.append(f"monitor_script_name must end with .sh: {monitor_script}")
 
-    if _max_samples_per_class(tasks) >= 65_536:
+    max_samples_per_class = _max_samples_per_class(tasks)
+    if max_samples_per_class >= 65_536:
         if config.get("dataset_cache") is not True:
             errors.append("dataset_cache must be true for medium or larger remote runs")
         cache_root = _str_value(config.get("dataset_cache_root"))
@@ -125,9 +126,10 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         "github_ssh_repo",
         "cmd_exe_c_only_policy",
         "g_lxy_artifact_policy",
-        "medium_scale_dataset_cache",
         "training_protocol_matches_plan",
     ]
+    if max_samples_per_class >= 65_536:
+        checked_invariants.append("medium_scale_dataset_cache")
     if _is_candidate_trail_config(config):
         checked_invariants.append("candidate_trail_protocol_lock")
     if _is_pairset_aggregation_config(config):
@@ -140,7 +142,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         "plan": str(plan_path) if plan_path is not None else None,
         "expected_rows": expected_rows,
         "plan_rows": len(tasks),
-        "max_samples_per_class": _max_samples_per_class(tasks),
+        "max_samples_per_class": max_samples_per_class,
         "errors": errors,
         "warnings": warnings,
         "checked_invariants": checked_invariants,
