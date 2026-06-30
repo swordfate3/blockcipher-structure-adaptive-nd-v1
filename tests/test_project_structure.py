@@ -2463,6 +2463,44 @@ def test_monitor_health_requires_expected_result_rows(tmp_path):
     assert report["postprocess_allowed"] is True
 
 
+def test_monitor_health_keeps_running_when_partial_rows_arrive_before_done(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_matrix_partial_running"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    results = root / run_id / "results"
+    results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+        now=datetime.fromisoformat("2026-06-29T15:01:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["results_jsonl_line_count"] == 1
+    assert report["expected_rows"] == 2
+    assert report["needs_main_thread_intervention"] is False
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+
+    (root / run_id / "done.marker").write_text("done\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+        now=datetime.fromisoformat("2026-06-29T15:01:00+08:00"),
+    )
+
+    assert report["status"] == "results_incomplete"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+
+
 def test_monitor_health_distinguishes_postprocessed_and_failed_postprocess(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_postprocessed"

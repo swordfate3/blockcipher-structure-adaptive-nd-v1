@@ -201,14 +201,20 @@ def _health_status(
         return "postprocess_failed"
     if _monitor_has_event(recent_monitor_lines, "postprocess_done"):
         return "postprocessed"
-    if expected_rows is not None and results_jsonl_line_count > 0 and results_jsonl_line_count < expected_rows:
-        return "results_incomplete"
-    if results_jsonl_line_count > 0:
-        return "result_ready"
     if done_markers:
+        if expected_rows is not None and 0 < results_jsonl_line_count < expected_rows:
+            return "results_incomplete"
+        if results_jsonl_line_count > 0:
+            return "result_ready"
         if results_jsonl_exists:
             return "results_empty"
         return "completed_missing_results"
+    if expected_rows is not None and results_jsonl_line_count > 0 and results_jsonl_line_count < expected_rows:
+        if not heartbeat["is_stale"] and any("running" in line for line in recent_monitor_lines):
+            return "running"
+        return "results_incomplete"
+    if results_jsonl_line_count > 0:
+        return "result_ready"
     if not run_root_exists or not recent_monitor_lines:
         return "missing_monitor"
     if stderr_text:
