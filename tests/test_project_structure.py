@@ -25,6 +25,7 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_result
+from blockcipher_nd.cli.plan_next_action import plan_next_action
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -823,6 +824,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/postprocess-invp-result"),
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
+        Path("scripts/plan-next-action"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -1480,6 +1482,94 @@ def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "| Next action branch | `pairset_aggregation_control` |" in plan_doc
     assert "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json" in plan_doc
+
+
+def test_plan_next_action_checks_ddt_seed1_readiness(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
+    results_path = tmp_path / "ddt_graph.jsonl"
+    output_dir = tmp_path / "postprocess"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    postprocess_report = postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph_next_action",
+        expected_rows=5,
+    )
+    report = plan_next_action(Path(postprocess_report["summary"]))
+
+    assert report["status"] == "pass"
+    assert report["branch"] == "ddt_graph_seed1_confirmation"
+    assert report["should_launch_remote"] is True
+    assert report["readiness_pass"] is True
+    assert [item["role"] for item in report["readiness_reports"]] == ["primary"]
+    assert report["readiness_reports"][0]["readiness"]["status"] == "pass"
+
+
+def test_plan_next_action_checks_pairset_stage_readiness(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
+    results_path = tmp_path / "ddt_graph_stop.jsonl"
+    output_dir = tmp_path / "postprocess"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7962,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    postprocess_report = postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph_pairset_next_action",
+        expected_rows=5,
+    )
+    report = plan_next_action(Path(postprocess_report["summary"]))
+
+    assert report["status"] == "pass"
+    assert report["branch"] == "pairset_aggregation_control"
+    assert report["should_launch_remote"] is True
+    assert report["readiness_pass"] is True
+    assert [item["role"] for item in report["readiness_reports"]] == ["stage_a", "primary"]
+    assert [item["readiness"]["status"] for item in report["readiness_reports"]] == ["pass", "pass"]
+
+
+def test_plan_next_action_reports_missing_remote_config(tmp_path):
+    summary = tmp_path / "summary.json"
+    summary.write_text(
+        json.dumps(
+            {
+                "run_id": "unit_missing_config",
+                "decision": "unit",
+                "action": "unit",
+                "next_action": {
+                    "branch": "missing_config",
+                    "should_launch_remote": True,
+                    "launch_remote_config": str(tmp_path / "missing.json"),
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = plan_next_action(summary)
+
+    assert report["status"] == "fail"
+    assert report["branch"] == "missing_config"
+    assert report["readiness_pass"] is False
+    assert report["readiness_reports"][0]["readiness"]["status"] == "fail"
+    assert "missing.json" in report["errors"][0]
 
 
 def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):

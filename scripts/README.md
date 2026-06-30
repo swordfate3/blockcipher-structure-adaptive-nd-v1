@@ -37,6 +37,11 @@ Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or
 touch the remote workstation.
 
+Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
+reads `next_action`, runs local readiness checks for any declared remote config,
+and emits a structured branch/readiness report. It does not launch, SSH, or
+touch the remote workstation.
+
 Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.
 It does not train or update the scorer; it slices each pair-set sample into
