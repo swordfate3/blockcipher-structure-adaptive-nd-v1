@@ -696,6 +696,26 @@ def test_invp_only_plan_records_bounded_monitor_health_command():
     assert "must not be used as a main-thread polling loop" in plan
 
 
+def test_invp_attribution_docs_record_route_specific_monitor_health_command():
+    plan = Path("docs/experiments/innovation1-invp-only-formal-attribution-plan.md").read_text(
+        encoding="utf-8"
+    )
+    summary = Path("docs/experiments/innovation1-invp-route-level-evidence-summary.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in [plan, summary]:
+        assert "scripts/monitor-health" in text
+        assert "--run-id i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630" in text
+        assert "--expected-rows 2" in text
+        assert "--postprocess-kind invp_attribution" in text
+        assert "`postprocess_command`" in text
+        assert "`result_ready`" in text
+        assert "`completed_missing_results`" in text
+        assert "`results_empty`" in text
+        assert "`results_incomplete`" in text
+
+
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
     result_path = tmp_path / "results.jsonl"
     result_path.write_text(

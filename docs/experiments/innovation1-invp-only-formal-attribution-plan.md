@@ -319,6 +319,21 @@ alignment, extra tokens, or seed variance.
 
 ## Post-Retrieval Stage-Gate Playbook
 
+Bounded local health check for watcher/sub-agent:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --run-id i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv \
+  --plan-doc docs/experiments/innovation1-invp-only-formal-attribution-plan.md \
+  --expected-rows 2 \
+  --postprocess-kind invp_attribution
+```
+
+When the status is `result_ready`, execute the emitted `postprocess_command`.
+Do not postprocess `completed_missing_results`, `results_empty`, or
+`results_incomplete`.
+
 The attribution-control watcher must run:
 
 ```bash

@@ -133,6 +133,21 @@ Rows:
 | `present_nibble_delta_only_spn_only` | tests generic XOR/nibble difference explanation | pending |
 | `present_nibble_shuffled_paligned_spn_only` | tests false alignment / extra-token explanation | pending |
 
+Bounded monitor-health command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --run-id i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_attribution_controls_r7_1m_seed0.csv \
+  --plan-doc docs/experiments/innovation1-invp-route-level-evidence-summary.md \
+  --expected-rows 2 \
+  --postprocess-kind invp_attribution
+```
+
+When `status` is `result_ready`, execute the emitted `postprocess_command`.
+Do not postprocess `completed_missing_results`, `results_empty`, or
+`results_incomplete`.
+
 Postprocess command:
 
 ```bash
