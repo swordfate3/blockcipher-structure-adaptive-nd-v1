@@ -403,6 +403,7 @@ def test_present_pairset_aggregation_control_262k_plans_are_staged_and_protocol_
 
 
 def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready():
+    plan_doc = Path("docs/experiments/innovation1-pairset-aggregation-control-plan.md").read_text(encoding="utf-8")
     scorer_path = Path(
         "configs/remote/"
         "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
@@ -442,6 +443,12 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
 
     assert remote_readiness_report(scorer_path)["status"] == "pass"
     assert remote_readiness_report(learned_path)["status"] == "pass"
+    assert "pairset_aggregation_stage_lock" in plan_doc
+    assert "pairset_stage = single_pair_scorer_checkpoint" in plan_doc
+    assert "checkpoint_output under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
+    assert "pairset_stage = learned_pairset_plus_frozen_aggregation_gate" in plan_doc
+    assert "requires_checkpoint under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
+    assert "frozen_aggregation_output under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
 
 
 def test_pairset_aggregation_readiness_rejects_missing_stage_artifacts(tmp_path):

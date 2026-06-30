@@ -301,6 +301,21 @@ remaining_requirement = wait for DDT result retrieval or explicit GPU yield befo
 windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
 ```
 
+Readiness stage lock:
+
+```text
+scripts/check-remote-readiness enforces pairset_aggregation_stage_lock:
+
+stage A:
+  pairset_stage = single_pair_scorer_checkpoint
+  checkpoint_output under G:\lxy\blockcipher-structure-adaptive-nd-runs
+
+stage B:
+  pairset_stage = learned_pairset_plus_frozen_aggregation_gate
+  requires_checkpoint under G:\lxy\blockcipher-structure-adaptive-nd-runs
+  frozen_aggregation_output under G:\lxy\blockcipher-structure-adaptive-nd-runs
+```
+
 Bounded local health check after launch:
 
 ```bash
