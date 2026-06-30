@@ -2855,6 +2855,7 @@ def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):
         "negative_mode": "encrypted_random_plaintexts",
         "validation_key": "0x11111111111111111111",
         "key_rotation_interval": 0,
+        "feature_mode": "cell_structured",
         "feature_cache_root": (
             "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\candidate_trail_smoke_cache"
         ),
@@ -2881,6 +2882,22 @@ def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):
     assert report["max_samples_per_class"] == 2
     assert report["errors"] == []
     assert "candidate_trail_protocol_lock" in report["checked_invariants"]
+
+
+def test_remote_readiness_gate_rejects_candidate_trail_without_feature_mode(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config.pop("feature_mode")
+    path = tmp_path / "candidate_trail_missing_feature_mode.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert any("candidate_trail feature_mode must be explicit cell-structured control" in error for error in report["errors"])
 
 
 def test_differential_data_layer_has_small_modules():

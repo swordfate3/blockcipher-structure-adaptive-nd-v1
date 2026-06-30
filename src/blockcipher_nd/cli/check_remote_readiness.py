@@ -219,6 +219,14 @@ def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]
         if observed != expected:
             errors.append(f"candidate_trail {field}={observed} expected={expected}")
 
+    feature_mode = config.get("feature_mode")
+    allowed_feature_modes = {"cell_structured", "cell_structured_shuffled"}
+    if feature_mode not in allowed_feature_modes:
+        errors.append(
+            "candidate_trail feature_mode must be explicit cell-structured control "
+            f"one of {sorted(allowed_feature_modes)}: {feature_mode}"
+        )
+
     cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
     if not cache_root:
         errors.append("candidate_trail missing feature_cache_root or dataset_cache_root")

@@ -11,6 +11,7 @@
   "sample_structure": "zhang_wang_case2_official_mcnd",
   "validation_key": "0x11111111111111111111",
   "key_rotation_interval": 0,
+  "feature_mode": "cell_structured",
   "feature_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\candidate_trail_consistency_smoke_cache",
   "feature_cache_chunk_size": 1,
   "archive_work_id": "i1_candidate_trail_consistency_smoke_gpu1_20260701",
