@@ -2690,6 +2690,52 @@ def test_remote_readiness_gate_rejects_bad_medium_scale_cache(tmp_path):
     assert any("dataset_cache_root must stay under" in error for error in report["errors"])
 
 
+def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):
+    config = {
+        "run_id": "i1_candidate_trail_consistency_smoke_remote_unit",
+        "task_name": "i1_candidate_trail_consistency_smoke_remote_unit",
+        "archive_work_id": "i1_candidate_trail_consistency_smoke_remote_unit",
+        "plan": (
+            "configs\\experiment\\innovation1\\"
+            "innovation1_spn_present_candidate_trail_consistency_smoke.json"
+        ),
+        "expected_rows": 1,
+        "device": "cuda:0",
+        "epochs": 1,
+        "batch_size": 2048,
+        "learning_rate": 0.01,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "negative_mode": "encrypted_random_plaintexts",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "feature_cache_root": (
+            "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\candidate_trail_smoke_cache"
+        ),
+        "branch": "main",
+        "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
+        "source_commit": "recorded_in_remote_run_script_git_revision",
+        "result_sync": "local_tmux_monitor_scp_fallback",
+        "monitor_script_name": "monitor_i1_candidate_trail_consistency_smoke_remote_unit.sh",
+        "claim_scope": "candidate-trail JSON-plan readiness smoke only; not accuracy evidence",
+        "launch_policy": (
+            "candidate-trail smoke readiness; use pushed GitHub commit; keep artifacts "
+            "under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor "
+            "retrieves results automatically"
+        ),
+    }
+    path = tmp_path / "candidate_trail_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 1
+    assert report["expected_rows"] == 1
+    assert report["max_samples_per_class"] == 2
+    assert report["errors"] == []
+    assert "candidate_trail_protocol_lock" in report["checked_invariants"]
+
+
 def test_differential_data_layer_has_small_modules():
     generator = Path("src/blockcipher_nd/data/differential/generator.py")
     rows = Path("src/blockcipher_nd/data/differential/rows.py")

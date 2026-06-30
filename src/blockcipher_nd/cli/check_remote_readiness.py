@@ -55,7 +55,10 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     elif not plan_path.exists():
         errors.append(f"plan does not exist: {plan_path}")
     else:
-        tasks = build_tasks(parse_train_args(["--plan", str(plan_path)]))
+        try:
+            tasks = _load_plan_tasks(plan_path)
+        except ValueError as exc:
+            errors.append(str(exc))
 
     expected_rows = _int_value(config.get("expected_rows"))
     if expected_rows is None:
@@ -175,6 +178,30 @@ def _training_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -
     return {"errors": errors, "warnings": warnings}
 
 
+def _load_plan_tasks(plan_path: Path) -> list[dict[str, Any]]:
+    if plan_path.suffix.lower() == ".json":
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        if not isinstance(plan, dict):
+            raise ValueError(f"JSON plan must be an object: {plan_path}")
+        return [_candidate_json_plan_task(plan)]
+    return build_tasks(parse_train_args(["--plan", str(plan_path)]))
+
+
+def _candidate_json_plan_task(plan: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "samples_per_class": _required_int(plan, "samples_per_class"),
+        "negative_mode": plan.get("negative_mode"),
+        "sample_structure": plan.get("sample_structure"),
+        "key_rotation_interval": _required_int(plan, "key_rotation_interval"),
+        "learning_rate": _optional_float(plan.get("learning_rate")),
+        "rounds": _required_int(plan, "rounds"),
+        "seed": _required_int(plan, "seed"),
+        "pairs_per_sample": _required_int(plan, "pairs_per_sample"),
+        "model": plan.get("model"),
+        "validation_key": plan.get("validation_key"),
+    }
+
+
 def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -247,6 +274,19 @@ def _int_value(value: Any) -> int | None:
     if isinstance(value, int):
         return value
     return None
+
+
+def _required_int(mapping: dict[str, Any], key: str) -> int:
+    value = mapping.get(key)
+    if isinstance(value, bool) or value is None:
+        raise ValueError(f"JSON plan missing integer field: {key}")
+    return int(value, 0) if isinstance(value, str) else int(value)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
 
 
 def _require_equal(config: dict[str, Any], key: str, expected: Any, errors: list[str]) -> None:
