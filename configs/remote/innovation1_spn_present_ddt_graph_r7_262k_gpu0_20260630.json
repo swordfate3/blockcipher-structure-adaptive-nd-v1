@@ -35,6 +35,6 @@
   "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
   "source_commit": "recorded_in_remote_run_script_git_revision",
   "result_sync": "local_tmux_monitor_scp_fallback",
-  "claim_scope": "MEDIUM 262144/class conditional N3 DDT graph diagnostic only: compare InvP-only anchor, no-DDT true-P transition residual, same-graph no-DDT control, true-P full-column DDT graph, and shuffled full-column DDT graph under the same Zhang/Wang official MCND protocol; launch only after attribution-control gate selects the DDT/topology branch; not formal reproduction or breakthrough evidence",
-  "launch_policy": "prepared config only until attribution-control gate selects this branch; use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; fast eval skips per-epoch full train-set metrics only"
+  "claim_scope": "MEDIUM 262144/class N3 DDT graph method-extension diagnostic only: compare InvP-only anchor, no-DDT true-P transition residual, same-graph no-DDT control, true-P full-column DDT graph, and shuffled full-column DDT graph under the same Zhang/Wang official MCND protocol after InvP attribution-control support; not formal reproduction or breakthrough evidence",
+  "launch_policy": "launch as DDT/topology method-extension after InvP attribution-control support; use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; fast eval skips per-epoch full train-set metrics only"
 }

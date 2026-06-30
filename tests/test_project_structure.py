@@ -254,7 +254,7 @@ def test_present_ddt_graph_262k_plan_is_conditional_same_protocol_matrix():
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
-def test_present_ddt_graph_262k_remote_config_is_prepared_not_launched():
+def test_present_ddt_graph_262k_remote_config_is_method_extension_ready():
     path = Path("configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json")
     config = json.loads(path.read_text(encoding="utf-8"))
 
@@ -267,9 +267,29 @@ def test_present_ddt_graph_262k_remote_config_is_prepared_not_launched():
     assert config["dataset_cache_workers"] == 4
     assert "cmd.exe /c" in config["launch_policy"]
     assert "cmd.exe /k" not in config["launch_policy"]
-    assert "prepared config only until attribution-control gate selects this branch" in config["launch_policy"]
-    assert "MEDIUM 262144/class conditional N3 DDT graph diagnostic" in config["claim_scope"]
+    assert "launch as DDT/topology method-extension after InvP attribution-control support" in config["launch_policy"]
+    assert "MEDIUM 262144/class N3 DDT graph method-extension diagnostic" in config["claim_scope"]
     assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
+
+
+def test_present_ddt_graph_remote_launch_assets_are_g_lxy_scoped():
+    launcher = Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd")
+    monitor = Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.sh")
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--dataset-cache-root" in launcher_text
+    assert "postprocess-ddt-graph-result" in monitor_text
 
 
 def test_present_spn_only_attribution_262k_plan_is_same_protocol():
@@ -660,7 +680,7 @@ def test_invp_only_gate_threshold_boundaries_are_stable(tmp_path):
         assert "auc_delta_vs_paligned_mcnd_1m" in report
 
 
-def test_ddt_conditional_plan_waits_for_attribution_gate():
+def test_ddt_conditional_plan_records_method_extension_launch_gate():
     invp_plan = Path("docs/experiments/innovation1-invp-only-1m-scale-plan.md").read_text(
         encoding="utf-8"
     )
@@ -671,11 +691,12 @@ def test_ddt_conditional_plan_waits_for_attribution_gate():
     assert "seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.001`" in invp_plan
     assert "seed0 delta `< +0.001`" in invp_plan
     assert "i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630" in ddt_plan
-    assert "decision = weaken_invp_structural_attribution" in ddt_plan
-    assert "decision = weak_attribution_support" in ddt_plan
     assert "decision = support_invp_structural_attribution" in ddt_plan
-    assert "Do not launch this DDT matrix merely because it is prepared." in ddt_plan
-    assert "Only then choose whether to keep formalizing InvP-only" in ddt_plan
+    assert "method-extension diagnostic route" in ddt_plan
+    assert "rescue branch" in ddt_plan
+    assert "failed InvP explanation" in ddt_plan
+    assert "check-remote-readiness status = pass" in ddt_plan
+    assert "CPU smoke status = pass, 3/3 rows" in ddt_plan
 
 
 def test_invp_only_plan_records_bounded_monitor_health_command():

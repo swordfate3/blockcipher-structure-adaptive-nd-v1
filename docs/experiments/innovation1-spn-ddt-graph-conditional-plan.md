@@ -2,44 +2,42 @@
 
 **Date:** 2026-06-30
 
-**Status:** conditional / implementation ready / waiting for attribution-control gate
+**Status:** method-extension launch ready / attribution-control gate passed
 
-**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives. This plan is a next-route guardrail, not a launched run.
+**Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives. This plan is a method-extension diagnostic route after the InvP-only attribution-control gate passed.
 
 ## Why This Exists
 
-The current active remote run is:
+The completed attribution-control run is:
 
 ```text
 run_id = i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630
 models = present_nibble_delta_only_spn_only,
          present_nibble_shuffled_paligned_spn_only
 scale = 1000000/class
-monitor = local watcher / tmux-managed retrieval
+decision = support_invp_structural_attribution
 ```
 
 The InvP-only 1M seed0/seed1 confirmation has already shown a stable positive
-signal over the local Zhang/Wang 1M anchor. While the attribution-control run is
-active, do not launch another GPU job. This document defines the next design
-route if the 1M attribution controls show that the gain is not clearly explained
-by true InvP/P-layer alignment, or if a stronger method-extension branch is
-explicitly selected after attribution is documented.
+signal over the local Zhang/Wang 1M anchor, and the 1M attribution controls
+support true InvP/P-layer alignment as the useful SPN structure signal. This
+document now launches DDT/topology as a stronger method-extension branch, not as
+a rescue branch for a failed InvP explanation.
 
 ## Trigger
 
-Use this route as the next experimental branch only after the active
-attribution-control run is retrieved, validated, postprocessed, and documented.
-The primary trigger is:
+Use this route as the next experimental branch because the active
+attribution-control run has been retrieved, validated, postprocessed, and
+documented. The trigger is:
 
 ```text
-decision = weaken_invp_structural_attribution
-or
-decision = weak_attribution_support and the prewritten follow-up is DDT/topology
+decision = support_invp_structural_attribution
+next-stage choice = optional DDT/topology method-extension branch
 ```
 
-If the gate returns `support_invp_structural_attribution`, do not start this
-route automatically as a rescue branch. In that case, DDT/topology becomes an
-optional method-strength branch, not evidence needed to save the InvP route.
+This route must be interpreted as medium diagnostic evidence. It tests whether
+explicit S-box DDT priors and true P-layer graph topology can improve beyond
+the now-supported InvP-only anchor.
 
 ## Hypothesis
 
@@ -75,9 +73,10 @@ Keep the matrix lean but attribution-complete, 5 rows:
 | 3 | new `present_nibble_ddt_graph` | DDT-aware true-P cell graph candidate |
 | 4 | new `present_nibble_shuffled_ddt_graph` | shuffled-P topology control |
 
-Do not include Zhang/Wang in this matrix unless the preceding 1M result suggests
-baseline drift. The already completed 262k/1M Zhang/Wang anchors are sufficient
-for context; this matrix is an attribution test among SPN-structured routes.
+Do not include Zhang/Wang in this matrix unless a later audit suggests baseline
+drift. The already completed 262k/1M Zhang/Wang anchors and the two-seed
+InvP-only confirmation are sufficient for context; this matrix is an attribution
+test among SPN-structured routes.
 
 ## Model Sketch
 
@@ -289,8 +288,9 @@ Action:
 Reason:
 
 ```text
-If controls support true InvP/P-layer attribution, the next evidence gap is
-formalization or stronger-method exploration, not rescuing a failed route.
+Controls support true InvP/P-layer attribution. The selected next action for
+this run is stronger-method exploration: test whether DDT/topology adds signal
+beyond the supported InvP-only anchor.
 ```
 
 ### Branch B: Attribution Is Weak Or Negative
@@ -535,9 +535,11 @@ retrieved 1M result shows baseline drift or protocol mismatch.
 Launch guardrail:
 
 ```text
-Do not launch this 262144/class matrix until the active 1M attribution-control
-run is retrieved, validated, and the gate selects the DDT/topology branch.
-Prepared matrix status is planned/ready, not launched/running evidence.
+Launch this 262144/class matrix only after:
+  - the 1M attribution-control run is retrieved and validated,
+  - the attribution gate supports InvP alignment,
+  - this route is explicitly selected as a method-extension diagnostic,
+  - readiness passes from the latest pushed commit.
 ```
 
 Prepared remote readiness command:
@@ -681,5 +683,25 @@ docs/experiments/innovation1-invp-route-level-evidence-summary.md updated
 docs updates verified, committed, and pushed
 ```
 
-Only then choose whether to keep formalizing InvP-only or launch the prepared
-DDT/topology matrix.
+This evidence is satisfied as of commit `cc05d2a`. The selected action is to
+launch the prepared DDT/topology matrix as a method-extension diagnostic from a
+pushed commit, then let the local watcher retrieve and postprocess the result.
+
+## Launch Record
+
+Planned launch:
+
+```text
+run_id = i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+scale = 262144/class
+expected_rows = 5
+device = cuda:0
+claim_scope = medium diagnostic method-extension, not formal evidence
+```
+
+Readiness/smoke gates:
+
+```text
+check-remote-readiness status = pass
+CPU smoke status = pass, 3/3 rows
+```
