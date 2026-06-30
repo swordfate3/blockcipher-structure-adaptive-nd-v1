@@ -32,6 +32,7 @@ from blockcipher_nd.registry.cipher_profiles import CipherProfile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
+from blockcipher_nd.tasks.innovation1 import spn_active_pattern, spn_candidate_evidence, spn_feature_audit
 
 
 def test_matrix_runner_lives_in_engine_package():
@@ -831,6 +832,16 @@ def test_scripts_are_thin_package_entrypoints():
         lines = [line for line in text.splitlines() if line.strip()]
         assert len(lines) <= 12, wrapper
         assert "blockcipher_nd.cli" in text
+
+
+def test_innovation1_task_defaults_preserve_current_or_explicit_legacy_protocols(tmp_path):
+    active_args = spn_active_pattern.parse_args(["--output", str(tmp_path / "active.jsonl")])
+    audit_args = spn_feature_audit.parse_args(["--output", str(tmp_path / "audit.json")])
+    candidate_args = spn_candidate_evidence.parse_args(["--output", str(tmp_path / "candidate.jsonl")])
+
+    assert active_args.sample_structure == "zhang_wang_case2_official_mcnd"
+    assert audit_args.sample_structure == "zhang_wang_case2_official_mcnd"
+    assert candidate_args.sample_structure == "zhang_wang_case2_mcnd"
 
 
 def test_scripts_readme_documents_monitor_health_result_states():

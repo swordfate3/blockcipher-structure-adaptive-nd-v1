@@ -12,6 +12,7 @@ from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.features.pair_features import pair_bits_for_encoding
 from blockcipher_nd.features.spn_active_pattern import extract_active_pattern_features
+from blockcipher_nd.tasks.innovation1.protocols import OFFICIAL_ZHANG_WANG_CASE2_MCND
 
 
 DEFAULT_FEATURE_ENCODING = "present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits"
@@ -26,7 +27,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--pairs-per-sample", type=int, default=16)
     parser.add_argument("--feature-encoding", default=DEFAULT_FEATURE_ENCODING)
     parser.add_argument("--negative-mode", default="encrypted_random_plaintexts")
-    parser.add_argument("--sample-structure", default="zhang_wang_case2_mcnd")
+    parser.add_argument("--sample-structure", default=OFFICIAL_ZHANG_WANG_CASE2_MCND)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--learning-rate", type=float, default=1e-2)
     parser.add_argument("--device", default="cpu")

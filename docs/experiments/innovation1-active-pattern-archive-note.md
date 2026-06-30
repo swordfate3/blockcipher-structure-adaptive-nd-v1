@@ -40,6 +40,10 @@ scale = 65536/class
 route = standalone 24-dimensional active-pattern linear baseline
 ```
 
+The current `scripts/spn-active-pattern` and `scripts/audit-spn-features`
+defaults now use `zhang_wang_case2_official_mcnd` for ad hoc local diagnostics.
+This does not make the archived 2026-06-22 remote config launchable.
+
 Current Innovation 1 PRESENT/SPN comparisons use:
 
 ```text

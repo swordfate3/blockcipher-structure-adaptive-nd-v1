@@ -12,7 +12,8 @@ from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.registry.difference_profiles import difference_for_profile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.features.registry import pair_bits_for_encoding
-from blockcipher_nd.training.binary import _binary_auc
+from blockcipher_nd.tasks.innovation1.protocols import OFFICIAL_ZHANG_WANG_CASE2_MCND
+from blockcipher_nd.training.metrics import binary_auc
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -38,7 +39,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--difference-member", type=int, default=0)
     parser.add_argument("--negative-mode", default="encrypted_random_plaintexts")
     parser.add_argument("--key-rotation-interval", type=int, default=1024)
-    parser.add_argument("--sample-structure", default="zhang_wang_case2_mcnd")
+    parser.add_argument("--sample-structure", default=OFFICIAL_ZHANG_WANG_CASE2_MCND)
     parser.add_argument("--train-key", type=lambda value: int(value, 0), default=None)
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
@@ -186,7 +187,7 @@ def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, 
     neg_var = negative.var(axis=0)
     pooled_std = np.sqrt((pos_var + neg_var) / 2.0)
     cohen_d = np.divide(pos_mean - neg_mean, pooled_std, out=np.zeros_like(pos_mean), where=pooled_std > 0)
-    auc = np.array([_binary_auc(labels, features[:, index]) for index in range(features.shape[1])], dtype=np.float64)
+    auc = np.array([binary_auc(labels, features[:, index]) for index in range(features.shape[1])], dtype=np.float64)
     return {
         "positive_mean": pos_mean,
         "negative_mean": neg_mean,
@@ -205,7 +206,7 @@ def _named_scalar_scores(named_scores: dict[str, np.ndarray], labels: np.ndarray
         negative = scores[labels == 0]
         pooled_std = np.sqrt((positive.var() + negative.var()) / 2.0)
         cohen_d = float((positive.mean() - negative.mean()) / pooled_std) if pooled_std > 0 else 0.0
-        auc = _binary_auc(labels, scores)
+        auc = binary_auc(labels, scores)
         rows[name] = {
             "positive_mean": float(positive.mean()),
             "negative_mean": float(negative.mean()),
