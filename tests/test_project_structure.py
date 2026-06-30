@@ -22,6 +22,7 @@ from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
+from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_invp_attribution_controls
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -787,6 +788,25 @@ def _write_invp_attribution_control_result(
             "calibrated_accuracy": calibrated_accuracy,
             "loss": loss,
         },
+        "training": {
+            "loss": "mse",
+            "learning_rate": 0.0001,
+            "optimizer": "adam",
+            "weight_decay": 0.00001,
+            "checkpoint_metric": "val_auc",
+            "restore_best_checkpoint": True,
+            "early_stopping_patience": 8,
+            "early_stopping_min_delta": 0.0001,
+        },
+        "history": [
+            {
+                "epoch": 1,
+                "learning_rate": 0.002,
+                "val_accuracy": accuracy,
+                "val_auc": auc,
+                "val_loss": loss,
+            }
+        ],
     }
     handle.write(json.dumps(row) + "\n")
 
@@ -838,6 +858,143 @@ def test_invp_attribution_controls_gate_weakens_claim_when_control_matches(tmp_p
     assert report["action"] == "switch_to_new_spn_structure_hypothesis_or_variance_audit"
     assert report["attribution_margin"] < 0
     assert "not supported" in report["interpretation"]
+
+
+def _write_invp_attribution_controls_plan(path: Path) -> None:
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "structure": "SPN",
+            "network": "DeltaOnly",
+            "model_key": "present_nibble_delta_only_spn_only",
+            "family": "delta",
+            "architecture_rank": "0",
+            "score": "130",
+            "rounds": "7",
+            "seed": "0",
+            "samples_per_class": "1000000",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "train_key": "0x00000000000000000000",
+            "validation_key": "0x11111111111111111111",
+            "key_rotation_interval": "0",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "integral_active_nibble": "0",
+            "difference_profile": "present_zhang_wang2022_mcnd",
+            "difference_member": "0",
+            "loss": "mse",
+            "learning_rate": "0.0001",
+            "optimizer": "adam",
+            "weight_decay": "0.00001",
+            "checkpoint_metric": "val_auc",
+            "restore_best_checkpoint": "true",
+            "early_stopping_patience": "8",
+            "early_stopping_min_delta": "0.0001",
+            "model_options": "{}",
+            "evidence": "PAPER_SCALE_ATTRIBUTION_CONTROL 1000000/class",
+            "literature": "unit",
+        },
+        {
+            "cipher": "PRESENT-80",
+            "structure": "SPN",
+            "network": "Shuffled",
+            "model_key": "present_nibble_shuffled_paligned_spn_only",
+            "family": "shuffled",
+            "architecture_rank": "1",
+            "score": "125",
+            "rounds": "7",
+            "seed": "0",
+            "samples_per_class": "1000000",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "train_key": "0x00000000000000000000",
+            "validation_key": "0x11111111111111111111",
+            "key_rotation_interval": "0",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "integral_active_nibble": "0",
+            "difference_profile": "present_zhang_wang2022_mcnd",
+            "difference_member": "0",
+            "loss": "mse",
+            "learning_rate": "0.0001",
+            "optimizer": "adam",
+            "weight_decay": "0.00001",
+            "checkpoint_metric": "val_auc",
+            "restore_best_checkpoint": "true",
+            "early_stopping_patience": "8",
+            "early_stopping_min_delta": "0.0001",
+            "model_options": "{}",
+            "evidence": "PAPER_SCALE_ATTRIBUTION_CONTROL 1000000/class",
+            "literature": "unit",
+        },
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def test_invp_attribution_controls_postprocess_updates_plan_doc(tmp_path):
+    plan_path = tmp_path / "controls_plan.csv"
+    results_path = tmp_path / "controls.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "formal-attribution-plan.md"
+    plan_doc_path.write_text("# Formal Attribution\n", encoding="utf-8")
+    _write_invp_attribution_controls_plan(plan_path)
+    with results_path.open("w", encoding="utf-8") as handle:
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_delta_only_spn_only",
+            auc=0.7930,
+        )
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_shuffled_paligned_spn_only",
+            auc=0.7940,
+        )
+
+    report = postprocess_invp_attribution_controls(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_attr_controls",
+        expected_rows=2,
+        plan_doc_path=plan_doc_path,
+    )
+
+    assert report["status"] == "pass"
+    assert report["validation_status"] == "pass"
+    assert report["attribution_status"] == "pass"
+    assert report["decision"] == "support_invp_structural_attribution"
+    assert report["next_action"]["branch"] == "route_level_attribution_summary"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert (output_dir / "unit_attr_controls_local_result_gate.json").exists()
+    assert (output_dir / "unit_attr_controls_curves.svg").exists()
+    assert (output_dir / "unit_attr_controls_history.csv").exists()
+    assert (output_dir / "unit_attr_controls_attribution_gate.json").exists()
+    assert (output_dir / "unit_attr_controls_postprocess_summary.json").exists()
+    assert (output_dir / "unit_attr_controls_postprocess_summary.md").exists()
+    markdown = (output_dir / "unit_attr_controls_postprocess_summary.md").read_text()
+    assert "support_invp_structural_attribution" in markdown
+    assert "present_nibble_delta_only_spn_only" in markdown
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "## Retrieved Attribution Control Result" in plan_doc
+    assert "<!-- invp-attribution-postprocess:unit_attr_controls:start -->" in plan_doc
+    assert "| Decision | `support_invp_structural_attribution` |" in plan_doc
+    assert "| Next action branch | `route_level_attribution_summary` |" in plan_doc
+
+    postprocess_invp_attribution_controls(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_attr_controls",
+        expected_rows=2,
+        plan_doc_path=plan_doc_path,
+    )
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert plan_doc.count("<!-- invp-attribution-postprocess:unit_attr_controls:start -->") == 1
+    assert plan_doc.count("### unit_attr_controls Attribution Control Result") == 1
 
 
 def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
