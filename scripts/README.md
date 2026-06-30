@@ -29,6 +29,11 @@ It emits `postprocess_command` only for `result_ready`, which requires a
 retrieved JSONL with at least one non-empty row. `completed_missing_results`
 means a done marker exists but the JSONL is missing; `results_empty` means the
 JSONL exists but has no non-empty rows. Neither state should be postprocessed.
+`postprocessed` means the watcher already ran the route-specific postprocess
+successfully, so the next action is to inspect gate/readiness artifacts, update
+or commit docs if needed, and branch from the recorded decision rather than
+rerunning postprocess. `postprocess_failed` means inspect the monitor
+`postprocess_stderr.log` before branching.
 Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`, or
 `--postprocess-kind ddt_graph` so the emitted command calls the matching
 postprocess entrypoint and expected row count.

@@ -150,6 +150,8 @@ def monitor_health_report(
             "unhealthy",
             "missing_monitor",
             "stale_monitor",
+            "postprocessed",
+            "postprocess_failed",
             "completed_missing_results",
             "completed_missing_auxiliary_artifacts",
             "results_empty",
@@ -175,6 +177,10 @@ def _health_status(
 ) -> str:
     if failed_markers:
         return "failed"
+    if _monitor_has_event(recent_monitor_lines, "postprocess_failed"):
+        return "postprocess_failed"
+    if _monitor_has_event(recent_monitor_lines, "postprocess_done"):
+        return "postprocessed"
     if expected_rows is not None and results_jsonl_line_count > 0 and results_jsonl_line_count < expected_rows:
         return "results_incomplete"
     if results_jsonl_line_count > 0:
@@ -196,6 +202,10 @@ def _health_status(
     if results_jsonl_exists:
         return "results_empty"
     return "unknown"
+
+
+def _monitor_has_event(lines: list[str], event: str) -> bool:
+    return any(event in line for line in lines)
 
 
 def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> list[dict[str, Any]]:

@@ -1019,6 +1019,8 @@ def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     assert "DDT graph postprocess" in text
     assert "<run_id>_next_action_readiness.json" in text
     assert "next-branch readiness artifact" in text
+    assert "`postprocessed` means the watcher already ran the route-specific postprocess" in text
+    assert "`postprocess_failed` means inspect the monitor" in text
 
 
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
@@ -2186,6 +2188,51 @@ def test_monitor_health_requires_expected_result_rows(tmp_path):
 
     assert report["status"] == "result_ready"
     assert report["postprocess_allowed"] is True
+
+
+def test_monitor_health_distinguishes_postprocessed_and_failed_postprocess(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_postprocessed"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    results = root / run_id / "results"
+    results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("{}\n", encoding="utf-8")
+
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-06-29T15:00:00+08:00 result_ready",
+                "2026-06-29T15:00:03+08:00 postprocess_done",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = monitor_health_report(run_id=run_id, root=root, expected_rows=1)
+
+    assert report["status"] == "postprocessed"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-06-29T15:00:00+08:00 result_ready",
+                "2026-06-29T15:00:03+08:00 postprocess_failed",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = monitor_health_report(run_id=run_id, root=root, expected_rows=1)
+
+    assert report["status"] == "postprocess_failed"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
 
 
 def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
