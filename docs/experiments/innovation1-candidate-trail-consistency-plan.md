@@ -270,9 +270,10 @@ Before any remote launch:
 Completed local foundation:
 
 ```text
-scripts/spn-candidate-evidence --samples-per-class 4 --pairs-per-sample 2
-  --feature-cache-root /tmp/spn_candidate_official_smoke/cache
-  --progress-output /tmp/spn_candidate_official_smoke/progress.jsonl
+config = configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-candidate-evidence \
+  --config configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json
 
 result:
   sample_structure = zhang_wang_case2_official_mcnd
@@ -281,6 +282,10 @@ result:
   route/model = candidate_trail_consistency_linear or candidate_trail_consistency_mlp
   training_model = linear or mlp
 ```
+
+The smoke config is a plan-driven readiness check only. It uses tiny
+`samples_per_class=2`, `pairs_per_sample=1`, and `epochs=1`; it is not accuracy
+evidence and must not be compared against InvP/DDT results.
 
 Gate tooling update, 2026-07-01:
 

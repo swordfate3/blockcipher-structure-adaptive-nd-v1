@@ -889,6 +889,51 @@ def test_innovation1_task_defaults_preserve_current_or_explicit_legacy_protocols
     assert candidate_args.key_rotation_interval == 0
 
 
+def test_candidate_trail_smoke_config_preserves_official_protocol():
+    config_path = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    args = spn_candidate_evidence.parse_args(["--config", str(config_path)])
+
+    assert config["run_id"] == "i1_candidate_trail_consistency_smoke_20260701"
+    assert args.output == Path(config["output"])
+    assert args.rounds == 7
+    assert args.samples_per_class == 2
+    assert args.pairs_per_sample == 1
+    assert args.sample_structure == "zhang_wang_case2_official_mcnd"
+    assert args.negative_mode == "encrypted_random_plaintexts"
+    assert args.validation_key == 0x11111111111111111111
+    assert args.key_rotation_interval == 0
+    assert args.model == "mlp"
+    assert args.feature_cache_root == Path(config["feature_cache_root"])
+    assert "SMOKE only" in config["description"]
+    assert "not accuracy evidence" in config["description"]
+
+
+def test_candidate_trail_config_can_be_overridden_from_cli(tmp_path):
+    config_path = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json"
+    )
+    args = spn_candidate_evidence.parse_args(
+        [
+            "--config",
+            str(config_path),
+            "--output",
+            str(tmp_path / "override.jsonl"),
+            "--model",
+            "linear",
+            "--samples-per-class",
+            "3",
+        ]
+    )
+
+    assert args.output == tmp_path / "override.jsonl"
+    assert args.model == "linear"
+    assert args.samples_per_class == 3
+    assert args.sample_structure == "zhang_wang_case2_official_mcnd"
+
+
 def test_scripts_readme_documents_monitor_health_result_states():
     text = Path("scripts/README.md").read_text(encoding="utf-8")
 
