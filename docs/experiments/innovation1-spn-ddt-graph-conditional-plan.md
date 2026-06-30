@@ -777,3 +777,31 @@ result_status = running / not yet retrieved
 This launch record is not result evidence. The run remains medium diagnostic
 only until the watcher retrieves five plan-aligned rows and
 `postprocess-ddt-graph-result` validates the gate.
+
+## Running Artifact Note
+
+Bounded local watcher check on 2026-07-01 03:05 +08:00:
+
+```text
+monitor_health = running
+heartbeat = fresh
+failed_markers = none
+done_markers = none
+results_jsonl_exists = true
+results_jsonl_line_count = 0
+postprocess_allowed = false
+```
+
+Interpretation:
+
+```text
+The remote run has created the results JSONL, but no completed matrix row has
+been written yet. This is normal while the run is still training. Do not treat
+an empty results JSONL as results_empty or failed unless a done marker is present
+or monitor-health reports a non-running intervention state.
+```
+
+Latest synced progress at that check showed row index `1` of `5`,
+`present_nibble_invp_only_spn_only`, around epoch `9/20`, with best validation
+AUC observed in progress logs around `0.7908187337452546`. This is an
+in-training signal only, not a retrieved result row and not gate evidence.
