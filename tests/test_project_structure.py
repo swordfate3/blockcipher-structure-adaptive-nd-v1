@@ -475,6 +475,34 @@ def test_legacy_candidate_evidence_remote_config_fails_current_protocol_lock():
     assert any("candidate_trail cache root must stay under G:\\lxy" in error for error in report["errors"])
 
 
+def test_candidate_trail_conditional_remote_smoke_config_is_ready_but_gated():
+    path = Path("configs/remote/innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+    report = remote_readiness_report(path)
+
+    assert config["plan"] == (
+        "configs\\experiment\\innovation1\\innovation1_spn_present_candidate_trail_consistency_smoke.json"
+    )
+    assert config["expected_rows"] == 1
+    assert config["device"] == "cuda:1"
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["validation_key"] == "0x11111111111111111111"
+    assert config["key_rotation_interval"] == 0
+    assert config["feature_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "conditional launch only after current DDT/topology run" in config["launch_policy"]
+    assert "not accuracy evidence" in config["claim_scope"]
+    assert "not a medium diagnostic" in config["claim_scope"]
+
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 1
+    assert report["expected_rows"] == 1
+    assert report["max_samples_per_class"] == 2
+    assert report["errors"] == []
+
+
 def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     plan = Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md").read_text(
         encoding="utf-8"
@@ -487,6 +515,7 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "`0x11111111111111111111`" in plan
     assert "sample_structure = zhang_wang_case2_mcnd" in plan
     assert "scripts/check-remote-readiness enforces candidate-trail/candidate-evidence" in plan
+    assert "innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan

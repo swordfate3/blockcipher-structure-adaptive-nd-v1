@@ -287,6 +287,18 @@ The smoke config is a plan-driven readiness check only. It uses tiny
 `samples_per_class=2`, `pairs_per_sample=1`, and `epochs=1`; it is not accuracy
 evidence and must not be compared against InvP/DDT results.
 
+Prepared conditional remote smoke config:
+
+```text
+remote_config = configs/remote/innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json
+status = readiness asset only / do not launch while DDT or pair-set route is active
+purpose = verify future candidate-trail remote launch plumbing can reference the
+          JSON smoke plan and G:\lxy feature cache under the current protocol
+```
+
+This config is not a medium diagnostic. It remains a conditional smoke asset
+until the DDT/pair-set branch gate selects candidate-trail as the next route.
+
 Gate tooling update, 2026-07-01:
 
 ```text
