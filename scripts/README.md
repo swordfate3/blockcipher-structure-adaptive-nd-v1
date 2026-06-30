@@ -16,7 +16,7 @@ advantage remains attributable to true SPN/InvP/P-layer alignment.
 Use `scripts/postprocess-invp-attribution-controls` to run the full local
 post-retrieval chain for attribution-control runs: plan alignment validation,
 curve/history export, attribution gate, summary JSON/Markdown, and optional
-experiment-plan Markdown update via `--update-plan-doc`.
+experiment-plan Markdown updates via one or more `--update-plan-doc` arguments.
 
 Use `scripts/postprocess-invp-result` to run the full local post-retrieval chain:
 plan alignment validation, curve/history export, branch gating, and optional

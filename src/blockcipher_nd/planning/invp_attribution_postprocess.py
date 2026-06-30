@@ -23,8 +23,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--update-plan-doc",
         type=Path,
-        default=None,
-        help="Optional experiment plan Markdown file to update with the postprocess result.",
+        action="append",
+        default=[],
+        help="Optional experiment plan Markdown file to update with the postprocess result. Can be repeated.",
     )
     return parser.parse_args(argv)
 
@@ -37,6 +38,7 @@ def postprocess_invp_attribution_controls(
     run_id: str,
     expected_rows: int = 2,
     plan_doc_path: Path | None = None,
+    plan_doc_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     validation_report = validate_result_plan_alignment(
@@ -92,9 +94,12 @@ def postprocess_invp_attribution_controls(
     report["summary"] = str(summary_path)
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
     report["summary_markdown"] = str(markdown_path)
-    if plan_doc_path is not None:
-        update_plan_doc_with_attribution_postprocess(plan_doc_path, report)
-        report["plan_doc"] = str(plan_doc_path)
+    update_paths = _merge_plan_doc_paths(plan_doc_path, plan_doc_paths)
+    if update_paths:
+        for path in update_paths:
+            update_plan_doc_with_attribution_postprocess(path, report)
+        report["plan_docs"] = [str(path) for path in update_paths]
+        report["plan_doc"] = str(update_paths[0])
     _write_json(summary_path, report)
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
@@ -222,7 +227,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- curves: `{report['curves']}`",
             f"- history_csv: `{report['history_csv']}`",
             f"- summary: `{report['summary']}`",
-            *( [f"- plan_doc: `{report['plan_doc']}`"] if "plan_doc" in report else [] ),
+            *( [f"- plan_docs: `{'; '.join(report['plan_docs'])}`"] if "plan_docs" in report else [] ),
             "",
         ]
     )
@@ -280,6 +285,16 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _merge_plan_doc_paths(plan_doc_path: Path | None, plan_doc_paths: list[Path] | None) -> list[Path]:
+    merged: list[Path] = []
+    for path in [*(plan_doc_paths or []), plan_doc_path]:
+        if path is None:
+            continue
+        if path not in merged:
+            merged.append(path)
+    return merged
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = postprocess_invp_attribution_controls(
@@ -288,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         output_dir=args.output_dir,
         run_id=args.run_id,
         expected_rows=args.expected_rows,
-        plan_doc_path=args.update_plan_doc,
+        plan_doc_paths=args.update_plan_doc,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["status"] == "pass" else 4

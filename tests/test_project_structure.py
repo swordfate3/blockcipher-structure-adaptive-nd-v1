@@ -997,6 +997,48 @@ def test_invp_attribution_controls_postprocess_updates_plan_doc(tmp_path):
     assert plan_doc.count("### unit_attr_controls Attribution Control Result") == 1
 
 
+def test_invp_attribution_controls_postprocess_updates_multiple_plan_docs(tmp_path):
+    plan_path = tmp_path / "controls_plan.csv"
+    results_path = tmp_path / "controls.jsonl"
+    output_dir = tmp_path / "postprocess"
+    formal_doc = tmp_path / "formal-attribution-plan.md"
+    route_doc = tmp_path / "route-summary.md"
+    formal_doc.write_text("# Formal Attribution\n", encoding="utf-8")
+    route_doc.write_text("# Route Summary\n", encoding="utf-8")
+    _write_invp_attribution_controls_plan(plan_path)
+    with results_path.open("w", encoding="utf-8") as handle:
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_delta_only_spn_only",
+            auc=0.7930,
+        )
+        _write_invp_attribution_control_result(
+            handle,
+            model="present_nibble_shuffled_paligned_spn_only",
+            auc=0.7940,
+        )
+
+    report = postprocess_invp_attribution_controls(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_attr_multi",
+        expected_rows=2,
+        plan_doc_paths=[formal_doc, route_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["plan_docs"] == [str(formal_doc), str(route_doc)]
+    assert report["plan_doc"] == str(formal_doc)
+    for doc in [formal_doc, route_doc]:
+        text = doc.read_text(encoding="utf-8")
+        assert "## Retrieved Attribution Control Result" in text
+        assert "<!-- invp-attribution-postprocess:unit_attr_multi:start -->" in text
+        assert "| Decision | `support_invp_structural_attribution` |" in text
+    summary = json.loads((output_dir / "unit_attr_multi_postprocess_summary.json").read_text())
+    assert summary["plan_docs"] == [str(formal_doc), str(route_doc)]
+
+
 def test_invp_only_postprocess_writes_validation_plot_history_and_branch_gate(tmp_path):
     plan_path = tmp_path / "plan.csv"
     results_path = tmp_path / "results.jsonl"
