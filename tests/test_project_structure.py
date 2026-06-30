@@ -1008,6 +1008,10 @@ def test_ddt_graph_plan_records_route_specific_monitor_health_command():
     assert "`completed_missing_results`" in plan
     assert "`results_empty`" in plan
     assert "`results_incomplete`" in plan
+    assert "`postprocessed`" in plan
+    assert "`postprocess_failed`" in plan
+    assert "do not rerun postprocess" in plan
+    assert "monitor/postprocess_stderr.log" in plan
     assert "<run_id>_next_action_readiness.json" in plan
     assert "support_ddt_graph_route -> DDT seed1 remote config readiness" in plan
     assert "stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness" in plan

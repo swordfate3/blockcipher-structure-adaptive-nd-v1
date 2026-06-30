@@ -626,6 +626,13 @@ When `status` is `result_ready`, execute the emitted `postprocess_command`.
 Do not postprocess `completed_missing_results`, `results_empty`, or
 `results_incomplete`.
 
+When `status` is `postprocessed`, do not rerun postprocess. Inspect the gate,
+summary, and next-action readiness artifacts, then commit any updated
+experiment-plan Markdown before launching the gate-selected branch. When
+`status` is `postprocess_failed`, inspect
+`outputs/remote_results/<run_id>/monitor/postprocess_stderr.log` before any
+branch decision.
+
 Full postprocess command after retrieval:
 
 ```bash
