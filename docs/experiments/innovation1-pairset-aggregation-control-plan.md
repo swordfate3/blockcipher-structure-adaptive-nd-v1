@@ -118,19 +118,24 @@ module = src/blockcipher_nd/training/trainer.py
 tests = tests/test_training_metrics.py
 capability = opt-in --checkpoint-output support for saving the selected
              PyTorch checkpoint payload after training
+
+script = scripts/evaluate-pairset-aggregation
+tests = tests/test_pairset_aggregation_cli.py
+capability = load a saved frozen single-pair scorer, generate pair-set
+             evaluation data from a plan row, and write aggregation metrics
 ```
 
 Not implemented yet:
 
 ```text
-1. CLI for loading a saved single-pair InvP scorer checkpoint.
-2. Smoke CSV and remote matrix rows for frozen aggregation controls.
-3. Postprocess gate comparing learned pair-set consistency against frozen
+1. Smoke CSV and remote matrix rows for frozen aggregation controls.
+2. Postprocess gate comparing learned pair-set consistency against frozen
    single-pair aggregation.
 ```
 
 Therefore this plan is still not launch-ready. The current code only makes the
-core aggregation math and scorer artifact persistence testable and reusable.
+core aggregation math, scorer artifact persistence, and frozen aggregation CLI
+testable and reusable.
 
 ## Candidate Matrix
 
