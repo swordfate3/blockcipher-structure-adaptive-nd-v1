@@ -638,6 +638,22 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-ddt-graph-result \
   --update-plan-doc docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md
 ```
 
+The postprocess step writes the normal validation, curve, history, gate, summary
+artifacts, and a structured next-branch readiness report:
+
+```text
+outputs/remote_results/<run_id>/<run_id>_next_action_readiness.json
+```
+
+Use that readiness report after retrieval to decide whether the gate-selected
+branch is launchable from the current pushed code:
+
+```text
+support_ddt_graph_route -> DDT seed1 remote config readiness
+weak_ddt_graph_signal   -> DDT seed1 remote config readiness
+stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness
+```
+
 ### Implementation Order Guardrail
 
 For Branch B, use this exact order:

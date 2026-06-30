@@ -41,6 +41,9 @@ Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
 reads `next_action`, runs local readiness checks for any declared remote config,
 and emits a structured branch/readiness report. It does not launch, SSH, or
 touch the remote workstation.
+DDT graph postprocess also writes `<run_id>_next_action_readiness.json`
+directly, so watcher-managed DDT runs leave both the gate decision and the
+next-branch readiness artifact in the run output directory.
 
 Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.

@@ -1008,6 +1008,17 @@ def test_ddt_graph_plan_records_route_specific_monitor_health_command():
     assert "`completed_missing_results`" in plan
     assert "`results_empty`" in plan
     assert "`results_incomplete`" in plan
+    assert "<run_id>_next_action_readiness.json" in plan
+    assert "support_ddt_graph_route -> DDT seed1 remote config readiness" in plan
+    assert "stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness" in plan
+
+
+def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
+    text = Path("scripts/README.md").read_text(encoding="utf-8")
+
+    assert "DDT graph postprocess" in text
+    assert "<run_id>_next_action_readiness.json" in text
+    assert "next-branch readiness artifact" in text
 
 
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
