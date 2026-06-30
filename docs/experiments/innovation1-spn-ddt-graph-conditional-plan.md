@@ -332,6 +332,8 @@ smoke plan:
   configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
 first non-smoke conditional matrix:
   configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv
+prepared remote config:
+  configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json
 gate command:
   scripts/gate-ddt-graph-result
 ```
@@ -522,6 +524,18 @@ Do not launch this 262144/class matrix until the active 1M attribution-control
 run is retrieved, validated, and the gate selects the DDT/topology branch.
 Prepared matrix status is planned/ready, not launched/running evidence.
 ```
+
+Prepared remote readiness command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json \
+  --output /tmp/i1_spn_ddt_graph_r7_262k_gpu0_20260630_readiness.json
+```
+
+The config is intentionally prepared but not launched. Before actual launch,
+rerun readiness from the latest pushed commit and choose the GPU according to
+current remote availability.
 
 Gate command after retrieval:
 

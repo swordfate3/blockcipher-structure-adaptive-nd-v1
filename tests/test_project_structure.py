@@ -252,6 +252,24 @@ def test_present_ddt_graph_262k_plan_is_conditional_same_protocol_matrix():
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
+def test_present_ddt_graph_262k_remote_config_is_prepared_not_launched():
+    path = Path("configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["plan"].endswith("innovation1_spn_present_ddt_graph_r7_262k.csv")
+    assert config["expected_rows"] == 4
+    assert config["device"] == "cuda:0"
+    assert config["train_eval_interval"] == 0
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+    assert config["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "prepared config only until attribution-control gate selects this branch" in config["launch_policy"]
+    assert "MEDIUM 262144/class conditional N3 DDT graph diagnostic" in config["claim_scope"]
+    assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
+
+
 def test_present_spn_only_attribution_262k_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_spn_only_attribution_r7_262k.csv"
     args = parse_args(["--plan", plan])
