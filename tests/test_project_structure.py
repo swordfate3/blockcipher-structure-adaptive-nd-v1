@@ -2572,6 +2572,33 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "4",
     ]
 
+    candidate_incomplete_run = "i1_candidate_trail_incomplete_rows"
+    candidate_incomplete_root = root / candidate_incomplete_run
+    candidate_incomplete_monitor = candidate_incomplete_root / "monitor"
+    candidate_incomplete_monitor.mkdir(parents=True)
+    (candidate_incomplete_monitor / "monitor.log").write_text(
+        "2026-06-29T18:45:00+08:00 running\n",
+        encoding="utf-8",
+    )
+    (candidate_incomplete_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    candidate_incomplete_results = candidate_incomplete_root / "results"
+    candidate_incomplete_results.mkdir()
+    candidate_incomplete_jsonl = candidate_incomplete_results / f"{candidate_incomplete_run}.jsonl"
+    candidate_incomplete_jsonl.write_text("{}\n{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=candidate_incomplete_run,
+        root=root,
+        plan_path=candidate_plan,
+        postprocess_kind="candidate_trail",
+    )
+
+    assert report["status"] == "results_incomplete"
+    assert report["expected_rows"] == 4
+    assert report["results_jsonl_line_count"] == 3
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+
     pairset_run = "i1_pairset_aggregation_control_unit"
     pairset_root = root / pairset_run
     pairset_monitor = pairset_root / "monitor"
