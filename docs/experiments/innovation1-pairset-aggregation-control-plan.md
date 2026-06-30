@@ -146,13 +146,16 @@ capability = train tiny 16-pair InvP anchor and learned pair-consistency rows
 Not implemented yet:
 
 ```text
-1. Remote matrix/config rows for the meaningful pair-set aggregation-control run.
+1. Stage-aware remote launcher and watcher scripts for the two-step 262144/class run.
 ```
 
-Therefore this plan is local-smoke-verified but still not remote-launch-ready.
-The current code and configs make the core aggregation math, scorer artifact
-persistence, frozen aggregation CLI, learned-pairset smoke matrix, and
-gate/postprocess decision path testable and reusable.
+Therefore this plan is local-smoke-verified and remote-config-ready, but still
+not remote-launch-ready. The current code and configs make the core aggregation
+math, scorer artifact persistence, frozen aggregation CLI, learned-pairset
+smoke matrix, 262144/class staged plan rows, and gate/postprocess decision path
+testable and reusable. It still needs a stage-aware launcher/watcher because
+the frozen aggregation control requires a saved single-pair checkpoint before
+the learned pair-set gate can be evaluated.
 
 ## Local Smoke Readiness
 
@@ -240,7 +243,7 @@ First non-smoke scale:
 ```text
 262144/class
 seed = 0
-expected_rows = 3 or 4
+expected_rows = 1 stage-A scorer row + 2 stage-B learned/anchor rows
 claim_scope = medium diagnostic only
 ```
 
@@ -255,6 +258,28 @@ Lean matrix:
 
 Do not include unrelated graph/DDT models in this matrix. This plan asks only
 whether pair-set learning beats independent score aggregation.
+
+Prepared 262144/class configs:
+
+```text
+stage_a_plan = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k.csv
+stage_a_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json
+stage_a_expected_rows = 1
+stage_a_output = single-pair InvP checkpoint for frozen aggregation
+
+stage_b_plan = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r7_262k.csv
+stage_b_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json
+stage_b_expected_rows = 2
+stage_b_output = InvP 16-pair anchor plus learned pair-consistency result JSONL
+```
+
+Launch status:
+
+```text
+not launched
+blocked_by_policy = current DDT/topology run still active
+additional_requirement = generate stage-aware launcher/watcher after DDT result is retrieved or GPU is yielded
+```
 
 ## Protocol
 
@@ -338,9 +363,15 @@ Before any meaningful remote launch:
 4. Add 262144/class plan CSV and remote config.
 5. Verify disk-backed cache/progress paths under G:\lxy.
 6. Run scripts/check-remote-readiness.
-7. Commit and push.
-8. Launch from the pushed commit.
-9. Hand off retrieval/postprocess to local tmux watcher.
+7. Generate stage-aware launcher/watcher:
+   - stage A trains single-pair scorer with --checkpoint-output
+   - stage B trains learned/anchor rows
+   - frozen aggregation summary evaluates the saved stage-A checkpoint
+   - postprocess-pairset-aggregation runs after both artifacts exist
+8. Commit and push.
+9. Launch from the pushed commit only after the DDT/topology run is retrieved
+   or explicitly yielded.
+10. Hand off retrieval/postprocess to local tmux watcher.
 ```
 
 ## Relationship To Current DDT/Topology Run
