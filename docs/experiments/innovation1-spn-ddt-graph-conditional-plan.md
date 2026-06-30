@@ -1,6 +1,6 @@
 # Innovation 1 SPN DDT-Graph Conditional Plan
 
-**Date:** 2026-06-29
+**Date:** 2026-06-30
 
 **Status:** conditional / implementation ready / waiting for attribution-control gate
 
@@ -11,28 +11,35 @@
 The current active remote run is:
 
 ```text
-run_id = i1_invp_only_r7_1m_seed0_gpu1_20260629
-model = present_nibble_invp_only_spn_only
+run_id = i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630
+models = present_nibble_delta_only_spn_only,
+         present_nibble_shuffled_paligned_spn_only
 scale = 1000000/class
-monitor = tmux: monitor_i1_invp_only_1m_20260629
+monitor = local watcher / tmux-managed retrieval
 ```
 
-While that run is active, do not launch another GPU job. This document defines
-the next design route if the 1M InvP-only gate shows that the medium-scale
-`InvP(DeltaC)` signal is tied with or below the Zhang/Wang paper-scale anchor.
+The InvP-only 1M seed0/seed1 confirmation has already shown a stable positive
+signal over the local Zhang/Wang 1M anchor. While the attribution-control run is
+active, do not launch another GPU job. This document defines the next design
+route if the 1M attribution controls show that the gain is not clearly explained
+by true InvP/P-layer alignment, or if a stronger method-extension branch is
+explicitly selected after attribution is documented.
 
 ## Trigger
 
-Use this route only if the InvP-only 1M result is tied or underperforming:
+Use this route as the next experimental branch only after the active
+attribution-control run is retrieved, validated, postprocessed, and documented.
+The primary trigger is:
 
 ```text
-InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.001
+decision = weaken_invp_structural_attribution
+or
+decision = weak_attribution_support and the prewritten follow-up is DDT/topology
 ```
 
-If InvP-only beats the Zhang/Wang 1M anchor by `>= +0.003` AUC, do not start
-this route immediately. Instead, run a 1M seed1 confirmation for InvP-only.
-If the result is weakly positive from `+0.001` to `+0.003` AUC, still run seed1
-before making a route-strength claim.
+If the gate returns `support_invp_structural_attribution`, do not start this
+route automatically as a rescue branch. In that case, DDT/topology becomes an
+optional method-strength branch, not evidence needed to save the InvP route.
 
 ## Hypothesis
 
@@ -254,68 +261,65 @@ size, pooling mode, training protocol, or negative-sample definition.
 
 ## Gate-To-Execution Branches
 
-When the active InvP-only 1M run is retrieved, make exactly one branch decision
-from the validated local JSONL. Do not start both branches.
+When the active 1M attribution-control run is retrieved, make exactly one branch
+decision from the validated local JSONL and the postprocess gate. Do not start
+both branches.
 
-### Branch A: InvP-only Survives Paper Scale Enough For Seed1
-
-Strong condition:
-
-```text
-InvP-only 1M AUC - 0.793897025948 >= +0.003
-```
-
-Weak-positive condition:
-
-```text
-+0.001 <= InvP-only 1M AUC - 0.793897025948 < +0.003
-```
-
-Action:
-
-```text
-1. Update docs/experiments/innovation1-invp-only-1m-scale-plan.md with the
-   retrieved metric, gate result, artifacts, and claim scope.
-2. Run scripts/check-remote-readiness on the prepared seed1 remote config.
-3. Launch a seed1 confirmation for present_nibble_invp_only_spn_only at
-   1000000/class using the same protocol, strict negatives, and val_auc
-   checkpoint metric, only if the readiness gate passes.
-4. Do not implement DDT graph before seed1 unless seed0/seed1 disagree enough
-   to require an attribution study.
-```
-
-Reason:
-
-```text
-If the simplest InvP-only route is at least weakly positive at paper scale,
-the next evidence gap is stability, not architectural complexity.
-```
-
-### Branch B: InvP-only Is Tied Or Underperforms At Paper Scale
+### Branch A: Attribution Supports InvP
 
 Condition:
 
 ```text
-InvP-only 1M AUC - 0.793897025948 < +0.001
+decision = support_invp_structural_attribution
 ```
 
 Action:
 
 ```text
-1. Update docs/experiments/innovation1-invp-only-1m-scale-plan.md with the
-   retrieved metric, gate result, artifacts, and decision to enter this route.
-2. Implement the minimal DDT graph route below.
-3. Smoke locally with tiny samples.
-4. Commit/push implementation, smoke config, and tests.
-5. Launch the 262144/class attribution matrix only after smoke passes.
+1. Update the InvP route-level evidence summary with the retrieved attribution
+   metrics, gate result, artifacts, and claim scope.
+2. Treat InvP-only as two-seed 1M positive confirmation plus paper-scale
+   attribution-control support.
+3. Decide whether the next useful work is formal multi-seed InvP evidence,
+   Zhang/Wang baseline variance, or an optional DDT/topology method-extension
+   branch.
+4. Do not launch this DDT matrix merely because it is prepared.
 ```
 
 Reason:
 
 ```text
-If InvP-only is tied with or below the Zhang/Wang anchor at 1M/class, the next
-useful question is whether explicit S-box differential priors and true P
-topology add information beyond the current learned InvP view.
+If controls support true InvP/P-layer attribution, the next evidence gap is
+formalization or stronger-method exploration, not rescuing a failed route.
+```
+
+### Branch B: Attribution Is Weak Or Negative
+
+Condition:
+
+```text
+decision = weak_attribution_support
+or
+decision = weaken_invp_structural_attribution
+```
+
+Action:
+
+```text
+1. Update the InvP attribution plan and route-level summary with retrieved
+   metrics, gate result, artifacts, and decision to enter this route.
+2. Rerun the DDT remote readiness gate from the latest pushed commit.
+3. Launch the prepared 262144/class DDT/topology attribution matrix only if
+   readiness passes and current GPU availability supports it.
+4. Hand off monitoring/retrieval to the local watcher; do not main-thread poll.
+```
+
+Reason:
+
+```text
+If the InvP gain is not clearly attributable to true alignment, the next useful
+question is whether explicit S-box differential priors and true P topology add
+information beyond generic DeltaC, false alignment, and the current InvP view.
 ```
 
 ## Minimal DDT Graph Ready Pack
@@ -657,10 +661,10 @@ aliases remain planned implementation aliases, not registered model keys.
 
 ## Current Waiting Condition
 
-Before implementing or launching this route, inspect the completed artifacts for:
+Before launching this route, inspect the completed artifacts for:
 
 ```text
-outputs/remote_results/i1_invp_only_r7_1m_seed0_gpu1_20260629/
+outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/
 ```
 
 Required evidence:
@@ -668,10 +672,14 @@ Required evidence:
 ```text
 done.marker or failed.marker retrieved
 results JSONL present
-result_lines = 1
+result_lines = 2
 validate-results status = pass
-curves/history regenerated locally
-docs/experiments/innovation1-invp-only-1m-scale-plan.md updated and committed
+attribution gate JSON present
+postprocess summary present
+docs/experiments/innovation1-invp-only-formal-attribution-plan.md updated
+docs/experiments/innovation1-invp-route-level-evidence-summary.md updated
+docs updates verified, committed, and pushed
 ```
 
-Only then choose whether to launch InvP-only seed1 or implement the DDT-graph route.
+Only then choose whether to keep formalizing InvP-only or launch the prepared
+DDT/topology matrix.

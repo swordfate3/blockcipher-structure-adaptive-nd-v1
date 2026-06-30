@@ -660,7 +660,7 @@ def test_invp_only_gate_threshold_boundaries_are_stable(tmp_path):
         assert "auc_delta_vs_paligned_mcnd_1m" in report
 
 
-def test_invp_only_branch_plan_matches_gate_thresholds():
+def test_ddt_conditional_plan_waits_for_attribution_gate():
     invp_plan = Path("docs/experiments/innovation1-invp-only-1m-scale-plan.md").read_text(
         encoding="utf-8"
     )
@@ -670,12 +670,12 @@ def test_invp_only_branch_plan_matches_gate_thresholds():
 
     assert "seed0 validated AUC delta over Zhang/Wang 1M anchor `>= +0.001`" in invp_plan
     assert "seed0 delta `< +0.001`" in invp_plan
-    assert "InvP-only 1M AUC - Zhang/Wang 1M anchor AUC < +0.001" in ddt_plan
-    assert "weakly positive from `+0.001` to `+0.003` AUC" in ddt_plan
-    assert "Weak-positive condition" in ddt_plan
-    assert "+0.001 <= InvP-only 1M AUC - 0.793897025948 < +0.003" in ddt_plan
-    assert "Run scripts/check-remote-readiness on the prepared seed1 remote config" in ddt_plan
-    assert "only if the readiness gate passes" in ddt_plan
+    assert "i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630" in ddt_plan
+    assert "decision = weaken_invp_structural_attribution" in ddt_plan
+    assert "decision = weak_attribution_support" in ddt_plan
+    assert "decision = support_invp_structural_attribution" in ddt_plan
+    assert "Do not launch this DDT matrix merely because it is prepared." in ddt_plan
+    assert "Only then choose whether to keep formalizing InvP-only" in ddt_plan
 
 
 def test_invp_only_plan_records_bounded_monitor_health_command():
