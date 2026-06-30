@@ -278,8 +278,9 @@ def test_present_ddt_graph_262k_seed1_plan_is_conditional_confirmation_matrix():
         assert task["max_learning_rate"] == 0.002
         assert task["checkpoint_metric"] == "val_auc"
         assert task["restore_best_checkpoint"] is True
-        assert "CONDITIONAL_MEDIUM_CONFIRMATION 262144/class N3" in task["matching_evidence"]
+        assert "CONDITIONAL_MEDIUM_SEED1 262144/class N3" in task["matching_evidence"]
         assert "support_ddt_graph_route" in task["matching_evidence"]
+        assert "weak_ddt_graph_signal" in task["matching_evidence"]
         assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
 
 
@@ -314,8 +315,10 @@ def test_present_ddt_graph_262k_seed1_remote_config_is_conditional_ready():
     assert config["dataset_cache_workers"] == 4
     assert "cmd.exe /c" in config["launch_policy"]
     assert "cmd.exe /k" not in config["launch_policy"]
-    assert "support_ddt_graph_route" in config["launch_policy"]
-    assert "CONDITIONAL_MEDIUM_CONFIRMATION 262144/class N3 DDT graph seed1" in config["claim_scope"]
+    assert "support_ddt_graph_route or weak_ddt_graph_signal" in config["launch_policy"]
+    assert "CONDITIONAL_MEDIUM_SEED1 262144/class N3 DDT graph seed1" in config["claim_scope"]
+    assert "interpret as confirmation" in config["claim_scope"]
+    assert "interpret as variance check" in config["claim_scope"]
     assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
     assert remote_readiness_report(path)["status"] == "pass"
 
@@ -1312,6 +1315,49 @@ def test_ddt_graph_gate_marks_weak_signal_when_margin_is_small(tmp_path):
     assert report["decision"] == "weak_ddt_graph_signal"
     assert report["action"] == "repeat_262k_or_run_variance_check_before_scaling"
     assert 0 < report["margin_vs_best_control_auc"] < 0.001
+
+
+def test_ddt_graph_postprocess_routes_weak_signal_to_seed1_variance_check(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
+    results_path = tmp_path / "ddt_graph_weak.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "ddt-plan.md"
+    plan_doc_path.write_text("# DDT Plan\n", encoding="utf-8")
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
+        ddt_auc=0.7950,
+        shuffled_auc=0.7948,
+    )
+
+    report = postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph_weak",
+        expected_rows=5,
+        plan_doc_path=plan_doc_path,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weak_ddt_graph_signal"
+    assert report["next_action"]["branch"] == "ddt_graph_seed1_variance_check"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json"
+    )
+    assert report["next_action"]["readiness_command"].startswith(
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness"
+    )
+    assert report["next_action"]["run_id"] == "i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"
+    assert any("seed1 variance check" in step for step in report["next_steps"])
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action branch | `ddt_graph_seed1_variance_check` |" in plan_doc
+    assert "| Next action should launch remote | `True` |" in plan_doc
+    assert "innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json" in plan_doc
 
 
 def test_ddt_graph_gate_stops_when_control_matches_or_calibration_regresses(tmp_path):

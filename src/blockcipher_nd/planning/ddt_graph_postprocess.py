@@ -149,10 +149,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "reason": decision,
         }
     if decision == "weak_ddt_graph_signal":
+        launch_config = "configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json"
         return {
-            "branch": "ddt_graph_variance_check",
-            "should_launch_remote": False,
+            "branch": "ddt_graph_seed1_variance_check",
+            "should_launch_remote": True,
             "requires_implementation": False,
+            "launch_remote_config": launch_config,
+            "readiness_command": _readiness_command(launch_config),
+            "run_id": "i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630",
+            "monitor_owner": "tmux watcher or sub-agent",
             "plan_doc": "docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md",
             "reason": decision,
         }
@@ -199,10 +204,13 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not make paper-scale or breakthrough claims from this single 262144/class seed.",
         ]
-    if branch == "ddt_graph_variance_check":
+    if branch == "ddt_graph_seed1_variance_check":
+        next_action = report["next_action"]
         return [
             "Update the experiment plan with this weak DDT graph signal.",
-            "Repeat 262144/class or run a variance check before scaling.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a 262144/class seed1 variance check from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not promote DDT graph as the main route yet.",
         ]
     if branch == "pairset_aggregation_control":
