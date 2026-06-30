@@ -439,6 +439,19 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
     assert remote_readiness_report(learned_path)["status"] == "pass"
 
 
+def test_archived_active_pattern_remote_config_is_not_launchable():
+    path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+    report = remote_readiness_report(path)
+
+    assert config["launch_enabled"] is False
+    assert config["archive_status"] == "archived_historical_screen_only"
+    assert "ARCHIVED SCREEN only" in config["claim_scope"]
+    assert "do not launch" in config["launch_policy"]
+    assert report["status"] == "fail"
+    assert any("launch_enabled=false" in error for error in report["errors"])
+
+
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
     launcher = Path(
         "configs/remote/generated/"

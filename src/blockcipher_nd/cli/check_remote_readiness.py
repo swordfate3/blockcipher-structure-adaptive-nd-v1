@@ -33,6 +33,21 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
             "warnings": [],
         }
 
+    if config.get("launch_enabled") is False:
+        reason = _str_value(config.get("disabled_reason")) or "remote config is disabled"
+        return {
+            "status": "fail",
+            "config": str(config_path),
+            "run_id": _str_value(config.get("run_id")),
+            "plan": _str_value(config.get("plan")) or None,
+            "expected_rows": _int_value(config.get("expected_rows")),
+            "plan_rows": 0,
+            "max_samples_per_class": 0,
+            "errors": [f"launch_enabled=false: {reason}"],
+            "warnings": [],
+            "checked_invariants": ["launch_enabled"],
+        }
+
     plan_path = _local_plan_path(config.get("plan"))
     tasks: list[dict[str, Any]] = []
     if plan_path is None:

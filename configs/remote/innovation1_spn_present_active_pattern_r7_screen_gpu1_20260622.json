@@ -1,5 +1,8 @@
 {
   "run_id": "innovation1-spn-present-active-pattern-r7-screen-gpu1-20260622",
+  "launch_enabled": false,
+  "disabled_reason": "archived 2026-06-22 screen config: old repo/path/branch and non-official sample_structure; keep for historical context only, do not launch",
+  "archive_status": "archived_historical_screen_only",
   "task_name": "innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622",
   "plan": "experiments\\innovation1\\plans\\innovation1_spn_present_active_pattern_r7_screen.csv",
   "expected_rows": 2,
@@ -19,6 +22,6 @@
   "clone_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd.git",
   "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd.git",
   "result_repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd.git",
-  "claim_scope": "SCREEN only: active-pattern baseline route for PRESENT r7 at 65536/class on GPU1; not formal or breakthrough evidence",
-  "launch_policy": "use pushed GitHub commit, strict encrypted-random-plaintext negatives, generated commands must use cmd.exe /c and store artifacts only under G:\\lxy"
+  "claim_scope": "ARCHIVED SCREEN only: active-pattern baseline route for PRESENT r7 at 65536/class on GPU1; old non-official sample_structure; not launchable, formal, or breakthrough evidence",
+  "launch_policy": "DISABLED: archived historical screen config only; do not launch from this file. Future active-pattern work must use a new docs/experiments plan, current GitHub repo, current configs/experiment path, zhang_wang_case2_official_mcnd, disk cache, cmd.exe /c, and G:\\lxy artifacts."
 }
