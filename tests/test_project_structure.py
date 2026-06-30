@@ -234,6 +234,7 @@ def test_present_ddt_graph_262k_plan_is_conditional_same_protocol_matrix():
     assert [task["model_key"] for task in tasks] == [
         "present_nibble_invp_only_spn_only",
         "present_nibble_paligned_transition_residual",
+        "present_nibble_no_ddt_graph",
         "present_nibble_ddt_graph",
         "present_nibble_shuffled_ddt_graph",
     ]
@@ -258,7 +259,7 @@ def test_present_ddt_graph_262k_remote_config_is_prepared_not_launched():
     config = json.loads(path.read_text(encoding="utf-8"))
 
     assert config["plan"].endswith("innovation1_spn_present_ddt_graph_r7_262k.csv")
-    assert config["expected_rows"] == 4
+    assert config["expected_rows"] == 5
     assert config["device"] == "cuda:0"
     assert config["train_eval_interval"] == 0
     assert config["dataset_cache"] is True
@@ -899,7 +900,8 @@ def _write_ddt_graph_result_set(
     path: Path,
     *,
     invp_auc: float,
-    no_ddt_auc: float,
+    transition_no_ddt_auc: float,
+    no_ddt_graph_auc: float,
     ddt_auc: float,
     shuffled_auc: float,
     invp_calibrated_accuracy: float = 0.711,
@@ -915,7 +917,12 @@ def _write_ddt_graph_result_set(
         _write_ddt_graph_result(
             handle,
             model="present_nibble_paligned_transition_residual",
-            auc=no_ddt_auc,
+            auc=transition_no_ddt_auc,
+        )
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_no_ddt_graph",
+            auc=no_ddt_graph_auc,
         )
         _write_ddt_graph_result(
             handle,
@@ -984,7 +991,8 @@ def test_ddt_graph_gate_supports_route_when_true_graph_beats_controls(tmp_path):
     _write_ddt_graph_result_set(
         results_path,
         invp_auc=0.7940,
-        no_ddt_auc=0.7945,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
         ddt_auc=0.7960,
         shuffled_auc=0.7948,
     )
@@ -996,6 +1004,7 @@ def test_ddt_graph_gate_supports_route_when_true_graph_beats_controls(tmp_path):
     assert report["action"] == "run_262k_seed1_confirmation_before_1m_scale"
     assert report["max_control_auc"] == 0.7948
     assert report["margin_vs_best_control_auc"] > 0.001
+    assert report["margin_vs_no_ddt_graph_auc"] > 0.001
     assert report["margin_vs_shuffled_auc"] > 0.001
     assert "medium-scale diagnostic support" in report["interpretation"]
     assert "not paper-scale" in report["claim_scope"]
@@ -1006,7 +1015,8 @@ def test_ddt_graph_gate_marks_weak_signal_when_margin_is_small(tmp_path):
     _write_ddt_graph_result_set(
         results_path,
         invp_auc=0.7940,
-        no_ddt_auc=0.7945,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
         ddt_auc=0.7950,
         shuffled_auc=0.7948,
     )
@@ -1024,7 +1034,8 @@ def test_ddt_graph_gate_stops_when_control_matches_or_calibration_regresses(tmp_
     _write_ddt_graph_result_set(
         results_path,
         invp_auc=0.7940,
-        no_ddt_auc=0.7962,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7962,
         ddt_auc=0.7960,
         shuffled_auc=0.7948,
     )
@@ -1034,14 +1045,16 @@ def test_ddt_graph_gate_stops_when_control_matches_or_calibration_regresses(tmp_
     assert report["status"] == "pass"
     assert report["decision"] == "stop_ddt_graph_route"
     assert report["action"] == "record_negative_or_tied_evidence_and_switch_hypothesis"
-    assert report["margin_vs_no_ddt_auc"] < 0
+    assert report["margin_vs_no_ddt_graph_auc"] < 0
+    assert report["margin_vs_no_ddt_auc"] == report["margin_vs_no_ddt_graph_auc"]
     assert "do not scale this route to 1M" in report["interpretation"]
 
     regressed_path = tmp_path / "ddt_graph_calibration_regressed.jsonl"
     _write_ddt_graph_result_set(
         regressed_path,
         invp_auc=0.7940,
-        no_ddt_auc=0.7945,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
         ddt_auc=0.7960,
         shuffled_auc=0.7948,
         invp_calibrated_accuracy=0.712,
@@ -1068,7 +1081,7 @@ def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
 
     assert report["status"] == "fail"
     assert report["decision"] == "invalid"
-    assert any("expected_rows=4" in error for error in report["errors"])
+    assert any("expected_rows=5" in error for error in report["errors"])
     assert any("missing_models" in error for error in report["errors"])
 
 
@@ -1081,7 +1094,8 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     _write_ddt_graph_result_set(
         results_path,
         invp_auc=0.7940,
-        no_ddt_auc=0.7945,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7946,
         ddt_auc=0.7960,
         shuffled_auc=0.7948,
     )
@@ -1091,7 +1105,7 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
         results_path=results_path,
         output_dir=output_dir,
         run_id="unit_ddt_graph",
-        expected_rows=4,
+        expected_rows=5,
         plan_doc_path=plan_doc_path,
     )
 
@@ -1121,7 +1135,7 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
         results_path=results_path,
         output_dir=output_dir,
         run_id="unit_ddt_graph",
-        expected_rows=4,
+        expected_rows=5,
         plan_doc_path=plan_doc_path,
     )
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
@@ -1986,6 +2000,7 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
     from blockcipher_nd.features.encoders.present_sbox_ddt import PRESENT_SBOX_DDT
     from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
         PresentNibbleDDTGraphDistinguisher,
+        PresentNibbleNoDDTGraphDistinguisher,
     )
 
     cipher = build_cipher("present80", rounds=7, key=0)
@@ -1999,6 +2014,13 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
         ddt_mixer_depth=1,
     )
     cell_features = model.ddt_encoder.ddt_cell_features(raw)
+    no_ddt_model = PresentNibbleNoDDTGraphDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        ddt_mixer_depth=1,
+    )
+    no_ddt_features = no_ddt_model.ddt_encoder.ddt_cell_features(raw)
     delta = left ^ right
     aligned = cipher.inverse_permutation_layer(delta)
     first_output_difference = (aligned >> 60) & 0xF
@@ -2010,7 +2032,9 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
 
     assert model.ddt_encoder.ddt_by_output.shape == (16, 16)
     assert cell_features.shape == (1, 1, 16, 20)
+    assert no_ddt_features.shape == (1, 1, 16, 4)
     assert cell_features[0, 0, 0, :4].to(torch.uint8).tolist() == expected_output_bits
+    assert no_ddt_features[0, 0, 0].to(torch.uint8).tolist() == expected_output_bits
     assert cell_features[0, 0, 0, 4:].tolist() == expected_counts
 
 
@@ -2101,6 +2125,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
         "present_nibble_invp_only_spn_only",
         "present_nibble_invp_pair_consistency_spn_only",
         "present_nibble_shuffled_paligned_spn_only",
+        "present_nibble_no_ddt_graph",
         "present_nibble_ddt_graph",
         "present_nibble_shuffled_ddt_graph",
         "present_nibble_paligned_gated_mcnd",

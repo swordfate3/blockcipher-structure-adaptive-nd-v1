@@ -9,6 +9,7 @@ from typing import Any
 EXPECTED_DDT_GRAPH_MODELS = {
     "present_nibble_invp_only_spn_only",
     "present_nibble_paligned_transition_residual",
+    "present_nibble_no_ddt_graph",
     "present_nibble_ddt_graph",
     "present_nibble_shuffled_ddt_graph",
 }
@@ -22,7 +23,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--results", required=True, type=Path, help="DDT graph result JSONL path.")
     parser.add_argument("--output", type=Path, default=None, help="Optional JSON gate report path.")
-    parser.add_argument("--expected-rows", type=int, default=4)
+    parser.add_argument("--expected-rows", type=int, default=5)
     parser.add_argument("--margin", type=float, default=DEFAULT_DDT_GRAPH_MARGIN)
     return parser.parse_args(argv)
 
@@ -30,7 +31,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def gate_ddt_graph_result(
     results_path: Path,
     *,
-    expected_rows: int = 4,
+    expected_rows: int = 5,
     margin: float = DEFAULT_DDT_GRAPH_MARGIN,
 ) -> dict[str, Any]:
     rows = _load_jsonl_rows(results_path)
@@ -60,14 +61,16 @@ def gate_ddt_graph_result(
 
     ddt = models.get("present_nibble_ddt_graph", {})
     invp = models.get("present_nibble_invp_only_spn_only", {})
-    no_ddt = models.get("present_nibble_paligned_transition_residual", {})
+    transition_no_ddt = models.get("present_nibble_paligned_transition_residual", {})
+    graph_no_ddt = models.get("present_nibble_no_ddt_graph", {})
     shuffled = models.get("present_nibble_shuffled_ddt_graph", {})
     ddt_auc = ddt.get("auc")
     control_aucs = [
         value
         for value in [
             invp.get("auc"),
-            no_ddt.get("auc"),
+            transition_no_ddt.get("auc"),
+            graph_no_ddt.get("auc"),
             shuffled.get("auc"),
         ]
         if value is not None
@@ -77,7 +80,8 @@ def gate_ddt_graph_result(
         None if ddt_auc is None or max_control_auc is None else ddt_auc - max_control_auc
     )
     margin_vs_invp = _metric_delta(ddt.get("auc"), invp.get("auc"))
-    margin_vs_no_ddt = _metric_delta(ddt.get("auc"), no_ddt.get("auc"))
+    margin_vs_transition_no_ddt = _metric_delta(ddt.get("auc"), transition_no_ddt.get("auc"))
+    margin_vs_no_ddt_graph = _metric_delta(ddt.get("auc"), graph_no_ddt.get("auc"))
     margin_vs_shuffled = _metric_delta(ddt.get("auc"), shuffled.get("auc"))
     calibrated_delta_vs_invp = _metric_delta(
         ddt.get("calibrated_accuracy"),
@@ -93,7 +97,7 @@ def gate_ddt_graph_result(
             decision = "support_ddt_graph_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
             interpretation = (
-                "DDT graph is above InvP/no-DDT/shuffled controls by the required margin; "
+                "DDT graph is above InvP/transition/no-DDT-graph/shuffled controls by the required margin; "
                 "this is medium-scale diagnostic support for the DDT/topology route"
             )
         elif _at_least(margin_vs_best_control, 0.0) and calibrated_not_worse:
@@ -120,7 +124,9 @@ def gate_ddt_graph_result(
         "max_control_auc": max_control_auc,
         "margin_vs_best_control_auc": margin_vs_best_control,
         "margin_vs_invp_auc": margin_vs_invp,
-        "margin_vs_no_ddt_auc": margin_vs_no_ddt,
+        "margin_vs_transition_no_ddt_auc": margin_vs_transition_no_ddt,
+        "margin_vs_no_ddt_graph_auc": margin_vs_no_ddt_graph,
+        "margin_vs_no_ddt_auc": margin_vs_no_ddt_graph,
         "margin_vs_shuffled_auc": margin_vs_shuffled,
         "calibrated_delta_vs_invp": calibrated_delta_vs_invp,
         "required_margin": margin,

@@ -495,6 +495,7 @@ class PresentNibbleDDTGraphDistinguisher(nn.Module):
         top_k: int = 4,
         lse_temperature: float = 1.0,
         p_alignment: str = "true",
+        include_ddt: bool = True,
     ) -> None:
         super().__init__()
         self.input_bits = input_bits
@@ -510,6 +511,7 @@ class PresentNibbleDDTGraphDistinguisher(nn.Module):
             norm=norm,
             dropout=dropout,
             p_alignment=p_alignment,
+            include_ddt=include_ddt,
         )
         self.evidence_pool = EvidencePooling(
             self.ddt_encoder.embedding_bits,
@@ -553,6 +555,14 @@ class PresentNibbleShuffledDDTGraphDistinguisher(PresentNibbleDDTGraphDistinguis
 
     def __init__(self, *args, **kwargs) -> None:
         kwargs["p_alignment"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
+class PresentNibbleNoDDTGraphDistinguisher(PresentNibbleDDTGraphDistinguisher):
+    """Same PRESENT graph topology as DDTGraph, but without S-box DDT priors."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["include_ddt"] = False
         super().__init__(*args, **kwargs)
 
 
@@ -776,6 +786,7 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         norm: str = "layernorm",
         dropout: float = 0.0,
         p_alignment: str = "true",
+        include_ddt: bool = True,
     ) -> None:
         super().__init__()
         if pair_bits != 128:
@@ -790,9 +801,10 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         self.pair_bits = pair_bits
         self.pairs_per_sample = input_bits // pair_bits
         self.nibbles_per_pair = 16
+        self.include_ddt = include_ddt
         self.ddt_token_dim = ddt_token_dim or max(16, base_channels * 2)
         self.embedding_bits = max(32, base_channels * 4)
-        self.cell_feature_bits = 20
+        self.cell_feature_bits = 20 if include_ddt else 4
 
         self.cell_encoder = nn.Sequential(
             nn.Linear(self.cell_feature_bits, self.ddt_token_dim),
@@ -861,6 +873,8 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
 
         delta_nibbles = difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
         invp_nibbles = aligned_difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
+        if not self.include_ddt:
+            return invp_nibbles
         invp_values = _present_nibble_values(invp_nibbles)
         ddt_counts = self.ddt_by_output.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
             *invp_values.shape,
@@ -903,6 +917,7 @@ __all__ = [
     "PresentNibblePAlignedTransitionDistinguisher",
     "PresentNibblePAlignedTransitionResidualDistinguisher",
     "PresentNibbleShuffledTransitionResidualDistinguisher",
+    "PresentNibbleNoDDTGraphDistinguisher",
     "PresentNibbleDDTGraphDistinguisher",
     "PresentNibbleShuffledDDTGraphDistinguisher",
 ]

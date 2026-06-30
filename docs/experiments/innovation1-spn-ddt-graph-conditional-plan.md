@@ -58,14 +58,15 @@ Scale for first non-smoke run:
 seed = 0
 ```
 
-Keep the matrix lean, 3 to 4 rows:
+Keep the matrix lean but attribution-complete, 5 rows:
 
 | Row | Model/route | Role |
 |---:|---|---|
 | 0 | `present_nibble_invp_only_spn_only` | current simple InvP anchor |
 | 1 | `present_nibble_paligned_transition_residual` or successor | true-P topology/residual anchor |
-| 2 | new `present_nibble_ddt_graph` | DDT-aware true-P cell graph candidate |
-| 3 | new `present_nibble_shuffled_ddt_graph` | shuffled-P topology control |
+| 2 | new `present_nibble_no_ddt_graph` | same graph mixer/pooling without DDT priors |
+| 3 | new `present_nibble_ddt_graph` | DDT-aware true-P cell graph candidate |
+| 4 | new `present_nibble_shuffled_ddt_graph` | shuffled-P topology control |
 
 Do not include Zhang/Wang in this matrix unless the preceding 1M result suggests
 baseline drift. The already completed 262k/1M Zhang/Wang anchors are sufficient
@@ -204,7 +205,8 @@ Likely smallest implementation:
 1. Add a compact DDT cell-feature builder inside present_nibble_paligned_mcnd.py first.
 2. Reuse or promote the existing PRESENT P-layer adjacency helper; do not create
    a second incompatible graph convention.
-3. Register only two new keys initially:
+3. Register three graph keys initially:
+   - present_nibble_no_ddt_graph
    - present_nibble_ddt_graph
    - present_nibble_shuffled_ddt_graph
 4. Add forward/build tests before any matrix launch.
@@ -326,6 +328,7 @@ Implementation update, 2026-06-30:
 ```text
 commit = ef8ee17 feat: add present ddt graph candidate
 model aliases implemented:
+  - present_nibble_no_ddt_graph
   - present_nibble_ddt_graph
   - present_nibble_shuffled_ddt_graph
 smoke plan:
@@ -351,24 +354,26 @@ engineering.
 ```text
 src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py
   - add _PresentNibbleDdtGraphEncoder
+  - add PresentNibbleNoDDTGraphDistinguisher
   - add PresentNibbleDdtGraphDistinguisher
   - add PresentNibbleShuffledDdtGraphDistinguisher
 
 src/blockcipher_nd/models/structure/spn/__init__.py
-  - export the two new model classes
+  - export the three new graph model classes
 
 src/blockcipher_nd/models/structure/__init__.py
-  - export the two new model classes because the SPN registry imports from
+  - export the three new graph model classes because the SPN registry imports from
     blockcipher_nd.models.structure
 
 src/blockcipher_nd/registry/model_families/spn.py
+  - register present_nibble_no_ddt_graph
   - register present_nibble_ddt_graph
   - register present_nibble_shuffled_ddt_graph
 
 tests/test_project_structure.py
-  - add forward/build coverage for both aliases
-  - add a view/feature sanity test that DDT features are deterministic and
-    differ from the no-DDT transition residual view
+  - add forward/build coverage for all three graph aliases
+  - add a view/feature sanity test that DDT features are deterministic and the
+    same-graph no-DDT control keeps only InvP-aligned nibble bits
 ```
 
 ### Model Inputs
@@ -482,6 +487,7 @@ configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
 Rows:
 
 ```text
+present_nibble_no_ddt_graph
 present_nibble_ddt_graph
 present_nibble_shuffled_ddt_graph
 ```
@@ -511,13 +517,16 @@ Rows:
 ```text
 present_nibble_invp_only_spn_only
 present_nibble_paligned_transition_residual
+present_nibble_no_ddt_graph
 present_nibble_ddt_graph
 present_nibble_shuffled_ddt_graph
 ```
 
-Keep `present_nibble_paligned_transition_residual` as the no-DDT topology/residual
-anchor. Do not add Zhang/Wang to this matrix unless the retrieved 1M result shows
-baseline drift or protocol mismatch.
+Keep `present_nibble_paligned_transition_residual` as the older no-DDT
+topology/residual anchor, and add `present_nibble_no_ddt_graph` as the stricter
+same-graph no-DDT control. This separates "the graph mixer/topology helped" from
+"the S-box DDT prior helped". Do not add Zhang/Wang to this matrix unless the
+retrieved 1M result shows baseline drift or protocol mismatch.
 
 Launch guardrail:
 
@@ -545,14 +554,15 @@ Gate command after retrieval:
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-ddt-graph-result \
   --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
   --output outputs/remote_results/<run_id>/<run_id>_ddt_graph_gate.json \
-  --expected-rows 4
+  --expected-rows 5
 ```
 
-The gate compares `present_nibble_ddt_graph` against three same-budget controls:
+The gate compares `present_nibble_ddt_graph` against four same-budget controls:
 
 ```text
 present_nibble_invp_only_spn_only
 present_nibble_paligned_transition_residual
+present_nibble_no_ddt_graph
 present_nibble_shuffled_ddt_graph
 ```
 
@@ -572,7 +582,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-ddt-graph-result \
   --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
   --output-dir outputs/remote_results/<run_id> \
   --run-id <run_id> \
-  --expected-rows 4 \
+  --expected-rows 5 \
   --update-plan-doc docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md
 ```
 
@@ -611,6 +621,7 @@ Add tests before the first smoke CSV is committed:
    - count normalization is exactly count / 16.0
 
 3. Alias build/forward:
+   - present_nibble_no_ddt_graph builds from the registry
    - present_nibble_ddt_graph builds from the registry
    - present_nibble_shuffled_ddt_graph builds from the registry
    - input_bits = 2048 and pair_bits = 128 produce logits shaped (batch, 1)

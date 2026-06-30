@@ -19,7 +19,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--results", required=True, type=Path, help="Retrieved DDT graph JSONL path.")
     parser.add_argument("--output-dir", required=True, type=Path, help="Directory for generated reports.")
     parser.add_argument("--run-id", required=True, help="Run id used in output filenames and plot title.")
-    parser.add_argument("--expected-rows", type=int, default=4)
+    parser.add_argument("--expected-rows", type=int, default=5)
     parser.add_argument(
         "--update-plan-doc",
         type=Path,
@@ -36,7 +36,7 @@ def postprocess_ddt_graph_result(
     results_path: Path,
     output_dir: Path,
     run_id: str,
-    expected_rows: int = 4,
+    expected_rows: int = 5,
     plan_doc_path: Path | None = None,
     plan_doc_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
@@ -81,6 +81,8 @@ def postprocess_ddt_graph_result(
         "max_control_auc": ddt_gate_report["max_control_auc"],
         "margin_vs_best_control_auc": ddt_gate_report["margin_vs_best_control_auc"],
         "margin_vs_invp_auc": ddt_gate_report["margin_vs_invp_auc"],
+        "margin_vs_transition_no_ddt_auc": ddt_gate_report["margin_vs_transition_no_ddt_auc"],
+        "margin_vs_no_ddt_graph_auc": ddt_gate_report["margin_vs_no_ddt_graph_auc"],
         "margin_vs_no_ddt_auc": ddt_gate_report["margin_vs_no_ddt_auc"],
         "margin_vs_shuffled_auc": ddt_gate_report["margin_vs_shuffled_auc"],
         "calibrated_delta_vs_invp": ddt_gate_report["calibrated_delta_vs_invp"],
@@ -204,6 +206,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- decision: `{report['decision']}`",
             f"- action: `{report['action']}`",
             f"- margin_vs_best_control_auc: `{_format_value(report['margin_vs_best_control_auc'])}`",
+            f"- margin_vs_no_ddt_graph_auc: `{_format_value(report['margin_vs_no_ddt_graph_auc'])}`",
             f"- max_control_auc: `{_format_value(report['max_control_auc'])}`",
             f"- calibrated_delta_vs_invp: `{_format_value(report['calibrated_delta_vs_invp'])}`",
             f"- claim_scope: {report['claim_scope']}",
@@ -246,7 +249,8 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Max control AUC", _format_value(report["max_control_auc"])),
         ("Margin vs best control AUC", _format_value(report["margin_vs_best_control_auc"])),
         ("Margin vs InvP AUC", _format_value(report["margin_vs_invp_auc"])),
-        ("Margin vs no-DDT AUC", _format_value(report["margin_vs_no_ddt_auc"])),
+        ("Margin vs transition no-DDT AUC", _format_value(report["margin_vs_transition_no_ddt_auc"])),
+        ("Margin vs same-graph no-DDT AUC", _format_value(report["margin_vs_no_ddt_graph_auc"])),
         ("Margin vs shuffled AUC", _format_value(report["margin_vs_shuffled_auc"])),
         ("Calibrated delta vs InvP", _format_value(report["calibrated_delta_vs_invp"])),
         ("Required margin", _format_value(report["required_margin"])),
