@@ -24,6 +24,7 @@ from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_invp_attribution_controls
+from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_result
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -1069,6 +1070,63 @@ def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
     assert report["decision"] == "invalid"
     assert any("expected_rows=4" in error for error in report["errors"])
     assert any("missing_models" in error for error in report["errors"])
+
+
+def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
+    results_path = tmp_path / "ddt_graph.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "ddt-plan.md"
+    plan_doc_path.write_text("# DDT Plan\n", encoding="utf-8")
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        no_ddt_auc=0.7945,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    report = postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph",
+        expected_rows=4,
+        plan_doc_path=plan_doc_path,
+    )
+
+    assert report["status"] == "pass"
+    assert report["validation_status"] == "pass"
+    assert report["ddt_graph_status"] == "pass"
+    assert report["decision"] == "support_ddt_graph_route"
+    assert report["next_action"]["branch"] == "ddt_graph_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert (output_dir / "unit_ddt_graph_local_result_gate.json").exists()
+    assert (output_dir / "unit_ddt_graph_curves.svg").exists()
+    assert (output_dir / "unit_ddt_graph_history.csv").exists()
+    assert (output_dir / "unit_ddt_graph_ddt_graph_gate.json").exists()
+    assert (output_dir / "unit_ddt_graph_postprocess_summary.json").exists()
+    assert (output_dir / "unit_ddt_graph_postprocess_summary.md").exists()
+    markdown = (output_dir / "unit_ddt_graph_postprocess_summary.md").read_text()
+    assert "support_ddt_graph_route" in markdown
+    assert "present_nibble_ddt_graph" in markdown
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "## Retrieved DDT Graph Result" in plan_doc
+    assert "<!-- ddt-graph-postprocess:unit_ddt_graph:start -->" in plan_doc
+    assert "| Decision | `support_ddt_graph_route` |" in plan_doc
+    assert "| Next action branch | `ddt_graph_seed1_confirmation` |" in plan_doc
+
+    postprocess_ddt_graph_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_ddt_graph",
+        expected_rows=4,
+        plan_doc_path=plan_doc_path,
+    )
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert plan_doc.count("<!-- ddt-graph-postprocess:unit_ddt_graph:start -->") == 1
+    assert plan_doc.count("### unit_ddt_graph DDT Graph Result") == 1
 
 
 def _write_invp_attribution_controls_plan(path: Path) -> None:

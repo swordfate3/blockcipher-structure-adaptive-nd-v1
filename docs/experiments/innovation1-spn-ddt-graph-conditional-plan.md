@@ -336,6 +336,8 @@ prepared remote config:
   configs/remote/innovation1_spn_present_ddt_graph_r7_262k_gpu0_20260630.json
 gate command:
   scripts/gate-ddt-graph-result
+postprocess command:
+  scripts/postprocess-ddt-graph-result
 ```
 
 The implementation was aligned to the Branch B v1 refinement below: each node
@@ -560,6 +562,18 @@ Decision meanings:
 support_ddt_graph_route -> run 262144/class seed1 confirmation before any 1M scale
 weak_ddt_graph_signal   -> repeat 262144/class or run variance check before scaling
 stop_ddt_graph_route    -> record tied/negative evidence and switch hypothesis
+```
+
+Full postprocess command after retrieval:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-ddt-graph-result \
+  --plan configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv \
+  --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
+  --output-dir outputs/remote_results/<run_id> \
+  --run-id <run_id> \
+  --expected-rows 4 \
+  --update-plan-doc docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md
 ```
 
 ### Implementation Order Guardrail
