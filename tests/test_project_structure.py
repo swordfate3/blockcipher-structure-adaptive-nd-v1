@@ -1989,8 +1989,29 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     pairset_jsonl = pairset_results / f"{pairset_run}.jsonl"
     pairset_jsonl.write_text("{}\n{}\n", encoding="utf-8")
     frozen_summary = pairset_results / "frozen_aggregation_summary.json"
-    frozen_summary.write_text('{"status":"pass"}\n', encoding="utf-8")
 
+    report = monitor_health_report(
+        run_id=pairset_run,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        expected_rows=2,
+        postprocess_kind="pairset_aggregation",
+    )
+
+    assert report["status"] == "waiting_for_auxiliary_artifacts"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+    assert report["auxiliary_artifacts"] == [
+        {
+            "role": "frozen_summary",
+            "path": str(frozen_summary),
+            "exists": False,
+        }
+    ]
+
+    frozen_summary.write_text('{"status":"pass"}\n', encoding="utf-8")
     report = monitor_health_report(
         run_id=pairset_run,
         root=root,
@@ -2002,6 +2023,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
 
     assert report["status"] == "result_ready"
     assert report["expected_rows"] == 2
+    assert report["auxiliary_artifacts"][0]["exists"] is True
     assert report["postprocess_command"] == [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -2024,6 +2046,42 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "2",
         "--update-plan-doc",
         str(plan_doc),
+    ]
+
+
+def test_monitor_health_pairset_done_without_frozen_summary_needs_intervention(tmp_path):
+    root = tmp_path / "remote_results"
+    plan = tmp_path / "plan.csv"
+    plan.write_text("model_key\nrow_a\nrow_b\n", encoding="utf-8")
+    run_id = "unit_pairset_missing_aux"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    (run_root / "done.marker").write_text("done\n", encoding="utf-8")
+    results = run_root / "results"
+    results.mkdir()
+    (results / f"{run_id}.jsonl").write_text("{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        expected_rows=2,
+        postprocess_kind="pairset_aggregation",
+    )
+
+    assert report["status"] == "completed_missing_auxiliary_artifacts"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["postprocess_allowed"] is False
+    assert report["postprocess_command"] == []
+    assert report["auxiliary_artifacts"] == [
+        {
+            "role": "frozen_summary",
+            "path": str(results / "frozen_aggregation_summary.json"),
+            "exists": False,
+        }
     ]
 
 

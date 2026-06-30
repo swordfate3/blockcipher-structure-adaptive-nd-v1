@@ -94,6 +94,7 @@ def monitor_health_report(
     heartbeat = _heartbeat_status(recent_monitor_lines, stale_after_seconds, now=now)
     stderr_text = _read_text(ssh_stderr).strip()
     tmux = _tmux_status(tmux_session)
+    auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     status = _health_status(
         run_root_exists=run_root.exists(),
         results_jsonl_exists=results_jsonl.exists(),
@@ -105,6 +106,11 @@ def monitor_health_report(
         recent_monitor_lines=recent_monitor_lines,
         heartbeat=heartbeat,
         tmux=tmux,
+    )
+    status = _auxiliary_artifact_status(
+        status=status,
+        done_markers=done_markers,
+        auxiliary_artifacts=auxiliary_artifacts,
     )
     postprocess_command = _postprocess_command(
         status=status,
@@ -136,6 +142,7 @@ def monitor_health_report(
         "expected_rows": expected_result_rows,
         "done_markers": done_markers,
         "failed_markers": failed_markers,
+        "auxiliary_artifacts": auxiliary_artifacts,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
         in {
@@ -144,6 +151,7 @@ def monitor_health_report(
             "missing_monitor",
             "stale_monitor",
             "completed_missing_results",
+            "completed_missing_auxiliary_artifacts",
             "results_empty",
             "results_incomplete",
         },
@@ -188,6 +196,35 @@ def _health_status(
     if results_jsonl_exists:
         return "results_empty"
     return "unknown"
+
+
+def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> list[dict[str, Any]]:
+    if postprocess_kind != "pairset_aggregation":
+        return []
+    frozen_summary = run_root / "results" / "frozen_aggregation_summary.json"
+    return [
+        {
+            "role": "frozen_summary",
+            "path": str(frozen_summary),
+            "exists": frozen_summary.exists(),
+        }
+    ]
+
+
+def _auxiliary_artifact_status(
+    *,
+    status: str,
+    done_markers: list[str],
+    auxiliary_artifacts: list[dict[str, Any]],
+) -> str:
+    if status != "result_ready":
+        return status
+    missing = [artifact for artifact in auxiliary_artifacts if not artifact["exists"]]
+    if not missing:
+        return status
+    if done_markers:
+        return "completed_missing_auxiliary_artifacts"
+    return "waiting_for_auxiliary_artifacts"
 
 
 def _heartbeat_status(
@@ -449,6 +486,7 @@ def main(argv: list[str] | None = None) -> int:
             "missing_monitor",
             "stale_monitor",
             "completed_missing_results",
+            "completed_missing_auxiliary_artifacts",
             "results_empty",
             "results_incomplete",
         }
