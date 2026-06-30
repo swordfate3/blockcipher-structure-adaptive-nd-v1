@@ -456,6 +456,25 @@ def test_archived_active_pattern_remote_config_is_not_launchable():
     assert any("launch_enabled=false" in error for error in report["errors"])
 
 
+def test_legacy_candidate_evidence_remote_config_fails_current_protocol_lock():
+    path = Path("configs/remote/innovation1_spn_candidate_evidence_r7_65536_gpu0_20260623.json")
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert any(
+        "candidate_trail sample_structure=zhang_wang_case2_mcnd expected=zhang_wang_case2_official_mcnd"
+        in error
+        for error in report["errors"]
+    )
+    assert any(
+        "candidate_trail validation_key=0xffffffffffffffffffff expected=0x11111111111111111111"
+        in error
+        for error in report["errors"]
+    )
+    assert any("candidate_trail key_rotation_interval=1024 expected=0" in error for error in report["errors"])
+    assert any("candidate_trail cache root must stay under G:\\lxy" in error for error in report["errors"])
+
+
 def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     plan = Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md").read_text(
         encoding="utf-8"
@@ -467,7 +486,7 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "`encrypted_random_plaintexts`" in plan
     assert "`0x11111111111111111111`" in plan
     assert "sample_structure = zhang_wang_case2_mcnd" in plan
-    assert "A future remote readiness gate must still reject" in plan
+    assert "scripts/check-remote-readiness enforces candidate-trail/candidate-evidence" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan

@@ -127,8 +127,8 @@ and disk-backed candidate feature cache can generate/reuse official Case2
 candidate-trail features in local smoke.
 ```
 
-A future remote readiness gate must still reject any candidate-trail remote
-config that uses:
+The remote readiness gate must reject any candidate-trail remote config that
+uses:
 
 ```text
 sample_structure = zhang_wang_case2_mcnd
@@ -138,6 +138,21 @@ key_rotation_interval > 0
 
 unless it is clearly labeled as a historical diagnostic that is not comparable
 with the current official Case2 evidence chain.
+
+Readiness tooling update, 2026-07-01:
+
+```text
+scripts/check-remote-readiness enforces candidate-trail/candidate-evidence
+protocol lock:
+  sample_structure = zhang_wang_case2_official_mcnd
+  negative_mode = encrypted_random_plaintexts
+  validation_key = 0x11111111111111111111
+  key_rotation_interval = 0
+  feature_cache_root or dataset_cache_root under G:\lxy\blockcipher-structure-adaptive-nd-runs
+```
+
+The historical `configs/remote/innovation1_spn_candidate_evidence_r7_65536_gpu0_20260623.json`
+is intentionally not launch-ready under the current protocol lock.
 
 ## Feature Sketch
 

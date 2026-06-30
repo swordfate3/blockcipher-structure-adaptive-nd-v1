@@ -108,6 +108,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     train_consistency = _training_consistency(config, tasks)
     errors.extend(train_consistency["errors"])
     warnings.extend(train_consistency["warnings"])
+    candidate_consistency = _candidate_trail_consistency(config)
+    errors.extend(candidate_consistency["errors"])
+    warnings.extend(candidate_consistency["warnings"])
 
     return {
         "status": "pass" if not errors else "fail",
@@ -128,6 +131,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
             "g_lxy_artifact_policy",
             "medium_scale_dataset_cache",
             "training_protocol_matches_plan",
+            "candidate_trail_protocol_lock",
         ],
     }
 
@@ -169,6 +173,56 @@ def _training_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -
     if "batch_size" not in config or _int_value(config["batch_size"]) is None:
         errors.append("missing or invalid batch_size")
     return {"errors": errors, "warnings": warnings}
+
+
+def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_candidate_trail_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_values = {
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+    }
+    for field, expected in expected_values.items():
+        observed = config.get(field)
+        if observed != expected:
+            errors.append(f"candidate_trail {field}={observed} expected={expected}")
+
+    cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
+    if not cache_root:
+        errors.append("candidate_trail missing feature_cache_root or dataset_cache_root")
+    elif not cache_root.startswith(REMOTE_ROOT):
+        errors.append(f"candidate_trail cache root must stay under {REMOTE_ROOT}: {cache_root}")
+
+    return {"errors": errors, "warnings": warnings}
+
+
+def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "launch_policy",
+            "route",
+            "experiment_route",
+        ]
+    ).lower()
+    markers = [
+        "candidate_trail",
+        "candidate-trail",
+        "spn_candidate_evidence",
+        "spn-candidate-evidence",
+        "candidate_evidence",
+        "candidate-evidence",
+    ]
+    return any(marker in haystack for marker in markers)
 
 
 def _local_plan_path(value: Any) -> Path | None:
