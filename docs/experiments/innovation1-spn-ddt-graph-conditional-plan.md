@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-30
 
-**Status:** method-extension launch ready / attribution-control gate passed
+**Status:** seed0 remote running / watcher-managed / attribution-control gate passed
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives. This plan is a method-extension diagnostic route after the InvP-only attribution-control gate passed.
 
@@ -37,7 +37,9 @@ next-stage choice = optional DDT/topology method-extension branch
 
 This route must be interpreted as medium diagnostic evidence. It tests whether
 explicit S-box DDT priors and true P-layer graph topology can improve beyond
-the now-supported InvP-only anchor.
+the now-supported InvP-only anchor. The first 262144/class seed0 run has been
+launched and is currently watcher-managed; no result claim is allowed until the
+watcher retrieves five plan-aligned rows and postprocess validation passes.
 
 ## Hypothesis
 
@@ -550,9 +552,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
   --output /tmp/i1_spn_ddt_graph_r7_262k_gpu0_20260630_readiness.json
 ```
 
-The config is intentionally prepared but not launched. Before actual launch,
-rerun readiness from the latest pushed commit and choose the GPU according to
-current remote availability.
+This readiness command was used before the 2026-06-30 seed0 launch. For any
+future seed1 or rerun, rerun readiness from the latest pushed commit and choose
+the GPU according to current remote availability.
 
 Gate command after retrieval:
 
@@ -661,9 +663,10 @@ Do not add a test that requires `present_nibble_ddt_graph` to exist before
 Branch B is selected. Until the InvP-only 1M gate chooses Branch B, the DDT
 aliases remain planned implementation aliases, not registered model keys.
 
-## Current Waiting Condition
+## Satisfied Launch Preconditions
 
-Before launching this route, inspect the completed artifacts for:
+Before the seed0 DDT launch, the completed attribution-control artifacts were
+inspected under:
 
 ```text
 outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/
