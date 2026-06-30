@@ -134,6 +134,7 @@ uses:
 sample_structure = zhang_wang_case2_mcnd
 validation_key = 0xffffffffffffffffffff
 key_rotation_interval > 0
+missing feature_mode or feature_mode not in {cell_structured, cell_structured_shuffled}
 ```
 
 unless it is clearly labeled as a historical diagnostic that is not comparable
@@ -148,6 +149,7 @@ protocol lock:
   negative_mode = encrypted_random_plaintexts
   validation_key = 0x11111111111111111111
   key_rotation_interval = 0
+  feature_mode in {cell_structured, cell_structured_shuffled}
   feature_cache_root or dataset_cache_root under G:\lxy\blockcipher-structure-adaptive-nd-runs
 ```
 

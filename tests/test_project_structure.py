@@ -519,6 +519,8 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json" in plan
     assert "candidate_trail_consistency_linear" in plan
     assert "candidate_trail_consistency_mlp" in plan
+    assert "missing feature_mode or feature_mode not in {cell_structured, cell_structured_shuffled}" in plan
+    assert "feature_mode in {cell_structured, cell_structured_shuffled}" in plan
     assert "Local cell-structured candidate-trail features are implemented" in plan
     assert "feature_mode = cell_structured" in plan
     assert "feature_mode = cell_structured_shuffled" in plan
