@@ -332,6 +332,8 @@ smoke plan:
   configs/experiment/innovation1/innovation1_spn_present_ddt_graph_smoke.csv
 first non-smoke conditional matrix:
   configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv
+gate command:
+  scripts/gate-ddt-graph-result
 ```
 
 The implementation was aligned to the Branch B v1 refinement below: each node
@@ -519,6 +521,31 @@ Launch guardrail:
 Do not launch this 262144/class matrix until the active 1M attribution-control
 run is retrieved, validated, and the gate selects the DDT/topology branch.
 Prepared matrix status is planned/ready, not launched/running evidence.
+```
+
+Gate command after retrieval:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-ddt-graph-result \
+  --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
+  --output outputs/remote_results/<run_id>/<run_id>_ddt_graph_gate.json \
+  --expected-rows 4
+```
+
+The gate compares `present_nibble_ddt_graph` against three same-budget controls:
+
+```text
+present_nibble_invp_only_spn_only
+present_nibble_paligned_transition_residual
+present_nibble_shuffled_ddt_graph
+```
+
+Decision meanings:
+
+```text
+support_ddt_graph_route -> run 262144/class seed1 confirmation before any 1M scale
+weak_ddt_graph_signal   -> repeat 262144/class or run variance check before scaling
+stop_ddt_graph_route    -> record tied/negative evidence and switch hypothesis
 ```
 
 ### Implementation Order Guardrail

@@ -19,6 +19,7 @@ from blockcipher_nd.features.registry import (
 )
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
+from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -838,6 +839,78 @@ def _write_invp_attribution_control_result(
     handle.write(json.dumps(row) + "\n")
 
 
+def _write_ddt_graph_result(
+    handle,
+    *,
+    model: str,
+    auc: float,
+    accuracy: float = 0.71,
+    calibrated_accuracy: float = 0.711,
+    loss: float = 0.55,
+) -> None:
+    row = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 262144,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "train_key": 0,
+        "validation_key": int("11111111111111111111", 16),
+        "pairs_per_sample": 16,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "key_rotation_interval": 0,
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "model": model,
+        "selected_model": model,
+        "metrics": {
+            "auc": auc,
+            "accuracy": accuracy,
+            "calibrated_accuracy": calibrated_accuracy,
+            "loss": loss,
+        },
+    }
+    handle.write(json.dumps(row) + "\n")
+
+
+def _write_ddt_graph_result_set(
+    path: Path,
+    *,
+    invp_auc: float,
+    no_ddt_auc: float,
+    ddt_auc: float,
+    shuffled_auc: float,
+    invp_calibrated_accuracy: float = 0.711,
+    ddt_calibrated_accuracy: float = 0.712,
+) -> None:
+    with path.open("w", encoding="utf-8") as handle:
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_invp_only_spn_only",
+            auc=invp_auc,
+            calibrated_accuracy=invp_calibrated_accuracy,
+        )
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_paligned_transition_residual",
+            auc=no_ddt_auc,
+        )
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_ddt_graph",
+            auc=ddt_auc,
+            calibrated_accuracy=ddt_calibrated_accuracy,
+        )
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_shuffled_ddt_graph",
+            auc=shuffled_auc,
+        )
+
+
 def test_invp_attribution_controls_gate_supports_structural_attribution(tmp_path):
     results_path = tmp_path / "controls.jsonl"
     with results_path.open("w", encoding="utf-8") as handle:
@@ -885,6 +958,99 @@ def test_invp_attribution_controls_gate_weakens_claim_when_control_matches(tmp_p
     assert report["action"] == "switch_to_new_spn_structure_hypothesis_or_variance_audit"
     assert report["attribution_margin"] < 0
     assert "not supported" in report["interpretation"]
+
+
+def test_ddt_graph_gate_supports_route_when_true_graph_beats_controls(tmp_path):
+    results_path = tmp_path / "ddt_graph.jsonl"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        no_ddt_auc=0.7945,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    report = gate_ddt_graph_result(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_ddt_graph_route"
+    assert report["action"] == "run_262k_seed1_confirmation_before_1m_scale"
+    assert report["max_control_auc"] == 0.7948
+    assert report["margin_vs_best_control_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] > 0.001
+    assert "medium-scale diagnostic support" in report["interpretation"]
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_ddt_graph_gate_marks_weak_signal_when_margin_is_small(tmp_path):
+    results_path = tmp_path / "ddt_graph_weak.jsonl"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        no_ddt_auc=0.7945,
+        ddt_auc=0.7950,
+        shuffled_auc=0.7948,
+    )
+
+    report = gate_ddt_graph_result(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weak_ddt_graph_signal"
+    assert report["action"] == "repeat_262k_or_run_variance_check_before_scaling"
+    assert 0 < report["margin_vs_best_control_auc"] < 0.001
+
+
+def test_ddt_graph_gate_stops_when_control_matches_or_calibration_regresses(tmp_path):
+    results_path = tmp_path / "ddt_graph_stop.jsonl"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        no_ddt_auc=0.7962,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    report = gate_ddt_graph_result(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_ddt_graph_route"
+    assert report["action"] == "record_negative_or_tied_evidence_and_switch_hypothesis"
+    assert report["margin_vs_no_ddt_auc"] < 0
+    assert "do not scale this route to 1M" in report["interpretation"]
+
+    regressed_path = tmp_path / "ddt_graph_calibration_regressed.jsonl"
+    _write_ddt_graph_result_set(
+        regressed_path,
+        invp_auc=0.7940,
+        no_ddt_auc=0.7945,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+        invp_calibrated_accuracy=0.712,
+        ddt_calibrated_accuracy=0.711,
+    )
+
+    regressed = gate_ddt_graph_result(regressed_path)
+
+    assert regressed["status"] == "pass"
+    assert regressed["decision"] == "stop_ddt_graph_route"
+    assert regressed["calibrated_delta_vs_invp"] < 0
+
+
+def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
+    results_path = tmp_path / "ddt_graph_missing.jsonl"
+    with results_path.open("w", encoding="utf-8") as handle:
+        _write_ddt_graph_result(
+            handle,
+            model="present_nibble_ddt_graph",
+            auc=0.7960,
+        )
+
+    report = gate_ddt_graph_result(results_path)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert any("expected_rows=4" in error for error in report["errors"])
+    assert any("missing_models" in error for error in report["errors"])
 
 
 def _write_invp_attribution_controls_plan(path: Path) -> None:
