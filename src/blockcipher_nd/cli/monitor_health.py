@@ -201,9 +201,15 @@ def _health_status(
 def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> list[dict[str, Any]]:
     if postprocess_kind != "pairset_aggregation":
         return []
+    stage_a_results = run_root / "results" / f"{_pairset_stage_a_run_id(run_root.name)}.jsonl"
     frozen_summary = run_root / "results" / "frozen_aggregation_summary.json"
     checkpoint = run_root / "checkpoints" / "single_pair_invp.pt"
     return [
+        {
+            "role": "single_pair_results",
+            "path": str(stage_a_results),
+            "exists": stage_a_results.exists(),
+        },
         {
             "role": "single_pair_checkpoint",
             "path": str(checkpoint),
@@ -215,6 +221,10 @@ def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> l
             "exists": frozen_summary.exists(),
         }
     ]
+
+
+def _pairset_stage_a_run_id(run_id: str) -> str:
+    return run_id.replace("i1_pairset_aggregation_control", "i1_pairset_single_pair_scorer", 1)
 
 
 def _auxiliary_artifact_status(

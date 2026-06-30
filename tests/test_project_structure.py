@@ -1979,7 +1979,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "5",
     ]
 
-    pairset_run = "unit_pairset"
+    pairset_run = "i1_pairset_aggregation_control_unit"
     pairset_root = root / pairset_run
     pairset_monitor = pairset_root / "monitor"
     pairset_monitor.mkdir(parents=True)
@@ -1989,6 +1989,9 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     pairset_results.mkdir()
     pairset_jsonl = pairset_results / f"{pairset_run}.jsonl"
     pairset_jsonl.write_text("{}\n{}\n", encoding="utf-8")
+    stage_a_jsonl = pairset_results / f"{pairset_run}.jsonl".replace(
+        "i1_pairset_aggregation_control", "i1_pairset_single_pair_scorer", 1
+    )
     frozen_summary = pairset_results / "frozen_aggregation_summary.json"
     checkpoint = pairset_root / "checkpoints" / "single_pair_invp.pt"
 
@@ -2007,6 +2010,11 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
     assert report["postprocess_command"] == []
     assert report["auxiliary_artifacts"] == [
         {
+            "role": "single_pair_results",
+            "path": str(stage_a_jsonl),
+            "exists": False,
+        },
+        {
             "role": "single_pair_checkpoint",
             "path": str(checkpoint),
             "exists": False,
@@ -2017,6 +2025,19 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
             "exists": False,
         }
     ]
+
+    stage_a_jsonl.write_text("{}\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=pairset_run,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        expected_rows=2,
+        postprocess_kind="pairset_aggregation",
+    )
+
+    assert report["status"] == "waiting_for_auxiliary_artifacts"
+    assert [artifact["exists"] for artifact in report["auxiliary_artifacts"]] == [True, False, False]
 
     frozen_summary.write_text('{"status":"pass"}\n', encoding="utf-8")
     report = monitor_health_report(
@@ -2030,8 +2051,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
 
     assert report["status"] == "waiting_for_auxiliary_artifacts"
     assert report["postprocess_allowed"] is False
-    assert report["auxiliary_artifacts"][0]["exists"] is False
-    assert report["auxiliary_artifacts"][1]["exists"] is True
+    assert [artifact["exists"] for artifact in report["auxiliary_artifacts"]] == [True, False, True]
 
     checkpoint.parent.mkdir()
     checkpoint.write_bytes(b"checkpoint")
@@ -2046,7 +2066,7 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
 
     assert report["status"] == "result_ready"
     assert report["expected_rows"] == 2
-    assert [artifact["exists"] for artifact in report["auxiliary_artifacts"]] == [True, True]
+    assert [artifact["exists"] for artifact in report["auxiliary_artifacts"]] == [True, True, True]
     assert report["postprocess_command"] == [
         "env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -2076,7 +2096,7 @@ def test_monitor_health_pairset_done_without_frozen_summary_needs_intervention(t
     root = tmp_path / "remote_results"
     plan = tmp_path / "plan.csv"
     plan.write_text("model_key\nrow_a\nrow_b\n", encoding="utf-8")
-    run_id = "unit_pairset_missing_aux"
+    run_id = "i1_pairset_aggregation_control_missing_aux"
     run_root = root / run_id
     monitor = run_root / "monitor"
     monitor.mkdir(parents=True)
@@ -2100,6 +2120,11 @@ def test_monitor_health_pairset_done_without_frozen_summary_needs_intervention(t
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
     assert report["auxiliary_artifacts"] == [
+        {
+            "role": "single_pair_results",
+            "path": str(results / "i1_pairset_single_pair_scorer_missing_aux.jsonl"),
+            "exists": False,
+        },
         {
             "role": "single_pair_checkpoint",
             "path": str(run_root / "checkpoints" / "single_pair_invp.pt"),
