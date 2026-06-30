@@ -300,6 +300,22 @@ stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_co
 remaining_requirement = wait for DDT result retrieval or explicit GPU yield before launching
 ```
 
+Bounded local health check after launch:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --run-id i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r7_262k.csv \
+  --plan-doc docs/experiments/innovation1-pairset-aggregation-control-plan.md \
+  --expected-rows 2 \
+  --postprocess-kind pairset_aggregation \
+  --output /tmp/i1_pairset_monitor_health_latest.json
+```
+
+This command is for bounded local status checks only. It must not replace the
+tmux watcher loop and must not be used to SSH-poll the remote workstation from
+the main thread.
+
 ## Protocol
 
 | Field | Value |

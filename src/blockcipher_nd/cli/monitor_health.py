@@ -59,7 +59,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--postprocess-kind",
-        choices=["invp", "invp_attribution", "ddt_graph"],
+        choices=["invp", "invp_attribution", "ddt_graph", "pairset_aggregation"],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
     )
@@ -274,6 +274,15 @@ def _postprocess_command(
 ) -> list[str]:
     if status != "result_ready" or plan_path is None:
         return []
+    if postprocess_kind == "pairset_aggregation":
+        return _pairset_aggregation_postprocess_command(
+            run_id=run_id,
+            learned_results_jsonl=results_jsonl,
+            run_root=run_root,
+            plan_path=plan_path,
+            plan_doc_paths=plan_doc_paths,
+            expected_rows=expected_rows,
+        )
     script = _postprocess_script(postprocess_kind)
     command = [
         "env",
@@ -299,6 +308,41 @@ def _postprocess_command(
     return command
 
 
+def _pairset_aggregation_postprocess_command(
+    *,
+    run_id: str,
+    learned_results_jsonl: Path,
+    run_root: Path,
+    plan_path: Path,
+    plan_doc_paths: list[Path],
+    expected_rows: int | None,
+) -> list[str]:
+    command = [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-pairset-aggregation",
+        "--plan",
+        str(plan_path),
+        "--learned-results",
+        str(learned_results_jsonl),
+        "--frozen-summary",
+        str(run_root / "results" / "frozen_aggregation_summary.json"),
+        "--output-dir",
+        str(run_root),
+        "--run-id",
+        run_id,
+        "--expected-rows",
+        str(_postprocess_expected_rows("pairset_aggregation", expected_rows)),
+    ]
+    for plan_doc_path in plan_doc_paths:
+        command.extend(["--update-plan-doc", str(plan_doc_path)])
+    return command
+
+
 def _merge_plan_doc_paths(plan_doc_path: Path | None, plan_doc_paths: list[Path] | None) -> list[Path]:
     merged: list[Path] = []
     for path in [plan_doc_path, *(plan_doc_paths or [])]:
@@ -315,6 +359,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-invp-attribution-controls"
     if kind == "ddt_graph":
         return "scripts/postprocess-ddt-graph-result"
+    if kind == "pairset_aggregation":
+        return "scripts/postprocess-pairset-aggregation"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -325,6 +371,8 @@ def _default_expected_rows(kind: str) -> int:
         return 2
     if kind == "ddt_graph":
         return 5
+    if kind == "pairset_aggregation":
+        return 2
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 

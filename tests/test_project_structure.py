@@ -1978,6 +1978,54 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "5",
     ]
 
+    pairset_run = "unit_pairset"
+    pairset_root = root / pairset_run
+    pairset_monitor = pairset_root / "monitor"
+    pairset_monitor.mkdir(parents=True)
+    (pairset_monitor / "monitor.log").write_text("2026-06-29T15:00:00+08:00 running\n", encoding="utf-8")
+    (pairset_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    pairset_results = pairset_root / "results"
+    pairset_results.mkdir()
+    pairset_jsonl = pairset_results / f"{pairset_run}.jsonl"
+    pairset_jsonl.write_text("{}\n{}\n", encoding="utf-8")
+    frozen_summary = pairset_results / "frozen_aggregation_summary.json"
+    frozen_summary.write_text('{"status":"pass"}\n', encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=pairset_run,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        expected_rows=2,
+        postprocess_kind="pairset_aggregation",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 2
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-pairset-aggregation",
+        "--plan",
+        str(plan),
+        "--learned-results",
+        str(pairset_jsonl),
+        "--frozen-summary",
+        str(frozen_summary),
+        "--output-dir",
+        str(pairset_root),
+        "--run-id",
+        pairset_run,
+        "--expected-rows",
+        "2",
+        "--update-plan-doc",
+        str(plan_doc),
+    ]
+
 
 def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tmp_path):
     root = tmp_path / "remote_results"
