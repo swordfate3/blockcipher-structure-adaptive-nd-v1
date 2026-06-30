@@ -388,6 +388,49 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
     assert remote_readiness_report(learned_path)["status"] == "pass"
 
 
+def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "i1_pairset_single_pair_scorer_r7_262k_seed0_gpu1_20260630" in launcher_text
+    assert "--checkpoint-output \"%CHECKPOINT_DIR%\\single_pair_invp.pt\"" in launcher_text
+    assert "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k.csv" in launcher_text
+    assert "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv" in launcher_text
+    assert "scripts\\evaluate-pairset-aggregation" in launcher_text
+    assert "--scorer-pairs-per-sample 1" in launcher_text
+    assert "--aggregation-mode sum_logodds" in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--dataset-cache-root" in launcher_text
+    assert "stage_a_done" in launcher_text
+    assert "stage_b_done" in launcher_text
+    assert "frozen_aggregation_done" in launcher_text
+
+    assert "checkpoints" in monitor_text
+    assert "single_pair_invp.pt" in monitor_text
+    assert "frozen_aggregation_summary.json" in monitor_text
+    assert "postprocess-pairset-aggregation" in monitor_text
+    assert "--expected-rows \"${EXPECTED_ROWS}\"" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "completed_missing_or_incomplete_results" in monitor_text
+
+
 def test_present_ddt_graph_remote_launch_assets_are_g_lxy_scoped():
     launcher = Path("configs/remote/generated/run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd")
     monitor = Path("configs/remote/generated/monitor_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.sh")

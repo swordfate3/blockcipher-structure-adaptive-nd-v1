@@ -141,21 +141,38 @@ capability = train a tiny single-pair InvP-only scorer checkpoint for frozen
 config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_smoke.csv
 capability = train tiny 16-pair InvP anchor and learned pair-consistency rows
              for postprocess/gate smoke; not accuracy evidence
+
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k.csv
+capability = MEDIUM 262144/class stage-A single-pair scorer checkpoint row;
+             not formal reproduction or breakthrough evidence
+
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r7_262k.csv
+capability = MEDIUM 262144/class stage-B InvP anchor plus learned pair-set
+             consistency rows; not formal reproduction or breakthrough evidence
+
+remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json
+capability = readiness-checked stage-A metadata for single-pair checkpoint run
+
+remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json
+capability = readiness-checked stage-B metadata for learned pair-set plus
+             frozen aggregation gate run
+
+launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
+capability = stage-aware Windows launcher: stage A checkpoint training, stage B
+             learned/anchor training, frozen aggregation summary generation
+
+monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
+capability = local tmux watcher script: pull logs/results/checkpoints and run
+             postprocess-pairset-aggregation when all artifacts are ready
 ```
 
-Not implemented yet:
-
-```text
-1. Stage-aware remote launcher and watcher scripts for the two-step 262144/class run.
-```
-
-Therefore this plan is local-smoke-verified and remote-config-ready, but still
-not remote-launch-ready. The current code and configs make the core aggregation
+Therefore this plan is local-smoke-verified and remote-launch-asset-prepared,
+but still not launched. The current code and configs make the core aggregation
 math, scorer artifact persistence, frozen aggregation CLI, learned-pairset
-smoke matrix, 262144/class staged plan rows, and gate/postprocess decision path
-testable and reusable. It still needs a stage-aware launcher/watcher because
-the frozen aggregation control requires a saved single-pair checkpoint before
-the learned pair-set gate can be evaluated.
+smoke matrix, 262144/class staged plan rows, stage-aware launcher/watcher, and
+gate/postprocess decision path testable and reusable. It must still wait for
+the current DDT/topology run to be retrieved or explicitly yielded before a
+remote launch.
 
 ## Local Smoke Readiness
 
@@ -278,7 +295,9 @@ Launch status:
 ```text
 not launched
 blocked_by_policy = current DDT/topology run still active
-additional_requirement = generate stage-aware launcher/watcher after DDT result is retrieved or GPU is yielded
+stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
+stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
+remaining_requirement = wait for DDT result retrieval or explicit GPU yield before launching
 ```
 
 ## Protocol
