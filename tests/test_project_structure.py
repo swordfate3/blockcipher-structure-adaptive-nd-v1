@@ -414,6 +414,7 @@ def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_awar
     assert "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv" in launcher_text
     assert "scripts\\evaluate-pairset-aggregation" in launcher_text
     assert "--scorer-pairs-per-sample 1" in launcher_text
+    assert "--scorer-model-options" not in launcher_text
     assert "--aggregation-mode sum_logodds" in launcher_text
     assert "--negative-mode encrypted_random_plaintexts" in launcher_text
     assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text

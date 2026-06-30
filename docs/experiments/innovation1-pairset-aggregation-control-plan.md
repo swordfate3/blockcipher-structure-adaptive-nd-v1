@@ -298,6 +298,7 @@ blocked_by_policy = current DDT/topology run still active
 stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
 remaining_requirement = wait for DDT result retrieval or explicit GPU yield before launching
+windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
 ```
 
 Bounded local health check after launch:

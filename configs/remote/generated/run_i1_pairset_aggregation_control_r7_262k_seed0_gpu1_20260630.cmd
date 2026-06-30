@@ -120,7 +120,6 @@ echo stage_b_done>"%LOG_DIR%\%RUN_ID%_stage_b_done.marker"
   --pairs-per-sample 16 ^
   --scorer-model-key present_nibble_invp_only_spn_only ^
   --scorer-hidden-bits 32 ^
-  --scorer-model-options "{\"spn_mixer_depth\":2,\"activation\":\"relu\",\"norm\":\"layernorm\"}" ^
   --scorer-pairs-per-sample 1 ^
   --aggregation-mode sum_logodds ^
   --batch-size 1024 ^
