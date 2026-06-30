@@ -41,3 +41,8 @@ Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.
 It does not train or update the scorer; it slices each pair-set sample into
 single-pair views, aggregates logits/log-odds, and writes a JSON summary.
+
+Use `scripts/gate-pairset-aggregation` after learned pair-set and frozen
+single-pair aggregation artifacts are available. It compares AUC margins against
+the predeclared InvP anchor and frozen aggregation control, then emits the
+continue/weak/stop decision for the pair-set route.
