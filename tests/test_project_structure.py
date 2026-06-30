@@ -3041,6 +3041,55 @@ def test_candidate_evidence_cell_structured_and_shuffled_controls_differ(tmp_pat
     assert '"feature_mode": "cell_structured_shuffled"' in shuffled_progress
 
 
+def test_candidate_evidence_cell_structured_cache_reuse_is_feature_mode_scoped(tmp_path):
+    common = {
+        "rounds": 7,
+        "key": 0,
+        "input_difference": 0x9,
+        "seed": 11,
+        "samples_per_class": 2,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_rotation_interval": 0,
+        "beam_width": 2,
+        "depth": 2,
+        "feature_cache_chunk_size": 1,
+        "split": "train",
+    }
+    cache_root = tmp_path / "candidate_cache"
+    true_progress = tmp_path / "true_progress.jsonl"
+    first_features, first_labels = make_candidate_dataset(
+        **common,
+        feature_mode="cell_structured",
+        feature_cache_root=cache_root,
+        progress_output=true_progress,
+    )
+    reused_features, reused_labels = make_candidate_dataset(
+        **common,
+        feature_mode="cell_structured",
+        feature_cache_root=cache_root,
+        progress_output=true_progress,
+    )
+    shuffled_features, shuffled_labels = make_candidate_dataset(
+        **common,
+        feature_mode="cell_structured_shuffled",
+        feature_cache_root=cache_root,
+        progress_output=tmp_path / "shuffled_progress.jsonl",
+    )
+
+    assert np.array_equal(np.asarray(first_features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(first_labels), np.asarray(reused_labels))
+    assert np.array_equal(np.asarray(first_labels), np.asarray(shuffled_labels))
+    assert not np.array_equal(np.asarray(first_features), np.asarray(shuffled_features))
+    assert "candidate_cache_reuse" in true_progress.read_text(encoding="utf-8")
+
+    metadata_files = list(cache_root.glob("train/*/metadata.json"))
+    assert len(metadata_files) == 2
+    metadata_modes = sorted(json.loads(path.read_text(encoding="utf-8"))["feature_mode"] for path in metadata_files)
+    assert metadata_modes == ["cell_structured", "cell_structured_shuffled"]
+
+
 def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
     output = tmp_path / "candidate.jsonl"
     spn_candidate_evidence.main(
