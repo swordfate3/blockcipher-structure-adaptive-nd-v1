@@ -21,6 +21,7 @@ from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
 from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
+from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -842,6 +843,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/gate-invp-result"),
         Path("scripts/gate-candidate-trail"),
         Path("scripts/postprocess-invp-result"),
+        Path("scripts/postprocess-candidate-trail"),
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
         Path("scripts/plan-next-action"),
@@ -2797,6 +2799,46 @@ def test_candidate_trail_gate_marks_weak_or_stop_signal(tmp_path):
     stop = gate_candidate_trail_result(stop_results, expected_rows=3)
     assert stop["decision"] == "stop_candidate_trail_route"
     assert stop["margin_vs_anchor_auc"] < 0
+
+
+def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "candidate_trail.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7925)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7940)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_shuffled_cells", 0.7926)
+    plan_doc = tmp_path / "candidate_plan.md"
+    plan_doc.write_text("# Candidate Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="candidate_trail_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_candidate_trail_route"
+    assert report["next_action"]["branch"] == "candidate_trail_seed1_confirmation"
+    assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
+    assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
+    assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Candidate-Trail Consistency Result" in plan_text
+    assert "<!-- candidate-trail-postprocess:candidate_trail_unit:start -->" in plan_text
+    assert "| Decision | `support_candidate_trail_route` |" in plan_text
+
+    postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="candidate_trail_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- candidate-trail-postprocess:candidate_trail_unit:start -->") == 1
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():
