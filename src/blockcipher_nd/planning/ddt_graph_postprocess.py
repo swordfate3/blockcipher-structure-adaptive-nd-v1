@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
 from blockcipher_nd.planning.invp_postprocess import _format_value
@@ -94,8 +95,10 @@ def postprocess_ddt_graph_result(
     report["next_steps"] = _next_steps(report)
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
+    report["next_action_readiness"] = str(next_action_readiness_path)
 
     update_paths = _merge_plan_doc_paths(plan_doc_path, plan_doc_paths)
     if update_paths:
@@ -105,6 +108,7 @@ def postprocess_ddt_graph_result(
         report["plan_doc"] = str(update_paths[0])
 
     _write_json(summary_path, report)
+    _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -226,6 +230,79 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     return ["Review the DDT graph gate manually before launching another experiment."]
 
 
+def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    next_action = report.get("next_action", {})
+    if not isinstance(next_action, dict):
+        next_action = {}
+
+    readiness_reports: list[dict[str, Any]] = []
+    for role, key in [
+        ("stage_a", "stage_a_remote_config"),
+        ("primary", "launch_remote_config"),
+    ]:
+        config = next_action.get(key)
+        if not isinstance(config, str) or not config:
+            continue
+        readiness_reports.append(
+            {
+                "role": role,
+                "config": config,
+                "readiness": _readiness_report(Path(config)),
+            }
+        )
+
+    should_launch_remote = bool(next_action.get("should_launch_remote"))
+    readiness_statuses = [item["readiness"]["status"] for item in readiness_reports]
+    readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
+    return {
+        "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
+        "summary": str(summary_path),
+        "run_id": report.get("run_id"),
+        "decision": report.get("decision"),
+        "action": report.get("action"),
+        "branch": next_action.get("branch"),
+        "should_launch_remote": should_launch_remote,
+        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "readiness_pass": readiness_pass,
+        "readiness_reports": readiness_reports,
+        "next_action": next_action,
+        "claim_scope": report.get("claim_scope"),
+        "errors": _next_action_readiness_errors(
+            should_launch_remote=should_launch_remote,
+            readiness_reports=readiness_reports,
+        ),
+    }
+
+
+def _next_action_readiness_errors(
+    *,
+    should_launch_remote: bool,
+    readiness_reports: list[dict[str, Any]],
+) -> list[str]:
+    if not should_launch_remote:
+        return []
+    if not readiness_reports:
+        return ["next_action requests remote launch but no launch_remote_config was provided"]
+    errors: list[str] = []
+    for item in readiness_reports:
+        readiness = item["readiness"]
+        if readiness["status"] != "pass":
+            errors.append(f"{item['role']} readiness failed: {readiness.get('errors', [])}")
+    return errors
+
+
+def _readiness_report(config_path: Path) -> dict[str, Any]:
+    try:
+        return remote_readiness_report(config_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "fail",
+            "config": str(config_path),
+            "errors": [str(exc)],
+            "warnings": [],
+        }
+
+
 def _markdown_summary(report: dict[str, Any]) -> str:
     return "\n".join(
         [
@@ -262,6 +339,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- curves: `{report['curves']}`",
             f"- history_csv: `{report['history_csv']}`",
             f"- summary: `{report['summary']}`",
+            f"- next_action_readiness: `{report['next_action_readiness']}`",
             *( [f"- plan_docs: `{'; '.join(report['plan_docs'])}`"] if "plan_docs" in report else [] ),
             "",
         ]
@@ -299,6 +377,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("History CSV", report["history_csv"]),
         ("Summary JSON", report["summary"]),
         ("Summary Markdown", report["summary_markdown"]),
+        ("Next action readiness", report["next_action_readiness"]),
     ]
     lines = [f"### {report['run_id']} DDT Graph Result", "", "| Field | Value |", "|---|---|"]
     lines.extend(f"| {field} | `{value}` |" for field, value in rows)

@@ -1479,9 +1479,17 @@ def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
     )
     assert report["next_action"]["run_id"] == "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630"
     assert any("pair-set aggregation control" in step for step in report["next_steps"])
+    readiness_path = Path(report["next_action_readiness"])
+    assert readiness_path.exists()
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "pairset_aggregation_control"
+    assert readiness["readiness_pass"] is True
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "| Next action branch | `pairset_aggregation_control` |" in plan_doc
     assert "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json" in plan_doc
+    assert "| Next action readiness | `" in plan_doc
 
 
 def test_plan_next_action_checks_ddt_seed1_readiness(tmp_path):
@@ -1615,10 +1623,19 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     assert (output_dir / "unit_ddt_graph_ddt_graph_gate.json").exists()
     assert (output_dir / "unit_ddt_graph_postprocess_summary.json").exists()
     assert (output_dir / "unit_ddt_graph_postprocess_summary.md").exists()
+    readiness_path = output_dir / "unit_ddt_graph_next_action_readiness.json"
+    assert readiness_path.exists()
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "ddt_graph_seed1_confirmation"
+    assert readiness["readiness_pass"] is True
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["primary"]
+    assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
     markdown = (output_dir / "unit_ddt_graph_postprocess_summary.md").read_text()
     assert "support_ddt_graph_route" in markdown
     assert "present_nibble_ddt_graph" in markdown
     assert "Launch configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json" in markdown
+    assert "unit_ddt_graph_next_action_readiness.json" in markdown
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "## Retrieved DDT Graph Result" in plan_doc
     assert "<!-- ddt-graph-postprocess:unit_ddt_graph:start -->" in plan_doc
@@ -1626,6 +1643,7 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     assert "| Next action branch | `ddt_graph_seed1_confirmation` |" in plan_doc
     assert "| Next action should launch remote | `True` |" in plan_doc
     assert "innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json" in plan_doc
+    assert "| Next action readiness | `" in plan_doc
 
     postprocess_ddt_graph_result(
         plan_path=plan_path,
