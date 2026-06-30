@@ -705,3 +705,20 @@ Readiness/smoke gates:
 check-remote-readiness status = pass
 CPU smoke status = pass, 3/3 rows
 ```
+
+Actual launch handoff:
+
+```text
+launch_commit = 26e9f26 docs: prepare ddt graph method extension launch
+launch_time = 2026-06-30 14:53 +08:00
+remote_launcher = G:\lxy\run_i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.cmd
+remote_run_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+local_watcher = tmux monitor_i1_spn_ddt_graph_262k_20260630
+local_result_root = outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+monitor_health = running, heartbeat not stale, no failed marker, no done marker
+result_status = running / not yet retrieved
+```
+
+This launch record is not result evidence. The run remains medium diagnostic
+only until the watcher retrieves five plan-aligned rows and
+`postprocess-ddt-graph-result` validates the gate.
