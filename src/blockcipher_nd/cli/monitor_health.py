@@ -84,6 +84,7 @@ def monitor_health_report(
     monitor_dir = run_root / "monitor"
     monitor_log = monitor_dir / "monitor.log"
     ssh_stderr = monitor_dir / "monitor_ssh_stderr.log"
+    scp_stderr = monitor_dir / "scp_stderr.log"
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
@@ -95,6 +96,8 @@ def monitor_health_report(
     recent_monitor_lines = _tail_lines(monitor_log, recent_lines)
     heartbeat = _heartbeat_status(recent_monitor_lines, stale_after_seconds, now=now)
     stderr_text = _read_text(ssh_stderr).strip()
+    scp_stderr_text = _read_text(scp_stderr).strip()
+    scp_stderr_report = _scp_stderr_report(scp_stderr_text, recent_lines)
     tmux = _tmux_status(tmux_session)
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     status = _health_status(
@@ -105,6 +108,7 @@ def monitor_health_report(
         done_markers=done_markers,
         failed_markers=failed_markers,
         stderr_text=stderr_text,
+        scp_stderr_report=scp_stderr_report,
         recent_monitor_lines=recent_monitor_lines,
         heartbeat=heartbeat,
         tmux=tmux,
@@ -138,6 +142,12 @@ def monitor_health_report(
         "ssh_stderr_exists": ssh_stderr.exists(),
         "ssh_stderr_empty": stderr_text == "",
         "ssh_stderr_tail": _tail_text(stderr_text, recent_lines),
+        "scp_stderr_log": str(scp_stderr),
+        "scp_stderr_exists": scp_stderr.exists(),
+        "scp_stderr_empty": scp_stderr_text == "",
+        "scp_stderr_tail": scp_stderr_report["tail"],
+        "scp_stderr_warnings": scp_stderr_report["warnings"],
+        "scp_stderr_errors": scp_stderr_report["errors"],
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
         "results_jsonl_line_count": results_jsonl_line_count,
@@ -173,6 +183,7 @@ def _health_status(
     done_markers: list[str],
     failed_markers: list[str],
     stderr_text: str,
+    scp_stderr_report: dict[str, Any],
     recent_monitor_lines: list[str],
     heartbeat: dict[str, Any],
     tmux: dict[str, Any],
@@ -194,6 +205,8 @@ def _health_status(
     if not run_root_exists or not recent_monitor_lines:
         return "missing_monitor"
     if stderr_text:
+        return "unhealthy"
+    if scp_stderr_report["errors"]:
         return "unhealthy"
     if tmux["checked"] and tmux["exists"] is False:
         return "unhealthy"
@@ -296,6 +309,26 @@ def _newest_monitor_timestamp(lines: list[str]) -> datetime | None:
         if newest is None or timestamp > newest:
             newest = timestamp
     return newest
+
+
+def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
+    tail = _tail_text(text, recent_lines)
+    errors: list[str] = []
+    warnings: list[str] = []
+    missing_lines = [line for line in tail if "No such file or directory" in line]
+    other_lines = [line for line in tail if line.strip() and line not in missing_lines]
+    if missing_lines:
+        warnings.append(
+            "scp reported remote artifact paths missing; this is normal before "
+            "the remote run creates logs/results, but should clear once artifacts exist"
+        )
+    if other_lines:
+        errors.extend(other_lines)
+    return {
+        "tail": tail,
+        "warnings": warnings,
+        "errors": errors,
+    }
 
 
 def _tmux_status(session: str | None) -> dict[str, Any]:

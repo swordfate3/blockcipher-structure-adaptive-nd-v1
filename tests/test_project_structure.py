@@ -2257,6 +2257,51 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
         "monitor/monitor.log",
         "monitor/monitor_ssh_stderr.log",
     ]
+    assert report["scp_stderr_exists"] is False
+    assert report["scp_stderr_warnings"] == []
+    assert report["scp_stderr_errors"] == []
+
+    (monitor / "scp_stderr.log").write_text(
+        "\n".join(
+            [
+                "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/unit_run/logs: No such file or directory",
+                "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/unit_run/results: No such file or directory",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        now=datetime.fromisoformat("2026-06-29T15:05:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["scp_stderr_exists"] is True
+    assert report["scp_stderr_errors"] == []
+    assert report["scp_stderr_warnings"] == [
+        "scp reported remote artifact paths missing; this is normal before "
+        "the remote run creates logs/results, but should clear once artifacts exist"
+    ]
+
+    (monitor / "scp_stderr.log").write_text("scp: Connection reset by peer\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        now=datetime.fromisoformat("2026-06-29T15:05:00+08:00"),
+    )
+
+    assert report["status"] == "unhealthy"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["scp_stderr_errors"] == ["scp: Connection reset by peer"]
+
+    (monitor / "scp_stderr.log").write_text("", encoding="utf-8")
 
     (run_root / "done.marker").write_text("done\n", encoding="utf-8")
     report = monitor_health_report(
@@ -2856,6 +2901,7 @@ def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
         done_markers=[],
         failed_markers=[],
         stderr_text="",
+        scp_stderr_report={"errors": [], "warnings": [], "tail": []},
         recent_monitor_lines=["2026-06-29T16:38:40+08:00 running"],
         heartbeat={"is_stale": False},
         tmux={
