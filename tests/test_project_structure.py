@@ -671,7 +671,9 @@ def test_candidate_trail_conditional_remote_smoke_config_is_ready_but_gated():
     assert config["feature_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
     assert "cmd.exe /c" in config["launch_policy"]
     assert "cmd.exe /k" not in config["launch_policy"]
-    assert "conditional launch only after current DDT/topology run" in config["launch_policy"]
+    assert "conditional launch only after current topology-aware run" in config["launch_policy"]
+    assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701" in config["launch_policy"]
+    assert "branch gate selects candidate-trail" in config["launch_policy"]
     assert "not accuracy evidence" in config["claim_scope"]
     assert "not a medium diagnostic" in config["claim_scope"]
 

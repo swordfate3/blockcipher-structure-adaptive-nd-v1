@@ -26,5 +26,5 @@
   "source_commit": "recorded_in_remote_run_script_git_revision",
   "result_sync": "local_tmux_monitor_scp_fallback",
   "claim_scope": "CONDITIONAL SMOKE only for candidate-trail JSON-plan remote readiness; tiny samples_per_class=2, pairs_per_sample=1, epochs=1; not accuracy evidence, not a medium diagnostic, not formal evidence",
-  "launch_policy": "conditional launch only after current DDT/topology run i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630 is resolved and candidate-trail branch is explicitly selected by the experiment gate; use pushed GitHub commit; keep all remote project files, feature caches, logs, and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically"
+  "launch_policy": "conditional launch only after current topology-aware run i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701 is retrieved, validated, plan-aligned, and its branch gate selects candidate-trail; use pushed GitHub commit; keep all remote project files, feature caches, logs, and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically"
 }
