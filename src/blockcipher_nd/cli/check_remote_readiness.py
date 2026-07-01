@@ -50,12 +50,14 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
 
     plan_path = _local_plan_path(config.get("plan"))
     tasks: list[dict[str, Any]] = []
+    plan_is_json_matrix = False
     if plan_path is None:
         errors.append("missing plan")
     elif not plan_path.exists():
         errors.append(f"plan does not exist: {plan_path}")
     else:
         try:
+            plan_is_json_matrix = _plan_is_json_matrix(plan_path)
             tasks = _load_plan_tasks(plan_path)
         except ValueError as exc:
             errors.append(str(exc))
@@ -112,7 +114,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     train_consistency = _training_consistency(config, tasks)
     errors.extend(train_consistency["errors"])
     warnings.extend(train_consistency["warnings"])
-    candidate_consistency = _candidate_trail_consistency(config, tasks)
+    candidate_consistency = _candidate_trail_consistency(config, tasks, plan_is_json_matrix=plan_is_json_matrix)
     errors.extend(candidate_consistency["errors"])
     warnings.extend(candidate_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
@@ -238,7 +240,12 @@ def _candidate_json_plan_task(plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _candidate_trail_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -> dict[str, list[str]]:
+def _candidate_trail_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    *,
+    plan_is_json_matrix: bool,
+) -> dict[str, list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     if not _is_candidate_trail_config(config):
@@ -263,6 +270,15 @@ def _candidate_trail_consistency(config: dict[str, Any], tasks: list[dict[str, A
             f"one of {sorted(allowed_feature_modes)}: {sorted(feature_modes)}"
         )
 
+    runner_script = _str_value(config.get("runner_script"))
+    if plan_is_json_matrix and runner_script != "scripts/spn-candidate-evidence-matrix":
+        errors.append(
+            "candidate_trail JSON matrix remote config must set "
+            "runner_script=scripts/spn-candidate-evidence-matrix"
+        )
+    if not plan_is_json_matrix and runner_script and runner_script != "scripts/spn-candidate-evidence":
+        errors.append(f"candidate_trail single JSON plan runner_script unsupported: {runner_script}")
+
     cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
     if not cache_root:
         errors.append("candidate_trail missing feature_cache_root or dataset_cache_root")
@@ -270,6 +286,13 @@ def _candidate_trail_consistency(config: dict[str, Any], tasks: list[dict[str, A
         errors.append(f"candidate_trail cache root must stay under {REMOTE_ROOT}: {cache_root}")
 
     return {"errors": errors, "warnings": warnings}
+
+
+def _plan_is_json_matrix(plan_path: Path) -> bool:
+    if plan_path.suffix.lower() != ".json" or not plan_path.exists():
+        return False
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    return isinstance(plan, dict) and isinstance(plan.get("rows"), list)
 
 
 def _candidate_feature_modes(config: dict[str, Any], tasks: list[dict[str, Any]]) -> set[str]:

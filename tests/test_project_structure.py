@@ -3603,6 +3603,84 @@ def test_remote_readiness_gate_rejects_candidate_trail_without_feature_mode(tmp_
     assert any("candidate_trail feature_mode must be explicit cell-structured control" in error for error in report["errors"])
 
 
+def test_remote_readiness_gate_requires_candidate_matrix_runner_script(tmp_path):
+    plan = tmp_path / "candidate_matrix.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "output": str(tmp_path / "candidate_matrix.jsonl"),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 65536,
+                    "pairs_per_sample": 16,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "learning_rate": 0.01,
+                },
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.79,
+                        "anchor_calibrated_accuracy": 0.72,
+                    },
+                    {"model": "linear"},
+                    {"model": "mlp"},
+                    {"model": "shuffled_cells", "feature_mode": "cell_structured_shuffled"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = {
+        "run_id": "i1_candidate_trail_matrix_remote_unit",
+        "task_name": "i1_candidate_trail_matrix_remote_unit",
+        "archive_work_id": "i1_candidate_trail_matrix_remote_unit",
+        "plan": str(plan),
+        "expected_rows": 4,
+        "device": "cuda:0",
+        "epochs": 20,
+        "batch_size": 2048,
+        "learning_rate": 0.01,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "negative_mode": "encrypted_random_plaintexts",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "dataset_cache": True,
+        "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\shared_dataset_cache",
+        "dataset_cache_chunk_size": 8192,
+        "dataset_cache_workers": 4,
+        "feature_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\candidate_trail_cache",
+        "branch": "main",
+        "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
+        "source_commit": "recorded_in_remote_run_script_git_revision",
+        "result_sync": "local_tmux_monitor_scp_fallback",
+        "monitor_script_name": "monitor_i1_candidate_trail_matrix_remote_unit.sh",
+        "claim_scope": "candidate-trail medium matrix readiness unit",
+        "launch_policy": "candidate-trail matrix; keep artifacts under G:\\lxy; cmd.exe /c",
+    }
+    path = tmp_path / "candidate_matrix_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    missing_runner = remote_readiness_report(path)
+    assert missing_runner["status"] == "fail"
+    assert any("runner_script=scripts/spn-candidate-evidence-matrix" in error for error in missing_runner["errors"])
+
+    config["runner_script"] = "scripts/spn-candidate-evidence-matrix"
+    path.write_text(json.dumps(config), encoding="utf-8")
+    ready = remote_readiness_report(path)
+
+    assert ready["status"] == "pass"
+    assert ready["plan_rows"] == 4
+    assert "candidate_trail_protocol_lock" in ready["checked_invariants"]
+    assert "medium_scale_dataset_cache" in ready["checked_invariants"]
+
+
 def test_differential_data_layer_has_small_modules():
     generator = Path("src/blockcipher_nd/data/differential/generator.py")
     rows = Path("src/blockcipher_nd/data/differential/rows.py")

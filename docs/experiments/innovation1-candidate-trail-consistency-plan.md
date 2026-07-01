@@ -382,6 +382,7 @@ Matrix runner update, 2026-07-01:
 
 ```text
 script = scripts/spn-candidate-evidence-matrix
+remote_config runner_script = scripts/spn-candidate-evidence-matrix
 plan shape = JSON object with common + rows
 purpose = produce one candidate-trail JSONL row per planned row
 supported rows =
@@ -395,6 +396,16 @@ This closes the 262144/class preparation gap: the future medium diagnostic can
 emit the 4 rows expected by `scripts/postprocess-candidate-trail` without
 manually concatenating per-model outputs. It still does not authorize launching
 the medium remote run while the topology-aware branch is active.
+
+Readiness rule:
+
+```text
+candidate-trail JSON matrix remote configs must explicitly set
+runner_script = scripts/spn-candidate-evidence-matrix
+```
+
+This prevents a future medium launcher from accidentally calling the generic
+`scripts/train` entrypoint against a route-specific JSON matrix.
 
 ## Claim Scope
 
