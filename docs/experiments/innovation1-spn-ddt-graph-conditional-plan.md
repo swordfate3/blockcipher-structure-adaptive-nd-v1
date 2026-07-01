@@ -805,3 +805,52 @@ Latest synced progress at that check showed row index `1` of `5`,
 `present_nibble_invp_only_spn_only`, around epoch `9/20`, with best validation
 AUC observed in progress logs around `0.7908187337452546`. This is an
 in-training signal only, not a retrieved result row and not gate evidence.
+
+## Retrieved DDT Graph Result
+
+<!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630:start -->
+### i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630 DDT Graph Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| DDT graph gate status | `pass` |
+| Decision | `weak_ddt_graph_signal` |
+| Action | `run_prepared_262k_seed1_variance_check_before_scaling` |
+| Interpretation | `DDT graph is best but below the required margin; treat as weak diagnostic signal` |
+| Max control AUC | `0.792454060575` |
+| Margin vs best control AUC | `0.000472726912` |
+| Margin vs InvP AUC | `0.000758802780` |
+| Margin vs transition no-DDT AUC | `0.028511159180` |
+| Margin vs same-graph no-DDT AUC | `0.000472726912` |
+| Margin vs shuffled AUC | `0.073280453682` |
+| Calibrated delta vs InvP | `0.001865386963` |
+| Required margin | `0.001000000000` |
+| Next action branch | `ddt_graph_seed1_variance_check` |
+| Next action should launch remote | `True` |
+| Next action launch config | `configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json` |
+| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json` |
+| Next action run id | `i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630` |
+| Next steps | `Update the experiment plan with this weak DDT graph signal.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json; Launch configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json as a 262144/class seed1 variance check from the pushed commit.; Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.; Do not promote DDT graph as the main route yet.` |
+| Claim scope | `262144/class medium diagnostic DDT graph gate; not paper-scale, formal, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630.jsonl` |
+| Validation report | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_local_result_gate.json` |
+| DDT graph gate | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_ddt_graph_gate.json` |
+| Curves | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_curves.svg` |
+| History CSV | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630/i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630_next_action_readiness.json` |
+
+Model rows:
+
+| Model | AUC | Calibrated Accuracy |
+|---|---:|---:|
+| `present_nibble_ddt_graph` | `0.792926787486` | `0.718269348145` |
+| `present_nibble_invp_only_spn_only` | `0.792167984706` | `0.716403961182` |
+| `present_nibble_no_ddt_graph` | `0.792454060575` | `0.717082977295` |
+| `present_nibble_paligned_transition_residual` | `0.764415628306` | `0.695289611816` |
+| `present_nibble_shuffled_ddt_graph` | `0.719646333804` | `0.659862518311` |
+<!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630:end -->
