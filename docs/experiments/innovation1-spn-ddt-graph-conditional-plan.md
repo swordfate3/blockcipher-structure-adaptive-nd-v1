@@ -600,7 +600,7 @@ matrix differently by branch:
 ```text
 support_ddt_graph_route -> seed1 confirmation
 weak_ddt_graph_signal   -> seed1 variance check
-stop_ddt_graph_route    -> do not launch this seed1 package; switch to pair-set aggregation control
+stop_ddt_graph_route    -> do not launch this seed1 package; switch to candidate-trail consistency
 ```
 
 Bounded monitor-health command after launch:
@@ -658,7 +658,7 @@ branch is launchable from the current pushed code:
 ```text
 support_ddt_graph_route -> DDT seed1 remote config readiness
 weak_ddt_graph_signal   -> DDT seed1 remote config readiness
-stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness
+stop_ddt_graph_route    -> candidate-trail plan handoff; no remote launch until a medium config is created
 ```
 
 ### Implementation Order Guardrail

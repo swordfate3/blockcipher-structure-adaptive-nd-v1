@@ -1345,7 +1345,7 @@ def test_ddt_graph_plan_records_route_specific_monitor_health_command():
     assert "monitor/postprocess_stderr.log" in plan
     assert "<run_id>_next_action_readiness.json" in plan
     assert "support_ddt_graph_route -> DDT seed1 remote config readiness" in plan
-    assert "stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness" in plan
+    assert "stop_ddt_graph_route    -> candidate-trail plan handoff" in plan
 
 
 def test_ddt_graph_plan_marks_seed1_next_action_as_historical():
