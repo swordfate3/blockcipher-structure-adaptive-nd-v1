@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-01
 
-**Status:** planned / gated / do not launch while DDT-topology or pair-set
-control is active
+**Status:** planned / gated / conditional next data-representation branch; do
+not launch while the topology-aware network run is active
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives.
@@ -31,43 +31,52 @@ evidence = two-seed 1000000/class positive confirmation
 attribution = paper-scale controls support true InvP/P-layer alignment
 ```
 
-Current active route:
+Recently completed route:
 
 ```text
 i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
-status = watcher-managed running
+i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630
+status = retrieved / validated / postprocessed / plan-aligned
+decision = weak_ddt_graph_signal in both seeds
+manual branch decision = do not promote DDT graph to 1M yet
 ```
 
-Prepared next route if DDT is tied or negative:
+Current active route:
 
 ```text
-i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630
-purpose = separate learned cross-pair consistency from frozen single-pair
-          score aggregation
+i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
+status = running / watcher-managed
+purpose = test whether true PRESENT P-layer message passing over InvP(DeltaC)
+          improves over the InvP-only token-mixer anchor and shuffled topology
+          control
 ```
 
-Candidate-trail consistency is therefore a later branch, not an immediate launch
-candidate.
+Candidate-trail consistency is therefore a prepared next data/feature
+representation branch, not an immediate launch candidate while the
+topology-aware network route is running.
 
 ## Trigger
 
 This plan becomes actionable only after one of these conditions:
 
 ```text
-1. DDT/topology seed0 is retrieved and tied/negative, and pair-set aggregation
-   control is also tied/negative or diagnostic-only.
+1. The active topology-aware network run is retrieved, validated,
+   postprocessed, plan-aligned, and its gate is tied/negative.
 
-2. DDT/topology is positive, but attribution needs a richer trail-consistency
-   diagnostic before any formal method claim.
+2. The active topology-aware network run is weak, and the next branch decision
+   prefers a data/feature representation hypothesis over another topology seed.
 
-3. User explicitly chooses candidate-trail / active-pattern feature
+3. The topology-aware network route is positive, but attribution needs a richer
+   trail-consistency diagnostic before any formal method claim.
+
+4. User explicitly chooses candidate-trail / active-pattern feature
    representation as the next route after the current active run is resolved.
 ```
 
 Do not launch this route while:
 
 ```text
-i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
 ```
 
 is still running.
@@ -293,13 +302,13 @@ Prepared conditional remote smoke config:
 
 ```text
 remote_config = configs/remote/innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json
-status = readiness asset only / do not launch while DDT or pair-set route is active
+status = readiness asset only / do not launch while topology-aware route is active
 purpose = verify future candidate-trail remote launch plumbing can reference the
           JSON smoke plan and G:\lxy feature cache under the current protocol
 ```
 
 This config is not a medium diagnostic. It remains a conditional smoke asset
-until the DDT/pair-set branch gate selects candidate-trail as the next route.
+until the topology-aware branch gate selects candidate-trail as the next route.
 
 Cell-structured control update, 2026-07-01:
 
@@ -329,8 +338,9 @@ Remaining step before the first non-smoke remote run:
 
 ```text
 Add the 262144/class remote config and launch assets only after the active
-DDT/pair-set branch gate selects candidate-trail. The first medium diagnostic
-should use expected_rows = 4.
+topology-aware branch gate selects candidate-trail or the user explicitly
+chooses this data-representation route. The first medium diagnostic should use
+expected_rows = 4.
 ```
 
 Gate tooling update, 2026-07-01:
@@ -352,7 +362,7 @@ The gate and postprocess wrappers are local tooling only. The smoke plan and
 conditional remote-smoke readiness asset exist and pass local checks, but they
 do not make the route medium-scale launchable. The 262144/class plan, remote
 config, generated launcher, and monitor should be created only after the
-DDT/pair-set branch gate selects candidate-trail as the next route.
+topology-aware branch gate selects candidate-trail as the next route.
 
 Output-contract update, 2026-07-01:
 
@@ -397,6 +407,7 @@ beside, not instead of, the structure-network branches:
 ```text
 InvP-only                -> structure-aligned data representation
 DDT graph                -> explicit S-box prior + topology network
+topology-aware network   -> true P-layer message passing over InvP cells
 pair-set aggregation     -> cross-pair evidence attribution
 candidate-trail route    -> transition-consistency feature attribution
 ```

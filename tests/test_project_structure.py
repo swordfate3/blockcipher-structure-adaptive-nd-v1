@@ -637,7 +637,7 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
         encoding="utf-8"
     )
 
-    assert "planned / gated / do not launch" in plan
+    assert "planned / gated / conditional next data-representation branch" in plan
     assert "i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630" in plan
     assert "`zhang_wang_case2_official_mcnd`" in plan
     assert "`encrypted_random_plaintexts`" in plan
@@ -656,6 +656,11 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "expected_rows = 4" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
     assert "formal route evidence" in plan
+    assert "conditional next data-representation branch" in plan
+    assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701" in plan
+    assert "topology-aware network run is active" in plan
+    assert "topology-aware branch gate selects candidate-trail" in plan
+    assert "topology-aware network   -> true P-layer message passing over InvP cells" in plan
 
 
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
