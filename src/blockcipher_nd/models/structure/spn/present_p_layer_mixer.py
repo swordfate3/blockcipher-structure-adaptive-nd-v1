@@ -36,13 +36,23 @@ class PresentPLayerMixerBlock(nn.Module):
         activation: str = "gelu",
         norm: str = "layernorm",
         dropout: float = 0.0,
+        p_topology: str = "true",
     ) -> None:
         super().__init__()
         if token_mlp_ratio < 1:
             raise ValueError("PresentPLayerMixerBlock token_mlp_ratio must be >= 1")
+        if p_topology not in {"true", "shuffled"}:
+            raise ValueError(f"unsupported p_topology: {p_topology}")
         self.words_per_pair = words_per_pair
         self.token_dim = token_dim
         adjacency = _present_nibble_adjacency_indices()
+        if p_topology == "shuffled":
+            generator = torch.Generator().manual_seed(20260701)
+            permutation = torch.randperm(16, generator=generator).tolist()
+            adjacency = [
+                sorted({permutation[source] for source in sources})
+                for sources in adjacency
+            ]
         self.register_buffer(
             "p_sources",
             torch.tensor(adjacency, dtype=torch.long),

@@ -2,13 +2,12 @@
 
 **Date:** 2026-07-01
 
-**Status:** conditional next-route plan / not launched
+**Status:** active route / implementation and prelaunch readiness in progress
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This plan is prepared as the next
-network-architecture route if the active DDT graph seed1 variance check does
-not produce stable support, or if the project needs a cleaner architecture
-claim beyond feature-level DDT priors.
+network-architecture route activated after the DDT graph seed1 variance check
+returned a stable weak diagnostic signal rather than stable support.
 
 ## Why This Plan Exists
 
@@ -30,20 +29,27 @@ decision = support_invp_structural_attribution
 attribution_margin = 0.003726063600
 ```
 
-The active DDT graph branch tests whether adding S-box DDT priors and a
-topology graph improves beyond this InvP-only anchor. Seed0 was a weak
-diagnostic signal:
+The DDT graph branch tested whether adding S-box DDT priors and a topology
+graph improves beyond this InvP-only anchor. Seed0 and seed1 were both weak
+diagnostic signals:
 
 ```text
 run_id = i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
 decision = weak_ddt_graph_signal
 margin_vs_same_graph_no_ddt_auc = 0.000472726912
 required_margin = 0.001
-next_action = 262144/class seed1 variance check
+
+run_id = i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630
+decision = weak_ddt_graph_signal
+margin_vs_same_graph_no_ddt_auc = 0.000626281631
+required_margin = 0.001
+
+manual branch decision = do not promote DDT graph to 1M yet; activate
+topology-aware network route
 ```
 
-If seed1 does not turn this into stable support, the next useful question is
-not "add more hand-crafted DDT features". It is:
+Because seed1 did not turn DDT graph into stable support, the next useful
+question is not "add more hand-crafted DDT features". It is:
 
 ```text
 Can the network architecture itself make better use of the already-supported
@@ -153,6 +159,7 @@ of creating a second graph convention.
 First non-smoke scale:
 
 ```text
+run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
 262144/class
 seed = 0
 ```
@@ -214,8 +221,8 @@ data-structure hypothesis.
 
 ## Branch Rules
 
-This plan becomes actionable only after the active DDT seed1 result is
-retrieved, validated, and postprocessed.
+This plan became actionable after the DDT seed1 result was retrieved,
+validated, postprocessed, and manually decided as weak DDT graph signal.
 
 If DDT seed1 gives stable support:
 
@@ -227,12 +234,12 @@ First decide whether to run a lean 1M DDT confirmation matrix.
 If DDT seed1 is weak, tied, negative, or unstable:
 
 ```text
-Activate this topology-aware network route.
-Implement the model and shuffled control.
-Run smoke/readiness.
-Commit and push.
-Launch 262144/class seed0 from the pushed commit.
-Hand off retrieval/postprocess to tmux watcher.
+[x] Activate this topology-aware network route.
+[x] Implement the model and shuffled control.
+[ ] Run smoke/readiness.
+[ ] Commit and push.
+[ ] Launch 262144/class seed0 from the pushed commit.
+[ ] Hand off retrieval/postprocess to tmux watcher.
 ```
 
 If DDT seed1 fails operationally:
@@ -255,6 +262,20 @@ Before any meaningful remote launch:
 6. Add remote config with disk dataset cache under G:\lxy.
 7. Run scripts/check-remote-readiness.
 8. Commit and push before remote launch.
+```
+
+Current implementation artifacts:
+
+```text
+model keys:
+- present_nibble_invp_p_layer_graph_spn_only
+- present_nibble_invp_shuffled_p_layer_graph_spn_only
+
+smoke plan:
+configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_smoke.csv
+
+medium plan:
+configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv
 ```
 
 ## Claim Scope

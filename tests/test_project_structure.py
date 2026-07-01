@@ -328,6 +328,103 @@ def test_present_ddt_graph_262k_seed1_remote_config_is_conditional_ready():
     assert remote_readiness_report(path)["status"] == "pass"
 
 
+def test_present_topology_aware_network_smoke_plan_is_protocol_locked():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_smoke.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_p_layer_graph_spn_only",
+        "present_nibble_invp_shuffled_p_layer_graph_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 8
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+
+
+def test_present_topology_aware_network_262k_plan_is_lean_same_protocol_matrix():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_p_layer_graph_spn_only",
+        "present_nibble_invp_shuffled_p_layer_graph_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class topology-aware" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+
+def test_present_topology_aware_network_remote_config_and_assets_are_ready():
+    config_path = Path(
+        "configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_gpu0_20260701.json"
+    )
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701.sh"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+    report = remote_readiness_report(config_path)
+
+    assert config["expected_rows"] == 3
+    assert config["plan"].endswith("innovation1_spn_present_topology_aware_network_r7_262k.csv")
+    assert config["device"] == "cuda:0"
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+    assert config["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "MEDIUM 262144/class topology-aware network diagnostic" in config["claim_scope"]
+    assert "weak_ddt_graph_signal" in config["launch_policy"]
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_topology_aware_network_r7_262k.csv" in launcher_text
+    assert "--device cuda:0" in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--dataset-cache-root" in launcher_text
+
+    assert "postprocess-topology-aware-result" in monitor_text
+    assert "--expected-rows \"${EXPECTED_ROWS}\"" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+
+
 def test_present_pairset_aggregation_control_smoke_plans_are_protocol_locked():
     scorer_plan = (
         "configs/experiment/innovation1/"
@@ -3708,6 +3805,38 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
     assert cell_features[0, 0, 0, :4].to(torch.uint8).tolist() == expected_output_bits
     assert no_ddt_features[0, 0, 0].to(torch.uint8).tolist() == expected_output_bits
     assert cell_features[0, 0, 0, 4:].tolist() == expected_counts
+
+
+def test_present_nibble_invp_p_layer_graph_models_build_and_use_distinct_topologies():
+    common = {
+        "input_bits": 2048,
+        "hidden_bits": 4,
+        "pair_bits": 128,
+        "structure": "SPN",
+        "model_options": {
+            "graph_mixer_depth": 1,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 2,
+        },
+    }
+    candidate = build_model("present_nibble_invp_p_layer_graph_spn_only", **common)
+    control = build_model("present_nibble_invp_shuffled_p_layer_graph_spn_only", **common)
+    features = torch.randint(0, 2, (2, 2048), dtype=torch.float32)
+
+    candidate_logits = candidate(features)
+    control_logits = control(features)
+    candidate_sources = candidate.graph_encoder.mixers[0].p_sources
+    control_sources = control.graph_encoder.mixers[0].p_sources
+    candidate_cells = candidate.graph_encoder.invp_nibbles(features)
+    control_cells = control.graph_encoder.invp_nibbles(features)
+
+    assert candidate_logits.shape == (2, 1)
+    assert control_logits.shape == (2, 1)
+    assert candidate_sources.shape == control_sources.shape
+    assert not torch.equal(candidate_sources, control_sources)
+    assert torch.equal(candidate_cells, control_cells)
 
 
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):

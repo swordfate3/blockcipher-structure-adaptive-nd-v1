@@ -569,6 +569,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-invp-attribution-controls"
     if kind == "ddt_graph":
         return "scripts/postprocess-ddt-graph-result"
+    if kind == "topology_aware":
+        return "scripts/postprocess-topology-aware-result"
     if kind == "pairset_aggregation":
         return "scripts/postprocess-pairset-aggregation"
     if kind == "candidate_trail":
@@ -583,6 +585,8 @@ def _default_expected_rows(kind: str) -> int:
         return 2
     if kind == "ddt_graph":
         return 5
+    if kind == "topology_aware":
+        return 3
     if kind == "pairset_aggregation":
         return 2
     if kind == "candidate_trail":

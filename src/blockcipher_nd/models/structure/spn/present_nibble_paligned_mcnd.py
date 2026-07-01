@@ -566,6 +566,87 @@ class PresentNibbleNoDDTGraphDistinguisher(PresentNibbleDDTGraphDistinguisher):
         super().__init__(*args, **kwargs)
 
 
+class PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher(nn.Module):
+    """InvP(DeltaC)-only SPN graph with fixed PRESENT P-layer message passing."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        graph_token_dim: int | None = None,
+        graph_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        pooling: str = "topk_logsumexp",
+        top_k: int = 4,
+        lse_temperature: float = 1.0,
+        p_topology: str = "true",
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.graph_encoder = _PresentNibbleInvPPLayerGraphEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            graph_token_dim=graph_token_dim,
+            graph_mixer_depth=graph_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            p_topology=p_topology,
+        )
+        self.evidence_pool = EvidencePooling(
+            self.graph_encoder.embedding_bits,
+            hidden_bits=max(32, base_channels * 4),
+            mode=pooling,
+            top_k=top_k,
+            lse_temperature=lse_temperature,
+            activation=activation,
+            norm=norm,
+        )
+        classifier_bits = self.graph_encoder.embedding_bits * 4
+        self.classifier = nn.Sequential(
+            build_norm(norm, classifier_bits),
+            nn.Linear(classifier_bits, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+        self.last_attention_weights: torch.Tensor | None = None
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.graph_encoder(features)
+        pair_mean = pair_embeddings.mean(dim=1)
+        pair_max = pair_embeddings.max(dim=1).values
+        pair_std = pair_embeddings.std(dim=1, unbiased=False)
+        evidence, weights = self.evidence_pool(pair_embeddings)
+        self.last_attention_weights = weights.detach()
+        return self.classifier(torch.cat([pair_mean, pair_max, pair_std, evidence], dim=1))
+
+
+class PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher(
+    PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher
+):
+    """InvP graph control with deterministic shuffled P-layer message topology."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["p_topology"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
 class _PresentNibblePAlignedSpnEncoder(nn.Module):
     def __init__(
         self,
@@ -889,6 +970,91 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         )
 
 
+class _PresentNibbleInvPPLayerGraphEncoder(nn.Module):
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        graph_token_dim: int | None = None,
+        graph_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        p_topology: str = "true",
+    ) -> None:
+        super().__init__()
+        if pair_bits != 128:
+            raise ValueError("PRESENT InvP P-layer graph encoder expects raw 128-bit ciphertext pairs")
+        if input_bits % pair_bits != 0:
+            raise ValueError("input_bits must be a multiple of pair_bits")
+        if graph_mixer_depth < 1:
+            raise ValueError("graph_mixer_depth must be >= 1")
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.pairs_per_sample = input_bits // pair_bits
+        self.nibbles_per_pair = 16
+        self.graph_token_dim = graph_token_dim or max(16, base_channels * 2)
+        self.embedding_bits = max(32, base_channels * 4)
+
+        self.cell_encoder = nn.Sequential(
+            nn.Linear(4, self.graph_token_dim),
+            build_activation(activation),
+            build_norm(norm, self.graph_token_dim),
+        )
+        self.position_embedding = nn.Parameter(torch.zeros(1, self.nibbles_per_pair, self.graph_token_dim))
+        nn.init.trunc_normal_(self.position_embedding, std=0.02)
+        self.mixers = nn.ModuleList(
+            [
+                PresentPLayerMixerBlock(
+                    words_per_pair=1,
+                    token_dim=self.graph_token_dim,
+                    token_mlp_ratio=token_mlp_ratio,
+                    activation=activation,
+                    norm=norm,
+                    dropout=dropout,
+                    p_topology=p_topology,
+                )
+                for _ in range(graph_mixer_depth)
+            ]
+        )
+        self.norm = build_norm(norm, self.graph_token_dim)
+        self.projection = nn.Sequential(
+            nn.Linear(self.graph_token_dim * 4, self.embedding_bits),
+            build_activation(activation),
+            nn.Dropout(dropout),
+        )
+        inverse_p = [_present_inverse_p_index(index) for index in range(64)]
+        self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        invp_nibbles = self.invp_nibbles(features.float())
+        batch, pairs, nibbles, channels = invp_nibbles.shape
+        hidden = self.cell_encoder(invp_nibbles.reshape(batch * pairs, nibbles, channels))
+        hidden = hidden + self.position_embedding
+        for mixer in self.mixers:
+            hidden = mixer(hidden)
+        hidden = self.norm(hidden)
+        mean_embedding = hidden.mean(dim=1)
+        max_embedding = hidden.max(dim=1).values
+        active_weights = invp_nibbles.reshape(batch * pairs, nibbles, channels).mean(dim=2, keepdim=True)
+        active_embedding = torch.sum(hidden * active_weights, dim=1) / active_weights.sum(dim=1).clamp_min(1.0)
+        topology_embedding = hidden[:, 8:, :].mean(dim=1) - hidden[:, :8, :].mean(dim=1)
+        projected = self.projection(
+            torch.cat([mean_embedding, max_embedding, active_embedding, topology_embedding], dim=1)
+        )
+        return projected.reshape(batch, pairs, self.embedding_bits)
+
+    def invp_nibbles(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        raw_pairs = features.reshape(features.shape[0], self.pairs_per_sample, 2, 64)
+        difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
+        aligned_difference = difference.index_select(dim=2, index=self.inverse_p_indices)
+        return aligned_difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
+
+
 def _present_nibble_values(nibbles: torch.Tensor) -> torch.Tensor:
     weights = torch.tensor([8, 4, 2, 1], dtype=nibbles.dtype, device=nibbles.device)
     return torch.sum(nibbles * weights, dim=-1).long()
@@ -920,4 +1086,6 @@ __all__ = [
     "PresentNibbleNoDDTGraphDistinguisher",
     "PresentNibbleDDTGraphDistinguisher",
     "PresentNibbleShuffledDDTGraphDistinguisher",
+    "PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher",
+    "PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher",
 ]
