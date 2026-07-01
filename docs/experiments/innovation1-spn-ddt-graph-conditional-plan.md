@@ -854,3 +854,46 @@ Model rows:
 | `present_nibble_paligned_transition_residual` | `0.764415628306` | `0.695289611816` |
 | `present_nibble_shuffled_ddt_graph` | `0.719646333804` | `0.659862518311` |
 <!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630:end -->
+
+## Seed1 Variance Check Launch
+
+Launch record for the gate-selected next action after seed0 produced
+`weak_ddt_graph_signal`:
+
+```text
+run_id = i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630
+purpose = DDT graph 262144/class seed1 variance check
+scale = 262144/class
+expected_rows = 5
+device = cuda:1
+launch_commit = e3a1f1782c63ce005661c3fd2a6362f4d386ae77
+launch_time = 2026-07-01 10:26 +08:00
+remote_launcher = G:\lxy\run_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.cmd
+remote_run_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630
+dataset_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\shared_dataset_cache
+local_watcher = tmux monitor_i1_spn_ddt_graph_seed1_262k_20260630
+local_result_root = outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630
+```
+
+Readiness and launch evidence:
+
+```text
+check-remote-readiness status = pass
+remote git revision = e3a1f1782c63ce005661c3fd2a6362f4d386ae77
+remote git status before run = ## main...origin/main
+remote torch = 2.5.1+cu118
+remote cuda = 11.8
+remote cuda available = True
+remote device count = 2
+started marker = present
+local watcher heartbeat = running
+```
+
+Interpretation:
+
+```text
+This launch is not result evidence. It is a 262144/class medium diagnostic
+variance check for the weak DDT graph seed0 signal. Do not promote DDT graph as
+the main route unless seed1 is retrieved, validated, plan-aligned, and the DDT
+gate shows stable support against the same-budget controls.
+```
