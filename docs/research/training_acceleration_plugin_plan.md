@@ -2,7 +2,7 @@
 
 **日期:** 2026-07-01
 
-**状态:** 插件首版实现中
+**状态:** 插件首版已实现，完整 opt-in accelerated runner 推进中
 
 **范围:** 在不修改现有 `src/blockcipher_nd` 训练代码的前提下，为 blockcipher 神经区分器实验提供可选训练加速插件。
 
@@ -65,7 +65,7 @@ plugins/blockcipher-training-accelerator/
 
 ## 首版实现
 
-首版提供两个 CLI：
+插件提供五个 CLI：
 
 ```bash
 PYTHONPATH=plugins/blockcipher-training-accelerator/src \
@@ -88,6 +88,27 @@ PYTHONPATH=plugins/blockcipher-training-accelerator/src \
 ```
 
 `split-matrix` 读取 CSV plan，按 `round-robin` 或 `contiguous` 策略输出 shard CSV 和 manifest。后续每个 shard 可以独立传给 `scripts/train --plan <shard>`，从而在 GPU0/GPU1 并行跑不同模型或 seed。
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src \
+  python -m blockcipher_training_accelerator build-launch-plan ...
+```
+
+`build-launch-plan` 把 shard manifest 转换成每个 GPU 的训练命令，输出 JSON launch plan。它仍调用现有 `scripts/train`，不会改变训练协议。
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+  python -m blockcipher_training_accelerator run-accelerated ...
+```
+
+`run-accelerated` 复用现有 matrix/task/dataset/model 构建逻辑，但把训练 loop 换成插件内的 opt-in accelerated trainer。结果 JSONL 仍保持现有 row schema，并在 `training.accelerator` 中记录 profile、AMP/compile 是否实际生效、训练耗时等元数据。
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src \
+  python -m blockcipher_training_accelerator quality-gate ...
+```
+
+`quality-gate` 对比 baseline JSONL 和 accelerated JSONL，检查 row 数、协议 identity 字段和 `auc` / `calibrated_accuracy` 漂移。未通过 gate 的加速 profile 只能保留为实现实验，不能用于 meaningful Innovation 1 结果。
 
 ## 后续 Speed Profiles
 
@@ -191,7 +212,9 @@ PYTHONPATH=plugins/blockcipher-training-accelerator/src \
 
 ## 下一步
 
-1. 使用首版插件对一个 CPU tiny smoke 命令做 timing probe。
+1. 使用插件对一个 CPU tiny smoke 命令做 timing probe。
 2. 使用 `split-matrix` 拆分一个 2-3 row 的 Innovation 1 plan。
-3. 生成远程 GPU0/GPU1 shard launch 方案，但仍使用现有 remote readiness、`G:\lxy`、`cmd.exe /c`、watcher 和 result validation 规则。
-4. 如果 row-level 并行稳定，再实现 DataLoader/BF16 profile 的 isolated accelerated runner。
+3. 使用 `build-launch-plan` 生成 GPU0/GPU1 shard command plan。
+4. 使用 `run-accelerated --speed-profile baseline` 跑 tiny smoke，确认 JSONL schema 兼容。
+5. 使用 `quality-gate` 对齐 baseline/accelerated 结果。
+6. 在远程 GPU 上分别测试 `dataloader`、`amp-bf16`、`compile`、`amp-bf16-compile`，通过质量漂移 gate 后再考虑用于 262144/class 诊断实验。

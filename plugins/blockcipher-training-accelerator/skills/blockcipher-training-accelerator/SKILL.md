@@ -15,6 +15,8 @@ protocols and avoid changing the main `src/blockcipher_nd` trainer.
   validation key, or checkpoint metric.
 - Use `bench-command` for timing existing commands before claiming speed changes.
 - Use `split-matrix` to divide independent matrix rows across GPUs before considering DDP.
+- Use `run-accelerated` only as opt-in evidence and record the speed profile in result metadata.
+- Use `quality-gate` before allowing an accelerated profile into meaningful experiments.
 - Record speed evidence separately from cryptanalytic accuracy evidence.
 - Promote AMP, DataLoader tuning, `torch.compile`, or CUDA Graphs only after a quality-drift gate.
 
@@ -46,4 +48,25 @@ PYTHONPATH=plugins/blockcipher-training-accelerator/src \
   --plan configs/experiment/innovation1/example.csv \
   --shards 2 \
   --output-dir outputs/speed_bench/example_shards
+```
+
+Accelerated runner:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+  python -m blockcipher_training_accelerator run-accelerated -- \
+  --ciphers speck32 --models mlp --rounds 1 --seeds 0 \
+  --samples-per-class 64 --epochs 1 --device cpu \
+  --output outputs/speed_bench/accelerated_smoke.jsonl \
+  --speed-profile baseline
+```
+
+Quality gate:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src \
+  python -m blockcipher_training_accelerator quality-gate \
+  --baseline outputs/speed_bench/baseline.jsonl \
+  --candidate outputs/speed_bench/accelerated.jsonl \
+  --output outputs/speed_bench/quality_gate.json
 ```
