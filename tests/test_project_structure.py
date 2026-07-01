@@ -1921,6 +1921,51 @@ def test_topology_aware_postprocess_routes_support_to_prepared_seed1(tmp_path):
     assert "| Next action readiness | `" in plan_doc
 
 
+def test_topology_aware_postprocess_routes_weak_signal_to_seed1_variance_check(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv")
+    results_path = tmp_path / "topology_aware_weak.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "topology-plan.md"
+    plan_doc_path.write_text("# Topology Plan\n", encoding="utf-8")
+    _write_topology_aware_result_set(
+        results_path,
+        invp_auc=0.7940,
+        true_graph_auc=0.7945,
+        shuffled_auc=0.7942,
+    )
+
+    report = postprocess_topology_aware_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_topology_aware_weak",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc_path],
+    )
+    next_action_report = plan_next_action(Path(report["summary"]))
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weak_topology_aware_network_signal"
+    assert report["next_action"]["branch"] == "topology_aware_seed1_variance_check"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json"
+    )
+    assert report["next_action"]["run_id"] == "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701"
+    assert any("seed1 variance check" in step for step in report["next_steps"])
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "topology_aware_seed1_variance_check"
+    assert readiness["readiness_pass"] is True
+    assert next_action_report["status"] == "pass"
+    assert next_action_report["branch"] == "topology_aware_seed1_variance_check"
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action branch | `topology_aware_seed1_variance_check` |" in plan_doc
+    assert "| Next action should launch remote | `True` |" in plan_doc
+    assert "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json" in plan_doc
+
+
 def test_topology_aware_postprocess_routes_stop_to_candidate_trail_plan(tmp_path):
     plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv")
     results_path = tmp_path / "topology_aware_stop.jsonl"
