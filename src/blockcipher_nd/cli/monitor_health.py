@@ -101,6 +101,7 @@ def monitor_health_report(
     done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
     failed_markers = _relative_paths(run_root, sorted(run_root.glob("**/*failed*")))
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
+    launch_state = _launch_state(run_root, artifact_files, recent_lines=recent_lines)
     recent_monitor_lines = _tail_lines(monitor_log, recent_lines)
     heartbeat = _heartbeat_status(recent_monitor_lines, stale_after_seconds, now=now)
     stderr_text = _read_text(ssh_stderr).strip()
@@ -118,6 +119,7 @@ def monitor_health_report(
         failed_markers=failed_markers,
         stderr_text=stderr_text,
         scp_stderr_report=scp_stderr_report,
+        launch_state=launch_state,
         recent_monitor_lines=recent_monitor_lines,
         heartbeat=heartbeat,
         tmux=tmux,
@@ -167,6 +169,7 @@ def monitor_health_report(
         "expected_rows": expected_result_rows,
         "done_markers": done_markers,
         "failed_markers": failed_markers,
+        "launch_state": launch_state,
         "auxiliary_artifacts": auxiliary_artifacts,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
@@ -175,6 +178,7 @@ def monitor_health_report(
             "unhealthy",
             "missing_monitor",
             "remote_artifacts_missing",
+            "launch_stalled",
             "stale_monitor",
             "postprocessed",
             "postprocess_failed",
@@ -199,6 +203,7 @@ def _health_status(
     failed_markers: list[str],
     stderr_text: str,
     scp_stderr_report: dict[str, Any],
+    launch_state: dict[str, Any],
     recent_monitor_lines: list[str],
     heartbeat: dict[str, Any],
     tmux: dict[str, Any],
@@ -235,6 +240,8 @@ def _health_status(
         return "unhealthy"
     if heartbeat["is_stale"]:
         return "stale_monitor"
+    if launch_state["is_stalled"] and _monitor_sync_count(recent_monitor_lines) >= 2:
+        return "launch_stalled"
     if any("running" in line for line in recent_monitor_lines):
         return "running"
     if results_jsonl_exists:
@@ -244,6 +251,57 @@ def _health_status(
 
 def _monitor_has_event(lines: list[str], event: str) -> bool:
     return any(event in line for line in lines)
+
+
+def _monitor_sync_count(lines: list[str]) -> int:
+    return sum(1 for line in lines if " sync" in line)
+
+
+def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: int) -> dict[str, Any]:
+    del recent_lines
+    log_files = [path for path in artifact_files if path.startswith("logs/")]
+    if not log_files:
+        return {
+            "has_remote_logs": False,
+            "has_started_marker": False,
+            "has_git_artifact": False,
+            "has_progress": False,
+            "has_nonempty_torch_info": False,
+            "is_stalled": False,
+            "reason": "no_remote_logs",
+        }
+
+    has_started_marker = any("started.marker" in path for path in artifact_files)
+    has_git_artifact = any("_git_" in path or path.endswith("_git_revision.txt") for path in artifact_files)
+    has_progress = any(path.endswith("progress.jsonl") for path in artifact_files)
+    torch_info_paths = sorted((run_root / "logs").glob("*torch_info.txt"))
+    has_torch_info = bool(torch_info_paths)
+    has_nonempty_torch_info = any(path.exists() and path.stat().st_size > 0 for path in torch_info_paths)
+    has_training_or_completion = any(
+        path.endswith("_stdout.txt")
+        or (path.endswith("_stderr.txt") and not path.endswith("_torch_info_stderr.txt"))
+        or "done.marker" in path
+        or "failed.marker" in path
+        or path.startswith("results/")
+        for path in artifact_files
+    )
+    initial_launch_only = (
+        has_torch_info
+        and not has_nonempty_torch_info
+        and not has_started_marker
+        and not has_git_artifact
+        and not has_progress
+        and not has_training_or_completion
+    )
+    return {
+        "has_remote_logs": True,
+        "has_started_marker": has_started_marker,
+        "has_git_artifact": has_git_artifact,
+        "has_progress": has_progress,
+        "has_nonempty_torch_info": has_nonempty_torch_info,
+        "is_stalled": initial_launch_only,
+        "reason": "torch_info_empty_before_git_or_training" if initial_launch_only else "launch_progress_observed",
+    }
 
 
 def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> list[dict[str, Any]]:

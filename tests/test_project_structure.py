@@ -2863,6 +2863,57 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["failed_markers"] == ["failed.marker"]
 
 
+def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "launch_stalled_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "monitor_start 2026-07-01T14:45:53+08:00",
+                "2026-07-01T14:49:20+08:00 sync",
+                "2026-07-01T14:49:21+08:00 running",
+                "2026-07-01T15:03:35+08:00 sync",
+                "2026-07-01T15:03:36+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (logs / f"{run_id}_gpu_info.txt").write_text("gpu\n", encoding="utf-8")
+    (logs / f"{run_id}_launch_env.txt").write_text("run_id=launch_stalled_unit\n", encoding="utf-8")
+    (logs / f"{run_id}_torch_info.txt").write_text("", encoding="utf-8")
+    (logs / f"{run_id}_torch_info_stderr.txt").write_text("", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=3,
+        now=datetime.fromisoformat("2026-07-01T15:04:00+08:00"),
+    )
+
+    assert report["status"] == "launch_stalled"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["launch_state"]["is_stalled"] is True
+    assert report["launch_state"]["reason"] == "torch_info_empty_before_git_or_training"
+
+    (logs / f"{run_id}_started.marker").write_text("started\n", encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=3,
+        now=datetime.fromisoformat("2026-07-01T15:04:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["launch_state"]["is_stalled"] is False
+
+
 def test_monitor_health_requires_expected_result_rows(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_matrix"
@@ -3527,6 +3578,7 @@ def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
             "missing_artifact_line_count": 0,
             "persistent_missing_artifacts": False,
         },
+        launch_state={"is_stalled": False},
         recent_monitor_lines=["2026-06-29T16:38:40+08:00 running"],
         heartbeat={"is_stale": False},
         tmux={
