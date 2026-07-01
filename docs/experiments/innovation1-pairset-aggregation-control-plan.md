@@ -431,8 +431,8 @@ Before any meaningful remote launch:
    - frozen aggregation summary evaluates the saved stage-A checkpoint
    - postprocess-pairset-aggregation runs after both artifacts exist
 8. Commit and push.
-9. Launch from the pushed commit only after the DDT/topology run is retrieved
-   or explicitly yielded.
+9. Launch from the pushed commit only after the topology-aware result gate or
+   an explicit user route choice makes pair-set attribution the next action.
 10. Hand off retrieval/postprocess to local tmux watcher.
 ```
 

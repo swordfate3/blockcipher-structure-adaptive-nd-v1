@@ -175,7 +175,8 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Update the experiment plan with this attribution-control result.",
             "Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.",
-            "Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.",
+            "Continue the active topology-aware network route if the paper needs a stronger method beyond InvP-only.",
+            "If topology-aware stops, switch to candidate-trail / transition consistency as the next data-feature branch.",
         ]
     if branch == "variance_or_additional_controls":
         return [

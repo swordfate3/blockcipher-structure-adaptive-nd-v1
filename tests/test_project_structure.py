@@ -584,8 +584,9 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
         assert "cmd.exe /c" in config["launch_policy"]
         assert "cmd.exe /k" not in config["launch_policy"]
         assert "G:\\lxy" in config["launch_policy"]
-        assert "i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630" in config["launch_policy"]
-        assert "conditional launch only after current DDT/topology run" in config["launch_policy"]
+        assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701" in config["launch_policy"]
+        assert "topology-aware run" in config["launch_policy"]
+        assert "explicit user route choice selects pair-set attribution" in config["launch_policy"]
         assert "MEDIUM 262144/class pair-set aggregation-control" in config["claim_scope"]
         assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
 
@@ -2372,11 +2373,17 @@ def test_invp_attribution_controls_postprocess_updates_plan_doc(tmp_path):
     markdown = (output_dir / "unit_attr_controls_postprocess_summary.md").read_text()
     assert "support_invp_structural_attribution" in markdown
     assert "present_nibble_delta_only_spn_only" in markdown
+    assert "active topology-aware network route" in markdown
+    assert "candidate-trail / transition consistency" in markdown
+    assert "new DDT/topology route" not in markdown
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
     assert "## Retrieved Attribution Control Result" in plan_doc
     assert "<!-- invp-attribution-postprocess:unit_attr_controls:start -->" in plan_doc
     assert "| Decision | `support_invp_structural_attribution` |" in plan_doc
     assert "| Next action branch | `route_level_attribution_summary` |" in plan_doc
+    assert "active topology-aware network route" in plan_doc
+    assert "candidate-trail / transition consistency" in plan_doc
+    assert "new DDT/topology route" not in plan_doc
 
     postprocess_invp_attribution_controls(
         plan_path=plan_path,
