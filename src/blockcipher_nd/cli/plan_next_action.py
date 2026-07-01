@@ -42,6 +42,12 @@ def plan_next_action(summary_path: Path) -> dict[str, Any]:
     should_launch_remote = bool(next_action.get("should_launch_remote"))
     readiness_statuses = [report["readiness"]["status"] for report in readiness_reports]
     readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
+    launch_checklist = _launch_checklist(
+        should_launch_remote=should_launch_remote,
+        readiness_pass=readiness_pass,
+        next_action=next_action,
+        readiness_reports=readiness_reports,
+    )
     return {
         "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
         "summary": str(summary_path),
@@ -53,6 +59,7 @@ def plan_next_action(summary_path: Path) -> dict[str, Any]:
         "requires_implementation": bool(next_action.get("requires_implementation")),
         "readiness_pass": readiness_pass,
         "readiness_reports": readiness_reports,
+        "launch_checklist": launch_checklist,
         "next_action": next_action,
         "claim_scope": summary.get("claim_scope"),
         "errors": _errors(should_launch_remote=should_launch_remote, readiness_reports=readiness_reports),
@@ -70,6 +77,29 @@ def _errors(*, should_launch_remote: bool, readiness_reports: list[dict[str, Any
         if readiness["status"] != "pass":
             errors.append(f"{report['role']} readiness failed: {readiness.get('errors', [])}")
     return errors
+
+
+def _launch_checklist(
+    *,
+    should_launch_remote: bool,
+    readiness_pass: bool,
+    next_action: dict[str, Any],
+    readiness_reports: list[dict[str, Any]],
+) -> list[str]:
+    if not should_launch_remote:
+        return []
+    if not readiness_pass:
+        return ["Do not launch until all readiness reports pass."]
+    configs = [report["config"] for report in readiness_reports]
+    run_id = next_action.get("run_id") or "<next-run-id>"
+    monitor_owner = next_action.get("monitor_owner") or "tmux watcher or sub-agent"
+    return [
+        f"Launch ready config(s) from the pushed commit: {', '.join(configs)}.",
+        "Use the generated cmd.exe /c launcher under G:\\lxy; do not use cmd.exe /k.",
+        f"Expected remote run id: {run_id}.",
+        f"Hand off monitoring and retrieval to {monitor_owner}; do not SSH-poll from the main thread.",
+        "After retrieval, run route-specific postprocess, update docs/experiments, commit, and push.",
+    ]
 
 
 def _readiness_report(config_path: Path) -> dict[str, Any]:

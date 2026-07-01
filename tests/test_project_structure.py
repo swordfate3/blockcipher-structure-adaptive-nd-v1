@@ -2112,6 +2112,9 @@ def test_plan_next_action_checks_ddt_seed1_readiness(tmp_path):
     assert report["branch"] == "ddt_graph_seed1_confirmation"
     assert report["should_launch_remote"] is True
     assert report["readiness_pass"] is True
+    assert report["launch_checklist"]
+    assert "pushed commit" in report["launch_checklist"][0]
+    assert "do not SSH-poll" in " ".join(report["launch_checklist"])
     assert [item["role"] for item in report["readiness_reports"]] == ["primary"]
     assert report["readiness_reports"][0]["readiness"]["status"] == "pass"
 
@@ -2143,6 +2146,7 @@ def test_plan_next_action_keeps_ddt_stop_on_candidate_trail_plan(tmp_path):
     assert report["should_launch_remote"] is False
     assert report["readiness_pass"] is False
     assert report["readiness_reports"] == []
+    assert report["launch_checklist"] == []
 
 
 def test_plan_next_action_reports_missing_remote_config(tmp_path):
@@ -2169,6 +2173,7 @@ def test_plan_next_action_reports_missing_remote_config(tmp_path):
     assert report["status"] == "fail"
     assert report["branch"] == "missing_config"
     assert report["readiness_pass"] is False
+    assert report["launch_checklist"] == ["Do not launch until all readiness reports pass."]
     assert report["readiness_reports"][0]["readiness"]["status"] == "fail"
     assert "missing.json" in report["errors"][0]
 
