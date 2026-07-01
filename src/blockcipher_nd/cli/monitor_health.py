@@ -59,7 +59,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--postprocess-kind",
-        choices=["invp", "invp_attribution", "ddt_graph", "pairset_aggregation", "candidate_trail"],
+        choices=[
+            "invp",
+            "invp_attribution",
+            "ddt_graph",
+            "topology_aware",
+            "pairset_aggregation",
+            "candidate_trail",
+        ],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
     )
