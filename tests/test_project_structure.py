@@ -3028,6 +3028,54 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "5",
     ]
 
+    topology_run = "unit_topology"
+    topology_root = root / topology_run
+    topology_monitor = topology_root / "monitor"
+    topology_monitor.mkdir(parents=True)
+    (topology_monitor / "monitor.log").write_text("2026-06-29T17:00:00+08:00 running\n", encoding="utf-8")
+    (topology_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    topology_results = topology_root / "results"
+    topology_results.mkdir()
+    topology_jsonl = topology_results / f"{topology_run}.jsonl"
+    topology_jsonl.write_text("{}\n{}\n{}\n", encoding="utf-8")
+    topology_plan = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv"
+    )
+    topology_doc = tmp_path / "topology-plan.md"
+
+    report = monitor_health_report(
+        run_id=topology_run,
+        root=root,
+        plan_path=topology_plan,
+        plan_doc_paths=[topology_doc],
+        postprocess_kind="topology_aware",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 3
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-topology-aware-result",
+        "--plan",
+        str(topology_plan),
+        "--results",
+        str(topology_jsonl),
+        "--output-dir",
+        str(topology_root),
+        "--run-id",
+        topology_run,
+        "--expected-rows",
+        "3",
+        "--update-plan-doc",
+        str(topology_doc),
+    ]
+
     candidate_run = "i1_candidate_trail_result_ready"
     candidate_root = root / candidate_run
     candidate_monitor = candidate_root / "monitor"
