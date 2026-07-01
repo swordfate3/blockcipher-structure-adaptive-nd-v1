@@ -2,7 +2,8 @@
 
 **Date:** 2026-06-30
 
-**Status:** planned / gated / do not launch while DDT-topology run is active
+**Status:** deferred attribution control / assets prepared / do not launch
+while topology-aware network seed0 is active
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives.
 
@@ -47,17 +48,21 @@ Only Effect B supports a pair-set structure innovation claim.
 Do not launch this run while:
 
 ```text
-i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
 ```
 
-is running. This plan becomes actionable after one of these conditions:
+is running. The DDT graph branch that originally blocked this plan has already
+completed both seed0 and seed1 as weak diagnostic evidence, so it no longer
+blocks pair-set attribution. This plan becomes actionable after one of these
+conditions:
 
 ```text
-1. DDT/topology result is retrieved and negative/tied:
-   switch from graph topology extension to pair-set attribution control.
+1. The topology-aware network branch is retrieved, validated, plan-aligned,
+   and its gate or route decision asks for pair-set attribution rather than
+   candidate-trail / transition consistency.
 
-2. DDT/topology result is positive:
-   keep this as a later attribution control before making any pair-set claim.
+2. A future positive pair-set route needs this frozen single-pair aggregation
+   control before any cross-pair structure claim.
 
 3. User explicitly chooses pair-set data representation as the next route.
 ```
@@ -171,8 +176,9 @@ but still not launched. The current code and configs make the core aggregation
 math, scorer artifact persistence, frozen aggregation CLI, learned-pairset
 smoke matrix, 262144/class staged plan rows, stage-aware launcher/watcher, and
 gate/postprocess decision path testable and reusable. It must still wait for
-the current DDT/topology run to be retrieved or explicitly yielded before a
-remote launch.
+the current topology-aware network run to be retrieved and gated, or for the
+user to explicitly choose pair-set attribution over the candidate-trail data
+representation route.
 
 ## Local Smoke Readiness
 
@@ -294,10 +300,11 @@ Launch status:
 
 ```text
 not launched
-blocked_by_policy = current DDT/topology run still active
+blocked_by_policy = current topology-aware network seed0 still active
 stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
-remaining_requirement = wait for DDT result retrieval or explicit GPU yield before launching
+remaining_requirement = wait for topology-aware result gate, or explicit user
+                        choice to prioritize pair-set attribution
 windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
 ```
 
@@ -429,15 +436,25 @@ Before any meaningful remote launch:
 10. Hand off retrieval/postprocess to local tmux watcher.
 ```
 
-## Relationship To Current DDT/Topology Run
+## Relationship To Current Topology-Aware Run
 
 Current running run:
 
 ```text
-run_id = i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630
+run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
 status = running / watcher-managed
 ```
 
-This pair-set aggregation plan should not preempt that result. It is the next
-clean attribution plan for the data-representation branch once the current
-DDT/topology branch either returns a result or explicitly yields the GPU.
+Completed DDT graph context:
+
+```text
+i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630 -> weak_ddt_graph_signal
+i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630 -> weak_ddt_graph_signal
+decision = do not promote DDT graph to 1M yet
+```
+
+This pair-set aggregation plan should not preempt the active topology-aware
+network result. If topology-aware stops, the current default next data/feature
+branch is candidate-trail / transition consistency; pair-set aggregation remains
+a prepared attribution control to use when a pair-set claim becomes relevant or
+when the user explicitly chooses this route.
