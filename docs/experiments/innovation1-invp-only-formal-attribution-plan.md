@@ -394,7 +394,7 @@ Do not call this a breakthrough or SOTA result.
 Decide whether the next paper need is:
   A. formal multi-seed InvP-only variance,
   B. a Zhang/Wang baseline seed1 variance audit,
-  C. a new DDT/topology-aware route to improve beyond InvP-only.
+  C. a topology-aware network route to improve beyond InvP-only.
 ```
 
 Claim scope allowed:
@@ -402,6 +402,15 @@ Claim scope allowed:
 ```text
 InvP-only has two-seed 1000000/class positive confirmation and paper-scale
 attribution controls supporting the SPN/InvP/P-layer alignment explanation.
+```
+
+Current branch note, 2026-07-01:
+
+```text
+The DDT graph method-extension branch has completed two 262144/class seeds as
+weak diagnostic evidence and is not being promoted to 1M yet. The active
+method-extension route is now topology-aware network seed0:
+i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701.
 ```
 
 ### Decision B: `weak_attribution_support`
@@ -505,7 +514,8 @@ no agent-authored tracked edits remain uncommitted
 | Attribution margin | `0.003726063600` |
 | Required margin | `0.001000000000` |
 | Next action branch | `route_level_attribution_summary` |
-| Next steps | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Historical next steps from artifact | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Current branch note | DDT graph screening has completed as weak diagnostic evidence; active method-extension is topology-aware network seed0, with candidate-trail / transition consistency as the default data-feature branch if topology-aware stops |
 | Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
 | Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
 | Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |

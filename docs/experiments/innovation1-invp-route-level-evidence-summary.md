@@ -2,15 +2,15 @@
 
 **Date:** 2026-06-30
 
-**Status:** route-level attribution supported / awaiting next-stage choice
+**Status:** route-level attribution supported / method-extension route active
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document is the route-level evidence
 summary for the current InvP-only SPN structure route. It records two-seed
 paper-scale positive confirmation plus paper-scale attribution controls. It is
-still not a formal route-evidence claim by itself; the next stage must decide
-whether to add formal multi-seed variance, baseline variance, or a new
-DDT/topology method-extension route.
+still not a formal route-evidence claim by itself. The next-stage
+method-extension has moved from DDT graph screening into the active
+topology-aware network route.
 
 ## Route Claim Under Test
 
@@ -204,8 +204,10 @@ Next choices:
 ```text
 1. Add formal multi-seed variance evidence for InvP-only.
 2. Add Zhang/Wang baseline seed1 if baseline variance must be quantified.
-3. Start a new DDT/topology-aware route if the paper needs a stronger method
-   beyond InvP-only rather than more confirmation.
+3. Continue the active topology-aware network route if the paper needs a
+   stronger method beyond InvP-only rather than more confirmation.
+4. If topology-aware stops, switch to candidate-trail / transition consistency
+   as the next data/feature representation branch.
 ```
 
 ### If Attribution Gate Is Weak
@@ -296,7 +298,8 @@ breakthrough
 | Attribution margin | `0.003726063600` |
 | Required margin | `0.001000000000` |
 | Next action branch | `route_level_attribution_summary` |
-| Next steps | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Historical next steps from artifact | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
+| Current branch note | DDT graph screening has completed as weak diagnostic evidence; active method-extension is topology-aware network seed0, with candidate-trail / transition consistency as the default data-feature branch if topology-aware stops |
 | Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
 | Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
 | Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |
