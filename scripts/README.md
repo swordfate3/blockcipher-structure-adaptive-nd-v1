@@ -38,9 +38,10 @@ or commit docs if needed, and branch from the recorded decision rather than
 rerunning postprocess. `postprocess_failed` means inspect the monitor
 `postprocess_stderr.log` before branching.
 Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`,
-`--postprocess-kind ddt_graph`, `--postprocess-kind pairset_aggregation`, or
-`--postprocess-kind candidate_trail` so the emitted command calls the matching
-postprocess entrypoint and expected row count.
+`--postprocess-kind ddt_graph`, `--postprocess-kind topology_aware`,
+`--postprocess-kind pairset_aggregation`, or `--postprocess-kind
+candidate_trail` so the emitted command calls the matching postprocess
+entrypoint and expected row count.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or
