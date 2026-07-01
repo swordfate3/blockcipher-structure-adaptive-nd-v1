@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 from blockcipher_nd.planning.invp_postprocess import _format_value
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
@@ -84,11 +85,14 @@ def postprocess_topology_aware_result(
         "models": gate_report["models"],
         "claim_scope": gate_report["claim_scope"],
     }
+    report["next_action"] = _next_action(report)
     report["next_steps"] = _next_steps(report)
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
+    report["next_action_readiness"] = str(next_action_readiness_path)
 
     update_paths = _dedupe_paths(plan_doc_paths or [])
     if update_paths:
@@ -98,6 +102,7 @@ def postprocess_topology_aware_result(
         report["plan_doc"] = str(update_paths[0])
 
     _write_json(summary_path, report)
+    _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -119,32 +124,163 @@ def update_plan_doc_with_topology_postprocess(plan_doc_path: Path, report: dict[
     plan_doc_path.write_text(text, encoding="utf-8")
 
 
-def _next_steps(report: dict[str, Any]) -> list[str]:
+def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if report["status"] != "pass":
+        return {
+            "branch": "invalid",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": "postprocess_status_failed",
+    }
+    decision = str(report["decision"])
+    if decision == "support_topology_aware_network_route":
+        launch_config = (
+            "configs/remote/"
+            "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json"
+        )
+        return {
+            "branch": "topology_aware_seed1_confirmation",
+            "should_launch_remote": True,
+            "requires_implementation": False,
+            "launch_remote_config": launch_config,
+            "readiness_command": _readiness_command(launch_config),
+            "run_id": "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701",
+            "monitor_owner": "tmux watcher or sub-agent",
+            "plan_doc": "docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md",
+            "reason": decision,
+        }
+    if decision == "weak_topology_aware_network_signal":
+        launch_config = (
+            "configs/remote/"
+            "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json"
+        )
+        return {
+            "branch": "topology_aware_seed1_variance_check",
+            "should_launch_remote": True,
+            "requires_implementation": False,
+            "launch_remote_config": launch_config,
+            "readiness_command": _readiness_command(launch_config),
+            "run_id": "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701",
+            "monitor_owner": "tmux watcher or sub-agent",
+            "plan_doc": "docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md",
+            "reason": decision,
+        }
+    if decision == "stop_topology_aware_network_route":
+        return {
+            "branch": "candidate_trail_consistency",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+            "reason": decision,
+        }
+    return {
+        "branch": "manual_review",
+        "should_launch_remote": False,
+        "requires_implementation": False,
+        "reason": decision,
+    }
+
+
+def _next_steps(report: dict[str, Any]) -> list[str]:
+    branch = report["next_action"]["branch"]
+    if branch == "invalid":
         return [
             "Do not branch yet; inspect validation_report and topology_aware_gate errors.",
             "Fix retrieval, plan alignment, or metric availability before launching another run.",
         ]
-    decision = str(report["decision"])
-    if decision == "support_topology_aware_network_route":
+    if branch == "topology_aware_seed1_confirmation":
+        next_action = report["next_action"]
         return [
             "Record this as medium diagnostic support for true-P topology-aware architecture.",
-            "Prepare a 262144/class seed1 confirmation matrix before any 1M scale-up.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a 262144/class seed1 confirmation from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not make formal or breakthrough claims from this single medium-scale seed.",
         ]
-    if decision == "weak_topology_aware_network_signal":
+    if branch == "topology_aware_seed1_variance_check":
+        next_action = report["next_action"]
         return [
             "Record this as weak topology-aware network signal.",
-            "Run a 262144/class seed1 variance check before deciding whether to scale.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a 262144/class seed1 variance check from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Keep claim scope diagnostic only.",
         ]
-    if decision == "stop_topology_aware_network_route":
+    if branch == "candidate_trail_consistency":
         return [
             "Record this as tied or negative topology-aware network evidence.",
             "Do not scale this architecture.",
-            "Switch to candidate-trail or transition-consistency data representation hypothesis.",
+            "Switch to the candidate-trail consistency data representation plan before creating a medium remote config.",
         ]
     return ["Review the topology-aware gate manually before launching another experiment."]
+
+
+def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    next_action = report.get("next_action", {})
+    if not isinstance(next_action, dict):
+        next_action = {}
+
+    readiness_reports: list[dict[str, Any]] = []
+    config = next_action.get("launch_remote_config")
+    if isinstance(config, str) and config:
+        readiness_reports.append(
+            {
+                "role": "primary",
+                "config": config,
+                "readiness": _readiness_report(Path(config)),
+            }
+        )
+
+    should_launch_remote = bool(next_action.get("should_launch_remote"))
+    readiness_statuses = [item["readiness"]["status"] for item in readiness_reports]
+    readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
+    return {
+        "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
+        "summary": str(summary_path),
+        "run_id": report.get("run_id"),
+        "decision": report.get("decision"),
+        "action": report.get("action"),
+        "branch": next_action.get("branch"),
+        "should_launch_remote": should_launch_remote,
+        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "readiness_pass": readiness_pass,
+        "readiness_reports": readiness_reports,
+        "next_action": next_action,
+        "claim_scope": report.get("claim_scope"),
+        "errors": _next_action_readiness_errors(
+            should_launch_remote=should_launch_remote,
+            readiness_reports=readiness_reports,
+        ),
+    }
+
+
+def _next_action_readiness_errors(
+    *,
+    should_launch_remote: bool,
+    readiness_reports: list[dict[str, Any]],
+) -> list[str]:
+    if not should_launch_remote:
+        return []
+    if not readiness_reports:
+        return ["next_action requests remote launch but no launch_remote_config was provided"]
+    errors: list[str] = []
+    for item in readiness_reports:
+        readiness = item["readiness"]
+        if readiness["status"] != "pass":
+            errors.append(f"{item['role']} readiness failed: {readiness.get('errors', [])}")
+    return errors
+
+
+def _readiness_report(config_path: Path) -> dict[str, Any]:
+    try:
+        return remote_readiness_report(config_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "fail",
+            "config": str(config_path),
+            "errors": [str(exc)],
+            "warnings": [],
+        }
 
 
 def _markdown_summary(report: dict[str, Any]) -> str:
@@ -166,6 +302,10 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             "",
             *_model_lines(report["models"]),
             "",
+            "Next Action:",
+            "",
+            *[f"- {key}: `{value}`" for key, value in report["next_action"].items()],
+            "",
             "Next Steps:",
             "",
             *[f"- {step}" for step in report["next_steps"]],
@@ -178,6 +318,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- curves: `{report['curves']}`",
             f"- history_csv: `{report['history_csv']}`",
             f"- summary: `{report['summary']}`",
+            f"- next_action_readiness: `{report['next_action_readiness']}`",
             *( [f"- plan_docs: `{'; '.join(report['plan_docs'])}`"] if "plan_docs" in report else [] ),
             "",
         ]
@@ -197,6 +338,11 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Margin vs shuffled AUC", _format_value(report["margin_vs_shuffled_auc"])),
         ("Calibrated delta vs InvP", _format_value(report["calibrated_delta_vs_invp"])),
         ("Required margin", _format_value(report["required_margin"])),
+        ("Next action branch", report["next_action"]["branch"]),
+        ("Next action should launch remote", report["next_action"]["should_launch_remote"]),
+        ("Next action launch config", report["next_action"].get("launch_remote_config", "")),
+        ("Next action readiness command", report["next_action"].get("readiness_command", "")),
+        ("Next action run id", report["next_action"].get("run_id", "")),
         ("Next steps", "; ".join(report["next_steps"])),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
@@ -206,6 +352,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("History CSV", report["history_csv"]),
         ("Summary JSON", report["summary"]),
         ("Summary Markdown", report["summary_markdown"]),
+        ("Next action readiness", report["next_action_readiness"]),
     ]
     lines = [f"### {report['run_id']} Topology-Aware Network Result", "", "| Field | Value |", "|---|---|"]
     lines.extend(f"| {field} | `{value}` |" for field, value in rows)
@@ -239,6 +386,10 @@ def _dedupe_paths(paths: list[Path]) -> list[Path]:
         if path not in merged:
             merged.append(path)
     return merged
+
+
+def _readiness_command(config: str) -> str:
+    return f"UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config {config}"
 
 
 def main(argv: list[str] | None = None) -> int:

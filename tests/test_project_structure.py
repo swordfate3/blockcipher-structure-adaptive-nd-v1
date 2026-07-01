@@ -28,6 +28,7 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_result
+from blockcipher_nd.planning.topology_aware_postprocess import postprocess_topology_aware_result
 from blockcipher_nd.cli.plan_next_action import plan_next_action
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
@@ -1792,6 +1793,174 @@ def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
     assert report["decision"] == "invalid"
     assert any("expected_rows=5" in error for error in report["errors"])
     assert any("missing_models" in error for error in report["errors"])
+
+
+def _write_topology_aware_result(
+    path: Path,
+    model: str,
+    auc: float,
+    *,
+    calibrated_accuracy: float = 0.712,
+    accuracy: float = 0.71,
+) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": model,
+                    "selected_model": model,
+                    "cipher": "PRESENT-80",
+                    "structure": "SPN",
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 262144,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "train_key": 0,
+                    "validation_key": 0x11111111111111111111,
+                    "key_rotation_interval": 0,
+                    "integral_active_nibble": 0,
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": accuracy,
+                        "calibrated_accuracy": calibrated_accuracy,
+                        "loss": 0.55,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def _write_topology_aware_result_set(
+    path: Path,
+    *,
+    invp_auc: float,
+    true_graph_auc: float,
+    shuffled_auc: float,
+    invp_calibrated_accuracy: float = 0.712,
+    true_graph_calibrated_accuracy: float = 0.713,
+) -> None:
+    _write_topology_aware_result(
+        path,
+        "present_nibble_invp_only_spn_only",
+        invp_auc,
+        calibrated_accuracy=invp_calibrated_accuracy,
+    )
+    _write_topology_aware_result(
+        path,
+        "present_nibble_invp_p_layer_graph_spn_only",
+        true_graph_auc,
+        calibrated_accuracy=true_graph_calibrated_accuracy,
+    )
+    _write_topology_aware_result(
+        path,
+        "present_nibble_invp_shuffled_p_layer_graph_spn_only",
+        shuffled_auc,
+        calibrated_accuracy=invp_calibrated_accuracy,
+    )
+
+
+def test_topology_aware_postprocess_routes_support_to_prepared_seed1(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv")
+    results_path = tmp_path / "topology_aware.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "topology-plan.md"
+    plan_doc_path.write_text("# Topology Plan\n", encoding="utf-8")
+    _write_topology_aware_result_set(
+        results_path,
+        invp_auc=0.7940,
+        true_graph_auc=0.7960,
+        shuffled_auc=0.7946,
+    )
+
+    report = postprocess_topology_aware_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_topology_aware",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc_path],
+    )
+    next_action_report = plan_next_action(Path(report["summary"]))
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_topology_aware_network_route"
+    assert report["next_action"]["branch"] == "topology_aware_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json"
+    )
+    assert report["next_action"]["readiness_command"].startswith(
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness"
+    )
+    assert report["next_action"]["run_id"] == "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701"
+    readiness_path = Path(report["next_action_readiness"])
+    assert readiness_path.exists()
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "topology_aware_seed1_confirmation"
+    assert readiness["readiness_pass"] is True
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["primary"]
+    assert next_action_report["status"] == "pass"
+    assert next_action_report["branch"] == "topology_aware_seed1_confirmation"
+    markdown = (output_dir / "unit_topology_aware_postprocess_summary.md").read_text(encoding="utf-8")
+    assert "Next Action:" in markdown
+    assert "topology_aware_seed1_confirmation" in markdown
+    assert "unit_topology_aware_next_action_readiness.json" in markdown
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action branch | `topology_aware_seed1_confirmation` |" in plan_doc
+    assert "| Next action should launch remote | `True` |" in plan_doc
+    assert "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json" in plan_doc
+    assert "| Next action readiness | `" in plan_doc
+
+
+def test_topology_aware_postprocess_routes_stop_to_candidate_trail_plan(tmp_path):
+    plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv")
+    results_path = tmp_path / "topology_aware_stop.jsonl"
+    output_dir = tmp_path / "postprocess"
+    plan_doc_path = tmp_path / "topology-plan.md"
+    plan_doc_path.write_text("# Topology Plan\n", encoding="utf-8")
+    _write_topology_aware_result_set(
+        results_path,
+        invp_auc=0.7940,
+        true_graph_auc=0.7935,
+        shuffled_auc=0.7942,
+    )
+
+    report = postprocess_topology_aware_result(
+        plan_path=plan_path,
+        results_path=results_path,
+        output_dir=output_dir,
+        run_id="unit_topology_aware_stop",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc_path],
+    )
+    next_action_report = plan_next_action(Path(report["summary"]))
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_topology_aware_network_route"
+    assert report["next_action"]["branch"] == "candidate_trail_consistency"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["plan_doc"] == "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
+    assert report["next_action_readiness"]
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "candidate_trail_consistency"
+    assert readiness["readiness_reports"] == []
+    assert next_action_report["status"] == "pass"
+    assert next_action_report["should_launch_remote"] is False
+    plan_doc = plan_doc_path.read_text(encoding="utf-8")
+    assert "| Next action branch | `candidate_trail_consistency` |" in plan_doc
+    assert "| Next action should launch remote | `False` |" in plan_doc
+    assert "Switch to the candidate-trail consistency data representation plan" in plan_doc
 
 
 def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
