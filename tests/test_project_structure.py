@@ -1347,6 +1347,18 @@ def test_ddt_graph_plan_records_route_specific_monitor_health_command():
     assert "stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness" in plan
 
 
+def test_ddt_graph_plan_marks_seed1_next_action_as_historical():
+    plan = Path("docs/experiments/innovation1-spn-ddt-graph-conditional-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "seed1 postprocess table above preserves the route-specific artifact fields" in plan
+    assert "must not be interpreted" in plan
+    assert "as an instruction to rerun seed1" in plan
+    assert "route-level decision below supersedes it" in plan
+    assert "topology-aware network route was activated" in plan
+
+
 def test_topology_aware_plan_records_next_action_readiness_artifact():
     plan = Path("docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md").read_text(
         encoding="utf-8"
