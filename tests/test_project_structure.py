@@ -2690,11 +2690,41 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["scp_stderr_exists"] is True
     assert report["scp_stderr_errors"] == []
     assert report["scp_stderr_missing_artifact_line_count"] == 2
+    assert report["scp_stderr_stale_missing_artifacts"] is False
     assert report["scp_stderr_persistent_missing_artifacts"] is False
     assert report["scp_stderr_warnings"] == [
         "scp reported remote artifact paths missing; this is normal before "
         "the remote run creates logs/results, but should clear once artifacts exist"
     ]
+
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "monitor_start 2026-06-29T14:45:53+08:00",
+                "2026-06-29T15:00:02+08:00 sync",
+                "2026-06-29T15:00:03+08:00 running",
+                "2026-06-29T15:02:02+08:00 sync",
+                "2026-06-29T15:02:03+08:00 running",
+                "2026-06-29T15:04:02+08:00 sync",
+                "2026-06-29T15:04:03+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        plan_path=plan,
+        plan_doc_path=plan_doc,
+        now=datetime.fromisoformat("2026-06-29T15:05:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["scp_stderr_missing_artifact_line_count"] == 2
+    assert report["scp_stderr_stale_missing_artifacts"] is True
+    assert report["scp_stderr_persistent_missing_artifacts"] is False
+    assert report["scp_stderr_warnings"] == []
 
     (monitor / "scp_stderr.log").write_text(
         "\n".join(

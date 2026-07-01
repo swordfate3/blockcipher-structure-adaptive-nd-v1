@@ -105,7 +105,7 @@ def monitor_health_report(
     heartbeat = _heartbeat_status(recent_monitor_lines, stale_after_seconds, now=now)
     stderr_text = _read_text(ssh_stderr).strip()
     scp_stderr_text = _read_text(scp_stderr).strip()
-    scp_stderr_report = _scp_stderr_report(scp_stderr_text, recent_lines)
+    scp_stderr_report = _scp_stderr_report(scp_stderr_text, recent_lines, recent_monitor_lines)
     tmux = _tmux_status(tmux_session)
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     status = _health_status(
@@ -159,6 +159,7 @@ def monitor_health_report(
         "scp_stderr_warnings": scp_stderr_report["warnings"],
         "scp_stderr_errors": scp_stderr_report["errors"],
         "scp_stderr_missing_artifact_line_count": scp_stderr_report["missing_artifact_line_count"],
+        "scp_stderr_stale_missing_artifacts": scp_stderr_report["stale_missing_artifacts"],
         "scp_stderr_persistent_missing_artifacts": scp_stderr_report["persistent_missing_artifacts"],
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
@@ -333,13 +334,15 @@ def _newest_monitor_timestamp(lines: list[str]) -> datetime | None:
     return newest
 
 
-def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
+def _scp_stderr_report(text: str, recent_lines: int, recent_monitor_lines: list[str]) -> dict[str, Any]:
     tail = _tail_text(text, recent_lines)
     errors: list[str] = []
     warnings: list[str] = []
     missing_lines = [line for line in tail if "No such file or directory" in line]
     other_lines = [line for line in tail if line.strip() and line not in missing_lines]
-    if missing_lines:
+    sync_count = sum(1 for line in recent_monitor_lines if " sync" in line)
+    stale_missing_artifacts = bool(missing_lines) and sync_count > max(1, len(missing_lines))
+    if missing_lines and not stale_missing_artifacts:
         warnings.append(
             "scp reported remote artifact paths missing; this is normal before "
             "the remote run creates logs/results, but should clear once artifacts exist"
@@ -351,7 +354,10 @@ def _scp_stderr_report(text: str, recent_lines: int) -> dict[str, Any]:
         "warnings": warnings,
         "errors": errors,
         "missing_artifact_line_count": len(missing_lines),
-        "persistent_missing_artifacts": len(missing_lines) >= max(4, recent_lines // 2),
+        "stale_missing_artifacts": stale_missing_artifacts,
+        "persistent_missing_artifacts": (
+            not stale_missing_artifacts and len(missing_lines) >= max(4, recent_lines // 2)
+        ),
     }
 
 
