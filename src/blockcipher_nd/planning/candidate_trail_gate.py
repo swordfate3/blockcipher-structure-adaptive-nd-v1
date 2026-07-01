@@ -67,6 +67,8 @@ def gate_candidate_trail_result(
     best_model, best_metrics = _best_auc_model(candidate_metrics)
     best_auc = _metric(best_metrics, "auc")
     best_calibrated = _metric(best_metrics, "calibrated_accuracy")
+    if candidate_metrics and best_auc is None:
+        errors.append(f"missing_candidate_auc={list(candidate_metrics)}")
     shuffled_metrics = models.get(shuffled_model)
     shuffled_auc = _metric(shuffled_metrics, "auc")
     if shuffled_metrics is None:
@@ -151,7 +153,7 @@ def _model_key(row: dict[str, Any]) -> str:
 
 
 def _metrics(row: dict[str, Any]) -> dict[str, float | None]:
-    metrics = row.get("metrics", {}) if isinstance(row.get("metrics", {}), dict) else row
+    metrics = row["metrics"] if isinstance(row.get("metrics"), dict) else row
     return {
         "auc": _optional_float(metrics.get("auc") if "auc" in metrics else metrics.get("val_auc")),
         "accuracy": _optional_float(

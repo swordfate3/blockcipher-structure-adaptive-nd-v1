@@ -38,6 +38,7 @@ from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
 from blockcipher_nd.tasks.innovation1 import spn_active_pattern, spn_candidate_evidence, spn_feature_audit
+from blockcipher_nd.cli import spn_candidate_evidence_matrix
 
 
 def test_matrix_runner_lives_in_engine_package():
@@ -1080,6 +1081,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/train"),
         Path("scripts/smoke"),
         Path("scripts/spn-candidate-evidence"),
+        Path("scripts/spn-candidate-evidence-matrix"),
         Path("scripts/spn-active-pattern"),
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
@@ -3878,6 +3880,149 @@ def test_candidate_evidence_cli_outputs_shuffled_cell_control_key(tmp_path):
     assert row["training_model_family"] == "mlp"
     assert row["feature_mode"] == "cell_structured_shuffled"
     assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
+
+
+def test_candidate_evidence_matrix_outputs_anchor_and_candidate_rows(tmp_path):
+    config = tmp_path / "candidate_matrix.json"
+    output = tmp_path / "candidate_matrix.jsonl"
+    config.write_text(
+        json.dumps(
+            {
+                "output": str(output),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "train_key": "0x00000000000000000000",
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "beam_width": 2,
+                    "depth": 2,
+                    "feature_cache_chunk_size": 1,
+                    "epochs": 1,
+                    "learning_rate": 0.01,
+                    "device": "cpu",
+                },
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.52,
+                        "anchor_calibrated_accuracy": 0.5,
+                    },
+                    {
+                        "model": "linear",
+                        "feature_cache_root": str(tmp_path / "linear_cache"),
+                        "progress_output": str(tmp_path / "linear_progress.jsonl"),
+                    },
+                    {
+                        "model": "shuffled_cells",
+                        "feature_mode": "cell_structured_shuffled",
+                        "feature_cache_root": str(tmp_path / "shuffled_cache"),
+                        "progress_output": str(tmp_path / "shuffled_progress.jsonl"),
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spn_candidate_evidence_matrix.main(["--config", str(config)])
+
+    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    assert [row["model"] for row in rows] == [
+        "present_nibble_invp_only_spn_only",
+        "candidate_trail_consistency_linear",
+        "candidate_trail_consistency_shuffled_cells",
+    ]
+    assert rows[0]["row_type"] == "external_anchor"
+    assert rows[0]["metrics"]["auc"] == 0.52
+    assert rows[1]["feature_mode"] == "cell_structured"
+    assert rows[2]["feature_mode"] == "cell_structured_shuffled"
+
+    report = validate_result_plan_alignment(config, output, expected_rows=3)
+    assert report["status"] == "pass"
+
+
+def test_candidate_evidence_matrix_can_feed_candidate_postprocess(tmp_path):
+    config = tmp_path / "candidate_matrix_4row.json"
+    output = tmp_path / "candidate_matrix_4row.jsonl"
+    common = {
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 2,
+        "pairs_per_sample": 1,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "train_key": "0x00000000000000000000",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "beam_width": 2,
+        "depth": 2,
+        "feature_cache_chunk_size": 1,
+        "epochs": 1,
+        "learning_rate": 0.01,
+        "device": "cpu",
+    }
+    config.write_text(
+        json.dumps(
+            {
+                "output": str(output),
+                "common": common,
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.50,
+                        "anchor_calibrated_accuracy": 0.5,
+                    },
+                    {
+                        "model": "linear",
+                        "feature_cache_root": str(tmp_path / "linear_cache"),
+                        "progress_output": str(tmp_path / "linear_progress.jsonl"),
+                    },
+                    {
+                        "model": "mlp",
+                        "feature_cache_root": str(tmp_path / "mlp_cache"),
+                        "progress_output": str(tmp_path / "mlp_progress.jsonl"),
+                    },
+                    {
+                        "model": "shuffled_cells",
+                        "feature_mode": "cell_structured_shuffled",
+                        "feature_cache_root": str(tmp_path / "shuffled_cache"),
+                        "progress_output": str(tmp_path / "shuffled_progress.jsonl"),
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spn_candidate_evidence_matrix.main(["--config", str(config)])
+    report = postprocess_candidate_trail_result(
+        results_path=output,
+        output_dir=tmp_path / "postprocess",
+        run_id="candidate_matrix_4row",
+        plan_path=config,
+        expected_rows=4,
+        plan_doc_paths=[],
+    )
+
+    assert report["status"] == "pass"
+    assert report["validation_status"] == "pass"
+    assert report["candidate_trail_status"] == "pass"
+    assert report["decision"] in {
+        "support_candidate_trail_route",
+        "weak_candidate_trail_signal",
+        "stop_candidate_trail_route",
+    }
 
 
 def _write_candidate_trail_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:

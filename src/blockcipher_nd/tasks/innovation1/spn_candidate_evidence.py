@@ -34,6 +34,46 @@ MODEL_FEATURE_MODES = {
     "mlp": "cell_structured",
     "shuffled_cells": "cell_structured_shuffled",
 }
+DEFAULTS = {
+    "output": None,
+    "rounds": 7,
+    "seed": 0,
+    "samples_per_class": 4096,
+    "pairs_per_sample": 16,
+    "negative_mode": "encrypted_random_plaintexts",
+    "sample_structure": OFFICIAL_ZHANG_WANG_CASE2_MCND,
+    "difference_profile": DEFAULT_DIFFERENCE_PROFILE,
+    "difference_member": 0,
+    "train_key": 0,
+    "validation_key": DEFAULT_VALIDATION_KEY,
+    "key_rotation_interval": 0,
+    "beam_width": 4,
+    "depth": 3,
+    "feature_cache_root": None,
+    "feature_cache_chunk_size": 4096,
+    "feature_mode": None,
+    "progress_output": None,
+    "epochs": 30,
+    "learning_rate": 1e-2,
+    "model": "linear",
+    "device": "cpu",
+}
+PATH_FIELDS = {"output", "feature_cache_root", "progress_output"}
+INT_FIELDS = {
+    "rounds",
+    "seed",
+    "samples_per_class",
+    "pairs_per_sample",
+    "difference_member",
+    "train_key",
+    "validation_key",
+    "key_rotation_interval",
+    "beam_width",
+    "depth",
+    "feature_cache_chunk_size",
+    "epochs",
+}
+FLOAT_FIELDS = {"learning_rate"}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -67,6 +107,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    result = run_candidate_evidence(args)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
     input_difference = difference_for_profile(args.difference_profile, args.difference_member)
     train_features, train_labels = make_candidate_dataset(
         rounds=args.rounds,
@@ -152,64 +198,30 @@ def main(argv: list[str] | None = None) -> None:
         "val_accuracy": binary_accuracy(validation_labels, probabilities),
         "val_auc": binary_auc(validation_labels, probabilities),
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, sort_keys=True) + "\n", encoding="utf-8")
+    return result
 
 
-def _apply_config_defaults(args: argparse.Namespace) -> argparse.Namespace:
+def args_from_config(config: dict[str, object]) -> argparse.Namespace:
+    args = argparse.Namespace(config=None)
+    for field in DEFAULTS:
+        setattr(args, field, config.get(field))
+    return _apply_config_defaults(args, require_output=False)
+
+
+def _apply_config_defaults(args: argparse.Namespace, *, require_output: bool = True) -> argparse.Namespace:
     config = _load_config(args.config)
-    defaults = {
-        "output": None,
-        "rounds": 7,
-        "seed": 0,
-        "samples_per_class": 4096,
-        "pairs_per_sample": 16,
-        "negative_mode": "encrypted_random_plaintexts",
-        "sample_structure": OFFICIAL_ZHANG_WANG_CASE2_MCND,
-        "difference_profile": DEFAULT_DIFFERENCE_PROFILE,
-        "difference_member": 0,
-        "train_key": 0,
-        "validation_key": DEFAULT_VALIDATION_KEY,
-        "key_rotation_interval": 0,
-        "beam_width": 4,
-        "depth": 3,
-        "feature_cache_root": None,
-        "feature_cache_chunk_size": 4096,
-        "feature_mode": None,
-        "progress_output": None,
-        "epochs": 30,
-        "learning_rate": 1e-2,
-        "model": "linear",
-        "device": "cpu",
-    }
-    path_fields = {"output", "feature_cache_root", "progress_output"}
-    int_fields = {
-        "rounds",
-        "seed",
-        "samples_per_class",
-        "pairs_per_sample",
-        "difference_member",
-        "train_key",
-        "validation_key",
-        "key_rotation_interval",
-        "beam_width",
-        "depth",
-        "feature_cache_chunk_size",
-        "epochs",
-    }
-    float_fields = {"learning_rate"}
-    for field, default in defaults.items():
+    for field, default in DEFAULTS.items():
         value = getattr(args, field)
         if value is None:
             value = config.get(field, default)
-        if field in path_fields and value is not None:
+        if field in PATH_FIELDS and value is not None:
             value = Path(value)
-        elif field in int_fields and value is not None:
+        elif field in INT_FIELDS and value is not None:
             value = int(value, 0) if isinstance(value, str) else int(value)
-        elif field in float_fields and value is not None:
+        elif field in FLOAT_FIELDS and value is not None:
             value = float(value)
         setattr(args, field, value)
-    if args.output is None:
+    if require_output and args.output is None:
         raise SystemExit("--output is required unless provided by --config")
     if args.model not in MODEL_ROUTE_KEYS:
         raise SystemExit(f"unsupported model in config: {args.model}")

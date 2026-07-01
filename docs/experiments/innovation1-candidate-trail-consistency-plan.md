@@ -378,6 +378,24 @@ The original learner type remains visible as:
 This prevents a retrieved candidate-trail JSONL from passing training but later
 failing local gate/postprocess with `missing_candidate_models`.
 
+Matrix runner update, 2026-07-01:
+
+```text
+script = scripts/spn-candidate-evidence-matrix
+plan shape = JSON object with common + rows
+purpose = produce one candidate-trail JSONL row per planned row
+supported rows =
+  external_anchor -> inject completed InvP-only same-scale metrics
+  candidate/model=linear -> candidate_trail_consistency_linear
+  candidate/model=mlp -> candidate_trail_consistency_mlp
+  candidate/model=shuffled_cells -> candidate_trail_consistency_shuffled_cells
+```
+
+This closes the 262144/class preparation gap: the future medium diagnostic can
+emit the 4 rows expected by `scripts/postprocess-candidate-trail` without
+manually concatenating per-model outputs. It still does not authorize launching
+the medium remote run while the topology-aware branch is active.
+
 ## Claim Scope
 
 Until at least `1000000/class` multi-seed evidence exists, this route can only

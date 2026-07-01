@@ -105,8 +105,44 @@ def validate_result_plan_alignment(
 
 
 def _load_plan_rows(path: Path) -> list[dict[str, str]]:
+    if path.suffix.lower() == ".json":
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(plan, dict):
+            raise ValueError(f"JSON plan must be an object: {path}")
+        if "rows" not in plan:
+            return [_json_plan_row(plan)]
+        common = plan.get("common", {})
+        rows = plan.get("rows")
+        if not isinstance(common, dict):
+            raise ValueError(f"JSON matrix plan common must be an object: {path}")
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(f"JSON matrix plan rows must be a non-empty list: {path}")
+        return [_json_plan_row({**common, **row}) for row in rows if isinstance(row, dict)]
     with path.open("r", encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def _json_plan_row(row: dict[str, Any]) -> dict[str, str]:
+    model = row.get("model_key") or row.get("model") or row.get("route")
+    route_models = {
+        "linear": "candidate_trail_consistency_linear",
+        "mlp": "candidate_trail_consistency_mlp",
+        "shuffled_cells": "candidate_trail_consistency_shuffled_cells",
+    }
+    if model in route_models:
+        model = route_models[str(model)]
+    return {
+        "rounds": str(row.get("rounds", "")),
+        "seed": str(row.get("seed", "")),
+        "model_key": str(model or ""),
+        "samples_per_class": str(row.get("samples_per_class", "")),
+        "pairs_per_sample": str(row.get("pairs_per_sample", "")),
+        "negative_mode": str(row.get("negative_mode", "")),
+        "sample_structure": str(row.get("sample_structure", "")),
+        "key_rotation_interval": str(row.get("key_rotation_interval", "")),
+        "difference_profile": str(row.get("difference_profile", "")),
+        "difference_member": str(row.get("difference_member", "")),
+    }
 
 
 def _load_jsonl_rows(path: Path) -> list[dict[str, Any]]:

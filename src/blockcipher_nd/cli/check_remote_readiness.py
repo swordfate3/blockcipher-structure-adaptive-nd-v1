@@ -112,7 +112,7 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     train_consistency = _training_consistency(config, tasks)
     errors.extend(train_consistency["errors"])
     warnings.extend(train_consistency["warnings"])
-    candidate_consistency = _candidate_trail_consistency(config)
+    candidate_consistency = _candidate_trail_consistency(config, tasks)
     errors.extend(candidate_consistency["errors"])
     warnings.extend(candidate_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
@@ -193,11 +193,36 @@ def _load_plan_tasks(plan_path: Path) -> list[dict[str, Any]]:
         plan = json.loads(plan_path.read_text(encoding="utf-8"))
         if not isinstance(plan, dict):
             raise ValueError(f"JSON plan must be an object: {plan_path}")
+        if "rows" in plan:
+            return _candidate_json_matrix_tasks(plan)
         return [_candidate_json_plan_task(plan)]
     return build_tasks(parse_train_args(["--plan", str(plan_path)]))
 
 
+def _candidate_json_matrix_tasks(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    common = plan.get("common", {})
+    rows = plan.get("rows")
+    if not isinstance(common, dict):
+        raise ValueError("JSON matrix plan common must be an object")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("JSON matrix plan rows must be a non-empty list")
+    tasks: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("JSON matrix plan rows must be objects")
+        tasks.append(_candidate_json_plan_task({**common, **row}))
+    return tasks
+
+
 def _candidate_json_plan_task(plan: dict[str, Any]) -> dict[str, Any]:
+    model = plan.get("model")
+    feature_mode = plan.get("feature_mode")
+    if feature_mode is None:
+        feature_mode = {
+            "linear": "cell_structured",
+            "mlp": "cell_structured",
+            "shuffled_cells": "cell_structured_shuffled",
+        }.get(str(model))
     return {
         "samples_per_class": _required_int(plan, "samples_per_class"),
         "negative_mode": plan.get("negative_mode"),
@@ -207,12 +232,13 @@ def _candidate_json_plan_task(plan: dict[str, Any]) -> dict[str, Any]:
         "rounds": _required_int(plan, "rounds"),
         "seed": _required_int(plan, "seed"),
         "pairs_per_sample": _required_int(plan, "pairs_per_sample"),
-        "model": plan.get("model"),
+        "model": model,
         "validation_key": plan.get("validation_key"),
+        "feature_mode": feature_mode,
     }
 
 
-def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]:
+def _candidate_trail_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -> dict[str, list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     if not _is_candidate_trail_config(config):
@@ -229,12 +255,12 @@ def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]
         if observed != expected:
             errors.append(f"candidate_trail {field}={observed} expected={expected}")
 
-    feature_mode = config.get("feature_mode")
     allowed_feature_modes = {"cell_structured", "cell_structured_shuffled"}
-    if feature_mode not in allowed_feature_modes:
+    feature_modes = _candidate_feature_modes(config, tasks)
+    if not feature_modes or any(mode not in allowed_feature_modes for mode in feature_modes):
         errors.append(
             "candidate_trail feature_mode must be explicit cell-structured control "
-            f"one of {sorted(allowed_feature_modes)}: {feature_mode}"
+            f"one of {sorted(allowed_feature_modes)}: {sorted(feature_modes)}"
         )
 
     cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
@@ -244,6 +270,15 @@ def _candidate_trail_consistency(config: dict[str, Any]) -> dict[str, list[str]]
         errors.append(f"candidate_trail cache root must stay under {REMOTE_ROOT}: {cache_root}")
 
     return {"errors": errors, "warnings": warnings}
+
+
+def _candidate_feature_modes(config: dict[str, Any], tasks: list[dict[str, Any]]) -> set[str]:
+    mode = _str_value(config.get("feature_mode"))
+    if mode:
+        return {mode}
+    if len(tasks) <= 1:
+        return set()
+    return {_str_value(task.get("feature_mode")) for task in tasks if _str_value(task.get("feature_mode"))}
 
 
 def _pairset_aggregation_consistency(config: dict[str, Any]) -> dict[str, list[str]]:

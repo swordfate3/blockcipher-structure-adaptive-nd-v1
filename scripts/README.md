@@ -73,3 +73,9 @@ Use `scripts/postprocess-pairset-aggregation` after learned pair-set JSONL and
 frozen aggregation summary artifacts are available. It validates learned results
 against the plan, exports learned training curves/history, runs the pair-set
 aggregation gate, writes summary artifacts, and can update the experiment plan.
+
+Use `scripts/spn-candidate-evidence-matrix` for candidate-trail JSON plans that
+contain `common` plus `rows`. It writes one JSONL result per row so the
+candidate-trail gate can compare an external InvP anchor against
+`candidate_trail_consistency_linear`, `candidate_trail_consistency_mlp`, and
+the shuffled-cell control without hand-concatenating result files.
