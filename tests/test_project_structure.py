@@ -437,6 +437,21 @@ def test_present_topology_aware_network_remote_config_and_assets_are_ready():
             "CONDITIONAL_MEDIUM_SEED1 262144/class topology-aware network",
             "weak_topology_aware_network_signal",
         ),
+        (
+            Path("configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_gpu0_retry1_20260701.json"),
+            Path(
+                "configs/remote/generated/"
+                "run_i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701.cmd"
+            ),
+            Path(
+                "configs/remote/generated/"
+                "monitor_i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701.sh"
+            ),
+            "innovation1_spn_present_topology_aware_network_r7_262k.csv",
+            "cuda:0",
+            "MEDIUM 262144/class topology-aware network seed0 retry",
+            "launch_stalled",
+        ),
     ]
 
     for config_path, launcher, monitor, plan_name, device, claim_scope, policy_marker in cases:
@@ -475,6 +490,19 @@ def test_present_topology_aware_network_remote_config_and_assets_are_ready():
         assert "--expected-rows \"${EXPECTED_ROWS}\"" in monitor_text
         assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
         assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+
+
+def test_topology_aware_plan_records_launch_stalled_retry():
+    plan = Path("docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "status = launch_stalled / operational failure / no model evidence" in plan
+    assert "torch_info_empty_before_git_or_training" in plan
+    assert "No started marker, git artifact, progress JSONL" in plan
+    assert "not training evidence" in plan
+    assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701" in plan
+    assert "same protocol and matrix as the original seed0 plan" in plan
 
 
 def test_present_pairset_aggregation_control_smoke_plans_are_protocol_locked():

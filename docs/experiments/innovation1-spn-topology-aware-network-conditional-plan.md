@@ -283,9 +283,38 @@ Current launch record:
 ```text
 run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
 remote_config = configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_gpu0_20260701.json
-status = running / watcher-managed
+status = launch_stalled / operational failure / no model evidence
 local_monitor = outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701/monitor/monitor.log
 claim_scope = medium diagnostic only
+```
+
+Operational note, 2026-07-01:
+
+```text
+The first seed0 launch stalled before training. Local monitor-health now reports
+status = launch_stalled with launch_state.reason =
+torch_info_empty_before_git_or_training. A read-only remote check found only:
+  logs/*gpu_info.txt
+  logs/*launch_env.txt
+  logs/*torch_info.txt        size 0
+  logs/*torch_info_stderr.txt size 0
+  empty results/
+No started marker, git artifact, progress JSONL, stdout/stderr, done marker,
+failed marker, or matching python.exe process was present.
+
+Interpretation:
+  This is an infrastructure/launcher failure, not training evidence and not a
+  result for or against the topology-aware network route.
+```
+
+Retry launch record:
+
+```text
+run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701
+remote_config = configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_gpu0_retry1_20260701.json
+status = prepared for relaunch from pushed commit after launch_stalled diagnosis
+local_monitor = outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/monitor/monitor.log
+claim_scope = medium diagnostic retry only; same protocol and matrix as the original seed0 plan
 ```
 
 Prepared conditional seed1 assets:
