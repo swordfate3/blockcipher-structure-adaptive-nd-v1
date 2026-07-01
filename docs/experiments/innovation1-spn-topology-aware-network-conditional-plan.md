@@ -299,6 +299,31 @@ launch_condition = seed0 gate is support_topology_aware_network_route or weak_to
 current_status = prepared only / not launched
 ```
 
+Postprocess automation:
+
+```text
+script = scripts/postprocess-topology-aware-result
+module = src/blockcipher_nd/planning/topology_aware_postprocess.py
+summary_artifact = outputs/remote_results/<run_id>/<run_id>_postprocess_summary.json
+next_action_artifact = outputs/remote_results/<run_id>/<run_id>_next_action_readiness.json
+```
+
+The postprocess summary now emits a structured `next_action` in addition to
+human-readable next steps:
+
+| Gate decision | Next action branch | Remote launch? | Meaning |
+|---|---|---:|---|
+| `support_topology_aware_network_route` | `topology_aware_seed1_confirmation` | yes | launch prepared seed1 as 262144/class confirmation |
+| `weak_topology_aware_network_signal` | `topology_aware_seed1_variance_check` | yes | launch prepared seed1 as 262144/class variance check |
+| `stop_topology_aware_network_route` | `candidate_trail_consistency` | no | stop this architecture and switch to the data/feature representation plan |
+
+The `*_next_action_readiness.json` artifact validates the selected remote
+config when a seed1 launch is requested. If the branch is
+`candidate_trail_consistency`, it intentionally does not launch a remote job;
+the next step is to create the candidate-trail medium plan/config from
+`docs/experiments/innovation1-candidate-trail-consistency-plan.md` only after
+recording the topology-aware result.
+
 ## Claim Scope
 
 Allowed if 262144/class seed0 passes support gate:

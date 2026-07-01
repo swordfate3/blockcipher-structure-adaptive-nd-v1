@@ -1347,6 +1347,23 @@ def test_ddt_graph_plan_records_route_specific_monitor_health_command():
     assert "stop_ddt_graph_route    -> pair-set stage-A and stage-B remote config readiness" in plan
 
 
+def test_topology_aware_plan_records_next_action_readiness_artifact():
+    plan = Path("docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "script = scripts/postprocess-topology-aware-result" in plan
+    assert "module = src/blockcipher_nd/planning/topology_aware_postprocess.py" in plan
+    assert "<run_id>_next_action_readiness.json" in plan
+    assert "`support_topology_aware_network_route`" in plan
+    assert "`topology_aware_seed1_confirmation`" in plan
+    assert "`weak_topology_aware_network_signal`" in plan
+    assert "`topology_aware_seed1_variance_check`" in plan
+    assert "`stop_topology_aware_network_route`" in plan
+    assert "`candidate_trail_consistency`" in plan
+    assert "it intentionally does not launch a remote job" in plan
+
+
 def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     text = Path("scripts/README.md").read_text(encoding="utf-8")
 
