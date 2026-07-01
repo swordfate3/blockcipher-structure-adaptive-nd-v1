@@ -252,7 +252,8 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
 | InvP attribution controls | 1M/class DeltaC-only AUC `0.792064879854`，shuffled-P AUC `0.793621524954`；归因 gate 为 `support_invp_structural_attribution`，支持真实 InvP/P-layer 对齐是有效结构信号 |
 | `present_nibble_invp_pair_consistency_spn_only` | 中等规模曾略高于 InvP-only，但差值很小；必须先通过 frozen single-pair aggregation control，才能声称学到 cross-pair structure |
 | p-aligned MCND | 1M 单 seed 弱正向，AUC 约 `+0.0007`，不足以证明结构融合明显有效 |
-| DDT/topology graph | 当前主动验证的方法扩展路线；`i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630` 正由 watcher 接管，未出结果前不能替代 InvP-only |
+| DDT graph | 262144/class seed0 和 seed1 均已 retrieved/validated/postprocessed，两个 seed 都是 `weak_ddt_graph_signal`；DDT prior 相对 no-DDT graph 的 AUC margin 约 `+0.00047` 和 `+0.00063`，低于 `+0.001` gate，因此暂不升到 1M |
+| topology-aware network | 当前 active route；`i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701` 由 watcher 接管，测试 true PRESENT P-layer message passing 是否强于 InvP-only token mixer 和 shuffled-P control |
 
 当前分叉规则：
 
@@ -269,21 +270,22 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
   breakthrough / SOTA / formal route evidence / paper-ready proof。
 
 下一步：
-  先完成 DDT/topology 262144/class seed0 的 retrieved + validated +
-  postprocessed gate。
+  先完成 topology-aware network 262144/class seed0 的 retrieved +
+  validated + postprocessed gate。
 
-如果 DDT/topology seed0 为 support_ddt_graph_route：
+如果 topology-aware seed0 为 support_topology_aware_network_route：
   启动已准备的 262144/class seed1 confirmation，不直接跳到 1M。
 
-如果 DDT/topology seed0 为 weak_ddt_graph_signal：
+如果 topology-aware seed0 为 weak_topology_aware_network_signal：
   启动已准备的 262144/class seed1 variance check，不做强 claim。
 
-如果 DDT/topology seed0 为 stop_ddt_graph_route：
-  停止扩大 DDT graph，切到 pair-set aggregation control，检验 learned
-  pair-set consistency 是否真的超过 frozen single-pair score aggregation。
+如果 topology-aware seed0 为 stop_topology_aware_network_route：
+  停止扩大该 topology-aware architecture，切到 candidate-trail /
+  transition consistency 数据/特征表示路线。
 
-如果 pair-set aggregation control 也 tied/negative：
-  再进入 candidate-trail / transition consistency feature route。
+如果 candidate-trail route 也 tied/negative：
+  再进入新的 SPN 结构适配假设，例如更强的 trail-family consistency、
+  transition-spectrum 特征或跨 cipher 的 GIFT/SKINNY 迁移验证。
 ```
 
 下一代结构路线应聚焦：
