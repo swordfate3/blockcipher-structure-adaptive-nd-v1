@@ -897,3 +897,97 @@ variance check for the weak DDT graph seed0 signal. Do not promote DDT graph as
 the main route unless seed1 is retrieved, validated, plan-aligned, and the DDT
 gate shows stable support against the same-budget controls.
 ```
+
+<!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630:start -->
+### i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630 DDT Graph Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| DDT graph gate status | `pass` |
+| Decision | `weak_ddt_graph_signal` |
+| Action | `run_prepared_262k_seed1_variance_check_before_scaling` |
+| Interpretation | `DDT graph is best but below the required margin; treat as weak diagnostic signal` |
+| Max control AUC | `0.793984786491` |
+| Margin vs best control AUC | `0.000626281631` |
+| Margin vs InvP AUC | `0.001454676210` |
+| Margin vs transition no-DDT AUC | `0.025369694020` |
+| Margin vs same-graph no-DDT AUC | `0.000626281631` |
+| Margin vs shuffled AUC | `0.062170401594` |
+| Calibrated delta vs InvP | `0.001491546631` |
+| Required margin | `0.001000000000` |
+| Next action branch | `ddt_graph_seed1_variance_check` |
+| Next action should launch remote | `True` |
+| Next action launch config | `configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json` |
+| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json` |
+| Next action run id | `i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630` |
+| Next steps | `Update the experiment plan with this weak DDT graph signal.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json; Launch configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json as a 262144/class seed1 variance check from the pushed commit.; Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.; Do not promote DDT graph as the main route yet.` |
+| Claim scope | `262144/class medium diagnostic DDT graph gate; not paper-scale, formal, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.jsonl` |
+| Validation report | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_local_result_gate.json` |
+| DDT graph gate | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_ddt_graph_gate.json` |
+| Curves | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_curves.svg` |
+| History CSV | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630/i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630_next_action_readiness.json` |
+
+Model rows:
+
+| Model | AUC | Calibrated Accuracy |
+|---|---:|---:|
+| `present_nibble_ddt_graph` | `0.794611068122` | `0.720375061035` |
+| `present_nibble_invp_only_spn_only` | `0.793156391912` | `0.718883514404` |
+| `present_nibble_no_ddt_graph` | `0.793984786491` | `0.719699859619` |
+| `present_nibble_paligned_transition_residual` | `0.769241374102` | `0.699253082275` |
+| `present_nibble_shuffled_ddt_graph` | `0.732440666528` | `0.669345855713` |
+<!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630:end -->
+
+## Seed0/Seed1 DDT Graph Decision
+
+Manual route decision after retrieving and postprocessing both 262144/class DDT
+graph seeds:
+
+| Seed | DDT AUC | Best control AUC | Margin vs best control | Decision |
+|---:|---:|---:|---:|---|
+| 0 | `0.792926787486` | `0.792454060575` | `+0.000472726912` | `weak_ddt_graph_signal` |
+| 1 | `0.794611068122` | `0.793984786491` | `+0.000626281631` | `weak_ddt_graph_signal` |
+
+Interpretation:
+
+```text
+The DDT graph row is consistently best across seed0 and seed1, and true topology
+clearly beats the shuffled-topology control. However, the margin over the
+same-graph no-DDT control is below the required +0.001 AUC gate in both seeds.
+This is a stable weak diagnostic signal, not strong route support.
+```
+
+Correct branch decision:
+
+```text
+Do not rerun the prepared seed1 package again.
+Do not promote DDT graph to 1M confirmation yet.
+Do not claim DDT priors are the main Innovation 1 route.
+Activate the conditional topology-aware network route instead:
+  docs/experiments/innovation1-spn-topology-aware-network-conditional-plan.md
+```
+
+Rationale:
+
+```text
+DDT features seem to add a small amount on top of the same graph input, but the
+effect size is below the pre-registered gate. Since the strongest completed
+evidence remains InvP/P-layer alignment, the next hypothesis should test whether
+network topology itself can exploit the supported InvP structure better than the
+current token-mixer anchor.
+```
+
+Claim scope:
+
+```text
+two-seed 262144/class medium diagnostic weak-positive DDT graph signal;
+insufficient for paper-scale confirmation, formal evidence, breakthrough, or
+main-route promotion.
+```
