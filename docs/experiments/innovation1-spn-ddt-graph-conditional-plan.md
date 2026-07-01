@@ -945,6 +945,17 @@ Model rows:
 | `present_nibble_shuffled_ddt_graph` | `0.732440666528` | `0.669345855713` |
 <!-- ddt-graph-postprocess:i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630:end -->
 
+Note:
+
+```text
+The seed1 postprocess table above preserves the route-specific artifact fields
+emitted by the generic DDT graph gate. Its `Next action should launch remote`
+entry is historical output from the automatic gate and must not be interpreted
+as an instruction to rerun seed1. The route-level decision below supersedes it:
+after seed0 and seed1 both produced weak diagnostic evidence, the DDT graph
+branch stopped and the topology-aware network route was activated.
+```
+
 ## Seed0/Seed1 DDT Graph Decision
 
 Manual route decision after retrieving and postprocessing both 262144/class DDT
