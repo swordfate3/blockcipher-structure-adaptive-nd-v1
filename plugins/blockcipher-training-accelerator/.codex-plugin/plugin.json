@@ -1,0 +1,18 @@
+{
+  "name": "blockcipher-training-accelerator",
+  "version": "0.1.0",
+  "description": "Optional training-speed planning and launcher utilities for blockcipher neural distinguisher experiments.",
+  "author": {
+    "name": "blockcipher-structure-adaptive-nd-v1"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Blockcipher Training Accelerator",
+    "shortDescription": "Plan and run opt-in training speed probes without changing the main trainer.",
+    "longDescription": "Provides a project-local accelerator plugin for timing existing training commands, splitting experiment matrices for GPU-level parallelism, and documenting future AMP/DataLoader/compile speed profiles behind quality gates.",
+    "developerName": "blockcipher-structure-adaptive-nd-v1",
+    "category": "Developer Tools",
+    "capabilities": ["CLI", "Research"],
+    "defaultPrompt": "Use the blockcipher training accelerator plugin."
+  }
+}

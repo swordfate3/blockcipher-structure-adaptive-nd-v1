@@ -1,0 +1,16 @@
+[project]
+name = "blockcipher-training-accelerator"
+version = "0.1.0"
+description = "Optional training-speed utilities for blockcipher neural distinguisher experiments."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+blockcipher-training-accelerator = "blockcipher_training_accelerator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
