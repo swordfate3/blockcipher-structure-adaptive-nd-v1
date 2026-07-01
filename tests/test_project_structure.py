@@ -2039,7 +2039,7 @@ def test_topology_aware_postprocess_routes_stop_to_candidate_trail_plan(tmp_path
     assert "Switch to the candidate-trail consistency data representation plan" in plan_doc
 
 
-def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
+def test_ddt_graph_postprocess_routes_stop_to_candidate_trail_plan(tmp_path):
     plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
     results_path = tmp_path / "ddt_graph_stop.jsonl"
     output_dir = tmp_path / "postprocess"
@@ -2065,27 +2065,22 @@ def test_ddt_graph_postprocess_routes_stop_to_pairset_control(tmp_path):
 
     assert report["status"] == "pass"
     assert report["decision"] == "stop_ddt_graph_route"
-    assert report["next_action"]["branch"] == "pairset_aggregation_control"
-    assert report["next_action"]["should_launch_remote"] is True
-    assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["launch_remote_config"].endswith(
-        "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json"
-    )
-    assert report["next_action"]["stage_a_remote_config"].endswith(
-        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
-    )
-    assert report["next_action"]["run_id"] == "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630"
-    assert any("pair-set aggregation control" in step for step in report["next_steps"])
+    assert report["next_action"]["branch"] == "candidate_trail_consistency"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["plan_doc"] == "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
+    assert any("candidate-trail consistency data representation plan" in step for step in report["next_steps"])
+    assert any("pair-set aggregation as a deferred attribution control" in step for step in report["next_steps"])
     readiness_path = Path(report["next_action_readiness"])
     assert readiness_path.exists()
     readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
     assert readiness["status"] == "pass"
-    assert readiness["branch"] == "pairset_aggregation_control"
-    assert readiness["readiness_pass"] is True
-    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert readiness["branch"] == "candidate_trail_consistency"
+    assert readiness["readiness_pass"] is False
+    assert readiness["readiness_reports"] == []
     plan_doc = plan_doc_path.read_text(encoding="utf-8")
-    assert "| Next action branch | `pairset_aggregation_control` |" in plan_doc
-    assert "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json" in plan_doc
+    assert "| Next action branch | `candidate_trail_consistency` |" in plan_doc
+    assert "| Next action should launch remote | `False` |" in plan_doc
     assert "| Next action readiness | `" in plan_doc
 
 
@@ -2119,7 +2114,7 @@ def test_plan_next_action_checks_ddt_seed1_readiness(tmp_path):
     assert report["readiness_reports"][0]["readiness"]["status"] == "pass"
 
 
-def test_plan_next_action_checks_pairset_stage_readiness(tmp_path):
+def test_plan_next_action_keeps_ddt_stop_on_candidate_trail_plan(tmp_path):
     plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
     results_path = tmp_path / "ddt_graph_stop.jsonl"
     output_dir = tmp_path / "postprocess"
@@ -2142,11 +2137,10 @@ def test_plan_next_action_checks_pairset_stage_readiness(tmp_path):
     report = plan_next_action(Path(postprocess_report["summary"]))
 
     assert report["status"] == "pass"
-    assert report["branch"] == "pairset_aggregation_control"
-    assert report["should_launch_remote"] is True
-    assert report["readiness_pass"] is True
-    assert [item["role"] for item in report["readiness_reports"]] == ["stage_a", "primary"]
-    assert [item["readiness"]["status"] for item in report["readiness_reports"]] == ["pass", "pass"]
+    assert report["branch"] == "candidate_trail_consistency"
+    assert report["should_launch_remote"] is False
+    assert report["readiness_pass"] is False
+    assert report["readiness_reports"] == []
 
 
 def test_plan_next_action_reports_missing_remote_config(tmp_path):
