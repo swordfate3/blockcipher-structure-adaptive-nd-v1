@@ -3441,6 +3441,9 @@ def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tm
     assert report["progress_summary"]["step"] == 306
     assert report["progress_summary"]["steps_per_epoch"] == 512
     assert report["progress_summary"]["train_rows_seen"] == 313344
+    assert report["progress_summary"]["model_progress_percent"] == 9.0
+    assert report["progress_summary"]["epoch_progress_percent"] == pytest.approx(59.766)
+    assert report["progress_summary"]["train_rows_progress_percent"] == pytest.approx(59.766)
     assert report["progress_summary"]["best_checkpoint_metric"] == 0.7908
     assert report["progress_summary"]["best_epoch"] == 8
     assert report["progress_summary"]["checkpoint_metric"] == "val_auc"

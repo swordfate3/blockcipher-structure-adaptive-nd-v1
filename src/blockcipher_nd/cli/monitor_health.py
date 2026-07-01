@@ -404,6 +404,14 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
             "parsed_line_count": parsed_line_count,
             "latest_event": None,
         }
+    index = _optional_int(latest.get("index"))
+    total = _optional_int(latest.get("total"))
+    epoch = _optional_int(latest.get("epoch"))
+    epochs = _optional_int(latest.get("epochs"))
+    step = _optional_int(latest.get("step"))
+    steps_per_epoch = _optional_int(latest.get("steps_per_epoch"))
+    train_rows_seen = _optional_int(latest.get("train_rows_seen"))
+    train_rows = _optional_int(latest.get("train_rows"))
     return {
         "path": str(path),
         "exists": True,
@@ -412,14 +420,17 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "latest_event": latest.get("event"),
         "stage": latest.get("stage"),
         "model": latest.get("model"),
-        "index": _optional_int(latest.get("index")),
-        "total": _optional_int(latest.get("total")),
-        "epoch": _optional_int(latest.get("epoch")),
-        "epochs": _optional_int(latest.get("epochs")),
-        "step": _optional_int(latest.get("step")),
-        "steps_per_epoch": _optional_int(latest.get("steps_per_epoch")),
-        "train_rows_seen": _optional_int(latest.get("train_rows_seen")),
-        "train_rows": _optional_int(latest.get("train_rows")),
+        "index": index,
+        "total": total,
+        "epoch": epoch,
+        "epochs": epochs,
+        "step": step,
+        "steps_per_epoch": steps_per_epoch,
+        "train_rows_seen": train_rows_seen,
+        "train_rows": train_rows,
+        "model_progress_percent": _model_progress_percent(index, total, epoch, epochs),
+        "epoch_progress_percent": _ratio_percent(step, steps_per_epoch),
+        "train_rows_progress_percent": _ratio_percent(train_rows_seen, train_rows),
         "validation_rows": _optional_int(latest.get("validation_rows")),
         "val_accuracy": latest.get("val_accuracy"),
         "val_auc": latest.get("val_auc"),
@@ -437,6 +448,27 @@ def _optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _model_progress_percent(
+    index: int | None,
+    total: int | None,
+    epoch: int | None,
+    epochs: int | None,
+) -> float | None:
+    if index is None or total is None or total <= 0:
+        return None
+    completed_models = max(0, index - 1)
+    epoch_fraction = 0.0
+    if epoch is not None and epochs is not None and epochs > 0:
+        epoch_fraction = min(max(epoch / epochs, 0.0), 1.0)
+    return round(((completed_models + epoch_fraction) / total) * 100.0, 3)
+
+
+def _ratio_percent(numerator: int | None, denominator: int | None) -> float | None:
+    if numerator is None or denominator is None or denominator <= 0:
+        return None
+    return round(min(max(numerator / denominator, 0.0), 1.0) * 100.0, 3)
 
 
 def _optional_str(value: Any) -> str | None:
