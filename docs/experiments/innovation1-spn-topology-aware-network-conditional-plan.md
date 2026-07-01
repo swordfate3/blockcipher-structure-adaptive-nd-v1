@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-01
 
-**Status:** active route / implementation and prelaunch readiness in progress
+**Status:** active route / seed0 running / seed1 conditional assets prepared
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This plan is prepared as the next
@@ -236,10 +236,10 @@ If DDT seed1 is weak, tied, negative, or unstable:
 ```text
 [x] Activate this topology-aware network route.
 [x] Implement the model and shuffled control.
-[ ] Run smoke/readiness.
-[ ] Commit and push.
-[ ] Launch 262144/class seed0 from the pushed commit.
-[ ] Hand off retrieval/postprocess to tmux watcher.
+[x] Run smoke/readiness.
+[x] Commit and push.
+[x] Launch 262144/class seed0 from the pushed commit.
+[x] Hand off retrieval/postprocess to tmux watcher.
 ```
 
 If DDT seed1 fails operationally:
@@ -276,6 +276,27 @@ configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_sm
 
 medium plan:
 configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k.csv
+```
+
+Current launch record:
+
+```text
+run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
+remote_config = configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_gpu0_20260701.json
+status = running / watcher-managed
+local_monitor = outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701/monitor/monitor.log
+claim_scope = medium diagnostic only
+```
+
+Prepared conditional seed1 assets:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_topology_aware_network_r7_262k_seed1.csv
+remote_config = configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json
+launcher = configs/remote/generated/run_i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701.cmd
+monitor = configs/remote/generated/monitor_i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701.sh
+launch_condition = seed0 gate is support_topology_aware_network_route or weak_topology_aware_network_signal
+current_status = prepared only / not launched
 ```
 
 ## Claim Scope
