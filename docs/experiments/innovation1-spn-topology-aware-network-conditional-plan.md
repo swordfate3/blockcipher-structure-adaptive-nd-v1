@@ -381,3 +381,46 @@ same-protocol baseline and InvP anchor
 true-P vs shuffled-P attribution
 complete artifacts and documented gates
 ```
+
+## Retrieved Topology-Aware Network Result
+
+<!-- topology-aware-postprocess:i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701:start -->
+### i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701 Topology-Aware Network Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Topology-aware gate status | `pass` |
+| Decision | `weak_topology_aware_network_signal` |
+| Action | `run_262k_seed1_variance_check_before_scaling` |
+| Interpretation | `true-P graph is best but below at least one required margin; treat as weak diagnostic signal` |
+| Margin vs InvP AUC | `0.001328941929` |
+| Margin vs shuffled AUC | `0.000486004283` |
+| Calibrated delta vs InvP | `0.000713348389` |
+| Required margin | `0.001000000000` |
+| Next action branch | `topology_aware_seed1_variance_check` |
+| Next action should launch remote | `True` |
+| Next action launch config | `configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json` |
+| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json` |
+| Next action run id | `i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701` |
+| Next steps | `Record this as weak topology-aware network signal.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json; Launch configs/remote/innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json as a 262144/class seed1 variance check from the pushed commit.; Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.; Keep claim scope diagnostic only.` |
+| Claim scope | `262144/class medium diagnostic topology-aware network gate; not paper-scale, formal, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701.jsonl` |
+| Validation report | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_local_result_gate.json` |
+| Topology-aware gate | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_topology_aware_gate.json` |
+| Curves | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_curves.svg` |
+| History CSV | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701/i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701_next_action_readiness.json` |
+
+Model rows:
+
+| Model | AUC | Calibrated Accuracy |
+|---|---:|---:|
+| `present_nibble_invp_only_spn_only` | `0.792120689293` | `0.717407226562` |
+| `present_nibble_invp_p_layer_graph_spn_only` | `0.793449631223` | `0.718120574951` |
+| `present_nibble_invp_shuffled_p_layer_graph_spn_only` | `0.792963626940` | `0.717285156250` |
+<!-- topology-aware-postprocess:i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701:end -->
