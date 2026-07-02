@@ -13,6 +13,7 @@ from blockcipher_nd.planning.candidate_trail_gate import (
     gate_candidate_trail_result,
 )
 from blockcipher_nd.planning.invp_postprocess import _format_value
+from blockcipher_nd.planning.next_action_readiness import next_action_readiness_report
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 
 SEED1_PLAN_CONFIG = (
@@ -265,74 +266,12 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
 
 def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
     next_action = report.get("next_action", {})
-    if not isinstance(next_action, dict):
-        next_action = {}
-    readiness_reports: list[dict[str, Any]] = []
-    for role, key in [("primary", "launch_remote_config")]:
-        config = next_action.get(key)
-        if not isinstance(config, str) or not config:
-            continue
-        readiness_reports.append(
-            {
-                "role": role,
-                "config": config,
-                "readiness": _readiness_report(Path(config)),
-            }
-        )
-    should_launch_remote = bool(next_action.get("should_launch_remote"))
-    requires_implementation = bool(next_action.get("requires_implementation"))
-    readiness_statuses = [item["readiness"]["status"] for item in readiness_reports]
-    readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
-    return {
-        "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
-        "summary": str(summary_path),
-        "run_id": report.get("run_id"),
-        "decision": report.get("decision"),
-        "action": report.get("action"),
-        "branch": next_action.get("branch"),
-        "should_launch_remote": should_launch_remote,
-        "requires_implementation": requires_implementation,
-        "readiness_pass": readiness_pass,
-        "readiness_reports": readiness_reports,
-        "implementation_checklist": _implementation_checklist(next_action) if requires_implementation else [],
-        "next_action": next_action,
-        "claim_scope": report.get("claim_scope"),
-        "errors": _next_action_readiness_errors(
-            should_launch_remote=should_launch_remote,
-            readiness_reports=readiness_reports,
-        ),
-    }
-
-
-def _next_action_readiness_errors(
-    *,
-    should_launch_remote: bool,
-    readiness_reports: list[dict[str, Any]],
-) -> list[str]:
-    if not should_launch_remote:
-        return []
-    if not readiness_reports:
-        return ["next_action requests remote launch but no launch_remote_config was provided"]
-    errors: list[str] = []
-    for item in readiness_reports:
-        readiness = item["readiness"]
-        if readiness["status"] != "pass":
-            errors.append(f"{item['role']} readiness failed: {readiness.get('errors', [])}")
-    return errors
-
-
-def _readiness_report(config_path: Path) -> dict[str, Any]:
-    try:
-        from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
-
-        return remote_readiness_report(config_path)
-    except (OSError, json.JSONDecodeError) as exc:
-        return {
-            "status": "fail",
-            "config": str(config_path),
-            "errors": [str(exc)],
-            "warnings": [],
-        }
+    requires_implementation = bool(next_action.get("requires_implementation")) if isinstance(next_action, dict) else False
+    return next_action_readiness_report(
+        summary_path=summary_path,
+        report=report,
+        implementation_checklist=_implementation_checklist(next_action) if requires_implementation else [],
+    )
 
 
 def _readiness_command(config_path: str) -> str:

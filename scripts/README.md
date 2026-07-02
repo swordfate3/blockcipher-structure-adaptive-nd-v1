@@ -66,6 +66,9 @@ next-branch readiness artifact in the run output directory.
 Candidate-trail, bit-transition-spectrum, and trail-family postprocess also
 write this readiness artifact, including an implementation checklist when the
 next branch needs a new plan/config before any remote launch.
+These readiness artifacts check both the remote config invariants and the
+generated launcher/monitor scripts, so a missing `run_*.cmd` or `monitor_*.sh`
+blocks the next remote handoff before launch.
 Candidate-trail and bit-transition-spectrum postprocess outputs are therefore
 safe handoff points for `scripts/plan-next-action`; trail-family follows the
 same readiness-artifact convention.

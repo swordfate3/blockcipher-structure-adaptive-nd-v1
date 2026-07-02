@@ -58,9 +58,17 @@ def test_pairset_aggregation_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert readiness["should_launch_remote"] is True
     assert readiness["requires_implementation"] is False
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
     assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
+    assert readiness["readiness_reports"][1]["launch_artifacts"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["shared_with_primary_launcher"] is True
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["stage_run_id"] == (
+        "i1_pairset_single_pair_scorer_r7_262k_seed1_gpu1_20260702"
+    )
     assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "Retrieved Pair-Set Aggregation Control Result" in plan_text

@@ -3452,9 +3452,8 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     assert readiness["status"] == "pass"
     assert readiness["branch"] == "ddt_graph_seed1_confirmation"
     assert readiness["readiness_pass"] is True
-    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["primary"]
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
-    assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
     markdown = (output_dir / "unit_ddt_graph_postprocess_summary.md").read_text()
     assert "support_ddt_graph_route" in markdown
     assert "present_nibble_ddt_graph" in markdown
@@ -6247,7 +6246,16 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert readiness["should_launch_remote"] is True
     assert readiness["requires_implementation"] is False
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["launcher"].endswith(
+        "run_i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.cmd"
+    )
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["monitor"].endswith(
+        "monitor_i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.sh"
+    )
     assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Candidate-Trail Consistency Result" in plan_text
@@ -6332,7 +6340,10 @@ def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp
     assert readiness["should_launch_remote"] is True
     assert readiness["requires_implementation"] is False
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert readiness["implementation_checklist"] == []
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
 
 
 def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths(tmp_path):
@@ -6365,44 +6376,55 @@ def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["branch"] == "candidate_trail_seed1_variance_check"
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
 
 
-def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
+def _write_transition_spectrum_result(
+    path: Path,
+    model: str,
+    auc: float,
+    calibrated: float = 0.72,
+    *,
+    alignment_fields: dict[str, int] | None = None,
+) -> None:
+    row = {
+        "model": model,
+        "metrics": {
+            "auc": auc,
+            "accuracy": calibrated,
+            "calibrated_accuracy": calibrated,
+            "loss": 0.55,
+        },
+    }
+    if alignment_fields is not None:
+        row.update(alignment_fields)
     with path.open("a", encoding="utf-8") as handle:
-        handle.write(
-            json.dumps(
-                {
-                    "model": model,
-                    "metrics": {
-                        "auc": auc,
-                        "accuracy": calibrated,
-                        "calibrated_accuracy": calibrated,
-                        "loss": 0.55,
-                    },
-                },
-                sort_keys=True,
-            )
-            + "\n"
-        )
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def _write_trail_family_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
+def _write_trail_family_result(
+    path: Path,
+    model: str,
+    auc: float,
+    calibrated: float = 0.72,
+    *,
+    alignment_fields: dict[str, int] | None = None,
+) -> None:
+    row = {
+        "model": model,
+        "metrics": {
+            "auc": auc,
+            "accuracy": calibrated,
+            "calibrated_accuracy": calibrated,
+            "loss": 0.55,
+        },
+    }
+    if alignment_fields is not None:
+        row.update(alignment_fields)
     with path.open("a", encoding="utf-8") as handle:
-        handle.write(
-            json.dumps(
-                {
-                    "model": model,
-                    "metrics": {
-                        "auc": auc,
-                        "accuracy": calibrated,
-                        "calibrated_accuracy": calibrated,
-                        "loss": 0.55,
-                    },
-                },
-                sort_keys=True,
-            )
-            + "\n"
-        )
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
 def test_trail_family_gate_supports_route_when_candidate_beats_anchor_and_false_family(tmp_path):
@@ -6506,7 +6528,10 @@ def test_trail_family_postprocess_writes_summary_and_next_action_readiness(tmp_p
     assert readiness["status"] == "pass"
     assert readiness["should_launch_remote"] is True
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
     assert readiness["implementation_checklist"] == []
     assert "Trail-Family Result" in plan_doc.read_text(encoding="utf-8")
 
@@ -6540,9 +6565,17 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert readiness["status"] == "pass"
     assert readiness["branch"] == "stop_trail_family_route"
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
     assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
+    assert readiness["readiness_reports"][1]["launch_artifacts"]["status"] == "pass"
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["shared_with_primary_launcher"] is True
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["stage_run_id"].startswith(
+        "i1_pairset_single_pair_scorer"
+    )
 
 
 def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
@@ -6569,7 +6602,12 @@ def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
         ),
         encoding="utf-8",
     )
-    _write_transition_spectrum_result(transition_results, "bit_transition_spectrum_linear", 0.5)
+    _write_transition_spectrum_result(
+        transition_results,
+        "bit_transition_spectrum_linear",
+        0.5,
+        alignment_fields={"rounds": 7, "seed": 0, "samples_per_class": 2},
+    )
 
     transition = validate_result_plan_alignment(transition_plan, transition_results, expected_rows=1)
     assert transition["status"] == "pass"
@@ -6597,7 +6635,12 @@ def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
         ),
         encoding="utf-8",
     )
-    _write_trail_family_result(trail_results, "trail_family_consistency_false_family", 0.5)
+    _write_trail_family_result(
+        trail_results,
+        "trail_family_consistency_false_family",
+        0.5,
+        alignment_fields={"rounds": 7, "seed": 0, "samples_per_class": 2},
+    )
 
     trail = validate_result_plan_alignment(trail_plan, trail_results, expected_rows=1)
     assert trail["status"] == "pass"
@@ -6712,7 +6755,10 @@ def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert readiness["should_launch_remote"] is True
     assert readiness["requires_implementation"] is False
     assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
     assert readiness["implementation_checklist"] == []
+    assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
     assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Bit-Transition-Spectrum Result" in plan_text
@@ -6791,6 +6837,9 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
     weak_readiness = json.loads(Path(weak["next_action_readiness"]).read_text(encoding="utf-8"))
     assert weak_readiness["status"] == "pass"
     assert weak_readiness["readiness_pass"] is True
+    assert weak_readiness["remote_readiness_pass"] is True
+    assert weak_readiness["launch_artifacts_pass"] is True
+    assert weak_readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
 
     stop_results = tmp_path / "transition_spectrum_stop.jsonl"
     _write_transition_spectrum_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
@@ -6821,6 +6870,9 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
     assert stop_readiness["requires_implementation"] is False
     assert stop_readiness["readiness_pass"] is True
     assert stop_readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert stop_readiness["remote_readiness_pass"] is True
+    assert stop_readiness["launch_artifacts_pass"] is True
+    assert stop_readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
 
 
 def test_summarize_spn_evidence_transition_stop_points_to_trail_family_plan(tmp_path):
