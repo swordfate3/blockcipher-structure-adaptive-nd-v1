@@ -404,13 +404,17 @@ InvP-only has two-seed 1000000/class positive confirmation and paper-scale
 attribution controls supporting the SPN/InvP/P-layer alignment explanation.
 ```
 
-Current branch note, 2026-07-01:
+Current branch note, 2026-07-02:
 
 ```text
 The DDT graph method-extension branch has completed two 262144/class seeds as
 weak diagnostic evidence and is not being promoted to 1M yet. The active
-method-extension route is now topology-aware network seed0:
-i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701.
+topology-aware network route stopped after seed1 because true-P graph did not
+beat InvP-only or shuffled-P controls. The active method-extension route is now
+watcher-managed candidate-trail seed0:
+i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.
+Do not launch candidate-trail seed1 or bit-transition-spectrum until seed0 is
+retrieved, validated, plan-aligned, and postprocessed.
 ```
 
 ### Decision B: `weak_attribution_support`
@@ -515,7 +519,7 @@ no agent-authored tracked edits remain uncommitted
 | Required margin | `0.001000000000` |
 | Next action branch | `route_level_attribution_summary` |
 | Historical next steps from artifact | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
-| Current branch note | DDT graph screening has completed as weak diagnostic evidence; active method-extension is topology-aware network seed0, with candidate-trail / transition consistency as the default data-feature branch if topology-aware stops |
+| Current branch note | DDT graph screening completed as weak diagnostic evidence; topology-aware network seed1 stopped the route because true-P graph did not beat InvP-only or shuffled-P controls; active method-extension is now watcher-managed candidate-trail seed0 `i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702`; do not launch seed1 or bit-transition-spectrum until seed0 is retrieved, validated, plan-aligned, and postprocessed |
 | Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
 | Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
 | Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |
