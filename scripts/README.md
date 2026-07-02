@@ -40,8 +40,9 @@ rerunning postprocess. `postprocess_failed` means inspect the monitor
 Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`,
 `--postprocess-kind ddt_graph`, `--postprocess-kind topology_aware`,
 `--postprocess-kind pairset_aggregation`, or `--postprocess-kind
-candidate_trail` so the emitted command calls the matching postprocess
-entrypoint and expected row count.
+candidate_trail`, `--postprocess-kind transition_spectrum`, or
+`--postprocess-kind trail_family` so the emitted command calls the matching
+postprocess entrypoint and expected row count.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or
@@ -58,9 +59,9 @@ DDT graph and topology-aware postprocess also write
 `<run_id>_next_action_readiness.json` directly, so watcher-managed DDT or
 topology-aware runs leave both the gate decision and the
 next-branch readiness artifact in the run output directory.
-Candidate-trail and bit-transition-spectrum postprocess also write this
-readiness artifact, including an implementation checklist when the next branch
-needs a new plan/config before any remote launch.
+Candidate-trail, bit-transition-spectrum, and trail-family postprocess also
+write this readiness artifact, including an implementation checklist when the
+next branch needs a new plan/config before any remote launch.
 
 Use `scripts/summarize-spn-evidence` for a current local Innovation 1 SPN route
 overview. It scans retrieved postprocess summaries, reports the strongest

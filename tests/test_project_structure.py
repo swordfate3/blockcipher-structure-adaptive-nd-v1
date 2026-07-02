@@ -4065,6 +4065,58 @@ def test_monitor_health_emits_route_specific_postprocess_commands(tmp_path):
         "4",
     ]
 
+    trail_family_run = "i1_trail_family_result_ready"
+    trail_family_root = root / trail_family_run
+    trail_family_monitor = trail_family_root / "monitor"
+    trail_family_monitor.mkdir(parents=True)
+    (trail_family_monitor / "monitor.log").write_text(
+        "2026-07-02T20:05:00+08:00 running\n",
+        encoding="utf-8",
+    )
+    (trail_family_monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    trail_family_results = trail_family_root / "results"
+    trail_family_results.mkdir()
+    trail_family_jsonl = trail_family_results / f"{trail_family_run}.jsonl"
+    trail_family_jsonl.write_text("{}\n{}\n{}\n{}\n", encoding="utf-8")
+    trail_family_plan = (
+        Path("configs/experiment/innovation1/")
+        / "innovation1_spn_present_trail_family_smoke.json"
+    )
+    trail_family_doc = tmp_path / "trail-family-plan.md"
+
+    report = monitor_health_report(
+        run_id=trail_family_run,
+        root=root,
+        plan_path=trail_family_plan,
+        plan_doc_paths=[trail_family_doc],
+        postprocess_kind="trail_family",
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["expected_rows"] == 4
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"] == [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "MPLCONFIGDIR=/tmp/mplconfig",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-trail-family",
+        "--plan",
+        str(trail_family_plan),
+        "--results",
+        str(trail_family_jsonl),
+        "--output-dir",
+        str(trail_family_root),
+        "--run-id",
+        trail_family_run,
+        "--expected-rows",
+        "4",
+        "--update-plan-doc",
+        str(trail_family_doc),
+    ]
+
     candidate_incomplete_run = "i1_candidate_trail_incomplete_rows"
     candidate_incomplete_root = root / candidate_incomplete_run
     candidate_incomplete_monitor = candidate_incomplete_root / "monitor"
