@@ -4774,6 +4774,31 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert plan_text.count("<!-- candidate-trail-postprocess:candidate_trail_unit:start -->") == 1
 
 
+def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp_path):
+    results = tmp_path / "candidate_trail_stop.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7910)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7915)
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="candidate_trail_stop_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_candidate_trail_route"
+    assert report["next_action"]["branch"] == "stop_candidate_trail_route"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["fallback_branch"] == "bit_transition_spectrum_seed0"
+    assert report["next_action"]["fallback_plan"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    assert any("bit-transition-spectrum" in step for step in report["next_steps"])
+    assert "launch_remote_config" not in report["next_action"]
+
+
 def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
     with path.open("a", encoding="utf-8") as handle:
         handle.write(
