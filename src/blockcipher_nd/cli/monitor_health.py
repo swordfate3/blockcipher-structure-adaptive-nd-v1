@@ -477,6 +477,10 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
     steps_per_epoch = _optional_int(latest.get("steps_per_epoch"))
     train_rows_seen = _optional_int(latest.get("train_rows_seen"))
     train_rows = _optional_int(latest.get("train_rows"))
+    cache_rows_done = _optional_int(latest.get("rows_done"))
+    cache_total_rows = _optional_int(latest.get("total_rows"))
+    cache_class_rows_done = _optional_int(latest.get("class_rows_done"))
+    cache_class_total = _optional_int(latest.get("class_total"))
     return {
         "path": str(path),
         "exists": True,
@@ -493,9 +497,15 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "steps_per_epoch": steps_per_epoch,
         "train_rows_seen": train_rows_seen,
         "train_rows": train_rows,
+        "cache_rows_done": cache_rows_done,
+        "cache_total_rows": cache_total_rows,
+        "cache_class_rows_done": cache_class_rows_done,
+        "cache_class_total": cache_class_total,
         "model_progress_percent": _model_progress_percent(index, total, epoch, epochs),
         "epoch_progress_percent": _ratio_percent(step, steps_per_epoch),
         "train_rows_progress_percent": _ratio_percent(train_rows_seen, train_rows),
+        "cache_total_progress_percent": _ratio_percent(cache_rows_done, cache_total_rows),
+        "cache_class_progress_percent": _ratio_percent(cache_class_rows_done, cache_class_total),
         "validation_rows": _optional_int(latest.get("validation_rows")),
         "val_accuracy": latest.get("val_accuracy"),
         "val_auc": latest.get("val_auc"),

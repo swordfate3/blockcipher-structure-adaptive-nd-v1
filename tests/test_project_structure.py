@@ -3798,6 +3798,50 @@ def test_monitor_health_keeps_running_when_jsonl_exists_but_empty_before_done(tm
     assert report["progress_summary"]["checkpoint_metric"] == "val_auc"
 
 
+def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_cache_progress"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-02T16:25:00+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "candidate_trail_linear_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "candidate_cache_positive_chunk",
+                "rows_done": 65536,
+                "total_rows": 524288,
+                "class_rows_done": 65536,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+                "workers": 2,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-02T16:26:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert report["status"] == "running"
+    assert progress["latest_event"] == "candidate_cache_positive_chunk"
+    assert progress["cache_rows_done"] == 65536
+    assert progress["cache_total_rows"] == 524288
+    assert progress["cache_class_rows_done"] == 65536
+    assert progress["cache_class_total"] == 262144
+    assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
+    assert progress["cache_class_progress_percent"] == pytest.approx(25.0)
+
+
 def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_stale"
