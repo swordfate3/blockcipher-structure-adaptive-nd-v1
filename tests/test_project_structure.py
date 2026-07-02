@@ -3225,6 +3225,11 @@ def test_plan_next_action_checks_ddt_seed1_readiness(tmp_path):
     assert "do not SSH-poll" in " ".join(report["launch_checklist"])
     assert [item["role"] for item in report["readiness_reports"]] == ["primary"]
     assert report["readiness_reports"][0]["readiness"]["status"] == "pass"
+    artifacts = report["readiness_reports"][0]["launch_artifacts"]
+    assert artifacts["status"] == "pass"
+    assert artifacts["launcher"].endswith("run_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.cmd")
+    assert artifacts["monitor"].endswith("monitor_i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630.sh")
+    assert "generated launcher" in " ".join(report["launch_checklist"])
 
 
 def test_plan_next_action_keeps_ddt_stop_on_candidate_trail_plan(tmp_path):
@@ -3288,9 +3293,52 @@ def test_plan_next_action_reports_missing_remote_config(tmp_path):
     assert report["status"] == "fail"
     assert report["branch"] == "missing_config"
     assert report["readiness_pass"] is False
-    assert report["launch_checklist"] == ["Do not launch until all readiness reports pass."]
+    assert report["launch_checklist"][0] == (
+        "Do not launch until all remote readiness reports and generated launch artifacts pass."
+    )
     assert report["readiness_reports"][0]["readiness"]["status"] == "fail"
     assert "missing.json" in report["errors"][0]
+
+
+def test_plan_next_action_reports_missing_generated_launch_artifacts(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_ddt_graph_r7_262k_seed1_gpu1_20260630.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config["monitor_script_name"] = "monitor_unit_missing_generated_artifacts.sh"
+    remote_config = tmp_path / "remote.json"
+    remote_config.write_text(json.dumps(config) + "\n", encoding="utf-8")
+    summary = tmp_path / "summary.json"
+    summary.write_text(
+        json.dumps(
+            {
+                "run_id": "unit_summary",
+                "decision": "unit_ready",
+                "action": "launch_unit",
+                "next_action": {
+                    "branch": "unit_branch",
+                    "should_launch_remote": True,
+                    "requires_implementation": False,
+                    "launch_remote_config": str(remote_config),
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = plan_next_action(summary)
+
+    assert report["status"] == "fail"
+    assert report["remote_readiness_pass"] is True
+    assert report["launch_artifacts_pass"] is False
+    assert report["readiness_pass"] is False
+    artifacts = report["readiness_reports"][0]["launch_artifacts"]
+    assert artifacts["status"] == "fail"
+    assert "generated monitor script missing" in " ".join(artifacts["errors"])
+    assert "launch artifacts failed" in " ".join(report["errors"])
+    assert "Fix generated launch artifacts before launch" in " ".join(report["launch_checklist"])
 
 
 def test_plan_next_action_maps_spn_followup_branches_to_plans(tmp_path):
