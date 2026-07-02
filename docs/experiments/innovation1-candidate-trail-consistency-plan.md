@@ -293,16 +293,18 @@ Keep the matrix lean:
 | 0 | `present_nibble_invp_only_spn_only` | current supported InvP anchor |
 | 1 | `candidate_trail_consistency_linear` | feature-only linear diagnostic |
 | 2 | `candidate_trail_consistency_mlp` | small nonlinear feature diagnostic |
-
-Optional control if implementation cost is small:
-
-| Row | Model/route | Role |
-|---:|---|---|
 | 3 | `candidate_trail_consistency_shuffled_cells` | false active-position/control alignment |
 
 Do not include Zhang/Wang baseline in the first matrix unless a protocol audit
 requires it. Compare against the current same-scale InvP anchor and previously
 retrieved Zhang/Wang context.
+
+The shuffled-cell row is not optional for the medium diagnostic matrix. Formal
+local postprocess defaults to `require_shuffled_control = true`; if retrieved
+results are missing `candidate_trail_consistency_shuffled_cells`, the gate is
+invalid and must not launch seed1. The bare gate may still be used as a
+diagnostic helper, but missing shuffled control can only produce weak diagnostic
+language, never `support_candidate_trail_route`.
 
 ## Gates
 
@@ -317,6 +319,7 @@ Continue only if:
 ```text
 best candidate-trail route >= InvP-only same-scale anchor + 0.001 AUC
 and calibrated_accuracy is not worse than InvP-only
+and best candidate-trail route >= shuffled-cell control + 0.001 AUC
 ```
 
 Weak continue:
@@ -456,11 +459,12 @@ postprocess = scripts/postprocess-candidate-trail
 module = src/blockcipher_nd/planning/candidate_trail_gate.py
 postprocess_module = src/blockcipher_nd/planning/candidate_trail_postprocess.py
 purpose = compare candidate_trail_consistency_linear/mlp against
-          present_nibble_invp_only_spn_only and optional shuffled-cell control
+          present_nibble_invp_only_spn_only and the required shuffled-cell control
 decisions =
   support_candidate_trail_route
   weak_candidate_trail_signal
   stop_candidate_trail_route
+formal postprocess = requires candidate_trail_consistency_shuffled_cells
 ```
 
 The gate and postprocess wrappers are local tooling only. The smoke plan and

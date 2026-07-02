@@ -143,6 +143,13 @@ Rows:
 
 Do not include Zhang/Wang baseline unless a protocol audit requires it. The relevant question is whether the new route beats the current best internal InvP-only anchor under the same scale.
 
+The shuffled-P row is mandatory for the medium diagnostic matrix. Formal local
+postprocess defaults to `require_shuffled_control = true`; if retrieved results
+are missing `bit_transition_spectrum_shuffled_p`, the gate is invalid and must
+not create or launch seed1. The bare gate may still be used as a diagnostic
+helper, but missing shuffled control can only produce weak diagnostic language,
+never `support_transition_spectrum_route`.
+
 ## Gates
 
 Primary metric:
@@ -319,6 +326,7 @@ key_rotation_interval = 0
 feature_cache_root under G:\lxy\blockcipher-structure-adaptive-nd-runs
 cmd.exe /c only
 expected_rows = 4
+formal postprocess requires bit_transition_spectrum_shuffled_p
 ```
 
 ## Current Action

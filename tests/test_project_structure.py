@@ -793,6 +793,9 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "feature_mode = cell_structured_shuffled" in plan
     assert "candidate_trail_consistency_shuffled_cells" in plan
     assert "expected_rows = 4" in plan
+    assert "The shuffled-cell row is not optional for the medium diagnostic matrix" in plan
+    assert "formal postprocess = requires candidate_trail_consistency_shuffled_cells" in plan
+    assert "never `support_candidate_trail_route`" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
     assert "formal route evidence" in plan
     assert "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701" in plan
@@ -830,6 +833,9 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "`bit_transition_spectrum_linear`" in plan
     assert "`bit_transition_spectrum_mlp`" in plan
     assert "`bit_transition_spectrum_shuffled_p`" in plan
+    assert "The shuffled-P row is mandatory for the medium diagnostic matrix" in plan
+    assert "formal postprocess requires bit_transition_spectrum_shuffled_p" in plan
+    assert "never `support_transition_spectrum_route`" in plan
     assert "true transition-spectrum route >= shuffled-P control + 0.001 AUC" in plan
     assert "do not create or launch the medium remote config" in plan
     assert "scripts/spn-transition-spectrum-matrix" in plan
