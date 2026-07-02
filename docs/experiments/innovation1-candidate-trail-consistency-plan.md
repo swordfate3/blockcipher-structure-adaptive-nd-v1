@@ -85,10 +85,13 @@ Current active candidate-trail run:
 run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 status = launched from pushed commit / local watcher-managed / running
 local_root = outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
-latest_bounded_check = 2026-07-02 16:39:29+08:00 heartbeat, no failed markers
-progress = candidate feature-cache generation, 81920/262144 class rows, 81920/524288 total rows
+latest_bounded_check = 2026-07-02 18:46:27+08:00 heartbeat, no failed markers
+progress = candidate feature-cache generation, 212992/262144 class rows, 212992/524288 total rows
+progress_percent = 81.25% of current class, 40.625% of total cache
+latest_event = candidate_cache_positive_chunk
 results_jsonl = not yet present
 postprocess_allowed = false
+needs_main_thread_intervention = false
 claim_scope = running only; no candidate-trail evidence yet
 ```
 
@@ -113,6 +116,27 @@ This seed1 asset exists so the result-ready branch can run
 on manual config creation. It must not be launched until seed0 is retrieved,
 validated, plan-aligned, postprocessed, and the candidate-trail gate selects a
 support or weak-signal branch.
+
+Watcher/postprocess handoff:
+
+```text
+monitor = configs/remote/generated/monitor_i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.sh
+behavior = sync logs/results, wait for 4 non-empty JSONL rows, then run scripts/postprocess-candidate-trail
+plan_doc_update = docs/experiments/innovation1-candidate-trail-consistency-plan.md
+postprocess_artifacts =
+  outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/
+    i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_candidate_trail_gate.json
+    i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.json
+    i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.md
+    i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_next_action_readiness.json
+```
+
+After the watcher records `postprocess_done`, the next bounded local action is
+to inspect the postprocess summary and `next_action_readiness` artifact, run
+`scripts/plan-next-action` if an explicit readiness re-check is needed, commit
+the updated experiment document, and only then follow the recorded gate branch.
+If the watcher records `postprocess_failed`, inspect
+`monitor/postprocess_stderr.log` before making any route decision.
 
 ## Research Question
 
