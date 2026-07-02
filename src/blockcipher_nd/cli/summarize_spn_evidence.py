@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.monitor_health import _progress_summary
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -262,8 +264,32 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "reason": "candidate-trail run has monitor activity but no postprocess summary yet",
                 "monitor_log": str(monitor_log),
                 "recent_monitor_lines": recent_lines,
+                "progress_summary": _active_progress_summary(run_root),
             }
     return None
+
+
+def _active_progress_summary(run_root: Path) -> dict[str, Any]:
+    progress = _progress_summary(run_root)
+    keys = [
+        "path",
+        "exists",
+        "latest_event",
+        "cache_rows_done",
+        "cache_total_rows",
+        "cache_class_rows_done",
+        "cache_class_total",
+        "cache_total_progress_percent",
+        "cache_class_progress_percent",
+        "cache_rows_per_second",
+        "cache_eta_seconds",
+        "model",
+        "epoch",
+        "epochs",
+        "val_auc",
+        "best_checkpoint_metric",
+    ]
+    return {key: progress.get(key) for key in keys if key in progress}
 
 
 def _recommend_from_candidate_decision(route: dict[str, Any]) -> dict[str, Any]:

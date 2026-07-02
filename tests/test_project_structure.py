@@ -1428,6 +1428,25 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
         },
     )
     (candidate / "monitor" / "monitor.log").write_text("2026-07-02T16:54:00+08:00 running\n")
+    (candidate / "logs").mkdir()
+    (candidate / "logs" / "candidate_trail_linear_progress.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"event": "candidate_cache_start", "total_rows": 524288}),
+                json.dumps(
+                    {
+                        "event": "candidate_cache_positive_chunk",
+                        "rows_done": 114688,
+                        "total_rows": 524288,
+                        "class_rows_done": 114688,
+                        "class_total": 262144,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     report = summarize_spn_evidence(root)
 
@@ -1439,6 +1458,9 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     )
     assert report["active_recommendation"]["branch"] == "wait_for_candidate_trail_result"
     assert report["active_recommendation"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    assert report["active_recommendation"]["progress_summary"]["cache_class_rows_done"] == 114688
+    assert report["active_recommendation"]["progress_summary"]["cache_class_progress_percent"] == 43.75
+    assert report["active_recommendation"]["progress_summary"]["cache_total_progress_percent"] == 21.875
     by_run_id = {route["run_id"]: route for route in report["routes"]}
     assert by_run_id["i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"]["evidence_scale"] == "medium_diagnostic"
     assert by_run_id["i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"]["route_state"] == "superseded"
