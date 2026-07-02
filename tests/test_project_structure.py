@@ -884,8 +884,10 @@ def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
     assert "do not create or launch the medium remote config" in plan
     assert "scripts/spn-trail-family-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
-    assert "implementation_status = not implemented" in plan
+    assert "implementation_status = local feature foundation implemented" in plan
+    assert "CLI/gate/postprocess/remote not implemented" in plan
     assert "remote_config_status = do not create until trigger" in plan
+    assert "This implementation is not result evidence" in plan
 
 
 def test_bit_transition_spectrum_features_are_stable_and_controlled():
@@ -935,6 +937,44 @@ def test_bit_transition_spectrum_rejects_empty_pairset():
 
     with pytest.raises(ValueError, match="pairs must not be empty"):
         present_bit_transition_spectrum_features([], width=64, cipher=cipher)
+
+
+def test_present_trail_family_features_are_deterministic_and_controlled():
+    from blockcipher_nd.features.spn_trail_family import (
+        present_pair_trail_family_features,
+        present_pairset_trail_family_features,
+    )
+
+    cipher = build_cipher("present80", 7, key=0)
+    pairs = [
+        (0x0123456789ABCDEF, 0x0123456789ABCDE6),
+        (0x1111111111111111, 0x1111111111111118),
+        (0x2222222222222222, 0x222222222222222B),
+        (0x3333333333333333, 0x333333333333333A),
+    ]
+
+    pair_features = present_pair_trail_family_features(pairs[0][0], pairs[0][1], width=64, cipher=cipher)
+    true_features = present_pairset_trail_family_features(pairs, width=64, cipher=cipher)
+    repeat_features = present_pairset_trail_family_features(pairs, width=64, cipher=cipher)
+    false_features = present_pairset_trail_family_features(pairs, width=64, cipher=cipher, false_family=True)
+
+    assert pair_features.dtype == np.float32
+    assert true_features.dtype == np.float32
+    assert true_features.shape == repeat_features.shape
+    assert true_features.shape == false_features.shape
+    assert true_features.shape[0] > pair_features.shape[0]
+    np.testing.assert_allclose(true_features, repeat_features)
+    assert np.isfinite(true_features).all()
+    assert not np.allclose(true_features[:64], false_features[:64])
+
+
+def test_present_trail_family_rejects_empty_pairset():
+    from blockcipher_nd.features.spn_trail_family import present_pairset_trail_family_features
+
+    cipher = build_cipher("present80", 7, key=0)
+
+    with pytest.raises(ValueError, match="pairs must not be empty"):
+        present_pairset_trail_family_features([], width=64, cipher=cipher)
 
 
 def test_bit_transition_spectrum_smoke_config_preserves_official_protocol():

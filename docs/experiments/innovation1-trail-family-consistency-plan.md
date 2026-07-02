@@ -28,7 +28,7 @@ do_not_launch_until =
      gate/plan after documented evidence.
 
 claim_scope = planned route only; no evidence yet
-implementation_status = not implemented
+implementation_status = local feature foundation implemented; CLI/gate/postprocess/remote not implemented
 remote_config_status = do not create until trigger
 ```
 
@@ -239,7 +239,7 @@ route with broader multi-seed attribution
 
 ### Task 1: Define Trail-Family Templates
 
-Status: pending by design.
+Status: local feature foundation implemented.
 
 Required behavior:
 
@@ -251,9 +251,37 @@ support; do not use labels or validation statistics to choose templates
 Suggested files:
 
 ```text
-create src/blockcipher_nd/features/spn_trail_family.py
-modify tests/test_project_structure.py
+created src/blockcipher_nd/features/spn_trail_family.py
+modified tests/test_project_structure.py
 ```
+
+Implemented behavior:
+
+```text
+present_pair_trail_family_template:
+  builds deterministic, label-free per-pair active-mask / confidence / margin /
+  disagreement / score views from existing PRESENT candidate-evidence layers.
+
+present_pair_trail_family_features:
+  emits fixed per-pair summary features for smoke diagnostics.
+
+present_pairset_trail_family_features:
+  emits pair-set agreement, consensus, entropy, margin, aggregate pair-feature,
+  and global mask statistics for one multi-pair sample.
+
+false_family:
+  applies a deterministic cell-shift control with matched dimensions, intended
+  for future true-family vs false-family attribution checks.
+```
+
+Verification:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "trail_family or bit_transition_spectrum"
+```
+
+This implementation is not result evidence and does not authorize launching the
+trail-family medium run before the trigger conditions above are met.
 
 ### Task 2: Add Dataset/CLI Matrix Route
 
@@ -345,7 +373,7 @@ expected_rows = 4
 ## Current Action
 
 ```text
-no implementation yet
+local feature foundation implemented
 no smoke config yet
 no remote config yet
 waiting for candidate-trail seed0 gate, then transition-spectrum gate if selected
