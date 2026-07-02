@@ -265,6 +265,8 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "monitor_log": str(monitor_log),
                 "recent_monitor_lines": recent_lines,
                 "progress_summary": _active_progress_summary(run_root),
+                "monitor_health_command": _candidate_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
             }
     return None
 
@@ -290,6 +292,30 @@ def _active_progress_summary(run_root: Path) -> dict[str, Any]:
         "best_checkpoint_metric",
     ]
     return {key: progress.get(key) for key in keys if key in progress}
+
+
+def _candidate_monitor_health_command(run_id: str) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {run_id} "
+        "--tmux-session monitor_i1_candidate_trail_seed0_20260702 "
+        "--plan configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json "
+        "--plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md "
+        "--expected-rows 4 --postprocess-kind candidate_trail"
+    )
+
+
+def _candidate_postprocess_command(run_root: Path) -> str:
+    run_id = run_root.name
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-candidate-trail "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        "--plan configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json "
+        "--expected-rows 4 "
+        "--update-plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md"
+    )
 
 
 def _recommend_from_candidate_decision(route: dict[str, Any]) -> dict[str, Any]:
