@@ -42,7 +42,10 @@ from blockcipher_nd.features.spn_transition_spectrum import (
 )
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
 from blockcipher_nd.tasks.innovation1 import spn_active_pattern, spn_candidate_evidence, spn_feature_audit
-from blockcipher_nd.cli import spn_candidate_evidence_matrix
+from blockcipher_nd.tasks.innovation1.spn_transition_spectrum import (
+    make_transition_spectrum_dataset,
+)
+from blockcipher_nd.cli import spn_candidate_evidence_matrix, spn_transition_spectrum_matrix
 
 
 def test_matrix_runner_lives_in_engine_package():
@@ -827,6 +830,131 @@ def test_bit_transition_spectrum_rejects_empty_pairset():
         present_bit_transition_spectrum_features([], width=64, cipher=cipher)
 
 
+def test_bit_transition_spectrum_smoke_config_preserves_official_protocol():
+    config_path = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert config["run_id"] == "i1_bit_transition_spectrum_smoke_20260702"
+    assert config["common"]["samples_per_class"] == 2
+    assert config["common"]["pairs_per_sample"] == 1
+    assert config["common"]["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["common"]["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["common"]["validation_key"] == "0x11111111111111111111"
+    assert config["common"]["key_rotation_interval"] == 0
+    assert [row.get("model") for row in config["rows"]] == [
+        "present_nibble_invp_only_spn_only",
+        "linear",
+        "mlp",
+        "shuffled_p",
+    ]
+    assert "not accuracy evidence" in config["description"]
+
+
+def test_bit_transition_spectrum_dataset_cache_writes_and_reuses(tmp_path):
+    progress_path = tmp_path / "transition_progress.jsonl"
+    features, labels = make_transition_spectrum_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        feature_cache_root=tmp_path / "transition_cache",
+        feature_cache_chunk_size=2,
+        feature_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+    reused_features, reused_labels = make_transition_spectrum_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        feature_cache_root=tmp_path / "transition_cache",
+        feature_cache_chunk_size=2,
+        feature_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+
+    assert features.shape == (6, 1020)
+    assert labels.shape == (6,)
+    assert set(np.unique(labels).tolist()) == {0, 1}
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert "transition_spectrum_cache_done" in progress_text
+    assert "transition_spectrum_cache_reuse" in progress_text
+
+
+def test_bit_transition_spectrum_matrix_outputs_anchor_and_candidate_rows(tmp_path):
+    config = tmp_path / "transition_matrix.json"
+    output = tmp_path / "transition_matrix.jsonl"
+    config.write_text(
+        json.dumps(
+            {
+                "output": str(output),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "train_key": "0x00000000000000000000",
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "feature_cache_root": str(tmp_path / "cache"),
+                    "feature_cache_chunk_size": 1,
+                    "epochs": 1,
+                    "learning_rate": 0.01,
+                    "device": "cpu",
+                },
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.52,
+                        "anchor_calibrated_accuracy": 0.5,
+                    },
+                    {"model": "linear", "progress_output": str(tmp_path / "linear_progress.jsonl")},
+                    {"model": "mlp", "progress_output": str(tmp_path / "mlp_progress.jsonl")},
+                    {"model": "shuffled_p", "progress_output": str(tmp_path / "shuffled_progress.jsonl")},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spn_transition_spectrum_matrix.main(["--config", str(config)])
+
+    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    assert [row["model"] for row in rows] == [
+        "present_nibble_invp_only_spn_only",
+        "bit_transition_spectrum_linear",
+        "bit_transition_spectrum_mlp",
+        "bit_transition_spectrum_shuffled_p",
+    ]
+    assert rows[0]["row_type"] == "external_anchor"
+    assert rows[1]["feature_route"] == "bit_transition_spectrum"
+    assert rows[1]["feature_dim"] == 1020
+    assert rows[3]["shuffled_p"] is True
+    assert rows[1]["auc"] == rows[1]["val_auc"]
+    assert rows[2]["calibrated_accuracy"] == rows[2]["metrics"]["calibrated_accuracy"]
+
+
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
     launcher = Path(
         "configs/remote/generated/"
@@ -1191,6 +1319,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/smoke"),
         Path("scripts/spn-candidate-evidence"),
         Path("scripts/spn-candidate-evidence-matrix"),
+        Path("scripts/spn-transition-spectrum-matrix"),
         Path("scripts/spn-active-pattern"),
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
