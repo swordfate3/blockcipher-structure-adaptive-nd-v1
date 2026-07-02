@@ -17,7 +17,10 @@ timestamp() {
 
 sync_artifacts() {
   scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/logs" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
-  scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/results" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
+  mkdir -p "${LOCAL_ROOT}/results/dataset_cache_bench"
+  scp "${REMOTE}:${REMOTE_RUN_ROOT}/results/dataset_cache_bench/summary.json" \
+    "${LOCAL_ROOT}/results/dataset_cache_bench/summary.json" \
+    >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
 }
 
 while true; do
