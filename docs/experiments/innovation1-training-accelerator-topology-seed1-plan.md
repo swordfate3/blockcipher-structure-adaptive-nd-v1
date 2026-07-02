@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-01
 
-**Status:** launch planned
+**Status:** failed accelerator diagnostic
 
 **Run ID:** `i1_spn_topology_aware_network_r7_262k_seed1_gpu1_accel_bf16_20260701`
 
@@ -122,3 +122,63 @@ Speedup requires a later same-protocol baseline-vs-accelerated timing comparison
 
 Launch the run from the pushed commit, start a local tmux watcher, and wait for retrieved
 artifacts before analyzing metrics or attempting further accelerator profiles.
+
+## 2026-07-02 Retrieved Status
+
+The remote accelerator run launched and produced local artifacts, but it did not
+complete the planned 3-row matrix.
+
+```text
+remote status: failed
+local watcher: failed at 2026-07-01T23:00:52+08:00
+results rows: 1 / 3
+progress rows: 330
+failed marker: present
+remote python process after check: none
+GPU utilization after check: GPU0 0%, GPU1 0%
+source revision: 5337230ef1d364859576ecaec17d1698c74fe5c4
+remote git status before run: clean main tracking origin/main
+```
+
+Completed row:
+
+```text
+model: present_nibble_invp_only_spn_only
+samples_per_class: 262144
+seed: 1
+speed_profile: amp-bf16
+best_epoch: 18
+val_auc / auc: 0.793222204898484
+accuracy: 0.7070960998535156
+calibrated_accuracy: 0.7185859680175781
+row_duration_seconds: 1321.692667
+```
+
+The run failed at row 2:
+
+```text
+model: present_nibble_invp_p_layer_graph_spn_only
+event: accelerated_train_start
+speed_profile: amp-bf16
+error: scatter(): Expected self.dtype to be equal to src.dtype
+location: src/blockcipher_nd/models/common/components.py, weights.scatter_(...)
+```
+
+Interpretation:
+
+- This is **not** a completed topology-aware seed1 result.
+- This is **not** validated plan-aligned evidence for the 3-row topology matrix.
+- The single completed InvP-only row is useful as a partial diagnostic, but the run
+  fails the planned gate because only 1/3 rows exist.
+- The failure indicates that the `amp-bf16` accelerator profile is not safe for all
+  current topology-aware graph/pooling models. Under autocast, the scatter target and
+  source tensors can land in different dtypes.
+
+Decision:
+
+Do not continue using `amp-bf16` for topology-aware graph rows until the dtype path is
+made safe and covered by a smoke/quality gate. The next accelerator attempt should use
+an FP32-preserving plugin profile, preferably `dataloader`, so that dataset/cache and
+loader-side acceleration can be tested without changing model math. If AMP is revisited,
+the fix should be treated as accelerator tooling work and must pass a graph-model AMP
+smoke before being used in a meaningful remote run.
