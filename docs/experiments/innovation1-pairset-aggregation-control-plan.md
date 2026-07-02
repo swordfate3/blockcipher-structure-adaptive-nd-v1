@@ -3,7 +3,7 @@
 **Date:** 2026-06-30
 
 **Status:** deferred attribution control / assets prepared / do not launch
-while topology-aware network seed0 is active
+while candidate-trail / transition-consistency branch is active
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives.
 
@@ -48,18 +48,18 @@ Only Effect B supports a pair-set structure innovation claim.
 Do not launch this run while:
 
 ```text
-i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
+i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 ```
 
-is running. The DDT graph branch that originally blocked this plan has already
-completed both seed0 and seed1 as weak diagnostic evidence, so it no longer
-blocks pair-set attribution. This plan becomes actionable after one of these
-conditions:
+is running. The DDT graph branch completed both seed0 and seed1 as weak
+diagnostic evidence, and the topology-aware network branch reached a stop
+decision, so neither one currently blocks pair-set attribution. The active
+default branch is candidate-trail / transition consistency. This plan becomes
+actionable after one of these conditions:
 
 ```text
-1. The topology-aware network branch is retrieved, validated, plan-aligned,
-   and its gate or route decision asks for pair-set attribution rather than
-   candidate-trail / transition consistency.
+1. The candidate-trail seed0 gate stops the route and the transition-spectrum
+   branch is either stopped or explicitly deprioritized.
 
 2. A future positive pair-set route needs this frozen single-pair aggregation
    control before any cross-pair structure claim.
@@ -176,8 +176,8 @@ but still not launched. The current code and configs make the core aggregation
 math, scorer artifact persistence, frozen aggregation CLI, learned-pairset
 smoke matrix, 262144/class staged plan rows, stage-aware launcher/watcher, and
 gate/postprocess decision path testable and reusable. It must still wait for
-the current topology-aware network run to be retrieved and gated, or for the
-user to explicitly choose pair-set attribution over the candidate-trail data
+the active candidate-trail / transition-consistency branch to gate out, or for
+the user to explicitly choose pair-set attribution over the current data
 representation route.
 
 ## Local Smoke Readiness
@@ -300,11 +300,11 @@ Launch status:
 
 ```text
 not launched
-blocked_by_policy = current topology-aware network seed0 still active
+blocked_by_policy = current candidate-trail / transition-consistency branch still active
 stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
-remaining_requirement = wait for topology-aware result gate, or explicit user
-                        choice to prioritize pair-set attribution
+remaining_requirement = wait for candidate-trail / transition-consistency gate,
+                        or explicit user choice to prioritize pair-set attribution
 windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
 ```
 
@@ -431,17 +431,18 @@ Before any meaningful remote launch:
    - frozen aggregation summary evaluates the saved stage-A checkpoint
    - postprocess-pairset-aggregation runs after both artifacts exist
 8. Commit and push.
-9. Launch from the pushed commit only after the topology-aware result gate or
-   an explicit user route choice makes pair-set attribution the next action.
+9. Launch from the pushed commit only after the candidate-trail /
+   transition-consistency gate or an explicit user route choice makes pair-set
+   attribution the next action.
 10. Hand off retrieval/postprocess to local tmux watcher.
 ```
 
-## Relationship To Current Topology-Aware Run
+## Relationship To Current Candidate-Trail Run
 
 Current running run:
 
 ```text
-run_id = i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
+run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 status = running / watcher-managed
 ```
 
@@ -453,8 +454,15 @@ i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630 -> weak_ddt_graph_signal
 decision = do not promote DDT graph to 1M yet
 ```
 
-This pair-set aggregation plan should not preempt the active topology-aware
-network result. If topology-aware stops, the current default next data/feature
-branch is candidate-trail / transition consistency; pair-set aggregation remains
-a prepared attribution control to use when a pair-set claim becomes relevant or
-when the user explicitly chooses this route.
+Completed topology-aware context:
+
+```text
+i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701 -> weak_topology_aware_network_signal
+i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701 -> stop_topology_aware_network_route
+decision = do not scale this topology-aware architecture
+```
+
+This pair-set aggregation plan should not preempt the active candidate-trail /
+transition-consistency branch. Pair-set aggregation remains a prepared
+attribution control to use when a pair-set claim becomes relevant or when the
+user explicitly chooses this route.

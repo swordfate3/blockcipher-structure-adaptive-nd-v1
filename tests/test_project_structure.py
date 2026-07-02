@@ -624,8 +624,8 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
         assert "cmd.exe /c" in config["launch_policy"]
         assert "cmd.exe /k" not in config["launch_policy"]
         assert "G:\\lxy" in config["launch_policy"]
-        assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701" in config["launch_policy"]
-        assert "topology-aware run" in config["launch_policy"]
+        assert "candidate-trail / transition-consistency gate" in config["launch_policy"]
+        assert "active branch" in config["launch_policy"]
         assert "explicit user route choice selects pair-set attribution" in config["launch_policy"]
         assert "MEDIUM 262144/class pair-set aggregation-control" in config["claim_scope"]
         assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
@@ -643,6 +643,9 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
     assert "pairset_stage = learned_pairset_plus_frozen_aggregation_gate" in plan_doc
     assert "requires_checkpoint under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
     assert "frozen_aggregation_output under G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan_doc
+    assert "while candidate-trail / transition-consistency branch is active" in plan_doc
+    assert "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702" in plan_doc
+    assert "stop_topology_aware_network_route" in plan_doc
 
 
 def test_pairset_aggregation_readiness_rejects_missing_stage_artifacts(tmp_path):
@@ -662,6 +665,18 @@ def test_pairset_aggregation_readiness_rejects_missing_stage_artifacts(tmp_path)
     assert "pairset_aggregation_stage_lock" in report["checked_invariants"]
     assert any("pairset_aggregation missing requires_checkpoint" in error for error in report["errors"])
     assert any("pairset_aggregation frozen_aggregation_output must stay under" in error for error in report["errors"])
+
+
+def test_pairset_aggregation_readiness_ignores_route_names_in_launch_policy():
+    report = remote_readiness_report(
+        Path("configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json")
+    )
+
+    assert report["status"] == "pass"
+    assert "pairset_aggregation_stage_lock" in report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in report["checked_invariants"]
+    assert "transition_spectrum_protocol_lock" not in report["checked_invariants"]
+    assert not any("candidate_trail" in error for error in report["errors"])
 
 
 def test_archived_active_pattern_remote_config_is_not_launchable():

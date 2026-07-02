@@ -411,7 +411,6 @@ def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
             "task_name",
             "plan",
             "claim_scope",
-            "launch_policy",
             "route",
             "experiment_route",
         ]
@@ -435,7 +434,6 @@ def _is_transition_spectrum_config(config: dict[str, Any]) -> bool:
             "task_name",
             "plan",
             "claim_scope",
-            "launch_policy",
             "route",
             "experiment_route",
             "runner_script",
