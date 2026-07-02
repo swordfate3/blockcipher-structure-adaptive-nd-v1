@@ -52,6 +52,7 @@ DEFAULTS = {
     "depth": 3,
     "feature_cache_root": None,
     "feature_cache_chunk_size": 4096,
+    "feature_cache_workers": 1,
     "feature_mode": None,
     "progress_output": None,
     "epochs": 30,
@@ -72,6 +73,7 @@ INT_FIELDS = {
     "beam_width",
     "depth",
     "feature_cache_chunk_size",
+    "feature_cache_workers",
     "epochs",
 }
 FLOAT_FIELDS = {"learning_rate"}
@@ -96,6 +98,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--depth", type=int, default=None)
     parser.add_argument("--feature-cache-root", type=Path, default=None)
     parser.add_argument("--feature-cache-chunk-size", type=int, default=None)
+    parser.add_argument("--feature-cache-workers", type=int, default=None)
     parser.add_argument("--feature-mode", default=None)
     parser.add_argument("--progress-output", type=Path, default=None)
     parser.add_argument("--epochs", type=int, default=None)
@@ -130,6 +133,7 @@ def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
         feature_mode=args.feature_mode,
         feature_cache_root=args.feature_cache_root,
         feature_cache_chunk_size=args.feature_cache_chunk_size,
+        feature_cache_workers=args.feature_cache_workers,
         progress_output=args.progress_output,
         split="train",
     )
@@ -149,6 +153,7 @@ def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
         feature_mode=args.feature_mode,
         feature_cache_root=args.feature_cache_root,
         feature_cache_chunk_size=args.feature_cache_chunk_size,
+        feature_cache_workers=args.feature_cache_workers,
         progress_output=args.progress_output,
         split="validation",
     )
@@ -206,6 +211,7 @@ def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
         "feature_mode": args.feature_mode,
         "feature_cache_root": str(args.feature_cache_root) if args.feature_cache_root is not None else None,
         "feature_cache_chunk_size": args.feature_cache_chunk_size,
+        "feature_cache_workers": args.feature_cache_workers,
         "progress_output": str(args.progress_output) if args.progress_output is not None else None,
         "feature_dim": int(train_features.shape[1]),
         "metrics": metrics,

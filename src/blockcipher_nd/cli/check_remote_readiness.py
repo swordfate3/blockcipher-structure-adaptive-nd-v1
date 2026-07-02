@@ -285,6 +285,10 @@ def _candidate_trail_consistency(
     elif not cache_root.startswith(REMOTE_ROOT):
         errors.append(f"candidate_trail cache root must stay under {REMOTE_ROOT}: {cache_root}")
 
+    feature_cache_workers = _int_value(config.get("feature_cache_workers", config.get("dataset_cache_workers", 1)))
+    if feature_cache_workers is None or feature_cache_workers < 1:
+        errors.append("candidate_trail feature_cache_workers must be >= 1")
+
     return {"errors": errors, "warnings": warnings}
 
 

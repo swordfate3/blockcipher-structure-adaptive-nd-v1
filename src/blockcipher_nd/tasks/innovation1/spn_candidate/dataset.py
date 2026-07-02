@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import json
 from dataclasses import replace
@@ -36,6 +37,7 @@ def make_candidate_dataset(
     feature_mode: str = "aggregate",
     feature_cache_root: Path | None = None,
     feature_cache_chunk_size: int = 4096,
+    feature_cache_workers: int = 1,
     progress_output: Path | None = None,
     split: str = "train",
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -64,6 +66,7 @@ def make_candidate_dataset(
         beam_width=beam_width,
         depth=depth,
         feature_mode=feature_mode,
+        feature_cache_workers=feature_cache_workers,
         width=cipher.block_bits,
     )
     if feature_cache_root is not None:
@@ -72,6 +75,7 @@ def make_candidate_dataset(
             metadata=metadata,
             cache_root=feature_cache_root,
             chunk_size=feature_cache_chunk_size,
+            workers=feature_cache_workers,
             progress_output=progress_output,
         )
     _write_progress(progress_output, "candidate_cache_disabled", metadata)
@@ -84,10 +88,13 @@ def make_cached_candidate_dataset(
     metadata: dict[str, Any],
     cache_root: Path,
     chunk_size: int,
+    workers: int,
     progress_output: Path | None,
 ) -> tuple[np.ndarray, np.ndarray]:
     if chunk_size < 1:
         raise ValueError("feature_cache_chunk_size must be at least 1")
+    if workers < 1:
+        raise ValueError("feature_cache_workers must be at least 1")
     cache_dir = _candidate_cache_dir(cache_root, metadata)
     features_path = cache_dir / "features.npy"
     labels_path = cache_dir / "labels.npy"
@@ -117,6 +124,7 @@ def make_cached_candidate_dataset(
             **metadata,
             "cache_dir": str(cache_dir),
             "chunk_size": chunk_size,
+            "workers": workers,
         },
     )
     features = np.lib.format.open_memmap(features_path, mode="w+", dtype=np.float32, shape=(total_rows, feature_dim))
@@ -127,6 +135,7 @@ def make_cached_candidate_dataset(
         labels=labels,
         metadata=metadata,
         chunk_size=chunk_size,
+        workers=workers,
         progress_output=progress_output,
         cache_dir=cache_dir,
     )
@@ -162,6 +171,7 @@ def _generate_candidate_dataset_in_memory(
         labels=labels,
         metadata=metadata,
         chunk_size=total_rows,
+        workers=1,
         progress_output=None,
         cache_dir=None,
     )
@@ -169,6 +179,81 @@ def _generate_candidate_dataset_in_memory(
 
 
 def _fill_candidate_cache(
+    *,
+    config: DifferentialDatasetConfig,
+    features: np.ndarray,
+    labels: np.ndarray,
+    metadata: dict[str, Any],
+    chunk_size: int,
+    workers: int,
+    progress_output: Path | None,
+    cache_dir: Path | None,
+) -> None:
+    if workers == 1:
+        _fill_candidate_cache_serial(
+            config=config,
+            features=features,
+            labels=labels,
+            metadata=metadata,
+            chunk_size=chunk_size,
+            progress_output=progress_output,
+            cache_dir=cache_dir,
+        )
+        return
+
+    row_index = 0
+    for start, count, chunk in _iter_candidate_chunks(
+        config=config,
+        metadata=metadata,
+        chunk_size=chunk_size,
+        workers=workers,
+        label=1,
+    ):
+        features[row_index : row_index + count] = chunk
+        labels[row_index : row_index + count] = 1
+        row_index += count
+        _write_progress(
+            progress_output,
+            "candidate_cache_positive_chunk",
+            {
+                **metadata,
+                "cache_dir": str(cache_dir) if cache_dir is not None else None,
+                "rows_done": row_index,
+                "class_rows_done": start + count,
+                "class_total": config.samples_per_class,
+                "chunk_rows": count,
+                "workers": workers,
+            },
+        )
+    for start, count, chunk in _iter_candidate_chunks(
+        config=config,
+        metadata=metadata,
+        chunk_size=chunk_size,
+        workers=workers,
+        label=0,
+    ):
+        features[row_index : row_index + count] = chunk
+        labels[row_index : row_index + count] = 0
+        row_index += count
+        _write_progress(
+            progress_output,
+            "candidate_cache_negative_chunk",
+            {
+                **metadata,
+                "cache_dir": str(cache_dir) if cache_dir is not None else None,
+                "rows_done": row_index,
+                "class_rows_done": start + count,
+                "class_total": config.samples_per_class,
+                "chunk_rows": count,
+                "workers": workers,
+            },
+        )
+    order = np.random.default_rng(_candidate_shuffle_seed(config.seed)).permutation(labels.size)
+    features[:] = features[order]
+    labels[:] = labels[order]
+
+
+def _fill_candidate_cache_serial(
     *,
     config: DifferentialDatasetConfig,
     features: np.ndarray,
@@ -200,6 +285,7 @@ def _fill_candidate_cache(
                 "class_rows_done": start + count,
                 "class_total": config.samples_per_class,
                 "chunk_rows": count,
+                "workers": 1,
             },
         )
     for start in range(0, config.samples_per_class, chunk_size):
@@ -221,11 +307,67 @@ def _fill_candidate_cache(
                 "class_rows_done": start + count,
                 "class_total": config.samples_per_class,
                 "chunk_rows": count,
+                "workers": 1,
             },
         )
     order = rng.permutation(labels.size)
     features[:] = features[order]
     labels[:] = labels[order]
+
+
+def _iter_candidate_chunks(
+    *,
+    config: DifferentialDatasetConfig,
+    metadata: dict[str, Any],
+    chunk_size: int,
+    workers: int,
+    label: int,
+):
+    specs = [
+        (start, min(chunk_size, config.samples_per_class - start))
+        for start in range(0, config.samples_per_class, chunk_size)
+    ]
+    if workers == 1:
+        for start, count in specs:
+            yield start, count, _generate_candidate_chunk(config, metadata, start, count, label)
+        return
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [
+            executor.submit(_generate_candidate_chunk, config, metadata, start, count, label)
+            for start, count in specs
+        ]
+        for (start, count), future in zip(specs, futures):
+            yield start, count, future.result()
+
+
+def _generate_candidate_chunk(
+    config: DifferentialDatasetConfig,
+    metadata: dict[str, Any],
+    start: int,
+    count: int,
+    label: int,
+) -> np.ndarray:
+    rng = np.random.default_rng(_candidate_chunk_seed(config.seed, start, label))
+    mask = (1 << config.cipher.block_bits) - 1
+    chunk = np.empty((count, int(metadata["feature_dim"])), dtype=np.float32)
+    for offset in range(count):
+        source_row = start + offset
+        row_cipher = _cipher_for_row(config, rng, source_row)
+        if label == 1:
+            pairs = _positive_pairs(config, rng, row_cipher, mask)
+        else:
+            pairs = _negative_pairs(config, rng, row_cipher, mask)
+        chunk[offset] = _pairset_features(config, pairs, row_cipher, metadata)
+    return chunk
+
+
+def _candidate_chunk_seed(seed: int, start: int, label: int) -> int:
+    return seed + 1_000_003 * (start + 1) + 97_531 * label
+
+
+def _candidate_shuffle_seed(seed: int) -> int:
+    return seed + 2_147_483_647
 
 
 def _pairset_features(
@@ -312,6 +454,7 @@ def _candidate_cache_metadata(
     beam_width: int,
     depth: int,
     feature_mode: str,
+    feature_cache_workers: int,
     width: int,
 ) -> dict[str, Any]:
     if feature_mode not in {"aggregate", "cell_structured", "cell_structured_shuffled"}:
@@ -335,13 +478,14 @@ def _candidate_cache_metadata(
         "depth": depth,
         "source": "structural_inverse",
         "feature_mode": feature_mode,
+        "feature_cache_workers": feature_cache_workers,
         "width": width,
         "feature_dim": feature_dim,
         "feature_dtype": "float32",
         "label_dtype": "uint8",
         "shuffle": True,
         "cell_shuffle_seed": 20260701 if feature_mode == "cell_structured_shuffled" else None,
-        "cache_version": 2,
+        "cache_version": 3,
     }
 
 

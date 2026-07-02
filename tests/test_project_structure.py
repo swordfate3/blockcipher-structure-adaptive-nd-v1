@@ -1194,6 +1194,19 @@ def test_candidate_trail_config_can_be_overridden_from_cli(tmp_path):
     assert args.sample_structure == "zhang_wang_case2_official_mcnd"
 
 
+def test_candidate_trail_cli_accepts_feature_cache_workers(tmp_path):
+    args = spn_candidate_evidence.parse_args(
+        [
+            "--output",
+            str(tmp_path / "candidate.jsonl"),
+            "--feature-cache-workers",
+            "2",
+        ]
+    )
+
+    assert args.feature_cache_workers == 2
+
+
 def test_candidate_trail_rejects_mismatched_shuffled_feature_mode(tmp_path):
     config_path = Path(
         "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json"
@@ -3725,6 +3738,22 @@ def test_remote_readiness_gate_rejects_candidate_trail_without_feature_mode(tmp_
     assert any("candidate_trail feature_mode must be explicit cell-structured control" in error for error in report["errors"])
 
 
+def test_remote_readiness_gate_rejects_bad_candidate_feature_cache_workers(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_candidate_trail_consistency_smoke_gpu1_20260701.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config["feature_cache_workers"] = 0
+    path = tmp_path / "candidate_trail_bad_workers.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert any("candidate_trail feature_cache_workers must be >= 1" in error for error in report["errors"])
+
+
 def test_remote_readiness_gate_requires_candidate_matrix_runner_script(tmp_path):
     plan = tmp_path / "candidate_matrix.json"
     plan.write_text(
@@ -3923,6 +3952,61 @@ def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):
     assert '"sample_structure": "zhang_wang_case2_official_mcnd"' in progress_text
 
 
+def test_candidate_evidence_cache_supports_parallel_workers(tmp_path):
+    progress_path = tmp_path / "parallel_progress.jsonl"
+    cache_root = tmp_path / "parallel_candidate_cache"
+    features, labels = make_candidate_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=13,
+        samples_per_class=4,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        beam_width=2,
+        depth=2,
+        feature_cache_root=cache_root,
+        feature_cache_chunk_size=2,
+        feature_cache_workers=2,
+        progress_output=progress_path,
+        split="train",
+    )
+    reused_features, reused_labels = make_candidate_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=13,
+        samples_per_class=4,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        beam_width=2,
+        depth=2,
+        feature_cache_root=cache_root,
+        feature_cache_chunk_size=2,
+        feature_cache_workers=2,
+        progress_output=progress_path,
+        split="train",
+    )
+
+    assert features.shape == (8, 126)
+    assert set(np.unique(labels).tolist()) == {0, 1}
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert '"workers": 2' in progress_text
+    assert "candidate_cache_reuse" in progress_text
+
+    metadata_files = list(cache_root.glob("train/*/metadata.json"))
+    assert len(metadata_files) == 1
+    metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
+    assert metadata["feature_cache_workers"] == 2
+    assert metadata["cache_version"] == 3
+
+
 def test_candidate_evidence_cell_structured_and_shuffled_controls_differ(tmp_path):
     common = {
         "rounds": 7,
@@ -4041,6 +4125,7 @@ def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
     assert row["training_model"] == "mlp"
     assert row["training_model_family"] == "mlp"
     assert row["feature_mode"] == "cell_structured"
+    assert row["feature_cache_workers"] == 1
     assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert row["negative_mode"] == "encrypted_random_plaintexts"
     assert row["key_rotation_interval"] == 0
