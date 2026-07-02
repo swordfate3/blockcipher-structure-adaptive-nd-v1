@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from blockcipher_nd.training.metrics import best_threshold_accuracy_and_threshold
+
 
 def build_baseline(input_dim: int, model: str) -> torch.nn.Module:
     if model == "linear":
@@ -43,6 +45,10 @@ def train_model(
 def binary_accuracy(labels: np.ndarray, probabilities: np.ndarray, *, threshold: float = 0.5) -> float:
     predictions = (probabilities >= threshold).astype(np.uint8)
     return float((predictions == labels.astype(np.uint8)).mean())
+
+
+def calibrated_binary_accuracy(labels: np.ndarray, probabilities: np.ndarray) -> tuple[float, float]:
+    return best_threshold_accuracy_and_threshold(labels.astype(np.float32), probabilities.astype(np.float32))
 
 
 def binary_auc(labels: np.ndarray, scores: np.ndarray) -> float:

@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-01
 
-**Status:** planned / gated / conditional next data-representation branch; do
-not launch while the topology-aware network run is active
+**Status:** active next data-representation branch / medium seed0 launch
+prepared after topology-aware network route stopped
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives.
@@ -41,19 +41,17 @@ decision = weak_ddt_graph_signal in both seeds
 manual branch decision = do not promote DDT graph to 1M yet
 ```
 
-Current active route:
+Resolved predecessor route:
 
 ```text
-i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
-status = running / watcher-managed
-purpose = test whether true PRESENT P-layer message passing over InvP(DeltaC)
-          improves over the InvP-only token-mixer anchor and shuffled topology
-          control
+i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701
+status = retrieved / validated / postprocessed / plan-aligned
+decision = stop_topology_aware_network_route
+reason = true-P graph did not beat InvP-only or shuffled-P controls
 ```
 
 Candidate-trail consistency is therefore a prepared next data/feature
-representation branch, not an immediate launch candidate while the
-topology-aware network route is running.
+representation branch selected after the topology-aware network route stopped.
 
 ## Trigger
 
@@ -73,10 +71,12 @@ This plan becomes actionable only after one of these conditions:
    representation as the next route after the current active run is resolved.
 ```
 
-Do not launch this route while:
+This route is now launchable because the blocking topology-aware route is
+resolved:
 
 ```text
-i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701
+i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701
+decision = stop_topology_aware_network_route
 ```
 
 is still running.
@@ -334,13 +334,36 @@ Completed local foundation:
    `candidate_trail_consistency_shuffled_cells`.
 ```
 
-Remaining step before the first non-smoke remote run:
+First medium diagnostic launch assets, 2026-07-02:
 
 ```text
-Add the 262144/class remote config and launch assets only after the active
-topology-aware branch gate selects candidate-trail or the user explicitly
-chooses this data-representation route. The first medium diagnostic should use
-expected_rows = 4.
+run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+plan = configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json
+remote_config = configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.json
+launcher = configs/remote/generated/run_i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.cmd
+monitor = configs/remote/generated/monitor_i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.sh
+expected_rows = 4
+scale = 262144/class
+claim_scope = medium diagnostic only
+```
+
+The matrix compares the completed same-scale InvP-only anchor from the
+topology seed1 run against candidate-trail linear/MLP rows and the shuffled-cell
+control. This is acceptable because the research question is whether
+candidate-trail / transition consistency adds signal beyond the current
+same-scale InvP representation; it is not a fresh Zhang/Wang reproduction.
+
+Local smoke update, 2026-07-02:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-candidate-evidence \
+  --config configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json \
+  --output /tmp/i1_candidate_trail_smoke.jsonl
+
+result = pass
+output contract now includes metrics.auc, metrics.calibrated_accuracy,
+top-level auc, accuracy, calibrated_accuracy, and selected_model for
+postprocess/gate compatibility.
 ```
 
 Gate tooling update, 2026-07-01:

@@ -11,6 +11,7 @@ from blockcipher_nd.registry.difference_profiles import difference_for_profile
 from blockcipher_nd.tasks.innovation1.spn_candidate.baseline import (
     binary_accuracy,
     binary_auc,
+    calibrated_binary_accuracy,
     train_model,
 )
 from blockcipher_nd.tasks.innovation1.spn_candidate.dataset import make_candidate_dataset
@@ -169,10 +170,22 @@ def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
             .reshape(-1)
         )
     probabilities = 1.0 / (1.0 + np.exp(-logits))
+    val_accuracy = binary_accuracy(validation_labels, probabilities)
+    val_auc = binary_auc(validation_labels, probabilities)
+    calibrated_accuracy, calibrated_threshold = calibrated_binary_accuracy(validation_labels, probabilities)
     route = MODEL_ROUTE_KEYS[args.model]
+    metrics = {
+        "accuracy": val_accuracy,
+        "auc": val_auc,
+        "best_accuracy": calibrated_accuracy,
+        "calibrated_accuracy": calibrated_accuracy,
+        "calibrated_advantage": 2.0 * calibrated_accuracy - 1.0,
+        "calibrated_threshold": calibrated_threshold,
+    }
     result = {
         "route": route,
         "model": route,
+        "selected_model": route,
         "training_model": args.model,
         "training_model_family": MODEL_TRAINING_KEYS[args.model],
         "rounds": args.rounds,
@@ -195,8 +208,17 @@ def run_candidate_evidence(args: argparse.Namespace) -> dict[str, object]:
         "feature_cache_chunk_size": args.feature_cache_chunk_size,
         "progress_output": str(args.progress_output) if args.progress_output is not None else None,
         "feature_dim": int(train_features.shape[1]),
-        "val_accuracy": binary_accuracy(validation_labels, probabilities),
-        "val_auc": binary_auc(validation_labels, probabilities),
+        "metrics": metrics,
+        "accuracy": val_accuracy,
+        "auc": val_auc,
+        "best_accuracy": calibrated_accuracy,
+        "calibrated_accuracy": calibrated_accuracy,
+        "calibrated_advantage": 2.0 * calibrated_accuracy - 1.0,
+        "calibrated_threshold": calibrated_threshold,
+        "val_accuracy": val_accuracy,
+        "val_auc": val_auc,
+        "val_best_accuracy": calibrated_accuracy,
+        "val_calibrated_accuracy": calibrated_accuracy,
     }
     return result
 

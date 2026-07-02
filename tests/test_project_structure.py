@@ -720,7 +720,7 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
         encoding="utf-8"
     )
 
-    assert "planned / gated / conditional next data-representation branch" in plan
+    assert "active next data-representation branch" in plan
     assert "i1_spn_ddt_graph_r7_262k_seed0_gpu0_20260630" in plan
     assert "`zhang_wang_case2_official_mcnd`" in plan
     assert "`encrypted_random_plaintexts`" in plan
@@ -739,10 +739,13 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "expected_rows = 4" in plan
     assert "candidate-trail consistency medium diagnostic positive" in plan
     assert "formal route evidence" in plan
-    assert "conditional next data-representation branch" in plan
-    assert "i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701" in plan
-    assert "topology-aware network run is active" in plan
-    assert "topology-aware branch gate selects candidate-trail" in plan
+    assert "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701" in plan
+    assert "decision = stop_topology_aware_network_route" in plan
+    assert "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702" in plan
+    assert (
+        "configs/remote/generated/run_i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.cmd"
+        in plan
+    )
     assert "topology-aware network   -> true P-layer message passing over InvP cells" in plan
 
 
@@ -4040,6 +4043,10 @@ def test_candidate_evidence_cli_outputs_gate_aligned_model_key(tmp_path):
     assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert row["negative_mode"] == "encrypted_random_plaintexts"
     assert row["key_rotation_interval"] == 0
+    assert row["selected_model"] == "candidate_trail_consistency_mlp"
+    assert row["auc"] == row["val_auc"]
+    assert row["calibrated_accuracy"] == row["metrics"]["calibrated_accuracy"]
+    assert 0.0 <= row["calibrated_threshold"] <= 1.0
 
 
 def test_candidate_evidence_cli_outputs_shuffled_cell_control_key(tmp_path):
@@ -4076,6 +4083,8 @@ def test_candidate_evidence_cli_outputs_shuffled_cell_control_key(tmp_path):
     assert row["training_model_family"] == "mlp"
     assert row["feature_mode"] == "cell_structured_shuffled"
     assert row["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert row["metrics"]["auc"] == row["auc"]
+    assert row["metrics"]["calibrated_accuracy"] == row["calibrated_accuracy"]
 
 
 def test_candidate_evidence_matrix_outputs_anchor_and_candidate_rows(tmp_path):
