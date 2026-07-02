@@ -5014,9 +5014,11 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert report["next_action"]["requires_implementation"] is True
     assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
     assert "candidate_trail_consistency_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert report["next_action"]["suggested_feature_cache_workers"] == 4
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert "launch_remote_config" not in report["next_action"]
     assert any("seed1 plan/config" in step for step in report["next_steps"])
+    assert any("feature_cache_workers" in step and "at least 4" in step for step in report["next_steps"])
     assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()

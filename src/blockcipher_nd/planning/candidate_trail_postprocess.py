@@ -164,6 +164,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
                 "configs/remote/"
                 "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
             ),
+            "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 "--config configs/remote/<candidate-trail-seed1-config>.json"
@@ -184,6 +185,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
                 "configs/remote/"
                 "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
             ),
+            "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 "--config configs/remote/<candidate-trail-seed1-config>.json"
@@ -222,6 +224,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as positive medium diagnostic evidence only.",
             "Write or update the candidate-trail seed1 plan/config before launch.",
+            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
             "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Prepare a gated 262144/class seed1 confirmation before any 1M scale-up.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
@@ -230,6 +233,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as weak candidate-trail evidence.",
             "If choosing variance check, write or update the candidate-trail seed1 plan/config before launch.",
+            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
             "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Repeat 262144/class or run a variance check before scaling.",
             "Keep InvP-only and shuffled-cell controls in the next matrix.",
