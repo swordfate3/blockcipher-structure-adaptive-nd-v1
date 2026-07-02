@@ -361,5 +361,25 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-transition-spectrum \
   --expected-rows 4
 ```
 
+Readiness refresh, 2026-07-02 18:49:42+08:00:
+
+```text
+command = UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-transition-spectrum-matrix \
+  --config configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json \
+  --output /tmp/i1_transition_spectrum_smoke.jsonl
+result = pass
+rows = 4
+
+command = UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-transition-spectrum \
+  --results /tmp/i1_transition_spectrum_smoke.jsonl \
+  --expected-rows 4
+result = pass
+gate_status = pass
+```
+
+This refresh only proves the local smoke route and gate/output contract are
+still executable. It is not model-quality evidence, does not trigger the
+medium branch, and must not be used as an accuracy claim.
+
 Do not create the `262144/class` medium plan or remote config until the
 candidate-trail seed0 result is retrieved and its gate selects this branch.
