@@ -67,7 +67,6 @@ def make_candidate_dataset(
         beam_width=beam_width,
         depth=depth,
         feature_mode=feature_mode,
-        feature_cache_workers=feature_cache_workers,
         width=cipher.block_bits,
     )
     if feature_cache_root is not None:
@@ -111,6 +110,7 @@ def make_cached_candidate_dataset(
                     "cache_dir": str(cache_dir),
                     "features_path": str(features_path),
                     "labels_path": str(labels_path),
+                    "workers": workers,
                 },
             )
             return np.load(features_path, mmap_mode="r"), np.load(labels_path, mmap_mode="r")
@@ -153,6 +153,7 @@ def make_cached_candidate_dataset(
             "features_path": str(features_path),
             "labels_path": str(labels_path),
             "metadata_path": str(metadata_path),
+            "workers": workers,
         },
     )
     return np.load(features_path, mmap_mode="r"), np.load(labels_path, mmap_mode="r")
@@ -455,7 +456,6 @@ def _candidate_cache_metadata(
     beam_width: int,
     depth: int,
     feature_mode: str,
-    feature_cache_workers: int,
     width: int,
 ) -> dict[str, Any]:
     if feature_mode not in {"aggregate", "cell_structured", "cell_structured_shuffled"}:
@@ -479,7 +479,6 @@ def _candidate_cache_metadata(
         "depth": depth,
         "source": "structural_inverse",
         "feature_mode": feature_mode,
-        "feature_cache_workers": feature_cache_workers,
         "width": width,
         "feature_dim": feature_dim,
         "feature_dtype": "float32",

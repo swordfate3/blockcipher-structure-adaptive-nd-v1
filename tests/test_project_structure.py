@@ -905,7 +905,39 @@ def test_bit_transition_spectrum_dataset_cache_writes_and_reuses(tmp_path):
     assert "transition_spectrum_cache_reuse" in progress_text
     metadata_path = next((tmp_path / "transition_cache").glob("train/*/metadata.json"))
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert metadata["feature_cache_workers"] == 1
+    assert "feature_cache_workers" not in metadata
+    assert '"workers": 1' in progress_text
+
+
+def test_bit_transition_spectrum_cache_reuses_across_worker_counts(tmp_path):
+    progress_path = tmp_path / "transition_worker_reuse_progress.jsonl"
+    cache_root = tmp_path / "transition_worker_reuse_cache"
+    common = {
+        "rounds": 7,
+        "key": 0,
+        "input_difference": 0x9,
+        "seed": 17,
+        "samples_per_class": 4,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_rotation_interval": 0,
+        "feature_cache_root": cache_root,
+        "feature_cache_chunk_size": 2,
+        "progress_output": progress_path,
+        "split": "train",
+    }
+
+    features, labels = make_transition_spectrum_dataset(**common, feature_cache_workers=1)
+    reused_features, reused_labels = make_transition_spectrum_dataset(**common, feature_cache_workers=2)
+
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert '"workers": 1' in progress_text
+    assert '"workers": 2' in progress_text
+    assert "transition_spectrum_cache_reuse" in progress_text
+    assert len(list(cache_root.glob("train/*/metadata.json"))) == 1
 
 
 def test_bit_transition_spectrum_matrix_outputs_anchor_and_candidate_rows(tmp_path):
@@ -4621,8 +4653,41 @@ def test_candidate_evidence_cache_supports_parallel_workers(tmp_path):
     metadata_files = list(cache_root.glob("train/*/metadata.json"))
     assert len(metadata_files) == 1
     metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
-    assert metadata["feature_cache_workers"] == 2
+    assert "feature_cache_workers" not in metadata
     assert metadata["cache_version"] == 3
+
+
+def test_candidate_evidence_cache_reuses_across_worker_counts(tmp_path):
+    progress_path = tmp_path / "worker_reuse_progress.jsonl"
+    cache_root = tmp_path / "worker_reuse_candidate_cache"
+    common = {
+        "rounds": 7,
+        "key": 0,
+        "input_difference": 0x9,
+        "seed": 13,
+        "samples_per_class": 4,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_rotation_interval": 0,
+        "beam_width": 2,
+        "depth": 2,
+        "feature_cache_root": cache_root,
+        "feature_cache_chunk_size": 2,
+        "progress_output": progress_path,
+        "split": "train",
+    }
+
+    features, labels = make_candidate_dataset(**common, feature_cache_workers=1)
+    reused_features, reused_labels = make_candidate_dataset(**common, feature_cache_workers=2)
+
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert '"workers": 1' in progress_text
+    assert '"workers": 2' in progress_text
+    assert "candidate_cache_reuse" in progress_text
+    assert len(list(cache_root.glob("train/*/metadata.json"))) == 1
 
 
 def test_candidate_evidence_cell_structured_and_shuffled_controls_differ(tmp_path):

@@ -179,7 +179,10 @@ Feature-cache implementation update, 2026-07-02:
 scripts/spn-candidate-evidence supports feature_cache_workers for future
 candidate-trail runs. The option parallelizes deterministic chunk feature
 generation for the route-specific feature cache, records the worker count in
-metadata/results/progress, and is gated by scripts/check-remote-readiness.
+results/progress, and is gated by scripts/check-remote-readiness.
+The worker count is not part of the cache identity because it changes execution
+strategy, not the deterministic dataset contents; this allows a later 4-worker
+request to reuse a compatible cache produced by a 1-worker run.
 The already launched seed0 run keeps its original plan/config; future seed1 or
 next-branch candidate-trail runs may explicitly set feature_cache_workers > 1
 after local smoke/readiness validation.

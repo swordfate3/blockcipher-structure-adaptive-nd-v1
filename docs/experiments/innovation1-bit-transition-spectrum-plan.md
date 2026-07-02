@@ -328,6 +328,9 @@ local implementation complete for feature extraction, matrix runner, smoke confi
 gate, postprocess, monitor-health integration, remote readiness gate, and
 streamed disk-backed feature cache
 postprocess writes <run_id>_next_action_readiness.json for the next branch handoff
+feature_cache_workers is recorded in results/progress but excluded from cache
+identity because worker count changes execution strategy, not deterministic
+dataset contents
 no remote launch yet
 waiting for candidate-trail seed0 gate
 ```

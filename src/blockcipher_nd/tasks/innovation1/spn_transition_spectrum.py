@@ -265,7 +265,6 @@ def make_transition_spectrum_dataset(
         sample_structure=sample_structure,
         key_rotation_interval=key_rotation_interval,
         shuffled=shuffled,
-        feature_cache_workers=feature_cache_workers,
         width=cipher.block_bits,
     )
     if feature_cache_root is None:
@@ -301,7 +300,11 @@ def _cached_dataset(
     if features_path.exists() and labels_path.exists() and metadata_path.exists():
         observed_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         if observed_metadata == metadata:
-            _write_progress(progress_output, "transition_spectrum_cache_reuse", {**metadata, "cache_dir": str(cache_dir)})
+            _write_progress(
+                progress_output,
+                "transition_spectrum_cache_reuse",
+                {**metadata, "cache_dir": str(cache_dir), "workers": workers},
+            )
             return np.load(features_path, mmap_mode="r"), np.load(labels_path, mmap_mode="r")
 
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -337,6 +340,7 @@ def _cached_dataset(
             "features_path": str(features_path),
             "labels_path": str(labels_path),
             "metadata_path": str(metadata_path),
+            "workers": workers,
         },
     )
     return np.load(features_path, mmap_mode="r"), np.load(labels_path, mmap_mode="r")
@@ -482,7 +486,6 @@ def _cache_metadata(
     sample_structure: str,
     key_rotation_interval: int,
     shuffled: bool,
-    feature_cache_workers: int,
     width: int,
 ) -> dict[str, Any]:
     return {
@@ -501,7 +504,6 @@ def _cache_metadata(
         "key_rotation_interval": key_rotation_interval,
         "feature_route": "bit_transition_spectrum",
         "shuffled_p": shuffled,
-        "feature_cache_workers": feature_cache_workers,
         "width": width,
         "feature_dim": _feature_dim(width),
         "feature_dtype": "float32",
