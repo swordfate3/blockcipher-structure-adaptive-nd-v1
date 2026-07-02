@@ -22,7 +22,9 @@ from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
 from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
+from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
+from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_transition_spectrum_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -1325,8 +1327,10 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/validate-results"),
         Path("scripts/gate-invp-result"),
         Path("scripts/gate-candidate-trail"),
+        Path("scripts/gate-transition-spectrum"),
         Path("scripts/postprocess-invp-result"),
         Path("scripts/postprocess-candidate-trail"),
+        Path("scripts/postprocess-transition-spectrum"),
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
         Path("scripts/plan-next-action"),
@@ -4618,6 +4622,103 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- candidate-trail-postprocess:candidate_trail_unit:start -->") == 1
+
+
+def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": model,
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": calibrated,
+                        "calibrated_accuracy": calibrated,
+                        "loss": 0.55,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def test_transition_spectrum_gate_supports_route_when_candidate_beats_anchor(tmp_path):
+    results = tmp_path / "transition_spectrum.jsonl"
+    _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_linear", 0.7925)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_mlp", 0.7940)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_shuffled_p", 0.7926)
+
+    report = gate_transition_spectrum_result(results, expected_rows=4)
+
+    assert report["status"] == "pass"
+    assert report["best_candidate_model"] == "bit_transition_spectrum_mlp"
+    assert report["decision"] == "support_transition_spectrum_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] > 0.001
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_transition_spectrum_gate_marks_weak_or_stop_signal(tmp_path):
+    weak_results = tmp_path / "transition_spectrum_weak.jsonl"
+    _write_transition_spectrum_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_linear", 0.7922)
+    _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_mlp", 0.7924)
+
+    weak = gate_transition_spectrum_result(weak_results, expected_rows=3)
+    assert weak["decision"] == "weak_transition_spectrum_signal"
+
+    stop_results = tmp_path / "transition_spectrum_stop.jsonl"
+    _write_transition_spectrum_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_linear", 0.7910)
+    _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_mlp", 0.7915)
+
+    stop = gate_transition_spectrum_result(stop_results, expected_rows=3)
+    assert stop["decision"] == "stop_transition_spectrum_route"
+    assert stop["margin_vs_anchor_auc"] < 0
+
+
+def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "transition_spectrum.jsonl"
+    _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_linear", 0.7925)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_mlp", 0.7940)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_shuffled_p", 0.7926)
+    plan_doc = tmp_path / "transition_plan.md"
+    plan_doc.write_text("# Transition Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_transition_spectrum_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="transition_spectrum_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_transition_spectrum_route"
+    assert report["next_action"]["branch"] == "transition_spectrum_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert (output_dir / "transition_spectrum_unit_transition_spectrum_gate.json").exists()
+    assert (output_dir / "transition_spectrum_unit_postprocess_summary.json").exists()
+    assert (output_dir / "transition_spectrum_unit_postprocess_summary.md").exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Bit-Transition-Spectrum Result" in plan_text
+    assert "<!-- transition-spectrum-postprocess:transition_spectrum_unit:start -->" in plan_text
+    assert "| Decision | `support_transition_spectrum_route` |" in plan_text
+
+    postprocess_transition_spectrum_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="transition_spectrum_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- transition-spectrum-postprocess:transition_spectrum_unit:start -->") == 1
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():
