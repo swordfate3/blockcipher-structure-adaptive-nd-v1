@@ -62,6 +62,9 @@ next-branch readiness artifact in the run output directory.
 Candidate-trail, bit-transition-spectrum, and trail-family postprocess also
 write this readiness artifact, including an implementation checklist when the
 next branch needs a new plan/config before any remote launch.
+Candidate-trail and bit-transition-spectrum postprocess outputs are therefore
+safe handoff points for `scripts/plan-next-action`; trail-family follows the
+same readiness-artifact convention.
 
 Use `scripts/summarize-spn-evidence` for a current local Innovation 1 SPN route
 overview. It scans retrieved postprocess summaries, reports the strongest
@@ -74,6 +77,13 @@ candidate-trail decisions. Running or ready candidate-trail recommendations
 also include `main_thread_policy`, which lists allowed local actions and the
 remote launches or claims that remain forbidden until the gate has produced a
 validated postprocess decision.
+While candidate-trail is waiting or ready-for-postprocess, the recommendation
+also includes `conditional_followup` for the prepared seed1 confirmation or
+variance-check config. This field reports the local readiness gate as
+`readiness_pass`, but it keeps `should_launch_now = false`; launch remains
+forbidden until seed0 has been retrieved, validated, plan-aligned, and
+postprocessed with `support_candidate_trail_route` or
+`weak_candidate_trail_signal`.
 
 Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.

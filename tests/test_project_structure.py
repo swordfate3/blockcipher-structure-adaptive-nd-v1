@@ -2351,6 +2351,9 @@ def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     assert "scripts/summarize-spn-evidence" in text
     assert "`active_recommendation`" in text
     assert "`wait_for_candidate_trail_result`" in text
+    assert "`conditional_followup`" in text
+    assert "`readiness_pass`" in text
+    assert "`should_launch_now = false`" in text
     assert "transition-spectrum decisions ahead of older" in text
     assert "candidate-trail decisions" in text
 
