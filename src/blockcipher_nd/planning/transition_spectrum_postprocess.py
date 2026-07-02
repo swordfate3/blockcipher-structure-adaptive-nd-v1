@@ -198,7 +198,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "requires_implementation": True,
             "reason": decision,
             "fallback_plan_options": [
-                "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+                "docs/experiments/innovation1-trail-family-consistency-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
             ],
             "fallback_hypotheses": [
@@ -282,7 +282,7 @@ def _implementation_checklist(next_action: dict[str, Any]) -> list[str]:
         return [
             "Choose a new SPN hypothesis before any remote launch.",
             f"Candidate hypotheses: {hypothesis_text}.",
-            "Write a new docs/experiments plan before implementation or launch.",
+            "Use docs/experiments/innovation1-trail-family-consistency-plan.md as the prepared next experiment plan, or write a replacement plan before implementation or launch.",
             "Update docs/research only if the research route changes.",
             "Commit and push docs/config/code changes before launching from GitHub.",
         ]

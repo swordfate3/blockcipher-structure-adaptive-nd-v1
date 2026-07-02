@@ -5475,13 +5475,48 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
     assert stop["decision"] == "stop_transition_spectrum_route"
     assert stop["next_action"]["branch"] == "stop_transition_spectrum_route"
     assert "trail_family_consistency" in stop["next_action"]["fallback_hypotheses"]
+    assert "docs/experiments/innovation1-trail-family-consistency-plan.md" in stop["next_action"]["fallback_plan_options"]
     assert "docs/research/spn_structured_nn_research_plan.md" in stop["next_action"]["fallback_plan_options"]
     assert any("new docs/experiments plan" in step for step in stop["next_steps"])
     stop_readiness = json.loads(Path(stop["next_action_readiness"]).read_text(encoding="utf-8"))
     assert stop_readiness["branch"] == "stop_transition_spectrum_route"
     assert stop_readiness["requires_implementation"] is True
     assert stop_readiness["implementation_checklist"]
-    assert "new SPN hypothesis" in " ".join(stop_readiness["implementation_checklist"])
+    assert "innovation1-trail-family-consistency-plan.md" in " ".join(
+        stop_readiness["implementation_checklist"]
+    )
+
+
+def test_summarize_spn_evidence_transition_stop_points_to_trail_family_plan(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702"
+    transition.mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+            "next_action": {
+                "branch": "stop_transition_spectrum_route",
+                "should_launch_remote": False,
+                "requires_implementation": True,
+            },
+        },
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "new_spn_hypothesis_plan"
+    assert active["next_action"]["next_plan_doc"] == (
+        "docs/experiments/innovation1-trail-family-consistency-plan.md"
+    )
+    assert "docs/experiments/innovation1-trail-family-consistency-plan.md" in active["next_action"][
+        "fallback_plan_options"
+    ]
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():

@@ -503,9 +503,9 @@ def _transition_decision_next_action(decision: str, raw_next_action: dict[str, A
             "branch": "new_spn_hypothesis_plan",
             "should_launch_remote": False,
             "requires_implementation": True,
-            "next_plan_doc": "docs/experiments/<next-spn-route-plan>.md",
+            "next_plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
             "fallback_plan_options": [
-                "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+                "docs/experiments/innovation1-trail-family-consistency-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
             ],
         }
