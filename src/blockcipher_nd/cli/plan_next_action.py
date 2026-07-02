@@ -48,6 +48,11 @@ def plan_next_action(summary_path: Path) -> dict[str, Any]:
         next_action=next_action,
         readiness_reports=readiness_reports,
     )
+    implementation_checklist = _implementation_checklist(
+        requires_implementation=bool(next_action.get("requires_implementation")),
+        should_launch_remote=should_launch_remote,
+        next_action=next_action,
+    )
     return {
         "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
         "summary": str(summary_path),
@@ -59,6 +64,7 @@ def plan_next_action(summary_path: Path) -> dict[str, Any]:
         "requires_implementation": bool(next_action.get("requires_implementation")),
         "readiness_pass": readiness_pass,
         "readiness_reports": readiness_reports,
+        "implementation_checklist": implementation_checklist,
         "launch_checklist": launch_checklist,
         "next_action": next_action,
         "claim_scope": summary.get("claim_scope"),
@@ -100,6 +106,43 @@ def _launch_checklist(
         f"Hand off monitoring and retrieval to {monitor_owner}; do not SSH-poll from the main thread.",
         "After retrieval, run route-specific postprocess, update docs/experiments, commit, and push.",
     ]
+
+
+def _implementation_checklist(
+    *,
+    requires_implementation: bool,
+    should_launch_remote: bool,
+    next_action: dict[str, Any],
+) -> list[str]:
+    if not requires_implementation:
+        return []
+    branch = next_action.get("branch") or "<next-branch>"
+    plan_doc = (
+        next_action.get("next_plan_doc")
+        or next_action.get("fallback_plan")
+        or _default_plan_doc_for_branch(str(branch))
+        or "docs/experiments/<plan>.md"
+    )
+    suggested_plan = next_action.get("suggested_plan_config") or "<next experiment config>"
+    checklist = [
+        f"Prepare branch `{branch}` before any remote launch.",
+        f"Update or create the experiment plan in `{plan_doc}`.",
+        f"Create and review `{suggested_plan}` with one attributable hypothesis.",
+        "Run the route smoke/readiness checks locally.",
+        "Commit and push the docs/config/code changes before launching from GitHub.",
+    ]
+    if should_launch_remote:
+        checklist.insert(0, "Do not launch yet: implementation assets are not ready.")
+    return checklist
+
+
+def _default_plan_doc_for_branch(branch: str) -> str | None:
+    return {
+        "candidate_trail_consistency": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+        "candidate_trail_seed1_confirmation": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+        "candidate_trail_seed1_variance_check": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+        "bit_transition_spectrum_seed0": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+    }.get(branch)
 
 
 def _readiness_report(config_path: Path) -> dict[str, Any]:

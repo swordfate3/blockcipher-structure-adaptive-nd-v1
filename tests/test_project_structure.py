@@ -2612,6 +2612,13 @@ def test_plan_next_action_keeps_ddt_stop_on_candidate_trail_plan(tmp_path):
     assert report["should_launch_remote"] is False
     assert report["readiness_pass"] is False
     assert report["readiness_reports"] == []
+    assert report["requires_implementation"] is True
+    assert report["implementation_checklist"]
+    assert "candidate_trail_consistency" in report["implementation_checklist"][0]
+    assert "docs/experiments/innovation1-candidate-trail-consistency-plan.md" in " ".join(
+        report["implementation_checklist"]
+    )
+    assert "remote launch" in " ".join(report["implementation_checklist"])
     assert report["launch_checklist"] == []
 
 
