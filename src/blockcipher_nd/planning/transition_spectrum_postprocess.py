@@ -26,6 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--anchor-model", default=DEFAULT_ANCHOR_MODEL)
     parser.add_argument("--candidate-model", action="append", default=[])
     parser.add_argument("--shuffled-model", default=DEFAULT_SHUFFLED_MODEL)
+    parser.add_argument("--allow-missing-shuffled-control", action="store_true")
     parser.add_argument("--anchor-auc", type=float, default=None)
     parser.add_argument("--anchor-calibrated-accuracy", type=float, default=None)
     parser.add_argument("--margin", type=float, default=DEFAULT_TRANSITION_SPECTRUM_MARGIN)
@@ -43,6 +44,7 @@ def postprocess_transition_spectrum_result(
     anchor_model: str = DEFAULT_ANCHOR_MODEL,
     candidate_models: tuple[str, ...] = DEFAULT_CANDIDATE_MODELS,
     shuffled_model: str = DEFAULT_SHUFFLED_MODEL,
+    require_shuffled_control: bool = True,
     anchor_auc: float | None = None,
     anchor_calibrated_accuracy: float | None = None,
     margin: float = DEFAULT_TRANSITION_SPECTRUM_MARGIN,
@@ -66,6 +68,7 @@ def postprocess_transition_spectrum_result(
         anchor_model=anchor_model,
         candidate_models=candidate_models,
         shuffled_model=shuffled_model,
+        require_shuffled_control=require_shuffled_control,
         anchor_auc=anchor_auc,
         anchor_calibrated_accuracy=anchor_calibrated_accuracy,
         margin=margin,
@@ -92,6 +95,7 @@ def postprocess_transition_spectrum_result(
         "best_candidate_auc": gate_report["best_candidate_auc"],
         "anchor_auc": gate_report["anchor_auc"],
         "shuffled_auc": gate_report["shuffled_auc"],
+        "require_shuffled_control": gate_report["require_shuffled_control"],
         "margin_vs_anchor_auc": gate_report["margin_vs_anchor_auc"],
         "margin_vs_shuffled_auc": gate_report["margin_vs_shuffled_auc"],
         "required_margin": gate_report["required_margin"],
@@ -357,6 +361,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Best candidate AUC", _format_value(report["best_candidate_auc"])),
         ("Anchor AUC", _format_value(report["anchor_auc"])),
         ("Shuffled AUC", _format_value(report["shuffled_auc"])),
+        ("Require shuffled control", report["require_shuffled_control"]),
         ("Margin vs anchor AUC", _format_value(report["margin_vs_anchor_auc"])),
         ("Margin vs shuffled AUC", _format_value(report["margin_vs_shuffled_auc"])),
         ("Required margin", _format_value(report["required_margin"])),
@@ -392,6 +397,7 @@ def main(argv: list[str] | None = None) -> int:
         anchor_model=args.anchor_model,
         candidate_models=candidate_models,
         shuffled_model=args.shuffled_model,
+        require_shuffled_control=not args.allow_missing_shuffled_control,
         anchor_auc=args.anchor_auc,
         anchor_calibrated_accuracy=args.anchor_calibrated_accuracy,
         margin=args.margin,

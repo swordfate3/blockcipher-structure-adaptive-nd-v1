@@ -26,6 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--anchor-model", default=DEFAULT_ANCHOR_MODEL)
     parser.add_argument("--candidate-model", action="append", default=[])
     parser.add_argument("--shuffled-model", default=DEFAULT_SHUFFLED_MODEL)
+    parser.add_argument("--require-shuffled-control", action="store_true")
     parser.add_argument("--anchor-auc", type=float, default=None)
     parser.add_argument("--anchor-calibrated-accuracy", type=float, default=None)
     parser.add_argument("--margin", type=float, default=DEFAULT_TRANSITION_SPECTRUM_MARGIN)
@@ -39,6 +40,7 @@ def gate_transition_spectrum_result(
     anchor_model: str = DEFAULT_ANCHOR_MODEL,
     candidate_models: tuple[str, ...] = DEFAULT_CANDIDATE_MODELS,
     shuffled_model: str = DEFAULT_SHUFFLED_MODEL,
+    require_shuffled_control: bool = False,
     anchor_auc: float | None = None,
     anchor_calibrated_accuracy: float | None = None,
     margin: float = DEFAULT_TRANSITION_SPECTRUM_MARGIN,
@@ -72,7 +74,11 @@ def gate_transition_spectrum_result(
     shuffled_metrics = models.get(shuffled_model)
     shuffled_auc = _metric(shuffled_metrics, "auc")
     if shuffled_metrics is None:
-        warnings.append(f"missing_shuffled_control={shuffled_model}")
+        missing_control = f"missing_shuffled_control={shuffled_model}"
+        if require_shuffled_control:
+            errors.append(missing_control)
+        else:
+            warnings.append(missing_control)
 
     margin_vs_anchor = _delta(best_auc, resolved_anchor_auc)
     margin_vs_shuffled = _delta(best_auc, shuffled_auc)
@@ -85,7 +91,7 @@ def gate_transition_spectrum_result(
         calibration_not_worse = (
             calibrated_delta_vs_anchor is None or _at_least(calibrated_delta_vs_anchor, 0.0)
         )
-        shuffled_not_matching = margin_vs_shuffled is None or _at_least(margin_vs_shuffled, margin)
+        shuffled_not_matching = margin_vs_shuffled is not None and _at_least(margin_vs_shuffled, margin)
         if _at_least(margin_vs_anchor, margin) and calibration_not_worse and shuffled_not_matching:
             decision = "support_transition_spectrum_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
@@ -116,6 +122,7 @@ def gate_transition_spectrum_result(
         "anchor_model": anchor_model,
         "candidate_models": list(candidate_models),
         "shuffled_model": shuffled_model,
+        "require_shuffled_control": require_shuffled_control,
         "models": models,
         "best_candidate_model": best_model,
         "best_candidate_auc": best_auc,
@@ -211,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         anchor_model=args.anchor_model,
         candidate_models=candidate_models,
         shuffled_model=args.shuffled_model,
+        require_shuffled_control=args.require_shuffled_control,
         anchor_auc=args.anchor_auc,
         anchor_calibrated_accuracy=args.anchor_calibrated_accuracy,
         margin=args.margin,

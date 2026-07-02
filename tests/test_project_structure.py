@@ -5562,6 +5562,23 @@ def test_transition_spectrum_gate_marks_weak_or_stop_signal(tmp_path):
     assert stop["margin_vs_anchor_auc"] < 0
 
 
+def test_transition_spectrum_gate_can_require_shuffled_control(tmp_path):
+    results = tmp_path / "transition_spectrum_missing_shuffled.jsonl"
+    _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_linear", 0.7925)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_mlp", 0.7940)
+
+    diagnostic = gate_transition_spectrum_result(results, expected_rows=3)
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_transition_spectrum_signal"
+    assert diagnostic["warnings"] == ["missing_shuffled_control=bit_transition_spectrum_shuffled_p"]
+
+    strict = gate_transition_spectrum_result(results, expected_rows=3, require_shuffled_control=True)
+    assert strict["status"] == "fail"
+    assert strict["decision"] == "invalid"
+    assert strict["errors"] == ["missing_shuffled_control=bit_transition_spectrum_shuffled_p"]
+
+
 def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "transition_spectrum.jsonl"
     _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
@@ -5625,17 +5642,51 @@ def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert plan_text.count("<!-- transition-spectrum-postprocess:transition_spectrum_unit:start -->") == 1
 
 
+def test_transition_spectrum_postprocess_requires_shuffled_control_by_default(tmp_path):
+    results = tmp_path / "transition_spectrum_missing_shuffled.jsonl"
+    _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_linear", 0.7925)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_mlp", 0.7940)
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_transition_spectrum_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="transition_spectrum_missing_shuffled_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "fail"
+    assert report["transition_spectrum_status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert report["require_shuffled_control"] is True
+    gate = json.loads((output_dir / "transition_spectrum_missing_shuffled_unit_transition_spectrum_gate.json").read_text())
+    assert gate["errors"] == ["missing_shuffled_control=bit_transition_spectrum_shuffled_p"]
+
+    diagnostic = postprocess_transition_spectrum_result(
+        results_path=results,
+        output_dir=output_dir / "diagnostic",
+        run_id="transition_spectrum_missing_shuffled_diagnostic",
+        expected_rows=3,
+        require_shuffled_control=False,
+    )
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_transition_spectrum_signal"
+    assert diagnostic["require_shuffled_control"] is False
+
+
 def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_path):
     weak_results = tmp_path / "transition_spectrum_weak.jsonl"
     _write_transition_spectrum_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
     _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_linear", 0.7922)
     _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_mlp", 0.7924)
+    _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_shuffled_p", 0.7923)
 
     weak = postprocess_transition_spectrum_result(
         results_path=weak_results,
         output_dir=tmp_path / "weak_postprocess",
         run_id="transition_spectrum_weak_unit",
-        expected_rows=3,
+        expected_rows=4,
     )
 
     assert weak["decision"] == "weak_transition_spectrum_signal"
@@ -5650,12 +5701,13 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
     _write_transition_spectrum_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
     _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_linear", 0.7910)
     _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_mlp", 0.7915)
+    _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_shuffled_p", 0.7917)
 
     stop = postprocess_transition_spectrum_result(
         results_path=stop_results,
         output_dir=tmp_path / "stop_postprocess",
         run_id="transition_spectrum_stop_unit",
-        expected_rows=3,
+        expected_rows=4,
     )
 
     assert stop["decision"] == "stop_transition_spectrum_route"
