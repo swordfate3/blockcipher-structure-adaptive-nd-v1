@@ -122,6 +122,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     )
     errors.extend(transition_consistency["errors"])
     warnings.extend(transition_consistency["warnings"])
+    trail_family_consistency = _trail_family_consistency(config, tasks, plan_is_json_matrix=plan_is_json_matrix)
+    errors.extend(trail_family_consistency["errors"])
+    warnings.extend(trail_family_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
@@ -141,6 +144,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("candidate_trail_protocol_lock")
     if _is_transition_spectrum_config(config):
         checked_invariants.append("transition_spectrum_protocol_lock")
+    if _is_trail_family_config(config):
+        checked_invariants.append("trail_family_protocol_lock")
     if _is_pairset_aggregation_config(config):
         checked_invariants.append("pairset_aggregation_stage_lock")
 
@@ -361,6 +366,61 @@ def _transition_spectrum_consistency(
     return {"errors": errors, "warnings": warnings}
 
 
+def _trail_family_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    *,
+    plan_is_json_matrix: bool,
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_trail_family_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_values = {
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+    }
+    for field, expected in expected_values.items():
+        observed = config.get(field)
+        if observed != expected:
+            errors.append(f"trail_family {field}={observed} expected={expected}")
+
+    runner_script = _str_value(config.get("runner_script"))
+    if plan_is_json_matrix and runner_script != "scripts/spn-trail-family-matrix":
+        errors.append(
+            "trail_family JSON matrix remote config must set "
+            "runner_script=scripts/spn-trail-family-matrix"
+        )
+
+    planned_models = {_str_value(task.get("model")) for task in tasks}
+    required_models = {"linear", "mlp", "false_family"}
+    if plan_is_json_matrix and tasks and not required_models.issubset(planned_models):
+        errors.append(
+            "trail_family JSON matrix must include linear, mlp, and false_family rows: "
+            f"{sorted(planned_models)}"
+        )
+
+    cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
+    if not cache_root:
+        errors.append("trail_family missing feature_cache_root or dataset_cache_root")
+    elif not cache_root.startswith(REMOTE_ROOT):
+        errors.append(f"trail_family cache root must stay under {REMOTE_ROOT}: {cache_root}")
+
+    feature_cache_workers = _int_value(config.get("feature_cache_workers", config.get("dataset_cache_workers", 1)))
+    if feature_cache_workers is None or feature_cache_workers < 1:
+        errors.append("trail_family feature_cache_workers must be >= 1")
+    elif _max_samples_per_class(tasks) >= 65_536 and feature_cache_workers == 1:
+        warnings.append(
+            "trail_family medium-scale feature_cache_workers=1; future medium/large runs should set >1 "
+            "to avoid slow feature-cache generation"
+        )
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _plan_is_json_matrix(plan_path: Path) -> bool:
     if plan_path.suffix.lower() != ".json" or not plan_path.exists():
         return False
@@ -445,6 +505,29 @@ def _is_transition_spectrum_config(config: dict[str, Any]) -> bool:
         "bit_transition_spectrum",
         "bit-transition-spectrum",
         "spn-transition-spectrum",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_trail_family_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "route",
+            "experiment_route",
+            "runner_script",
+        ]
+    ).lower()
+    markers = [
+        "trail_family",
+        "trail-family",
+        "trail_family_consistency",
+        "trail-family-consistency",
+        "spn-trail-family",
     ]
     return any(marker in haystack for marker in markers)
 

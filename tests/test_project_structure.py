@@ -4907,6 +4907,149 @@ def test_remote_readiness_gate_rejects_transition_spectrum_missing_shuffled_cont
     assert "transition_spectrum_protocol_lock" in report["checked_invariants"]
 
 
+def _write_trail_family_remote_plan(
+    tmp_path: Path,
+    *,
+    include_false_family: bool = True,
+    filename: str = "trail_family_matrix.json",
+) -> Path:
+    rows = [
+        {
+            "row_type": "external_anchor",
+            "model": "present_nibble_invp_only_spn_only",
+            "anchor_auc": 0.79,
+            "anchor_calibrated_accuracy": 0.72,
+        },
+        {"model": "linear"},
+        {"model": "mlp"},
+    ]
+    if include_false_family:
+        rows.append({"model": "false_family"})
+    plan = tmp_path / filename
+    plan.write_text(
+        json.dumps(
+            {
+                "output": str(tmp_path / "trail_family_matrix.jsonl"),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 65536,
+                    "pairs_per_sample": 16,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "learning_rate": 0.003,
+                },
+                "rows": rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return plan
+
+
+def _trail_family_remote_config(plan: Path, *, expected_rows: int = 4) -> dict[str, object]:
+    return {
+        "run_id": "i1_trail_family_matrix_remote_unit",
+        "task_name": "i1_trail_family_matrix_remote_unit",
+        "archive_work_id": "i1_trail_family_matrix_remote_unit",
+        "plan": str(plan),
+        "runner_script": "scripts/spn-trail-family-matrix",
+        "expected_rows": expected_rows,
+        "device": "cuda:0",
+        "epochs": 20,
+        "batch_size": 2048,
+        "learning_rate": 0.003,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "negative_mode": "encrypted_random_plaintexts",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "dataset_cache": True,
+        "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\trail_family_cache",
+        "dataset_cache_chunk_size": 8192,
+        "dataset_cache_workers": 4,
+        "feature_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\trail_family_cache",
+        "feature_cache_workers": 4,
+        "branch": "main",
+        "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
+        "source_commit": "recorded_in_remote_run_script_git_revision",
+        "result_sync": "local_tmux_monitor_scp_fallback",
+        "monitor_script_name": "monitor_i1_trail_family_matrix_remote_unit.sh",
+        "claim_scope": "trail-family medium matrix readiness unit",
+        "launch_policy": "trail-family matrix; keep artifacts under G:\\lxy; cmd.exe /c",
+    }
+
+
+def test_remote_readiness_gate_accepts_trail_family_matrix_plan(tmp_path):
+    plan = _write_trail_family_remote_plan(tmp_path)
+    config = _trail_family_remote_config(plan)
+    path = tmp_path / "trail_family_matrix_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 4
+    assert report["expected_rows"] == 4
+    assert "trail_family_protocol_lock" in report["checked_invariants"]
+    assert "transition_spectrum_protocol_lock" not in report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in report["checked_invariants"]
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+
+def test_remote_readiness_gate_rejects_bad_trail_family_matrix_plan(tmp_path):
+    plan = _write_trail_family_remote_plan(tmp_path, include_false_family=False)
+    config = _trail_family_remote_config(plan, expected_rows=3)
+    config["runner_script"] = "scripts/spn-transition-spectrum-matrix"
+    config["negative_mode"] = "random_ciphertexts"
+    config["sample_structure"] = "zhang_wang_case2_mcnd"
+    config["validation_key"] = "0xffffffffffffffffffff"
+    config["key_rotation_interval"] = 1024
+    config["feature_cache_root"] = "C:\\Users\\bad\\trail_family_cache"
+    config["feature_cache_workers"] = 0
+    path = tmp_path / "trail_family_bad_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert "trail_family_protocol_lock" in report["checked_invariants"]
+    assert any("runner_script=scripts/spn-trail-family-matrix" in error for error in report["errors"])
+    assert any("linear, mlp, and false_family rows" in error for error in report["errors"])
+    assert any("trail_family negative_mode=random_ciphertexts expected=encrypted_random_plaintexts" in error for error in report["errors"])
+    assert any("trail_family sample_structure=zhang_wang_case2_mcnd expected=zhang_wang_case2_official_mcnd" in error for error in report["errors"])
+    assert any("trail_family validation_key=0xffffffffffffffffffff expected=0x11111111111111111111" in error for error in report["errors"])
+    assert any("trail_family key_rotation_interval=1024 expected=0" in error for error in report["errors"])
+    assert any("trail_family cache root must stay under G:\\lxy" in error for error in report["errors"])
+    assert any("trail_family feature_cache_workers must be >= 1" in error for error in report["errors"])
+
+
+def test_remote_readiness_gate_does_not_detect_trail_family_from_launch_policy_only(tmp_path):
+    plan = _write_trail_family_remote_plan(tmp_path, filename="plain_matrix.json")
+    config = _trail_family_remote_config(plan)
+    config["run_id"] = "i1_plain_matrix_remote_unit"
+    config["task_name"] = "i1_plain_matrix_remote_unit"
+    config["archive_work_id"] = "i1_plain_matrix_remote_unit"
+    config["runner_script"] = "scripts/train"
+    config["claim_scope"] = "plain matrix readiness unit"
+    config["route"] = "plain_matrix"
+    config["experiment_route"] = "plain_matrix"
+    config["launch_policy"] = (
+        "plain matrix; a note may mention trail_family as a future branch; "
+        "keep artifacts under G:\\lxy; cmd.exe /c"
+    )
+    path = tmp_path / "plain_matrix_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert "trail_family_protocol_lock" not in report["checked_invariants"]
+    assert not any("trail_family" in error for error in report["errors"])
+
+
 def test_differential_data_layer_has_small_modules():
     generator = Path("src/blockcipher_nd/data/differential/generator.py")
     rows = Path("src/blockcipher_nd/data/differential/rows.py")
