@@ -58,6 +58,18 @@ DDT graph and topology-aware postprocess also write
 `<run_id>_next_action_readiness.json` directly, so watcher-managed DDT or
 topology-aware runs leave both the gate decision and the
 next-branch readiness artifact in the run output directory.
+Candidate-trail and bit-transition-spectrum postprocess also write this
+readiness artifact, including an implementation checklist when the next branch
+needs a new plan/config before any remote launch.
+
+Use `scripts/summarize-spn-evidence` for a current local Innovation 1 SPN route
+overview. It scans retrieved postprocess summaries, reports the strongest
+route-level evidence, marks superseded branches, and emits an
+`active_recommendation`. While candidate-trail is still running, that
+recommendation remains `wait_for_candidate_trail_result`; after retrieved
+candidate-trail or bit-transition-spectrum results, it follows the newest
+gated branch and keeps transition-spectrum decisions ahead of older
+candidate-trail decisions.
 
 Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.

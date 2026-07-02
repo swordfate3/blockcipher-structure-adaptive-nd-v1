@@ -1902,7 +1902,9 @@ def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     text = Path("scripts/README.md").read_text(encoding="utf-8")
 
     assert "DDT graph and topology-aware postprocess" in text
+    assert "Candidate-trail and bit-transition-spectrum postprocess" in text
     assert "<run_id>_next_action_readiness.json" in text
+    assert "implementation checklist" in text
     assert "next-branch readiness artifact" in text
     assert "`postprocessed` means the watcher already ran the route-specific postprocess" in text
     assert "`postprocess_failed` means inspect the monitor" in text
@@ -1913,6 +1915,11 @@ def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     assert "`pairset_aggregation_stage_lock`" in text
     assert "pair-set" in text
     assert "aggregation configs" in text
+    assert "scripts/summarize-spn-evidence" in text
+    assert "`active_recommendation`" in text
+    assert "`wait_for_candidate_trail_result`" in text
+    assert "transition-spectrum decisions ahead of older" in text
+    assert "candidate-trail decisions" in text
 
 
 def test_invp_only_gate_fails_on_wrong_model_or_missing_auc(tmp_path):
