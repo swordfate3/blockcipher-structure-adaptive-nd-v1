@@ -36,6 +36,10 @@ from blockcipher_nd.cli.monitor_health import _health_status
 from blockcipher_nd.registry.cipher_profiles import CipherProfile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
+from blockcipher_nd.features.spn_transition_spectrum import (
+    present_bit_transition_spectrum_features,
+    present_pair_bit_transition_spectrum_features,
+)
 from blockcipher_nd.tasks.innovation1.spn_candidate_evidence import make_candidate_dataset
 from blockcipher_nd.tasks.innovation1 import spn_active_pattern, spn_candidate_evidence, spn_feature_audit
 from blockcipher_nd.cli import spn_candidate_evidence_matrix
@@ -772,6 +776,55 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "do not create or launch the medium remote config" in plan
     assert "scripts/spn-transition-spectrum-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
+
+
+def test_bit_transition_spectrum_features_are_stable_and_controlled():
+    cipher = build_cipher("present80", 7, key=0)
+    pairs = [
+        (0x0123456789ABCDEF, 0x0123456789ABCDE6),
+        (0xFEDCBA9876543210, 0xFEDCBA9876543209),
+    ]
+
+    true_features = present_bit_transition_spectrum_features(
+        pairs,
+        width=64,
+        cipher=cipher,
+        shuffled=False,
+    )
+    shuffled_features = present_bit_transition_spectrum_features(
+        pairs,
+        width=64,
+        cipher=cipher,
+        shuffled=True,
+    )
+
+    assert true_features.dtype == np.float32
+    assert true_features.shape == shuffled_features.shape == (1020,)
+    assert np.isfinite(true_features).all()
+    assert np.isfinite(shuffled_features).all()
+    assert not np.array_equal(true_features, shuffled_features)
+
+
+def test_bit_transition_spectrum_single_pair_preserves_active_count():
+    cipher = build_cipher("present80", 7, key=0)
+    features = present_pair_bit_transition_spectrum_features(
+        0x0000000000000000,
+        0x00000000000000FF,
+        width=64,
+        cipher=cipher,
+    )
+
+    assert features.dtype == np.float32
+    assert features.shape == (338,)
+    assert features[0] == features[1]
+    assert np.isfinite(features).all()
+
+
+def test_bit_transition_spectrum_rejects_empty_pairset():
+    cipher = build_cipher("present80", 7, key=0)
+
+    with pytest.raises(ValueError, match="pairs must not be empty"):
+        present_bit_transition_spectrum_features([], width=64, cipher=cipher)
 
 
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
