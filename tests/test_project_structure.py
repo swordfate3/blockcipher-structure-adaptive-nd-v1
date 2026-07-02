@@ -3172,6 +3172,63 @@ def test_plan_next_action_reports_missing_remote_config(tmp_path):
     assert "missing.json" in report["errors"][0]
 
 
+def test_plan_next_action_maps_spn_followup_branches_to_plans(tmp_path):
+    cases = [
+        (
+            "transition_spectrum_seed1_confirmation",
+            "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json",
+        ),
+        (
+            "transition_spectrum_variance_check",
+            "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json",
+        ),
+        (
+            "trail_family_seed1_confirmation",
+            "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "innovation1_spn_present_trail_family_r7_262k_seed1.json",
+        ),
+        (
+            "trail_family_variance_check",
+            "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "innovation1_spn_present_trail_family_r7_262k_seed1.json",
+        ),
+        (
+            "stop_transition_spectrum_route",
+            "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "innovation1_spn_present_trail_family_r7_262k_seed0.json",
+        ),
+    ]
+    for branch, expected_plan_doc, expected_plan_config in cases:
+        summary = tmp_path / f"{branch}.json"
+        summary.write_text(
+            json.dumps(
+                {
+                    "run_id": f"unit_{branch}",
+                    "decision": branch,
+                    "action": "unit",
+                    "next_action": {
+                        "branch": branch,
+                        "should_launch_remote": False,
+                        "requires_implementation": True,
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        report = plan_next_action(summary)
+
+        checklist = " ".join(report["implementation_checklist"])
+        assert report["status"] == "pass"
+        assert report["branch"] == branch
+        assert report["requires_implementation"] is True
+        assert expected_plan_doc in checklist
+        assert expected_plan_config in checklist
+
+
 def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     plan_path = Path("configs/experiment/innovation1/innovation1_spn_present_ddt_graph_r7_262k.csv")
     results_path = tmp_path / "ddt_graph.jsonl"

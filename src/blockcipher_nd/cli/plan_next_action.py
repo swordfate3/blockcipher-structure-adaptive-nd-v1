@@ -120,10 +120,15 @@ def _implementation_checklist(
     plan_doc = (
         next_action.get("next_plan_doc")
         or next_action.get("fallback_plan")
+        or _default_plan_doc_from_options(next_action)
         or _default_plan_doc_for_branch(str(branch))
         or "docs/experiments/<plan>.md"
     )
-    suggested_plan = next_action.get("suggested_plan_config") or "<next experiment config>"
+    suggested_plan = (
+        next_action.get("suggested_plan_config")
+        or _default_plan_config_for_branch(str(branch))
+        or "<next experiment config>"
+    )
     checklist = [
         f"Prepare branch `{branch}` before any remote launch.",
         f"Update or create the experiment plan in `{plan_doc}`.",
@@ -142,6 +147,55 @@ def _default_plan_doc_for_branch(branch: str) -> str | None:
         "candidate_trail_seed1_confirmation": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
         "candidate_trail_seed1_variance_check": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
         "bit_transition_spectrum_seed0": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+        "transition_spectrum_seed1_confirmation": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+        "transition_spectrum_variance_check": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+        "stop_transition_spectrum_route": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+        "trail_family_seed1_confirmation": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+        "trail_family_variance_check": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+        "stop_trail_family_route": "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+    }.get(branch)
+
+
+def _default_plan_doc_from_options(next_action: dict[str, Any]) -> str | None:
+    options = next_action.get("fallback_plan_options")
+    if not isinstance(options, list):
+        return None
+    for option in options:
+        if isinstance(option, str) and option.startswith("docs/experiments/"):
+            return option
+    return None
+
+
+def _default_plan_config_for_branch(branch: str) -> str | None:
+    return {
+        "bit_transition_spectrum_seed0": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
+        ),
+        "transition_spectrum_seed1_confirmation": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+        ),
+        "transition_spectrum_variance_check": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+        ),
+        "stop_transition_spectrum_route": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_trail_family_r7_262k_seed0.json"
+        ),
+        "trail_family_seed1_confirmation": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_trail_family_r7_262k_seed1.json"
+        ),
+        "trail_family_variance_check": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_trail_family_r7_262k_seed1.json"
+        ),
+        "stop_trail_family_route": (
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed0.json"
+        ),
     }.get(branch)
 
 
