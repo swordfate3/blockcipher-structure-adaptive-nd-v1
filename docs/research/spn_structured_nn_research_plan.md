@@ -239,7 +239,7 @@ flowchart TD
 
 ### 7.1.1 当前 PRESENT 路线的分叉决策
 
-截至 2026-07-01，本项目在 PRESENT-80 r7、Zhang/Wang 2022 Case2 `m=16`
+截至 2026-07-02，本项目在 PRESENT-80 r7、Zhang/Wang 2022 Case2 `m=16`
 同协议、严格 encrypted-random-plaintext negatives 下，已经完成
 `InvP(DeltaC)` 路线的 1M/class 两 seed 确认和 paper-scale attribution
 controls。当前最强、最稳定的已完成证据不是 pair-consistency pooling，
@@ -253,7 +253,8 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
 | `present_nibble_invp_pair_consistency_spn_only` | 中等规模曾略高于 InvP-only，但差值很小；必须先通过 frozen single-pair aggregation control，才能声称学到 cross-pair structure |
 | p-aligned MCND | 1M 单 seed 弱正向，AUC 约 `+0.0007`，不足以证明结构融合明显有效 |
 | DDT graph | 262144/class seed0 和 seed1 均已 retrieved/validated/postprocessed，两个 seed 都是 `weak_ddt_graph_signal`；DDT prior 相对 no-DDT graph 的 AUC margin 约 `+0.00047` 和 `+0.00063`，低于 `+0.001` gate，因此暂不升到 1M |
-| topology-aware network | 当前 active route；`i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701` 由 watcher 接管，测试 true PRESENT P-layer message passing 是否强于 InvP-only token mixer 和 shuffled-P control |
+| topology-aware network | 262144/class seed0 为弱信号，seed1 已 retrieved/validated/postprocessed；seed1 gate 为 `stop_topology_aware_network_route`，true P-layer graph 没有超过 InvP-only 或 shuffled-P control，因此不扩大该架构 |
+| candidate-trail / transition consistency | 当前 active data-representation branch；`i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702` 已从 pushed commit 启动并由本地 tmux watcher 接管，测试 candidate-transition evidence 是否在同协议同尺度下超过 same-scale InvP-only anchor |
 
 当前分叉规则：
 
@@ -270,18 +271,19 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
   breakthrough / SOTA / formal route evidence / paper-ready proof。
 
 下一步：
-  先完成 topology-aware network 262144/class seed0 的 retrieved +
-  validated + postprocessed gate。
+  等待 candidate-trail / transition consistency 262144/class seed0
+  watcher 拉回、validate、postprocess 和 gate。
 
-如果 topology-aware seed0 为 support_topology_aware_network_route：
-  启动已准备的 262144/class seed1 confirmation，不直接跳到 1M。
+如果 candidate-trail seed0 为 support_candidate_trail_route：
+  启动 262144/class seed1 confirmation，不直接跳到 1M。
 
-如果 topology-aware seed0 为 weak_topology_aware_network_signal：
-  启动已准备的 262144/class seed1 variance check，不做强 claim。
+如果 candidate-trail seed0 为 weak_candidate_trail_signal：
+  启动 262144/class seed1 variance check，不做强 claim。
 
-如果 topology-aware seed0 为 stop_topology_aware_network_route：
-  停止扩大该 topology-aware architecture，切到 candidate-trail /
-  transition consistency 数据/特征表示路线。
+如果 candidate-trail seed0 为 stop_candidate_trail_route：
+  停止扩大当前 candidate-trail consistency 实现，转入下一条
+  SPN 结构适配假设，例如 bit-level transition spectrum、
+  trail-family consistency 或跨 cipher 的 GIFT/SKINNY 迁移验证。
 
 如果 candidate-trail route 也 tied/negative：
   再进入新的 SPN 结构适配假设，例如更强的 trail-family consistency、

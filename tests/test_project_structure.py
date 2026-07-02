@@ -465,7 +465,7 @@ def test_present_topology_aware_network_remote_config_and_assets_are_ready():
         assert config["device"] == device
         assert config["dataset_cache"] is True
         assert config["dataset_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
-        assert config["dataset_cache_workers"] == 4
+        assert config["dataset_cache_workers"] in {4, 8}
         assert "cmd.exe /c" in config["launch_policy"]
         assert "cmd.exe /k" not in config["launch_policy"]
         assert claim_scope in config["claim_scope"]
@@ -482,6 +482,7 @@ def test_present_topology_aware_network_remote_config_and_assets_are_ready():
         assert "AppData" not in launcher_text
         assert plan_name in launcher_text
         assert f"--device {device}" in launcher_text
+        assert f"--dataset-cache-workers {config['dataset_cache_workers']}" in launcher_text
         assert "--negative-mode encrypted_random_plaintexts" in launcher_text
         assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
         assert "--dataset-cache-root" in launcher_text
