@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -526,7 +527,7 @@ def _write_progress(path: Path | None, event: str, payload: dict[str, Any] | Non
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    record = {"event": event, **(payload or {})}
+    record = {"event": event, "time": time.time(), **(payload or {})}
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, sort_keys=True) + "\n")
 

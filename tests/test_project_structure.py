@@ -3811,6 +3811,21 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
         json.dumps(
             {
                 "event": "candidate_cache_positive_chunk",
+                "time": 1000.0,
+                "rows_done": 32768,
+                "total_rows": 524288,
+                "class_rows_done": 32768,
+                "class_total": 262144,
+                "chunk_rows": 32768,
+                "workers": 2,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "candidate_cache_positive_chunk",
+                "time": 1064.0,
                 "rows_done": 65536,
                 "total_rows": 524288,
                 "class_rows_done": 65536,
@@ -3840,6 +3855,45 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_class_total"] == 262144
     assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
     assert progress["cache_class_progress_percent"] == pytest.approx(25.0)
+    assert progress["cache_rows_per_second"] == pytest.approx(512.0)
+    assert progress["cache_eta_seconds"] == 896
+
+
+def test_monitor_health_keeps_cache_eta_null_without_progress_timestamps(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_cache_progress_without_timestamps"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-02T16:25:00+08:00 running\n", encoding="utf-8")
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "candidate_trail_linear_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "candidate_cache_positive_chunk",
+                "rows_done": 65536,
+                "total_rows": 524288,
+                "class_rows_done": 65536,
+                "class_total": 262144,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-02T16:26:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
+    assert progress["cache_rows_per_second"] is None
+    assert progress["cache_eta_seconds"] is None
 
 
 def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
@@ -4334,6 +4388,7 @@ def test_candidate_evidence_cache_writes_and_reuses(tmp_path):
     progress_text = progress_path.read_text(encoding="utf-8")
     assert "candidate_cache_done" in progress_text
     assert "candidate_cache_reuse" in progress_text
+    assert all("time" in json.loads(line) for line in progress_text.splitlines())
 
 
 def test_candidate_evidence_cache_supports_official_case2_protocol(tmp_path):

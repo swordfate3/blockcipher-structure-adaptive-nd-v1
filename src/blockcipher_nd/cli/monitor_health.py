@@ -435,6 +435,8 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         }
     path = paths[-1]
     latest: dict[str, Any] | None = None
+    first_cache_progress: dict[str, Any] | None = None
+    latest_cache_progress: dict[str, Any] | None = None
     best_metric: float | int | None = None
     best_epoch: int | None = None
     checkpoint_metric: str | None = None
@@ -452,6 +454,10 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
             continue
         parsed_line_count += 1
         latest = record
+        if _optional_int(record.get("rows_done")) is not None and _optional_float(record.get("time")) is not None:
+            if first_cache_progress is None:
+                first_cache_progress = record
+            latest_cache_progress = record
         if "best_checkpoint_metric" in record:
             best_metric = record.get("best_checkpoint_metric")
             best_epoch = _optional_int(record.get("best_epoch"))
@@ -481,6 +487,12 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
     cache_total_rows = _optional_int(latest.get("total_rows"))
     cache_class_rows_done = _optional_int(latest.get("class_rows_done"))
     cache_class_total = _optional_int(latest.get("class_total"))
+    cache_rate = _cache_rows_per_second(first_cache_progress, latest_cache_progress)
+    cache_eta_seconds = _cache_eta_seconds(
+        rows_done=cache_rows_done,
+        total_rows=cache_total_rows,
+        rows_per_second=cache_rate,
+    )
     return {
         "path": str(path),
         "exists": True,
@@ -506,6 +518,8 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "train_rows_progress_percent": _ratio_percent(train_rows_seen, train_rows),
         "cache_total_progress_percent": _ratio_percent(cache_rows_done, cache_total_rows),
         "cache_class_progress_percent": _ratio_percent(cache_class_rows_done, cache_class_total),
+        "cache_rows_per_second": cache_rate,
+        "cache_eta_seconds": cache_eta_seconds,
         "validation_rows": _optional_int(latest.get("validation_rows")),
         "val_accuracy": latest.get("val_accuracy"),
         "val_auc": latest.get("val_auc"),
@@ -523,6 +537,48 @@ def _optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _cache_rows_per_second(
+    first_record: dict[str, Any] | None,
+    latest_record: dict[str, Any] | None,
+) -> float | None:
+    if first_record is None or latest_record is None or first_record is latest_record:
+        return None
+    first_rows = _optional_int(first_record.get("rows_done"))
+    latest_rows = _optional_int(latest_record.get("rows_done"))
+    first_time = _optional_float(first_record.get("time"))
+    latest_time = _optional_float(latest_record.get("time"))
+    if first_rows is None or latest_rows is None or first_time is None or latest_time is None:
+        return None
+    row_delta = latest_rows - first_rows
+    time_delta = latest_time - first_time
+    if row_delta <= 0 or time_delta <= 0:
+        return None
+    return round(row_delta / time_delta, 3)
+
+
+def _cache_eta_seconds(
+    *,
+    rows_done: int | None,
+    total_rows: int | None,
+    rows_per_second: float | None,
+) -> int | None:
+    if rows_done is None or total_rows is None or rows_per_second is None or rows_per_second <= 0:
+        return None
+    remaining_rows = total_rows - rows_done
+    if remaining_rows <= 0:
+        return 0
+    return int(round(remaining_rows / rows_per_second))
 
 
 def _model_progress_percent(
