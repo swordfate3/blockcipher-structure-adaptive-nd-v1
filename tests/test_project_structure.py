@@ -1490,6 +1490,10 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     )
     assert report["active_recommendation"]["branch"] == "wait_for_candidate_trail_result"
     assert report["active_recommendation"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    assert report["active_recommendation"]["status"] in {"running", "stale_monitor"}
+    assert report["active_recommendation"]["postprocess_allowed"] is False
+    assert "heartbeat" in report["active_recommendation"]
+    assert "needs_main_thread_intervention" in report["active_recommendation"]
     assert report["active_recommendation"]["progress_summary"]["cache_class_rows_done"] == 114688
     assert report["active_recommendation"]["progress_summary"]["line_count"] == 2
     assert report["active_recommendation"]["progress_summary"]["parsed_line_count"] == 2
@@ -1514,6 +1518,23 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
         "reason": "superseded_by_later_route_decision",
     }
     assert by_run_id["i1_invp_only_r7_1m_seed1_gpu1_20260629"]["route_state"] == "superseded"
+
+
+def test_summarize_spn_evidence_exposes_stale_candidate_monitor(tmp_path):
+    root = tmp_path / "remote_results"
+    candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    (candidate / "monitor").mkdir(parents=True)
+    (candidate / "logs").mkdir()
+    (candidate / "monitor" / "monitor.log").write_text("2026-01-01T00:00:00+08:00 running\n")
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "wait_for_candidate_trail_result"
+    assert active["status"] == "stale_monitor"
+    assert active["heartbeat"]["is_stale"] is True
+    assert active["needs_main_thread_intervention"] is True
+    assert active["postprocess_allowed"] is False
 
 
 def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp_path):

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from blockcipher_nd.cli.monitor_health import _progress_summary
+from blockcipher_nd.cli.monitor_health import _progress_summary, monitor_health_report
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -270,20 +270,40 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
             continue
         monitor_log = run_root / "monitor" / "monitor.log"
         recent_lines = _tail_lines(monitor_log, 8)
-        if any("running" in line for line in recent_lines):
+        health = _candidate_monitor_health(root, run_root.name)
+        if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
+            "running" in line for line in recent_lines
+        ):
             return {
                 "branch": "wait_for_candidate_trail_result",
                 "run_id": run_root.name,
-                "status": "running",
+                "status": health["status"],
                 "should_launch_remote": False,
                 "reason": "candidate-trail run has monitor activity but no postprocess summary yet",
                 "monitor_log": str(monitor_log),
                 "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": health["postprocess_allowed"],
                 "progress_summary": _active_progress_summary(run_root),
                 "monitor_health_command": _candidate_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
             }
     return None
+
+
+def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=run_id,
+        root=root,
+        tmux_session="monitor_i1_candidate_trail_seed0_20260702",
+        plan_path=Path(
+            "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json"
+        ),
+        plan_doc_paths=[Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md")],
+        expected_rows=4,
+        postprocess_kind="candidate_trail",
+    )
 
 
 def _active_progress_summary(run_root: Path) -> dict[str, Any]:
