@@ -71,7 +71,7 @@ This plan becomes actionable only after one of these conditions:
    representation as the next route after the current active run is resolved.
 ```
 
-This route is now launchable because the blocking topology-aware route is
+This route became launchable because the blocking topology-aware route is
 resolved:
 
 ```text
@@ -79,7 +79,18 @@ i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701
 decision = stop_topology_aware_network_route
 ```
 
-is still running.
+Current active candidate-trail run:
+
+```text
+run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+status = launched from pushed commit / local watcher-managed / running
+local_root = outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+latest_bounded_check = 2026-07-02 16:39:29+08:00 heartbeat, no failed markers
+progress = candidate feature-cache generation, 81920/262144 class rows, 81920/524288 total rows
+results_jsonl = not yet present
+postprocess_allowed = false
+claim_scope = running only; no candidate-trail evidence yet
+```
 
 ## Research Question
 
@@ -172,6 +183,16 @@ metadata/results/progress, and is gated by scripts/check-remote-readiness.
 The already launched seed0 run keeps its original plan/config; future seed1 or
 next-branch candidate-trail runs may explicitly set feature_cache_workers > 1
 after local smoke/readiness validation.
+```
+
+Progress observability update, 2026-07-02:
+
+```text
+Future candidate-trail feature-cache progress records include a `time` field.
+scripts/monitor-health reports cache_rows_per_second and cache_eta_seconds when
+at least two timestamped cache-progress records are available. The active seed0
+run was launched before this observability update, so its ETA fields remain null
+even though percentage progress is available.
 ```
 
 The historical `configs/remote/innovation1_spn_candidate_evidence_r7_65536_gpu0_20260623.json`
