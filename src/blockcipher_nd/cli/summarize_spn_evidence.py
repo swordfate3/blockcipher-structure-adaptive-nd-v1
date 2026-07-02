@@ -573,39 +573,50 @@ def _recommend_from_transition_decision(route: dict[str, Any]) -> dict[str, Any]
 
 
 def _transition_decision_next_action(decision: str, raw_next_action: dict[str, Any]) -> dict[str, Any]:
+    seed1_config = (
+        "configs/remote/"
+        "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.json"
+    )
+    seed1_run_id = "i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702"
     if decision == "support_transition_spectrum_route":
         return {
             **raw_next_action,
             "branch": "transition_spectrum_seed1_confirmation",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
             "suggested_plan_config": (
                 "configs/experiment/innovation1/"
                 "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
             ),
+            "launch_remote_config": seed1_config,
             "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+                f"--config {seed1_config}"
             ),
+            "run_id": seed1_run_id,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "weak_transition_spectrum_signal":
         return {
             **raw_next_action,
             "branch": "transition_spectrum_seed1_variance_check",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
             "suggested_plan_config": (
                 "configs/experiment/innovation1/"
                 "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
             ),
+            "launch_remote_config": seed1_config,
             "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+                f"--config {seed1_config}"
             ),
+            "run_id": seed1_run_id,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "stop_transition_spectrum_route":
         return {

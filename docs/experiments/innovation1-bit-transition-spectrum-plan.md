@@ -16,8 +16,8 @@
 status = conditional next-branch plan
 do_not_launch_until = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702 is retrieved, validated, postprocessed, and gated
 claim_scope = planned route only; no evidence yet
-implementation_status = local route implemented; medium seed0 plan and remote config prepared but gate-locked
-remote_config_status = prepared readiness asset only; do not launch before candidate-trail gate selects this branch
+implementation_status = local route implemented; medium seed0/seed1 plans and remote configs prepared but gate-locked
+remote_config_status = seed0 and conditional seed1 readiness assets prepared; do not launch before the corresponding gate selects the branch
 ```
 
 This plan is not a replacement for the active candidate-trail run. It is a prepared branch so the project can move immediately if candidate-trail is weak or negative.
@@ -295,16 +295,21 @@ Status: completed as a readiness asset.
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
+configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json
 configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.json
 configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.cmd
 configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.sh
+configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.sh
 ```
 
 Launch rule:
 
 ```text
-do not launch the medium remote config until the active candidate-trail result is retrieved and its gate selects this branch
-readiness asset only while candidate-trail is still running
+do not launch the seed0 medium remote config until the active candidate-trail result is retrieved and its gate selects this branch
+do not launch the seed1 medium remote config until seed0 transition-spectrum is retrieved and its gate returns support_transition_spectrum_route or weak_transition_spectrum_signal
+readiness assets only while their upstream gates are unresolved
 ```
 
 ## Readiness Requirements
@@ -348,6 +353,9 @@ medium seed0 remote readiness asset exists but is not launchable until the
 candidate-trail gate selects `stop_candidate_trail_route`, or
 `weak_candidate_trail_signal` with a documented branch choice that deprioritizes
 candidate-trail seed1
+medium seed1 remote readiness asset exists but is not launchable until the
+transition-spectrum seed0 gate selects `support_transition_spectrum_route` or
+`weak_transition_spectrum_signal`
 ```
 
 Implemented assets:
@@ -363,9 +371,13 @@ scripts/gate-transition-spectrum
 scripts/postprocess-transition-spectrum
 configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json
 configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
+configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json
 configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.json
 configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.cmd
 configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.sh
+configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.sh
 ```
 
 Verification already exercised:
