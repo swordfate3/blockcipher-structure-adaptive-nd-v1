@@ -5440,7 +5440,7 @@ def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths
 
     assert report["status"] == "pass"
     assert report["decision"] == "weak_candidate_trail_signal"
-    assert report["next_action"]["branch"] == "candidate_trail_variance_check"
+    assert report["next_action"]["branch"] == "candidate_trail_seed1_variance_check"
     assert report["next_action"]["should_launch_remote"] is True
     assert report["next_action"]["requires_implementation"] is False
     assert report["next_action"]["fallback_plan"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
@@ -5451,6 +5451,7 @@ def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert any("seed1 variance check" in step for step in report["next_steps"])
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "candidate_trail_seed1_variance_check"
     assert readiness["readiness_pass"] is True
 
 

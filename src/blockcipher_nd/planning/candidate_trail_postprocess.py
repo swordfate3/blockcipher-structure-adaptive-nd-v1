@@ -175,7 +175,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         }
     if decision == "weak_candidate_trail_signal":
         return {
-            "branch": "candidate_trail_variance_check",
+            "branch": "candidate_trail_seed1_variance_check",
             "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
@@ -229,7 +229,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
         ]
-    if branch == "candidate_trail_variance_check":
+    if branch == "candidate_trail_seed1_variance_check":
         next_action = report["next_action"]
         return [
             "Record this as weak candidate-trail evidence.",
