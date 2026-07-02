@@ -313,13 +313,12 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
 
 
 def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
+    plan_path = _candidate_plan_path(run_id)
     return monitor_health_report(
         run_id=run_id,
         root=root,
-        tmux_session="monitor_i1_candidate_trail_seed0_20260702",
-        plan_path=Path(
-            "configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json"
-        ),
+        tmux_session=_candidate_tmux_session(run_id),
+        plan_path=plan_path,
         plan_doc_paths=[Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md")],
         expected_rows=4,
         postprocess_kind="candidate_trail",
@@ -355,11 +354,12 @@ def _active_progress_summary(run_root: Path) -> dict[str, Any]:
 
 
 def _candidate_monitor_health_command(run_id: str) -> str:
+    plan_path = _candidate_plan_path(run_id)
     return (
         "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
         f"--root outputs/remote_results --run-id {run_id} "
-        "--tmux-session monitor_i1_candidate_trail_seed0_20260702 "
-        "--plan configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json "
+        f"--tmux-session {_candidate_tmux_session(run_id)} "
+        f"--plan {plan_path} "
         "--plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md "
         "--expected-rows 4 --postprocess-kind candidate_trail"
     )
@@ -367,15 +367,33 @@ def _candidate_monitor_health_command(run_id: str) -> str:
 
 def _candidate_postprocess_command(run_root: Path) -> str:
     run_id = run_root.name
+    plan_path = _candidate_plan_path(run_id)
     return (
         "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-candidate-trail "
         f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
         f"--output-dir outputs/remote_results/{run_id} "
         f"--run-id {run_id} "
-        "--plan configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0.json "
+        f"--plan {plan_path} "
         "--expected-rows 4 "
         "--update-plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md"
     )
+
+
+def _candidate_plan_path(run_id: str) -> Path:
+    seed = _candidate_seed_label(run_id)
+    return Path(
+        "configs/experiment/innovation1/"
+        f"innovation1_spn_present_candidate_trail_consistency_r7_262k_{seed}.json"
+    )
+
+
+def _candidate_tmux_session(run_id: str) -> str:
+    seed = _candidate_seed_label(run_id)
+    return f"monitor_i1_candidate_trail_{seed}_20260702"
+
+
+def _candidate_seed_label(run_id: str) -> str:
+    return "seed1" if "_seed1_" in run_id else "seed0"
 
 
 def _recommend_from_candidate_decision(route: dict[str, Any]) -> dict[str, Any]:

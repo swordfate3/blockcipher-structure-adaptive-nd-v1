@@ -1620,6 +1620,38 @@ def test_summarize_spn_evidence_exposes_stale_candidate_monitor(tmp_path):
     assert active["postprocess_allowed"] is False
 
 
+def test_summarize_spn_evidence_uses_seed1_candidate_plan_for_seed1_run(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
+    candidate = root / run_id
+    (candidate / "monitor").mkdir(parents=True)
+    (candidate / "logs").mkdir()
+    (candidate / "monitor" / "monitor.log").write_text("2026-07-02T18:10:00+08:00 running\n")
+    (candidate / "logs" / "candidate_trail_linear_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "candidate_cache_positive_chunk",
+                "rows_done": 8192,
+                "total_rows": 524288,
+                "class_rows_done": 8192,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "wait_for_candidate_trail_result"
+    assert active["run_id"] == run_id
+    assert "monitor_i1_candidate_trail_seed1_20260702" in active["monitor_health_command"]
+    assert "candidate_trail_consistency_r7_262k_seed1.json" in active["monitor_health_command"]
+    assert "candidate_trail_consistency_r7_262k_seed1.json" in active["postprocess_when_ready_command"]
+
+
 def test_summarize_spn_evidence_routes_ready_candidate_result_to_postprocess(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
