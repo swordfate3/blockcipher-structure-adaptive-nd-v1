@@ -6204,6 +6204,22 @@ def test_transition_spectrum_gate_marks_weak_or_stop_signal(tmp_path):
     assert stop["margin_vs_anchor_auc"] < 0
 
 
+def test_transition_spectrum_gate_stops_when_shuffled_control_matches_true_route(tmp_path):
+    results = tmp_path / "transition_spectrum_shuffled_matches.jsonl"
+    _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_linear", 0.7925)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_mlp", 0.7934)
+    _write_transition_spectrum_result(results, "bit_transition_spectrum_shuffled_p", 0.7934)
+
+    report = gate_transition_spectrum_result(results, expected_rows=4, require_shuffled_control=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_transition_spectrum_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] == 0
+    assert "shuffled-P control matches/exceeds" in report["interpretation"]
+
+
 def test_transition_spectrum_gate_can_require_shuffled_control(tmp_path):
     results = tmp_path / "transition_spectrum_missing_shuffled.jsonl"
     _write_transition_spectrum_result(results, "present_nibble_invp_only_spn_only", 0.7920)
