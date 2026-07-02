@@ -4861,7 +4861,11 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert report["next_action"]["branch"] == "candidate_trail_seed1_confirmation"
     assert report["next_action"]["should_launch_remote"] is False
     assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
+    assert "candidate_trail_consistency_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert "launch_remote_config" not in report["next_action"]
+    assert any("seed1 plan/config" in step for step in report["next_steps"])
     assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()
@@ -4904,6 +4908,29 @@ def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert any("bit-transition-spectrum" in step for step in report["next_steps"])
     assert "launch_remote_config" not in report["next_action"]
+
+
+def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths(tmp_path):
+    results = tmp_path / "candidate_trail_weak.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7922)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7924)
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="candidate_trail_weak_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weak_candidate_trail_signal"
+    assert report["next_action"]["branch"] == "candidate_trail_variance_check"
+    assert report["next_action"]["fallback_plan"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "candidate_trail_consistency_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    assert any("seed1 plan/config" in step for step in report["next_steps"])
 
 
 def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:

@@ -152,6 +152,19 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+            ),
+            "suggested_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
+            ),
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<candidate-trail-seed1-config>.json"
+            ),
         }
     if decision == "weak_candidate_trail_signal":
         return {
@@ -159,6 +172,19 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+            ),
+            "suggested_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
+            ),
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<candidate-trail-seed1-config>.json"
+            ),
             "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
         }
     if decision == "stop_candidate_trail_route":
@@ -192,12 +218,16 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     if branch == "candidate_trail_seed1_confirmation":
         return [
             "Record this as positive medium diagnostic evidence only.",
+            "Write or update the candidate-trail seed1 plan/config before launch.",
+            "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Prepare a gated 262144/class seed1 confirmation before any 1M scale-up.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
         ]
     if branch == "candidate_trail_variance_check":
         return [
             "Record this as weak candidate-trail evidence.",
+            "If choosing variance check, write or update the candidate-trail seed1 plan/config before launch.",
+            "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Repeat 262144/class or run a variance check before scaling.",
             "Keep InvP-only and shuffled-cell controls in the next matrix.",
             "If the weak signal is not worth a seed1 variance check, use docs/experiments/innovation1-bit-transition-spectrum-plan.md as the next prepared SPN feature branch.",
