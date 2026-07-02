@@ -26,7 +26,7 @@
   "dataset_cache": true,
   "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\shared_dataset_cache",
   "dataset_cache_chunk_size": 8192,
-  "dataset_cache_workers": 4,
+  "dataset_cache_workers": 8,
   "gpu_guard": true,
   "launcher_tail_source": "project",
   "branch": "main",
@@ -36,5 +36,5 @@
   "source_commit": "recorded_in_remote_run_script_git_revision",
   "result_sync": "local_tmux_monitor_scp_fallback",
   "claim_scope": "CONDITIONAL_MEDIUM_SEED1 262144/class topology-aware network only: if seed0 gate is support_topology_aware_network_route, interpret as confirmation; if seed0 gate is weak_topology_aware_network_signal, interpret as variance check; compare InvP-only anchor, true PRESENT P-layer graph candidate, and deterministic shuffled-P graph control under the same Zhang/Wang official MCND protocol; not formal reproduction or breakthrough evidence",
-  "launch_policy": "conditional launch only after i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701 is retrieved, validated, plan-aligned, and gate decision is support_topology_aware_network_route or weak_topology_aware_network_signal; use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; fast eval skips per-epoch full train-set metrics only"
+  "launch_policy": "conditional launch only after i1_spn_topology_aware_network_r7_262k_seed0_gpu0_20260701 is retrieved, validated, plan-aligned, and gate decision is support_topology_aware_network_route or weak_topology_aware_network_signal; use pushed GitHub commit; keep all remote project files and run artifacts under G:\\lxy; generated commands must use cmd.exe /c; local tmux monitor retrieves results automatically; shared disk-backed dataset cache is required; dataset_cache_workers=8 follows the completed cache-only Map/Reduce speed benchmark; fast eval skips per-epoch full train-set metrics only"
 }

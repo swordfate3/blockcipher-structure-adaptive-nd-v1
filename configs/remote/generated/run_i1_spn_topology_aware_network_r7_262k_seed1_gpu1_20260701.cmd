@@ -66,7 +66,7 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   --key-rotation-interval 0 ^
   --dataset-cache-root "%DATASET_CACHE_ROOT%" ^
   --dataset-cache-chunk-size 8192 ^
-  --dataset-cache-workers 4 ^
+  --dataset-cache-workers 8 ^
   --output "%RESULTS_DIR%\%RUN_ID%.jsonl" ^
   --progress-output "%LOG_DIR%\%RUN_ID%_progress.jsonl" ^
   > "%LOG_DIR%\%RUN_ID%_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_stderr.txt"

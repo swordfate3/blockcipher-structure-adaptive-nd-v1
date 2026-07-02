@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-01
 
-**Status:** active route / seed0 running / seed1 conditional assets prepared
+**Status:** active route / seed0 weak signal retrieved / seed1 relaunch prepared
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This plan is prepared as the next
@@ -240,6 +240,17 @@ If DDT seed1 is weak, tied, negative, or unstable:
 [x] Commit and push.
 [x] Launch 262144/class seed0 from the pushed commit.
 [x] Hand off retrieval/postprocess to tmux watcher.
+```
+
+Seed0 result and seed1 relaunch update:
+
+```text
+[x] seed0 retry was retrieved, validated, and postprocessed.
+[x] seed0 decision = weak_topology_aware_network_signal.
+[x] action = run_262k_seed1_variance_check_before_scaling.
+[x] previous seed1 accelerator attempt failed because AMP/BF16 hit an EvidencePooling scatter dtype bug.
+[x] bug fixed in commit cb83eff; this relaunch uses the normal FP32 training path, not amp-bf16, to keep the variance check comparable to seed0.
+[x] dataset_cache_workers is updated from 4 to 8 for generation speed only, based on the completed cache-only Map/Reduce benchmark.
 ```
 
 If DDT seed1 fails operationally:
