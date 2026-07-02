@@ -4197,6 +4197,22 @@ def test_remote_readiness_gate_rejects_bad_candidate_feature_cache_workers(tmp_p
     assert any("candidate_trail feature_cache_workers must be >= 1" in error for error in report["errors"])
 
 
+def test_remote_readiness_warns_candidate_medium_single_feature_worker(tmp_path):
+    config = json.loads(
+        Path("configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    config["feature_cache_workers"] = 1
+    path = tmp_path / "candidate_trail_single_worker.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "pass"
+    assert any("candidate_trail medium-scale feature_cache_workers=1" in warning for warning in report["warnings"])
+
+
 def test_remote_readiness_gate_requires_candidate_matrix_runner_script(tmp_path):
     plan = tmp_path / "candidate_matrix.json"
     plan.write_text(
@@ -4266,6 +4282,7 @@ def test_remote_readiness_gate_requires_candidate_matrix_runner_script(tmp_path)
     assert any("runner_script=scripts/spn-candidate-evidence-matrix" in error for error in missing_runner["errors"])
 
     config["runner_script"] = "scripts/spn-candidate-evidence-matrix"
+    config["feature_cache_workers"] = 4
     path.write_text(json.dumps(config), encoding="utf-8")
     ready = remote_readiness_report(path)
 
@@ -4273,6 +4290,7 @@ def test_remote_readiness_gate_requires_candidate_matrix_runner_script(tmp_path)
     assert ready["plan_rows"] == 4
     assert "candidate_trail_protocol_lock" in ready["checked_invariants"]
     assert "medium_scale_dataset_cache" in ready["checked_invariants"]
+    assert not any("feature_cache_workers=1" in warning for warning in ready["warnings"])
 
 
 def test_remote_readiness_gate_requires_transition_spectrum_matrix_runner_script(tmp_path):

@@ -295,6 +295,11 @@ def _candidate_trail_consistency(
     feature_cache_workers = _int_value(config.get("feature_cache_workers", config.get("dataset_cache_workers", 1)))
     if feature_cache_workers is None or feature_cache_workers < 1:
         errors.append("candidate_trail feature_cache_workers must be >= 1")
+    elif _max_samples_per_class(tasks) >= 65_536 and feature_cache_workers == 1:
+        warnings.append(
+            "candidate_trail medium-scale feature_cache_workers=1; future medium/large runs should set >1 "
+            "to avoid slow feature-cache generation"
+        )
 
     return {"errors": errors, "warnings": warnings}
 
@@ -347,6 +352,11 @@ def _transition_spectrum_consistency(
     feature_cache_workers = _int_value(config.get("feature_cache_workers", config.get("dataset_cache_workers", 1)))
     if feature_cache_workers is None or feature_cache_workers < 1:
         errors.append("transition_spectrum feature_cache_workers must be >= 1")
+    elif _max_samples_per_class(tasks) >= 65_536 and feature_cache_workers == 1:
+        warnings.append(
+            "transition_spectrum medium-scale feature_cache_workers=1; future medium/large runs should set >1 "
+            "to avoid slow feature-cache generation"
+        )
 
     return {"errors": errors, "warnings": warnings}
 
