@@ -271,6 +271,26 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
         monitor_log = run_root / "monitor" / "monitor.log"
         recent_lines = _tail_lines(monitor_log, 8)
         health = _candidate_monitor_health(root, run_root.name)
+        if health["postprocess_allowed"]:
+            return {
+                "branch": "postprocess_candidate_trail_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "candidate-trail results are ready locally and need postprocess before branch decisions",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": True,
+                "postprocess_command": health["postprocess_command"],
+                "results_jsonl": health["results_jsonl"],
+                "results_jsonl_line_count": health["results_jsonl_line_count"],
+                "expected_rows": health["expected_rows"],
+                "progress_summary": _active_progress_summary(run_root),
+                "monitor_health_command": _candidate_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
+            }
         if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
             "running" in line for line in recent_lines
         ):

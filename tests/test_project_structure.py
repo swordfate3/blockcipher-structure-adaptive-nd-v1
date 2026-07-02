@@ -1537,6 +1537,31 @@ def test_summarize_spn_evidence_exposes_stale_candidate_monitor(tmp_path):
     assert active["postprocess_allowed"] is False
 
 
+def test_summarize_spn_evidence_routes_ready_candidate_result_to_postprocess(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    candidate = root / run_id
+    (candidate / "monitor").mkdir(parents=True)
+    (candidate / "results").mkdir()
+    (candidate / "logs").mkdir()
+    (candidate / "monitor" / "monitor.log").write_text("2026-07-02T18:10:00+08:00 running\n")
+    (candidate / "logs" / "run_done.marker").write_text("done\n", encoding="utf-8")
+    (candidate / "results" / f"{run_id}.jsonl").write_text(
+        "\n".join(json.dumps({"model": f"row_{index}", "auc": 0.79}) for index in range(4)) + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "postprocess_candidate_trail_result"
+    assert active["status"] == "result_ready"
+    assert active["postprocess_allowed"] is True
+    assert active["results_jsonl_line_count"] == 4
+    assert active["expected_rows"] == 4
+    assert "scripts/postprocess-candidate-trail" in " ".join(active["postprocess_command"])
+
+
 def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp_path):
     root = tmp_path / "remote_results"
     candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
