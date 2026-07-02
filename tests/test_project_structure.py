@@ -1787,6 +1787,18 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
                 json.dumps(
                     {
                         "event": "candidate_cache_positive_chunk",
+                        "time": 1000.0,
+                        "rows_done": 81920,
+                        "total_rows": 524288,
+                        "class_rows_done": 81920,
+                        "class_total": 262144,
+                        "chunk_rows": 8192,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "event": "candidate_cache_positive_chunk",
+                        "time": 1064.0,
                         "rows_done": 114688,
                         "total_rows": 524288,
                         "class_rows_done": 114688,
@@ -1825,10 +1837,12 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["progress_summary"]["cache_chunk_rows"] == 8192
     assert report["active_recommendation"]["progress_summary"]["cache_chunk_index"] == 14
     assert report["active_recommendation"]["progress_summary"]["cache_class_chunk_index"] == 14
-    assert report["active_recommendation"]["progress_summary"]["line_count"] == 2
-    assert report["active_recommendation"]["progress_summary"]["parsed_line_count"] == 2
+    assert report["active_recommendation"]["progress_summary"]["line_count"] == 3
+    assert report["active_recommendation"]["progress_summary"]["parsed_line_count"] == 3
     assert report["active_recommendation"]["progress_summary"]["cache_class_progress_percent"] == 43.75
     assert report["active_recommendation"]["progress_summary"]["cache_total_progress_percent"] == 21.875
+    assert report["active_recommendation"]["progress_summary"]["cache_rows_per_second"] == pytest.approx(512.0)
+    assert report["active_recommendation"]["progress_summary"]["cache_eta_seconds"] == 800
     assert "scripts/monitor-health" in report["active_recommendation"]["monitor_health_command"]
     assert "scripts/postprocess-candidate-trail" in report["active_recommendation"]["postprocess_when_ready_command"]
     assert "--expected-rows 4" in report["active_recommendation"]["postprocess_when_ready_command"]
