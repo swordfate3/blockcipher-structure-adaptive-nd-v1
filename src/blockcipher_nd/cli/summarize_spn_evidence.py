@@ -72,6 +72,10 @@ def _route_summary(summary: dict[str, Any], route_states: dict[str, str]) -> dic
 
 def _route_states(summaries: list[dict[str, Any]]) -> dict[str, str]:
     decisions = {str(summary.get("decision") or "") for summary in summaries}
+    has_transition_spectrum_decision = any(
+        decision.startswith(("support_transition", "weak_transition", "stop_transition"))
+        for decision in decisions
+    )
     has_candidate_trail_decision = any(
         decision.startswith(("support_candidate", "weak_candidate", "stop_candidate"))
         for decision in decisions
@@ -87,6 +91,8 @@ def _route_states(summaries: list[dict[str, Any]]) -> dict[str, str]:
         elif decision == "weak_ddt_graph_signal" and (has_topology_stop or has_candidate_trail_decision):
             states[run_id] = "superseded"
         elif decision == "weak_topology_aware_network_signal" and has_topology_stop:
+            states[run_id] = "superseded"
+        elif decision.startswith(("support_candidate", "weak_candidate", "stop_candidate")) and has_transition_spectrum_decision:
             states[run_id] = "superseded"
         else:
             states[run_id] = "current_or_historical"
@@ -238,6 +244,12 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     candidate_running = _candidate_trail_running(root)
     if candidate_running is not None:
         return candidate_running
+    transition_summaries = [
+        route for route in routes if _is_transition_spectrum_decision(str(route["decision"] or ""))
+    ]
+    if transition_summaries:
+        newest = sorted(transition_summaries, key=lambda route: str(route["run_id"]))[-1]
+        return _recommend_from_transition_decision(newest)
     candidate_summaries = [
         route for route in routes if str(route["decision"] or "").endswith("candidate_trail_route")
     ]
@@ -395,6 +407,78 @@ def _candidate_decision_next_action(decision: str, raw_next_action: dict[str, An
         "should_launch_remote": False,
         "requires_implementation": False,
     }
+
+
+def _recommend_from_transition_decision(route: dict[str, Any]) -> dict[str, Any]:
+    decision = route["decision"]
+    next_action = _transition_decision_next_action(str(decision), route["next_action"])
+    return {
+        "branch": next_action["branch"],
+        "run_id": route["run_id"],
+        "decision": decision,
+        "should_launch_remote": False,
+        "reason": "transition-spectrum summary is available; follow its gated branch after docs/update checks",
+        "next_action": next_action,
+    }
+
+
+def _transition_decision_next_action(decision: str, raw_next_action: dict[str, Any]) -> dict[str, Any]:
+    if decision == "support_transition_spectrum_route":
+        return {
+            **raw_next_action,
+            "branch": "transition_spectrum_seed1_confirmation",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+            ),
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+            ),
+        }
+    if decision == "weak_transition_spectrum_signal":
+        return {
+            **raw_next_action,
+            "branch": "transition_spectrum_seed1_variance_check",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+            ),
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+            ),
+        }
+    if decision == "stop_transition_spectrum_route":
+        return {
+            **raw_next_action,
+            "branch": "new_spn_hypothesis_plan",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/<next-spn-route-plan>.md",
+            "fallback_plan_options": [
+                "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+                "docs/research/spn_structured_nn_research_plan.md",
+            ],
+        }
+    return {
+        **raw_next_action,
+        "branch": "manual_review",
+        "should_launch_remote": False,
+        "requires_implementation": False,
+    }
+
+
+def _is_transition_spectrum_decision(decision: str) -> bool:
+    return decision.startswith(("support_transition", "weak_transition", "stop_transition"))
 
 
 def _tail_lines(path: Path, count: int) -> list[str]:

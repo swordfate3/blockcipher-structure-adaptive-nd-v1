@@ -1552,6 +1552,59 @@ def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp
     assert "scripts/check-remote-readiness" in active["next_action"]["readiness_command"]
 
 
+def test_summarize_spn_evidence_prioritizes_transition_spectrum_after_candidate(tmp_path):
+    root = tmp_path / "remote_results"
+    candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702"
+    candidate.mkdir(parents=True)
+    transition.mkdir(parents=True)
+    _write_test_json(
+        candidate / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_candidate_trail_route",
+            "claim_scope": "candidate-trail consistency diagnostic gate",
+            "next_action": {
+                "branch": "stop_candidate_trail_route",
+                "should_launch_remote": False,
+                "requires_implementation": True,
+            },
+        },
+    )
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "weak_transition_spectrum_signal",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+            "best_candidate_auc": 0.7924,
+            "anchor_auc": 0.7920,
+            "next_action": {
+                "branch": "transition_spectrum_variance_check",
+                "should_launch_remote": False,
+                "requires_implementation": True,
+            },
+        },
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "transition_spectrum_seed1_variance_check"
+    assert active["decision"] == "weak_transition_spectrum_signal"
+    assert active["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "bit_transition_spectrum_r7_262k_seed1" in active["next_action"]["suggested_plan_config"]
+    by_run_id = {route["run_id"]: route for route in report["routes"]}
+    assert by_run_id["i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"]["route_state"] == "superseded"
+    assert by_run_id["i1_bit_transition_spectrum_r7_262k_seed0_gpu0_20260702"]["route_state"] == (
+        "current_or_historical"
+    )
+
+
 def _write_test_json(path: Path, payload: dict):
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
