@@ -24,6 +24,15 @@ SEED1_REMOTE_CONFIG = (
     "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.json"
 )
 SEED1_RUN_ID = "i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702"
+TRAIL_FAMILY_SEED0_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_trail_family_r7_262k_seed0.json"
+)
+TRAIL_FAMILY_SEED0_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json"
+)
+TRAIL_FAMILY_SEED0_RUN_ID = "i1_trail_family_r7_262k_seed0_gpu1_20260702"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -194,9 +203,17 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "stop_transition_spectrum_route":
         return {
             "branch": "stop_transition_spectrum_route",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
+            "fallback_branch": "trail_family_seed0",
+            "next_plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "suggested_plan_config": TRAIL_FAMILY_SEED0_PLAN_CONFIG,
+            "launch_remote_config": TRAIL_FAMILY_SEED0_REMOTE_CONFIG,
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": _readiness_command(TRAIL_FAMILY_SEED0_REMOTE_CONFIG),
+            "run_id": TRAIL_FAMILY_SEED0_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
                 "docs/experiments/innovation1-trail-family-consistency-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
@@ -241,11 +258,14 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Keep InvP-only and shuffled-P controls in the next matrix.",
         ]
     if branch == "stop_transition_spectrum_route":
+        next_action = report["next_action"]
         return [
             "Record this as tied or negative bit-transition-spectrum evidence.",
             "Do not scale transition-spectrum as a main route.",
-            "Write a new docs/experiments plan before launching the next hypothesis.",
-            "Switch to trail-family consistency, active-pattern auxiliary head, or cross-cipher transfer planning.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as the gated 262144/class trail-family seed0 fallback from the pushed commit.",
+            "Hand off monitoring and retrieval to a local tmux watcher or sub-agent.",
+            "Keep InvP-only and false-family controls in the trail-family matrix.",
         ]
     return ["Review the transition-spectrum gate manually before launching another experiment."]
 

@@ -28,8 +28,8 @@ do_not_launch_until =
      gate/plan after documented evidence.
 
 claim_scope = planned route only; no evidence yet
-implementation_status = local smoke runner/gate/postprocess implemented; medium remote not implemented
-remote_config_status = do not create until trigger
+implementation_status = local smoke runner/gate/postprocess implemented; medium seed0 readiness assets prepared
+remote_config_status = prepared but gated; do not launch until trigger
 ```
 
 This plan exists so the project does not stall if candidate-trail and
@@ -386,23 +386,40 @@ postprocess = pass, validation_status = pass, next_action_readiness emitted
 claim_scope = smoke/readiness only, not model evidence
 ```
 
-### Task 4: Add Medium Plan/Remote Config Only After Trigger
+### Task 4: Add Medium Plan/Remote Config
 
-Status: pending by design.
+Status: seed0 readiness assets prepared; launch remains blocked by trigger.
 
-Suggested files:
+Created files:
 
 ```text
-create configs/experiment/innovation1/innovation1_spn_present_trail_family_r7_262k_seed0.json
-create configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu*_YYYYMMDD.json
-modify docs/experiments/innovation1-trail-family-consistency-plan.md
+configs/experiment/innovation1/innovation1_spn_present_trail_family_r7_262k_seed0.json
+configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
+configs/remote/generated/run_i1_trail_family_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/monitor_i1_trail_family_r7_262k_seed0_gpu1_20260702.sh
+```
+
+Medium seed0 matrix:
+
+```text
+run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
+scale = 262144/class
+seed = 0
+device = cuda:1
+feature_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\trail_family_cache
+feature_cache_workers = 4
+rows = external InvP anchor, linear, mlp, false_family
+expected_rows = 4
+runner_script = scripts/spn-trail-family-matrix
+monitor = local tmux watcher / sub-agent, with postprocess-trail-family
+claim_scope = medium diagnostic only
 ```
 
 Launch rule:
 
 ```text
-do not create or launch the medium remote config until candidate-trail and
-transition-spectrum gates select this branch
+do not launch the medium remote config until candidate-trail and
+transition-spectrum gates select or explicitly document this branch
 ```
 
 ## Readiness Requirements
@@ -413,7 +430,7 @@ Before any meaningful remote launch:
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "trail_family or remote_readiness"
 
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
-  --config configs/remote/<trail-family-medium-config>.json
+  --config configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
 ```
 
 The readiness gate must enforce:
@@ -433,7 +450,7 @@ expected_rows = 4
 
 ```text
 local smoke runner/gate/postprocess implemented
-no remote config yet
+medium seed0 plan/remote/launcher/monitor prepared
 waiting for candidate-trail seed0 gate, then transition-spectrum gate if selected
 ```
 

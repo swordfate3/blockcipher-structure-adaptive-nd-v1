@@ -894,12 +894,13 @@ def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
     assert "`trail_family_consistency_mlp`" in plan
     assert "`trail_family_consistency_false_family`" in plan
     assert "true trail-family route >= false-family control + 0.001 AUC" in plan
-    assert "do not create or launch the medium remote config" in plan
+    assert "do not launch the medium remote config until candidate-trail" in plan
     assert "scripts/spn-trail-family-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
     assert "implementation_status = local smoke runner/gate/postprocess implemented" in plan
-    assert "medium remote not implemented" in plan
-    assert "remote_config_status = do not create until trigger" in plan
+    assert "medium seed0 readiness assets prepared" in plan
+    assert "remote_config_status = prepared but gated; do not launch until trigger" in plan
+    assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
     assert "This implementation is not result evidence" in plan
     assert "scripts/gate-trail-family" in plan
     assert "scripts/postprocess-trail-family" in plan
@@ -5353,6 +5354,20 @@ def test_remote_readiness_gate_accepts_trail_family_matrix_plan(tmp_path):
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
 
 
+def test_prepared_trail_family_seed0_remote_readiness_passes():
+    report = remote_readiness_report(
+        Path("configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json")
+    )
+
+    assert report["status"] == "pass"
+    assert report["run_id"] == "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    assert report["expected_rows"] == 4
+    assert report["plan_rows"] == 4
+    assert report["max_samples_per_class"] == 262144
+    assert "trail_family_protocol_lock" in report["checked_invariants"]
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+
 def test_remote_readiness_gate_rejects_bad_trail_family_matrix_plan(tmp_path):
     plan = _write_trail_family_remote_plan(tmp_path, include_false_family=False)
     config = _trail_family_remote_config(plan, expected_rows=3)
@@ -6576,17 +6591,20 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
 
     assert stop["decision"] == "stop_transition_spectrum_route"
     assert stop["next_action"]["branch"] == "stop_transition_spectrum_route"
+    assert stop["next_action"]["should_launch_remote"] is True
+    assert stop["next_action"]["requires_implementation"] is False
+    assert stop["next_action"]["fallback_branch"] == "trail_family_seed0"
+    assert "trail_family_r7_262k_seed0" in stop["next_action"]["suggested_plan_config"]
+    assert "trail_family_r7_262k_seed0" in stop["next_action"]["launch_remote_config"]
     assert "trail_family_consistency" in stop["next_action"]["fallback_hypotheses"]
     assert "docs/experiments/innovation1-trail-family-consistency-plan.md" in stop["next_action"]["fallback_plan_options"]
     assert "docs/research/spn_structured_nn_research_plan.md" in stop["next_action"]["fallback_plan_options"]
-    assert any("new docs/experiments plan" in step for step in stop["next_steps"])
+    assert any("trail-family seed0 fallback" in step for step in stop["next_steps"])
     stop_readiness = json.loads(Path(stop["next_action_readiness"]).read_text(encoding="utf-8"))
     assert stop_readiness["branch"] == "stop_transition_spectrum_route"
-    assert stop_readiness["requires_implementation"] is True
-    assert stop_readiness["implementation_checklist"]
-    assert "innovation1-trail-family-consistency-plan.md" in " ".join(
-        stop_readiness["implementation_checklist"]
-    )
+    assert stop_readiness["requires_implementation"] is False
+    assert stop_readiness["readiness_pass"] is True
+    assert stop_readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
 
 
 def test_summarize_spn_evidence_transition_stop_points_to_trail_family_plan(tmp_path):
@@ -6612,10 +6630,14 @@ def test_summarize_spn_evidence_transition_stop_points_to_trail_family_plan(tmp_
     report = summarize_spn_evidence(root)
 
     active = report["active_recommendation"]
-    assert active["branch"] == "new_spn_hypothesis_plan"
+    assert active["branch"] == "trail_family_seed0"
+    assert active["should_launch_remote"] is False
+    assert active["next_action"]["should_launch_remote"] is True
+    assert active["next_action"]["requires_implementation"] is False
     assert active["next_action"]["next_plan_doc"] == (
         "docs/experiments/innovation1-trail-family-consistency-plan.md"
     )
+    assert "trail_family_r7_262k_seed0" in active["next_action"]["launch_remote_config"]
     assert "docs/experiments/innovation1-trail-family-consistency-plan.md" in active["next_action"][
         "fallback_plan_options"
     ]

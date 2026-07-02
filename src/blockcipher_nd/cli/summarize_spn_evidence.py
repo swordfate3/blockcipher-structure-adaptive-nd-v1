@@ -578,6 +578,11 @@ def _transition_decision_next_action(decision: str, raw_next_action: dict[str, A
         "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702.json"
     )
     seed1_run_id = "i1_bit_transition_spectrum_r7_262k_seed1_gpu1_20260702"
+    trail_family_seed0_config = (
+        "configs/remote/"
+        "innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json"
+    )
+    trail_family_seed0_run_id = "i1_trail_family_r7_262k_seed0_gpu1_20260702"
     if decision == "support_transition_spectrum_route":
         return {
             **raw_next_action,
@@ -621,10 +626,22 @@ def _transition_decision_next_action(decision: str, raw_next_action: dict[str, A
     if decision == "stop_transition_spectrum_route":
         return {
             **raw_next_action,
-            "branch": "new_spn_hypothesis_plan",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "branch": "trail_family_seed0",
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "next_plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_trail_family_r7_262k_seed0.json"
+            ),
+            "launch_remote_config": trail_family_seed0_config,
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {trail_family_seed0_config}"
+            ),
+            "run_id": trail_family_seed0_run_id,
+            "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
                 "docs/experiments/innovation1-trail-family-consistency-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
