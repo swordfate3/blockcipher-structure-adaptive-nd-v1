@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-02
 
-**Status:** plugin CLI local diagnostic passed; remote cache-only benchmark next
+**Status:** remote cache-only benchmark completed
 
 ## Purpose
 
@@ -277,3 +277,66 @@ python: F:\Anaconda\envs\DWT\torch310\python.exe
 workers: 1, 4, 8
 claim scope: cache generation speed only
 ```
+
+### 2026-07-02 Remote 262144/Class Cache-Only Benchmark
+
+Run:
+
+```text
+run_id: i1_mapreduce_cache_present_r7_262k_workers_1_4_8_20260702
+remote root: G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_mapreduce_cache_present_r7_262k_workers_1_4_8_20260702
+source revision: e24fd1fb6c15aadf1ae2edbbcc74911148fe63ec
+remote git status before run: clean main tracking origin/main
+watcher status: summary_ready
+remote residual python process: none
+GPU utilization after completion: 0%
+```
+
+Protocol:
+
+```text
+cipher: present80
+rounds: 7
+difference_profile: present_zhang_wang2022_mcnd
+sample_structure: zhang_wang_case2_official_mcnd
+negative_mode: encrypted_random_plaintexts
+feature_encoding: ciphertext_pair_bits
+pairs_per_sample: 16
+samples_per_class: 262144
+total_rows: 524288
+chunk_size: 8192
+seed: 20260702
+workers: 1, 4, 8
+```
+
+Artifacts:
+
+```text
+outputs/remote_results/i1_mapreduce_cache_present_r7_262k_workers_1_4_8_20260702/results/dataset_cache_bench/summary.json
+outputs/remote_results/i1_mapreduce_cache_present_r7_262k_workers_1_4_8_20260702/logs/
+```
+
+Result:
+
+| workers | duration_seconds | minutes | rows_per_second | speedup_vs_1_worker | total_rows | feature_shape |
+|---:|---:|---:|---:|---:|---:|---|
+| 1 | 3869.801565 | 64.50 | 135.482 | 1.00x | 524288 | `[524288, 2048]` |
+| 4 | 972.743752 | 16.21 | 538.979 | 3.98x | 524288 | `[524288, 2048]` |
+| 8 | 482.653772 | 8.04 | 1086.261 | 8.02x | 524288 | `[524288, 2048]` |
+
+Interpretation:
+
+- The Map/Reduce-style chunked disk cache path scales almost linearly from 1 to 8
+  workers on this PRESENT-80 r7 262144/class diagnostic.
+- `dataset_cache_workers=8` reduces generation time from about 64.5 minutes to about
+  8.0 minutes for this protocol.
+- This strongly supports using 8 workers for future medium/large PRESENT cache
+  generation on the remote workstation, subject to memory and disk pressure checks.
+- This is still cache-generation speed evidence only. It is not model training speed,
+  not accuracy evidence, and not an Innovation 1 cryptanalytic claim.
+
+Next action:
+
+Use `dataset_cache_workers=8` for the next cache-backed remote training diagnostic where
+dataset generation is still part of the critical path. Separately benchmark DataLoader
+or training throughput if the goal is epoch speed rather than dataset build speed.
