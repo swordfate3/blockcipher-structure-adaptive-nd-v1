@@ -1491,6 +1491,8 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["branch"] == "wait_for_candidate_trail_result"
     assert report["active_recommendation"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
     assert report["active_recommendation"]["progress_summary"]["cache_class_rows_done"] == 114688
+    assert report["active_recommendation"]["progress_summary"]["line_count"] == 2
+    assert report["active_recommendation"]["progress_summary"]["parsed_line_count"] == 2
     assert report["active_recommendation"]["progress_summary"]["cache_class_progress_percent"] == 43.75
     assert report["active_recommendation"]["progress_summary"]["cache_total_progress_percent"] == 21.875
     assert "scripts/monitor-health" in report["active_recommendation"]["monitor_health_command"]

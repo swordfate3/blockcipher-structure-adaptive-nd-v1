@@ -279,6 +279,8 @@ def _active_progress_summary(run_root: Path) -> dict[str, Any]:
     keys = [
         "path",
         "exists",
+        "line_count",
+        "parsed_line_count",
         "latest_event",
         "cache_rows_done",
         "cache_total_rows",
