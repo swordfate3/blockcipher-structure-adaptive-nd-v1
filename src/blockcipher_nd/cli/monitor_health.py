@@ -487,6 +487,7 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
     cache_total_rows = _optional_int(latest.get("total_rows"))
     cache_class_rows_done = _optional_int(latest.get("class_rows_done"))
     cache_class_total = _optional_int(latest.get("class_total"))
+    cache_chunk_rows = _optional_int(latest.get("chunk_rows"))
     cache_rate = _cache_rows_per_second(first_cache_progress, latest_cache_progress)
     cache_eta_seconds = _cache_eta_seconds(
         rows_done=cache_rows_done,
@@ -513,6 +514,9 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "cache_total_rows": cache_total_rows,
         "cache_class_rows_done": cache_class_rows_done,
         "cache_class_total": cache_class_total,
+        "cache_chunk_rows": cache_chunk_rows,
+        "cache_chunk_index": _cache_chunk_index(cache_rows_done, cache_chunk_rows),
+        "cache_class_chunk_index": _cache_chunk_index(cache_class_rows_done, cache_chunk_rows),
         "model_progress_percent": _model_progress_percent(index, total, epoch, epochs),
         "epoch_progress_percent": _ratio_percent(step, steps_per_epoch),
         "train_rows_progress_percent": _ratio_percent(train_rows_seen, train_rows),
@@ -579,6 +583,12 @@ def _cache_eta_seconds(
     if remaining_rows <= 0:
         return 0
     return int(round(remaining_rows / rows_per_second))
+
+
+def _cache_chunk_index(rows_done: int | None, chunk_rows: int | None) -> int | None:
+    if rows_done is None or chunk_rows is None or chunk_rows <= 0:
+        return None
+    return rows_done // chunk_rows
 
 
 def _model_progress_percent(

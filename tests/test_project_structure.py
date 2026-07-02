@@ -1499,6 +1499,7 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
                         "total_rows": 524288,
                         "class_rows_done": 114688,
                         "class_total": 262144,
+                        "chunk_rows": 8192,
                     }
                 ),
             ]
@@ -1522,6 +1523,9 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert "heartbeat" in report["active_recommendation"]
     assert "needs_main_thread_intervention" in report["active_recommendation"]
     assert report["active_recommendation"]["progress_summary"]["cache_class_rows_done"] == 114688
+    assert report["active_recommendation"]["progress_summary"]["cache_chunk_rows"] == 8192
+    assert report["active_recommendation"]["progress_summary"]["cache_chunk_index"] == 14
+    assert report["active_recommendation"]["progress_summary"]["cache_class_chunk_index"] == 14
     assert report["active_recommendation"]["progress_summary"]["line_count"] == 2
     assert report["active_recommendation"]["progress_summary"]["parsed_line_count"] == 2
     assert report["active_recommendation"]["progress_summary"]["cache_class_progress_percent"] == 43.75
@@ -4196,6 +4200,9 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_total_rows"] == 524288
     assert progress["cache_class_rows_done"] == 65536
     assert progress["cache_class_total"] == 262144
+    assert progress["cache_chunk_rows"] == 8192
+    assert progress["cache_chunk_index"] == 8
+    assert progress["cache_class_chunk_index"] == 8
     assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
     assert progress["cache_class_progress_percent"] == pytest.approx(25.0)
     assert progress["cache_rows_per_second"] == pytest.approx(512.0)
@@ -4219,6 +4226,7 @@ def test_monitor_health_keeps_cache_eta_null_without_progress_timestamps(tmp_pat
                 "total_rows": 524288,
                 "class_rows_done": 65536,
                 "class_total": 262144,
+                "chunk_rows": 8192,
             },
             sort_keys=True,
         )
@@ -4235,6 +4243,9 @@ def test_monitor_health_keeps_cache_eta_null_without_progress_timestamps(tmp_pat
 
     progress = report["progress_summary"]
     assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
+    assert progress["cache_chunk_rows"] == 8192
+    assert progress["cache_chunk_index"] == 8
+    assert progress["cache_class_chunk_index"] == 8
     assert progress["cache_rows_per_second"] is None
     assert progress["cache_eta_seconds"] is None
 
