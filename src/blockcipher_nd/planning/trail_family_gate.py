@@ -88,6 +88,7 @@ def gate_trail_family_result(
     if not errors and margin_vs_anchor is not None:
         calibration_not_worse = calibrated_delta_vs_anchor is None or _at_least(calibrated_delta_vs_anchor, 0.0)
         false_family_not_matching = margin_vs_false_family is not None and _at_least(margin_vs_false_family, margin)
+        candidate_beats_false_family = margin_vs_false_family is None or margin_vs_false_family > FLOAT_TOLERANCE
         if _at_least(margin_vs_anchor, margin) and calibration_not_worse and false_family_not_matching:
             decision = "support_trail_family_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
@@ -95,7 +96,7 @@ def gate_trail_family_result(
                 "trail-family features beat the InvP anchor by the required diagnostic margin "
                 "and separate from the false-family control"
             )
-        elif _at_least(margin_vs_anchor, 0.0) and calibration_not_worse:
+        elif _at_least(margin_vs_anchor, 0.0) and calibration_not_worse and candidate_beats_false_family:
             decision = "weak_trail_family_signal"
             action = "run_262k_variance_check_only_if_branch_selected"
             interpretation = (
@@ -106,8 +107,8 @@ def gate_trail_family_result(
             decision = "stop_trail_family_route"
             action = "record_tied_or_negative_evidence_and_switch_hypothesis"
             interpretation = (
-                "trail-family features do not beat the InvP anchor, or calibration regresses; "
-                "do not scale this route"
+                "trail-family features do not beat the InvP anchor, calibration regresses, "
+                "or the false-family control matches/exceeds the true route; do not scale this route"
             )
 
     return {
@@ -226,4 +227,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

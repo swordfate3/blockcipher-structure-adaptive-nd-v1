@@ -6059,6 +6059,22 @@ def test_trail_family_gate_marks_weak_or_stop_signal(tmp_path):
     assert stop["margin_vs_anchor_auc"] < 0
 
 
+def test_trail_family_gate_stops_when_false_family_control_matches_true_route(tmp_path):
+    results = tmp_path / "trail_family_false_family_matches.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7925)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7934)
+    _write_trail_family_result(results, "trail_family_consistency_false_family", 0.7934)
+
+    report = gate_trail_family_result(results, expected_rows=4, require_false_family_control=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_trail_family_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_false_family_auc"] == 0
+    assert "false-family control matches/exceeds" in report["interpretation"]
+
+
 def test_trail_family_gate_can_require_false_family_control(tmp_path):
     results = tmp_path / "trail_family_missing_false_family.jsonl"
     _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
