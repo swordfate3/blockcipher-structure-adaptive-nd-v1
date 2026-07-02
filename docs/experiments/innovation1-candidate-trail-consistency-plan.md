@@ -92,6 +92,28 @@ postprocess_allowed = false
 claim_scope = running only; no candidate-trail evidence yet
 ```
 
+Prepared conditional seed1 follow-up:
+
+```text
+run_id = i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702
+experiment_config = configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json
+remote_config = configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json
+launcher = configs/remote/generated/run_i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.cmd
+monitor = configs/remote/generated/monitor_i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.sh
+status = readiness asset only / do not launch while seed0 is running
+trigger = seed0 candidate-trail gate returns support_candidate_trail_route or weak_candidate_trail_signal
+scale = 262144/class
+seed = 1
+feature_cache_workers = 4
+claim_scope = conditional medium diagnostic confirmation or variance check only
+```
+
+This seed1 asset exists so the result-ready branch can run
+`scripts/check-remote-readiness` against a concrete config instead of stopping
+on manual config creation. It must not be launched until seed0 is retrieved,
+validated, plan-aligned, postprocessed, and the candidate-trail gate selects a
+support or weak-signal branch.
+
 ## Research Question
 
 Holding cipher, rounds, sample structure, negative mode, train/validation keys,

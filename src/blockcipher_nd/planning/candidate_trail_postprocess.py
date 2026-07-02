@@ -15,6 +15,16 @@ from blockcipher_nd.planning.candidate_trail_gate import (
 from blockcipher_nd.planning.invp_postprocess import _format_value
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 
+SEED1_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+)
+SEED1_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
+)
+SEED1_RUN_ID = "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Postprocess candidate-trail consistency results.")
@@ -152,44 +162,30 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "support_candidate_trail_route":
         return {
             "branch": "candidate_trail_seed1_confirmation",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
             "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
-            "suggested_plan_config": (
-                "configs/experiment/innovation1/"
-                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
-            ),
-            "suggested_remote_config": (
-                "configs/remote/"
-                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
-            ),
+            "suggested_plan_config": SEED1_PLAN_CONFIG,
+            "launch_remote_config": SEED1_REMOTE_CONFIG,
             "suggested_feature_cache_workers": 4,
-            "readiness_command": (
-                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<candidate-trail-seed1-config>.json"
-            ),
+            "readiness_command": _readiness_command(SEED1_REMOTE_CONFIG),
+            "run_id": SEED1_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "weak_candidate_trail_signal":
         return {
             "branch": "candidate_trail_variance_check",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
             "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
-            "suggested_plan_config": (
-                "configs/experiment/innovation1/"
-                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
-            ),
-            "suggested_remote_config": (
-                "configs/remote/"
-                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu<id>_<date>.json"
-            ),
+            "suggested_plan_config": SEED1_PLAN_CONFIG,
+            "launch_remote_config": SEED1_REMOTE_CONFIG,
             "suggested_feature_cache_workers": 4,
-            "readiness_command": (
-                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<candidate-trail-seed1-config>.json"
-            ),
+            "readiness_command": _readiness_command(SEED1_REMOTE_CONFIG),
+            "run_id": SEED1_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
         }
     if decision == "stop_candidate_trail_route":
@@ -225,21 +221,21 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Fix result retrieval, plan alignment, or gate inputs before launching another run.",
         ]
     if branch == "candidate_trail_seed1_confirmation":
+        next_action = report["next_action"]
         return [
             "Record this as positive medium diagnostic evidence only.",
-            "Write or update the candidate-trail seed1 plan/config before launch.",
-            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
-            "Run local smoke/readiness, then commit and push the seed1 assets.",
-            "Prepare a gated 262144/class seed1 confirmation before any 1M scale-up.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a gated 262144/class seed1 confirmation from the pushed commit.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
         ]
     if branch == "candidate_trail_variance_check":
+        next_action = report["next_action"]
         return [
             "Record this as weak candidate-trail evidence.",
-            "If choosing variance check, write or update the candidate-trail seed1 plan/config before launch.",
-            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
-            "Run local smoke/readiness, then commit and push the seed1 assets.",
-            "Repeat 262144/class or run a variance check before scaling.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a gated 262144/class seed1 variance check from the pushed commit, if the weak signal is worth confirming.",
+            "Hand off seed1 monitoring and retrieval to a local tmux watcher or sub-agent.",
             "Keep InvP-only and shuffled-cell controls in the next matrix.",
             "If the weak signal is not worth a seed1 variance check, use docs/experiments/innovation1-bit-transition-spectrum-plan.md as the next prepared SPN feature branch.",
         ]
@@ -258,10 +254,24 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
     next_action = report.get("next_action", {})
     if not isinstance(next_action, dict):
         next_action = {}
+    readiness_reports: list[dict[str, Any]] = []
+    for role, key in [("primary", "launch_remote_config")]:
+        config = next_action.get(key)
+        if not isinstance(config, str) or not config:
+            continue
+        readiness_reports.append(
+            {
+                "role": role,
+                "config": config,
+                "readiness": _readiness_report(Path(config)),
+            }
+        )
     should_launch_remote = bool(next_action.get("should_launch_remote"))
     requires_implementation = bool(next_action.get("requires_implementation"))
+    readiness_statuses = [item["readiness"]["status"] for item in readiness_reports]
+    readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
     return {
-        "status": "pass" if not should_launch_remote else "fail",
+        "status": "pass" if (not should_launch_remote or readiness_pass) else "fail",
         "summary": str(summary_path),
         "run_id": report.get("run_id"),
         "decision": report.get("decision"),
@@ -269,13 +279,51 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
         "branch": next_action.get("branch"),
         "should_launch_remote": should_launch_remote,
         "requires_implementation": requires_implementation,
-        "readiness_pass": False,
-        "readiness_reports": [],
+        "readiness_pass": readiness_pass,
+        "readiness_reports": readiness_reports,
         "implementation_checklist": _implementation_checklist(next_action) if requires_implementation else [],
         "next_action": next_action,
         "claim_scope": report.get("claim_scope"),
-        "errors": [] if not should_launch_remote else ["candidate-trail next_action unexpectedly requested remote launch"],
+        "errors": _next_action_readiness_errors(
+            should_launch_remote=should_launch_remote,
+            readiness_reports=readiness_reports,
+        ),
     }
+
+
+def _next_action_readiness_errors(
+    *,
+    should_launch_remote: bool,
+    readiness_reports: list[dict[str, Any]],
+) -> list[str]:
+    if not should_launch_remote:
+        return []
+    if not readiness_reports:
+        return ["next_action requests remote launch but no launch_remote_config was provided"]
+    errors: list[str] = []
+    for item in readiness_reports:
+        readiness = item["readiness"]
+        if readiness["status"] != "pass":
+            errors.append(f"{item['role']} readiness failed: {readiness.get('errors', [])}")
+    return errors
+
+
+def _readiness_report(config_path: Path) -> dict[str, Any]:
+    try:
+        from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+
+        return remote_readiness_report(config_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "fail",
+            "config": str(config_path),
+            "errors": [str(exc)],
+            "warnings": [],
+        }
+
+
+def _readiness_command(config_path: str) -> str:
+    return f"UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config {config_path}"
 
 
 def _implementation_checklist(next_action: dict[str, Any]) -> list[str]:

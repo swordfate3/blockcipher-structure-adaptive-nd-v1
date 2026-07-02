@@ -726,6 +726,51 @@ def test_candidate_trail_conditional_remote_smoke_config_is_ready_but_gated():
     assert report["errors"] == []
 
 
+def test_candidate_trail_seed1_remote_config_is_ready_but_gate_triggered():
+    path = Path("configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json")
+    config = json.loads(path.read_text(encoding="utf-8"))
+    report = remote_readiness_report(path)
+
+    assert config["plan"] == (
+        "configs\\experiment\\innovation1\\innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+    )
+    assert config["expected_rows"] == 4
+    assert config["device"] == "cuda:1"
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["validation_key"] == "0x11111111111111111111"
+    assert config["key_rotation_interval"] == 0
+    assert config["feature_cache_workers"] == 4
+    assert config["dataset_cache_workers"] == 4
+    assert config["feature_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "support_candidate_trail_route or weak_candidate_trail_signal" in config["launch_policy"]
+    assert "not paper-scale" in config["claim_scope"]
+    assert "not formal" in config["claim_scope"]
+
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 4
+    assert report["expected_rows"] == 4
+    assert report["max_samples_per_class"] == 262144
+    assert report["errors"] == []
+    assert "candidate_trail_protocol_lock" in report["checked_invariants"]
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert not any("feature_cache_workers=1" in warning for warning in report["warnings"])
+
+    plan = json.loads(
+        Path("configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert plan["common"]["seed"] == 1
+    assert plan["common"]["feature_cache_workers"] == 4
+    assert plan["rows"][0]["row_type"] == "external_anchor"
+    assert plan["rows"][0]["model"] == "present_nibble_invp_only_spn_only"
+    assert plan["rows"][0]["anchor_auc"] == pytest.approx(0.7931563919119071)
+    assert {row["model"] for row in plan["rows"][1:]} == {"linear", "mlp", "shuffled_cells"}
+
+
 def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     plan = Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md").read_text(
         encoding="utf-8"
@@ -753,8 +798,15 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701" in plan
     assert "decision = stop_topology_aware_network_route" in plan
     assert "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702" in plan
+    assert "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702" in plan
+    assert "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json" in plan
+    assert "feature_cache_workers = 4" in plan
     assert (
         "configs/remote/generated/run_i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.cmd"
+        in plan
+    )
+    assert (
+        "configs/remote/generated/run_i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.cmd"
         in plan
     )
     assert "topology-aware network   -> true P-layer message passing over InvP cells" in plan
@@ -5264,15 +5316,18 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert report["status"] == "pass"
     assert report["decision"] == "support_candidate_trail_route"
     assert report["next_action"]["branch"] == "candidate_trail_seed1_confirmation"
-    assert report["next_action"]["should_launch_remote"] is False
-    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
     assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
     assert "candidate_trail_consistency_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
+    )
+    assert report["next_action"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
     assert report["next_action"]["suggested_feature_cache_workers"] == 4
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
-    assert "launch_remote_config" not in report["next_action"]
-    assert any("seed1 plan/config" in step for step in report["next_steps"])
-    assert any("feature_cache_workers" in step and "at least 4" in step for step in report["next_steps"])
+    assert report["next_action"]["launch_remote_config"] in report["next_action"]["readiness_command"]
+    assert any("seed1 confirmation" in step for step in report["next_steps"])
     assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()
@@ -5281,9 +5336,10 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
     assert readiness["status"] == "pass"
     assert readiness["branch"] == "candidate_trail_seed1_confirmation"
-    assert readiness["should_launch_remote"] is False
-    assert readiness["requires_implementation"] is True
-    assert readiness["readiness_pass"] is False
+    assert readiness["should_launch_remote"] is True
+    assert readiness["requires_implementation"] is False
+    assert readiness["readiness_pass"] is True
+    assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
     assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Candidate-Trail Consistency Result" in plan_text
@@ -5353,10 +5409,17 @@ def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths
     assert report["status"] == "pass"
     assert report["decision"] == "weak_candidate_trail_signal"
     assert report["next_action"]["branch"] == "candidate_trail_variance_check"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
     assert report["next_action"]["fallback_plan"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
     assert "candidate_trail_consistency_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
+    )
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
-    assert any("seed1 plan/config" in step for step in report["next_steps"])
+    assert any("seed1 variance check" in step for step in report["next_steps"])
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["readiness_pass"] is True
 
 
 def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
