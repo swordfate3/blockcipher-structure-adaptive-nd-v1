@@ -1361,8 +1361,9 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     invp1 = root / "i1_invp_only_r7_1m_seed1_gpu1_20260629"
     attribution = root / "i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630"
     ddt = root / "i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"
+    topology = root / "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701"
     candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
-    for path in [invp0, invp1, attribution, ddt, candidate / "monitor"]:
+    for path in [invp0, invp1, attribution, ddt, topology, candidate / "monitor"]:
         path.mkdir(parents=True)
 
     _write_test_json(
@@ -1413,6 +1414,17 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
             "decision": "weak_ddt_graph_signal",
             "margin_vs_best_control_auc": 0.000626281631,
             "claim_scope": "262144/class medium diagnostic DDT graph gate",
+            "next_action": {"branch": "ddt_graph_seed1_variance_check", "should_launch_remote": True},
+        },
+    )
+    _write_test_json(
+        topology / "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_postprocess_summary.json",
+        {
+            "run_id": "i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_topology_aware_network_route",
+            "claim_scope": "262144/class medium diagnostic topology-aware network gate",
         },
     )
     (candidate / "monitor" / "monitor.log").write_text("2026-07-02T16:54:00+08:00 running\n")
@@ -1420,7 +1432,7 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     report = summarize_spn_evidence(root)
 
     assert report["status"] == "pass"
-    assert report["summaries_scanned"] == 4
+    assert report["summaries_scanned"] == 5
     assert report["strongest_route"]["decision"] == "support_invp_structural_attribution"
     assert report["strongest_route"]["evidence_level"] == (
         "two_seed_1000000_class_positive_with_attribution_control"
@@ -1429,6 +1441,11 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
     by_run_id = {route["run_id"]: route for route in report["routes"]}
     assert by_run_id["i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"]["evidence_scale"] == "medium_diagnostic"
+    assert by_run_id["i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"]["route_state"] == "superseded"
+    assert by_run_id["i1_spn_ddt_graph_r7_262k_seed1_gpu1_20260630"]["effective_next_action"] == {
+        "should_launch_remote": False,
+        "reason": "superseded_by_later_route_decision",
+    }
     assert by_run_id["i1_invp_only_r7_1m_seed0_gpu1_20260629"]["evidence_scale"] == (
         "paper_scale_single_seed"
     )

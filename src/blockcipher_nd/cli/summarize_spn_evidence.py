@@ -22,7 +22,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def summarize_spn_evidence(root: Path) -> dict[str, Any]:
     summaries = [_load_summary(path) for path in sorted(root.glob("*/*_postprocess_summary.json"))]
-    routes = sorted((_route_summary(summary) for summary in summaries), key=_route_sort_key)
+    route_states = _route_states(summaries)
+    routes = sorted((_route_summary(summary, route_states) for summary in summaries), key=_route_sort_key)
     strongest_route = _strongest_route(routes)
     active = _active_recommendation(root, routes)
     return {
@@ -48,19 +49,52 @@ def _load_summary(path: Path) -> dict[str, Any]:
     return data
 
 
-def _route_summary(summary: dict[str, Any]) -> dict[str, Any]:
+def _route_summary(summary: dict[str, Any], route_states: dict[str, str]) -> dict[str, Any]:
     run_id = str(summary.get("run_id") or _infer_run_id_from_path(summary))
+    raw_next_action = _compact_next_action(summary.get("next_action"))
+    route_state = route_states.get(run_id, "current_or_historical")
     return {
         "run_id": run_id,
         "decision": summary.get("decision"),
         "status": summary.get("status"),
         "validation_status": summary.get("validation_status"),
+        "route_state": route_state,
         "evidence_scale": _evidence_scale(summary, run_id),
         "claim_scope": summary.get("claim_scope"),
         "metrics": _metrics(summary),
         "summary": summary.get("summary") or summary.get("_summary_path"),
-        "next_action": _compact_next_action(summary.get("next_action")),
+        "next_action": raw_next_action,
+        "effective_next_action": _effective_next_action(route_state, raw_next_action),
     }
+
+
+def _route_states(summaries: list[dict[str, Any]]) -> dict[str, str]:
+    decisions = {str(summary.get("decision") or "") for summary in summaries}
+    has_candidate_trail_decision = any(
+        decision.startswith(("support_candidate", "weak_candidate", "stop_candidate"))
+        for decision in decisions
+    )
+    has_topology_stop = "stop_topology_aware_network_route" in decisions
+    states: dict[str, str] = {}
+    for summary in summaries:
+        run_id = str(summary.get("run_id") or _infer_run_id_from_path(summary))
+        decision = str(summary.get("decision") or "")
+        if decision == "weak_ddt_graph_signal" and (has_topology_stop or has_candidate_trail_decision):
+            states[run_id] = "superseded"
+        elif decision == "weak_topology_aware_network_signal" and has_topology_stop:
+            states[run_id] = "superseded"
+        else:
+            states[run_id] = "current_or_historical"
+    return states
+
+
+def _effective_next_action(route_state: str, raw_next_action: dict[str, Any]) -> dict[str, Any]:
+    if route_state == "superseded":
+        return {
+            "should_launch_remote": False,
+            "reason": "superseded_by_later_route_decision",
+        }
+    return raw_next_action
 
 
 def _infer_run_id_from_path(summary: dict[str, Any]) -> str:
