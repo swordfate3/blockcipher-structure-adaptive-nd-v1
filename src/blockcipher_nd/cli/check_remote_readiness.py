@@ -117,6 +117,11 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     candidate_consistency = _candidate_trail_consistency(config, tasks, plan_is_json_matrix=plan_is_json_matrix)
     errors.extend(candidate_consistency["errors"])
     warnings.extend(candidate_consistency["warnings"])
+    transition_consistency = _transition_spectrum_consistency(
+        config, tasks, plan_is_json_matrix=plan_is_json_matrix
+    )
+    errors.extend(transition_consistency["errors"])
+    warnings.extend(transition_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
@@ -134,6 +139,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("medium_scale_dataset_cache")
     if _is_candidate_trail_config(config):
         checked_invariants.append("candidate_trail_protocol_lock")
+    if _is_transition_spectrum_config(config):
+        checked_invariants.append("transition_spectrum_protocol_lock")
     if _is_pairset_aggregation_config(config):
         checked_invariants.append("pairset_aggregation_stage_lock")
 
@@ -292,6 +299,58 @@ def _candidate_trail_consistency(
     return {"errors": errors, "warnings": warnings}
 
 
+def _transition_spectrum_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    *,
+    plan_is_json_matrix: bool,
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_transition_spectrum_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_values = {
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+    }
+    for field, expected in expected_values.items():
+        observed = config.get(field)
+        if observed != expected:
+            errors.append(f"transition_spectrum {field}={observed} expected={expected}")
+
+    runner_script = _str_value(config.get("runner_script"))
+    if plan_is_json_matrix and runner_script != "scripts/spn-transition-spectrum-matrix":
+        errors.append(
+            "transition_spectrum JSON matrix remote config must set "
+            "runner_script=scripts/spn-transition-spectrum-matrix"
+        )
+    if not plan_is_json_matrix and runner_script and runner_script != "scripts/spn-transition-spectrum":
+        errors.append(f"transition_spectrum single JSON plan runner_script unsupported: {runner_script}")
+
+    planned_models = {_str_value(task.get("model")) for task in tasks}
+    required_models = {"linear", "mlp", "shuffled_p"}
+    if plan_is_json_matrix and tasks and not required_models.issubset(planned_models):
+        errors.append(
+            "transition_spectrum JSON matrix must include linear, mlp, and shuffled_p rows: "
+            f"{sorted(planned_models)}"
+        )
+
+    cache_root = _str_value(config.get("feature_cache_root")) or _str_value(config.get("dataset_cache_root"))
+    if not cache_root:
+        errors.append("transition_spectrum missing feature_cache_root or dataset_cache_root")
+    elif not cache_root.startswith(REMOTE_ROOT):
+        errors.append(f"transition_spectrum cache root must stay under {REMOTE_ROOT}: {cache_root}")
+
+    feature_cache_workers = _int_value(config.get("feature_cache_workers", config.get("dataset_cache_workers", 1)))
+    if feature_cache_workers is None or feature_cache_workers < 1:
+        errors.append("transition_spectrum feature_cache_workers must be >= 1")
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _plan_is_json_matrix(plan_path: Path) -> bool:
     if plan_path.suffix.lower() != ".json" or not plan_path.exists():
         return False
@@ -354,6 +413,30 @@ def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
         "spn-candidate-evidence",
         "candidate_evidence",
         "candidate-evidence",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_transition_spectrum_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "launch_policy",
+            "route",
+            "experiment_route",
+            "runner_script",
+        ]
+    ).lower()
+    markers = [
+        "transition_spectrum",
+        "transition-spectrum",
+        "bit_transition_spectrum",
+        "bit-transition-spectrum",
+        "spn-transition-spectrum",
     ]
     return any(marker in haystack for marker in markers)
 
