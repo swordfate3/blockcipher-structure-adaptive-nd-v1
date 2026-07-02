@@ -388,15 +388,19 @@ claim_scope = smoke/readiness only, not model evidence
 
 ### Task 4: Add Medium Plan/Remote Config
 
-Status: seed0 readiness assets prepared; launch remains blocked by trigger.
+Status: seed0 and seed1 readiness assets prepared; launches remain blocked by gate.
 
 Created files:
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_trail_family_r7_262k_seed0.json
+configs/experiment/innovation1/innovation1_spn_present_trail_family_r7_262k_seed1.json
 configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
+configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json
 configs/remote/generated/run_i1_trail_family_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/run_i1_trail_family_r7_262k_seed1_gpu1_20260702.cmd
 configs/remote/generated/monitor_i1_trail_family_r7_262k_seed0_gpu1_20260702.sh
+configs/remote/generated/monitor_i1_trail_family_r7_262k_seed1_gpu1_20260702.sh
 ```
 
 Medium seed0 matrix:
@@ -415,11 +419,31 @@ monitor = local tmux watcher / sub-agent, with postprocess-trail-family
 claim_scope = medium diagnostic only
 ```
 
+Medium seed1 confirmation / variance-check matrix:
+
+```text
+run_id = i1_trail_family_r7_262k_seed1_gpu1_20260702
+scale = 262144/class
+seed = 1
+device = cuda:1
+feature_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\trail_family_cache
+feature_cache_workers = 4
+rows = external InvP anchor, linear, mlp, false_family
+expected_rows = 4
+runner_script = scripts/spn-trail-family-matrix
+monitor = local tmux watcher / sub-agent, with postprocess-trail-family
+launch_gate = support_trail_family_route or weak_trail_family_signal from seed0
+claim_scope = medium diagnostic confirmation/variance only
+```
+
 Launch rule:
 
 ```text
 do not launch the medium remote config until candidate-trail and
 transition-spectrum gates select or explicitly document this branch
+
+do not launch seed1 until seed0 is retrieved, validated, plan-aligned, and
+postprocessed as support_trail_family_route or weak_trail_family_signal
 ```
 
 ## Readiness Requirements
@@ -431,6 +455,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "
 
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
   --config configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json
 ```
 
 The readiness gate must enforce:
@@ -450,7 +477,7 @@ expected_rows = 4
 
 ```text
 local smoke runner/gate/postprocess implemented
-medium seed0 plan/remote/launcher/monitor prepared
+medium seed0 and seed1 plan/remote/launcher/monitor prepared
 waiting for candidate-trail seed0 gate, then transition-spectrum gate if selected
 ```
 

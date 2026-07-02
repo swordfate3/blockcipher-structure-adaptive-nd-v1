@@ -898,9 +898,11 @@ def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
     assert "scripts/spn-trail-family-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
     assert "implementation_status = local smoke runner/gate/postprocess implemented" in plan
-    assert "medium seed0 readiness assets prepared" in plan
+    assert "medium seed0 and seed1 plan/remote/launcher/monitor prepared" in plan
     assert "remote_config_status = prepared but gated; do not launch until trigger" in plan
     assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
+    assert "i1_trail_family_r7_262k_seed1_gpu1_20260702" in plan
+    assert "support_trail_family_route or weak_trail_family_signal from seed0" in plan
     assert "This implementation is not result evidence" in plan
     assert "scripts/gate-trail-family" in plan
     assert "scripts/postprocess-trail-family" in plan
@@ -5368,6 +5370,20 @@ def test_prepared_trail_family_seed0_remote_readiness_passes():
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
 
 
+def test_prepared_trail_family_seed1_remote_readiness_passes():
+    report = remote_readiness_report(
+        Path("configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json")
+    )
+
+    assert report["status"] == "pass"
+    assert report["run_id"] == "i1_trail_family_r7_262k_seed1_gpu1_20260702"
+    assert report["expected_rows"] == 4
+    assert report["plan_rows"] == 4
+    assert report["max_samples_per_class"] == 262144
+    assert "trail_family_protocol_lock" in report["checked_invariants"]
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+
 def test_remote_readiness_gate_rejects_bad_trail_family_matrix_plan(tmp_path):
     plan = _write_trail_family_remote_plan(tmp_path, include_false_family=False)
     config = _trail_family_remote_config(plan, expected_rows=3)
@@ -6316,16 +6332,19 @@ def test_trail_family_postprocess_writes_summary_and_next_action_readiness(tmp_p
     assert report["status"] == "pass"
     assert report["decision"] == "support_trail_family_route"
     assert report["next_action"]["branch"] == "trail_family_seed1_confirmation"
-    assert report["next_action"]["should_launch_remote"] is False
-    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert "trail_family_r7_262k_seed1" in report["next_action"]["launch_remote_config"]
     assert Path(report["trail_family_gate"]).exists()
     assert Path(report["summary"]).exists()
     assert Path(report["summary_markdown"]).exists()
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["branch"] == "trail_family_seed1_confirmation"
     assert readiness["status"] == "pass"
-    assert readiness["should_launch_remote"] is False
-    assert readiness["implementation_checklist"]
+    assert readiness["should_launch_remote"] is True
+    assert readiness["readiness_pass"] is True
+    assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["implementation_checklist"] == []
     assert "Trail-Family Result" in plan_doc.read_text(encoding="utf-8")
 
 
