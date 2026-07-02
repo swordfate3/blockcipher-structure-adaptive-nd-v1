@@ -25,6 +25,10 @@ experiment-plan Markdown update via `--update-plan-doc`.
 Use `scripts/monitor-health` for a bounded local health check of a remote-result
 monitor directory. It reads local artifacts and optionally checks one tmux
 session once; it does not SSH-poll or supervise a remote run.
+If the tmux socket check itself fails in a restricted local environment, read
+`tmux_interpretation` together with `heartbeat` and
+`needs_main_thread_intervention`; a fresh heartbeat with status `running` means
+the socket check error alone is not evidence that the watcher stopped.
 It emits `postprocess_command` only for `result_ready`, which requires a
 retrieved JSONL with at least one non-empty row. `completed_missing_results`
 means a done marker exists but the JSONL is missing; `results_empty` means the

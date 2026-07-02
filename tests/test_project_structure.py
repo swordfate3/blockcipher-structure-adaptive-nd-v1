@@ -3837,6 +3837,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["results_jsonl_exists"] is False
     assert report["results_jsonl_line_count"] == 0
     assert report["heartbeat"]["is_stale"] is False
+    assert report["tmux_interpretation"]["state"] == "not_checked"
     assert report["artifact_files"] == [
         "monitor/monitor.log",
         "monitor/monitor_ssh_stderr.log",
@@ -4900,6 +4901,15 @@ def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
 
 
 def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
+    tmux = {
+        "checked": True,
+        "session": "unit",
+        "exists": None,
+        "returncode": 1,
+        "stderr": "error connecting to /tmp/tmux-1000/default (Operation not permitted)",
+        "check_error": True,
+    }
+    heartbeat = {"is_stale": False}
     status = _health_status(
         run_root_exists=True,
         has_synced_remote_artifacts=False,
@@ -4918,18 +4928,16 @@ def test_monitor_health_does_not_treat_tmux_check_error_as_missing_session():
         },
         launch_state={"is_stalled": False},
         recent_monitor_lines=["2026-06-29T16:38:40+08:00 running"],
-        heartbeat={"is_stale": False},
-        tmux={
-            "checked": True,
-            "session": "unit",
-            "exists": None,
-            "returncode": 1,
-            "stderr": "error connecting to /tmp/tmux-1000/default (Operation not permitted)",
-            "check_error": True,
-        },
+        heartbeat=heartbeat,
+        tmux=tmux,
     )
 
     assert status == "running"
+    from blockcipher_nd.cli.monitor_health import _tmux_interpretation
+
+    interpretation = _tmux_interpretation(tmux, heartbeat, status)
+    assert interpretation["state"] == "check_error_but_heartbeat_fresh"
+    assert "do not treat this as a stopped watcher" in interpretation["message"]
 
 
 def test_seed1_remote_readiness_gate_passes_for_prepared_invp_confirmation():

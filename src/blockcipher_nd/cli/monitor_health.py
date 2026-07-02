@@ -136,6 +136,7 @@ def monitor_health_report(
         done_markers=done_markers,
         auxiliary_artifacts=auxiliary_artifacts,
     )
+    tmux_interpretation = _tmux_interpretation(tmux, heartbeat, status)
     postprocess_command = _postprocess_command(
         status=status,
         run_id=run_id,
@@ -152,6 +153,7 @@ def monitor_health_report(
         "run_root": str(run_root),
         "run_root_exists": run_root.exists(),
         "tmux": tmux,
+        "tmux_interpretation": tmux_interpretation,
         "monitor_log": str(monitor_log),
         "monitor_log_exists": monitor_log.exists(),
         "recent_monitor_lines": recent_monitor_lines,
@@ -670,6 +672,41 @@ def _tmux_status(session: str | None) -> dict[str, Any]:
         "returncode": process.returncode,
         "stderr": stderr,
         "check_error": check_error,
+    }
+
+
+def _tmux_interpretation(tmux: dict[str, Any], heartbeat: dict[str, Any], status: str) -> dict[str, Any]:
+    if not tmux.get("checked"):
+        return {
+            "state": "not_checked",
+            "message": "No tmux session was requested; rely on monitor artifacts and heartbeat.",
+        }
+    if tmux.get("exists") is True:
+        return {
+            "state": "session_present",
+            "message": "The requested local tmux watcher session exists.",
+        }
+    if tmux.get("exists") is False:
+        return {
+            "state": "session_missing",
+            "message": "The requested local tmux watcher session is missing.",
+        }
+    if tmux.get("check_error") and not heartbeat.get("is_stale") and status == "running":
+        return {
+            "state": "check_error_but_heartbeat_fresh",
+            "message": (
+                "tmux has-session could not inspect the socket, but the local monitor heartbeat is fresh; "
+                "do not treat this as a stopped watcher without a stale heartbeat or intervention flag."
+            ),
+        }
+    if tmux.get("check_error"):
+        return {
+            "state": "check_error",
+            "message": "tmux has-session failed; inspect heartbeat and needs_main_thread_intervention before acting.",
+        }
+    return {
+        "state": "unknown",
+        "message": "tmux status was inconclusive; rely on the overall monitor-health status.",
     }
 
 
