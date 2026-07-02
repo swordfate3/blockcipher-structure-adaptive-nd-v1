@@ -194,7 +194,7 @@ def _default_plan_config_for_branch(branch: str) -> str | None:
         ),
         "stop_trail_family_route": (
             "configs/experiment/innovation1/"
-            "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed0.json"
+            "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv"
         ),
     }.get(branch)
 

@@ -3219,6 +3219,11 @@ def test_plan_next_action_maps_spn_followup_branches_to_plans(tmp_path):
             "docs/experiments/innovation1-trail-family-consistency-plan.md",
             "innovation1_spn_present_trail_family_r7_262k_seed0.json",
         ),
+        (
+            "stop_trail_family_route",
+            "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+            "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv",
+        ),
     ]
     for branch, expected_plan_doc, expected_plan_config in cases:
         summary = tmp_path / f"{branch}.json"
@@ -3298,8 +3303,9 @@ def test_ddt_graph_postprocess_updates_plan_doc(tmp_path):
     assert readiness["status"] == "pass"
     assert readiness["branch"] == "ddt_graph_seed1_confirmation"
     assert readiness["readiness_pass"] is True
-    assert [item["role"] for item in readiness["readiness_reports"]] == ["primary"]
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
     markdown = (output_dir / "unit_ddt_graph_postprocess_summary.md").read_text()
     assert "support_ddt_graph_route" in markdown
     assert "present_nibble_ddt_graph" in markdown
@@ -6346,6 +6352,40 @@ def test_trail_family_postprocess_writes_summary_and_next_action_readiness(tmp_p
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
     assert readiness["implementation_checklist"] == []
     assert "Trail-Family Result" in plan_doc.read_text(encoding="utf-8")
+
+
+def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_path):
+    results = tmp_path / "trail_family_stop.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7910)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7915)
+    _write_trail_family_result(results, "trail_family_consistency_false_family", 0.7917)
+    output_dir = tmp_path / "stop_postprocess"
+
+    report = postprocess_trail_family_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="trail_family_stop_unit",
+        expected_rows=4,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_trail_family_route"
+    assert report["next_action"]["branch"] == "stop_trail_family_route"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["fallback_branch"] == "pairset_aggregation_control"
+    assert "pairset_aggregation_control_single_pair_r7_262k" in report["next_action"]["stage_a_remote_config"]
+    assert "pairset_aggregation_control_r7_262k" in report["next_action"]["launch_remote_config"]
+    assert any("Launch stage A" in step for step in report["next_steps"])
+
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "stop_trail_family_route"
+    assert readiness["readiness_pass"] is True
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
 
 
 def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):

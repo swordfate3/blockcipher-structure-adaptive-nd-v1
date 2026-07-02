@@ -24,6 +24,24 @@ SEED1_REMOTE_CONFIG = (
     "innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json"
 )
 SEED1_RUN_ID = "i1_trail_family_r7_262k_seed1_gpu1_20260702"
+PAIRSET_STAGE_A_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k.csv"
+)
+PAIRSET_STAGE_B_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv"
+)
+PAIRSET_STAGE_A_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
+)
+PAIRSET_STAGE_B_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json"
+)
+PAIRSET_STAGE_A_RUN_ID = "i1_pairset_single_pair_scorer_r7_262k_seed0_gpu1_20260630"
+PAIRSET_STAGE_B_RUN_ID = "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -196,16 +214,31 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "stop_trail_family_route":
         return {
             "branch": "stop_trail_family_route",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
+            "fallback_branch": "pairset_aggregation_control",
+            "next_plan_doc": "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+            "stage_a_plan_config": PAIRSET_STAGE_A_PLAN_CONFIG,
+            "suggested_plan_config": PAIRSET_STAGE_B_PLAN_CONFIG,
+            "stage_a_remote_config": PAIRSET_STAGE_A_REMOTE_CONFIG,
+            "launch_remote_config": PAIRSET_STAGE_B_REMOTE_CONFIG,
+            "stage_a_run_id": PAIRSET_STAGE_A_RUN_ID,
+            "run_id": PAIRSET_STAGE_B_RUN_ID,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {PAIRSET_STAGE_A_REMOTE_CONFIG} && "
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {PAIRSET_STAGE_B_REMOTE_CONFIG}"
+            ),
+            "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
-                "docs/research/spn_structured_nn_research_plan.md",
                 "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+                "docs/research/spn_structured_nn_research_plan.md",
             ],
             "fallback_hypotheses": [
-                "active_pattern_auxiliary_head",
                 "pair_set_evidence_pooling",
+                "active_pattern_auxiliary_head",
                 "cross_cipher_gift_skinny_transfer",
             ],
         }
@@ -243,11 +276,14 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Keep InvP-only and false-family controls in the next matrix.",
         ]
     if branch == "stop_trail_family_route":
+        next_action = report["next_action"]
         return [
             "Record this as tied or negative trail-family evidence.",
             "Do not scale trail-family as a main route.",
-            "Write a new docs/experiments plan before launching the next hypothesis.",
-            "Switch to active-pattern auxiliary head, pair-set evidence pooling, or cross-cipher transfer planning.",
+            f"Run the staged remote readiness gates: {next_action['readiness_command']}",
+            f"Launch stage A {next_action['stage_a_remote_config']} before stage B {next_action['launch_remote_config']}.",
+            "Hand off monitoring and retrieval to a local tmux watcher or sub-agent.",
+            "Treat pair-set aggregation as diagnostic attribution control, not formal route evidence.",
         ]
     return ["Review the trail-family gate manually before launching another experiment."]
 
@@ -259,15 +295,19 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
     should_launch_remote = bool(next_action.get("should_launch_remote"))
     requires_implementation = bool(next_action.get("requires_implementation"))
     readiness_reports: list[dict[str, Any]] = []
-    config = next_action.get("launch_remote_config")
-    if isinstance(config, str) and config:
-        readiness_reports.append(
-            {
-                "role": "primary",
-                "config": config,
-                "readiness": _readiness_report(Path(config)),
-            }
-        )
+    for role, key in [
+        ("stage_a", "stage_a_remote_config"),
+        ("primary", "launch_remote_config"),
+    ]:
+        config = next_action.get(key)
+        if isinstance(config, str) and config:
+            readiness_reports.append(
+                {
+                    "role": role,
+                    "config": config,
+                    "readiness": _readiness_report(Path(config)),
+                }
+            )
     readiness_statuses = [item["readiness"]["status"] for item in readiness_reports]
     readiness_pass = bool(readiness_reports) and all(status == "pass" for status in readiness_statuses)
     return {
