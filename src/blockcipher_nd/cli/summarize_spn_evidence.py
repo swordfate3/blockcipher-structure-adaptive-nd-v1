@@ -325,21 +325,75 @@ def _candidate_postprocess_command(run_root: Path) -> str:
 
 def _recommend_from_candidate_decision(route: dict[str, Any]) -> dict[str, Any]:
     decision = route["decision"]
-    if decision == "support_candidate_trail_route":
-        branch = "candidate_trail_seed1_confirmation"
-    elif decision == "weak_candidate_trail_signal":
-        branch = "candidate_trail_seed1_variance_check"
-    elif decision == "stop_candidate_trail_route":
-        branch = "bit_transition_spectrum_seed0"
-    else:
-        branch = "manual_review"
+    next_action = _candidate_decision_next_action(str(decision), route["next_action"])
     return {
-        "branch": branch,
+        "branch": next_action["branch"],
         "run_id": route["run_id"],
         "decision": decision,
         "should_launch_remote": False,
         "reason": "candidate-trail summary is available; follow its gated branch after docs/update checks",
-        "next_action": route["next_action"],
+        "next_action": next_action,
+    }
+
+
+def _candidate_decision_next_action(decision: str, raw_next_action: dict[str, Any]) -> dict[str, Any]:
+    if decision == "support_candidate_trail_route":
+        return {
+            **raw_next_action,
+            "branch": "candidate_trail_seed1_confirmation",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+            ),
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<candidate-trail-seed1-config>.json"
+            ),
+        }
+    if decision == "weak_candidate_trail_signal":
+        return {
+            **raw_next_action,
+            "branch": "candidate_trail_seed1_variance_check",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1.json"
+            ),
+            "suggested_feature_cache_workers": 4,
+            "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<candidate-trail-seed1-config>.json"
+            ),
+        }
+    if decision == "stop_candidate_trail_route":
+        return {
+            **raw_next_action,
+            "branch": "bit_transition_spectrum_seed0",
+            "should_launch_remote": False,
+            "requires_implementation": True,
+            "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
+            ),
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<transition-spectrum-medium-config>.json"
+            ),
+        }
+    return {
+        **raw_next_action,
+        "branch": "manual_review",
+        "should_launch_remote": False,
+        "requires_implementation": False,
     }
 
 

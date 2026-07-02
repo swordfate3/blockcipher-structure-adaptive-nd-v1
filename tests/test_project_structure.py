@@ -1516,6 +1516,42 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert by_run_id["i1_invp_only_r7_1m_seed1_gpu1_20260629"]["route_state"] == "superseded"
 
 
+def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp_path):
+    root = tmp_path / "remote_results"
+    candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
+    candidate.mkdir(parents=True)
+    _write_test_json(
+        candidate / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_candidate_trail_route",
+            "claim_scope": "candidate-trail consistency diagnostic gate",
+            "best_candidate_auc": 0.7915,
+            "anchor_auc": 0.7920,
+            "shuffled_auc": 0.7921,
+            "next_action": {
+                "branch": "stop_candidate_trail_route",
+                "should_launch_remote": False,
+                "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            },
+        },
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "bit_transition_spectrum_seed0"
+    assert active["decision"] == "stop_candidate_trail_route"
+    assert active["should_launch_remote"] is False
+    assert active["next_action"]["requires_implementation"] is True
+    assert active["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "bit_transition_spectrum_r7_262k_seed0" in active["next_action"]["suggested_plan_config"]
+    assert active["next_action"]["suggested_feature_cache_workers"] == 4
+    assert "scripts/check-remote-readiness" in active["next_action"]["readiness_command"]
+
+
 def _write_test_json(path: Path, payload: dict):
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
