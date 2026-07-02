@@ -105,8 +105,10 @@ def postprocess_candidate_trail_result(
 
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
+    report["next_action_readiness"] = str(next_action_readiness_path)
 
     update_paths = plan_doc_paths or []
     if update_paths:
@@ -116,6 +118,7 @@ def postprocess_candidate_trail_result(
         report["plan_doc"] = str(update_paths[0])
 
     _write_json(summary_path, report)
+    _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -243,6 +246,28 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     return ["Review the candidate-trail gate manually before launching another experiment."]
 
 
+def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    next_action = report.get("next_action", {})
+    if not isinstance(next_action, dict):
+        next_action = {}
+    should_launch_remote = bool(next_action.get("should_launch_remote"))
+    return {
+        "status": "pass" if not should_launch_remote else "fail",
+        "summary": str(summary_path),
+        "run_id": report.get("run_id"),
+        "decision": report.get("decision"),
+        "action": report.get("action"),
+        "branch": next_action.get("branch"),
+        "should_launch_remote": should_launch_remote,
+        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "readiness_pass": False,
+        "readiness_reports": [],
+        "next_action": next_action,
+        "claim_scope": report.get("claim_scope"),
+        "errors": [] if not should_launch_remote else ["candidate-trail next_action unexpectedly requested remote launch"],
+    }
+
+
 def _markdown_summary(report: dict[str, Any]) -> str:
     return "\n".join(
         [
@@ -275,6 +300,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- validation_report: `{report['validation_report']}`",
             f"- candidate_trail_gate: `{report['candidate_trail_gate']}`",
             f"- summary: `{report['summary']}`",
+            f"- next_action_readiness: `{report['next_action_readiness']}`",
             *( [f"- plan_docs: `{'; '.join(report['plan_docs'])}`"] if "plan_docs" in report else [] ),
             "",
         ]
@@ -305,6 +331,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Candidate-trail gate", report["candidate_trail_gate"]),
         ("Summary JSON", report["summary"]),
         ("Summary Markdown", report["summary_markdown"]),
+        ("Next action readiness", report["next_action_readiness"]),
     ]
     lines = [f"### {report['run_id']} Candidate-Trail Consistency Result", "", "| Field | Value |", "|---|---|"]
     lines.extend(f"| {field} | `{value}` |" for field, value in rows)

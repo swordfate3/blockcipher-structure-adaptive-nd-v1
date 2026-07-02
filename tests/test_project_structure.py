@@ -4996,10 +4996,20 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert (output_dir / "candidate_trail_unit_candidate_trail_gate.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.json").exists()
     assert (output_dir / "candidate_trail_unit_postprocess_summary.md").exists()
+    readiness_path = output_dir / "candidate_trail_unit_next_action_readiness.json"
+    assert readiness_path.exists()
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "candidate_trail_seed1_confirmation"
+    assert readiness["should_launch_remote"] is False
+    assert readiness["requires_implementation"] is True
+    assert readiness["readiness_pass"] is False
+    assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Candidate-Trail Consistency Result" in plan_text
     assert "<!-- candidate-trail-postprocess:candidate_trail_unit:start -->" in plan_text
     assert "| Decision | `support_candidate_trail_route` |" in plan_text
+    assert "| Next action readiness | `" in plan_text
 
     postprocess_candidate_trail_result(
         results_path=results,
@@ -5035,6 +5045,9 @@ def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert any("bit-transition-spectrum" in step for step in report["next_steps"])
     assert "launch_remote_config" not in report["next_action"]
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "stop_candidate_trail_route"
+    assert readiness["next_action"]["fallback_branch"] == "bit_transition_spectrum_seed0"
 
 
 def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths(tmp_path):
