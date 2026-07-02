@@ -313,16 +313,17 @@ def _cached_dataset(
     )
     features = np.lib.format.open_memmap(features_path, mode="w+", dtype=np.float32, shape=(total_rows, feature_dim))
     labels = np.lib.format.open_memmap(labels_path, mode="w+", dtype=np.uint8, shape=(total_rows,))
-    generated_features, generated_labels = _generate_dataset(
+    _fill_dataset(
         config=config,
+        features=features,
+        labels=labels,
         metadata=metadata,
         chunk_size=chunk_size,
         workers=workers,
         progress_output=progress_output,
         cache_dir=cache_dir,
     )
-    features[:] = generated_features
-    labels[:] = generated_labels
+    _write_progress(progress_output, "transition_spectrum_cache_flush_start", {**metadata, "cache_dir": str(cache_dir)})
     features.flush()
     labels.flush()
     metadata_path.write_text(json.dumps(metadata, sort_keys=True, indent=2) + "\n", encoding="utf-8")
@@ -353,6 +354,30 @@ def _generate_dataset(
     feature_dim = int(metadata["feature_dim"])
     features = np.empty((total_rows, feature_dim), dtype=np.float32)
     labels = np.empty((total_rows,), dtype=np.uint8)
+    _fill_dataset(
+        config=config,
+        features=features,
+        labels=labels,
+        metadata=metadata,
+        chunk_size=chunk_size,
+        workers=workers,
+        progress_output=progress_output,
+        cache_dir=cache_dir,
+    )
+    return features, labels
+
+
+def _fill_dataset(
+    *,
+    config: DifferentialDatasetConfig,
+    features: np.ndarray,
+    labels: np.ndarray,
+    metadata: dict[str, Any],
+    chunk_size: int,
+    workers: int,
+    progress_output: Path | None = None,
+    cache_dir: Path | None = None,
+) -> None:
     row_index = 0
     for start, count, chunk in _iter_chunks(config=config, metadata=metadata, chunk_size=chunk_size, workers=workers, label=1):
         features[row_index : row_index + count] = chunk
@@ -389,7 +414,8 @@ def _generate_dataset(
             },
         )
     order = np.random.default_rng(config.seed + 2_147_483_647).permutation(labels.size)
-    return features[order], labels[order]
+    features[:] = features[order]
+    labels[:] = labels[order]
 
 
 def _iter_chunks(

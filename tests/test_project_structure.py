@@ -895,8 +895,12 @@ def test_bit_transition_spectrum_dataset_cache_writes_and_reuses(tmp_path):
     assert np.array_equal(np.asarray(features), np.asarray(reused_features))
     assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
     progress_text = progress_path.read_text(encoding="utf-8")
+    assert "transition_spectrum_cache_flush_start" in progress_text
     assert "transition_spectrum_cache_done" in progress_text
     assert "transition_spectrum_cache_reuse" in progress_text
+    metadata_path = next((tmp_path / "transition_cache").glob("train/*/metadata.json"))
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata["feature_cache_workers"] == 1
 
 
 def test_bit_transition_spectrum_matrix_outputs_anchor_and_candidate_rows(tmp_path):
