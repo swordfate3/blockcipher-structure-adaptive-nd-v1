@@ -1844,6 +1844,13 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["progress_summary"]["cache_total_progress_percent"] == 21.875
     assert report["active_recommendation"]["progress_summary"]["cache_rows_per_second"] == pytest.approx(512.0)
     assert report["active_recommendation"]["progress_summary"]["cache_eta_seconds"] == 800
+    followup = report["active_recommendation"]["conditional_followup"]
+    assert followup["branch"] == "candidate_trail_seed1_confirmation_or_variance_check"
+    assert followup["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
+    assert followup["launch_gate"] == "support_candidate_trail_route or weak_candidate_trail_signal"
+    assert followup["readiness"]["status"] == "pass"
+    assert followup["readiness_pass"] is True
+    assert followup["should_launch_now"] is False
     assert "scripts/monitor-health" in report["active_recommendation"]["monitor_health_command"]
     assert "scripts/postprocess-candidate-trail" in report["active_recommendation"]["postprocess_when_ready_command"]
     assert "--expected-rows 4" in report["active_recommendation"]["postprocess_when_ready_command"]

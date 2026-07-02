@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.monitor_health import _progress_summary, monitor_health_report
 
 
@@ -288,6 +289,7 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "results_jsonl_line_count": health["results_jsonl_line_count"],
                 "expected_rows": health["expected_rows"],
                 "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _candidate_conditional_followup(),
                 "monitor_health_command": _candidate_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
                 "main_thread_policy": _candidate_main_thread_policy("postprocess"),
@@ -307,6 +309,7 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "needs_main_thread_intervention": health["needs_main_thread_intervention"],
                 "postprocess_allowed": health["postprocess_allowed"],
                 "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _candidate_conditional_followup(),
                 "monitor_health_command": _candidate_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
                 "main_thread_policy": _candidate_main_thread_policy("waiting"),
@@ -379,6 +382,34 @@ def _candidate_postprocess_command(run_root: Path) -> str:
         "--expected-rows 4 "
         "--update-plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md"
     )
+
+
+def _candidate_conditional_followup() -> dict[str, Any]:
+    config = Path(
+        "configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
+    )
+    readiness = _remote_readiness(config)
+    return {
+        "branch": "candidate_trail_seed1_confirmation_or_variance_check",
+        "run_id": "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702",
+        "launch_remote_config": str(config),
+        "launch_gate": "support_candidate_trail_route or weak_candidate_trail_signal",
+        "readiness_pass": readiness.get("status") == "pass",
+        "readiness": readiness,
+        "should_launch_now": False,
+    }
+
+
+def _remote_readiness(config: Path) -> dict[str, Any]:
+    try:
+        return remote_readiness_report(config)
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "fail",
+            "config": str(config),
+            "errors": [str(exc)],
+            "warnings": [],
+        }
 
 
 def _candidate_main_thread_policy(state: str) -> dict[str, Any]:
