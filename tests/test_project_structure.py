@@ -1474,6 +1474,12 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert by_run_id["i1_invp_only_r7_1m_seed0_gpu1_20260629"]["evidence_scale"] == (
         "paper_scale_single_seed"
     )
+    assert by_run_id["i1_invp_only_r7_1m_seed0_gpu1_20260629"]["route_state"] == "superseded"
+    assert by_run_id["i1_invp_only_r7_1m_seed0_gpu1_20260629"]["effective_next_action"] == {
+        "should_launch_remote": False,
+        "reason": "superseded_by_later_route_decision",
+    }
+    assert by_run_id["i1_invp_only_r7_1m_seed1_gpu1_20260629"]["route_state"] == "superseded"
 
 
 def _write_test_json(path: Path, payload: dict):

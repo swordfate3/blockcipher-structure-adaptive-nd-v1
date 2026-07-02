@@ -77,11 +77,14 @@ def _route_states(summaries: list[dict[str, Any]]) -> dict[str, str]:
         for decision in decisions
     )
     has_topology_stop = "stop_topology_aware_network_route" in decisions
+    has_invp_attribution_support = "support_invp_structural_attribution" in decisions
     states: dict[str, str] = {}
     for summary in summaries:
         run_id = str(summary.get("run_id") or _infer_run_id_from_path(summary))
         decision = str(summary.get("decision") or "")
-        if decision == "weak_ddt_graph_signal" and (has_topology_stop or has_candidate_trail_decision):
+        if decision in {"launch_invp_seed1_confirmation", "confirm_invp_route"} and has_invp_attribution_support:
+            states[run_id] = "superseded"
+        elif decision == "weak_ddt_graph_signal" and (has_topology_stop or has_candidate_trail_decision):
             states[run_id] = "superseded"
         elif decision == "weak_topology_aware_network_signal" and has_topology_stop:
             states[run_id] = "superseded"
