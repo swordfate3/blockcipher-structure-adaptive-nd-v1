@@ -152,6 +152,19 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+            ),
+            "suggested_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu<id>_<date>.json"
+            ),
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+            ),
         }
     if decision == "weak_transition_spectrum_signal":
         return {
@@ -159,6 +172,19 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1.json"
+            ),
+            "suggested_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu<id>_<date>.json"
+            ),
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/<transition-spectrum-seed1-config>.json"
+            ),
         }
     if decision == "stop_transition_spectrum_route":
         return {
@@ -166,6 +192,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": False,
             "requires_implementation": False,
             "reason": decision,
+            "fallback_plan_options": [
+                "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
+                "docs/research/spn_structured_nn_research_plan.md",
+            ],
+            "fallback_hypotheses": [
+                "trail_family_consistency",
+                "active_pattern_auxiliary_head",
+                "cross_cipher_gift_skinny_transfer",
+            ],
         }
     return {
         "branch": "manual_review",
@@ -185,12 +220,16 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     if branch == "transition_spectrum_seed1_confirmation":
         return [
             "Record this as positive medium diagnostic evidence only.",
+            "Write or update the transition-spectrum seed1 plan/config before launch.",
+            "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Prepare a gated 262144/class seed1 confirmation before any 1M scale-up.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
         ]
     if branch == "transition_spectrum_variance_check":
         return [
             "Record this as weak bit-transition-spectrum evidence.",
+            "If choosing variance check, write or update the transition-spectrum seed1 plan/config before launch.",
+            "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Repeat 262144/class or run a variance check before scaling.",
             "Keep InvP-only and shuffled-P controls in the next matrix.",
         ]
@@ -198,6 +237,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as tied or negative bit-transition-spectrum evidence.",
             "Do not scale transition-spectrum as a main route.",
+            "Write a new docs/experiments plan before launching the next hypothesis.",
             "Switch to trail-family consistency, active-pattern auxiliary head, or cross-cipher transfer planning.",
         ]
     return ["Review the transition-spectrum gate manually before launching another experiment."]

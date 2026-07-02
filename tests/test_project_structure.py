@@ -5011,6 +5011,10 @@ def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert report["next_action"]["branch"] == "transition_spectrum_seed1_confirmation"
     assert report["next_action"]["should_launch_remote"] is False
     assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "bit_transition_spectrum_r7_262k_seed1" in report["next_action"]["suggested_plan_config"]
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    assert any("seed1 plan/config" in step for step in report["next_steps"])
     assert (output_dir / "transition_spectrum_unit_transition_spectrum_gate.json").exists()
     assert (output_dir / "transition_spectrum_unit_postprocess_summary.json").exists()
     assert (output_dir / "transition_spectrum_unit_postprocess_summary.md").exists()
@@ -5028,6 +5032,44 @@ def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- transition-spectrum-postprocess:transition_spectrum_unit:start -->") == 1
+
+
+def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_path):
+    weak_results = tmp_path / "transition_spectrum_weak.jsonl"
+    _write_transition_spectrum_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_linear", 0.7922)
+    _write_transition_spectrum_result(weak_results, "bit_transition_spectrum_mlp", 0.7924)
+
+    weak = postprocess_transition_spectrum_result(
+        results_path=weak_results,
+        output_dir=tmp_path / "weak_postprocess",
+        run_id="transition_spectrum_weak_unit",
+        expected_rows=3,
+    )
+
+    assert weak["decision"] == "weak_transition_spectrum_signal"
+    assert weak["next_action"]["branch"] == "transition_spectrum_variance_check"
+    assert "bit_transition_spectrum_r7_262k_seed1" in weak["next_action"]["suggested_plan_config"]
+    assert "scripts/check-remote-readiness" in weak["next_action"]["readiness_command"]
+    assert any("seed1 plan/config" in step for step in weak["next_steps"])
+
+    stop_results = tmp_path / "transition_spectrum_stop.jsonl"
+    _write_transition_spectrum_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_linear", 0.7910)
+    _write_transition_spectrum_result(stop_results, "bit_transition_spectrum_mlp", 0.7915)
+
+    stop = postprocess_transition_spectrum_result(
+        results_path=stop_results,
+        output_dir=tmp_path / "stop_postprocess",
+        run_id="transition_spectrum_stop_unit",
+        expected_rows=3,
+    )
+
+    assert stop["decision"] == "stop_transition_spectrum_route"
+    assert stop["next_action"]["branch"] == "stop_transition_spectrum_route"
+    assert "trail_family_consistency" in stop["next_action"]["fallback_hypotheses"]
+    assert "docs/research/spn_structured_nn_research_plan.md" in stop["next_action"]["fallback_plan_options"]
+    assert any("new docs/experiments plan" in step for step in stop["next_steps"])
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():
