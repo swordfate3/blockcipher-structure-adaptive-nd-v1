@@ -135,6 +135,6 @@ class EvidencePooling(nn.Module):
         else:
             top_weights = torch.softmax(top_values / self.lse_temperature, dim=1)
             weights = torch.zeros_like(logits)
-            weights.scatter_(1, top_indices, top_weights)
+            weights.scatter_(1, top_indices, top_weights.to(dtype=weights.dtype))
         pooled = torch.sum(embeddings * weights.unsqueeze(-1), dim=1)
         return pooled, weights

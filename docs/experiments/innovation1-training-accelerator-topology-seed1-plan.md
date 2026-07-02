@@ -182,3 +182,58 @@ an FP32-preserving plugin profile, preferably `dataloader`, so that dataset/cach
 loader-side acceleration can be tested without changing model math. If AMP is revisited,
 the fix should be treated as accelerator tooling work and must pass a graph-model AMP
 smoke before being used in a meaningful remote run.
+
+## 2026-07-02 Bug Fix
+
+Root cause:
+
+```text
+EvidencePooling(topk_logsumexp) used torch.scatter_ with a target tensor created from
+logits and source weights created from torch.softmax(top_values / temperature).
+Under CUDA AMP/BF16 autocast, those tensors can have different dtypes, which makes
+scatter_ fail with:
+
+scatter(): Expected self.dtype to be equal to src.dtype
+```
+
+Fix:
+
+```text
+src/blockcipher_nd/models/common/components.py
+```
+
+The `top_weights` source tensor is now cast to the destination `weights.dtype` before
+`weights.scatter_(...)`. This keeps normal FP32 behavior unchanged and prevents the AMP
+dtype mismatch in the shared top-k evidence-pooling path used by topology-aware graph
+models.
+
+Verification:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
+  tests/test_project_structure.py::test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast -q
+
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
+  tests/test_project_structure.py::test_present_nibble_invp_p_layer_graph_models_build_and_use_distinct_topologies -q
+
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest plugins/blockcipher-training-accelerator/tests -q
+
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_project_structure.py -q
+```
+
+Results:
+
+```text
+targeted EvidencePooling test: 1 passed
+topology graph model test: 1 passed
+accelerator plugin tests: 12 passed
+project structure tests: 123 passed
+```
+
+Remaining limitation:
+
+This fixes the known AMP/BF16 scatter dtype crash, but it does not by itself prove that
+`amp-bf16` is quality-safe or faster for topology-aware training. A new AMP smoke or
+remote diagnostic is still required before promoting AMP/BF16 back into meaningful
+training runs.

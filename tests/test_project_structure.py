@@ -4530,6 +4530,28 @@ def test_present_nibble_invp_p_layer_graph_models_build_and_use_distinct_topolog
     assert torch.equal(candidate_cells, control_cells)
 
 
+def test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast():
+    from blockcipher_nd.models.common.components import EvidencePooling
+
+    pooling = EvidencePooling(
+        embedding_bits=8,
+        hidden_bits=4,
+        mode="topk_logsumexp",
+        top_k=2,
+        activation="relu",
+        norm="layernorm",
+    )
+    embeddings = torch.randn(2, 4, 8, dtype=torch.float32)
+
+    with torch.amp.autocast(device_type="cpu", dtype=torch.bfloat16):
+        pooled, weights = pooling(embeddings)
+
+    assert pooled.shape == (2, 8)
+    assert weights.shape == (2, 4)
+    assert weights.dtype in {torch.float32, torch.bfloat16}
+    assert torch.allclose(weights.sum(dim=1).float(), torch.ones(2), atol=1e-5)
+
+
 def test_zhang_wang_official_anchor_uses_independent_key_per_basic_pair(monkeypatch):
     from blockcipher_nd.ciphers.spn.present import Present80
 
