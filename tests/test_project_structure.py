@@ -656,6 +656,65 @@ def test_present_pairset_aggregation_control_remote_configs_are_gated_and_ready(
     assert "stop_topology_aware_network_route" in plan_doc
 
 
+def test_present_pairset_aggregation_control_seed1_remote_configs_are_gated_and_ready():
+    plan_doc = Path("docs/experiments/innovation1-pairset-aggregation-control-plan.md").read_text(encoding="utf-8")
+    scorer_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1_gpu1_20260702.json"
+    )
+    learned_path = Path(
+        "configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.json"
+    )
+    scorer_config = json.loads(scorer_path.read_text(encoding="utf-8"))
+    learned_config = json.loads(learned_path.read_text(encoding="utf-8"))
+
+    assert scorer_config["expected_rows"] == 1
+    assert learned_config["expected_rows"] == 2
+    assert scorer_config["pairset_stage"] == "single_pair_scorer_checkpoint"
+    assert learned_config["pairset_stage"] == "learned_pairset_plus_frozen_aggregation_gate"
+    assert scorer_config["run_id"] == "i1_pairset_single_pair_scorer_r7_262k_seed1_gpu1_20260702"
+    assert learned_config["run_id"] == "i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702"
+    assert scorer_config["plan"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1.csv"
+    )
+    assert learned_config["plan"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1.csv"
+    )
+    assert scorer_config["checkpoint_output"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert learned_config["requires_checkpoint"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert learned_config["frozen_aggregation_output"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    for config in [scorer_config, learned_config]:
+        assert config["device"] == "cuda:1"
+        assert config["train_eval_interval"] == 0
+        assert config["dataset_cache"] is True
+        assert config["dataset_cache_root"].startswith("G:\\lxy\\blockcipher-structure-adaptive-nd-runs")
+        assert config["dataset_cache_workers"] == 4
+        assert "cmd.exe /c" in config["launch_policy"]
+        assert "cmd.exe /k" not in config["launch_policy"]
+        assert "G:\\lxy" in config["launch_policy"]
+        assert "pair-set seed0" in config["launch_policy"]
+        assert "support_learned_pairset_consistency" in config["launch_policy"]
+        assert "weak_pairset_consistency_signal" in config["launch_policy"]
+        assert "MEDIUM 262144/class pair-set aggregation-control" in config["claim_scope"]
+        assert "not formal reproduction or breakthrough evidence" in config["claim_scope"]
+
+    scorer_report = remote_readiness_report(scorer_path)
+    learned_report = remote_readiness_report(learned_path)
+    assert scorer_report["status"] == "pass"
+    assert learned_report["status"] == "pass"
+    assert "pairset_aggregation_stage_lock" in scorer_report["checked_invariants"]
+    assert "pairset_aggregation_stage_lock" in learned_report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in learned_report["checked_invariants"]
+    assert "pairset_seed1_confirmation" in plan_doc
+    assert "i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702" in plan_doc
+
+
 def test_pairset_aggregation_readiness_rejects_missing_stage_artifacts(tmp_path):
     config = json.loads(
         Path("configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json").read_text(
@@ -1350,6 +1409,48 @@ def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_awar
     assert "scripts\\evaluate-pairset-aggregation" in launcher_text
     assert "--scorer-pairs-per-sample 1" in launcher_text
     assert "--scorer-model-options" not in launcher_text
+    assert "--aggregation-mode sum_logodds" in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--dataset-cache-root" in launcher_text
+    assert "stage_a_done" in launcher_text
+    assert "stage_b_done" in launcher_text
+    assert "frozen_aggregation_done" in launcher_text
+
+    assert "checkpoints" in monitor_text
+    assert "single_pair_invp.pt" in monitor_text
+    assert "frozen_aggregation_summary.json" in monitor_text
+    assert "postprocess-pairset-aggregation" in monitor_text
+    assert "--expected-rows \"${EXPECTED_ROWS}\"" in monitor_text
+
+
+def test_present_pairset_aggregation_control_seed1_remote_launch_assets_are_stage_aware():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "i1_pairset_single_pair_scorer_r7_262k_seed1_gpu1_20260702" in launcher_text
+    assert "i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702" in launcher_text
+    assert "--checkpoint-output \"%CHECKPOINT_DIR%\\single_pair_invp.pt\"" in launcher_text
+    assert "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1.csv" in launcher_text
+    assert "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1.csv" in launcher_text
+    assert "scripts\\evaluate-pairset-aggregation" in launcher_text
+    assert "--scorer-pairs-per-sample 1" in launcher_text
     assert "--aggregation-mode sum_logodds" in launcher_text
     assert "--negative-mode encrypted_random_plaintexts" in launcher_text
     assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text

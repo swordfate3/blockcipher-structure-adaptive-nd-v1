@@ -29,15 +29,44 @@ def test_pairset_aggregation_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert report["validation_status"] == "pass"
     assert report["pairset_aggregation_status"] == "pass"
     assert report["decision"] == "support_learned_pairset_consistency"
+    assert report["next_action"]["branch"] == "pairset_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["stage_a_plan_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1.csv"
+    )
+    assert report["next_action"]["suggested_plan_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1.csv"
+    )
+    assert report["next_action"]["stage_a_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1_gpu1_20260702.json"
+    )
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.json"
+    )
+    assert report["next_action"]["run_id"] == "i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702"
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert Path(report["summary"]).exists()
     assert Path(report["summary_markdown"]).exists()
+    assert Path(report["next_action_readiness"]).exists()
     assert Path(report["pairset_aggregation_gate"]).exists()
     assert Path(report["curves"]).exists()
     assert Path(report["history_csv"]).exists()
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "pairset_seed1_confirmation"
+    assert readiness["should_launch_remote"] is True
+    assert readiness["requires_implementation"] is False
+    assert readiness["readiness_pass"] is True
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
+    assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
+    assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "Retrieved Pair-Set Aggregation Control Result" in plan_text
     assert "pairset_postprocess_smoke" in plan_text
     assert "support_learned_pairset_consistency" in plan_text
+    assert "Next action readiness" in plan_text
 
 
 def write_pairset_plan(path: Path) -> Path:

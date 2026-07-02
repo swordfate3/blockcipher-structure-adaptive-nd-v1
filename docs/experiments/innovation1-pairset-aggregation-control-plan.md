@@ -155,12 +155,30 @@ config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregat
 capability = MEDIUM 262144/class stage-B InvP anchor plus learned pair-set
              consistency rows; not formal reproduction or breakthrough evidence
 
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1.csv
+capability = prepared MEDIUM 262144/class seed1 stage-A single-pair scorer
+             checkpoint row; readiness asset only until seed0 gate selects
+             pairset_seed1_confirmation or pairset_variance_check
+
+config = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1.csv
+capability = prepared MEDIUM 262144/class seed1 stage-B InvP anchor plus
+             learned pair-set consistency rows; readiness asset only until
+             seed0 support/weak gate selects pair-set confirmation
+
 remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json
 capability = readiness-checked stage-A metadata for single-pair checkpoint run
 
 remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json
 capability = readiness-checked stage-B metadata for learned pair-set plus
              frozen aggregation gate run
+
+remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1_gpu1_20260702.json
+capability = readiness-checked seed1 stage-A metadata for conditional
+             pair-set confirmation or variance check
+
+remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.json
+capability = readiness-checked seed1 stage-B metadata for conditional
+             pair-set confirmation or variance check
 
 launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 capability = stage-aware Windows launcher: stage A checkpoint training, stage B
@@ -169,6 +187,14 @@ capability = stage-aware Windows launcher: stage A checkpoint training, stage B
 monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
 capability = local tmux watcher script: pull logs/results/checkpoints and run
              postprocess-pairset-aggregation when all artifacts are ready
+
+launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.cmd
+capability = prepared conditional seed1 stage-aware Windows launcher; do not
+             launch before seed0 is retrieved, validated, postprocessed, and
+             gated as support or weak pair-set evidence
+
+monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.sh
+capability = prepared conditional seed1 local tmux watcher script
 ```
 
 Therefore this plan is local-smoke-verified and remote-launch-asset-prepared,
@@ -294,6 +320,13 @@ stage_b_plan = configs/experiment/innovation1/innovation1_spn_present_pairset_ag
 stage_b_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json
 stage_b_expected_rows = 2
 stage_b_output = InvP 16-pair anchor plus learned pair-consistency result JSONL
+
+conditional_seed1_stage_a_plan = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1.csv
+conditional_seed1_stage_a_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1_gpu1_20260702.json
+conditional_seed1_stage_b_plan = configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1.csv
+conditional_seed1_stage_b_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.json
+conditional_seed1_trigger = pairset_seed1_confirmation or pairset_variance_check
+conditional_seed1_run_id = i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702
 ```
 
 Launch status:
@@ -303,6 +336,8 @@ not launched
 blocked_by_policy = current candidate-trail / transition-consistency branch still active
 stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
+conditional_seed1_stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.cmd
+conditional_seed1_stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.sh
 remaining_requirement = wait for candidate-trail / transition-consistency gate,
                         or explicit user choice to prioritize pair-set attribution
 windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
@@ -466,3 +501,36 @@ This pair-set aggregation plan should not preempt the active candidate-trail /
 transition-consistency branch. Pair-set aggregation remains a prepared
 attribution control to use when a pair-set claim becomes relevant or when the
 user explicitly chooses this route.
+
+## Conditional Seed1 Follow-Up
+
+Seed1 assets are prepared so that a completed seed0 pair-set result does not
+stop on manual configuration work.
+
+```text
+trigger = seed0 postprocess decision is support_learned_pairset_consistency
+          or weak_pairset_consistency_signal
+branch = pairset_seed1_confirmation or pairset_variance_check
+stage_a_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_seed1_gpu1_20260702.json
+stage_b_remote_config = configs/remote/innovation1_spn_present_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.json
+launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.cmd
+monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.sh
+claim_scope = MEDIUM 262144/class diagnostic confirmation or variance check
+```
+
+The postprocess summary now writes:
+
+```text
+<run_id>_next_action_readiness.json
+```
+
+For support or weak seed0 gates, this readiness file must contain both staged
+reports:
+
+```text
+stage_a -> single_pair_scorer_checkpoint
+primary -> learned_pairset_plus_frozen_aggregation_gate
+```
+
+Do not launch seed1 unless the seed0 artifacts are retrieved, validated,
+plan-aligned, postprocessed, and the readiness report passes.
