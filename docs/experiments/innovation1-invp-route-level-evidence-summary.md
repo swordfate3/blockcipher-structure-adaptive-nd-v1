@@ -2,15 +2,17 @@
 
 **Date:** 2026-06-30
 
-**Status:** route-level attribution supported / method-extension route active
+**Status:** route-level attribution supported / candidate-trail extension running
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document is the route-level evidence
 summary for the current InvP-only SPN structure route. It records two-seed
 paper-scale positive confirmation plus paper-scale attribution controls. It is
-still not a formal route-evidence claim by itself. The next-stage
-method-extension has moved from DDT graph screening into the active
-topology-aware network route.
+still not a formal route-evidence claim by itself. The DDT graph route produced
+only weak medium-scale diagnostic evidence, the topology-aware network route has
+stopped after seed1, and the current next-stage method-extension is the
+watcher-managed candidate-trail / transition-consistency data-representation
+branch.
 
 ## Route Claim Under Test
 
@@ -199,15 +201,32 @@ InvP-only has two-seed 1000000/class positive confirmation and paper-scale
 attribution controls supporting the SPN/InvP/P-layer alignment explanation.
 ```
 
-Next choices:
+Next choices as of 2026-07-02:
 
 ```text
 1. Add formal multi-seed variance evidence for InvP-only.
 2. Add Zhang/Wang baseline seed1 if baseline variance must be quantified.
-3. Continue the active topology-aware network route if the paper needs a
-   stronger method beyond InvP-only rather than more confirmation.
-4. If topology-aware stops, switch to candidate-trail / transition consistency
-   as the next data/feature representation branch.
+3. Treat the completed DDT graph seed0/seed1 route as weak diagnostic evidence,
+   not as a 1M promotion candidate.
+4. Treat the completed topology-aware seed1 gate as a route stop because true
+   P-layer topology did not beat the InvP-only/shuffled controls.
+5. Wait for the active candidate-trail / transition-consistency seed0 watcher
+   to retrieve, validate, and postprocess before launching seed1 or switching
+   to bit-transition-spectrum.
+```
+
+Current active extension:
+
+```text
+run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+status = running / local watcher-managed / no postprocess summary yet
+latest_bounded_check = 2026-07-02 19:16:27+08:00
+progress = candidate feature-cache generation, 245760/262144 current-class rows,
+           245760/524288 total cache rows
+results_jsonl = not yet present
+postprocess_allowed = false
+main_thread_action = wait for watcher; do not SSH/tmux-loop or launch seed1
+claim_scope = no candidate-trail evidence yet
 ```
 
 ### If Attribution Gate Is Weak
