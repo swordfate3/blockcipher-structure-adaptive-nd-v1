@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-02
 
-**Status:** local diagnostic passed
+**Status:** plugin CLI local diagnostic passed; remote cache-only benchmark next
 
 ## Purpose
 
@@ -50,6 +50,30 @@ features.npy / labels.npy / metadata.json reduce output
 
 This experiment tests that path before introducing a heavier shard-writer or DDP
 training implementation.
+
+## Plugin CLI
+
+The reusable plugin entrypoint is:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+  python -m blockcipher_training_accelerator bench-dataset-cache \
+  --cipher present80 \
+  --rounds 7 \
+  --difference-profile present_zhang_wang2022_mcnd \
+  --samples-per-class 262144 \
+  --pairs-per-sample 16 \
+  --sample-structure zhang_wang_case2_official_mcnd \
+  --negative-mode encrypted_random_plaintexts \
+  --feature-encoding ciphertext_pair_bits \
+  --seed 20260702 \
+  --chunk-size 8192 \
+  --workers 1 4 8 \
+  --output-root <ignored-output-dir>
+```
+
+This command is intentionally cache-only. It does not train a model and does not
+produce cryptanalytic accuracy evidence.
 
 ## Protocol
 
@@ -198,3 +222,58 @@ Next action:
 Plan a remote cache-only benchmark under `G:\lxy` using the same PRESENT-80 r7 protocol
 at `262144/class`, comparing `dataset_cache_workers=1`, `4`, and `8`. Keep it cache-only
 before attaching training so generation throughput can be attributed cleanly.
+
+### 2026-07-02 Plugin CLI Smoke
+
+Command:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+UV_CACHE_DIR=/tmp/uv-cache uv run python -m blockcipher_training_accelerator \
+  bench-dataset-cache \
+  --cipher speck32 \
+  --rounds 3 \
+  --samples-per-class 8 \
+  --pairs-per-sample 2 \
+  --sample-structure independent_pairs \
+  --negative-mode encrypted_random_plaintexts \
+  --feature-encoding ciphertext_pair_xor_bits \
+  --seed 7 \
+  --chunk-size 4 \
+  --workers 1 2 \
+  --output-root outputs/speed_bench/plugin_cli_smoke_20260702 \
+  --input-difference 0x0040
+```
+
+Result:
+
+```text
+workers=1 duration_seconds=0.025140 rows_per_second=636.434 cache_status=created
+workers=2 duration_seconds=0.020030 rows_per_second=798.794 cache_status=created
+summary: outputs/speed_bench/plugin_cli_smoke_20260702/summary.json
+```
+
+Verification:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest plugins/blockcipher-training-accelerator/tests -q
+```
+
+Result:
+
+```text
+12 passed
+```
+
+Remote cache-only benchmark target:
+
+```text
+run_id: i1_mapreduce_cache_present_r7_262k_workers_1_4_8_20260702
+remote root: G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+source: pushed GitHub main clean clone
+command shell: cmd.exe /c
+python: F:\Anaconda\envs\DWT\torch310\python.exe
+workers: 1, 4, 8
+claim scope: cache generation speed only
+```

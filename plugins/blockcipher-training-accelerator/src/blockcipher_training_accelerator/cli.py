@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 
 from blockcipher_training_accelerator.benchmark import run_benchmark
+from blockcipher_training_accelerator.dataset_cache import (
+    DatasetCacheBenchConfig,
+    parse_int,
+    run_dataset_cache_benchmark,
+)
 from blockcipher_training_accelerator.launcher import build_shard_commands
 from blockcipher_training_accelerator.matrix import split_matrix
 from blockcipher_training_accelerator.quality_gate import compare_result_files
@@ -36,6 +41,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "measured_command",
         nargs=argparse.REMAINDER,
         help="Command to measure. Put it after --.",
+    )
+    dataset_cache = subparsers.add_parser(
+        "bench-dataset-cache",
+        help="Benchmark chunked disk dataset cache generation for one protocol.",
+    )
+    dataset_cache.add_argument("--cipher", required=True)
+    dataset_cache.add_argument("--rounds", required=True, type=int)
+    dataset_cache.add_argument("--samples-per-class", required=True, type=int)
+    dataset_cache.add_argument("--pairs-per-sample", required=True, type=int)
+    dataset_cache.add_argument("--sample-structure", required=True)
+    dataset_cache.add_argument("--negative-mode", required=True)
+    dataset_cache.add_argument("--feature-encoding", default="ciphertext_pair_bits")
+    dataset_cache.add_argument("--seed", required=True, type=int)
+    dataset_cache.add_argument("--chunk-size", required=True, type=int)
+    dataset_cache.add_argument("--workers", required=True, nargs="+", type=int)
+    dataset_cache.add_argument("--output-root", required=True)
+    dataset_cache.add_argument("--difference-profile", default=None)
+    dataset_cache.add_argument("--difference-member", default=0, type=int)
+    dataset_cache.add_argument("--input-difference", default=None, type=parse_int)
+    dataset_cache.add_argument("--key", default=None, type=parse_int)
+    dataset_cache.add_argument(
+        "--reuse",
+        action="store_true",
+        help="Reuse matching caches instead of deleting each worker cache before timing.",
     )
 
     split = subparsers.add_parser(
@@ -116,6 +145,35 @@ def main(argv: list[str] | None = None) -> None:
             f"duration_seconds={report.duration_seconds:.6f} returncode={report.returncode}",
             flush=True,
         )
+        return
+    if args.command_name == "bench-dataset-cache":
+        report = run_dataset_cache_benchmark(
+            DatasetCacheBenchConfig(
+                cipher=args.cipher,
+                rounds=args.rounds,
+                samples_per_class=args.samples_per_class,
+                pairs_per_sample=args.pairs_per_sample,
+                sample_structure=args.sample_structure,
+                negative_mode=args.negative_mode,
+                feature_encoding=args.feature_encoding,
+                seed=args.seed,
+                chunk_size=args.chunk_size,
+                workers=tuple(args.workers),
+                output_root=args.output_root,
+                difference_profile=args.difference_profile,
+                difference_member=args.difference_member,
+                input_difference=args.input_difference,
+                key=args.key,
+                reuse=args.reuse,
+            )
+        )
+        for row in report.rows:
+            print(
+                f"workers={row.workers} duration_seconds={row.duration_seconds:.6f} "
+                f"rows_per_second={row.rows_per_second:.3f} cache_status={row.cache_status}",
+                flush=True,
+            )
+        print(f"dataset cache benchmark written: {report.summary_path}", flush=True)
         return
     if args.command_name == "split-matrix":
         result = split_matrix(

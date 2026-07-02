@@ -1,6 +1,12 @@
 """Opt-in training speed utilities for blockcipher experiments."""
 
 from blockcipher_training_accelerator.benchmark import BenchmarkReport, run_benchmark
+from blockcipher_training_accelerator.dataset_cache import (
+    DatasetCacheBenchConfig,
+    DatasetCacheBenchReport,
+    DatasetCacheBenchRow,
+    run_dataset_cache_benchmark,
+)
 from blockcipher_training_accelerator.launcher import LaunchPlan, ShardCommand, build_shard_commands
 from blockcipher_training_accelerator.matrix import MatrixSplitResult, split_matrix
 from blockcipher_training_accelerator.profiles import SpeedProfile, resolve_profile
@@ -8,6 +14,9 @@ from blockcipher_training_accelerator.quality_gate import QualityGateReport, com
 
 __all__ = [
     "BenchmarkReport",
+    "DatasetCacheBenchConfig",
+    "DatasetCacheBenchReport",
+    "DatasetCacheBenchRow",
     "LaunchPlan",
     "MatrixSplitResult",
     "QualityGateReport",
@@ -16,6 +25,7 @@ __all__ = [
     "build_shard_commands",
     "compare_result_files",
     "resolve_profile",
+    "run_dataset_cache_benchmark",
     "run_benchmark",
     "split_matrix",
 ]
