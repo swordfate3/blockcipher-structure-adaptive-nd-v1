@@ -5789,6 +5789,22 @@ def test_candidate_trail_gate_marks_weak_or_stop_signal(tmp_path):
     assert stop["margin_vs_anchor_auc"] < 0
 
 
+def test_candidate_trail_gate_stops_when_shuffled_control_matches_true_route(tmp_path):
+    results = tmp_path / "candidate_trail_shuffled_matches.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7925)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7934)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_shuffled_cells", 0.7934)
+
+    report = gate_candidate_trail_result(results, expected_rows=4, require_shuffled_control=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_candidate_trail_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] == 0
+    assert "shuffled-cell control matches/exceeds" in report["interpretation"]
+
+
 def test_candidate_trail_gate_can_require_shuffled_control(tmp_path):
     results = tmp_path / "candidate_trail_missing_shuffled.jsonl"
     _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)

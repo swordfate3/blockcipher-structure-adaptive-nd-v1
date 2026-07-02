@@ -92,14 +92,16 @@ def gate_candidate_trail_result(
             calibrated_delta_vs_anchor is None or _at_least(calibrated_delta_vs_anchor, 0.0)
         )
         shuffled_not_matching = margin_vs_shuffled is not None and _at_least(margin_vs_shuffled, margin)
+        candidate_beats_shuffled = margin_vs_shuffled is None or margin_vs_shuffled > FLOAT_TOLERANCE
         if _at_least(margin_vs_anchor, margin) and calibration_not_worse and shuffled_not_matching:
             decision = "support_candidate_trail_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
             interpretation = (
                 "candidate-trail consistency beats the InvP anchor by the required "
-                "diagnostic margin without calibration regression"
+                "diagnostic margin and beats the shuffled-cell control without "
+                "calibration regression"
             )
-        elif _at_least(margin_vs_anchor, 0.0) and calibration_not_worse:
+        elif _at_least(margin_vs_anchor, 0.0) and calibration_not_worse and candidate_beats_shuffled:
             decision = "weak_candidate_trail_signal"
             action = "run_262k_variance_check_before_scaling"
             interpretation = (
@@ -110,8 +112,8 @@ def gate_candidate_trail_result(
             decision = "stop_candidate_trail_route"
             action = "record_tied_or_negative_evidence_and_switch_hypothesis"
             interpretation = (
-                "candidate-trail consistency does not beat the InvP anchor, or calibration regresses; "
-                "do not scale this route"
+                "candidate-trail consistency does not beat the InvP anchor, calibration regresses, "
+                "or the shuffled-cell control matches/exceeds the true route; do not scale this route"
             )
 
     return {
