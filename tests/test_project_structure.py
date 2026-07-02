@@ -788,6 +788,33 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "no code implementation yet" not in plan
 
 
+def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
+    plan = Path("docs/experiments/innovation1-trail-family-consistency-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "conditional next-hypothesis plan only" in plan
+    assert "do_not_launch_until" in plan
+    assert "candidate-trail seed0 decision = stop_candidate_trail_route" in plan
+    assert "bit-transition-spectrum seed0 decision = stop_transition_spectrum_route" in plan
+    assert "candidate-trail seed0 decision = support_candidate_trail_route" in plan
+    assert "support_transition_spectrum_route" in plan
+    assert "`PRESENT-80`" in plan
+    assert "`zhang_wang_case2_official_mcnd`" in plan
+    assert "`encrypted_random_plaintexts`" in plan
+    assert "`0x11111111111111111111`" in plan
+    assert "`present_nibble_invp_only_spn_only`" in plan
+    assert "`trail_family_consistency_linear`" in plan
+    assert "`trail_family_consistency_mlp`" in plan
+    assert "`trail_family_consistency_false_family`" in plan
+    assert "true trail-family route >= false-family control + 0.001 AUC" in plan
+    assert "do not create or launch the medium remote config" in plan
+    assert "scripts/spn-trail-family-matrix" in plan
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
+    assert "implementation_status = not implemented" in plan
+    assert "remote_config_status = do not create until trigger" in plan
+
+
 def test_bit_transition_spectrum_features_are_stable_and_controlled():
     cipher = build_cipher("present80", 7, key=0)
     pairs = [
