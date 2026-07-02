@@ -220,9 +220,11 @@ Current active extension:
 ```text
 run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 status = running / local watcher-managed / no postprocess summary yet
-latest_bounded_check = 2026-07-02 19:16:27+08:00
-progress = candidate feature-cache generation, 245760/262144 current-class rows,
-           245760/524288 total cache rows
+latest_bounded_check = 2026-07-02 22:54:08+08:00 watcher heartbeat, no failed markers
+progress = candidate feature-cache generation, 237568/262144 negative-class rows,
+           499712/524288 total cache rows
+progress_percent = 90.625% of negative class, 95.312% of total cache
+latest_event = candidate_cache_negative_chunk
 results_jsonl = not yet present
 postprocess_allowed = false
 main_thread_action = wait for watcher; do not SSH/tmux-loop or launch seed1
