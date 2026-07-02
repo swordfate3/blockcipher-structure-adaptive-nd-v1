@@ -105,8 +105,10 @@ def postprocess_transition_spectrum_result(
 
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
+    report["next_action_readiness"] = str(next_action_readiness_path)
 
     update_paths = plan_doc_paths or []
     if update_paths:
@@ -116,6 +118,7 @@ def postprocess_transition_spectrum_result(
         report["plan_doc"] = str(update_paths[0])
 
     _write_json(summary_path, report)
+    _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -161,6 +164,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
                 "configs/remote/"
                 "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu<id>_<date>.json"
             ),
+            "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 "--config configs/remote/<transition-spectrum-seed1-config>.json"
@@ -181,6 +185,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
                 "configs/remote/"
                 "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed1_gpu<id>_<date>.json"
             ),
+            "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 "--config configs/remote/<transition-spectrum-seed1-config>.json"
@@ -221,6 +226,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as positive medium diagnostic evidence only.",
             "Write or update the transition-spectrum seed1 plan/config before launch.",
+            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
             "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Prepare a gated 262144/class seed1 confirmation before any 1M scale-up.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
@@ -229,6 +235,7 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as weak bit-transition-spectrum evidence.",
             "If choosing variance check, write or update the transition-spectrum seed1 plan/config before launch.",
+            "Set feature_cache_workers to at least 4 for the medium seed1 cache path.",
             "Run local smoke/readiness, then commit and push the seed1 assets.",
             "Repeat 262144/class or run a variance check before scaling.",
             "Keep InvP-only and shuffled-P controls in the next matrix.",
@@ -241,6 +248,28 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Switch to trail-family consistency, active-pattern auxiliary head, or cross-cipher transfer planning.",
         ]
     return ["Review the transition-spectrum gate manually before launching another experiment."]
+
+
+def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    next_action = report.get("next_action", {})
+    if not isinstance(next_action, dict):
+        next_action = {}
+    should_launch_remote = bool(next_action.get("should_launch_remote"))
+    return {
+        "status": "pass" if not should_launch_remote else "fail",
+        "summary": str(summary_path),
+        "run_id": report.get("run_id"),
+        "decision": report.get("decision"),
+        "action": report.get("action"),
+        "branch": next_action.get("branch"),
+        "should_launch_remote": should_launch_remote,
+        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "readiness_pass": False,
+        "readiness_reports": [],
+        "next_action": next_action,
+        "claim_scope": report.get("claim_scope"),
+        "errors": [] if not should_launch_remote else ["transition-spectrum next_action unexpectedly requested remote launch"],
+    }
 
 
 def _markdown_summary(report: dict[str, Any]) -> str:
@@ -275,6 +304,7 @@ def _markdown_summary(report: dict[str, Any]) -> str:
             f"- validation_report: `{report['validation_report']}`",
             f"- transition_spectrum_gate: `{report['transition_spectrum_gate']}`",
             f"- summary: `{report['summary']}`",
+            f"- next_action_readiness: `{report['next_action_readiness']}`",
             *( [f"- plan_docs: `{'; '.join(report['plan_docs'])}`"] if "plan_docs" in report else [] ),
             "",
         ]
@@ -305,6 +335,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Transition-spectrum gate", report["transition_spectrum_gate"]),
         ("Summary JSON", report["summary"]),
         ("Summary Markdown", report["summary_markdown"]),
+        ("Next action readiness", report["next_action_readiness"]),
     ]
     lines = [f"### {report['run_id']} Bit-Transition-Spectrum Result", "", "| Field | Value |", "|---|---|"]
     lines.extend(f"| {field} | `{value}` |" for field, value in rows)

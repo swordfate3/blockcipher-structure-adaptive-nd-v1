@@ -327,6 +327,7 @@ expected_rows = 4
 local implementation complete for feature extraction, matrix runner, smoke config,
 gate, postprocess, monitor-health integration, remote readiness gate, and
 streamed disk-backed feature cache
+postprocess writes <run_id>_next_action_readiness.json for the next branch handoff
 no remote launch yet
 waiting for candidate-trail seed0 gate
 ```
