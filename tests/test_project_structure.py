@@ -3650,6 +3650,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["scp_stderr_missing_artifact_line_count"] == 2
     assert report["scp_stderr_stale_missing_artifacts"] is False
     assert report["scp_stderr_persistent_missing_artifacts"] is False
+    assert report["scp_stderr_resolved_missing_artifacts"] is False
     assert report["scp_stderr_warnings"] == [
         "scp reported remote artifact paths missing; this is normal before "
         "the remote run creates logs/results, but should clear once artifacts exist"
@@ -3682,6 +3683,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["scp_stderr_missing_artifact_line_count"] == 2
     assert report["scp_stderr_stale_missing_artifacts"] is True
     assert report["scp_stderr_persistent_missing_artifacts"] is False
+    assert report["scp_stderr_resolved_missing_artifacts"] is False
     assert report["scp_stderr_warnings"] == []
 
     (monitor / "scp_stderr.log").write_text(
@@ -3723,7 +3725,8 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
 
     assert report["status"] == "running"
     assert report["needs_main_thread_intervention"] is False
-    assert report["scp_stderr_persistent_missing_artifacts"] is True
+    assert report["scp_stderr_persistent_missing_artifacts"] is False
+    assert report["scp_stderr_resolved_missing_artifacts"] is True
 
     (monitor / "scp_stderr.log").write_text("scp: Connection reset by peer\n", encoding="utf-8")
     report = monitor_health_report(

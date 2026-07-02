@@ -109,11 +109,16 @@ def monitor_health_report(
     stderr_text = _read_text(ssh_stderr).strip()
     scp_stderr_text = _read_text(scp_stderr).strip()
     scp_stderr_report = _scp_stderr_report(scp_stderr_text, recent_lines, recent_monitor_lines)
+    has_synced_remote_artifacts = _has_synced_remote_artifacts(run_root, artifact_files)
+    scp_stderr_report = _resolve_scp_missing_artifacts(
+        scp_stderr_report,
+        has_synced_remote_artifacts=has_synced_remote_artifacts,
+    )
     tmux = _tmux_status(tmux_session)
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     status = _health_status(
         run_root_exists=run_root.exists(),
-        has_synced_remote_artifacts=_has_synced_remote_artifacts(run_root, artifact_files),
+        has_synced_remote_artifacts=has_synced_remote_artifacts,
         results_jsonl_exists=results_jsonl.exists(),
         results_jsonl_line_count=results_jsonl_line_count,
         expected_rows=expected_result_rows,
@@ -165,6 +170,7 @@ def monitor_health_report(
         "scp_stderr_missing_artifact_line_count": scp_stderr_report["missing_artifact_line_count"],
         "scp_stderr_stale_missing_artifacts": scp_stderr_report["stale_missing_artifacts"],
         "scp_stderr_persistent_missing_artifacts": scp_stderr_report["persistent_missing_artifacts"],
+        "scp_stderr_resolved_missing_artifacts": scp_stderr_report["resolved_missing_artifacts"],
         "results_jsonl": str(results_jsonl),
         "results_jsonl_exists": results_jsonl.exists(),
         "results_jsonl_line_count": results_jsonl_line_count,
@@ -418,6 +424,21 @@ def _scp_stderr_report(text: str, recent_lines: int, recent_monitor_lines: list[
         "persistent_missing_artifacts": (
             not stale_missing_artifacts and len(missing_lines) >= max(4, recent_lines // 2)
         ),
+        "resolved_missing_artifacts": False,
+    }
+
+
+def _resolve_scp_missing_artifacts(
+    report: dict[str, Any],
+    *,
+    has_synced_remote_artifacts: bool,
+) -> dict[str, Any]:
+    if not has_synced_remote_artifacts or report["missing_artifact_line_count"] == 0:
+        return report
+    return {
+        **report,
+        "persistent_missing_artifacts": False,
+        "resolved_missing_artifacts": True,
     }
 
 
