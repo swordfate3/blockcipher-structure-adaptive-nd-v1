@@ -750,6 +750,30 @@ def test_candidate_trail_consistency_plan_is_gated_to_current_protocol():
     assert "topology-aware network   -> true P-layer message passing over InvP cells" in plan
 
 
+def test_bit_transition_spectrum_plan_is_conditional_next_branch():
+    plan = Path("docs/experiments/innovation1-bit-transition-spectrum-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "conditional next-branch plan" in plan
+    assert "do_not_launch_until" in plan
+    assert "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702" in plan
+    assert "candidate-trail seed0 decision = stop_candidate_trail_route" in plan
+    assert "candidate-trail seed0 decision = support_candidate_trail_route" in plan
+    assert "launch candidate-trail 262144/class seed1 first" in plan
+    assert "`zhang_wang_case2_official_mcnd`" in plan
+    assert "`encrypted_random_plaintexts`" in plan
+    assert "`0x11111111111111111111`" in plan
+    assert "`present_nibble_invp_only_spn_only`" in plan
+    assert "`bit_transition_spectrum_linear`" in plan
+    assert "`bit_transition_spectrum_mlp`" in plan
+    assert "`bit_transition_spectrum_shuffled_p`" in plan
+    assert "true transition-spectrum route >= shuffled-P control + 0.001 AUC" in plan
+    assert "do not create or launch the medium remote config" in plan
+    assert "scripts/spn-transition-spectrum-matrix" in plan
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
+
+
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
     launcher = Path(
         "configs/remote/generated/"
