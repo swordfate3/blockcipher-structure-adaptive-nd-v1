@@ -435,3 +435,44 @@ Model rows:
 | `present_nibble_invp_p_layer_graph_spn_only` | `0.793449631223` | `0.718120574951` |
 | `present_nibble_invp_shuffled_p_layer_graph_spn_only` | `0.792963626940` | `0.717285156250` |
 <!-- topology-aware-postprocess:i1_spn_topology_aware_network_r7_262k_seed0_gpu0_retry1_20260701:end -->
+
+<!-- topology-aware-postprocess:i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701:start -->
+### i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701 Topology-Aware Network Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Topology-aware gate status | `pass` |
+| Decision | `stop_topology_aware_network_route` |
+| Action | `record_negative_or_tied_evidence_and_switch_hypothesis` |
+| Interpretation | `true-P graph does not beat InvP-only and shuffled-P controls, or calibrated accuracy regresses; do not scale this architecture` |
+| Margin vs InvP AUC | `-0.000116958283` |
+| Margin vs shuffled AUC | `-0.000506543118` |
+| Calibrated delta vs InvP | `0.000106811523` |
+| Required margin | `0.001000000000` |
+| Next action branch | `candidate_trail_consistency` |
+| Next action should launch remote | `False` |
+| Next action launch config | `` |
+| Next action readiness command | `` |
+| Next action run id | `` |
+| Next steps | `Record this as tied or negative topology-aware network evidence.; Do not scale this architecture.; Switch to the candidate-trail consistency data representation plan before creating a medium remote config.` |
+| Claim scope | `262144/class medium diagnostic topology-aware network gate; not paper-scale, formal, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701.jsonl` |
+| Validation report | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_local_result_gate.json` |
+| Topology-aware gate | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_topology_aware_gate.json` |
+| Curves | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_curves.svg` |
+| History CSV | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701/i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701_next_action_readiness.json` |
+
+Model rows:
+
+| Model | AUC | Calibrated Accuracy |
+|---|---:|---:|
+| `present_nibble_invp_only_spn_only` | `0.793651987187` | `0.719306945801` |
+| `present_nibble_invp_p_layer_graph_spn_only` | `0.793535028904` | `0.719413757324` |
+| `present_nibble_invp_shuffled_p_layer_graph_spn_only` | `0.794041572022` | `0.719543457031` |
+<!-- topology-aware-postprocess:i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701:end -->
