@@ -536,8 +536,10 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "train_rows": train_rows,
         "cache_rows_done": cache_rows_done,
         "cache_total_rows": cache_total_rows,
+        "cache_rows_remaining": _remaining_rows(cache_rows_done, cache_total_rows),
         "cache_class_rows_done": cache_class_rows_done,
         "cache_class_total": cache_class_total,
+        "cache_class_rows_remaining": _remaining_rows(cache_class_rows_done, cache_class_total),
         "cache_chunk_rows": cache_chunk_rows,
         "cache_chunk_index": _cache_chunk_index(cache_rows_done, cache_chunk_rows),
         "cache_class_chunk_index": _cache_chunk_index(cache_class_rows_done, cache_chunk_rows),
@@ -565,6 +567,12 @@ def _optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _remaining_rows(done: int | None, total: int | None) -> int | None:
+    if done is None or total is None:
+        return None
+    return max(total - done, 0)
 
 
 def _optional_float(value: Any) -> float | None:

@@ -4869,8 +4869,10 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["latest_event"] == "candidate_cache_positive_chunk"
     assert progress["cache_rows_done"] == 65536
     assert progress["cache_total_rows"] == 524288
+    assert progress["cache_rows_remaining"] == 458752
     assert progress["cache_class_rows_done"] == 65536
     assert progress["cache_class_total"] == 262144
+    assert progress["cache_class_rows_remaining"] == 196608
     assert progress["cache_chunk_rows"] == 8192
     assert progress["cache_chunk_index"] == 8
     assert progress["cache_class_chunk_index"] == 8
@@ -4914,6 +4916,8 @@ def test_monitor_health_keeps_cache_eta_null_without_progress_timestamps(tmp_pat
 
     progress = report["progress_summary"]
     assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
+    assert progress["cache_rows_remaining"] == 458752
+    assert progress["cache_class_rows_remaining"] == 196608
     assert progress["cache_chunk_rows"] == 8192
     assert progress["cache_chunk_index"] == 8
     assert progress["cache_class_chunk_index"] == 8
