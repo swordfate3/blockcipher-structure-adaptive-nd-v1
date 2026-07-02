@@ -85,9 +85,9 @@ Current active candidate-trail run:
 run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 status = launched from pushed commit / local watcher-managed / running
 local_root = outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
-latest_bounded_check = 2026-07-02 18:46:27+08:00 heartbeat, no failed markers
-progress = candidate feature-cache generation, 212992/262144 class rows, 212992/524288 total rows
-progress_percent = 81.25% of current class, 40.625% of total cache
+latest_bounded_check = 2026-07-02 18:51:27+08:00 heartbeat, no failed markers
+progress = candidate feature-cache generation, 229376/262144 class rows, 229376/524288 total rows
+progress_percent = 87.5% of current class, 43.75% of total cache
 latest_event = candidate_cache_positive_chunk
 results_jsonl = not yet present
 postprocess_allowed = false
