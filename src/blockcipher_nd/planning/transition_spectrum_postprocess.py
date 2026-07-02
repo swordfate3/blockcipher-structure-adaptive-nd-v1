@@ -195,7 +195,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         return {
             "branch": "stop_transition_spectrum_route",
             "should_launch_remote": False,
-            "requires_implementation": False,
+            "requires_implementation": True,
             "reason": decision,
             "fallback_plan_options": [
                 "docs/experiments/innovation1-candidate-trail-consistency-plan.md",
@@ -255,6 +255,7 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
     if not isinstance(next_action, dict):
         next_action = {}
     should_launch_remote = bool(next_action.get("should_launch_remote"))
+    requires_implementation = bool(next_action.get("requires_implementation"))
     return {
         "status": "pass" if not should_launch_remote else "fail",
         "summary": str(summary_path),
@@ -263,13 +264,45 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
         "action": report.get("action"),
         "branch": next_action.get("branch"),
         "should_launch_remote": should_launch_remote,
-        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "requires_implementation": requires_implementation,
         "readiness_pass": False,
         "readiness_reports": [],
+        "implementation_checklist": _implementation_checklist(next_action) if requires_implementation else [],
         "next_action": next_action,
         "claim_scope": report.get("claim_scope"),
         "errors": [] if not should_launch_remote else ["transition-spectrum next_action unexpectedly requested remote launch"],
     }
+
+
+def _implementation_checklist(next_action: dict[str, Any]) -> list[str]:
+    branch = str(next_action.get("branch") or "<next-branch>")
+    if branch == "stop_transition_spectrum_route":
+        hypotheses = next_action.get("fallback_hypotheses")
+        hypothesis_text = ", ".join(hypotheses) if isinstance(hypotheses, list) else "next SPN hypothesis"
+        return [
+            "Choose a new SPN hypothesis before any remote launch.",
+            f"Candidate hypotheses: {hypothesis_text}.",
+            "Write a new docs/experiments plan before implementation or launch.",
+            "Update docs/research only if the research route changes.",
+            "Commit and push docs/config/code changes before launching from GitHub.",
+        ]
+    plan_doc = str(next_action.get("next_plan_doc") or "docs/experiments/innovation1-bit-transition-spectrum-plan.md")
+    suggested_plan = str(next_action.get("suggested_plan_config") or "<next transition-spectrum config>")
+    workers = next_action.get("suggested_feature_cache_workers")
+    checklist = [
+        f"Prepare `{branch}` before any remote launch.",
+        f"Update or create the experiment plan in `{plan_doc}`.",
+        f"Create and review `{suggested_plan}` with one attributable hypothesis.",
+    ]
+    if workers is not None:
+        checklist.append(f"Set feature_cache_workers to at least {workers} for medium-scale cache generation.")
+    checklist.extend(
+        [
+            "Run local smoke/readiness checks.",
+            "Commit and push docs/config/code changes before launching from GitHub.",
+        ]
+    )
+    return checklist
 
 
 def _markdown_summary(report: dict[str, Any]) -> str:

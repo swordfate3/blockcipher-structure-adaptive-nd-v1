@@ -196,10 +196,14 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         return {
             "branch": "stop_candidate_trail_route",
             "should_launch_remote": False,
-            "requires_implementation": False,
+            "requires_implementation": True,
             "reason": decision,
             "fallback_branch": "bit_transition_spectrum_seed0",
             "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
+            "suggested_plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
+            ),
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 "--config configs/remote/<transition-spectrum-medium-config>.json"
@@ -255,6 +259,7 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
     if not isinstance(next_action, dict):
         next_action = {}
     should_launch_remote = bool(next_action.get("should_launch_remote"))
+    requires_implementation = bool(next_action.get("requires_implementation"))
     return {
         "status": "pass" if not should_launch_remote else "fail",
         "summary": str(summary_path),
@@ -263,13 +268,39 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
         "action": report.get("action"),
         "branch": next_action.get("branch"),
         "should_launch_remote": should_launch_remote,
-        "requires_implementation": bool(next_action.get("requires_implementation")),
+        "requires_implementation": requires_implementation,
         "readiness_pass": False,
         "readiness_reports": [],
+        "implementation_checklist": _implementation_checklist(next_action) if requires_implementation else [],
         "next_action": next_action,
         "claim_scope": report.get("claim_scope"),
         "errors": [] if not should_launch_remote else ["candidate-trail next_action unexpectedly requested remote launch"],
     }
+
+
+def _implementation_checklist(next_action: dict[str, Any]) -> list[str]:
+    branch = str(next_action.get("fallback_branch") or next_action.get("branch") or "<next-branch>")
+    plan_doc = str(
+        next_action.get("next_plan_doc")
+        or next_action.get("fallback_plan")
+        or "docs/experiments/innovation1-candidate-trail-consistency-plan.md"
+    )
+    suggested_plan = str(next_action.get("suggested_plan_config") or "<next experiment config>")
+    workers = next_action.get("suggested_feature_cache_workers")
+    checklist = [
+        f"Prepare `{branch}` before any remote launch.",
+        f"Update or create the experiment plan in `{plan_doc}`.",
+        f"Create and review `{suggested_plan}` with one attributable hypothesis.",
+    ]
+    if workers is not None:
+        checklist.append(f"Set feature_cache_workers to at least {workers} for medium-scale cache generation.")
+    checklist.extend(
+        [
+            "Run local smoke/readiness checks.",
+            "Commit and push docs/config/code changes before launching from GitHub.",
+        ]
+    )
+    return checklist
 
 
 def _markdown_summary(report: dict[str, Any]) -> str:

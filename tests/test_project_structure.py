@@ -5184,6 +5184,12 @@ def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["branch"] == "stop_candidate_trail_route"
     assert readiness["next_action"]["fallback_branch"] == "bit_transition_spectrum_seed0"
+    assert readiness["requires_implementation"] is True
+    assert readiness["implementation_checklist"]
+    assert "bit_transition_spectrum_seed0" in " ".join(readiness["implementation_checklist"])
+    assert "docs/experiments/innovation1-bit-transition-spectrum-plan.md" in " ".join(
+        readiness["implementation_checklist"]
+    )
 
 
 def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths(tmp_path):
@@ -5304,6 +5310,11 @@ def test_transition_spectrum_postprocess_writes_summary_and_updates_plan_doc(tmp
     assert readiness["should_launch_remote"] is False
     assert readiness["requires_implementation"] is True
     assert readiness["readiness_pass"] is False
+    assert readiness["implementation_checklist"]
+    assert "transition_spectrum_seed1_confirmation" in readiness["implementation_checklist"][0]
+    assert "docs/experiments/innovation1-bit-transition-spectrum-plan.md" in " ".join(
+        readiness["implementation_checklist"]
+    )
     assert readiness["errors"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Bit-Transition-Spectrum Result" in plan_text
@@ -5362,6 +5373,9 @@ def test_transition_spectrum_postprocess_weak_and_stop_expose_next_paths(tmp_pat
     assert any("new docs/experiments plan" in step for step in stop["next_steps"])
     stop_readiness = json.loads(Path(stop["next_action_readiness"]).read_text(encoding="utf-8"))
     assert stop_readiness["branch"] == "stop_transition_spectrum_route"
+    assert stop_readiness["requires_implementation"] is True
+    assert stop_readiness["implementation_checklist"]
+    assert "new SPN hypothesis" in " ".join(stop_readiness["implementation_checklist"])
 
 
 def test_zhang_wang_official_anchor_plan_generates_dataset():
