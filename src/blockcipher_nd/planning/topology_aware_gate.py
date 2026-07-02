@@ -72,6 +72,8 @@ def gate_topology_aware_result(
     interpretation = "gate cannot be evaluated"
     if not errors and margin_vs_invp is not None and margin_vs_shuffled is not None:
         calibrated_not_worse = calibrated_delta_vs_invp is None or _at_least(calibrated_delta_vs_invp, 0.0)
+        beats_invp = margin_vs_invp > FLOAT_TOLERANCE
+        beats_shuffled = margin_vs_shuffled > FLOAT_TOLERANCE
         if _at_least(margin_vs_invp, margin) and _at_least(margin_vs_shuffled, margin) and calibrated_not_worse:
             decision = "support_topology_aware_network_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
@@ -79,7 +81,7 @@ def gate_topology_aware_result(
                 "true-P graph beats InvP-only and shuffled-P controls by the required margin; "
                 "this is medium-scale diagnostic support for topology-aware network structure"
             )
-        elif _at_least(margin_vs_invp, 0.0) and _at_least(margin_vs_shuffled, 0.0) and calibrated_not_worse:
+        elif beats_invp and beats_shuffled and calibrated_not_worse:
             decision = "weak_topology_aware_network_signal"
             action = "run_262k_seed1_variance_check_before_scaling"
             interpretation = (

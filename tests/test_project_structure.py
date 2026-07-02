@@ -21,6 +21,7 @@ from blockcipher_nd.features.registry import (
 from blockcipher_nd.planning.invp_gate import gate_invp_only_result
 from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
+from blockcipher_nd.planning.topology_aware_gate import gate_topology_aware_result
 from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
@@ -2762,6 +2763,24 @@ def test_ddt_graph_gate_stops_when_control_matches_or_calibration_regresses(tmp_
     assert regressed["calibrated_delta_vs_invp"] < 0
 
 
+def test_ddt_graph_gate_stops_when_best_control_matches_true_graph(tmp_path):
+    results_path = tmp_path / "ddt_graph_control_matches.jsonl"
+    _write_ddt_graph_result_set(
+        results_path,
+        invp_auc=0.7940,
+        transition_no_ddt_auc=0.7945,
+        no_ddt_graph_auc=0.7960,
+        ddt_auc=0.7960,
+        shuffled_auc=0.7948,
+    )
+
+    report = gate_ddt_graph_result(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_ddt_graph_route"
+    assert report["margin_vs_best_control_auc"] == 0
+
+
 def test_ddt_graph_gate_fails_when_expected_rows_are_missing(tmp_path):
     results_path = tmp_path / "ddt_graph_missing.jsonl"
     with results_path.open("w", encoding="utf-8") as handle:
@@ -2948,6 +2967,23 @@ def test_topology_aware_postprocess_routes_weak_signal_to_seed1_variance_check(t
     assert "| Next action branch | `topology_aware_seed1_variance_check` |" in plan_doc
     assert "| Next action should launch remote | `True` |" in plan_doc
     assert "innovation1_spn_present_topology_aware_network_r7_262k_seed1_gpu1_20260701.json" in plan_doc
+
+
+def test_topology_aware_gate_stops_when_shuffled_control_matches_true_graph(tmp_path):
+    results_path = tmp_path / "topology_aware_shuffled_matches.jsonl"
+    _write_topology_aware_result_set(
+        results_path,
+        invp_auc=0.7940,
+        true_graph_auc=0.7945,
+        shuffled_auc=0.7945,
+    )
+
+    report = gate_topology_aware_result(results_path)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_topology_aware_network_route"
+    assert report["margin_vs_invp_auc"] > 0
+    assert report["margin_vs_shuffled_auc"] == 0
 
 
 def test_topology_aware_postprocess_routes_stop_to_candidate_trail_plan(tmp_path):

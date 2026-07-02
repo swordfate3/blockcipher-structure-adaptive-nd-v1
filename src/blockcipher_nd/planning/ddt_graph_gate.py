@@ -93,6 +93,7 @@ def gate_ddt_graph_result(
     interpretation = "gate cannot be evaluated"
     if not errors and margin_vs_best_control is not None:
         calibrated_not_worse = calibrated_delta_vs_invp is None or _at_least(calibrated_delta_vs_invp, 0.0)
+        beats_best_control = margin_vs_best_control > FLOAT_TOLERANCE
         if _at_least(margin_vs_best_control, margin) and calibrated_not_worse:
             decision = "support_ddt_graph_route"
             action = "run_262k_seed1_confirmation_before_1m_scale"
@@ -100,7 +101,7 @@ def gate_ddt_graph_result(
                 "DDT graph is above InvP/transition/no-DDT-graph/shuffled controls by the required margin; "
                 "this is medium-scale diagnostic support for the DDT/topology route"
             )
-        elif _at_least(margin_vs_best_control, 0.0) and calibrated_not_worse:
+        elif beats_best_control and calibrated_not_worse:
             decision = "weak_ddt_graph_signal"
             action = "run_prepared_262k_seed1_variance_check_before_scaling"
             interpretation = (
