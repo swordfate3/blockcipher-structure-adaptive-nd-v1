@@ -49,7 +49,12 @@ from blockcipher_nd.tasks.innovation1 import spn_active_pattern, spn_candidate_e
 from blockcipher_nd.tasks.innovation1.spn_transition_spectrum import (
     make_transition_spectrum_dataset,
 )
-from blockcipher_nd.cli import spn_candidate_evidence_matrix, spn_transition_spectrum_matrix
+from blockcipher_nd.tasks.innovation1.spn_trail_family import make_trail_family_dataset
+from blockcipher_nd.cli import (
+    spn_candidate_evidence_matrix,
+    spn_transition_spectrum_matrix,
+    spn_trail_family_matrix,
+)
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
 
 
@@ -1161,6 +1166,150 @@ def test_bit_transition_spectrum_matrix_outputs_anchor_and_candidate_rows(tmp_pa
     assert rows[1]["feature_route"] == "bit_transition_spectrum"
     assert rows[1]["feature_dim"] == 1020
     assert rows[3]["shuffled_p"] is True
+    assert rows[1]["auc"] == rows[1]["val_auc"]
+    assert rows[2]["calibrated_accuracy"] == rows[2]["metrics"]["calibrated_accuracy"]
+
+
+def test_trail_family_dataset_cache_writes_and_reuses(tmp_path):
+    progress_path = tmp_path / "trail_family_progress.jsonl"
+    features, labels = make_trail_family_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        beam_width=4,
+        depth=3,
+        feature_cache_root=tmp_path / "trail_family_cache",
+        feature_cache_chunk_size=2,
+        feature_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+    reused_features, reused_labels = make_trail_family_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        beam_width=4,
+        depth=3,
+        feature_cache_root=tmp_path / "trail_family_cache",
+        feature_cache_chunk_size=2,
+        feature_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+
+    assert features.shape == (6, 347)
+    assert labels.shape == (6,)
+    assert set(np.unique(labels).tolist()) == {0, 1}
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert "trail_family_cache_flush_start" in progress_text
+    assert "trail_family_cache_done" in progress_text
+    assert "trail_family_cache_reuse" in progress_text
+    metadata_path = next((tmp_path / "trail_family_cache").glob("train/*/metadata.json"))
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert "feature_cache_workers" not in metadata
+    assert '"workers": 1' in progress_text
+
+
+def test_trail_family_cache_reuses_across_worker_counts(tmp_path):
+    progress_path = tmp_path / "trail_family_worker_reuse_progress.jsonl"
+    cache_root = tmp_path / "trail_family_worker_reuse_cache"
+    common = {
+        "rounds": 7,
+        "key": 0,
+        "input_difference": 0x9,
+        "seed": 17,
+        "samples_per_class": 4,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_rotation_interval": 0,
+        "beam_width": 4,
+        "depth": 3,
+        "feature_cache_root": cache_root,
+        "feature_cache_chunk_size": 2,
+        "progress_output": progress_path,
+        "split": "train",
+    }
+
+    features, labels = make_trail_family_dataset(**common, feature_cache_workers=1)
+    reused_features, reused_labels = make_trail_family_dataset(**common, feature_cache_workers=2)
+
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert '"workers": 1' in progress_text
+    assert "trail_family_cache_reuse" in progress_text
+    assert len(list(cache_root.glob("train/*/metadata.json"))) == 1
+
+
+def test_trail_family_matrix_outputs_anchor_and_candidate_rows(tmp_path):
+    config = tmp_path / "trail_family_matrix.json"
+    output = tmp_path / "trail_family_matrix.jsonl"
+    config.write_text(
+        json.dumps(
+            {
+                "output": str(output),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "train_key": "0x00000000000000000000",
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "feature_cache_root": str(tmp_path / "cache"),
+                    "feature_cache_chunk_size": 1,
+                    "epochs": 1,
+                    "learning_rate": 0.01,
+                    "device": "cpu",
+                },
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.52,
+                        "anchor_calibrated_accuracy": 0.5,
+                    },
+                    {"model": "linear", "progress_output": str(tmp_path / "linear_progress.jsonl")},
+                    {"model": "mlp", "progress_output": str(tmp_path / "mlp_progress.jsonl")},
+                    {"model": "false_family", "progress_output": str(tmp_path / "false_family_progress.jsonl")},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spn_trail_family_matrix.main(["--config", str(config)])
+
+    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    assert [row["model"] for row in rows] == [
+        "present_nibble_invp_only_spn_only",
+        "trail_family_consistency_linear",
+        "trail_family_consistency_mlp",
+        "trail_family_consistency_false_family",
+    ]
+    assert rows[0]["row_type"] == "external_anchor"
+    assert rows[1]["feature_route"] == "trail_family_consistency"
+    assert rows[1]["feature_dim"] == 347
+    assert rows[3]["false_family"] is True
     assert rows[1]["auc"] == rows[1]["val_auc"]
     assert rows[2]["calibrated_accuracy"] == rows[2]["metrics"]["calibrated_accuracy"]
 
