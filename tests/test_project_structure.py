@@ -5327,6 +5327,23 @@ def test_candidate_trail_gate_marks_weak_or_stop_signal(tmp_path):
     assert stop["margin_vs_anchor_auc"] < 0
 
 
+def test_candidate_trail_gate_can_require_shuffled_control(tmp_path):
+    results = tmp_path / "candidate_trail_missing_shuffled.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7925)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7940)
+
+    diagnostic = gate_candidate_trail_result(results, expected_rows=3)
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_candidate_trail_signal"
+    assert diagnostic["warnings"] == ["missing_shuffled_control=candidate_trail_consistency_shuffled_cells"]
+
+    strict = gate_candidate_trail_result(results, expected_rows=3, require_shuffled_control=True)
+    assert strict["status"] == "fail"
+    assert strict["decision"] == "invalid"
+    assert strict["errors"] == ["missing_shuffled_control=candidate_trail_consistency_shuffled_cells"]
+
+
 def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "candidate_trail.jsonl"
     _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
@@ -5390,18 +5407,52 @@ def test_candidate_trail_postprocess_writes_summary_and_updates_plan_doc(tmp_pat
     assert plan_text.count("<!-- candidate-trail-postprocess:candidate_trail_unit:start -->") == 1
 
 
+def test_candidate_trail_postprocess_requires_shuffled_control_by_default(tmp_path):
+    results = tmp_path / "candidate_trail_missing_shuffled.jsonl"
+    _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7925)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7940)
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="candidate_trail_missing_shuffled_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "fail"
+    assert report["candidate_trail_status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert report["require_shuffled_control"] is True
+    gate = json.loads((output_dir / "candidate_trail_missing_shuffled_unit_candidate_trail_gate.json").read_text())
+    assert gate["errors"] == ["missing_shuffled_control=candidate_trail_consistency_shuffled_cells"]
+
+    diagnostic = postprocess_candidate_trail_result(
+        results_path=results,
+        output_dir=output_dir / "diagnostic",
+        run_id="candidate_trail_missing_shuffled_diagnostic",
+        expected_rows=3,
+        require_shuffled_control=False,
+    )
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_candidate_trail_signal"
+    assert diagnostic["require_shuffled_control"] is False
+
+
 def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp_path):
     results = tmp_path / "candidate_trail_stop.jsonl"
     _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
     _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7910)
     _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7915)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_shuffled_cells", 0.7917)
     output_dir = tmp_path / "postprocess"
 
     report = postprocess_candidate_trail_result(
         results_path=results,
         output_dir=output_dir,
         run_id="candidate_trail_stop_unit",
-        expected_rows=3,
+        expected_rows=4,
     )
 
     assert report["status"] == "pass"
@@ -5429,13 +5480,14 @@ def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths
     _write_candidate_trail_result(results, "present_nibble_invp_only_spn_only", 0.7920)
     _write_candidate_trail_result(results, "candidate_trail_consistency_linear", 0.7922)
     _write_candidate_trail_result(results, "candidate_trail_consistency_mlp", 0.7924)
+    _write_candidate_trail_result(results, "candidate_trail_consistency_shuffled_cells", 0.7923)
     output_dir = tmp_path / "postprocess"
 
     report = postprocess_candidate_trail_result(
         results_path=results,
         output_dir=output_dir,
         run_id="candidate_trail_weak_unit",
-        expected_rows=3,
+        expected_rows=4,
     )
 
     assert report["status"] == "pass"
