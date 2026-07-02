@@ -47,6 +47,9 @@ Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`,
 candidate_trail`, `--postprocess-kind transition_spectrum`, or
 `--postprocess-kind trail_family` so the emitted command calls the matching
 postprocess entrypoint and expected row count.
+For feature-cache jobs, `progress_summary` includes cache progress percentages,
+row rates when timestamps are available, ETA when computable, and
+`cache_rows_remaining` / `cache_class_rows_remaining` for direct status reports.
 
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or

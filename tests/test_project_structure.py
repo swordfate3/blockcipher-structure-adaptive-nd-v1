@@ -2250,6 +2250,8 @@ def test_scripts_readme_documents_monitor_health_result_states():
     assert "`results_empty`" in text
     assert "at least one non-empty row" in text
     assert "Neither state should be postprocessed" in text
+    assert "`cache_rows_remaining`" in text
+    assert "`cache_class_rows_remaining`" in text
 
 
 def test_invp_only_gate_selects_seed1_for_strong_delta(tmp_path):
