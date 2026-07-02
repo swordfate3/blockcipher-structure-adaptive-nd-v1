@@ -69,7 +69,10 @@ route-level evidence, marks superseded branches, and emits an
 recommendation remains `wait_for_candidate_trail_result`; after retrieved
 candidate-trail or bit-transition-spectrum results, it follows the newest
 gated branch and keeps transition-spectrum decisions ahead of older
-candidate-trail decisions.
+candidate-trail decisions. Running or ready candidate-trail recommendations
+also include `main_thread_policy`, which lists allowed local actions and the
+remote launches or claims that remain forbidden until the gate has produced a
+validated postprocess decision.
 
 Use `scripts/evaluate-pairset-aggregation` to evaluate a frozen single-pair
 checkpoint as an independent score-aggregation control over multi-pair samples.

@@ -290,6 +290,7 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "progress_summary": _active_progress_summary(run_root),
                 "monitor_health_command": _candidate_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
+                "main_thread_policy": _candidate_main_thread_policy("postprocess"),
             }
         if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
             "running" in line for line in recent_lines
@@ -308,6 +309,7 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
                 "progress_summary": _active_progress_summary(run_root),
                 "monitor_health_command": _candidate_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _candidate_postprocess_command(run_root),
+                "main_thread_policy": _candidate_main_thread_policy("waiting"),
             }
     return None
 
@@ -377,6 +379,46 @@ def _candidate_postprocess_command(run_root: Path) -> str:
         "--expected-rows 4 "
         "--update-plan-doc docs/experiments/innovation1-candidate-trail-consistency-plan.md"
     )
+
+
+def _candidate_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run the listed postprocess_when_ready_command",
+                "validate gate artifacts and update docs/experiments",
+                "commit and push postprocess documentation before following the gated branch",
+            ],
+            "forbidden_until_gate": [
+                "launch candidate-trail seed1",
+                "launch bit-transition-spectrum seed0",
+                "launch pair-set aggregation control",
+                "make route-level or breakthrough claims",
+            ],
+            "gate_condition": (
+                "postprocess summary exists, validates against the plan, and emits a decision "
+                "such as support_candidate_trail_route, weak_candidate_trail_signal, or "
+                "stop_candidate_trail_route"
+            ),
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "improve local planning, readiness, or postprocess tooling without changing the active run",
+            "wait for the watcher or sub-agent to retrieve result artifacts",
+        ],
+        "forbidden_until_gate": [
+            "launch candidate-trail seed1",
+            "launch bit-transition-spectrum seed0",
+            "launch pair-set aggregation control",
+            "SSH-poll or tmux-loop from the main thread",
+            "make route-level or breakthrough claims",
+        ],
+        "gate_condition": (
+            "watcher retrieves the expected candidate-trail JSONL rows and "
+            "postprocess_allowed becomes true"
+        ),
+    }
 
 
 def _candidate_plan_path(run_id: str) -> Path:

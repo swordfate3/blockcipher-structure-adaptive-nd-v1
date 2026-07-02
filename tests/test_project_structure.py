@@ -1593,6 +1593,13 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["run_id"] == "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"
     assert report["active_recommendation"]["status"] in {"running", "stale_monitor"}
     assert report["active_recommendation"]["postprocess_allowed"] is False
+    assert "main_thread_policy" in report["active_recommendation"]
+    assert "launch candidate-trail seed1" in report["active_recommendation"]["main_thread_policy"][
+        "forbidden_until_gate"
+    ]
+    assert "wait for the watcher or sub-agent to retrieve result artifacts" in report["active_recommendation"][
+        "main_thread_policy"
+    ]["allowed_actions"]
     assert "heartbeat" in report["active_recommendation"]
     assert "needs_main_thread_intervention" in report["active_recommendation"]
     assert report["active_recommendation"]["progress_summary"]["cache_class_rows_done"] == 114688
@@ -1696,6 +1703,9 @@ def test_summarize_spn_evidence_routes_ready_candidate_result_to_postprocess(tmp
     assert active["results_jsonl_line_count"] == 4
     assert active["expected_rows"] == 4
     assert "scripts/postprocess-candidate-trail" in " ".join(active["postprocess_command"])
+    assert "main_thread_policy" in active
+    assert "run the listed postprocess_when_ready_command" in active["main_thread_policy"]["allowed_actions"]
+    assert "launch bit-transition-spectrum seed0" in active["main_thread_policy"]["forbidden_until_gate"]
 
 
 def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp_path):
