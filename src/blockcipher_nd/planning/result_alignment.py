@@ -124,11 +124,8 @@ def _load_plan_rows(path: Path) -> list[dict[str, str]]:
 
 def _json_plan_row(row: dict[str, Any]) -> dict[str, str]:
     model = row.get("model_key") or row.get("model") or row.get("route")
-    route_models = {
-        "linear": "candidate_trail_consistency_linear",
-        "mlp": "candidate_trail_consistency_mlp",
-        "shuffled_cells": "candidate_trail_consistency_shuffled_cells",
-    }
+    feature_route = str(row.get("feature_route") or row.get("route") or "")
+    route_models = _json_plan_route_models(feature_route)
     if model in route_models:
         model = route_models[str(model)]
     return {
@@ -142,6 +139,26 @@ def _json_plan_row(row: dict[str, Any]) -> dict[str, str]:
         "key_rotation_interval": str(row.get("key_rotation_interval", "")),
         "difference_profile": str(row.get("difference_profile", "")),
         "difference_member": str(row.get("difference_member", "")),
+    }
+
+
+def _json_plan_route_models(feature_route: str) -> dict[str, str]:
+    if feature_route == "bit_transition_spectrum":
+        return {
+            "linear": "bit_transition_spectrum_linear",
+            "mlp": "bit_transition_spectrum_mlp",
+            "shuffled_p": "bit_transition_spectrum_shuffled_p",
+        }
+    if feature_route == "trail_family_consistency":
+        return {
+            "linear": "trail_family_consistency_linear",
+            "mlp": "trail_family_consistency_mlp",
+            "false_family": "trail_family_consistency_false_family",
+        }
+    return {
+        "linear": "candidate_trail_consistency_linear",
+        "mlp": "candidate_trail_consistency_mlp",
+        "shuffled_cells": "candidate_trail_consistency_shuffled_cells",
     }
 
 

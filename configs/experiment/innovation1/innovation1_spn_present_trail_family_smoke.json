@@ -1,7 +1,7 @@
 {
-  "run_id": "i1_bit_transition_spectrum_smoke_20260702",
-  "description": "SMOKE only for Innovation 1 bit-level transition-spectrum feature route under current official PRESENT Case2 protocol; not accuracy evidence.",
-  "output": "outputs/local_smoke/i1_bit_transition_spectrum_smoke_20260702/results.jsonl",
+  "run_id": "i1_trail_family_smoke_20260702",
+  "description": "SMOKE only for Innovation 1 trail-family-consistency feature route under current official PRESENT Case2 protocol; not accuracy evidence.",
+  "output": "outputs/local_smoke/i1_trail_family_smoke_20260702/results.jsonl",
   "common": {
     "rounds": 7,
     "seed": 0,
@@ -11,11 +11,13 @@
     "sample_structure": "zhang_wang_case2_official_mcnd",
     "difference_profile": "present_zhang_wang2022_mcnd",
     "difference_member": 0,
-    "feature_route": "bit_transition_spectrum",
+    "feature_route": "trail_family_consistency",
     "train_key": "0x00000000000000000000",
     "validation_key": "0x11111111111111111111",
     "key_rotation_interval": 0,
-    "feature_cache_root": "outputs/local_smoke/i1_bit_transition_spectrum_smoke_20260702/cache",
+    "beam_width": 4,
+    "depth": 3,
+    "feature_cache_root": "outputs/local_smoke/i1_trail_family_smoke_20260702/cache",
     "feature_cache_chunk_size": 1,
     "feature_cache_workers": 1,
     "epochs": 1,
@@ -32,15 +34,15 @@
     },
     {
       "model": "linear",
-      "progress_output": "outputs/local_smoke/i1_bit_transition_spectrum_smoke_20260702/linear_progress.jsonl"
+      "progress_output": "outputs/local_smoke/i1_trail_family_smoke_20260702/linear_progress.jsonl"
     },
     {
       "model": "mlp",
-      "progress_output": "outputs/local_smoke/i1_bit_transition_spectrum_smoke_20260702/mlp_progress.jsonl"
+      "progress_output": "outputs/local_smoke/i1_trail_family_smoke_20260702/mlp_progress.jsonl"
     },
     {
-      "model": "shuffled_p",
-      "progress_output": "outputs/local_smoke/i1_bit_transition_spectrum_smoke_20260702/shuffled_progress.jsonl"
+      "model": "false_family",
+      "progress_output": "outputs/local_smoke/i1_trail_family_smoke_20260702/false_family_progress.jsonl"
     }
   ]
 }

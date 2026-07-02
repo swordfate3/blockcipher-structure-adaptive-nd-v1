@@ -28,7 +28,7 @@ do_not_launch_until =
      gate/plan after documented evidence.
 
 claim_scope = planned route only; no evidence yet
-implementation_status = local feature foundation implemented; CLI/gate/postprocess/remote not implemented
+implementation_status = local smoke runner/gate/postprocess implemented; medium remote not implemented
 remote_config_status = do not create until trigger
 ```
 
@@ -285,7 +285,7 @@ trail-family medium run before the trigger conditions above are met.
 
 ### Task 2: Add Dataset/CLI Matrix Route
 
-Status: pending by design.
+Status: local smoke runner implemented.
 
 Required behavior:
 
@@ -300,14 +300,29 @@ record feature_cache_workers and cache metadata/progress
 Suggested files:
 
 ```text
-create src/blockcipher_nd/tasks/innovation1/spn_trail_family.py
-create src/blockcipher_nd/cli/spn_trail_family_matrix.py
-create scripts/spn-trail-family-matrix
+created src/blockcipher_nd/tasks/innovation1/spn_trail_family.py
+created src/blockcipher_nd/cli/spn_trail_family_matrix.py
+created scripts/spn-trail-family-matrix
 ```
+
+Implemented behavior:
+
+```text
+runner_script = scripts/spn-trail-family-matrix
+feature_route = trail_family_consistency
+rows = external InvP anchor, linear, MLP, false-family control
+cache = disk-backed features.npy / labels.npy with metadata and progress JSONL
+workers = feature_cache_workers, using the same map-style chunk interface as
+          the bit-transition-spectrum route
+```
+
+This runner is implemented for smoke/readiness and future gated use. The
+262144/class remote matrix is still blocked by the trigger conditions at the top
+of this document.
 
 ### Task 3: Add Smoke Config And Gate
 
-Status: pending by design.
+Status: local smoke config, gate, and postprocess implemented.
 
 Required behavior:
 
@@ -320,11 +335,55 @@ postprocess writes next_action_readiness.json
 Suggested files:
 
 ```text
-create configs/experiment/innovation1/innovation1_spn_present_trail_family_smoke.json
-create src/blockcipher_nd/planning/trail_family_gate.py
-create src/blockcipher_nd/planning/trail_family_postprocess.py
-create scripts/gate-trail-family
-create scripts/postprocess-trail-family
+created configs/experiment/innovation1/innovation1_spn_present_trail_family_smoke.json
+created src/blockcipher_nd/planning/trail_family_gate.py
+created src/blockcipher_nd/planning/trail_family_postprocess.py
+created scripts/gate-trail-family
+created scripts/postprocess-trail-family
+```
+
+Implemented behavior:
+
+```text
+gate compares:
+  best(trail_family_consistency_linear, trail_family_consistency_mlp)
+  vs present_nibble_invp_only_spn_only anchor
+  vs trail_family_consistency_false_family control
+
+postprocess writes:
+  *_trail_family_gate.json
+  *_postprocess_summary.json
+  *_postprocess_summary.md
+  *_next_action_readiness.json
+```
+
+Smoke command:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-trail-family-matrix \
+  --config configs/experiment/innovation1/innovation1_spn_present_trail_family_smoke.json \
+  --output /tmp/i1_trail_family_smoke.jsonl
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-family \
+  --results /tmp/i1_trail_family_smoke.jsonl \
+  --expected-rows 4 \
+  --require-false-family-control
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-trail-family \
+  --results /tmp/i1_trail_family_smoke.jsonl \
+  --output-dir /tmp/i1_trail_family_postprocess \
+  --run-id i1_trail_family_smoke_verify \
+  --plan configs/experiment/innovation1/innovation1_spn_present_trail_family_smoke.json \
+  --expected-rows 4
+```
+
+Smoke verification status:
+
+```text
+matrix = pass, emitted 4 JSONL rows
+gate = pass, weak_trail_family_signal on tiny smoke only
+postprocess = pass, validation_status = pass, next_action_readiness emitted
+claim_scope = smoke/readiness only, not model evidence
 ```
 
 ### Task 4: Add Medium Plan/Remote Config Only After Trigger
@@ -373,8 +432,7 @@ expected_rows = 4
 ## Current Action
 
 ```text
-local feature foundation implemented
-no smoke config yet
+local smoke runner/gate/postprocess implemented
 no remote config yet
 waiting for candidate-trail seed0 gate, then transition-spectrum gate if selected
 ```

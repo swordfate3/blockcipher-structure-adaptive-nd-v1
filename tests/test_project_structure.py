@@ -23,8 +23,10 @@ from blockcipher_nd.planning.invp_attribution_gate import gate_invp_attribution_
 from blockcipher_nd.planning.ddt_graph_gate import gate_ddt_graph_result
 from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
+from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_transition_spectrum_result
+from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
@@ -884,10 +886,13 @@ def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
     assert "do not create or launch the medium remote config" in plan
     assert "scripts/spn-trail-family-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
-    assert "implementation_status = local feature foundation implemented" in plan
-    assert "CLI/gate/postprocess/remote not implemented" in plan
+    assert "implementation_status = local smoke runner/gate/postprocess implemented" in plan
+    assert "medium remote not implemented" in plan
     assert "remote_config_status = do not create until trigger" in plan
     assert "This implementation is not result evidence" in plan
+    assert "scripts/gate-trail-family" in plan
+    assert "scripts/postprocess-trail-family" in plan
+    assert "trail_family_consistency_false_family control" in plan
 
 
 def test_bit_transition_spectrum_features_are_stable_and_controlled():
@@ -977,6 +982,27 @@ def test_present_trail_family_rejects_empty_pairset():
         present_pairset_trail_family_features([], width=64, cipher=cipher)
 
 
+def test_trail_family_smoke_config_preserves_official_protocol():
+    config_path = Path("configs/experiment/innovation1/innovation1_spn_present_trail_family_smoke.json")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert config["run_id"] == "i1_trail_family_smoke_20260702"
+    assert config["common"]["samples_per_class"] == 2
+    assert config["common"]["pairs_per_sample"] == 1
+    assert config["common"]["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["common"]["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["common"]["feature_route"] == "trail_family_consistency"
+    assert config["common"]["validation_key"] == "0x11111111111111111111"
+    assert config["common"]["key_rotation_interval"] == 0
+    assert config["common"]["feature_cache_root"].startswith("outputs/local_smoke/")
+    assert [row["model"] for row in config["rows"]] == [
+        "present_nibble_invp_only_spn_only",
+        "linear",
+        "mlp",
+        "false_family",
+    ]
+
+
 def test_bit_transition_spectrum_smoke_config_preserves_official_protocol():
     config_path = Path(
         "configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json"
@@ -988,6 +1014,7 @@ def test_bit_transition_spectrum_smoke_config_preserves_official_protocol():
     assert config["common"]["pairs_per_sample"] == 1
     assert config["common"]["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert config["common"]["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["common"]["feature_route"] == "bit_transition_spectrum"
     assert config["common"]["validation_key"] == "0x11111111111111111111"
     assert config["common"]["key_rotation_interval"] == 0
     assert [row.get("model") for row in config["rows"]] == [
@@ -1503,15 +1530,18 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/spn-candidate-evidence"),
         Path("scripts/spn-candidate-evidence-matrix"),
         Path("scripts/spn-transition-spectrum-matrix"),
+        Path("scripts/spn-trail-family-matrix"),
         Path("scripts/spn-active-pattern"),
         Path("scripts/audit-spn-features"),
         Path("scripts/validate-results"),
         Path("scripts/gate-invp-result"),
         Path("scripts/gate-candidate-trail"),
         Path("scripts/gate-transition-spectrum"),
+        Path("scripts/gate-trail-family"),
         Path("scripts/postprocess-invp-result"),
         Path("scripts/postprocess-candidate-trail"),
         Path("scripts/postprocess-transition-spectrum"),
+        Path("scripts/postprocess-trail-family"),
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
         Path("scripts/plan-next-action"),
@@ -5595,6 +5625,170 @@ def _write_transition_spectrum_result(path: Path, model: str, auc: float, calibr
             )
             + "\n"
         )
+
+
+def _write_trail_family_result(path: Path, model: str, auc: float, calibrated: float = 0.72) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": model,
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": calibrated,
+                        "calibrated_accuracy": calibrated,
+                        "loss": 0.55,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def test_trail_family_gate_supports_route_when_candidate_beats_anchor_and_false_family(tmp_path):
+    results = tmp_path / "trail_family.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7925)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7940)
+    _write_trail_family_result(results, "trail_family_consistency_false_family", 0.7926)
+
+    report = gate_trail_family_result(results, expected_rows=4)
+
+    assert report["status"] == "pass"
+    assert report["best_candidate_model"] == "trail_family_consistency_mlp"
+    assert report["decision"] == "support_trail_family_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_false_family_auc"] > 0.001
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_trail_family_gate_marks_weak_or_stop_signal(tmp_path):
+    weak_results = tmp_path / "trail_family_weak.jsonl"
+    _write_trail_family_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(weak_results, "trail_family_consistency_linear", 0.7922)
+    _write_trail_family_result(weak_results, "trail_family_consistency_mlp", 0.7924)
+
+    weak = gate_trail_family_result(weak_results, expected_rows=3)
+    assert weak["decision"] == "weak_trail_family_signal"
+
+    stop_results = tmp_path / "trail_family_stop.jsonl"
+    _write_trail_family_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(stop_results, "trail_family_consistency_linear", 0.7910)
+    _write_trail_family_result(stop_results, "trail_family_consistency_mlp", 0.7915)
+
+    stop = gate_trail_family_result(stop_results, expected_rows=3)
+    assert stop["decision"] == "stop_trail_family_route"
+    assert stop["margin_vs_anchor_auc"] < 0
+
+
+def test_trail_family_gate_can_require_false_family_control(tmp_path):
+    results = tmp_path / "trail_family_missing_false_family.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7925)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7940)
+
+    diagnostic = gate_trail_family_result(results, expected_rows=3)
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_trail_family_signal"
+    assert diagnostic["warnings"] == ["missing_false_family_control=trail_family_consistency_false_family"]
+
+    strict = gate_trail_family_result(results, expected_rows=3, require_false_family_control=True)
+    assert strict["status"] == "fail"
+    assert strict["decision"] == "invalid"
+    assert strict["errors"] == ["missing_false_family_control=trail_family_consistency_false_family"]
+
+
+def test_trail_family_postprocess_writes_summary_and_next_action_readiness(tmp_path):
+    results = tmp_path / "trail_family.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7925)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7940)
+    _write_trail_family_result(results, "trail_family_consistency_false_family", 0.7926)
+    plan_doc = tmp_path / "trail_family_plan.md"
+    plan_doc.write_text("# Trail Family Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_trail_family_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="trail_family_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_trail_family_route"
+    assert report["next_action"]["branch"] == "trail_family_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert Path(report["trail_family_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "trail_family_seed1_confirmation"
+    assert readiness["status"] == "pass"
+    assert readiness["should_launch_remote"] is False
+    assert readiness["implementation_checklist"]
+    assert "Trail-Family Result" in plan_doc.read_text(encoding="utf-8")
+
+
+def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
+    transition_plan = tmp_path / "transition_plan.json"
+    transition_results = tmp_path / "transition_results.jsonl"
+    transition_plan.write_text(
+        json.dumps(
+            {
+                "output": str(transition_results),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "key_rotation_interval": 0,
+                    "feature_route": "bit_transition_spectrum",
+                },
+                "rows": [{"model": "linear"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_transition_spectrum_result(transition_results, "bit_transition_spectrum_linear", 0.5)
+
+    transition = validate_result_plan_alignment(transition_plan, transition_results, expected_rows=1)
+    assert transition["status"] == "pass"
+
+    trail_plan = tmp_path / "trail_plan.json"
+    trail_results = tmp_path / "trail_results.jsonl"
+    trail_plan.write_text(
+        json.dumps(
+            {
+                "output": str(trail_results),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "key_rotation_interval": 0,
+                    "feature_route": "trail_family_consistency",
+                },
+                "rows": [{"model": "false_family"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_trail_family_result(trail_results, "trail_family_consistency_false_family", 0.5)
+
+    trail = validate_result_plan_alignment(trail_plan, trail_results, expected_rows=1)
+    assert trail["status"] == "pass"
 
 
 def test_transition_spectrum_gate_supports_route_when_candidate_beats_anchor(tmp_path):
