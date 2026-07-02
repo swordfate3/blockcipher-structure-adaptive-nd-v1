@@ -781,6 +781,10 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "do not create or launch the medium remote config" in plan
     assert "scripts/spn-transition-spectrum-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
+    assert "implementation_status = local route implemented" in plan
+    assert "streamed disk-backed feature cache" in plan
+    assert "src/blockcipher_nd/planning/transition_spectrum_postprocess.py" in plan
+    assert "no code implementation yet" not in plan
 
 
 def test_bit_transition_spectrum_features_are_stable_and_controlled():

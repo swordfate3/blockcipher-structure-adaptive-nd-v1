@@ -16,6 +16,7 @@
 status = conditional next-branch plan
 do_not_launch_until = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702 is retrieved, validated, postprocessed, and gated
 claim_scope = planned route only; no evidence yet
+implementation_status = local route implemented; medium remote config intentionally not created until trigger
 ```
 
 This plan is not a replacement for the active candidate-trail run. It is a prepared branch so the project can move immediately if candidate-trail is weak or negative.
@@ -197,6 +198,8 @@ switch to trail-family consistency, active-pattern auxiliary head, or cross-ciph
 
 ### Task 1: Add Feature Extractor
 
+Status: completed.
+
 **Files:**
 
 ```text
@@ -229,6 +232,8 @@ empty pair list raises ValueError
 
 ### Task 2: Add Dataset/CLI Route
 
+Status: completed.
+
 **Files:**
 
 ```text
@@ -246,9 +251,12 @@ generate/reuse disk-backed transition-spectrum features
 emit one JSONL row per matrix row
 include metrics.auc, metrics.calibrated_accuracy, auc, accuracy, calibrated_accuracy
 record feature_cache_workers, feature_cache_root, feature_cache_chunk_size
+stream feature-cache rows directly into features.npy / labels.npy memmap before flush
 ```
 
 ### Task 3: Add Smoke Config And Gate
+
+Status: completed.
 
 **Files:**
 
@@ -272,6 +280,8 @@ key_rotation_interval = 0
 ```
 
 ### Task 4: Add Medium Plan/Remote Config Only After Trigger
+
+Status: pending by design.
 
 **Files:**
 
@@ -314,8 +324,38 @@ expected_rows = 4
 ## Current Action
 
 ```text
-planned only
-no code implementation yet
+local implementation complete for feature extraction, matrix runner, smoke config,
+gate, postprocess, monitor-health integration, remote readiness gate, and
+streamed disk-backed feature cache
 no remote launch yet
 waiting for candidate-trail seed0 gate
 ```
+
+Implemented assets:
+
+```text
+src/blockcipher_nd/features/spn_transition_spectrum.py
+src/blockcipher_nd/tasks/innovation1/spn_transition_spectrum.py
+src/blockcipher_nd/cli/spn_transition_spectrum_matrix.py
+src/blockcipher_nd/planning/transition_spectrum_gate.py
+src/blockcipher_nd/planning/transition_spectrum_postprocess.py
+scripts/spn-transition-spectrum-matrix
+scripts/gate-transition-spectrum
+scripts/postprocess-transition-spectrum
+configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json
+```
+
+Verification already exercised:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "bit_transition_spectrum or transition_spectrum"
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-transition-spectrum-matrix \
+  --config configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json \
+  --output /tmp/transition_spectrum_stream_smoke.jsonl
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-transition-spectrum \
+  --results /tmp/transition_spectrum_stream_smoke.jsonl \
+  --expected-rows 4
+```
+
+Do not create the `262144/class` medium plan or remote config until the
+candidate-trail seed0 result is retrieved and its gate selects this branch.
