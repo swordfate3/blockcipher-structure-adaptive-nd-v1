@@ -24,6 +24,15 @@ SEED1_REMOTE_CONFIG = (
     "innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
 )
 SEED1_RUN_ID = "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
+TRANSITION_SEED0_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
+)
+TRANSITION_SEED0_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json"
+)
+TRANSITION_SEED0_RUN_ID = "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -195,19 +204,17 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "stop_candidate_trail_route":
         return {
             "branch": "stop_candidate_trail_route",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
             "fallback_branch": "bit_transition_spectrum_seed0",
             "fallback_plan": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
-            "suggested_plan_config": (
-                "configs/experiment/innovation1/"
-                "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
-            ),
-            "readiness_command": (
-                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<transition-spectrum-medium-config>.json"
-            ),
+            "suggested_plan_config": TRANSITION_SEED0_PLAN_CONFIG,
+            "launch_remote_config": TRANSITION_SEED0_REMOTE_CONFIG,
+            "suggested_feature_cache_workers": 4,
+            "readiness_command": _readiness_command(TRANSITION_SEED0_REMOTE_CONFIG),
+            "run_id": TRANSITION_SEED0_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     return {
         "branch": "manual_review",
@@ -244,12 +251,14 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "If the weak signal is not worth a seed1 variance check, use docs/experiments/innovation1-bit-transition-spectrum-plan.md as the next prepared SPN feature branch.",
         ]
     if branch == "stop_candidate_trail_route":
+        next_action = report["next_action"]
         return [
             "Record this as tied or negative candidate-trail evidence.",
             "Do not scale candidate-trail consistency as a main route.",
             "Switch to the prepared bit-transition-spectrum SPN feature branch.",
-            "Before launch, create the gated 262144/class transition-spectrum remote config from docs/experiments/innovation1-bit-transition-spectrum-plan.md.",
-            "Run scripts/check-remote-readiness against that config and launch only from a pushed commit.",
+            f"Run the remote readiness gate: {next_action['readiness_command']}",
+            f"Launch {next_action['launch_remote_config']} as a gated 262144/class seed0 diagnostic from the pushed commit.",
+            "Hand off monitoring and retrieval to a local tmux watcher or sub-agent.",
         ]
     return ["Review the candidate-trail gate manually before launching another experiment."]
 

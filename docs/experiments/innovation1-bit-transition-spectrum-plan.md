@@ -16,7 +16,8 @@
 status = conditional next-branch plan
 do_not_launch_until = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702 is retrieved, validated, postprocessed, and gated
 claim_scope = planned route only; no evidence yet
-implementation_status = local route implemented; medium remote config intentionally not created until trigger
+implementation_status = local route implemented; medium seed0 plan and remote config prepared but gate-locked
+remote_config_status = prepared readiness asset only; do not launch before candidate-trail gate selects this branch
 ```
 
 This plan is not a replacement for the active candidate-trail run. It is a prepared branch so the project can move immediately if candidate-trail is weak or negative.
@@ -286,22 +287,24 @@ validation_key = 0x11111111111111111111
 key_rotation_interval = 0
 ```
 
-### Task 4: Add Medium Plan/Remote Config Only After Trigger
+### Task 4: Add Gate-Locked Medium Plan/Remote Config
 
-Status: pending by design.
+Status: completed as a readiness asset.
 
 **Files:**
 
 ```text
-create configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
-create configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu*_YYYYMMDD.json
-modify docs/experiments/innovation1-bit-transition-spectrum-plan.md
+configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
+configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.sh
 ```
 
 Launch rule:
 
 ```text
-do not create or launch the medium remote config until the active candidate-trail result is retrieved and its gate selects this branch
+do not launch the medium remote config until the active candidate-trail result is retrieved and its gate selects this branch
+readiness asset only while candidate-trail is still running
 ```
 
 ## Readiness Requirements
@@ -312,7 +315,7 @@ Before any meaningful remote launch:
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "transition_spectrum or candidate_trail or remote_readiness"
 
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
-  --config configs/remote/<transition-spectrum-medium-config>.json
+  --config configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
 ```
 
 The readiness gate must enforce:
@@ -341,6 +344,10 @@ identity because worker count changes execution strategy, not deterministic
 dataset contents
 no remote launch yet
 waiting for candidate-trail seed0 gate
+medium seed0 remote readiness asset exists but is not launchable until the
+candidate-trail gate selects `stop_candidate_trail_route`, or
+`weak_candidate_trail_signal` with a documented branch choice that deprioritizes
+candidate-trail seed1
 ```
 
 Implemented assets:
@@ -355,6 +362,10 @@ scripts/spn-transition-spectrum-matrix
 scripts/gate-transition-spectrum
 scripts/postprocess-transition-spectrum
 configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json
+configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
+configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.cmd
+configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.sh
 ```
 
 Verification already exercised:
@@ -389,5 +400,7 @@ This refresh only proves the local smoke route and gate/output contract are
 still executable. It is not model-quality evidence, does not trigger the
 medium branch, and must not be used as an accuracy claim.
 
-Do not create the `262144/class` medium plan or remote config until the
-candidate-trail seed0 result is retrieved and its gate selects this branch.
+Do not launch the `262144/class` medium config until the candidate-trail seed0
+result is retrieved and its gate selects this branch. The config exists only so
+the fallback branch can pass readiness and launch without another manual
+configuration round.

@@ -1,0 +1,47 @@
+{
+  "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+  "description": "Innovation 1 bit-transition-spectrum medium diagnostic after candidate-trail stops or is explicitly deprioritized; PRESENT-80 r7 official Zhang/Wang Case2 protocol, seed0, strict negatives.",
+  "output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702\\results\\i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.jsonl",
+  "common": {
+    "rounds": 7,
+    "seed": 0,
+    "samples_per_class": 262144,
+    "pairs_per_sample": 16,
+    "negative_mode": "encrypted_random_plaintexts",
+    "sample_structure": "zhang_wang_case2_official_mcnd",
+    "difference_profile": "present_zhang_wang2022_mcnd",
+    "difference_member": 0,
+    "feature_route": "bit_transition_spectrum",
+    "train_key": "0x00000000000000000000",
+    "validation_key": "0x11111111111111111111",
+    "key_rotation_interval": 0,
+    "feature_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\bit_transition_spectrum_cache",
+    "feature_cache_chunk_size": 8192,
+    "feature_cache_workers": 4,
+    "epochs": 30,
+    "learning_rate": 0.003,
+    "device": "cuda:1"
+  },
+  "rows": [
+    {
+      "row_type": "external_anchor",
+      "model": "present_nibble_invp_only_spn_only",
+      "anchor_auc": 0.7936519871873315,
+      "anchor_calibrated_accuracy": 0.7193069458007812,
+      "anchor_accuracy": 0.7069587707519531,
+      "anchor_loss": 0.5592089066049084
+    },
+    {
+      "model": "linear",
+      "progress_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702\\logs\\bit_transition_spectrum_linear_progress.jsonl"
+    },
+    {
+      "model": "mlp",
+      "progress_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702\\logs\\bit_transition_spectrum_mlp_progress.jsonl"
+    },
+    {
+      "model": "shuffled_p",
+      "progress_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702\\logs\\bit_transition_spectrum_shuffled_p_progress.jsonl"
+    }
+  ]
+}

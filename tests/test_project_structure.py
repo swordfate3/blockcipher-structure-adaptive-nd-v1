@@ -860,7 +860,9 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "formal postprocess requires bit_transition_spectrum_shuffled_p" in plan
     assert "never `support_transition_spectrum_route`" in plan
     assert "true transition-spectrum route >= shuffled-P control + 0.001 AUC" in plan
-    assert "do not create or launch the medium remote config" in plan
+    assert "medium seed0 plan and remote config prepared but gate-locked" in plan
+    assert "do not launch the medium remote config" in plan
+    assert "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json" in plan
     assert "scripts/spn-transition-spectrum-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
     assert "implementation_status = local route implemented" in plan
@@ -1978,9 +1980,11 @@ def test_summarize_spn_evidence_routes_candidate_stop_to_transition_spectrum(tmp
     assert active["branch"] == "bit_transition_spectrum_seed0"
     assert active["decision"] == "stop_candidate_trail_route"
     assert active["should_launch_remote"] is False
-    assert active["next_action"]["requires_implementation"] is True
+    assert active["next_action"]["should_launch_remote"] is True
+    assert active["next_action"]["requires_implementation"] is False
     assert active["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
     assert "bit_transition_spectrum_r7_262k_seed0" in active["next_action"]["suggested_plan_config"]
+    assert "bit_transition_spectrum_r7_262k_seed0" in active["next_action"]["launch_remote_config"]
     assert active["next_action"]["suggested_feature_cache_workers"] == 4
     assert "scripts/check-remote-readiness" in active["next_action"]["readiness_command"]
 
@@ -5105,6 +5109,36 @@ def test_remote_readiness_gate_requires_transition_spectrum_matrix_runner_script
     assert "medium_scale_dataset_cache" in ready["checked_invariants"]
 
 
+def test_bit_transition_spectrum_seed0_remote_config_is_ready_but_gate_locked():
+    path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json"
+    )
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["run_id"] == "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    assert config["runner_script"] == "scripts/spn-transition-spectrum-matrix"
+    assert config["expected_rows"] == 4
+    assert config["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["validation_key"] == "0x11111111111111111111"
+    assert config["key_rotation_interval"] == 0
+    assert config["feature_cache_workers"] == 4
+    assert config["dataset_cache_workers"] == 4
+    assert "stop_candidate_trail_route" in config["launch_policy"]
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "pass"
+    assert report["plan_rows"] == 4
+    assert report["max_samples_per_class"] == 262144
+    assert "transition_spectrum_protocol_lock" in report["checked_invariants"]
+    assert "candidate_trail_protocol_lock" not in report["checked_invariants"]
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+
+
 def test_remote_readiness_gate_rejects_transition_spectrum_missing_shuffled_control(tmp_path):
     plan = tmp_path / "transition_spectrum_missing_control.json"
     plan.write_text(
@@ -6039,21 +6073,22 @@ def test_candidate_trail_postprocess_stop_points_to_transition_spectrum_plan(tmp
     assert report["status"] == "pass"
     assert report["decision"] == "stop_candidate_trail_route"
     assert report["next_action"]["branch"] == "stop_candidate_trail_route"
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
     assert report["next_action"]["fallback_branch"] == "bit_transition_spectrum_seed0"
     assert report["next_action"]["fallback_plan"] == "docs/experiments/innovation1-bit-transition-spectrum-plan.md"
+    assert "bit_transition_spectrum_r7_262k_seed0" in report["next_action"]["launch_remote_config"]
+    assert report["next_action"]["suggested_feature_cache_workers"] == 4
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert any("bit-transition-spectrum" in step for step in report["next_steps"])
-    assert "launch_remote_config" not in report["next_action"]
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
     assert readiness["branch"] == "stop_candidate_trail_route"
     assert readiness["next_action"]["fallback_branch"] == "bit_transition_spectrum_seed0"
-    assert readiness["requires_implementation"] is True
-    assert readiness["implementation_checklist"]
-    assert "bit_transition_spectrum_seed0" in " ".join(readiness["implementation_checklist"])
-    assert "docs/experiments/innovation1-bit-transition-spectrum-plan.md" in " ".join(
-        readiness["implementation_checklist"]
-    )
+    assert readiness["should_launch_remote"] is True
+    assert readiness["requires_implementation"] is False
+    assert readiness["readiness_pass"] is True
+    assert readiness["implementation_checklist"] == []
 
 
 def test_candidate_trail_postprocess_weak_signal_exposes_seed1_or_fallback_paths(tmp_path):

@@ -485,6 +485,11 @@ def _recommend_from_candidate_decision(route: dict[str, Any]) -> dict[str, Any]:
 def _candidate_decision_next_action(decision: str, raw_next_action: dict[str, Any]) -> dict[str, Any]:
     seed1_config = "configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
     seed1_run_id = "i1_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702"
+    transition_seed0_config = (
+        "configs/remote/"
+        "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json"
+    )
+    transition_seed0_run_id = "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
     if decision == "support_candidate_trail_route":
         return {
             **raw_next_action,
@@ -530,18 +535,21 @@ def _candidate_decision_next_action(decision: str, raw_next_action: dict[str, An
         return {
             **raw_next_action,
             "branch": "bit_transition_spectrum_seed0",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "next_plan_doc": "docs/experiments/innovation1-bit-transition-spectrum-plan.md",
             "suggested_plan_config": (
                 "configs/experiment/innovation1/"
                 "innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json"
             ),
+            "launch_remote_config": transition_seed0_config,
             "suggested_feature_cache_workers": 4,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                "--config configs/remote/<transition-spectrum-medium-config>.json"
+                f"--config {transition_seed0_config}"
             ),
+            "run_id": transition_seed0_run_id,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     return {
         **raw_next_action,
