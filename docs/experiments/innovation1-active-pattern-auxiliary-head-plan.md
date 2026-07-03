@@ -217,8 +217,10 @@ Action:
 
 ```text
 do not scale active-pattern auxiliary supervision as a main route;
-return to InvP route consolidation, cross-cipher transfer planning, or a new
-SPN graph/data hypothesis.
+switch to the prepared S-box transition prior gate seed0 route, because it tests
+local S-box DDT reliability gating over the same supported InvP cell view.
+If S-box prior also stops, return to InvP route consolidation, cross-cipher
+transfer planning, pair-set evidence pooling, or a new SPN graph/data hypothesis.
 ```
 
 ## Implementation Tasks
@@ -331,14 +333,16 @@ postprocess_script = scripts/postprocess-active-auxiliary
 monitor_health_postprocess_kind = active_auxiliary
 gate_inputs = InvP-only anchor, true active-auxiliary candidate, shuffled-target control
 positive_branch = seed1 confirmation assets prepared; launch only after seed0 gate selects support/weak
-stop_branch = do not scale active-auxiliary; switch to next documented SPN hypothesis
+stop_branch = do not scale active-auxiliary; switch to prepared S-box transition prior gate seed0
 ```
 
 The postprocess path writes local result-alignment, active-auxiliary gate,
 summary, Markdown summary, next-action-readiness, and an idempotent plan-doc
 result block. Seed1 confirmation assets now exist so a positive/weak seed0 gate
 can proceed through the normal pushed-commit remote launch path without an extra
-asset-generation step.
+asset-generation step. If seed0 stops, postprocess points to the prepared
+S-box transition prior gate seed0 remote config rather than requiring a new
+route-design step.
 
 Next before meaningful remote launch:
 
