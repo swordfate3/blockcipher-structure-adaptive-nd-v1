@@ -270,6 +270,78 @@ class PresentNibbleInvPActiveAuxSpnOnlyDistinguisher(PresentNibblePAlignedSpnOnl
         return self.active_head(self.spn_encoder(features))
 
 
+class PresentNibbleInvPSboxPriorGateDistinguisher(nn.Module):
+    """InvP-only SPN model whose cell evidence is gated by PRESENT S-box DDT priors."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        prior_token_dim: int | None = None,
+        prior_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        prior_mode: str = "true",
+        gate_scale: float = 0.25,
+    ) -> None:
+        super().__init__()
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.prior_encoder = _PresentSboxTransitionPriorGateEncoder(
+            input_bits=input_bits,
+            pair_bits=pair_bits,
+            base_channels=base_channels,
+            prior_token_dim=prior_token_dim,
+            prior_mixer_depth=prior_mixer_depth,
+            token_mlp_ratio=token_mlp_ratio,
+            activation=activation,
+            norm=norm,
+            dropout=dropout,
+            prior_mode=prior_mode,
+            gate_scale=gate_scale,
+        )
+        self.classifier = nn.Sequential(
+            build_norm(norm, self.prior_encoder.embedding_bits * 2),
+            nn.Linear(self.prior_encoder.embedding_bits * 2, max(64, base_channels * 8)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(64, base_channels * 8), 1),
+        )
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        pair_embeddings = self.prior_encoder(features)
+        pair_mean = pair_embeddings.mean(dim=1)
+        pair_max = pair_embeddings.max(dim=1).values
+        return self.classifier(torch.cat([pair_mean, pair_max], dim=1))
+
+
+class PresentNibbleInvPNoDDTGateDistinguisher(PresentNibbleInvPSboxPriorGateDistinguisher):
+    """Same-capacity prior gate control with DDT prior channels zeroed."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["prior_mode"] = "no_ddt"
+        super().__init__(*args, **kwargs)
+
+
+class PresentNibbleInvPShuffledSboxPriorGateDistinguisher(PresentNibbleInvPSboxPriorGateDistinguisher):
+    """S-box prior gate control with deterministic shuffled DDT prior alignment."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["prior_mode"] = "shuffled"
+        super().__init__(*args, **kwargs)
+
+
 class PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
     """SPN-only attribution control with deterministic shuffled pseudo P alignment."""
 
@@ -984,6 +1056,148 @@ class _PresentNibbleDDTGraphEncoder(nn.Module):
         )
 
 
+class _PresentSboxTransitionPriorGateEncoder(nn.Module):
+    def __init__(
+        self,
+        input_bits: int,
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        prior_token_dim: int | None = None,
+        prior_mixer_depth: int = 2,
+        token_mlp_ratio: int = 2,
+        activation: str = "relu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+        prior_mode: str = "true",
+        gate_scale: float = 0.25,
+    ) -> None:
+        super().__init__()
+        if pair_bits != 128:
+            raise ValueError("PRESENT S-box prior gate expects raw 128-bit ciphertext pairs")
+        if input_bits % pair_bits != 0:
+            raise ValueError("input_bits must be a multiple of pair_bits")
+        if prior_mixer_depth < 1:
+            raise ValueError("prior_mixer_depth must be >= 1")
+        if prior_mode not in {"true", "no_ddt", "shuffled"}:
+            raise ValueError(f"unsupported prior_mode: {prior_mode}")
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.pairs_per_sample = input_bits // pair_bits
+        self.nibbles_per_pair = 16
+        self.prior_mode = prior_mode
+        self.gate_scale = float(gate_scale)
+        self.prior_token_dim = prior_token_dim or max(16, base_channels * 2)
+        self.embedding_bits = max(32, base_channels * 4)
+        self.prior_feature_bits = 5
+
+        self.cell_encoder = nn.Sequential(
+            nn.Linear(4, self.prior_token_dim),
+            build_activation(activation),
+            build_norm(norm, self.prior_token_dim),
+        )
+        self.gate = nn.Sequential(
+            nn.Linear(4 + self.prior_feature_bits, self.prior_token_dim),
+            build_activation(activation),
+            build_norm(norm, self.prior_token_dim),
+            nn.Linear(self.prior_token_dim, self.prior_token_dim),
+        )
+        self.position_embedding = nn.Parameter(torch.zeros(1, self.nibbles_per_pair, self.prior_token_dim))
+        nn.init.trunc_normal_(self.position_embedding, std=0.02)
+        self.mixers = nn.ModuleList(
+            [
+                SpnTokenMixerBlock(
+                    nibbles_per_pair=self.nibbles_per_pair,
+                    token_dim=self.prior_token_dim,
+                    token_mlp_ratio=token_mlp_ratio,
+                    activation=activation,
+                    norm=norm,
+                    dropout=dropout,
+                )
+                for _ in range(prior_mixer_depth)
+            ]
+        )
+        self.norm = build_norm(norm, self.prior_token_dim)
+        self.projection = nn.Sequential(
+            nn.Linear(self.prior_token_dim * 4, self.embedding_bits),
+            build_activation(activation),
+            nn.Dropout(dropout),
+        )
+
+        inverse_p = [_present_inverse_p_index(index) for index in range(64)]
+        self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
+        ddt_by_output = torch.tensor(PRESENT_SBOX_DDT, dtype=torch.float32).transpose(0, 1).contiguous()
+        self.register_buffer("ddt_by_output", ddt_by_output, persistent=False)
+        generator = torch.Generator().manual_seed(20260703)
+        self.register_buffer(
+            "shuffled_prior_cells",
+            torch.randperm(self.nibbles_per_pair, generator=generator),
+            persistent=False,
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        invp_nibbles = self.invp_nibbles(features.float())
+        priors = self.sbox_prior_features(features.float())
+        batch, pairs, nibbles, channels = invp_nibbles.shape
+        flat_cells = invp_nibbles.reshape(batch * pairs, nibbles, channels)
+        flat_priors = priors.reshape(batch * pairs, nibbles, self.prior_feature_bits)
+        hidden = self.cell_encoder(flat_cells)
+        gate = torch.sigmoid(self.gate(torch.cat([flat_cells, flat_priors], dim=-1)))
+        hidden = hidden * (1.0 + self.gate_scale * gate)
+        hidden = hidden + self.position_embedding
+        for mixer in self.mixers:
+            hidden = mixer(hidden)
+        hidden = self.norm(hidden)
+        mean_embedding = hidden.mean(dim=1)
+        max_embedding = hidden.max(dim=1).values
+        active_weights = flat_priors[:, :, :1]
+        active_embedding = torch.sum(hidden * active_weights, dim=1) / active_weights.sum(dim=1).clamp_min(1.0)
+        prior_embedding = torch.sum(hidden * flat_priors[:, :, 1:2], dim=1) / flat_priors[:, :, 1:2].sum(
+            dim=1
+        ).clamp_min(1.0)
+        projected = self.projection(
+            torch.cat([mean_embedding, max_embedding, active_embedding, prior_embedding], dim=1)
+        )
+        return projected.reshape(batch, pairs, self.embedding_bits)
+
+    def invp_nibbles(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        raw_pairs = features.reshape(features.shape[0], self.pairs_per_sample, 2, 64)
+        difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
+        aligned_difference = difference.index_select(dim=2, index=self.inverse_p_indices)
+        return aligned_difference.reshape(features.shape[0], self.pairs_per_sample, 16, 4)
+
+    def sbox_prior_features(self, features: torch.Tensor) -> torch.Tensor:
+        invp_nibbles = self.invp_nibbles(features)
+        active = (invp_nibbles.sum(dim=-1, keepdim=True) > 0).to(features.dtype)
+        if self.prior_mode == "no_ddt":
+            zero_priors = torch.zeros(
+                *active.shape[:-1],
+                4,
+                dtype=features.dtype,
+                device=features.device,
+            )
+            return torch.cat([active, zero_priors], dim=-1)
+
+        invp_values = _present_nibble_values(invp_nibbles)
+        counts = self.ddt_by_output.index_select(dim=0, index=invp_values.reshape(-1)).reshape(
+            *invp_values.shape,
+            16,
+        )
+        if self.prior_mode == "shuffled":
+            counts = counts.index_select(dim=2, index=self.shuffled_prior_cells.to(counts.device))
+        positive_counts = (counts > 0).to(features.dtype)
+        probabilities = counts.to(features.dtype) / 16.0
+        sorted_counts, _indices = torch.sort(counts, dim=-1, descending=True)
+        max_probability = sorted_counts[..., :1].to(features.dtype) / 16.0
+        legal_fraction = positive_counts.mean(dim=-1, keepdim=True)
+        safe_probabilities = probabilities.clamp_min(1e-6)
+        entropy = -(safe_probabilities * safe_probabilities.log()).sum(dim=-1, keepdim=True)
+        entropy = entropy / torch.log(torch.tensor(16.0, dtype=features.dtype, device=features.device))
+        margin = (sorted_counts[..., :1] - sorted_counts[..., 1:2]).to(features.dtype) / 16.0
+        return torch.cat([active, max_probability, legal_fraction, entropy, margin], dim=-1)
+
+
 class _PresentNibbleInvPPLayerGraphEncoder(nn.Module):
     def __init__(
         self,
@@ -1091,6 +1305,9 @@ __all__ = [
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
     "PresentNibbleInvPActiveAuxSpnOnlyDistinguisher",
+    "PresentNibbleInvPSboxPriorGateDistinguisher",
+    "PresentNibbleInvPNoDDTGateDistinguisher",
+    "PresentNibbleInvPShuffledSboxPriorGateDistinguisher",
     "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",

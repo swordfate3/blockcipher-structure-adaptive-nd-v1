@@ -17,11 +17,14 @@ from blockcipher_nd.models.structure import (
     PresentPLayerMixerPairSetDistinguisher,
     PresentNibbleDeltaOnlySpnOnlyDistinguisher,
     PresentNibbleInvPActiveAuxSpnOnlyDistinguisher,
+    PresentNibbleInvPNoDDTGateDistinguisher,
     PresentNibblePAlignedGatedMCNDDistinguisher,
     PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher,
     PresentNibbleInvPPairConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
     PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher,
+    PresentNibbleInvPShuffledSboxPriorGateDistinguisher,
+    PresentNibbleInvPSboxPriorGateDistinguisher,
     PresentNibblePAlignedMCNDDistinguisher,
     PresentNibblePAlignedSpnOnlyDistinguisher,
     PresentNibblePAlignedTransitionDistinguisher,
@@ -124,6 +127,45 @@ def build_spn_model(
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "present_nibble_invp_sbox_prior_gate":
+        return PresentNibbleInvPSboxPriorGateDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            prior_token_dim=int_option(options, "prior_token_dim"),
+            prior_mixer_depth=int_option(options, "prior_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            gate_scale=float(options.get("gate_scale", 0.25)),
+        )
+    if name == "present_nibble_invp_no_ddt_gate":
+        return PresentNibbleInvPNoDDTGateDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            prior_token_dim=int_option(options, "prior_token_dim"),
+            prior_mixer_depth=int_option(options, "prior_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            gate_scale=float(options.get("gate_scale", 0.25)),
+        )
+    if name == "present_nibble_invp_shuffled_sbox_prior_gate":
+        return PresentNibbleInvPShuffledSboxPriorGateDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            prior_token_dim=int_option(options, "prior_token_dim"),
+            prior_mixer_depth=int_option(options, "prior_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+            gate_scale=float(options.get("gate_scale", 0.25)),
         )
     if name == "present_nibble_invp_pair_consistency_spn_only":
         return PresentNibbleInvPPairConsistencySpnOnlyDistinguisher(

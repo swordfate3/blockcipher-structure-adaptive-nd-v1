@@ -279,6 +279,34 @@ After smoke passes, prepare 262144/class seed0 remote config with disk-backed
 cache/progress under G:\lxy and watcher-owned retrieval/postprocess.
 ```
 
+## Implementation Status
+
+Status as of 2026-07-03:
+
+```text
+implementation_status = local model aliases and smoke config implemented
+evidence_level = smoke only; no model-quality claim
+smoke_config = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_smoke.csv
+implemented_model_aliases =
+  present_nibble_invp_sbox_prior_gate
+  present_nibble_invp_no_ddt_gate
+  present_nibble_invp_shuffled_sbox_prior_gate
+remote_config_status = not prepared; do not launch
+```
+
+Implemented local controls:
+
+| Route | Role |
+|---|---|
+| `present_nibble_invp_only_spn_only` | strongest same-scale anchor placeholder for smoke wiring |
+| `present_nibble_invp_sbox_prior_gate` | true S-box DDT transition prior gate |
+| `present_nibble_invp_no_ddt_gate` | same-capacity gate with DDT prior channels zeroed |
+| `present_nibble_invp_shuffled_sbox_prior_gate` | deterministic shuffled-prior control |
+
+The smoke path only checks model construction, forward/training wiring, and
+official-protocol task parsing. It is not evidence that the prior gate improves
+PRESENT r7.
+
 ## Readiness Requirements
 
 Before meaningful remote launch:

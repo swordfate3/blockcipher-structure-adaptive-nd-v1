@@ -775,6 +775,31 @@ def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     assert "G:\\lxy" in plan
 
 
+def test_sbox_transition_prior_gate_smoke_config_is_protocol_locked():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_smoke.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_sbox_prior_gate",
+        "present_nibble_invp_no_ddt_gate",
+        "present_nibble_invp_shuffled_sbox_prior_gate",
+    ]
+    for task in tasks:
+        assert task["cipher_key"] == "present80"
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 8
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["validation_key"] == 0x11111111111111111111
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+
+
 def test_archived_active_pattern_remote_config_is_not_launchable():
     path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
     config = json.loads(path.read_text(encoding="utf-8"))
@@ -7804,6 +7829,49 @@ def test_present_nibble_ddt_graph_features_match_present_sbox_ddt():
     assert cell_features[0, 0, 0, 4:].tolist() == expected_counts
 
 
+def test_present_sbox_transition_prior_gate_features_have_controls():
+    from blockcipher_nd.features.encoders.bitwise import pair_to_bits
+    from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+        PresentNibbleInvPNoDDTGateDistinguisher,
+        PresentNibbleInvPSboxPriorGateDistinguisher,
+        PresentNibbleInvPShuffledSboxPriorGateDistinguisher,
+    )
+
+    left = 0x0123456789ABCDEF
+    right = 0x1111111111111111
+    raw = torch.tensor([pair_to_bits(left, right, 64)], dtype=torch.float32)
+    candidate = PresentNibbleInvPSboxPriorGateDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        prior_mixer_depth=1,
+    )
+    no_ddt = PresentNibbleInvPNoDDTGateDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        prior_mixer_depth=1,
+    )
+    shuffled = PresentNibbleInvPShuffledSboxPriorGateDistinguisher(
+        input_bits=128,
+        pair_bits=128,
+        base_channels=4,
+        prior_mixer_depth=1,
+    )
+
+    true_prior = candidate.prior_encoder.sbox_prior_features(raw)
+    no_ddt_prior = no_ddt.prior_encoder.sbox_prior_features(raw)
+    shuffled_prior = shuffled.prior_encoder.sbox_prior_features(raw)
+
+    assert true_prior.shape == (1, 1, 16, 5)
+    assert no_ddt_prior.shape == true_prior.shape
+    assert shuffled_prior.shape == true_prior.shape
+    assert torch.all((true_prior >= 0.0) & (true_prior <= 1.0))
+    assert torch.equal(no_ddt_prior[..., 0], true_prior[..., 0])
+    assert torch.count_nonzero(no_ddt_prior[..., 1:]) == 0
+    assert not torch.equal(shuffled_prior, true_prior)
+
+
 def test_present_nibble_invp_p_layer_graph_models_build_and_use_distinct_topologies():
     common = {
         "input_bits": 2048,
@@ -7948,6 +8016,9 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
         "present_nibble_no_ddt_graph",
         "present_nibble_ddt_graph",
         "present_nibble_shuffled_ddt_graph",
+        "present_nibble_invp_sbox_prior_gate",
+        "present_nibble_invp_no_ddt_gate",
+        "present_nibble_invp_shuffled_sbox_prior_gate",
         "present_nibble_paligned_gated_mcnd",
         "present_nibble_shuffled_paligned_gated_mcnd",
         "present_nibble_paligned_transition",
@@ -7964,6 +8035,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
                 "spn_mixer_depth": 1,
                 "transition_mixer_depth": 1,
                 "ddt_mixer_depth": 1,
+                "prior_mixer_depth": 1,
                 "activation": "relu",
                 "norm": "layernorm",
             },
