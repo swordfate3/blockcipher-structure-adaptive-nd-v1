@@ -8021,6 +8021,53 @@ def test_summarize_spn_evidence_transition_stop_points_to_trail_family_plan(tmp_
     ]
 
 
+def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    transition.mkdir(parents=True)
+    (trail / "monitor").mkdir(parents=True)
+    (trail / "logs").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    (trail / "monitor" / "monitor.log").write_text("2026-07-03T17:50:30+08:00 running\n")
+    (trail / "logs" / "trail_family_linear_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "trail_family_negative_chunk",
+                "time": 1000.0,
+                "rows_done": 360448,
+                "total_rows": 524288,
+                "class_rows_done": 98304,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "wait_for_trail_family_result"
+    assert active["run_id"] == "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    assert active["postprocess_allowed"] is False
+    assert active["progress_summary"]["latest_event"] == "trail_family_negative_chunk"
+    assert "monitor_i1_trail_family_seed0_20260702" in active["monitor_health_command"]
+    assert "scripts/postprocess-trail-family" in active["postprocess_when_ready_command"]
+    assert "launch trail-family seed1" in active["main_thread_policy"]["forbidden_until_gate"]
+    assert "launch S-box transition prior seed0" in active["main_thread_policy"]["forbidden_until_gate"]
+
+
 def test_zhang_wang_official_anchor_plan_generates_dataset():
     plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
     args = parse_args(["--plan", plan])

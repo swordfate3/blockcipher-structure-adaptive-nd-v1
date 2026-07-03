@@ -245,6 +245,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     candidate_running = _candidate_trail_running(root)
     if candidate_running is not None:
         return candidate_running
+    trail_family_running = _trail_family_running(root)
+    if trail_family_running is not None:
+        return trail_family_running
     transition_summaries = [
         route for route in routes if _is_transition_spectrum_decision(str(route["decision"] or ""))
     ]
@@ -317,6 +320,59 @@ def _candidate_trail_running(root: Path) -> dict[str, Any] | None:
     return None
 
 
+def _trail_family_running(root: Path) -> dict[str, Any] | None:
+    for run_root in sorted(root.glob("i1_trail_family*")):
+        summaries = list(run_root.glob("*_postprocess_summary.json"))
+        if summaries:
+            continue
+        monitor_log = run_root / "monitor" / "monitor.log"
+        recent_lines = _tail_lines(monitor_log, 8)
+        health = _trail_family_monitor_health(root, run_root.name)
+        if health["postprocess_allowed"]:
+            return {
+                "branch": "postprocess_trail_family_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "trail-family results are ready locally and need postprocess before branch decisions",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": True,
+                "postprocess_command": health["postprocess_command"],
+                "results_jsonl": health["results_jsonl"],
+                "results_jsonl_line_count": health["results_jsonl_line_count"],
+                "expected_rows": health["expected_rows"],
+                "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _trail_family_conditional_followup(),
+                "monitor_health_command": _trail_family_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _trail_family_postprocess_command(run_root),
+                "main_thread_policy": _trail_family_main_thread_policy("postprocess"),
+            }
+        if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
+            "running" in line for line in recent_lines
+        ):
+            return {
+                "branch": "wait_for_trail_family_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "trail-family run has monitor activity but no postprocess summary yet",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": health["postprocess_allowed"],
+                "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _trail_family_conditional_followup(),
+                "monitor_health_command": _trail_family_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _trail_family_postprocess_command(run_root),
+                "main_thread_policy": _trail_family_main_thread_policy("waiting"),
+            }
+    return None
+
+
 def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
     plan_path = _candidate_plan_path(run_id)
     return monitor_health_report(
@@ -327,6 +383,18 @@ def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
         plan_doc_paths=[Path("docs/experiments/innovation1-candidate-trail-consistency-plan.md")],
         expected_rows=4,
         postprocess_kind="candidate_trail",
+    )
+
+
+def _trail_family_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=run_id,
+        root=root,
+        tmux_session=_trail_family_tmux_session(run_id),
+        plan_path=_trail_family_plan_path(run_id),
+        plan_doc_paths=[Path("docs/experiments/innovation1-trail-family-consistency-plan.md")],
+        expected_rows=4,
+        postprocess_kind="trail_family",
     )
 
 
@@ -384,6 +452,30 @@ def _candidate_postprocess_command(run_root: Path) -> str:
     )
 
 
+def _trail_family_monitor_health_command(run_id: str) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {run_id} "
+        f"--tmux-session {_trail_family_tmux_session(run_id)} "
+        f"--plan {_trail_family_plan_path(run_id)} "
+        "--plan-doc docs/experiments/innovation1-trail-family-consistency-plan.md "
+        "--expected-rows 4 --postprocess-kind trail_family"
+    )
+
+
+def _trail_family_postprocess_command(run_root: Path) -> str:
+    run_id = run_root.name
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-trail-family "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        f"--plan {_trail_family_plan_path(run_id)} "
+        "--expected-rows 4 "
+        "--update-plan-doc docs/experiments/innovation1-trail-family-consistency-plan.md"
+    )
+
+
 def _candidate_conditional_followup() -> dict[str, Any]:
     config = Path(
         "configs/remote/innovation1_spn_present_candidate_trail_consistency_r7_262k_seed1_gpu1_20260702.json"
@@ -397,6 +489,21 @@ def _candidate_conditional_followup() -> dict[str, Any]:
         "readiness_pass": readiness.get("status") == "pass",
         "readiness": readiness,
         "should_launch_now": False,
+    }
+
+
+def _trail_family_conditional_followup() -> dict[str, Any]:
+    config = Path("configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json")
+    readiness = _remote_readiness(config)
+    return {
+        "branch": "trail_family_seed1_confirmation_or_variance_check",
+        "run_id": "i1_trail_family_r7_262k_seed1_gpu1_20260702",
+        "launch_remote_config": str(config),
+        "launch_gate": "support_trail_family_route or weak_trail_family_signal",
+        "readiness_pass": readiness.get("status") == "pass",
+        "readiness": readiness,
+        "should_launch_now": False,
+        "fallback_if_stop": "sbox_transition_prior_gate_seed0",
     }
 
 
@@ -450,6 +557,53 @@ def _candidate_main_thread_policy(state: str) -> dict[str, Any]:
             "postprocess_allowed becomes true"
         ),
     }
+
+
+def _trail_family_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run the listed postprocess_when_ready_command",
+                "validate gate artifacts and update docs/experiments",
+                "commit and push postprocess documentation before following the gated branch",
+            ],
+            "forbidden_until_gate": [
+                "launch trail-family seed1",
+                "launch S-box transition prior seed0",
+                "make route-level or breakthrough claims",
+            ],
+            "gate_condition": (
+                "postprocess summary exists, validates against the plan, and emits a decision "
+                "such as support_trail_family_route, weak_trail_family_signal, or stop_trail_family_route"
+            ),
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "improve local planning, readiness, or postprocess tooling without changing the active run",
+            "wait for the watcher or sub-agent to retrieve result artifacts",
+        ],
+        "forbidden_until_gate": [
+            "launch trail-family seed1",
+            "launch S-box transition prior seed0",
+            "SSH-poll or tmux-loop from the main thread",
+            "make route-level or breakthrough claims",
+        ],
+        "gate_condition": "watcher retrieves the expected trail-family JSONL rows and postprocess_allowed becomes true",
+    }
+
+
+def _trail_family_plan_path(run_id: str) -> Path:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return Path(
+        "configs/experiment/innovation1/"
+        f"innovation1_spn_present_trail_family_r7_262k_{seed}.json"
+    )
+
+
+def _trail_family_tmux_session(run_id: str) -> str:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return f"monitor_i1_trail_family_{seed}_20260702"
 
 
 def _candidate_plan_path(run_id: str) -> Path:
