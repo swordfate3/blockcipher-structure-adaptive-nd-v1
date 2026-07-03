@@ -1377,6 +1377,7 @@ def test_trail_family_dataset_cache_writes_and_reuses(tmp_path):
     metadata_path = next((tmp_path / "trail_family_cache").glob("train/*/metadata.json"))
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert "feature_cache_workers" not in metadata
+    assert metadata["cache_version"] == 2
     assert '"workers": 1' in progress_text
 
 

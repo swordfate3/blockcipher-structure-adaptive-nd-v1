@@ -526,7 +526,7 @@ def _cache_metadata(
         "feature_dtype": "float32",
         "label_dtype": "uint8",
         "shuffle": True,
-        "cache_version": 1,
+        "cache_version": 2,
     }
 
 
@@ -579,4 +579,3 @@ def _load_config(path: Path | None) -> dict[str, object]:
     if not isinstance(data, dict):
         raise SystemExit(f"config must be a JSON object: {path}")
     return data
-

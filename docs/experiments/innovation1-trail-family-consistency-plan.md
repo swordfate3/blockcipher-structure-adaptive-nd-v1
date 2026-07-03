@@ -276,6 +276,8 @@ false_family:
   also used when building pair-level active-mask summary features, so the
   control no longer leaves the per-pair active-mask block fully true-family
   aligned.
+  Trail-family cache_version is 2 after this control-semantics change; later
+  runs should not reuse version-1 false-family caches for route evidence.
 ```
 
 Verification:
