@@ -530,6 +530,7 @@ def _progress_summary(
     cache_class_total = _optional_int(cache_record.get("class_total"))
     cache_chunk_rows = _optional_int(cache_record.get("chunk_rows"))
     cache_rate = _cache_rows_per_second(first_cache_progress, latest_cache_progress)
+    cache_rate_window = _cache_rate_window(first_cache_progress, latest_cache_progress)
     cache_eta_seconds = _cache_eta_seconds(
         rows_done=cache_rows_done,
         total_rows=cache_total_rows,
@@ -572,6 +573,8 @@ def _progress_summary(
         "cache_total_progress_percent": _ratio_percent(cache_rows_done, cache_total_rows),
         "cache_class_progress_percent": _ratio_percent(cache_class_rows_done, cache_class_total),
         "cache_rows_per_second": cache_rate,
+        "cache_rate_window_seconds": cache_rate_window["seconds"],
+        "cache_rate_window_rows": cache_rate_window["rows"],
         "cache_eta_seconds": cache_eta_seconds,
         "validation_rows": _optional_int(latest.get("validation_rows")),
         "val_accuracy": latest.get("val_accuracy"),
@@ -630,19 +633,29 @@ def _cache_rows_per_second(
     first_record: dict[str, Any] | None,
     latest_record: dict[str, Any] | None,
 ) -> float | None:
-    if first_record is None or latest_record is None or first_record is latest_record:
+    window = _cache_rate_window(first_record, latest_record)
+    if window["rows"] is None or window["seconds"] is None or window["seconds"] <= 0:
         return None
+    return round(window["rows"] / window["seconds"], 3)
+
+
+def _cache_rate_window(
+    first_record: dict[str, Any] | None,
+    latest_record: dict[str, Any] | None,
+) -> dict[str, float | int | None]:
+    if first_record is None or latest_record is None or first_record is latest_record:
+        return {"seconds": None, "rows": None}
     first_rows = _optional_int(first_record.get("rows_done"))
     latest_rows = _optional_int(latest_record.get("rows_done"))
     first_time = _optional_float(first_record.get("time"))
     latest_time = _optional_float(latest_record.get("time"))
     if first_rows is None or latest_rows is None or first_time is None or latest_time is None:
-        return None
+        return {"seconds": None, "rows": None}
     row_delta = latest_rows - first_rows
     time_delta = latest_time - first_time
     if row_delta <= 0 or time_delta <= 0:
-        return None
-    return round(row_delta / time_delta, 3)
+        return {"seconds": None, "rows": None}
+    return {"seconds": round(time_delta, 3), "rows": row_delta}
 
 
 def _cache_progress_segment_key(record: dict[str, Any]) -> tuple[Any, ...]:

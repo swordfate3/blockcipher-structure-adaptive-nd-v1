@@ -5361,6 +5361,8 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_total_progress_percent"] == pytest.approx(12.5)
     assert progress["cache_class_progress_percent"] == pytest.approx(25.0)
     assert progress["cache_rows_per_second"] == pytest.approx(512.0)
+    assert progress["cache_rate_window_seconds"] == pytest.approx(64.0)
+    assert progress["cache_rate_window_rows"] == 32768
     assert progress["cache_eta_seconds"] == 896
 
 
@@ -5437,6 +5439,8 @@ def test_monitor_health_keeps_latest_cache_progress_when_new_cache_starts(tmp_pa
     assert progress["cache_class_rows_done"] == 262144
     assert progress["cache_class_progress_percent"] == pytest.approx(100.0)
     assert progress["cache_rows_per_second"] == pytest.approx(504.0)
+    assert progress["cache_rate_window_seconds"] == pytest.approx(1024.0)
+    assert progress["cache_rate_window_rows"] == 516096
     assert progress["cache_eta_seconds"] == 0
 
 
@@ -5508,6 +5512,8 @@ def test_monitor_health_cache_rate_stays_with_latest_split(tmp_path):
     assert progress["cache_split"] == "validation"
     assert progress["cache_rows_done"] == 16384
     assert progress["cache_rows_per_second"] == pytest.approx(409.6)
+    assert progress["cache_rate_window_seconds"] == pytest.approx(20.0)
+    assert progress["cache_rate_window_rows"] == 8192
     assert progress["cache_eta_seconds"] == 280
 
 
