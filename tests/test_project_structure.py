@@ -754,6 +754,27 @@ def test_pairset_aggregation_readiness_ignores_route_names_in_launch_policy():
     assert not any("candidate_trail" in error for error in report["errors"])
 
 
+def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
+    plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
+
+    assert "Status:** planned next architecture/data-representation route / do not launch" in plan
+    assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
+    assert "PRESENT-80" in plan
+    assert "zhang_wang_case2_official_mcnd" in plan
+    assert "encrypted_random_plaintexts" in plan
+    assert "present_zhang_wang2022_mcnd" in plan
+    assert "262144/class" in plan
+    assert "medium diagnostic only" in plan
+    assert "present_nibble_invp_sbox_prior_gate" in plan
+    assert "present_nibble_invp_no_ddt_gate" in plan
+    assert "present_nibble_invp_shuffled_sbox_prior_gate" in plan
+    assert "true_prior_gate_auc >= InvP-only anchor AUC + 0.001" in plan
+    assert "formal route evidence" in plan
+    assert "1000000/class" in plan
+    assert "cmd.exe /c" in plan
+    assert "G:\\lxy" in plan
+
+
 def test_archived_active_pattern_remote_config_is_not_launchable():
     path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
     config = json.loads(path.read_text(encoding="utf-8"))
