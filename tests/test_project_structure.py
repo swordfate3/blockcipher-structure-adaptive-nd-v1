@@ -3852,8 +3852,8 @@ def test_plan_next_action_maps_spn_followup_branches_to_plans(tmp_path):
         ),
         (
             "stop_trail_family_route",
-            "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
-            "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv",
+            "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+            "innovation1_spn_present_active_auxiliary_r7_262k_seed0.json",
         ),
     ]
     for branch, expected_plan_doc, expected_plan_config in cases:
