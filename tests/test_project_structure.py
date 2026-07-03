@@ -770,6 +770,8 @@ def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     assert "present_nibble_invp_sbox_prior_gate" in plan
     assert "present_nibble_invp_no_ddt_gate" in plan
     assert "present_nibble_invp_shuffled_sbox_prior_gate" in plan
+    assert "full-column DDT prior" in plan
+    assert "active flag + 16 normalized DDT counts" in plan
     assert "true_prior_gate_auc >= InvP-only anchor AUC + 0.001" in plan
     assert "formal route evidence" in plan
     assert "1000000/class" in plan
@@ -8183,12 +8185,21 @@ def test_present_sbox_transition_prior_gate_features_have_controls():
     no_ddt_prior = no_ddt.prior_encoder.sbox_prior_features(raw)
     shuffled_prior = shuffled.prior_encoder.sbox_prior_features(raw)
 
-    assert true_prior.shape == (1, 1, 16, 5)
+    assert true_prior.shape == (1, 1, 16, 17)
     assert no_ddt_prior.shape == true_prior.shape
     assert shuffled_prior.shape == true_prior.shape
     assert torch.all((true_prior >= 0.0) & (true_prior <= 1.0))
     assert torch.equal(no_ddt_prior[..., 0], true_prior[..., 0])
     assert torch.count_nonzero(no_ddt_prior[..., 1:]) == 0
+    first_output_difference = int(candidate.prior_encoder.invp_nibbles(raw)[0, 0, 0].matmul(torch.tensor([8, 4, 2, 1], dtype=torch.float32)).item())
+    expected_column = torch.tensor(
+        [
+            candidate.prior_encoder.ddt_by_output[first_output_difference, input_difference].item() / 16.0
+            for input_difference in range(16)
+        ],
+        dtype=true_prior.dtype,
+    )
+    assert torch.allclose(true_prior[0, 0, 0, 1:], expected_column)
     assert not torch.equal(shuffled_prior, true_prior)
 
 

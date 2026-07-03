@@ -1088,7 +1088,7 @@ class _PresentSboxTransitionPriorGateEncoder(nn.Module):
         self.gate_scale = float(gate_scale)
         self.prior_token_dim = prior_token_dim or max(16, base_channels * 2)
         self.embedding_bits = max(32, base_channels * 4)
-        self.prior_feature_bits = 5
+        self.prior_feature_bits = 17
 
         self.cell_encoder = nn.Sequential(
             nn.Linear(4, self.prior_token_dim),
@@ -1173,7 +1173,7 @@ class _PresentSboxTransitionPriorGateEncoder(nn.Module):
         if self.prior_mode == "no_ddt":
             zero_priors = torch.zeros(
                 *active.shape[:-1],
-                4,
+                16,
                 dtype=features.dtype,
                 device=features.device,
             )
@@ -1186,16 +1186,8 @@ class _PresentSboxTransitionPriorGateEncoder(nn.Module):
         )
         if self.prior_mode == "shuffled":
             counts = counts.index_select(dim=2, index=self.shuffled_prior_cells.to(counts.device))
-        positive_counts = (counts > 0).to(features.dtype)
         probabilities = counts.to(features.dtype) / 16.0
-        sorted_counts, _indices = torch.sort(counts, dim=-1, descending=True)
-        max_probability = sorted_counts[..., :1].to(features.dtype) / 16.0
-        legal_fraction = positive_counts.mean(dim=-1, keepdim=True)
-        safe_probabilities = probabilities.clamp_min(1e-6)
-        entropy = -(safe_probabilities * safe_probabilities.log()).sum(dim=-1, keepdim=True)
-        entropy = entropy / torch.log(torch.tensor(16.0, dtype=features.dtype, device=features.device))
-        margin = (sorted_counts[..., :1] - sorted_counts[..., 1:2]).to(features.dtype) / 16.0
-        return torch.cat([active, max_probability, legal_fraction, entropy, margin], dim=-1)
+        return torch.cat([active, probabilities], dim=-1)
 
 
 class _PresentNibbleInvPPLayerGraphEncoder(nn.Module):

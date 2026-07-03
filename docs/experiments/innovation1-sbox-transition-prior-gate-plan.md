@@ -142,12 +142,22 @@ InvP(DeltaC) nibble/cell tokens, same as present_nibble_invp_only_spn_only.
 Prior source:
 
 ```text
-For each output-difference cell, compute DDT-derived statistics:
-  max DDT count / probability over possible input differences
-  number of legal input differences
-  normalized entropy over legal input differences
-  high-probability transition flag
-  active/inactive flag
+For each output-difference cell, compute a full-column DDT prior:
+  active flag + 16 normalized DDT counts
+
+The 16 DDT channels are:
+  PRESENT_SBOX_DDT[input_difference][observed_output_difference] / 16.0
+  for all input_difference in 0..15.
+```
+
+Why full-column:
+
+```text
+The earlier summary-prior sketch compressed each output difference to max
+probability, legal fraction, entropy, and margin. A local DDT audit shows that
+those four statistics collapse the 16 output differences into only a few summary
+groups. The full-column DDT prior preserves all local S-box transition
+probabilities and lets the gate learn which candidate input differences matter.
 ```
 
 Gate:
@@ -165,11 +175,11 @@ Controls:
 
 ```text
 no_ddt_gate:
-  same InvP cell encoder and gating capacity, but DDT prior inputs zeroed or
-  replaced by active/count-only features.
+  same InvP cell encoder and gating capacity, active flag retained, but all 16
+  DDT count channels zeroed.
 
 shuffled_ddt_prior:
-  DDT prior vectors deterministically permuted across cells or DDT rows while
+  full-column DDT prior vectors deterministically permuted across cells while
   preserving marginal ranges.
 
 invp_anchor:
@@ -257,8 +267,8 @@ Task 1: prior builder.
 
 ```text
 Add deterministic PRESENT DDT prior features derived from public DeltaC /
-InvP(DeltaC), with tests for shape, determinism, no label use, and shuffled
-control behavior.
+InvP(DeltaC), with tests for shape, full-column DDT values, determinism, no
+label use, and shuffled/no-DDT control behavior.
 ```
 
 Task 2: model variant.
