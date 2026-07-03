@@ -321,6 +321,23 @@ runner_script = scripts/spn-active-auxiliary-matrix
 required_control = present_nibble_invp_active_aux_shuffled_targets
 ```
 
+Gate/postprocess implementation status:
+
+```text
+gate_script = scripts/gate-active-auxiliary
+postprocess_script = scripts/postprocess-active-auxiliary
+monitor_health_postprocess_kind = active_auxiliary
+gate_inputs = InvP-only anchor, true active-auxiliary candidate, shuffled-target control
+positive_branch = prepare seed1 confirmation assets before launch
+stop_branch = do not scale active-auxiliary; switch to next documented SPN hypothesis
+```
+
+The postprocess path writes local result-alignment, active-auxiliary gate,
+summary, Markdown summary, next-action-readiness, and an idempotent plan-doc
+result block. The positive/weak branch is intentionally marked as requiring
+seed1 asset implementation because only seed0 remote launch assets currently
+exist.
+
 Next before meaningful remote launch:
 
 ```text

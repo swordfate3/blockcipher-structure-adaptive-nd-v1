@@ -7,6 +7,7 @@ REMOTE_RUN_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/${RUN_ID}"
 LOCAL_ROOT="outputs/remote_results/${RUN_ID}"
 MONITOR_DIR="${LOCAL_ROOT}/monitor"
 PLAN="configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed0.json"
+PLAN_DOC="docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
 REMOTE_CONFIG="configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json"
 EXPECTED_ROWS="3"
 
@@ -39,16 +40,21 @@ while true; do
 
   if [[ "${result_rows}" -ge "${EXPECTED_ROWS}" ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
-      --config "${REMOTE_CONFIG}" \
-      > "${MONITOR_DIR}/readiness.log" 2> "${MONITOR_DIR}/readiness_stderr.log"
-    readiness_status=$?
-    if [[ "${readiness_status}" -eq 0 ]]; then
-      echo "$(timestamp) readiness_done plan=${PLAN}" >> "${MONITOR_DIR}/monitor.log"
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-active-auxiliary \
+      --plan "${PLAN}" \
+      --results "${result_file}" \
+      --output-dir "${LOCAL_ROOT}" \
+      --run-id "${RUN_ID}" \
+      --expected-rows "${EXPECTED_ROWS}" \
+      --update-plan-doc "${PLAN_DOC}" \
+      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
+    postprocess_status=$?
+    if [[ "${postprocess_status}" -eq 0 ]]; then
+      echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
     else
-      echo "$(timestamp) readiness_failed plan=${PLAN}" >> "${MONITOR_DIR}/monitor.log"
+      echo "$(timestamp) postprocess_failed plan=${PLAN}" >> "${MONITOR_DIR}/monitor.log"
     fi
-    exit "${readiness_status}"
+    exit "${postprocess_status}"
   fi
 
   if compgen -G "${LOCAL_ROOT}/logs/*done.marker" > /dev/null; then

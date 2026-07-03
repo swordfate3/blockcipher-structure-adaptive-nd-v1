@@ -25,9 +25,11 @@ from blockcipher_nd.planning.topology_aware_gate import gate_topology_aware_resu
 from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
+from blockcipher_nd.planning.active_auxiliary_gate import gate_active_auxiliary_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
+from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_active_auxiliary_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -1939,7 +1941,9 @@ def test_active_auxiliary_medium_remote_launch_assets_are_gated_and_path_safe():
     assert "ACTIVE_AUXILIARY_CACHE_ROOT=G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache" in launcher_text
     assert "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703" in launcher_text
     assert "EXPECTED_ROWS=\"3\"" in monitor_text
-    assert "scripts/check-remote-readiness" in monitor_text
+    assert "postprocess-active-auxiliary" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "completed_missing_or_incomplete_results" in monitor_text
     artifacts = launch_artifacts(
         Path("configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json")
     )
@@ -6759,6 +6763,32 @@ def _write_trail_family_result(
         handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
+def _write_active_auxiliary_result(
+    path: Path,
+    model: str,
+    auc: float,
+    calibrated: float = 0.72,
+    *,
+    auxiliary_loss: float = 0.4,
+    alignment_fields: dict[str, int] | None = None,
+) -> None:
+    row = {
+        "model": model,
+        "feature_route": "active_pattern_auxiliary_head",
+        "metrics": {
+            "auc": auc,
+            "accuracy": calibrated,
+            "calibrated_accuracy": calibrated,
+            "loss": 0.55,
+            "auxiliary_loss": auxiliary_loss,
+        },
+    }
+    if alignment_fields is not None:
+        row.update(alignment_fields)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
+
+
 def test_trail_family_gate_supports_route_when_candidate_beats_anchor_and_false_family(tmp_path):
     results = tmp_path / "trail_family.jsonl"
     _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
@@ -6913,6 +6943,151 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert readiness["readiness_reports"][0]["launch_artifacts"]["stage_run_id"].startswith(
         "i1_pairset_single_pair_scorer"
     )
+
+
+def test_active_auxiliary_gate_supports_route_when_candidate_beats_anchor_and_shuffled_control(tmp_path):
+    results = tmp_path / "active_auxiliary.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7935)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_shuffled_targets", 0.7922)
+
+    report = gate_active_auxiliary_result(results, expected_rows=3)
+
+    assert report["status"] == "pass"
+    assert report["candidate_model"] == "present_nibble_invp_active_aux_spn_only"
+    assert report["decision"] == "support_active_auxiliary_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] > 0.001
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_active_auxiliary_gate_marks_weak_or_stop_signal(tmp_path):
+    weak_results = tmp_path / "active_auxiliary_weak.jsonl"
+    _write_active_auxiliary_result(weak_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(weak_results, "present_nibble_invp_active_aux_spn_only", 0.7924)
+    _write_active_auxiliary_result(weak_results, "present_nibble_invp_active_aux_shuffled_targets", 0.7921)
+
+    weak = gate_active_auxiliary_result(weak_results, expected_rows=3)
+    assert weak["decision"] == "weak_active_auxiliary_signal"
+
+    stop_results = tmp_path / "active_auxiliary_stop.jsonl"
+    _write_active_auxiliary_result(stop_results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(stop_results, "present_nibble_invp_active_aux_spn_only", 0.7915)
+    _write_active_auxiliary_result(stop_results, "present_nibble_invp_active_aux_shuffled_targets", 0.7910)
+
+    stop = gate_active_auxiliary_result(stop_results, expected_rows=3)
+    assert stop["decision"] == "stop_active_auxiliary_route"
+    assert stop["margin_vs_anchor_auc"] < 0
+
+
+def test_active_auxiliary_gate_stops_when_shuffled_control_matches_true_route(tmp_path):
+    results = tmp_path / "active_auxiliary_shuffled_matches.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7935)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_shuffled_targets", 0.7935)
+
+    report = gate_active_auxiliary_result(results, expected_rows=3, require_shuffled_control=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_active_auxiliary_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_shuffled_auc"] == 0
+    assert "shuffled-target control matches/exceeds" in report["interpretation"]
+
+
+def test_active_auxiliary_gate_requires_shuffled_control(tmp_path):
+    results = tmp_path / "active_auxiliary_missing_shuffled.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7935)
+
+    diagnostic = gate_active_auxiliary_result(results, expected_rows=2)
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_active_auxiliary_signal"
+    assert diagnostic["warnings"] == [
+        "missing_shuffled_control=present_nibble_invp_active_aux_shuffled_targets"
+    ]
+
+    strict = gate_active_auxiliary_result(results, expected_rows=2, require_shuffled_control=True)
+    assert strict["status"] == "fail"
+    assert strict["decision"] == "invalid"
+    assert strict["errors"] == [
+        "missing_shuffled_control=present_nibble_invp_active_aux_shuffled_targets"
+    ]
+
+
+def test_active_auxiliary_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "active_auxiliary.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7935)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_shuffled_targets", 0.7922)
+    plan_doc = tmp_path / "active_auxiliary_plan.md"
+    plan_doc.write_text("# Active Auxiliary Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_active_auxiliary_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="active_auxiliary_unit",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_active_auxiliary_route"
+    assert report["next_action"]["branch"] == "active_auxiliary_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
+    assert Path(report["active_auxiliary_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "active_auxiliary_seed1_confirmation"
+    assert readiness["status"] == "needs_implementation"
+    assert readiness["should_launch_remote"] is False
+    assert readiness["requires_implementation"] is True
+    assert readiness["implementation_checklist"]
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Active-Auxiliary Result" in plan_text
+    assert "<!-- active-auxiliary-postprocess:active_auxiliary_unit:start -->" in plan_text
+    assert "| Decision | `support_active_auxiliary_route` |" in plan_text
+
+    postprocess_active_auxiliary_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="active_auxiliary_unit",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- active-auxiliary-postprocess:active_auxiliary_unit:start -->") == 1
+
+
+def test_active_auxiliary_postprocess_stop_does_not_launch_remote(tmp_path):
+    results = tmp_path / "active_auxiliary_stop.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7915)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_shuffled_targets", 0.7917)
+    output_dir = tmp_path / "stop_postprocess"
+
+    report = postprocess_active_auxiliary_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="active_auxiliary_stop_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_active_auxiliary_route"
+    assert report["next_action"]["branch"] == "stop_active_auxiliary_route"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is False
+    assert "Do not scale active-pattern auxiliary supervision" in report["next_steps"][1]
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["status"] == "pass"
+    assert readiness["branch"] == "stop_active_auxiliary_route"
+    assert readiness["should_launch_remote"] is False
+    assert readiness["implementation_checklist"] == []
 
 
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():
