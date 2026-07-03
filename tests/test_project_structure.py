@@ -8136,12 +8136,24 @@ def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
         json.dumps(
             {
                 "event": "trail_family_negative_chunk",
+                "split": "train",
                 "time": 1000.0,
                 "rows_done": 360448,
                 "total_rows": 524288,
                 "class_rows_done": 98304,
                 "class_total": 262144,
                 "chunk_rows": 8192,
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "trail_family_cache_start",
+                "split": "validation",
+                "time": 1100.0,
+                "total_rows": 131072,
+                "samples_per_class": 65536,
+                "chunk_size": 8192,
             }
         )
         + "\n",
@@ -8154,7 +8166,10 @@ def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
     assert active["branch"] == "wait_for_trail_family_result"
     assert active["run_id"] == "i1_trail_family_r7_262k_seed0_gpu1_20260702"
     assert active["postprocess_allowed"] is False
-    assert active["progress_summary"]["latest_event"] == "trail_family_negative_chunk"
+    assert active["progress_summary"]["latest_event"] == "trail_family_cache_start"
+    assert active["progress_summary"]["cache_event"] == "trail_family_negative_chunk"
+    assert active["progress_summary"]["cache_split"] == "train"
+    assert active["progress_summary"]["cache_rows_remaining"] == 163840
     assert "monitor_i1_trail_family_seed0_20260702" in active["monitor_health_command"]
     assert "scripts/postprocess-trail-family" in active["postprocess_when_ready_command"]
     assert "launch trail-family seed1" in active["main_thread_policy"]["forbidden_until_gate"]
