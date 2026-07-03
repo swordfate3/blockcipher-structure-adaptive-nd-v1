@@ -478,7 +478,61 @@ expected_rows = 4
 ```text
 local smoke runner/gate/postprocess implemented
 medium seed0 and seed1 plan/remote/launcher/monitor prepared
-waiting for candidate-trail seed0 gate, then transition-spectrum gate if selected
+candidate-trail seed0 gate = stop_candidate_trail_route
+bit-transition-spectrum seed0 gate = stop_transition_spectrum_route
+trail-family seed0 is now the active next branch
+```
+
+## Launch Record
+
+### i1_trail_family_r7_262k_seed0_gpu1_20260702
+
+```text
+status = ready_to_launch_after_upstream_stops
+date = 2026-07-03
+trigger_source_1 = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+trigger_decision_1 = stop_candidate_trail_route
+trigger_source_2 = i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702
+trigger_decision_2 = stop_transition_spectrum_route
+claim_scope = medium diagnostic only; not formal evidence
+```
+
+Candidate-trail and bit-transition-spectrum were both retrieved, validated,
+postprocessed, plan-aligned, and gated to stop. This satisfies the trigger for
+trail-family seed0. The route remains a `262144/class` medium diagnostic and
+must not be described as paper-scale evidence.
+
+Launch target:
+
+```text
+run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
+plan = configs/experiment/innovation1/innovation1_spn_present_trail_family_r7_262k_seed0.json
+remote_config = configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
+launcher = configs/remote/generated/run_i1_trail_family_r7_262k_seed0_gpu1_20260702.cmd
+monitor = configs/remote/generated/monitor_i1_trail_family_r7_262k_seed0_gpu1_20260702.sh
+expected_rows = 4
+scale = 262144/class
+seed = 0
+device = cuda:1
+feature_cache_workers = 4
+claim_scope = medium diagnostic only
+```
+
+Readiness refresh before launch:
+
+```text
+command = UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json
+status = pass
+checked_invariants = plan_exists, expected_rows_matches_plan, run_id_task_archive_alignment, github_ssh_repo, cmd_exe_c_only_policy, g_lxy_artifact_policy, training_protocol_matches_plan, medium_scale_dataset_cache, trail_family_protocol_lock
+warnings = remote config relies on runner/plan defaults for optimizer/loss/scheduler/checkpoint fields
+```
+
+Next execution step:
+
+```text
+launch from pushed commit
+hand off monitoring/retrieval/postprocess to local tmux watcher
+do not SSH-poll from the main thread after launch
 ```
 
 ## Claim Scope
