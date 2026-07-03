@@ -50,6 +50,13 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   --device cuda:1 ^
   --epochs 30 ^
   --batch-size 2048 ^
+  --learning-rate 0.0001 ^
+  --lr-scheduler official_cyclic ^
+  --max-learning-rate 0.002 ^
+  --checkpoint-metric val_auc ^
+  --restore-best-checkpoint ^
+  --early-stopping-patience 8 ^
+  --early-stopping-min-delta 0.0001 ^
   --dataset-cache-root "%SBOX_PRIOR_CACHE_ROOT%" ^
   --dataset-cache-chunk-size 8192 ^
   --dataset-cache-workers 4 ^

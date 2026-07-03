@@ -502,8 +502,13 @@ def _sbox_prior_consistency(config: dict[str, Any], tasks: list[dict[str, Any]])
         "sample_structure": "zhang_wang_case2_official_mcnd",
         "validation_key": "0x11111111111111111111",
         "key_rotation_interval": 0,
+        "learning_rate": 0.0001,
+        "lr_scheduler": "official_cyclic",
+        "max_learning_rate": 0.002,
         "checkpoint_metric": "val_auc",
         "restore_best_checkpoint": True,
+        "early_stopping_patience": 8,
+        "early_stopping_min_delta": 0.0001,
     }
     for field, expected in expected_values.items():
         observed = config.get(field)

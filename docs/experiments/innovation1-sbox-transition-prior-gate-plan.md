@@ -121,8 +121,11 @@ split.
 | Train key | `0x00000000000000000000` |
 | Validation key | `0x11111111111111111111` |
 | Key rotation | `0` |
-| Scheduler | match current InvP-only same-scale anchor |
+| Scheduler | `official_cyclic` |
+| Learning rate | `0.0001` |
+| Max learning rate | `0.002` |
 | Checkpoint metric | `val_auc` |
+| Early stopping | patience `8`, min delta `0.0001` |
 | Primary metric | `val_auc`, then calibrated accuracy |
 | First meaningful scale | `262144/class` |
 | Evidence level | medium diagnostic only |

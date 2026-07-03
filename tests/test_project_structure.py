@@ -822,8 +822,13 @@ def test_sbox_transition_prior_gate_262k_seed0_assets_are_ready_and_deferred():
         assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
         assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
         assert task["validation_key"] == 0x11111111111111111111
+        assert task["learning_rate"] == 0.0001
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
         assert task["checkpoint_metric"] == "val_auc"
         assert task["restore_best_checkpoint"] is True
+        assert task["early_stopping_patience"] == 8
+        assert task["early_stopping_min_delta"] == 0.0001
         assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
 
     remote = Path(
@@ -868,8 +873,13 @@ def test_sbox_transition_prior_gate_262k_seed1_assets_are_ready_and_conditional(
         assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
         assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
         assert task["validation_key"] == 0x11111111111111111111
+        assert task["learning_rate"] == 0.0001
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
         assert task["checkpoint_metric"] == "val_auc"
         assert task["restore_best_checkpoint"] is True
+        assert task["early_stopping_patience"] == 8
+        assert task["early_stopping_min_delta"] == 0.0001
         assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
 
     remote = Path(
