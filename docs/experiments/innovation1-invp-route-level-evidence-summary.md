@@ -220,15 +220,16 @@ Current active extension:
 ```text
 run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 status = running / local watcher-managed / no postprocess summary yet
-latest_bounded_check = 2026-07-02 23:22:10+08:00 watcher heartbeat, no failed markers
-progress = train candidate feature cache completed at 524288/524288 rows;
-           validation candidate feature cache started
-progress_detail = validation split currently at 8192/65536 positive-class rows,
-                  8192/131072 total rows
-progress_percent = train cache 100%; validation cache 12.5% of positive class,
-                   6.25% of total validation cache
-cache_rows_remaining = validation cache 122880 rows
-latest_event = candidate_cache_positive_chunk on validation split
+latest_bounded_check = 2026-07-03 10:28:15+08:00 watcher heartbeat, no failed markers
+progress = candidate feature cache phase; no training metrics yet
+progress_detail = linear row cache done; mlp row cache reused; shuffled_cells
+                  train cache done and validation positive class reached
+                  65536/65536 rows
+progress_percent = shuffled_cells train cache 100%; shuffled_cells validation
+                   cache observed at 65536/131072 rows, 50.0% total
+cache_rows_remaining = shuffled_cells validation negative class 65536 rows still
+                       not observed in the local synced progress file
+latest_event = candidate_cache_positive_chunk for shuffled_cells validation split
 results_jsonl = not yet present
 postprocess_allowed = false
 main_thread_action = wait for watcher; do not SSH/tmux-loop or launch seed1
