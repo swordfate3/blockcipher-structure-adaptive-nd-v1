@@ -473,6 +473,7 @@ def _progress_summary(
     latest: dict[str, Any] | None = None
     first_cache_progress: dict[str, Any] | None = None
     latest_cache_progress: dict[str, Any] | None = None
+    cache_progress_segment: tuple[Any, ...] | None = None
     best_metric: float | int | None = None
     best_epoch: int | None = None
     checkpoint_metric: str | None = None
@@ -491,8 +492,10 @@ def _progress_summary(
         parsed_line_count += 1
         latest = record
         if _optional_int(record.get("rows_done")) is not None and _optional_float(record.get("time")) is not None:
-            if first_cache_progress is None:
+            segment = _cache_progress_segment_key(record)
+            if first_cache_progress is None or segment != cache_progress_segment:
                 first_cache_progress = record
+                cache_progress_segment = segment
             latest_cache_progress = record
         if "best_checkpoint_metric" in record:
             best_metric = record.get("best_checkpoint_metric")
@@ -640,6 +643,18 @@ def _cache_rows_per_second(
     if row_delta <= 0 or time_delta <= 0:
         return None
     return round(row_delta / time_delta, 3)
+
+
+def _cache_progress_segment_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        record.get("split"),
+        _optional_int(record.get("total_rows")),
+        _optional_int(record.get("samples_per_class")),
+        _optional_int(record.get("class_total")),
+        record.get("feature_route"),
+        record.get("cache_dir"),
+        record.get("false_family"),
+    )
 
 
 def _cache_eta_seconds(
