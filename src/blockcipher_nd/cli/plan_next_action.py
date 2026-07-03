@@ -147,7 +147,7 @@ def _default_plan_doc_for_branch(branch: str) -> str | None:
         "stop_transition_spectrum_route": "docs/experiments/innovation1-trail-family-consistency-plan.md",
         "trail_family_seed1_confirmation": "docs/experiments/innovation1-trail-family-consistency-plan.md",
         "trail_family_variance_check": "docs/experiments/innovation1-trail-family-consistency-plan.md",
-        "stop_trail_family_route": "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+        "stop_trail_family_route": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
     }.get(branch)
 
 
@@ -189,7 +189,7 @@ def _default_plan_config_for_branch(branch: str) -> str | None:
         ),
         "stop_trail_family_route": (
             "configs/experiment/innovation1/"
-            "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv"
+            "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
         ),
     }.get(branch)
 

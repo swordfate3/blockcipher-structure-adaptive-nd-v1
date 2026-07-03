@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from blockcipher_nd.planning.invp_postprocess import _format_value
-from blockcipher_nd.planning.next_action_readiness import STAGED_CONFIG_KEYS, next_action_readiness_report
+from blockcipher_nd.planning.next_action_readiness import DEFAULT_CONFIG_KEYS, next_action_readiness_report
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.trail_family_gate import (
     DEFAULT_ANCHOR_MODEL,
@@ -25,24 +25,15 @@ SEED1_REMOTE_CONFIG = (
     "innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json"
 )
 SEED1_RUN_ID = "i1_trail_family_r7_262k_seed1_gpu1_20260702"
-PAIRSET_STAGE_A_PLAN_CONFIG = (
+SBOX_PRIOR_PLAN_CONFIG = (
     "configs/experiment/innovation1/"
-    "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k.csv"
+    "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
 )
-PAIRSET_STAGE_B_PLAN_CONFIG = (
-    "configs/experiment/innovation1/"
-    "innovation1_spn_present_pairset_aggregation_control_r7_262k.csv"
-)
-PAIRSET_STAGE_A_REMOTE_CONFIG = (
+SBOX_PRIOR_REMOTE_CONFIG = (
     "configs/remote/"
-    "innovation1_spn_present_pairset_aggregation_control_single_pair_r7_262k_gpu1_20260630.json"
+    "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
 )
-PAIRSET_STAGE_B_REMOTE_CONFIG = (
-    "configs/remote/"
-    "innovation1_spn_present_pairset_aggregation_control_r7_262k_gpu1_20260630.json"
-)
-PAIRSET_STAGE_A_RUN_ID = "i1_pairset_single_pair_scorer_r7_262k_seed0_gpu1_20260630"
-PAIRSET_STAGE_B_RUN_ID = "i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630"
+SBOX_PRIOR_RUN_ID = "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -218,29 +209,24 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
-            "fallback_branch": "pairset_aggregation_control",
-            "next_plan_doc": "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
-            "stage_a_plan_config": PAIRSET_STAGE_A_PLAN_CONFIG,
-            "suggested_plan_config": PAIRSET_STAGE_B_PLAN_CONFIG,
-            "stage_a_remote_config": PAIRSET_STAGE_A_REMOTE_CONFIG,
-            "launch_remote_config": PAIRSET_STAGE_B_REMOTE_CONFIG,
-            "stage_a_run_id": PAIRSET_STAGE_A_RUN_ID,
-            "run_id": PAIRSET_STAGE_B_RUN_ID,
-            "readiness_command": (
-                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                f"--config {PAIRSET_STAGE_A_REMOTE_CONFIG} && "
-                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
-                f"--config {PAIRSET_STAGE_B_REMOTE_CONFIG}"
-            ),
+            "fallback_branch": "sbox_transition_prior_gate",
+            "next_plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
+            "suggested_plan_config": SBOX_PRIOR_PLAN_CONFIG,
+            "launch_remote_config": SBOX_PRIOR_REMOTE_CONFIG,
+            "suggested_remote_config": SBOX_PRIOR_REMOTE_CONFIG,
+            "run_id": SBOX_PRIOR_RUN_ID,
+            "readiness_command": _readiness_command(SBOX_PRIOR_REMOTE_CONFIG),
             "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
-                "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+                "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
                 "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+                "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
             ],
             "fallback_hypotheses": [
-                "pair_set_evidence_pooling",
+                "sbox_transition_prior_gate",
                 "active_pattern_auxiliary_head",
+                "pair_set_evidence_pooling",
                 "cross_cipher_gift_skinny_transfer",
             ],
         }
@@ -282,10 +268,10 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as tied or negative trail-family evidence.",
             "Do not scale trail-family as a main route.",
-            f"Run the staged remote readiness gates: {next_action['readiness_command']}",
-            f"Launch stage A {next_action['stage_a_remote_config']} before stage B {next_action['launch_remote_config']}.",
+            f"Run the S-box transition prior remote readiness gate: {next_action['readiness_command']}",
+            f"Launch S-box transition prior seed0 {next_action['launch_remote_config']} from the pushed commit.",
             "Hand off monitoring and retrieval to a local tmux watcher or sub-agent.",
-            "Treat pair-set aggregation as diagnostic attribution control, not formal route evidence.",
+            "Treat S-box transition prior gating as medium diagnostic evidence, not formal route evidence.",
         ]
     return ["Review the trail-family gate manually before launching another experiment."]
 
@@ -296,7 +282,7 @@ def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) ->
     return next_action_readiness_report(
         summary_path=summary_path,
         report=report,
-        config_keys=STAGED_CONFIG_KEYS,
+        config_keys=DEFAULT_CONFIG_KEYS,
         implementation_checklist=_implementation_checklist(next_action) if requires_implementation else [],
     )
 

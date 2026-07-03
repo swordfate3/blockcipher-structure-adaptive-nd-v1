@@ -230,9 +230,12 @@ Action:
 
 ```text
 do not scale this feature route
-switch to active-pattern auxiliary-head attribution, cross-cipher GIFT/SKINNY
-transfer planning, or formalize InvP-only as the cleaner structure-adaptive
-route with broader multi-seed attribution
+switch to the prepared S-box transition prior gate seed0 route, because it tests
+local S-box reliability gating over the already-supported InvP cell view.
+If S-box prior also stops, fall back to active-pattern auxiliary-head,
+pair-set evidence pooling attribution, cross-cipher GIFT/SKINNY transfer
+planning, or formalize InvP-only as the cleaner structure-adaptive route with
+broader multi-seed attribution
 ```
 
 ## Implementation Plan
@@ -594,6 +597,7 @@ InvP-only                 -> structure-aligned data representation
 candidate-trail route     -> local transition-consistency feature attribution
 bit-transition-spectrum   -> bit-level P-layer movement statistics
 trail-family consistency  -> higher-level active-pattern / transition-family agreement
+S-box transition prior    -> local S-box transition reliability gate over InvP cells
 ```
 
 The useful paper direction is whichever route survives same-protocol scale,

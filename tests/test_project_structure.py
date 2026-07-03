@@ -7166,7 +7166,7 @@ def test_trail_family_postprocess_writes_summary_and_next_action_readiness(tmp_p
     assert "Trail-Family Result" in plan_doc.read_text(encoding="utf-8")
 
 
-def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_path):
+def test_trail_family_postprocess_stop_points_to_sbox_prior_readiness(tmp_path):
     results = tmp_path / "trail_family_stop.jsonl"
     _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
     _write_trail_family_result(results, "trail_family_consistency_linear", 0.7910)
@@ -7186,15 +7186,18 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert report["next_action"]["branch"] == "stop_trail_family_route"
     assert report["next_action"]["should_launch_remote"] is True
     assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["fallback_branch"] == "pairset_aggregation_control"
-    assert "pairset_aggregation_control_single_pair_r7_262k" in report["next_action"]["stage_a_remote_config"]
-    assert "pairset_aggregation_control_r7_262k" in report["next_action"]["launch_remote_config"]
+    assert report["next_action"]["fallback_branch"] == "sbox_transition_prior_gate"
+    assert (
+        report["next_action"]["next_plan_doc"]
+        == "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md"
+    )
+    assert "sbox_transition_prior_gate_r7_262k_seed0" in report["next_action"]["launch_remote_config"]
     assert (
         "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
         in report["next_action"]["fallback_plan_options"]
     )
-    assert "active_pattern_auxiliary_head" in report["next_action"]["fallback_hypotheses"]
-    assert any("Launch stage A" in step for step in report["next_steps"])
+    assert "sbox_transition_prior_gate" in report["next_action"]["fallback_hypotheses"]
+    assert any("Launch" in step and "S-box" in step for step in report["next_steps"])
 
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["status"] == "pass"
@@ -7202,15 +7205,9 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert readiness["readiness_pass"] is True
     assert readiness["remote_readiness_pass"] is True
     assert readiness["launch_artifacts_pass"] is True
-    assert [item["role"] for item in readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert [item["role"] for item in readiness["readiness_reports"]] == ["primary"]
     assert readiness["readiness_reports"][0]["readiness"]["status"] == "pass"
-    assert readiness["readiness_reports"][1]["readiness"]["status"] == "pass"
     assert readiness["readiness_reports"][0]["launch_artifacts"]["status"] == "pass"
-    assert readiness["readiness_reports"][1]["launch_artifacts"]["status"] == "pass"
-    assert readiness["readiness_reports"][0]["launch_artifacts"]["shared_with_primary_launcher"] is True
-    assert readiness["readiness_reports"][0]["launch_artifacts"]["stage_run_id"].startswith(
-        "i1_pairset_single_pair_scorer"
-    )
 
 
 def test_active_auxiliary_gate_supports_route_when_candidate_beats_anchor_and_shuffled_control(tmp_path):
