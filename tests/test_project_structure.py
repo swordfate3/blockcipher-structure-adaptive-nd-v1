@@ -8099,6 +8099,7 @@ def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_run
                 "configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json"
             ),
             "plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "readiness_status": "pass",
             "status": "prepared_conditional",
         },
         {
@@ -8109,6 +8110,7 @@ def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_run
                 "configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json"
             ),
             "plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+            "readiness_status": "pass",
             "status": "prepared_deferred",
         },
         {
@@ -8119,6 +8121,7 @@ def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_run
                 "configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
             ),
             "plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
+            "readiness_status": "pass",
             "status": "prepared_deferred",
         },
     ]

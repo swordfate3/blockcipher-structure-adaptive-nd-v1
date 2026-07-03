@@ -511,7 +511,7 @@ def _trail_family_conditional_followup() -> dict[str, Any]:
 
 
 def _trail_family_deferred_candidate_queue() -> list[dict[str, str]]:
-    return [
+    candidates = [
         {
             "branch": "trail_family_seed1_confirmation_or_variance_check",
             "launch_gate": "support_trail_family_route or weak_trail_family_signal",
@@ -543,6 +543,15 @@ def _trail_family_deferred_candidate_queue() -> list[dict[str, str]]:
             "status": "prepared_deferred",
         },
     ]
+    return [_with_readiness_status(candidate) for candidate in candidates]
+
+
+def _with_readiness_status(candidate: dict[str, str]) -> dict[str, str]:
+    config = candidate.get("launch_remote_config")
+    if config:
+        candidate = dict(candidate)
+        candidate["readiness_status"] = str(_remote_readiness(Path(config)).get("status", "unknown"))
+    return candidate
 
 
 def _remote_readiness(config: Path) -> dict[str, Any]:
