@@ -368,28 +368,69 @@ def _heartbeat_status(
     now: datetime | None = None,
 ) -> dict[str, Any]:
     newest = _newest_monitor_timestamp(recent_monitor_lines)
+    sync_interval_seconds = _estimated_monitor_interval_seconds(recent_monitor_lines)
     if newest is None:
         return {
             "newest_timestamp": None,
             "age_seconds": None,
             "stale_after_seconds": stale_after_seconds,
+            "seconds_until_stale": None,
+            "estimated_sync_interval_seconds": sync_interval_seconds,
+            "next_expected_sync_timestamp": None,
             "is_stale": False,
         }
     current = now or datetime.now(timezone.utc)
     if current.tzinfo is None:
         current = current.replace(tzinfo=timezone.utc)
     age_seconds = max(0, int((current.astimezone(timezone.utc) - newest.astimezone(timezone.utc)).total_seconds()))
+    newest_local = newest.isoformat()
+    next_expected = None
+    if sync_interval_seconds is not None:
+        next_expected = (newest + _seconds_delta(sync_interval_seconds)).isoformat()
     return {
-        "newest_timestamp": newest.isoformat(),
+        "newest_timestamp": newest_local,
         "age_seconds": age_seconds,
         "stale_after_seconds": stale_after_seconds,
+        "seconds_until_stale": max(0, stale_after_seconds - age_seconds),
+        "estimated_sync_interval_seconds": sync_interval_seconds,
+        "next_expected_sync_timestamp": next_expected,
         "is_stale": age_seconds > stale_after_seconds,
     }
 
 
-def _newest_monitor_timestamp(lines: list[str]) -> datetime | None:
-    newest: datetime | None = None
+def _seconds_delta(seconds: int):
+    from datetime import timedelta
+
+    return timedelta(seconds=seconds)
+
+
+def _estimated_monitor_interval_seconds(lines: list[str]) -> int | None:
+    for event in ("sync", "running"):
+        estimate = _estimated_event_interval_seconds(lines, event)
+        if estimate is not None:
+            return estimate
+    return _estimated_event_interval_seconds(lines, None)
+
+
+def _estimated_event_interval_seconds(lines: list[str], event: str | None) -> int | None:
+    timestamps = _monitor_timestamps(lines, event=event)
+    if len(timestamps) < 2:
+        return None
+    deltas = [
+        int((current.astimezone(timezone.utc) - previous.astimezone(timezone.utc)).total_seconds())
+        for previous, current in zip(timestamps, timestamps[1:])
+    ]
+    positive_deltas = [delta for delta in deltas if delta > 0]
+    if not positive_deltas:
+        return None
+    return int(round(sum(positive_deltas) / len(positive_deltas)))
+
+
+def _monitor_timestamps(lines: list[str], *, event: str | None = None) -> list[datetime]:
+    timestamps: list[datetime] = []
     for line in lines:
+        if event is not None and event not in line.split()[1:]:
+            continue
         token = line.split(maxsplit=1)[0] if line.strip() else ""
         if "T" not in token:
             continue
@@ -399,6 +440,13 @@ def _newest_monitor_timestamp(lines: list[str]) -> datetime | None:
             continue
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
+        timestamps.append(timestamp)
+    return timestamps
+
+
+def _newest_monitor_timestamp(lines: list[str]) -> datetime | None:
+    newest: datetime | None = None
+    for timestamp in _monitor_timestamps(lines):
         if newest is None or timestamp > newest:
             newest = timestamp
     return newest

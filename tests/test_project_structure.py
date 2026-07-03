@@ -4340,6 +4340,7 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
         "\n".join(
             [
                 "monitor_start 2026-06-29T14:45:53+08:00",
+                "2026-06-29T14:46:00+08:00 running",
                 "2026-06-29T15:00:02+08:00 running",
             ]
         )
@@ -4368,6 +4369,9 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["results_jsonl_exists"] is False
     assert report["results_jsonl_line_count"] == 0
     assert report["heartbeat"]["is_stale"] is False
+    assert report["heartbeat"]["seconds_until_stale"] == 1502
+    assert report["heartbeat"]["estimated_sync_interval_seconds"] == 842
+    assert report["heartbeat"]["next_expected_sync_timestamp"] == "2026-06-29T15:14:04+08:00"
     assert report["tmux_interpretation"]["state"] == "not_checked"
     assert report["artifact_files"] == [
         "monitor/monitor.log",
@@ -5627,6 +5631,9 @@ def test_monitor_health_marks_stale_running_heartbeat(tmp_path):
     assert report["status"] == "stale_monitor"
     assert report["heartbeat"]["is_stale"] is True
     assert report["heartbeat"]["age_seconds"] == 2701
+    assert report["heartbeat"]["seconds_until_stale"] == 0
+    assert report["heartbeat"]["estimated_sync_interval_seconds"] is None
+    assert report["heartbeat"]["next_expected_sync_timestamp"] is None
     assert report["needs_main_thread_intervention"] is True
     assert report["postprocess_allowed"] is False
     assert report["postprocess_command"] == []
