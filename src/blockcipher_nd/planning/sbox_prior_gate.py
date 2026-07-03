@@ -101,6 +101,19 @@ def gate_sbox_prior_result(
                 "true S-box transition prior gate beats the InvP anchor by the required diagnostic margin "
                 "and separates from no-DDT and shuffled-prior controls"
             )
+        elif (
+            _at_least(margin_vs_anchor, 0.0)
+            and calibration_not_worse
+            and not _at_least(margin_vs_anchor, margin)
+            and margin_vs_best_control is not None
+            and _at_least(margin_vs_best_control, 0.0)
+        ):
+            decision = "weak_sbox_prior_signal"
+            action = "prepare_262k_variance_check_only_if_branch_selected"
+            interpretation = (
+                "true S-box transition prior gate is best but below the required diagnostic margin; "
+                "treat as weak medium-scale evidence only"
+            )
         elif _at_least(margin_vs_anchor, 0.0) and calibration_not_worse and controls_missing:
             decision = "weak_sbox_prior_signal"
             action = "prepare_262k_variance_check_only_if_branch_selected"

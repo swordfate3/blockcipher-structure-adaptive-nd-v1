@@ -7414,6 +7414,21 @@ def test_sbox_prior_gate_stops_when_no_ddt_or_shuffled_control_matches_true_prio
     assert "no-DDT or shuffled prior control" in report["interpretation"]
 
 
+def test_sbox_prior_gate_marks_weak_when_true_prior_is_best_but_below_margin(tmp_path):
+    results = tmp_path / "sbox_prior_weak.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7928)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7922)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7921)
+
+    report = gate_sbox_prior_result(results, expected_rows=4, require_controls=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "weak_sbox_prior_signal"
+    assert 0.0 < report["margin_vs_anchor_auc"] < report["required_margin"]
+    assert 0.0 < report["margin_vs_best_control_auc"] < report["required_margin"]
+
+
 def test_sbox_prior_gate_requires_controls_when_strict(tmp_path):
     results = tmp_path / "sbox_prior_missing_controls.jsonl"
     _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
