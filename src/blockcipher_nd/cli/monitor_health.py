@@ -520,11 +520,12 @@ def _progress_summary(
     steps_per_epoch = _optional_int(latest.get("steps_per_epoch"))
     train_rows_seen = _optional_int(latest.get("train_rows_seen"))
     train_rows = _optional_int(latest.get("train_rows"))
-    cache_rows_done = _optional_int(latest.get("rows_done"))
-    cache_total_rows = _optional_int(latest.get("total_rows"))
-    cache_class_rows_done = _optional_int(latest.get("class_rows_done"))
-    cache_class_total = _optional_int(latest.get("class_total"))
-    cache_chunk_rows = _optional_int(latest.get("chunk_rows"))
+    cache_record = latest_cache_progress or latest
+    cache_rows_done = _optional_int(cache_record.get("rows_done"))
+    cache_total_rows = _optional_int(cache_record.get("total_rows"))
+    cache_class_rows_done = _optional_int(cache_record.get("class_rows_done"))
+    cache_class_total = _optional_int(cache_record.get("class_total"))
+    cache_chunk_rows = _optional_int(cache_record.get("chunk_rows"))
     cache_rate = _cache_rows_per_second(first_cache_progress, latest_cache_progress)
     cache_eta_seconds = _cache_eta_seconds(
         rows_done=cache_rows_done,
@@ -548,6 +549,8 @@ def _progress_summary(
         "steps_per_epoch": steps_per_epoch,
         "train_rows_seen": train_rows_seen,
         "train_rows": train_rows,
+        "cache_event": cache_record.get("event"),
+        "cache_split": cache_record.get("split"),
         "cache_rows_done": cache_rows_done,
         "cache_total_rows": cache_total_rows,
         "cache_rows_remaining": _remaining_rows(cache_rows_done, cache_total_rows),

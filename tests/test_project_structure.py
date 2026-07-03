@@ -5364,6 +5364,79 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_eta_seconds"] == 896
 
 
+def test_monitor_health_keeps_latest_cache_progress_when_new_cache_starts(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_trail_family_validation_cache_started"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-03T19:14:35+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "trail_family_linear_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "trail_family_positive_chunk",
+                "split": "train",
+                "time": 1000.0,
+                "rows_done": 8192,
+                "total_rows": 524288,
+                "class_rows_done": 8192,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "trail_family_negative_chunk",
+                "split": "train",
+                "time": 2024.0,
+                "rows_done": 524288,
+                "total_rows": 524288,
+                "class_rows_done": 262144,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "trail_family_cache_start",
+                "split": "validation",
+                "time": 2025.0,
+                "total_rows": 131072,
+                "samples_per_class": 65536,
+                "chunk_size": 8192,
+                "workers": 4,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-03T19:15:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert progress["latest_event"] == "trail_family_cache_start"
+    assert progress["cache_event"] == "trail_family_negative_chunk"
+    assert progress["cache_split"] == "train"
+    assert progress["cache_rows_done"] == 524288
+    assert progress["cache_total_rows"] == 524288
+    assert progress["cache_rows_remaining"] == 0
+    assert progress["cache_class_rows_done"] == 262144
+    assert progress["cache_class_progress_percent"] == pytest.approx(100.0)
+    assert progress["cache_rows_per_second"] == pytest.approx(504.0)
+    assert progress["cache_eta_seconds"] == 0
+
+
 def test_monitor_health_reports_progress_file_freshness(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_progress_file_freshness"
