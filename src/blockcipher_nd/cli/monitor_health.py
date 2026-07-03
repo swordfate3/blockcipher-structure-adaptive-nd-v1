@@ -500,10 +500,7 @@ def _progress_summary(
     stale_after_seconds: int = 1800,
     now: datetime | None = None,
 ) -> dict[str, Any]:
-    paths = sorted(
-        (run_root / "logs").glob("*progress.jsonl"),
-        key=lambda path: (path.stat().st_mtime if path.exists() else 0.0, path.name),
-    )
+    paths = sorted((run_root / "logs").glob("*progress.jsonl"))
     if not paths:
         return {
             "path": None,
@@ -516,7 +513,54 @@ def _progress_summary(
             "parsed_line_count": 0,
             "latest_event": None,
         }
-    path = paths[-1]
+    path = _select_latest_progress_path(paths)
+    return _progress_summary_for_path(
+        path,
+        stale_after_seconds=stale_after_seconds,
+        now=now,
+    )
+
+
+def _select_latest_progress_path(paths: list[Path]) -> Path:
+    latest_path = paths[0]
+    latest_key: tuple[float, float, str] | None = None
+    for path in paths:
+        key = _progress_path_sort_key(path)
+        if latest_key is None or key > latest_key:
+            latest_key = key
+            latest_path = path
+    return latest_path
+
+
+def _progress_path_sort_key(path: Path) -> tuple[float, float, str]:
+    mtime = path.stat().st_mtime if path.exists() else 0.0
+    event_time = _latest_progress_event_time(path)
+    return (event_time if event_time is not None else mtime, mtime, path.name)
+
+
+def _latest_progress_event_time(path: Path) -> float | None:
+    latest_time: float | None = None
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict):
+            continue
+        record_time = _optional_float(record.get("time"))
+        if record_time is not None:
+            latest_time = record_time
+    return latest_time
+
+
+def _progress_summary_for_path(
+    path: Path,
+    *,
+    stale_after_seconds: int,
+    now: datetime | None,
+) -> dict[str, Any]:
     freshness = _file_freshness(path, stale_after_seconds=stale_after_seconds, now=now)
     latest: dict[str, Any] | None = None
     first_cache_progress: dict[str, Any] | None = None

@@ -5479,6 +5479,61 @@ def test_monitor_health_keeps_latest_cache_progress_when_new_cache_starts(tmp_pa
     assert progress["cache_eta_seconds"] == 0
 
 
+def test_monitor_health_uses_latest_progress_event_time_across_files(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_trail_family_multi_progress_files"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-03T19:14:35+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "trail_family_false_family_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "trail_family_cache_start",
+                "split": "train",
+                "time": 3000.0,
+                "total_rows": 524288,
+                "samples_per_class": 262144,
+                "false_family": True,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    # This file is written later, so its mtime is newer, but its internal event
+    # time is older than the false-family progress above.
+    (logs / "trail_family_mlp_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "trail_family_cache_reuse",
+                "split": "validation",
+                "time": 2000.0,
+                "total_rows": 131072,
+                "samples_per_class": 65536,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-03T19:15:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert progress["path"].endswith("trail_family_false_family_progress.jsonl")
+    assert progress["latest_event"] == "trail_family_cache_start"
+    assert progress["latest_split"] == "train"
+    assert progress["latest_total_rows"] == 524288
+    assert progress["latest_samples_per_class"] == 262144
+
+
 def test_monitor_health_cache_rate_stays_with_latest_split(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_trail_family_validation_rate"
