@@ -26,10 +26,12 @@ from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_re
 from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_gate import gate_active_auxiliary_result
+from blockcipher_nd.planning.sbox_prior_gate import gate_sbox_prior_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_active_auxiliary_result
+from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prior_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -798,6 +800,52 @@ def test_sbox_transition_prior_gate_smoke_config_is_protocol_locked():
         assert task["validation_key"] == 0x11111111111111111111
         assert "SMOKE only" in task["matching_evidence"]
         assert "not accuracy evidence" in task["matching_evidence"]
+
+
+def test_sbox_transition_prior_gate_262k_seed0_assets_are_ready_and_deferred():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_sbox_prior_gate",
+        "present_nibble_invp_no_ddt_gate",
+        "present_nibble_invp_shuffled_sbox_prior_gate",
+    ]
+    for task in tasks:
+        assert task["cipher_key"] == "present80"
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["validation_key"] == 0x11111111111111111111
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
+
+    remote = Path(
+        "configs/remote/"
+        "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+    )
+    readiness = remote_readiness_report(remote)
+    assert readiness["status"] == "pass"
+    assert "sbox_prior_protocol_lock" in readiness["checked_invariants"]
+
+    launcher = Path("configs/remote/generated/run_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.cmd")
+    monitor = Path("configs/remote/generated/monitor_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.sh")
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+    assert launcher.exists()
+    assert monitor.exists()
+    assert "cmd.exe /k" not in launcher_text
+    assert "scripts\\train" in launcher_text
+    assert "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv" in launcher_text
+    assert "scripts/postprocess-sbox-prior" in monitor_text
+    assert "innovation1-sbox-transition-prior-gate-plan.md" in monitor_text
+    assert "do not launch while trail-family" in remote.read_text(encoding="utf-8")
 
 
 def test_archived_active_pattern_remote_config_is_not_launchable():
@@ -7252,6 +7300,177 @@ def test_active_auxiliary_postprocess_stop_does_not_launch_remote(tmp_path):
     assert readiness["branch"] == "stop_active_auxiliary_route"
     assert readiness["should_launch_remote"] is False
     assert readiness["implementation_checklist"] == []
+
+
+def _write_sbox_prior_result(
+    path: Path,
+    model: str,
+    auc: float,
+    *,
+    calibrated_accuracy: float = 0.718,
+) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": model,
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": calibrated_accuracy - 0.001,
+                        "calibrated_accuracy": calibrated_accuracy,
+                        "loss": 0.55,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def test_sbox_prior_gate_supports_route_only_when_true_prior_beats_anchor_and_controls(tmp_path):
+    results = tmp_path / "sbox_prior.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7936)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7924)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7921)
+
+    report = gate_sbox_prior_result(results, expected_rows=4)
+
+    assert report["status"] == "pass"
+    assert report["candidate_model"] == "present_nibble_invp_sbox_prior_gate"
+    assert report["decision"] == "support_sbox_prior_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_best_control_auc"] > 0.001
+    assert report["best_control_model"] == "present_nibble_invp_no_ddt_gate"
+    assert "not paper-scale" in report["claim_scope"]
+
+
+def test_sbox_prior_gate_stops_when_no_ddt_or_shuffled_control_matches_true_prior(tmp_path):
+    results = tmp_path / "sbox_prior_control_match.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7935)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7934)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7920)
+
+    report = gate_sbox_prior_result(results, expected_rows=4, require_controls=True)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_sbox_prior_route"
+    assert report["margin_vs_anchor_auc"] > 0.001
+    assert report["margin_vs_best_control_auc"] < 0.001
+    assert "no-DDT or shuffled prior control" in report["interpretation"]
+
+
+def test_sbox_prior_gate_requires_controls_when_strict(tmp_path):
+    results = tmp_path / "sbox_prior_missing_controls.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7935)
+
+    diagnostic = gate_sbox_prior_result(results, expected_rows=2)
+    assert diagnostic["status"] == "pass"
+    assert diagnostic["decision"] == "weak_sbox_prior_signal"
+    assert diagnostic["warnings"] == [
+        "missing_control_model=present_nibble_invp_no_ddt_gate",
+        "missing_control_model=present_nibble_invp_shuffled_sbox_prior_gate",
+    ]
+
+    strict = gate_sbox_prior_result(results, expected_rows=2, require_controls=True)
+    assert strict["status"] == "fail"
+    assert strict["decision"] == "invalid"
+    assert strict["errors"] == [
+        "missing_control_model=present_nibble_invp_no_ddt_gate",
+        "missing_control_model=present_nibble_invp_shuffled_sbox_prior_gate",
+    ]
+
+
+def test_sbox_prior_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "sbox_prior.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7936)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7924)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7921)
+    plan_doc = tmp_path / "sbox_prior_plan.md"
+    plan_doc.write_text("# S-box Prior Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_sbox_prior_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="sbox_prior_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_sbox_prior_route"
+    assert report["next_action"]["branch"] == "sbox_prior_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["requires_implementation"] is True
+    assert Path(report["sbox_prior_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "sbox_prior_seed1_confirmation"
+    assert readiness["status"] == "needs_implementation"
+    assert readiness["should_launch_remote"] is False
+    assert readiness["implementation_checklist"]
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved S-box Prior Result" in plan_text
+    assert "<!-- sbox-prior-postprocess:sbox_prior_unit:start -->" in plan_text
+    assert "| Decision | `support_sbox_prior_route` |" in plan_text
+
+    postprocess_sbox_prior_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="sbox_prior_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- sbox-prior-postprocess:sbox_prior_unit:start -->") == 1
+
+
+def test_monitor_health_emits_sbox_prior_postprocess_command_when_result_ready(tmp_path):
+    run_id = "sbox_prior_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = tmp_path / "sbox_prior_plan.csv"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-03T12:00:00+08:00 running\n", encoding="utf-8")
+    plan.write_text(
+        "model_key\n"
+        "present_nibble_invp_only_spn_only\n"
+        "present_nibble_invp_sbox_prior_gate\n"
+        "present_nibble_invp_no_ddt_gate\n"
+        "present_nibble_invp_shuffled_sbox_prior_gate\n",
+        encoding="utf-8",
+    )
+    results = results_dir / f"{run_id}.jsonl"
+    for model, auc in [
+        ("present_nibble_invp_only_spn_only", 0.7920),
+        ("present_nibble_invp_sbox_prior_gate", 0.7936),
+        ("present_nibble_invp_no_ddt_gate", 0.7924),
+        ("present_nibble_invp_shuffled_sbox_prior_gate", 0.7921),
+    ]:
+        _write_sbox_prior_result(results, model, auc)
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=4,
+        postprocess_kind="sbox_prior",
+        now=datetime.fromisoformat("2026-07-03T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-sbox-prior" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "4" in report["postprocess_command"]
 
 
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():

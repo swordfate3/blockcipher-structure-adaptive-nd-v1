@@ -130,6 +130,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     )
     errors.extend(active_auxiliary_consistency["errors"])
     warnings.extend(active_auxiliary_consistency["warnings"])
+    sbox_prior_consistency = _sbox_prior_consistency(config, tasks)
+    errors.extend(sbox_prior_consistency["errors"])
+    warnings.extend(sbox_prior_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
@@ -153,6 +156,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("trail_family_protocol_lock")
     if _is_active_auxiliary_config(config):
         checked_invariants.append("active_auxiliary_protocol_lock")
+    if _is_sbox_prior_config(config):
+        checked_invariants.append("sbox_prior_protocol_lock")
     if _is_pairset_aggregation_config(config):
         checked_invariants.append("pairset_aggregation_stage_lock")
 
@@ -486,6 +491,59 @@ def _active_auxiliary_consistency(
     return {"errors": errors, "warnings": warnings}
 
 
+def _sbox_prior_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_sbox_prior_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_values = {
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": True,
+    }
+    for field, expected in expected_values.items():
+        observed = config.get(field)
+        if observed != expected:
+            errors.append(f"sbox_prior {field}={observed} expected={expected}")
+
+    runner_script = _str_value(config.get("runner_script"))
+    if runner_script and runner_script != "scripts/train":
+        errors.append(f"sbox_prior runner_script unsupported: {runner_script}")
+
+    planned_models = {_str_value(task.get("model_key")) for task in tasks}
+    required_models = {
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_sbox_prior_gate",
+        "present_nibble_invp_no_ddt_gate",
+        "present_nibble_invp_shuffled_sbox_prior_gate",
+    }
+    if tasks and not required_models.issubset(planned_models):
+        errors.append(f"sbox_prior plan must include anchor, true prior, and controls: {sorted(planned_models)}")
+    if tasks and len(tasks) != 4:
+        errors.append(f"sbox_prior plan_rows={len(tasks)} expected=4")
+
+    cache_root = _str_value(config.get("dataset_cache_root"))
+    if not cache_root:
+        errors.append("sbox_prior missing dataset_cache_root")
+    elif not cache_root.startswith(REMOTE_ROOT):
+        errors.append(f"sbox_prior dataset_cache_root must stay under {REMOTE_ROOT}: {cache_root}")
+
+    workers = _int_value(config.get("dataset_cache_workers", 1))
+    if workers is None or workers < 1:
+        errors.append("sbox_prior dataset_cache_workers must be >= 1")
+    elif _max_samples_per_class(tasks) >= 65_536 and workers == 1:
+        warnings.append(
+            "sbox_prior medium-scale dataset_cache_workers=1; future medium/large runs should set >1 "
+            "to avoid slow dataset-cache generation"
+        )
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _plan_is_json_matrix(plan_path: Path) -> bool:
     if plan_path.suffix.lower() != ".json" or not plan_path.exists():
         return False
@@ -535,7 +593,6 @@ def _is_candidate_trail_config(config: dict[str, Any]) -> bool:
             "run_id",
             "task_name",
             "plan",
-            "claim_scope",
             "route",
             "experiment_route",
         ]
@@ -558,7 +615,6 @@ def _is_transition_spectrum_config(config: dict[str, Any]) -> bool:
             "run_id",
             "task_name",
             "plan",
-            "claim_scope",
             "route",
             "experiment_route",
             "runner_script",
@@ -581,7 +637,6 @@ def _is_trail_family_config(config: dict[str, Any]) -> bool:
             "run_id",
             "task_name",
             "plan",
-            "claim_scope",
             "route",
             "experiment_route",
             "runner_script",
@@ -604,7 +659,6 @@ def _is_active_auxiliary_config(config: dict[str, Any]) -> bool:
             "run_id",
             "task_name",
             "plan",
-            "claim_scope",
             "route",
             "experiment_route",
             "runner_script",
@@ -616,6 +670,28 @@ def _is_active_auxiliary_config(config: dict[str, Any]) -> bool:
         "active_pattern_auxiliary",
         "active-pattern auxiliary",
         "spn-active-auxiliary",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_sbox_prior_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "route",
+            "experiment_route",
+            "runner_script",
+        ]
+    ).lower()
+    markers = [
+        "sbox_prior",
+        "sbox-prior",
+        "sbox_transition_prior",
+        "sbox-transition-prior",
+        "sbox transition prior",
     ]
     return any(marker in haystack for marker in markers)
 

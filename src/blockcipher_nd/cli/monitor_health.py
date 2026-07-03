@@ -69,6 +69,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "transition_spectrum",
             "trail_family",
             "active_auxiliary",
+            "sbox_prior",
         ],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
@@ -860,6 +861,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-trail-family"
     if kind == "active_auxiliary":
         return "scripts/postprocess-active-auxiliary"
+    if kind == "sbox_prior":
+        return "scripts/postprocess-sbox-prior"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -882,6 +885,8 @@ def _default_expected_rows(kind: str) -> int:
         return 4
     if kind == "active_auxiliary":
         return 3
+    if kind == "sbox_prior":
+        return 4
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 

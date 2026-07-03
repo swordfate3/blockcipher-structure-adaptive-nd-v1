@@ -45,7 +45,8 @@ Use `--postprocess-kind invp`, `--postprocess-kind invp_attribution`,
 `--postprocess-kind ddt_graph`, `--postprocess-kind topology_aware`,
 `--postprocess-kind pairset_aggregation`, or `--postprocess-kind
 candidate_trail`, `--postprocess-kind transition_spectrum`, or
-`--postprocess-kind trail_family` so the emitted command calls the matching
+`--postprocess-kind trail_family`, `--postprocess-kind active_auxiliary`, or
+`--postprocess-kind sbox_prior` so the emitted command calls the matching
 postprocess entrypoint and expected row count.
 For feature-cache jobs, `progress_summary` includes cache progress percentages,
 row rates when timestamps are available, ETA when computable, and

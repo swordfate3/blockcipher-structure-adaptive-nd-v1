@@ -279,19 +279,34 @@ After smoke passes, prepare 262144/class seed0 remote config with disk-backed
 cache/progress under G:\lxy and watcher-owned retrieval/postprocess.
 ```
 
+Task 5: result gate and postprocess.
+
+```text
+Add route-specific gate/postprocess artifacts so watcher retrieval can
+automatically validate result rows, compare true prior against InvP/no-DDT/
+shuffled controls, update this plan, and emit a next-action readiness report.
+```
+
 ## Implementation Status
 
 Status as of 2026-07-03:
 
 ```text
-implementation_status = local model aliases and smoke config implemented
+implementation_status = local model aliases, smoke config, gate/postprocess,
+  and 262144/class seed0 remote assets implemented
 evidence_level = smoke only; no model-quality claim
 smoke_config = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_smoke.csv
+medium_seed0_plan = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv
+medium_seed0_remote_config = configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json
+medium_seed0_launcher = configs/remote/generated/run_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.cmd
+medium_seed0_monitor = configs/remote/generated/monitor_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.sh
+gate_script = scripts/gate-sbox-prior
+postprocess_script = scripts/postprocess-sbox-prior
 implemented_model_aliases =
   present_nibble_invp_sbox_prior_gate
   present_nibble_invp_no_ddt_gate
   present_nibble_invp_shuffled_sbox_prior_gate
-remote_config_status = not prepared; do not launch
+remote_config_status = prepared but deferred; do not launch while trail-family is running
 ```
 
 Implemented local controls:
@@ -307,6 +322,24 @@ The smoke path only checks model construction, forward/training wiring, and
 official-protocol task parsing. It is not evidence that the prior gate improves
 PRESENT r7.
 
+Prepared medium seed0 matrix:
+
+| Row | Model | Role |
+|---:|---|---|
+| 0 | `present_nibble_invp_only_spn_only` | same-run InvP anchor |
+| 1 | `present_nibble_invp_sbox_prior_gate` | true S-box DDT transition prior gate |
+| 2 | `present_nibble_invp_no_ddt_gate` | same-capacity no-DDT gate control |
+| 3 | `present_nibble_invp_shuffled_sbox_prior_gate` | deterministic shuffled-prior control |
+
+Prepared launch rule:
+
+```text
+Do not launch while i1_trail_family_r7_262k_seed0_gpu1_20260702 is still
+running. If trail-family gates stop/tied/negative, or the user explicitly
+selects this route, run readiness from the pushed commit and launch via the
+generated cmd + local tmux watcher handoff.
+```
+
 ## Readiness Requirements
 
 Before meaningful remote launch:
@@ -319,6 +352,26 @@ Before meaningful remote launch:
 5. Generated launcher uses cmd.exe /c and no project artifacts outside G:\lxy.
 6. Local tmux watcher or sub-agent is ready to retrieve and postprocess.
 7. Code/config/docs are committed and pushed.
+```
+
+Prepared readiness command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json
+```
+
+Prepared monitor-health command after launch:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
+  --root outputs/remote_results \
+  --run-id i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703 \
+  --tmux-session monitor_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703 \
+  --plan configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv \
+  --plan-doc docs/experiments/innovation1-sbox-transition-prior-gate-plan.md \
+  --expected-rows 4 \
+  --postprocess-kind sbox_prior
 ```
 
 ## Claim Scope
