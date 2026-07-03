@@ -1151,9 +1151,8 @@ class _PresentSboxTransitionPriorGateEncoder(nn.Module):
         max_embedding = hidden.max(dim=1).values
         active_weights = flat_priors[:, :, :1]
         active_embedding = torch.sum(hidden * active_weights, dim=1) / active_weights.sum(dim=1).clamp_min(1.0)
-        prior_embedding = torch.sum(hidden * flat_priors[:, :, 1:2], dim=1) / flat_priors[:, :, 1:2].sum(
-            dim=1
-        ).clamp_min(1.0)
+        reliability_weights = self.prior_reliability_weights(flat_priors)
+        prior_embedding = torch.sum(hidden * reliability_weights, dim=1) / reliability_weights.sum(dim=1).clamp_min(1.0)
         projected = self.projection(
             torch.cat([mean_embedding, max_embedding, active_embedding, prior_embedding], dim=1)
         )
@@ -1188,6 +1187,11 @@ class _PresentSboxTransitionPriorGateEncoder(nn.Module):
             counts = counts.index_select(dim=2, index=self.shuffled_prior_cells.to(counts.device))
         probabilities = counts.to(features.dtype) / 16.0
         return torch.cat([active, probabilities], dim=-1)
+
+    def prior_reliability_weights(self, priors: torch.Tensor) -> torch.Tensor:
+        if priors.shape[-1] != self.prior_feature_bits:
+            raise ValueError(f"expected {self.prior_feature_bits} prior channels, got {priors.shape[-1]}")
+        return priors[..., 1:].max(dim=-1, keepdim=True).values
 
 
 class _PresentNibbleInvPPLayerGraphEncoder(nn.Module):

@@ -910,6 +910,23 @@ def test_sbox_transition_prior_gate_262k_seed1_assets_are_ready_and_conditional(
     assert "launch only after seed0" in remote.read_text(encoding="utf-8")
 
 
+def test_present_sbox_prior_gate_uses_max_ddt_probability_for_prior_pooling():
+    from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+        _PresentSboxTransitionPriorGateEncoder,
+    )
+
+    encoder = _PresentSboxTransitionPriorGateEncoder(input_bits=128, prior_token_dim=8, base_channels=4)
+    priors = torch.zeros((1, 1, 16, 17), dtype=torch.float32)
+    priors[0, 0, :, 0] = 1.0
+    priors[0, 0, 0, 1] = 0.125
+    priors[0, 0, 0, 5] = 0.375
+    weights = encoder.prior_reliability_weights(priors)
+
+    assert weights.shape == (1, 1, 16, 1)
+    assert weights[0, 0, 0, 0] == pytest.approx(0.375)
+    assert weights[0, 0, 0, 0] != pytest.approx(0.125)
+
+
 def test_archived_active_pattern_remote_config_is_not_launchable():
     path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
     config = json.loads(path.read_text(encoding="utf-8"))

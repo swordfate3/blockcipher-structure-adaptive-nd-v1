@@ -171,6 +171,12 @@ or an equivalent residual reliability gate. The gate should modulate cell
 evidence before sample-level pooling. It must not use labels, validation
 statistics, real key material, or guessed-key information.
 
+For the sample-level prior-pooled embedding, use the maximum normalized DDT
+probability across the 16 candidate input differences as the per-cell
+reliability weight. This keeps the pooling interpretation aligned with "how
+plausible is this observed S-box output difference under some input
+difference" instead of accidentally privileging one fixed DDT channel.
+
 Controls:
 
 ```text
