@@ -8068,6 +8068,57 @@ def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
     assert "launch S-box transition prior seed0" in active["main_thread_policy"]["forbidden_until_gate"]
 
 
+def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_runs(tmp_path):
+    root = tmp_path / "remote_results"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    (trail / "monitor").mkdir(parents=True)
+    (trail / "logs").mkdir(parents=True)
+    (trail / "monitor" / "monitor.log").write_text("2026-07-03T17:50:30+08:00 running\n")
+    (trail / "logs" / "trail_family_linear_progress.jsonl").write_text(
+        json.dumps({"event": "trail_family_negative_chunk", "rows_done": 360448, "total_rows": 524288})
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "wait_for_trail_family_result"
+    assert active["should_launch_remote"] is False
+    assert active["deferred_candidate_queue"] == [
+        {
+            "branch": "trail_family_seed1_confirmation_or_variance_check",
+            "launch_gate": "support_trail_family_route or weak_trail_family_signal",
+            "run_id": "i1_trail_family_r7_262k_seed1_gpu1_20260702",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "status": "prepared_conditional",
+        },
+        {
+            "branch": "active_auxiliary_seed0",
+            "launch_gate": "stop/tied trail-family gate or explicit user selection",
+            "run_id": "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+            "status": "prepared_deferred",
+        },
+        {
+            "branch": "sbox_transition_prior_gate_seed0",
+            "launch_gate": "stop/tied trail-family gate after active-auxiliary is not selected",
+            "run_id": "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
+            "status": "prepared_deferred",
+        },
+    ]
+
+
 def test_zhang_wang_official_anchor_plan_generates_dataset():
     plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
     args = parse_args(["--plan", plan])

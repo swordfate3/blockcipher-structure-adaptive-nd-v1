@@ -346,6 +346,7 @@ def _trail_family_running(root: Path) -> dict[str, Any] | None:
                 "expected_rows": health["expected_rows"],
                 "progress_summary": _active_progress_summary(run_root),
                 "conditional_followup": _trail_family_conditional_followup(),
+                "deferred_candidate_queue": _trail_family_deferred_candidate_queue(),
                 "monitor_health_command": _trail_family_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _trail_family_postprocess_command(run_root),
                 "main_thread_policy": _trail_family_main_thread_policy("postprocess"),
@@ -366,6 +367,7 @@ def _trail_family_running(root: Path) -> dict[str, Any] | None:
                 "postprocess_allowed": health["postprocess_allowed"],
                 "progress_summary": _active_progress_summary(run_root),
                 "conditional_followup": _trail_family_conditional_followup(),
+                "deferred_candidate_queue": _trail_family_deferred_candidate_queue(),
                 "monitor_health_command": _trail_family_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _trail_family_postprocess_command(run_root),
                 "main_thread_policy": _trail_family_main_thread_policy("waiting"),
@@ -505,6 +507,41 @@ def _trail_family_conditional_followup() -> dict[str, Any]:
         "should_launch_now": False,
         "fallback_if_stop": "sbox_transition_prior_gate_seed0",
     }
+
+
+def _trail_family_deferred_candidate_queue() -> list[dict[str, str]]:
+    return [
+        {
+            "branch": "trail_family_seed1_confirmation_or_variance_check",
+            "launch_gate": "support_trail_family_route or weak_trail_family_signal",
+            "run_id": "i1_trail_family_r7_262k_seed1_gpu1_20260702",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-trail-family-consistency-plan.md",
+            "status": "prepared_conditional",
+        },
+        {
+            "branch": "active_auxiliary_seed0",
+            "launch_gate": "stop/tied trail-family gate or explicit user selection",
+            "run_id": "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+            "status": "prepared_deferred",
+        },
+        {
+            "branch": "sbox_transition_prior_gate_seed0",
+            "launch_gate": "stop/tied trail-family gate after active-auxiliary is not selected",
+            "run_id": "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703",
+            "launch_remote_config": (
+                "configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
+            "status": "prepared_deferred",
+        },
+    ]
 
 
 def _remote_readiness(config: Path) -> dict[str, Any]:
