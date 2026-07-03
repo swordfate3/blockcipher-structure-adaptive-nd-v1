@@ -554,3 +554,36 @@ candidate-trail route    -> transition-consistency feature attribution
 
 The useful paper direction is whichever route survives same-protocol scale,
 seed, and attribution gates most cleanly.
+
+## Retrieved Candidate-Trail Consistency Result
+
+<!-- candidate-trail-postprocess:i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702:start -->
+### i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702 Candidate-Trail Consistency Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Candidate-trail gate status | `pass` |
+| Decision | `stop_candidate_trail_route` |
+| Action | `record_tied_or_negative_evidence_and_switch_hypothesis` |
+| Interpretation | `candidate-trail consistency does not beat the InvP anchor, calibration regresses, or the shuffled-cell control matches/exceeds the true route; do not scale this route` |
+| Best candidate model | `candidate_trail_consistency_mlp` |
+| Best candidate AUC | `0.703854276799` |
+| Anchor AUC | `0.793651987187` |
+| Shuffled AUC | `0.702488259296` |
+| Require shuffled control | `True` |
+| Margin vs anchor AUC | `-0.089797710389` |
+| Margin vs shuffled AUC | `0.001366017503` |
+| Required margin | `0.001000000000` |
+| Claim scope | `candidate-trail consistency diagnostic gate; not paper-scale, formal, or breakthrough evidence` |
+| Next action branch | `stop_candidate_trail_route` |
+| Next steps | `Record this as tied or negative candidate-trail evidence.; Do not scale candidate-trail consistency as a main route.; Switch to the prepared bit-transition-spectrum SPN feature branch.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json; Launch configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json as a gated 262144/class seed0 diagnostic from the pushed commit.; Hand off monitoring and retrieval to a local tmux watcher or sub-agent.` |
+| Results JSONL | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702.jsonl` |
+| Validation report | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_local_result_gate.json` |
+| Candidate-trail gate | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_candidate_trail_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_next_action_readiness.json` |
+<!-- candidate-trail-postprocess:i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702:end -->
