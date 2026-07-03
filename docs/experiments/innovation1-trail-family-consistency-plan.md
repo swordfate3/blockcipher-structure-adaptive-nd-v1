@@ -488,7 +488,7 @@ trail-family seed0 is now the active next branch
 ### i1_trail_family_r7_262k_seed0_gpu1_20260702
 
 ```text
-status = ready_to_launch_after_upstream_stops
+status = launched / watcher_handoff
 date = 2026-07-03
 trigger_source_1 = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
 trigger_decision_1 = stop_candidate_trail_route
@@ -533,6 +533,31 @@ Next execution step:
 launch from pushed commit
 hand off monitoring/retrieval/postprocess to local tmux watcher
 do not SSH-poll from the main thread after launch
+```
+
+Launch execution:
+
+```text
+source_commit = d28fc9c
+remote_launcher_uploaded_to = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_trail_family_r7_262k_seed0_gpu1_20260702\run_i1_trail_family_r7_262k_seed0_gpu1_20260702.cmd
+windows_task = i1_trail_family_r7_262k_seed0_gpu1_20260702
+windows_task_command = cmd.exe /c G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_trail_family_r7_262k_seed0_gpu1_20260702\run_i1_trail_family_r7_262k_seed0_gpu1_20260702.cmd
+local_monitor_session = monitor_i1_trail_family_seed0_20260702
+local_result_root = outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702
+handoff_status = local watcher started; first heartbeat fresh
+```
+
+Initial bounded monitor-health check:
+
+```text
+status = running
+results_jsonl_exists = false
+results_jsonl_line_count = 0 / 4
+done_markers = none
+failed_markers = none
+needs_main_thread_intervention = false
+heartbeat = fresh
+launch_state = launch_progress_observed
 ```
 
 ## Claim Scope
