@@ -272,6 +272,10 @@ present_pairset_trail_family_features:
 false_family:
   applies a deterministic cell-shift control with matched dimensions, intended
   for future true-family vs false-family attribution checks.
+  As of commit 209fcde follow-up implementation, the shifted active masks are
+  also used when building pair-level active-mask summary features, so the
+  control no longer leaves the per-pair active-mask block fully true-family
+  aligned.
 ```
 
 Verification:

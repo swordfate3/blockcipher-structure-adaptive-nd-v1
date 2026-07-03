@@ -1079,6 +1079,37 @@ def test_present_pairset_trail_family_reuses_pair_templates(monkeypatch):
     assert calls == len(pairs)
 
 
+def test_present_false_family_controls_pair_level_active_masks():
+    from blockcipher_nd.features.spn_trail_family import present_pairset_trail_family_features
+
+    cipher = build_cipher("present80", 7, key=0)
+    pairs = [
+        (0x0123456789ABCDEF, 0x0123456789ABCDE6),
+        (0x1111111111111111, 0x1111111111111118),
+        (0x2222222222222222, 0x222222222222222B),
+        (0x3333333333333333, 0x333333333333333A),
+    ]
+
+    true_features = present_pairset_trail_family_features(pairs, width=64, cipher=cipher)
+    false_features = present_pairset_trail_family_features(pairs, width=64, cipher=cipher, false_family=True)
+
+    cells = 16
+    depth = 3
+    family_dim = depth * (13 + cells)
+    pair_dim = depth * (12 + cells)
+    active_mean_indices = []
+    for layer_index in range(depth):
+        layer_start = family_dim + layer_index * (12 + cells)
+        active_mean_indices.extend(range(layer_start + 12, layer_start + 12 + cells))
+
+    true_active_means = true_features[active_mean_indices]
+    false_active_means = false_features[active_mean_indices]
+
+    assert true_active_means.sum() == pytest.approx(false_active_means.sum())
+    assert not np.allclose(true_active_means, false_active_means)
+    assert false_features.shape == true_features.shape == (family_dim + pair_dim * 3 + 8,)
+
+
 def test_present_trail_family_rejects_empty_pairset():
     from blockcipher_nd.features.spn_trail_family import present_pairset_trail_family_features
 

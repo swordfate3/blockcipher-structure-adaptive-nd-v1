@@ -92,10 +92,12 @@ def _features_from_template(
     template: PresentTrailFamilyTemplate,
     *,
     depth: int,
+    active_masks: NDArray[np.float32] | None = None,
 ) -> NDArray[np.float32]:
     features: list[float] = []
+    effective_active_masks = template.active_masks if active_masks is None else active_masks
     for layer_index in range(depth):
-        active = template.active_masks[layer_index]
+        active = effective_active_masks[layer_index]
         confidence = template.confidence[layer_index]
         margin = template.margin[layer_index]
         disagreement = template.disagreement[layer_index]
@@ -149,12 +151,13 @@ def present_pairset_trail_family_features(
         )
         for left, right in pairs
     ]
-    pair_features = np.stack([_features_from_template(template, depth=depth) for template in templates], axis=0).astype(
-        np.float32
-    )
     masks = np.stack([template.active_masks for template in templates], axis=0).astype(np.float32)
     if false_family:
         masks = _false_family_masks(masks, seed=false_family_seed)
+    pair_features = np.stack(
+        [_features_from_template(template, depth=depth, active_masks=masks[index]) for index, template in enumerate(templates)],
+        axis=0,
+    ).astype(np.float32)
     confidence = np.stack([template.confidence for template in templates], axis=0).astype(np.float32)
     margin = np.stack([template.margin for template in templates], axis=0).astype(np.float32)
     score = np.stack([template.score for template in templates], axis=0).astype(np.float32)
