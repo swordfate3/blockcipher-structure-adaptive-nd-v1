@@ -425,6 +425,8 @@ def _active_progress_summary(run_root: Path) -> dict[str, Any]:
         "cache_total_progress_percent",
         "cache_class_progress_percent",
         "cache_rows_per_second",
+        "cache_rate_window_seconds",
+        "cache_rate_window_rows",
         "cache_eta_seconds",
         "model",
         "epoch",

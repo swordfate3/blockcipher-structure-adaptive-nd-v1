@@ -2432,6 +2432,8 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
     assert report["active_recommendation"]["progress_summary"]["cache_class_progress_percent"] == 43.75
     assert report["active_recommendation"]["progress_summary"]["cache_total_progress_percent"] == 21.875
     assert report["active_recommendation"]["progress_summary"]["cache_rows_per_second"] == pytest.approx(512.0)
+    assert report["active_recommendation"]["progress_summary"]["cache_rate_window_seconds"] == pytest.approx(64.0)
+    assert report["active_recommendation"]["progress_summary"]["cache_rate_window_rows"] == 32768
     assert report["active_recommendation"]["progress_summary"]["cache_eta_seconds"] == 800
     followup = report["active_recommendation"]["conditional_followup"]
     assert followup["branch"] == "candidate_trail_seed1_confirmation_or_variance_check"
