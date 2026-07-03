@@ -4884,6 +4884,50 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_eta_seconds"] == 896
 
 
+def test_monitor_health_reports_progress_file_freshness(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_progress_file_freshness"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-02T16:25:00+00:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    progress_path = logs / "candidate_trail_linear_progress.jsonl"
+    progress_path.write_text(
+        json.dumps(
+            {
+                "event": "candidate_cache_positive_chunk",
+                "rows_done": 8192,
+                "total_rows": 131072,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    modified = datetime.fromisoformat("2026-07-02T16:00:00+00:00").timestamp()
+    progress_path.touch()
+    import os
+
+    os.utime(progress_path, (modified, modified))
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        stale_after_seconds=1800,
+        now=datetime.fromisoformat("2026-07-02T16:45:01+00:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert report["status"] == "running"
+    assert progress["path"] == str(progress_path)
+    assert progress["mtime"] == "2026-07-02T16:00:00+00:00"
+    assert progress["age_seconds"] == 2701
+    assert progress["stale_after_seconds"] == 1800
+    assert progress["is_stale"] is True
+
+
 def test_monitor_health_keeps_cache_eta_null_without_progress_timestamps(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_cache_progress_without_timestamps"

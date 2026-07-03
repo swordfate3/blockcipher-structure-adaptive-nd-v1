@@ -96,7 +96,7 @@ def monitor_health_report(
     scp_stderr = monitor_dir / "scp_stderr.log"
     results_jsonl = run_root / "results" / f"{run_id}.jsonl"
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
-    progress_summary = _progress_summary(run_root)
+    progress_summary = _progress_summary(run_root, stale_after_seconds=stale_after_seconds, now=now)
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
     if expected_result_rows is None and plan_path is not None:
         expected_result_rows = _default_expected_rows(postprocess_kind)
@@ -444,7 +444,12 @@ def _resolve_scp_missing_artifacts(
     }
 
 
-def _progress_summary(run_root: Path) -> dict[str, Any]:
+def _progress_summary(
+    run_root: Path,
+    *,
+    stale_after_seconds: int = 1800,
+    now: datetime | None = None,
+) -> dict[str, Any]:
     paths = sorted(
         (run_root / "logs").glob("*progress.jsonl"),
         key=lambda path: (path.stat().st_mtime if path.exists() else 0.0, path.name),
@@ -453,11 +458,16 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         return {
             "path": None,
             "exists": False,
+            "mtime": None,
+            "age_seconds": None,
+            "stale_after_seconds": stale_after_seconds,
+            "is_stale": False,
             "line_count": 0,
             "parsed_line_count": 0,
             "latest_event": None,
         }
     path = paths[-1]
+    freshness = _file_freshness(path, stale_after_seconds=stale_after_seconds, now=now)
     latest: dict[str, Any] | None = None
     first_cache_progress: dict[str, Any] | None = None
     latest_cache_progress: dict[str, Any] | None = None
@@ -495,6 +505,7 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         return {
             "path": str(path),
             "exists": True,
+            **freshness,
             "line_count": line_count,
             "parsed_line_count": parsed_line_count,
             "latest_event": None,
@@ -521,6 +532,7 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
     return {
         "path": str(path),
         "exists": True,
+        **freshness,
         "line_count": line_count,
         "parsed_line_count": parsed_line_count,
         "latest_event": latest.get("event"),
@@ -557,6 +569,25 @@ def _progress_summary(run_root: Path) -> dict[str, Any]:
         "best_checkpoint_metric": best_metric,
         "best_epoch": best_epoch,
         "checkpoint_metric": checkpoint_metric,
+    }
+
+
+def _file_freshness(
+    path: Path,
+    *,
+    stale_after_seconds: int,
+    now: datetime | None,
+) -> dict[str, Any]:
+    modified = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    age_seconds = max(0, int((current.astimezone(timezone.utc) - modified).total_seconds()))
+    return {
+        "mtime": modified.isoformat(),
+        "age_seconds": age_seconds,
+        "stale_after_seconds": stale_after_seconds,
+        "is_stale": age_seconds > stale_after_seconds,
     }
 
 
