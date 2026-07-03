@@ -848,6 +848,52 @@ def test_sbox_transition_prior_gate_262k_seed0_assets_are_ready_and_deferred():
     assert "do not launch while trail-family" in remote.read_text(encoding="utf-8")
 
 
+def test_sbox_transition_prior_gate_262k_seed1_assets_are_ready_and_conditional():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_sbox_prior_gate",
+        "present_nibble_invp_no_ddt_gate",
+        "present_nibble_invp_shuffled_sbox_prior_gate",
+    ]
+    for task in tasks:
+        assert task["cipher_key"] == "present80"
+        assert task["rounds"] == 7
+        assert task["seed"] == 1
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["validation_key"] == 0x11111111111111111111
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
+
+    remote = Path(
+        "configs/remote/"
+        "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1_gpu1_20260703.json"
+    )
+    readiness = remote_readiness_report(remote)
+    assert readiness["status"] == "pass"
+    assert "sbox_prior_protocol_lock" in readiness["checked_invariants"]
+
+    launcher = Path("configs/remote/generated/run_i1_sbox_prior_gate_r7_262k_seed1_gpu1_20260703.cmd")
+    monitor = Path("configs/remote/generated/monitor_i1_sbox_prior_gate_r7_262k_seed1_gpu1_20260703.sh")
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+    assert launcher.exists()
+    assert monitor.exists()
+    assert "cmd.exe /k" not in launcher_text
+    assert "scripts\\train" in launcher_text
+    assert "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1.csv" in launcher_text
+    assert "scripts/postprocess-sbox-prior" in monitor_text
+    assert "innovation1-sbox-transition-prior-gate-plan.md" in monitor_text
+    assert "launch only after seed0" in remote.read_text(encoding="utf-8")
+
+
 def test_archived_active_pattern_remote_config_is_not_launchable():
     path = Path("configs/remote/innovation1_spn_present_active_pattern_r7_screen_gpu1_20260622.json")
     config = json.loads(path.read_text(encoding="utf-8"))
@@ -7404,16 +7450,18 @@ def test_sbox_prior_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     assert report["status"] == "pass"
     assert report["decision"] == "support_sbox_prior_route"
     assert report["next_action"]["branch"] == "sbox_prior_seed1_confirmation"
-    assert report["next_action"]["should_launch_remote"] is False
-    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert "sbox_transition_prior_gate_r7_262k_seed1" in report["next_action"]["launch_remote_config"]
     assert Path(report["sbox_prior_gate"]).exists()
     assert Path(report["summary"]).exists()
     assert Path(report["summary_markdown"]).exists()
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["branch"] == "sbox_prior_seed1_confirmation"
-    assert readiness["status"] == "needs_implementation"
-    assert readiness["should_launch_remote"] is False
-    assert readiness["implementation_checklist"]
+    assert readiness["status"] == "pass"
+    assert readiness["should_launch_remote"] is True
+    assert readiness["readiness_pass"] is True
+    assert readiness["implementation_checklist"] == []
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved S-box Prior Result" in plan_text
     assert "<!-- sbox-prior-postprocess:sbox_prior_unit:start -->" in plan_text
@@ -7428,6 +7476,37 @@ def test_sbox_prior_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- sbox-prior-postprocess:sbox_prior_unit:start -->") == 1
+
+
+def test_sbox_prior_postprocess_support_points_to_ready_seed1_assets(tmp_path):
+    results = tmp_path / "sbox_prior_seed0_support.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7936)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7924)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7921)
+    output_dir = tmp_path / "postprocess_ready"
+
+    report = postprocess_sbox_prior_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="sbox_prior_ready_unit",
+        expected_rows=4,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_sbox_prior_route"
+    assert report["next_action"]["branch"] == "sbox_prior_seed1_confirmation"
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
+    assert "sbox_transition_prior_gate_r7_262k_seed1" in report["next_action"]["launch_remote_config"]
+    readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert readiness["branch"] == "sbox_prior_seed1_confirmation"
+    assert readiness["status"] == "pass"
+    assert readiness["should_launch_remote"] is True
+    assert readiness["readiness_pass"] is True
+    assert readiness["remote_readiness_pass"] is True
+    assert readiness["launch_artifacts_pass"] is True
+    assert readiness["implementation_checklist"] == []
 
 
 def test_monitor_health_emits_sbox_prior_postprocess_command_when_result_ready(tmp_path):

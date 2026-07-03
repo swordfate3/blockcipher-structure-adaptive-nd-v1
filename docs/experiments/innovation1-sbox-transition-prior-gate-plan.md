@@ -300,6 +300,10 @@ medium_seed0_plan = configs/experiment/innovation1/innovation1_spn_present_sbox_
 medium_seed0_remote_config = configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json
 medium_seed0_launcher = configs/remote/generated/run_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.cmd
 medium_seed0_monitor = configs/remote/generated/monitor_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.sh
+medium_seed1_plan = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1.csv
+medium_seed1_remote_config = configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1_gpu1_20260703.json
+medium_seed1_launcher = configs/remote/generated/run_i1_sbox_prior_gate_r7_262k_seed1_gpu1_20260703.cmd
+medium_seed1_monitor = configs/remote/generated/monitor_i1_sbox_prior_gate_r7_262k_seed1_gpu1_20260703.sh
 gate_script = scripts/gate-sbox-prior
 postprocess_script = scripts/postprocess-sbox-prior
 implemented_model_aliases =
@@ -340,6 +344,15 @@ selects this route, run readiness from the pushed commit and launch via the
 generated cmd + local tmux watcher handoff.
 ```
 
+Prepared seed1 confirmation rule:
+
+```text
+Do not launch seed1 until seed0 is retrieved, validated, plan-aligned, and its
+S-box prior gate returns support_sbox_prior_route or weak_sbox_prior_signal.
+Seed1 remains medium diagnostic confirmation/variance evidence, not formal
+route evidence.
+```
+
 ## Readiness Requirements
 
 Before meaningful remote launch:
@@ -372,6 +385,13 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health \
   --plan-doc docs/experiments/innovation1-sbox-transition-prior-gate-plan.md \
   --expected-rows 4 \
   --postprocess-kind sbox_prior
+```
+
+Prepared seed1 readiness command after seed0 support/weak:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed1_gpu1_20260703.json
 ```
 
 ## Claim Scope
