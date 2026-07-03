@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-30
 
-**Status:** route-level attribution supported / candidate-trail extension running
+**Status:** route-level attribution supported / trail-family extension running
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document is the route-level evidence
@@ -10,9 +10,9 @@ summary for the current InvP-only SPN structure route. It records two-seed
 paper-scale positive confirmation plus paper-scale attribution controls. It is
 still not a formal route-evidence claim by itself. The DDT graph route produced
 only weak medium-scale diagnostic evidence, the topology-aware network route has
-stopped after seed1, and the current next-stage method-extension is the
-watcher-managed candidate-trail / transition-consistency data-representation
-branch.
+stopped after seed1. Candidate-trail and bit-transition-spectrum seed0 also
+stopped as standalone medium diagnostics, so the current next-stage
+method-extension is the watcher-managed trail-family consistency branch.
 
 ## Route Claim Under Test
 
@@ -201,7 +201,7 @@ InvP-only has two-seed 1000000/class positive confirmation and paper-scale
 attribution controls supporting the SPN/InvP/P-layer alignment explanation.
 ```
 
-Next choices as of 2026-07-02:
+Next choices as of 2026-07-03:
 
 ```text
 1. Add formal multi-seed variance evidence for InvP-only.
@@ -210,30 +210,26 @@ Next choices as of 2026-07-02:
    not as a 1M promotion candidate.
 4. Treat the completed topology-aware seed1 gate as a route stop because true
    P-layer topology did not beat the InvP-only/shuffled controls.
-5. Wait for the active candidate-trail / transition-consistency seed0 watcher
-   to retrieve, validate, and postprocess before launching seed1 or switching
-   to bit-transition-spectrum.
+5. Wait for the active trail-family seed0 watcher to retrieve, validate, and
+   postprocess before launching trail-family seed1 or switching to S-box
+   transition prior gating.
 ```
 
 Current active extension:
 
 ```text
-run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
 status = running / local watcher-managed / no postprocess summary yet
-latest_bounded_check = 2026-07-03 10:28:15+08:00 watcher heartbeat, no failed markers
-progress = candidate feature cache phase; no training metrics yet
-progress_detail = linear row cache done; mlp row cache reused; shuffled_cells
-                  train cache done and validation positive class reached
-                  65536/65536 rows
-progress_percent = shuffled_cells train cache 100%; shuffled_cells validation
-                   cache observed at 65536/131072 rows, 50.0% total
-cache_rows_remaining = shuffled_cells validation negative class 65536 rows still
-                       not observed in the local synced progress file
-latest_event = candidate_cache_positive_chunk for shuffled_cells validation split
+latest_bounded_check = 2026-07-03 17:36:29+08:00 watcher heartbeat, no failed markers
+progress = trail-family feature cache phase; no training metrics yet
+progress_detail = negative-class cache generation for the linear trail-family row
+progress_percent = 327680 / 524288 total rows, 62.5%
+cache_rows_remaining = 196608 total rows
+latest_event = trail_family_negative_chunk
 results_jsonl = not yet present
 postprocess_allowed = false
 main_thread_action = wait for watcher; do not SSH/tmux-loop or launch seed1
-claim_scope = no candidate-trail evidence yet
+claim_scope = no trail-family evidence yet
 ```
 
 ### If Attribution Gate Is Weak

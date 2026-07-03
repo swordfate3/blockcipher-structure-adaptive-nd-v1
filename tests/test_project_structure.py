@@ -1097,12 +1097,12 @@ def test_bit_transition_spectrum_plan_is_conditional_next_branch():
     assert "no code implementation yet" not in plan
 
 
-def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
+def test_trail_family_consistency_plan_tracks_active_seed0_handoff():
     plan = Path("docs/experiments/innovation1-trail-family-consistency-plan.md").read_text(
         encoding="utf-8"
     )
 
-    assert "conditional next-hypothesis plan only" in plan
+    assert "seed0 launched / watcher-managed medium diagnostic" in plan
     assert "do_not_launch_until" in plan
     assert "candidate-trail seed0 decision = stop_candidate_trail_route" in plan
     assert "bit-transition-spectrum seed0 decision = stop_transition_spectrum_route" in plan
@@ -1117,14 +1117,18 @@ def test_trail_family_consistency_plan_is_conditional_next_hypothesis():
     assert "`trail_family_consistency_mlp`" in plan
     assert "`trail_family_consistency_false_family`" in plan
     assert "true trail-family route >= false-family control + 0.001 AUC" in plan
-    assert "do not launch the medium remote config until candidate-trail" in plan
+    assert "seed0 launched after candidate-trail and bit-transition-spectrum stopped" in plan
+    assert "seed1 prepared but gated" in plan
     assert "scripts/spn-trail-family-matrix" in plan
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in plan
     assert "implementation_status = local smoke runner/gate/postprocess implemented" in plan
     assert "medium seed0 and seed1 plan/remote/launcher/monitor prepared" in plan
-    assert "remote_config_status = prepared but gated; do not launch until trigger" in plan
+    assert "remote_config_status = seed0 launched after candidate-trail and bit-transition-spectrum stopped" in plan
     assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
     assert "i1_trail_family_r7_262k_seed1_gpu1_20260702" in plan
+    assert "local_monitor_session = monitor_i1_trail_family_seed0_20260702" in plan
+    assert "status = running" in plan
+    assert "results_jsonl_exists = false" in plan
     assert "support_trail_family_route or weak_trail_family_signal from seed0" in plan
     assert "This implementation is not result evidence" in plan
     assert "scripts/gate-trail-family" in plan

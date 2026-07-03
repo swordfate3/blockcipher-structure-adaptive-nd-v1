@@ -17,7 +17,7 @@ active cell patterns, DDT legality/probability, and pair-to-pair agreement
 against a compact candidate trail family. Compare only against the strongest
 same-scale InvP-only anchor and false-family / shuffled-alignment controls.
 
-**Status:** conditional next-hypothesis plan only.
+**Status:** seed0 launched / watcher-managed medium diagnostic.
 
 ```text
 do_not_launch_until =
@@ -27,14 +27,16 @@ do_not_launch_until =
   3. bit-transition-spectrum either stops or is explicitly deprioritized by its
      gate/plan after documented evidence.
 
-claim_scope = planned route only; no evidence yet
+claim_scope = launched medium diagnostic only; no result evidence yet
 implementation_status = local smoke runner/gate/postprocess implemented; medium seed0 readiness assets prepared
-remote_config_status = prepared but gated; do not launch until trigger
+remote_config_status = seed0 launched after candidate-trail and bit-transition-spectrum stopped; seed1 prepared but gated
 ```
 
-This plan exists so the project does not stall if candidate-trail and
-bit-transition-spectrum are tied or negative. It is not permission to bypass the
-current candidate-trail gate.
+This plan originally existed so the project would not stall if candidate-trail
+and bit-transition-spectrum were tied or negative. Both trigger routes have now
+stopped under their medium diagnostic gates, so trail-family seed0 is the active
+watcher-managed branch. It is not permission to launch seed1 before seed0 is
+retrieved, validated, plan-aligned, postprocessed, and gated.
 
 ## Trigger
 
