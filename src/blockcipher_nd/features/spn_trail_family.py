@@ -85,6 +85,14 @@ def present_pair_trail_family_features(
         depth=depth,
         source=source,
     )
+    return _features_from_template(template, depth=depth)
+
+
+def _features_from_template(
+    template: PresentTrailFamilyTemplate,
+    *,
+    depth: int,
+) -> NDArray[np.float32]:
     features: list[float] = []
     for layer_index in range(depth):
         active = template.active_masks[layer_index]
@@ -141,21 +149,9 @@ def present_pairset_trail_family_features(
         )
         for left, right in pairs
     ]
-    pair_features = np.stack(
-        [
-            present_pair_trail_family_features(
-                int(left),
-                int(right),
-                width=width,
-                cipher=cipher,
-                beam_width=beam_width,
-                depth=depth,
-                source=source,
-            )
-            for left, right in pairs
-        ],
-        axis=0,
-    ).astype(np.float32)
+    pair_features = np.stack([_features_from_template(template, depth=depth) for template in templates], axis=0).astype(
+        np.float32
+    )
     masks = np.stack([template.active_masks for template in templates], axis=0).astype(np.float32)
     if false_family:
         masks = _false_family_masks(masks, seed=false_family_seed)

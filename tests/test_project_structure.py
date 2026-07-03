@@ -1054,6 +1054,31 @@ def test_present_trail_family_features_are_deterministic_and_controlled():
     assert not np.allclose(true_features[:64], false_features[:64])
 
 
+def test_present_pairset_trail_family_reuses_pair_templates(monkeypatch):
+    import blockcipher_nd.features.spn_trail_family as trail_family
+
+    cipher = build_cipher("present80", 7, key=0)
+    pairs = [
+        (0x0123456789ABCDEF, 0x0123456789ABCDE6),
+        (0x1111111111111111, 0x1111111111111118),
+        (0x2222222222222222, 0x222222222222222B),
+    ]
+    original = trail_family.present_pair_trail_family_template
+    calls = 0
+
+    def counted_template(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(trail_family, "present_pair_trail_family_template", counted_template)
+
+    features = trail_family.present_pairset_trail_family_features(pairs, width=64, cipher=cipher)
+
+    assert features.dtype == np.float32
+    assert calls == len(pairs)
+
+
 def test_present_trail_family_rejects_empty_pairset():
     from blockcipher_nd.features.spn_trail_family import present_pairset_trail_family_features
 
