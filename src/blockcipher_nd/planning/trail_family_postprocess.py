@@ -235,6 +235,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
                 "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
+                "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
             ],
             "fallback_hypotheses": [

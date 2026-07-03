@@ -6612,6 +6612,11 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert report["next_action"]["fallback_branch"] == "pairset_aggregation_control"
     assert "pairset_aggregation_control_single_pair_r7_262k" in report["next_action"]["stage_a_remote_config"]
     assert "pairset_aggregation_control_r7_262k" in report["next_action"]["launch_remote_config"]
+    assert (
+        "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
+        in report["next_action"]["fallback_plan_options"]
+    )
+    assert "active_pattern_auxiliary_head" in report["next_action"]["fallback_hypotheses"]
     assert any("Launch stage A" in step for step in report["next_steps"])
 
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
@@ -6629,6 +6634,23 @@ def test_trail_family_postprocess_stop_points_to_pairset_staged_readiness(tmp_pa
     assert readiness["readiness_reports"][0]["launch_artifacts"]["stage_run_id"].startswith(
         "i1_pairset_single_pair_scorer"
     )
+
+
+def test_active_pattern_auxiliary_head_plan_is_current_not_archived():
+    plan = Path("docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md").read_text(encoding="utf-8")
+
+    assert "prepared next-hypothesis plan" in plan
+    assert "not the archived 2026-06-22 standalone" in plan
+    assert "present_nibble_invp_active_aux_spn_only" in plan
+    assert "present_nibble_invp_active_aux_shuffled_targets" in plan
+    assert "zhang_wang_case2_official_mcnd" in plan
+    assert "encrypted_random_plaintexts" in plan
+    assert "lambda_aux first value = 0.1" in plan
+    assert "shuffled_targets" in plan
+    assert "Do not launch this route while" in plan
+    assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
+    assert "formal route evidence" in plan
+    assert "Not allowed" in plan
 
 
 def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
