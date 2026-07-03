@@ -34,6 +34,15 @@ SBOX_PRIOR_REMOTE_CONFIG = (
     "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
 )
 SBOX_PRIOR_RUN_ID = "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
+ACTIVE_AUXILIARY_PLAN_CONFIG = (
+    "configs/experiment/innovation1/"
+    "innovation1_spn_present_active_auxiliary_r7_262k_seed0.json"
+)
+ACTIVE_AUXILIARY_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json"
+)
+ACTIVE_AUXILIARY_RUN_ID = "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -209,23 +218,23 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
-            "fallback_branch": "sbox_transition_prior_gate",
-            "next_plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
-            "suggested_plan_config": SBOX_PRIOR_PLAN_CONFIG,
-            "launch_remote_config": SBOX_PRIOR_REMOTE_CONFIG,
-            "suggested_remote_config": SBOX_PRIOR_REMOTE_CONFIG,
-            "run_id": SBOX_PRIOR_RUN_ID,
-            "readiness_command": _readiness_command(SBOX_PRIOR_REMOTE_CONFIG),
+            "fallback_branch": "active_auxiliary_seed0",
+            "next_plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+            "suggested_plan_config": ACTIVE_AUXILIARY_PLAN_CONFIG,
+            "launch_remote_config": ACTIVE_AUXILIARY_REMOTE_CONFIG,
+            "suggested_remote_config": ACTIVE_AUXILIARY_REMOTE_CONFIG,
+            "run_id": ACTIVE_AUXILIARY_RUN_ID,
+            "readiness_command": _readiness_command(ACTIVE_AUXILIARY_REMOTE_CONFIG),
             "monitor_owner": "tmux watcher or sub-agent",
             "fallback_plan_options": [
-                "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
                 "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
+                "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
                 "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
                 "docs/research/spn_structured_nn_research_plan.md",
             ],
             "fallback_hypotheses": [
-                "sbox_transition_prior_gate",
                 "active_pattern_auxiliary_head",
+                "sbox_transition_prior_gate",
                 "pair_set_evidence_pooling",
                 "cross_cipher_gift_skinny_transfer",
             ],
@@ -268,10 +277,10 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Record this as tied or negative trail-family evidence.",
             "Do not scale trail-family as a main route.",
-            f"Run the S-box transition prior remote readiness gate: {next_action['readiness_command']}",
-            f"Launch S-box transition prior seed0 {next_action['launch_remote_config']} from the pushed commit.",
+            f"Run the active-pattern auxiliary remote readiness gate: {next_action['readiness_command']}",
+            f"Launch active-pattern auxiliary seed0 {next_action['launch_remote_config']} from the pushed commit.",
             "Hand off monitoring and retrieval to a local tmux watcher or sub-agent.",
-            "Treat S-box transition prior gating as medium diagnostic evidence, not formal route evidence.",
+            "Treat active-pattern auxiliary supervision as medium diagnostic evidence, not formal route evidence.",
         ]
     return ["Review the trail-family gate manually before launching another experiment."]
 
