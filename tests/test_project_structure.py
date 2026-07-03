@@ -30,6 +30,7 @@ from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_
 from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+from blockcipher_nd.planning.next_action_readiness import launch_artifacts
 from blockcipher_nd.planning.invp_postprocess import postprocess_invp_only_result
 from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_invp_attribution_controls
 from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_result
@@ -1911,6 +1912,40 @@ def test_present_invp_attribution_controls_1m_remote_config_is_ready_shape():
     assert "DeltaC-only and shuffled-P controls" in config["claim_scope"]
     assert "cmd.exe /c" in config["launch_policy"]
     assert "G:\\lxy" in config["launch_policy"]
+
+
+def test_active_auxiliary_medium_remote_launch_assets_are_gated_and_path_safe():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "scripts\\spn-active-auxiliary-matrix" in launcher_text
+    assert "innovation1_spn_present_active_auxiliary_r7_262k_seed0.json" in launcher_text
+    assert "ACTIVE_AUXILIARY_CACHE_ROOT=G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache" in launcher_text
+    assert "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703" in launcher_text
+    assert "EXPECTED_ROWS=\"3\"" in monitor_text
+    assert "scripts/check-remote-readiness" in monitor_text
+    artifacts = launch_artifacts(
+        Path("configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json")
+    )
+    assert artifacts["status"] == "pass"
+    assert artifacts["launcher"] == str(launcher)
+    assert artifacts["monitor"] == str(monitor)
 
 
 def test_removed_legacy_experiment_and_generated_script_roots():
