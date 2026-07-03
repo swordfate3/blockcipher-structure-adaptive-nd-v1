@@ -5426,6 +5426,9 @@ def test_monitor_health_keeps_latest_cache_progress_when_new_cache_starts(tmp_pa
 
     progress = report["progress_summary"]
     assert progress["latest_event"] == "trail_family_cache_start"
+    assert progress["latest_split"] == "validation"
+    assert progress["latest_total_rows"] == 131072
+    assert progress["latest_samples_per_class"] == 65536
     assert progress["cache_event"] == "trail_family_negative_chunk"
     assert progress["cache_split"] == "train"
     assert progress["cache_rows_done"] == 524288
@@ -8167,6 +8170,9 @@ def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
     assert active["run_id"] == "i1_trail_family_r7_262k_seed0_gpu1_20260702"
     assert active["postprocess_allowed"] is False
     assert active["progress_summary"]["latest_event"] == "trail_family_cache_start"
+    assert active["progress_summary"]["latest_split"] == "validation"
+    assert active["progress_summary"]["latest_total_rows"] == 131072
+    assert active["progress_summary"]["latest_samples_per_class"] == 65536
     assert active["progress_summary"]["cache_event"] == "trail_family_negative_chunk"
     assert active["progress_summary"]["cache_split"] == "train"
     assert active["progress_summary"]["cache_rows_remaining"] == 163840
