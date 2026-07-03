@@ -232,12 +232,15 @@ Action:
 
 ```text
 do not scale this feature route
-switch to the prepared S-box transition prior gate seed0 route, because it tests
-local S-box reliability gating over the already-supported InvP cell view.
-If S-box prior also stops, fall back to active-pattern auxiliary-head,
-pair-set evidence pooling attribution, cross-cipher GIFT/SKINNY transfer
-planning, or formalize InvP-only as the cleaner structure-adaptive route with
-broader multi-seed attribution
+switch first to the prepared active-pattern auxiliary-head seed0 route, because
+it tests whether SPN active-mask supervision can regularize the already
+supported InvP/P-layer aligned encoder.
+If active-auxiliary also stops or is explicitly deprioritized, switch to the
+prepared S-box transition prior gate seed0 route, because it tests local S-box
+reliability gating over the same InvP cell view.
+If S-box prior also stops, fall back to pair-set evidence pooling attribution,
+cross-cipher GIFT/SKINNY transfer planning, or formalize InvP-only as the
+cleaner structure-adaptive route with broader multi-seed attribution
 ```
 
 ## Implementation Plan
@@ -492,6 +495,8 @@ medium seed0 and seed1 plan/remote/launcher/monitor prepared
 candidate-trail seed0 gate = stop_candidate_trail_route
 bit-transition-spectrum seed0 gate = stop_transition_spectrum_route
 trail-family seed0 is now the active next branch
+if trail-family stops/ties, the prepared fallback is active-auxiliary seed0
+if active-auxiliary also stops, the prepared fallback is S-box prior gate seed0
 ```
 
 ## Launch Record
@@ -599,6 +604,7 @@ InvP-only                 -> structure-aligned data representation
 candidate-trail route     -> local transition-consistency feature attribution
 bit-transition-spectrum   -> bit-level P-layer movement statistics
 trail-family consistency  -> higher-level active-pattern / transition-family agreement
+active auxiliary head     -> active-pattern supervision over the InvP encoder
 S-box transition prior    -> local S-box transition reliability gate over InvP cells
 ```
 
