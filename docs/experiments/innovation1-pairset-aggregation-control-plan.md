@@ -3,7 +3,7 @@
 **Date:** 2026-06-30
 
 **Status:** deferred attribution control / assets prepared / do not launch
-while candidate-trail / transition-consistency branch is active
+while trail-family seed0 is running
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives.
 
@@ -48,18 +48,19 @@ Only Effect B supports a pair-set structure innovation claim.
 Do not launch this run while:
 
 ```text
-i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+i1_trail_family_r7_262k_seed0_gpu1_20260702
 ```
 
-is running. The DDT graph branch completed both seed0 and seed1 as weak
-diagnostic evidence, and the topology-aware network branch reached a stop
-decision, so neither one currently blocks pair-set attribution. The active
-default branch is candidate-trail / transition consistency. This plan becomes
+is running or not yet postprocessed. The DDT graph branch completed both seed0
+and seed1 as weak diagnostic evidence, the topology-aware network branch reached
+a stop decision, candidate-trail stopped, and bit-transition-spectrum stopped.
+The active default branch is now trail-family consistency. This plan becomes
 actionable after one of these conditions:
 
 ```text
-1. The candidate-trail seed0 gate stops the route and the transition-spectrum
-   branch is either stopped or explicitly deprioritized.
+1. The trail-family seed0 gate stops the route, or its result is tied/negative
+   enough that the documented next-action branch selects pair-set aggregation
+   control.
 
 2. A future positive pair-set route needs this frozen single-pair aggregation
    control before any cross-pair structure claim.
@@ -333,12 +334,12 @@ Launch status:
 
 ```text
 not launched
-blocked_by_policy = current candidate-trail / transition-consistency branch still active
+blocked_by_policy = current trail-family seed0 branch still running or not yet postprocessed
 stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.cmd
 stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed0_gpu1_20260630.sh
 conditional_seed1_stage_aware_launcher = configs/remote/generated/run_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.cmd
 conditional_seed1_stage_aware_monitor = configs/remote/generated/monitor_i1_pairset_aggregation_control_r7_262k_seed1_gpu1_20260702.sh
-remaining_requirement = wait for candidate-trail / transition-consistency gate,
+remaining_requirement = wait for trail-family seed0 gate,
                         or explicit user choice to prioritize pair-set attribution
 windows_launcher_note = scorer model options intentionally use default spn_mixer_depth=2, activation=relu, norm=layernorm to avoid fragile cmd.exe JSON quoting
 ```
@@ -466,19 +467,26 @@ Before any meaningful remote launch:
    - frozen aggregation summary evaluates the saved stage-A checkpoint
    - postprocess-pairset-aggregation runs after both artifacts exist
 8. Commit and push.
-9. Launch from the pushed commit only after the candidate-trail /
-   transition-consistency gate or an explicit user route choice makes pair-set
-   attribution the next action.
+9. Launch from the pushed commit only after the trail-family seed0 gate or an
+   explicit user route choice makes pair-set attribution the next action.
 10. Hand off retrieval/postprocess to local tmux watcher.
 ```
 
-## Relationship To Current Candidate-Trail Run
+## Relationship To Current Trail-Family Run
 
 Current running run:
 
 ```text
-run_id = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
 status = running / watcher-managed
+```
+
+Completed candidate-trail / transition-spectrum context:
+
+```text
+i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702 -> stop_candidate_trail_route
+i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702 -> stop_transition_spectrum_route
+decision = trail-family consistency seed0 became the active next SPN data-representation branch
 ```
 
 Completed DDT graph context:
@@ -497,10 +505,11 @@ i1_spn_topology_aware_network_r7_262k_seed1_gpu1_20260701 -> stop_topology_aware
 decision = do not scale this topology-aware architecture
 ```
 
-This pair-set aggregation plan should not preempt the active candidate-trail /
-transition-consistency branch. Pair-set aggregation remains a prepared
-attribution control to use when a pair-set claim becomes relevant or when the
-user explicitly chooses this route.
+This pair-set aggregation plan should not preempt the active trail-family
+seed0 run. Pair-set aggregation remains a prepared attribution control to use
+when trail-family gates to stop/tied and the documented next action selects a
+pair-set check, when a pair-set claim becomes relevant, or when the user
+explicitly chooses this route.
 
 ## Conditional Seed1 Follow-Up
 
