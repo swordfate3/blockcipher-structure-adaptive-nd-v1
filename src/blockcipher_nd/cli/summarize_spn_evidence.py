@@ -505,7 +505,8 @@ def _trail_family_conditional_followup() -> dict[str, Any]:
         "readiness_pass": readiness.get("status") == "pass",
         "readiness": readiness,
         "should_launch_now": False,
-        "fallback_if_stop": "sbox_transition_prior_gate_seed0",
+        "fallback_if_stop": "active_auxiliary_seed0",
+        "fallback_after_active_auxiliary_stop": "sbox_transition_prior_gate_seed0",
     }
 
 

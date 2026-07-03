@@ -8085,6 +8085,10 @@ def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_run
     active = report["active_recommendation"]
     assert active["branch"] == "wait_for_trail_family_result"
     assert active["should_launch_remote"] is False
+    assert active["conditional_followup"]["fallback_if_stop"] == "active_auxiliary_seed0"
+    assert active["conditional_followup"]["fallback_after_active_auxiliary_stop"] == (
+        "sbox_transition_prior_gate_seed0"
+    )
     assert active["deferred_candidate_queue"] == [
         {
             "branch": "trail_family_seed1_confirmation_or_variance_check",
