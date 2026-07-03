@@ -69,6 +69,10 @@ def gate_trail_family_result(
     best_calibrated = _metric(best_metrics, "calibrated_accuracy")
     if candidate_metrics and best_auc is None:
         errors.append(f"missing_candidate_auc={list(candidate_metrics)}")
+    if resolved_anchor_calibrated is None:
+        errors.append(f"missing_anchor_calibrated_accuracy for {anchor_model}")
+    if best_model is not None and best_calibrated is None:
+        errors.append(f"missing_candidate_calibrated_accuracy for {best_model}")
     false_family_metrics = models.get(false_family_model)
     false_family_auc = _metric(false_family_metrics, "auc")
     if false_family_metrics is None:

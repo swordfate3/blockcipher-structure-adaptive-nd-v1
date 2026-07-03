@@ -7453,6 +7453,25 @@ def test_trail_family_gate_stops_when_false_family_control_matches_true_route(tm
     assert "false-family control matches/exceeds" in report["interpretation"]
 
 
+def test_trail_family_gate_requires_calibrated_accuracy_to_support_route(tmp_path):
+    results = tmp_path / "trail_family_missing_calibrated.jsonl"
+    _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_trail_family_result(results, "trail_family_consistency_linear", 0.7925)
+    _write_trail_family_result(results, "trail_family_consistency_mlp", 0.7940)
+    _write_trail_family_result(results, "trail_family_consistency_false_family", 0.7926)
+    rows = [json.loads(line) for line in results.read_text(encoding="utf-8").splitlines()]
+    for row in rows:
+        row["metrics"].pop("calibrated_accuracy", None)
+    results.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+    report = gate_trail_family_result(results, expected_rows=4, require_false_family_control=True)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert "missing_anchor_calibrated_accuracy for present_nibble_invp_only_spn_only" in report["errors"]
+    assert "missing_candidate_calibrated_accuracy for trail_family_consistency_mlp" in report["errors"]
+
+
 def test_trail_family_gate_can_require_false_family_control(tmp_path):
     results = tmp_path / "trail_family_missing_false_family.jsonl"
     _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
