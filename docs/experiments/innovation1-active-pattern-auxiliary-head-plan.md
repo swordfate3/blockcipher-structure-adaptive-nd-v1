@@ -285,6 +285,8 @@ script = scripts/spn-active-auxiliary-matrix
 smoke_config = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_smoke.json
 medium_seed0_plan = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed0.json
 medium_seed0_remote_config = configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json
+medium_seed1_plan = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed1.json
+medium_seed1_remote_config = configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json
 ```
 
 Implemented rows:
@@ -328,15 +330,15 @@ gate_script = scripts/gate-active-auxiliary
 postprocess_script = scripts/postprocess-active-auxiliary
 monitor_health_postprocess_kind = active_auxiliary
 gate_inputs = InvP-only anchor, true active-auxiliary candidate, shuffled-target control
-positive_branch = prepare seed1 confirmation assets before launch
+positive_branch = seed1 confirmation assets prepared; launch only after seed0 gate selects support/weak
 stop_branch = do not scale active-auxiliary; switch to next documented SPN hypothesis
 ```
 
 The postprocess path writes local result-alignment, active-auxiliary gate,
 summary, Markdown summary, next-action-readiness, and an idempotent plan-doc
-result block. The positive/weak branch is intentionally marked as requiring
-seed1 asset implementation because only seed0 remote launch assets currently
-exist.
+result block. Seed1 confirmation assets now exist so a positive/weak seed0 gate
+can proceed through the normal pushed-commit remote launch path without an extra
+asset-generation step.
 
 Next before meaningful remote launch:
 
@@ -344,8 +346,8 @@ Next before meaningful remote launch:
 1. Wait for i1_trail_family_r7_262k_seed0_gpu1_20260702 result and gate.
 2. Launch active-auxiliary only if trail-family gate selects stop/tied fallback
    or the user explicitly chooses this route.
-3. Generate launcher/monitor and run remote readiness/artifact checks from the
-   pushed commit before any actual remote launch.
+3. Before any actual remote launch, run remote readiness/artifact checks from
+   the pushed commit and start a local tmux watcher/sub-agent for retrieval.
 ```
 
 ## Claim Scope

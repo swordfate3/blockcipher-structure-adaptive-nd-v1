@@ -2009,6 +2009,67 @@ def test_active_auxiliary_medium_remote_launch_assets_are_gated_and_path_safe():
     assert artifacts["monitor"] == str(monitor)
 
 
+def test_active_auxiliary_seed1_confirmation_assets_are_ready_and_path_safe():
+    plan = Path("configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed1.json")
+    remote_config = Path(
+        "configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
+    )
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_active_auxiliary_r7_262k_seed1_gpu1_20260703.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_active_auxiliary_r7_262k_seed1_gpu1_20260703.sh"
+    )
+
+    plan_data = json.loads(plan.read_text(encoding="utf-8"))
+    remote_data = json.loads(remote_config.read_text(encoding="utf-8"))
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert plan_data["run_id"] == "i1_active_auxiliary_r7_262k_seed1_gpu1_20260703"
+    assert plan_data["common"]["seed"] == 1
+    assert plan_data["common"]["samples_per_class"] == 262144
+    assert plan_data["common"]["negative_mode"] == "encrypted_random_plaintexts"
+    assert plan_data["common"]["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert plan_data["common"]["validation_key"] == "0x11111111111111111111"
+    assert plan_data["common"]["dataset_cache_root"] == (
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache"
+    )
+    assert [row["model"] for row in plan_data["rows"]] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_active_aux_spn_only",
+        "present_nibble_invp_active_aux_shuffled_targets",
+    ]
+
+    assert remote_data["expected_rows"] == 3
+    assert remote_data["runner_script"] == "scripts/spn-active-auxiliary-matrix"
+    assert remote_data["plan"].endswith("innovation1_spn_present_active_auxiliary_r7_262k_seed1.json")
+    assert "confirmation" in remote_data["claim_scope"]
+    assert "cmd.exe /c" in remote_data["launch_policy"]
+    assert "G:\\lxy" in remote_data["launch_policy"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "scripts\\check-remote-readiness" in launcher_text
+    assert "scripts\\spn-active-auxiliary-matrix" in launcher_text
+    assert "innovation1_spn_present_active_auxiliary_r7_262k_seed1.json" in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "EXPECTED_ROWS=\"3\"" in monitor_text
+    assert "postprocess-active-auxiliary" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+
+    artifacts = launch_artifacts(remote_config)
+    assert artifacts["status"] == "pass"
+    assert artifacts["launcher"] == str(launcher)
+    assert artifacts["monitor"] == str(monitor)
+
+
 def test_removed_legacy_experiment_and_generated_script_roots():
     assert not Path("experiments").exists()
     assert not Path("scripts/generated").exists()
