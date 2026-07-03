@@ -7351,18 +7351,21 @@ def test_active_auxiliary_postprocess_writes_summary_and_updates_plan_doc(tmp_pa
     assert report["status"] == "pass"
     assert report["decision"] == "support_active_auxiliary_route"
     assert report["next_action"]["branch"] == "active_auxiliary_seed1_confirmation"
-    assert report["next_action"]["should_launch_remote"] is False
-    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is True
+    assert report["next_action"]["requires_implementation"] is False
     assert report["next_action"]["next_plan_doc"] == "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
+    assert report["next_action"]["suggested_remote_config"].endswith(
+        "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
+    )
+    assert Path(report["next_action"]["suggested_remote_config"]).exists()
     assert Path(report["active_auxiliary_gate"]).exists()
     assert Path(report["summary"]).exists()
     assert Path(report["summary_markdown"]).exists()
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["branch"] == "active_auxiliary_seed1_confirmation"
-    assert readiness["status"] == "needs_implementation"
-    assert readiness["should_launch_remote"] is False
-    assert readiness["requires_implementation"] is True
-    assert readiness["implementation_checklist"]
+    assert readiness["status"] == "pass"
+    assert readiness["should_launch_remote"] is True
+    assert readiness["requires_implementation"] is False
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "## Retrieved Active-Auxiliary Result" in plan_text
     assert "<!-- active-auxiliary-postprocess:active_auxiliary_unit:start -->" in plan_text

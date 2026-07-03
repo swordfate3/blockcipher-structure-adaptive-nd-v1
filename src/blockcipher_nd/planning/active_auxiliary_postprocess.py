@@ -153,36 +153,44 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "support_active_auxiliary_route":
         return {
             "branch": "active_auxiliary_seed1_confirmation",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
             "next_plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
             "suggested_plan_config": (
                 "configs/experiment/innovation1/"
                 "innovation1_spn_present_active_auxiliary_r7_262k_seed1.json"
             ),
+            "launch_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
+            ),
             "suggested_remote_config": (
                 "configs/remote/"
-                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1.json"
+                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
             ),
-            "monitor_owner": "tmux watcher or sub-agent after seed1 assets exist",
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "weak_active_auxiliary_signal":
         return {
             "branch": "active_auxiliary_variance_check",
-            "should_launch_remote": False,
-            "requires_implementation": True,
+            "should_launch_remote": True,
+            "requires_implementation": False,
             "reason": decision,
             "next_plan_doc": "docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md",
             "suggested_plan_config": (
                 "configs/experiment/innovation1/"
                 "innovation1_spn_present_active_auxiliary_r7_262k_seed1.json"
             ),
+            "launch_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
+            ),
             "suggested_remote_config": (
                 "configs/remote/"
-                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1.json"
+                "innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
             ),
-            "monitor_owner": "tmux watcher or sub-agent after seed1 assets exist",
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "stop_active_auxiliary_route":
         return {
@@ -218,15 +226,15 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     if branch == "active_auxiliary_seed1_confirmation":
         return [
             "Record this as positive medium diagnostic evidence only.",
-            "Prepare seed1 active-auxiliary plan/config/launcher/monitor assets before any remote launch.",
-            "Run local smoke/readiness after seed1 assets exist, then commit and push.",
+            "Use the prepared seed1 active-auxiliary plan/config/launcher/monitor assets.",
+            "Run local readiness, then commit and push any documentation updates before remote launch.",
             "Launch seed1 only from a pushed commit and hand off monitoring to a local tmux watcher or sub-agent.",
             "Do not make formal or breakthrough claims from a single diagnostic seed.",
         ]
     if branch == "active_auxiliary_variance_check":
         return [
             "Record this as weak active-auxiliary evidence.",
-            "Prepare seed1 active-auxiliary variance-check assets only if this is the selected next hypothesis.",
+            "Use the prepared seed1 active-auxiliary variance-check assets only if this is the selected next hypothesis.",
             "Keep the InvP-only anchor and shuffled-target control in the next matrix.",
             "Do not jump to 1M/class before a seed1 medium confirmation.",
         ]
