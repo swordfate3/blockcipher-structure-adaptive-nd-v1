@@ -65,6 +65,10 @@ def gate_active_auxiliary_result(
     candidate_calibrated = _metric(candidate_metrics, "calibrated_accuracy")
     if candidate_metrics is not None and candidate_auc is None:
         errors.append(f"missing_candidate_auc={candidate_model}")
+    if resolved_anchor_calibrated is None:
+        errors.append(f"missing_anchor_calibrated_accuracy for {anchor_model}")
+    if candidate_metrics is not None and candidate_calibrated is None:
+        errors.append(f"missing_candidate_calibrated_accuracy for {candidate_model}")
 
     shuffled_metrics = models.get(shuffled_model)
     shuffled_auc = _metric(shuffled_metrics, "auc")

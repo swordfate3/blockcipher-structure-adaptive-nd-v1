@@ -7623,6 +7623,24 @@ def test_active_auxiliary_gate_stops_when_shuffled_control_matches_true_route(tm
     assert "shuffled-target control matches/exceeds" in report["interpretation"]
 
 
+def test_active_auxiliary_gate_requires_calibrated_accuracy_to_support_route(tmp_path):
+    results = tmp_path / "active_auxiliary_missing_calibrated.jsonl"
+    _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_spn_only", 0.7935)
+    _write_active_auxiliary_result(results, "present_nibble_invp_active_aux_shuffled_targets", 0.7922)
+    rows = [json.loads(line) for line in results.read_text(encoding="utf-8").splitlines()]
+    for row in rows:
+        row["metrics"].pop("calibrated_accuracy", None)
+    results.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+    report = gate_active_auxiliary_result(results, expected_rows=3, require_shuffled_control=True)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert "missing_anchor_calibrated_accuracy for present_nibble_invp_only_spn_only" in report["errors"]
+    assert "missing_candidate_calibrated_accuracy for present_nibble_invp_active_aux_spn_only" in report["errors"]
+
+
 def test_active_auxiliary_gate_requires_shuffled_control(tmp_path):
     results = tmp_path / "active_auxiliary_missing_shuffled.jsonl"
     _write_active_auxiliary_result(results, "present_nibble_invp_only_spn_only", 0.7920)
