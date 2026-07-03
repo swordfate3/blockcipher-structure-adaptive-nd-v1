@@ -7803,6 +7803,25 @@ def test_sbox_prior_gate_stops_when_no_ddt_or_shuffled_control_matches_true_prio
     assert "no-DDT or shuffled prior control" in report["interpretation"]
 
 
+def test_sbox_prior_gate_requires_calibrated_accuracy_to_support_route(tmp_path):
+    results = tmp_path / "sbox_prior_missing_calibrated.jsonl"
+    _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
+    _write_sbox_prior_result(results, "present_nibble_invp_sbox_prior_gate", 0.7936)
+    _write_sbox_prior_result(results, "present_nibble_invp_no_ddt_gate", 0.7924)
+    _write_sbox_prior_result(results, "present_nibble_invp_shuffled_sbox_prior_gate", 0.7921)
+    rows = [json.loads(line) for line in results.read_text(encoding="utf-8").splitlines()]
+    for row in rows:
+        row["metrics"].pop("calibrated_accuracy", None)
+    results.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+    report = gate_sbox_prior_result(results, expected_rows=4, require_controls=True)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid"
+    assert "missing_anchor_calibrated_accuracy for present_nibble_invp_only_spn_only" in report["errors"]
+    assert "missing_candidate_calibrated_accuracy for present_nibble_invp_sbox_prior_gate" in report["errors"]
+
+
 def test_sbox_prior_gate_marks_weak_when_true_prior_is_best_but_below_margin(tmp_path):
     results = tmp_path / "sbox_prior_weak.jsonl"
     _write_sbox_prior_result(results, "present_nibble_invp_only_spn_only", 0.7920)
