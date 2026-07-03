@@ -10,7 +10,8 @@ The first version provides two low-risk capabilities:
 2. `split-matrix`: split a CSV experiment matrix into shards for GPU-level parallel launch.
 3. `build-launch-plan`: turn shard manifests into per-GPU train commands.
 4. `run-accelerated`: run a matrix through the plugin trainer with an opt-in speed profile.
-5. `quality-gate`: compare baseline and accelerated JSONL files for protocol alignment
+5. `bench-trail-family-cache`: benchmark trail-family feature-cache generation without training.
+6. `quality-gate`: compare baseline and accelerated JSONL files for protocol alignment
    and metric drift.
 
 Run from the repository root:
@@ -68,6 +69,22 @@ full
 
 AMP and compile profiles only become effective on CUDA. CPU runs stay protocol-compatible
 and record that the CUDA-only knobs were not effective.
+
+Example trail-family feature-cache benchmark:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+  python -m blockcipher_training_accelerator bench-trail-family-cache \
+  --samples-per-class 262144 \
+  --pairs-per-sample 16 \
+  --seed 20260703 \
+  --chunk-size 8192 \
+  --workers 4 8 \
+  --output-root outputs/speed_bench/trail_family_cache_workers_4_8
+```
+
+This is cache-only speed evidence. It does not train a model or produce a
+cryptanalytic accuracy/AUC result.
 
 Example quality gate:
 

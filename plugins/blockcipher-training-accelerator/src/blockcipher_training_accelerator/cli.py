@@ -7,8 +7,10 @@ from pathlib import Path
 from blockcipher_training_accelerator.benchmark import run_benchmark
 from blockcipher_training_accelerator.dataset_cache import (
     DatasetCacheBenchConfig,
+    TrailFamilyCacheBenchConfig,
     parse_int,
     run_dataset_cache_benchmark,
+    run_trail_family_cache_benchmark,
 )
 from blockcipher_training_accelerator.launcher import build_shard_commands
 from blockcipher_training_accelerator.matrix import split_matrix
@@ -66,6 +68,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Reuse matching caches instead of deleting each worker cache before timing.",
     )
+    trail_family_cache = subparsers.add_parser(
+        "bench-trail-family-cache",
+        help="Benchmark trail-family feature-cache generation without training.",
+    )
+    trail_family_cache.add_argument("--samples-per-class", required=True, type=int)
+    trail_family_cache.add_argument("--pairs-per-sample", required=True, type=int)
+    trail_family_cache.add_argument("--seed", required=True, type=int)
+    trail_family_cache.add_argument("--chunk-size", required=True, type=int)
+    trail_family_cache.add_argument("--workers", required=True, nargs="+", type=int)
+    trail_family_cache.add_argument("--output-root", required=True)
+    trail_family_cache.add_argument("--rounds", default=7, type=int)
+    trail_family_cache.add_argument("--difference-profile", default="present_zhang_wang2022_mcnd")
+    trail_family_cache.add_argument("--difference-member", default=0, type=int)
+    trail_family_cache.add_argument("--input-difference", default=None, type=parse_int)
+    trail_family_cache.add_argument("--key", default=0, type=parse_int)
+    trail_family_cache.add_argument("--negative-mode", default="encrypted_random_plaintexts")
+    trail_family_cache.add_argument("--sample-structure", default="zhang_wang_case2_official_mcnd")
+    trail_family_cache.add_argument("--key-rotation-interval", default=0, type=int)
+    trail_family_cache.add_argument("--beam-width", default=4, type=int)
+    trail_family_cache.add_argument("--depth", default=3, type=int)
+    trail_family_cache.add_argument("--false-family", action="store_true")
+    trail_family_cache.add_argument("--reuse", action="store_true")
 
     split = subparsers.add_parser(
         "split-matrix",
@@ -174,6 +198,37 @@ def main(argv: list[str] | None = None) -> None:
                 flush=True,
             )
         print(f"dataset cache benchmark written: {report.summary_path}", flush=True)
+        return
+    if args.command_name == "bench-trail-family-cache":
+        report = run_trail_family_cache_benchmark(
+            TrailFamilyCacheBenchConfig(
+                samples_per_class=args.samples_per_class,
+                pairs_per_sample=args.pairs_per_sample,
+                seed=args.seed,
+                chunk_size=args.chunk_size,
+                workers=tuple(args.workers),
+                output_root=args.output_root,
+                rounds=args.rounds,
+                difference_profile=args.difference_profile,
+                difference_member=args.difference_member,
+                input_difference=args.input_difference,
+                key=args.key,
+                negative_mode=args.negative_mode,
+                sample_structure=args.sample_structure,
+                key_rotation_interval=args.key_rotation_interval,
+                beam_width=args.beam_width,
+                depth=args.depth,
+                false_family=args.false_family,
+                reuse=args.reuse,
+            )
+        )
+        for row in report.rows:
+            print(
+                f"workers={row.workers} duration_seconds={row.duration_seconds:.6f} "
+                f"rows_per_second={row.rows_per_second:.3f} cache_status={row.cache_status}",
+                flush=True,
+            )
+        print(f"trail-family cache benchmark written: {report.summary_path}", flush=True)
         return
     if args.command_name == "split-matrix":
         result = split_matrix(

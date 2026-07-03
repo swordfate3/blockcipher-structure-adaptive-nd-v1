@@ -5,7 +5,11 @@ from blockcipher_training_accelerator.dataset_cache import (
     DatasetCacheBenchConfig,
     DatasetCacheBenchReport,
     DatasetCacheBenchRow,
+    TrailFamilyCacheBenchConfig,
+    TrailFamilyCacheBenchReport,
+    TrailFamilyCacheBenchRow,
     run_dataset_cache_benchmark,
+    run_trail_family_cache_benchmark,
 )
 from blockcipher_training_accelerator.launcher import LaunchPlan, ShardCommand, build_shard_commands
 from blockcipher_training_accelerator.matrix import MatrixSplitResult, split_matrix
@@ -22,10 +26,14 @@ __all__ = [
     "QualityGateReport",
     "ShardCommand",
     "SpeedProfile",
+    "TrailFamilyCacheBenchConfig",
+    "TrailFamilyCacheBenchReport",
+    "TrailFamilyCacheBenchRow",
     "build_shard_commands",
     "compare_result_files",
     "resolve_profile",
     "run_dataset_cache_benchmark",
+    "run_trail_family_cache_benchmark",
     "run_benchmark",
     "split_matrix",
 ]

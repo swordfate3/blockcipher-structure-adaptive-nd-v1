@@ -340,3 +340,45 @@ Next action:
 Use `dataset_cache_workers=8` for the next cache-backed remote training diagnostic where
 dataset generation is still part of the critical path. Separately benchmark DataLoader
 or training throughput if the goal is epoch speed rather than dataset build speed.
+
+### 2026-07-03 Trail-Family Feature-Cache Benchmark Prep
+
+The running trail-family diagnostic showed that structure-feature generation can become
+the dominant wall-time cost. The ordinary `bench-dataset-cache` result above only proves
+speedup for raw differential dataset cache generation; it does not prove that
+`feature_cache_workers=8` is safe or worthwhile for the heavier trail-family feature
+builder.
+
+New plugin entrypoint:
+
+```bash
+PYTHONPATH=plugins/blockcipher-training-accelerator/src:src \
+UV_CACHE_DIR=/tmp/uv-cache uv run python -m blockcipher_training_accelerator \
+  bench-trail-family-cache \
+  --samples-per-class 262144 \
+  --pairs-per-sample 16 \
+  --seed 20260703 \
+  --chunk-size 8192 \
+  --workers 4 8 \
+  --output-root outputs/speed_bench/trail_family_cache_workers_4_8_20260703
+```
+
+Purpose:
+
+- Generate and reuse only trail-family `features.npy` / `labels.npy` cache artifacts.
+- Compare worker counts as a speed-only variable.
+- Avoid training, result JSONL model rows, gate decisions, or cryptanalytic claims.
+
+Gate:
+
+```text
+workers=8 may be used in a future meaningful trail-family run only if this
+cache-only benchmark completes cleanly and improves rows/second without cache
+metadata/progress anomalies.
+```
+
+Claim scope:
+
+```text
+trail-family feature-cache generation speed only; not model-quality evidence.
+```
