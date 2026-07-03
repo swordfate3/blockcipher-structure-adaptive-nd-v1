@@ -125,6 +125,11 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     trail_family_consistency = _trail_family_consistency(config, tasks, plan_is_json_matrix=plan_is_json_matrix)
     errors.extend(trail_family_consistency["errors"])
     warnings.extend(trail_family_consistency["warnings"])
+    active_auxiliary_consistency = _active_auxiliary_consistency(
+        config, tasks, plan_is_json_matrix=plan_is_json_matrix
+    )
+    errors.extend(active_auxiliary_consistency["errors"])
+    warnings.extend(active_auxiliary_consistency["warnings"])
     pairset_consistency = _pairset_aggregation_consistency(config)
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
@@ -146,6 +151,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("transition_spectrum_protocol_lock")
     if _is_trail_family_config(config):
         checked_invariants.append("trail_family_protocol_lock")
+    if _is_active_auxiliary_config(config):
+        checked_invariants.append("active_auxiliary_protocol_lock")
     if _is_pairset_aggregation_config(config):
         checked_invariants.append("pairset_aggregation_stage_lock")
 
@@ -421,6 +428,64 @@ def _trail_family_consistency(
     return {"errors": errors, "warnings": warnings}
 
 
+def _active_auxiliary_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    *,
+    plan_is_json_matrix: bool,
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_active_auxiliary_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_values = {
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+    }
+    for field, expected in expected_values.items():
+        observed = config.get(field)
+        if observed != expected:
+            errors.append(f"active_auxiliary {field}={observed} expected={expected}")
+
+    runner_script = _str_value(config.get("runner_script"))
+    if plan_is_json_matrix and runner_script != "scripts/spn-active-auxiliary-matrix":
+        errors.append(
+            "active_auxiliary JSON matrix remote config must set "
+            "runner_script=scripts/spn-active-auxiliary-matrix"
+        )
+
+    planned_models = {_str_value(task.get("model")) for task in tasks}
+    required_models = {
+        "present_nibble_invp_active_aux_spn_only",
+        "present_nibble_invp_active_aux_shuffled_targets",
+    }
+    if plan_is_json_matrix and tasks and not required_models.issubset(planned_models):
+        errors.append(
+            "active_auxiliary JSON matrix must include true active-auxiliary and shuffled-target control rows: "
+            f"{sorted(planned_models)}"
+        )
+
+    cache_root = _str_value(config.get("dataset_cache_root"))
+    if not cache_root:
+        errors.append("active_auxiliary missing dataset_cache_root")
+    elif not cache_root.startswith(REMOTE_ROOT):
+        errors.append(f"active_auxiliary dataset_cache_root must stay under {REMOTE_ROOT}: {cache_root}")
+
+    workers = _int_value(config.get("dataset_cache_workers", 1))
+    if workers is None or workers < 1:
+        errors.append("active_auxiliary dataset_cache_workers must be >= 1")
+    elif _max_samples_per_class(tasks) >= 65_536 and workers == 1:
+        warnings.append(
+            "active_auxiliary medium-scale dataset_cache_workers=1; future medium/large runs should set >1 "
+            "to avoid slow dataset-cache generation"
+        )
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _plan_is_json_matrix(plan_path: Path) -> bool:
     if plan_path.suffix.lower() != ".json" or not plan_path.exists():
         return False
@@ -528,6 +593,29 @@ def _is_trail_family_config(config: dict[str, Any]) -> bool:
         "trail_family_consistency",
         "trail-family-consistency",
         "spn-trail-family",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_active_auxiliary_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "route",
+            "experiment_route",
+            "runner_script",
+        ]
+    ).lower()
+    markers = [
+        "active_auxiliary",
+        "active-auxiliary",
+        "active_pattern_auxiliary",
+        "active-pattern auxiliary",
+        "spn-active-auxiliary",
     ]
     return any(marker in haystack for marker in markers)
 

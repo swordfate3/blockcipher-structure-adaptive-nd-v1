@@ -51,6 +51,7 @@ from blockcipher_nd.tasks.innovation1.spn_transition_spectrum import (
     make_transition_spectrum_dataset,
 )
 from blockcipher_nd.tasks.innovation1.spn_trail_family import make_trail_family_dataset
+from blockcipher_nd.tasks.innovation1.spn_active_auxiliary import make_active_auxiliary_dataset
 from blockcipher_nd.cli import (
     spn_candidate_evidence_matrix,
     spn_transition_spectrum_matrix,
@@ -1093,6 +1094,10 @@ def test_active_auxiliary_smoke_config_preserves_official_protocol():
     assert config["common"]["validation_key"] == "0x11111111111111111111"
     assert config["common"]["key_rotation_interval"] == 0
     assert config["common"]["lambda_aux"] == 0.1
+    assert config["common"]["dataset_cache_root"].startswith("outputs/local_smoke/")
+    assert config["common"]["dataset_cache_chunk_size"] == 2
+    assert config["common"]["dataset_cache_workers"] == 1
+    assert config["common"]["progress_output"].startswith("outputs/local_smoke/")
     assert [row["model"] for row in config["rows"]] == [
         "present_nibble_invp_only_spn_only",
         "present_nibble_invp_active_aux_spn_only",
@@ -1348,6 +1353,58 @@ def test_trail_family_cache_reuses_across_worker_counts(tmp_path):
     assert len(list(cache_root.glob("train/*/metadata.json"))) == 1
 
 
+def test_active_auxiliary_dataset_cache_writes_and_reuses(tmp_path):
+    progress_path = tmp_path / "active_auxiliary_progress.jsonl"
+    features, labels = make_active_auxiliary_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        dataset_cache_root=tmp_path / "active_auxiliary_cache",
+        dataset_cache_chunk_size=2,
+        dataset_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+    reused_features, reused_labels = make_active_auxiliary_dataset(
+        rounds=7,
+        key=0,
+        input_difference=0x9,
+        seed=17,
+        samples_per_class=3,
+        pairs_per_sample=2,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="zhang_wang_case2_official_mcnd",
+        key_rotation_interval=0,
+        dataset_cache_root=tmp_path / "active_auxiliary_cache",
+        dataset_cache_chunk_size=2,
+        dataset_cache_workers=1,
+        progress_output=progress_path,
+        split="train",
+    )
+
+    assert features.shape == (6, 256)
+    assert labels.shape == (6,)
+    assert set(np.unique(labels).tolist()) == {0, 1}
+    assert np.array_equal(np.asarray(features), np.asarray(reused_features))
+    assert np.array_equal(np.asarray(labels), np.asarray(reused_labels))
+    progress_text = progress_path.read_text(encoding="utf-8")
+    assert "active_auxiliary_cache_flush_start" in progress_text
+    assert "active_auxiliary_cache_done" in progress_text
+    assert "active_auxiliary_cache_reuse" in progress_text
+    metadata_path = next((tmp_path / "active_auxiliary_cache").glob("train/*/metadata.json"))
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata["cache_type"] == "spn_active_auxiliary_raw"
+    assert metadata["feature_route"] == "active_pattern_auxiliary_head"
+    assert "dataset_cache_workers" not in metadata
+    assert '"workers": 1' in progress_text
+
+
 def test_trail_family_matrix_outputs_anchor_and_candidate_rows(tmp_path):
     config = tmp_path / "trail_family_matrix.json"
     output = tmp_path / "trail_family_matrix.jsonl"
@@ -1430,6 +1487,10 @@ def test_active_auxiliary_matrix_outputs_anchor_candidate_and_control_rows(tmp_p
                     "lambda_aux": 0.1,
                     "batch_size": 4,
                     "hidden_bits": 4,
+                    "dataset_cache_root": str(tmp_path / "active_aux_cache"),
+                    "dataset_cache_chunk_size": 2,
+                    "dataset_cache_workers": 1,
+                    "progress_output": str(tmp_path / "active_aux_progress.jsonl"),
                     "device": "cpu",
                 },
                 "rows": [
@@ -1457,6 +1518,8 @@ def test_active_auxiliary_matrix_outputs_anchor_candidate_and_control_rows(tmp_p
     ]
     assert rows[0]["row_type"] == "external_anchor"
     assert rows[1]["feature_route"] == "active_pattern_auxiliary_head"
+    assert rows[1]["dataset_cache_enabled"] is True
+    assert rows[1]["dataset_cache_root"] == str(tmp_path / "active_aux_cache")
     assert rows[1]["auxiliary_target"] == "present_invp_active_mask"
     assert rows[2]["auxiliary_target"] == "shuffled_present_invp_active_mask"
     assert rows[2]["shuffled_auxiliary_targets"] is True
@@ -5632,6 +5695,107 @@ def _trail_family_remote_config(plan: Path, *, expected_rows: int = 4) -> dict[s
         "claim_scope": "trail-family medium matrix readiness unit",
         "launch_policy": "trail-family matrix; keep artifacts under G:\\lxy; cmd.exe /c",
     }
+
+
+def _write_active_auxiliary_remote_plan(tmp_path: Path, *, include_control: bool = True) -> Path:
+    rows = [
+        {
+            "row_type": "external_anchor",
+            "model": "present_nibble_invp_only_spn_only",
+            "anchor_auc": 0.79,
+            "anchor_calibrated_accuracy": 0.72,
+        },
+        {"model": "present_nibble_invp_active_aux_spn_only"},
+    ]
+    if include_control:
+        rows.append({"model": "present_nibble_invp_active_aux_shuffled_targets"})
+    plan = tmp_path / "active_auxiliary_matrix.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "output": str(tmp_path / "active_auxiliary_matrix.jsonl"),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 65536,
+                    "pairs_per_sample": 16,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "learning_rate": 0.001,
+                    "lambda_aux": 0.1,
+                },
+                "rows": rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return plan
+
+
+def _active_auxiliary_remote_config(plan: Path, *, expected_rows: int = 3) -> dict[str, object]:
+    return {
+        "run_id": "i1_active_auxiliary_matrix_remote_unit",
+        "task_name": "i1_active_auxiliary_matrix_remote_unit",
+        "archive_work_id": "i1_active_auxiliary_matrix_remote_unit",
+        "plan": str(plan),
+        "runner_script": "scripts/spn-active-auxiliary-matrix",
+        "expected_rows": expected_rows,
+        "device": "cuda:1",
+        "epochs": 20,
+        "batch_size": 2048,
+        "learning_rate": 0.001,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "negative_mode": "encrypted_random_plaintexts",
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "dataset_cache": True,
+        "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache",
+        "dataset_cache_chunk_size": 8192,
+        "dataset_cache_workers": 4,
+        "branch": "main",
+        "repo_url": "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git",
+        "source_commit": "recorded_in_remote_run_script_git_revision",
+        "result_sync": "local_tmux_monitor_scp_fallback",
+        "monitor_script_name": "monitor_i1_active_auxiliary_matrix_remote_unit.sh",
+        "claim_scope": "active-auxiliary medium matrix readiness unit",
+        "launch_policy": "active-auxiliary matrix; keep artifacts under G:\\lxy; cmd.exe /c",
+    }
+
+
+def test_remote_readiness_gate_accepts_active_auxiliary_matrix_plan(tmp_path):
+    plan = _write_active_auxiliary_remote_plan(tmp_path)
+    config = _active_auxiliary_remote_config(plan)
+    path = tmp_path / "active_auxiliary_matrix_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "pass"
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert "active_auxiliary_protocol_lock" in report["checked_invariants"]
+
+
+def test_remote_readiness_gate_rejects_active_auxiliary_without_control_or_runner(tmp_path):
+    plan = _write_active_auxiliary_remote_plan(tmp_path, include_control=False)
+    config = _active_auxiliary_remote_config(plan, expected_rows=2)
+    config["runner_script"] = "scripts/train"
+    config["negative_mode"] = "random_ciphertexts"
+    config["dataset_cache_root"] = "C:\\Users\\bad\\active_auxiliary_cache"
+    path = tmp_path / "active_auxiliary_bad_remote.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(path)
+
+    assert report["status"] == "fail"
+    assert "active_auxiliary_protocol_lock" in report["checked_invariants"]
+    assert any("runner_script=scripts/spn-active-auxiliary-matrix" in error for error in report["errors"])
+    assert any("active_auxiliary negative_mode=random_ciphertexts" in error for error in report["errors"])
+    assert any("true active-auxiliary and shuffled-target control rows" in error for error in report["errors"])
+    assert any("dataset_cache_root must stay under" in error for error in report["errors"])
 
 
 def test_remote_readiness_gate_accepts_trail_family_matrix_plan(tmp_path):

@@ -1,0 +1,46 @@
+{
+  "run_id": "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703",
+  "description": "Innovation 1 active-pattern auxiliary-head medium diagnostic fallback after trail-family seed0 stops/ties or explicit user route choice; PRESENT-80 r7 official Zhang/Wang Case2 protocol, seed0, strict negatives.",
+  "output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703\\results\\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.jsonl",
+  "common": {
+    "rounds": 7,
+    "seed": 0,
+    "samples_per_class": 262144,
+    "pairs_per_sample": 16,
+    "negative_mode": "encrypted_random_plaintexts",
+    "sample_structure": "zhang_wang_case2_official_mcnd",
+    "difference_profile": "present_zhang_wang2022_mcnd",
+    "difference_member": 0,
+    "feature_route": "active_pattern_auxiliary_head",
+    "train_key": "0x00000000000000000000",
+    "validation_key": "0x11111111111111111111",
+    "key_rotation_interval": 0,
+    "epochs": 30,
+    "learning_rate": 0.001,
+    "lambda_aux": 0.1,
+    "batch_size": 2048,
+    "hidden_bits": 32,
+    "spn_mixer_depth": 2,
+    "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache",
+    "dataset_cache_chunk_size": 8192,
+    "dataset_cache_workers": 4,
+    "progress_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703\\logs\\active_auxiliary_progress.jsonl",
+    "device": "cuda:1"
+  },
+  "rows": [
+    {
+      "row_type": "external_anchor",
+      "model": "present_nibble_invp_only_spn_only",
+      "anchor_auc": 0.7936519871873315,
+      "anchor_calibrated_accuracy": 0.7193069458007812,
+      "anchor_accuracy": 0.7069587707519531,
+      "anchor_loss": 0.5592089066049084
+    },
+    {
+      "model": "present_nibble_invp_active_aux_spn_only"
+    },
+    {
+      "model": "present_nibble_invp_active_aux_shuffled_targets"
+    }
+  ]
+}

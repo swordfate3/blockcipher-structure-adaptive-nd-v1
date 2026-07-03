@@ -21,6 +21,10 @@
     "batch_size": 4,
     "hidden_bits": 4,
     "spn_mixer_depth": 1,
+    "dataset_cache_root": "outputs/local_smoke/i1_active_auxiliary_smoke_20260703/cache",
+    "dataset_cache_chunk_size": 2,
+    "dataset_cache_workers": 1,
+    "progress_output": "outputs/local_smoke/i1_active_auxiliary_smoke_20260703/progress.jsonl",
     "device": "cpu"
   },
   "rows": [

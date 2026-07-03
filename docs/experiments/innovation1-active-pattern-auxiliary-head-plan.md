@@ -279,10 +279,12 @@ Before any meaningful remote launch:
 Status as of 2026-07-03:
 
 ```text
-implementation_status = local smoke runner implemented
+implementation_status = local smoke runner and medium seed0 readiness config implemented
 evidence_level = smoke only; no model-quality claim
 script = scripts/spn-active-auxiliary-matrix
 smoke_config = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_smoke.json
+medium_seed0_plan = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed0.json
+medium_seed0_remote_config = configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json
 ```
 
 Implemented rows:
@@ -308,14 +310,25 @@ Smoke output:
 auxiliary_loss, and auxiliary_target fields.
 ```
 
+Medium seed0 readiness status:
+
+```text
+prepared_not_launched = true
+samples_per_class = 262144
+dataset_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\active_auxiliary_cache
+dataset_cache_workers = 4
+runner_script = scripts/spn-active-auxiliary-matrix
+required_control = present_nibble_invp_active_aux_shuffled_targets
+```
+
 Next before meaningful remote launch:
 
 ```text
 1. Wait for i1_trail_family_r7_262k_seed0_gpu1_20260702 result and gate.
 2. Launch active-auxiliary only if trail-family gate selects stop/tied fallback
    or the user explicitly chooses this route.
-3. Add medium-scale remote config with disk-backed cache/progress before any
-   262144/class run.
+3. Generate launcher/monitor and run remote readiness/artifact checks from the
+   pushed commit before any actual remote launch.
 ```
 
 ## Claim Scope
