@@ -7398,14 +7398,19 @@ def test_active_auxiliary_postprocess_stop_does_not_launch_remote(tmp_path):
 
     assert report["status"] == "pass"
     assert report["decision"] == "stop_active_auxiliary_route"
-    assert report["next_action"]["branch"] == "stop_active_auxiliary_route"
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["branch"] == "sbox_transition_prior_gate_seed0"
+    assert report["next_action"]["should_launch_remote"] is True
     assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["launch_remote_config"].endswith(
+        "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+    )
+    assert Path(report["next_action"]["launch_remote_config"]).exists()
     assert "Do not scale active-pattern auxiliary supervision" in report["next_steps"][1]
+    assert "S-box transition prior gate seed0" in report["next_steps"][2]
     readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert readiness["status"] == "pass"
-    assert readiness["branch"] == "stop_active_auxiliary_route"
-    assert readiness["should_launch_remote"] is False
+    assert readiness["branch"] == "sbox_transition_prior_gate_seed0"
+    assert readiness["should_launch_remote"] is True
     assert readiness["implementation_checklist"] == []
 
 

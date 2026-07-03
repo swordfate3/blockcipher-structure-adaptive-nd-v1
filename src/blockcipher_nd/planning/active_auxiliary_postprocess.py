@@ -194,19 +194,25 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         }
     if decision == "stop_active_auxiliary_route":
         return {
-            "branch": "stop_active_auxiliary_route",
-            "should_launch_remote": False,
+            "branch": "sbox_transition_prior_gate_seed0",
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
-            "fallback_plan_options": [
-                "docs/experiments/innovation1-pairset-aggregation-control-plan.md",
-                "docs/research/spn_structured_nn_research_plan.md",
-            ],
-            "fallback_hypotheses": [
-                "pair_set_evidence_pooling",
-                "ddt_graph_or_topology_aware_route",
-                "cross_cipher_gift_skinny_transfer",
-            ],
+            "next_plan_doc": "docs/experiments/innovation1-sbox-transition-prior-gate-plan.md",
+            "plan_config": (
+                "configs/experiment/innovation1/"
+                "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
+            ),
+            "launch_remote_config": (
+                "configs/remote/"
+                "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                "--config configs/remote/"
+                "innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+            ),
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     return {
         "branch": "manual_review",
@@ -238,12 +244,13 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Keep the InvP-only anchor and shuffled-target control in the next matrix.",
             "Do not jump to 1M/class before a seed1 medium confirmation.",
         ]
-    if branch == "stop_active_auxiliary_route":
+    if branch == "sbox_transition_prior_gate_seed0":
         return [
             "Record this as tied or negative active-auxiliary evidence.",
             "Do not scale active-pattern auxiliary supervision as a main route.",
-            "Switch to pair-set evidence pooling, DDT/topology-aware features, or route consolidation planning.",
-            "Write the next docs/experiments plan before implementing or launching a new route.",
+            "Switch to the prepared S-box transition prior gate seed0 route.",
+            "Run local readiness, then commit and push any documentation updates before remote launch.",
+            "Launch only from a pushed commit and hand off monitoring to a local tmux watcher or sub-agent.",
         ]
     return ["Review the active-auxiliary gate manually before launching another experiment."]
 
