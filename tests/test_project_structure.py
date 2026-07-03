@@ -6199,6 +6199,18 @@ def test_prepared_trail_family_seed1_remote_readiness_passes():
     assert report["max_samples_per_class"] == 262144
     assert "trail_family_protocol_lock" in report["checked_invariants"]
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert any("trail_family feature_cache_workers=4" in warning for warning in report["warnings"])
+
+
+def test_prepared_active_auxiliary_seed0_readiness_notes_cache_worker_benchmark_scope():
+    report = remote_readiness_report(
+        Path("configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json")
+    )
+
+    assert report["status"] == "pass"
+    assert report["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    assert "active_auxiliary_protocol_lock" in report["checked_invariants"]
+    assert any("active_auxiliary dataset_cache_workers=4" in warning for warning in report["warnings"])
 
 
 def test_remote_readiness_gate_rejects_bad_trail_family_matrix_plan(tmp_path):

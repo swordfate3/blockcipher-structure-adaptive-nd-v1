@@ -429,6 +429,11 @@ def _trail_family_consistency(
             "trail_family medium-scale feature_cache_workers=1; future medium/large runs should set >1 "
             "to avoid slow feature-cache generation"
         )
+    elif _max_samples_per_class(tasks) >= 65_536 and feature_cache_workers == 4:
+        warnings.append(
+            "trail_family feature_cache_workers=4 is conservative and plan-aligned; benchmark "
+            "feature_cache_workers=8 separately before changing a meaningful route run for speed"
+        )
 
     return {"errors": errors, "warnings": warnings}
 
@@ -486,6 +491,11 @@ def _active_auxiliary_consistency(
         warnings.append(
             "active_auxiliary medium-scale dataset_cache_workers=1; future medium/large runs should set >1 "
             "to avoid slow dataset-cache generation"
+        )
+    elif _max_samples_per_class(tasks) >= 65_536 and workers == 4:
+        warnings.append(
+            "active_auxiliary dataset_cache_workers=4 is conservative and plan-aligned; ordinary dataset-cache "
+            "workers=8 has speed evidence, but treat worker changes as a speed-only variable"
         )
 
     return {"errors": errors, "warnings": warnings}
