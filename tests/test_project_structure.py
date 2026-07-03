@@ -531,6 +531,35 @@ def test_topology_aware_plan_records_launch_stalled_retry():
     assert "same protocol and matrix as the original seed0 plan" in plan
 
 
+def test_prepared_trail_family_cache_worker_benchmark_assets_are_speed_only():
+    launcher = Path("configs/remote/generated/run_i1_trail_family_cache_workers_4_8_20260703.cmd")
+    monitor = Path("configs/remote/generated/monitor_i1_trail_family_cache_workers_4_8_20260703.sh")
+    plan = Path("docs/experiments/innovation1-mapreduce-acceleration-plan.md").read_text(encoding="utf-8")
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "i1_trail_family_cache_workers_4_8_20260703" in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "cmd.exe /k" not in launcher_text
+    assert "bench-trail-family-cache" in launcher_text
+    assert "--workers 4 8" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "%SOURCE_DIR%\\plugins\\blockcipher-training-accelerator\\src;%SOURCE_DIR%\\src" in launcher_text
+
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "results/trail_family_cache_bench/summary.json" in monitor_text
+    assert "summary_ready" in monitor_text
+
+    assert "status: prepared / not launched" in plan
+    assert "trail-family feature-cache generation speed only" in plan
+    assert "must not interrupt or replace" in plan
+
+
 def test_present_pairset_aggregation_control_smoke_plans_are_protocol_locked():
     scorer_plan = (
         "configs/experiment/innovation1/"

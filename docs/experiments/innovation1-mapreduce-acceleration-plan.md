@@ -382,3 +382,27 @@ Claim scope:
 ```text
 trail-family feature-cache generation speed only; not model-quality evidence.
 ```
+
+Prepared remote cache-only benchmark:
+
+```text
+status: prepared / not launched
+run_id: i1_trail_family_cache_workers_4_8_20260703
+remote root: G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_trail_family_cache_workers_4_8_20260703
+source: pushed GitHub main clean clone
+command shell: cmd.exe /c
+python: F:\Anaconda\envs\DWT\torch310\python.exe
+workers: 4, 8
+samples_per_class: 262144
+pairs_per_sample: 16
+chunk_size: 8192
+output: results\trail_family_cache_bench\summary.json
+monitor: configs/remote/generated/monitor_i1_trail_family_cache_workers_4_8_20260703.sh
+launcher: configs/remote/generated/run_i1_trail_family_cache_workers_4_8_20260703.cmd
+```
+
+This benchmark must not interrupt or replace the currently running
+`i1_trail_family_r7_262k_seed0_gpu1_20260702` diagnostic. Launch it only as a
+speed-only side experiment when a GPU slot is intentionally allocated for cache
+throughput testing, or before a future trail-family seed1/confirmation run where
+the route gate allows continued trail-family work.
