@@ -416,3 +416,53 @@ Do not launch the `262144/class` medium config until the candidate-trail seed0
 result is retrieved and its gate selects this branch. The config exists only so
 the fallback branch can pass readiness and launch without another manual
 configuration round.
+
+## Launch Record
+
+### i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702
+
+```text
+status = ready_to_launch_after_candidate_trail_stop
+date = 2026-07-03
+trigger_source = i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702
+trigger_decision = stop_candidate_trail_route
+trigger_claim_scope = candidate-trail consistency medium diagnostic only; not formal evidence
+```
+
+Candidate-trail seed0 has now been retrieved, validated, postprocessed, and
+plan-aligned. Its gate selected `stop_candidate_trail_route`, so this
+bit-transition-spectrum seed0 fallback is now the active next branch rather
+than a gate-locked readiness asset.
+
+Launch target:
+
+```text
+run_id = i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702
+plan = configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0.json
+remote_config = configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+launcher = configs/remote/generated/run_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.cmd
+monitor = configs/remote/generated/monitor_i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.sh
+expected_rows = 4
+scale = 262144/class
+seed = 0
+device = cuda:1
+feature_cache_workers = 4
+claim_scope = medium diagnostic only
+```
+
+Readiness refresh before launch:
+
+```text
+command = UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.json
+status = pass
+checked_invariants = plan_exists, expected_rows_matches_plan, run_id_task_archive_alignment, github_ssh_repo, cmd_exe_c_only_policy, g_lxy_artifact_policy, training_protocol_matches_plan, medium_scale_dataset_cache, transition_spectrum_protocol_lock
+warnings = remote config relies on runner/plan defaults for optimizer/loss/scheduler/checkpoint fields
+```
+
+Next execution step:
+
+```text
+launch from pushed commit
+hand off monitoring/retrieval/postprocess to local tmux watcher
+do not SSH-poll from the main thread after launch
+```
