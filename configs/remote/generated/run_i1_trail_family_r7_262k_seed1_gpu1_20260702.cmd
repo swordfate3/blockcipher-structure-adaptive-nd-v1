@@ -42,6 +42,7 @@ if exist "%PROJECT_ROOT%\.git" (
 )
 
 git rev-parse HEAD > "%LOG_DIR%\%RUN_ID%_git_revision.txt" 2>&1
+"%PYTHON_EXE%" scripts\check-remote-readiness --config configs\remote\innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json > "%LOG_DIR%\%RUN_ID%_readiness.txt" 2> "%LOG_DIR%\%RUN_ID%_readiness_stderr.txt" || goto failed
 echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
 
 "%PYTHON_EXE%" scripts\spn-trail-family-matrix ^

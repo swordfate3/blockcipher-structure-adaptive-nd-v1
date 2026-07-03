@@ -2215,6 +2215,41 @@ def test_active_auxiliary_medium_remote_launch_assets_are_gated_and_path_safe():
     assert artifacts["monitor"] == str(monitor)
 
 
+def test_trail_family_seed1_confirmation_launcher_runs_readiness_gate():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_trail_family_r7_262k_seed1_gpu1_20260702.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_trail_family_r7_262k_seed1_gpu1_20260702.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "scripts\\check-remote-readiness" in launcher_text
+    assert "innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json" in launcher_text
+    assert "scripts\\spn-trail-family-matrix" in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "EXPECTED_ROWS=\"4\"" in monitor_text
+    assert "postprocess-trail-family" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+
+    artifacts = launch_artifacts(
+        Path("configs/remote/innovation1_spn_present_trail_family_r7_262k_seed1_gpu1_20260702.json")
+    )
+    assert artifacts["status"] == "pass"
+    assert artifacts["launcher"] == str(launcher)
+    assert artifacts["monitor"] == str(monitor)
+
+
 def test_active_auxiliary_seed1_confirmation_assets_are_ready_and_path_safe():
     plan = Path("configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed1.json")
     remote_config = Path(
