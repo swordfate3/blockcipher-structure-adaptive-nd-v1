@@ -491,3 +491,36 @@ needs_main_thread_intervention = false
 heartbeat = fresh
 note = first sync occurred before torch/git/progress artifacts were fully written; watcher remains responsible for later sync, retrieval, and postprocess
 ```
+
+## Retrieved Bit-Transition-Spectrum Result
+
+<!-- transition-spectrum-postprocess:i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702:start -->
+### i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702 Bit-Transition-Spectrum Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Transition-spectrum gate status | `pass` |
+| Decision | `stop_transition_spectrum_route` |
+| Action | `record_tied_or_negative_evidence_and_switch_hypothesis` |
+| Interpretation | `bit-transition-spectrum features do not beat the InvP anchor, calibration regresses, or the shuffled-P control matches/exceeds the true route; do not scale this route` |
+| Best candidate model | `bit_transition_spectrum_mlp` |
+| Best candidate AUC | `0.627718879841` |
+| Anchor AUC | `0.793651987187` |
+| Shuffled AUC | `0.535084816744` |
+| Require shuffled control | `True` |
+| Margin vs anchor AUC | `-0.165933107346` |
+| Margin vs shuffled AUC | `0.092634063098` |
+| Required margin | `0.001000000000` |
+| Claim scope | `bit-transition-spectrum diagnostic gate; not paper-scale, formal, or breakthrough evidence` |
+| Next action branch | `stop_transition_spectrum_route` |
+| Next steps | `Record this as tied or negative bit-transition-spectrum evidence.; Do not scale transition-spectrum as a main route.; Run the remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json; Launch configs/remote/innovation1_spn_present_trail_family_r7_262k_seed0_gpu1_20260702.json as the gated 262144/class trail-family seed0 fallback from the pushed commit.; Hand off monitoring and retrieval to a local tmux watcher or sub-agent.; Keep InvP-only and false-family controls in the trail-family matrix.` |
+| Results JSONL | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702.jsonl` |
+| Validation report | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_local_result_gate.json` |
+| Transition-spectrum gate | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_transition_spectrum_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702/i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_next_action_readiness.json` |
+<!-- transition-spectrum-postprocess:i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702:end -->
