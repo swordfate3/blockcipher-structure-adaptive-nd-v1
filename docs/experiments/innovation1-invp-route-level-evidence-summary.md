@@ -220,11 +220,11 @@ Current active extension:
 ```text
 run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
 status = running / local watcher-managed / no postprocess summary yet
-latest_bounded_check = 2026-07-03 17:36:29+08:00 watcher heartbeat, no failed markers
+latest_bounded_check = 2026-07-03 20:10:39+08:00 watcher heartbeat, no failed markers
 progress = trail-family feature cache phase; no training metrics yet
-progress_detail = negative-class cache generation for the linear trail-family row
-progress_percent = 327680 / 524288 total rows, 62.5%
-cache_rows_remaining = 196608 total rows
+progress_detail = validation negative-class cache generation for the linear trail-family row
+progress_percent = 98304 / 131072 validation rows, 75.0%
+cache_rows_remaining = 32768 validation rows
 latest_event = trail_family_negative_chunk
 results_jsonl = not yet present
 postprocess_allowed = false
@@ -321,7 +321,7 @@ breakthrough
 | Required margin | `0.001000000000` |
 | Next action branch | `route_level_attribution_summary` |
 | Historical next steps from artifact | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
-| Current branch note | DDT graph screening completed as weak diagnostic evidence; topology-aware network seed1 stopped the route because true-P graph did not beat InvP-only or shuffled-P controls; active method-extension is now watcher-managed candidate-trail seed0 `i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702`; do not launch seed1 or bit-transition-spectrum until seed0 is retrieved, validated, plan-aligned, and postprocessed |
+| Current branch note | DDT graph screening completed as weak diagnostic evidence; topology-aware network seed1 stopped the route because true-P graph did not beat InvP-only or shuffled-P controls; candidate-trail seed0 and bit-transition-spectrum seed0 have both stopped under their medium diagnostic gates; active method-extension is now watcher-managed trail-family seed0 `i1_trail_family_r7_262k_seed0_gpu1_20260702`; do not launch trail-family seed1, active-auxiliary seed0, S-box prior seed0, or another fallback until trail-family seed0 is retrieved, validated, plan-aligned, postprocessed, and gated |
 | Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
 | Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
 | Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |

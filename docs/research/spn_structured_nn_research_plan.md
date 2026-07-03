@@ -254,7 +254,7 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
 | p-aligned MCND | 1M 单 seed 弱正向，AUC 约 `+0.0007`，不足以证明结构融合明显有效 |
 | DDT graph | 262144/class seed0 和 seed1 均已 retrieved/validated/postprocessed，两个 seed 都是 `weak_ddt_graph_signal`；DDT prior 相对 no-DDT graph 的 AUC margin 约 `+0.00047` 和 `+0.00063`，低于 `+0.001` gate，因此暂不升到 1M |
 | topology-aware network | 262144/class seed0 为弱信号，seed1 已 retrieved/validated/postprocessed；seed1 gate 为 `stop_topology_aware_network_route`，true P-layer graph 没有超过 InvP-only 或 shuffled-P control，因此不扩大该架构 |
-| candidate-trail / transition consistency | 当前 active data-representation branch；`i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702` 已从 pushed commit 启动并由本地 tmux watcher 接管，测试 candidate-transition evidence 是否在同协议同尺度下超过 same-scale InvP-only anchor |
+| trail-family consistency | 当前 active data-representation branch；candidate-trail seed0 与 bit-transition-spectrum seed0 已在 262144/class 中等诊断 gate 下停止，当前 `i1_trail_family_r7_262k_seed0_gpu1_20260702` 已从 pushed commit 启动并由本地 tmux watcher 接管，测试 trail-family agreement / false-family control 是否在同协议同尺度下超过 same-scale InvP-only anchor |
 
 当前分叉规则：
 
@@ -271,23 +271,25 @@ controls。当前最强、最稳定的已完成证据不是 pair-consistency poo
   breakthrough / SOTA / formal route evidence / paper-ready proof。
 
 下一步：
-  等待 candidate-trail / transition consistency 262144/class seed0
-  watcher 拉回、validate、postprocess 和 gate。
+  等待 trail-family consistency 262144/class seed0 watcher 拉回、
+  validate、postprocess 和 gate。
 
-如果 candidate-trail seed0 为 support_candidate_trail_route：
+如果 trail-family seed0 为 support_trail_family_route：
   启动 262144/class seed1 confirmation，不直接跳到 1M。
 
-如果 candidate-trail seed0 为 weak_candidate_trail_signal：
-  启动 262144/class seed1 variance check，不做强 claim。
+如果 trail-family seed0 为 weak_trail_family_signal：
+  只有在它仍是当前最好的 SPN 结构适配假设时，启动 262144/class
+  seed1 variance check，不做强 claim。
 
-如果 candidate-trail seed0 为 stop_candidate_trail_route：
-  停止扩大当前 candidate-trail consistency 实现，转入下一条
-  SPN 结构适配假设，例如 bit-level transition spectrum、
-  trail-family consistency 或跨 cipher 的 GIFT/SKINNY 迁移验证。
+如果 trail-family seed0 为 stop_trail_family_route 或 tied/negative：
+  停止扩大当前 trail-family consistency 实现，转入已准备的
+  active-pattern auxiliary-head seed0；如果 active-auxiliary 也停止或
+  被明确降优先级，再进入 S-box transition prior gate seed0。
 
-如果 candidate-trail route 也 tied/negative：
-  再进入新的 SPN 结构适配假设，例如更强的 trail-family consistency、
-  transition-spectrum 特征或跨 cipher 的 GIFT/SKINNY 迁移验证。
+如果上述路线都 tied/negative：
+  转入新的 SPN 结构适配假设，例如 pair-set evidence pooling、
+  更强的 trail-family/pair-family representation，或跨 cipher 的
+  GIFT/SKINNY 迁移验证。
 ```
 
 下一代结构路线应聚焦：
