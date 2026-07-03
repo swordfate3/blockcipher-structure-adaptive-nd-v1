@@ -832,6 +832,8 @@ def test_sbox_transition_prior_gate_262k_seed0_assets_are_ready_and_deferred():
         assert task["early_stopping_patience"] == 8
         assert task["early_stopping_min_delta"] == 0.0001
         assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
+        if task["model_key"].startswith("present_nibble_invp_") and task["model_key"] != "present_nibble_invp_only_spn_only":
+            assert task["model_options"]["prior_feature_mode"] == "full_column"
 
     remote = Path(
         "configs/remote/"
@@ -883,6 +885,8 @@ def test_sbox_transition_prior_gate_262k_seed1_assets_are_ready_and_conditional(
         assert task["early_stopping_patience"] == 8
         assert task["early_stopping_min_delta"] == 0.0001
         assert "MEDIUM_DIAGNOSTIC" in task["matching_evidence"]
+        if task["model_key"].startswith("present_nibble_invp_") and task["model_key"] != "present_nibble_invp_only_spn_only":
+            assert task["model_options"]["prior_feature_mode"] == "full_column"
 
     remote = Path(
         "configs/remote/"
@@ -5524,6 +5528,30 @@ def test_remote_readiness_gate_rejects_bad_medium_scale_cache(tmp_path):
     assert report["status"] == "fail"
     assert any("dataset_cache must be true" in error for error in report["errors"])
     assert any("dataset_cache_root must stay under" in error for error in report["errors"])
+
+
+def test_remote_readiness_gate_rejects_sbox_prior_without_full_column_identity(tmp_path):
+    source_plan = Path(
+        "configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
+    )
+    bad_plan = tmp_path / "sbox_prior_missing_full_column.csv"
+    bad_plan.write_text(
+        source_plan.read_text(encoding="utf-8").replace(',""prior_feature_mode"":""full_column""', "", 1),
+        encoding="utf-8",
+    )
+    config = json.loads(
+        Path(
+            "configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+        ).read_text(encoding="utf-8")
+    )
+    config["plan"] = str(bad_plan)
+    config_path = tmp_path / "sbox_prior_missing_full_column_remote.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+
+    report = remote_readiness_report(config_path)
+
+    assert report["status"] == "fail"
+    assert any("prior_feature_mode=None expected=full_column" in error for error in report["errors"])
 
 
 def test_remote_readiness_gate_accepts_candidate_trail_json_plan(tmp_path):

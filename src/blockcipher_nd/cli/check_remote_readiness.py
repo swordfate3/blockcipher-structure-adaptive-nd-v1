@@ -530,6 +530,16 @@ def _sbox_prior_consistency(config: dict[str, Any], tasks: list[dict[str, Any]])
         errors.append(f"sbox_prior plan must include anchor, true prior, and controls: {sorted(planned_models)}")
     if tasks and len(tasks) != 4:
         errors.append(f"sbox_prior plan_rows={len(tasks)} expected=4")
+    for task in tasks:
+        model_key = _str_value(task.get("model_key"))
+        if model_key in required_models and model_key != "present_nibble_invp_only_spn_only":
+            options = task.get("model_options")
+            if not isinstance(options, dict) or options.get("prior_feature_mode") != "full_column":
+                errors.append(
+                    f"sbox_prior {model_key} prior_feature_mode="
+                    f"{options.get('prior_feature_mode') if isinstance(options, dict) else None} "
+                    "expected=full_column"
+                )
 
     cache_root = _str_value(config.get("dataset_cache_root"))
     if not cache_root:
