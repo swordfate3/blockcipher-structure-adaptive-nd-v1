@@ -607,6 +607,7 @@ def _trail_family_main_thread_policy(state: str) -> dict[str, Any]:
             ],
             "forbidden_until_gate": [
                 "launch trail-family seed1",
+                "launch active-auxiliary seed0",
                 "launch S-box transition prior seed0",
                 "make route-level or breakthrough claims",
             ],
@@ -623,6 +624,7 @@ def _trail_family_main_thread_policy(state: str) -> dict[str, Any]:
         ],
         "forbidden_until_gate": [
             "launch trail-family seed1",
+            "launch active-auxiliary seed0",
             "launch S-box transition prior seed0",
             "SSH-poll or tmux-loop from the main thread",
             "make route-level or breakthrough claims",

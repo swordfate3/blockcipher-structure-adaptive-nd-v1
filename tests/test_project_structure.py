@@ -8065,6 +8065,7 @@ def test_summarize_spn_evidence_tracks_running_trail_family(tmp_path):
     assert "monitor_i1_trail_family_seed0_20260702" in active["monitor_health_command"]
     assert "scripts/postprocess-trail-family" in active["postprocess_when_ready_command"]
     assert "launch trail-family seed1" in active["main_thread_policy"]["forbidden_until_gate"]
+    assert "launch active-auxiliary seed0" in active["main_thread_policy"]["forbidden_until_gate"]
     assert "launch S-box transition prior seed0" in active["main_thread_policy"]["forbidden_until_gate"]
 
 
