@@ -274,6 +274,50 @@ Before any meaningful remote launch:
 7. code/config/docs are committed and pushed.
 ```
 
+## Local Smoke Implementation
+
+Status as of 2026-07-03:
+
+```text
+implementation_status = local smoke runner implemented
+evidence_level = smoke only; no model-quality claim
+script = scripts/spn-active-auxiliary-matrix
+smoke_config = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_smoke.json
+```
+
+Implemented rows:
+
+| Row | Route | Role |
+|---:|---|---|
+| 0 | `present_nibble_invp_only_spn_only` | external anchor placeholder for matrix shape |
+| 1 | `present_nibble_invp_active_aux_spn_only` | true active-mask auxiliary target |
+| 2 | `present_nibble_invp_active_aux_shuffled_targets` | shuffled-target control |
+
+Verified local smoke command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/spn-active-auxiliary-matrix \
+  --config configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_smoke.json \
+  --output /tmp/i1_active_auxiliary_smoke.jsonl
+```
+
+Smoke output:
+
+```text
+3 JSONL rows emitted; candidate/control rows include auc, calibrated_accuracy,
+auxiliary_loss, and auxiliary_target fields.
+```
+
+Next before meaningful remote launch:
+
+```text
+1. Wait for i1_trail_family_r7_262k_seed0_gpu1_20260702 result and gate.
+2. Launch active-auxiliary only if trail-family gate selects stop/tied fallback
+   or the user explicitly chooses this route.
+3. Add medium-scale remote config with disk-backed cache/progress before any
+   262144/class run.
+```
+
 ## Claim Scope
 
 Allowed after a passing 262144/class seed0 gate:
@@ -294,4 +338,3 @@ SOTA
 
 This route can only become a main claim after at least `1000000/class`
 multi-seed, same-protocol, strict-negative, plan-aligned evidence.
-

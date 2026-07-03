@@ -55,6 +55,7 @@ from blockcipher_nd.cli import (
     spn_candidate_evidence_matrix,
     spn_transition_spectrum_matrix,
     spn_trail_family_matrix,
+    spn_active_auxiliary_matrix,
 )
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
 
@@ -1079,6 +1080,26 @@ def test_trail_family_smoke_config_preserves_official_protocol():
     ]
 
 
+def test_active_auxiliary_smoke_config_preserves_official_protocol():
+    config_path = Path("configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_smoke.json")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    assert config["run_id"] == "i1_active_auxiliary_smoke_20260703"
+    assert config["common"]["samples_per_class"] == 2
+    assert config["common"]["pairs_per_sample"] == 1
+    assert config["common"]["sample_structure"] == "zhang_wang_case2_official_mcnd"
+    assert config["common"]["negative_mode"] == "encrypted_random_plaintexts"
+    assert config["common"]["feature_route"] == "active_pattern_auxiliary_head"
+    assert config["common"]["validation_key"] == "0x11111111111111111111"
+    assert config["common"]["key_rotation_interval"] == 0
+    assert config["common"]["lambda_aux"] == 0.1
+    assert [row["model"] for row in config["rows"]] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_active_aux_spn_only",
+        "present_nibble_invp_active_aux_shuffled_targets",
+    ]
+
+
 def test_bit_transition_spectrum_smoke_config_preserves_official_protocol():
     config_path = Path(
         "configs/experiment/innovation1/innovation1_spn_present_bit_transition_spectrum_smoke.json"
@@ -1383,6 +1404,65 @@ def test_trail_family_matrix_outputs_anchor_and_candidate_rows(tmp_path):
     assert rows[3]["false_family"] is True
     assert rows[1]["auc"] == rows[1]["val_auc"]
     assert rows[2]["calibrated_accuracy"] == rows[2]["metrics"]["calibrated_accuracy"]
+
+
+def test_active_auxiliary_matrix_outputs_anchor_candidate_and_control_rows(tmp_path):
+    config = tmp_path / "active_auxiliary_matrix.json"
+    output = tmp_path / "active_auxiliary_matrix.jsonl"
+    config.write_text(
+        json.dumps(
+            {
+                "output": str(output),
+                "common": {
+                    "rounds": 7,
+                    "seed": 0,
+                    "samples_per_class": 2,
+                    "pairs_per_sample": 1,
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "train_key": "0x00000000000000000000",
+                    "validation_key": "0x11111111111111111111",
+                    "key_rotation_interval": 0,
+                    "epochs": 1,
+                    "learning_rate": 0.001,
+                    "lambda_aux": 0.1,
+                    "batch_size": 4,
+                    "hidden_bits": 4,
+                    "device": "cpu",
+                },
+                "rows": [
+                    {
+                        "row_type": "external_anchor",
+                        "model": "present_nibble_invp_only_spn_only",
+                        "anchor_auc": 0.52,
+                        "anchor_calibrated_accuracy": 0.5,
+                    },
+                    {"model": "present_nibble_invp_active_aux_spn_only"},
+                    {"model": "present_nibble_invp_active_aux_shuffled_targets"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spn_active_auxiliary_matrix.main(["--config", str(config)])
+
+    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    assert [row["model"] for row in rows] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_active_aux_spn_only",
+        "present_nibble_invp_active_aux_shuffled_targets",
+    ]
+    assert rows[0]["row_type"] == "external_anchor"
+    assert rows[1]["feature_route"] == "active_pattern_auxiliary_head"
+    assert rows[1]["auxiliary_target"] == "present_invp_active_mask"
+    assert rows[2]["auxiliary_target"] == "shuffled_present_invp_active_mask"
+    assert rows[2]["shuffled_auxiliary_targets"] is True
+    assert rows[1]["auc"] == rows[1]["val_auc"]
+    assert rows[1]["calibrated_accuracy"] == rows[1]["metrics"]["calibrated_accuracy"]
+    assert "auxiliary_loss" in rows[1]["metrics"]
 
 
 def test_present_pairset_aggregation_control_remote_launch_assets_are_stage_aware():
@@ -6651,6 +6731,52 @@ def test_active_pattern_auxiliary_head_plan_is_current_not_archived():
     assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
     assert "formal route evidence" in plan
     assert "Not allowed" in plan
+
+
+def test_present_invp_active_aux_model_exposes_main_and_auxiliary_heads():
+    model = build_model(
+        "present_nibble_invp_active_aux_spn_only",
+        input_bits=256,
+        hidden_bits=8,
+        pair_bits=128,
+        structure="spn",
+        model_options={"spn_mixer_depth": 1, "activation": "relu", "norm": "layernorm"},
+    )
+    features = torch.zeros((3, 256), dtype=torch.float32)
+    features[0, 0] = 1.0
+    features[0, 64] = 0.0
+    features[1, 128 + 7] = 1.0
+    features[1, 128 + 64 + 7] = 0.0
+
+    logits = model(features)
+    aux_logits = model.active_mask_logits(features)
+
+    assert logits.shape == (3, 1)
+    assert aux_logits.shape == (3, 2, 16)
+
+
+def test_present_invp_active_aux_targets_are_deterministic_and_shuffled_controlled():
+    from blockcipher_nd.features.spn_active_auxiliary import (
+        present_invp_active_mask_targets,
+        shuffled_active_mask_targets,
+    )
+
+    features = torch.zeros((4, 256), dtype=torch.float32)
+    features[0, 0] = 1.0
+    features[1, 16] = 1.0
+    features[2, 128 + 32] = 1.0
+    features[3, 128 + 64 + 48] = 1.0
+
+    targets = present_invp_active_mask_targets(features, pair_bits=128)
+    repeat = present_invp_active_mask_targets(features, pair_bits=128)
+    shuffled = shuffled_active_mask_targets(targets, seed=123)
+    shuffled_repeat = shuffled_active_mask_targets(targets, seed=123)
+
+    assert targets.shape == (4, 2, 16)
+    assert torch.equal(targets, repeat)
+    assert torch.equal(shuffled, shuffled_repeat)
+    assert int(shuffled.sum().item()) == int(targets.sum().item())
+    assert not torch.equal(shuffled, targets)
 
 
 def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):

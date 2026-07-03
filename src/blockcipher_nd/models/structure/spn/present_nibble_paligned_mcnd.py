@@ -256,6 +256,20 @@ class PresentNibbleInvPOnlySpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDist
         super().__init__(*args, **kwargs)
 
 
+class PresentNibbleInvPActiveAuxSpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
+    """InvP-only SPN model with an auxiliary active-cell prediction head."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["view_mode"] = "inv_p"
+        super().__init__(*args, **kwargs)
+        self.active_head = nn.Linear(self.spn_encoder.embedding_bits, 16)
+
+    def active_mask_logits(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+        return self.active_head(self.spn_encoder(features))
+
+
 class PresentNibbleShuffledPAlignedSpnOnlyDistinguisher(PresentNibblePAlignedSpnOnlyDistinguisher):
     """SPN-only attribution control with deterministic shuffled pseudo P alignment."""
 
@@ -1076,6 +1090,7 @@ __all__ = [
     "PresentNibblePAlignedSpnOnlyDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
+    "PresentNibbleInvPActiveAuxSpnOnlyDistinguisher",
     "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibblePAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",

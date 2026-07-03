@@ -1,0 +1,40 @@
+{
+  "run_id": "i1_active_auxiliary_smoke_20260703",
+  "description": "Tiny local smoke for Innovation 1 InvP active-pattern auxiliary-head route; verifies main+auxiliary training path and shuffled-target control only.",
+  "output": "outputs/local_smoke/i1_active_auxiliary_smoke_20260703/results.jsonl",
+  "common": {
+    "rounds": 7,
+    "seed": 0,
+    "samples_per_class": 2,
+    "pairs_per_sample": 1,
+    "negative_mode": "encrypted_random_plaintexts",
+    "sample_structure": "zhang_wang_case2_official_mcnd",
+    "difference_profile": "present_zhang_wang2022_mcnd",
+    "difference_member": 0,
+    "feature_route": "active_pattern_auxiliary_head",
+    "train_key": "0x00000000000000000000",
+    "validation_key": "0x11111111111111111111",
+    "key_rotation_interval": 0,
+    "epochs": 1,
+    "learning_rate": 0.001,
+    "lambda_aux": 0.1,
+    "batch_size": 4,
+    "hidden_bits": 4,
+    "spn_mixer_depth": 1,
+    "device": "cpu"
+  },
+  "rows": [
+    {
+      "row_type": "external_anchor",
+      "model": "present_nibble_invp_only_spn_only",
+      "anchor_auc": 0.5,
+      "anchor_calibrated_accuracy": 0.5
+    },
+    {
+      "model": "present_nibble_invp_active_aux_spn_only"
+    },
+    {
+      "model": "present_nibble_invp_active_aux_shuffled_targets"
+    }
+  ]
+}
