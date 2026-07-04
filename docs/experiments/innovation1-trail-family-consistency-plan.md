@@ -610,3 +610,36 @@ S-box transition prior    -> local S-box transition reliability gate over InvP c
 
 The useful paper direction is whichever route survives same-protocol scale,
 seed, and attribution gates most cleanly.
+
+## Retrieved Trail-Family Result
+
+<!-- trail-family-postprocess:i1_trail_family_r7_262k_seed0_gpu1_20260702:start -->
+### i1_trail_family_r7_262k_seed0_gpu1_20260702 Trail-Family Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_trail_family_r7_262k_seed0_gpu1_20260702` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Trail-family gate status | `pass` |
+| Decision | `stop_trail_family_route` |
+| Action | `record_tied_or_negative_evidence_and_switch_hypothesis` |
+| Interpretation | `trail-family features do not beat the InvP anchor, calibration regresses, or the false-family control matches/exceeds the true route; do not scale this route` |
+| Best candidate model | `trail_family_consistency_mlp` |
+| Best candidate AUC | `0.697954762145` |
+| Anchor AUC | `0.793651987187` |
+| False-family AUC | `0.697539735469` |
+| Require false-family control | `True` |
+| Margin vs anchor AUC | `-0.095697225042` |
+| Margin vs false-family AUC | `0.000415026676` |
+| Required margin | `0.001000000000` |
+| Claim scope | `trail-family diagnostic gate; not paper-scale, formal, or breakthrough evidence` |
+| Next action branch | `stop_trail_family_route` |
+| Next steps | `Record this as tied or negative trail-family evidence.; Do not scale trail-family as a main route.; Run the active-pattern auxiliary remote readiness gate: UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json; Launch active-pattern auxiliary seed0 configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json from the pushed commit.; Hand off monitoring and retrieval to a local tmux watcher or sub-agent.; Treat active-pattern auxiliary supervision as medium diagnostic evidence, not formal route evidence.` |
+| Results JSONL | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/results/i1_trail_family_r7_262k_seed0_gpu1_20260702.jsonl` |
+| Validation report | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/i1_trail_family_r7_262k_seed0_gpu1_20260702_local_result_gate.json` |
+| Trail-family gate | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/i1_trail_family_r7_262k_seed0_gpu1_20260702_trail_family_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_trail_family_r7_262k_seed0_gpu1_20260702/i1_trail_family_r7_262k_seed0_gpu1_20260702_next_action_readiness.json` |
+<!-- trail-family-postprocess:i1_trail_family_r7_262k_seed0_gpu1_20260702:end -->
