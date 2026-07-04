@@ -408,11 +408,21 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
                 "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
                 "main_thread_policy": _active_auxiliary_main_thread_policy("postprocess"),
             }
-        if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
-            "running" in line for line in recent_lines
-        ):
+        active_statuses = {
+            "running",
+            "stale_monitor",
+            "launch_stalled",
+            "remote_artifacts_missing",
+            "unknown",
+        }
+        if health["status"] in active_statuses and any("running" in line for line in recent_lines):
+            branch = (
+                "diagnose_active_auxiliary_launch"
+                if health["needs_main_thread_intervention"]
+                else "wait_for_active_auxiliary_result"
+            )
             return {
-                "branch": "wait_for_active_auxiliary_result",
+                "branch": branch,
                 "run_id": run_root.name,
                 "status": health["status"],
                 "should_launch_remote": False,

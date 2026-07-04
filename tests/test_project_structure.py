@@ -8568,6 +8568,53 @@ def test_summarize_spn_evidence_tracks_running_active_auxiliary_after_trail_fami
     assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
 
 
+def test_summarize_spn_evidence_keeps_active_auxiliary_when_remote_artifacts_missing(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    active = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    transition.mkdir(parents=True)
+    (active / "monitor").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    (active / "monitor" / "monitor.log").write_text(
+        "2026-07-04T09:42:37+08:00 sync\n"
+        "2026-07-04T09:42:38+08:00 running\n"
+        "2026-07-04T09:56:52+08:00 sync\n"
+        "2026-07-04T09:56:53+08:00 running\n",
+        encoding="utf-8",
+    )
+    (active / "monitor" / "scp_stderr.log").write_text(
+        "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/"
+        "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703/logs: No such file or directory\n"
+        "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/"
+        "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703/results: No such file or directory\n"
+        "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/"
+        "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703/logs: No such file or directory\n"
+        "scp: G:/lxy/blockcipher-structure-adaptive-nd-runs/"
+        "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703/results: No such file or directory\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "diagnose_active_auxiliary_launch"
+    assert recommendation["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    assert recommendation["status"] == "remote_artifacts_missing"
+    assert recommendation["needs_main_thread_intervention"] is True
+    assert recommendation["should_launch_remote"] is False
+    assert recommendation["conditional_followup"]["fallback_if_stop"] == "sbox_transition_prior_gate_seed0"
+    assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+
+
 def test_zhang_wang_official_anchor_plan_generates_dataset():
     plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
     args = parse_args(["--plan", plan])
