@@ -1,7 +1,7 @@
 # Innovation 1 S-box Transition Prior Gate Plan
 
-**Status:** planned next architecture/data-representation route / do not launch
-while trail-family seed0 is running.
+**Status:** prepared fallback architecture/data-representation route / do not
+launch while active-auxiliary seed0 is running or ungated.
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives.
@@ -42,7 +42,8 @@ Candidate-trail and bit-transition spectrum:
   stopped as standalone compressed feature routes.
 
 Trail-family:
-  currently running as the active data-representation branch.
+  stopped as a medium diagnostic route; active-auxiliary seed0 is now the
+  watcher-managed active branch.
 ```
 
 Interpretation:
@@ -68,13 +69,22 @@ S-box transition prior = extra flat feature only
 
 ## Trigger
 
-Do not launch this route while:
+Historical pre-launch rule:
 
 ```text
 i1_trail_family_r7_262k_seed0_gpu1_20260702
 ```
 
-is running or not yet postprocessed.
+had to be retrieved, validated, postprocessed, and gated before this route could
+start.
+
+Current launch rule:
+
+```text
+Do not launch while i1_active_auxiliary_r7_262k_seed0_gpu1_20260703 is running,
+not yet retrieved, or not yet gated. If active-auxiliary seed0 gates stop/tied/
+negative, this S-box transition prior gate seed0 route is the prepared fallback.
+```
 
 This plan becomes actionable only if one of these is true:
 
@@ -86,7 +96,8 @@ This plan becomes actionable only if one of these is true:
    single-pair score aggregation, so the next useful innovation must change
    local cell evidence weighting rather than pair-set pooling.
 
-3. User explicitly selects the S-box transition prior gate route.
+3. User explicitly selects the S-box transition prior gate route after
+   acknowledging that active-auxiliary seed0 is still incomplete.
 ```
 
 If trail-family gates support/weak-positive, run its seed1 confirmation first.
@@ -329,7 +340,7 @@ implemented_model_aliases =
   present_nibble_invp_sbox_prior_gate
   present_nibble_invp_no_ddt_gate
   present_nibble_invp_shuffled_sbox_prior_gate
-remote_config_status = prepared but deferred; do not launch while trail-family is running
+remote_config_status = prepared but deferred; do not launch while active-auxiliary seed0 is running or ungated
 ```
 
 Implemented local controls:
@@ -357,10 +368,11 @@ Prepared medium seed0 matrix:
 Prepared launch rule:
 
 ```text
-Do not launch while i1_trail_family_r7_262k_seed0_gpu1_20260702 is still
-running. If trail-family gates stop/tied/negative, or the user explicitly
-selects this route, run readiness from the pushed commit and launch via the
-generated cmd + local tmux watcher handoff.
+Do not launch while i1_active_auxiliary_r7_262k_seed0_gpu1_20260703 is still
+running or ungated. If active-auxiliary gates stop/tied/negative, or the user
+explicitly selects this route despite the active-auxiliary incomplete state, run
+readiness from the pushed commit and launch via the generated cmd + local tmux
+watcher handoff.
 ```
 
 Prepared seed1 confirmation rule:

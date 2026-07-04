@@ -1,6 +1,6 @@
 # Innovation 1 Active-Pattern Auxiliary Head Plan
 
-**Status:** prepared next-hypothesis plan / do not launch while trail-family seed0 is running
+**Status:** launched / watcher-managed medium diagnostic seed0
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict encrypted-random-plaintext negatives.
 
@@ -46,15 +46,23 @@ metric computation, checkpoint metric, or scale to make this look better.
 
 ## Trigger
 
-Do not launch this route while:
+Historical pre-launch rule:
 
 ```text
 i1_trail_family_r7_262k_seed0_gpu1_20260702
 ```
 
-is running or not yet postprocessed.
+had to be retrieved, validated, postprocessed, and gated before this route could
+start.
 
-This plan becomes actionable only if one of these is true:
+That trigger has now fired:
+
+```text
+trail-family seed0 decision = stop_trail_family_route
+active-auxiliary seed0 status = launched / watcher_handoff
+```
+
+This plan became actionable because one of these became true:
 
 ```text
 1. trail-family seed0 gates to stop/tied/negative and pair-set aggregation is
@@ -344,14 +352,15 @@ asset-generation step. If seed0 stops, postprocess points to the prepared
 S-box transition prior gate seed0 remote config rather than requiring a new
 route-design step.
 
-Next before meaningful remote launch:
+Current next action after launch:
 
 ```text
-1. Wait for i1_trail_family_r7_262k_seed0_gpu1_20260702 result and gate.
-2. Launch active-auxiliary only if trail-family gate selects stop/tied fallback
-   or the user explicitly chooses this route.
-3. Before any actual remote launch, run remote readiness/artifact checks from
-   the pushed commit and start a local tmux watcher/sub-agent for retrieval.
+1. Wait for the local watcher/sub-agent to retrieve active-auxiliary seed0.
+2. Do not launch active-auxiliary seed1 until seed0 is retrieved, validated,
+   plan-aligned, postprocessed, and gated as support/weak.
+3. If seed0 stops or ties, switch to the prepared S-box transition prior gate
+   seed0 route after readiness refresh from the pushed commit.
+4. Do not treat the 262144/class seed0 result as formal evidence.
 ```
 
 ## Claim Scope
