@@ -206,6 +206,53 @@ def test_present_nibble_paligned_mcnd_262k_scalecheck_plan_is_same_budget_diagno
         assert "MEDIUM 262144/class diagnostic" in task["matching_evidence"]
 
 
+def test_present_r8_round_extension_plan_preserves_strict_protocol():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_round_extension_r8_262k_seed0.csv"
+    )
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["train_key"] == 0
+        assert task["validation_key"] == int("11111111111111111111", 16)
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM 262144/class r8 round-extension diagnostic" in task["matching_evidence"]
+
+
+def test_present_r8_round_extension_remote_readiness_assets_pass():
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_round_extension_r8_262k_seed0_gpu0_20260704.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 3
+    assert readiness["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
+
+
 def test_present_n1v2_262k_structure_ablation_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_n1v2_structure_ablation_r7_262k.csv"
     args = parse_args(["--plan", plan])
