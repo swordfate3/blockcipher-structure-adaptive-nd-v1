@@ -1,15 +1,16 @@
 # Innovation 1 S-box Transition Prior Gate Plan
 
-**Status:** prepared fallback architecture/data-representation route / do not
-launch while active-auxiliary seed0 is running or ungated.
+**Status:** seed0 launched / watcher-managed running / waiting for retrieved
+results before any seed1 or replacement route.
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives.
 
 This is a current experiment plan under `docs/experiments/`, not a historical
-agent plan. It exists so that if trail-family and pair-set controls do not
-produce a clean next route, the project has a sharper SPN-specific hypothesis
-than "try another generic graph network."
+agent plan. The route has moved from prepared fallback to the active
+watcher-managed seed0 diagnostic run after active-auxiliary gated stop. Do not
+launch seed1 or any replacement SPN route until seed0 is retrieved, validated,
+postprocessed, and gated.
 
 ## Research Question
 
@@ -319,12 +320,12 @@ shuffled controls, update this plan, and emit a next-action readiness report.
 
 ## Implementation Status
 
-Status as of 2026-07-03:
+Status as of 2026-07-04:
 
 ```text
 implementation_status = local model aliases, smoke config, gate/postprocess,
-  and 262144/class seed0 remote assets implemented
-evidence_level = smoke only; no model-quality claim
+  and 262144/class seed0 remote assets implemented; seed0 launched and running
+evidence_level = launched medium diagnostic only; no result-quality claim yet
 smoke_config = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_smoke.csv
 medium_seed0_plan = configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv
 medium_seed0_remote_config = configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json
@@ -340,7 +341,9 @@ implemented_model_aliases =
   present_nibble_invp_sbox_prior_gate
   present_nibble_invp_no_ddt_gate
   present_nibble_invp_shuffled_sbox_prior_gate
-remote_config_status = prepared but deferred; do not launch while active-auxiliary seed0 is running or ungated
+remote_config_status = seed0 launched after active-auxiliary retry1 gated stop
+watcher_status = local watcher is responsible for retrieval/postprocess handoff
+main_thread_policy = wait for postprocess_allowed; no SSH/tmux polling loop
 ```
 
 Implemented local controls:
@@ -368,11 +371,11 @@ Prepared medium seed0 matrix:
 Prepared launch rule:
 
 ```text
-Do not launch while i1_active_auxiliary_r7_262k_seed0_gpu1_20260703 is still
-running or ungated. If active-auxiliary gates stop/tied/negative, or the user
-explicitly selects this route despite the active-auxiliary incomplete state, run
-readiness from the pushed commit and launch via the generated cmd + local tmux
-watcher handoff.
+Seed0 launch condition has already been satisfied because active-auxiliary
+retry1 was retrieved, validated, postprocessed, and gated
+stop_active_auxiliary_route. Do not relaunch seed0 unless monitor-health or the
+result gate records a concrete failure. Do not launch seed1 until the current
+seed0 result is retrieved, validated, plan-aligned, and gated.
 ```
 
 Prepared seed1 confirmation rule:
@@ -509,4 +512,29 @@ Watcher owns synchronization, result retrieval, and postprocess.
 Do not SSH-poll or tmux-loop from the main thread while heartbeat remains fresh
 and monitor-health does not request intervention. Next action after result ready
 is postprocess-sbox-prior, automatic plan update, scoped commit, and push.
+```
+
+Latest bounded local monitor-health check:
+
+```text
+checked_at = 2026-07-04 20:55:17 +0800
+status = running
+needs_main_thread_intervention = false
+postprocess_allowed = false
+results_jsonl_exists = true
+results_jsonl_line_count = 0
+done_markers = none
+failed_markers = none
+heartbeat.is_stale = false
+launch_state = launch_progress_observed
+stage = dataset_cache
+current_row = 1 / 4
+current_model = present_nibble_invp_only_spn_only
+cache_total_rows = 524288
+cache_rows_done = 425984
+cache_total_progress_percent = 81.25
+cache_rows_remaining = 98304
+cache_rows_per_second = 603.584
+claim_scope = running medium diagnostic only; no metric or route decision yet
+next_action = wait for watcher retrieval; postprocess only after expected 4 result rows
 ```
