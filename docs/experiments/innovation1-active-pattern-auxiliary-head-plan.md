@@ -548,3 +548,53 @@ claim_scope = failed launch/run artifact state; no model-quality metric
 gate_decision = no gate, no postprocess, no seed1, no S-box prior launch from this result
 required_next_action = main-thread bounded diagnosis or repair plan, because monitor-health explicitly requested intervention
 ```
+
+### Stale Failed-Marker Correction: 2026-07-04 10:22 +0800
+
+```text
+corrected_status = running
+claim_scope = still no model-quality metric
+root_cause = stale failed marker from the foreground diagnostic/repair phase
+```
+
+Bounded remote diagnosis showed that the `failed.marker` was not the final state
+of the repaired background run:
+
+```text
+failed_marker_mtime = 2026-07-04 10:05 +0800
+remote_progress_mtime = 2026-07-04 10:18 +0800
+remote_python_process = python.exe PID 47268 still running planned spn-active-auxiliary-matrix command
+stdout_log = empty
+stderr_log = empty
+```
+
+The local watcher had stopped at 10:11 because it treated any pulled
+`failed.marker` as terminal, even though the repaired background process kept
+updating `active_auxiliary_progress.jsonl`. This was a monitor/tooling failure,
+not active-auxiliary model evidence.
+
+Repair:
+
+```text
+1. Updated monitor-health to report stale_failed_markers when progress/heartbeat
+   proves a later run is still active.
+2. Updated the active-auxiliary seed0/seed1 watcher scripts to ignore a failed
+   marker that is older than the active progress file.
+3. Restarted only the local watcher; the remote training process was not
+   restarted or modified.
+```
+
+Post-repair bounded status:
+
+```text
+status = running
+needs_main_thread_intervention = false
+stale_failed_markers = logs/i1_active_auxiliary_r7_262k_seed0_gpu1_20260703_failed.marker
+latest_event = active_auxiliary_positive_chunk
+split = train
+class_rows_done = 139264 / 262144
+cache_class_progress_percent = 53.125
+results_jsonl_exists = false
+postprocess_allowed = false
+main_thread_policy = watcher/sub-agent continues retrieval; no seed1 or S-box prior until seed0 result is retrieved and gated
+```
