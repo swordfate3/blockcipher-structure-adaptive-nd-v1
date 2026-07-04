@@ -58,6 +58,7 @@ from blockcipher_nd.tasks.innovation1.spn_transition_spectrum import (
 from blockcipher_nd.tasks.innovation1.spn_trail_family import make_trail_family_dataset
 from blockcipher_nd.tasks.innovation1.spn_active_auxiliary import (
     _evaluate_active_aux_model,
+    _train_active_aux_model,
     make_active_auxiliary_dataset,
 )
 from blockcipher_nd.cli import (
@@ -1709,6 +1710,47 @@ def test_active_auxiliary_evaluation_uses_bounded_batches():
     assert aux_loss >= 0.0
     assert model.forward_batch_sizes == [2, 2, 1]
     assert model.aux_batch_sizes == [2, 2, 1]
+
+
+def test_active_auxiliary_training_writes_epoch_progress(tmp_path):
+    progress_path = tmp_path / "active_auxiliary_train_progress.jsonl"
+    features = np.zeros((6, 256), dtype=np.float32)
+    labels = np.array([0, 1, 0, 1, 0, 1], dtype=np.uint8)
+
+    _model, aux_loss = _train_active_aux_model(
+        features,
+        labels,
+        model_name="present_nibble_invp_active_aux_spn_only",
+        hidden_bits=4,
+        spn_mixer_depth=1,
+        epochs=2,
+        learning_rate=0.001,
+        lambda_aux=0.1,
+        batch_size=2,
+        shuffled_targets=False,
+        seed=17,
+        device=torch.device("cpu"),
+        progress_output=progress_path,
+    )
+
+    records = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    assert aux_loss >= 0.0
+    assert records[0]["event"] == "active_auxiliary_train_start"
+    assert records[0]["train_rows"] == 6
+    train_batches = [record for record in records if record["event"] == "train_batch"]
+    assert train_batches
+    assert train_batches[-1]["model"] == "present_nibble_invp_active_aux_spn_only"
+    assert train_batches[-1]["epoch"] == 2
+    assert train_batches[-1]["epochs"] == 2
+    assert train_batches[-1]["step"] == 3
+    assert train_batches[-1]["steps_per_epoch"] == 3
+    assert train_batches[-1]["train_rows_seen"] == 6
+    assert train_batches[-1]["train_rows"] == 6
+    assert train_batches[-1]["train_rows_progress_percent"] == pytest.approx(100.0)
+    epoch_events = [record for record in records if record["event"] == "active_auxiliary_epoch_end"]
+    assert epoch_events[-1]["epoch"] == 2
+    assert "train_loss" in epoch_events[-1]
+    assert "auxiliary_loss" in epoch_events[-1]
 
 
 def test_trail_family_matrix_outputs_anchor_and_candidate_rows(tmp_path):

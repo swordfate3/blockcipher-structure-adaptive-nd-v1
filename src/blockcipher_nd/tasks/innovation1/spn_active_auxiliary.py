@@ -26,6 +26,7 @@ from blockcipher_nd.tasks.innovation1.spn_candidate.baseline import (
     binary_auc,
     calibrated_binary_accuracy,
 )
+from blockcipher_nd.training.trainer import should_report_step
 
 
 DEFAULT_DIFFERENCE_PROFILE = "present_zhang_wang2022_mcnd"
@@ -166,6 +167,7 @@ def run_active_auxiliary(args: argparse.Namespace) -> dict[str, object]:
         shuffled_targets=shuffled_targets,
         seed=args.seed,
         device=device,
+        progress_output=args.progress_output,
     )
     logits, validation_aux_loss = _evaluate_active_aux_model(
         model,
@@ -500,6 +502,7 @@ def _train_active_aux_model(
     shuffled_targets: bool,
     seed: int,
     device: torch.device,
+    progress_output: Path | None = None,
 ) -> tuple[torch.nn.Module, float]:
     torch.manual_seed(seed)
     model = build_model(
@@ -517,9 +520,26 @@ def _train_active_aux_model(
     main_loss_fn = torch.nn.BCEWithLogitsLoss()
     aux_loss_fn = torch.nn.BCEWithLogitsLoss()
     last_aux_loss = 0.0
-    for _epoch in range(epochs):
-        for batch_start in range(0, x.shape[0], max(1, batch_size)):
-            batch_end = min(x.shape[0], batch_start + max(1, batch_size))
+    max_batch = max(1, batch_size)
+    steps_per_epoch = max(1, (int(x.shape[0]) + max_batch - 1) // max_batch)
+    train_rows = int(x.shape[0])
+    _write_progress(
+        progress_output,
+        "active_auxiliary_train_start",
+        {
+            "model": model_name,
+            "epochs": int(epochs),
+            "steps_per_epoch": steps_per_epoch,
+            "train_rows": train_rows,
+            "batch_size": max_batch,
+        },
+    )
+    for epoch in range(1, epochs + 1):
+        total_loss = 0.0
+        total_aux_loss = 0.0
+        total_seen = 0
+        for step, batch_start in enumerate(range(0, x.shape[0], max_batch), start=1):
+            batch_end = min(x.shape[0], batch_start + max_batch)
             batch_x = x[batch_start:batch_end]
             batch_y = y[batch_start:batch_end]
             batch_aux = aux_targets[batch_start:batch_end]
@@ -530,6 +550,40 @@ def _train_active_aux_model(
             loss.backward()
             optimizer.step()
             last_aux_loss = float(aux_loss.detach().cpu().item())
+            batch_rows = int(batch_end - batch_start)
+            total_loss += float(loss.detach().cpu().item()) * batch_rows
+            total_aux_loss += last_aux_loss * batch_rows
+            total_seen += batch_rows
+            if should_report_step(step, steps_per_epoch):
+                _write_progress(
+                    progress_output,
+                    "train_batch",
+                    {
+                        "stage": "training",
+                        "model": model_name,
+                        "epoch": epoch,
+                        "epochs": int(epochs),
+                        "step": step,
+                        "steps_per_epoch": steps_per_epoch,
+                        "train_rows_seen": total_seen,
+                        "train_rows": train_rows,
+                        "train_loss": total_loss / max(1, total_seen),
+                        "auxiliary_loss": total_aux_loss / max(1, total_seen),
+                        "train_rows_progress_percent": 100.0 * total_seen / max(1, train_rows),
+                    },
+                )
+        _write_progress(
+            progress_output,
+            "active_auxiliary_epoch_end",
+            {
+                "model": model_name,
+                "epoch": epoch,
+                "epochs": int(epochs),
+                "train_rows": train_rows,
+                "train_loss": total_loss / max(1, total_seen),
+                "auxiliary_loss": total_aux_loss / max(1, total_seen),
+            },
+        )
     return model, last_aux_loss
 
 
