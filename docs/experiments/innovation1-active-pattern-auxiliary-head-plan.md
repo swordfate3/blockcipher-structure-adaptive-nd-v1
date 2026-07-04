@@ -734,3 +734,36 @@ postprocess_allowed = false
 artifact_status = git/gpu/torch logs synced; progress file not yet created at first check
 main_thread_policy = watcher owns retrieval and postprocess; do not SSH/tmux-loop
 ```
+
+## Retrieved Active-Auxiliary Result
+
+<!-- active-auxiliary-postprocess:i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704:start -->
+### i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704 Active-Auxiliary Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Active-auxiliary gate status | `pass` |
+| Decision | `stop_active_auxiliary_route` |
+| Action | `record_tied_or_negative_evidence_and_switch_hypothesis` |
+| Interpretation | `active-pattern auxiliary supervision does not beat the InvP anchor, calibration regresses, or the shuffled-target control matches/exceeds the true route; do not scale this route` |
+| Candidate model | `present_nibble_invp_active_aux_spn_only` |
+| Candidate AUC | `0.786112642265` |
+| Anchor AUC | `0.793651987187` |
+| Shuffled-control AUC | `0.784347117180` |
+| Require shuffled control | `True` |
+| Margin vs anchor AUC | `-0.007539344922` |
+| Margin vs shuffled AUC | `0.001765525085` |
+| Required margin | `0.001000000000` |
+| Claim scope | `active-pattern auxiliary diagnostic gate; not paper-scale, formal, or breakthrough evidence` |
+| Next action branch | `sbox_transition_prior_gate_seed0` |
+| Next steps | `Record this as tied or negative active-auxiliary evidence.; Do not scale active-pattern auxiliary supervision as a main route.; Switch to the prepared S-box transition prior gate seed0 route.; Run local readiness, then commit and push any documentation updates before remote launch.; Launch only from a pushed commit and hand off monitoring to a local tmux watcher or sub-agent.` |
+| Results JSONL | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.jsonl` |
+| Validation report | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_local_result_gate.json` |
+| Active-auxiliary gate | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_active_auxiliary_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_next_action_readiness.json` |
+<!-- active-auxiliary-postprocess:i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704:end -->
