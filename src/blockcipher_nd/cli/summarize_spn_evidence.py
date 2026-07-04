@@ -248,6 +248,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     trail_family_running = _trail_family_running(root)
     if trail_family_running is not None:
         return trail_family_running
+    active_auxiliary_running = _active_auxiliary_running(root)
+    if active_auxiliary_running is not None:
+        return active_auxiliary_running
     transition_summaries = [
         route for route in routes if _is_transition_spectrum_decision(str(route["decision"] or ""))
     ]
@@ -375,6 +378,59 @@ def _trail_family_running(root: Path) -> dict[str, Any] | None:
     return None
 
 
+def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
+    for run_root in sorted(root.glob("i1_active_auxiliary*")):
+        summaries = list(run_root.glob("*_postprocess_summary.json"))
+        if summaries:
+            continue
+        monitor_log = run_root / "monitor" / "monitor.log"
+        recent_lines = _tail_lines(monitor_log, 8)
+        health = _active_auxiliary_monitor_health(root, run_root.name)
+        if health["postprocess_allowed"]:
+            return {
+                "branch": "postprocess_active_auxiliary_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "active-auxiliary results are ready locally and need postprocess before branch decisions",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": True,
+                "postprocess_command": health["postprocess_command"],
+                "results_jsonl": health["results_jsonl"],
+                "results_jsonl_line_count": health["results_jsonl_line_count"],
+                "expected_rows": health["expected_rows"],
+                "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _active_auxiliary_conditional_followup(),
+                "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
+                "main_thread_policy": _active_auxiliary_main_thread_policy("postprocess"),
+            }
+        if health["status"] in {"running", "stale_monitor", "launch_stalled", "unknown"} and any(
+            "running" in line for line in recent_lines
+        ):
+            return {
+                "branch": "wait_for_active_auxiliary_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "active-auxiliary run has monitor activity but no postprocess summary yet",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": health["postprocess_allowed"],
+                "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _active_auxiliary_conditional_followup(),
+                "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
+                "main_thread_policy": _active_auxiliary_main_thread_policy("waiting"),
+            }
+    return None
+
+
 def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
     plan_path = _candidate_plan_path(run_id)
     return monitor_health_report(
@@ -397,6 +453,18 @@ def _trail_family_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
         plan_doc_paths=[Path("docs/experiments/innovation1-trail-family-consistency-plan.md")],
         expected_rows=4,
         postprocess_kind="trail_family",
+    )
+
+
+def _active_auxiliary_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=run_id,
+        root=root,
+        tmux_session=_active_auxiliary_tmux_session(run_id),
+        plan_path=_active_auxiliary_plan_path(run_id),
+        plan_doc_paths=[Path("docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md")],
+        expected_rows=3,
+        postprocess_kind="active_auxiliary",
     )
 
 
@@ -474,6 +542,17 @@ def _trail_family_monitor_health_command(run_id: str) -> str:
     )
 
 
+def _active_auxiliary_monitor_health_command(run_id: str) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {run_id} "
+        f"--tmux-session {_active_auxiliary_tmux_session(run_id)} "
+        f"--plan {_active_auxiliary_plan_path(run_id)} "
+        "--plan-doc docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md "
+        "--expected-rows 3 --postprocess-kind active_auxiliary"
+    )
+
+
 def _trail_family_postprocess_command(run_root: Path) -> str:
     run_id = run_root.name
     return (
@@ -484,6 +563,19 @@ def _trail_family_postprocess_command(run_root: Path) -> str:
         f"--plan {_trail_family_plan_path(run_id)} "
         "--expected-rows 4 "
         "--update-plan-doc docs/experiments/innovation1-trail-family-consistency-plan.md"
+    )
+
+
+def _active_auxiliary_postprocess_command(run_root: Path) -> str:
+    run_id = run_root.name
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-active-auxiliary "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        f"--plan {_active_auxiliary_plan_path(run_id)} "
+        "--expected-rows 3 "
+        "--update-plan-doc docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
     )
 
 
@@ -516,6 +608,30 @@ def _trail_family_conditional_followup() -> dict[str, Any]:
         "should_launch_now": False,
         "fallback_if_stop": "active_auxiliary_seed0",
         "fallback_after_active_auxiliary_stop": "sbox_transition_prior_gate_seed0",
+    }
+
+
+def _active_auxiliary_conditional_followup() -> dict[str, Any]:
+    seed1_config = Path(
+        "configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed1_gpu1_20260703.json"
+    )
+    fallback_config = Path(
+        "configs/remote/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0_gpu1_20260703.json"
+    )
+    seed1_readiness = _remote_readiness(seed1_config)
+    fallback_readiness = _remote_readiness(fallback_config)
+    return {
+        "branch": "active_auxiliary_seed1_confirmation_or_sbox_prior_fallback",
+        "run_id": "i1_active_auxiliary_r7_262k_seed1_gpu1_20260703",
+        "launch_remote_config": str(seed1_config),
+        "launch_gate": "support_active_auxiliary_route or weak_active_auxiliary_signal",
+        "readiness_pass": seed1_readiness.get("status") == "pass",
+        "readiness": seed1_readiness,
+        "should_launch_now": False,
+        "fallback_if_stop": "sbox_transition_prior_gate_seed0",
+        "fallback_run_id": "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703",
+        "fallback_remote_config": str(fallback_config),
+        "fallback_readiness_status": str(fallback_readiness.get("status", "unknown")),
     }
 
 
@@ -651,6 +767,41 @@ def _trail_family_main_thread_policy(state: str) -> dict[str, Any]:
     }
 
 
+def _active_auxiliary_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run the listed postprocess_when_ready_command",
+                "validate gate artifacts and update docs/experiments",
+                "commit and push postprocess documentation before following the gated branch",
+            ],
+            "forbidden_until_gate": [
+                "launch active-auxiliary seed1",
+                "launch S-box transition prior seed0",
+                "make route-level or breakthrough claims",
+            ],
+            "gate_condition": (
+                "postprocess summary exists, validates against the plan, and emits a decision "
+                "such as support_active_auxiliary_route, weak_active_auxiliary_signal, or "
+                "stop_active_auxiliary_route"
+            ),
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "improve local planning, readiness, or postprocess tooling without changing the active run",
+            "wait for the watcher or sub-agent to retrieve result artifacts",
+        ],
+        "forbidden_until_gate": [
+            "launch active-auxiliary seed1",
+            "launch S-box transition prior seed0",
+            "SSH-poll or tmux-loop from the main thread",
+            "make route-level or breakthrough claims",
+        ],
+        "gate_condition": "watcher retrieves the expected active-auxiliary JSONL rows and postprocess_allowed becomes true",
+    }
+
+
 def _trail_family_plan_path(run_id: str) -> Path:
     seed = "seed1" if "_seed1_" in run_id else "seed0"
     return Path(
@@ -662,6 +813,19 @@ def _trail_family_plan_path(run_id: str) -> Path:
 def _trail_family_tmux_session(run_id: str) -> str:
     seed = "seed1" if "_seed1_" in run_id else "seed0"
     return f"monitor_i1_trail_family_{seed}_20260702"
+
+
+def _active_auxiliary_plan_path(run_id: str) -> Path:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return Path(
+        "configs/experiment/innovation1/"
+        f"innovation1_spn_present_active_auxiliary_r7_262k_{seed}.json"
+    )
+
+
+def _active_auxiliary_tmux_session(run_id: str) -> str:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return f"monitor_i1_active_auxiliary_{seed}_20260703"
 
 
 def _candidate_plan_path(run_id: str) -> Path:

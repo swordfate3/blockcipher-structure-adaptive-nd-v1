@@ -8502,6 +8502,72 @@ def test_summarize_spn_evidence_lists_deferred_candidates_while_trail_family_run
     ]
 
 
+def test_summarize_spn_evidence_tracks_running_active_auxiliary_after_trail_family_stop(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    active = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    transition.mkdir(parents=True)
+    trail.mkdir(parents=True)
+    (active / "monitor").mkdir(parents=True)
+    (active / "logs").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    _write_test_json(
+        trail / "i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_trail_family_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_trail_family_route",
+            "claim_scope": "trail-family medium diagnostic gate",
+        },
+    )
+    (active / "monitor" / "monitor.log").write_text("2026-07-04T09:42:38+08:00 running\n")
+    (active / "logs" / "active_auxiliary_progress.jsonl").write_text(
+        json.dumps({"event": "active_auxiliary_cache_start", "split": "train", "total_rows": 524288})
+        + "\n"
+        + json.dumps(
+            {
+                "event": "active_auxiliary_positive_chunk",
+                "split": "train",
+                "time": 1000.0,
+                "rows_done": 65536,
+                "total_rows": 524288,
+                "class_rows_done": 65536,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "wait_for_active_auxiliary_result"
+    assert recommendation["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    assert recommendation["should_launch_remote"] is False
+    assert recommendation["postprocess_allowed"] is False
+    assert recommendation["progress_summary"]["latest_event"] == "active_auxiliary_positive_chunk"
+    assert recommendation["progress_summary"]["cache_class_rows_done"] == 65536
+    assert "monitor_i1_active_auxiliary_seed0_20260703" in recommendation["monitor_health_command"]
+    assert "scripts/postprocess-active-auxiliary" in recommendation["postprocess_when_ready_command"]
+    assert "--expected-rows 3" in recommendation["postprocess_when_ready_command"]
+    assert recommendation["conditional_followup"]["fallback_if_stop"] == "sbox_transition_prior_gate_seed0"
+    assert recommendation["conditional_followup"]["fallback_run_id"] == "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
+    assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+
+
 def test_zhang_wang_official_anchor_plan_generates_dataset():
     plan = "configs/experiment/innovation1/innovation1_spn_present_zhang_wang2022_keras_official_anchor_smoke.csv"
     args = parse_args(["--plan", plan])
