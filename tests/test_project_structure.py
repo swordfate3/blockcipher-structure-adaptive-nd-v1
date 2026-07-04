@@ -2203,6 +2203,8 @@ def test_active_auxiliary_medium_remote_launch_assets_are_gated_and_path_safe():
     assert "innovation1_spn_present_active_auxiliary_r7_262k_seed0.json" in launcher_text
     assert "ACTIVE_AUXILIARY_CACHE_ROOT=G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\active_auxiliary_cache" in launcher_text
     assert "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703" in launcher_text
+    assert "stale_failed_marker_ignored" in monitor_text
+    assert "failed_marker_is_stale" in monitor_text
     assert "EXPECTED_ROWS=\"3\"" in monitor_text
     assert "postprocess-active-auxiliary" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
@@ -2301,6 +2303,8 @@ def test_active_auxiliary_seed1_confirmation_assets_are_ready_and_path_safe():
     assert "Desktop" not in launcher_text
     assert "Downloads" not in launcher_text
     assert "AppData" not in launcher_text
+    assert "stale_failed_marker_ignored" in monitor_text
+    assert "failed_marker_is_stale" in monitor_text
     assert "EXPECTED_ROWS=\"3\"" in monitor_text
     assert "postprocess-active-auxiliary" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
