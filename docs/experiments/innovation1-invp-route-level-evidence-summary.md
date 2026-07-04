@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-30
 
-**Status:** route-level attribution supported / trail-family extension running
+**Status:** route-level attribution supported / S-box transition prior gate seed0 running
 
 **Scope:** PRESENT-80 r7, Zhang/Wang 2022 Case2 `m=16`, strict
 encrypted-random-plaintext negatives. This document is the route-level evidence
@@ -10,9 +10,10 @@ summary for the current InvP-only SPN structure route. It records two-seed
 paper-scale positive confirmation plus paper-scale attribution controls. It is
 still not a formal route-evidence claim by itself. The DDT graph route produced
 only weak medium-scale diagnostic evidence, the topology-aware network route has
-stopped after seed1. Candidate-trail and bit-transition-spectrum seed0 also
-stopped as standalone medium diagnostics, so the current next-stage
-method-extension is the watcher-managed trail-family consistency branch.
+stopped after seed1. Candidate-trail, bit-transition-spectrum, trail-family,
+and active-auxiliary branches have also stopped as standalone medium
+diagnostics, so the current next-stage method-extension is the watcher-managed
+S-box transition prior gate seed0 branch.
 
 ## Route Claim Under Test
 
@@ -201,7 +202,7 @@ InvP-only has two-seed 1000000/class positive confirmation and paper-scale
 attribution controls supporting the SPN/InvP/P-layer alignment explanation.
 ```
 
-Next choices as of 2026-07-03:
+Next choices as of 2026-07-04:
 
 ```text
 1. Add formal multi-seed variance evidence for InvP-only.
@@ -210,26 +211,29 @@ Next choices as of 2026-07-03:
    not as a 1M promotion candidate.
 4. Treat the completed topology-aware seed1 gate as a route stop because true
    P-layer topology did not beat the InvP-only/shuffled controls.
-5. Wait for the active trail-family seed0 watcher to retrieve, validate, and
-   postprocess before launching trail-family seed1 or switching to S-box
-   transition prior gating.
+5. Wait for the active S-box transition prior gate seed0 watcher to retrieve,
+   validate, and postprocess before launching S-box prior seed1 or switching to
+   the prepared pair-set aggregation-control fallback.
 ```
 
 Current active extension:
 
 ```text
-run_id = i1_trail_family_r7_262k_seed0_gpu1_20260702
+run_id = i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703
 status = running / local watcher-managed / no postprocess summary yet
-latest_bounded_check = 2026-07-03 20:10:39+08:00 watcher heartbeat, no failed markers
-progress = trail-family feature cache phase; no training metrics yet
-progress_detail = validation negative-class cache generation for the linear trail-family row
-progress_percent = 98304 / 131072 validation rows, 75.0%
-cache_rows_remaining = 32768 validation rows
-latest_event = trail_family_negative_chunk
-results_jsonl = not yet present
+latest_bounded_check = 2026-07-04 watcher heartbeat fresh, no failed markers
+progress = raw dataset cache phase for row 1/4; no training metrics yet
+progress_detail = train negative-class cache generation for present_nibble_invp_only_spn_only anchor
+progress_percent = 425984 / 524288 train rows, 81.25%
+cache_rows_remaining = 98304 train rows
+latest_event = cache_negative_chunk
+results_jsonl = exists but 0 rows
 postprocess_allowed = false
 main_thread_action = wait for watcher; do not SSH/tmux-loop or launch seed1
-claim_scope = no trail-family evidence yet
+claim_scope = no S-box prior gate result evidence yet
+upstream_stopped_branches =
+  i1_trail_family_r7_262k_seed0_gpu1_20260702 -> stop_trail_family_route
+  i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704 -> stop_active_auxiliary_route
 ```
 
 ### If Attribution Gate Is Weak
@@ -321,7 +325,7 @@ breakthrough
 | Required margin | `0.001000000000` |
 | Next action branch | `route_level_attribution_summary` |
 | Historical next steps from artifact | `Update the experiment plan with this attribution-control result.; Write a route-level summary: InvP-only two-seed confirmation plus paper-scale controls.; Decide whether formal multi-seed evidence or a new DDT/topology route is the next paper need.` |
-| Current branch note | DDT graph screening completed as weak diagnostic evidence; topology-aware network seed1 stopped the route because true-P graph did not beat InvP-only or shuffled-P controls; candidate-trail seed0 and bit-transition-spectrum seed0 have both stopped under their medium diagnostic gates; active method-extension is now watcher-managed trail-family seed0 `i1_trail_family_r7_262k_seed0_gpu1_20260702`; do not launch trail-family seed1, active-auxiliary seed0, S-box prior seed0, or another fallback until trail-family seed0 is retrieved, validated, plan-aligned, postprocessed, and gated |
+| Current branch note | DDT graph screening completed as weak diagnostic evidence; topology-aware network seed1 stopped the route because true-P graph did not beat InvP-only or shuffled-P controls; candidate-trail seed0, bit-transition-spectrum seed0, trail-family seed0, and active-auxiliary seed0 have all stopped under their medium diagnostic gates; active method-extension is now watcher-managed S-box transition prior gate seed0 `i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703`; do not launch S-box prior seed1 or the pair-set fallback until S-box prior seed0 is retrieved, validated, plan-aligned, postprocessed, and gated |
 | Claim scope | `1000000/class attribution-control gate against completed InvP-only seed0/seed1; not formal route evidence by itself` |
 | Results JSONL | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630.jsonl` |
 | Validation report | `outputs/remote_results/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630/i1_invp_attribution_controls_r7_1m_seed0_gpu0_20260630_local_result_gate.json` |
