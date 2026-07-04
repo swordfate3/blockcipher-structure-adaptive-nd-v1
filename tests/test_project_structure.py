@@ -4644,6 +4644,63 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["failed_markers"] == ["failed.marker"]
 
 
+def test_monitor_health_ignores_stale_failed_marker_when_progress_continues(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "stale_failed_marker_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-07-04T10:05:00+08:00 failed",
+                "2026-07-04T10:18:00+08:00 sync",
+                "2026-07-04T10:18:01+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    failed = logs / f"{run_id}_failed.marker"
+    failed.write_text("failed\n", encoding="utf-8")
+    progress = logs / "active_auxiliary_progress.jsonl"
+    progress.write_text(
+        json.dumps(
+            {
+                "event": "active_auxiliary_positive_chunk",
+                "rows_done": 49152,
+                "total_rows": 524288,
+                "class_rows_done": 49152,
+                "class_total": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    old = datetime.fromisoformat("2026-07-04T10:05:00+08:00").timestamp()
+    new = datetime.fromisoformat("2026-07-04T10:18:00+08:00").timestamp()
+    failed.touch()
+    progress.touch()
+    import os
+
+    os.utime(failed, (old, old))
+    os.utime(progress, (new, new))
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=3,
+        now=datetime.fromisoformat("2026-07-04T10:20:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["failed_markers"] == [f"logs/{run_id}_failed.marker"]
+    assert report["stale_failed_markers"] == [f"logs/{run_id}_failed.marker"]
+
+
 def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "launch_stalled_unit"

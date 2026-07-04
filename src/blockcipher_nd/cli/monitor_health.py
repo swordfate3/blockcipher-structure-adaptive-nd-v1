@@ -103,11 +103,18 @@ def monitor_health_report(
     if expected_result_rows is None and plan_path is not None:
         expected_result_rows = _default_expected_rows(postprocess_kind)
     done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
-    failed_markers = _relative_paths(run_root, sorted(run_root.glob("**/*failed*")))
+    failed_marker_paths = sorted(run_root.glob("**/*failed*"))
+    failed_markers = _relative_paths(run_root, failed_marker_paths)
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
     launch_state = _launch_state(run_root, artifact_files, recent_lines=recent_lines)
     recent_monitor_lines = _tail_lines(monitor_log, recent_lines)
     heartbeat = _heartbeat_status(recent_monitor_lines, stale_after_seconds, now=now)
+    stale_failed_markers = _stale_failed_markers(
+        run_root=run_root,
+        failed_marker_paths=failed_marker_paths,
+        recent_monitor_lines=recent_monitor_lines,
+    )
+    active_failed_markers = [marker for marker in failed_markers if marker not in stale_failed_markers]
     stderr_text = _read_text(ssh_stderr).strip()
     scp_stderr_text = _read_text(scp_stderr).strip()
     scp_stderr_report = _scp_stderr_report(scp_stderr_text, recent_lines, recent_monitor_lines)
@@ -125,7 +132,7 @@ def monitor_health_report(
         results_jsonl_line_count=results_jsonl_line_count,
         expected_rows=expected_result_rows,
         done_markers=done_markers,
-        failed_markers=failed_markers,
+        failed_markers=active_failed_markers,
         stderr_text=stderr_text,
         scp_stderr_report=scp_stderr_report,
         launch_state=launch_state,
@@ -181,6 +188,7 @@ def monitor_health_report(
         "expected_rows": expected_result_rows,
         "done_markers": done_markers,
         "failed_markers": failed_markers,
+        "stale_failed_markers": stale_failed_markers,
         "launch_state": launch_state,
         "auxiliary_artifacts": auxiliary_artifacts,
         "artifact_files": artifact_files,
@@ -267,6 +275,24 @@ def _monitor_has_event(lines: list[str], event: str) -> bool:
 
 def _monitor_sync_count(lines: list[str]) -> int:
     return sum(1 for line in lines if " sync" in line)
+
+
+def _stale_failed_markers(
+    *,
+    run_root: Path,
+    failed_marker_paths: list[Path],
+    recent_monitor_lines: list[str],
+) -> list[str]:
+    if failed_marker_paths and _monitor_has_event(recent_monitor_lines, "stale_failed_marker_ignored"):
+        return _relative_paths(run_root, failed_marker_paths)
+    if not failed_marker_paths or not any("running" in line for line in recent_monitor_lines):
+        return []
+    progress_paths = [path for path in run_root.glob("**/*progress.jsonl") if path.is_file()]
+    if not progress_paths:
+        return []
+    newest_progress_mtime = max(path.stat().st_mtime for path in progress_paths)
+    stale = [path for path in failed_marker_paths if path.stat().st_mtime < newest_progress_mtime]
+    return _relative_paths(run_root, stale)
 
 
 def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: int) -> dict[str, Any]:
