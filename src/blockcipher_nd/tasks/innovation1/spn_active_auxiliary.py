@@ -172,6 +172,7 @@ def run_active_auxiliary(args: argparse.Namespace) -> dict[str, object]:
         validation_features,
         validation_labels,
         lambda_aux=args.lambda_aux,
+        batch_size=args.batch_size,
         shuffled_targets=shuffled_targets,
         seed=args.seed + 10_000,
         device=device,
@@ -538,18 +539,34 @@ def _evaluate_active_aux_model(
     labels: np.ndarray,
     *,
     lambda_aux: float,
+    batch_size: int,
     shuffled_targets: bool,
     seed: int,
     device: torch.device,
 ) -> tuple[np.ndarray, float]:
-    del lambda_aux
-    x = torch.from_numpy(features.astype(np.float32)).to(device)
-    aux_targets = _active_targets(x, shuffled=shuffled_targets, seed=seed)
-    aux_loss_fn = torch.nn.BCEWithLogitsLoss()
+    del labels, lambda_aux
+    max_batch = max(1, int(batch_size))
+    aux_loss_fn = torch.nn.BCEWithLogitsLoss(reduction="sum")
+    logits_parts: list[np.ndarray] = []
+    aux_loss_sum = 0.0
+    aux_element_count = 0
+    was_training = model.training
+    model.eval()
     with torch.no_grad():
-        logits = model(x).detach().cpu().numpy().reshape(-1)
-        aux_loss = aux_loss_fn(model.active_mask_logits(x), aux_targets)
-    return logits, float(aux_loss.detach().cpu().item())
+        for batch_start in range(0, features.shape[0], max_batch):
+            batch_end = min(features.shape[0], batch_start + max_batch)
+            batch_features = np.array(features[batch_start:batch_end], dtype=np.float32, copy=True)
+            x = torch.from_numpy(batch_features).to(device)
+            aux_targets = _active_targets(x, shuffled=shuffled_targets, seed=seed + batch_start)
+            logits_parts.append(model(x).detach().cpu().numpy().reshape(-1))
+            aux_logits = model.active_mask_logits(x)
+            aux_loss_sum += float(aux_loss_fn(aux_logits, aux_targets).detach().cpu().item())
+            aux_element_count += int(aux_targets.numel())
+    if was_training:
+        model.train()
+    logits = np.concatenate(logits_parts) if logits_parts else np.empty((0,), dtype=np.float32)
+    aux_loss = aux_loss_sum / max(1, aux_element_count)
+    return logits, aux_loss
 
 
 def _active_targets(features: torch.Tensor, *, shuffled: bool, seed: int) -> torch.Tensor:

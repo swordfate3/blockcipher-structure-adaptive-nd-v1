@@ -56,7 +56,10 @@ from blockcipher_nd.tasks.innovation1.spn_transition_spectrum import (
     make_transition_spectrum_dataset,
 )
 from blockcipher_nd.tasks.innovation1.spn_trail_family import make_trail_family_dataset
-from blockcipher_nd.tasks.innovation1.spn_active_auxiliary import make_active_auxiliary_dataset
+from blockcipher_nd.tasks.innovation1.spn_active_auxiliary import (
+    _evaluate_active_aux_model,
+    make_active_auxiliary_dataset,
+)
 from blockcipher_nd.cli import (
     spn_candidate_evidence_matrix,
     spn_transition_spectrum_matrix,
@@ -1669,6 +1672,43 @@ def test_active_auxiliary_dataset_cache_writes_and_reuses(tmp_path):
     assert metadata["feature_route"] == "active_pattern_auxiliary_head"
     assert "dataset_cache_workers" not in metadata
     assert '"workers": 1' in progress_text
+
+
+def test_active_auxiliary_evaluation_uses_bounded_batches():
+    class RecordingActiveAuxModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.forward_batch_sizes: list[int] = []
+            self.aux_batch_sizes: list[int] = []
+
+        def forward(self, features: torch.Tensor) -> torch.Tensor:
+            self.forward_batch_sizes.append(int(features.shape[0]))
+            return features[:, :1]
+
+        def active_mask_logits(self, features: torch.Tensor) -> torch.Tensor:
+            self.aux_batch_sizes.append(int(features.shape[0]))
+            pairs_per_sample = features.shape[1] // 128
+            return torch.zeros((features.shape[0], pairs_per_sample, 16), device=features.device)
+
+    model = RecordingActiveAuxModel()
+    features = np.zeros((5, 256), dtype=np.float32)
+    labels = np.array([0, 1, 0, 1, 0], dtype=np.uint8)
+
+    logits, aux_loss = _evaluate_active_aux_model(
+        model,
+        features,
+        labels,
+        lambda_aux=0.1,
+        batch_size=2,
+        shuffled_targets=False,
+        seed=17,
+        device=torch.device("cpu"),
+    )
+
+    assert logits.shape == (5,)
+    assert aux_loss >= 0.0
+    assert model.forward_batch_sizes == [2, 2, 1]
+    assert model.aux_batch_sizes == [2, 2, 1]
 
 
 def test_trail_family_matrix_outputs_anchor_and_candidate_rows(tmp_path):

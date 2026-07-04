@@ -598,3 +598,114 @@ results_jsonl_exists = false
 postprocess_allowed = false
 main_thread_policy = watcher/sub-agent continues retrieval; no seed1 or S-box prior until seed0 result is retrieved and gated
 ```
+
+### Final Failure Diagnosis: 2026-07-04 19:33 +0800
+
+Bounded local `monitor-health` later reported:
+
+```text
+status = stale_monitor
+needs_main_thread_intervention = true
+postprocess_allowed = false
+results_jsonl_exists = false
+done_marker = none
+failed_marker = logs/i1_active_auxiliary_r7_262k_seed0_gpu1_20260703_failed.marker
+```
+
+A single bounded remote diagnosis was then allowed by the monitor-health gate.
+Remote state:
+
+```text
+remote_time = 2026-07-04T19:33:55+08:00
+progress_mtime = 2026-07-04T11:25:39+08:00
+latest_progress_event = active_auxiliary_cache_done
+latest_progress_split = validation
+validation_samples_per_class = 65536
+results_jsonl_exists = false
+done_marker = false
+failed_marker = true
+failed_marker_mtime = 2026-07-04T11:47:33+08:00
+matching_training_process = none
+```
+
+Remote stderr root cause:
+
+```text
+torch.OutOfMemoryError: CUDA out of memory.
+Tried to allocate 16.00 GiB.
+GPU 1 total capacity = 47.99 GiB
+GPU 1 free at failure = 10.25 GiB
+failure site = _evaluate_active_aux_model -> model(x) over the full validation tensor
+```
+
+Interpretation:
+
+```text
+This is an implementation/runtime failure during validation evaluation, not
+active-auxiliary route evidence. The run produced no result rows, no gate, and
+no model-quality conclusion.
+```
+
+Repair:
+
+```text
+1. Changed _evaluate_active_aux_model to evaluate validation features in bounded
+   batches using the configured batch_size.
+2. Aggregates logits across batches and computes auxiliary loss as an element
+   weighted mean.
+3. Avoids converting read-only memmap validation slices directly into torch
+   tensors by copying each evaluation batch.
+4. Added a regression test proving active-auxiliary evaluation calls the model
+   in bounded batches instead of one full validation forward pass.
+```
+
+Verification:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "active_auxiliary"
+```
+
+Result:
+
+```text
+21 passed, 217 deselected
+```
+
+Retry rule:
+
+```text
+Relaunch active-auxiliary seed0 from the pushed repair commit before any
+active-auxiliary seed1 or S-box transition prior branch. Reuse the disk-backed
+cache when metadata matches, but write retry run artifacts to a fresh run_id so
+the failed OOM evidence remains auditable.
+```
+
+Prepared retry:
+
+```text
+run_id = i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704
+plan = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed0_retry1.json
+remote_config = configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.json
+launcher = configs/remote/generated/run_i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.cmd
+monitor = configs/remote/generated/monitor_i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.sh
+expected_rows = 3
+scale = 262144/class
+claim_scope = medium diagnostic retry after validation OOM repair; no prior failed metric
+```
+
+Readiness:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.json
+```
+
+Result:
+
+```text
+status = pass
+checked_invariants = plan_exists, expected_rows_matches_plan,
+  run_id_task_archive_alignment, github_ssh_repo, cmd_exe_c_only_policy,
+  g_lxy_artifact_policy, training_protocol_matches_plan,
+  medium_scale_dataset_cache, active_auxiliary_protocol_lock
+```
