@@ -709,3 +709,28 @@ checked_invariants = plan_exists, expected_rows_matches_plan,
   g_lxy_artifact_policy, training_protocol_matches_plan,
   medium_scale_dataset_cache, active_auxiliary_protocol_lock
 ```
+
+Launch handoff:
+
+```text
+launch_time = 2026-07-04 19:42 +0800
+source_commit = 8834b0e fix: batch active auxiliary validation
+remote_launcher_uploaded_to = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704\run_i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.cmd
+windows_task_command = cmd.exe /c call G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704\run_i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704.cmd
+remote_process_id = 25416
+local_monitor_session = monitor_i1_active_auxiliary_seed0_retry1_20260704
+local_result_root = outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704
+```
+
+Initial bounded health check:
+
+```text
+status = running
+needs_main_thread_intervention = false
+heartbeat = fresh
+failed_markers = none
+results_jsonl_exists = false
+postprocess_allowed = false
+artifact_status = git/gpu/torch logs synced; progress file not yet created at first check
+main_thread_policy = watcher owns retrieval and postprocess; do not SSH/tmux-loop
+```
