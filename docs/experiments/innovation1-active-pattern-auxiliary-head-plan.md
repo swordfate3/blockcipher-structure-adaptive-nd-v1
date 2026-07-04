@@ -449,3 +449,57 @@ failed_markers = none
 needs_main_thread_intervention = false
 early_scp_warning = remote logs/results not created yet; normal before launcher emits first artifacts
 ```
+
+### Launch Repair: 2026-07-04 10:06 +0800
+
+```text
+status_before_repair = remote_artifacts_missing
+needs_main_thread_intervention = true
+symptom = repeated watcher sync found no remote logs/ and no remote results/
+remote_run_dir = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703
+run_dir_status = exists
+launcher_status = exists
+logs_status_before_repair = missing
+results_status_before_repair = missing
+python_process_before_repair = none
+```
+
+Diagnosis:
+
+```text
+The original Windows start-based launch path did not actually execute the
+launcher far enough to create logs/, results/, torch info, git artifacts, or the
+started marker. This was a launch/quoting problem, not a model-quality result
+and not evidence for or against active-auxiliary.
+```
+
+Repair action:
+
+```text
+1. Verified the launcher existed under G:\lxy.
+2. Ran the launcher once in a foreground SSH diagnostic to confirm it creates
+   logs/, source/, readiness artifacts, and starts the Python runner.
+3. Stopped that foreground diagnostic process.
+4. Relaunched the same existing launcher with Windows native background process
+   creation:
+   wmic process call create "cmd.exe /c call G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703\run_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.cmd"
+5. Verified a background python.exe process is running the planned
+   scripts\spn-active-auxiliary-matrix command.
+```
+
+Post-repair bounded status:
+
+```text
+status = running
+needs_main_thread_intervention = false
+remote logs/ = exists
+remote source/ = exists
+remote python process = running
+local logs pulled = yes
+progress_file = logs/active_auxiliary_progress.jsonl
+latest_progress = active_auxiliary_cache_start / train / 524288 total rows
+observed_cache_chunks = active_auxiliary_positive_chunk reached 16384 class rows before relaunch; background run restarted cache generation against the same disk cache path
+results_jsonl_exists = false
+claim_scope = still medium diagnostic only; no result yet
+main_thread_policy = watcher/sub-agent should resume retrieval; do not launch active-auxiliary seed1 or S-box prior until seed0 is retrieved, validated, postprocessed, and gated
+```
