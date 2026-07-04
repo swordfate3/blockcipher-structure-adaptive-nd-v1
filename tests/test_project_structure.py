@@ -5579,6 +5579,45 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_eta_seconds"] == 896
 
 
+def test_monitor_health_reports_latest_progress_event_age_independent_of_file_mtime(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_progress_event_age"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-02T16:26:00+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    now = datetime.fromisoformat("2026-07-02T16:26:00+08:00")
+    event_time = now.timestamp() - 60
+    progress_path = logs / "unit_progress.jsonl"
+    progress_path.write_text(
+        json.dumps(
+            {
+                "event": "train_batch",
+                "time": event_time,
+                "epoch": 3,
+                "epochs": 30,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=1,
+        now=now,
+    )
+
+    progress = report["progress_summary"]
+    assert progress["latest_event"] == "train_batch"
+    assert progress["latest_event_time"] == datetime.fromtimestamp(event_time, tz=timezone.utc).isoformat()
+    assert progress["latest_event_age_seconds"] == 60
+    assert progress["age_seconds"] < progress["latest_event_age_seconds"]
+
+
 def test_monitor_health_keeps_latest_cache_progress_when_new_cache_starts(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_trail_family_validation_cache_started"

@@ -633,6 +633,7 @@ def _progress_summary_for_path(
             "parsed_line_count": parsed_line_count,
             "latest_event": None,
         }
+    event_timing = _latest_event_timing(latest, now=now)
     index = _optional_int(latest.get("index"))
     total = _optional_int(latest.get("total"))
     epoch = _optional_int(latest.get("epoch"))
@@ -661,6 +662,7 @@ def _progress_summary_for_path(
         "line_count": line_count,
         "parsed_line_count": parsed_line_count,
         "latest_event": latest.get("event"),
+        **event_timing,
         "latest_split": latest.get("split"),
         "latest_total_rows": _optional_int(latest.get("total_rows")),
         "latest_samples_per_class": _optional_int(latest.get("samples_per_class")),
@@ -701,6 +703,21 @@ def _progress_summary_for_path(
         "best_checkpoint_metric": best_metric,
         "best_epoch": best_epoch,
         "checkpoint_metric": checkpoint_metric,
+    }
+
+
+def _latest_event_timing(record: dict[str, Any], *, now: datetime | None) -> dict[str, Any]:
+    event_time = _optional_float(record.get("time"))
+    if event_time is None:
+        return {"latest_event_time": None, "latest_event_age_seconds": None}
+    event_datetime = datetime.fromtimestamp(event_time, tz=timezone.utc)
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    age_seconds = max(0, int((current.astimezone(timezone.utc) - event_datetime).total_seconds()))
+    return {
+        "latest_event_time": event_datetime.isoformat(),
+        "latest_event_age_seconds": age_seconds,
     }
 
 
