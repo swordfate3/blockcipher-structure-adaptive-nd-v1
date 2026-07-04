@@ -386,6 +386,28 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
         monitor_log = run_root / "monitor" / "monitor.log"
         recent_lines = _tail_lines(monitor_log, 8)
         health = _active_auxiliary_monitor_health(root, run_root.name)
+        if health["status"] == "failed":
+            return {
+                "branch": "active_auxiliary_failed",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "active-auxiliary run failed; write failure or repair plan before launching another branch",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": True,
+                "postprocess_allowed": False,
+                "failed_markers": health["failed_markers"],
+                "results_jsonl": health["results_jsonl"],
+                "results_jsonl_line_count": health["results_jsonl_line_count"],
+                "expected_rows": health["expected_rows"],
+                "progress_summary": _active_progress_summary(run_root),
+                "conditional_followup": _active_auxiliary_conditional_followup(),
+                "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
+                "main_thread_policy": _active_auxiliary_main_thread_policy("failed"),
+            }
         if health["postprocess_allowed"]:
             return {
                 "branch": "postprocess_active_auxiliary_result",

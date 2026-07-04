@@ -8614,6 +8614,66 @@ def test_summarize_spn_evidence_keeps_active_auxiliary_with_progress_without_run
     assert recommendation["needs_main_thread_intervention"] is False
 
 
+def test_summarize_spn_evidence_keeps_failed_active_auxiliary_as_active_branch(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    active = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    transition.mkdir(parents=True)
+    trail.mkdir(parents=True)
+    (active / "monitor").mkdir(parents=True)
+    (active / "logs").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    _write_test_json(
+        trail / "i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_trail_family_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_trail_family_route",
+            "claim_scope": "trail-family medium diagnostic gate",
+        },
+    )
+    (active / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} failed\n")
+    _write_active_auxiliary_launch_artifacts(active)
+    (active / "logs" / f"{active.name}_failed.marker").write_text("failed\n", encoding="utf-8")
+    (active / "logs" / "active_auxiliary_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "active_auxiliary_positive_chunk",
+                "split": "train",
+                "rows_done": 40960,
+                "total_rows": 524288,
+                "class_rows_done": 40960,
+                "class_total": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "active_auxiliary_failed"
+    assert recommendation["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    assert recommendation["status"] == "failed"
+    assert recommendation["should_launch_remote"] is False
+    assert recommendation["postprocess_allowed"] is False
+    assert recommendation["progress_summary"]["cache_class_rows_done"] == 40960
+    assert "launch active-auxiliary seed1" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+    assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+
+
 def _write_active_auxiliary_launch_artifacts(run_root: Path) -> None:
     run_id = run_root.name
     logs = run_root / "logs"
