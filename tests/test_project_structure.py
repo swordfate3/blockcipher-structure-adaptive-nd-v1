@@ -253,6 +253,56 @@ def test_present_r8_round_extension_remote_readiness_assets_pass():
     assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
 
 
+def test_present_r9_weak_probe_configs_are_conditional_and_strict():
+    smoke_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_round_extension_r9_weak_probe_smoke.csv"
+    )
+    medium_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_round_extension_r9_262k_seed0.csv"
+    )
+
+    smoke_tasks = build_tasks(parse_args(["--plan", smoke_plan]))
+    medium_tasks = build_tasks(parse_args(["--plan", medium_plan]))
+
+    assert [task["model_key"] for task in smoke_tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    assert [task["model_key"] for task in medium_tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+
+    for task in smoke_tasks:
+        assert task["rounds"] == 9
+        assert task["samples_per_class"] == 8
+        assert task["pairs_per_sample"] == 16
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only r9" in task["matching_evidence"]
+
+    for task in medium_tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "conditional launch only after r8 gate" in task["matching_evidence"]
+
+
 def test_present_n1v2_262k_structure_ablation_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_n1v2_structure_ablation_r7_262k.csv"
     args = parse_args(["--plan", plan])
