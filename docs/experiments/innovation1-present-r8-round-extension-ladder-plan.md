@@ -250,3 +250,118 @@ multi-query application-level evidence label
 InvP-only r8 1M/class seed0
 then seed1 / attribution controls if seed0 supports
 ```
+
+## 11. Launch Record
+
+**Launch time:** 2026-07-04 23:50 +08:00
+
+**Launch status:** launched / watcher-managed / no result evidence yet
+
+**Launch commit:**
+
+```text
+02fcb066c865005c6d1c05e30b76372015b95ed2
+```
+
+**Remote config:**
+
+```text
+configs/remote/innovation1_spn_present_round_extension_r8_262k_seed0_gpu0_20260704.json
+```
+
+**Remote launcher source:**
+
+```text
+configs/remote/generated/run_i1_present_r8_round_extension_262k_seed0_gpu0_20260704.cmd
+```
+
+**Remote launcher uploaded to:**
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_round_extension_262k_seed0_gpu0_20260704\run_i1_present_r8_round_extension_262k_seed0_gpu0_20260704.cmd
+```
+
+The uploaded launcher is the committed launcher file from the pushed commit.
+The launcher itself clones/pulls the GitHub `main` branch into the run-owned
+source directory before training:
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_round_extension_262k_seed0_gpu0_20260704\source
+```
+
+**Task Scheduler command:**
+
+```text
+cmd.exe /c G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_round_extension_262k_seed0_gpu0_20260704\run_i1_present_r8_round_extension_262k_seed0_gpu0_20260704.cmd
+```
+
+**GPU selection:**
+
+```text
+cuda:0
+```
+
+Bounded pre-launch GPU check showed GPU0 had no active training Python process
+and GPU1 was occupied by the active r7 S-box prior run. This r8 run was
+therefore launched on GPU0 without interrupting:
+
+```text
+i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703
+```
+
+**Local watcher:**
+
+```text
+tmux session = monitor_i1_present_r8_round_extension_262k_seed0_gpu0_20260704
+script = configs/remote/generated/monitor_i1_present_r8_round_extension_262k_seed0_gpu0_20260704.sh
+```
+
+Watcher responsibilities:
+
+```text
+1. scp logs/results from G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+2. wait for 3 JSONL rows
+3. run scripts/validate-results
+4. run scripts/plot-results
+5. write <run_id>_gate_note.json
+```
+
+**Local retrieval target:**
+
+```text
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704
+```
+
+**Readiness checks before launch:**
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "present_r8_round_extension or zhang_wang_262k_official_cyclic"
+```
+
+Result:
+
+```text
+3 passed, 242 deselected
+```
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_round_extension_r8_262k_seed0_gpu0_20260704.json
+```
+
+Result:
+
+```text
+status = pass
+expected_rows = 3
+checked_invariants include medium_scale_dataset_cache
+```
+
+**Claim scope:**
+
+```text
+This launch is not result evidence.
+It is a 262144/class single-seed medium diagnostic.
+No r8 success/failure or breakthrough claim is allowed until watcher retrieval,
+validation, plotting, and gate-note generation complete.
+```
