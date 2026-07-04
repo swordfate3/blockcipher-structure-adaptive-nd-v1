@@ -248,6 +248,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     trail_family_running = _trail_family_running(root)
     if trail_family_running is not None:
         return trail_family_running
+    sbox_prior_running = _sbox_prior_running(root)
+    if sbox_prior_running is not None:
+        return sbox_prior_running
     active_auxiliary_running = _active_auxiliary_running(root)
     if active_auxiliary_running is not None:
         return active_auxiliary_running
@@ -469,6 +472,68 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
     return sorted(candidates, key=_active_auxiliary_candidate_rank, reverse=True)[0]
 
 
+def _sbox_prior_running(root: Path) -> dict[str, Any] | None:
+    for run_root in sorted(root.glob("i1_sbox_prior_gate*"), reverse=True):
+        summaries = list(run_root.glob("*_postprocess_summary.json"))
+        if summaries:
+            continue
+        monitor_log = run_root / "monitor" / "monitor.log"
+        recent_lines = _tail_lines(monitor_log, 8)
+        health = _sbox_prior_monitor_health(root, run_root.name)
+        if health["postprocess_allowed"]:
+            return {
+                "branch": "postprocess_sbox_prior_result",
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "S-box prior gate results are ready locally and need postprocess before branch decisions",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": True,
+                "postprocess_command": health["postprocess_command"],
+                "results_jsonl": health["results_jsonl"],
+                "results_jsonl_line_count": health["results_jsonl_line_count"],
+                "expected_rows": health["expected_rows"],
+                "progress_summary": _active_progress_summary(run_root),
+                "monitor_health_command": _sbox_prior_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _sbox_prior_postprocess_command(run_root),
+                "main_thread_policy": _sbox_prior_main_thread_policy("postprocess"),
+            }
+        active_statuses = {
+            "running",
+            "stale_monitor",
+            "launch_stalled",
+            "remote_artifacts_missing",
+            "unknown",
+        }
+        has_monitor_activity = bool(recent_lines) or bool(health.get("heartbeat", {}).get("newest_timestamp"))
+        if health["status"] in active_statuses and has_monitor_activity:
+            branch = (
+                "diagnose_sbox_prior_launch"
+                if health["needs_main_thread_intervention"]
+                else "wait_for_sbox_prior_result"
+            )
+            return {
+                "branch": branch,
+                "run_id": run_root.name,
+                "status": health["status"],
+                "should_launch_remote": False,
+                "reason": "S-box prior gate run has monitor activity but no postprocess summary yet",
+                "monitor_log": str(monitor_log),
+                "recent_monitor_lines": recent_lines,
+                "heartbeat": health["heartbeat"],
+                "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+                "postprocess_allowed": health["postprocess_allowed"],
+                "progress_summary": _active_progress_summary(run_root),
+                "monitor_health_command": _sbox_prior_monitor_health_command(run_root.name),
+                "postprocess_when_ready_command": _sbox_prior_postprocess_command(run_root),
+                "main_thread_policy": _sbox_prior_main_thread_policy("waiting"),
+            }
+    return None
+
+
 def _active_auxiliary_candidate_rank(candidate: dict[str, Any]) -> tuple[int, str]:
     if candidate["branch"] == "postprocess_active_auxiliary_result":
         priority = 4
@@ -515,6 +580,18 @@ def _active_auxiliary_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
         plan_doc_paths=[Path("docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md")],
         expected_rows=3,
         postprocess_kind="active_auxiliary",
+    )
+
+
+def _sbox_prior_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=run_id,
+        root=root,
+        tmux_session=_sbox_prior_tmux_session(run_id),
+        plan_path=_sbox_prior_plan_path(run_id),
+        plan_doc_paths=[Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md")],
+        expected_rows=4,
+        postprocess_kind="sbox_prior",
     )
 
 
@@ -603,6 +680,17 @@ def _active_auxiliary_monitor_health_command(run_id: str) -> str:
     )
 
 
+def _sbox_prior_monitor_health_command(run_id: str) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {run_id} "
+        f"--tmux-session {_sbox_prior_tmux_session(run_id)} "
+        f"--plan {_sbox_prior_plan_path(run_id)} "
+        "--plan-doc docs/experiments/innovation1-sbox-transition-prior-gate-plan.md "
+        "--expected-rows 4 --postprocess-kind sbox_prior"
+    )
+
+
 def _trail_family_postprocess_command(run_root: Path) -> str:
     run_id = run_root.name
     return (
@@ -626,6 +714,19 @@ def _active_auxiliary_postprocess_command(run_root: Path) -> str:
         f"--plan {_active_auxiliary_plan_path(run_id)} "
         "--expected-rows 3 "
         "--update-plan-doc docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md"
+    )
+
+
+def _sbox_prior_postprocess_command(run_root: Path) -> str:
+    run_id = run_root.name
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-sbox-prior "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        f"--plan {_sbox_prior_plan_path(run_id)} "
+        "--expected-rows 4 "
+        "--update-plan-doc docs/experiments/innovation1-sbox-transition-prior-gate-plan.md"
     )
 
 
@@ -852,6 +953,40 @@ def _active_auxiliary_main_thread_policy(state: str) -> dict[str, Any]:
     }
 
 
+def _sbox_prior_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run the listed postprocess_when_ready_command",
+                "validate gate artifacts and update docs/experiments",
+                "commit and push postprocess documentation before following the gated branch",
+            ],
+            "forbidden_until_gate": [
+                "launch S-box transition prior seed1",
+                "launch a replacement SPN route",
+                "make route-level or breakthrough claims",
+            ],
+            "gate_condition": (
+                "postprocess summary exists, validates against the plan, and emits a decision "
+                "such as support_sbox_prior_route, weak_sbox_prior_signal, or stop_sbox_prior_route"
+            ),
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "improve local planning, readiness, or postprocess tooling without changing the active run",
+            "wait for the watcher or sub-agent to retrieve result artifacts",
+        ],
+        "forbidden_until_gate": [
+            "launch S-box transition prior seed1",
+            "launch a replacement SPN route",
+            "SSH-poll or tmux-loop from the main thread",
+            "make route-level or breakthrough claims",
+        ],
+        "gate_condition": "watcher retrieves the expected S-box prior JSONL rows and postprocess_allowed becomes true",
+    }
+
+
 def _trail_family_plan_path(run_id: str) -> Path:
     seed = "seed1" if "_seed1_" in run_id else "seed0"
     return Path(
@@ -879,6 +1014,19 @@ def _active_auxiliary_tmux_session(run_id: str) -> str:
     if "_retry1_" in run_id:
         return f"monitor_i1_active_auxiliary_{seed}_retry1_20260704"
     return f"monitor_i1_active_auxiliary_{seed}_20260703"
+
+
+def _sbox_prior_plan_path(run_id: str) -> Path:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return Path(
+        "configs/experiment/innovation1/"
+        f"innovation1_spn_present_sbox_transition_prior_gate_r7_262k_{seed}.csv"
+    )
+
+
+def _sbox_prior_tmux_session(run_id: str) -> str:
+    seed = "seed1" if "_seed1_" in run_id else "seed0"
+    return f"monitor_i1_sbox_prior_gate_{seed}_20260704"
 
 
 def _candidate_plan_path(run_id: str) -> Path:

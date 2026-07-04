@@ -8904,7 +8904,67 @@ def test_summarize_spn_evidence_prefers_active_auxiliary_retry_over_stale_failed
     assert "monitor_i1_active_auxiliary_seed0_retry1_20260704" in recommendation["monitor_health_command"]
 
 
+def test_summarize_spn_evidence_tracks_running_sbox_prior_after_active_auxiliary_stop(tmp_path):
+    root = tmp_path / "remote_results"
+    active_retry = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704"
+    stale_active_original = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    sbox = root / "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
+    (active_retry).mkdir(parents=True)
+    (stale_active_original / "monitor").mkdir(parents=True)
+    (stale_active_original / "logs").mkdir(parents=True)
+    (sbox / "monitor").mkdir(parents=True)
+    (sbox / "logs").mkdir(parents=True)
+    _write_test_json(
+        active_retry / "i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704_postprocess_summary.json",
+        {
+            "run_id": "i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_active_auxiliary_route",
+            "claim_scope": "active-pattern auxiliary diagnostic gate",
+            "next_action": {
+                "branch": "sbox_transition_prior_gate_seed0",
+                "should_launch_remote": True,
+            },
+        },
+    )
+    (stale_active_original / "monitor" / "monitor.log").write_text(
+        f"{_fresh_monitor_timestamp()} running\n",
+        encoding="utf-8",
+    )
+    _write_active_auxiliary_launch_artifacts(stale_active_original)
+    (sbox / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} running\n", encoding="utf-8")
+    _write_sbox_prior_launch_artifacts(sbox)
+    (sbox / "logs" / "sbox_prior_progress.jsonl").write_text(
+        json.dumps({"event": "cache_start", "split": "train", "total_rows": 524288}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "wait_for_sbox_prior_result"
+    assert recommendation["run_id"] == "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
+    assert recommendation["should_launch_remote"] is False
+    assert recommendation["postprocess_allowed"] is False
+    assert recommendation["progress_summary"]["latest_event"] == "cache_start"
+    assert "monitor_i1_sbox_prior_gate_seed0_20260704" in recommendation["monitor_health_command"]
+    assert "scripts/postprocess-sbox-prior" in recommendation["postprocess_when_ready_command"]
+    assert "--expected-rows 4" in recommendation["postprocess_when_ready_command"]
+    assert "launch S-box transition prior seed1" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+
+
 def _write_active_auxiliary_launch_artifacts(run_root: Path) -> None:
+    run_id = run_root.name
+    logs = run_root / "logs"
+    (logs / f"{run_id}_started.marker").write_text("started\n", encoding="utf-8")
+    (logs / f"{run_id}_torch_info.txt").write_text("cuda available\n", encoding="utf-8")
+    (logs / f"{run_id}_git_revision.txt").write_text("abc123\n", encoding="utf-8")
+    (logs / f"{run_id}_readiness.txt").write_text('{"status":"pass"}\n', encoding="utf-8")
+    (logs / f"{run_id}_stdout.txt").write_text("", encoding="utf-8")
+
+
+def _write_sbox_prior_launch_artifacts(run_root: Path) -> None:
     run_id = run_root.name
     logs = run_root / "logs"
     (logs / f"{run_id}_started.marker").write_text("started\n", encoding="utf-8")
