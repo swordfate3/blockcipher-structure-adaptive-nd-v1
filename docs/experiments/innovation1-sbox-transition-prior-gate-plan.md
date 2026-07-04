@@ -446,3 +446,67 @@ SOTA
 This route can only become route-level evidence after at least a positive
 262144/class seed1 confirmation, and can only approach formal evidence after
 `1000000/class` multi-seed, strict-negative, plan-aligned results.
+
+## Launch Record
+
+### 2026-07-04 Seed0 Remote Launch
+
+```text
+run_id = i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703
+status = launched / running
+claim_scope = medium diagnostic only; not formal, not breakthrough evidence
+trigger = active-auxiliary retry1 was retrieved, validated, postprocessed, and gated stop_active_auxiliary_route
+source_commit = 4cf791bf54d4d28892543d48a5baaa1347624af4
+remote_device = cuda:1
+expected_rows = 4
+samples_per_class = 262144
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+checkpoint_metric = val_auc
+remote_launcher_uploaded_to = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703\run_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.cmd
+windows_background_launch = wmic process call create "cmd.exe /c call G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703\run_i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.cmd"
+windows_process_id = 19296
+local_tmux_watcher = monitor_i1_sbox_prior_gate_seed0_20260704
+local_artifact_root = outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703
+```
+
+Launch readiness:
+
+```text
+scripts/check-remote-readiness status = pass
+checked_invariants =
+  plan_exists
+  expected_rows_matches_plan
+  run_id_task_archive_alignment
+  github_ssh_repo
+  cmd_exe_c_only_policy
+  g_lxy_artifact_policy
+  training_protocol_matches_plan
+  medium_scale_dataset_cache
+  sbox_prior_protocol_lock
+warnings = none
+```
+
+Initial bounded monitor-health check:
+
+```text
+status = running
+needs_main_thread_intervention = false
+postprocess_allowed = false
+done_markers = none
+failed_markers = none
+results_jsonl_exists = false
+progress_summary.exists = false
+launch_state = launch_progress_observed
+heartbeat.is_stale = false
+tmux_interpretation = tmux socket check failed in restricted environment, but heartbeat is fresh
+```
+
+Main-thread policy:
+
+```text
+Watcher owns synchronization, result retrieval, and postprocess.
+Do not SSH-poll or tmux-loop from the main thread while heartbeat remains fresh
+and monitor-health does not request intervention. Next action after result ready
+is postprocess-sbox-prior, automatic plan update, scoped commit, and push.
+```
