@@ -415,7 +415,8 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
             "remote_artifacts_missing",
             "unknown",
         }
-        if health["status"] in active_statuses and any("running" in line for line in recent_lines):
+        has_monitor_activity = bool(recent_lines) or bool(health.get("heartbeat", {}).get("newest_timestamp"))
+        if health["status"] in active_statuses and has_monitor_activity:
             branch = (
                 "diagnose_active_auxiliary_launch"
                 if health["needs_main_thread_intervention"]

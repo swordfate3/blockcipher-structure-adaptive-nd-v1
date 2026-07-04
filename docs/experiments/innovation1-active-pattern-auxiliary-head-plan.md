@@ -503,3 +503,48 @@ results_jsonl_exists = false
 claim_scope = still medium diagnostic only; no result yet
 main_thread_policy = watcher/sub-agent should resume retrieval; do not launch active-auxiliary seed1 or S-box prior until seed0 is retrieved, validated, postprocessed, and gated
 ```
+
+### Sidecar Failure Check: 2026-07-04 10:11 +0800
+
+```text
+status = failed
+needs_main_thread_intervention = true
+postprocess_allowed = false
+results_jsonl_exists = false
+results_jsonl_line_count = 0 / 3
+done_markers = none
+failed_marker = logs/i1_active_auxiliary_r7_262k_seed0_gpu1_20260703_failed.marker
+remote_git_revision = d1579f9953541d241cdc24963c63b8c0bdf038d0
+readiness_status = pass
+```
+
+Latest pulled progress before the failure marker:
+
+```text
+progress_file = outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_20260703/logs/active_auxiliary_progress.jsonl
+latest_event = active_auxiliary_positive_chunk
+split = train
+samples_per_class = 262144
+total_rows = 524288
+class_rows_done = 40960 / 262144
+cache_total_progress_percent = 7.812
+cache_rows_per_second = 79.186
+cache_eta_seconds = 6104
+```
+
+Local artifacts did not contain a Python traceback:
+
+```text
+stdout_log = empty
+stderr_log = empty
+torch_info = torch 2.5.1+cu118 / cuda 11.8 / 2 CUDA devices
+monitor_health_exit_code = 4
+```
+
+Decision:
+
+```text
+claim_scope = failed launch/run artifact state; no model-quality metric
+gate_decision = no gate, no postprocess, no seed1, no S-box prior launch from this result
+required_next_action = main-thread bounded diagnosis or repair plan, because monitor-health explicitly requested intervention
+```

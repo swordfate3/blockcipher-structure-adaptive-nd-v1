@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -8531,7 +8531,8 @@ def test_summarize_spn_evidence_tracks_running_active_auxiliary_after_trail_fami
             "claim_scope": "trail-family medium diagnostic gate",
         },
     )
-    (active / "monitor" / "monitor.log").write_text("2026-07-04T09:42:38+08:00 running\n")
+    (active / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} running\n")
+    _write_active_auxiliary_launch_artifacts(active)
     (active / "logs" / "active_auxiliary_progress.jsonl").write_text(
         json.dumps({"event": "active_auxiliary_cache_start", "split": "train", "total_rows": 524288})
         + "\n"
@@ -8566,6 +8567,65 @@ def test_summarize_spn_evidence_tracks_running_active_auxiliary_after_trail_fami
     assert recommendation["conditional_followup"]["fallback_if_stop"] == "sbox_transition_prior_gate_seed0"
     assert recommendation["conditional_followup"]["fallback_run_id"] == "i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703"
     assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
+
+
+def test_summarize_spn_evidence_keeps_active_auxiliary_with_progress_without_running_log(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    active = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    transition.mkdir(parents=True)
+    trail.mkdir(parents=True)
+    (active / "monitor").mkdir(parents=True)
+    (active / "logs").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    _write_test_json(
+        trail / "i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_trail_family_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_trail_family_route",
+            "claim_scope": "trail-family medium diagnostic gate",
+        },
+    )
+    (active / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} sync\n")
+    _write_active_auxiliary_launch_artifacts(active)
+    (active / "logs" / "active_auxiliary_progress.jsonl").write_text(
+        json.dumps({"event": "active_auxiliary_cache_start", "split": "train", "total_rows": 524288}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "wait_for_active_auxiliary_result"
+    assert recommendation["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    assert recommendation["progress_summary"]["latest_event"] == "active_auxiliary_cache_start"
+    assert recommendation["needs_main_thread_intervention"] is False
+
+
+def _write_active_auxiliary_launch_artifacts(run_root: Path) -> None:
+    run_id = run_root.name
+    logs = run_root / "logs"
+    (logs / f"{run_id}_started.marker").write_text("started\n", encoding="utf-8")
+    (logs / f"{run_id}_torch_info.txt").write_text("cuda available\n", encoding="utf-8")
+    (logs / f"{run_id}_git_revision.txt").write_text("abc123\n", encoding="utf-8")
+    (logs / f"{run_id}_readiness.txt").write_text('{"status":"pass"}\n', encoding="utf-8")
+    (logs / f"{run_id}_stdout.txt").write_text("", encoding="utf-8")
+
+
+def _fresh_monitor_timestamp() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
 def test_summarize_spn_evidence_keeps_active_auxiliary_when_remote_artifacts_missing(tmp_path):
