@@ -8775,6 +8775,54 @@ def test_summarize_spn_evidence_keeps_failed_active_auxiliary_as_active_branch(t
     assert "launch S-box transition prior seed0" in recommendation["main_thread_policy"]["forbidden_until_gate"]
 
 
+def test_summarize_spn_evidence_prefers_active_auxiliary_retry_over_stale_failed_original(tmp_path):
+    root = tmp_path / "remote_results"
+    transition = root / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702"
+    trail = root / "i1_trail_family_r7_262k_seed0_gpu1_20260702"
+    failed_original = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_20260703"
+    retry = root / "i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704"
+    transition.mkdir(parents=True)
+    trail.mkdir(parents=True)
+    (failed_original / "monitor").mkdir(parents=True)
+    (failed_original / "logs").mkdir(parents=True)
+    (retry / "monitor").mkdir(parents=True)
+    (retry / "logs").mkdir(parents=True)
+    _write_test_json(
+        transition / "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_bit_transition_spectrum_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_transition_spectrum_route",
+            "claim_scope": "bit-transition-spectrum medium diagnostic gate",
+        },
+    )
+    _write_test_json(
+        trail / "i1_trail_family_r7_262k_seed0_gpu1_20260702_postprocess_summary.json",
+        {
+            "run_id": "i1_trail_family_r7_262k_seed0_gpu1_20260702",
+            "status": "pass",
+            "validation_status": "pass",
+            "decision": "stop_trail_family_route",
+            "claim_scope": "trail-family medium diagnostic gate",
+        },
+    )
+    (failed_original / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} failed\n")
+    _write_active_auxiliary_launch_artifacts(failed_original)
+    (failed_original / "logs" / f"{failed_original.name}_failed.marker").write_text("failed\n", encoding="utf-8")
+    (retry / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} running\n")
+    _write_active_auxiliary_launch_artifacts(retry)
+
+    report = summarize_spn_evidence(root)
+
+    recommendation = report["active_recommendation"]
+    assert recommendation["branch"] == "wait_for_active_auxiliary_result"
+    assert recommendation["run_id"] == "i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704"
+    assert recommendation["needs_main_thread_intervention"] is False
+    assert "seed0_retry1" in recommendation["monitor_health_command"]
+    assert "monitor_i1_active_auxiliary_seed0_retry1_20260704" in recommendation["monitor_health_command"]
+
+
 def _write_active_auxiliary_launch_artifacts(run_root: Path) -> None:
     run_id = run_root.name
     logs = run_root / "logs"

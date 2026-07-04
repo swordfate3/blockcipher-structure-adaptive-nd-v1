@@ -379,7 +379,8 @@ def _trail_family_running(root: Path) -> dict[str, Any] | None:
 
 
 def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
-    for run_root in sorted(root.glob("i1_active_auxiliary*")):
+    candidates: list[dict[str, Any]] = []
+    for run_root in sorted(root.glob("i1_active_auxiliary*"), reverse=True):
         summaries = list(run_root.glob("*_postprocess_summary.json"))
         if summaries:
             continue
@@ -387,7 +388,7 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
         recent_lines = _tail_lines(monitor_log, 8)
         health = _active_auxiliary_monitor_health(root, run_root.name)
         if health["status"] == "failed":
-            return {
+            candidates.append({
                 "branch": "active_auxiliary_failed",
                 "run_id": run_root.name,
                 "status": health["status"],
@@ -407,9 +408,10 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
                 "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
                 "main_thread_policy": _active_auxiliary_main_thread_policy("failed"),
-            }
+            })
+            continue
         if health["postprocess_allowed"]:
-            return {
+            candidates.append({
                 "branch": "postprocess_active_auxiliary_result",
                 "run_id": run_root.name,
                 "status": health["status"],
@@ -429,7 +431,8 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
                 "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
                 "main_thread_policy": _active_auxiliary_main_thread_policy("postprocess"),
-            }
+            })
+            continue
         active_statuses = {
             "running",
             "stale_monitor",
@@ -444,7 +447,7 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
                 if health["needs_main_thread_intervention"]
                 else "wait_for_active_auxiliary_result"
             )
-            return {
+            candidates.append({
                 "branch": branch,
                 "run_id": run_root.name,
                 "status": health["status"],
@@ -460,8 +463,22 @@ def _active_auxiliary_running(root: Path) -> dict[str, Any] | None:
                 "monitor_health_command": _active_auxiliary_monitor_health_command(run_root.name),
                 "postprocess_when_ready_command": _active_auxiliary_postprocess_command(run_root),
                 "main_thread_policy": _active_auxiliary_main_thread_policy("waiting"),
-            }
-    return None
+            })
+    if not candidates:
+        return None
+    return sorted(candidates, key=_active_auxiliary_candidate_rank, reverse=True)[0]
+
+
+def _active_auxiliary_candidate_rank(candidate: dict[str, Any]) -> tuple[int, str]:
+    if candidate["branch"] == "postprocess_active_auxiliary_result":
+        priority = 4
+    elif not bool(candidate.get("needs_main_thread_intervention")):
+        priority = 3
+    elif candidate["branch"] == "diagnose_active_auxiliary_launch":
+        priority = 2
+    else:
+        priority = 1
+    return priority, str(candidate["run_id"])
 
 
 def _candidate_monitor_health(root: Path, run_id: str) -> dict[str, Any]:
@@ -850,14 +867,17 @@ def _trail_family_tmux_session(run_id: str) -> str:
 
 def _active_auxiliary_plan_path(run_id: str) -> Path:
     seed = "seed1" if "_seed1_" in run_id else "seed0"
+    retry = "_retry1" if "_retry1_" in run_id else ""
     return Path(
         "configs/experiment/innovation1/"
-        f"innovation1_spn_present_active_auxiliary_r7_262k_{seed}.json"
+        f"innovation1_spn_present_active_auxiliary_r7_262k_{seed}{retry}.json"
     )
 
 
 def _active_auxiliary_tmux_session(run_id: str) -> str:
     seed = "seed1" if "_seed1_" in run_id else "seed0"
+    if "_retry1_" in run_id:
+        return f"monitor_i1_active_auxiliary_{seed}_retry1_20260704"
     return f"monitor_i1_active_auxiliary_{seed}_20260703"
 
 
