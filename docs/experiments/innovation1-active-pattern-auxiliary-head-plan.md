@@ -374,3 +374,69 @@ SOTA
 
 This route can only become a main claim after at least `1000000/class`
 multi-seed, same-protocol, strict-negative, plan-aligned evidence.
+
+## Launch Record
+
+### i1_active_auxiliary_r7_262k_seed0_gpu1_20260703
+
+```text
+status = launched / watcher_handoff
+date = 2026-07-04
+trigger_source = i1_trail_family_r7_262k_seed0_gpu1_20260702
+trigger_decision = stop_trail_family_route
+trigger_claim_scope = trail-family diagnostic gate; not paper-scale, formal, or breakthrough evidence
+claim_scope = medium diagnostic only; not formal evidence
+```
+
+Trail-family seed0 was retrieved, validated, postprocessed, and gated to
+`stop_trail_family_route`. That satisfies this route's fallback trigger. This
+active-auxiliary run remains a `262144/class` medium diagnostic and must not be
+described as formal route evidence.
+
+Launch target:
+
+```text
+run_id = i1_active_auxiliary_r7_262k_seed0_gpu1_20260703
+plan = configs/experiment/innovation1/innovation1_spn_present_active_auxiliary_r7_262k_seed0.json
+remote_config = configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json
+launcher = configs/remote/generated/run_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.cmd
+monitor = configs/remote/generated/monitor_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.sh
+expected_rows = 3
+scale = 262144/class
+seed = 0
+device = cuda:1
+dataset_cache_workers = 4
+claim_scope = medium diagnostic only
+```
+
+Readiness refresh before launch:
+
+```text
+command = UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_active_auxiliary_r7_262k_seed0_gpu1_20260703.json
+status = pass
+checked_invariants = plan_exists, expected_rows_matches_plan, run_id_task_archive_alignment, github_ssh_repo, cmd_exe_c_only_policy, g_lxy_artifact_policy, training_protocol_matches_plan, medium_scale_dataset_cache, active_auxiliary_protocol_lock
+warnings = remote config relies on runner/plan defaults for optimizer/loss/scheduler/checkpoint fields; dataset_cache_workers=4 is conservative and plan-aligned
+```
+
+Launch execution:
+
+```text
+source_commit = 4b593d3
+remote_launcher_uploaded_to = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703\run_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.cmd
+windows_task_command = cmd.exe /c G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_active_auxiliary_r7_262k_seed0_gpu1_20260703\run_i1_active_auxiliary_r7_262k_seed0_gpu1_20260703.cmd
+local_monitor_session = monitor_i1_active_auxiliary_seed0_20260703
+local_result_root = outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_20260703
+handoff_status = local watcher started; first heartbeat fresh
+```
+
+Initial bounded monitor-health check:
+
+```text
+status = running
+results_jsonl_exists = false
+results_jsonl_line_count = 0 / 3
+done_markers = none
+failed_markers = none
+needs_main_thread_intervention = false
+early_scp_warning = remote logs/results not created yet; normal before launcher emits first artifacts
+```
