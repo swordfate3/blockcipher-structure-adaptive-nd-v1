@@ -311,13 +311,28 @@ def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: in
 
     has_started_marker = any("started.marker" in path for path in artifact_files)
     has_git_artifact = any("_git_" in path or path.endswith("_git_revision.txt") for path in artifact_files)
+    has_git_revision = any(path.endswith("_git_revision.txt") for path in artifact_files)
+    has_readiness = any(path.endswith("_readiness.txt") for path in artifact_files)
+    has_clone_or_fetch_artifact = any(
+        "_git_clone_" in path
+        or "_git_fetch_" in path
+        or "_git_checkout_" in path
+        or path.endswith("_git_status_before_run.txt")
+        for path in artifact_files
+    )
     has_progress = any(path.endswith("progress.jsonl") for path in artifact_files)
     torch_info_paths = sorted((run_root / "logs").glob("*torch_info.txt"))
     has_torch_info = bool(torch_info_paths)
     has_nonempty_torch_info = any(path.exists() and path.stat().st_size > 0 for path in torch_info_paths)
     has_training_or_completion = any(
-        path.endswith("_stdout.txt")
-        or (path.endswith("_stderr.txt") and not path.endswith("_torch_info_stderr.txt"))
+        (
+            (path.endswith("_stdout.txt") or path.endswith("_stderr.txt"))
+            and "_git_clone_" not in path
+            and "_git_fetch_" not in path
+            and "_git_checkout_" not in path
+            and "_git_status_" not in path
+            and not path.endswith("_torch_info_stderr.txt")
+        )
         or "done.marker" in path
         or "failed.marker" in path
         or path.startswith("results/")
@@ -331,14 +346,32 @@ def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: in
         and not has_progress
         and not has_training_or_completion
     )
+    clone_or_checkout_only = (
+        has_nonempty_torch_info
+        and has_clone_or_fetch_artifact
+        and not has_git_revision
+        and not has_readiness
+        and not has_started_marker
+        and not has_progress
+        and not has_training_or_completion
+    )
+    is_stalled = initial_launch_only or clone_or_checkout_only
+    if initial_launch_only:
+        reason = "torch_info_empty_before_git_or_training"
+    elif clone_or_checkout_only:
+        reason = "clone_or_checkout_before_readiness"
+    else:
+        reason = "launch_progress_observed"
     return {
         "has_remote_logs": True,
         "has_started_marker": has_started_marker,
         "has_git_artifact": has_git_artifact,
+        "has_git_revision": has_git_revision,
+        "has_readiness": has_readiness,
         "has_progress": has_progress,
         "has_nonempty_torch_info": has_nonempty_torch_info,
-        "is_stalled": initial_launch_only,
-        "reason": "torch_info_empty_before_git_or_training" if initial_launch_only else "launch_progress_observed",
+        "is_stalled": is_stalled,
+        "reason": reason,
     }
 
 

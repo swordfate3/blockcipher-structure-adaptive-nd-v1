@@ -4838,6 +4838,59 @@ def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
     assert report["launch_state"]["is_stalled"] is False
 
 
+def test_monitor_health_marks_launch_stalled_after_clone_without_readiness(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "clone_stalled_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-07-04T20:38:28+08:00 sync",
+                "2026-07-04T20:38:29+08:00 running",
+                "2026-07-04T20:52:28+08:00 sync",
+                "2026-07-04T20:52:29+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (logs / f"{run_id}_gpu_info.txt").write_text("gpu\n", encoding="utf-8")
+    (logs / f"{run_id}_launch_env.txt").write_text("run_id=clone_stalled_unit\n", encoding="utf-8")
+    (logs / f"{run_id}_torch_info.txt").write_text("cuda available\n", encoding="utf-8")
+    (logs / f"{run_id}_torch_info_stderr.txt").write_text("", encoding="utf-8")
+    (logs / f"{run_id}_git_clone_stdout.txt").write_text("", encoding="utf-8")
+    (logs / f"{run_id}_git_clone_stderr.txt").write_text("Cloning into source...\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-04T20:53:00+08:00"),
+    )
+
+    assert report["status"] == "launch_stalled"
+    assert report["needs_main_thread_intervention"] is True
+    assert report["launch_state"]["is_stalled"] is True
+    assert report["launch_state"]["reason"] == "clone_or_checkout_before_readiness"
+
+    (logs / f"{run_id}_git_revision.txt").write_text("abc123\n", encoding="utf-8")
+    (logs / f"{run_id}_readiness.txt").write_text('{"status":"pass"}\n', encoding="utf-8")
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=4,
+        now=datetime.fromisoformat("2026-07-04T20:53:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["launch_state"]["is_stalled"] is False
+
+
 def test_monitor_health_requires_expected_result_rows(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_matrix"
