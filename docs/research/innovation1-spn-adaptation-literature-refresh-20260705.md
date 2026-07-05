@@ -278,10 +278,22 @@ positive parity zero_rate = 1.0
 matched-negative parity zero_rate = 1.0
 ```
 
-The next step is therefore a local matched-negative smoke/probe, not a remote
-scale-up. If the controlled probe collapses to chance, switch to Candidate B
-and build a smaller SPN-derived feature probe. Keep Candidate C as a secondary
-validator, not the next remote launch.
+The matched-negative smoke/probe has now been run locally:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv
+samples_per_class = 256
+validation_samples_per_class = 128
+raw-pair AUC = 0.805480957031
+InvP matrix AUC = 0.530761718750
+InvP+Sinv matrix AUC = 0.547485351562
+```
+
+The next step is still local, not remote: repeat the matched-negative probe with
+a different seed and add deterministic pair-alignment audits. If the raw-pair
+signal survives those controls, write a lean controlled confirmation plan. If
+it collapses, switch to Candidate B and build a smaller SPN-derived feature
+probe. Keep Candidate C as a secondary validator, not the next remote launch.
 
 The current priority is therefore:
 

@@ -12255,6 +12255,25 @@ def test_integral_parity_audit_matched_negative_removes_pair_xor_separator():
     assert report["interpretation"] == "parity_statistic_does_not_explain_result_by_itself"
 
 
+def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv"
+    args = parse_args(["--plan", plan])
+    tasks = build_tasks(args)
+
+    assert len(tasks) == 3
+    assert {task["sample_structure"] for task in tasks} == {"plaintext_integral_nibble_matched_negative"}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {256}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["feature_encoding"] for task in tasks} == {
+        "ciphertext_pair_bits",
+        "present_pair_xor_paligned_cell_matrix_bits",
+        "present_pair_xor_paligned_sinv_cell_matrix_bits",
+    }
+    assert all("SMOKE only" in task["matching_evidence"] for task in tasks)
+
+
 def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():
     cipher = build_cipher("present80", rounds=7, key=0)
     left = 0x0123456789ABCDEF

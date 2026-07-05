@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** Control A implemented / local parity control passes / no remote launch
+**Status:** Control A implemented / local matched-negative smoke complete / no remote launch
 
 **Scope:** PRESENT-80 r8 integral/multiset data-construction controls under
 strict `encrypted_random_plaintexts` semantics. This plan does not modify the
@@ -232,12 +232,71 @@ Result:
 2 passed
 ```
 
+Matched-negative smoke/probe:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv
+output = outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke/results.jsonl
+samples_per_class = 256
+validation_samples_per_class = 128
+epochs = 3
+device = cpu
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 32 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke/progress.jsonl
+```
+
+Result:
+
+| Row | Feature | AUC | Calibrated accuracy | Accuracy |
+|---|---|---:|---:|---:|
+| Raw pair | `ciphertext_pair_bits` | `0.805480957031` | `0.753906250000` | `0.531250000000` |
+| InvP matrix | `present_pair_xor_paligned_cell_matrix_bits` | `0.530761718750` | `0.566406250000` | `0.484375000000` |
+| InvP+Sinv matrix | `present_pair_xor_paligned_sinv_cell_matrix_bits` | `0.547485351562` | `0.550781250000` | `0.500000000000` |
+
+Plot/history artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke/curves.svg
+outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke/history.csv
+```
+
+Interpretation:
+
+```text
+The explicit pair-xor parity separator is removed, but the raw ciphertext-pair
+view still shows a small-scale residual signal in this tiny smoke. The InvP and
+InvP+Sinv matrix rows do not show convincing support at this scale.
+```
+
+This is not enough for a remote launch. The raw-pair result may reflect another
+pair-alignment or construction artifact, small validation variance, or a real
+controlled integral signal. It needs seed repeat and additional deterministic
+alignment audits first.
+
 Next concrete step:
 
 ```text
-Run a local matched-negative smoke/probe before any remote screen. If the model
-or deterministic probes are near chance, stop the current integral data route.
-If a nontrivial signal remains, write a lean controlled remote screen plan.
+Run a second local matched-negative probe with a different seed and add a
+deterministic pair-alignment audit. Do not launch remote training until those
+controls distinguish artifact from residual SPN signal.
 ```
 
 ## Claim Scope
