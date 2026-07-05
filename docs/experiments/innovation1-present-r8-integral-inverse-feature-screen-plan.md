@@ -487,3 +487,79 @@ Repair launch gate：
 | Summary JSON | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_postprocess_summary.json` |
 | Summary Markdown | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_postprocess_summary.md` |
 <!-- integral-inverse-feature-postprocess:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705:end -->
+
+## Local Integral Parity Audit
+
+After the retrieved screen, the raw integral anchor was audited with the
+deterministic pair-xor parity statistic:
+
+```text
+For each sample, compute C_i xor C'_i for all 16 ciphertext pairs, XOR/sum the
+bit parity across the pair dimension, and classify by parity Hamming weight.
+```
+
+Commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-integral-parity-signal \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv \
+  --row-index 0 \
+  --samples-per-class 2048 \
+  --seed 7 \
+  --key-split validation \
+  --output outputs/local_audits/r8_integral_raw_anchor_parity_audit_seed7_2048.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-integral-parity-signal \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv \
+  --row-index 0 \
+  --samples-per-class 2048 \
+  --seed 7 \
+  --key-split train \
+  --output outputs/local_audits/r8_integral_raw_anchor_parity_audit_train_seed7_2048.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-integral-parity-signal \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv \
+  --row-index 0 \
+  --samples-per-class 2048 \
+  --seed 19 \
+  --key-split validation \
+  --output outputs/local_audits/r8_integral_raw_anchor_parity_audit_validation_seed19_2048.json
+```
+
+All three audits produced:
+
+```text
+best_threshold_accuracy = 1.0
+positive_pair_xor_parity_hw.zero_rate = 1.0
+negative_pair_xor_parity_hw.zero_rate = 0.0
+interpretation = parity_statistic_alone_nearly_separates_classes
+```
+
+Representative validation split summary:
+
+| Field | Value |
+|---|---:|
+| Samples per class | `2048` |
+| Seed | `7` |
+| Key split | `validation` |
+| Positive parity-HW mean | `0.0` |
+| Positive zero rate | `1.0` |
+| Negative parity-HW mean | `32.0283203125` |
+| Negative zero rate | `0.0` |
+| Best threshold | `parity_hw <= 0` |
+| Threshold accuracy | `1.0` |
+
+Interpretation:
+
+```text
+The r8 raw integral anchor is explained by a deterministic integral/multiset
+pair-xor parity statistic under the current positive-vs-random-right negative
+construction. It must not be reported as a neural architecture gain or as
+evidence that the current InvP/Sinv feature route should scale.
+```
+
+Next plan:
+
+```text
+docs/experiments/innovation1-present-r8-integral-parity-control-plan.md
+```

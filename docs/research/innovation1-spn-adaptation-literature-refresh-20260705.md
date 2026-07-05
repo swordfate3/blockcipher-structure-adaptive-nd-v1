@@ -116,6 +116,22 @@ likely contains deterministic multiset parity structure, so the next work
 should audit and control the data construction before claiming an architecture
 or neural representation gain.
 
+That audit was then run locally at `2048/class` for train and validation keys.
+The deterministic pair-xor parity statistic alone separated the current
+positive-vs-random-right integral construction with `1.0` accuracy in all
+checked seeds/splits:
+
+```text
+positive_pair_xor_parity_hw.zero_rate = 1.0
+negative_pair_xor_parity_hw.zero_rate = 0.0
+best threshold = parity_hw <= 0
+accuracy = 1.0
+```
+
+This means the completed r8 raw integral anchor is now best understood as a
+protocol/data-construction diagnostic. It is not a candidate to scale directly
+as a neural distinguisher result.
+
 ## Route Correction
 
 The literature scan changes the priority order:
@@ -244,9 +260,15 @@ aggregation as evidence that the broader diverse route has failed.
 
 ## Recommended Next Concrete Step
 
-Use Candidate A next: a local audit/control pass for the r8 integral raw-anchor
-signal. If the strong signal survives controls without trivial deterministic
-leakage, write a lean `docs/experiments/` confirmation plan. If it collapses,
+Candidate A has now confirmed that the current raw anchor is explained by a
+trivial deterministic parity statistic. Use the follow-up control plan next:
+
+```text
+docs/experiments/innovation1-present-r8-integral-parity-control-plan.md
+```
+
+The control plan should remove the positive-vs-random-right mismatch before
+any remote scale-up. If the signal collapses under matched-integral negatives,
 switch to Candidate B and build a local SPN-derived feature probe. Keep
 Candidate C as a secondary validator, not the next remote launch.
 
