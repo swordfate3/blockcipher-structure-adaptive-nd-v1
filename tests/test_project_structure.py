@@ -12349,6 +12349,25 @@ def test_integral_scrambled_positive_control_reduces_feature_bank_separator():
     )
 
 
+def test_integral_difference_matched_negative_removes_left_right_column_sum_separator():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+    task["sample_structure"] = "plaintext_integral_nibble_difference_matched_negative"
+    task["integral_active_nibble"] = 1
+
+    report = integral_feature_bank_audit_from_task(
+        task,
+        samples_per_class=64,
+        seed=7,
+        key_split="validation",
+    )
+    separator = report["statistics"]["left_right_column_sum_l1_mean"]["best_threshold"]
+
+    assert report["sample_structure"] == "plaintext_integral_nibble_difference_matched_negative"
+    assert separator["accuracy"] < 0.6
+
+
 def test_present_r8_integral_pair_order_control_plan_is_local_audit_only():
     plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_pair_order_control_smoke.csv"
     tasks = build_tasks(parse_args(["--plan", plan]))
@@ -12364,6 +12383,32 @@ def test_present_r8_integral_pair_order_control_plan_is_local_audit_only():
         assert task["feature_encoding"] == "ciphertext_pair_bits"
         assert task["negative_mode"] == "encrypted_random_plaintexts"
         assert "LOCAL AUDIT only" in task["matching_evidence"]
+
+
+def test_present_r8_integral_feature_variation_control_plan_is_local_audit_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_feature_variation_control_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 8
+    assert {task["sample_structure"] for task in tasks} == {
+        "plaintext_integral_nibble_difference_matched_negative"
+    }
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {256}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["feature_encoding"] for task in tasks} == {"ciphertext_pair_bits"}
+    assert {task["integral_active_nibble"] for task in tasks[:4]} == {0, 1, 7, 15}
+    assert {task["difference_profile"] for task in tasks[4:]} == {
+        "present_zhang_wang2022_mcnd",
+        "present_autond_dbitnet2023_highround",
+        "present_entropy2026_gohr",
+        "present_wang_jain2021_1",
+    }
+    assert all("LOCAL AUDIT only" in task["matching_evidence"] for task in tasks)
 
 
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():

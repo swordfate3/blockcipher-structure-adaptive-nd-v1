@@ -187,8 +187,18 @@ scrambled-positive pair_xor_column_sum_variance accuracy = 0.8818359375
 
 This weakens but does not remove the statistic. Same-index fixed-difference pairing appears to be a major amplifier, while the active-nibble integral multiset construction still leaves a strong residual column-distribution signal.
 
+Clean active/difference variation with `plaintext_integral_nibble_difference_matched_negative` then removed the left/right column-sum mismatch for off-active differences. At `2048/class`, audit seed `17`:
+
+```text
+active0 + Zhang/Wang diff 0x9 accuracy = 0.81494140625
+active1/7/15 + Zhang/Wang diff 0x9 accuracy ~= 0.52
+active0 + AutoND / entropy / Wang-Jain differences accuracy ~= 0.51-0.53
+```
+
+This narrows the route further: the deterministic statistic is not a generic integral-multiset signal. It is strongest when the active integral nibble is aligned with the fixed input-difference support.
+
 ### Suggested Action
-Before scaling the r8 matched-negative integral route, run controls such as active-nibble variation, input-difference variation, and same-budget anchor comparison. If the statistic remains meaningful after controls, frame it as a deterministic SPN/multiset feature route with neural follow-up as secondary attribution.
+Before scaling the r8 matched-negative integral route, test aligned active-nibble choices for each candidate input difference and keep `pair_xor_column_sum_variance` as an explicit deterministic baseline. If the statistic remains meaningful after aligned controls and same-budget anchor comparison, frame it as a deterministic SPN feature route with neural follow-up as secondary attribution.
 
 ### Metadata
 - Source: experiment_audit
@@ -196,7 +206,7 @@ Before scaling the r8 matched-negative integral route, run controls such as acti
 - Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
 - See Also: LRN-20260705-003, LRN-20260705-002
 - Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-06
 

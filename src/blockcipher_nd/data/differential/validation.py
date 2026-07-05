@@ -14,6 +14,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
     if config.sample_structure not in {
         "independent_pairs",
         "plaintext_integral_nibble",
+        "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
         "zhang_wang_case2_mcnd",
@@ -23,6 +24,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         raise ValueError(f"unsupported sample_structure: {config.sample_structure}")
     if config.sample_structure in {
         "plaintext_integral_nibble",
+        "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:

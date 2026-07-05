@@ -17,6 +17,7 @@ def generate_positive_row(
 ) -> list[int]:
     if config.sample_structure in {
         "plaintext_integral_nibble",
+        "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
     }:
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
@@ -41,6 +42,9 @@ def generate_negative_row(
         return _generate_integral_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "plaintext_integral_nibble_matched_negative":
         return _generate_integral_matched_negative_row(config, rng, block_bits, row_index)
+    if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative":
+        mask = (1 << block_bits) - 1
+        return _generate_integral_difference_matched_negative_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "plaintext_integral_nibble_scrambled_positive":
         return _generate_integral_matched_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
@@ -184,6 +188,27 @@ def _generate_integral_matched_negative_row(
     for variant, paired_variant in zip(variants, paired_variants, strict=True):
         plaintext_a = base | variant
         plaintext_b = base | paired_variant
+        encoded_pairs.extend(
+            encode_pair(cipher.encrypt(plaintext_a), cipher.encrypt(plaintext_b), block_bits, config, cipher)
+        )
+    return encoded_pairs
+
+
+def _generate_integral_difference_matched_negative_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    mask: int,
+    row_index: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    cipher = cipher_for_row(config, rng, row_index)
+    base = _integral_base_plaintext(config, rng, block_bits)
+    variants = _integral_variants(config)
+    paired_variants = variants[1:] + variants[:1]
+    for variant, paired_variant in zip(variants, paired_variants, strict=True):
+        plaintext_a = base | variant
+        plaintext_b = ((base | paired_variant) ^ config.input_difference) & mask
         encoded_pairs.extend(
             encode_pair(cipher.encrypt(plaintext_a), cipher.encrypt(plaintext_b), block_bits, config, cipher)
         )

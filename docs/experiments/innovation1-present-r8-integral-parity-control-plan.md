@@ -501,6 +501,76 @@ input_difference variation
 possibly pair_xor_column_sum_variance as an explicit deterministic baseline
 ```
 
+## Clean Active-Nibble And Difference Variation Control
+
+The first active-nibble / input-difference variation audit exposed a control
+problem: when the active nibble did not cover the fixed input difference, the
+existing matched-negative construction let `left_right_column_sum_l1_mean`
+separate classes with `1.0` accuracy. That was a construction mismatch, not a
+useful SPN feature.
+
+To remove that artifact, a cleaner local-only sample structure was added:
+
+```text
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+```
+
+Positive samples are unchanged. Negative samples use the same one-step rotated
+right variant order as `plaintext_integral_nibble_matched_negative`, but the
+right plaintext is also XORed with the same `input_difference`. This keeps the
+right-side multiset shift matched across classes before testing pair-xor
+statistics.
+
+The clean variation plan is:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_integral_feature_variation_control_smoke.csv
+```
+
+At `2048/class`, audit seed `17`, validation key:
+
+| Row | Control | Best statistic | Accuracy | left/right L1 accuracy |
+|---|---|---|---:|---:|
+| active nibble `0`, Zhang/Wang diff `0x9` | active aligned with difference | `pair_xor_column_sum_variance` | `0.81494140625` | `0.5` |
+| active nibble `1`, Zhang/Wang diff `0x9` | active moved away from difference | `pair_xor_hw_mean` | `0.521240234375` | `0.51513671875` |
+| active nibble `7`, Zhang/Wang diff `0x9` | active moved away from difference | `pair_xor_hw_mean` | `0.520263671875` | `0.5126953125` |
+| active nibble `15`, Zhang/Wang diff `0x9` | active moved away from difference | `pair_xor_hw_std` | `0.51611328125` | `0.508056640625` |
+| active nibble `0`, Zhang/Wang diff `0x9` | difference anchor repeat | `pair_xor_column_sum_variance` | `0.81494140625` | `0.5` |
+| active nibble `0`, AutoND diff `0x0d000000` | difference moved away from active | `pair_xor_hw_std` | `0.525146484375` | `0.509521484375` |
+| active nibble `0`, entropy diff `0x00d00000` | difference moved away from active | `pair_xor_hw_std` | `0.518310546875` | `0.50732421875` |
+| active nibble `0`, Wang/Jain diff `0x0700000000000700` | difference moved away from active | `left_hw_mean` | `0.514892578125` | `0.5107421875` |
+
+Summary artifact:
+
+```text
+outputs/local_audits/r8_integral_feature_variation_control_clean/summary_seed17_2048.json
+```
+
+Interpretation:
+
+```text
+After matching the right-side input-difference shift across classes, the strong
+deterministic separator remains only when the active integral nibble is aligned
+with the Zhang/Wang input-difference support. Moving the active nibble away
+from the fixed difference, or moving the fixed difference away from active
+nibble 0, drops the feature-bank audit to near chance.
+```
+
+Decision update:
+
+```text
+do_not_treat_as_general_integral_multiset_signal
+keep_as_aligned_active_difference_spn_feature_candidate
+```
+
+Next controls:
+
+```text
+For each candidate input difference, align integral_active_nibble with its
+nonzero nibble support and retest pair_xor_column_sum_variance. Treat this as a
+deterministic feature route first; neural models are secondary attribution.
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -513,6 +583,8 @@ The matched-negative raw-pair residual is strongly explained by
 pair_xor_column_sum_variance at local deterministic-audit scale.
 Pair-order scrambling weakens but does not remove the deterministic
 pair_xor_column_sum_variance separator.
+Clean active/difference variation shows the residual is strong only when the
+active integral nibble is aligned with the input-difference support.
 ```
 
 Not allowed:

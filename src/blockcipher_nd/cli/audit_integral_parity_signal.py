@@ -222,6 +222,7 @@ def _ciphertext_pair_feature_arrays(
 ) -> tuple[Any, np.ndarray, np.ndarray, int]:
     if task["sample_structure"] not in {
         "plaintext_integral_nibble",
+        "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:

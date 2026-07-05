@@ -346,10 +346,36 @@ amplified by same-index fixed-difference pairing. The next local controls
 should vary `integral_active_nibble` and `input_difference` before considering
 any confirmation plan.
 
+Those clean variation controls have now been run with
+`plaintext_integral_nibble_difference_matched_negative`, which matches the
+right-side `input_difference` shift across classes before testing the
+feature-bank statistics:
+
+```text
+summary = outputs/local_audits/r8_integral_feature_variation_control_clean/summary_seed17_2048.json
+
+active0 + Zhang/Wang diff 0x9:
+  best statistic = pair_xor_column_sum_variance
+  best accuracy = 0.81494140625
+
+active1/7/15 + Zhang/Wang diff 0x9:
+  best accuracy = 0.521240234375 / 0.520263671875 / 0.51611328125
+
+active0 + AutoND / entropy / Wang-Jain differences:
+  best accuracy = 0.525146484375 / 0.518310546875 / 0.514892578125
+```
+
+This narrows the hypothesis substantially: the useful deterministic statistic
+is not a generic integral-multiset signal. It appears when the active integral
+nibble is aligned with the fixed input-difference support. The next research
+step should therefore test aligned active-nibble choices for each candidate
+difference, and keep `pair_xor_column_sum_variance` as an explicit
+deterministic baseline before using neural models.
+
 The current priority is therefore:
 
 ```text
-controlled SPN feature/input search > new SPN architecture variant > diverse ensemble
+aligned active-difference SPN feature/input search > new SPN architecture variant > diverse ensemble
 ```
 
 This is a route correction, not a claim of completion.
