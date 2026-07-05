@@ -40,6 +40,70 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260706-022] best_practice
+
+**Logged**: 2026-07-06T09:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Prepare r8 trail-position 65k/class as a cache-ready medium diagnostic, not as an ensemble or formal claim.
+
+### Details
+After the user emphasized that route selection must not simply follow the
+"multiple neural networks" idea, the current trail-position residual evidence
+was rechecked. The strongest next SPN-adaptive route remains:
+
+```text
+active/difference-aligned SPN trail-position statistics
++ deterministic split/control baselines
++ neural residual gate
+```
+
+Prepared assets:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv
+remote_readiness_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json
+scale = 65536/class
+rows = present_pairset_global_stats, present_trail_position_stats_pairset
+status = prepared only / not launched
+```
+
+The readiness config passed local static checking, including
+`medium_scale_dataset_cache`, `cmd.exe /c`, `G:\lxy` artifact policy, and
+training-protocol consistency. This is only a readiness asset. It is not
+remote-launch evidence, not formal SPN/PRESENT evidence, not a breakthrough
+claim, and not a multi-network aggregation result.
+
+Correct route arbitration:
+
+- Keep trail-position residual as the current best controlled local
+  SPN/integral candidate.
+- Keep multi-network aggregation as a later diversity-gated validator.
+- Do not spend the next main slot on near-neighbor aggregation unless a
+  structurally different expert has compatible frozen scores, weak-positive
+  same-scale AUC, low error overlap, and no deterministic-control explanation.
+
+### Suggested Action
+Before any future trail-position remote launch, require a scoped commit, push,
+generated launch-artifact audit, GPU/readiness gate, local monitor handoff, and
+one bounded remote artifact confirmation. After retrieval, rerun the residual
+gate at `65536/class` before making any stronger claim.
+
+### Metadata
+- Source: user_feedback, experiment_audit
+- Related Files: configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv, configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/research/innovation1-spn-independent-route-recheck-20260706.md
+- Tags: innovation1, spn, present, trail-position, medium-readiness, neural-ensemble, route-selection
+- See Also: LRN-20260706-021, LRN-20260706-020, LRN-20260706-014
+- Pattern-Key: innovation1.spn_present.trail_position_65k_readiness_not_ensemble_claim
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-013] best_practice
 
 **Logged**: 2026-07-06T07:25:00+08:00

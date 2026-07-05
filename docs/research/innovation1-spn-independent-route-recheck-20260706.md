@@ -423,3 +423,80 @@ required controls =
 ```
 
 This is a process correction, not a new result claim.
+
+## 2026-07-06 Trail-Position Medium Readiness And Independent Route Check
+
+The latest local evidence changes the route ordering again. The main route is
+now:
+
+```text
+active/difference-aligned SPN trail-position statistics
++ deterministic split/control baselines
++ neural residual gate
+```
+
+This route is stronger than the current multi-network aggregation route because
+it is not just a near-neighbor variant of raw/InvP/DDT inputs. It preserves
+depth/word/cell position information from the SPN trail-statistics view and has
+now passed both small local neural-vs-control checks and deterministic
+baseline/control audits.
+
+Latest controlled local evidence:
+
+| Scale | Evidence | Decision |
+|---:|---|---|
+| `512/class` | candidate beat same-input global-stat control and deterministic split baseline; active-nibble/input-difference controls near chance | support local route |
+| `2048/class` | candidate AUC `0.9991159439086914` and `0.999567985534668`; global control AUC about `0.895`; deterministic baseline AUC `0.8056130409240723` and `0.8421728610992432` | support neural residual locally |
+| `2048/class` residual gate | min candidate margin vs deterministic `+0.1573951244354248`; min candidate margin vs global `+0.10353946685791016`; min deterministic margin vs mismatch `+0.2893033027648926` | pass |
+
+Prepared next asset:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv
+remote_readiness_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json
+scale = 65536/class
+rows = present_pairset_global_stats, present_trail_position_stats_pairset
+status = prepared only / not launched
+```
+
+The remote readiness config passed local static checks, including
+`medium_scale_dataset_cache`, `cmd.exe /c` policy, `G:\lxy` artifact policy,
+and training-protocol consistency. This still does not justify a result claim.
+It only means the route is prepared for a future medium diagnostic after
+commit/push, launch-artifact audit, GPU gate, and monitor handoff.
+
+Independent route judgment after local and external recheck:
+
+| Rank | Route | Current decision |
+|---:|---|---|
+| 1 | trail-position residual with deterministic controls | main next SPN-adaptive route; prepare medium diagnostic, do not overclaim |
+| 2 | representation/data search for another non-neighbor expert | continue local-only search; especially difference-aligned, partial-decryption, and state-format routes |
+| 3 | diverse multi-network aggregation | later validator only after frozen scores show weak-positive quality and low error overlap |
+| 4 | wider near-neighbor ensemble of similar raw/InvP/DDT/trail rows | hold; prior ensemble delta was below the practical gate |
+
+External literature signal still supports this ordering. The common thread in
+the refreshed sources is that useful neural distinguishers often depend on the
+evidence presented to the model: multi-ciphertext-pair derived data formats,
+partial-decryption views, integral/feature exploration, and state formatting.
+That favors building a cleaner SPN representation before adding model count.
+
+Practical rule for the user's multi-network question:
+
+```text
+Do not reject multi-network aggregation.
+Do reject near-neighbor aggregation as the next main experiment.
+Promote aggregation only when at least one structurally different expert has:
+  compatible frozen score artifacts
+  weak-positive same-scale AUC
+  low error overlap with the anchor
+  no explanation by same-input deterministic controls
+```
+
+Claim boundary:
+
+```text
+The 65k trail-position asset is not a launch, not formal SPN/PRESENT evidence,
+not a SOTA claim, and not evidence that a multi-network route failed. It is the
+next controlled medium diagnostic candidate because current evidence says
+representation/control quality is the bottleneck.
+```

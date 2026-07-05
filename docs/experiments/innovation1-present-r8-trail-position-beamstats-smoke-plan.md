@@ -826,3 +826,75 @@ Updated next action:
    error-overlap/diversity checks against the r7 InvP/P-layer anchor and
    near-neighbor controls.
 ```
+
+## 65k/Class Medium Readiness Prepared
+
+Prepared assets:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv
+remote_readiness_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json
+run_id = i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706
+status = prepared only / not launched
+```
+
+Matrix:
+
+| Row | Model | Role | Scale |
+|---:|---|---|---:|
+| 0 | `present_pairset_global_stats` | same-input global-statistics neural control | `65536/class` |
+| 1 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate | `65536/class` |
+
+Readiness gate:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json
+
+status = pass
+expected_rows = 2
+plan_rows = 2
+max_samples_per_class = 65536
+checked_invariants include medium_scale_dataset_cache
+```
+
+Disk-backed data/progress requirements:
+
+```text
+dataset_cache = true
+dataset_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\trail_position_beamstats_cache
+dataset_cache_chunk_size = 8192
+dataset_cache_workers = 4
+progress_output = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\logs\trail_position_beamstats_progress.jsonl
+```
+
+Claim scope:
+
+```text
+This is a medium diagnostic readiness asset, not a remote launch result.
+It is not formal evidence, not a PRESENT r8 breakthrough claim, and not a
+multi-network aggregation result. The 65k/class matrix exists because the
+2048/class residual gate passed and because this route has explicit
+same-input, deterministic, active-nibble, and difference controls.
+```
+
+Launch remains blocked until all of the following are true:
+
+```text
+scoped commit exists
+commit is pushed
+generated launch artifacts pass local audit
+GPU/readiness gate passes
+local tmux monitor/retrieval handoff is prepared
+one bounded post-launch remote artifact confirmation is planned
+```
+
+After retrieval, the same residual gate must be rerun at `65536/class` before
+any stronger claim:
+
+```text
+candidate must beat same-input global-stat neural control
+candidate must beat train-selected deterministic position baseline
+deterministic baseline must beat active-nibble/input-difference mismatch controls
+pair-order reverse parity should be recorded as pair_order_not_bottleneck
+```

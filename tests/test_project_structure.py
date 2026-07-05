@@ -7658,6 +7658,37 @@ def test_remote_readiness_gate_rejects_bad_medium_scale_cache(tmp_path):
     assert any("dataset_cache_root must stay under" in error for error in report["errors"])
 
 
+def test_trail_position_medium_remote_readiness_uses_disk_cache_and_progress():
+    config_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    report = remote_readiness_report(config_path)
+
+    assert report["status"] == "pass"
+    assert report["expected_rows"] == 2
+    assert report["plan_rows"] == 2
+    assert report["max_samples_per_class"] == 65_536
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_root"] == (
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\trail_position_beamstats_cache"
+    )
+    assert config["dataset_cache_chunk_size"] == 8192
+    assert config["dataset_cache_workers"] == 4
+    assert config["progress_output"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+        "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\logs\\"
+    )
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "prepared only" in config["launch_policy"]
+    assert "do not launch" in config["launch_policy"]
+    assert "not formal" in config["claim_scope"]
+
+
 def test_remote_readiness_gate_rejects_sbox_prior_without_full_column_identity(tmp_path):
     source_plan = Path(
         "configs/experiment/innovation1/innovation1_spn_present_sbox_transition_prior_gate_r7_262k_seed0.csv"
@@ -13018,6 +13049,47 @@ def test_present_r8_trail_position_2048_plan_preserves_512_protocol():
         assert "LOCAL DIAGNOSTIC 2048/class" in diagnostic_task["matching_evidence"]
         assert "residual gate" in diagnostic_task["matching_evidence"]
         assert "no remote launch" in diagnostic_task["matching_evidence"]
+
+
+def test_present_r8_trail_position_65k_plan_is_lean_medium_readiness_matrix():
+    base_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv"
+    )
+    medium_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv"
+    )
+    base_tasks = build_tasks(parse_args(["--plan", base_plan]))[:2]
+    medium_tasks = build_tasks(parse_args(["--plan", medium_plan]))
+
+    assert len(medium_tasks) == len(base_tasks) == 2
+    assert [task["model_key"] for task in medium_tasks] == [
+        "present_pairset_global_stats",
+        "present_trail_position_stats_pairset",
+    ]
+    assert {task["samples_per_class"] for task in medium_tasks} == {65_536}
+    assert {task["seed"] for task in medium_tasks} == {0}
+    for base_task, medium_task in zip(base_tasks, medium_tasks, strict=True):
+        for field in (
+            "model_key",
+            "feature_encoding",
+            "rounds",
+            "pairs_per_sample",
+            "sample_structure",
+            "negative_mode",
+            "difference_profile",
+            "integral_active_nibble",
+            "train_key",
+            "validation_key",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "model_options",
+        ):
+            assert medium_task[field] == base_task[field]
+        assert "MEDIUM READINESS 65536/class" in medium_task["matching_evidence"]
+        assert "residual gate" in medium_task["matching_evidence"]
+        assert "not formal evidence" in medium_task["matching_evidence"]
 
 
 def test_audit_spn_features_cli_writes_trail_position_attribution(tmp_path):
