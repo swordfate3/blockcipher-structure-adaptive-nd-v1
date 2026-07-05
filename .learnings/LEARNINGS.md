@@ -691,6 +691,57 @@ For future reports, state plainly: high active-nibble auxiliary accuracy proves 
 
 ---
 
+## [LRN-20260706-006] best_practice
+
+**Logged**: 2026-07-06T02:40:04+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Before widening SPN/PRESENT ensembles, mine stable SPN-sensitive axes and score-distribution features.
+
+### Details
+The user corrected the collaboration style again: the agent should not simply
+follow the user's current hypothesis, including the broader diverse-neural-
+network aggregation idea. Re-checking local evidence and the literature notes
+shows that the next main bottleneck is not model count. It is the absence of a
+compatible, weak-positive, low-correlation non-neighbor expert family.
+
+Current route reading:
+
+```text
+near-neighbor r7 ensemble = weak-positive below gate
+projection v2 = unstable local priors
+GPD/beamstats = weak local candidate only
+candidate-trail = stopped at medium scale, weak local axes only
+aligned integral route = explained by deterministic baseline
+```
+
+The better next route is a score-guided / sensitivity-guided SPN projection
+audit: use candidate-evidence, beamstats, InvP(delta), and trail-family score
+axes to select stable masks only if they survive seed/key stability and false-
+family controls. Only then should the route train a small projection probe or
+enter the diverse expert pool.
+
+### Suggested Action
+Create an SGP local audit before any new remote launch or wider ensemble. Gate
+candidate masks by top-k composite AUC, seed/key stability, and shuffled/false-
+family controls. Keep diverse expert aggregation as the secondary validator
+after a genuine non-neighbor weak-positive score artifact exists.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/research/innovation1-spn-independent-route-recheck-20260706.md, docs/experiments/innovation1-present-diverse-expert-pool-plan.md, docs/experiments/innovation1-present-truncated-projection-feature-plan.md
+- Tags: innovation1, spn, present, route-selection, projection, score-distribution, sensitivity, diverse-experts
+- See Also: LRN-20260705-002, LRN-20260705-003, LRN-20260706-002
+- Pattern-Key: innovation1.spn_present.stable_axis_before_diverse_ensemble
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260623-002] correction
 
 **Logged**: 2026-06-23T21:56:37+08:00
