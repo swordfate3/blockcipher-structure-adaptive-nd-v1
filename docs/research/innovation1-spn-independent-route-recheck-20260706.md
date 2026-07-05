@@ -2,7 +2,35 @@
 
 **Date:** 2026-07-06
 
-**Status:** literature-and-local-evidence route correction
+**Status:** literature-and-local-evidence route correction; updated after SGP hold
+
+## 2026-07-06 Update After SGP Audits
+
+The proposed SGP route below has now been locally tested and held:
+
+```text
+raw-axis SGP audit = sgp_stable_axis_hold
+grouped/orbit SGP audit = sgp_grouped_axis_hold
+```
+
+The strongest grouped signal was broad `word_bit_role` aggregation, with
+`min composite AUC = 0.685741662979126`, but the top-k Jaccard was only
+`0.14285714285714285`. Pair-slot-aware and P-layer orbit groups were less
+stable (`0.0` Jaccard). This is not a projection-mask candidate.
+
+Updated route priority:
+
+```text
+1. intentional pair/global statistics or bit-role/cell distribution features
+2. SPN-aware architecture only if it consumes those stable statistics directly
+3. diverse expert aggregation only after a non-neighbor weak-positive artifact exists
+4. SGP projection route is held unless a new stable source family appears
+```
+
+This does not mean InvP(delta) is useless. It means the weak evidence is broad
+and distributional rather than localized to stable axes/groups. The next useful
+experiment should treat it as a representation/statistics problem, not as a
+mask-selection problem.
 
 ## Decision
 

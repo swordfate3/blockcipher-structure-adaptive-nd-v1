@@ -50,6 +50,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
+    parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
     parser.add_argument("--row-index", type=int, default=0)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
@@ -60,6 +61,19 @@ def main(argv: list[str] | None = None) -> None:
     if args.sgp_stable_axis_config is not None:
         config = json.loads(args.sgp_stable_axis_config.read_text(encoding="utf-8"))
         payload = sgp_stable_axis_audit_from_config(
+            config,
+            samples_per_class=args.samples_per_class,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.sgp_grouped_axis_config is not None:
+        config = json.loads(args.sgp_grouped_axis_config.read_text(encoding="utf-8"))
+        payload = sgp_grouped_axis_audit_from_config(
             config,
             samples_per_class=args.samples_per_class,
             top_k=args.top_k,
@@ -427,6 +441,238 @@ def sgp_stable_axis_report_from_feature_matrices(
     }
 
 
+def sgp_grouped_axis_audit_from_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None = None,
+    top_k: int = 12,
+) -> dict[str, Any]:
+    resolved = _sgp_config(config, samples_per_class=samples_per_class, top_k=top_k)
+    group_schemes = [str(scheme) for scheme in config.get("group_schemes", ["word_cell"])]
+    reports = []
+    for source in resolved["feature_sources"]:
+        probes = []
+        for seed in resolved["seeds"]:
+            for key_split in resolved["key_splits"]:
+                probes.append(
+                    _sgp_source_matrix(
+                        source,
+                        resolved,
+                        seed=seed,
+                        key_split=key_split,
+                    )
+                )
+        controls = [
+            _sgp_source_matrix(
+                control,
+                resolved,
+                seed=resolved["seeds"][0],
+                key_split=resolved["key_splits"][0],
+            )
+            for control in resolved["control_sources"]
+            if int(control.get("feature_dim", -1)) in {-1, int(probes[0]["features"].shape[1])}
+        ]
+        for group_scheme in group_schemes:
+            reports.append(
+                sgp_grouped_axis_report_from_feature_matrices(
+                    probes,
+                    controls=controls,
+                    axis_groups=_axis_groups_for_sgp_source(
+                        {
+                            **source,
+                            "pairs_per_sample": int(source.get("pairs_per_sample", resolved["pairs_per_sample"])),
+                        },
+                        feature_dim=int(probes[0]["features"].shape[1]),
+                        group_scheme=group_scheme,
+                    ),
+                    top_k=resolved["top_k"],
+                    stable_top_k=resolved["stable_top_k"],
+                    min_composite_auc=resolved["min_composite_auc"],
+                    min_topk_jaccard=resolved["min_topk_jaccard"],
+                    min_control_delta=resolved["min_control_delta"],
+                    max_selected_axis_fraction=resolved["max_selected_axis_fraction"],
+                    source_name=str(source["name"]),
+                    group_scheme=group_scheme,
+                )
+            )
+    best_report = max(
+        reports,
+        key=lambda item: (
+            item["decision"] == "sgp_grouped_axis_candidate",
+            item["summary"]["probe_composite_auc_min"],
+            item["control_gap"]["best_composite_auc_delta"],
+        ),
+    )
+    return {
+        "status": "pass",
+        "audit": "sgp_grouped_axis_audit",
+        "decision": best_report["decision"],
+        "best_source": best_report["source_name"],
+        "best_group_scheme": best_report["group_scheme"],
+        "config": {
+            "rounds": resolved["rounds"],
+            "samples_per_class": resolved["samples_per_class"],
+            "seeds": resolved["seeds"],
+            "key_splits": resolved["key_splits"],
+            "pairs_per_sample": resolved["pairs_per_sample"],
+            "negative_mode": resolved["negative_mode"],
+            "sample_structure": resolved["sample_structure"],
+            "difference_profile": resolved["difference_profile"],
+            "difference_member": resolved["difference_member"],
+            "top_k": resolved["top_k"],
+            "stable_top_k": resolved["stable_top_k"],
+            "min_composite_auc": resolved["min_composite_auc"],
+            "min_topk_jaccard": resolved["min_topk_jaccard"],
+            "min_control_delta": resolved["min_control_delta"],
+            "max_selected_axis_fraction": resolved["max_selected_axis_fraction"],
+            "group_schemes": group_schemes,
+        },
+        "source_reports": reports,
+        "candidate_masks": best_report["candidate_masks"],
+        "claim_scope": (
+            "Local SGP grouped-axis audit only; not neural training, not scale "
+            "evidence, not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
+def sgp_grouped_axis_report_from_feature_matrices(
+    probes: list[dict[str, Any]],
+    *,
+    axis_groups: list[str],
+    controls: list[dict[str, Any]] | None = None,
+    top_k: int = 12,
+    stable_top_k: int = 8,
+    min_composite_auc: float = 0.55,
+    min_topk_jaccard: float = 0.35,
+    min_control_delta: float = 0.01,
+    max_selected_axis_fraction: float = 0.75,
+    source_name: str = "inline",
+    group_scheme: str = "word_cell",
+) -> dict[str, Any]:
+    if len(probes) < 2:
+        raise ValueError("SGP grouped-axis audit requires at least two probes")
+    feature_dim = int(np.asarray(probes[0]["features"]).shape[1])
+    if len(axis_groups) != feature_dim:
+        raise ValueError("axis_groups must match feature width")
+    group_to_axes = _group_to_axes(axis_groups)
+    group_ids = sorted(group_to_axes)
+    probe_reports = []
+    top_sets: list[set[str]] = []
+    group_advantages = []
+    for probe in probes:
+        features, labels = _probe_features_and_labels(probe)
+        if features.shape[1] != feature_dim:
+            raise ValueError("all SGP probes for one source must share feature width")
+        axis_scores = _feature_axis_scores(features, labels)
+        group_scores = _group_axis_advantages(axis_scores["auc_advantage"], group_to_axes, group_ids)
+        top_groups = _top_group_ids(group_scores, group_ids, top_k)
+        top_sets.append(set(top_groups))
+        group_advantages.append(group_scores)
+        probe_reports.append(
+            {
+                "name": str(probe.get("name", f"probe{len(probe_reports)}")),
+                "samples_per_class": int(min((labels == 0).sum(), (labels == 1).sum())),
+                "feature_dim": feature_dim,
+                "top_groups": [
+                    {
+                        "group": group_id,
+                        "axis_count": len(group_to_axes[group_id]),
+                        "auc_advantage_max": float(group_scores[index]),
+                    }
+                    for index, group_id in enumerate(group_ids)
+                    if group_id in top_groups
+                ],
+            }
+        )
+
+    stable_groups = _stable_groups_from_probe_scores(
+        top_sets=top_sets,
+        group_advantages=group_advantages,
+        group_ids=group_ids,
+        stable_top_k=stable_top_k,
+    )
+    stable_axes = _axes_for_groups(stable_groups, group_to_axes)
+    probe_composites = []
+    for probe, report in zip(probes, probe_reports, strict=True):
+        features, labels = _probe_features_and_labels(probe)
+        composite_scores = _oriented_zscore_composite(features, labels, stable_axes)
+        composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+        report["stable_group_composite"] = composite
+        probe_composites.append(composite)
+
+    control_reports = []
+    for control in controls or []:
+        features, labels = _probe_features_and_labels(control)
+        if features.shape[1] != feature_dim:
+            continue
+        composite_scores = _oriented_zscore_composite(features, labels, stable_axes)
+        control_reports.append(
+            {
+                "name": str(control.get("name", f"control{len(control_reports)}")),
+                "stable_group_composite": _scalar_statistic_report(
+                    composite_scores,
+                    labels.astype(np.float32, copy=False),
+                ),
+            }
+        )
+
+    topk_jaccard_min = _group_jaccard_min(top_sets)
+    probe_composite_auc_min = min(float(item["auc"]) for item in probe_composites) if probe_composites else 0.5
+    control_auc_max = (
+        max(float(item["stable_group_composite"]["auc"]) for item in control_reports) if control_reports else 0.5
+    )
+    control_delta = probe_composite_auc_min - control_auc_max
+    selected_axis_fraction = float(len(stable_axes) / feature_dim) if feature_dim else 1.0
+    decision = (
+        "sgp_grouped_axis_candidate"
+        if probe_composite_auc_min >= min_composite_auc
+        and topk_jaccard_min >= min_topk_jaccard
+        and control_delta >= min_control_delta
+        and selected_axis_fraction <= max_selected_axis_fraction
+        else "sgp_grouped_axis_hold"
+    )
+    mask_name = f"sgp_grouped_top{len(stable_groups)}_{group_scheme}"
+    return {
+        "audit": "sgp_grouped_axis_audit",
+        "source_name": source_name,
+        "group_scheme": group_scheme,
+        "decision": decision,
+        "summary": {
+            "feature_dim": feature_dim,
+            "group_count": len(group_ids),
+            "probe_count": len(probe_reports),
+            "control_count": len(control_reports),
+            "probe_composite_auc_min": probe_composite_auc_min,
+            "probe_composite_auc_mean": float(np.mean([item["auc"] for item in probe_composites])),
+        },
+        "stability": {
+            "top_k": top_k,
+            "stable_top_k": stable_top_k,
+            "topk_jaccard_min": topk_jaccard_min,
+            "stable_groups": stable_groups,
+            "stable_axes": stable_axes,
+        },
+        "control_gap": {
+            "control_composite_auc_max": control_auc_max,
+            "best_composite_auc_delta": control_delta,
+            "min_control_delta": min_control_delta,
+        },
+        "degeneracy": {
+            "selected_axis_count": len(stable_axes),
+            "selected_axis_fraction": selected_axis_fraction,
+            "max_selected_axis_fraction": max_selected_axis_fraction,
+        },
+        "candidate_masks": {mask_name: stable_axes},
+        "probe_reports": probe_reports,
+        "control_reports": control_reports,
+        "claim_scope": (
+            "Local SGP grouped-axis audit only; not neural training, not scale evidence, "
+            "not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
 def candidate_evidence_feature_probe_from_config(
     config: dict[str, Any],
     *,
@@ -678,6 +924,7 @@ def _sgp_config(
         "min_composite_auc": float(config.get("min_composite_auc", 0.55)),
         "min_topk_jaccard": float(config.get("min_topk_jaccard", 0.35)),
         "min_control_delta": float(config.get("min_control_delta", 0.01)),
+        "max_selected_axis_fraction": float(config.get("max_selected_axis_fraction", 0.75)),
         "feature_sources": feature_sources,
         "control_sources": list(config.get("control_sources", [])),
     }
@@ -771,6 +1018,137 @@ def _stable_axes_from_probe_scores(
 
 
 def _topk_jaccard_min(top_sets: list[set[int]]) -> float:
+    if len(top_sets) < 2:
+        return 1.0
+    values = []
+    for left_index, left in enumerate(top_sets):
+        for right in top_sets[left_index + 1 :]:
+            union = left | right
+            values.append(float(len(left & right) / len(union)) if union else 1.0)
+    return min(values) if values else 1.0
+
+
+def _axis_groups_for_sgp_source(
+    source: dict[str, Any],
+    *,
+    feature_dim: int,
+    group_scheme: str,
+) -> list[str]:
+    explicit = source.get("axis_groups")
+    if explicit is not None:
+        groups = [str(group) for group in explicit]
+        if len(groups) != feature_dim:
+            raise ValueError("explicit axis_groups must match feature width")
+        return groups
+    feature_encoding = str(source.get("feature_encoding", "ciphertext_xor_spn_paligned_bits"))
+    base_dim = 128
+    pairs_per_sample = int(source.get("pairs_per_sample", 1))
+    if (
+        feature_encoding != "ciphertext_xor_spn_paligned_bits"
+        or feature_dim != base_dim * pairs_per_sample
+        or feature_dim % base_dim != 0
+    ):
+        raise ValueError("automatic SGP grouped axes currently support ciphertext_xor_spn_paligned_bits repeated per pair")
+    groups = []
+    for axis_index in range(feature_dim):
+        pair_index = axis_index // base_dim
+        local_axis_index = axis_index % base_dim
+        word_index = local_axis_index // 64
+        word_name = "delta" if word_index == 0 else "invp_delta"
+        offset = local_axis_index % 64
+        lsb_bit_index = 63 - offset
+        cell_index = lsb_bit_index // 4
+        bit_role = lsb_bit_index % 4
+        if group_scheme == "pair_word_cell":
+            groups.append(f"pair{pair_index}:{word_name}:cell{cell_index}")
+        elif group_scheme == "word_cell":
+            groups.append(f"{word_name}:cell{cell_index}")
+        elif group_scheme == "cell":
+            groups.append(f"cell{cell_index}")
+        elif group_scheme == "word_bit_role":
+            groups.append(f"{word_name}:bit{bit_role}")
+        elif group_scheme == "p_layer_orbit":
+            groups.append(f"{word_name}:orbit{_present_p_layer_orbit_id(lsb_bit_index)}")
+        else:
+            raise ValueError(f"unsupported SGP group scheme: {group_scheme}")
+    return groups
+
+
+def _present_p_layer_orbit_id(lsb_bit_index: int) -> int:
+    values = []
+    current = int(lsb_bit_index)
+    for _ in range(4):
+        values.append(current)
+        current = _present_p_layer_lsb_index(current)
+        if current == lsb_bit_index:
+            break
+    return min(values)
+
+
+def _present_p_layer_lsb_index(lsb_bit_index: int) -> int:
+    if lsb_bit_index == 63:
+        return 63
+    return (16 * lsb_bit_index) % 63
+
+
+def _group_to_axes(axis_groups: list[str]) -> dict[str, list[int]]:
+    grouped: dict[str, list[int]] = {}
+    for axis_index, group in enumerate(axis_groups):
+        grouped.setdefault(str(group), []).append(axis_index)
+    return grouped
+
+
+def _group_axis_advantages(
+    axis_advantages: np.ndarray,
+    group_to_axes: dict[str, list[int]],
+    group_ids: list[str],
+) -> np.ndarray:
+    return np.array(
+        [float(np.max(axis_advantages[group_to_axes[group_id]])) for group_id in group_ids],
+        dtype=np.float64,
+    )
+
+
+def _top_group_ids(group_scores: np.ndarray, group_ids: list[str], top_k: int) -> list[str]:
+    order = sorted(
+        range(len(group_ids)),
+        key=lambda index: (float(group_scores[index]), group_ids[index]),
+        reverse=True,
+    )
+    return [group_ids[index] for index in order[: min(top_k, len(group_ids))]]
+
+
+def _stable_groups_from_probe_scores(
+    *,
+    top_sets: list[set[str]],
+    group_advantages: list[np.ndarray],
+    group_ids: list[str],
+    stable_top_k: int,
+) -> list[str]:
+    counts = {group_id: 0 for group_id in group_ids}
+    mean_advantage = {group_id: 0.0 for group_id in group_ids}
+    for top_set, advantages in zip(top_sets, group_advantages, strict=True):
+        for group_id in top_set:
+            counts[group_id] += 1
+        for group_id, advantage in zip(group_ids, advantages, strict=True):
+            mean_advantage[group_id] += float(advantage)
+    divisor = max(1, len(group_advantages))
+    order = sorted(
+        group_ids,
+        key=lambda group_id: (counts[group_id], mean_advantage[group_id] / divisor, group_id),
+        reverse=True,
+    )
+    return order[: min(stable_top_k, len(order))]
+
+
+def _axes_for_groups(stable_groups: list[str], group_to_axes: dict[str, list[int]]) -> list[int]:
+    axes = []
+    for group in stable_groups:
+        axes.extend(group_to_axes[group])
+    return sorted(int(axis) for axis in axes)
+
+
+def _group_jaccard_min(top_sets: list[set[str]]) -> float:
     if len(top_sets) < 2:
         return 1.0
     values = []

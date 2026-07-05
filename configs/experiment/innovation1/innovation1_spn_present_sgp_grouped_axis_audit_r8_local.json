@@ -1,0 +1,34 @@
+{
+  "cipher": "present80",
+  "rounds": 8,
+  "samples_per_class": 2048,
+  "seeds": [0, 1],
+  "key_splits": ["validation"],
+  "pairs_per_sample": 16,
+  "negative_mode": "encrypted_random_plaintexts",
+  "sample_structure": "zhang_wang_case2_official_mcnd",
+  "difference_profile": "present_zhang_wang2022_mcnd",
+  "difference_member": 0,
+  "train_key": "0x00000000000000000000",
+  "validation_key": "0x11111111111111111111",
+  "key_rotation_interval": 0,
+  "stable_top_k": 4,
+  "min_composite_auc": 0.55,
+  "min_topk_jaccard": 0.35,
+  "min_control_delta": 0.01,
+  "max_selected_axis_fraction": 0.75,
+  "group_schemes": [
+    "pair_word_cell",
+    "word_cell",
+    "cell",
+    "word_bit_role",
+    "p_layer_orbit"
+  ],
+  "feature_sources": [
+    {
+      "name": "invp_delta_bits",
+      "kind": "differential_feature",
+      "feature_encoding": "ciphertext_xor_spn_paligned_bits"
+    }
+  ]
+}

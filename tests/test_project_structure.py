@@ -12951,6 +12951,122 @@ def test_sgp_stable_axis_report_selects_axes_that_survive_repeats_and_control():
     assert report["claim_scope"].startswith("Local SGP stable-axis audit only")
 
 
+def test_sgp_grouped_axis_report_keeps_unstable_axes_when_group_is_stable():
+    labels = np.array([0] * 8 + [1] * 8, dtype=np.uint8)
+    probe0 = np.zeros((16, 6), dtype=np.float32)
+    probe1 = np.zeros((16, 6), dtype=np.float32)
+    control = np.zeros((16, 6), dtype=np.float32)
+    probe0[:, 1] = labels
+    probe1[:, 2] = labels
+
+    report = spn_feature_audit.sgp_grouped_axis_report_from_feature_matrices(
+        [
+            {"name": "seed0_validation", "features": probe0, "labels": labels},
+            {"name": "seed1_validation", "features": probe1, "labels": labels},
+        ],
+        controls=[{"name": "false_family", "features": control, "labels": labels}],
+        axis_groups=["cell0", "cell0", "cell0", "cell1", "cell1", "cell2"],
+        top_k=1,
+        stable_top_k=1,
+        min_composite_auc=0.9,
+        min_topk_jaccard=1.0,
+        min_control_delta=0.1,
+        source_name="synthetic_invp",
+        group_scheme="synthetic_cell",
+    )
+
+    assert report["audit"] == "sgp_grouped_axis_audit"
+    assert report["decision"] == "sgp_grouped_axis_candidate"
+    assert report["source_name"] == "synthetic_invp"
+    assert report["group_scheme"] == "synthetic_cell"
+    assert report["stability"]["topk_jaccard_min"] == 1.0
+    assert report["stability"]["stable_groups"] == ["cell0"]
+    assert set(report["candidate_masks"]["sgp_grouped_top1_synthetic_cell"]) == {0, 1, 2}
+
+
+def test_sgp_grouped_axis_report_rejects_degenerate_full_width_group_mask():
+    labels = np.array([0] * 8 + [1] * 8, dtype=np.uint8)
+    probe0 = np.zeros((16, 4), dtype=np.float32)
+    probe1 = np.zeros((16, 4), dtype=np.float32)
+    probe0[:, 0] = labels
+    probe0[:, 1] = labels
+    probe1[:, 2] = labels
+    probe1[:, 3] = labels
+
+    report = spn_feature_audit.sgp_grouped_axis_report_from_feature_matrices(
+        [
+            {"name": "seed0_validation", "features": probe0, "labels": labels},
+            {"name": "seed1_validation", "features": probe1, "labels": labels},
+        ],
+        axis_groups=["role0", "role1", "role0", "role1"],
+        top_k=2,
+        stable_top_k=2,
+        min_composite_auc=0.9,
+        min_topk_jaccard=1.0,
+        min_control_delta=0.1,
+        max_selected_axis_fraction=0.75,
+        group_scheme="synthetic_role",
+    )
+
+    assert report["decision"] == "sgp_grouped_axis_hold"
+    assert report["degeneracy"]["selected_axis_fraction"] == 1.0
+    assert report["degeneracy"]["max_selected_axis_fraction"] == 0.75
+
+
+def test_sgp_grouped_axis_config_repeats_invp_groups_across_pair_slots():
+    groups = spn_feature_audit._axis_groups_for_sgp_source(
+        {
+            "name": "invp_delta_bits",
+            "kind": "differential_feature",
+            "feature_encoding": "ciphertext_xor_spn_paligned_bits",
+            "pairs_per_sample": 2,
+        },
+        feature_dim=256,
+        group_scheme="word_cell",
+    )
+
+    assert len(groups) == 256
+    assert groups[0] == groups[128]
+    assert groups[64] == groups[192]
+    assert groups[0] != groups[64]
+
+
+def test_audit_spn_features_cli_writes_sgp_grouped_axis_audit(tmp_path, monkeypatch):
+    output = tmp_path / "sgp_grouped_axis.json"
+    config_path = tmp_path / "sgp_grouped_axis_config.json"
+    config_path.write_text(json.dumps({"rounds": 8}), encoding="utf-8")
+
+    def fake_grouped_audit(config_payload, *, samples_per_class=None, top_k=12):
+        assert config_payload == {"rounds": 8}
+        assert samples_per_class == 16
+        assert top_k == 4
+        return {
+            "audit": "sgp_grouped_axis_audit",
+            "decision": "sgp_grouped_axis_candidate",
+            "candidate_masks": {"sgp_grouped_top4_word_cell": [64, 65, 66, 67]},
+        }
+
+    monkeypatch.setattr(spn_feature_audit, "sgp_grouped_axis_audit_from_config", fake_grouped_audit)
+
+    status = audit_spn_features_main(
+        [
+            "--sgp-grouped-axis-config",
+            str(config_path),
+            "--samples-per-class",
+            "16",
+            "--top-k",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "sgp_grouped_axis_audit"
+    assert payload["candidate_masks"]["sgp_grouped_top4_word_cell"] == [64, 65, 66, 67]
+
+
 def test_audit_spn_features_cli_writes_sgp_stable_axis_audit(tmp_path, monkeypatch):
     output = tmp_path / "sgp_axis.json"
     config_path = tmp_path / "sgp_axis_config.json"

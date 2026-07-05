@@ -177,6 +177,74 @@ has no progress output. Do not scale this path until cache/progress support is
 added for SGP source sweeps.
 ```
 
+## 2026-07-06 Grouped/Orbit Follow-Up Result
+
+The raw-axis result suggested a possible grouped signal, so a stricter local
+follow-up was added:
+
+```text
+config = configs/experiment/innovation1/innovation1_spn_present_sgp_grouped_axis_audit_r8_local.json
+artifact = outputs/local_audits/i1_present_r8_sgp_grouped_axis_audit_2048_top4.json
+source = invp_delta_bits / ciphertext_xor_spn_paligned_bits
+group_schemes = pair_word_cell, word_cell, cell, word_bit_role, p_layer_orbit
+top_k = 4
+stable_top_k = 4
+max_selected_axis_fraction = 0.75
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --sgp-grouped-axis-config configs/experiment/innovation1/innovation1_spn_present_sgp_grouped_axis_audit_r8_local.json \
+  --samples-per-class 2048 \
+  --top-k 4 \
+  --output outputs/local_audits/i1_present_r8_sgp_grouped_axis_audit_2048_top4.json
+```
+
+Result:
+
+```text
+decision = sgp_grouped_axis_hold
+best_group_scheme = word_bit_role
+```
+
+| Group scheme | Decision | Min composite AUC | Top-k Jaccard | Group count | Mask axes | Mask fraction | Stable groups |
+|---|---|---:|---:|---:|---:|---:|---|
+| `pair_word_cell` | `sgp_grouped_axis_hold` | `0.5344549417495728` | `0.0` | `512` | `16` | `0.0078125` | `pair1:invp_delta:cell1`, `pair1:delta:cell8`, `pair13:delta:cell11`, `pair3:delta:cell0` |
+| `word_cell` | `sgp_grouped_axis_hold` | `0.6075923442840576` | `0.14285714285714285` | `32` | `256` | `0.125` | `delta:cell8`, `invp_delta:cell12`, `delta:cell11`, `invp_delta:cell2` |
+| `cell` | `sgp_grouped_axis_hold` | `0.6401443481445312` | `0.14285714285714285` | `16` | `512` | `0.25` | `cell8`, `cell11`, `cell12`, `cell2` |
+| `word_bit_role` | `sgp_grouped_axis_hold` | `0.685741662979126` | `0.14285714285714285` | `8` | `1024` | `0.5` | `invp_delta:bit2`, `delta:bit0`, `delta:bit2`, `delta:bit1` |
+| `p_layer_orbit` | `sgp_grouped_axis_hold` | `0.5724446773529053` | `0.0` | `48` | `192` | `0.09375` | `invp_delta:orbit6`, `delta:orbit6`, `invp_delta:orbit11`, `delta:orbit11` |
+
+Interpretation:
+
+```text
+There is broad weak separation in InvP(delta), especially when grouped by cell
+or bit role, but the top groups are not stable across seeds. Pair-slot-aware
+groups and P-layer orbit groups are even less stable. The coarse word_bit_role
+signal is too broad to be a useful projection expert, and a degenerate full-width
+group mask is now explicitly guarded by max_selected_axis_fraction.
+```
+
+Decision:
+
+```text
+do_not_create_grouped_sgp_projection_smoke
+do_not_remote_launch_sgp
+do_not_use_grouped_sgp_as_a_diverse_expert_yet
+```
+
+Next action:
+
+```text
+Retire SGP as the next immediate projection route. Prefer a representation
+route that aggregates the broad weak InvP(delta) signal intentionally, such as
+learned pair/global statistics or deterministic bit-role/cell distribution
+features, and compare it against existing pairset/global-stats anchors before
+any remote launch.
+```
+
 ## Claim Scope
 
 This is a local diagnostic. A positive result only means the route deserves a

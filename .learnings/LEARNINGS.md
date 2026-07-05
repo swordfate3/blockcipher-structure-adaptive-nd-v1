@@ -803,6 +803,71 @@ return to stronger representation priors.
 
 ---
 
+## [LRN-20260706-008] best_practice
+
+**Logged**: 2026-07-06T04:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not promote grouped SGP after the InvP(delta) grouped/orbit follow-up; convert broad weak signal into intentional statistics instead.
+
+### Details
+The PRESENT r8 grouped/orbit SGP follow-up tested `invp_delta_bits` at
+`2048/class`, seeds `0` and `1`, strict `encrypted_random_plaintexts`
+negatives, and `zhang_wang_case2_official_mcnd` sample structure.
+
+Final non-degenerate top4 artifact:
+
+```text
+outputs/local_audits/i1_present_r8_sgp_grouped_axis_audit_2048_top4.json
+decision = sgp_grouped_axis_hold
+best_group_scheme = word_bit_role
+```
+
+Summary table:
+
+| Group scheme | Min composite AUC | Top-k Jaccard | Mask fraction |
+|---|---:|---:|---:|
+| `pair_word_cell` | `0.5344549417495728` | `0.0` | `0.0078125` |
+| `word_cell` | `0.6075923442840576` | `0.14285714285714285` | `0.125` |
+| `cell` | `0.6401443481445312` | `0.14285714285714285` | `0.25` |
+| `word_bit_role` | `0.685741662979126` | `0.14285714285714285` | `0.5` |
+| `p_layer_orbit` | `0.5724446773529053` | `0.0` | `0.09375` |
+
+Correct interpretation:
+
+- InvP(delta) contains broad weak separation, especially under coarse cell or
+  bit-role aggregation.
+- Exact pair-slot/cell and P-layer orbit groups are not stable across seeds.
+- Coarse `word_bit_role` looks strongest but is too broad to be a projection
+  expert; a degenerate full-width mask initially looked candidate-like when
+  all 8 role groups were selected, so grouped SGP now has a
+  `max_selected_axis_fraction` guard.
+- This is not evidence for a remote SGP projection run and not a valid diverse
+  expert for ensemble aggregation yet.
+
+### Suggested Action
+Retire SGP as the next immediate projection route. Use the broad weak
+InvP(delta) signal as a hint for explicit pair/global statistics or
+bit-role/cell distribution features, then compare that representation against
+existing pairset/global-stat anchors before any remote launch. Keep diverse
+neural aggregation secondary until a genuinely non-neighbor, weak-positive,
+low-overlap expert exists.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-sgp-stable-axis-audit-plan.md, configs/experiment/innovation1/innovation1_spn_present_sgp_grouped_axis_audit_r8_local.json, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, sgp, grouped-axis, invp, route-selection, degeneracy-gate
+- See Also: LRN-20260706-007, LRN-20260706-006, LRN-20260705-003, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.sgp_grouped_hold_statistics_next
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260623-002] correction
 
 **Logged**: 2026-06-23T21:56:37+08:00
