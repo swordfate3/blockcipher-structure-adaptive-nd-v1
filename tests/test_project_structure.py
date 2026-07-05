@@ -50,6 +50,7 @@ from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_
 from blockcipher_nd.planning.topology_aware_postprocess import postprocess_topology_aware_result
 from blockcipher_nd.cli.plan_next_action import plan_next_action
 from blockcipher_nd.cli.arbitrate_next_actions import arbitrate_next_actions
+from blockcipher_nd.cli.advance_high_round import advance_high_round
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -3886,6 +3887,92 @@ def test_summarize_spn_evidence_routes_ready_high_round_result_to_postprocess(tm
     assert active["ready_runs"][0]["postprocess_allowed"] is True
     assert "scripts/postprocess-r9-weak-probe" in active["ready_runs"][0]["postprocess_when_ready_command"]
     assert "run each listed high-round postprocess command" in active["main_thread_policy"]["allowed_actions"]
+
+
+def test_advance_high_round_waits_without_touching_running_result(tmp_path):
+    root = tmp_path / "remote_results"
+    run_root = root / "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "logs").mkdir()
+    (run_root / "monitor" / "monitor.log").write_text("2026-07-05T10:42:16+08:00 running\n", encoding="utf-8")
+    (run_root / "logs" / "r9_weak_probe_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "train_batch",
+                "model": "present_nibble_invp_only_spn_only",
+                "epoch": 8,
+                "epochs": 30,
+                "best_checkpoint_metric": 0.5004787916550413,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = advance_high_round(root=root, arbitration_output=tmp_path / "arbitration.json", update_plan_docs=False)
+
+    assert report["status"] == "waiting"
+    assert report["initial_branch"] == "wait_for_high_round_results"
+    assert report["postprocessed"] == []
+    assert report["arbitration"] is None
+    assert report["remote_policy"] == "local_artifacts_only_no_ssh_no_remote_launch"
+
+
+def test_advance_high_round_postprocesses_ready_r8_without_plan_doc_update(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "i1_present_r8_pairset_1m_seed0_gpu1_20260705"
+    run_root = root / run_id
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "results").mkdir()
+    (run_root / "monitor" / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    results = run_root / "results" / f"{run_id}.jsonl"
+    _write_r8_pairset_1m_result(results, "present_zhang_wang_keras_mcnd", 0.542)
+    _write_r8_pairset_1m_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.549)
+
+    report = advance_high_round(root=root, arbitration_output=tmp_path / "arbitration.json", update_plan_docs=False)
+
+    assert report["status"] == "postprocessed"
+    assert report["initial_branch"] == "postprocess_high_round_result"
+    assert report["postprocessed"][0]["status"] == "pass"
+    assert report["postprocessed"][0]["decision"] == "support_r8_pairset_1m_confirmation"
+    assert (run_root / f"{run_id}_postprocess_summary.json").exists()
+    assert (run_root / f"{run_id}_candidate_route_readiness.json").exists()
+    assert report["arbitration"] is None
+
+
+def test_advance_high_round_arbitrates_existing_r8_and_r9_summaries(tmp_path):
+    root = tmp_path / "remote_results"
+    r9_results = tmp_path / "r9_weak_probe.jsonl"
+    _write_r9_weak_probe_result(r9_results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+    postprocess_r9_weak_probe_result(
+        results_path=r9_results,
+        output_dir=root / "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        run_id="i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        expected_rows=3,
+    )
+    r8_results = tmp_path / "r8_pairset_1m.jsonl"
+    _write_r8_pairset_1m_result(r8_results, "present_zhang_wang_keras_mcnd", 0.542)
+    _write_r8_pairset_1m_result(r8_results, "present_nibble_invp_pair_consistency_spn_only", 0.549)
+    postprocess_r8_pairset_1m_result(
+        results_path=r8_results,
+        output_dir=root / "i1_present_r8_pairset_1m_seed0_gpu1_20260705",
+        run_id="i1_present_r8_pairset_1m_seed0_gpu1_20260705",
+        expected_rows=2,
+    )
+    arbitration_output = tmp_path / "high_round_next_action_arbitration.json"
+
+    report = advance_high_round(root=root, arbitration_output=arbitration_output, update_plan_docs=False)
+
+    assert report["status"] == "arbitrated"
+    assert report["initial_branch"] == "arbitrate_high_round_next_actions"
+    assert report["arbitration"]["status"] == "written"
+    assert report["arbitration"]["summary_count"] == 2
+    assert arbitration_output.exists()
+    arbitration = json.loads(arbitration_output.read_text(encoding="utf-8"))
+    assert arbitration["status"] == "selected"
+    assert arbitration["selected"]["branch"] == "r9_1m_seed0_plan"
 
 
 def test_summarize_spn_evidence_recommends_high_round_arbitration_after_summaries(tmp_path):

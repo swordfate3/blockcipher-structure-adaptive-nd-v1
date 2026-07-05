@@ -650,3 +650,29 @@ screen, or r10 while this run is active. The watcher remains responsible for
 retrieval. Once expected_rows=2 is available and validation passes, run
 postprocess-r8-pairset-1m and then arbitrate against the completed r9 weak-probe.
 ```
+
+## 16. Local High-Round Advancement Command
+
+**Added:** 2026-07-05
+
+Use this local-only helper to advance the r8/r9 high-round loop from retrieved
+artifacts:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/advance-high-round \
+  --root outputs/remote_results \
+  --output outputs/remote_results/high_round_advance_report.json
+```
+
+Safety policy:
+
+```text
+1. It reads local artifacts only.
+2. It does not SSH-poll, tmux-loop, or launch remote training.
+3. If the active r8 result is still running, it returns status=waiting.
+4. If a high-round JSONL is ready, it runs the route-specific postprocess.
+5. If both r8 and r9 high-round summaries exist, it writes high_round_next_action_arbitration.json.
+```
+
+This command is intended to replace manual command-copying after watcher
+retrieval. It does not change any evidence gate or launch policy.
