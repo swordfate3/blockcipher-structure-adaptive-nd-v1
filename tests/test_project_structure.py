@@ -12891,6 +12891,67 @@ def test_audit_spn_features_cli_writes_trail_position_attribution(tmp_path):
     assert "composite" in payload
 
 
+def test_present_r8_trail_position_split_baseline_selects_on_train_and_evaluates_validation():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_512_local.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+    trail_position_task = tasks[1]
+
+    report = spn_feature_audit.trail_position_split_baseline_from_task(
+        trail_position_task,
+        samples_per_class=4,
+        seed=123,
+        top_k=5,
+    )
+
+    assert report["status"] == "pass"
+    assert report["audit"] == "present_trail_position_split_baseline"
+    assert report["feature_encoding"] == (
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"
+    )
+    assert report["samples_per_class"] == 4
+    assert report["reference"]["key_split"] == "train"
+    assert report["evaluation"]["key_split"] == "validation"
+    assert len(report["selected_statistics"]["indices"]) == 5
+    assert len(report["selected_statistics"]["feature_names"]) == 5
+    assert report["reference"]["composite"]["combiner"] == "train_selected_position_stat_oriented_zscore_mean"
+    assert report["evaluation"]["composite"]["combiner"] == "train_selected_position_stat_oriented_zscore_mean"
+    assert report["reference"]["composite"]["fit_key_split"] == "train"
+    assert report["evaluation"]["composite"]["fit_key_split"] == "train"
+    assert 0.0 <= report["evaluation"]["composite"]["auc_advantage"] <= 0.5
+    assert "not neural training" in report["claim_scope"]
+
+
+def test_audit_spn_features_cli_writes_trail_position_split_baseline(tmp_path):
+    output = tmp_path / "trail_position_split_baseline.json"
+    status = audit_spn_features_main(
+        [
+            "--trail-position-split-baseline-plan",
+            "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv",
+            "--row-index",
+            "1",
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--top-k",
+            "5",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "present_trail_position_split_baseline"
+    assert payload["reference"]["key_split"] == "train"
+    assert payload["evaluation"]["key_split"] == "validation"
+    assert payload["evaluation"]["composite"]["fit_key_split"] == "train"
+    assert len(payload["selected_statistics"]["indices"]) == 5
+
+
 def test_candidate_evidence_feature_probe_reports_lowdim_axis_and_composite():
     config = {
         "rounds": 7,

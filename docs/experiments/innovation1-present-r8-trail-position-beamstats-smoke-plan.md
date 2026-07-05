@@ -372,3 +372,94 @@ Updated next action:
 4. Do not use this as a diverse expert until compatible frozen scores and
    diversity/error-overlap checks exist.
 ```
+
+## Train-Selected Position-Statistics Split Baseline
+
+Implementation:
+
+```text
+CLI = scripts/audit-spn-features --trail-position-split-baseline-plan ...
+API = trail_position_split_baseline_from_task
+selection_split = train
+evaluation_split = validation
+combiner = train_selected_position_stat_oriented_zscore_mean
+```
+
+This audit closes the label-selection gap in the earlier attribution result.
+It selects the top-k position-statistics axes on the train key, fits each axis
+orientation plus z-score normalization on the train split only, and then applies
+that fixed composite to the validation key. Validation labels are used only for
+reporting the final score.
+
+Commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-split-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 1 \
+  --samples-per-class 2048 \
+  --seed 0 \
+  --top-k 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed0_2048.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-split-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 3 \
+  --samples-per-class 2048 \
+  --seed 1 \
+  --top-k 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed1_2048.json
+```
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed0_512.json
+outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed1_512.json
+outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed0_2048.json
+outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed1_2048.json
+```
+
+Results:
+
+| Scale | Seed | Train composite AUC | Validation composite AUC | Validation best accuracy | Best train-selected statistic |
+|---:|---:|---:|---:|---:|---|
+| 512/class | 0 | `0.8651924133300781` | `0.7695465087890625` | `0.703125` | `depth_word_span_depth1_trailword6` |
+| 512/class | 1 | `0.9015998840332031` | `0.8455047607421875` | `0.7734375` | `depth_word_span_depth1_trailword7` |
+| 2048/class | 0 | `0.8498256206512451` | `0.8056130409240723` | `0.735595703125` | `depth_word_span_depth2_trailword3` |
+| 2048/class | 1 | `0.8753311634063721` | `0.8421728610992432` | `0.766845703125` | `depth_word_span_depth2_trailword2` |
+
+Split-baseline decision:
+
+```text
+support_trail_position_signal_but_require_neural_residual_gate
+```
+
+Interpretation:
+
+```text
+The train-selected deterministic position-statistics composite remains strong
+on the validation key, so the route is not merely a validation-label
+feature-selection artifact. The strongest selected families are mostly
+depth/word/cell span statistics, consistent with the hypothesis that this
+r8 matched-negative integral setting exposes SPN trail-position distribution
+structure.
+
+The deterministic split baseline is still below the 512/class neural candidate
+AUC 0.985977-0.988831, so a nonlinear neural residual may exist. But the
+baseline is strong enough that future neural trail-position claims must beat
+this train-selected deterministic composite under the same split and controls.
+```
+
+Updated route gate:
+
+```text
+1. Do not remote-launch this route from the current evidence.
+2. Before larger neural training, add a same-protocol deterministic
+   position-stat baseline row or postprocess gate.
+3. Add active-nibble, pair-order, and difference controls for both deterministic
+   and neural routes.
+4. Only treat this as a diverse expert candidate after it produces compatible
+   frozen scores and passes an error-overlap/diversity check against the r7
+   InvP/P-layer anchor and near-neighbor controls.
+```

@@ -178,6 +178,53 @@ result, does not claim a breakthrough, and does not reinterpret local
 projection, beamstats, SGP, difference-screen, or pair-set probes as formal
 evidence.
 
+## 2026-07-06 Trail-Position Split-Baseline Update
+
+The independent route check should now rank the r8 trail-position beamstats
+route ahead of broader near-neighbor ensembling, but only with a deterministic
+control attached.
+
+New local split-baseline evidence:
+
+```text
+audit = present_trail_position_split_baseline
+selection_split = train
+evaluation_split = validation
+feature = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+negative_mode = encrypted_random_plaintexts
+```
+
+| Scale | Seed | Validation composite AUC | Validation best accuracy |
+|---:|---:|---:|---:|
+| 512/class | 0 | `0.7695465087890625` | `0.703125` |
+| 512/class | 1 | `0.8455047607421875` | `0.7734375` |
+| 2048/class | 0 | `0.8056130409240723` | `0.735595703125` |
+| 2048/class | 1 | `0.8421728610992432` | `0.766845703125` |
+
+Decision:
+
+```text
+promote_trail_position_to_controlled_local_candidate
+do_not_remote_launch_yet
+do_not_call_neural_architecture_gain_without beating split deterministic baseline
+```
+
+Independent route ranking after this update:
+
+| Rank | Route | Decision |
+|---:|---|---|
+| 1 | SPN/integral position-aware representation with deterministic split controls | Continue locally. The signal survives train-key selection and validation-key evaluation, and it is structurally different from raw/InvP/DDT near-neighbor variants. |
+| 2 | Neural residual over trail-position statistics | Test only if the deterministic baseline is included in the same protocol. The 512/class neural candidate still exceeds the deterministic split baseline, so residual nonlinear value is plausible but unproven. |
+| 3 | Diverse expert aggregation | Keep as a validator after a non-neighbor expert exists. Do not mechanically aggregate similar raw/InvP/DDT/trail-stat variants before score compatibility and error-overlap checks. |
+| 4 | Generic model replacement or wider near-neighbor ensemble | Hold. External evidence and local gates favor representation/data construction over piling nearby models. |
+
+This is a stronger answer to the user's correction: the project should not
+simply follow the user's current ensemble suggestion, nor should it blindly
+trust the current high neural AUC. The best current path is a controlled
+SPN-aware representation route, with multi-network aggregation reserved for
+later diversity validation.
+
 ## References Used
 
 - `docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md`

@@ -2220,3 +2220,71 @@ baseline under matched controls.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-018] best_practice
+
+**Logged**: 2026-07-06T12:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Use train-selected position-statistics controls when judging r8 trail-position beamstats.
+
+### Details
+The first trail-position attribution audit selected top position-statistics
+axes directly on validation labels. A stricter split baseline was implemented
+and run:
+
+```text
+audit = present_trail_position_split_baseline
+selection_split = train
+evaluation_split = validation
+combiner = train_selected_position_stat_oriented_zscore_mean
+feature = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+rounds = 8
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+```
+
+The split baseline fits top-k axis selection, axis orientation, and z-score
+normalization on the train key only, then applies the fixed composite to the
+validation key. Results:
+
+| Scale | Seed | Train composite AUC | Validation composite AUC | Validation best accuracy |
+|---:|---:|---:|---:|---:|
+| 512/class | 0 | `0.8651924133300781` | `0.7695465087890625` | `0.703125` |
+| 512/class | 1 | `0.9015998840332031` | `0.8455047607421875` | `0.7734375` |
+| 2048/class | 0 | `0.8498256206512451` | `0.8056130409240723` | `0.735595703125` |
+| 2048/class | 1 | `0.8753311634063721` | `0.8421728610992432` | `0.766845703125` |
+
+Correct interpretation:
+
+- The trail-position signal is not merely a validation-label top-k selection
+  artifact.
+- Deterministic depth/word/cell span statistics explain a large fraction of
+  the route's signal.
+- The 512/class neural candidate remains higher than the split deterministic
+  baseline, so a nonlinear residual may exist, but future neural claims must
+  beat this baseline under matched controls.
+- This is local diagnostic evidence only, not remote-launch evidence and not a
+  PRESENT r8 breakthrough claim.
+
+### Suggested Action
+Before any larger trail-position neural training, include a same-protocol
+train-selected deterministic position-statistics baseline or postprocess gate.
+Add active-nibble, pair-order, and difference controls before treating the route
+as a qualified diverse ensemble expert or remote-launch candidate.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed0_2048.json, outputs/local_audits/i1_present_r8_trail_position_split_baseline_seed1_2048.json
+- Tags: innovation1, spn, present, trail-position, beamstats, split-baseline, deterministic-control
+- See Also: LRN-20260706-017, LRN-20260706-016, LRN-20260706-011
+- Pattern-Key: innovation1.spn_present.trail_position_requires_train_selected_split_baseline
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---

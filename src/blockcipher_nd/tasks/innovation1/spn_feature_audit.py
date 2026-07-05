@@ -58,6 +58,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
     parser.add_argument("--trail-position-attribution-plan", type=Path, default=None)
+    parser.add_argument("--trail-position-split-baseline-plan", type=Path, default=None)
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
@@ -174,6 +175,28 @@ def main(argv: list[str] | None = None) -> None:
             samples_per_class=args.samples_per_class,
             seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
             key_split=args.key_split,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.trail_position_split_baseline_plan is not None:
+        tasks = tasks_from_plan(
+            args.trail_position_split_baseline_plan,
+            feature_encoding=None,
+            pairs_per_sample=None,
+            difference_profile=None,
+            difference_member=0,
+        )
+        if args.row_index < 0 or args.row_index >= len(tasks):
+            raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
+        payload = trail_position_split_baseline_from_task(
+            tasks[args.row_index],
+            samples_per_class=args.samples_per_class,
+            seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
             top_k=args.top_k,
         )
         output = Path(args.output)
@@ -1307,6 +1330,162 @@ def trail_position_attribution_from_task(
     key_split: str = "validation",
     top_k: int = 16,
 ) -> dict[str, Any]:
+    if key_split not in {"train", "validation"}:
+        raise ValueError("key_split must be train or validation")
+
+    matrix = _trail_position_stat_matrix_from_task(
+        task,
+        samples_per_class=samples_per_class,
+        seed=seed,
+        key_split=key_split,
+    )
+    stat_matrix = matrix["stat_matrix"]
+    labels = matrix["labels"]
+    stat_names = matrix["stat_names"]
+    axis_scores = _feature_axis_scores(stat_matrix, labels)
+    top_indices = _top_indices(axis_scores["auc_advantage"], top_k)
+    top_rows = _top_feature_rows(axis_scores, top_indices)
+    composite_scores = _oriented_zscore_composite(stat_matrix, labels, top_indices)
+    composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+    best_axis = top_rows[0] if top_rows else {
+        "index": 0,
+        "positive_mean": 0.0,
+        "negative_mean": 0.0,
+        "mean_delta": 0.0,
+        "cohen_d": 0.0,
+        "auc": 0.5,
+        "auc_advantage": 0.0,
+    }
+    best_name = stat_names[int(best_axis["index"])]
+    return {
+        "status": "pass",
+        "audit": "present_trail_position_stats_attribution",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "key_split": key_split,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "trail_depth": matrix["trail_depth"],
+        "trail_words_per_depth": matrix["trail_words_per_depth"],
+        "position_stat_dim": int(stat_matrix.shape[1]),
+        "best_statistic": {
+            **best_axis,
+            "name": best_name,
+        },
+        "top_statistics": {
+            "feature_names": [stat_names[index] for index in top_indices],
+            "rows": top_rows,
+        },
+        "composite": {
+            **composite,
+            "axis_indices": top_indices,
+            "feature_names": [stat_names[index] for index in top_indices],
+            "combiner": "top_position_stat_oriented_zscore_mean",
+        },
+        "claim_scope": (
+            "Local trail-position statistic attribution only; not neural training, "
+            "not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
+def trail_position_split_baseline_from_task(
+    task: dict[str, Any],
+    *,
+    samples_per_class: int,
+    seed: int | None = None,
+    top_k: int = 16,
+) -> dict[str, Any]:
+    reference = _trail_position_stat_matrix_from_task(
+        task,
+        samples_per_class=samples_per_class,
+        seed=seed,
+        key_split="train",
+    )
+    evaluation = _trail_position_stat_matrix_from_task(
+        task,
+        samples_per_class=samples_per_class,
+        seed=seed,
+        key_split="validation",
+    )
+    if reference["stat_names"] != evaluation["stat_names"]:
+        raise ValueError("train and validation trail-position statistic names differ")
+
+    reference_scores = _feature_axis_scores(reference["stat_matrix"], reference["labels"])
+    selected_indices = _top_indices(reference_scores["auc_advantage"], top_k)
+    fit = _fit_oriented_zscore_composite(
+        reference["stat_matrix"],
+        reference["labels"],
+        selected_indices,
+    )
+    reference_composite_scores = _apply_oriented_zscore_composite(
+        reference["stat_matrix"],
+        selected_indices,
+        fit,
+    )
+    evaluation_composite_scores = _apply_oriented_zscore_composite(
+        evaluation["stat_matrix"],
+        selected_indices,
+        fit,
+    )
+    selected_names = [reference["stat_names"][index] for index in selected_indices]
+    combiner = "train_selected_position_stat_oriented_zscore_mean"
+    return {
+        "status": "pass",
+        "audit": "present_trail_position_split_baseline",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "trail_depth": reference["trail_depth"],
+        "trail_words_per_depth": reference["trail_words_per_depth"],
+        "position_stat_dim": int(reference["stat_matrix"].shape[1]),
+        "selected_statistics": {
+            "indices": selected_indices,
+            "feature_names": selected_names,
+            "fit_key_split": "train",
+            "orientation": fit["orientation"],
+            "mean": fit["mean"],
+            "std": fit["std"],
+        },
+        "reference": _trail_position_split_report(
+            reference,
+            axis_scores=reference_scores,
+            selected_indices=selected_indices,
+            composite_scores=reference_composite_scores,
+            combiner=combiner,
+        ),
+        "evaluation": _trail_position_split_report(
+            evaluation,
+            axis_scores=_feature_axis_scores(evaluation["stat_matrix"], evaluation["labels"]),
+            selected_indices=selected_indices,
+            composite_scores=evaluation_composite_scores,
+            combiner=combiner,
+        ),
+        "claim_scope": (
+            "Local train-selected deterministic position-statistics baseline only; "
+            "not neural training, not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
+def _trail_position_stat_matrix_from_task(
+    task: dict[str, Any],
+    *,
+    samples_per_class: int,
+    seed: int | None,
+    key_split: str,
+) -> dict[str, Any]:
     params = parse_parameterized_present_sboxddt_encoding(str(task["feature_encoding"]))
     if params is None or not bool(params["use_statistics"]):
         raise ValueError("trail-position attribution expects a parameterized PRESENT beamstats feature")
@@ -1349,7 +1528,6 @@ def trail_position_attribution_from_task(
             .numpy()
             .astype(np.float64, copy=False)
         )
-    labels = dataset.labels.astype(np.uint8, copy=False)
     stat_names = _trail_position_stat_names(
         words_per_pair=pair_bits // cipher.block_bits,
         cells_per_word=cipher.block_bits // 4,
@@ -1358,12 +1536,25 @@ def trail_position_attribution_from_task(
     )
     if len(stat_names) != stat_matrix.shape[1]:
         raise ValueError("trail-position statistic names do not match matrix width")
+    return {
+        "key_split": key_split,
+        "stat_matrix": stat_matrix,
+        "labels": dataset.labels.astype(np.uint8, copy=False),
+        "stat_names": stat_names,
+        "trail_depth": trail_depth,
+        "trail_words_per_depth": trail_words_per_depth,
+    }
 
-    axis_scores = _feature_axis_scores(stat_matrix, labels)
-    top_indices = _top_indices(axis_scores["auc_advantage"], top_k)
-    top_rows = _top_feature_rows(axis_scores, top_indices)
-    composite_scores = _oriented_zscore_composite(stat_matrix, labels, top_indices)
-    composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+
+def _trail_position_split_report(
+    matrix: dict[str, Any],
+    *,
+    axis_scores: dict[str, np.ndarray],
+    selected_indices: list[int],
+    composite_scores: np.ndarray,
+    combiner: str,
+) -> dict[str, Any]:
+    top_rows = _top_feature_rows(axis_scores, selected_indices)
     best_axis = top_rows[0] if top_rows else {
         "index": 0,
         "positive_mean": 0.0,
@@ -1373,41 +1564,23 @@ def trail_position_attribution_from_task(
         "auc": 0.5,
         "auc_advantage": 0.0,
     }
-    best_name = stat_names[int(best_axis["index"])]
     return {
-        "status": "pass",
-        "audit": "present_trail_position_stats_attribution",
-        "cipher_key": task["cipher_key"],
-        "rounds": task["rounds"],
-        "samples_per_class": samples_per_class,
-        "seed": task["seed"] if seed is None else seed,
-        "key_split": key_split,
-        "sample_structure": task["sample_structure"],
-        "negative_mode": task["negative_mode"],
-        "feature_encoding": task["feature_encoding"],
-        "pairs_per_sample": task["pairs_per_sample"],
-        "input_difference": task["input_difference"],
-        "trail_depth": trail_depth,
-        "trail_words_per_depth": trail_words_per_depth,
-        "position_stat_dim": int(stat_matrix.shape[1]),
+        "key_split": matrix["key_split"],
         "best_statistic": {
             **best_axis,
-            "name": best_name,
+            "name": matrix["stat_names"][int(best_axis["index"])],
         },
         "top_statistics": {
-            "feature_names": [stat_names[index] for index in top_indices],
+            "feature_names": [matrix["stat_names"][index] for index in selected_indices],
             "rows": top_rows,
         },
         "composite": {
-            **composite,
-            "axis_indices": top_indices,
-            "feature_names": [stat_names[index] for index in top_indices],
-            "combiner": "top_position_stat_oriented_zscore_mean",
+            **_scalar_statistic_report(composite_scores, matrix["labels"].astype(np.float32, copy=False)),
+            "axis_indices": selected_indices,
+            "feature_names": [matrix["stat_names"][index] for index in selected_indices],
+            "combiner": combiner,
+            "fit_key_split": "train",
         },
-        "claim_scope": (
-            "Local trail-position statistic attribution only; not neural training, "
-            "not scale evidence, and not a remote launch gate."
-        ),
     }
 
 
@@ -1901,6 +2074,44 @@ def _oriented_zscore_composite(features: np.ndarray, labels: np.ndarray, axis_in
             columns.append(np.zeros_like(oriented, dtype=np.float64))
         else:
             columns.append((oriented - float(oriented.mean())) / std)
+    return np.stack(columns, axis=1).mean(axis=1)
+
+
+def _fit_oriented_zscore_composite(
+    features: np.ndarray,
+    labels: np.ndarray,
+    axis_indices: list[int],
+) -> dict[str, list[float]]:
+    orientation = []
+    means = []
+    stds = []
+    for index in axis_indices:
+        scores = features[:, index].astype(np.float64, copy=False)
+        sign = 1.0 if binary_auc(labels, scores) >= 0.5 else -1.0
+        oriented = sign * scores
+        std = float(oriented.std())
+        orientation.append(sign)
+        means.append(float(oriented.mean()))
+        stds.append(std)
+    return {"orientation": orientation, "mean": means, "std": stds}
+
+
+def _apply_oriented_zscore_composite(
+    features: np.ndarray,
+    axis_indices: list[int],
+    fit: dict[str, list[float]],
+) -> np.ndarray:
+    if not axis_indices:
+        return np.zeros(features.shape[0], dtype=np.float64)
+    columns = []
+    for offset, index in enumerate(axis_indices):
+        scores = features[:, index].astype(np.float64, copy=False)
+        oriented = float(fit["orientation"][offset]) * scores
+        std = float(fit["std"][offset])
+        if std <= 0.0:
+            columns.append(np.zeros_like(oriented, dtype=np.float64))
+        else:
+            columns.append((oriented - float(fit["mean"][offset])) / std)
     return np.stack(columns, axis=1).mean(axis=1)
 
 
