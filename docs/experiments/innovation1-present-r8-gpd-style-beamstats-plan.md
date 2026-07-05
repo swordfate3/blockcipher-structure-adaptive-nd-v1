@@ -514,3 +514,98 @@ scalar AUC is only about 0.522-0.523 and the best field changes across seeds.
 Keep beamstats only as a possible future non-neighbor weak expert source; do
 not remote-launch this branch and do not use it to justify a wider ensemble.
 ```
+
+## 2026-07-06 Follow-Up: Higher-Sample Beamstats Attribution Gate
+
+Before treating beamstats as a real non-neighbor expert candidate, run one more
+local attribution gate at a larger audit scale. This is still not neural
+training and not a remote-launch gate; it only asks whether the weak beamstats
+hint is stable enough to justify a later controlled local probe.
+
+Protocol:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv
+row_index = 3
+feature = present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+difference_profile = present_zhang_wang2022_mcnd
+integral_active_nibble = 0
+key_split = validation
+samples_per_class = 4096
+audit_seeds = 0, 1, 2
+```
+
+Command shape:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --beamstats-attribution-plan configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv \
+  --row-index 3 \
+  --samples-per-class 4096 \
+  --seed <seed> \
+  --key-split validation \
+  --output outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed<seed>_4096.json
+```
+
+Gate:
+
+```text
+advance_only_if:
+  best semantic scalar AUC advantage is >= 0.02 on all three seeds
+  and the winning or near-winning semantic family is stable enough to name
+  and no single scalar exceeds the neural row strongly enough to fully explain it
+
+otherwise:
+  keep beamstats as weak/unstable local evidence only
+  do not build a diverse ensemble around it
+  return to broader SPN representation/data search
+```
+
+This gate deliberately favors killing the route cheaply over starting another
+remote run from a noisy local winner.
+
+### Higher-Sample Beamstats Attribution Result
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed0_4096.json
+outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed1_4096.json
+outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed2_4096.json
+```
+
+Results:
+
+| Seed | Best semantic scalar | AUC | AUC advantage | Best threshold accuracy |
+|---:|---|---:|---:|---:|
+| 0 | `score_max` | `0.509702891111` | `0.009702891111` | `0.528930664062` |
+| 1 | `score_max` | `0.516063421965` | `0.016063421965` | `0.533813476562` |
+| 2 | `confidence_std` | `0.510016858578` | `0.010016858578` | `0.522338867188` |
+
+Gate decision:
+
+```text
+beamstats_higher_sample_attribution_hold
+```
+
+Interpretation:
+
+```text
+The 4096/class attribution audit weakens the beamstats route. No seed reaches
+the predeclared >= 0.02 AUC-advantage threshold, and the best semantic scalar
+is not fully stable across seeds. This does not prove that GPD-style feature
+engineering is impossible, but it means the current beamstats4/deep3 feature is
+not a qualified non-neighbor expert candidate for diverse neural aggregation.
+```
+
+Action:
+
+```text
+do not launch 65536/class beamstats
+do not build a diverse ensemble around this feature
+do not spend the next main slot on beamstats unless a new representation
+hypothesis changes the feature family or control structure
+return to broader SPN representation/data search for a cleaner non-neighbor
+expert source
+```

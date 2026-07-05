@@ -2032,3 +2032,68 @@ whether the next step is representation search, architecture, or ensemble.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-015] best_practice
+
+**Logged**: 2026-07-06T10:15:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not use the current r8 GPD-style beamstats feature as the next diverse expert candidate.
+
+### Details
+After the user asked for independent Innovation 1 SPN route selection rather
+than passively following the multi-network idea, the r8 GPD-style
+beamstats4/deep3 feature was rechecked as a possible non-neighbor expert
+source.
+
+The higher-sample local attribution gate used:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv
+row_index = 3
+feature = present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+samples_per_class = 4096
+key_split = validation
+audit_seeds = 0, 1, 2
+```
+
+Results:
+
+| Seed | Best semantic scalar | AUC | AUC advantage | Best threshold accuracy |
+|---:|---|---:|---:|---:|
+| 0 | `score_max` | `0.509702891111` | `0.009702891111` | `0.528930664062` |
+| 1 | `score_max` | `0.516063421965` | `0.016063421965` | `0.533813476562` |
+| 2 | `confidence_std` | `0.510016858578` | `0.010016858578` | `0.522338867188` |
+
+The predeclared gate required best semantic scalar AUC advantage `>= 0.02` on
+all three seeds plus enough semantic stability to name the family. The route
+failed that gate.
+
+Correct interpretation:
+
+- The current beamstats feature remains weak local route-selection evidence
+  only.
+- It is not a qualified non-neighbor expert for diverse score aggregation.
+- Do not launch a `65536/class` remote beamstats run from this evidence.
+- Do not build a multi-network ensemble around this feature.
+
+### Suggested Action
+Return to broader SPN representation/data search for a cleaner non-neighbor
+expert. Reopen GPD-style features only if the representation changes
+substantially or a new control shows stable non-baseline signal.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md, outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed0_4096.json, outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed1_4096.json, outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed2_4096.json
+- Tags: innovation1, spn, present, gpd, beamstats, diverse-experts, route-selection
+- See Also: LRN-20260706-014, LRN-20260706-011, LRN-20260706-004
+- Pattern-Key: innovation1.spn_present.gpd_beamstats_not_current_diverse_expert
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
