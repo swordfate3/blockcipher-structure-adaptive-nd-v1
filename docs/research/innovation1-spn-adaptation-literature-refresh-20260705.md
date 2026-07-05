@@ -420,6 +420,21 @@ baseline and multi-active-cell control before spending a neural training slot.
 Diverse neural aggregation remains useful later, but only after this route
 produces controlled, non-neighbor score artifacts.
 
+The explicit deterministic baseline is now implemented:
+
+```text
+script = scripts/evaluate-integral-deterministic-baseline
+api = integral_deterministic_baseline_from_task
+default statistic = pair_xor_column_sum_variance
+smoke artifact = outputs/local_audits/r8_integral_deterministic_baseline_smoke/row0_pair_xor_variance_seed23.json
+smoke accuracy = 0.765625 at 64/class
+```
+
+This keeps the immediate Innovation 1 route honest: later neural rows must
+beat or explain the fixed deterministic statistic, not merely rediscover it.
+The next open design step is a multi-active-cell construction for multi-nibble
+input differences.
+
 The current priority is therefore:
 
 ```text

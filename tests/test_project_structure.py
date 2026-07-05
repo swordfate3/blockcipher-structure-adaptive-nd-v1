@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -81,6 +83,7 @@ from blockcipher_nd.cli import (
     spn_active_auxiliary_matrix,
 )
 from blockcipher_nd.cli.audit_integral_parity_signal import (
+    integral_deterministic_baseline_from_task,
     integral_alignment_audit_from_task,
     integral_feature_bank_audit_from_task,
     integral_parity_audit_from_task,
@@ -12317,6 +12320,64 @@ def test_integral_feature_bank_audit_reports_named_deterministic_statistics():
         assert 0.5 <= statistic["best_threshold"]["accuracy"] <= 1.0
     assert report["best_statistic"]["name"] in report["statistics"]
     assert report["best_statistic"]["interpretation"].startswith("deterministic_statistic_")
+
+
+def test_integral_deterministic_baseline_reports_fixed_pair_xor_variance():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv"
+    )
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+
+    report = integral_deterministic_baseline_from_task(
+        task,
+        statistic="pair_xor_column_sum_variance",
+        samples_per_class=32,
+        seed=23,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "integral_deterministic_baseline"
+    assert report["statistic_name"] == "pair_xor_column_sum_variance"
+    assert "best_statistic" not in report
+    assert report["baseline"]["positive"]["count"] == 32
+    assert report["baseline"]["negative"]["count"] == 32
+    assert 0.5 <= report["baseline"]["best_threshold"]["accuracy"] <= 1.0
+    assert report["interpretation"].startswith("deterministic_statistic_")
+    assert "not a neural training result" in report["claim_scope"]
+
+
+def test_integral_deterministic_baseline_script_defaults_to_baseline_audit(tmp_path):
+    output = tmp_path / "baseline.json"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/evaluate-integral-deterministic-baseline",
+            "--plan",
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv",
+            "--row-index",
+            "0",
+            "--samples-per-class",
+            "8",
+            "--seed",
+            "23",
+            "--key-split",
+            "validation",
+            "--output",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["audit"] == "integral_deterministic_baseline"
+    assert report["statistic_name"] == "pair_xor_column_sum_variance"
+    assert "integral_deterministic_baseline" in result.stdout
 
 
 def test_integral_scrambled_positive_control_reduces_feature_bank_separator():

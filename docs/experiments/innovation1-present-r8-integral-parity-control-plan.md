@@ -669,6 +669,57 @@ Next controls:
    neural aggregation be used as a secondary validator.
 ```
 
+## Deterministic Baseline Evaluator
+
+The first next control is now implemented as a fixed-statistic evaluator rather
+than a best-of-feature-bank audit:
+
+```text
+script = scripts/evaluate-integral-deterministic-baseline
+api = integral_deterministic_baseline_from_task
+default statistic = pair_xor_column_sum_variance
+```
+
+Smoke command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-integral-deterministic-baseline \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv \
+  --row-index 0 \
+  --samples-per-class 64 \
+  --seed 23 \
+  --key-split validation \
+  --output outputs/local_audits/r8_integral_deterministic_baseline_smoke/row0_pair_xor_variance_seed23.json
+```
+
+Smoke result:
+
+```text
+audit = integral_deterministic_baseline
+statistic_name = pair_xor_column_sum_variance
+samples_per_class = 64
+accuracy = 0.765625
+positive mean = 7.5218963623046875
+negative mean = 6.0764923095703125
+claim_scope = deterministic local data-structure audit only
+```
+
+Decision update:
+
+```text
+deterministic_pair_xor_variance_baseline_is_now_first_class
+neural_followups_must_compare_against_this_fixed_baseline
+```
+
+Next controls:
+
+```text
+1. Design a separate multi-active-cell construction for multi-nibble
+   differences before retesting Wang/Jain-style profiles.
+2. Only after a controlled non-neighbor feature row exists should diverse
+   neural aggregation be used as a secondary validator.
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -688,6 +739,8 @@ input differences and near chance for the tested two-nibble Wang/Jain
 difference under the one-active-nibble construction.
 The aligned active-difference seed repeat preserves the same split at local
 deterministic-audit scale.
+The pair_xor_column_sum_variance baseline is now available as a fixed
+deterministic evaluator, separate from the best-of-feature-bank audit.
 ```
 
 Not allowed:

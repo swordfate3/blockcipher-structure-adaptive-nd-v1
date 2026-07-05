@@ -28,9 +28,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     parser.add_argument(
         "--audit",
-        choices=["parity", "alignment", "feature-bank"],
+        choices=["parity", "alignment", "feature-bank", "deterministic-baseline"],
         default="parity",
         help="deterministic statistic family to audit",
+    )
+    parser.add_argument(
+        "--statistic",
+        default="pair_xor_column_sum_variance",
+        help="fixed statistic to evaluate when --audit deterministic-baseline is used",
     )
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
@@ -158,30 +163,7 @@ def integral_feature_bank_audit_from_task(
     if pair_bits != cipher.block_bits * 2:
         raise ValueError("ciphertext_pair_bits must encode exactly left and right ciphertext blocks")
 
-    left = features[:, :, : cipher.block_bits]
-    right = features[:, :, cipher.block_bits :]
-    pair_xor = left ^ right
-
-    left_hw = left.sum(axis=2)
-    right_hw = right.sum(axis=2)
-    pair_xor_hw = pair_xor.sum(axis=2)
-    left_column_sum = left.sum(axis=1)
-    right_column_sum = right.sum(axis=1)
-    pair_xor_column_sum = pair_xor.sum(axis=1)
-
-    scores = {
-        "left_hw_mean": left_hw.mean(axis=1),
-        "right_hw_mean": right_hw.mean(axis=1),
-        "pair_xor_hw_mean": pair_xor_hw.mean(axis=1),
-        "left_hw_std": left_hw.std(axis=1),
-        "right_hw_std": right_hw.std(axis=1),
-        "pair_xor_hw_std": pair_xor_hw.std(axis=1),
-        "left_column_sum_variance": left_column_sum.var(axis=1),
-        "right_column_sum_variance": right_column_sum.var(axis=1),
-        "pair_xor_column_sum_variance": pair_xor_column_sum.var(axis=1),
-        "left_right_column_sum_l1_mean": np.abs(left_column_sum - right_column_sum).mean(axis=1),
-        "left_right_column_sum_l2_mean": ((left_column_sum - right_column_sum) ** 2).mean(axis=1),
-    }
+    scores = _integral_feature_bank_scores(features, cipher.block_bits)
     statistics = {name: _statistic_report(score, labels) for name, score in scores.items()}
     best_name, best_report = max(
         statistics.items(),
@@ -209,6 +191,50 @@ def integral_feature_bank_audit_from_task(
                 best_report["best_threshold"]["accuracy"]
             ),
         },
+        "claim_scope": _claim_scope(),
+    }
+
+
+def integral_deterministic_baseline_from_task(
+    task: dict[str, Any],
+    *,
+    statistic: str,
+    samples_per_class: int,
+    seed: int | None = None,
+    key_split: str = "validation",
+) -> dict[str, Any]:
+    cipher, features, labels, pair_bits = _ciphertext_pair_feature_arrays(
+        task,
+        samples_per_class=samples_per_class,
+        seed=seed,
+        key_split=key_split,
+    )
+    if pair_bits != cipher.block_bits * 2:
+        raise ValueError("ciphertext_pair_bits must encode exactly left and right ciphertext blocks")
+
+    scores = _integral_feature_bank_scores(features, cipher.block_bits)
+    if statistic not in scores:
+        available = ", ".join(sorted(scores))
+        raise ValueError(f"unknown deterministic statistic {statistic!r}; available: {available}")
+
+    baseline = _statistic_report(scores[statistic], labels)
+    threshold = baseline["best_threshold"]
+    return {
+        "status": "pass",
+        "audit": "integral_deterministic_baseline",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "key_split": key_split,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "statistic_name": statistic,
+        "baseline": baseline,
+        "interpretation": _deterministic_statistic_interpretation(threshold["accuracy"]),
         "claim_scope": _claim_scope(),
     }
 
@@ -256,6 +282,33 @@ def _ciphertext_pair_feature_arrays(
     )
     labels = dataset.labels.astype(bool)
     return cipher, features, labels, pair_bits
+
+
+def _integral_feature_bank_scores(features: np.ndarray, block_bits: int) -> dict[str, np.ndarray]:
+    left = features[:, :, :block_bits]
+    right = features[:, :, block_bits:]
+    pair_xor = left ^ right
+
+    left_hw = left.sum(axis=2)
+    right_hw = right.sum(axis=2)
+    pair_xor_hw = pair_xor.sum(axis=2)
+    left_column_sum = left.sum(axis=1)
+    right_column_sum = right.sum(axis=1)
+    pair_xor_column_sum = pair_xor.sum(axis=1)
+
+    return {
+        "left_hw_mean": left_hw.mean(axis=1),
+        "right_hw_mean": right_hw.mean(axis=1),
+        "pair_xor_hw_mean": pair_xor_hw.mean(axis=1),
+        "left_hw_std": left_hw.std(axis=1),
+        "right_hw_std": right_hw.std(axis=1),
+        "pair_xor_hw_std": pair_xor_hw.std(axis=1),
+        "left_column_sum_variance": left_column_sum.var(axis=1),
+        "right_column_sum_variance": right_column_sum.var(axis=1),
+        "pair_xor_column_sum_variance": pair_xor_column_sum.var(axis=1),
+        "left_right_column_sum_l1_mean": np.abs(left_column_sum - right_column_sum).mean(axis=1),
+        "left_right_column_sum_l2_mean": ((left_column_sum - right_column_sum) ** 2).mean(axis=1),
+    }
 
 
 def _statistic_report(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
@@ -346,15 +399,20 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
     audit_fns = {
         "alignment": integral_alignment_audit_from_task,
+        "deterministic-baseline": integral_deterministic_baseline_from_task,
         "feature-bank": integral_feature_bank_audit_from_task,
         "parity": integral_parity_audit_from_task,
     }
     audit_fn = audit_fns[args.audit]
+    kwargs: dict[str, Any] = {}
+    if args.audit == "deterministic-baseline":
+        kwargs["statistic"] = args.statistic
     report = audit_fn(
         tasks[args.row_index],
         samples_per_class=args.samples_per_class,
         seed=args.seed,
         key_split=args.key_split,
+        **kwargs,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
