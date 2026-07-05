@@ -441,13 +441,13 @@ frozen aggregation control / curriculum-transfer 哪个优先。
 最后才考虑 r10 weak screen。
 ```
 
-已准备但不立即启动的分支：
+分支状态：
 
 | 分支 | 文档 | 状态 | 作用 |
 |---|---|---|---|
-| r9 curriculum | `docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md` | prepared / not launched | r9 from-scratch 弱时测试训练路径 |
+| r9 curriculum | `docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md` | launched / watcher-managed | r9 from-scratch 弱时测试训练路径 |
 | r9 difference screen | `docs/experiments/innovation1-present-r9-difference-screen-plan.md` | prepared / not launched | 测试高轮输入差分是否是瓶颈 |
-| r8 integral/inverse feature screen | `docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md` | prepared / not launched | 测试 high-round 数据结构是否比 raw pair 更能暴露 SPN previous-round signal |
+| r8 integral/inverse feature screen | `docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md` | launched / watcher-managed | 测试 high-round 数据结构是否比 raw pair 更能暴露 SPN previous-round signal |
 | r8 pair-mixer | `docs/experiments/innovation1-present-pair-mixer-consistency-plan.md` | prepared / not launched | 测试 pair embedding 交互是否增强高轮信号 |
 | r10 conditional weak-probe | `docs/experiments/innovation1-present-r10-conditional-weak-probe-plan.md` | planned only | 只有 r9 gate 支持时才创建资产 |
 
@@ -462,38 +462,48 @@ r10 的规则尤其要严格：
 
 ## 6.3 2026-07-05 更新：当前执行状态
 
-本地 bounded monitor 检查显示，当前唯一 active high-round run 是：
+本地 bounded monitor 检查显示，当前 active high-round watcher 是：
 
 ```text
-run_id = i1_present_r8_pairset_1m_seed0_gpu1_20260705
-status = running
-results_jsonl_line_count = 0 / 2
-done_markers = none
-failed_markers = none
-heartbeat = fresh
-latest_event = validation_start
-model = present_zhang_wang_keras_mcnd
-epoch = 5 / 30
-best_checkpoint_metric = 0.550444523964
-dataset_cache = complete
+i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705
+  status = running
+  results_jsonl_line_count = 0 / 2
+  stage = training
+  latest local progress = epoch 5 / 22 on row 1
+  best_checkpoint_metric_so_far = 0.5018549287342466
+  evidence status = running, not final
+
+i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+  status = launched / watcher-managed
+  expected_rows = 3
+  launch evidence = started.marker / readiness / progress observed remotely
+  local watcher = running, waiting for next artifact sync
+  evidence status = running, not final
 ```
 
 当前主线程策略：
 
 ```text
 不 SSH 轮询；
-不启动 r8 seed1 / frozen aggregation control / r9 curriculum / r9 difference screen / r10；
-等待 watcher 拉回完整 JSONL 后，先 postprocess-r8-pairset-1m，再和 r9 weak-probe summary 仲裁。
+不启动 r9 difference screen / r8 pair-mixer / r10；
+等待两个 active watcher 中任一结果 ready 后，先 route-specific postprocess，
+再按下面的仲裁规则选择下一步。
 ```
 
-这意味着更高轮次研究已经推进到“等待 r8 paper-scale single-seed gate”的阶段。
-在该 gate 前继续抢跑 r9/r10 会降低可归因性，因此下一步不是开更多 GPU，
-而是让当前 r8 1M 结果决定：
+这意味着更高轮次研究已经进入“训练路径 vs 数据结构”双候选诊断阶段。
+在其中一个结果 ready 前继续抢跑 r9 difference / r10 会降低可归因性。
+
+仲裁规则：
 
 ```text
-1. 若 r8 pair-set 1M 明显强于 baseline：优先 seed1 confirmation 或 frozen aggregation control；
-2. 若 r8 pair-set 1M 打平/弱：启动 r8-to-r9 curriculum 或 r9 difference/data-structure branch；
-3. 若 r8 pair-set 1M 失败且 r9 from-scratch 已 near-random：不做 r10 from-scratch，转数据结构或差分搜索。
+1. 若 r9 curriculum best AUC > r9 from-scratch best AUC + 0.003：
+   支持 training-path hypothesis，准备 seed1 或 attribution control；
+2. 若 r9 curriculum 仍接近随机，但 r8 integral/inverse 有明显正信号：
+   优先 262144/class integral/inverse confirmation；
+3. 若两者都弱：
+   不开 r10 from-scratch，转 r9 difference screen 或新的 SPN-aware data route；
+4. 若两者互相矛盾：
+   先写 variance / protocol / attribution 分析，不盲目扩大 GPU。
 ```
 
 ## 7. 参考来源
