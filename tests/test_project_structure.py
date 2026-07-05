@@ -319,6 +319,93 @@ def test_present_r9_weak_probe_remote_readiness_assets_pass():
     assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
 
 
+def test_present_r9_curriculum_from_r8_plan_and_remote_assets_pass():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r9_curriculum_from_r8_262k_seed0.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert task["pretrain_rounds"] == 8
+        assert task["pretrain_epochs"] == 8
+        assert "r9 curriculum diagnostic" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 2
+    assert readiness["plan_rows"] == 2
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in config_text
+    assert "pretrain_rounds" in config_text
+    assert "pretrain_epochs" in config_text
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_r9_curriculum_from_r8_262k_seed0.csv" in launcher_text
+    assert "--epochs 22" in launcher_text
+    assert "--negative-mode encrypted_random_plaintexts" in launcher_text
+    assert "--sample-structure zhang_wang_case2_official_mcnd" in launcher_text
+    assert "--key-rotation-interval 0" in launcher_text
+    assert "r9_curriculum_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "validate-results" in monitor_text
+    assert "plot-results" in monitor_text
+    assert "gate_note" in monitor_text
+
+    assert "8 pretrain epochs on r8 + 22 target epochs on r9" in plan_doc
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc
+    assert "retrieved / validated / plotted / gate-noted / plan-aligned" in plan_doc
+
+
 def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     plan = (
         "configs/experiment/innovation1/"

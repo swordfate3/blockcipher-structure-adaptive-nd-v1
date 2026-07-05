@@ -217,6 +217,32 @@ r9 1M/class seed0
 再考虑 r10 weak probe
 ```
 
+### Prepared Curriculum Branch
+
+The r8-to-r9 curriculum branch has been prepared but must not launch until this
+from-scratch r9 weak-probe is retrieved, validated, plotted, gate-noted, and
+plan-aligned:
+
+```text
+docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md
+configs/experiment/innovation1/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0.csv
+configs/remote/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json
+configs/remote/generated/run_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.cmd
+configs/remote/generated/monitor_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.sh
+```
+
+It uses:
+
+```text
+8 epochs r8 pretraining + 22 epochs r9 fine-tuning
+```
+
+Claim scope:
+
+```text
+262144/class medium diagnostic only; tests training path, not a new benchmark.
+```
+
 ## 10. Launch Record
 
 **Launch time:** 2026-07-05 08:07 +08:00
