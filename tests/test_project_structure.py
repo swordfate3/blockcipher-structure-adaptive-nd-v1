@@ -907,6 +907,7 @@ def test_present_pair_evidence_pooling_screen_plans_are_protocol_locked():
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
     assert "scripts/postprocess-pair-evidence-pooling" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "plan_doc_committed_and_pushed" in monitor_text
 
 
 def test_present_r9_pair_evidence_pooling_screen_assets_are_gate_locked():
@@ -1016,6 +1017,7 @@ def test_present_r9_pair_evidence_pooling_screen_assets_are_gate_locked():
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
     assert "scripts/postprocess-pair-evidence-pooling" in monitor_text
     assert "innovation1-present-r9-pair-evidence-pooling-screen-plan.md" in monitor_text
+    assert "plan_doc_committed_and_pushed" in monitor_text
 
 
 def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
