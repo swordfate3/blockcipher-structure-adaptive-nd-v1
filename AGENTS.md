@@ -12,6 +12,13 @@
 - When reading prior conversations, handoff summaries, `memory/`, `progress.md`, or result audits, persist important corrections through the `self-improvement` workflow instead of leaving them only in chat context.
 - Use `.learnings/LEARNINGS.md` for detailed lessons and promote short durable rules to this `AGENTS.md` when they affect future experiment interpretation, remote workflow, or reporting language.
 - After context-window loss or a new thread, re-check `.learnings/LEARNINGS.md` and this file before making claims about completed experiments or next steps.
+- Current `self-improvement` usage:
+  - For active runtime failures that need diagnosis, patching, and verification in the current task, use `self-healing` instead; it records verified `HEAL-` entries in `.learnings/HEALS.md`.
+  - Use `self-improvement` for passive learning capture: user corrections, outdated knowledge, recurring better approaches, historical errors, missing capabilities, and promotion of recurring self-healing handoffs.
+  - Log corrections/knowledge gaps/best practices to `.learnings/LEARNINGS.md`, historical or external/tool failures to `.learnings/ERRORS.md`, and missing capabilities to `.learnings/FEATURE_REQUESTS.md`.
+  - Before adding a new learning, search existing `.learnings/` entries and link related records with `See Also`; use stable `Pattern-Key`, `Recurrence-Count`, `First-Seen`, and `Last-Seen` for recurring patterns.
+  - Promote concise prevention rules to `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, or OpenClaw workspace files only when the pattern is broadly useful; for recurring patterns prefer the current threshold of `Recurrence-Count >= 3`, at least two distinct tasks, and a 30-day window.
+  - If a learning becomes a reusable, tested, non-obvious workflow, consider extracting it into a skill and marking the entry `promoted_to_skill`.
 
 ## Research Execution Style
 

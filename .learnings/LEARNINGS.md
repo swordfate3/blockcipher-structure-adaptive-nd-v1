@@ -850,3 +850,39 @@ Promote to `AGENTS.md` under Remote Monitoring And Retrieval. Future remote laun
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260705-001] best_practice
+
+**Logged**: 2026-07-05T19:00:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+
+### Summary
+Update project guidance to match the current `self-improvement` workflow and its split from `self-healing`.
+
+### Details
+The user asked to update the current `self-improvement` usage. The installed skill now separates active runtime recovery from passive learning capture:
+
+- Use `self-healing` for active failures that need diagnosis, patching, verification, and verified `HEAL-` entries during the current task.
+- Use `self-improvement` for user corrections, outdated knowledge, recurring best practices, historical or external/tool failures, missing capabilities, and promotion of recurring self-healing handoffs.
+- Route learnings by artifact type: `.learnings/LEARNINGS.md` for corrections, knowledge gaps, and best practices; `.learnings/ERRORS.md` for historical or external/tool failures; `.learnings/FEATURE_REQUESTS.md` for missing capabilities.
+- Search existing `.learnings/` before adding a new entry, link related records with `See Also`, and use `Pattern-Key` plus recurrence fields for recurring patterns.
+- Promote concise prevention rules only when they are broadly useful; for recurring patterns, prefer the current threshold of `Recurrence-Count >= 3`, at least two distinct tasks, and a 30-day window.
+- Consider skill extraction when a learning becomes a reusable, verified, non-obvious workflow.
+
+### Suggested Action
+Promote this concise workflow into `AGENTS.md` so future agents apply the current self-improvement/self-healing split and promotion threshold without relying on chat context.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, .learnings/LEARNINGS.md, /home/fate/.agents/skills/self-improvement/SKILL.md
+- Tags: self-improvement, self-healing, learnings, workflow, project-rules
+- See Also: LRN-20260621-002
+- Pattern-Key: workflow.self_improvement.current_usage
+- Recurrence-Count: 1
+- First-Seen: 2026-07-05
+- Last-Seen: 2026-07-05
+- Promoted: AGENTS.md
+
+---
