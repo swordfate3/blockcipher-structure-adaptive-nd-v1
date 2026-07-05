@@ -320,21 +320,37 @@ DDT beamstats AUC = 0.462158203125
 This is not remote-launch evidence. It only suggests that expanded DDT beam
 paths are a more plausible next local repeat than compressed beamstats.
 
+The seed1 repeat used the same protocol and changed only `seed = 1`:
+
+```text
+InvP control AUC = 0.54296875
+Sinv control AUC = 0.5361328125
+DDT beam AUC = 0.527587890625
+DDT beamstats AUC = 0.606689453125
+```
+
+This keeps the GPD-style branch alive as a local representation candidate, but
+it also shows the `128/class` validation setting is high variance: beamstats
+was the best seed1 row but below random on seed0, while the expanded DDT beam
+row was weak-positive in both seeds but did not consistently beat controls.
+The route should be held for a larger local diagnostic, not remote-launched.
+
 ### Suggested Action
 When continuing the GPD-style branch, compare against the existing Sinv control
-and prefer multi-round DDT/partial-inverse path statistics. Require at least a
-seed1 local repeat before any `65536/class` diagnostic plan, and do not launch
-remote from the seed0 smoke alone.
+and prefer multi-round DDT/partial-inverse path statistics. After seed0/seed1,
+require a larger local diagnostic, such as `512/class` with larger validation,
+before any `65536/class` diagnostic plan. Do not launch remote from the
+`128/class` smokes alone.
 
 ### Metadata
 - Source: conversation
-- Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/features/encoders/present_sbox_ddt.py, configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv, docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md
+- Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/features/encoders/present_sbox_ddt.py, configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv, configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke_seed1.csv, docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md
 - Tags: innovation1, spn, present, gpd, partial-inverse, sinv, ddt-beam
 - See Also: LRN-20260705-003, LRN-20260706-001
 - Pattern-Key: innovation1.spn_present.gpd_do_not_duplicate_existing_sinv
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-06
-- Last-Seen: 2026-07-06
+- Last-Seen: 2026-07-06T01:38:06+08:00
 
 ---
 

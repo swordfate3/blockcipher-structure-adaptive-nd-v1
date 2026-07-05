@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** local smoke config prepared / no remote launch
+**Status:** seed0 + seed1 local smoke completed / unstable candidate hold / no remote launch
 
 ## Why This Plan Exists
 
@@ -83,12 +83,19 @@ checkpoint_metric = val_auc
 restore_best_checkpoint = true
 ```
 
+The seed1 repeat keeps the same protocol and changes only:
+
+```text
+seed = 1
+```
+
 ## Matrix
 
 Config:
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv
+configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke_seed1.csv
 ```
 
 Rows:
@@ -182,7 +189,7 @@ Results:
 | `present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits` | `0.5145263671875` | `0.5625` | tiny weak-positive local smoke candidate |
 | `present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits` | `0.462158203125` | `0.5234375` | compressed beamstats did not preserve the small beam signal |
 
-Decision:
+Seed0 decision:
 
 ```text
 diagnostic_weak_beam_candidate_no_remote_launch
@@ -202,4 +209,76 @@ Next action:
 Run a seed1 local repeat only if continuing the GPD-style branch.
 Do not launch remote from this seed0 smoke.
 Do not claim a neural architecture gain.
+```
+
+## Local Seed1 Repeat Result
+
+Run:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/results.jsonl
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke_seed1.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 32 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/progress.jsonl
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/results.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/progress.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/curves.svg
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_smoke_seed1/history.csv
+```
+
+Results:
+
+| Feature encoding | Seed0 AUC | Seed1 AUC | Interpretation |
+|---|---:|---:|---|
+| `present_pair_xor_paligned_cell_matrix_bits` | `0.496337890625` | `0.54296875` | control moved from near-random to weak positive |
+| `present_pair_xor_paligned_sinv_cell_matrix_bits` | `0.44287109375` | `0.5361328125` | single-step Sinv was not stable |
+| `present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits` | `0.5145263671875` | `0.527587890625` | only row weak-positive in both seeds, but does not beat seed1 controls |
+| `present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits` | `0.462158203125` | `0.606689453125` | seed1 spike, not reproduced from seed0 |
+
+Updated decision:
+
+```text
+unstable_gpd_style_candidate_hold_no_remote_launch
+```
+
+The seed1 result keeps the GPD-style branch alive as a local representation
+candidate, but it does not pass a scale-up gate. The largest seed1 AUC belongs
+to the compressed beamstats row, yet that same row was below random on seed0.
+The expanded DDT beam row is weak-positive in both seeds, but it does not
+consistently beat InvP/Sinv controls. The correct interpretation is:
+
+```text
+beam-family route has a signal/noise hint;
+128/class validation is too noisy to select a winner;
+do not launch remote from these smokes.
+```
+
+Next action if continuing this branch:
+
+```text
+prepare a 512/class local diagnostic with the same four rows, or a narrower
+beam-vs-controls diagnostic with larger validation, before any 65536/class
+remote plan.
 ```
