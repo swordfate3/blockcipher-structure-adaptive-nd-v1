@@ -250,6 +250,7 @@ def _ciphertext_pair_feature_arrays(
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_multi_nibble_difference_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:
         raise ValueError("integral audit requires a plaintext_integral_nibble sample structure")

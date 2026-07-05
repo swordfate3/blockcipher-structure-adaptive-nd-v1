@@ -432,8 +432,24 @@ smoke accuracy = 0.765625 at 64/class
 
 This keeps the immediate Innovation 1 route honest: later neural rows must
 beat or explain the fixed deterministic statistic, not merely rediscover it.
-The next open design step is a multi-active-cell construction for multi-nibble
-input differences.
+
+The multi-active-cell construction for multi-nibble input differences has now
+been tested locally on the Wang/Jain profile:
+
+```text
+sample_structure = plaintext_integral_multi_nibble_difference_matched_negative
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_multi_active_difference_control_smoke.csv
+pairs_per_sample = 256
+seed29 pair_xor_column_sum_variance accuracy = 0.58203125
+seed31 pair_xor_column_sum_variance accuracy = 0.59765625
+seed29 feature-bank best accuracy = 0.58203125
+```
+
+This is a useful negative control: matching the two active cells to the
+two-nibble difference did not turn the Wang/Jain route into a strong
+deterministic feature candidate. The next meaningful slot should stay with the
+single-nibble aligned active-difference route or a neural follow-up that must
+beat the fixed deterministic baseline.
 
 The current priority is therefore:
 

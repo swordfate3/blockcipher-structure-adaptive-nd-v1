@@ -720,6 +720,51 @@ Next controls:
    neural aggregation be used as a secondary validator.
 ```
 
+## Multi-Active Difference Control
+
+The multi-active-cell construction is now implemented for input differences
+with more than one nonzero nibble:
+
+```text
+sample_structure = plaintext_integral_multi_nibble_difference_matched_negative
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_multi_active_difference_control_smoke.csv
+active cells = nonzero nibble support inferred from input_difference
+Wang/Jain input difference = 0x0700000000000700
+pairs_per_sample = 256
+```
+
+Fixed deterministic baseline results:
+
+| Seed | Samples/class | Statistic | Accuracy | Positive mean | Negative mean | Artifact |
+|---:|---:|---|---:|---:|---:|---|
+| `29` | `128` | `pair_xor_column_sum_variance` | `0.58203125` | `122.70492553710938` | `117.0382080078125` | `outputs/local_audits/r8_integral_multi_active_difference_control/row0_wangjain_pair_xor_variance_seed29_128.json` |
+| `31` | `128` | `pair_xor_column_sum_variance` | `0.59765625` | `125.99734497070312` | `116.16154479980469` | `outputs/local_audits/r8_integral_multi_active_difference_control/row0_wangjain_pair_xor_variance_seed31_128.json` |
+
+Feature-bank audit at seed `29` did not reveal a stronger deterministic
+statistic:
+
+```text
+best statistic = pair_xor_column_sum_variance
+best accuracy = 0.58203125
+artifact = outputs/local_audits/r8_integral_multi_active_difference_control/row0_wangjain_feature_bank_seed29_128.json
+```
+
+Interpretation:
+
+```text
+The multi-active construction removes the obvious mismatch between a two-nibble
+input difference and a one-active-nibble integral set, but it does not expose a
+strong deterministic separator for the tested Wang/Jain profile at local audit
+scale.
+```
+
+Decision update:
+
+```text
+do_not_prioritize_wangjain_two_nibble_integral_route_for_remote_training
+keep_single_nibble_aligned_active_difference_route_as_primary
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -741,6 +786,9 @@ The aligned active-difference seed repeat preserves the same split at local
 deterministic-audit scale.
 The pair_xor_column_sum_variance baseline is now available as a fixed
 deterministic evaluator, separate from the best-of-feature-bank audit.
+The tested Wang/Jain two-nibble route remains weak after switching from
+one-active-nibble to multi-active-cell construction at local deterministic
+audit scale.
 ```
 
 Not allowed:

@@ -16,6 +16,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_multi_nibble_difference_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
         "zhang_wang_case2_mcnd",
         "zhang_wang_case2_independent_mcnd",
@@ -35,6 +36,16 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         max_nibble = config.cipher.block_bits // 4
         if config.integral_active_nibble < 0 or config.integral_active_nibble >= max_nibble:
             raise ValueError("integral_active_nibble is outside the cipher block")
+    if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
+        active_nibbles = _nonzero_nibble_support(config.input_difference, config.cipher.block_bits)
+        if not active_nibbles:
+            raise ValueError("multi-nibble integral samples require a nonzero input_difference")
+        expected_pairs = 16 ** len(active_nibbles)
+        if config.pairs_per_sample != expected_pairs:
+            raise ValueError(
+                "plaintext_integral_multi_nibble_difference_matched_negative "
+                f"requires pairs_per_sample={expected_pairs} for {len(active_nibbles)} active nibbles"
+            )
     if config.sample_structure in {
         "zhang_wang_case2_mcnd",
         "zhang_wang_case2_independent_mcnd",
@@ -45,3 +56,11 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
     for index in config.selected_bit_indices:
         if index < 0 or index >= base_pair_bits:
             raise ValueError("selected_bit_indices must reference encoded pair bits")
+
+
+def _nonzero_nibble_support(value: int, block_bits: int) -> tuple[int, ...]:
+    return tuple(
+        nibble_index
+        for nibble_index in range(block_bits // 4)
+        if ((value >> (4 * nibble_index)) & 0xF) != 0
+    )

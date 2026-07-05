@@ -21,6 +21,8 @@ def generate_positive_row(
         "plaintext_integral_nibble_matched_negative",
     }:
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
+    if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
+        return _generate_integral_multi_nibble_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "plaintext_integral_nibble_scrambled_positive":
         return _generate_integral_scrambled_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
@@ -45,6 +47,11 @@ def generate_negative_row(
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative":
         mask = (1 << block_bits) - 1
         return _generate_integral_difference_matched_negative_row(config, rng, block_bits, mask, row_index)
+    if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
+        mask = (1 << block_bits) - 1
+        return _generate_integral_multi_nibble_difference_matched_negative_row(
+            config, rng, block_bits, mask, row_index
+        )
     if config.sample_structure == "plaintext_integral_nibble_scrambled_positive":
         return _generate_integral_matched_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
@@ -215,6 +222,46 @@ def _generate_integral_difference_matched_negative_row(
     return encoded_pairs
 
 
+def _generate_integral_multi_nibble_positive_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    mask: int,
+    row_index: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    cipher = cipher_for_row(config, rng, row_index)
+    base = _integral_multi_nibble_base_plaintext(config, rng, block_bits)
+    for variant in _integral_multi_nibble_variants(config, block_bits):
+        plaintext = base | variant
+        paired = (plaintext ^ config.input_difference) & mask
+        encoded_pairs.extend(
+            encode_pair(cipher.encrypt(plaintext), cipher.encrypt(paired), block_bits, config, cipher)
+        )
+    return encoded_pairs
+
+
+def _generate_integral_multi_nibble_difference_matched_negative_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    mask: int,
+    row_index: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    cipher = cipher_for_row(config, rng, row_index)
+    base = _integral_multi_nibble_base_plaintext(config, rng, block_bits)
+    variants = _integral_multi_nibble_variants(config, block_bits)
+    paired_variants = variants[1:] + variants[:1]
+    for variant, paired_variant in zip(variants, paired_variants, strict=True):
+        plaintext_a = base | variant
+        plaintext_b = ((base | paired_variant) ^ config.input_difference) & mask
+        encoded_pairs.extend(
+            encode_pair(cipher.encrypt(plaintext_a), cipher.encrypt(plaintext_b), block_bits, config, cipher)
+        )
+    return encoded_pairs
+
+
 def _generate_integral_scrambled_positive_row(
     config: DifferentialDatasetConfig,
     rng: np.random.Generator,
@@ -305,3 +352,38 @@ def _integral_variants(config: DifferentialDatasetConfig) -> list[int]:
 def _integral_active_mask(config: DifferentialDatasetConfig) -> int:
     shift = config.integral_active_nibble * 4
     return ((1 << (config.pairs_per_sample.bit_length() - 1)) - 1) << shift
+
+
+def _integral_multi_nibble_base_plaintext(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+) -> int:
+    return random_int(rng, block_bits) & ~_integral_multi_nibble_active_mask(config, block_bits)
+
+
+def _integral_multi_nibble_variants(
+    config: DifferentialDatasetConfig,
+    block_bits: int,
+) -> list[int]:
+    active_nibbles = _nonzero_nibble_support(config.input_difference, block_bits)
+    variants = [0]
+    for nibble_index in active_nibbles:
+        shift = 4 * nibble_index
+        variants = [variant | (value << shift) for variant in variants for value in range(16)]
+    return variants
+
+
+def _integral_multi_nibble_active_mask(config: DifferentialDatasetConfig, block_bits: int) -> int:
+    mask = 0
+    for nibble_index in _nonzero_nibble_support(config.input_difference, block_bits):
+        mask |= 0xF << (4 * nibble_index)
+    return mask
+
+
+def _nonzero_nibble_support(value: int, block_bits: int) -> tuple[int, ...]:
+    return tuple(
+        nibble_index
+        for nibble_index in range(block_bits // 4)
+        if ((value >> (4 * nibble_index)) & 0xF) != 0
+    )

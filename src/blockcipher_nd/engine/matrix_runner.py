@@ -151,6 +151,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=[
             "independent_pairs",
             "plaintext_integral_nibble",
+            "plaintext_integral_multi_nibble_difference_matched_negative",
             "zhang_wang_case2_mcnd",
             "zhang_wang_case2_independent_mcnd",
             "zhang_wang_case2_official_mcnd",

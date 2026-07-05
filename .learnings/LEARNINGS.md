@@ -229,8 +229,23 @@ default statistic = pair_xor_column_sum_variance
 
 Future neural follow-ups should compare against this fixed statistic and should not treat a best-of-feature-bank result as neural architecture evidence.
 
+The multi-active-cell control for Wang/Jain two-nibble differences was then
+implemented and tested locally:
+
+```text
+sample_structure = plaintext_integral_multi_nibble_difference_matched_negative
+pairs_per_sample = 256
+seed29 pair_xor_column_sum_variance accuracy = 0.58203125
+seed31 pair_xor_column_sum_variance accuracy = 0.59765625
+seed29 feature-bank best accuracy = 0.58203125
+```
+
+This weak result means the two-nibble Wang/Jain integral route should not take
+the next meaningful remote slot; keep the single-nibble aligned active-
+difference route primary unless a different multi-cell statistic emerges.
+
 ### Suggested Action
-Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_variance` as an explicit deterministic baseline. If multi-nibble differences matter, design a separate multi-active-cell construction instead of forcing the one-active-nibble route. If the statistic remains meaningful after same-budget anchor comparison, frame it as a deterministic SPN feature route with neural follow-up as secondary attribution.
+Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_variance` as an explicit deterministic baseline. Keep single-nibble aligned active-difference as the primary deterministic feature route; do not spend the next meaningful slot on the tested Wang/Jain two-nibble integral route unless a new multi-cell statistic or representation changes the evidence.
 
 ### Metadata
 - Source: experiment_audit
@@ -238,7 +253,7 @@ Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_
 - Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
 - See Also: LRN-20260705-003, LRN-20260705-002
 - Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
-- Recurrence-Count: 6
+- Recurrence-Count: 7
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-06
 

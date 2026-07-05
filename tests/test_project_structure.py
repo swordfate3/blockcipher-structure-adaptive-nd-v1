@@ -12429,6 +12429,29 @@ def test_integral_difference_matched_negative_removes_left_right_column_sum_sepa
     assert separator["accuracy"] < 0.6
 
 
+def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
+    cipher = build_cipher("present80", 8, key=0)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0700000000000700,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=256,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_multi_nibble_difference_matched_negative",
+        )
+    )
+
+    assert dataset.features.shape == (4, 256 * 2 * cipher.block_bits)
+    assert dataset.labels.tolist() == [1, 1, 0, 0]
+    assert dataset.metadata["sample_structure"] == (
+        "plaintext_integral_multi_nibble_difference_matched_negative"
+    )
+
+
 def test_present_r8_integral_pair_order_control_plan_is_local_audit_only():
     plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_pair_order_control_smoke.csv"
     tasks = build_tasks(parse_args(["--plan", plan]))
@@ -12497,6 +12520,27 @@ def test_present_r8_integral_aligned_difference_control_plan_is_local_audit_only
         ("present_wang_jain2021_1", 14),
     ]
     assert all("LOCAL AUDIT only" in task["matching_evidence"] for task in tasks)
+
+
+def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_multi_active_difference_control_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task["sample_structure"] == (
+        "plaintext_integral_multi_nibble_difference_matched_negative"
+    )
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+    assert task["rounds"] == 8
+    assert task["samples_per_class"] == 128
+    assert task["pairs_per_sample"] == 256
+    assert task["feature_encoding"] == "ciphertext_pair_bits"
+    assert task["difference_profile"] == "present_wang_jain2021_1"
+    assert "LOCAL AUDIT only" in task["matching_evidence"]
 
 
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
