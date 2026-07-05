@@ -414,6 +414,19 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
   --config configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json
 ```
 
+Automatic next-action readiness:
+
+```text
+When seed0 postprocess finishes, scripts/postprocess-r9-weak-probe writes:
+
+outputs/remote_results/<seed0_run_id>/<seed0_run_id>_next_action_readiness.json
+
+If the gate returns r9_weak_positive_prepare_seed1_or_curriculum_scale, that
+artifact marks should_launch_remote=true for this seed1 config and checks both
+the remote readiness invariants and generated launcher/monitor scripts. This is
+a launch readiness signal only; it is not seed1 evidence.
+```
+
 Claim scope:
 
 ```text
@@ -471,6 +484,17 @@ Readiness command:
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
   --config configs/remote/innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json
+```
+
+Automatic next-action readiness:
+
+```text
+If seed0 r9 weak-probe postprocess returns strong_r9_diagnostic_prepare_1m_seed0,
+the same <seed0_run_id>_next_action_readiness.json artifact marks
+should_launch_remote=true for this 1M seed0 config and checks both the remote
+readiness invariants and generated launcher/monitor scripts. It does not bypass
+the strong gate and does not permit r10 assets before r9 is retrieved, validated,
+postprocessed, and gate-noted.
 ```
 
 Claim scope:

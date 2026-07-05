@@ -7,6 +7,7 @@ from typing import Any
 
 from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 from blockcipher_nd.planning.invp_postprocess import _format_value
+from blockcipher_nd.planning.next_action_readiness import next_action_readiness_report
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 
 
@@ -16,6 +17,7 @@ R8_PAIRSET_1M_SEED1_REMOTE_CONFIG = (
     "configs/remote/"
     "innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
 )
+R8_PAIRSET_1M_SEED1_RUN_ID = "i1_present_r8_pairset_1m_seed1_gpu1_20260705"
 DEFAULT_SUPPORT_MARGIN = 0.005
 
 
@@ -92,8 +94,10 @@ def postprocess_r8_pairset_1m_result(
 
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
+    next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
+    report["next_action_readiness"] = str(next_action_readiness_path)
 
     update_paths = plan_doc_paths or []
     if update_paths:
@@ -103,6 +107,7 @@ def postprocess_r8_pairset_1m_result(
         report["plan_doc"] = str(update_paths[0])
 
     _write_json(summary_path, report)
+    _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -204,29 +209,36 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "support_r8_pairset_1m_confirmation":
         return {
             "branch": "r8_pairset_seed1_or_frozen_control",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
             "candidate_next_routes": ["r8_pairset_1m_seed1", "r8_pairset_frozen_aggregation_control"],
             "next_plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
+            "launch_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
             ),
+            "run_id": R8_PAIRSET_1M_SEED1_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "weak_r8_pairset_1m_positive_needs_seed1_or_controls":
         return {
             "branch": "r8_pairset_weak_positive_review",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
             "candidate_next_routes": ["repeat_seed", "frozen_aggregation_control"],
+            "next_plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
+            "launch_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
             ),
+            "run_id": R8_PAIRSET_1M_SEED1_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
         }
     if decision == "stop_or_rethink_r8_pairset_scale":
         return {
@@ -280,6 +292,10 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Decision", report["decision"]),
         ("Action", report["action"]),
         ("Next action branch", report["next_action"]["branch"]),
+        ("Next action should launch remote", report["next_action"].get("should_launch_remote", "")),
+        ("Next action launch config", report["next_action"].get("launch_remote_config", "")),
+        ("Next action readiness command", report["next_action"].get("readiness_command", "")),
+        ("Next action readiness", report["next_action_readiness"]),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
         ("Validation report", report["validation_report"]),
@@ -317,6 +333,10 @@ def _markdown_summary(report: dict[str, Any]) -> str:
     lines.extend(["", "## Next Steps", ""])
     lines.extend(f"- {step}" for step in report["next_steps"])
     return "\n".join(lines) + "\n"
+
+
+def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    return next_action_readiness_report(summary_path=summary_path, report=report)
 
 
 def _entry(row: dict[str, Any]) -> dict[str, Any]:

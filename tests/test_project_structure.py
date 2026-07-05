@@ -4182,8 +4182,8 @@ def test_topology_aware_plan_records_next_action_readiness_artifact():
 def test_scripts_readme_documents_ddt_next_action_readiness_artifact():
     text = Path("scripts/README.md").read_text(encoding="utf-8")
 
-    assert "DDT graph and topology-aware postprocess" in text
-    assert "Candidate-trail and bit-transition-spectrum postprocess" in text
+    assert "DDT graph, topology-aware, r9 weak-probe, and r8 pair-set 1M postprocess" in text
+    assert "Candidate-trail, bit-transition-spectrum, and trail-family postprocess" in text
     assert "<run_id>_next_action_readiness.json" in text
     assert "implementation checklist" in text
     assert "next-branch readiness artifact" in text
@@ -9940,15 +9940,25 @@ def test_r9_weak_probe_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     assert report["decision"] == "strong_r9_diagnostic_prepare_1m_seed0"
     assert report["next_action"]["branch"] == "r9_1m_seed0_plan"
     assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert (
+        report["next_action"]["launch_remote_config"]
+        == "configs/remote/innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json"
+    )
     assert (
         report["next_action"]["suggested_remote_config"]
         == "configs/remote/innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json"
     )
+    assert report["next_action"]["run_id"] == "i1_present_r9_1m_seed0_gpu0_20260705"
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert report["best_candidate"]["model"] == "present_nibble_invp_pair_consistency_spn_only"
     assert report["candidate_delta_vs_baseline_auc"] == pytest.approx(0.045)
     assert Path(report["r9_weak_probe_gate"]).exists()
+    assert Path(report["next_action_readiness"]).exists()
+    next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert next_action_readiness["status"] == "pass"
+    assert next_action_readiness["should_launch_remote"] is True
+    assert next_action_readiness["readiness_pass"] is True
     assert Path(report["curves"]).exists()
     assert Path(report["history_csv"]).exists()
     assert Path(report["summary"]).exists()
@@ -10008,12 +10018,21 @@ def test_r9_weak_probe_weak_positive_points_to_prepared_seed1_assets(tmp_path):
     assert report["decision"] == "r9_weak_positive_prepare_seed1_or_curriculum_scale"
     assert report["next_action"]["branch"] == "r9_seed1_or_curriculum_scale_plan"
     assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert (
+        report["next_action"]["launch_remote_config"]
+        == "configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
+    )
     assert (
         report["next_action"]["suggested_remote_config"]
         == "configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
     )
+    assert report["next_action"]["run_id"] == "i1_present_r9_weak_probe_262k_seed1_gpu0_20260705"
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert next_action_readiness["status"] == "pass"
+    assert next_action_readiness["should_launch_remote"] is True
+    assert next_action_readiness["readiness_pass"] is True
 
 
 def test_monitor_health_emits_r9_weak_probe_postprocess_command_when_result_ready(tmp_path):
@@ -10069,14 +10088,24 @@ def test_r8_pairset_1m_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     assert report["decision"] == "support_r8_pairset_1m_confirmation"
     assert report["next_action"]["branch"] == "r8_pairset_seed1_or_frozen_control"
     assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert (
+        report["next_action"]["launch_remote_config"]
+        == "configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
+    )
     assert (
         report["next_action"]["suggested_remote_config"]
         == "configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
     )
+    assert report["next_action"]["run_id"] == "i1_present_r8_pairset_1m_seed1_gpu1_20260705"
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
     assert report["delta_vs_baseline_auc"] == pytest.approx(0.007)
     assert Path(report["r8_pairset_1m_gate"]).exists()
+    assert Path(report["next_action_readiness"]).exists()
+    next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert next_action_readiness["status"] == "pass"
+    assert next_action_readiness["should_launch_remote"] is True
+    assert next_action_readiness["readiness_pass"] is True
     assert Path(report["curves"]).exists()
     assert Path(report["history_csv"]).exists()
     assert Path(report["summary"]).exists()
@@ -10114,12 +10143,21 @@ def test_r8_pairset_1m_weak_positive_points_to_prepared_seed1_assets(tmp_path):
     assert report["decision"] == "weak_r8_pairset_1m_positive_needs_seed1_or_controls"
     assert report["next_action"]["branch"] == "r8_pairset_weak_positive_review"
     assert report["next_action"]["requires_implementation"] is False
-    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert (
+        report["next_action"]["launch_remote_config"]
+        == "configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
+    )
     assert (
         report["next_action"]["suggested_remote_config"]
         == "configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
     )
+    assert report["next_action"]["run_id"] == "i1_present_r8_pairset_1m_seed1_gpu1_20260705"
     assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert next_action_readiness["status"] == "pass"
+    assert next_action_readiness["should_launch_remote"] is True
+    assert next_action_readiness["readiness_pass"] is True
 
 
 def test_monitor_health_emits_r8_pairset_1m_postprocess_command_when_result_ready(tmp_path):

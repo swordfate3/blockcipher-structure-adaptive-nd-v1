@@ -286,6 +286,21 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
   --config configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json
 ```
 
+Automatic next-action readiness:
+
+```text
+When seed0 postprocess finishes, scripts/postprocess-r8-pairset-1m writes:
+
+outputs/remote_results/<seed0_run_id>/<seed0_run_id>_next_action_readiness.json
+
+If the gate returns support_r8_pairset_1m_confirmation or
+weak_r8_pairset_1m_positive_needs_seed1_or_controls, that artifact marks
+should_launch_remote=true for the seed1 config above and checks both the remote
+readiness invariants and generated launcher/monitor scripts. This is a launch
+readiness signal only; it is not evidence that seed1 has run or that the route
+is formal.
+```
+
 Claim scope:
 
 ```text

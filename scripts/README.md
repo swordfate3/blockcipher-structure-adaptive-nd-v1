@@ -65,9 +65,9 @@ Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
 reads `next_action`, runs local readiness checks for any declared remote config,
 and emits a structured branch/readiness report. It does not launch, SSH, or
 touch the remote workstation.
-DDT graph and topology-aware postprocess also write
+DDT graph, topology-aware, r9 weak-probe, and r8 pair-set 1M postprocess also write
 `<run_id>_next_action_readiness.json` directly, so watcher-managed DDT or
-topology-aware runs leave both the gate decision and the
+topology-aware/high-round runs leave both the gate decision and the
 next-branch readiness artifact in the run output directory.
 Candidate-trail, bit-transition-spectrum, and trail-family postprocess also
 write this readiness artifact, including an implementation checklist when the
