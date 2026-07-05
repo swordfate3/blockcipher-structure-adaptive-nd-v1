@@ -8,6 +8,7 @@ import numpy as np
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
+from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
@@ -398,3 +399,53 @@ def test_postprocess_neural_ensemble_keeps_complementary_positive_route(tmp_path
     assert gate["max_error_jaccard_at_0_5"] == 0.66
     assert "Retrieved Neural Ensemble Result" in plan_text
     assert "application-level" in plan_text
+
+
+def test_neural_ensemble_status_reports_partial_local_artifacts(tmp_path):
+    run_root = tmp_path / "run"
+    (run_root / "results").mkdir(parents=True)
+    (run_root / "checkpoints").mkdir()
+    (run_root / "logs").mkdir()
+    (run_root / "results" / "train_matrix.jsonl").write_text(
+        json.dumps({"model": "present_zhang_wang_keras_mcnd", "metrics": {"auc": 0.7614}}) + "\n",
+        encoding="utf-8",
+    )
+    (run_root / "checkpoints" / "row0001_present_zhang_wang_keras_mcnd_seed0.pt").write_bytes(
+        b"checkpoint"
+    )
+    (run_root / "logs" / "train_matrix_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "validation_start",
+                "index": 2,
+                "total": 3,
+                "model": "present_nibble_invp_only_spn_only",
+                "epoch": 11,
+                "epochs": 18,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "status.json"
+
+    status = neural_ensemble_status_main(
+        [
+            "--run-root",
+            str(run_root),
+            "--expected-rows",
+            "3",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "running"
+    assert report["train_rows"] == 1
+    assert report["checkpoint_count"] == 1
+    assert report["score_artifacts_ready"] is False
+    assert report["ensemble_summary_ready"] is False
+    assert report["latest_progress"]["model"] == "present_nibble_invp_only_spn_only"
+    assert "neural_ensemble_summary.json" in report["missing_artifacts"]

@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** remote launched / monitor-managed running / partial row result retrieved
+**Status:** training completed 3/3 rows; score export failed before ensemble evaluation
 
 **Scope:** PRESENT-80, strict `encrypted_random_plaintexts` negatives, same
 Zhang/Wang Case2 validation protocol unless a later plan explicitly narrows a
@@ -334,7 +334,7 @@ score artifact core = implemented
 checkpoint score export CLI = implemented
 frozen artifact ensemble CLI = implemented
 local tiny smoke = implemented as tests only; not research evidence
-remote launch = not started
+remote launch = completed training; post-training score export failed on tooling dependency
 ```
 
 Export per-checkpoint scores:
@@ -561,25 +561,59 @@ threshold.
 
 ## Running Status
 
-Status as of the local artifact check on 2026-07-05:
+Status as of the local artifact check on 2026-07-05 after monitor retrieval:
 
 ```text
 remote readiness = pass
-retrieved train rows = 1 / 3
-retrieved checkpoints = row0001_present_zhang_wang_keras_mcnd_seed0.pt
-latest synced progress = row 2 / 3, present_nibble_invp_only_spn_only, epoch 11 validation_start
+retrieved train rows = 3 / 3
+retrieved checkpoints = 3 / 3
+training status = completed remotely
+score export status = failed on missing matplotlib import dependency
 neural_ensemble_summary.json = not retrieved
 postprocess gate = not run
 claim status = no ensemble claim yet
 ```
 
-Partial row result retrieved locally:
+Retrieved training rows:
 
 | Row | Model | AUC | Calibrated accuracy | Best epoch | Epochs ran | Status |
 |---|---|---:|---:|---:|---:|---|
-| 1 | `present_zhang_wang_keras_mcnd` | `0.761419387999922` | `0.693603515625` | `6` | `14` | retrieved partial training result only |
+| 1 | `present_zhang_wang_keras_mcnd` | `0.761419387999922` | `0.693603515625` | `6` | `14` | training complete; checkpoint retrieved |
+| 2 | `present_nibble_invp_only_spn_only` | `0.7837966117076576` | `0.710235595703125` | `16` | `18` | training complete; checkpoint retrieved |
+| 3 | `present_nibble_ddt_graph` | `0.7869770601391792` | `0.7142486572265625` | `14` | `18` | training complete; checkpoint retrieved |
 
-This running status is not evidence that the PRESENT neural ensemble screen has
-completed. Final interpretation requires all three checkpoints, all three score
-artifacts, `neural_ensemble_summary.json`, and the guarded
-`scripts/postprocess-neural-ensemble` gate.
+Local artifacts:
+
+```text
+run_root = outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705
+train_matrix = results/train_matrix.jsonl
+checkpoints = checkpoints/row0001_*.pt, row0002_*.pt, row0003_*.pt
+score_artifacts = missing
+ensemble_summary = missing
+failure log = logs/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_export_zhang_wang_stderr.txt
+```
+
+Failure diagnosis:
+
+```text
+The first score export imported blockcipher_nd.cli.evaluate_pairset_aggregation
+for two small helper functions. That import pulled blockcipher_nd.evaluation,
+which eagerly imported blockcipher_nd.evaluation.plots and required matplotlib.
+The remote training environment did not have matplotlib, so the post-training
+export failed before any neural ensemble scores were produced.
+```
+
+Next action:
+
+```text
+Repair the lightweight import boundary for scripts/export-checkpoint-scores,
+push the fix, then rerun only score export + scripts/evaluate-neural-ensemble
+from the retrieved/remote checkpoints. Do not retrain for this recovery unless
+checkpoint reuse fails.
+```
+
+This status is not evidence that the PRESENT neural ensemble screen has passed
+or failed. It is evidence that the three candidate neural networks trained at
+the planned 65536/class diagnostic scale. Final ensemble interpretation still
+requires all three score artifacts, `neural_ensemble_summary.json`, and the
+guarded `scripts/postprocess-neural-ensemble` gate.

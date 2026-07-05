@@ -10,7 +10,6 @@ from typing import Any
 import numpy as np
 import torch
 
-from blockcipher_nd.cli.evaluate_pairset_aggregation import checkpoint_metadata, parse_json_object
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
@@ -151,6 +150,13 @@ def model_options_from_args_or_task(args: argparse.Namespace, task: dict[str, An
     return dict(options)
 
 
+def parse_json_object(value: str, name: str) -> dict[str, Any]:
+    parsed = json.loads(value)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{name} must be a JSON object")
+    return parsed
+
+
 def load_checkpoint_state(model: torch.nn.Module, checkpoint: Path) -> None:
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
     state_dict = payload.get("state_dict") if isinstance(payload, dict) else None
@@ -217,6 +223,14 @@ def score_metadata(
         "checkpoint_metadata": checkpoint_metadata(args.checkpoint),
         "git_commit": current_git_commit(),
     }
+
+
+def checkpoint_metadata(path: Path) -> dict[str, Any]:
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if not isinstance(payload, dict):
+        return {}
+    metadata = payload.get("metadata")
+    return metadata if isinstance(metadata, dict) else {}
 
 
 def current_git_commit() -> str:

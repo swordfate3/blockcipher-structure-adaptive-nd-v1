@@ -1,53 +1,39 @@
-from blockcipher_nd.evaluation.plots import (
-    plot_jsonl_training_curves,
-    training_curve_series,
-    write_history_csv,
-)
-from blockcipher_nd.evaluation.pairset_aggregation import (
-    PairSetAggregationConfig,
-    aggregate_pair_logits,
-    pairset_aggregation_metrics,
-    pairset_aggregation_scores,
-    split_pairset_features,
-)
-from blockcipher_nd.evaluation.neural_ensemble import (
-    EnsembleScoreArtifact,
-    evaluate_frozen_score_ensemble,
-    load_score_artifact,
-    write_score_artifact,
-)
-from blockcipher_nd.evaluation.summary import (
-    HPARAM_SUMMARY_FIELDS,
-    INNOVATION_ONE_GROUP_FIELDS,
-    INNOVATION_ONE_METRIC_FIELDS,
-    hparam_summary_row,
-    hparam_summary_rows,
-    innovation_one_summary_fields,
-    innovation_one_summary_rows,
-    load_jsonl_rows,
-    write_csv_rows,
-)
+from __future__ import annotations
 
-__all__ = [
-    "HPARAM_SUMMARY_FIELDS",
-    "INNOVATION_ONE_GROUP_FIELDS",
-    "INNOVATION_ONE_METRIC_FIELDS",
-    "EnsembleScoreArtifact",
-    "PairSetAggregationConfig",
-    "aggregate_pair_logits",
-    "evaluate_frozen_score_ensemble",
-    "hparam_summary_row",
-    "hparam_summary_rows",
-    "innovation_one_summary_fields",
-    "innovation_one_summary_rows",
-    "load_score_artifact",
-    "load_jsonl_rows",
-    "pairset_aggregation_metrics",
-    "pairset_aggregation_scores",
-    "plot_jsonl_training_curves",
-    "split_pairset_features",
-    "training_curve_series",
-    "write_score_artifact",
-    "write_history_csv",
-    "write_csv_rows",
-]
+from importlib import import_module
+from typing import Any
+
+_EXPORT_MODULES = {
+    "HPARAM_SUMMARY_FIELDS": "blockcipher_nd.evaluation.summary",
+    "INNOVATION_ONE_GROUP_FIELDS": "blockcipher_nd.evaluation.summary",
+    "INNOVATION_ONE_METRIC_FIELDS": "blockcipher_nd.evaluation.summary",
+    "EnsembleScoreArtifact": "blockcipher_nd.evaluation.neural_ensemble",
+    "PairSetAggregationConfig": "blockcipher_nd.evaluation.pairset_aggregation",
+    "aggregate_pair_logits": "blockcipher_nd.evaluation.pairset_aggregation",
+    "evaluate_frozen_score_ensemble": "blockcipher_nd.evaluation.neural_ensemble",
+    "hparam_summary_row": "blockcipher_nd.evaluation.summary",
+    "hparam_summary_rows": "blockcipher_nd.evaluation.summary",
+    "innovation_one_summary_fields": "blockcipher_nd.evaluation.summary",
+    "innovation_one_summary_rows": "blockcipher_nd.evaluation.summary",
+    "load_score_artifact": "blockcipher_nd.evaluation.neural_ensemble",
+    "load_jsonl_rows": "blockcipher_nd.evaluation.summary",
+    "pairset_aggregation_metrics": "blockcipher_nd.evaluation.pairset_aggregation",
+    "pairset_aggregation_scores": "blockcipher_nd.evaluation.pairset_aggregation",
+    "plot_jsonl_training_curves": "blockcipher_nd.evaluation.plots",
+    "split_pairset_features": "blockcipher_nd.evaluation.pairset_aggregation",
+    "training_curve_series": "blockcipher_nd.evaluation.plots",
+    "write_score_artifact": "blockcipher_nd.evaluation.neural_ensemble",
+    "write_history_csv": "blockcipher_nd.evaluation.plots",
+    "write_csv_rows": "blockcipher_nd.evaluation.summary",
+}
+
+__all__ = list(_EXPORT_MODULES)
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _EXPORT_MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value
