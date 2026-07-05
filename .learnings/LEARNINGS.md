@@ -75,9 +75,11 @@ The readiness config passed local static checking, including
 `medium_scale_dataset_cache`, `cmd.exe /c`, `G:\lxy` artifact policy, and
 training-protocol consistency. It was later hardened with
 `trail_position_score_artifact_lock`, requiring `checkpoint_output_dir`,
-`score_artifacts_root`, and per-row score export metadata. This is only a
-readiness asset. It is not remote-launch evidence, not formal SPN/PRESENT
-evidence, not a breakthrough claim, and not a multi-network aggregation result.
+`score_artifacts_root`, and per-row score export metadata. Generated
+launch/monitor artifacts were then prepared and audited for the two-row 65k
+matrix. This is still only a readiness asset. It is not remote-launch evidence,
+not formal SPN/PRESENT evidence, not a breakthrough claim, and not a
+multi-network aggregation result.
 
 Correct route arbitration:
 

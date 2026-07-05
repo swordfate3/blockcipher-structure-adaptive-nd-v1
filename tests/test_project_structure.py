@@ -2097,6 +2097,50 @@ def test_present_neural_ensemble_remote_launch_assets_export_and_retrieve_scores
     assert "completed_missing_or_incomplete_results" in monitor_text
 
 
+def test_trail_position_medium_remote_launch_assets_export_scores_only():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "SCORE_ARTIFACT_DIR" in launcher_text
+    assert "TRAIL_POSITION_BEAMSTATS_MEDIUM_PREPARED_ONLY" in launcher_text
+    assert "scripts\\check-remote-readiness" in launcher_text
+    assert "--checkpoint-output-dir \"%CHECKPOINT_DIR%\"" in launcher_text
+    assert "--dataset-cache-root \"%DATASET_CACHE_ROOT%\"" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "scripts\\export-checkpoint-scores" in launcher_text
+    assert "scripts\\evaluate-neural-ensemble" not in launcher_text
+    assert "row0001_present_pairset_global_stats_seed0.pt" in launcher_text
+    assert "row0002_present_trail_position_stats_pairset_seed0.pt" in launcher_text
+    assert "--eval-row-index 0" in launcher_text
+    assert "--eval-row-index 1" in launcher_text
+    assert "--expert-family trail_position_global_control" in launcher_text
+    assert "--candidate-status near_neighbor_control" in launcher_text
+    assert "--expert-family trail_position" in launcher_text
+    assert "--candidate-status weak_positive" in launcher_text
+    assert "score_artifacts" in monitor_text
+    assert "checkpoints" in monitor_text
+    assert "global_stats_control/models.json" in monitor_text
+    assert "trail_position/models.json" in monitor_text
+    assert "postprocess-neural-ensemble" not in monitor_text
+    assert "completed_missing_or_incomplete_results" in monitor_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 

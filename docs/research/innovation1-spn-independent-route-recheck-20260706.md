@@ -559,3 +559,28 @@ This still does not launch a remote run or make a result claim. It only closes
 the artifact-readiness gap so that if the medium diagnostic is later launched
 and retrieved, the trail-position route can be evaluated as a genuine
 non-neighbor expert rather than another uncheckable neural result.
+
+## 2026-07-06 Trail-Position Generated Artifact Readiness
+
+The trail-position medium route now also has prepared local launch/retrieval
+artifacts:
+
+```text
+launch_artifact = configs/remote/generated/run_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.cmd
+monitor_artifact = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh
+status = prepared only / not launched
+```
+
+The generated command trains the two plan rows, writes row checkpoints, exports
+`global_stats_control` and `trail_position` frozen-score artifacts with
+expert-family metadata, and stops. It does not evaluate an ensemble by itself.
+
+This moves the route one step closer to a meaningful medium diagnostic while
+preserving the claim boundary:
+
+```text
+prepared launch assets != launched
+retrieved frozen scores != diverse ensemble proof
+diverse expert status still requires same-protocol score compatibility,
+error-overlap checks, and residual/deterministic controls after retrieval
+```

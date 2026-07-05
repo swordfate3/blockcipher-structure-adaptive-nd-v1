@@ -834,6 +834,8 @@ Prepared assets:
 ```text
 plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv
 remote_readiness_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.json
+launch_artifact = configs/remote/generated/run_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.cmd
+monitor_artifact = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh
 run_id = i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706
 status = prepared only / not launched
 ```
@@ -884,6 +886,21 @@ Planned score artifacts:
 | 0 | `global_stats_control` | `present_pairset_global_stats` | `trail_position_global_control` | `near_neighbor_control` | `row0001_present_pairset_global_stats_seed0.pt` |
 | 1 | `trail_position` | `present_trail_position_stats_pairset` | `trail_position` | `weak_positive` | `row0002_present_trail_position_stats_pairset_seed0.pt` |
 
+Generated launch-asset audit:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_project_structure.py -q \
+  -k "trail_position_medium_remote_launch_assets or trail_position_medium_remote_readiness"
+
+status = pass
+checks = cmd.exe /c only, G:\lxy run root, checkpoint-output-dir, dataset cache,
+         two export-checkpoint-scores calls, expert-family metadata, score-artifact retrieval
+```
+
+The generated `.cmd` trains the two-row matrix and exports score artifacts only.
+It intentionally does not call `evaluate-neural-ensemble`; this two-row route is
+a candidate/control score source, not a standalone multi-network ensemble.
+
 Claim scope:
 
 ```text
@@ -899,7 +916,6 @@ Launch remains blocked until all of the following are true:
 ```text
 scoped commit exists
 commit is pushed
-generated launch artifacts pass local audit
 GPU/readiness gate passes
 local tmux monitor/retrieval handoff is prepared
 one bounded post-launch remote artifact confirmation is planned
