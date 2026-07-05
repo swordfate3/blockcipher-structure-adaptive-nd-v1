@@ -921,6 +921,29 @@ local tmux monitor/retrieval handoff is prepared
 one bounded post-launch remote artifact confirmation is planned
 ```
 
+Source-publication gate:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-launch-source
+
+current_status = fail
+branch = main
+upstream = origin/main
+ahead = 38
+dirty = true
+errors = unpushed_commits, dirty_worktree
+```
+
+Interpretation:
+
+```text
+The remote config and generated launch/monitor artifacts are ready, but the
+source publication gate is not. The dirty state is from the local
+check-launch-source gate files before they are committed; the unpushed-commits
+state remains a hard launch blocker until the branch is pushed with explicit
+approval. Do not launch this remote job from an unpushed or dirty source tree.
+```
+
 After retrieval, the same residual gate must be rerun at `65536/class` before
 any stronger claim:
 

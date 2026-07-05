@@ -68,6 +68,13 @@ are included only when they apply, for example `candidate_trail_protocol_lock`
 for candidate-trail configs and `pairset_aggregation_stage_lock` for pair-set
 aggregation configs.
 
+Use `scripts/check-launch-source` after local readiness passes and before any
+remote launch. It reads `git status --short --branch` only and fails when the
+worktree is dirty, lacks an upstream, is behind upstream, or has unpushed
+commits. A passing remote-readiness report is therefore not enough to launch:
+remote training still requires a clean pushed source commit, generated launch
+artifacts, GPU/readiness confirmation, and monitor handoff.
+
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
 neural metrics. It generates a small deterministic dataset from a plan row and

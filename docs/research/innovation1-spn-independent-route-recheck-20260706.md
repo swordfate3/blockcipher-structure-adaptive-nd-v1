@@ -584,3 +584,39 @@ retrieved frozen scores != diverse ensemble proof
 diverse expert status still requires same-protocol score compatibility,
 error-overlap checks, and residual/deterministic controls after retrieval
 ```
+
+## 2026-07-06 Source-Publication Gate
+
+The local launch-source gate is now explicit:
+
+```text
+script = scripts/check-launch-source
+function = launch_source_report_from_status
+purpose = reject dirty, unpublished, missing-upstream, or behind-upstream source
+claim_scope = local source publication gate only; no SSH, no remote launch
+```
+
+Current local gate state before committing this gate work:
+
+```text
+status = fail
+branch = main
+upstream = origin/main
+ahead = 38
+dirty = true
+errors = unpushed_commits, dirty_worktree
+```
+
+This means trail-position 65k remains:
+
+```text
+remote_readiness = pass
+generated_launch_artifacts = prepared
+source_publication = blocked
+remote_status = not_launched
+```
+
+The gate closes a reporting gap: a route can be cache-ready and launcher-ready
+while still not being eligible for remote execution. For this project, a
+meaningful remote experiment should still launch from a clean pushed commit
+unless explicitly labeled as an emergency dirty-overlay repair.
