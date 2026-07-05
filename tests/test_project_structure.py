@@ -12304,6 +12304,56 @@ def test_projection_ensemble_metrics_reports_weighted_logit_mode():
     assert weighted["metrics"]["auc"] == 1.0
 
 
+def test_projection_feature_gate_triggers_ensemble_for_multiple_weak_views(tmp_path):
+    from blockcipher_nd.planning.projection_feature_postprocess import gate_projection_feature_result
+
+    results_path = tmp_path / "projection_results.jsonl"
+    rows = [
+        {
+            "architecture": "full_raw",
+            "architecture_rank": 0,
+            "selected_model": "mlp",
+            "feature_encoding": "ciphertext_pair_bits",
+            "metrics": {"auc": 0.51, "accuracy": 0.5, "calibrated_accuracy": 0.52, "loss": 0.69},
+            "training": {"selected_bit_indices": []},
+        },
+        {
+            "architecture": "raw_projection",
+            "architecture_rank": 1,
+            "selected_model": "mlp",
+            "feature_encoding": "ciphertext_pair_bits",
+            "metrics": {"auc": 0.512, "accuracy": 0.5, "calibrated_accuracy": 0.521, "loss": 0.69},
+            "training": {"selected_bit_indices": [0, 1, 64, 65]},
+        },
+        {
+            "architecture": "invp_projection",
+            "architecture_rank": 2,
+            "selected_model": "mlp",
+            "feature_encoding": "ciphertext_xor_spn_paligned_bits",
+            "metrics": {"auc": 0.513, "accuracy": 0.5, "calibrated_accuracy": 0.522, "loss": 0.69},
+            "training": {"selected_bit_indices": [64, 65, 66, 67]},
+        },
+        {
+            "architecture": "thin_projection",
+            "architecture_rank": 3,
+            "selected_model": "mlp",
+            "feature_encoding": "ciphertext_xor_spn_paligned_bits",
+            "metrics": {"auc": 0.49, "accuracy": 0.5, "calibrated_accuracy": 0.5, "loss": 0.7},
+            "training": {"selected_bit_indices": [64, 65]},
+        },
+    ]
+    results_path.write_text(
+        "\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    report = gate_projection_feature_result(results_path, expected_rows=4)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "run_projection_ensemble_diagnostic"
+    assert len(report["weak_ensemble_candidates"]) == 2
+
+
 def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 

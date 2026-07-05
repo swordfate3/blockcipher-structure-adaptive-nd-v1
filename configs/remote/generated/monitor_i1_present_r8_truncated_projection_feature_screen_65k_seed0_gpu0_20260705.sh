@@ -7,6 +7,7 @@ REMOTE_RUN_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/${RUN_ID}"
 LOCAL_ROOT="outputs/remote_results/${RUN_ID}"
 MONITOR_DIR="${LOCAL_ROOT}/monitor"
 PLAN="configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_screen_65k_seed0.csv"
+PLAN_DOC="docs/experiments/innovation1-present-truncated-projection-feature-plan.md"
 EXPECTED_ROWS="4"
 
 mkdir -p "${LOCAL_ROOT}" "${MONITOR_DIR}" "${LOCAL_ROOT}/logs" "${LOCAL_ROOT}/results"
@@ -38,16 +39,18 @@ while true; do
 
   if [[ "${result_rows}" -ge "${EXPECTED_ROWS}" ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
-      --plan "${PLAN}" \
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-projection-feature \
       --results "${result_file}" \
+      --output-dir "${LOCAL_ROOT}" \
+      --run-id "${RUN_ID}" \
+      --plan "${PLAN}" \
       --expected-rows "${EXPECTED_ROWS}" \
-      --output "${LOCAL_ROOT}/${RUN_ID}_local_result_gate.json" \
-      > "${MONITOR_DIR}/validate.log" 2> "${MONITOR_DIR}/validate_stderr.log"
-    validate_status=$?
-    if [[ "${validate_status}" -ne 0 ]]; then
-      echo "$(timestamp) validate_failed" >> "${MONITOR_DIR}/monitor.log"
-      exit "${validate_status}"
+      --update-plan-doc "${PLAN_DOC}" \
+      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
+    postprocess_status=$?
+    if [[ "${postprocess_status}" -ne 0 ]]; then
+      echo "$(timestamp) postprocess_failed" >> "${MONITOR_DIR}/monitor.log"
+      exit "${postprocess_status}"
     fi
     env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
       --results "${result_file}" \

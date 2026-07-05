@@ -97,6 +97,27 @@ prepared / not launched
 不把 smoke 结果解释为模型能力；smoke 只验证配置解析、selected-bit 投影、训练入口和
 结果校验能跑通。
 
+结果 ready 后使用 route-specific postprocess：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-projection-feature \
+  --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
+  --output-dir outputs/remote_results/<run_id> \
+  --run-id <run_id> \
+  --plan configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_screen_65k_seed0.csv \
+  --expected-rows 4 \
+  --update-plan-doc docs/experiments/innovation1-present-truncated-projection-feature-plan.md
+```
+
+Postprocess artifacts：
+
+```text
+<run_id>_local_result_gate.json
+<run_id>_projection_feature_gate.json
+<run_id>_postprocess_summary.json
+<run_id>_postprocess_summary.md
+```
+
 ## 5. 弱网络融合分支
 
 多个弱网络可以提高准确率，但前提是它们的错误不完全相关。本路线把 ensemble 作为
