@@ -34,6 +34,7 @@ from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_f
 from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_active_auxiliary_result
 from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prior_result
 from blockcipher_nd.planning.difference_screen_postprocess import postprocess_difference_screen_result
+from blockcipher_nd.planning.pair_mixer_postprocess import postprocess_pair_mixer_consistency_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -619,7 +620,8 @@ def test_present_pair_mixer_consistency_r8_262k_assets_are_prepared_not_launched
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
     assert "validate-results" in monitor_text
     assert "plot-results" in monitor_text
-    assert "gate_note" in monitor_text
+    assert "scripts/postprocess-pair-mixer-consistency" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
     assert "i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705" in plan_doc
     assert "not formal evidence" in plan_doc
@@ -8958,6 +8960,97 @@ def test_monitor_health_emits_difference_screen_postprocess_command_when_result_
     assert report["postprocess_allowed"] is True
     assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
     assert "scripts/postprocess-difference-screen" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "2" in report["postprocess_command"]
+
+
+def _write_pair_mixer_result(path: Path, model: str, auc: float) -> None:
+    rows = []
+    if path.exists():
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows.append(
+        {
+            "cipher": "PRESENT-80",
+            "model": model,
+            "metrics": {
+                "auc": auc,
+                "accuracy": 0.5 + (auc - 0.5) / 2,
+                "calibrated_accuracy": 0.5 + (auc - 0.5) / 3,
+                "loss": 0.69,
+            },
+        }
+    )
+    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+
+def test_pair_mixer_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "pair_mixer.jsonl"
+    _write_pair_mixer_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.552)
+    _write_pair_mixer_result(results, "present_nibble_invp_pair_mixer_consistency_spn_only", 0.557)
+    plan_doc = tmp_path / "pair_mixer_plan.md"
+    plan_doc.write_text("# Pair Mixer Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_pair_mixer_consistency_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="pair_mixer_unit",
+        expected_rows=2,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_pair_mixer_consistency_route"
+    assert report["next_action"]["branch"] == "pair_mixer_seed_or_r9_diagnostic"
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["delta_vs_anchor_auc"] == pytest.approx(0.005)
+    assert Path(report["pair_mixer_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Pair-Mixer Result" in plan_text
+    assert "<!-- pair-mixer-postprocess:pair_mixer_unit:start -->" in plan_text
+    assert "| Decision | `support_pair_mixer_consistency_route` |" in plan_text
+
+    postprocess_pair_mixer_consistency_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="pair_mixer_unit",
+        expected_rows=2,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- pair-mixer-postprocess:pair_mixer_unit:start -->") == 1
+
+
+def test_monitor_health_emits_pair_mixer_postprocess_command_when_result_ready(tmp_path):
+    run_id = "pair_mixer_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = tmp_path / "pair_mixer_plan.csv"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    plan.write_text("model_key\npresent_nibble_invp_pair_mixer_consistency_spn_only\n", encoding="utf-8")
+    results = results_dir / f"{run_id}.jsonl"
+    _write_pair_mixer_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.552)
+    _write_pair_mixer_result(results, "present_nibble_invp_pair_mixer_consistency_spn_only", 0.557)
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=2,
+        postprocess_kind="pair_mixer",
+        now=datetime.fromisoformat("2026-07-05T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-pair-mixer-consistency" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "2" in report["postprocess_command"]
 

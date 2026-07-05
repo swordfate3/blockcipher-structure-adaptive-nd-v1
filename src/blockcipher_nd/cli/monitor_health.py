@@ -1068,6 +1068,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-sbox-prior"
     if kind == "difference_screen":
         return "scripts/postprocess-difference-screen"
+    if kind == "pair_mixer":
+        return "scripts/postprocess-pair-mixer-consistency"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -1094,6 +1096,8 @@ def _default_expected_rows(kind: str) -> int:
         return 4
     if kind == "difference_screen":
         return 7
+    if kind == "pair_mixer":
+        return 2
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 

@@ -7,6 +7,7 @@ REMOTE_RUN_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/${RUN_ID}"
 LOCAL_ROOT="outputs/remote_results/${RUN_ID}"
 MONITOR_DIR="${LOCAL_ROOT}/monitor"
 PLAN="configs/experiment/innovation1/innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0.csv"
+PLAN_DOC="docs/experiments/innovation1-present-pair-mixer-consistency-plan.md"
 EXPECTED_ROWS="2"
 
 mkdir -p "${LOCAL_ROOT}" "${MONITOR_DIR}" "${LOCAL_ROOT}/logs" "${LOCAL_ROOT}/results"
@@ -110,13 +111,20 @@ while true; do
       --title "${RUN_ID}" \
       > "${MONITOR_DIR}/plot.log" 2> "${MONITOR_DIR}/plot_stderr.log"
     plot_status=$?
-    write_gate_note > "${MONITOR_DIR}/gate_note.log" 2> "${MONITOR_DIR}/gate_note_stderr.log"
-    gate_status=$?
-    if [[ "${validate_status}" -eq 0 && "${plot_status}" -eq 0 && "${gate_status}" -eq 0 ]]; then
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-pair-mixer-consistency \
+      --plan "${PLAN}" \
+      --results "${result_file}" \
+      --output-dir "${LOCAL_ROOT}" \
+      --run-id "${RUN_ID}" \
+      --expected-rows "${EXPECTED_ROWS}" \
+      --update-plan-doc "${PLAN_DOC}" \
+      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
+    postprocess_status=$?
+    if [[ "${validate_status}" -eq 0 && "${plot_status}" -eq 0 && "${postprocess_status}" -eq 0 ]]; then
       echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
       exit 0
     fi
-    echo "$(timestamp) postprocess_failed validate=${validate_status} plot=${plot_status} gate=${gate_status}" >> "${MONITOR_DIR}/monitor.log"
+    echo "$(timestamp) postprocess_failed validate=${validate_status} plot=${plot_status} postprocess=${postprocess_status}" >> "${MONITOR_DIR}/monitor.log"
     exit 3
   fi
 
