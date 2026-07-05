@@ -131,13 +131,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     decision = str(report["decision"])
     best = report.get("best") or {}
     if decision == "promote_best_difference_to_262k_confirmation":
+        selected_difference = best.get("difference_id", "")
         return {
             "branch": "r9_difference_262k_confirmation",
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
-            "selected_difference": best.get("difference_id", ""),
+            "selected_difference": selected_difference,
             "next_plan_doc": "docs/experiments/innovation1-present-r9-difference-screen-plan.md",
+            "confirmation_plan_command": _confirmation_plan_command(report, selected_difference),
             "implementation_checklist": [
                 "Create a 262144/class confirmation CSV for only the selected difference and Zhang/Wang reference with scripts/create-difference-confirmation-plan.",
                 "Keep model_key fixed unless the new experiment explicitly changes the hypothesis.",
@@ -145,13 +147,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             ],
         }
     if decision == "weak_difference_candidate_repeat_or_confirm_at_262k":
+        selected_difference = best.get("difference_id", "")
         return {
             "branch": "r9_difference_weak_candidate_review",
             "should_launch_remote": False,
             "requires_implementation": True,
             "reason": decision,
-            "selected_difference": best.get("difference_id", ""),
+            "selected_difference": selected_difference,
             "next_plan_doc": "docs/experiments/innovation1-present-r9-difference-screen-plan.md",
+            "confirmation_plan_command": _confirmation_plan_command(report, selected_difference),
             "implementation_checklist": [
                 "Decide whether to repeat the 65536/class screen or prepare a 262144/class confirmation.",
                 "Do not claim route success from the weak screen margin.",
@@ -182,6 +186,28 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         "requires_implementation": False,
         "reason": decision,
     }
+
+
+def _confirmation_plan_command(report: dict[str, Any], selected_difference: str) -> str:
+    selected_slug = "".join(
+        character if character.isalnum() else "_" for character in selected_difference.lower()
+    ).strip("_")
+    output = (
+        "configs/experiment/innovation1/"
+        f"innovation1_spn_present_r9_difference_confirmation_262k_seed0_{selected_slug}.csv"
+    )
+    summary = (
+        "outputs/planning/"
+        f"innovation1_spn_present_r9_difference_confirmation_262k_seed0_{selected_slug}_summary.json"
+    )
+    plan = report.get("plan") or "configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv"
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/create-difference-confirmation-plan "
+        f"--screen-plan {plan} "
+        f"--output {output} "
+        f"--selected-difference {selected_difference} "
+        f"--summary {summary}"
+    )
 
 
 def _next_steps(report: dict[str, Any]) -> list[str]:
@@ -230,6 +256,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Decision", report["decision"]),
         ("Action", report["action"]),
         ("Next action branch", report["next_action"]["branch"]),
+        ("Confirmation plan command", report["next_action"].get("confirmation_plan_command", "")),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
         ("Validation report", report["validation_report"]),

@@ -9791,6 +9791,11 @@ def test_difference_screen_postprocess_writes_summary_and_updates_plan_doc(tmp_p
     assert report["next_action"]["branch"] == "r9_difference_262k_confirmation"
     assert report["next_action"]["requires_implementation"] is True
     assert report["next_action"]["should_launch_remote"] is False
+    assert "scripts/create-difference-confirmation-plan" in report["next_action"]["confirmation_plan_command"]
+    assert "--selected-difference present_wang_jain2021:0" in report["next_action"]["confirmation_plan_command"]
+    assert "difference_confirmation_262k_seed0_present_wang_jain2021_0.csv" in (
+        report["next_action"]["confirmation_plan_command"]
+    )
     assert report["best"]["difference_id"] == "present_wang_jain2021:0"
     assert Path(report["difference_screen_gate"]).exists()
     assert Path(report["summary"]).exists()
@@ -9799,6 +9804,7 @@ def test_difference_screen_postprocess_writes_summary_and_updates_plan_doc(tmp_p
     assert "## Retrieved Difference-Screen Result" in plan_text
     assert "<!-- difference-screen-postprocess:difference_screen_unit:start -->" in plan_text
     assert "| Decision | `promote_best_difference_to_262k_confirmation` |" in plan_text
+    assert "| Confirmation plan command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/create-difference-confirmation-plan" in plan_text
 
     postprocess_difference_screen_result(
         results_path=results,
