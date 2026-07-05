@@ -161,6 +161,17 @@ r8 positive route checkpoint -> r9 weak probe
 
 这属于 benchmark/difference 变化，必须单独开研究路线，不能和模型结构创新混在一起。
 
+当前已把该分支具体化为一个准备但不立即启动的 r9 screen：
+
+```text
+docs/experiments/innovation1-present-r9-difference-screen-plan.md
+configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv
+```
+
+这个 screen 固定 `present_nibble_invp_pair_consistency_spn_only`，只改变
+`difference_profile / difference_member`。它用于回答“r9 是否需要换输入差分/数据构造”，
+不能和同协议模型改进结论混报。
+
 ## 5. Round-Extension Ladder
 
 ### Stage H0：r8 watcher 结果

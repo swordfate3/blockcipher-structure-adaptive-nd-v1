@@ -406,6 +406,104 @@ def test_present_r9_curriculum_from_r8_plan_and_remote_assets_pass():
     assert "retrieved / validated / plotted / gate-noted / plan-aligned" in plan_doc
 
 
+def test_present_r9_difference_screen_plan_and_remote_assets_are_prepared_not_launched():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r9_difference_screen_65k_seed0.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 7
+    assert {task["model_key"] for task in tasks} == {
+        "present_nibble_invp_pair_consistency_spn_only"
+    }
+    assert [task["difference_profile"] for task in tasks] == [
+        "present_zhang_wang2022_mcnd",
+        "present_wang_jain2021",
+        "present_wang_jain2021",
+        "present_wang_jain2021",
+        "present_wang_jain2021",
+        "present_autond_dbitnet2023_highround",
+        "present_entropy2026_gohr",
+    ]
+    assert [task["difference_member"] for task in tasks] == [0, 0, 1, 2, 3, 0, 0]
+    assert [task["input_difference"] for task in tasks] == [
+        0x0000000000000009,
+        0x0700000000000700,
+        0x7000000000007000,
+        0x0070000000000070,
+        0x0007000000000007,
+        0x000000000D000000,
+        0x0000000000D00000,
+    ]
+
+    for task in tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 65536
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "changes data construction only" in task["matching_evidence"]
+        assert "not formal evidence" in task["matching_evidence"]
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r9_difference_screen_65k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-r9-difference-screen-plan.md"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 7
+    assert readiness["plan_rows"] == 7
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "prepared but do not launch" in config_data["launch_policy"]
+    assert "not same-protocol model-improvement evidence" in config_data["claim_scope"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "innovation1_spn_present_r9_difference_screen_65k_seed0.csv" in launcher_text
+    assert "--epochs 20" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "r9_difference_screen_progress.jsonl" in launcher_text
+
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "difference_profile:difference_member" in monitor_text
+    assert "validate-results" in monitor_text
+    assert "plot-results" in monitor_text
+    assert "gate_note" in monitor_text
+
+    assert "数据构造 / benchmark 搜索" in plan_doc
+    assert "not same-protocol model-improvement evidence" in plan_doc
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc
+    assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
+
+
 def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     plan = (
         "configs/experiment/innovation1/"
