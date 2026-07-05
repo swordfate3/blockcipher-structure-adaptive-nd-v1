@@ -2081,6 +2081,9 @@ def test_present_neural_ensemble_remote_launch_assets_export_and_retrieve_scores
     assert "score_artifacts" in monitor_text
     assert "checkpoints" in monitor_text
     assert "neural_ensemble_summary.json" in monitor_text
+    assert "postprocess-neural-ensemble" in monitor_text
+    assert "--ensemble-summary" in monitor_text
+    assert "--expected-rows \"${EXPECTED_ROWS}\"" in monitor_text
     assert "completed_missing_or_incomplete_results" in monitor_text
 
 

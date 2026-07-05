@@ -7,6 +7,7 @@ import numpy as np
 
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
+from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
@@ -282,3 +283,118 @@ def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):
     assert summary["status"] == "pass"
     assert len(summary["models"]) == 2
     assert len(summary["ensembles"]) == 5
+
+
+def test_postprocess_neural_ensemble_keeps_complementary_positive_route(tmp_path):
+    train_results = tmp_path / "train_matrix.jsonl"
+    train_results.write_text(
+        "\n".join(
+            [
+                json.dumps({"model": "present_zhang_wang_keras_mcnd", "metrics": {"auc": 0.790}}),
+                json.dumps({"model": "present_nibble_invp_only_spn_only", "metrics": {"auc": 0.797}}),
+                json.dumps({"model": "present_nibble_ddt_graph", "metrics": {"auc": 0.740}}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    ensemble_summary = tmp_path / "neural_ensemble_summary.json"
+    ensemble_summary.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "best_single": {
+                    "model_key": "present_nibble_invp_only_spn_only",
+                    "metrics": {"auc": 0.7970, "calibrated_accuracy": 0.733},
+                },
+                "best_ensemble": {
+                    "mode": "logit_mean",
+                    "metrics": {"auc": 0.7992, "calibrated_accuracy": 0.736},
+                },
+                "delta_best_ensemble_vs_single_auc": 0.0022,
+                "models": [
+                    {
+                        "model_key": "present_zhang_wang_keras_mcnd",
+                        "metrics": {"auc": 0.7900, "calibrated_accuracy": 0.724},
+                    },
+                    {
+                        "model_key": "present_nibble_invp_only_spn_only",
+                        "metrics": {"auc": 0.7970, "calibrated_accuracy": 0.733},
+                    },
+                    {
+                        "model_key": "present_nibble_ddt_graph",
+                        "metrics": {"auc": 0.7400, "calibrated_accuracy": 0.670},
+                    },
+                ],
+                "ensembles": [
+                    {"mode": "probability_mean", "metrics": {"auc": 0.7980}},
+                    {"mode": "logit_mean", "metrics": {"auc": 0.7992}},
+                ],
+                "diversity": {
+                    "oracle_accuracy_at_0_5": 0.755,
+                    "all_models_wrong_rate_at_0_5": 0.245,
+                    "pairwise": [
+                        {
+                            "left": "present_zhang_wang_keras_mcnd",
+                            "right": "present_nibble_invp_only_spn_only",
+                            "double_fault_rate_at_0_5": 0.18,
+                            "error_jaccard_at_0_5": 0.62,
+                        },
+                        {
+                            "left": "present_nibble_invp_only_spn_only",
+                            "right": "present_nibble_ddt_graph",
+                            "double_fault_rate_at_0_5": 0.20,
+                            "error_jaccard_at_0_5": 0.66,
+                        },
+                    ],
+                },
+                "claim_scope": "application-level frozen score aggregation diagnostic only",
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    plan_doc = tmp_path / "plan.md"
+    plan_doc.write_text("# Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    status = postprocess_ensemble_main(
+        [
+            "--train-results",
+            str(train_results),
+            "--ensemble-summary",
+            str(ensemble_summary),
+            "--output-dir",
+            str(output_dir),
+            "--run-id",
+            "i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705",
+            "--expected-rows",
+            "3",
+            "--update-plan-doc",
+            str(plan_doc),
+        ]
+    )
+
+    summary = json.loads(
+        (
+            output_dir
+            / "i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.json"
+        ).read_text(encoding="utf-8")
+    )
+    gate = json.loads(
+        (
+            output_dir
+            / "i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_neural_ensemble_gate.json"
+        ).read_text(encoding="utf-8")
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["decision"] == "keep_neural_ensemble_route_prepare_262k_confirmation"
+    assert summary["next_action"]["branch"] == "neural_ensemble_262k_confirmation"
+    assert gate["max_error_jaccard_at_0_5"] == 0.66
+    assert "Retrieved Neural Ensemble Result" in plan_text
+    assert "application-level" in plan_text

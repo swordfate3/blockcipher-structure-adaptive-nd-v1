@@ -544,5 +544,17 @@ checkpoints/
 score_artifacts/
 ```
 
+When `train_matrix.jsonl`, all three score artifacts, and
+`neural_ensemble_summary.json` are present locally, the monitor runs:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-neural-ensemble
+```
+
+and appends a guarded `Retrieved Neural Ensemble Result` block to this plan.
+The gate keeps the route only when best ensemble AUC improves over best single
+AUC by at least `0.001` and pairwise error overlap is not above the configured
+threshold.
+
 This package is launch preparation only. It is not evidence that the PRESENT
 neural ensemble screen has completed.
