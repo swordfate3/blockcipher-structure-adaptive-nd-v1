@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** 新任务研究蓝图 / r9 from-scratch weak-probe 已完成 / 等待 r8 pair-set 1M 后仲裁下一分支
+**状态：** 新任务研究蓝图 / r9 from-scratch weak-probe 已完成 / r8 pair-set 1M 正在 watcher 管理下运行 / 等待结果后仲裁下一分支
 
 **范围：** Innovation 1 的 SPN/PRESENT 更高轮次推进。本文回答“如果目标不是只在 r7/r8 同协议下微调，而是尽量推进 PRESENT 可验证轮数，研究路线应该怎么改”。具体 r9 weak-probe 运行计划和结果放在 `docs/experiments/innovation1-present-r9-weak-probe-plan.md`。
 
@@ -459,6 +459,42 @@ r10 的规则尤其要严格：
 ```
 
 这样更像一个高轮研究阶梯，而不是并行乱开一堆不可归因的高轮训练。
+
+## 6.3 2026-07-05 更新：当前执行状态
+
+本地 bounded monitor 检查显示，当前唯一 active high-round run 是：
+
+```text
+run_id = i1_present_r8_pairset_1m_seed0_gpu1_20260705
+status = running
+results_jsonl_line_count = 0 / 2
+done_markers = none
+failed_markers = none
+heartbeat = fresh
+latest_event = validation_start
+model = present_zhang_wang_keras_mcnd
+epoch = 5 / 30
+best_checkpoint_metric = 0.550444523964
+dataset_cache = complete
+```
+
+当前主线程策略：
+
+```text
+不 SSH 轮询；
+不启动 r8 seed1 / frozen aggregation control / r9 curriculum / r9 difference screen / r10；
+等待 watcher 拉回完整 JSONL 后，先 postprocess-r8-pairset-1m，再和 r9 weak-probe summary 仲裁。
+```
+
+这意味着更高轮次研究已经推进到“等待 r8 paper-scale single-seed gate”的阶段。
+在该 gate 前继续抢跑 r9/r10 会降低可归因性，因此下一步不是开更多 GPU，
+而是让当前 r8 1M 结果决定：
+
+```text
+1. 若 r8 pair-set 1M 明显强于 baseline：优先 seed1 confirmation 或 frozen aggregation control；
+2. 若 r8 pair-set 1M 打平/弱：启动 r8-to-r9 curriculum 或 r9 difference/data-structure branch；
+3. 若 r8 pair-set 1M 失败且 r9 from-scratch 已 near-random：不做 r10 from-scratch，转数据结构或差分搜索。
+```
 
 ## 7. 参考来源
 

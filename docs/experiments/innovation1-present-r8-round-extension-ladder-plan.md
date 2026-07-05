@@ -612,3 +612,41 @@ Separate learned cross-pair structure from fixed aggregation of independent
 single-pair InvP scores. This is required before treating pair-set consistency
 as an architecture innovation rather than application-level aggregation.
 ```
+
+## 15. Running Status Snapshot
+
+**Checked:** 2026-07-05 11:29 +08:00 via local `scripts/monitor-health`
+
+Current state:
+
+```text
+run_id = i1_present_r8_pairset_1m_seed0_gpu1_20260705
+status = running
+results_jsonl_line_count = 0 / 2
+done_markers = []
+failed_markers = []
+heartbeat = fresh
+needs_main_thread_intervention = false
+postprocess_allowed = false
+```
+
+Progress summary:
+
+```text
+stage = training
+model = present_zhang_wang_keras_mcnd
+epoch = 5 / 30
+best_checkpoint_metric = 0.550444523964
+latest_event = validation_start
+validation_rows = 1000000
+dataset_cache = complete
+```
+
+Decision:
+
+```text
+Do not launch seed1, frozen aggregation control, r9 curriculum, r9 difference
+screen, or r10 while this run is active. The watcher remains responsible for
+retrieval. Once expected_rows=2 is available and validation passes, run
+postprocess-r8-pairset-1m and then arbitrate against the completed r9 weak-probe.
+```

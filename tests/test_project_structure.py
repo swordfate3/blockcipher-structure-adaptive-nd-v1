@@ -1131,7 +1131,7 @@ def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
 
-def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate():
+def test_present_r10_conditional_plan_has_no_remote_assets_after_r9_gate():
     plan_doc = Path(
         "docs/experiments/innovation1-present-r10-conditional-weak-probe-plan.md"
     ).read_text(encoding="utf-8")
@@ -1141,7 +1141,12 @@ def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate
     r10_configs = list(Path("configs/remote").glob("*r10*"))
     r10_experiment_configs = list(Path("configs/experiment/innovation1").glob("*r10*"))
 
-    assert "planned / no remote assets / wait for r9 gate" in plan_doc
+    assert (
+        "planned / no remote assets / r9 from-scratch gate complete / wait for r8 pair-set 1M"
+        in plan_doc
+    )
+    assert "r9 from-scratch weak-probe 已经 retrieved / validated / gate-noted" in plan_doc
+    assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
     assert "no r10 remote assets" in plan_doc
     assert "不创建 r10 remote config" in research_doc
     assert r10_configs == []

@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** planned / no remote assets / wait for r9 gate
+**状态：** planned / no remote assets / r9 from-scratch gate complete / wait for r8 pair-set 1M and any selected r9 branch
 
 **研究蓝图：** `docs/research/innovation1-present-higher-round-strategy.md`
 
@@ -20,19 +20,28 @@ curriculum / transfer 放大的微弱 real-vs-random 神经信号？
 
 ## 2. 为什么 r10 不立即启动
 
-当前 active watcher 已经有：
+当前 active watcher 有：
 
 ```text
-i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
 
-r10 不能在 r9 未 retrieved / validated / gate-noted 前启动，原因是：
+r9 from-scratch weak-probe 已经 retrieved / validated / gate-noted，结果 near-random：
 
 ```text
-1. 如果 r9 from-scratch 已近随机，r10 from-scratch 大概率只会浪费 GPU；
-2. 如果 r9 只有 pair-set 或 curriculum 信号，r10 首轮模型应继承该路线；
-3. 如果 r9 的问题来自输入差分，r10 应先走 difference-screen，而不是改轮数硬跑。
+run_id = i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+best_candidate_auc = 0.502131485177
+baseline_auc = 0.503853519913
+decision = stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+```
+
+r10 仍不能立即启动，原因是：
+
+```text
+1. r9 from-scratch 已近随机，r10 from-scratch 大概率只会浪费 GPU；
+2. r8 pair-set 1M 仍在运行，它会决定是否优先做 seed1 / frozen aggregation control；
+3. 如果 r9 需要 curriculum、difference screen 或新数据结构，r10 首轮模型应继承该路线；
+4. 如果 r9 的问题来自输入差分，r10 应先走 difference-screen，而不是改轮数硬跑。
 ```
 
 ## 3. 启动条件
@@ -116,9 +125,9 @@ no r10 success/failure claim
 等待以下结果之一：
 
 ```text
-1. r9 weak-probe watcher 自动拉回并 postprocess；
-2. r8 pairset 1M watcher 自动拉回并 postprocess；
-3. r9 difference-screen 或 r9 curriculum 被 gate 选中并完成。
+1. r8 pairset 1M watcher 自动拉回并 postprocess；
+2. r9 curriculum 被 r8/r9 arbitration 选中并完成；
+3. r9 difference-screen 或数据结构分支被 gate 选中并完成。
 ```
 
 在这些条件之前，本计划保持 planned，不创建 r10 远程资产，不占用 GPU。
