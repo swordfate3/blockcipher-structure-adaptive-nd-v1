@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** remote launch package prepared / no remote launch
+**Status:** remote launched / monitor-managed running / partial row result retrieved
 
 **Scope:** PRESENT-80, strict `encrypted_random_plaintexts` negatives, same
 Zhang/Wang Case2 validation protocol unless a later plan explicitly narrows a
@@ -513,7 +513,10 @@ remote config = configs/remote/innovation1_spn_present_neural_ensemble_r7_65k_se
 launcher = configs/remote/generated/run_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.cmd
 monitor = configs/remote/generated/monitor_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.sh
 run_id = i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705
-remote launch = not started
+remote launch = started from GitHub-pushed commit
+source commit recorded remotely = 0537802e6f45fbf5a254c0a1049ba3fa9e5c928a
+local monitor = ne_ens_r7_65k_g0_20260705
+launcher session = ne_ens_launcher_r7_65k_g0_20260705
 ```
 
 Before launch, verify:
@@ -556,5 +559,27 @@ The gate keeps the route only when best ensemble AUC improves over best single
 AUC by at least `0.001` and pairwise error overlap is not above the configured
 threshold.
 
-This package is launch preparation only. It is not evidence that the PRESENT
-neural ensemble screen has completed.
+## Running Status
+
+Status as of the local artifact check on 2026-07-05:
+
+```text
+remote readiness = pass
+retrieved train rows = 1 / 3
+retrieved checkpoints = row0001_present_zhang_wang_keras_mcnd_seed0.pt
+latest synced progress = row 2 / 3, present_nibble_invp_only_spn_only, epoch 11 validation_start
+neural_ensemble_summary.json = not retrieved
+postprocess gate = not run
+claim status = no ensemble claim yet
+```
+
+Partial row result retrieved locally:
+
+| Row | Model | AUC | Calibrated accuracy | Best epoch | Epochs ran | Status |
+|---|---|---:|---:|---:|---:|---|
+| 1 | `present_zhang_wang_keras_mcnd` | `0.761419387999922` | `0.693603515625` | `6` | `14` | retrieved partial training result only |
+
+This running status is not evidence that the PRESENT neural ensemble screen has
+completed. Final interpretation requires all three checkpoints, all three score
+artifacts, `neural_ensemble_summary.json`, and the guarded
+`scripts/postprocess-neural-ensemble` gate.
