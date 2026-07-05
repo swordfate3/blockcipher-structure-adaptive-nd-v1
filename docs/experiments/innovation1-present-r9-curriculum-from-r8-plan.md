@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** prepared / readiness passed / queued after active r8 pair-set 1M result arbitration
+**Status:** launched / watcher-managed / waiting for retrieved results
 
 **Scope:** PRESENT-80 r9, Zhang/Wang 2022 Case2 `m=16`, strict `encrypted_random_plaintexts` negatives.
 
@@ -104,10 +104,37 @@ baseline_auc = 0.503853519913
 decision = stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
 ```
 
-This satisfies the r9-side curriculum condition. The remaining launch blocker is
-the active r8 pair-set 1M seed0 run. After that result is retrieved and
-postprocessed, run high-round next-action arbitration before launching this
-curriculum branch.
+This satisfies the r9-side curriculum condition. The active r8 pair-set 1M
+seed0 run has now been retrieved and postprocessed, and high-round arbitration
+selected this curriculum branch as the next launchable action.
+
+## Launch Record
+
+```text
+status = launched / watcher-managed
+launch_time = 2026-07-05 16:11 +08:00
+run_id = i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705
+remote_process_id = 50544
+remote_run_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705
+source_commit = e13e1930db2078656b98f781c191f645e27e7f05
+local_watcher = monitor_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705
+```
+
+Launch/readiness evidence:
+
+```text
+remote readiness = pass
+cmd.exe /c launcher = used
+strict negatives = encrypted_random_plaintexts
+dataset cache = disk-backed under G:\lxy
+started marker = present
+progress = dataset_cache stage for row 1 present_nibble_invp_only_spn_only
+results rows at launch check = 0 / 2
+```
+
+The local tmux watcher owns retrieval, validation, plotting, and gate-note
+generation. The main thread should not SSH-poll this run; use bounded local
+artifact checks or watcher outputs.
 
 Decision rule:
 
