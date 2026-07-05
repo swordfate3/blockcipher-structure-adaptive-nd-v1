@@ -68,6 +68,14 @@ are included only when they apply, for example `candidate_trail_protocol_lock`
 for candidate-trail configs and `pairset_aggregation_stage_lock` for pair-set
 aggregation configs.
 
+Use `scripts/audit-integral-parity-signal` for local-only audits of
+`plaintext_integral_nibble` PRESENT rows before interpreting integral-route
+neural metrics. It generates a small deterministic dataset from a plan row and
+tests whether the classes are already separable by the hand-coded
+pair-xor-parity statistic across the `pairs_per_sample` set. A near-perfect
+audit means the run should be interpreted first as an integral/multiset
+data-construction signal, not as neural architecture evidence by itself.
+
 Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
 reads `next_action`, runs local readiness checks for any declared remote config,
 and emits a structured branch/readiness report. It does not launch, SSH, or

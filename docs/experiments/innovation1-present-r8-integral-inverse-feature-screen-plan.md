@@ -285,6 +285,27 @@ positive 的 xor_hw = 0.0，negative 的 xor_hw ≈ 31.974；
 简单阈值 xor_hw <= 0 在本地审查样本上 accuracy = 1.0。
 ```
 
+该审查已工具化为本地 CLI：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-integral-parity-signal \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv \
+  --row-index 0 \
+  --samples-per-class 16 \
+  --seed 7 \
+  --output /tmp/i1_integral_parity_audit_smoke.json
+```
+
+验证输出：
+
+```text
+positive_pair_xor_parity_hw.zero_rate = 1.0
+negative_pair_xor_parity_hw.zero_rate = 0.0
+best_threshold = xor_hw <= 0
+best_threshold.accuracy = 1.0
+interpretation = parity_statistic_alone_nearly_separates_classes
+```
+
 解释：
 
 ```text

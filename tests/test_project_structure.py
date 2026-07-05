@@ -79,6 +79,7 @@ from blockcipher_nd.cli import (
     spn_trail_family_matrix,
     spn_active_auxiliary_matrix,
 )
+from blockcipher_nd.cli.audit_integral_parity_signal import integral_parity_audit_from_task
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
 
 
@@ -11826,6 +11827,32 @@ def test_zhang_wang_official_anchor_plan_generates_dataset():
     assert dataset.metadata["sample_structure"] == "zhang_wang_case2_official_mcnd"
     assert dataset.metadata["key_schedule"] == "per_pair_random"
     assert set(np.unique(dataset.labels).tolist()) == {0, 1}
+
+
+def test_integral_parity_audit_detects_plaintext_integral_pair_xor_signal():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = build_tasks(args)[0]
+
+    report = integral_parity_audit_from_task(
+        task,
+        samples_per_class=8,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert report["status"] == "pass"
+    assert report["audit"] == "integral_pair_xor_parity"
+    assert report["sample_structure"] == "plaintext_integral_nibble"
+    assert report["negative_mode"] == "encrypted_random_plaintexts"
+    assert report["positive_pair_xor_parity_hw"]["zero_rate"] == 1.0
+    assert report["negative_pair_xor_parity_hw"]["zero_rate"] == 0.0
+    assert report["best_threshold"] == {
+        "accuracy": 1.0,
+        "threshold": 0,
+        "operator": "<=",
+    }
+    assert report["interpretation"] == "parity_statistic_alone_nearly_separates_classes"
 
 
 def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():
