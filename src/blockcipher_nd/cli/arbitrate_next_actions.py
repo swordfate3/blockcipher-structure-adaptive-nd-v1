@@ -99,6 +99,7 @@ def _candidate_report(index: int, summary_path: Path) -> dict[str, Any]:
     next_action = report.get("next_action")
     if not isinstance(next_action, dict):
         next_action = {}
+    candidate_route_readiness = _candidate_route_readiness(summary_path)
     return {
         "index": index,
         "summary": str(summary_path),
@@ -116,6 +117,7 @@ def _candidate_report(index: int, summary_path: Path) -> dict[str, Any]:
         "should_launch_remote": report.get("should_launch_remote"),
         "reason": reason,
         "launch_checklist": report.get("launch_checklist", []),
+        "candidate_route_readiness": candidate_route_readiness,
         "errors": report.get("errors", []),
     }
 
@@ -132,6 +134,67 @@ def _readiness_reason(report: dict[str, Any], *, priority: int) -> str:
     if priority <= 0:
         return "branch_not_in_high_round_priority_policy"
     return "launchable"
+
+
+def _candidate_route_readiness(summary_path: Path) -> dict[str, Any] | None:
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    path = summary.get("candidate_route_readiness")
+    if not isinstance(path, str) or not path:
+        return None
+    try:
+        readiness = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"status": "unavailable", "path": path}
+    routes = readiness.get("candidate_routes")
+    if not isinstance(routes, dict):
+        return {"status": readiness.get("status"), "path": path, "candidate_routes": {}}
+    return {
+        "status": readiness.get("status"),
+        "path": path,
+        "policy": readiness.get("policy"),
+        "candidate_routes": {
+            str(name): _compact_candidate_route(value)
+            for name, value in routes.items()
+            if isinstance(value, dict)
+        },
+    }
+
+
+def _compact_candidate_route(route: dict[str, Any]) -> dict[str, Any]:
+    next_action = route.get("next_action")
+    if not isinstance(next_action, dict):
+        next_action = {}
+    readiness_reports = route.get("readiness_reports")
+    if not isinstance(readiness_reports, list):
+        readiness_reports = []
+    return {
+        "status": route.get("status"),
+        "branch": route.get("branch"),
+        "should_launch_remote": route.get("should_launch_remote"),
+        "requires_implementation": route.get("requires_implementation"),
+        "readiness_pass": route.get("readiness_pass"),
+        "remote_readiness_pass": route.get("remote_readiness_pass"),
+        "launch_artifacts_pass": route.get("launch_artifacts_pass"),
+        "run_id": next_action.get("run_id"),
+        "launch_remote_config": next_action.get("launch_remote_config"),
+        "readiness_reports": [
+            {
+                "role": item.get("role"),
+                "config": item.get("config"),
+                "readiness_status": (item.get("readiness") or {}).get("status")
+                if isinstance(item.get("readiness"), dict)
+                else None,
+                "launch_artifacts_status": (item.get("launch_artifacts") or {}).get("status")
+                if isinstance(item.get("launch_artifacts"), dict)
+                else None,
+            }
+            for item in readiness_reports
+            if isinstance(item, dict)
+        ],
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

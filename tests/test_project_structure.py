@@ -10553,6 +10553,18 @@ def test_arbitrate_next_actions_prefers_strong_r9_over_r8_confirmation(tmp_path)
     assert arbitration["selected"]["branch"] == "r9_1m_seed0_plan"
     assert arbitration["selected"]["run_id"] == "i1_present_r9_1m_seed0_gpu0_20260705"
     assert arbitration["deferred"][0]["branch"] == "r8_pairset_seed1_or_frozen_control"
+    deferred_readiness = arbitration["deferred"][0]["candidate_route_readiness"]
+    assert deferred_readiness["status"] == "pass"
+    assert (
+        deferred_readiness["candidate_routes"]["r8_pairset_frozen_aggregation_control"]["readiness_pass"]
+        is True
+    )
+    assert (
+        deferred_readiness["candidate_routes"]["r8_pairset_frozen_aggregation_control"]["readiness_reports"][0][
+            "role"
+        ]
+        == "stage_a"
+    )
     assert arbitration["not_ready"] == []
 
 
