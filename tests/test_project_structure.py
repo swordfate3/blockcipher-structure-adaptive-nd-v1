@@ -1925,7 +1925,9 @@ def test_present_r8_pairset_aggregation_control_remote_configs_are_prepared_and_
     assert "pairset_aggregation_stage_lock" in scorer_report["checked_invariants"]
     assert "pairset_aggregation_stage_lock" in learned_report["checked_invariants"]
     assert "candidate_trail_protocol_lock" not in learned_report["checked_invariants"]
-    assert "wait for active r8 and r9 watchers" in plan_doc
+    assert "wait for active r8 pair-set 1M gate" in plan_doc
+    assert "r9 from-scratch weak-probe has already completed" in plan_doc
+    assert "single-pair scorer remote config = pass" in plan_doc
     assert "frozen single-pair InvP score aggregation" in plan_doc
     assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
     assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc

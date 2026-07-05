@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** prepared / not launched / wait for active r8 and r9 watchers
+**Status:** prepared / readiness passed / not launched / wait for active r8 pair-set 1M gate
 
 **Scope:** PRESENT-80 r8, Zhang/Wang 2022 Case2 `m=16`, strict `encrypted_random_plaintexts` negatives.
 
@@ -88,11 +88,26 @@ same Zhang/Wang Case2 sample structure
 
 ## Launch Gate
 
-Do not launch while the active GPU tasks are still running:
+Do not launch while the active r8 paper-scale task is still running:
 
 ```text
-i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
+```
+
+The r9 from-scratch weak-probe has already completed and is not an active
+watcher anymore:
+
+```text
+run_id = i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+status = retrieved / validated / plotted / gate-noted / plan-aligned
+decision = stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+```
+
+Readiness check status:
+
+```text
+single-pair scorer remote config = pass
+pair-set aggregation remote config = pass
 ```
 
 Launch this control when one of these conditions is true:

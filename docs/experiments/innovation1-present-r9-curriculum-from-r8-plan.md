@@ -55,7 +55,7 @@ configs/experiment/innovation1/innovation1_spn_present_r9_curriculum_from_r8_262
 | 0 | `present_nibble_invp_only_spn_only` | r8-to-r9 curriculum for simple InvP structural view |
 | 1 | `present_nibble_invp_pair_consistency_spn_only` | r8-to-r9 curriculum for current high-round pair-set candidate |
 
-The same-budget from-scratch reference is the active run:
+The same-budget from-scratch reference is the completed r9 weak-probe run:
 
 ```text
 i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
