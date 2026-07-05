@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** smoke passed / 65536-class screen prepared / remote assets prepared / not launched
+**状态：** smoke passed / 65536-class screen prepared / GPU1 remote assets prepared / launch selected after projection weak-hold gate
 
 **研究蓝图：** `docs/research/innovation1-present-higher-round-strategy.md`
 
@@ -84,17 +84,42 @@ run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705
 configs/remote/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.json
 configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.cmd
 configs/remote/generated/monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.sh
+
+run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+configs/remote/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.json
+configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd
+configs/remote/generated/monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.sh
 ```
 
 当前状态：
 
 ```text
-prepared / not launched
+GPU1 launch selected / local tmux monitor required after launch
 ```
 
-当前不启动远程、不占用 GPU，因为已有 watcher-managed 任务：
+启动依据：
 
 ```text
+projection feature screen completed with weak_projection_candidate_hold
+best projection AUC = 0.502584959846
+full raw anchor AUC = 0.501484732144
+delta = +0.001100227702
+weak ensemble candidates = 0
+decision = do not scale projection yet; move to next high-round data-representation screen
+```
+
+一次有界 GPU 检查显示：
+
+```text
+GPU0 busy, GPU1 free enough for 65536/class screen
+```
+
+因此本次启动 GPU1 版本，不占用正在运行的 r9 curriculum GPU0 任务。
+
+历史暂缓原因：
+
+```text
+原计划曾因以下 watcher-managed 任务占用/等待而暂缓启动：
 i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
