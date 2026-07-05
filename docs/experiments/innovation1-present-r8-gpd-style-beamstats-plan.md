@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** seed0 + seed1 local smoke completed / unstable candidate hold / no remote launch
+**Status:** 512/class local diagnostic completed / DDT beam candidate needs seed1 repeat / no remote launch
 
 ## Why This Plan Exists
 
@@ -96,6 +96,7 @@ Config:
 ```text
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke_seed1.csv
+configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv
 ```
 
 Rows:
@@ -281,4 +282,77 @@ Next action if continuing this branch:
 prepare a 512/class local diagnostic with the same four rows, or a narrower
 beam-vs-controls diagnostic with larger validation, before any 65536/class
 remote plan.
+```
+
+## Local 512/Class Diagnostic Result
+
+Run:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/results.jsonl
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 32 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/progress.jsonl
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/results.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/progress.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/curves.svg
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed0/history.csv
+```
+
+Results:
+
+| Feature encoding | 128 seed0 AUC | 128 seed1 AUC | 512 seed0 AUC | Interpretation |
+|---|---:|---:|---:|---|
+| `present_pair_xor_paligned_cell_matrix_bits` | `0.496337890625` | `0.54296875` | `0.540496826171875` | InvP control remains weak-positive at 512 |
+| `present_pair_xor_paligned_sinv_cell_matrix_bits` | `0.44287109375` | `0.5361328125` | `0.5286407470703125` | single-step Sinv is below InvP at 512 |
+| `present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits` | `0.5145263671875` | `0.527587890625` | `0.562957763671875` | best 512 row; expanded DDT beam now beats controls |
+| `present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits` | `0.462158203125` | `0.606689453125` | `0.5418472290039062` | seed1 spike collapses to control-level at 512 |
+
+512 diagnostic decision:
+
+```text
+keep_expanded_ddt_beam_candidate_prepare_512_seed1_repeat
+```
+
+This is a meaningful local refinement. The 128/class seed1 beamstats spike did
+not survive the larger local diagnostic, while the expanded DDT beam row moved
+ahead of both controls:
+
+```text
+DDT beam AUC - InvP control AUC = +0.022460937500
+DDT beam AUC - Sinv control AUC = +0.034317016602
+DDT beam AUC - beamstats AUC = +0.021110534668
+```
+
+This still does not justify a remote launch. It does justify a second
+`512/class` local repeat on seed1. Only if the expanded DDT beam remains
+control-beating under that repeat should this branch advance to a planned
+`65536/class` diagnostic.
+
+Updated next action:
+
+```text
+prepare and run configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv
 ```
