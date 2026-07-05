@@ -905,6 +905,115 @@ def test_present_pair_evidence_pooling_screen_plans_are_protocol_locked():
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
 
+def test_present_r9_pair_evidence_pooling_screen_assets_are_gate_locked():
+    smoke_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pair_evidence_pooling_screen_r9_smoke.csv"
+    )
+    screen_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pair_evidence_pooling_screen_r9_65k_seed0.csv"
+    )
+    smoke_tasks = build_tasks(parse_args(["--plan", smoke_plan]))
+    screen_tasks = build_tasks(parse_args(["--plan", screen_plan]))
+
+    assert [task["model_key"] for task in smoke_tasks] == [
+        "present_nibble_invp_pair_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
+    ]
+    assert [task["model_options"]["pooling"] for task in screen_tasks] == [
+        "topk_logsumexp",
+        "topk_logsumexp",
+        "logsumexp",
+        "topk_mean",
+    ]
+    for task in smoke_tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 8
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+
+    for task in screen_tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 65536
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SCREEN 65536/class" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-r9-pair-evidence-pooling-screen-plan.md"
+    ).read_text(encoding="utf-8")
+    assert "r9 Pair-Evidence Pooling Screen" in plan_doc
+    assert "gate-locked" in plan_doc
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc
+    assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_pair_evidence_pooling_screen_r9_65k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r9_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r9_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 4
+    assert readiness["plan_rows"] == 4
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config_data["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "prepared but do not launch" in config_data["launch_policy"]
+    assert "not paper-scale, formal, or breakthrough evidence" in config_data["claim_scope"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_pair_evidence_pooling_screen_r9_65k_seed0.csv" in launcher_text
+    assert "--epochs 20" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "pair_evidence_pooling_screen_r9_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "scripts/postprocess-pair-evidence-pooling" in monitor_text
+    assert "innovation1-present-r9-pair-evidence-pooling-screen-plan.md" in monitor_text
+
+
 def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
     smoke_plan = (
         "configs/experiment/innovation1/"
