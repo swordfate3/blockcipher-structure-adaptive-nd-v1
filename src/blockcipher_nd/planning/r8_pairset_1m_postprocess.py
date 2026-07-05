@@ -12,6 +12,10 @@ from blockcipher_nd.planning.result_alignment import validate_result_plan_alignm
 
 BASELINE_MODEL = "present_zhang_wang_keras_mcnd"
 PAIRSET_MODEL = "present_nibble_invp_pair_consistency_spn_only"
+R8_PAIRSET_1M_SEED1_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
+)
 DEFAULT_SUPPORT_MARGIN = 0.005
 
 
@@ -201,18 +205,28 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         return {
             "branch": "r8_pairset_seed1_or_frozen_control",
             "should_launch_remote": False,
-            "requires_implementation": True,
+            "requires_implementation": False,
             "reason": decision,
             "candidate_next_routes": ["r8_pairset_1m_seed1", "r8_pairset_frozen_aggregation_control"],
             "next_plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
+            "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
+            ),
         }
     if decision == "weak_r8_pairset_1m_positive_needs_seed1_or_controls":
         return {
             "branch": "r8_pairset_weak_positive_review",
             "should_launch_remote": False,
-            "requires_implementation": True,
+            "requires_implementation": False,
             "reason": decision,
             "candidate_next_routes": ["repeat_seed", "frozen_aggregation_control"],
+            "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
+            ),
         }
     if decision == "stop_or_rethink_r8_pairset_scale":
         return {

@@ -242,6 +242,59 @@ frozen single-pair score aggregation control
 multi-query application-level evidence label
 ```
 
+### Prepared r8 Pair-Set 1M Seed1 Branch
+
+**Status:** prepared / gate-locked / not launched
+
+Seed1 assets are prepared so a positive r8 pair-set 1M seed0 result can move
+directly into stability confirmation without changing the benchmark:
+
+```text
+run_id = i1_present_r8_pairset_1m_seed1_gpu1_20260705
+plan = configs/experiment/innovation1/innovation1_spn_present_pairset_r8_1m_seed1.csv
+remote_config = configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json
+launcher = configs/remote/generated/run_i1_present_r8_pairset_1m_seed1_gpu1_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r8_pairset_1m_seed1_gpu1_20260705.sh
+```
+
+Launch gate:
+
+```text
+do not launch until seed0 r8 pair-set 1M is retrieved / validated / postprocessed
+and the r8 pair-set 1M gate returns either:
+
+1. support_r8_pairset_1m_confirmation
+2. weak_r8_pairset_1m_positive_needs_seed1_or_controls
+```
+
+Fixed protocol:
+
+```text
+rounds = 8
+samples_per_class = 1000000
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+difference_profile = present_zhang_wang2022_mcnd
+checkpoint_metric = val_auc
+```
+
+Readiness command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json
+```
+
+Claim scope:
+
+```text
+1000000/class seed1 = paper-scale single-seed confirmation.
+Seed0 + seed1 can support route-level evidence only after both are retrieved,
+validated, plan-aligned, and compared against same-budget baseline rows.
+It is still not a breakthrough claim without attribution / aggregation controls.
+```
+
 ### If InvP-only is strongest
 
 推进：
