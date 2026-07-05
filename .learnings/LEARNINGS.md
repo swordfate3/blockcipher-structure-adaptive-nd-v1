@@ -178,8 +178,17 @@ Correct interpretation:
 - This is useful SPN-aware input/feature evidence, but not evidence of an architecture breakthrough.
 - The route should not consume a remote neural training slot until additional controls pass.
 
+Pair-order scramble control then tested whether the statistic came only from same-index fixed-difference pairing:
+
+```text
+matched anchor pair_xor_column_sum_variance accuracy = 0.979248046875
+scrambled-positive pair_xor_column_sum_variance accuracy = 0.8818359375
+```
+
+This weakens but does not remove the statistic. Same-index fixed-difference pairing appears to be a major amplifier, while the active-nibble integral multiset construction still leaves a strong residual column-distribution signal.
+
 ### Suggested Action
-Before scaling the r8 matched-negative integral route, run controls such as active-nibble variation, input-difference variation, pair-order scramble, and same-budget anchor comparison. If the statistic remains meaningful after controls, frame it as a deterministic SPN/multiset feature route with neural follow-up as secondary attribution.
+Before scaling the r8 matched-negative integral route, run controls such as active-nibble variation, input-difference variation, and same-budget anchor comparison. If the statistic remains meaningful after controls, frame it as a deterministic SPN/multiset feature route with neural follow-up as secondary attribution.
 
 ### Metadata
 - Source: experiment_audit
@@ -187,7 +196,7 @@ Before scaling the r8 matched-negative integral route, run controls such as acti
 - Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
 - See Also: LRN-20260705-003, LRN-20260705-002
 - Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-06
 

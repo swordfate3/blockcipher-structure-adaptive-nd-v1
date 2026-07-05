@@ -442,6 +442,65 @@ same-budget anchors. Do not launch a remote neural training job for this raw
 matched-negative route yet.
 ```
 
+## Pair-Order Scramble Control
+
+Control B implements a local-only pair-order scramble:
+
+```text
+sample_structure = plaintext_integral_nibble_scrambled_positive
+```
+
+Positive samples keep the same left integral set and the same fixed-difference
+right integral multiset, but pair the left variants with a one-step-rotated
+right variant order. Negative samples use the existing matched-negative
+one-step rotation. This tests whether the strong
+`pair_xor_column_sum_variance` statistic is mainly an artifact of same-index
+fixed-difference pairing.
+
+The control plan is:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_integral_pair_order_control_smoke.csv
+```
+
+At `2048/class`, audit seed `7`, validation key:
+
+| Row | sample_structure | best statistic | threshold accuracy | positive mean | negative mean |
+|---|---|---|---:|---:|---:|
+| Matched anchor | `plaintext_integral_nibble_matched_negative` | `pair_xor_column_sum_variance` | `0.979248046875` | `7.8383893966674805` | `3.923461437225342` |
+| Scrambled-positive control | `plaintext_integral_nibble_scrambled_positive` | `pair_xor_column_sum_variance` | `0.8818359375` | `5.925662040710449` | `3.923461437225342` |
+
+Artifacts:
+
+```text
+outputs/local_audits/r8_integral_pair_order_control_matched_feature_bank_seed7_2048.json
+outputs/local_audits/r8_integral_pair_order_control_scrambled_feature_bank_seed7_2048.json
+```
+
+Interpretation:
+
+```text
+Pair-order scrambling reduces the deterministic separator substantially, but it
+does not collapse it to chance. Same-index fixed-difference pairing is a major
+amplifier of pair_xor_column_sum_variance, but the active-nibble integral
+multiset construction still leaves a strong residual column-distribution
+signal.
+```
+
+Decision update:
+
+```text
+continue_local_controls_only
+```
+
+Next controls:
+
+```text
+active_nibble variation
+input_difference variation
+possibly pair_xor_column_sum_variance as an explicit deterministic baseline
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -452,6 +511,8 @@ parity statistic, and the matched-negative control either removes or does not
 remove that trivial separator.
 The matched-negative raw-pair residual is strongly explained by
 pair_xor_column_sum_variance at local deterministic-audit scale.
+Pair-order scrambling weakens but does not remove the deterministic
+pair_xor_column_sum_variance separator.
 ```
 
 Not allowed:

@@ -223,6 +223,7 @@ def _ciphertext_pair_feature_arrays(
     if task["sample_structure"] not in {
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_scrambled_positive",
     }:
         raise ValueError("integral audit requires a plaintext_integral_nibble sample structure")
     if task["feature_encoding"] != "ciphertext_pair_bits":

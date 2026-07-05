@@ -331,6 +331,21 @@ same-budget anchor comparison. It should not consume the next remote neural
 training slot. Keep Candidate C as a secondary validator, not the next remote
 launch.
 
+The first pair-order scramble control has now been run:
+
+```text
+control plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_pair_order_control_smoke.csv
+matched anchor pair_xor_column_sum_variance accuracy = 0.979248046875
+scrambled-positive pair_xor_column_sum_variance accuracy = 0.8818359375
+```
+
+This weakens but does not remove the statistic. The current best explanation
+is therefore not "same-index pairing alone" and not "neural architecture
+gain"; it is a deterministic SPN/integral multiset feature whose strength is
+amplified by same-index fixed-difference pairing. The next local controls
+should vary `integral_active_nibble` and `input_difference` before considering
+any confirmation plan.
+
 The current priority is therefore:
 
 ```text

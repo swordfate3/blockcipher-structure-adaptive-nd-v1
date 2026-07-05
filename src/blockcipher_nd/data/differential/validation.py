@@ -15,6 +15,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "independent_pairs",
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_scrambled_positive",
         "zhang_wang_case2_mcnd",
         "zhang_wang_case2_independent_mcnd",
         "zhang_wang_case2_official_mcnd",
@@ -23,6 +24,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
     if config.sample_structure in {
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_scrambled_positive",
     }:
         if config.pairs_per_sample < 2 or config.pairs_per_sample & (config.pairs_per_sample - 1):
             raise ValueError("plaintext_integral_nibble requires power-of-two pairs_per_sample >= 2")

@@ -12319,6 +12319,53 @@ def test_integral_feature_bank_audit_reports_named_deterministic_statistics():
     assert report["best_statistic"]["interpretation"].startswith("deterministic_statistic_")
 
 
+def test_integral_scrambled_positive_control_reduces_feature_bank_separator():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    matched_task = dict(build_tasks(args)[0])
+    matched_task["sample_structure"] = "plaintext_integral_nibble_matched_negative"
+    scrambled_task = dict(matched_task)
+    scrambled_task["sample_structure"] = "plaintext_integral_nibble_scrambled_positive"
+
+    matched_report = integral_feature_bank_audit_from_task(
+        matched_task,
+        samples_per_class=64,
+        seed=7,
+        key_split="validation",
+    )
+    scrambled_report = integral_feature_bank_audit_from_task(
+        scrambled_task,
+        samples_per_class=64,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert scrambled_report["audit"] == "integral_feature_bank"
+    assert scrambled_report["sample_structure"] == "plaintext_integral_nibble_scrambled_positive"
+    assert scrambled_report["best_statistic"]["name"] == "pair_xor_column_sum_variance"
+    assert (
+        scrambled_report["best_statistic"]["best_threshold"]["accuracy"]
+        < matched_report["best_statistic"]["best_threshold"]["accuracy"]
+    )
+
+
+def test_present_r8_integral_pair_order_control_plan_is_local_audit_only():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_pair_order_control_smoke.csv"
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["sample_structure"] for task in tasks] == [
+        "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_scrambled_positive",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 8
+        assert task["samples_per_class"] == 256
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert "LOCAL AUDIT only" in task["matching_evidence"]
+
+
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
     plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv"
     args = parse_args(["--plan", plan])
