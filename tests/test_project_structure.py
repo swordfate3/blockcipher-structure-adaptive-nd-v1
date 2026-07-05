@@ -10267,9 +10267,10 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     (integral_root / "monitor").mkdir(parents=True)
     (integral_root / "logs").mkdir(parents=True)
     (integral_root / "results").mkdir(parents=True)
+    heartbeat = datetime.now(timezone.utc).astimezone().replace(microsecond=0).isoformat()
     (integral_root / "monitor" / "monitor.log").write_text(
-        "2026-07-05T12:00:00+08:00 sync\n"
-        "2026-07-05T12:00:01+08:00 running\n",
+        f"{heartbeat} sync\n"
+        f"{heartbeat} running\n",
         encoding="utf-8",
     )
     (integral_root / "logs" / "integral_inverse_progress.jsonl").write_text(
@@ -10284,7 +10285,7 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     assert integral_active["run_id"] == integral_run_id
     assert integral_active["postprocess_allowed"] is False
     assert integral_active["expected_rows"] == 3
-    assert "scripts/postprocess-integral-inverse-feature" in integral_active["postprocess_when_ready_command"]
+    assert "scripts/advance-integral-inverse-feature-result" in integral_active["postprocess_when_ready_command"]
 
 
 def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
@@ -10457,7 +10458,7 @@ def test_monitor_health_emits_integral_inverse_feature_postprocess_command_when_
     assert report["status"] == "result_ready"
     assert report["postprocess_allowed"] is True
     assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
-    assert "scripts/postprocess-integral-inverse-feature" in report["postprocess_command"]
+    assert "scripts/advance-integral-inverse-feature-result" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "3" in report["postprocess_command"]
 

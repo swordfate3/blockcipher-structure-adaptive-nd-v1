@@ -62,9 +62,9 @@ FOLLOWUP_RUNS = [
         "plan_doc": "docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md",
         "expected_rows": 3,
         "postprocess_kind": "integral_inverse_feature",
-        "postprocess_script": "scripts/postprocess-integral-inverse-feature",
+        "postprocess_script": "scripts/advance-integral-inverse-feature-result",
         "wait_branch": "wait_for_integral_inverse_feature_result",
-        "postprocess_branch": "postprocess_integral_inverse_feature_result",
+        "postprocess_branch": "advance_integral_inverse_feature_result",
         "route_label": "integral/inverse feature",
     },
     {

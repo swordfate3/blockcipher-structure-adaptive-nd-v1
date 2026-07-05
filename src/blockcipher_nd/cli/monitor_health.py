@@ -1076,7 +1076,7 @@ def _postprocess_script(kind: str) -> str:
     if kind == "pair_evidence_pooling":
         return "scripts/postprocess-pair-evidence-pooling"
     if kind == "integral_inverse_feature":
-        return "scripts/postprocess-integral-inverse-feature"
+        return "scripts/advance-integral-inverse-feature-result"
     if kind == "r9_weak_probe":
         return "scripts/postprocess-r9-weak-probe"
     if kind == "r8_pairset_1m":
