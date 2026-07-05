@@ -852,6 +852,63 @@ do_not_prioritize_wangjain_two_nibble_integral_route_for_remote_training
 keep_single_nibble_aligned_active_difference_route_as_primary
 ```
 
+## Composite Residual Probe
+
+The next local diagnostic tested whether the aligned single-nibble route has
+any simple deterministic residual beyond the fixed
+`pair_xor_column_sum_variance` baseline. The probe is intentionally local and
+supervised: it orients the existing deterministic feature-bank statistics by
+label, evaluates an equal-weight z-score composite, and also scans the best
+`baseline + one additional statistic` pair. It does not train a neural model
+and is not a remote launch gate.
+
+Command shape:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-integral-parity-signal \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv \
+  --row-index 0 \
+  --audit composite-residual \
+  --samples-per-class 2048 \
+  --seed 23 \
+  --key-split validation \
+  --output outputs/local_audits/r8_integral_composite_residual_probe/row0_zhangwang_active0_seed23_2048.json
+```
+
+Artifacts:
+
+```text
+outputs/local_audits/r8_integral_composite_residual_probe/row0_zhangwang_active0_seed23_2048.json
+outputs/local_audits/r8_integral_composite_residual_probe/row1_autond_active6_seed23_2048.json
+outputs/local_audits/r8_integral_composite_residual_probe/row2_entropy_active5_seed23_2048.json
+```
+
+Results:
+
+| Row | Difference route | Active nibble | Baseline AUC | Equal composite AUC | Best baseline+one AUC | Best-pair delta | Decision |
+|---:|---|---:|---:|---:|---:|---:|---|
+| 0 | Zhang/Wang `0x9` | `0` | `0.8878759145736694` | `0.6189670562744141` | `0.8878759145736694` | `0.0` | `single_statistic_explains_composite_signal` |
+| 1 | AutoND `0x0d000000` | `6` | `0.8747416734695435` | `0.6032295227050781` | `0.8747416734695435` | `0.0` | `single_statistic_explains_composite_signal` |
+| 2 | Entropy `0x00d00000` | `5` | `0.8852955102920532` | `0.6166400909423828` | `0.8852955102920532` | `0.0` | `single_statistic_explains_composite_signal` |
+
+Interpretation:
+
+```text
+The aligned active-difference route is currently explained by the single
+pair_xor_column_sum_variance statistic. Adding all deterministic feature-bank
+statistics dilutes the signal, and the best baseline+one scan gives no AUC
+gain over the baseline on the three checked single-nibble routes.
+```
+
+Decision update:
+
+```text
+do_not_launch_neural_residual_probe_for_this_route_now
+do_not_add_this_route_to_diverse_expert_pool_as_a_new_residual_family
+keep pair_xor_column_sum_variance as a deterministic SPN/multiset baseline
+search next for a genuinely different non-neighbor feature/input route
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -876,6 +933,9 @@ deterministic evaluator, separate from the best-of-feature-bank audit.
 The tested Wang/Jain two-nibble route remains weak after switching from
 one-active-nibble to multi-active-cell construction at local deterministic
 audit scale.
+The composite residual probe did not find a deterministic residual beyond
+pair_xor_column_sum_variance for the three checked aligned single-nibble
+routes at local audit scale.
 ```
 
 Not allowed:
@@ -885,5 +945,7 @@ PRESENT r8 neural breakthrough
 Zhang/Wang same-protocol improvement
 formal evidence
 architecture gain
+claiming this route is ready for neural residual training or diverse ensemble
+membership
 publication-style claim without controlled scale and attribution
 ```

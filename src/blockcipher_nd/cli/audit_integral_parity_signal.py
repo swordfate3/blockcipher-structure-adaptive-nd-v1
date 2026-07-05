@@ -28,7 +28,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     parser.add_argument(
         "--audit",
-        choices=["parity", "alignment", "feature-bank", "deterministic-baseline"],
+        choices=[
+            "parity",
+            "alignment",
+            "feature-bank",
+            "deterministic-baseline",
+            "composite-residual",
+        ],
         default="parity",
         help="deterministic statistic family to audit",
     )
@@ -241,6 +247,87 @@ def integral_deterministic_baseline_from_task(
     }
 
 
+def integral_composite_residual_audit_from_task(
+    task: dict[str, Any],
+    *,
+    baseline_statistic: str = "pair_xor_column_sum_variance",
+    samples_per_class: int,
+    seed: int | None = None,
+    key_split: str = "validation",
+) -> dict[str, Any]:
+    cipher, features, labels, pair_bits = _ciphertext_pair_feature_arrays(
+        task,
+        samples_per_class=samples_per_class,
+        seed=seed,
+        key_split=key_split,
+    )
+    if pair_bits != cipher.block_bits * 2:
+        raise ValueError("ciphertext_pair_bits must encode exactly left and right ciphertext blocks")
+
+    scores = _integral_feature_bank_scores(features, cipher.block_bits)
+    if baseline_statistic not in scores:
+        available = ", ".join(sorted(scores))
+        raise ValueError(f"unknown baseline statistic {baseline_statistic!r}; available: {available}")
+
+    feature_reports = {
+        name: _oriented_statistic_report(values, labels)
+        for name, values in scores.items()
+    }
+    baseline_report = {
+        "name": baseline_statistic,
+        **feature_reports[baseline_statistic],
+    }
+    composite_scores = _equal_weight_oriented_zscore_composite(
+        scores,
+        labels,
+    )
+    composite_report = _oriented_statistic_report(composite_scores, labels)
+    best_pair_report = _best_baseline_plus_one_report(
+        scores,
+        labels,
+        baseline_statistic=baseline_statistic,
+    )
+    delta_auc = float(composite_report["auc"] - baseline_report["auc"])
+    delta_pair_auc = float(best_pair_report["auc"] - baseline_report["auc"])
+    decision = (
+        "residual_candidate_for_local_neural_probe"
+        if max(delta_auc, delta_pair_auc) >= 0.01
+        else "single_statistic_explains_composite_signal"
+    )
+
+    return {
+        "status": "pass",
+        "audit": "integral_composite_residual",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "key_split": key_split,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "baseline_statistic": baseline_statistic,
+        "baseline": baseline_report,
+        "composite": {
+            **composite_report,
+            "feature_names": sorted(scores),
+            "combiner": "equal_weight_oriented_zscore_mean",
+        },
+        "feature_statistics": feature_reports,
+        "best_baseline_plus_one": best_pair_report,
+        "delta_composite_vs_baseline_auc": delta_auc,
+        "delta_best_pair_vs_baseline_auc": delta_pair_auc,
+        "decision": decision,
+        "claim_scope": (
+            "Local supervised deterministic composite diagnostic only; this is "
+            "not neural training, not formal scale evidence, and not a remote "
+            "launch gate."
+        ),
+    }
+
+
 def _ciphertext_pair_feature_arrays(
     task: dict[str, Any],
     *,
@@ -320,6 +407,78 @@ def _statistic_report(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
         "negative": _score_distribution_summary(scores[~labels]),
         "best_threshold": _best_threshold(scores, labels),
     }
+
+
+def _oriented_statistic_report(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
+    raw_auc = _binary_auc(scores, labels)
+    if raw_auc is None:
+        oriented_scores = scores
+        orientation = 1
+        auc = None
+    elif raw_auc >= 0.5:
+        oriented_scores = scores
+        orientation = 1
+        auc = raw_auc
+    else:
+        oriented_scores = -scores
+        orientation = -1
+        auc = 1.0 - raw_auc
+    report = _statistic_report(oriented_scores, labels)
+    report["raw_auc"] = raw_auc
+    report["auc"] = auc
+    report["orientation"] = orientation
+    return report
+
+
+def _equal_weight_oriented_zscore_composite(
+    named_scores: dict[str, np.ndarray],
+    labels: np.ndarray,
+) -> np.ndarray:
+    oriented_columns = []
+    for scores in named_scores.values():
+        raw_auc = _binary_auc(scores, labels)
+        oriented = scores if raw_auc is None or raw_auc >= 0.5 else -scores
+        std = float(oriented.std())
+        if std <= 0.0:
+            oriented_columns.append(np.zeros_like(oriented, dtype=np.float64))
+            continue
+        oriented_columns.append((oriented.astype(np.float64) - float(oriented.mean())) / std)
+    return np.stack(oriented_columns, axis=1).mean(axis=1)
+
+
+def _best_baseline_plus_one_report(
+    named_scores: dict[str, np.ndarray],
+    labels: np.ndarray,
+    *,
+    baseline_statistic: str,
+) -> dict[str, Any]:
+    baseline_column = _oriented_zscore(named_scores[baseline_statistic], labels)
+    best: dict[str, Any] | None = None
+    for name, scores in named_scores.items():
+        if name == baseline_statistic:
+            continue
+        pair_scores = (baseline_column + _oriented_zscore(scores, labels)) / 2.0
+        report = _oriented_statistic_report(pair_scores, labels)
+        row = {
+            "baseline_name": baseline_statistic,
+            "added_feature": name,
+            "combiner": "baseline_plus_one_equal_oriented_zscore_mean",
+            **report,
+        }
+        if best is None or row["auc"] > best["auc"]:
+            best = row
+    if best is None:
+        raise ValueError("baseline_plus_one requires at least one non-baseline statistic")
+    return best
+
+
+def _oriented_zscore(scores: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    raw_auc = _binary_auc(scores, labels)
+    oriented = scores if raw_auc is None or raw_auc >= 0.5 else -scores
+    std = float(oriented.std())
+    if std <= 0.0:
+        return np.zeros_like(oriented, dtype=np.float64)
+    return (oriented.astype(np.float64) - float(oriented.mean())) / std
 
 
 def _distribution_summary(values: np.ndarray) -> dict[str, Any]:
@@ -427,6 +586,7 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
     audit_fns = {
         "alignment": integral_alignment_audit_from_task,
+        "composite-residual": integral_composite_residual_audit_from_task,
         "deterministic-baseline": integral_deterministic_baseline_from_task,
         "feature-bank": integral_feature_bank_audit_from_task,
         "parity": integral_parity_audit_from_task,
@@ -435,6 +595,8 @@ def main(argv: list[str] | None = None) -> int:
     kwargs: dict[str, Any] = {}
     if args.audit == "deterministic-baseline":
         kwargs["statistic"] = args.statistic
+    if args.audit == "composite-residual":
+        kwargs["baseline_statistic"] = args.statistic
     report = audit_fn(
         tasks[args.row_index],
         samples_per_class=args.samples_per_class,

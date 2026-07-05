@@ -83,6 +83,7 @@ from blockcipher_nd.cli import (
     spn_active_auxiliary_matrix,
 )
 from blockcipher_nd.cli.audit_integral_parity_signal import (
+    integral_composite_residual_audit_from_task,
     integral_deterministic_baseline_from_task,
     integral_alignment_audit_from_task,
     integral_feature_bank_audit_from_task,
@@ -12348,6 +12349,76 @@ def test_integral_deterministic_baseline_reports_fixed_pair_xor_variance():
     assert 0.5 <= report["baseline"]["auc"] <= 1.0
     assert report["interpretation"].startswith("deterministic_statistic_")
     assert "not a neural training result" in report["claim_scope"]
+
+
+def test_integral_composite_residual_audit_compares_against_fixed_baseline():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv"
+    )
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+
+    report = integral_composite_residual_audit_from_task(
+        task,
+        baseline_statistic="pair_xor_column_sum_variance",
+        samples_per_class=32,
+        seed=23,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "integral_composite_residual"
+    assert report["baseline_statistic"] == "pair_xor_column_sum_variance"
+    assert report["baseline"]["name"] == "pair_xor_column_sum_variance"
+    assert 0.5 <= report["baseline"]["auc"] <= 1.0
+    assert "pair_xor_column_sum_variance" in report["composite"]["feature_names"]
+    assert 0.5 <= report["composite"]["auc"] <= 1.0
+    assert report["best_baseline_plus_one"]["baseline_name"] == "pair_xor_column_sum_variance"
+    assert report["best_baseline_plus_one"]["added_feature"] in report["feature_statistics"]
+    assert 0.5 <= report["best_baseline_plus_one"]["auc"] <= 1.0
+    assert -0.5 <= report["delta_composite_vs_baseline_auc"] <= 0.5
+    assert -0.5 <= report["delta_best_pair_vs_baseline_auc"] <= 0.5
+    assert report["decision"] in {
+        "residual_candidate_for_local_neural_probe",
+        "single_statistic_explains_composite_signal",
+    }
+    assert "not a remote launch gate" in report["claim_scope"]
+
+
+def test_integral_composite_residual_audit_cli_writes_report(tmp_path):
+    output = tmp_path / "composite_residual.json"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/audit-integral-parity-signal",
+            "--plan",
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv",
+            "--row-index",
+            "0",
+            "--audit",
+            "composite-residual",
+            "--samples-per-class",
+            "8",
+            "--seed",
+            "23",
+            "--key-split",
+            "validation",
+            "--output",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["audit"] == "integral_composite_residual"
+    assert report["baseline_statistic"] == "pair_xor_column_sum_variance"
+    assert "delta_composite_vs_baseline_auc" in report
+    assert "delta_best_pair_vs_baseline_auc" in report
+    assert "integral_composite_residual" in result.stdout
 
 
 def test_integral_deterministic_baseline_script_defaults_to_baseline_audit(tmp_path):

@@ -1287,3 +1287,59 @@ Promote this concise workflow into `AGENTS.md` so future agents apply the curren
 - Promoted: AGENTS.md
 
 ---
+
+## [LRN-20260706-004] best_practice
+
+**Logged**: 2026-07-06T02:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not advance the aligned active-difference integral route into neural residual or ensemble work until a non-baseline residual signal appears.
+
+### Details
+The composite residual probe tested whether deterministic feature-bank
+combinations improve over the fixed `pair_xor_column_sum_variance` baseline on
+three aligned single-nibble PRESENT r8 routes. At `2048/class`, seed `23`:
+
+```text
+Zhang/Wang active0 baseline AUC = 0.8878759145736694
+Zhang/Wang best baseline+one delta = 0.0
+AutoND active6 baseline AUC = 0.8747416734695435
+AutoND best baseline+one delta = 0.0
+Entropy active5 baseline AUC = 0.8852955102920532
+Entropy best baseline+one delta = 0.0
+```
+
+The equal-weight composite diluted the signal to about `0.603-0.619` AUC, and
+the best `baseline + one additional statistic` scan gave no improvement over
+the baseline. This makes the route a deterministic SPN/multiset feature
+baseline, not a current neural residual or diverse-expert candidate.
+
+Correct framing:
+
+- Keep `pair_xor_column_sum_variance` as the explicit comparator for this
+  aligned active-difference route.
+- Do not spend the next remote or neural slot on residual learning for this
+  route unless a later local probe finds non-baseline signal.
+- Continue searching for genuinely different SPN feature/input routes before
+  diverse expert aggregation.
+
+### Suggested Action
+Use the composite residual audit as a gate before neural residual follow-up.
+If both equal composite and best baseline+one fail to beat the fixed baseline,
+record the route as deterministic-only and move to a different representation
+family.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-integral-parity-control-plan.md, src/blockcipher_nd/cli/audit_integral_parity_signal.py
+- Tags: innovation1, spn, present, integral, residual-probe, deterministic-baseline
+- See Also: LRN-20260706-001, LRN-20260706-003, LRN-20260705-003
+- Pattern-Key: innovation1.spn_present.aligned_active_difference_no_composite_residual
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
