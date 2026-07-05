@@ -541,6 +541,108 @@ def test_present_pair_mixer_consistency_smoke_plan_is_protocol_locked():
     assert "不启动远程" in plan_doc
 
 
+def test_present_pair_mixer_consistency_r8_262k_assets_are_prepared_not_launched():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_pair_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "MEDIUM_DIAGNOSTIC 262144/class" in task["matching_evidence"]
+        assert "not formal reproduction or breakthrough evidence" in task["matching_evidence"]
+    assert tasks[1]["model_options"]["pair_mixer_depth"] == 1
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-pair-mixer-consistency-plan.md"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 2
+    assert readiness["plan_rows"] == 2
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config_data["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "prepared only" in config_data["launch_policy"]
+    assert "not paper-scale, formal, or breakthrough evidence" in config_data["claim_scope"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0.csv" in launcher_text
+    assert "--epochs 30" in launcher_text
+    assert "--negative-mode" not in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "r8_pair_mixer_consistency_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "validate-results" in monitor_text
+    assert "plot-results" in monitor_text
+    assert "gate_note" in monitor_text
+
+    assert "i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705" in plan_doc
+    assert "not formal evidence" in plan_doc
+    assert "暂不启动远程" in plan_doc or "不启动远程" in plan_doc
+
+
+def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate():
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-r10-conditional-weak-probe-plan.md"
+    ).read_text(encoding="utf-8")
+    research_doc = Path("docs/research/innovation1-present-higher-round-strategy.md").read_text(
+        encoding="utf-8"
+    )
+    r10_configs = list(Path("configs/remote").glob("*r10*"))
+    r10_experiment_configs = list(Path("configs/experiment/innovation1").glob("*r10*"))
+
+    assert "planned / no remote assets / wait for r9 gate" in plan_doc
+    assert "no r10 remote assets" in plan_doc
+    assert "不创建 r10 remote config" in research_doc
+    assert r10_configs == []
+    assert r10_experiment_configs == []
+
+
 def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     plan = (
         "configs/experiment/innovation1/"

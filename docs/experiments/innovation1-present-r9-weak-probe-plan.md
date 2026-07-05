@@ -217,6 +217,26 @@ r9 1M/class seed0
 再考虑 r10 weak probe
 ```
 
+### r10 Conditional Branch
+
+r10 不作为当前直接启动任务。条件计划已写入：
+
+```text
+docs/experiments/innovation1-present-r10-conditional-weak-probe-plan.md
+```
+
+只有当本 r9 weak-probe retrieved / validated / plotted / gate-noted 后，
+并且 gate 显示 r9 仍有可用弱信号或 curriculum/difference 分支被证实有价值，
+才允许创建 r10 CSV / remote config。
+
+在那之前：
+
+```text
+no r10 remote assets
+no r10 GPU launch
+no r10 success/failure claim
+```
+
 ### Prepared Curriculum Branch
 
 The r8-to-r9 curriculum branch has been prepared but must not launch until this

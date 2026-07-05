@@ -2,12 +2,16 @@
 
 **日期：** 2026-07-05
 
-**状态：** implementation smoke prepared / not launched remotely
+**状态：** smoke passed / 262144-class remote assets prepared / not launched
 
 **当前配置：**
 
 ```text
 configs/experiment/innovation1/innovation1_spn_present_pair_mixer_consistency_smoke.csv
+configs/experiment/innovation1/innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0.csv
+configs/remote/innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0_gpu0_20260705.json
+configs/remote/generated/run_i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705.cmd
+configs/remote/generated/monitor_i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705.sh
 ```
 
 ## 1. 研究问题
@@ -86,6 +90,56 @@ i1_present_r8_pairset_1m_seed0_gpu1_20260705
 | r9 weak-probe 中 pair-consistency 有弱正信号 | 准备 r9 262144/class pair-mixer vs pair-consistency anchor |
 | r9 near-random 且 difference screen 优先 | 暂缓 pair-mixer，先做输入差分筛选 |
 | active tasks 出现失败/不对齐 | 先修复主线，不启动本路线 |
+
+## 4.1 262144/class 诊断资产
+
+本轮已准备 r8 pair-mixer 262144/class 诊断资产，但不启动远程：
+
+```text
+run_id = i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705
+scale = 262144/class
+expected_rows = 2
+models = pair-consistency anchor vs pair-mixer candidate
+status = prepared / not launched
+```
+
+固定协议：
+
+```text
+rounds = 8
+seed = 0
+pairs_per_sample = 16
+sample_structure = zhang_wang_case2_official_mcnd
+negative_mode = encrypted_random_plaintexts
+difference_profile = present_zhang_wang2022_mcnd
+checkpoint_metric = val_auc
+lr_scheduler = official_cyclic
+dataset_cache = G:\lxy disk-backed cache
+```
+
+唯一变化：
+
+```text
+present_nibble_invp_pair_consistency_spn_only
+-> present_nibble_invp_pair_mixer_consistency_spn_only
+```
+
+Gate：
+
+| 结果 | 决策 |
+|---|---|
+| pair-mixer AUC `>= anchor + 0.003` | 支持 pair-mixer route，准备 seed1 或 r9 诊断 |
+| `0 < delta < 0.003` | 弱正，先等 r8 1M / r9 weak-probe 再决定 |
+| `delta <= 0` | 暂停 pair-mixer，不扩大 |
+| validate / plan alignment 失败 | 不看指标，先写 failure/repair |
+
+证据范围：
+
+```text
+262144/class single seed = medium diagnostic only
+not formal evidence
+not high-round breakthrough
+```
 
 ## 5. 证据等级
 
