@@ -787,6 +787,7 @@ def test_present_pair_mixer_consistency_r8_262k_assets_are_prepared_not_launched
     assert "plot-results" in monitor_text
     assert "scripts/postprocess-pair-mixer-consistency" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "plan_doc_committed_and_pushed" in monitor_text
 
     assert "i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705" in plan_doc
     assert "not formal evidence" in plan_doc
