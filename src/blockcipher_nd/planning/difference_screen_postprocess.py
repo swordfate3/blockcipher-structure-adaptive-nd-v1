@@ -139,7 +139,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "selected_difference": best.get("difference_id", ""),
             "next_plan_doc": "docs/experiments/innovation1-present-r9-difference-screen-plan.md",
             "implementation_checklist": [
-                "Create a 262144/class confirmation CSV for only the selected difference and Zhang/Wang reference.",
+                "Create a 262144/class confirmation CSV for only the selected difference and Zhang/Wang reference with scripts/create-difference-confirmation-plan.",
                 "Keep model_key fixed unless the new experiment explicitly changes the hypothesis.",
                 "Run check-remote-readiness before launch and launch from a pushed commit.",
             ],

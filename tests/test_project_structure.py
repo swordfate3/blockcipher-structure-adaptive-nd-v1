@@ -33,6 +33,7 @@ from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_
 from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_active_auxiliary_result
 from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prior_result
+from blockcipher_nd.planning.difference_confirmation_plan import create_difference_confirmation_plan
 from blockcipher_nd.planning.difference_screen_postprocess import postprocess_difference_screen_result
 from blockcipher_nd.planning.pair_mixer_postprocess import postprocess_pair_mixer_consistency_result
 from blockcipher_nd.planning.pair_evidence_pooling_postprocess import postprocess_pair_evidence_pooling_result
@@ -9808,6 +9809,47 @@ def test_difference_screen_postprocess_writes_summary_and_updates_plan_doc(tmp_p
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- difference-screen-postprocess:difference_screen_unit:start -->") == 1
+
+
+def test_difference_confirmation_plan_keeps_only_reference_and_selected_candidate(tmp_path):
+    screen_plan = Path("configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv")
+    output = tmp_path / "r9_difference_confirmation_262k.csv"
+    summary_path = tmp_path / "summary.json"
+
+    summary = create_difference_confirmation_plan(
+        screen_plan_path=screen_plan,
+        output_path=output,
+        selected_difference="present_wang_jain2021:2",
+        summary_path=summary_path,
+    )
+
+    rows = list(csv.DictReader(output.open("r", encoding="utf-8", newline="")))
+    assert summary["status"] == "pass"
+    assert summary["rows"] == 2
+    assert summary["samples_per_class"] == 262144
+    assert Path(summary_path).exists()
+    assert [f"{row['difference_profile']}:{row['difference_member']}" for row in rows] == [
+        "present_zhang_wang2022_mcnd:0",
+        "present_wang_jain2021:2",
+    ]
+    assert [row["architecture_rank"] for row in rows] == ["0", "1"]
+    assert {row["samples_per_class"] for row in rows} == {"262144"}
+    assert {row["rounds"] for row in rows} == {"9"}
+    assert {row["model_key"] for row in rows} == {"present_nibble_invp_pair_consistency_spn_only"}
+    assert {row["negative_mode"] for row in rows} == {"encrypted_random_plaintexts"}
+    assert {row["sample_structure"] for row in rows} == {"zhang_wang_case2_official_mcnd"}
+    assert all("data construction only" in row["evidence"] for row in rows)
+
+
+def test_difference_confirmation_plan_rejects_reference_as_selected(tmp_path):
+    screen_plan = Path("configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv")
+
+    with pytest.raises(ValueError, match="non-reference"):
+        create_difference_confirmation_plan(
+            screen_plan_path=screen_plan,
+            output_path=tmp_path / "invalid.csv",
+            selected_difference="present_zhang_wang2022_mcnd:0",
+        )
 
 
 def test_difference_screen_postprocess_rejects_incomplete_result_rows(tmp_path):
