@@ -676,3 +676,34 @@ Safety policy:
 
 This command is intended to replace manual command-copying after watcher
 retrieval. It does not change any evidence gate or launch policy.
+
+## Retrieved r8 Pair-Set 1M Result
+
+<!-- r8-pairset-1m-postprocess:i1_present_r8_pairset_1m_seed0_gpu1_20260705:start -->
+### i1_present_r8_pairset_1m_seed0_gpu1_20260705 r8 Pair-Set 1M Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r8_pairset_1m_seed0_gpu1_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Pair-set AUC | `0.514032233534` |
+| Baseline AUC | `0.554962712376` |
+| Delta vs baseline AUC | `-0.040930478842` |
+| Decision | `stop_or_rethink_r8_pairset_scale` |
+| Action | `do_not_expand_pairset_scale_without_new_evidence` |
+| Next action branch | `stop_r8_pairset_scale` |
+| Next action should launch remote | `False` |
+| Next action launch config | `` |
+| Next action readiness command | `` |
+| Next action readiness | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_next_action_readiness.json` |
+| Candidate route readiness | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_candidate_route_readiness.json` |
+| Claim scope | `PRESENT r8 1000000/class single-seed pair-set confirmation only; not formal multi-seed route evidence or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/results/i1_present_r8_pairset_1m_seed0_gpu1_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_local_result_gate.json` |
+| r8 pair-set 1M gate | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_r8_pairset_1m_gate.json` |
+| Curves | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_curves.svg` |
+| History CSV | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_postprocess_summary.md` |
+<!-- r8-pairset-1m-postprocess:i1_present_r8_pairset_1m_seed0_gpu1_20260705:end -->
