@@ -64,22 +64,34 @@ to data/difference search instead of adding more handcrafted aggregate stats.
 
 ## Decision
 
-Do not spend the next meaningful slot on a wider near-neighbor ensemble, on the
-current projection v2 variants, or on a renamed single-step Sinv/GPD feature.
-
-The better next SPN/PRESENT route is:
+Do not spend the next meaningful slot on:
 
 ```text
-score-guided / sensitivity-guided SPN projection
-before diverse expert aggregation
+wider near-neighbor ensembles
+SGP projection masks from the tested sources
+more deterministic InvP(delta) aggregate statistics
+renamed single-step Sinv/GPD features
+the completed r9 difference screen
+direct r8 pair-set scaling under the current protocol
 ```
 
-The core hypothesis is not "combine more neural networks." The hypothesis is:
+The strongest still-supported route is the r7 InvP/P-layer aligned SPN view:
 
 ```text
-PRESENT r8/r9 signal is sparse and structure-aligned; the next gain is more
-likely to come from selecting stable SPN-sensitive axes or score-distribution
-features than from adding another similar graph/CNN expert.
+route = present_nibble_invp_only_spn_only
+evidence = two_seed_1000000_class_positive_with_attribution_control
+seed0 AUC = 0.797470988906
+seed1 AUC = 0.797347588554
+max attribution-control AUC = 0.793621524954
+```
+
+The route-selection question has changed. It is no longer "which SGP mask do we
+train?" or "how many networks do we aggregate?" The better question is:
+
+```text
+Which SPN representation or data construction can create a non-neighbor,
+weak-positive, controllable expert beyond the already-supported r7 InvP-only
+anchor?
 ```
 
 ## Why This Beats The Wider-Ensemble Default
@@ -102,6 +114,15 @@ candidate families are not there yet:
 So the bottleneck is not "number of networks." The bottleneck is that the
 available non-neighbor signals are too weak or too correlated to combine.
 
+Additional completed gates now narrow the search:
+
+| Route | Latest retrieved/local status | Decision |
+|---|---|---|
+| `r8_pairset_scale` | `1000000/class` seed0 pair-set row AUC `0.514032233534`, below r8 baseline AUC `0.554962712376` | stop or rethink current r8 pair-set scale |
+| `r9_difference_screen` | `65536/class` seed0 screen ended `all_candidates_near_random_stop_difference_screen` | stop this screen; do not promote a difference |
+| `r9_curriculum` | `262144/class` seed0 best candidate AUC `0.5018549287342466` | stop current curriculum route |
+| `invp_group_distribution` | deterministic group-distribution audit composite AUC min `0.5135400295257568` | stop deterministic InvP aggregation |
+
 ## External Evidence Signal
 
 The local paper cache and prior web refresh point in the same direction:
@@ -122,132 +143,40 @@ The local paper cache and prior web refresh point in the same direction:
    choosing what evidence reaches the model is at least as important as adding
    model capacity.
 
-This supports a route that mines stable SPN-sensitive evidence first, then uses
-models or ensembles only after the evidence is real.
+This now supports a route that searches for a cleaner representation source
+before model scaling or ensemble aggregation.
 
-## Proposed Route: SGP
+## Next Route Arbitration
 
-Name:
+Ranked local actions:
 
-```text
-SGP = score-guided / sensitivity-guided projection
-```
+| Priority | Route | Why | Gate |
+|---:|---|---|---|
+| 1 | learned pair/group-interaction diagnostic on a controlled SPN representation | Handwritten InvP statistics failed, but the literature and r7 evidence still support learned SPN-state representations. This must be a small diagnostic, not a remote launch. | Beat the same-input InvP-only or explicit deterministic baseline; include shuffled/topology or single-pair control. |
+| 2 | cross-SPN transfer sanity for GIFT/SKINNY-style cell encoders | External SPN work emphasizes PRESENT/SKINNY/GIFT-style state formatting. The repository already has `Gift64`; a tiny smoke can test whether the route is PRESENT-specific before more PRESENT-only engineering. | Only proceed if the cipher implementation, difference profile, and strict negative path are validated locally. |
+| 3 | frozen diverse expert pool | Keep the user's multi-network idea, but only after a non-neighbor expert has compatible scores and low error overlap. | Require weak-positive quality and diversity gates before aggregation. |
 
-The route has three layers.
-
-### Layer 1: Stable Axis Audit
-
-Run local audits under the same strict PRESENT protocol:
+Non-actions:
 
 ```text
-cipher = PRESENT-80
-negative_mode = encrypted_random_plaintexts
-sample_structure = zhang_wang_case2_official_mcnd
-rounds = 8 first, then r9 only if r8 gives stable evidence
+do_not_launch_remote_now
+do_not_expand_near_neighbor_ensemble_now
+do_not_continue_sgp_projection_from_current_sources
+do_not_add_more_deterministic_invp_aggregate_stats
+do_not_repeat_current_r9_difference_screen
 ```
 
-Candidate feature families:
-
-```text
-InvP(delta) bit/cell axes
-candidate-evidence score axes
-beamstats confidence/margin/cumulative axes
-trail-family score-distribution axes
-projection_feature historical masks as controls only
-```
-
-Report for each axis family:
-
-```text
-single-axis AUC advantage
-oriented top-k z-score composite AUC
-top-k overlap across seeds
-train-key vs validation-key stability
-false-family / shuffled-cell control
-```
-
-### Layer 2: Mask Construction
-
-Only build a projection mask from axes that pass stability checks. Avoid
-hand-picked P-column masks unless they are rediscovered by the audit.
-
-Predeclared candidate masks:
-
-| Mask | Definition | Purpose |
-|---|---|---|
-| `sgp_top16_stable` | top 16 axes by two-seed stable score | compact signal check |
-| `sgp_top32_stable` | top 32 axes by two-seed stable score | direct replacement for old projection v2 |
-| `sgp_cell_balanced32` | best stable axes with no cell contributing more than a cap | prevents one-cell artifact |
-| `sgp_false_family32` | same count from shuffled or false-family axes | control |
-| `sgp_random32` | deterministic random mask with same feature width | chance/control floor |
-
-### Layer 3: Neural Or Ensemble Use
-
-Only after Layer 1 and Layer 2 pass:
-
-```text
-train a small same-budget MLP/CNN projection probe
-compare against full raw anchor and old projection masks
-export score artifacts only if projection is weak-positive and stable
-then evaluate low-correlation expert-pool inclusion
-```
-
-This keeps diverse aggregation alive, but makes it evidence-gated.
-
-## Gates
-
-Local audit gate:
-
-```text
-top-k composite AUC >= 0.55 at 2048/class
-and top-k overlap/Jaccard >= 0.35 across two seeds or key splits
-and false-family control is lower by >= 0.01 AUC
-```
-
-Local neural smoke gate:
-
-```text
-SGP mask AUC > full raw anchor by >= 0.005
-or SGP mask AUC > old best projection by >= 0.01
-```
-
-Remote diagnostic gate:
-
-```text
-Do not remote-launch until both local audit and local neural smoke pass.
-First remote scale, if earned, is 65536/class diagnostic only.
-No formal claim before >=1000000/class and multiple seeds.
-```
-
-Diverse expert gate:
-
-```text
-Only add SGP to the expert pool if its score artifact is weak-positive and its
-error overlap with the best InvP/DDT/raw anchor is low enough to meet the
-diverse expert plan.
-```
-
-## Immediate Next Experiment
-
-The next small action should be a local SGP audit, not a remote launch:
-
-```text
-question = do any SPN score/feature axes remain stable across seeds and keys?
-scale = 2048/class local diagnostic
-models = no neural training in the first step
-outputs = JSON audit with axis rankings, stability, controls, and candidate masks
-decision = keep SGP, discard SGP, or implement a tiny projection smoke
-```
-
-If this audit fails, the route should be discarded quickly. If it passes, the
-next implementation should generate a lean smoke CSV for `sgp_top32_stable`
-against old projection v2 controls.
+The immediate implementation slot should therefore be a plan-and-smoke for one
+small, controlled representation diagnostic. If that smoke is negative, the
+route should be discarded quickly; if it is positive, only then prepare a
+medium diagnostic ladder.
 
 ## Claim Scope
 
-This is a route-selection plan only. It does not claim a new PRESENT r8/r9
+This is a route-selection note only. It does not claim a new PRESENT r8/r9
 result, does not claim a breakthrough, and does not reinterpret local
-projection or beamstats probes as formal evidence.
+projection, beamstats, SGP, difference-screen, or pair-set probes as formal
+evidence.
 
 ## References Used
 

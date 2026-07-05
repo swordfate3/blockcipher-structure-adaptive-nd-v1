@@ -40,6 +40,71 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260706-011] best_practice
+
+**Logged**: 2026-07-06T06:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+After independent SPN route recheck, stop current SGP, deterministic InvP aggregation, r8 pair-set scale, and r9 difference-screen branches.
+
+### Details
+The user explicitly asked for independent route judgment instead of simply
+following the latest suggested multi-network direction. A local evidence
+recheck plus external literature refresh showed:
+
+```text
+strongest supported anchor = present_nibble_invp_only_spn_only
+evidence = two_seed_1000000_class_positive_with_attribution_control
+seed0 AUC = 0.797470988906
+seed1 AUC = 0.797347588554
+```
+
+Recently tested follow-up branches do not justify the next main experiment
+slot:
+
+```text
+SGP raw/grouped audits = hold
+InvP global stats = hold
+InvP group distribution stats = hold
+r8 pair-set 1M seed0 = stop_or_rethink_r8_pairset_scale
+r9 curriculum = stop_or_rethink_r9_curriculum_route
+r9 difference screen = all_candidates_near_random_stop_difference_screen
+near-neighbor neural ensemble = weak positive but below gate
+```
+
+Correct current route framing:
+
+- Do not continue SGP projection from the tested sources.
+- Do not add more deterministic InvP(delta) aggregate statistics.
+- Do not expand the near-neighbor ensemble until a non-neighbor weak-positive
+  expert has compatible frozen scores and low error overlap.
+- Do not repeat the current r9 difference screen or r8 pair-set scale without a
+  new representation/data hypothesis.
+- Prefer a small controlled learned pair/group-interaction diagnostic or a
+  cross-SPN representation sanity check before any remote launch.
+
+### Suggested Action
+Before launching another meaningful Innovation 1 SPN experiment, update the
+relevant `docs/experiments/` plan with a single narrow question and a same-budget
+baseline. The next experiment should be local and explanatory unless it passes a
+predeclared smoke gate. Keep the r7 InvP-only route as the evidence anchor and
+treat wider ensembles only as a later diversity-gated validator.
+
+### Metadata
+- Source: conversation, experiment_audit, literature_recheck
+- Related Files: docs/research/innovation1-spn-independent-route-recheck-20260706.md, docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, scripts/summarize-spn-evidence
+- Tags: innovation1, spn, present, route-selection, sgp, invp, difference-screen, ensemble
+- See Also: LRN-20260705-003, LRN-20260706-010, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.stop_closed_branches_after_independent_recheck
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260705-002] correction
 
 **Logged**: 2026-07-05T23:14:37+08:00
