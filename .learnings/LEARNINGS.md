@@ -868,6 +868,76 @@ low-overlap expert exists.
 
 ---
 
+## [LRN-20260706-009] best_practice
+
+**Logged**: 2026-07-06T05:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not promote existing InvP global activity statistics after the r8 local audit; they average away the grouped SGP signal.
+
+### Details
+After raw/grouped SGP held, the next local diagnostic tested explicit
+`present_global_pairset_statistics` over `ciphertext_xor_spn_paligned_bits`.
+Protocol:
+
+```text
+cipher = PRESENT-80
+rounds = 8
+samples_per_class = 2048
+seeds = 0, 1
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+```
+
+Artifact:
+
+```text
+outputs/local_audits/i1_present_r8_invp_global_stats_audit_2048.json
+decision = invp_global_stats_hold
+```
+
+Result:
+
+| Metric | Value |
+|---|---:|
+| Stat feature dim | `148` |
+| Best stat AUC min | `0.5180071592330933` |
+| Composite AUC min | `0.5185081958770752` |
+| Composite AUC mean | `0.5251665115356445` |
+| Top-k Jaccard min | `0.06666666666666667` |
+
+Correct interpretation:
+
+- The existing global activity statistics are too coarse for the signal found
+  by grouped SGP.
+- They should not trigger a neural smoke, remote launch, or diverse expert
+  inclusion.
+- If continuing the statistics route, use a targeted group-distribution feature
+  bank over cell/word-cell/bit-role/orbit group activities, including variance,
+  span, top-k means, and pair-slot consistency.
+
+### Suggested Action
+Keep `present_pairset_global_stats` as an existing model/control, not as a
+validated next route from this audit. Next local work should test group-level
+distribution statistics that preserve the structure where SGP showed broad weak
+signal.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-invp-global-stats-audit-plan.md, configs/experiment/innovation1/innovation1_spn_present_invp_global_stats_audit_r8_local.json, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, invp, global-stats, distribution-statistics, route-selection
+- See Also: LRN-20260706-008, LRN-20260706-007, LRN-20260705-003
+- Pattern-Key: innovation1.spn_present.invp_global_stats_hold_group_distribution_next
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260623-002] correction
 
 **Logged**: 2026-06-23T21:56:37+08:00

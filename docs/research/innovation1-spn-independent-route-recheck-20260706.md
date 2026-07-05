@@ -21,7 +21,7 @@ stable (`0.0` Jaccard). This is not a projection-mask candidate.
 Updated route priority:
 
 ```text
-1. intentional pair/global statistics or bit-role/cell distribution features
+1. targeted group-distribution statistics over InvP(delta)
 2. SPN-aware architecture only if it consumes those stable statistics directly
 3. diverse expert aggregation only after a non-neighbor weak-positive artifact exists
 4. SGP projection route is held unless a new stable source family appears
@@ -31,6 +31,21 @@ This does not mean InvP(delta) is useless. It means the weak evidence is broad
 and distributional rather than localized to stable axes/groups. The next useful
 experiment should treat it as a representation/statistics problem, not as a
 mask-selection problem.
+
+The existing `present_global_pairset_statistics` branch was also tested after
+this update and held:
+
+```text
+invp_global_stats_audit = invp_global_stats_hold
+best stat AUC min = 0.5180071592330933
+composite AUC min = 0.5185081958770752
+top-k Jaccard min = 0.06666666666666667
+```
+
+So the next statistics attempt should not be generic global activity. It should
+preserve the grouped-SGP evidence more directly: group activities by
+`cell`, `word_cell`, `word_bit_role`, and `p_layer_orbit`, then audit
+distribution variance/span/top-k means and pair-slot consistency.
 
 ## Decision
 

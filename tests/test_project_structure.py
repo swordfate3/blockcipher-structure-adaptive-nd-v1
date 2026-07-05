@@ -13127,6 +13127,73 @@ def test_sgp_differential_source_uses_empty_selected_bits_by_default():
     assert report["source_reports"][0]["summary"]["feature_dim"] == 128
 
 
+def test_invp_global_stats_report_selects_stable_distribution_statistics():
+    labels = np.array([0] * 8 + [1] * 8, dtype=np.uint8)
+    probe0 = np.zeros((16, 256), dtype=np.float32)
+    probe1 = np.zeros((16, 256), dtype=np.float32)
+    probe0[labels == 1, :64] = 1.0
+    probe1[labels == 1, :64] = 1.0
+
+    report = spn_feature_audit.invp_global_stats_report_from_feature_matrices(
+        [
+            {"name": "seed0_validation", "features": probe0, "labels": labels},
+            {"name": "seed1_validation", "features": probe1, "labels": labels},
+        ],
+        pairs_per_sample=2,
+        pair_bits=128,
+        top_k=4,
+        min_composite_auc=0.9,
+        min_topk_jaccard=1.0,
+        min_best_stat_auc=0.9,
+        source_name="synthetic_invp_stats",
+    )
+
+    assert report["audit"] == "invp_global_stats_audit"
+    assert report["decision"] == "invp_global_stats_candidate"
+    assert report["source_name"] == "synthetic_invp_stats"
+    assert report["summary"]["stat_feature_dim"] == 92
+    assert report["stability"]["topk_jaccard_min"] == 1.0
+    assert report["summary"]["probe_composite_auc_min"] >= 0.9
+    assert report["summary"]["best_stat_auc_min"] >= 0.9
+    assert report["candidate_feature_names"]
+
+
+def test_audit_spn_features_cli_writes_invp_global_stats_audit(tmp_path, monkeypatch):
+    output = tmp_path / "invp_global_stats.json"
+    config_path = tmp_path / "invp_global_stats_config.json"
+    config_path.write_text(json.dumps({"rounds": 8}), encoding="utf-8")
+
+    def fake_global_stats_audit(config_payload, *, samples_per_class=None, top_k=12):
+        assert config_payload == {"rounds": 8}
+        assert samples_per_class == 16
+        assert top_k == 4
+        return {
+            "audit": "invp_global_stats_audit",
+            "decision": "invp_global_stats_candidate",
+            "candidate_feature_names": ["word0_mean"],
+        }
+
+    monkeypatch.setattr(spn_feature_audit, "invp_global_stats_audit_from_config", fake_global_stats_audit)
+
+    status = audit_spn_features_main(
+        [
+            "--invp-global-stats-config",
+            str(config_path),
+            "--samples-per-class",
+            "16",
+            "--top-k",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "invp_global_stats_audit"
+    assert payload["candidate_feature_names"] == ["word0_mean"]
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"

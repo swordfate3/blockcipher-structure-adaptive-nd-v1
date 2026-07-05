@@ -6,9 +6,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.models.structure.spn.present_pairset_global_stats_hybrid import (
+    present_global_pairset_statistics,
+    present_global_stats_feature_bits,
+)
 from blockcipher_nd.features.spn_candidate_evidence import present_pair_candidate_evidence_layers
 from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.registry.difference_profiles import difference_for_profile
@@ -51,6 +56,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
+    parser.add_argument("--invp-global-stats-config", type=Path, default=None)
     parser.add_argument("--row-index", type=int, default=0)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
@@ -74,6 +80,19 @@ def main(argv: list[str] | None = None) -> None:
     if args.sgp_grouped_axis_config is not None:
         config = json.loads(args.sgp_grouped_axis_config.read_text(encoding="utf-8"))
         payload = sgp_grouped_axis_audit_from_config(
+            config,
+            samples_per_class=args.samples_per_class,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.invp_global_stats_config is not None:
+        config = json.loads(args.invp_global_stats_config.read_text(encoding="utf-8"))
+        payload = invp_global_stats_audit_from_config(
             config,
             samples_per_class=args.samples_per_class,
             top_k=args.top_k,
@@ -673,6 +692,203 @@ def sgp_grouped_axis_report_from_feature_matrices(
     }
 
 
+def invp_global_stats_audit_from_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None = None,
+    top_k: int = 12,
+) -> dict[str, Any]:
+    resolved = _sgp_config(config, samples_per_class=samples_per_class, top_k=top_k)
+    reports = []
+    for source in resolved["feature_sources"]:
+        probes = []
+        for seed in resolved["seeds"]:
+            for key_split in resolved["key_splits"]:
+                probes.append(
+                    _sgp_source_matrix(
+                        source,
+                        resolved,
+                        seed=seed,
+                        key_split=key_split,
+                    )
+                )
+        reports.append(
+            invp_global_stats_report_from_feature_matrices(
+                probes,
+                pairs_per_sample=int(source.get("pairs_per_sample", resolved["pairs_per_sample"])),
+                pair_bits=int(probes[0]["features"].shape[1])
+                // int(source.get("pairs_per_sample", resolved["pairs_per_sample"])),
+                top_k=resolved["top_k"],
+                min_composite_auc=resolved["min_composite_auc"],
+                min_topk_jaccard=resolved["min_topk_jaccard"],
+                min_best_stat_auc=float(config.get("min_best_stat_auc", 0.55)),
+                source_name=str(source["name"]),
+            )
+        )
+    best_report = max(
+        reports,
+        key=lambda item: (
+            item["decision"] == "invp_global_stats_candidate",
+            item["summary"]["probe_composite_auc_min"],
+            item["summary"]["best_stat_auc_min"],
+        ),
+    )
+    return {
+        "status": "pass",
+        "audit": "invp_global_stats_audit",
+        "decision": best_report["decision"],
+        "best_source": best_report["source_name"],
+        "config": {
+            "rounds": resolved["rounds"],
+            "samples_per_class": resolved["samples_per_class"],
+            "seeds": resolved["seeds"],
+            "key_splits": resolved["key_splits"],
+            "pairs_per_sample": resolved["pairs_per_sample"],
+            "negative_mode": resolved["negative_mode"],
+            "sample_structure": resolved["sample_structure"],
+            "difference_profile": resolved["difference_profile"],
+            "difference_member": resolved["difference_member"],
+            "top_k": resolved["top_k"],
+            "min_composite_auc": resolved["min_composite_auc"],
+            "min_topk_jaccard": resolved["min_topk_jaccard"],
+            "min_best_stat_auc": float(config.get("min_best_stat_auc", 0.55)),
+        },
+        "source_reports": reports,
+        "candidate_feature_names": best_report["candidate_feature_names"],
+        "claim_scope": (
+            "Local InvP global-statistics audit only; not neural training, not "
+            "scale evidence, not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
+def invp_global_stats_report_from_feature_matrices(
+    probes: list[dict[str, Any]],
+    *,
+    pairs_per_sample: int,
+    pair_bits: int = 128,
+    top_k: int = 16,
+    min_composite_auc: float = 0.62,
+    min_topk_jaccard: float = 0.35,
+    min_best_stat_auc: float = 0.55,
+    source_name: str = "inline",
+) -> dict[str, Any]:
+    if len(probes) < 2:
+        raise ValueError("InvP global statistics audit requires at least two probes")
+    if pair_bits % 64 != 0:
+        raise ValueError("InvP global statistics require pair_bits to be a multiple of 64")
+    words_per_pair = pair_bits // 64
+    cells_per_word = 16
+    stat_names = _present_global_stat_names(
+        words_per_pair=words_per_pair,
+        cells_per_word=cells_per_word,
+        pairs_per_sample=pairs_per_sample,
+    )
+    stat_dim = present_global_stats_feature_bits(words_per_pair, cells_per_word, pairs_per_sample)
+    if len(stat_names) != stat_dim:
+        raise ValueError("InvP global statistic names do not match expected feature width")
+
+    probe_reports = []
+    top_sets: list[set[str]] = []
+    stat_advantages = []
+    stat_matrices = []
+    for probe in probes:
+        features, labels = _probe_features_and_labels(probe)
+        if features.shape[1] != pairs_per_sample * pair_bits:
+            raise ValueError("InvP global statistics probe width does not match pairs_per_sample * pair_bits")
+        stat_matrix = _present_global_stats_matrix(
+            features,
+            pairs_per_sample=pairs_per_sample,
+            words_per_pair=words_per_pair,
+            cells_per_word=cells_per_word,
+        )
+        if stat_matrix.shape[1] != stat_dim:
+            raise ValueError("InvP global statistics matrix width changed unexpectedly")
+        stat_matrices.append(stat_matrix)
+        stat_scores = _feature_axis_scores(stat_matrix, labels)
+        top_indices = _top_indices(stat_scores["auc_advantage"], top_k)
+        top_names = [stat_names[index] for index in top_indices]
+        top_sets.append(set(top_names))
+        stat_advantages.append(stat_scores["auc_advantage"])
+        best_auc = max(float(max(auc, 1.0 - auc)) for auc in stat_scores["auc"])
+        probe_reports.append(
+            {
+                "name": str(probe.get("name", f"probe{len(probe_reports)}")),
+                "samples_per_class": int(min((labels == 0).sum(), (labels == 1).sum())),
+                "input_bits": int(features.shape[1]),
+                "stat_feature_dim": stat_dim,
+                "best_stat_auc": best_auc,
+                "top_statistics": [
+                    {
+                        "name": stat_names[index],
+                        "index": int(index),
+                        "auc": float(stat_scores["auc"][index]),
+                        "auc_advantage": float(stat_scores["auc_advantage"][index]),
+                        "positive_mean": float(stat_scores["positive_mean"][index]),
+                        "negative_mean": float(stat_scores["negative_mean"][index]),
+                    }
+                    for index in top_indices
+                ],
+            }
+        )
+
+    stable_indices = _stable_axes_from_probe_scores(
+        top_sets=[{stat_names.index(name) for name in top_set} for top_set in top_sets],
+        axis_advantages=stat_advantages,
+        stable_top_k=top_k,
+        feature_dim=stat_dim,
+    )
+    candidate_feature_names = [stat_names[index] for index in stable_indices]
+    probe_composites = []
+    for probe, stat_matrix, report in zip(probes, stat_matrices, probe_reports, strict=True):
+        _, labels = _probe_features_and_labels(probe)
+        composite_scores = _oriented_zscore_composite(stat_matrix, labels, stable_indices)
+        composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+        report["stable_stat_composite"] = composite
+        probe_composites.append(composite)
+
+    topk_jaccard_min = _group_jaccard_min(top_sets)
+    probe_composite_auc_min = min(float(item["auc"]) for item in probe_composites) if probe_composites else 0.5
+    best_stat_auc_min = min(float(item["best_stat_auc"]) for item in probe_reports) if probe_reports else 0.5
+    decision = (
+        "invp_global_stats_candidate"
+        if probe_composite_auc_min >= min_composite_auc
+        and topk_jaccard_min >= min_topk_jaccard
+        and best_stat_auc_min >= min_best_stat_auc
+        else "invp_global_stats_hold"
+    )
+    return {
+        "audit": "invp_global_stats_audit",
+        "source_name": source_name,
+        "decision": decision,
+        "summary": {
+            "pairs_per_sample": pairs_per_sample,
+            "pair_bits": pair_bits,
+            "stat_feature_dim": stat_dim,
+            "probe_count": len(probe_reports),
+            "probe_composite_auc_min": probe_composite_auc_min,
+            "probe_composite_auc_mean": float(np.mean([item["auc"] for item in probe_composites])),
+            "best_stat_auc_min": best_stat_auc_min,
+        },
+        "stability": {
+            "top_k": top_k,
+            "topk_jaccard_min": topk_jaccard_min,
+            "stable_feature_names": candidate_feature_names,
+        },
+        "gates": {
+            "min_composite_auc": min_composite_auc,
+            "min_topk_jaccard": min_topk_jaccard,
+            "min_best_stat_auc": min_best_stat_auc,
+        },
+        "candidate_feature_names": candidate_feature_names,
+        "probe_reports": probe_reports,
+        "claim_scope": (
+            "Local InvP global-statistics audit only; not neural training, not scale evidence, "
+            "not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
 def candidate_evidence_feature_probe_from_config(
     config: dict[str, Any],
     *,
@@ -1026,6 +1242,66 @@ def _topk_jaccard_min(top_sets: list[set[int]]) -> float:
             union = left | right
             values.append(float(len(left & right) / len(union)) if union else 1.0)
     return min(values) if values else 1.0
+
+
+def _present_global_stats_matrix(
+    features: np.ndarray,
+    *,
+    pairs_per_sample: int,
+    words_per_pair: int,
+    cells_per_word: int,
+) -> np.ndarray:
+    tensor = torch.as_tensor(features, dtype=torch.float32)
+    with torch.no_grad():
+        stats = present_global_pairset_statistics(
+            tensor,
+            pairs_per_sample=pairs_per_sample,
+            words_per_pair=words_per_pair,
+            cells_per_word=cells_per_word,
+            nibble_bits=4,
+        )
+    return stats.detach().cpu().numpy().astype(np.float64, copy=False)
+
+
+def _present_global_stat_names(
+    *,
+    words_per_pair: int,
+    cells_per_word: int,
+    pairs_per_sample: int,
+) -> list[str]:
+    even_cell_count = cells_per_word // 2
+    global_names = [
+        "global_cell_activity_mean",
+        "global_cell_activity_std",
+        "global_word_activity_mean",
+        "global_word_activity_std",
+        "global_pair_activity_mean",
+        "global_pair_activity_std",
+        "global_pair_last_first_delta",
+        "global_word_last_first_delta_mean",
+        "global_cell_last_first_delta_mean",
+        "global_even_odd_word_delta",
+    ]
+    names = (
+        [f"word{index}_mean" for index in range(words_per_pair)]
+        + [f"word{index}_std" for index in range(words_per_pair)]
+        + [f"word{index}_last_first_delta" for index in range(words_per_pair)]
+        + [f"word{index}_span" for index in range(words_per_pair)]
+        + [f"cell{index}_mean" for index in range(cells_per_word)]
+        + [f"cell{index}_std" for index in range(cells_per_word)]
+        + [f"cell{index}_last_first_delta" for index in range(cells_per_word)]
+        + [f"even_cell{index}_minus_odd_cell{index}" for index in range(even_cell_count)]
+        + [f"pair{index}_activity" for index in range(pairs_per_sample)]
+        + [f"pair{index}_centered_activity" for index in range(pairs_per_sample)]
+        + [f"pair{index}_minus_first_activity" for index in range(pairs_per_sample)]
+        + [f"last_minus_pair{index}_activity" for index in range(pairs_per_sample)]
+        + global_names
+        + [f"abs_{name}" for name in global_names]
+    )
+    expected = present_global_stats_feature_bits(words_per_pair, cells_per_word, pairs_per_sample)
+    if len(names) != expected:
+        raise ValueError(f"expected {expected} global statistic names, got {len(names)}")
+    return names
 
 
 def _axis_groups_for_sgp_source(
