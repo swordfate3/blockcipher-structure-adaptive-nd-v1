@@ -105,6 +105,71 @@ treat wider ensembles only as a later diversity-gated validator.
 
 ---
 
+## [LRN-20260706-012] best_practice
+
+**Logged**: 2026-07-06T06:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not launch the prepared r8 pair-mixer 262k remote package from current local evidence.
+
+### Details
+After SGP and deterministic InvP aggregate-stat routes held, a controlled local
+diagnostic tested learned pair/group interaction on the same r8 PRESENT
+protocol:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_learned_pair_group_interaction_r8_local.csv
+scale = 512/class
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+feature_encoding = ciphertext_pair_bits
+```
+
+Results:
+
+| Model | AUC |
+|---|---:|
+| `present_nibble_invp_only_spn_only` | `0.51275634765625` |
+| `present_nibble_invp_pair_consistency_spn_only` | `0.5184173583984375` |
+| `present_nibble_invp_pair_mixer_consistency_spn_only` | `0.5105438232421875` |
+
+Deltas:
+
+```text
+pair-consistency - InvP-only AUC = +0.0056610107421875
+pair-mixer - InvP-only AUC = -0.0022125244140625
+pair-mixer - pair-consistency AUC = -0.00787353515625
+```
+
+Correct interpretation:
+
+- The pair-consistency row is weak-positive locally but below the `+0.01` keep
+  gate.
+- The learned cross-pair mixer did not beat either InvP-only or pair-consistency.
+- Existing prepared 262144/class pair-mixer remote assets are not launch
+  evidence; prepared assets must be superseded by current gates.
+
+### Suggested Action
+Do not launch or expand the current r8 pair-mixer package unless a new local
+representation/data hypothesis changes the evidence. Keep pair-consistency only
+as weak diagnostic context. Move the next experiment slot toward a different
+SPN representation/data route or cross-SPN cell-representation sanity check.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-learned-pair-group-interaction-local-plan.md, docs/experiments/innovation1-present-pair-mixer-consistency-plan.md, configs/experiment/innovation1/innovation1_spn_present_learned_pair_group_interaction_r8_local.csv
+- Tags: innovation1, spn, present, pair-mixer, pair-consistency, learned-interaction, route-selection
+- See Also: LRN-20260706-011, LRN-20260706-010, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.pair_mixer_local_hold_no_remote_launch
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260705-002] correction
 
 **Logged**: 2026-07-05T23:14:37+08:00

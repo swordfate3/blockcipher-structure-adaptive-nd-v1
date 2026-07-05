@@ -2,7 +2,8 @@
 
 **日期：** 2026-07-05
 
-**状态：** smoke passed / 262144-class remote assets prepared / not launched
+**状态：** smoke passed / 262144-class remote assets prepared / not launched /
+superseded by local 512/class diagnostic hold
 
 **当前配置：**
 
@@ -75,14 +76,41 @@ Smoke 不评价准确率，不作为模型能力证据。
 
 ## 4. 后续 Gate
 
-当前远程 GPU 仍由以下任务占用：
+Historical note: this gate was written while the following tasks were still
+active:
 
 ```text
 i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
 
-因此本路线暂不启动远程。等 active watcher 返回后，再按 gate 选择：
+Those tasks have since been retrieved and no longer support direct pair-mixer
+expansion:
+
+```text
+r8 pair-set 1M seed0 = stop_or_rethink_r8_pairset_scale
+r9 weak-probe / curriculum / difference-screen follow-ups = stopped or near random
+```
+
+A local 512/class learned pair/group interaction diagnostic was then run:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_learned_pair_group_interaction_r8_local.csv
+artifact = outputs/local_smoke/i1_present_r8_learned_pair_group_interaction_512/results.jsonl
+pair-consistency - InvP-only AUC = +0.0056610107421875
+pair-mixer - InvP-only AUC = -0.0022125244140625
+pair-mixer - pair-consistency AUC = -0.00787353515625
+```
+
+Updated decision:
+
+```text
+do_not_launch_prepared_262k_pair_mixer_package
+do_not_expand_pair_mixer_under_current_r8_protocol
+keep_pair_consistency_as_weak_local_diagnostic_only
+```
+
+Original historical gate:
 
 | 条件 | 动作 |
 |---|---|
@@ -93,7 +121,7 @@ i1_present_r8_pairset_1m_seed0_gpu1_20260705
 
 ## 4.1 262144/class 诊断资产
 
-本轮已准备 r8 pair-mixer 262144/class 诊断资产，但不启动远程：
+本轮已准备 r8 pair-mixer 262144/class 诊断资产，但当前明确不启动远程：
 
 ```text
 run_id = i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705
