@@ -10419,7 +10419,7 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     assert "scripts/postprocess-difference-screen" in diff_active["postprocess_when_ready_command"]
 
     (diff_root / f"{diff_run_id}_postprocess_summary.json").write_text("{}", encoding="utf-8")
-    integral_run_id = "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705"
+    integral_run_id = "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705"
     integral_root = tmp_path / integral_run_id
     (integral_root / "monitor").mkdir(parents=True)
     (integral_root / "logs").mkdir(parents=True)
@@ -10442,6 +10442,7 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     assert integral_active["run_id"] == integral_run_id
     assert integral_active["postprocess_allowed"] is False
     assert integral_active["expected_rows"] == 3
+    assert "gpu1_retry1" in integral_active["monitor_health_command"]
     assert "scripts/advance-integral-inverse-feature-result" in integral_active["postprocess_when_ready_command"]
 
 

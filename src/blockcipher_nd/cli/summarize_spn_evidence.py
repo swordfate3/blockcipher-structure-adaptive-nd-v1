@@ -56,6 +56,18 @@ FOLLOWUP_RUNS = [
         "route_label": "r9 difference screen",
     },
     {
+        "run_id": "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705",
+        "branch": "r8_integral_inverse_feature_65k_retry1",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md",
+        "expected_rows": 3,
+        "postprocess_kind": "integral_inverse_feature",
+        "postprocess_script": "scripts/advance-integral-inverse-feature-result",
+        "wait_branch": "wait_for_integral_inverse_feature_result",
+        "postprocess_branch": "advance_integral_inverse_feature_result",
+        "route_label": "integral/inverse feature retry1",
+    },
+    {
         "run_id": "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705",
         "branch": "r8_integral_inverse_feature_65k",
         "plan": "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv",
