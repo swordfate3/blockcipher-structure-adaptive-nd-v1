@@ -9,6 +9,28 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.monitor_health import _progress_summary, monitor_health_report
 
 
+HIGH_ROUND_RUNS = [
+    {
+        "run_id": "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        "branch": "r9_weak_probe_seed0",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_round_extension_r9_262k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r9-weak-probe-plan.md",
+        "expected_rows": 3,
+        "postprocess_kind": "r9_weak_probe",
+        "postprocess_script": "scripts/postprocess-r9-weak-probe",
+    },
+    {
+        "run_id": "i1_present_r8_pairset_1m_seed0_gpu1_20260705",
+        "branch": "r8_pairset_1m_seed0",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_pairset_r8_1m_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
+        "expected_rows": 2,
+        "postprocess_kind": "r8_pairset_1m",
+        "postprocess_script": "scripts/postprocess-r8-pairset-1m",
+    },
+]
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Summarize retrieved Innovation 1 SPN evidence from local remote-result artifacts."
@@ -242,6 +264,12 @@ def _numeric_metric(route: dict[str, Any], key: str) -> float:
 
 
 def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str, Any]:
+    high_round_running = _high_round_running(root)
+    if high_round_running is not None:
+        return high_round_running
+    high_round_arbitration = _high_round_arbitration_recommendation(routes)
+    if high_round_arbitration is not None:
+        return high_round_arbitration
     candidate_running = _candidate_trail_running(root)
     if candidate_running is not None:
         return candidate_running
@@ -270,6 +298,195 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
         "branch": "review_research_plan",
         "reason": "no active candidate-trail run or candidate-trail summary found",
         "should_launch_remote": False,
+    }
+
+
+def _high_round_running(root: Path) -> dict[str, Any] | None:
+    active_runs: list[dict[str, Any]] = []
+    ready_runs: list[dict[str, Any]] = []
+    for spec in HIGH_ROUND_RUNS:
+        run_id = str(spec["run_id"])
+        run_root = root / run_id
+        if not run_root.exists() or list(run_root.glob("*_postprocess_summary.json")):
+            continue
+        health = _high_round_monitor_health(root, spec)
+        monitor_log = run_root / "monitor" / "monitor.log"
+        entry = {
+            "branch": spec["branch"],
+            "run_id": run_id,
+            "status": health["status"],
+            "monitor_log": str(monitor_log),
+            "recent_monitor_lines": _tail_lines(monitor_log, 8),
+            "heartbeat": health["heartbeat"],
+            "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+            "postprocess_allowed": health["postprocess_allowed"],
+            "postprocess_command": health["postprocess_command"],
+            "results_jsonl": health["results_jsonl"],
+            "results_jsonl_line_count": health["results_jsonl_line_count"],
+            "expected_rows": health["expected_rows"],
+            "progress_summary": _active_progress_summary(run_root),
+            "monitor_health_command": _high_round_monitor_health_command(spec),
+            "postprocess_when_ready_command": _high_round_postprocess_command(spec),
+        }
+        if health["postprocess_allowed"]:
+            ready_runs.append(entry)
+        elif _is_active_high_round_health(health, entry["recent_monitor_lines"]):
+            active_runs.append(entry)
+
+    if ready_runs:
+        return {
+            "branch": "postprocess_high_round_result",
+            "status": "result_ready",
+            "should_launch_remote": False,
+            "reason": "one or more high-round results are ready locally and need postprocess before arbitration",
+            "ready_runs": ready_runs,
+            "active_runs": active_runs,
+            "main_thread_policy": _high_round_main_thread_policy("postprocess"),
+        }
+    if active_runs:
+        return {
+            "branch": "wait_for_high_round_results",
+            "status": "running",
+            "should_launch_remote": False,
+            "reason": "high-round r8/r9 watcher artifacts are still running; do not branch before postprocess gates",
+            "active_runs": active_runs,
+            "main_thread_policy": _high_round_main_thread_policy("waiting"),
+        }
+    return None
+
+
+def _high_round_arbitration_recommendation(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    high_round_routes = [
+        route
+        for route in routes
+        if str(route.get("decision") or "").startswith(
+            (
+                "strong_r9",
+                "r9_weak",
+                "near_random_r9",
+                "stop_from_scratch_r9",
+                "baseline_best_or_candidate",
+                "support_r8_pairset_1m",
+                "weak_r8_pairset_1m",
+                "stop_or_rethink_r8_pairset",
+            )
+        )
+    ]
+    summaries = [str(route["summary"]) for route in high_round_routes if route.get("summary")]
+    if len(summaries) < 2:
+        return None
+    return {
+        "branch": "arbitrate_high_round_next_actions",
+        "status": "ready_for_arbitration",
+        "should_launch_remote": False,
+        "reason": "multiple high-round postprocess summaries exist; arbitrate before launching any next branch",
+        "summary_count": len(summaries),
+        "summaries": summaries,
+        "arbitration_command": _high_round_arbitration_command(summaries),
+        "main_thread_policy": _high_round_main_thread_policy("arbitrate"),
+    }
+
+
+def _high_round_monitor_health(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=str(spec["run_id"]),
+        root=root,
+        plan_path=Path(str(spec["plan"])),
+        plan_doc_paths=[Path(str(spec["plan_doc"]))],
+        expected_rows=int(spec["expected_rows"]),
+        postprocess_kind=str(spec["postprocess_kind"]),
+    )
+
+
+def _high_round_monitor_health_command(spec: dict[str, Any]) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {spec['run_id']} "
+        f"--plan {spec['plan']} "
+        f"--plan-doc {spec['plan_doc']} "
+        f"--expected-rows {spec['expected_rows']} "
+        f"--postprocess-kind {spec['postprocess_kind']}"
+    )
+
+
+def _high_round_postprocess_command(spec: dict[str, Any]) -> str:
+    run_id = str(spec["run_id"])
+    return (
+        f"UV_CACHE_DIR=/tmp/uv-cache uv run python {spec['postprocess_script']} "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        f"--plan {spec['plan']} "
+        f"--expected-rows {spec['expected_rows']} "
+        f"--update-plan-doc {spec['plan_doc']}"
+    )
+
+
+def _high_round_arbitration_command(summaries: list[str]) -> str:
+    summary_args = " ".join(f"--summary {summary}" for summary in summaries)
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/arbitrate-next-actions "
+        f"{summary_args} "
+        "--output outputs/remote_results/high_round_next_action_arbitration.json"
+    )
+
+
+def _is_active_high_round_health(health: dict[str, Any], recent_lines: list[str]) -> bool:
+    active_statuses = {
+        "running",
+        "stale_monitor",
+        "launch_stalled",
+        "remote_artifacts_missing",
+        "unknown",
+    }
+    has_activity = bool(recent_lines) or bool(health.get("heartbeat", {}).get("newest_timestamp"))
+    return str(health.get("status")) in active_statuses and has_activity
+
+
+def _high_round_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run each listed high-round postprocess command",
+                "update docs/experiments through the postprocess command",
+                "commit and push result documentation before branch launch",
+                "run arbitrate-next-actions if more than one high-round summary is available",
+            ],
+            "forbidden_until_gate": [
+                "launch r8 seed1",
+                "launch r9 seed1",
+                "launch r9 1M",
+                "launch r9 curriculum",
+                "launch r9 difference screen",
+                "make r8/r9 route-level or breakthrough claims",
+            ],
+            "gate_condition": "route-specific postprocess summaries exist, validate against plans, and emit next_action readiness",
+        }
+    if state == "arbitrate":
+        return {
+            "allowed_actions": [
+                "run the listed arbitrate-next-actions command",
+                "launch only the selected branch after checking readiness and committing documentation",
+            ],
+            "forbidden_until_gate": [
+                "launch multiple high-round follow-up branches in parallel",
+                "launch a lower-priority branch while a stronger r9 branch is selected",
+                "make formal high-round claims before 1M/class multi-seed evidence",
+            ],
+            "gate_condition": "arbitration report selects one launchable branch and deferred branches are recorded",
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "improve local planning, readiness, or postprocess tooling without changing active remote runs",
+            "wait for watcher/sub-agent retrieval",
+        ],
+        "forbidden_until_gate": [
+            "SSH-poll or tmux-loop from the main thread",
+            "launch r8/r9/r10 follow-up branches",
+            "make route-level or breakthrough claims",
+        ],
+        "gate_condition": "watcher retrieves expected high-round JSONL rows and postprocess_allowed becomes true",
     }
 
 

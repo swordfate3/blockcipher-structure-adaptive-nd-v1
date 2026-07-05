@@ -88,7 +88,11 @@ same readiness-artifact convention.
 Use `scripts/summarize-spn-evidence` for a current local Innovation 1 SPN route
 overview. It scans retrieved postprocess summaries, reports the strongest
 route-level evidence, marks superseded branches, and emits an
-`active_recommendation`. While candidate-trail is still running, that
+`active_recommendation`. For high-round PRESENT work it also tracks the active
+r9 weak-probe and r8 pair-set 1M watcher artifacts, emits route-specific
+postprocess commands when results are ready, and recommends
+`scripts/arbitrate-next-actions` when multiple high-round summaries are
+available. While candidate-trail is still running, that
 recommendation remains `wait_for_candidate_trail_result`; after retrieved
 candidate-trail or bit-transition-spectrum results, it follows the newest
 gated branch and keeps transition-spectrum decisions ahead of older

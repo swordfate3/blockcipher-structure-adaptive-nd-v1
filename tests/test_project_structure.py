@@ -3538,6 +3538,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/monitor-health"),
         Path("scripts/check-remote-readiness"),
         Path("scripts/plan-next-action"),
+        Path("scripts/arbitrate-next-actions"),
         Path("scripts/summarize-spn-evidence"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
@@ -3715,6 +3716,95 @@ def test_summarize_spn_evidence_reports_route_level_state(tmp_path):
         "reason": "superseded_by_later_route_decision",
     }
     assert by_run_id["i1_invp_only_r7_1m_seed1_gpu1_20260629"]["route_state"] == "superseded"
+
+
+def test_summarize_spn_evidence_tracks_running_high_round_runs(tmp_path):
+    root = tmp_path / "remote_results"
+    run_root = root / "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "logs").mkdir()
+    (run_root / "monitor" / "monitor.log").write_text("2026-07-05T10:42:16+08:00 running\n", encoding="utf-8")
+    (run_root / "logs" / "r9_weak_probe_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "train_batch",
+                "model": "present_nibble_invp_only_spn_only",
+                "epoch": 8,
+                "epochs": 30,
+                "best_checkpoint_metric": 0.5004787916550413,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "wait_for_high_round_results"
+    assert active["should_launch_remote"] is False
+    assert active["active_runs"][0]["run_id"] == "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"
+    assert active["active_runs"][0]["postprocess_allowed"] is False
+    assert "scripts/monitor-health" in active["active_runs"][0]["monitor_health_command"]
+    assert "scripts/postprocess-r9-weak-probe" in active["active_runs"][0]["postprocess_when_ready_command"]
+    assert "launch r8/r9/r10 follow-up branches" in active["main_thread_policy"]["forbidden_until_gate"]
+
+
+def test_summarize_spn_evidence_routes_ready_high_round_result_to_postprocess(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"
+    run_root = root / run_id
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "results").mkdir()
+    (run_root / "monitor" / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    results = run_root / "results" / f"{run_id}.jsonl"
+    _write_r9_weak_probe_result(results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "postprocess_high_round_result"
+    assert active["ready_runs"][0]["run_id"] == run_id
+    assert active["ready_runs"][0]["postprocess_allowed"] is True
+    assert "scripts/postprocess-r9-weak-probe" in active["ready_runs"][0]["postprocess_when_ready_command"]
+    assert "run each listed high-round postprocess command" in active["main_thread_policy"]["allowed_actions"]
+
+
+def test_summarize_spn_evidence_recommends_high_round_arbitration_after_summaries(tmp_path):
+    root = tmp_path / "remote_results"
+    r9_results = tmp_path / "r9_weak_probe.jsonl"
+    _write_r9_weak_probe_result(r9_results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+    r9_report = postprocess_r9_weak_probe_result(
+        results_path=r9_results,
+        output_dir=root / "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        run_id="i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        expected_rows=3,
+    )
+    r8_results = tmp_path / "r8_pairset_1m.jsonl"
+    _write_r8_pairset_1m_result(r8_results, "present_zhang_wang_keras_mcnd", 0.542)
+    _write_r8_pairset_1m_result(r8_results, "present_nibble_invp_pair_consistency_spn_only", 0.549)
+    r8_report = postprocess_r8_pairset_1m_result(
+        results_path=r8_results,
+        output_dir=root / "i1_present_r8_pairset_1m_seed0_gpu1_20260705",
+        run_id="i1_present_r8_pairset_1m_seed0_gpu1_20260705",
+        expected_rows=2,
+    )
+
+    report = summarize_spn_evidence(root)
+
+    active = report["active_recommendation"]
+    assert active["branch"] == "arbitrate_high_round_next_actions"
+    assert active["summary_count"] == 2
+    assert r9_report["summary"] in active["summaries"]
+    assert r8_report["summary"] in active["summaries"]
+    assert "scripts/arbitrate-next-actions" in active["arbitration_command"]
+    assert "launch multiple high-round follow-up branches in parallel" in active["main_thread_policy"][
+        "forbidden_until_gate"
+    ]
 
 
 def test_summarize_spn_evidence_exposes_stale_candidate_monitor(tmp_path):
