@@ -433,7 +433,7 @@ later r8 1M/class confirmation if the route remains promising.
 
 ## 13. r8 Pair-Set 1M Confirmation Plan
 
-**Status:** prepared / pending launch after scoped commit and GPU gate
+**Status:** launched / watcher-managed / no result evidence yet
 
 The r8 diagnostic gate supports scaling the pair-set route, but the claim is
 still diagnostic until a paper-scale confirmation exists. The next r8
@@ -471,4 +471,44 @@ Claim scope:
 ```text
 1000000/class seed0 is paper-scale single-seed evidence only.
 It is not formal multi-seed route evidence and not a breakthrough claim.
+```
+
+Launch record:
+
+| Field | Value |
+|---|---|
+| Launch time | 2026-07-05 08:15 +08:00 |
+| Launch commit | `0b8279c` |
+| Remote task | `i1_present_r8_pairset_1m_seed0_gpu1_20260705` |
+| Remote launcher uploaded to | `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_pairset_1m_seed0_gpu1_20260705\run_i1_present_r8_pairset_1m_seed0_gpu1_20260705.cmd` |
+| Task Scheduler command | `cmd.exe /c G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_pairset_1m_seed0_gpu1_20260705\run_i1_present_r8_pairset_1m_seed0_gpu1_20260705.cmd` |
+| GPU | `cuda:1` |
+| Local watcher | `monitor_i1_present_r8_pairset_1m_seed0_gpu1_20260705` |
+| Local retrieval target | `outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705` |
+
+Pre-launch verification:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "present_r8_pairset_1m or present_r9_weak_probe or present_r8_round_extension"
+5 passed, 243 deselected
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_pairset_r8_1m_seed0_gpu1_20260705.json
+status = pass
+expected_rows = 2
+checked_invariants include medium_scale_dataset_cache
+
+bash -n configs/remote/generated/monitor_i1_present_r8_pairset_1m_seed0_gpu1_20260705.sh
+pass
+
+rg -n "cmd\.exe /k" <r8-pairset-1m remote assets>
+no matches
+```
+
+Launch interpretation:
+
+```text
+This is launched evidence only, not result evidence.
+The watcher is responsible for retrieval, validate-results, plot-results, and
+gate-note generation. Do not claim r8 pair-set confirmation until results are
+retrieved, validated, and plan-aligned.
 ```
