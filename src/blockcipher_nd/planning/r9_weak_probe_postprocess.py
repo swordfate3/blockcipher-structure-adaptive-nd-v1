@@ -13,6 +13,10 @@ from blockcipher_nd.planning.result_alignment import validate_result_plan_alignm
 BASELINE_MODEL = "present_zhang_wang_keras_mcnd"
 INVP_MODEL = "present_nibble_invp_only_spn_only"
 PAIR_MODEL = "present_nibble_invp_pair_consistency_spn_only"
+R9_SEED1_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
+)
 
 DEFAULT_NEAR_RANDOM_AUC_CEILING = 0.505
 DEFAULT_WEAK_TRACE_AUC_CEILING = 0.52
@@ -246,9 +250,14 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         return {
             "branch": "r9_seed1_or_curriculum_scale_plan",
             "should_launch_remote": False,
-            "requires_implementation": True,
+            "requires_implementation": False,
             "reason": decision,
             "selected_model": (report.get("best_candidate") or {}).get("model", ""),
+            "suggested_remote_config": R9_SEED1_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R9_SEED1_REMOTE_CONFIG}"
+            ),
             "candidate_next_routes": ["r9_seed1_diagnostic", "r8_to_r9_curriculum_scale"],
         }
     if decision == "near_random_r9_weak_trace_check_variance_or_aggregation":

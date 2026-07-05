@@ -328,6 +328,87 @@ def test_present_r9_weak_probe_remote_readiness_assets_pass():
     assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
 
 
+def test_present_r9_weak_probe_seed1_confirmation_assets_are_gate_locked():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_round_extension_r9_262k_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 9
+        assert task["seed"] == 1
+        assert task["samples_per_class"] == 262144
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "seed1 variance check" in task["matching_evidence"]
+        assert "launch only if seed0 r9 weak-probe gate is positive" in task["matching_evidence"]
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r9_weak_probe_262k_seed1_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r9_weak_probe_262k_seed1_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+    plan_doc = Path("docs/experiments/innovation1-present-r9-weak-probe-plan.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 3
+    assert readiness["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in config_data["launch_policy"]
+    assert "r9 weak-probe gate returns" in config_data["launch_policy"]
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config_data["dataset_cache_workers"] == 4
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_round_extension_r9_262k_seed1.csv" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "r9_weak_probe_seed1_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "scripts/postprocess-r9-weak-probe" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+
+    assert "i1_present_r9_weak_probe_262k_seed1_gpu0_20260705" in plan_doc
+    assert "262144/class seed1 = medium diagnostic variance check only" in plan_doc
+    assert "do not launch until seed0 is retrieved / validated / postprocessed" in plan_doc
+
+
 def test_present_r9_curriculum_from_r8_plan_and_remote_assets_pass():
     plan = (
         "configs/experiment/innovation1/"
@@ -9728,6 +9809,31 @@ def test_r9_weak_probe_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- r9-weak-probe-postprocess:r9_weak_probe_unit:start -->") == 1
+
+
+def test_r9_weak_probe_weak_positive_points_to_prepared_seed1_assets(tmp_path):
+    results = tmp_path / "r9_weak_probe_weak_positive.jsonl"
+    _write_r9_weak_probe_result(results, "present_zhang_wang_keras_mcnd", 0.521)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.523)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.526)
+
+    report = postprocess_r9_weak_probe_result(
+        results_path=results,
+        output_dir=tmp_path / "weak_positive_postprocess",
+        run_id="r9_weak_probe_weak_positive_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "r9_weak_positive_prepare_seed1_or_curriculum_scale"
+    assert report["next_action"]["branch"] == "r9_seed1_or_curriculum_scale_plan"
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["should_launch_remote"] is False
+    assert (
+        report["next_action"]["suggested_remote_config"]
+        == "configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
+    )
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
 
 
 def test_monitor_health_emits_r9_weak_probe_postprocess_command_when_result_ready(tmp_path):

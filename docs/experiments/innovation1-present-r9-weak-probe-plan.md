@@ -364,3 +364,59 @@ It is a 262144/class single-seed r9 weak probe.
 No r9 success/failure, r10 projection, or breakthrough claim is allowed until
 watcher retrieval, validation, plotting, and gate-note generation complete.
 ```
+
+## 11. Prepared Seed1 Confirmation Branch
+
+**Status:** prepared / gate-locked / not launched
+
+Seed1 assets are prepared so a positive seed0 r9 weak-probe can move directly
+into variance checking without changing the benchmark or improvising a new
+matrix:
+
+```text
+run_id = i1_present_r9_weak_probe_262k_seed1_gpu0_20260705
+plan = configs/experiment/innovation1/innovation1_spn_present_round_extension_r9_262k_seed1.csv
+remote_config = configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json
+launcher = configs/remote/generated/run_i1_present_r9_weak_probe_262k_seed1_gpu0_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r9_weak_probe_262k_seed1_gpu0_20260705.sh
+```
+
+This branch keeps the same protocol as seed0:
+
+```text
+rounds = 9
+samples_per_class = 262144
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+difference_profile = present_zhang_wang2022_mcnd
+checkpoint_metric = val_auc
+```
+
+Launch gate:
+
+```text
+do not launch until seed0 is retrieved / validated / postprocessed
+and the r9 weak-probe gate returns either:
+
+1. r9_weak_positive_prepare_seed1_or_curriculum_scale
+2. strong_r9_diagnostic_prepare_1m_seed0
+```
+
+If seed0 is near-random or baseline-best, this seed1 package stays unused and
+the next branch should be curriculum / difference screen / high-round data
+representation rather than blind seed repetition.
+
+Readiness command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json
+```
+
+Claim scope:
+
+```text
+262144/class seed1 = medium diagnostic variance check only.
+It is not formal r9 evidence, not a breakthrough claim, and not r10 evidence.
+```
