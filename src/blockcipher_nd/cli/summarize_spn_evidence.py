@@ -473,6 +473,8 @@ def _high_round_running(root: Path) -> dict[str, Any] | None:
 
 
 def _followup_running(root: Path) -> dict[str, Any] | None:
+    ready_entries: list[dict[str, Any]] = []
+    active_entries: list[dict[str, Any]] = []
     for spec in FOLLOWUP_RUNS:
         run_id = str(spec["run_id"])
         run_root = root / run_id
@@ -500,7 +502,7 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
             "postprocess_when_ready_command": _followup_postprocess_command(spec),
         }
         if health["postprocess_allowed"]:
-            return {
+            ready_entries.append({
                 **entry,
                 "branch": str(spec["postprocess_branch"]),
                 "reason": (
@@ -508,7 +510,8 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
                     "postprocess before branch decisions"
                 ),
                 "main_thread_policy": _followup_main_thread_policy("postprocess"),
-            }
+            })
+            continue
         if _is_active_high_round_health(health, recent_lines):
             needs_diagnosis = health["needs_main_thread_intervention"] and not _has_fresh_progress(health)
             branch = (
@@ -516,7 +519,7 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
                 if needs_diagnosis
                 else str(spec["wait_branch"])
             )
-            return {
+            active_entries.append({
                 **entry,
                 "branch": branch,
                 "reason": (
@@ -524,7 +527,16 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
                     "postprocess summary yet"
                 ),
                 "main_thread_policy": _followup_main_thread_policy("waiting"),
-            }
+            })
+    if ready_entries:
+        selected = ready_entries[0]
+        selected["deferred_ready_runs"] = ready_entries[1:]
+        selected["deferred_active_runs"] = active_entries
+        return selected
+    if active_entries:
+        selected = active_entries[0]
+        selected["deferred_active_runs"] = active_entries[1:]
+        return selected
     return None
 
 

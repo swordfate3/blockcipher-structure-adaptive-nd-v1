@@ -10446,6 +10446,46 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     assert "scripts/advance-integral-inverse-feature-result" in integral_active["postprocess_when_ready_command"]
 
 
+def test_summarize_spn_evidence_lists_deferred_running_followups(tmp_path):
+    heartbeat = datetime.now(timezone.utc).astimezone().replace(microsecond=0).isoformat()
+    for run_id, progress_name in [
+        (
+            "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705",
+            "r9_difference_screen_progress.jsonl",
+        ),
+        (
+            "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705",
+            "r8_integral_inverse_feature_screen_retry1_progress.jsonl",
+        ),
+    ]:
+        run_root = tmp_path / run_id
+        (run_root / "monitor").mkdir(parents=True)
+        (run_root / "logs").mkdir(parents=True)
+        (run_root / "results").mkdir(parents=True)
+        (run_root / "monitor" / "monitor.log").write_text(
+            f"{heartbeat} sync\n"
+            f"{heartbeat} running\n",
+            encoding="utf-8",
+        )
+        (run_root / "logs" / progress_name).write_text(
+            json.dumps({"event": "train_batch", "epoch": 1, "epochs": 20}, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        (run_root / "results" / f"{run_id}.jsonl").write_text("", encoding="utf-8")
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "wait_for_r9_difference_screen_result"
+    assert active["run_id"] == "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705"
+    assert active["postprocess_allowed"] is False
+    assert active["deferred_active_runs"][0]["run_id"] == (
+        "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705"
+    )
+    assert active["deferred_active_runs"][0]["branch"] == "wait_for_integral_inverse_feature_result"
+    assert "gpu1_retry1" in active["deferred_active_runs"][0]["monitor_health_command"]
+
+
 def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "integral_inverse_feature.jsonl"
     _write_integral_inverse_feature_result(
