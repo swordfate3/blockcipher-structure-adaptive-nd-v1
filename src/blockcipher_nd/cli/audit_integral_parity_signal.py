@@ -217,7 +217,9 @@ def integral_deterministic_baseline_from_task(
         available = ", ".join(sorted(scores))
         raise ValueError(f"unknown deterministic statistic {statistic!r}; available: {available}")
 
-    baseline = _statistic_report(scores[statistic], labels)
+    statistic_scores = scores[statistic]
+    baseline = _statistic_report(statistic_scores, labels)
+    baseline["auc"] = _binary_auc(statistic_scores, labels)
     threshold = baseline["best_threshold"]
     return {
         "status": "pass",
@@ -357,6 +359,31 @@ def _best_threshold(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
                     "operator": operator,
                 }
     return best
+
+
+def _binary_auc(scores: np.ndarray, labels: np.ndarray) -> float | None:
+    positive_count = int(labels.sum())
+    negative_count = int((~labels).sum())
+    if positive_count == 0 or negative_count == 0:
+        return None
+
+    order = np.argsort(scores, kind="mergesort")
+    sorted_scores = scores[order]
+    ranks = np.empty(scores.shape[0], dtype=np.float64)
+    start = 0
+    while start < sorted_scores.size:
+        end = start + 1
+        while end < sorted_scores.size and sorted_scores[end] == sorted_scores[start]:
+            end += 1
+        average_rank = (start + 1 + end) / 2.0
+        ranks[order[start:end]] = average_rank
+        start = end
+
+    positive_rank_sum = float(ranks[labels].sum())
+    auc = (positive_rank_sum - positive_count * (positive_count + 1) / 2.0) / (
+        positive_count * negative_count
+    )
+    return float(auc)
 
 
 def _interpretation(accuracy: float) -> str:

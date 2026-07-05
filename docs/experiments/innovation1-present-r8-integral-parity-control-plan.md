@@ -699,16 +699,40 @@ audit = integral_deterministic_baseline
 statistic_name = pair_xor_column_sum_variance
 samples_per_class = 64
 accuracy = 0.765625
+auc = available in deterministic baseline reports
 positive mean = 7.5218963623046875
 negative mean = 6.0764923095703125
 claim_scope = deterministic local data-structure audit only
+```
+
+The fixed baseline has now also been run at the aligned-control audit scale:
+
+```text
+artifact_dir = outputs/local_audits/r8_integral_aligned_fixed_baseline_auc/
+samples_per_class = 2048
+audit seed = 23
+```
+
+| Difference | Active nibble | Accuracy | AUC | Artifact |
+|---|---:|---:|---:|---|
+| Zhang/Wang `0x9` | `0` | `0.805908203125` | `0.8878759145736694` | `row0_zhangwang_seed23_2048.json` |
+| AutoND `0x0d000000` | `6` | `0.79296875` | `0.8747416734695435` | `row1_autond_seed23_2048.json` |
+| Entropy `0x00d00000` | `5` | `0.8056640625` | `0.8852955102920532` | `row2_entropy_seed23_2048.json` |
+
+Interpretation:
+
+```text
+The fixed deterministic baseline is strong enough that a neural follow-up must
+beat or explain AUC around 0.875-0.888 on these local aligned controls. A neural
+row near the old raw-pair smoke AUC is not, by itself, evidence of a new SPN
+architecture gain.
 ```
 
 Decision update:
 
 ```text
 deterministic_pair_xor_variance_baseline_is_now_first_class
-neural_followups_must_compare_against_this_fixed_baseline
+neural_followups_must_compare_against_this_fixed_baseline_auc
 ```
 
 Next controls:

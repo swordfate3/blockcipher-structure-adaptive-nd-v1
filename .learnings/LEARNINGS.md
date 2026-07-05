@@ -229,6 +229,18 @@ default statistic = pair_xor_column_sum_variance
 
 Future neural follow-ups should compare against this fixed statistic and should not treat a best-of-feature-bank result as neural architecture evidence.
 
+The fixed baseline now reports AUC. At `2048/class`, audit seed `23`, the
+single-nibble aligned controls have strong deterministic AUC:
+
+```text
+Zhang/Wang aligned active0 AUC = 0.8878759145736694
+AutoND aligned active6 AUC = 0.8747416734695435
+Entropy aligned active5 AUC = 0.8852955102920532
+```
+
+Future neural follow-ups on this route must beat or explain this fixed baseline
+instead of merely showing a raw-pair neural signal.
+
 The multi-active-cell control for Wang/Jain two-nibble differences was then
 implemented and tested locally:
 
@@ -245,7 +257,7 @@ the next meaningful remote slot; keep the single-nibble aligned active-
 difference route primary unless a different multi-cell statistic emerges.
 
 ### Suggested Action
-Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_variance` as an explicit deterministic baseline. Keep single-nibble aligned active-difference as the primary deterministic feature route; do not spend the next meaningful slot on the tested Wang/Jain two-nibble integral route unless a new multi-cell statistic or representation changes the evidence.
+Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_variance` AUC as an explicit deterministic baseline. Keep single-nibble aligned active-difference as the primary deterministic feature route; do not spend the next meaningful slot on the tested Wang/Jain two-nibble integral route unless a new multi-cell statistic or representation changes the evidence.
 
 ### Metadata
 - Source: experiment_audit
@@ -253,7 +265,7 @@ Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_
 - Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
 - See Also: LRN-20260705-003, LRN-20260705-002
 - Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
-- Recurrence-Count: 7
+- Recurrence-Count: 8
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-06
 

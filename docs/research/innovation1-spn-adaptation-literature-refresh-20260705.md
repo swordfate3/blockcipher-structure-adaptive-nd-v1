@@ -432,6 +432,16 @@ smoke accuracy = 0.765625 at 64/class
 
 This keeps the immediate Innovation 1 route honest: later neural rows must
 beat or explain the fixed deterministic statistic, not merely rediscover it.
+At `2048/class`, audit seed `23`, the fixed baseline AUC is already high:
+
+```text
+Zhang/Wang aligned active0 AUC = 0.8878759145736694
+AutoND aligned active6 AUC = 0.8747416734695435
+Entropy aligned active5 AUC = 0.8852955102920532
+```
+
+This raises the bar for the next neural follow-up: it must beat or explain the
+fixed deterministic baseline, not simply reproduce a sub-0.89 signal.
 
 The multi-active-cell construction for multi-nibble input differences has now
 been tested locally on the Wang/Jain profile:

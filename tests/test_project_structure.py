@@ -12344,6 +12344,7 @@ def test_integral_deterministic_baseline_reports_fixed_pair_xor_variance():
     assert report["baseline"]["positive"]["count"] == 32
     assert report["baseline"]["negative"]["count"] == 32
     assert 0.5 <= report["baseline"]["best_threshold"]["accuracy"] <= 1.0
+    assert 0.5 <= report["baseline"]["auc"] <= 1.0
     assert report["interpretation"].startswith("deterministic_statistic_")
     assert "not a neural training result" in report["claim_scope"]
 
@@ -12377,6 +12378,7 @@ def test_integral_deterministic_baseline_script_defaults_to_baseline_audit(tmp_p
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["audit"] == "integral_deterministic_baseline"
     assert report["statistic_name"] == "pair_xor_column_sum_variance"
+    assert "auc" in report["baseline"]
     assert "integral_deterministic_baseline" in result.stdout
 
 
