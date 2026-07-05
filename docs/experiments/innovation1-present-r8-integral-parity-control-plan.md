@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** design ready / local control next / no remote launch
+**Status:** Control A implemented / local parity control passes / no remote launch
 
 **Scope:** PRESENT-80 r8 integral/multiset data-construction controls under
 strict `encrypted_random_plaintexts` semantics. This plan does not modify the
@@ -184,19 +184,61 @@ Decision table:
 
 ## Next Concrete Step
 
-Implement Control A locally with tests:
+Control A has been implemented locally with tests:
 
 ```text
-1. Add a new explicit sample structure for matched-integral negatives.
-2. Extend the parity audit to accept that sample structure.
-3. Add tests proving current plaintext_integral_nibble is parity-separable and
-   matched-integral negative is not trivially separated by the same statistic.
-4. Run local audit only; do not launch remote training.
+sample_structure = plaintext_integral_nibble_matched_negative
+test = test_integral_parity_audit_matched_negative_removes_pair_xor_separator
 ```
 
-If Control A removes the parity leak, the next document update should record
-whether a small local probe has any residual signal. Only then consider a lean
-remote screen.
+Implementation summary:
+
+```text
+positive:
+  unchanged active-nibble integral set paired by fixed input_difference
+
+matched negative:
+  the right side uses the same active-nibble multiset as the left side, but
+  with a one-step variant rotation instead of the fixed input_difference pair
+```
+
+Local audit at `2048/class`, seed `7`, validation key:
+
+| Class | parity-HW mean | zero rate |
+|---|---:|---:|
+| Positive | `0.0` | `1.0` |
+| Matched negative | `0.0` | `1.0` |
+
+Gate:
+
+```text
+best threshold = parity_hw <= 0
+accuracy = 0.5
+interpretation = parity_statistic_does_not_explain_result_by_itself
+```
+
+Verification:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
+  tests/test_project_structure.py::test_integral_parity_audit_detects_plaintext_integral_pair_xor_signal \
+  tests/test_project_structure.py::test_integral_parity_audit_matched_negative_removes_pair_xor_separator \
+  -q
+```
+
+Result:
+
+```text
+2 passed
+```
+
+Next concrete step:
+
+```text
+Run a local matched-negative smoke/probe before any remote screen. If the model
+or deterministic probes are near chance, stop the current integral data route.
+If a nontrivial signal remains, write a lean controlled remote screen plan.
+```
 
 ## Claim Scope
 

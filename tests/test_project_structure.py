@@ -12234,6 +12234,27 @@ def test_integral_parity_audit_detects_plaintext_integral_pair_xor_signal():
     assert report["interpretation"] == "parity_statistic_alone_nearly_separates_classes"
 
 
+def test_integral_parity_audit_matched_negative_removes_pair_xor_separator():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+    task["sample_structure"] = "plaintext_integral_nibble_matched_negative"
+
+    report = integral_parity_audit_from_task(
+        task,
+        samples_per_class=8,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert report["status"] == "pass"
+    assert report["sample_structure"] == "plaintext_integral_nibble_matched_negative"
+    assert report["positive_pair_xor_parity_hw"]["zero_rate"] == 1.0
+    assert report["negative_pair_xor_parity_hw"]["zero_rate"] == 1.0
+    assert report["best_threshold"]["accuracy"] == 0.5
+    assert report["interpretation"] == "parity_statistic_does_not_explain_result_by_itself"
+
+
 def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():
     cipher = build_cipher("present80", rounds=7, key=0)
     left = 0x0123456789ABCDEF

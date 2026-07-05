@@ -37,8 +37,11 @@ def integral_parity_audit_from_task(
     seed: int | None = None,
     key_split: str = "validation",
 ) -> dict[str, Any]:
-    if task["sample_structure"] != "plaintext_integral_nibble":
-        raise ValueError("integral parity audit requires sample_structure=plaintext_integral_nibble")
+    if task["sample_structure"] not in {
+        "plaintext_integral_nibble",
+        "plaintext_integral_nibble_matched_negative",
+    }:
+        raise ValueError("integral parity audit requires a plaintext_integral_nibble sample structure")
     if task["feature_encoding"] != "ciphertext_pair_bits":
         raise ValueError("integral parity audit currently requires feature_encoding=ciphertext_pair_bits")
 

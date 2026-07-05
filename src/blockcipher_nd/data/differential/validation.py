@@ -14,12 +14,16 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
     if config.sample_structure not in {
         "independent_pairs",
         "plaintext_integral_nibble",
+        "plaintext_integral_nibble_matched_negative",
         "zhang_wang_case2_mcnd",
         "zhang_wang_case2_independent_mcnd",
         "zhang_wang_case2_official_mcnd",
     }:
         raise ValueError(f"unsupported sample_structure: {config.sample_structure}")
-    if config.sample_structure == "plaintext_integral_nibble":
+    if config.sample_structure in {
+        "plaintext_integral_nibble",
+        "plaintext_integral_nibble_matched_negative",
+    }:
         if config.pairs_per_sample < 2 or config.pairs_per_sample & (config.pairs_per_sample - 1):
             raise ValueError("plaintext_integral_nibble requires power-of-two pairs_per_sample >= 2")
         if config.pairs_per_sample > 16:

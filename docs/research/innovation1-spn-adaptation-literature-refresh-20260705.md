@@ -268,9 +268,20 @@ docs/experiments/innovation1-present-r8-integral-parity-control-plan.md
 ```
 
 The control plan should remove the positive-vs-random-right mismatch before
-any remote scale-up. If the signal collapses under matched-integral negatives,
-switch to Candidate B and build a local SPN-derived feature probe. Keep
-Candidate C as a secondary validator, not the next remote launch.
+any remote scale-up. Control A now does remove the explicit pair-xor parity
+separator:
+
+```text
+sample_structure = plaintext_integral_nibble_matched_negative
+matched-negative parity audit accuracy = 0.5
+positive parity zero_rate = 1.0
+matched-negative parity zero_rate = 1.0
+```
+
+The next step is therefore a local matched-negative smoke/probe, not a remote
+scale-up. If the controlled probe collapses to chance, switch to Candidate B
+and build a smaller SPN-derived feature probe. Keep Candidate C as a secondary
+validator, not the next remote launch.
 
 The current priority is therefore:
 

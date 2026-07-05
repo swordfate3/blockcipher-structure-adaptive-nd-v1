@@ -15,7 +15,10 @@ def generate_positive_row(
     mask: int,
     row_index: int = 0,
 ) -> list[int]:
-    if config.sample_structure == "plaintext_integral_nibble":
+    if config.sample_structure in {
+        "plaintext_integral_nibble",
+        "plaintext_integral_nibble_matched_negative",
+    }:
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_positive_row(config, rng, block_bits, mask, row_index)
@@ -34,6 +37,8 @@ def generate_negative_row(
 ) -> list[int]:
     if config.sample_structure == "plaintext_integral_nibble":
         return _generate_integral_negative_row(config, rng, block_bits, row_index)
+    if config.sample_structure == "plaintext_integral_nibble_matched_negative":
+        return _generate_integral_matched_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_mcnd":
         return _generate_zhang_wang_case2_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "zhang_wang_case2_official_mcnd":
@@ -158,6 +163,26 @@ def _generate_integral_negative_row(
             ciphertext_a = cipher.encrypt(plaintext)
             ciphertext_b = cipher.encrypt(plaintext_b)
         encoded_pairs.extend(encode_pair(ciphertext_a, ciphertext_b, block_bits, config, cipher))
+    return encoded_pairs
+
+
+def _generate_integral_matched_negative_row(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+    row_index: int,
+) -> list[int]:
+    encoded_pairs: list[int] = []
+    cipher = cipher_for_row(config, rng, row_index)
+    base = _integral_base_plaintext(config, rng, block_bits)
+    variants = _integral_variants(config)
+    paired_variants = variants[1:] + variants[:1]
+    for variant, paired_variant in zip(variants, paired_variants, strict=True):
+        plaintext_a = base | variant
+        plaintext_b = base | paired_variant
+        encoded_pairs.extend(
+            encode_pair(cipher.encrypt(plaintext_a), cipher.encrypt(plaintext_b), block_bits, config, cipher)
+        )
     return encoded_pairs
 
 
