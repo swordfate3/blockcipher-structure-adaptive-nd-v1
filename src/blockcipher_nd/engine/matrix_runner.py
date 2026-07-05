@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 from blockcipher_nd.engine.progress import (
     reset_progress,
@@ -80,6 +82,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Optional .pt path for saving the selected PyTorch checkpoint. "
             "Use with single-row runs or provide distinct paths per launch wrapper."
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint-output-dir",
+        default=None,
+        help=(
+            "Optional directory for saving one selected PyTorch checkpoint per matrix row. "
+            "Use for frozen-score ensemble workflows that need aligned per-model checkpoints."
         ),
     )
     parser.add_argument(
@@ -196,6 +206,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", default="outputs/innovation_one_matrix_results.jsonl")
     args = parser.parse_args(argv)
+    if args.checkpoint_output and args.checkpoint_output_dir:
+        parser.error("--checkpoint-output and --checkpoint-output-dir are mutually exclusive")
     if not is_supported_feature_encoding(args.feature_encoding):
         examples = ", ".join(sorted(FEATURE_ENCODINGS))
         parser.error(
@@ -212,6 +224,8 @@ def main(argv: list[str] | None = None) -> None:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     tasks = build_tasks(args)
+    if args.checkpoint_output and len(tasks) != 1:
+        raise ValueError("--checkpoint-output requires a single-row run; use --checkpoint-output-dir for matrices")
     reset_progress(args.progress_output)
     write_progress(
         args.progress_output,
@@ -237,7 +251,7 @@ def main(argv: list[str] | None = None) -> None:
                 )
                 row = run_task(
                     task,
-                    args,
+                    args_for_task(args, task, row_index=index),
                     progress_path=args.progress_output,
                     index=index,
                     total=len(tasks),
@@ -287,6 +301,26 @@ def main(argv: list[str] | None = None) -> None:
         },
     )
     print(f"wrote {len(tasks)} rows to {output}")
+
+
+def args_for_task(args: argparse.Namespace, task: dict[str, Any], *, row_index: int) -> argparse.Namespace:
+    checkpoint_output_dir = getattr(args, "checkpoint_output_dir", None)
+    if not checkpoint_output_dir:
+        return args
+    checkpoint_output = checkpoint_path_for_task(Path(checkpoint_output_dir), task, row_index=row_index)
+    return SimpleNamespace(**{**vars(args), "checkpoint_output": str(checkpoint_output)})
+
+
+def checkpoint_path_for_task(output_dir: Path, task: dict[str, Any], *, row_index: int) -> Path:
+    model = safe_checkpoint_token(str(task.get("model_key") or task.get("architecture") or "model"))
+    seed = safe_checkpoint_token(f"seed{task.get('seed', 'na')}")
+    return output_dir / f"row{row_index:04d}_{model}_{seed}.pt"
+
+
+def safe_checkpoint_token(value: str) -> str:
+    token = "".join(char if char.isalnum() else "_" for char in value.strip().lower())
+    token = "_".join(part for part in token.split("_") if part)
+    return token or "value"
 
 
 if __name__ == "__main__":

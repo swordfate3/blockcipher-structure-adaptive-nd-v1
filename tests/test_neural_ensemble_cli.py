@@ -25,6 +25,62 @@ def write_tiny_speck_plan(path: Path) -> Path:
     return path
 
 
+def write_two_seed_tiny_speck_plan(path: Path) -> Path:
+    header = (
+        "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,"
+        "samples_per_class,pairs_per_sample,feature_encoding,negative_mode,train_key,"
+        "validation_key,key_rotation_interval,sample_structure,integral_active_nibble,"
+        "difference_profile,difference_member,loss,learning_rate,optimizer,weight_decay,"
+        "lr_scheduler,max_learning_rate,checkpoint_metric,restore_best_checkpoint,"
+        "early_stopping_patience,early_stopping_min_delta,model_options,evidence,literature"
+    )
+    rows = [
+        'SPECK32/64,ARX,Tiny-Speck-MLP-seed0,mlp,tiny,0,1,1,0,8,1,ciphertext_pair_bits,encrypted_random_plaintexts,0x1918111009080100,0x1918111009080101,0,independent_pairs,0,,,bce,0.001,adam,0,none,,val_auc,true,0,0.0,"{}","SMOKE checkpoint matrix seed0","test"',
+        'SPECK32/64,ARX,Tiny-Speck-MLP-seed1,mlp,tiny,1,1,1,1,8,1,ciphertext_pair_bits,encrypted_random_plaintexts,0x1918111009080100,0x1918111009080101,0,independent_pairs,0,,,bce,0.001,adam,0,none,,val_auc,true,0,0.0,"{}","SMOKE checkpoint matrix seed1","test"',
+    ]
+    path.write_text("\n".join([header, *rows]) + "\n", encoding="utf-8")
+    return path
+
+
+def test_train_matrix_checkpoint_output_dir_writes_per_row_checkpoints(tmp_path):
+    plan = write_two_seed_tiny_speck_plan(tmp_path / "matrix.csv")
+    checkpoint_dir = tmp_path / "checkpoints"
+    output = tmp_path / "results.jsonl"
+
+    train_main(
+        [
+            "--plan",
+            str(plan),
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--device",
+            "cpu",
+            "--checkpoint-output-dir",
+            str(checkpoint_dir),
+            "--output",
+            str(output),
+        ]
+    )
+
+    checkpoints = sorted(checkpoint_dir.glob("row*.pt"))
+    result_rows = [
+        json.loads(line)
+        for line in output.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    checkpoint_outputs = [row["training"]["checkpoint_output"] for row in result_rows]
+
+    assert len(checkpoints) == 2
+    assert len(result_rows) == 2
+    assert checkpoint_outputs == [str(path) for path in checkpoints]
+    assert checkpoints[0].name.startswith("row0001_mlp_seed0")
+    assert checkpoints[1].name.startswith("row0002_mlp_seed1")
+
+
 def test_export_checkpoint_scores_writes_artifact(tmp_path):
     checkpoint = tmp_path / "model.pt"
     train_output = tmp_path / "train.jsonl"

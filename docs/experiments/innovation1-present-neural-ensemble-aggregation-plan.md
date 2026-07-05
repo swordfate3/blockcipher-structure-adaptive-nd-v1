@@ -375,3 +375,131 @@ Current claim scope remains application-level score aggregation only. The tiny
 smoke tests verify code paths, not SPN/PRESENT model quality. A meaningful
 PRESENT ensemble result still requires aligned strong checkpoints or a lean
 same-protocol model matrix, followed by the scale ladder in this document.
+
+## Checkpoint Inventory And First Screen
+
+Inventory result as of 2026-07-05:
+
+```text
+local retrieved PyTorch checkpoints for strong PRESENT runs = not found
+remote G:\lxy PyTorch checkpoints under project/runs roots = not found
+available local .pt files = smoke-only checkpoints, not PRESENT evidence
+retrospective ensemble from existing strong checkpoints = blocked by missing checkpoints
+```
+
+The route therefore moves to a checkpoint-producing same-protocol screen rather
+than a retrospective score export. The first planned screen is:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_neural_ensemble_r7_65k_seed0.csv
+rounds = 7
+samples_per_class = 65536
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+difference_profile = present_zhang_wang2022_mcnd
+validation_key = 0x11111111111111111111
+claim_scope = checkpoint-producing ensemble diagnostic only
+```
+
+Rows:
+
+| Row | Model | Role |
+|---|---|---|
+| 0 | `present_zhang_wang_keras_mcnd` | same-protocol Zhang/Wang-style baseline |
+| 1 | `present_nibble_invp_only_spn_only` | strongest InvP/P-layer aligned anchor |
+| 2 | `present_nibble_ddt_graph` | structural view for error-complementarity triage |
+
+Train the checkpoint matrix:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_neural_ensemble_r7_65k_seed0.csv \
+  --epochs 18 \
+  --batch-size 1024 \
+  --hidden-bits 32 \
+  --device cuda:0 \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --lr-scheduler official_cyclic \
+  --max-learning-rate 0.002 \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --checkpoint-output-dir <run_root>/checkpoints \
+  --early-stopping-patience 8 \
+  --early-stopping-min-delta 0.0001 \
+  --train-eval-interval 0 \
+  --sample-structure zhang_wang_case2_official_mcnd \
+  --negative-mode encrypted_random_plaintexts \
+  --key-rotation-interval 0 \
+  --dataset-cache-root <run_root>/dataset_cache \
+  --dataset-cache-chunk-size 8192 \
+  --dataset-cache-workers 4 \
+  --output <run_root>/results/train_matrix.jsonl \
+  --progress-output <run_root>/logs/train_matrix_progress.jsonl
+```
+
+The `--checkpoint-output-dir` path writes one selected checkpoint per plan row,
+for example:
+
+```text
+row0001_present_zhang_wang_keras_mcnd_seed0.pt
+row0002_present_nibble_invp_only_spn_only_seed0.pt
+row0003_present_nibble_ddt_graph_seed0.pt
+```
+
+After training, export score artifacts from each checkpoint against the same
+plan row and evaluate:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <run_root>/checkpoints/row0001_present_zhang_wang_keras_mcnd_seed0.pt \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_neural_ensemble_r7_65k_seed0.csv \
+  --eval-row-index 0 \
+  --model-key present_zhang_wang_keras_mcnd \
+  --hidden-bits 32 \
+  --batch-size 1024 \
+  --device cuda:0 \
+  --output-dir <run_root>/score_artifacts/zhang_wang
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <run_root>/checkpoints/row0002_present_nibble_invp_only_spn_only_seed0.pt \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_neural_ensemble_r7_65k_seed0.csv \
+  --eval-row-index 1 \
+  --model-key present_nibble_invp_only_spn_only \
+  --hidden-bits 32 \
+  --batch-size 1024 \
+  --device cuda:0 \
+  --output-dir <run_root>/score_artifacts/invp_only
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <run_root>/checkpoints/row0003_present_nibble_ddt_graph_seed0.pt \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_neural_ensemble_r7_65k_seed0.csv \
+  --eval-row-index 2 \
+  --model-key present_nibble_ddt_graph \
+  --hidden-bits 32 \
+  --batch-size 1024 \
+  --device cuda:0 \
+  --output-dir <run_root>/score_artifacts/ddt_graph
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-neural-ensemble \
+  --artifacts \
+    <run_root>/score_artifacts/zhang_wang \
+    <run_root>/score_artifacts/invp_only \
+    <run_root>/score_artifacts/ddt_graph \
+  --output <run_root>/results/neural_ensemble_summary.json
+```
+
+Gate remains:
+
+```text
+best ensemble AUC >= best single AUC + 0.001
+and double-fault/error overlap is not high
+=> keep ensemble route and prepare 262144/class confirmation
+```
+
+If this 65536/class screen does not improve over the best single model, stop
+this candidate pool and return to architecture/data-representation changes
+rather than widening the ensemble mechanically.
