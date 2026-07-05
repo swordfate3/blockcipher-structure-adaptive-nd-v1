@@ -22,6 +22,31 @@ sync_artifacts() {
   scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/results" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
 }
 
+commit_plan_doc_if_changed() {
+  if git diff --quiet -- "${PLAN_DOC}"; then
+    echo "$(timestamp) plan_doc_unchanged" >> "${MONITOR_DIR}/monitor.log"
+    return 0
+  fi
+
+  git add "${PLAN_DOC}" >> "${MONITOR_DIR}/git_commit.log" 2>> "${MONITOR_DIR}/git_commit_stderr.log"
+  git commit -m "docs: record ${RUN_ID} result" >> "${MONITOR_DIR}/git_commit.log" 2>> "${MONITOR_DIR}/git_commit_stderr.log"
+  commit_status=$?
+  if [[ "${commit_status}" -ne 0 ]]; then
+    echo "$(timestamp) plan_doc_commit_failed" >> "${MONITOR_DIR}/monitor.log"
+    return "${commit_status}"
+  fi
+
+  git push >> "${MONITOR_DIR}/git_push.log" 2>> "${MONITOR_DIR}/git_push_stderr.log"
+  push_status=$?
+  if [[ "${push_status}" -ne 0 ]]; then
+    echo "$(timestamp) plan_doc_push_failed" >> "${MONITOR_DIR}/monitor.log"
+    return "${push_status}"
+  fi
+
+  echo "$(timestamp) plan_doc_committed_and_pushed" >> "${MONITOR_DIR}/monitor.log"
+  return 0
+}
+
 while true; do
   echo "$(timestamp) sync" >> "${MONITOR_DIR}/monitor.log"
   sync_artifacts
@@ -49,7 +74,14 @@ while true; do
       > "${MONITOR_DIR}/advance.log" 2> "${MONITOR_DIR}/advance_stderr.log"
     advance_status=$?
     if [[ "${advance_status}" -eq 0 ]]; then
-      echo "$(timestamp) advance_done" >> "${MONITOR_DIR}/monitor.log"
+      commit_plan_doc_if_changed
+      commit_status=$?
+      if [[ "${commit_status}" -eq 0 ]]; then
+        echo "$(timestamp) advance_done" >> "${MONITOR_DIR}/monitor.log"
+      else
+        echo "$(timestamp) advance_done_commit_failed" >> "${MONITOR_DIR}/monitor.log"
+      fi
+      exit "${commit_status}"
     else
       echo "$(timestamp) advance_failed" >> "${MONITOR_DIR}/monitor.log"
     fi
