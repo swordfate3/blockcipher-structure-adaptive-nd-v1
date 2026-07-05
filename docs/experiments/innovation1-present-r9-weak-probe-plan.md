@@ -420,3 +420,63 @@ Claim scope:
 262144/class seed1 = medium diagnostic variance check only.
 It is not formal r9 evidence, not a breakthrough claim, and not r10 evidence.
 ```
+
+## 12. Prepared r9 1M Seed0 Strong-Gate Branch
+
+**Status:** prepared / gate-locked / not launched
+
+This branch exists only for the strong r9 weak-probe outcome. It is not a
+default next run, and it must not be launched from a near-random or merely weak
+trace result.
+
+```text
+run_id = i1_present_r9_1m_seed0_gpu0_20260705
+plan = configs/experiment/innovation1/innovation1_spn_present_r9_1m_seed0.csv
+remote_config = configs/remote/innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json
+launcher = configs/remote/generated/run_i1_present_r9_1m_seed0_gpu0_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r9_1m_seed0_gpu0_20260705.sh
+```
+
+Launch gate:
+
+```text
+do not launch until seed0 r9 weak-probe is retrieved / validated / postprocessed
+and the gate returns:
+
+strong_r9_diagnostic_prepare_1m_seed0
+```
+
+Fixed protocol:
+
+```text
+rounds = 9
+samples_per_class = 1000000
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+difference_profile = present_zhang_wang2022_mcnd
+checkpoint_metric = val_auc
+```
+
+Matrix:
+
+| Row | Model | Role |
+|---:|---|---|
+| 0 | `present_zhang_wang_keras_mcnd` | same-budget r9 1M baseline |
+| 1 | `present_nibble_invp_only_spn_only` | InvP/P-layer aligned candidate |
+| 2 | `present_nibble_invp_pair_consistency_spn_only` | pair-set candidate |
+
+Readiness command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json
+```
+
+Claim scope:
+
+```text
+1000000/class seed0 = paper-scale single-seed diagnostic.
+It can strengthen a strong 262144/class r9 signal, but it is still not formal
+multi-seed route evidence and not a breakthrough claim.
+```

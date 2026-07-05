@@ -17,6 +17,10 @@ R9_SEED1_REMOTE_CONFIG = (
     "configs/remote/"
     "innovation1_spn_present_r9_weak_probe_262k_seed1_gpu0_20260705.json"
 )
+R9_1M_SEED0_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json"
+)
 
 DEFAULT_NEAR_RANDOM_AUC_CEILING = 0.505
 DEFAULT_WEAK_TRACE_AUC_CEILING = 0.52
@@ -35,6 +39,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--weak-trace-auc-ceiling", type=float, default=DEFAULT_WEAK_TRACE_AUC_CEILING)
     parser.add_argument("--strong-auc-threshold", type=float, default=DEFAULT_STRONG_AUC_THRESHOLD)
     parser.add_argument("--baseline-margin", type=float, default=DEFAULT_BASELINE_MARGIN)
+    parser.add_argument("--claim-scope", default=None)
     parser.add_argument("--update-plan-doc", type=Path, action="append", default=[])
     return parser.parse_args(argv)
 
@@ -50,6 +55,7 @@ def postprocess_r9_weak_probe_result(
     weak_trace_auc_ceiling: float = DEFAULT_WEAK_TRACE_AUC_CEILING,
     strong_auc_threshold: float = DEFAULT_STRONG_AUC_THRESHOLD,
     baseline_margin: float = DEFAULT_BASELINE_MARGIN,
+    claim_scope: str | None = None,
     plan_doc_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -72,6 +78,7 @@ def postprocess_r9_weak_probe_result(
         weak_trace_auc_ceiling=weak_trace_auc_ceiling,
         strong_auc_threshold=strong_auc_threshold,
         baseline_margin=baseline_margin,
+        claim_scope=claim_scope,
     )
     gate_path = output_dir / f"{run_id}_r9_weak_probe_gate.json"
     _write_json(gate_path, gate_report)
@@ -130,6 +137,7 @@ def gate_r9_weak_probe_result(
     weak_trace_auc_ceiling: float = DEFAULT_WEAK_TRACE_AUC_CEILING,
     strong_auc_threshold: float = DEFAULT_STRONG_AUC_THRESHOLD,
     baseline_margin: float = DEFAULT_BASELINE_MARGIN,
+    claim_scope: str | None = None,
 ) -> dict[str, Any]:
     rows = _read_jsonl(results_path)
     entries = [_entry(row) for row in rows]
@@ -204,7 +212,8 @@ def gate_r9_weak_probe_result(
             "strong_auc_threshold": strong_auc_threshold,
             "baseline_margin": baseline_margin,
         },
-        "claim_scope": (
+        "claim_scope": claim_scope
+        or (
             "PRESENT r9 262144/class single-seed weak-probe diagnostic only; "
             "not paper-scale, formal multi-seed, or breakthrough evidence"
         ),
@@ -241,10 +250,15 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
         return {
             "branch": "r9_1m_seed0_plan",
             "should_launch_remote": False,
-            "requires_implementation": True,
+            "requires_implementation": False,
             "reason": decision,
             "selected_model": (report.get("best_candidate") or {}).get("model", ""),
             "next_plan_doc": "docs/experiments/innovation1-present-r9-weak-probe-plan.md",
+            "suggested_remote_config": R9_1M_SEED0_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R9_1M_SEED0_REMOTE_CONFIG}"
+            ),
         }
     if decision == "r9_weak_positive_prepare_seed1_or_curriculum_scale":
         return {
@@ -424,6 +438,7 @@ def main(argv: list[str] | None = None) -> int:
         weak_trace_auc_ceiling=args.weak_trace_auc_ceiling,
         strong_auc_threshold=args.strong_auc_threshold,
         baseline_margin=args.baseline_margin,
+        claim_scope=args.claim_scope,
         plan_doc_paths=args.update_plan_doc,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
