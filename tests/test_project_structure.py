@@ -12274,6 +12274,36 @@ def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_pa
     assert report["duplicate_result_keys"] == []
 
 
+def test_projection_ensemble_metrics_reports_weighted_logit_mode():
+    from blockcipher_nd.cli.evaluate_projection_ensemble import ensemble_metrics
+
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    probabilities = np.array(
+        [
+            [0.10, 0.40],
+            [0.20, 0.30],
+            [0.80, 0.55],
+            [0.70, 0.60],
+        ],
+        dtype=np.float32,
+    )
+    row_reports = [
+        {"metrics": {"auc": 1.0}},
+        {"metrics": {"auc": 0.75}},
+    ]
+
+    reports = ensemble_metrics(labels, probabilities, row_reports)
+
+    assert [report["mode"] for report in reports] == [
+        "probability_mean",
+        "logit_mean",
+        "auc_weighted_logit_mean",
+    ]
+    weighted = reports[2]
+    assert weighted["weights"][0] > weighted["weights"][1]
+    assert weighted["metrics"]["auc"] == 1.0
+
+
 def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 

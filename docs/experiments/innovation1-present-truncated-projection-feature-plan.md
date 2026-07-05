@@ -121,6 +121,32 @@ else:
 第一版 ensemble 必须保存每个弱模型在同一 validation set 上的预测或 checkpoint，
 否则无法判断互补性。不能只看 JSONL 里的最终 AUC 来“想象融合会变强”。
 
+当前已准备最小可执行工具：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-projection-ensemble \
+  --plan configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_screen_smoke.csv \
+  --device cpu \
+  --epochs 1 \
+  --batch-size 8 \
+  --hidden-bits 16 \
+  --output outputs/smoke/i1_projection_ensemble_smoke.json
+```
+
+该工具按同一个 plan 逐行训练弱模型，固定同一个 validation split，然后输出：
+
+```text
+rows[]                  = 单模型指标和输入投影
+ensembles[].mode        = probability_mean / logit_mean / auc_weighted_logit_mean
+best_single             = 最强单模型
+best_ensemble           = 最强融合
+delta_best_ensemble_vs_single_auc
+```
+
+`auc_weighted_logit_mean` 只给 `AUC > 0.5` 的弱正模型赋权；若没有任何弱正模型，
+自动退回均匀权重，防止为了提高指标而人为挑权重。这个 ensemble 结果仍然只是
+same-validation diagnostic，后续必须用新 seed 或独立 confirmation split 验证。
+
 ## 6. Gate
 
 `65536/class` screen 是 diagnostic only：
