@@ -477,7 +477,11 @@ def build_spn_model(
             top_k=int_option(options, "top_k", 4) or 4,
             lse_temperature=float(options.get("lse_temperature", 1.0)),
         )
-    if name == "present_matrix_trail_hybrid_pairset":
+    if name in {
+        "present_matrix_trail_hybrid_pairset",
+        "present_matrix_trail_hybrid_pairset_invp",
+        "present_matrix_trail_hybrid_pairset_invp_sinv",
+    }:
         return PresentMatrixTrailHybridPairSetDistinguisher(
             input_bits=input_bits,
             pair_bits=pair_bits or 768,

@@ -744,6 +744,77 @@ def test_present_pair_evidence_pooling_screen_plans_are_protocol_locked():
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
 
+def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
+    smoke_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    )
+    screen_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv"
+    )
+    smoke_tasks = build_tasks(parse_args(["--plan", smoke_plan]))
+    screen_tasks = build_tasks(parse_args(["--plan", screen_plan]))
+
+    assert [task["model_key"] for task in smoke_tasks] == [
+        "present_nibble_invp_pair_consistency_spn_only",
+        "present_matrix_trail_hybrid_pairset_invp",
+        "present_matrix_trail_hybrid_pairset_invp_sinv",
+    ]
+    assert [task["feature_encoding"] for task in smoke_tasks] == [
+        "ciphertext_pair_bits",
+        "present_pair_xor_paligned_cell_matrix_bits",
+        "present_pair_xor_paligned_sinv_cell_matrix_bits",
+    ]
+    assert [task["feature_encoding"] for task in screen_tasks] == [
+        "ciphertext_pair_bits",
+        "present_pair_xor_paligned_cell_matrix_bits",
+        "present_pair_xor_paligned_sinv_cell_matrix_bits",
+    ]
+    for task in smoke_tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 4
+        assert task["pairs_per_sample"] == 16
+        assert task["sample_structure"] == "plaintext_integral_nibble"
+        assert task["integral_active_nibble"] == 0
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+
+    for task in screen_tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 65536
+        assert task["pairs_per_sample"] == 16
+        assert task["sample_structure"] == "plaintext_integral_nibble"
+        assert task["integral_active_nibble"] == 0
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SCREEN 65536/class" in task["matching_evidence"]
+        assert "not formal evidence" in task["matching_evidence"]
+
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md"
+    ).read_text(encoding="utf-8")
+    research_doc = Path("docs/research/innovation1-present-higher-round-strategy.md").read_text(
+        encoding="utf-8"
+    )
+    assert "high-round data-representation screen" in plan_doc
+    assert "not Zhang/Wang same-protocol model evidence" in plan_doc
+    assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc
+    assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
+    assert "Integral / inverse-round 数据结构路线" in research_doc
+    assert "Stage H5" in research_doc
+
+
 def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate():
     plan_doc = Path(
         "docs/experiments/innovation1-present-r10-conditional-weak-probe-plan.md"

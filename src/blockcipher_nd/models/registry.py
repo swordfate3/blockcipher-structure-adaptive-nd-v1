@@ -77,6 +77,8 @@ MODEL_REGISTRY: dict[str, type[nn.Module]] = {
     "present_inception_mcnd_global_matrix": PresentInceptionMCNDGlobalMatrixDistinguisher,
     "present_inception_mcnd_pair_stack_matrix": PresentInceptionMCNDPairStackMatrixDistinguisher,
     "present_matrix_trail_hybrid_pairset": PresentMatrixTrailHybridPairSetDistinguisher,
+    "present_matrix_trail_hybrid_pairset_invp": PresentMatrixTrailHybridPairSetDistinguisher,
+    "present_matrix_trail_hybrid_pairset_invp_sinv": PresentMatrixTrailHybridPairSetDistinguisher,
     "present_nibble_invp_p_layer_graph_spn_only": PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher,
     "present_nibble_invp_shuffled_p_layer_graph_spn_only": PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher,
     "present_pairset_global_stats": PresentPairSetGlobalStatsDistinguisher,
