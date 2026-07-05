@@ -7,6 +7,7 @@ REMOTE_RUN_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/${RUN_ID}"
 LOCAL_ROOT="outputs/remote_results/${RUN_ID}"
 MONITOR_DIR="${LOCAL_ROOT}/monitor"
 PLAN="configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv"
+PLAN_DOC="docs/experiments/innovation1-present-r9-difference-screen-plan.md"
 EXPECTED_ROWS="7"
 
 mkdir -p "${LOCAL_ROOT}" "${MONITOR_DIR}" "${LOCAL_ROOT}/logs" "${LOCAL_ROOT}/results"
@@ -21,13 +22,29 @@ sync_artifacts() {
   scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/results" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
 }
 
-write_gate_note() {
-  result_file="${LOCAL_ROOT}/results/${RUN_ID}.jsonl"
-  # Rank the screen by difference_profile:difference_member because every row uses the same model.
-  env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-difference-screen \
-    --results "${result_file}" \
-    --expected-rows "${EXPECTED_ROWS}" \
-    --output "${LOCAL_ROOT}/${RUN_ID}_gate_note.json"
+commit_plan_doc_if_changed() {
+  if git diff --quiet -- "${PLAN_DOC}"; then
+    echo "$(timestamp) plan_doc_unchanged" >> "${MONITOR_DIR}/monitor.log"
+    return 0
+  fi
+
+  git add "${PLAN_DOC}" >> "${MONITOR_DIR}/git_commit.log" 2>> "${MONITOR_DIR}/git_commit_stderr.log"
+  git commit -m "docs: record ${RUN_ID} result" >> "${MONITOR_DIR}/git_commit.log" 2>> "${MONITOR_DIR}/git_commit_stderr.log"
+  commit_status=$?
+  if [[ "${commit_status}" -ne 0 ]]; then
+    echo "$(timestamp) plan_doc_commit_failed" >> "${MONITOR_DIR}/monitor.log"
+    return "${commit_status}"
+  fi
+
+  git push >> "${MONITOR_DIR}/git_push.log" 2>> "${MONITOR_DIR}/git_push_stderr.log"
+  push_status=$?
+  if [[ "${push_status}" -ne 0 ]]; then
+    echo "$(timestamp) plan_doc_push_failed" >> "${MONITOR_DIR}/monitor.log"
+    return "${push_status}"
+  fi
+
+  echo "$(timestamp) plan_doc_committed_and_pushed" >> "${MONITOR_DIR}/monitor.log"
+  return 0
 }
 
 while true; do
@@ -47,13 +64,6 @@ while true; do
 
   if [[ "${result_rows}" -ge "${EXPECTED_ROWS}" ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
-      --plan "${PLAN}" \
-      --results "${result_file}" \
-      --expected-rows "${EXPECTED_ROWS}" \
-      --output "${LOCAL_ROOT}/${RUN_ID}_validation.json" \
-      > "${MONITOR_DIR}/validate.log" 2> "${MONITOR_DIR}/validate_stderr.log"
-    validate_status=$?
     env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
       --results "${result_file}" \
       --output "${LOCAL_ROOT}/${RUN_ID}_curves.svg" \
@@ -61,13 +71,26 @@ while true; do
       --title "${RUN_ID}" \
       > "${MONITOR_DIR}/plot.log" 2> "${MONITOR_DIR}/plot_stderr.log"
     plot_status=$?
-    write_gate_note > "${MONITOR_DIR}/gate_note.log" 2> "${MONITOR_DIR}/gate_note_stderr.log"
-    gate_status=$?
-    if [[ "${validate_status}" -eq 0 && "${plot_status}" -eq 0 && "${gate_status}" -eq 0 ]]; then
-      echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
-      exit 0
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-difference-screen \
+      --plan "${PLAN}" \
+      --results "${result_file}" \
+      --output-dir "${LOCAL_ROOT}" \
+      --run-id "${RUN_ID}" \
+      --expected-rows "${EXPECTED_ROWS}" \
+      --update-plan-doc "${PLAN_DOC}" \
+      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
+    postprocess_status=$?
+    if [[ "${plot_status}" -eq 0 && "${postprocess_status}" -eq 0 ]]; then
+      commit_plan_doc_if_changed
+      commit_status=$?
+      if [[ "${commit_status}" -eq 0 ]]; then
+        echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
+      else
+        echo "$(timestamp) postprocess_done_commit_failed" >> "${MONITOR_DIR}/monitor.log"
+      fi
+      exit "${commit_status}"
     fi
-    echo "$(timestamp) postprocess_failed validate=${validate_status} plot=${plot_status} gate=${gate_status}" >> "${MONITOR_DIR}/monitor.log"
+    echo "$(timestamp) postprocess_failed plot=${plot_status} postprocess=${postprocess_status}" >> "${MONITOR_DIR}/monitor.log"
     exit 3
   fi
 

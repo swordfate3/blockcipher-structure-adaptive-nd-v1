@@ -661,11 +661,11 @@ def test_present_r9_difference_screen_plan_and_remote_assets_are_prepared_not_la
     assert "r9_difference_screen_progress.jsonl" in launcher_text
 
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
-    assert "difference_profile:difference_member" in monitor_text
-    assert "scripts/gate-difference-screen" in monitor_text
-    assert "validate-results" in monitor_text
+    assert "scripts/postprocess-difference-screen" in monitor_text
+    assert "--update-plan-doc" in monitor_text
+    assert "innovation1-present-r9-difference-screen-plan.md" in monitor_text
     assert "plot-results" in monitor_text
-    assert "gate_note" in monitor_text
+    assert "plan_doc_committed_and_pushed" in monitor_text
 
     assert "数据构造 / benchmark 搜索" in plan_doc
     assert "not same-protocol model-improvement evidence" in plan_doc
