@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** smoke passed / 65536-class screen prepared / GPU1 remote assets prepared / launch selected after projection weak-hold gate
+**状态：** retry1 launched / running / local watcher handoff / awaiting 3-row postprocess gate
 
 **研究蓝图：** `docs/research/innovation1-present-higher-round-strategy.md`
 
@@ -396,6 +396,36 @@ remote_config = configs/remote/innovation1_spn_present_r8_integral_inverse_featu
 launcher = configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.cmd
 monitor = configs/remote/generated/monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.sh
 ```
+
+**Repair launch record：**
+
+<!-- integral-inverse-feature-retry-launch:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705:start -->
+
+```text
+status = launched / running / local watcher handoff / not ready for postprocess
+readiness status = pass
+expected_rows = 3
+started.marker = present
+progress jsonl = present
+results jsonl = present, partial 2 / 3 rows
+monitor first local sync = 2026-07-05T18:31:31+08:00
+latest checked monitor state = running
+source commit = 6c279b3ea9490f5e84ec67b0bd8d04cb01783d05
+postprocess_allowed = false
+needs_main_thread_intervention = false
+heartbeat = fresh
+```
+
+解释：
+
+```text
+retry1 已经修复原始 OOM run 的启动/资源门，并由 watcher 持续检索本地
+artifacts。但当前只有 2 / 3 result rows，因此不能执行 integral/inverse
+feature gate，也不能把 partial rows 解释成完整 screen 结论。完整 3-row
+matrix ready 后再运行第 3 节的 advance-integral-inverse-feature-result 命令。
+```
+
+<!-- integral-inverse-feature-retry-launch:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705:end -->
 
 唯一训练资源变化：
 
