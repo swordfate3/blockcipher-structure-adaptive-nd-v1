@@ -88,6 +88,7 @@ from blockcipher_nd.cli.audit_integral_parity_signal import (
     integral_feature_bank_audit_from_task,
     integral_parity_audit_from_task,
 )
+from blockcipher_nd.cli.audit_spn_features import main as audit_spn_features_main
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
 
 
@@ -12698,6 +12699,65 @@ def test_present_r8_gpd_style_beamstats_512_seed1_plan_repeats_seed0_protocol():
         assert "512/class" in seed1_task["matching_evidence"]
         assert "seed1 repeat" in seed1_task["matching_evidence"]
         assert "no remote launch" in seed1_task["matching_evidence"]
+
+
+def test_present_r8_gpd_style_beamstats_attribution_reports_semantic_statistics():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+    beamstats_task = tasks[3]
+
+    report = spn_feature_audit.beamstats_attribution_from_task(
+        beamstats_task,
+        samples_per_class=4,
+        seed=123,
+        key_split="validation",
+    )
+
+    assert report["status"] == "pass"
+    assert report["audit"] == "present_beamstats_semantic_attribution"
+    assert report["feature_encoding"] == (
+        "present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits"
+    )
+    assert report["samples_per_class"] == 4
+    assert report["beam_width"] == 4
+    assert report["depth"] == 3
+    assert report["claim_scope"].startswith("Local semantic attribution")
+    assert "score_mean" in report["statistics"]
+    assert "active_mean" in report["statistics"]
+    assert "disagreement_nonzero_rate" in report["statistics"]
+    assert report["best_statistic"]["name"] in report["statistics"]
+    assert 0.0 <= report["best_statistic"]["auc_advantage"] <= 0.5
+
+
+def test_audit_spn_features_cli_writes_beamstats_attribution(tmp_path):
+    output = tmp_path / "beamstats_attribution.json"
+    status = audit_spn_features_main(
+        [
+            "--beamstats-attribution-plan",
+            "configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv",
+            "--row-index",
+            "3",
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--key-split",
+            "validation",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "present_beamstats_semantic_attribution"
+    assert payload["feature_encoding"] == (
+        "present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits"
+    )
+    assert payload["best_statistic"]["name"] in payload["statistics"]
 
 
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():

@@ -388,6 +388,59 @@ expanded DDT beam unless a new attribution explains the seed1 failure.
 
 ---
 
+## [LRN-20260706-003] best_practice
+
+**Logged**: 2026-07-06T01:10:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Treat the r8 GPD-style beamstats row as an unstable local weak-expert candidate, not as a remote scale-up route.
+
+### Details
+The GPD-style beamstats diagnostic produced a weak two-seed local hint, but
+semantic attribution did not identify a stable simple driver:
+
+```text
+512/class seed0 beamstats AUC = 0.5418472290039062
+512/class seed1 beamstats AUC = 0.5724639892578125
+2048/class attribution seed0 best scalar = confidence_std, AUC 0.5216715335845947
+2048/class attribution seed1 best scalar = cumulative_mean, AUC 0.523328423500061
+```
+
+The best semantic scalar changes across seeds and stays near chance. This means
+beamstats may still be useful as a future non-neighbor score artifact, but it is
+not interpretable or stable enough to justify a `65536/class` remote launch
+from the current branch.
+
+Correct framing:
+
+- Keep beamstats as a possible future diverse-expert family only if compatible
+  weak-positive score artifacts and low-overlap/error-correlation evidence are
+  produced.
+- Do not use the current beamstats result to justify mechanically wider
+  near-neighbor ensemble work.
+- Prefer controlled SPN feature/input attribution before remote scaling.
+
+### Suggested Action
+If continuing this branch, run a lean local composite probe or diversity-score
+check first. Otherwise return to the stronger controlled SPN feature/input
+route and require any neural follow-up to beat or explain its deterministic
+baseline.
+
+### Metadata
+- Source: conversation
+- Related Files: docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, gpd, beamstats, attribution, diverse-experts
+- See Also: LRN-20260705-002, LRN-20260705-003, LRN-20260706-001, LRN-20260706-002
+- Pattern-Key: innovation1.spn_present.beamstats_local_candidate_not_scale_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260630-001] correction
 
 **Logged**: 2026-06-30T00:00:00+08:00

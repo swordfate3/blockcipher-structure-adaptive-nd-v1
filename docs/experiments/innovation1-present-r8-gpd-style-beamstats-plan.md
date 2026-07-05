@@ -441,3 +441,76 @@ The GPD-style beamstats row is a possible future non-neighbor expert source,
 but only after compatible weak-positive score artifacts and low-overlap checks
 exist. Do not use this result to justify a wider near-neighbor ensemble now.
 ```
+
+## Local Beamstats Semantic Attribution
+
+After the 512/class seed0+seed1 diagnostic, the next question was whether the
+compressed beamstats row was explained by one simple semantic scalar. The
+existing bit/word audit is not enough for this because
+`words_to_present_cell_matrix_bits` reorders words into cell/bit-plane layout.
+This attribution therefore regenerates raw `ciphertext_pair_bits` for the same
+task row and recomputes the candidate-evidence layers directly.
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed0_2048.json
+outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed1_2048.json
+```
+
+Attribution command shape:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --beamstats-attribution-plan configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv \
+  --row-index 3 \
+  --samples-per-class 2048 \
+  --seed 0 \
+  --key-split validation \
+  --output outputs/local_audits/i1_present_r8_gpd_beamstats_attribution_seed0_2048.json
+```
+
+Result:
+
+| Seed | Best semantic scalar | AUC | AUC advantage | Best threshold accuracy |
+|---:|---|---:|---:|---:|
+| 0 | `confidence_std` | `0.5216715335845947` | `0.021671533584594727` | `0.5302734375` |
+| 1 | `cumulative_mean` | `0.523328423500061` | `0.023328423500061035` | `0.535400390625` |
+
+Top seed0 fields:
+
+| Field | AUC | Best threshold accuracy |
+|---|---:|---:|
+| `confidence_std` | `0.5216715335845947` | `0.5302734375` |
+| `margin_std` | `0.519118070602417` | `0.52783203125` |
+| `active_max` | `0.5152647495269775` | `0.541259765625` |
+| `cumulative_max` | `0.5151957273483276` | `0.536376953125` |
+| `disagreement_nonzero_rate` | `0.4854687452316284` | `0.531494140625` |
+| `cumulative_mean` | `0.5123016834259033` | `0.5341796875` |
+
+Top seed1 fields:
+
+| Field | AUC | Best threshold accuracy |
+|---|---:|---:|
+| `cumulative_mean` | `0.523328423500061` | `0.535400390625` |
+| `score_max` | `0.520233154296875` | `0.53466796875` |
+| `confidence_mean` | `0.5175948143005371` | `0.526611328125` |
+| `top_active_mean` | `0.4824756383895874` | `0.531005859375` |
+| `confidence_std` | `0.5162439346313477` | `0.5302734375` |
+| `margin_mean` | `0.5162283182144165` | `0.528076171875` |
+
+Decision:
+
+```text
+beamstats_not_explained_by_single_semantic_scalar
+hold_gpd_style_beam_family_no_remote_launch
+```
+
+Interpretation:
+
+```text
+No single semantic scalar explains the weak beamstats neural signal. The best
+scalar AUC is only about 0.522-0.523 and the best field changes across seeds.
+Keep beamstats only as a possible future non-neighbor weak expert source; do
+not remote-launch this branch and do not use it to justify a wider ensemble.
+```

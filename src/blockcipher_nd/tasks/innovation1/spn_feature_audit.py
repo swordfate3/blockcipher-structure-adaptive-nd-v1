@@ -9,6 +9,8 @@ import numpy as np
 
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.features.spn_candidate_evidence import present_pair_candidate_evidence_layers
+from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.registry.difference_profiles import difference_for_profile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.features.registry import pair_bits_for_encoding
@@ -23,6 +25,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--cipher", default="present80")
     parser.add_argument("--rounds", type=int, nargs="+", default=[6, 7])
     parser.add_argument("--seeds", type=int, nargs="+", default=[0])
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--samples-per-class", type=int, default=2048)
     parser.add_argument("--pairs-per-sample", type=int, default=16)
     parser.add_argument(
@@ -43,11 +46,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--train-key", type=lambda value: int(value, 0), default=None)
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
+    parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
+    parser.add_argument("--row-index", type=int, default=0)
+    parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.beamstats_attribution_plan is not None:
+        tasks = tasks_from_plan(
+            args.beamstats_attribution_plan,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=1,
+            difference_profile=None,
+            difference_member=0,
+        )
+        if args.row_index < 0 or args.row_index >= len(tasks):
+            raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
+        payload = beamstats_attribution_from_task(
+            tasks[args.row_index],
+            samples_per_class=args.samples_per_class,
+            seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
+            key_split=args.key_split,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
     rows = run_audit(args)
     payload = {
         "kind": "spn_feature_separation_audit",
@@ -72,6 +100,7 @@ def main(argv: list[str] | None = None) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"wrote {len(rows)} audit rows to {output}")
+    return 0
 
 
 def run_audit(args: argparse.Namespace) -> list[dict[str, Any]]:
@@ -178,6 +207,84 @@ def audit_dataset(
     }
 
 
+def beamstats_attribution_from_task(
+    task: dict[str, Any],
+    *,
+    samples_per_class: int,
+    seed: int | None = None,
+    key_split: str = "validation",
+    beam_width: int = 4,
+    depth: int = 3,
+) -> dict[str, Any]:
+    if task["feature_encoding"] != "present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits":
+        raise ValueError("beamstats attribution currently expects the r8 GPD-style beamstats feature")
+    if key_split not in {"train", "validation"}:
+        raise ValueError("key_split must be train or validation")
+
+    key = task["validation_key"] if key_split == "validation" else task["train_key"]
+    cipher = build_cipher(task["cipher_key"], task["rounds"], key=key)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=task["input_difference"],
+            samples_per_class=samples_per_class,
+            seed=task["seed"] if seed is None else seed,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=task["pairs_per_sample"],
+            negative_mode=task["negative_mode"],
+            key_rotation_interval=task["key_rotation_interval"],
+            sample_structure=task["sample_structure"],
+            integral_active_nibble=task["integral_active_nibble"],
+            selected_bit_indices=task["selected_bit_indices"],
+        )
+    )
+    pair_words = _ciphertext_pair_rows_to_words(
+        dataset.features.astype(np.uint8, copy=False),
+        pairs_per_sample=task["pairs_per_sample"],
+        block_bits=cipher.block_bits,
+    )
+    scores = _beamstats_semantic_scores(
+        pair_words,
+        cipher=cipher,
+        beam_width=beam_width,
+        depth=depth,
+    )
+    labels = dataset.labels.astype(np.float32, copy=False)
+    statistics = {name: _scalar_statistic_report(values, labels) for name, values in scores.items()}
+    best_name, best_report = max(
+        statistics.items(),
+        key=lambda item: item[1]["auc_advantage"],
+    )
+    return {
+        "status": "pass",
+        "audit": "present_beamstats_semantic_attribution",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "key_split": key_split,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "beam_width": beam_width,
+        "depth": depth,
+        "statistics": statistics,
+        "best_statistic": {
+            "name": best_name,
+            "auc": best_report["auc"],
+            "auc_advantage": best_report["auc_advantage"],
+            "best_threshold": best_report["best_threshold"],
+        },
+        "claim_scope": (
+            "Local semantic attribution diagnostic only; not neural training, "
+            "not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
 def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
     positive = features[labels == 1]
     negative = features[labels == 0]
@@ -196,6 +303,127 @@ def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, 
         "auc": auc,
         "auc_advantage": np.abs(auc - 0.5),
     }
+
+
+def _ciphertext_pair_rows_to_words(
+    features: np.ndarray,
+    *,
+    pairs_per_sample: int,
+    block_bits: int,
+) -> np.ndarray:
+    expected_bits = pairs_per_sample * block_bits * 2
+    if features.ndim != 2 or features.shape[1] != expected_bits:
+        raise ValueError("ciphertext_pair_bits rows have unexpected shape")
+    bit_rows = features.reshape(features.shape[0], pairs_per_sample, 2, block_bits)
+    weights = (1 << np.arange(block_bits - 1, -1, -1, dtype=np.uint64)).reshape(1, 1, 1, block_bits)
+    return (bit_rows.astype(np.uint64) * weights).sum(axis=3)
+
+
+def _beamstats_semantic_scores(
+    pair_words: np.ndarray,
+    *,
+    cipher: Any,
+    beam_width: int,
+    depth: int,
+) -> dict[str, np.ndarray]:
+    rows: dict[str, list[float]] = {
+        "top_active_mean": [],
+        "confidence_mean": [],
+        "confidence_std": [],
+        "margin_mean": [],
+        "margin_std": [],
+        "margin_positive_rate": [],
+        "disagreement_nonzero_rate": [],
+        "confidence_union_mean": [],
+        "margin_union_mean": [],
+        "score_mean": [],
+        "score_max": [],
+        "cumulative_mean": [],
+        "cumulative_max": [],
+        "active_mean": [],
+        "active_max": [],
+    }
+    for sample_pairs in pair_words:
+        collected = {name: [] for name in rows}
+        for left, right in sample_pairs:
+            layers = present_pair_candidate_evidence_layers(
+                int(left),
+                int(right),
+                width=int(cipher.block_bits),
+                cipher=cipher,
+                beam_width=beam_width,
+                depth=depth,
+                source="structural_inverse",
+            )
+            for layer in layers:
+                confidence_values = _nibbles(layer.confidence_word, cipher.block_bits)
+                margin_values = _nibbles(layer.margin_word, cipher.block_bits)
+                disagreement_values = _nibbles(layer.disagreement_word, cipher.block_bits)
+                confidence_union_values = _nibbles(layer.confidence_union_word, cipher.block_bits)
+                margin_union_values = _nibbles(layer.margin_union_word, cipher.block_bits)
+                score_values = _nibbles(layer.score_word, 4 * beam_width)
+                cumulative_values = _nibbles(layer.cumulative_word, 4 * beam_width)
+                active_values = _nibbles(layer.active_word, 4 * beam_width)
+                collected["top_active_mean"].append(_active_nibble_count(layer.top_word, cipher.block_bits))
+                collected["confidence_mean"].append(float(np.mean(confidence_values)))
+                collected["confidence_std"].append(float(np.std(confidence_values)))
+                collected["margin_mean"].append(float(np.mean(margin_values)))
+                collected["margin_std"].append(float(np.std(margin_values)))
+                collected["margin_positive_rate"].append(_positive_rate(margin_values))
+                collected["disagreement_nonzero_rate"].append(_positive_rate(disagreement_values))
+                collected["confidence_union_mean"].append(float(np.mean(confidence_union_values)))
+                collected["margin_union_mean"].append(float(np.mean(margin_union_values)))
+                collected["score_mean"].append(float(np.mean(score_values)))
+                collected["score_max"].append(float(max(score_values) if score_values else 0.0))
+                collected["cumulative_mean"].append(float(np.mean(cumulative_values)))
+                collected["cumulative_max"].append(float(max(cumulative_values) if cumulative_values else 0.0))
+                collected["active_mean"].append(float(np.mean(active_values)))
+                collected["active_max"].append(float(max(active_values) if active_values else 0.0))
+        for name, values in collected.items():
+            rows[name].append(float(np.mean(values)) if values else 0.0)
+    return {name: np.array(values, dtype=np.float64) for name, values in rows.items()}
+
+
+def _scalar_statistic_report(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
+    positive = scores[labels == 1]
+    negative = scores[labels == 0]
+    auc = binary_auc(labels, scores)
+    return {
+        "positive_mean": float(positive.mean()) if positive.size else 0.0,
+        "negative_mean": float(negative.mean()) if negative.size else 0.0,
+        "mean_delta": float(positive.mean() - negative.mean()) if positive.size and negative.size else 0.0,
+        "auc": float(auc),
+        "auc_advantage": float(abs(auc - 0.5)),
+        "best_threshold": _best_threshold_report(scores, labels),
+    }
+
+
+def _best_threshold_report(scores: np.ndarray, labels: np.ndarray) -> dict[str, Any]:
+    best = {"accuracy": -1.0, "threshold": 0.0, "operator": ">="}
+    bool_labels = labels == 1
+    for threshold in np.unique(scores):
+        for operator in ("<=", ">="):
+            predicted = scores <= threshold if operator == "<=" else scores >= threshold
+            accuracy = float((predicted == bool_labels).mean())
+            if accuracy > best["accuracy"]:
+                best = {
+                    "accuracy": accuracy,
+                    "threshold": float(threshold),
+                    "operator": operator,
+                }
+    return best
+
+
+def _nibbles(word: int, width: int) -> list[int]:
+    return [int((word >> (4 * index)) & 0xF) for index in range(width // 4)]
+
+
+def _positive_rate(values: list[int]) -> float:
+    return float(sum(1 for value in values if value > 0) / len(values)) if values else 0.0
+
+
+def _active_nibble_count(word: int, width: int) -> float:
+    return float(sum(1 for value in _nibbles(word, width) if value > 0))
 
 
 def _named_scalar_scores(named_scores: dict[str, np.ndarray], labels: np.ndarray) -> dict[str, dict[str, float]]:
