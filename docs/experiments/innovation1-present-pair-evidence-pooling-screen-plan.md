@@ -71,6 +71,21 @@ Screen：
 configs/experiment/innovation1/innovation1_spn_present_pair_evidence_pooling_screen_r8_65k_seed0.csv
 ```
 
+Prepared remote assets：
+
+```text
+run_id = i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705
+configs/remote/innovation1_spn_present_pair_evidence_pooling_screen_r8_65k_seed0_gpu0_20260705.json
+configs/remote/generated/run_i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.cmd
+configs/remote/generated/monitor_i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.sh
+```
+
+状态：
+
+```text
+prepared / not launched
+```
+
 ## 4. 证据等级
 
 ```text

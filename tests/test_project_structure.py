@@ -35,6 +35,7 @@ from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_act
 from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prior_result
 from blockcipher_nd.planning.difference_screen_postprocess import postprocess_difference_screen_result
 from blockcipher_nd.planning.pair_mixer_postprocess import postprocess_pair_mixer_consistency_result
+from blockcipher_nd.planning.pair_evidence_pooling_postprocess import postprocess_pair_evidence_pooling_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -695,6 +696,52 @@ def test_present_pair_evidence_pooling_screen_plans_are_protocol_locked():
     assert "不启动远程" in plan_doc
     assert "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705" in plan_doc
     assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_pair_evidence_pooling_screen_r8_65k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 4
+    assert readiness["plan_rows"] == 4
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config_data["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "prepared but do not launch" in config_data["launch_policy"]
+    assert "not paper-scale, formal, or breakthrough evidence" in config_data["claim_scope"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_pair_evidence_pooling_screen_r8_65k_seed0.csv" in launcher_text
+    assert "--epochs 20" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "pair_evidence_pooling_screen_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "scripts/postprocess-pair-evidence-pooling" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
 
 def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate():
@@ -9052,6 +9099,40 @@ def _write_pair_mixer_result(path: Path, model: str, auc: float) -> None:
     path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
 
 
+def _write_pair_evidence_pooling_result(
+    path: Path,
+    *,
+    architecture: str,
+    architecture_rank: int,
+    model: str,
+    pooling: str,
+    auc: float,
+) -> None:
+    rows = []
+    if path.exists():
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows.append(
+        {
+            "cipher": "PRESENT-80",
+            "architecture": architecture,
+            "architecture_rank": architecture_rank,
+            "selected_model": model,
+            "metrics": {
+                "auc": auc,
+                "accuracy": 0.5 + (auc - 0.5) / 2,
+                "calibrated_accuracy": 0.5 + (auc - 0.5) / 3,
+                "loss": 0.69,
+            },
+            "training": {
+                "model_options": {
+                    "pooling": pooling,
+                },
+            },
+        }
+    )
+    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+
 def test_pair_mixer_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "pair_mixer.jsonl"
     _write_pair_mixer_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.552)
@@ -9122,6 +9203,138 @@ def test_monitor_health_emits_pair_mixer_postprocess_command_when_result_ready(t
     assert "scripts/postprocess-pair-mixer-consistency" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "2" in report["postprocess_command"]
+
+
+def test_pair_evidence_pooling_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "pair_evidence_pooling.jsonl"
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        pooling="topk_logsumexp",
+        auc=0.552,
+    )
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_mixer_consistency_spn_only",
+        architecture_rank=1,
+        model="present_nibble_invp_pair_mixer_consistency_spn_only",
+        pooling="topk_logsumexp",
+        auc=0.556,
+    )
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_mixer_consistency_spn_only",
+        architecture_rank=2,
+        model="present_nibble_invp_pair_mixer_consistency_spn_only",
+        pooling="logsumexp",
+        auc=0.559,
+    )
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_mixer_consistency_spn_only",
+        architecture_rank=3,
+        model="present_nibble_invp_pair_mixer_consistency_spn_only",
+        pooling="topk_mean",
+        auc=0.551,
+    )
+    plan_doc = tmp_path / "pair_evidence_pooling_plan.md"
+    plan_doc.write_text("# Pair-Evidence Pooling Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_pair_evidence_pooling_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="pair_evidence_pooling_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_best_pooling_to_262k_confirmation"
+    assert report["next_action"]["branch"] == "pair_evidence_pooling_262k_confirmation"
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["selected_pooling"] == "logsumexp"
+    assert report["delta_vs_anchor_auc"] == pytest.approx(0.007)
+    assert Path(report["pair_evidence_pooling_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    assert [entry["pooling"] for entry in report["ranking"]] == [
+        "logsumexp",
+        "topk_logsumexp",
+        "topk_logsumexp",
+        "topk_mean",
+    ]
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Pair-Evidence Pooling Result" in plan_text
+    assert "<!-- pair-evidence-pooling-postprocess:pair_evidence_pooling_unit:start -->" in plan_text
+    assert "| Decision | `promote_best_pooling_to_262k_confirmation` |" in plan_text
+    assert "| Best pooling | `logsumexp` |" in plan_text
+
+    postprocess_pair_evidence_pooling_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="pair_evidence_pooling_unit",
+        expected_rows=4,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- pair-evidence-pooling-postprocess:pair_evidence_pooling_unit:start -->") == 1
+
+
+def test_monitor_health_emits_pair_evidence_pooling_postprocess_command_when_result_ready(tmp_path):
+    run_id = "pair_evidence_pooling_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = tmp_path / "pair_evidence_pooling_plan.csv"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    plan.write_text(
+        "model_key\n"
+        "present_nibble_invp_pair_consistency_spn_only\n"
+        "present_nibble_invp_pair_mixer_consistency_spn_only\n"
+        "present_nibble_invp_pair_mixer_consistency_spn_only\n"
+        "present_nibble_invp_pair_mixer_consistency_spn_only\n",
+        encoding="utf-8",
+    )
+    results = results_dir / f"{run_id}.jsonl"
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        pooling="topk_logsumexp",
+        auc=0.552,
+    )
+    for rank, pooling, auc in [(1, "topk_logsumexp", 0.556), (2, "logsumexp", 0.559), (3, "topk_mean", 0.551)]:
+        _write_pair_evidence_pooling_result(
+            results,
+            architecture="present_nibble_invp_pair_mixer_consistency_spn_only",
+            architecture_rank=rank,
+            model="present_nibble_invp_pair_mixer_consistency_spn_only",
+            pooling=pooling,
+            auc=auc,
+        )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=4,
+        postprocess_kind="pair_evidence_pooling",
+        now=datetime.fromisoformat("2026-07-05T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-pair-evidence-pooling" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "4" in report["postprocess_command"]
 
 
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():

@@ -1070,6 +1070,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-difference-screen"
     if kind == "pair_mixer":
         return "scripts/postprocess-pair-mixer-consistency"
+    if kind == "pair_evidence_pooling":
+        return "scripts/postprocess-pair-evidence-pooling"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -1098,6 +1100,8 @@ def _default_expected_rows(kind: str) -> int:
         return 7
     if kind == "pair_mixer":
         return 2
+    if kind == "pair_evidence_pooling":
+        return 4
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
