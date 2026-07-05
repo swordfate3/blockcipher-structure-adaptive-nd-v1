@@ -216,3 +216,105 @@ r9 seed1 diagnostic
 r9 1M/class seed0
 再考虑 r10 weak probe
 ```
+
+## 10. Launch Record
+
+**Launch time:** 2026-07-05 08:07 +08:00
+
+**Launch status:** launched / watcher-managed / no result evidence yet
+
+**Launch commit:**
+
+```text
+4391e2b72d6af905b56c6fc3938a9730c0acd6c0
+```
+
+**Remote config:**
+
+```text
+configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed0_gpu0_20260705.json
+```
+
+**Remote launcher source:**
+
+```text
+configs/remote/generated/run_i1_present_r9_weak_probe_262k_seed0_gpu0_20260705.cmd
+```
+
+**Remote launcher uploaded to:**
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r9_weak_probe_262k_seed0_gpu0_20260705\run_i1_present_r9_weak_probe_262k_seed0_gpu0_20260705.cmd
+```
+
+**Task Scheduler command:**
+
+```text
+cmd.exe /c G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r9_weak_probe_262k_seed0_gpu0_20260705\run_i1_present_r9_weak_probe_262k_seed0_gpu0_20260705.cmd
+```
+
+**GPU selection:**
+
+```text
+cuda:0
+```
+
+Bounded pre-launch GPU check showed no active training Python process on GPU0
+or GPU1. GPU0 was selected for continuity with the r8 round-extension run.
+
+**Local watcher:**
+
+```text
+tmux session = monitor_i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+script = configs/remote/generated/monitor_i1_present_r9_weak_probe_262k_seed0_gpu0_20260705.sh
+```
+
+Watcher responsibilities:
+
+```text
+1. scp logs/results from G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+2. wait for 3 JSONL rows
+3. run scripts/validate-results
+4. run scripts/plot-results
+5. write <run_id>_gate_note.json
+```
+
+**Local retrieval target:**
+
+```text
+outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+```
+
+**Readiness checks before launch:**
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q tests/test_project_structure.py -k "present_r9_weak_probe or present_r8_round_extension"
+```
+
+Result:
+
+```text
+4 passed, 243 deselected
+```
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r9_weak_probe_262k_seed0_gpu0_20260705.json
+```
+
+Result:
+
+```text
+status = pass
+expected_rows = 3
+checked_invariants include medium_scale_dataset_cache
+```
+
+**Claim scope:**
+
+```text
+This launch is not result evidence.
+It is a 262144/class single-seed r9 weak probe.
+No r9 success/failure, r10 projection, or breakthrough claim is allowed until
+watcher retrieval, validation, plotting, and gate-note generation complete.
+```
