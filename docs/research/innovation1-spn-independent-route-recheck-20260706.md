@@ -533,3 +533,29 @@ are allowed, but the next main research slot should not be spent on a wider
 near-neighbor pool. The current trail-position residual route can become a
 future non-neighbor expert only after compatible frozen scores exist and the
 same deterministic/control gates still pass.
+
+## 2026-07-06 Trail-Position Frozen-Score Readiness
+
+The prepared `65536/class` trail-position medium config now includes checkpoint
+and score-artifact readiness:
+
+```text
+checked_invariant = trail_position_score_artifact_lock
+checkpoint_output_dir = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\checkpoints
+score_artifacts_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\score_artifacts
+```
+
+This matters because a future diverse expert gate needs aligned frozen scores,
+not just final JSONL metrics. The planned exports are:
+
+```text
+global_stats_control -> expert_family=trail_position_global_control,
+                        candidate_status=near_neighbor_control
+trail_position       -> expert_family=trail_position,
+                        candidate_status=weak_positive
+```
+
+This still does not launch a remote run or make a result claim. It only closes
+the artifact-readiness gap so that if the medium diagnostic is later launched
+and retrieved, the trail-position route can be evaluated as a genuine
+non-neighbor expert rather than another uncheckable neural result.

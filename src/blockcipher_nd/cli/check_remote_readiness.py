@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
+from blockcipher_nd.engine.matrix_runner import checkpoint_path_for_task, parse_args as parse_train_args
 from blockcipher_nd.planning.matrix import build_tasks
 
 
@@ -139,6 +139,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     neural_ensemble_consistency = _neural_ensemble_consistency(config)
     errors.extend(neural_ensemble_consistency["errors"])
     warnings.extend(neural_ensemble_consistency["warnings"])
+    trail_position_score_consistency = _trail_position_score_artifact_consistency(config, tasks)
+    errors.extend(trail_position_score_consistency["errors"])
+    warnings.extend(trail_position_score_consistency["warnings"])
 
     checked_invariants = [
         "plan_exists",
@@ -165,6 +168,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("pairset_aggregation_stage_lock")
     if _is_neural_ensemble_config(config):
         checked_invariants.append("neural_ensemble_score_artifact_lock")
+    if _is_trail_position_score_artifact_config(config):
+        checked_invariants.append("trail_position_score_artifact_lock")
 
     return {
         "status": "pass" if not errors else "fail",
@@ -624,6 +629,76 @@ def _neural_ensemble_consistency(config: dict[str, Any]) -> dict[str, list[str]]
     return {"errors": errors, "warnings": warnings}
 
 
+def _trail_position_score_artifact_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_trail_position_score_artifact_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    checkpoint_output_dir = _str_value(config.get("checkpoint_output_dir"))
+    score_root = _str_value(config.get("score_artifacts_root"))
+    for field, value in [
+        ("checkpoint_output_dir", checkpoint_output_dir),
+        ("score_artifacts_root", score_root),
+    ]:
+        if not value:
+            errors.append(f"trail_position missing {field}")
+        elif not value.startswith(REMOTE_ROOT):
+            errors.append(f"trail_position {field} must stay under {REMOTE_ROOT}: {value}")
+    if config.get("score_export_after_training") is not True:
+        errors.append("trail_position score_export_after_training must be true")
+
+    exports = config.get("score_export_models")
+    if not isinstance(exports, list) or not exports:
+        errors.append("trail_position missing score_export_models")
+        return {"errors": errors, "warnings": warnings}
+    if tasks and len(exports) != len(tasks):
+        errors.append(f"trail_position score_export_models={len(exports)} plan_rows={len(tasks)}")
+
+    task_by_index = {index: task for index, task in enumerate(tasks)}
+    for export in exports:
+        if not isinstance(export, dict):
+            errors.append("trail_position score_export_models entries must be objects")
+            continue
+        row_index = _int_value(export.get("eval_row_index"))
+        if row_index is None or row_index not in task_by_index:
+            errors.append(f"trail_position invalid eval_row_index: {export.get('eval_row_index')}")
+            continue
+        task = task_by_index[row_index]
+        model_key = _str_value(export.get("model_key"))
+        if model_key != _str_value(task.get("model_key")):
+            errors.append(f"trail_position export model_key={model_key} plan_model={task.get('model_key')}")
+        artifact_name = _str_value(export.get("artifact_name"))
+        if not artifact_name:
+            errors.append("trail_position export missing artifact_name")
+        expert_family = _str_value(export.get("expert_family"))
+        if not expert_family:
+            errors.append(f"trail_position export {artifact_name or row_index} missing expert_family")
+        candidate_status = _str_value(export.get("candidate_status"))
+        if candidate_status not in {
+            "strong_anchor",
+            "weak_positive",
+            "near_neighbor_control",
+            "rejected",
+            "pending",
+        }:
+            errors.append(
+                f"trail_position export {artifact_name or row_index} invalid candidate_status={candidate_status}"
+            )
+        expected_checkpoint = checkpoint_path_for_task(Path("."), task, row_index=row_index + 1).name
+        if _str_value(export.get("checkpoint_filename")) != expected_checkpoint:
+            errors.append(
+                "trail_position export "
+                f"{artifact_name or row_index} checkpoint_filename={export.get('checkpoint_filename')} "
+                f"expected={expected_checkpoint}"
+            )
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _require_remote_path(config: dict[str, Any], field: str, errors: list[str]) -> None:
     value = _str_value(config.get(field))
     if not value:
@@ -782,6 +857,22 @@ def _is_neural_ensemble_config(config: dict[str, Any]) -> bool:
         "neural-ensemble",
     ]
     return any(marker in haystack for marker in markers)
+
+
+def _is_trail_position_score_artifact_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "launch_policy",
+            "route",
+            "experiment_route",
+        ]
+    ).lower()
+    return "trail_position" in haystack and "beamstats" in haystack
 
 
 def _local_plan_path(value: Any) -> Path | None:

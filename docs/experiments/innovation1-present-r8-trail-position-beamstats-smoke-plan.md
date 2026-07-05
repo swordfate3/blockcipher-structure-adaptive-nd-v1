@@ -856,6 +856,7 @@ expected_rows = 2
 plan_rows = 2
 max_samples_per_class = 65536
 checked_invariants include medium_scale_dataset_cache
+checked_invariants include trail_position_score_artifact_lock
 ```
 
 Disk-backed data/progress requirements:
@@ -867,6 +868,21 @@ dataset_cache_chunk_size = 8192
 dataset_cache_workers = 4
 progress_output = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\logs\trail_position_beamstats_progress.jsonl
 ```
+
+Frozen-score readiness:
+
+```text
+checkpoint_output_dir = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\checkpoints
+score_export_after_training = true
+score_artifacts_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\score_artifacts
+```
+
+Planned score artifacts:
+
+| Row | Artifact | Model | Expert family | Candidate status | Checkpoint |
+|---:|---|---|---|---|---|
+| 0 | `global_stats_control` | `present_pairset_global_stats` | `trail_position_global_control` | `near_neighbor_control` | `row0001_present_pairset_global_stats_seed0.pt` |
+| 1 | `trail_position` | `present_trail_position_stats_pairset` | `trail_position` | `weak_positive` | `row0002_present_trail_position_stats_pairset_seed0.pt` |
 
 Claim scope:
 
@@ -898,3 +914,7 @@ candidate must beat train-selected deterministic position baseline
 deterministic baseline must beat active-nibble/input-difference mismatch controls
 pair-order reverse parity should be recorded as pair_order_not_bottleneck
 ```
+
+After retrieval, the score artifacts should be exported with matching
+`--expert-family` and `--candidate-status` metadata. Only then can this route
+be evaluated as a future non-neighbor expert in the diverse-ensemble gate.

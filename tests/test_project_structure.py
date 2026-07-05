@@ -7672,6 +7672,7 @@ def test_trail_position_medium_remote_readiness_uses_disk_cache_and_progress():
     assert report["plan_rows"] == 2
     assert report["max_samples_per_class"] == 65_536
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert "trail_position_score_artifact_lock" in report["checked_invariants"]
     assert config["dataset_cache"] is True
     assert config["dataset_cache_root"] == (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\trail_position_beamstats_cache"
@@ -7682,6 +7683,33 @@ def test_trail_position_medium_remote_readiness_uses_disk_cache_and_progress():
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
         "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\logs\\"
     )
+    assert config["checkpoint_output_dir"] == (
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+        "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\checkpoints"
+    )
+    assert config["score_export_after_training"] is True
+    assert config["score_artifacts_root"] == (
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+        "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\score_artifacts"
+    )
+    assert config["score_export_models"] == [
+        {
+            "artifact_name": "global_stats_control",
+            "candidate_status": "near_neighbor_control",
+            "checkpoint_filename": "row0001_present_pairset_global_stats_seed0.pt",
+            "eval_row_index": 0,
+            "expert_family": "trail_position_global_control",
+            "model_key": "present_pairset_global_stats",
+        },
+        {
+            "artifact_name": "trail_position",
+            "candidate_status": "weak_positive",
+            "checkpoint_filename": "row0002_present_trail_position_stats_pairset_seed0.pt",
+            "eval_row_index": 1,
+            "expert_family": "trail_position",
+            "model_key": "present_trail_position_stats_pairset",
+        },
+    ]
     assert "cmd.exe /c" in config["launch_policy"]
     assert "cmd.exe /k" not in config["launch_policy"]
     assert "prepared only" in config["launch_policy"]

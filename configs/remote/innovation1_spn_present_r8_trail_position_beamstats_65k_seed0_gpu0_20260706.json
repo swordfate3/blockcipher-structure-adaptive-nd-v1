@@ -28,6 +28,27 @@
   "dataset_cache_chunk_size": 8192,
   "dataset_cache_workers": 4,
   "progress_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\logs\\trail_position_beamstats_progress.jsonl",
+  "checkpoint_output_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\checkpoints",
+  "score_export_after_training": true,
+  "score_artifacts_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706\\score_artifacts",
+  "score_export_models": [
+    {
+      "artifact_name": "global_stats_control",
+      "candidate_status": "near_neighbor_control",
+      "checkpoint_filename": "row0001_present_pairset_global_stats_seed0.pt",
+      "eval_row_index": 0,
+      "expert_family": "trail_position_global_control",
+      "model_key": "present_pairset_global_stats"
+    },
+    {
+      "artifact_name": "trail_position",
+      "candidate_status": "weak_positive",
+      "checkpoint_filename": "row0002_present_trail_position_stats_pairset_seed0.pt",
+      "eval_row_index": 1,
+      "expert_family": "trail_position",
+      "model_key": "present_trail_position_stats_pairset"
+    }
+  ],
   "gpu_guard": true,
   "launcher_tail_source": "project",
   "branch": "main",

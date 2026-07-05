@@ -73,9 +73,11 @@ status = prepared only / not launched
 
 The readiness config passed local static checking, including
 `medium_scale_dataset_cache`, `cmd.exe /c`, `G:\lxy` artifact policy, and
-training-protocol consistency. This is only a readiness asset. It is not
-remote-launch evidence, not formal SPN/PRESENT evidence, not a breakthrough
-claim, and not a multi-network aggregation result.
+training-protocol consistency. It was later hardened with
+`trail_position_score_artifact_lock`, requiring `checkpoint_output_dir`,
+`score_artifacts_root`, and per-row score export metadata. This is only a
+readiness asset. It is not remote-launch evidence, not formal SPN/PRESENT
+evidence, not a breakthrough claim, and not a multi-network aggregation result.
 
 Correct route arbitration:
 
@@ -90,7 +92,9 @@ Correct route arbitration:
 Before any future trail-position remote launch, require a scoped commit, push,
 generated launch-artifact audit, GPU/readiness gate, local monitor handoff, and
 one bounded remote artifact confirmation. After retrieval, rerun the residual
-gate at `65536/class` before making any stronger claim.
+gate at `65536/class` before making any stronger claim. If the route may enter
+future diverse-ensemble work, export frozen scores with `expert_family` and
+`candidate_status` metadata before running the diversity/error-overlap gate.
 
 ### Metadata
 - Source: user_feedback, experiment_audit
