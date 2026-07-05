@@ -2097,3 +2097,69 @@ substantially or a new control shows stable non-baseline signal.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-016] best_practice
+
+**Logged**: 2026-07-06T10:55:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Treat r8 trail-position beamstats as a promising local SPN representation route, but require attribution before remote launch.
+
+### Details
+After the current GPD-style global beamstats feature failed its higher-sample
+semantic attribution gate, a more position-aware existing model was tested:
+
+```text
+model = present_trail_position_stats_pairset
+feature = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+rounds = 8
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+```
+
+The 128/class smoke showed a large positive margin over a same-input
+global-statistics control:
+
+| Seed | Global-stat control AUC | Trail-position candidate AUC |
+|---:|---:|---:|
+| 0 | `0.608642578125` | `0.9423828125` |
+| 1 | `0.62890625` | `0.9541015625` |
+
+The 512/class local diagnostic preserved and strengthened the result:
+
+| Seed | Global-stat control AUC | Trail-position candidate AUC |
+|---:|---:|---:|
+| 0 | `0.813568115234375` | `0.98883056640625` |
+| 1 | `0.7928619384765625` | `0.9859771728515625` |
+
+Correct interpretation:
+
+- This is the strongest local non-neighbor SPN representation signal currently
+  found in the GPD/beamstats branch.
+- It is not a remote-launch basis yet.
+- It is not a PRESENT r8 breakthrough claim.
+- Because the sample structure is a matched-negative r8 integral setting, the
+  next requirement is attribution/control: determine whether deterministic
+  position statistics alone explain the signal.
+
+### Suggested Action
+Before any remote training, implement or run a local position-statistics
+attribution/control audit, including deterministic baselines and
+pair-order/active-nibble/difference controls. Keep the route as a promising
+SPN representation/data candidate, not yet a qualified diverse ensemble expert.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_smoke.csv, configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv
+- Tags: innovation1, spn, present, trail-position, beamstats, gpd, representation-search
+- See Also: LRN-20260706-015, LRN-20260706-014, LRN-20260706-004
+- Pattern-Key: innovation1.spn_present.trail_position_beamstats_promising_requires_attribution
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
