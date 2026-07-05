@@ -92,7 +92,10 @@ route-level evidence, marks superseded branches, and emits an
 r9 weak-probe and r8 pair-set 1M watcher artifacts, emits route-specific
 postprocess commands when results are ready, and recommends
 `scripts/arbitrate-next-actions` when multiple high-round summaries are
-available. While candidate-trail is still running, that
+available. After those high-round gates free the branch, it also recognizes the
+prepared pair-mixer and pair-evidence-pooling follow-up runs, keeping their
+running/result-ready state in the same local-only monitor/postprocess workflow.
+While candidate-trail is still running, that
 recommendation remains `wait_for_candidate_trail_result`; after retrieved
 candidate-trail or bit-transition-spectrum results, it follows the newest
 gated branch and keeps transition-spectrum decisions ahead of older

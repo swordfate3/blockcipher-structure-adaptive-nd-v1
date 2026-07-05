@@ -30,6 +30,45 @@ HIGH_ROUND_RUNS = [
     },
 ]
 
+FOLLOWUP_RUNS = [
+    {
+        "run_id": "i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705",
+        "branch": "pair_mixer_r8_262k",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_pair_mixer_consistency_r8_262k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-pair-mixer-consistency-plan.md",
+        "expected_rows": 2,
+        "postprocess_kind": "pair_mixer",
+        "postprocess_script": "scripts/postprocess-pair-mixer-consistency",
+        "wait_branch": "wait_for_pair_mixer_result",
+        "postprocess_branch": "postprocess_pair_mixer_result",
+        "route_label": "pair-mixer",
+    },
+    {
+        "run_id": "i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705",
+        "branch": "pair_evidence_pooling_r8_65k",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_pair_evidence_pooling_screen_r8_65k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-pair-evidence-pooling-screen-plan.md",
+        "expected_rows": 4,
+        "postprocess_kind": "pair_evidence_pooling",
+        "postprocess_script": "scripts/postprocess-pair-evidence-pooling",
+        "wait_branch": "wait_for_pair_evidence_pooling_result",
+        "postprocess_branch": "postprocess_pair_evidence_pooling_result",
+        "route_label": "pair-evidence pooling",
+    },
+    {
+        "run_id": "i1_present_r9_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705",
+        "branch": "pair_evidence_pooling_r9_65k",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_pair_evidence_pooling_screen_r9_65k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r9-pair-evidence-pooling-screen-plan.md",
+        "expected_rows": 4,
+        "postprocess_kind": "pair_evidence_pooling",
+        "postprocess_script": "scripts/postprocess-pair-evidence-pooling",
+        "wait_branch": "wait_for_pair_evidence_pooling_result",
+        "postprocess_branch": "postprocess_pair_evidence_pooling_result",
+        "route_label": "pair-evidence pooling",
+    },
+]
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -293,6 +332,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     high_round_arbitration = _high_round_arbitration_recommendation(routes)
     if high_round_arbitration is not None:
         return high_round_arbitration
+    followup_running = _followup_running(root)
+    if followup_running is not None:
+        return followup_running
     candidate_running = _candidate_trail_running(root)
     if candidate_running is not None:
         return candidate_running
@@ -378,6 +420,61 @@ def _high_round_running(root: Path) -> dict[str, Any] | None:
     return None
 
 
+def _followup_running(root: Path) -> dict[str, Any] | None:
+    for spec in FOLLOWUP_RUNS:
+        run_id = str(spec["run_id"])
+        run_root = root / run_id
+        if not run_root.exists() or list(run_root.glob("*_postprocess_summary.json")):
+            continue
+        health = _followup_monitor_health(root, spec)
+        monitor_log = run_root / "monitor" / "monitor.log"
+        recent_lines = _tail_lines(monitor_log, 8)
+        entry = {
+            "branch": spec["branch"],
+            "run_id": run_id,
+            "status": health["status"],
+            "should_launch_remote": False,
+            "monitor_log": str(monitor_log),
+            "recent_monitor_lines": recent_lines,
+            "heartbeat": health["heartbeat"],
+            "needs_main_thread_intervention": health["needs_main_thread_intervention"],
+            "postprocess_allowed": health["postprocess_allowed"],
+            "postprocess_command": health["postprocess_command"],
+            "results_jsonl": health["results_jsonl"],
+            "results_jsonl_line_count": health["results_jsonl_line_count"],
+            "expected_rows": health["expected_rows"],
+            "progress_summary": _active_progress_summary(run_root),
+            "monitor_health_command": _followup_monitor_health_command(spec),
+            "postprocess_when_ready_command": _followup_postprocess_command(spec),
+        }
+        if health["postprocess_allowed"]:
+            return {
+                **entry,
+                "branch": str(spec["postprocess_branch"]),
+                "reason": (
+                    f"{spec['route_label']} results are ready locally and need "
+                    "postprocess before branch decisions"
+                ),
+                "main_thread_policy": _followup_main_thread_policy("postprocess"),
+            }
+        if _is_active_high_round_health(health, recent_lines):
+            branch = (
+                f"diagnose_{spec['postprocess_kind']}_launch"
+                if health["needs_main_thread_intervention"]
+                else str(spec["wait_branch"])
+            )
+            return {
+                **entry,
+                "branch": branch,
+                "reason": (
+                    f"{spec['route_label']} run has monitor activity but no "
+                    "postprocess summary yet"
+                ),
+                "main_thread_policy": _followup_main_thread_policy("waiting"),
+            }
+    return None
+
+
 def _high_round_arbitration_recommendation(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
     high_round_routes = [
         route
@@ -454,6 +551,41 @@ def _high_round_arbitration_command(summaries: list[str]) -> str:
     )
 
 
+def _followup_monitor_health(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
+    return monitor_health_report(
+        run_id=str(spec["run_id"]),
+        root=root,
+        plan_path=Path(str(spec["plan"])),
+        plan_doc_paths=[Path(str(spec["plan_doc"]))],
+        expected_rows=int(spec["expected_rows"]),
+        postprocess_kind=str(spec["postprocess_kind"]),
+    )
+
+
+def _followup_monitor_health_command(spec: dict[str, Any]) -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/monitor-health "
+        f"--root outputs/remote_results --run-id {spec['run_id']} "
+        f"--plan {spec['plan']} "
+        f"--plan-doc {spec['plan_doc']} "
+        f"--expected-rows {spec['expected_rows']} "
+        f"--postprocess-kind {spec['postprocess_kind']}"
+    )
+
+
+def _followup_postprocess_command(spec: dict[str, Any]) -> str:
+    run_id = str(spec["run_id"])
+    return (
+        f"UV_CACHE_DIR=/tmp/uv-cache uv run python {spec['postprocess_script']} "
+        f"--results outputs/remote_results/{run_id}/results/{run_id}.jsonl "
+        f"--output-dir outputs/remote_results/{run_id} "
+        f"--run-id {run_id} "
+        f"--plan {spec['plan']} "
+        f"--expected-rows {spec['expected_rows']} "
+        f"--update-plan-doc {spec['plan_doc']}"
+    )
+
+
 def _is_active_high_round_health(health: dict[str, Any], recent_lines: list[str]) -> bool:
     active_statuses = {
         "running",
@@ -510,6 +642,37 @@ def _high_round_main_thread_policy(state: str) -> dict[str, Any]:
             "make route-level or breakthrough claims",
         ],
         "gate_condition": "watcher retrieves expected high-round JSONL rows and postprocess_allowed becomes true",
+    }
+
+
+def _followup_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "run the listed route-specific postprocess command",
+                "update docs/experiments through the postprocess command",
+                "commit and push result documentation before any branch launch",
+                "feed the postprocess summary into the normal next-action gate",
+            ],
+            "forbidden_until_gate": [
+                "launch pair-mixer seed/scale follow-up",
+                "launch pair-evidence pooling confirmation",
+                "make route-level claims from a screen or medium diagnostic",
+            ],
+            "gate_condition": "postprocess summary validates against the plan and emits a next_action decision",
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from retrieved artifacts",
+            "wait for watcher/sub-agent retrieval",
+            "improve local postprocess or readiness tooling without changing active remote runs",
+        ],
+        "forbidden_until_gate": [
+            "SSH-poll or tmux-loop from the main thread",
+            "launch another follow-up branch in parallel",
+            "interpret partial JSONL or empty result files as model evidence",
+        ],
+        "gate_condition": "watcher retrieves the expected JSONL rows and postprocess_allowed becomes true",
     }
 
 

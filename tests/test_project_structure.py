@@ -10110,6 +10110,87 @@ def test_monitor_health_emits_pair_evidence_pooling_postprocess_command_when_res
     assert "4" in report["postprocess_command"]
 
 
+def test_summarize_spn_evidence_tracks_pair_mixer_running_followup(tmp_path):
+    run_id = "i1_present_r8_pair_mixer_consistency_262k_seed0_gpu0_20260705"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    logs_dir = run_root / "logs"
+    results_dir = run_root / "results"
+    monitor_dir.mkdir(parents=True)
+    logs_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text(
+        "2026-07-05T12:00:00+08:00 sync\n"
+        "2026-07-05T12:00:01+08:00 running\n",
+        encoding="utf-8",
+    )
+    (logs_dir / "pair_mixer_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "train_batch",
+                "model": "present_nibble_invp_pair_mixer_consistency_spn_only",
+                "epoch": 1,
+                "epochs": 30,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (results_dir / f"{run_id}.jsonl").write_text("", encoding="utf-8")
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "wait_for_pair_mixer_result"
+    assert active["run_id"] == run_id
+    assert active["postprocess_allowed"] is False
+    assert active["expected_rows"] == 2
+    assert "--postprocess-kind pair_mixer" in active["monitor_health_command"]
+    assert "scripts/postprocess-pair-mixer-consistency" in active["postprocess_when_ready_command"]
+    assert "launch another follow-up branch in parallel" in active["main_thread_policy"]["forbidden_until_gate"]
+
+
+def test_summarize_spn_evidence_tracks_pair_evidence_pooling_ready_followup(tmp_path):
+    run_id = "i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    results = results_dir / f"{run_id}.jsonl"
+    _write_pair_evidence_pooling_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        pooling="topk_logsumexp",
+        auc=0.552,
+    )
+    for rank, pooling, auc in [(1, "topk_logsumexp", 0.556), (2, "logsumexp", 0.559), (3, "topk_mean", 0.551)]:
+        _write_pair_evidence_pooling_result(
+            results,
+            architecture="present_nibble_invp_pair_mixer_consistency_spn_only",
+            architecture_rank=rank,
+            model="present_nibble_invp_pair_mixer_consistency_spn_only",
+            pooling=pooling,
+            auc=auc,
+        )
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "postprocess_pair_evidence_pooling_result"
+    assert active["run_id"] == run_id
+    assert active["postprocess_allowed"] is True
+    assert active["results_jsonl_line_count"] == 4
+    assert active["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-pair-evidence-pooling" in active["postprocess_command"]
+    assert "scripts/postprocess-pair-evidence-pooling" in active["postprocess_when_ready_command"]
+    assert "run the listed route-specific postprocess command" in active["main_thread_policy"]["allowed_actions"]
+
+
 def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "integral_inverse_feature.jsonl"
     _write_integral_inverse_feature_result(
