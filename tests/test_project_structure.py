@@ -10419,10 +10419,23 @@ def test_r8_pairset_1m_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     assert report["delta_vs_baseline_auc"] == pytest.approx(0.007)
     assert Path(report["r8_pairset_1m_gate"]).exists()
     assert Path(report["next_action_readiness"]).exists()
+    assert Path(report["candidate_route_readiness"]).exists()
     next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
     assert next_action_readiness["status"] == "pass"
     assert next_action_readiness["should_launch_remote"] is True
     assert next_action_readiness["readiness_pass"] is True
+    candidate_readiness = json.loads(Path(report["candidate_route_readiness"]).read_text(encoding="utf-8"))
+    assert candidate_readiness["status"] == "pass"
+    assert candidate_readiness["candidate_routes"]["r8_pairset_1m_seed1"]["readiness_pass"] is True
+    control_readiness = candidate_readiness["candidate_routes"]["r8_pairset_frozen_aggregation_control"]
+    assert control_readiness["readiness_pass"] is True
+    assert [item["role"] for item in control_readiness["readiness_reports"]] == ["stage_a", "primary"]
+    assert report["next_action"]["control_stage_a_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_single_pair_r8_262k_gpu0_20260705.json"
+    )
+    assert report["next_action"]["control_stage_b_remote_config"].endswith(
+        "innovation1_spn_present_pairset_aggregation_control_r8_262k_gpu0_20260705.json"
+    )
     assert Path(report["curves"]).exists()
     assert Path(report["history_csv"]).exists()
     assert Path(report["summary"]).exists()
@@ -10432,6 +10445,7 @@ def test_r8_pairset_1m_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     assert "<!-- r8-pairset-1m-postprocess:r8_pairset_1m_unit:start -->" in plan_text
     assert "| Decision | `support_r8_pairset_1m_confirmation` |" in plan_text
     assert "| Delta vs baseline AUC | `0.007000000000` |" in plan_text
+    assert "| Candidate route readiness |" in plan_text
 
     postprocess_r8_pairset_1m_result(
         results_path=results,
@@ -10475,6 +10489,8 @@ def test_r8_pairset_1m_weak_positive_points_to_prepared_seed1_assets(tmp_path):
     assert next_action_readiness["status"] == "pass"
     assert next_action_readiness["should_launch_remote"] is True
     assert next_action_readiness["readiness_pass"] is True
+    candidate_readiness = json.loads(Path(report["candidate_route_readiness"]).read_text(encoding="utf-8"))
+    assert candidate_readiness["candidate_routes"]["r8_pairset_frozen_aggregation_control"]["readiness_pass"] is True
 
 
 def test_monitor_health_emits_r8_pairset_1m_postprocess_command_when_result_ready(tmp_path):

@@ -18,6 +18,16 @@ R8_PAIRSET_1M_SEED1_REMOTE_CONFIG = (
     "innovation1_spn_present_pairset_r8_1m_seed1_gpu1_20260705.json"
 )
 R8_PAIRSET_1M_SEED1_RUN_ID = "i1_present_r8_pairset_1m_seed1_gpu1_20260705"
+R8_PAIRSET_CONTROL_STAGE_A_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_pairset_aggregation_control_single_pair_r8_262k_gpu0_20260705.json"
+)
+R8_PAIRSET_CONTROL_STAGE_B_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_pairset_aggregation_control_r8_262k_gpu0_20260705.json"
+)
+R8_PAIRSET_CONTROL_STAGE_A_RUN_ID = "i1_pairset_single_pair_scorer_r8_262k_seed0_gpu0_20260705"
+R8_PAIRSET_CONTROL_STAGE_B_RUN_ID = "i1_pairset_aggregation_control_r8_262k_seed0_gpu0_20260705"
 DEFAULT_SUPPORT_MARGIN = 0.005
 
 
@@ -95,9 +105,11 @@ def postprocess_r8_pairset_1m_result(
     summary_path = output_dir / f"{run_id}_postprocess_summary.json"
     markdown_path = output_dir / f"{run_id}_postprocess_summary.md"
     next_action_readiness_path = output_dir / f"{run_id}_next_action_readiness.json"
+    candidate_route_readiness_path = output_dir / f"{run_id}_candidate_route_readiness.json"
     report["summary"] = str(summary_path)
     report["summary_markdown"] = str(markdown_path)
     report["next_action_readiness"] = str(next_action_readiness_path)
+    report["candidate_route_readiness"] = str(candidate_route_readiness_path)
 
     update_paths = plan_doc_paths or []
     if update_paths:
@@ -108,6 +120,7 @@ def postprocess_r8_pairset_1m_result(
 
     _write_json(summary_path, report)
     _write_json(next_action_readiness_path, _next_action_readiness_report(report, summary_path))
+    _write_json(candidate_route_readiness_path, _candidate_route_readiness_report(report, summary_path))
     markdown_path.write_text(_markdown_summary(report), encoding="utf-8")
     return report
 
@@ -216,6 +229,11 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "next_plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
             "launch_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
+            "control_stage_a_remote_config": R8_PAIRSET_CONTROL_STAGE_A_REMOTE_CONFIG,
+            "control_stage_b_remote_config": R8_PAIRSET_CONTROL_STAGE_B_REMOTE_CONFIG,
+            "control_stage_a_run_id": R8_PAIRSET_CONTROL_STAGE_A_RUN_ID,
+            "control_stage_b_run_id": R8_PAIRSET_CONTROL_STAGE_B_RUN_ID,
+            "control_readiness_commands": _control_readiness_commands(),
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
@@ -233,6 +251,11 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "next_plan_doc": "docs/experiments/innovation1-present-r8-round-extension-ladder-plan.md",
             "launch_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
             "suggested_remote_config": R8_PAIRSET_1M_SEED1_REMOTE_CONFIG,
+            "control_stage_a_remote_config": R8_PAIRSET_CONTROL_STAGE_A_REMOTE_CONFIG,
+            "control_stage_b_remote_config": R8_PAIRSET_CONTROL_STAGE_B_REMOTE_CONFIG,
+            "control_stage_a_run_id": R8_PAIRSET_CONTROL_STAGE_A_RUN_ID,
+            "control_stage_b_run_id": R8_PAIRSET_CONTROL_STAGE_B_RUN_ID,
+            "control_readiness_commands": _control_readiness_commands(),
             "readiness_command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
                 f"--config {R8_PAIRSET_1M_SEED1_REMOTE_CONFIG}"
@@ -296,6 +319,7 @@ def _plan_doc_result_section(report: dict[str, Any]) -> str:
         ("Next action launch config", report["next_action"].get("launch_remote_config", "")),
         ("Next action readiness command", report["next_action"].get("readiness_command", "")),
         ("Next action readiness", report["next_action_readiness"]),
+        ("Candidate route readiness", report["candidate_route_readiness"]),
         ("Claim scope", report["claim_scope"]),
         ("Results JSONL", report["results"]),
         ("Validation report", report["validation_report"]),
@@ -337,6 +361,51 @@ def _markdown_summary(report: dict[str, Any]) -> str:
 
 def _next_action_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
     return next_action_readiness_report(summary_path=summary_path, report=report)
+
+
+def _candidate_route_readiness_report(report: dict[str, Any], summary_path: Path) -> dict[str, Any]:
+    next_action = report.get("next_action")
+    if not isinstance(next_action, dict):
+        next_action = {}
+    routes = {
+        "r8_pairset_1m_seed1": next_action_readiness_report(
+            summary_path=summary_path,
+            report=report,
+        ),
+        "r8_pairset_frozen_aggregation_control": next_action_readiness_report(
+            summary_path=summary_path,
+            report=report,
+            config_keys=(
+                ("stage_a", "control_stage_a_remote_config"),
+                ("primary", "control_stage_b_remote_config"),
+            ),
+        ),
+    }
+    return {
+        "status": "pass" if all(item["status"] == "pass" for item in routes.values()) else "fail",
+        "summary": str(summary_path),
+        "run_id": report.get("run_id"),
+        "decision": report.get("decision"),
+        "branch": next_action.get("branch"),
+        "candidate_routes": routes,
+        "policy": (
+            "This is readiness only. Launch one selected branch after high-round arbitration; "
+            "do not launch seed1 and frozen aggregation control blindly in parallel."
+        ),
+    }
+
+
+def _control_readiness_commands() -> list[str]:
+    return [
+        (
+            "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+            f"--config {R8_PAIRSET_CONTROL_STAGE_A_REMOTE_CONFIG}"
+        ),
+        (
+            "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+            f"--config {R8_PAIRSET_CONTROL_STAGE_B_REMOTE_CONFIG}"
+        ),
+    ]
 
 
 def _entry(row: dict[str, Any]) -> dict[str, Any]:
