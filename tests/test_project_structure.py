@@ -28,6 +28,7 @@ from blockcipher_nd.planning.candidate_trail_gate import gate_candidate_trail_re
 from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_gate import gate_active_auxiliary_result
+from blockcipher_nd.planning.trail_position_residual_gate import gate_trail_position_residual
 from blockcipher_nd.planning.sbox_prior_gate import gate_sbox_prior_result
 from blockcipher_nd.planning.difference_screen_gate import gate_difference_screen_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
@@ -9226,6 +9227,63 @@ def _write_active_auxiliary_result(
         handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
+def _write_trail_position_result(
+    path: Path,
+    model: str,
+    *,
+    seed: int,
+    auc: float,
+    calibrated: float = 0.74,
+) -> None:
+    row = {
+        "model": model,
+        "seed": seed,
+        "metrics": {
+            "auc": auc,
+            "accuracy": calibrated,
+            "calibrated_accuracy": calibrated,
+            "loss": 0.5,
+        },
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def _write_trail_position_control_audit(
+    path: Path,
+    *,
+    seed: int,
+    baseline_auc: float,
+    active_nibble_auc: float,
+    input_difference_auc: float,
+    pair_order_auc: float,
+) -> None:
+    payload = {
+        "audit": "present_trail_position_control_baseline",
+        "baseline": {
+            "report": {
+                "seed": seed,
+                "evaluation": {"composite": {"auc": baseline_auc}},
+            }
+        },
+        "controls": [
+            {
+                "variant_kind": "active_nibble",
+                "report": {"evaluation": {"composite": {"auc": active_nibble_auc}}},
+            },
+            {
+                "variant_kind": "input_difference",
+                "report": {"evaluation": {"composite": {"auc": input_difference_auc}}},
+            },
+            {
+                "variant_kind": "pair_order",
+                "report": {"evaluation": {"composite": {"auc": pair_order_auc}}},
+            },
+        ],
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def test_trail_family_gate_supports_route_when_candidate_beats_anchor_and_false_family(tmp_path):
     results = tmp_path / "trail_family.jsonl"
     _write_trail_family_result(results, "present_nibble_invp_only_spn_only", 0.7920)
@@ -9484,6 +9542,68 @@ def test_active_auxiliary_gate_requires_shuffled_control(tmp_path):
     assert strict["errors"] == [
         "missing_shuffled_control=present_nibble_invp_active_aux_shuffled_targets"
     ]
+
+
+def test_trail_position_residual_gate_supports_candidate_above_baseline_and_controls(tmp_path):
+    results = tmp_path / "trail_position_results.jsonl"
+    _write_trail_position_result(results, "present_pairset_global_stats", seed=0, auc=0.81)
+    _write_trail_position_result(results, "present_trail_position_stats_pairset", seed=0, auc=0.99)
+    audit = tmp_path / "trail_position_control.json"
+    _write_trail_position_control_audit(
+        audit,
+        seed=0,
+        baseline_auc=0.77,
+        active_nibble_auc=0.50,
+        input_difference_auc=0.52,
+        pair_order_auc=0.77,
+    )
+
+    report = gate_trail_position_residual(
+        results,
+        baseline_audit_paths=[audit],
+        margin=0.01,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_trail_position_neural_residual_local"
+    assert report["per_seed"][0]["candidate_auc"] == 0.99
+    assert report["per_seed"][0]["global_control_auc"] == 0.81
+    assert report["per_seed"][0]["deterministic_baseline_auc"] == 0.77
+    assert report["per_seed"][0]["max_mismatch_control_auc"] == 0.52
+    assert report["per_seed"][0]["max_order_control_auc"] == 0.77
+    assert report["min_candidate_margin_vs_deterministic_auc"] > 0.01
+    assert report["min_candidate_margin_vs_global_auc"] > 0.01
+    assert report["min_deterministic_margin_vs_mismatch_auc"] > 0.01
+    assert report["pair_order_assessment"] == "pair_order_not_bottleneck"
+    assert "local diagnostic" in report["claim_scope"]
+
+
+def test_trail_position_residual_gate_holds_when_candidate_does_not_beat_deterministic_baseline(
+    tmp_path,
+):
+    results = tmp_path / "trail_position_results.jsonl"
+    _write_trail_position_result(results, "present_pairset_global_stats", seed=0, auc=0.81)
+    _write_trail_position_result(results, "present_trail_position_stats_pairset", seed=0, auc=0.775)
+    audit = tmp_path / "trail_position_control.json"
+    _write_trail_position_control_audit(
+        audit,
+        seed=0,
+        baseline_auc=0.77,
+        active_nibble_auc=0.50,
+        input_difference_auc=0.52,
+        pair_order_auc=0.77,
+    )
+
+    report = gate_trail_position_residual(
+        results,
+        baseline_audit_paths=[audit],
+        margin=0.01,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "hold_trail_position_neural_residual_local"
+    assert report["per_seed"][0]["candidate_margin_vs_deterministic_auc"] == pytest.approx(0.005)
+    assert "does not clear" in report["interpretation"]
 
 
 def test_active_auxiliary_postprocess_writes_summary_and_updates_plan_doc(tmp_path):

@@ -260,6 +260,37 @@ Updated priority:
 | 3 | Pair-order-sensitive trail models | Hold unless a new statistic shows pair-order sensitivity. Current selected features are span/range dominated. |
 | 4 | Diverse expert aggregation | Still later. Require compatible frozen scores plus low error overlap before aggregation. |
 
+### 512/Class Neural Residual Gate Update
+
+A dedicated residual gate was added and run on the existing 512/class
+trail-position neural diagnostic plus deterministic control-baseline artifacts:
+
+```text
+gate = scripts/gate-trail-position-residual
+output = outputs/local_audits/i1_present_r8_trail_position_residual_gate_512.json
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.140472412109375
+min_candidate_margin_vs_global_auc = 0.175262451171875
+min_deterministic_margin_vs_mismatch_auc = 0.255645751953125
+```
+
+This updates the route ranking:
+
+| Rank | Route | Decision |
+|---:|---|---|
+| 1 | Active/difference-aligned SPN position statistics plus neural residual gate | Current best local SPN/integral architecture-representation candidate. Continue with controlled local/medium diagnostics only. |
+| 2 | Deterministic train-selected position-statistics baseline | Keep as mandatory baseline for any trail-position neural claim. It explains much of the signal and anchors the residual test. |
+| 3 | Diverse expert aggregation | Still later. It becomes meaningful only after trail-position or another non-neighbor route emits compatible frozen scores and low-overlap evidence. |
+| 4 | Pair-order-sensitive trail models | Hold. Pair-order reverse still matches baseline; order sensitivity is not the current bottleneck. |
+
+Claim boundary:
+
+```text
+The gate supports local neural residual evidence, not remote launch readiness,
+not a PRESENT r8 breakthrough, and not Zhang/Wang r7 Case2 evidence.
+```
+
 ## References Used
 
 - `docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md`

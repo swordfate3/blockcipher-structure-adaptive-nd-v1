@@ -551,3 +551,73 @@ Updated next action:
 4. If training another neural candidate, require it to beat the deterministic
    split baseline and include active-nibble/difference mismatch controls.
 ```
+
+## Trail-Position Neural Residual Gate
+
+Implementation:
+
+```text
+CLI = scripts/gate-trail-position-residual
+API = gate_trail_position_residual
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_512/results.jsonl
+baseline_audits =
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_512.json
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_512.json
+margin = 0.01
+output = outputs/local_audits/i1_present_r8_trail_position_residual_gate_512.json
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-position-residual \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_512/results.jsonl \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_512.json \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_512.json \
+  --margin 0.01 \
+  --output outputs/local_audits/i1_present_r8_trail_position_residual_gate_512.json
+```
+
+Gate result:
+
+```text
+status = pass
+decision = support_trail_position_neural_residual_local
+action = run_controlled_local_medium_diagnostic_before_remote_launch
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.140472412109375
+min_candidate_margin_vs_global_auc = 0.175262451171875
+min_deterministic_margin_vs_mismatch_auc = 0.255645751953125
+```
+
+Per-seed summary:
+
+| Seed | Neural candidate AUC | Global-stat control AUC | Deterministic baseline AUC | Max mismatch control AUC | Candidate vs deterministic | Candidate vs global |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | `0.98883056640625` | `0.813568115234375` | `0.7695465087890625` | `0.5139007568359375` | `+0.2192840576171875` | `+0.175262451171875` |
+| 1 | `0.9859771728515625` | `0.7928619384765625` | `0.8455047607421875` | `0.5224685668945312` | `+0.140472412109375` | `+0.193115234375` |
+
+Interpretation:
+
+```text
+The 512/class local diagnostic supports a possible neural residual over the
+train-selected deterministic position-statistics baseline. The candidate clears
+both the deterministic baseline and the same-input global-stat control on both
+seeds, while the deterministic baseline stays well above active-nibble and
+input-difference mismatch controls.
+
+This is still local diagnostic evidence only. It justifies another controlled
+local or medium diagnostic, not a remote launch, not a PRESENT r8 breakthrough,
+and not a Zhang/Wang r7 Case2 claim.
+```
+
+Updated next action:
+
+```text
+1. Treat trail-position residual as the current best local SPN/integral
+   architecture-representation candidate.
+2. Before any remote launch, design a medium diagnostic with the same residual
+   gate and disk-backed feature/cache readiness if scale reaches remote size.
+3. Keep diverse neural ensemble as a later validator only after this route has
+   compatible frozen score artifacts and low error-overlap evidence.
+```

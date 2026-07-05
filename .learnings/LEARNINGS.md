@@ -2346,3 +2346,67 @@ new evidence shows pair-order sensitivity.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-020] best_practice
+
+**Logged**: 2026-07-06T05:22:32+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Use the trail-position residual gate before treating high neural AUC as SPN architecture gain.
+
+### Details
+The r8 trail-position 512/class neural diagnostic was gated against the
+train-selected deterministic position-statistics baseline, same-input
+global-stat neural control, and active-nibble/input-difference mismatch
+controls:
+
+```text
+gate = scripts/gate-trail-position-residual
+output = outputs/local_audits/i1_present_r8_trail_position_residual_gate_512.json
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.140472412109375
+min_candidate_margin_vs_global_auc = 0.175262451171875
+min_deterministic_margin_vs_mismatch_auc = 0.255645751953125
+```
+
+Per-seed margins:
+
+| Seed | Candidate AUC | Deterministic baseline AUC | Global control AUC | Max mismatch control AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.98883056640625` | `0.7695465087890625` | `0.813568115234375` | `0.5139007568359375` |
+| 1 | `0.9859771728515625` | `0.8455047607421875` | `0.7928619384765625` | `0.5224685668945312` |
+
+Correct interpretation:
+
+- The 512/class local diagnostic supports possible neural residual over the
+  deterministic position-statistics baseline.
+- The route remains active/difference-aligned and order-invariant under the
+  current selected statistics.
+- This justifies another controlled local or medium diagnostic, not a remote
+  launch, PRESENT r8 breakthrough claim, or Zhang/Wang r7 Case2 claim.
+- Diverse neural aggregation should remain a later validator until this or
+  another non-neighbor route emits compatible frozen scores and low-overlap
+  evidence.
+
+### Suggested Action
+Before scaling or reporting a trail-position neural route, run the residual
+gate or an equivalent same-protocol comparison against deterministic
+position-statistics, same-input global-stat, and active/difference mismatch
+controls. Treat pair-order reverse parity as "pair_order_not_bottleneck", not
+as route failure.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: src/blockcipher_nd/planning/trail_position_residual_gate.py, scripts/gate-trail-position-residual, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/research/innovation1-spn-independent-route-recheck-20260706.md
+- Tags: innovation1, spn, present, trail-position, residual-gate, deterministic-baseline, neural-residual
+- See Also: LRN-20260706-019, LRN-20260706-018, LRN-20260706-011
+- Pattern-Key: innovation1.spn_present.trail_position_neural_residual_gate_before_scale
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
