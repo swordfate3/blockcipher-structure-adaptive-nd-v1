@@ -565,3 +565,57 @@ tests whether the fixed Zhang/Wang r7-friendly input difference is the high-roun
 bottleneck. It is a data-construction / benchmark-search screen, not evidence
 that the current SPN model improved under the same protocol.
 ```
+
+## Retrieved r9 Weak-Probe Result
+
+<!-- r9-weak-probe-postprocess:i1_present_r9_weak_probe_262k_seed0_gpu0_20260705:start -->
+### i1_present_r9_weak_probe_262k_seed0_gpu0_20260705 r9 Weak-Probe Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r9_weak_probe_262k_seed0_gpu0_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Best candidate | `present_nibble_invp_pair_consistency_spn_only` |
+| Best candidate AUC | `0.502131485177` |
+| Baseline AUC | `0.503853519913` |
+| Candidate delta vs baseline AUC | `-0.001722034736` |
+| Best overall | `present_zhang_wang_keras_mcnd` |
+| Best overall AUC | `0.503853519913` |
+| Decision | `stop_from_scratch_r9_r10_plan_curriculum_or_difference_search` |
+| Action | `do_not_scale_from_scratch_r9; prepare curriculum_or_difference_search` |
+| Next action branch | `stop_from_scratch_r9_r10` |
+| Next action should launch remote | `True` |
+| Next action launch config | `configs/remote/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json` |
+| Next action readiness command | `UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness --config configs/remote/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json` |
+| Next action readiness | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_next_action_readiness.json` |
+| Claim scope | `PRESENT r9 262144/class single-seed weak-probe diagnostic only; not paper-scale, formal multi-seed, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_local_result_gate.json` |
+| r9 weak-probe gate | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_r9_weak_probe_gate.json` |
+| Curves | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_curves.svg` |
+| History CSV | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705/i1_present_r9_weak_probe_262k_seed0_gpu0_20260705_postprocess_summary.md` |
+<!-- r9-weak-probe-postprocess:i1_present_r9_weak_probe_262k_seed0_gpu0_20260705:end -->
+
+### Active High-Round Arbitration Note
+
+The r9 weak-probe gate points to the prepared r8-to-r9 curriculum branch, but it
+does not override the active high-round concurrency gate. As of this result
+record, the following run is still running under watcher control:
+
+```text
+i1_present_r8_pairset_1m_seed0_gpu1_20260705
+```
+
+Therefore the current action is:
+
+```text
+queued_next_branch = r8-to-r9 curriculum
+blocked_by = active r8 pair-set 1M seed0 result
+required_before_launch = retrieve / validate / postprocess r8 seed0, then run high-round arbitration
+```
+
+No r9 curriculum, r9 difference screen, r9 seed1, or r10 task should launch
+until that arbitration selects a single next branch.

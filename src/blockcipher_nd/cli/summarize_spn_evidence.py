@@ -182,7 +182,30 @@ def _metrics(summary: dict[str, Any]) -> dict[str, Any]:
         "anchor_auc",
         "shuffled_auc",
     ]
-    return {key: summary[key] for key in keys if key in summary}
+    metrics = {key: summary[key] for key in keys if key in summary}
+
+    for prefix, value in [
+        ("baseline", summary.get("baseline")),
+        ("best_candidate", summary.get("best_candidate")),
+        ("best_overall", summary.get("best_overall")),
+    ]:
+        if not isinstance(value, dict):
+            continue
+        for key in ["accuracy", "calibrated_accuracy", "auc", "loss"]:
+            if key in value:
+                metrics[f"{prefix}_{key}"] = value[key]
+        if "model" in value:
+            metrics[f"{prefix}_model"] = value["model"]
+
+    nested_keys = [
+        "candidate_delta_vs_baseline_auc",
+        "delta_vs_baseline_auc",
+        "delta_vs_baseline",
+    ]
+    for key in nested_keys:
+        if key in summary:
+            metrics[key] = summary[key]
+    return metrics
 
 
 def _compact_next_action(value: object) -> dict[str, Any]:

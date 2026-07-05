@@ -2,9 +2,9 @@
 
 **日期：** 2026-07-05
 
-**状态：** 新任务研究蓝图 / r9 weak-probe 条件路线准备中
+**状态：** 新任务研究蓝图 / r9 from-scratch weak-probe 已完成 / 等待 r8 pair-set 1M 后仲裁下一分支
 
-**范围：** Innovation 1 的 SPN/PRESENT 更高轮次推进。本文回答“如果目标不是只在 r7/r8 同协议下微调，而是尽量推进 PRESENT 可验证轮数，研究路线应该怎么改”。具体 r9 weak-probe 运行计划放在 `docs/experiments/innovation1-present-r9-weak-probe-plan.md`。
+**范围：** Innovation 1 的 SPN/PRESENT 更高轮次推进。本文回答“如果目标不是只在 r7/r8 同协议下微调，而是尽量推进 PRESENT 可验证轮数，研究路线应该怎么改”。具体 r9 weak-probe 运行计划和结果放在 `docs/experiments/innovation1-present-r9-weak-probe-plan.md`。
 
 ## 1. 研究目标
 
@@ -80,6 +80,48 @@ prepare now, launch conditionally
 
 ```text
 launch everything now
+```
+
+### 3.1 当前 r9 from-scratch 诊断结论
+
+截至 2026-07-05，本阶段已经完成并拉回：
+
+```text
+run_id = i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+scale = 262144/class
+status = retrieved / validated / plotted / postprocessed / plan-aligned
+```
+
+结果：
+
+| Model | AUC | Calibrated accuracy | 解释 |
+|---|---:|---:|---|
+| `present_zhang_wang_keras_mcnd` | `0.503853519913` | `0.503520965576` | baseline 最高，但仍接近随机 |
+| `present_nibble_invp_pair_consistency_spn_only` | `0.502131485177` | `0.502822875977` | 最强候选，低于 baseline |
+| `present_nibble_invp_only_spn_only` | `0.500478791655` | `0.501800537109` | 接近随机 |
+
+当前 gate：
+
+```text
+decision = stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+```
+
+解释：
+
+```text
+这不是 r9 正式失败结论，也不是 r10 不可能。
+它只说明在当前 Zhang/Wang Case2 m=16、strict negatives、262144/class、
+from-scratch 训练路径下，现有 r7/r8 结构候选没有保留出可扩展的 r9 单样本信号。
+```
+
+下一步优先级因此调整为：
+
+```text
+1. 等待 active r8 pair-set 1M seed0 返回；
+2. postprocess 并与 r9 from-scratch summary 仲裁；
+3. 如果 r8 1M 支持 pair-set 路线，优先 r8 seed1 / frozen aggregation control；
+4. 如果 r8 1M 不支持继续扩大，启动 r8-to-r9 curriculum；
+5. 如果 curriculum 仍近随机，再进入 r9 difference screen 或 integral/inverse-round data route。
 ```
 
 ## 4. 高轮路线假设

@@ -3916,6 +3916,32 @@ def test_summarize_spn_evidence_recommends_high_round_arbitration_after_summarie
     ]
 
 
+def test_summarize_spn_evidence_exposes_nested_high_round_metrics(tmp_path):
+    root = tmp_path / "remote_results"
+    r9_results = tmp_path / "r9_weak_probe_near_random.jsonl"
+    _write_r9_weak_probe_result(r9_results, "present_zhang_wang_keras_mcnd", 0.504)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_only_spn_only", 0.503)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_pair_consistency_spn_only", 0.502)
+    postprocess_r9_weak_probe_result(
+        results_path=r9_results,
+        output_dir=root / "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        run_id="i1_present_r9_weak_probe_262k_seed0_gpu0_20260705",
+        expected_rows=3,
+    )
+
+    report = summarize_spn_evidence(root)
+
+    route = {
+        route["run_id"]: route
+        for route in report["routes"]
+    }["i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"]
+    assert route["metrics"]["baseline_auc"] == pytest.approx(0.504)
+    assert route["metrics"]["best_candidate_auc"] == pytest.approx(0.503)
+    assert route["metrics"]["best_overall_auc"] == pytest.approx(0.504)
+    assert route["metrics"]["candidate_delta_vs_baseline_auc"] == pytest.approx(-0.001)
+    assert route["metrics"]["best_candidate_model"] == "present_nibble_invp_only_spn_only"
+
+
 def test_summarize_spn_evidence_exposes_stale_candidate_monitor(tmp_path):
     root = tmp_path / "remote_results"
     candidate = root / "i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702"

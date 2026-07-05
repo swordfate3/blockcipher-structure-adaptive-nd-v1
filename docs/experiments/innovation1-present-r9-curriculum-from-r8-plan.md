@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** prepared / not launched / wait for from-scratch r9 weak-probe
+**Status:** prepared / readiness passed / queued after active r8 pair-set 1M result arbitration
 
 **Scope:** PRESENT-80 r9, Zhang/Wang 2022 Case2 `m=16`, strict `encrypted_random_plaintexts` negatives.
 
@@ -83,18 +83,31 @@ pretrain_epochs = 8
 
 ## Launch Gate
 
-Do not launch while the current active tasks are running:
+Do not launch while the current active high-round task is running:
 
 ```text
-i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
 
-Launch this curriculum route only after the from-scratch r9 weak-probe is:
+The from-scratch r9 weak-probe is now complete:
 
 ```text
 retrieved / validated / plotted / gate-noted / plan-aligned
 ```
+
+Retrieved r9 gate:
+
+```text
+run_id = i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
+best_candidate_auc = 0.502131485177
+baseline_auc = 0.503853519913
+decision = stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+```
+
+This satisfies the r9-side curriculum condition. The remaining launch blocker is
+the active r8 pair-set 1M seed0 run. After that result is retrieved and
+postprocessed, run high-round next-action arbitration before launching this
+curriculum branch.
 
 Decision rule:
 
