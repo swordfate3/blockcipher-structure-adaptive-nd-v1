@@ -561,17 +561,19 @@ threshold.
 
 ## Running Status
 
-Status as of the local artifact check on 2026-07-05 after monitor retrieval:
+Status as of the local recovery/postprocess check on 2026-07-05:
 
 ```text
 remote readiness = pass
 retrieved train rows = 3 / 3
 retrieved checkpoints = 3 / 3
 training status = completed remotely
-score export status = failed on missing matplotlib import dependency
-neural_ensemble_summary.json = not retrieved
-postprocess gate = not run
-claim status = no ensemble claim yet
+original remote score export status = failed on missing matplotlib import dependency
+local recovery score export = pass, 3 / 3 artifacts
+neural_ensemble_summary.json = present
+postprocess gate = pass
+decision = weak_neural_ensemble_positive_below_gate
+claim status = diagnostic-only weak positive below gate
 ```
 
 Retrieved training rows:
@@ -588,9 +590,12 @@ Local artifacts:
 run_root = outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705
 train_matrix = results/train_matrix.jsonl
 checkpoints = checkpoints/row0001_*.pt, row0002_*.pt, row0003_*.pt
-score_artifacts = missing
-ensemble_summary = missing
+original remote score_artifacts = missing
+original remote ensemble_summary = missing
 failure log = logs/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_export_zhang_wang_stderr.txt
+recovered score_artifacts = score_artifacts/zhang_wang, score_artifacts/invp_only, score_artifacts/ddt_graph
+recovered ensemble_summary = results/neural_ensemble_summary.json
+postprocess = postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.json
 ```
 
 Failure diagnosis:
@@ -603,17 +608,45 @@ The remote training environment did not have matplotlib, so the post-training
 export failed before any neural ensemble scores were produced.
 ```
 
-Next action:
+Recovery action completed:
 
 ```text
-Repair the lightweight import boundary for scripts/export-checkpoint-scores,
-push the fix, then rerun only score export + scripts/evaluate-neural-ensemble
-from the retrieved/remote checkpoints. Do not retrain for this recovery unless
-checkpoint reuse fails.
+Repaired the lightweight import boundary for scripts/export-checkpoint-scores,
+then reran only score export + scripts/evaluate-neural-ensemble from the
+retrieved checkpoints. No retraining was used for recovery.
 ```
 
-This status is not evidence that the PRESENT neural ensemble screen has passed
-or failed. It is evidence that the three candidate neural networks trained at
-the planned 65536/class diagnostic scale. Final ensemble interpretation still
-requires all three score artifacts, `neural_ensemble_summary.json`, and the
-guarded `scripts/postprocess-neural-ensemble` gate.
+This status is evidence that the three candidate neural networks trained at the
+planned 65536/class diagnostic scale and that the frozen score aggregation path
+ran to completion after local recovery. The result is a weak positive below the
+predeclared improvement margin, so it is diagnostic only and does not justify a
+262144/class confirmation of this candidate pool by itself.
+
+## Retrieved Neural Ensemble Result
+
+<!-- neural-ensemble-postprocess:i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705:start -->
+### i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705 Neural Ensemble Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705` |
+| Postprocess status | `pass` |
+| Decision | `weak_neural_ensemble_positive_below_gate` |
+| Action | `treat_as_calibration_or_threshold_diagnostic_only` |
+| Best single | `present_nibble_ddt_graph` |
+| Best single AUC | `0.789112608414` |
+| Best ensemble | `probability_mean` |
+| Best ensemble AUC | `0.790061685257` |
+| Delta vs best single AUC | `0.000949076843` |
+| Improvement margin | `0.001000000000` |
+| Max error Jaccard at 0.5 | `0.703533026114` |
+| Max allowed error Jaccard | `0.850000000000` |
+| Max double-fault rate at 0.5 | `0.237609863281` |
+| Next action branch | `neural_ensemble_diagnostic_only` |
+| Claim scope | `PRESENT neural ensemble application-level diagnostic only; not raw single-sample SOTA, not formal evidence, and not a breakthrough claim` |
+| Train results | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/results/train_matrix.jsonl` |
+| Ensemble summary | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/results/neural_ensemble_summary.json` |
+| Gate JSON | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_neural_ensemble_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.md` |
+<!-- neural-ensemble-postprocess:i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705:end -->

@@ -32,9 +32,13 @@ def neural_ensemble_status(run_root: Path, *, expected_rows: int = 3) -> dict[st
         score_artifacts=score_artifacts,
         ensemble_summary_ready=ensemble_summary.exists(),
     )
-    failed = bool(list((run_root / "logs").glob("*failed.marker"))) if (run_root / "logs").exists() else False
+    failed_marker_present = (
+        bool(list((run_root / "logs").glob("*failed.marker"))) if (run_root / "logs").exists() else False
+    )
 
-    if failed:
+    if failed_marker_present and not missing_artifacts:
+        status = "recovered"
+    elif failed_marker_present:
         status = "failed"
     elif not missing_artifacts:
         status = "ready"
@@ -51,6 +55,7 @@ def neural_ensemble_status(run_root: Path, *, expected_rows: int = 3) -> dict[st
         "score_artifacts": score_artifacts,
         "score_artifacts_ready": all(score_artifacts.values()) and bool(score_artifacts),
         "ensemble_summary_ready": ensemble_summary.exists(),
+        "failed_marker_present": failed_marker_present,
         "latest_progress": latest_progress,
         "missing_artifacts": missing_artifacts,
     }

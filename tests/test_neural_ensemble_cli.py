@@ -449,3 +449,46 @@ def test_neural_ensemble_status_reports_partial_local_artifacts(tmp_path):
     assert report["ensemble_summary_ready"] is False
     assert report["latest_progress"]["model"] == "present_nibble_invp_only_spn_only"
     assert "neural_ensemble_summary.json" in report["missing_artifacts"]
+
+
+def test_neural_ensemble_status_reports_recovered_after_failed_marker(tmp_path):
+    run_root = tmp_path / "run"
+    (run_root / "results").mkdir(parents=True)
+    (run_root / "checkpoints").mkdir()
+    (run_root / "logs").mkdir()
+    for name in ["zhang_wang", "invp_only", "ddt_graph"]:
+        artifact_dir = run_root / "score_artifacts" / name
+        artifact_dir.mkdir(parents=True)
+        (artifact_dir / "models.json").write_text("{}", encoding="utf-8")
+    (run_root / "results" / "neural_ensemble_summary.json").write_text("{}", encoding="utf-8")
+    (run_root / "logs" / "run_failed.marker").write_text("export failed before repair\n", encoding="utf-8")
+    (run_root / "results" / "train_matrix.jsonl").write_text(
+        "\n".join(
+            json.dumps({"model": f"model_{index}", "metrics": {"auc": 0.7}})
+            for index in range(3)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    for index in range(3):
+        (run_root / "checkpoints" / f"row000{index + 1}_model_{index}_seed0.pt").write_bytes(
+            b"checkpoint"
+        )
+    output = tmp_path / "status.json"
+
+    status = neural_ensemble_status_main(
+        [
+            "--run-root",
+            str(run_root),
+            "--expected-rows",
+            "3",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "recovered"
+    assert report["missing_artifacts"] == []
+    assert report["failed_marker_present"] is True
