@@ -164,7 +164,12 @@ def gate_r9_weak_probe_result(
     by_model = {entry["model"]: entry for entry in entries}
     baseline = by_model.get(BASELINE_MODEL)
     candidates = [entry for entry in entries if entry["model"] in {INVP_MODEL, PAIR_MODEL}]
-    if baseline is None:
+    curriculum_only = (
+        expected_rows == 2
+        and baseline is None
+        and {entry["model"] for entry in entries} == {INVP_MODEL, PAIR_MODEL}
+    )
+    if baseline is None and not curriculum_only:
         errors.append(f"missing baseline model {BASELINE_MODEL}")
     for model in (INVP_MODEL, PAIR_MODEL):
         if model not in by_model:
@@ -184,6 +189,21 @@ def gate_r9_weak_probe_result(
         action = "repair_result_or_plan_alignment_before_branching"
         interpretation = "The r9 weak-probe result is incomplete or missing required metrics."
         status = "fail"
+    elif curriculum_only:
+        status = "pass"
+        best_candidate_auc = float(best_candidate["auc"])
+        if best_candidate_auc > weak_trace_auc_ceiling:
+            decision = "support_curriculum_followup_or_seed1"
+            action = "compare_curriculum_against_from_scratch_and_prepare_confirmation_if_selected"
+            interpretation = "The r8-to-r9 curriculum run has a positive r9 diagnostic signal."
+        elif best_candidate_auc > near_random_auc_ceiling:
+            decision = "weak_curriculum_trace_needs_compare_to_from_scratch"
+            action = "compare_to_from_scratch_r9_before_expanding_curriculum"
+            interpretation = "The r8-to-r9 curriculum run shows only a weak trace."
+        else:
+            decision = "stop_or_rethink_r9_curriculum_route"
+            action = "do_not_expand_curriculum_without_new_evidence"
+            interpretation = "The r8-to-r9 curriculum run remains near random."
     else:
         status = "pass"
         best_candidate_auc = float(best_candidate["auc"])
@@ -230,8 +250,15 @@ def gate_r9_weak_probe_result(
         },
         "claim_scope": claim_scope
         or (
-            "PRESENT r9 262144/class single-seed weak-probe diagnostic only; "
-            "not paper-scale, formal multi-seed, or breakthrough evidence"
+            (
+                "PRESENT r9 262144/class r8-to-r9 curriculum diagnostic only; "
+                "not paper-scale, formal multi-seed, or breakthrough evidence"
+            )
+            if curriculum_only
+            else (
+                "PRESENT r9 262144/class single-seed weak-probe diagnostic only; "
+                "not paper-scale, formal multi-seed, or breakthrough evidence"
+            )
         ),
     }
 
@@ -348,6 +375,33 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "monitor_owner": "tmux watcher or sub-agent",
             "fallback_hypotheses": ["r9_difference_screen", "r8_to_r9_curriculum"],
         }
+    if decision == "support_curriculum_followup_or_seed1":
+        return {
+            "branch": "r9_curriculum_positive_review",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": decision,
+            "selected_model": (report.get("best_candidate") or {}).get("model", ""),
+            "next_plan_doc": "docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md",
+            "candidate_next_routes": ["curriculum_seed1_confirmation", "difference_screen_control"],
+        }
+    if decision == "weak_curriculum_trace_needs_compare_to_from_scratch":
+        return {
+            "branch": "r9_curriculum_weak_trace_review",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": decision,
+            "selected_model": (report.get("best_candidate") or {}).get("model", ""),
+            "next_plan_doc": "docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md",
+        }
+    if decision == "stop_or_rethink_r9_curriculum_route":
+        return {
+            "branch": "stop_r9_curriculum_route",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": decision,
+            "fallback_hypotheses": ["r9_difference_screen", "r8_integral_inverse_feature", "pair_evidence_pooling"],
+        }
     return {
         "branch": "manual_review",
         "should_launch_remote": False,
@@ -389,6 +443,22 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
             "Do not scale the candidate architecture from this result.",
             "Use the prepared r9 difference-screen to test whether the fixed input difference is the bottleneck.",
             "Do not interpret this as a same-protocol SPN architecture improvement.",
+        ]
+    if branch == "r9_curriculum_positive_review":
+        return [
+            "Record this as curriculum diagnostic evidence only.",
+            "Compare the selected curriculum model against the retrieved from-scratch r9 weak-probe before confirmation.",
+            "Do not launch r10 or claim higher-round success from this single diagnostic.",
+        ]
+    if branch == "r9_curriculum_weak_trace_review":
+        return [
+            "Treat the curriculum signal as weak and diagnostic only.",
+            "Compare against from-scratch r9 and prefer difference/data-representation branches if it is not clearly better.",
+        ]
+    if branch == "stop_r9_curriculum_route":
+        return [
+            "Stop expanding r8-to-r9 curriculum under this configuration.",
+            "Prefer r9 difference search, integral/inverse data representation, or pair-evidence pooling.",
         ]
     return ["Manual review required before branching."]
 

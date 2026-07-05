@@ -93,7 +93,8 @@ r9 weak-probe and r8 pair-set 1M watcher artifacts, emits route-specific
 postprocess commands when results are ready, and recommends
 `scripts/arbitrate-next-actions` when multiple high-round summaries are
 available. After those high-round gates free the branch, it also recognizes the
-prepared pair-mixer and pair-evidence-pooling follow-up runs, keeping their
+prepared r9 curriculum, r9 difference-screen, r8 integral/inverse-feature,
+pair-mixer, and pair-evidence-pooling follow-up runs, keeping their
 running/result-ready state in the same local-only monitor/postprocess workflow.
 While candidate-trail is still running, that
 recommendation remains `wait_for_candidate_trail_result`; after retrieved

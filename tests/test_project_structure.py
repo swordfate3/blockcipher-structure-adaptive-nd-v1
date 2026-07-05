@@ -10191,6 +10191,53 @@ def test_summarize_spn_evidence_tracks_pair_evidence_pooling_ready_followup(tmp_
     assert "run the listed route-specific postprocess command" in active["main_thread_policy"]["allowed_actions"]
 
 
+def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_path):
+    diff_run_id = "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705"
+    diff_root = tmp_path / diff_run_id
+    (diff_root / "monitor").mkdir(parents=True)
+    (diff_root / "results").mkdir(parents=True)
+    (diff_root / "monitor" / "monitor.log").write_text(
+        "2026-07-05T12:00:00+08:00 running\n",
+        encoding="utf-8",
+    )
+    diff_results = diff_root / "results" / f"{diff_run_id}.jsonl"
+    for index, auc in enumerate([0.512, 0.513, 0.514, 0.515, 0.516, 0.517, 0.518]):
+        _write_difference_screen_result(diff_results, f"profile_{index}", 0, auc)
+
+    diff_report = summarize_spn_evidence(tmp_path)
+    diff_active = diff_report["active_recommendation"]
+    assert diff_active["branch"] == "postprocess_r9_difference_screen_result"
+    assert diff_active["run_id"] == diff_run_id
+    assert diff_active["postprocess_allowed"] is True
+    assert diff_active["results_jsonl_line_count"] == 7
+    assert "scripts/postprocess-difference-screen" in diff_active["postprocess_when_ready_command"]
+
+    (diff_root / f"{diff_run_id}_postprocess_summary.json").write_text("{}", encoding="utf-8")
+    integral_run_id = "i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705"
+    integral_root = tmp_path / integral_run_id
+    (integral_root / "monitor").mkdir(parents=True)
+    (integral_root / "logs").mkdir(parents=True)
+    (integral_root / "results").mkdir(parents=True)
+    (integral_root / "monitor" / "monitor.log").write_text(
+        "2026-07-05T12:00:00+08:00 sync\n"
+        "2026-07-05T12:00:01+08:00 running\n",
+        encoding="utf-8",
+    )
+    (integral_root / "logs" / "integral_inverse_progress.jsonl").write_text(
+        json.dumps({"event": "train_batch", "epoch": 1, "epochs": 20}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (integral_root / "results" / f"{integral_run_id}.jsonl").write_text("", encoding="utf-8")
+
+    integral_report = summarize_spn_evidence(tmp_path)
+    integral_active = integral_report["active_recommendation"]
+    assert integral_active["branch"] == "wait_for_integral_inverse_feature_result"
+    assert integral_active["run_id"] == integral_run_id
+    assert integral_active["postprocess_allowed"] is False
+    assert integral_active["expected_rows"] == 3
+    assert "scripts/postprocess-integral-inverse-feature" in integral_active["postprocess_when_ready_command"]
+
+
 def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "integral_inverse_feature.jsonl"
     _write_integral_inverse_feature_result(
@@ -10379,6 +10426,35 @@ def test_r9_weak_probe_postprocess_writes_summary_and_updates_plan_doc(tmp_path)
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- r9-weak-probe-postprocess:r9_weak_probe_unit:start -->") == 1
+
+
+def test_r9_curriculum_two_row_postprocess_does_not_require_baseline(tmp_path):
+    results = tmp_path / "r9_curriculum.jsonl"
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.511)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.523)
+    plan_doc = tmp_path / "r9_curriculum_plan.md"
+    plan_doc.write_text("# r9 Curriculum Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_r9_weak_probe_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="r9_curriculum_unit",
+        expected_rows=2,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_curriculum_followup_or_seed1"
+    assert report["baseline"] is None
+    assert report["candidate_delta_vs_baseline_auc"] is None
+    assert report["best_candidate"]["model"] == "present_nibble_invp_pair_consistency_spn_only"
+    assert report["next_action"]["branch"] == "r9_curriculum_positive_review"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert "r8-to-r9 curriculum diagnostic" in report["claim_scope"]
+    assert Path(report["r9_weak_probe_gate"]).exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "| Decision | `support_curriculum_followup_or_seed1` |" in plan_text
 
 
 def test_r9_postprocess_accepts_paper_scale_claim_scope(tmp_path):
