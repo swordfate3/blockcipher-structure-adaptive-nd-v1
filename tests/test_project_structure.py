@@ -10291,6 +10291,69 @@ def test_summarize_spn_evidence_prefers_running_followup_over_high_round_arbitra
     assert "launch another follow-up branch in parallel" in active["main_thread_policy"]["forbidden_until_gate"]
 
 
+def test_summarize_spn_evidence_prefers_completed_followup_over_stale_high_round_arbitration(tmp_path):
+    r8_run_id = "i1_present_r8_pairset_1m_seed0_gpu1_20260705"
+    r9_run_id = "i1_present_r9_weak_probe_262k_seed0_gpu0_20260705"
+    for run_id, decision in [
+        (r8_run_id, "stop_or_rethink_r8_pairset_scale"),
+        (r9_run_id, "stop_from_scratch_r9_r10_plan_curriculum_or_difference_search"),
+    ]:
+        run_root = tmp_path / run_id
+        run_root.mkdir(parents=True)
+        (run_root / f"{run_id}_postprocess_summary.json").write_text(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "status": "pass",
+                    "validation_status": "pass",
+                    "decision": decision,
+                    "next_action": {"should_launch_remote": False},
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+
+    followup_run_id = "i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705"
+    followup_root = tmp_path / followup_run_id
+    followup_root.mkdir(parents=True)
+    (followup_root / f"{followup_run_id}_postprocess_summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": followup_run_id,
+                "status": "pass",
+                "validation_status": "pass",
+                "decision": "stop_or_rethink_r9_curriculum_route",
+                "claim_scope": "PRESENT r9 262144/class r8-to-r9 curriculum diagnostic only",
+                "next_action": {
+                    "branch": "stop_r9_curriculum_route",
+                    "fallback_hypotheses": [
+                        "r9_difference_screen",
+                        "r8_integral_inverse_feature",
+                        "pair_evidence_pooling",
+                    ],
+                    "requires_implementation": False,
+                    "should_launch_remote": False,
+                },
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "stop_r9_curriculum_route"
+    assert active["run_id"] == followup_run_id
+    assert active["should_launch_remote"] is False
+    assert active["fallback_hypotheses"] == [
+        "r9_difference_screen",
+        "r8_integral_inverse_feature",
+        "pair_evidence_pooling",
+    ]
+
+
 def test_summarize_spn_evidence_tracks_pair_evidence_pooling_ready_followup(tmp_path):
     run_id = "i1_present_r8_pair_evidence_pooling_screen_65k_seed0_gpu0_20260705"
     run_root = tmp_path / run_id

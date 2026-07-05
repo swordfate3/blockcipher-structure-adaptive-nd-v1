@@ -177,3 +177,36 @@ opening r10 or changing the benchmark.
 It cannot support breakthrough, SOTA, or formal route claims.
 It can decide whether high-round SPN/PRESENT should use curriculum/transfer.
 ```
+
+## Retrieved r9 Weak-Probe Result
+
+<!-- r9-weak-probe-postprocess:i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705:start -->
+### i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705 r9 Weak-Probe Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Best candidate | `present_nibble_invp_only_spn_only` |
+| Best candidate AUC | `0.501854928734` |
+| Baseline AUC | `null` |
+| Candidate delta vs baseline AUC | `null` |
+| Best overall | `present_nibble_invp_only_spn_only` |
+| Best overall AUC | `0.501854928734` |
+| Decision | `stop_or_rethink_r9_curriculum_route` |
+| Action | `do_not_expand_curriculum_without_new_evidence` |
+| Next action branch | `stop_r9_curriculum_route` |
+| Next action should launch remote | `False` |
+| Next action launch config | `` |
+| Next action readiness command | `` |
+| Next action readiness | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_next_action_readiness.json` |
+| Claim scope | `PRESENT r9 262144/class r8-to-r9 curriculum diagnostic only; not paper-scale, formal multi-seed, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_local_result_gate.json` |
+| r9 weak-probe gate | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_r9_weak_probe_gate.json` |
+| Curves | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_curves.svg` |
+| History CSV | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_history.csv` |
+| Summary JSON | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705/i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705_postprocess_summary.md` |
+<!-- r9-weak-probe-postprocess:i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705:end -->

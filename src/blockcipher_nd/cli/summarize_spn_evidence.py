@@ -295,6 +295,7 @@ def _compact_next_action(value: object) -> dict[str, Any]:
             "requires_implementation",
             "readiness_command",
             "fallback_plan",
+            "fallback_hypotheses",
         ]
         if key in value
     }
@@ -368,6 +369,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     followup_running = _followup_running(root)
     if followup_running is not None:
         return followup_running
+    followup_completed = _followup_completed_recommendation(routes)
+    if followup_completed is not None:
+        return followup_completed
     high_round_arbitration = _high_round_arbitration_recommendation(routes)
     if high_round_arbitration is not None:
         return high_round_arbitration
@@ -510,6 +514,35 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
                 "main_thread_policy": _followup_main_thread_policy("waiting"),
             }
     return None
+
+
+def _followup_completed_recommendation(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    followup_run_ids = {str(spec["run_id"]) for spec in FOLLOWUP_RUNS}
+    candidates = [
+        route
+        for route in routes
+        if str(route.get("run_id")) in followup_run_ids
+        and route.get("status") == "pass"
+        and route.get("validation_status") in {"pass", "not_run", None}
+    ]
+    if not candidates:
+        return None
+    route = sorted(candidates, key=lambda item: str(item["run_id"]))[-1]
+    next_action = route.get("effective_next_action") or route.get("next_action") or {}
+    if not isinstance(next_action, dict):
+        next_action = {}
+    return {
+        "branch": next_action.get("branch", "review_completed_followup"),
+        "run_id": route["run_id"],
+        "decision": route.get("decision"),
+        "should_launch_remote": bool(next_action.get("should_launch_remote", False)),
+        "requires_implementation": bool(next_action.get("requires_implementation", False)),
+        "reason": "completed follow-up gate supersedes earlier high-round arbitration",
+        "summary": route.get("summary"),
+        "claim_scope": route.get("claim_scope"),
+        "fallback_hypotheses": next_action.get("fallback_hypotheses", []),
+        "next_action": next_action,
+    }
 
 
 def _high_round_arbitration_recommendation(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
