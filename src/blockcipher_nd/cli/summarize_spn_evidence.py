@@ -365,12 +365,12 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     high_round_running = _high_round_running(root)
     if high_round_running is not None:
         return high_round_running
-    high_round_arbitration = _high_round_arbitration_recommendation(routes)
-    if high_round_arbitration is not None:
-        return high_round_arbitration
     followup_running = _followup_running(root)
     if followup_running is not None:
         return followup_running
+    high_round_arbitration = _high_round_arbitration_recommendation(routes)
+    if high_round_arbitration is not None:
+        return high_round_arbitration
     candidate_running = _candidate_trail_running(root)
     if candidate_running is not None:
         return candidate_running
@@ -494,9 +494,10 @@ def _followup_running(root: Path) -> dict[str, Any] | None:
                 "main_thread_policy": _followup_main_thread_policy("postprocess"),
             }
         if _is_active_high_round_health(health, recent_lines):
+            needs_diagnosis = health["needs_main_thread_intervention"] and not _has_fresh_progress(health)
             branch = (
                 f"diagnose_{spec['postprocess_kind']}_launch"
-                if health["needs_main_thread_intervention"]
+                if needs_diagnosis
                 else str(spec["wait_branch"])
             )
             return {
@@ -632,6 +633,11 @@ def _is_active_high_round_health(health: dict[str, Any], recent_lines: list[str]
     }
     has_activity = bool(recent_lines) or bool(health.get("heartbeat", {}).get("newest_timestamp"))
     return str(health.get("status")) in active_statuses and has_activity
+
+
+def _has_fresh_progress(health: dict[str, Any]) -> bool:
+    progress = health.get("progress_summary")
+    return isinstance(progress, dict) and bool(progress.get("exists")) and not bool(progress.get("is_stale"))
 
 
 def _high_round_main_thread_policy(state: str) -> dict[str, Any]:

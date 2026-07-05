@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-04
 
-**状态：** prepared / pending local verification / pending remote readiness
+**状态：** r8 262k completed / r8 pair-set 1M completed / pair-set scale stopped / r9 curriculum active
 
 **研究蓝图：** `docs/research/innovation1-present-round-extension-research-plan.md`
 
@@ -244,7 +244,7 @@ multi-query application-level evidence label
 
 ### Prepared r8 Pair-Set 1M Seed1 Branch
 
-**Status:** prepared / gate-locked / not launched
+**Status:** prepared / gate-locked / not launched / blocked by seed0 stop gate
 
 Seed1 assets are prepared so a positive r8 pair-set 1M seed0 result can move
 directly into stability confirmation without changing the benchmark:
@@ -308,6 +308,69 @@ Claim scope:
 Seed0 + seed1 can support route-level evidence only after both are retrieved,
 validated, plan-aligned, and compared against same-budget baseline rows.
 It is still not a breakthrough claim without attribution / aggregation controls.
+```
+
+### Retrieved r8 Pair-Set 1M Seed0 Result
+
+**Run ID:** `i1_present_r8_pairset_1m_seed0_gpu1_20260705`
+
+**Status:** retrieved / validated / plotted / gate-noted / plan-aligned
+
+Artifacts:
+
+```text
+outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/
+outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_r8_pairset_1m_gate.json
+outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_postprocess_summary.json
+outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_curves.svg
+outputs/remote_results/i1_present_r8_pairset_1m_seed0_gpu1_20260705/i1_present_r8_pairset_1m_seed0_gpu1_20260705_history.csv
+```
+
+Fixed protocol:
+
+```text
+rounds = 8
+samples_per_class = 1000000
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+difference_profile = present_zhang_wang2022_mcnd
+checkpoint_metric = val_auc
+```
+
+Gate result:
+
+| Model | AUC | Calibrated accuracy | Accuracy | Loss |
+|---|---:|---:|---:|---:|
+| `present_zhang_wang_keras_mcnd` | `0.554962712376` | `0.538956000000` | `0.536508000000` | `0.688416561127` |
+| `present_nibble_invp_pair_consistency_spn_only` | `0.514032233534` | `0.509978000000` | `0.500000000000` | `0.693150227722` |
+
+Decision:
+
+```text
+decision = stop_or_rethink_r8_pairset_scale
+delta_vs_baseline_auc = -0.040930478842
+action = do_not_expand_pairset_scale_without_new_evidence
+next_action.branch = stop_r8_pairset_scale
+next_action.should_launch_remote = false
+```
+
+Interpretation:
+
+```text
+The r8 pair-set candidate does not beat the same-protocol 1M/class
+Zhang/Wang-style baseline. Do not launch the prepared r8 pair-set seed1 branch
+or a frozen aggregation control from this seed0 result alone.
+```
+
+Claim scope:
+
+```text
+This is a PRESENT r8 1000000/class single-seed pair-set confirmation result.
+It is not formal multi-seed route evidence and not breakthrough evidence. It
+is sufficient to stop expanding this exact r8 pair-set scale path until a new
+representation, curriculum, difference search, or integral/inverse feature
+screen supplies fresh evidence.
 ```
 
 ### If InvP-only is strongest
