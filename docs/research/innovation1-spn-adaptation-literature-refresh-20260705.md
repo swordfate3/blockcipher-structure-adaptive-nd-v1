@@ -517,3 +517,41 @@ single-nibble aligned active-difference SPN feature/input search > new SPN archi
 ```
 
 This is a route correction, not a claim of completion.
+
+## 2026-07-06 GPD-Style Beam Repeat Update
+
+The GPD-style partial-inverse/DDT beam branch was checked after the independent
+route re-rank. A `512/class` seed0 diagnostic initially made expanded DDT beam
+look like the best candidate:
+
+```text
+seed0 InvP AUC = 0.540496826171875
+seed0 Sinv AUC = 0.5286407470703125
+seed0 DDT beam AUC = 0.562957763671875
+seed0 DDT beamstats AUC = 0.5418472290039062
+```
+
+The required `512/class` seed1 repeat did not preserve that ordering:
+
+```text
+seed1 InvP AUC = 0.5263595581054688
+seed1 Sinv AUC = 0.56329345703125
+seed1 DDT beam AUC = 0.51806640625
+seed1 DDT beamstats AUC = 0.5724639892578125
+```
+
+Updated route reading:
+
+```text
+do not scale expanded DDT beam
+do not launch a 65536/class GPD-style remote diagnostic yet
+keep compressed beamstats only as a local lightweight candidate
+```
+
+This strengthens the broader route discipline rather than weakening it:
+SPN-aware feature/input search is still the right level of innovation, but
+the next slot should not chase a noisy local winner. If this branch continues,
+the better next action is an attribution/local confirmation for compressed
+beamstats or a return to stronger controlled feature routes. Diverse neural
+aggregation remains secondary until one of these non-neighbor families produces
+compatible weak-positive score artifacts with low error overlap.

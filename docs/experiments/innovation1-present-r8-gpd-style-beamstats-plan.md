@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** 512/class local diagnostic completed / DDT beam candidate needs seed1 repeat / no remote launch
+**Status:** 512/class seed0+seed1 diagnostics completed / beam family unstable / no remote launch
 
 ## Why This Plan Exists
 
@@ -97,6 +97,7 @@ Config:
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke_seed1.csv
 configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv
+configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv
 ```
 
 Rows:
@@ -355,4 +356,88 @@ Updated next action:
 
 ```text
 prepare and run configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv
+```
+
+## Local 512/Class Seed1 Repeat Result
+
+Run:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/results.jsonl
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 32 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/progress.jsonl
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/results.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/progress.jsonl
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/curves.svg
+outputs/local_smoke/i1_present_r8_gpd_style_beamstats_512_seed1/history.csv
+```
+
+Results:
+
+| Feature encoding | 512 seed0 AUC | 512 seed1 AUC | Mean AUC | Interpretation |
+|---|---:|---:|---:|---|
+| `present_pair_xor_paligned_cell_matrix_bits` | `0.540496826171875` | `0.5263595581054688` | `0.5334281921386719` | InvP control remains weak-positive |
+| `present_pair_xor_paligned_sinv_cell_matrix_bits` | `0.5286407470703125` | `0.56329345703125` | `0.5459671020507812` | Sinv control is itself volatile and wins over expanded beam on seed1 |
+| `present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits` | `0.562957763671875` | `0.51806640625` | `0.5405120849609375` | expanded DDT beam seed0 improvement did not reproduce |
+| `present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits` | `0.5418472290039062` | `0.5724639892578125` | `0.5571556091308594` | best two-seed mean, but margin is still local diagnostic only |
+
+Seed1 calibrated accuracies:
+
+```text
+InvP control = 0.5390625
+Sinv control = 0.560546875
+DDT beam = 0.548828125
+DDT beamstats = 0.583984375
+```
+
+Updated decision:
+
+```text
+hold_gpd_style_beam_family_no_remote_launch
+```
+
+This repeat falsifies the narrow seed0 reading that the expanded DDT beam is
+the stable winner. The compressed beamstats row now has the best two-seed mean
+and the best seed1 result, but the 128/class beamstats row was below random on
+seed0 and the 512 seed0 margin over InvP was only about `+0.00135` AUC. Treat
+beamstats as a lightweight local candidate, not as scale-up evidence.
+
+Current branch action:
+
+```text
+do not launch 65536/class from this GPD-style branch yet
+prefer a lean local confirmation or attribution check over a remote run
+candidate to keep locally = beamstats, not expanded DDT beam
+candidate to demote = expanded DDT beam unless a new attribution explains seed1 failure
+```
+
+Relationship to diverse experts:
+
+```text
+The GPD-style beamstats row is a possible future non-neighbor expert source,
+but only after compatible weak-positive score artifacts and low-overlap checks
+exist. Do not use this result to justify a wider near-neighbor ensemble now.
 ```

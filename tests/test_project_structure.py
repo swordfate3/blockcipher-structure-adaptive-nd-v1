@@ -12663,6 +12663,43 @@ def test_present_r8_gpd_style_beamstats_512_plan_preserves_smoke_protocol():
         assert "no remote launch" in diagnostic_task["matching_evidence"]
 
 
+def test_present_r8_gpd_style_beamstats_512_seed1_plan_repeats_seed0_protocol():
+    seed0_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_gpd_style_beamstats_512_seed0.csv"
+    )
+    seed1_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_gpd_style_beamstats_512_seed1.csv"
+    )
+    seed0_tasks = build_tasks(parse_args(["--plan", seed0_plan]))
+    seed1_tasks = build_tasks(parse_args(["--plan", seed1_plan]))
+
+    assert len(seed1_tasks) == len(seed0_tasks) == 4
+    assert {task["samples_per_class"] for task in seed1_tasks} == {512}
+    assert {task["seed"] for task in seed1_tasks} == {1}
+    for seed0_task, seed1_task in zip(seed0_tasks, seed1_tasks, strict=True):
+        for field in (
+            "model_key",
+            "feature_encoding",
+            "rounds",
+            "pairs_per_sample",
+            "sample_structure",
+            "negative_mode",
+            "difference_profile",
+            "integral_active_nibble",
+            "train_key",
+            "validation_key",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+        ):
+            assert seed1_task[field] == seed0_task[field]
+        assert seed1_task["matching_evidence"].startswith("LOCAL DIAGNOSTIC only")
+        assert "512/class" in seed1_task["matching_evidence"]
+        assert "seed1 repeat" in seed1_task["matching_evidence"]
+        assert "no remote launch" in seed1_task["matching_evidence"]
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"
