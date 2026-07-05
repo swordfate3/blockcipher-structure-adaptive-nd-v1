@@ -507,6 +507,40 @@ def test_present_r9_difference_screen_plan_and_remote_assets_are_prepared_not_la
     assert "i1_present_r8_pairset_1m_seed0_gpu1_20260705" in plan_doc
 
 
+def test_present_pair_mixer_consistency_smoke_plan_is_protocol_locked():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pair_mixer_consistency_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_nibble_invp_pair_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 8
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "SMOKE only" in task["matching_evidence"]
+        assert "not accuracy evidence" in task["matching_evidence"]
+    assert tasks[1]["model_options"]["pair_mixer_depth"] == 1
+
+    plan_doc = Path(
+        "docs/experiments/innovation1-present-pair-mixer-consistency-plan.md"
+    ).read_text(encoding="utf-8")
+    assert "present_nibble_invp_pair_mixer_consistency_spn_only" in plan_doc
+    assert "cross-pair mixer" in plan_doc
+    assert "不启动远程" in plan_doc
+
+
 def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     plan = (
         "configs/experiment/innovation1/"
@@ -10058,6 +10092,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
         "present_nibble_delta_only_spn_only",
         "present_nibble_invp_only_spn_only",
         "present_nibble_invp_pair_consistency_spn_only",
+        "present_nibble_invp_pair_mixer_consistency_spn_only",
         "present_nibble_shuffled_paligned_spn_only",
         "present_nibble_no_ddt_graph",
         "present_nibble_ddt_graph",
@@ -10079,6 +10114,7 @@ def test_present_nibble_paligned_ablation_models_build_and_forward():
             model_options={
                 "blocks": 2,
                 "spn_mixer_depth": 1,
+                "pair_mixer_depth": 1,
                 "transition_mixer_depth": 1,
                 "ddt_mixer_depth": 1,
                 "prior_mixer_depth": 1,
