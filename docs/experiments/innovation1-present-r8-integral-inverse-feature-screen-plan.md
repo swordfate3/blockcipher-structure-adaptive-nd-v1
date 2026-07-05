@@ -459,3 +459,31 @@ Repair launch gate：
 ```
 
 <!-- integral-inverse-feature-failure:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705:end -->
+
+## Retrieved Integral / Inverse-Feature Result
+
+<!-- integral-inverse-feature-postprocess:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705:start -->
+### i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705 Integral / Inverse-Feature Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Raw anchor AUC | `0.999995831400` |
+| InvP matrix AUC | `0.513465017546` |
+| InvP+Sinv AUC | `0.505787684582` |
+| Best row | `Present-RawPair-IntegralNibble-r8-65k` |
+| Best feature | `ciphertext_pair_bits` |
+| Delta Sinv vs raw AUC | `-0.494208146818` |
+| Delta Sinv vs InvP AUC | `-0.007677332964` |
+| Decision | `stop_integral_inverse_feature_screen_for_now` |
+| Action | `return_to_r9_weak_probe_curriculum_or_difference_screen` |
+| Next action branch | `stop_integral_inverse_feature_for_now` |
+| Claim scope | `PRESENT r8 integral/inverse-round feature screen only; 65536/class is not Zhang/Wang same-protocol model evidence, paper-scale evidence, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_local_result_gate.json` |
+| Integral/inverse gate | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_integral_inverse_feature_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705_postprocess_summary.md` |
+<!-- integral-inverse-feature-postprocess:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705:end -->
