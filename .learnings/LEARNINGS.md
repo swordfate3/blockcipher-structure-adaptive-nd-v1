@@ -133,7 +133,7 @@ Before launching the next Innovation 1 SPN/PRESENT experiment, write or update t
 - Tags: innovation1, spn, route-selection, literature-refresh, independent-judgment, neural-ensemble
 - See Also: LRN-20260705-002, LRN-20260630-001
 - Pattern-Key: innovation1.spn_present.independent_literature_ranked_route_selection
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-05
 - Last-Seen: 2026-07-06
 - Promoted: AGENTS.md
@@ -141,7 +141,7 @@ Before launching the next Innovation 1 SPN/PRESENT experiment, write or update t
 ### Resolution
 - **Resolved**: 2026-07-06T00:00:00+08:00
 - **Commit/PR**: pending
-- **Notes**: Promoted a concise rule to `AGENTS.md`: user-proposed routes are hypotheses that must be ranked against literature, local evidence, same-budget baselines, and controls before consuming meaningful experiment slots.
+- **Notes**: Promoted a concise rule to `AGENTS.md`: user-proposed routes are hypotheses that must be ranked against literature, local evidence, same-budget baselines, and controls before consuming meaningful experiment slots. Reaffirmed on 2026-07-06 with an independent SPN route re-rank and a baseline-gated neural follow-up smoke plan.
 
 ---
 

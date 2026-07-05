@@ -190,6 +190,55 @@ projection_feature
 Until then, a pool such as raw + InvP + DDT graph is a near-neighbor control,
 not the main Innovation 1 route.
 
+## 2026-07-06 Independent Route Re-Rank
+
+The latest route decision should not simply mirror the user's current
+suggestion. Re-checking the local evidence against the literature-informed
+ranking gives this priority:
+
+| Priority | Route | Why it ranks here now | Next gate |
+|---:|---|---|---|
+| 1 | Controlled SPN feature/input route | Recent SPN neural-cryptanalysis work and local r8 evidence both point to representation/data construction. The strongest current r8 signal is a deterministic aligned active-difference statistic, not a new architecture. | Neural follow-up must beat or explain the fixed `pair_xor_column_sum_variance` AUC baseline. |
+| 2 | SPN-aware architecture over a controlled representation | Architecture is valuable only after the input route is clean. r7 InvP/P-layer attribution remains the best completed structure evidence. | Same-input baseline and shuffled/topology controls. |
+| 3 | Diverse expert pool | The near-neighbor ensemble was weak-positive but below gate. A real ensemble needs non-neighbor experts, score artifacts, and diversity/error-overlap checks. | At least one compatible weak-positive low-overlap expert beyond raw/InvP/DDT neighbors. |
+
+This means the next small action is not "add more models to the ensemble." It
+is a baseline-gated neural smoke on the aligned active-difference r8 route:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_neural_followup_smoke.csv
+purpose = test whether the neural probe exceeds or explains the deterministic baseline
+claim_scope = local smoke only, no remote launch, no architecture claim
+```
+
+Reference deterministic AUCs from the fixed baseline audit at `2048/class`,
+seed `23`:
+
+| Difference route | Active nibble | Fixed baseline AUC |
+|---|---:|---:|
+| Zhang/Wang `0x9` | 0 | `0.8878759145736694` |
+| AutoND `0x0d000000` | 6 | `0.8747416734695435` |
+| Entropy `0x00d00000` | 5 | `0.8852955102920532` |
+
+Any local neural AUC materially below these values is not evidence of SPN
+architecture gain, even if the neural row looks above chance.
+
+The local neural smoke was then run and stayed below all three fixed baseline
+AUCs:
+
+| Difference route | Active nibble | Neural smoke AUC | Fixed baseline AUC |
+|---|---:|---:|---:|
+| Zhang/Wang `0x9` | 0 | `0.67193603515625` | `0.8878759145736694` |
+| AutoND `0x0d000000` | 6 | `0.71832275390625` | `0.8747416734695435` |
+| Entropy `0x00d00000` | 5 | `0.78289794921875` | `0.8852955102920532` |
+
+Decision:
+
+```text
+diagnostic_no_neural_architecture_gain
+do_not_launch_remote_from_this_neural_followup
+```
+
 ## Immediate Project Implication
 
 Do not spend the next remote slot on a wider r7 ensemble. Also do not spend the

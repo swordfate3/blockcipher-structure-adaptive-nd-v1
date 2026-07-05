@@ -735,12 +735,75 @@ deterministic_pair_xor_variance_baseline_is_now_first_class
 neural_followups_must_compare_against_this_fixed_baseline_auc
 ```
 
+## Baseline-Gated Neural Follow-Up
+
+The next local neural follow-up is intentionally narrow:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_neural_followup_smoke.csv
+status = completed local smoke / diagnostic only
+rows = Zhang/Wang active0, AutoND active6, Entropy active5
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+negative_mode = encrypted_random_plaintexts
+samples_per_class = 256
+pairs_per_sample = 16
+checkpoint_metric = val_auc
+```
+
+Purpose:
+
+```text
+Test whether a neural raw-pair probe can beat or explain the fixed
+pair_xor_column_sum_variance deterministic baseline on the same aligned
+active-difference route.
+```
+
+Gate:
+
+| Outcome | Decision |
+|---|---|
+| Neural AUC stays below the fixed deterministic AUCs | Treat as no architecture gain; keep route as deterministic SPN/multiset feature evidence only |
+| Neural AUC matches baseline but does not exceed it | Use attribution/inspection to explain the deterministic statistic; do not scale remotely |
+| Neural AUC exceeds baseline by a meaningful margin in local repeat | Write a controlled confirmation plan before any remote launch |
+
+This follow-up exists because the route decision was independently re-ranked:
+SPN-aware feature/input search remains ahead of both architecture expansion and
+diverse neural aggregation until a controlled nontrivial neural signal exists.
+
+Completed local smoke:
+
+```text
+output = outputs/local_smoke/i1_present_r8_integral_aligned_neural_followup_smoke/results.jsonl
+curves = outputs/local_smoke/i1_present_r8_integral_aligned_neural_followup_smoke/curves.svg
+history_csv = outputs/local_smoke/i1_present_r8_integral_aligned_neural_followup_smoke/history.csv
+epochs = 3
+device = cpu
+validation_samples_per_class = 128
+```
+
+| Difference route | Active nibble | Neural smoke AUC | Fixed baseline AUC | Delta |
+|---|---:|---:|---:|---:|
+| Zhang/Wang `0x9` | `0` | `0.67193603515625` | `0.8878759145736694` | `-0.21593987941741943` |
+| AutoND `0x0d000000` | `6` | `0.71832275390625` | `0.8747416734695435` | `-0.15641891956329346` |
+| Entropy `0x00d00000` | `5` | `0.78289794921875` | `0.8852955102920532` | `-0.10239756107330322` |
+
+Decision:
+
+```text
+diagnostic_no_neural_architecture_gain
+do_not_launch_remote_from_this_neural_followup
+continue treating the route as deterministic SPN/multiset feature evidence
+unless a later probe beats or explains the fixed baseline
+```
+
 Next controls:
 
 ```text
-1. Design a separate multi-active-cell construction for multi-nibble
-   differences before retesting Wang/Jain-style profiles.
-2. Only after a controlled non-neighbor feature row exists should diverse
+1. Keep the fixed deterministic baseline as the first comparator for this
+   aligned active-difference route.
+2. Search for a non-neighbor controlled feature family before spending remote
+   time on neural aggregation.
+3. Only after a controlled non-neighbor feature row exists should diverse
    neural aggregation be used as a secondary validator.
 ```
 

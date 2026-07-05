@@ -12524,6 +12524,36 @@ def test_present_r8_integral_aligned_difference_control_plan_is_local_audit_only
     assert all("LOCAL AUDIT only" in task["matching_evidence"] for task in tasks)
 
 
+def test_present_r8_integral_aligned_neural_followup_plan_has_baseline_gate():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_aligned_neural_followup_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 3
+    assert {task["sample_structure"] for task in tasks} == {
+        "plaintext_integral_nibble_difference_matched_negative"
+    }
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {256}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert [
+        (task["difference_profile"], task["integral_active_nibble"])
+        for task in tasks
+    ] == [
+        ("present_zhang_wang2022_mcnd", 0),
+        ("present_autond_dbitnet2023_highround", 6),
+        ("present_entropy2026_gohr", 5),
+    ]
+    assert {task["feature_encoding"] for task in tasks} == {"ciphertext_pair_bits"}
+    assert {task["checkpoint_metric"] for task in tasks} == {"val_auc"}
+    assert all("LOCAL SMOKE only" in task["matching_evidence"] for task in tasks)
+    assert all("deterministic baseline AUC gate" in task["matching_evidence"] for task in tasks)
+    assert all("pair_xor_column_sum_variance" in task["literature"] for task in tasks)
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"

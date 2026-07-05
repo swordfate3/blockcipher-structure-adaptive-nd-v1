@@ -65,3 +65,25 @@ Diverse neural aggregation remains useful only as a secondary validator after
 there are compatible weak-positive experts from genuinely different families.
 The near-neighbor r7 neural ensemble showed mild complementarity but did not
 justify using the next remote slot on a wider ensemble by itself.
+
+## 2026-07-06 Independent Re-Check
+
+The route decision was re-checked after the user explicitly warned against
+merely following the latest suggested direction. The updated decision is:
+
+```text
+Do not mechanically widen the near-neighbor neural ensemble.
+Do not scale the r8 raw integral neural smoke as an architecture result.
+```
+
+The better next slot remains a controlled SPN representation question:
+
+```text
+Can an aligned active-difference neural probe beat or explain the fixed
+pair_xor_column_sum_variance deterministic baseline?
+```
+
+If it cannot, the current r8 integral route should be treated as deterministic
+multiset feature evidence rather than neural architecture gain. A diverse
+expert pool becomes meaningful later only after at least one non-neighbor
+expert family has compatible weak-positive scores and low error overlap.
