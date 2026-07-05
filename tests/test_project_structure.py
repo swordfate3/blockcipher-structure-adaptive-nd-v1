@@ -82,6 +82,7 @@ from blockcipher_nd.cli import (
 )
 from blockcipher_nd.cli.audit_integral_parity_signal import (
     integral_alignment_audit_from_task,
+    integral_feature_bank_audit_from_task,
     integral_parity_audit_from_task,
 )
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
@@ -12284,6 +12285,38 @@ def test_integral_alignment_audit_reports_pair_order_statistics():
         assert 0.5 <= statistic["best_threshold"]["accuracy"] <= 1.0
     assert report["best_statistic"]["name"] in report["statistics"]
     assert "Deterministic local data-structure audit only" in report["claim_scope"]
+
+
+def test_integral_feature_bank_audit_reports_named_deterministic_statistics():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+    task["sample_structure"] = "plaintext_integral_nibble_matched_negative"
+
+    report = integral_feature_bank_audit_from_task(
+        task,
+        samples_per_class=32,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "integral_feature_bank"
+    assert report["sample_structure"] == "plaintext_integral_nibble_matched_negative"
+    assert {
+        "left_hw_mean",
+        "right_hw_mean",
+        "pair_xor_hw_mean",
+        "left_column_sum_variance",
+        "right_column_sum_variance",
+        "pair_xor_column_sum_variance",
+        "left_right_column_sum_l1_mean",
+    }.issubset(report["statistics"])
+    for statistic in report["statistics"].values():
+        assert statistic["positive"]["count"] == 32
+        assert statistic["negative"]["count"] == 32
+        assert 0.5 <= statistic["best_threshold"]["accuracy"] <= 1.0
+    assert report["best_statistic"]["name"] in report["statistics"]
+    assert report["best_statistic"]["interpretation"].startswith("deterministic_statistic_")
 
 
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():

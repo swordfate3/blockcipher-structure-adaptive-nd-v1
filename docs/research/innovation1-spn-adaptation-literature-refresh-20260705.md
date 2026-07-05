@@ -308,20 +308,33 @@ pair-alignment best statistic = same_index_xor_hw_mean
 pair-alignment best accuracy = 0.546630859375
 ```
 
-This changes the immediate reading slightly: the matched-negative raw-pair
-signal is not explained by the two simplest deterministic controls checked so
-far, and it survived a second tiny seed. However, it is still only a local
-smoke with `256/class` training and `128/class` validation, so it should not
-consume a remote slot yet. The next step is a local deterministic feature audit
-or shallow-probe control for the raw matched-negative pair route. If that
-identifies a nontrivial controlled statistic, write a lean confirmation plan.
-If it collapses, switch to Candidate B and build a smaller SPN-derived feature
-probe. Keep Candidate C as a secondary validator, not the next remote launch.
+A deterministic feature-bank audit then found a much stronger explanation for
+the raw-pair residual:
+
+```text
+seed0 audit artifact = outputs/local_audits/r8_integral_matched_negative_feature_bank_audit_seed7_2048.json
+seed0 best statistic = pair_xor_column_sum_variance
+seed0 best threshold accuracy = 0.979248046875
+
+seed1 audit artifact = outputs/local_audits/r8_integral_matched_negative_feature_bank_audit_seed11_2048.json
+seed1 best statistic = pair_xor_column_sum_variance
+seed1 best threshold accuracy = 0.982421875
+```
+
+This changes the immediate reading again: the raw matched-negative pair neural
+smoke is likely learning a simple deterministic pair-xor column-distribution
+variance statistic. That is not an architecture win, but it is a useful SPN
+feature/input lesson. The branch should be kept as a deterministic
+SPN/multiset feature candidate only after further controls such as
+active-nibble variation, input-difference variation, pair-order scramble, and
+same-budget anchor comparison. It should not consume the next remote neural
+training slot. Keep Candidate C as a secondary validator, not the next remote
+launch.
 
 The current priority is therefore:
 
 ```text
-SPN feature/input search > new SPN architecture variant > diverse ensemble
+controlled SPN feature/input search > new SPN architecture variant > diverse ensemble
 ```
 
 This is a route correction, not a claim of completion.

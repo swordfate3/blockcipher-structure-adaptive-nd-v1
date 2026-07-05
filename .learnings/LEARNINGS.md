@@ -145,6 +145,54 @@ Before launching the next Innovation 1 SPN/PRESENT experiment, write or update t
 
 ---
 
+## [LRN-20260706-001] best_practice
+
+**Logged**: 2026-07-06T00:00:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Interpret the r8 matched-negative raw-pair integral signal as a deterministic SPN/multiset feature candidate, not a neural architecture win.
+
+### Details
+After the explicit pair-xor parity leak was removed with `plaintext_integral_nibble_matched_negative`, two local tiny smoke probes still showed raw-pair signal:
+
+```text
+seed0 raw-pair AUC = 0.805480957031
+seed1 raw-pair AUC = 0.877990722656
+```
+
+Simple pair-alignment statistics did not explain the residual, but the follow-up deterministic feature-bank audit did. At `2048/class`, the same scalar statistic dominated both checked audit seeds:
+
+```text
+seed0 best statistic = pair_xor_column_sum_variance
+seed0 best threshold accuracy = 0.979248046875
+seed1 best statistic = pair_xor_column_sum_variance
+seed1 best threshold accuracy = 0.982421875
+```
+
+Correct interpretation:
+
+- The raw matched-negative neural smoke likely learned a simple pair-xor column-distribution variance statistic.
+- This is useful SPN-aware input/feature evidence, but not evidence of an architecture breakthrough.
+- The route should not consume a remote neural training slot until additional controls pass.
+
+### Suggested Action
+Before scaling the r8 matched-negative integral route, run controls such as active-nibble variation, input-difference variation, pair-order scramble, and same-budget anchor comparison. If the statistic remains meaningful after controls, frame it as a deterministic SPN/multiset feature route with neural follow-up as secondary attribution.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-integral-parity-control-plan.md, docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, src/blockcipher_nd/cli/audit_integral_parity_signal.py
+- Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
+- See Also: LRN-20260705-003, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260630-001] correction
 
 **Logged**: 2026-06-30T00:00:00+08:00

@@ -382,6 +382,66 @@ nontrivial controlled statistic or same-budget local probe explains why the raw
 pair rows are positive while InvP/Sinv matrix rows remain weak.
 ```
 
+## Deterministic Feature-Bank Audit
+
+A follow-up deterministic feature-bank audit now explains the raw-pair residual
+much more directly. It computes simple scalar summaries from the raw ciphertext
+pair set only:
+
+```text
+left/right/pair-xor HW mean and std
+left/right/pair-xor column-sum variance
+left-right column-sum L1/L2 mean
+```
+
+For the seed0 matched-negative plan:
+
+```text
+artifact = outputs/local_audits/r8_integral_matched_negative_feature_bank_audit_seed7_2048.json
+best statistic = pair_xor_column_sum_variance
+best threshold = pair_xor_column_sum_variance >= 5.484375
+best threshold accuracy = 0.979248046875
+positive mean = 7.8383893966674805
+negative mean = 3.923461437225342
+```
+
+For the seed1 matched-negative plan:
+
+```text
+artifact = outputs/local_audits/r8_integral_matched_negative_feature_bank_audit_seed11_2048.json
+best statistic = pair_xor_column_sum_variance
+best threshold = pair_xor_column_sum_variance >= 5.5380859375
+best threshold accuracy = 0.982421875
+positive mean = 7.895696640014648
+negative mean = 3.936082363128662
+```
+
+Interpretation:
+
+```text
+The raw matched-negative neural smoke signal is now best understood as a
+learned version of a simple deterministic pair-xor column-distribution
+variance statistic. The explicit parity leak was removed, but a different
+multiset-distribution statistic remains very strong.
+```
+
+Decision update:
+
+```text
+do_not_scale_as_neural_architecture_result
+keep_as_spn_multiset_feature_candidate
+```
+
+Next action update:
+
+```text
+Turn this into a controlled deterministic SPN/multiset feature route only if it
+survives additional controls such as active-nibble variation, input-difference
+variation, pair-order scramble, and comparison against Zhang/Wang-compatible
+same-budget anchors. Do not launch a remote neural training job for this raw
+matched-negative route yet.
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -390,6 +450,8 @@ Allowed after this plan's local control:
 The original r8 integral raw anchor was dominated by a deterministic multiset
 parity statistic, and the matched-negative control either removes or does not
 remove that trivial separator.
+The matched-negative raw-pair residual is strongly explained by
+pair_xor_column_sum_variance at local deterministic-audit scale.
 ```
 
 Not allowed:
