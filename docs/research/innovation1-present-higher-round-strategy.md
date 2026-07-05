@@ -506,6 +506,76 @@ i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
    先写 variance / protocol / attribution 分析，不盲目扩大 GPU。
 ```
 
+## 6.4 2026-07-05 更新：integral raw anchor 的解释边界
+
+`i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705`
+的第 1 行已经返回，但 matrix 还未完成，因此不能做最终 gate。该行是：
+
+```text
+model = present_nibble_invp_pair_consistency_spn_only
+feature_encoding = ciphertext_pair_bits
+sample_structure = plaintext_integral_nibble
+negative_mode = encrypted_random_plaintexts
+rounds = 8
+samples_per_class = 65536
+val_auc = 0.9999795751646161
+val_calibrated_accuracy = 0.998504638671875
+```
+
+源码审查显示该 sample structure 的语义是：
+
+```text
+positive:
+  16 个 plaintext 形成同一 active-nibble integral set；
+  右路 plaintext_b = plaintext_a ^ input_difference，因此右路也保持 integral set；
+
+negative:
+  左路 plaintext_a 仍形成同一 active-nibble integral set；
+  右路 plaintext_b 是 16 个随机明文；
+  ciphertext_b = encrypt(plaintext_b)。
+```
+
+因此 raw anchor 的强信号不应解释为“网络结构突然突破”，而应先解释为：
+
+```text
+integral / multiset data representation 本身提供了很强的集合级区分信号。
+```
+
+一个本地 `2048/class` generator 审查显示，不训练神经网络，仅计算每个样本
+16 个 pair 的 ciphertext pair-xor 在 pair 维度上的按位 XOR：
+
+```text
+pair_xor xor_hw mean:
+  positive = 0.0
+  negative ≈ 31.974
+
+simple threshold:
+  xor_hw <= 0 => accuracy = 1.0 on the local audit sample
+```
+
+这说明当前 r8 integral raw anchor 至少包含一个非常强的 deterministic integral
+parity signal。它可以成为“SPN-aware data representation”方向的重要线索，但
+claim scope 必须限定为：
+
+```text
+high-round integral/multiset data-structure diagnostic
+not Zhang/Wang same-protocol raw differential-neural improvement
+not neural architecture evidence by itself
+not formal route evidence before complete result, validation, scale, and controls
+```
+
+结果完成后的仲裁应增加一个解释检查：
+
+```text
+若 Row 1 / Row 2 没有超过 raw integral anchor：
+  不把 InvP/Sinv matrix 视为新架构贡献；
+  把本路线归类为 integral pair-set statistic / data-construction route；
+  下一步优先做 protocol/control audit 或 262144/class data-route confirmation。
+
+若 Row 1 / Row 2 超过 raw integral anchor：
+  才讨论 inverse-round feature 在 integral route 上的增益。
+```
+
 ## 7. 参考来源
 
 - Jain, Kohli, and Mishra, *Deep Learning based Differential Distinguisher for Lightweight Block Ciphers*, arXiv:2112.05061: https://arxiv.org/abs/2112.05061

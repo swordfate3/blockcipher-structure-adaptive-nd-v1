@@ -258,7 +258,53 @@ SOTA
 回到 r9 weak-probe / r9 curriculum / r9 difference screen。
 ```
 
-## 7. Claim Scope
+## 7. 2026-07-05 中途协议审查
+
+当前远程 run 仍在 watcher-managed running 状态，完整 `3/3` matrix 结果尚未
+ready。已同步的第 1 行是 raw integral anchor：
+
+```text
+run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+row = 0 / 3
+model = present_nibble_invp_pair_consistency_spn_only
+feature_encoding = ciphertext_pair_bits
+sample_structure = plaintext_integral_nibble
+negative_mode = encrypted_random_plaintexts
+val_auc = 0.9999795751646161
+val_calibrated_accuracy = 0.998504638671875
+status = partial row only, not final matrix gate
+```
+
+源码和本地 `2048/class` generator 审查说明：
+
+```text
+positive 样本两路 plaintext 都保持 active-nibble integral set；
+negative 样本左路保持 integral set，右路是 encrypted random plaintexts；
+对每个样本 16 个 pair 的 ciphertext pair-xor 做 pair 维度按位 XOR，
+positive 的 xor_hw = 0.0，negative 的 xor_hw ≈ 31.974；
+简单阈值 xor_hw <= 0 在本地审查样本上 accuracy = 1.0。
+```
+
+解释：
+
+```text
+Row 0 的强指标首先证明 plaintext-integral-nibble 数据结构含有强
+integral/multiset parity signal；
+不能把该 partial row 解释成 InvP/Sinv matrix 架构突破；
+不能把该 partial row 写成 Zhang/Wang same-protocol 提升。
+```
+
+完整结果 ready 后：
+
+```text
+1. 仍必须等待 3/3 rows、validate-results、route-specific postprocess；
+2. 若 Row 1 / Row 2 没有超过 Row 0 raw integral anchor，
+   本路线归类为 integral data-construction route，而不是 inverse-round feature gain；
+3. 若 Row 1 / Row 2 超过 Row 0，才讨论 InvP/Sinv 在 integral route 上的增益；
+4. 后续若扩大到 262144/class，需要同时保留协议/control audit。
+```
+
+## 8. Claim Scope
 
 本路线服务“更高轮次研究”的数据结构探索：
 
