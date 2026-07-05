@@ -105,6 +105,23 @@ Decision rule:
 | best AUC `> 0.52` and pair-set strongest | prioritize r9 seed1 or r8 pair-set attribution before curriculum |
 | best AUC `> 0.55` | do not launch curriculum immediately; confirm from-scratch route first |
 
+Automatic next-action source:
+
+```text
+scripts/postprocess-r9-weak-probe now writes
+<seed0_run_id>_next_action_readiness.json.
+
+If the r9 weak-probe gate returns:
+
+1. near_random_r9_weak_trace_check_variance_or_aggregation
+2. stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+
+that artifact points directly to this curriculum remote config with
+should_launch_remote=true after local readiness and generated launcher/monitor
+checks pass. This makes the weak/near-random r9 branch actionable without
+opening r10 or changing the benchmark.
+```
+
 ## Gate
 
 | Curriculum result | Decision |

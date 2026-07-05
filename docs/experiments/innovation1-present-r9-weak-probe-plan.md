@@ -434,6 +434,36 @@ Claim scope:
 It is not formal r9 evidence, not a breakthrough claim, and not r10 evidence.
 ```
 
+## 11.1 Prepared Weak / Near-Random Curriculum Branch
+
+**Status:** prepared / gate-locked / not launched
+
+If from-scratch r9 has only a weak trace or is near-random, the next automatic
+branch is the r8-to-r9 curriculum diagnostic, not r10:
+
+```text
+run_id = i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705
+plan = configs/experiment/innovation1/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0.csv
+remote_config = configs/remote/innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json
+launcher = configs/remote/generated/run_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.sh
+```
+
+Automatic next-action readiness:
+
+```text
+If seed0 r9 weak-probe postprocess returns either:
+
+1. near_random_r9_weak_trace_check_variance_or_aggregation
+2. stop_from_scratch_r9_r10_plan_curriculum_or_difference_search
+
+the <seed0_run_id>_next_action_readiness.json artifact marks
+should_launch_remote=true for the curriculum config above and checks both the
+remote readiness invariants and generated launcher/monitor scripts. This tests
+a training-path hypothesis only; it does not change the benchmark, does not
+create r10 assets, and does not turn a weak r9 result into evidence of success.
+```
+
 ## 12. Prepared r9 1M Seed0 Strong-Gate Branch
 
 **Status:** prepared / gate-locked / not launched

@@ -24,6 +24,11 @@ R9_1M_SEED0_REMOTE_CONFIG = (
     "innovation1_spn_present_r9_1m_seed0_gpu0_20260705.json"
 )
 R9_1M_SEED0_RUN_ID = "i1_present_r9_1m_seed0_gpu0_20260705"
+R9_CURRICULUM_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json"
+)
+R9_CURRICULUM_RUN_ID = "i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705"
 
 DEFAULT_NEAR_RANDOM_AUC_CEILING = 0.505
 DEFAULT_WEAK_TRACE_AUC_CEILING = 0.52
@@ -290,16 +295,35 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "near_random_r9_weak_trace_check_variance_or_aggregation":
         return {
             "branch": "r9_variance_or_aggregation_review",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md",
+            "launch_remote_config": R9_CURRICULUM_REMOTE_CONFIG,
+            "suggested_remote_config": R9_CURRICULUM_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R9_CURRICULUM_REMOTE_CONFIG}"
+            ),
+            "run_id": R9_CURRICULUM_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
+            "candidate_next_routes": ["r8_to_r9_curriculum", "seed_variance_review", "application_level_aggregation"],
         }
     if decision == "stop_from_scratch_r9_r10_plan_curriculum_or_difference_search":
         return {
             "branch": "stop_from_scratch_r9_r10",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-present-r9-curriculum-from-r8-plan.md",
+            "launch_remote_config": R9_CURRICULUM_REMOTE_CONFIG,
+            "suggested_remote_config": R9_CURRICULUM_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R9_CURRICULUM_REMOTE_CONFIG}"
+            ),
+            "run_id": R9_CURRICULUM_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
             "fallback_hypotheses": ["r8_to_r9_curriculum", "r9_difference_screen", "r8_integral_inverse_feature"],
         }
     if decision == "baseline_best_or_candidate_not_above_baseline":
@@ -337,12 +361,14 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     if branch == "r9_variance_or_aggregation_review":
         return [
             "Do not scale directly to 1M/class from this weak trace.",
-            "Review whether seed variance, aggregation, or curriculum is the next best route.",
+            "Use the prepared r8-to-r9 curriculum diagnostic as the next launchable training-path test.",
+            "Keep seed variance and aggregation as follow-up options after curriculum is retrieved.",
         ]
     if branch == "stop_from_scratch_r9_r10":
         return [
             "Stop from-scratch r9/r10 scaling under the current protocol.",
-            "Prefer curriculum, difference search, or high-round data-representation screens.",
+            "Use the prepared r8-to-r9 curriculum diagnostic before any r10 attempt.",
+            "If curriculum is also near-random, prefer difference search or high-round data-representation screens.",
         ]
     if branch == "baseline_best_no_candidate_scale":
         return [
