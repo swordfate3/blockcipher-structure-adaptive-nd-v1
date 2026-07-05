@@ -742,6 +742,67 @@ after a genuine non-neighbor weak-positive score artifact exists.
 
 ---
 
+## [LRN-20260706-007] best_practice
+
+**Logged**: 2026-07-06T03:40:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not advance raw-axis SGP projection after the r8 source sweep; try orbit/grouped InvP stability first.
+
+### Details
+The first PRESENT r8 SGP stable-axis source sweep ran at `2048/class`, seeds
+`0` and `1`, strict `encrypted_random_plaintexts` negatives, and
+`zhang_wang_case2_official_mcnd` sample structure. It tested three source
+families:
+
+```text
+candidate_cell_structured
+candidate_aggregate
+invp_delta_bits
+```
+
+All three source reports returned `sgp_stable_axis_hold`:
+
+| Source | Min composite AUC | Top-k Jaccard | Control delta |
+|---|---:|---:|---:|
+| `candidate_cell_structured` | `0.5262441635131836` | `0.14285714285714285` | `-0.0010590553283691406` |
+| `candidate_aggregate` | `0.5145435333251953` | `0.16363636363636364` | `0.014543533325195312` |
+| `invp_delta_bits` | `0.5609222650527954` | `0.0` | `0.06092226505279541` |
+
+Correct interpretation:
+
+- Candidate-cell evidence is weak and not better than the shuffled-cell control.
+- Candidate-aggregate evidence is too weak to justify a projection smoke.
+- InvP(delta) has weak-positive composite evidence, but exact flat bit-axis
+  identity is unstable across seeds. This should not be forced through by
+  weakening the raw-axis Jaccard gate.
+- The next more plausible route is orbit/grouped stability over InvP(delta)
+  axes, e.g. grouping by pair slot, SPN cell, P-layer orbit, or bit role.
+- Multi-source SGP currently regenerates candidate evidence in memory without
+  progress output; do not scale this audit path until SGP cache/progress
+  support exists.
+
+### Suggested Action
+Hold raw-axis `sgp_top32_stable` projection and do not launch remote SGP. Add a
+small orbit/grouped stability audit for InvP(delta) before any SGP projection
+smoke. If grouped stability also fails, retire SGP as a projection route and
+return to stronger representation priors.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-sgp-stable-axis-audit-plan.md, configs/experiment/innovation1/innovation1_spn_present_sgp_stable_axis_audit_r8_local.json, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, sgp, stable-axis, projection, invp, route-selection
+- See Also: LRN-20260706-006, LRN-20260705-003, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.sgp_raw_axis_hold_orbit_group_next
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260623-002] correction
 
 **Logged**: 2026-06-23T21:56:37+08:00

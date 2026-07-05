@@ -12917,6 +12917,100 @@ def test_audit_spn_features_cli_writes_candidate_evidence_feature_probe(tmp_path
     assert "composite" in payload
 
 
+def test_sgp_stable_axis_report_selects_axes_that_survive_repeats_and_control():
+    labels = np.array([0] * 8 + [1] * 8, dtype=np.uint8)
+    probe0 = np.zeros((16, 6), dtype=np.float32)
+    probe1 = np.zeros((16, 6), dtype=np.float32)
+    false_family = np.zeros((16, 6), dtype=np.float32)
+    probe0[:, 1] = labels
+    probe0[:, 3] = 1 - labels
+    probe1[:, 1] = labels
+    probe1[:, 3] = 1 - labels
+    probe0[:, 5] = np.linspace(0.0, 1.0, 16, dtype=np.float32)
+    probe1[:, 4] = np.linspace(1.0, 0.0, 16, dtype=np.float32)
+    false_family[:, 0] = np.tile([0.0, 1.0], 8)
+
+    report = spn_feature_audit.sgp_stable_axis_report_from_feature_matrices(
+        [
+            {"name": "seed0_validation", "features": probe0, "labels": labels},
+            {"name": "seed1_validation", "features": probe1, "labels": labels},
+        ],
+        controls=[{"name": "false_family", "features": false_family, "labels": labels}],
+        top_k=3,
+        stable_top_k=2,
+        min_composite_auc=0.9,
+        min_topk_jaccard=0.3,
+        min_control_delta=0.1,
+    )
+
+    assert report["audit"] == "sgp_stable_axis_audit"
+    assert report["decision"] == "sgp_stable_axis_candidate"
+    assert set(report["candidate_masks"]["sgp_top2_stable"]) == {1, 3}
+    assert report["stability"]["topk_jaccard_min"] >= 0.5
+    assert report["control_gap"]["best_composite_auc_delta"] >= 0.1
+    assert report["claim_scope"].startswith("Local SGP stable-axis audit only")
+
+
+def test_audit_spn_features_cli_writes_sgp_stable_axis_audit(tmp_path, monkeypatch):
+    output = tmp_path / "sgp_axis.json"
+    config_path = tmp_path / "sgp_axis_config.json"
+    config_path.write_text(json.dumps({"rounds": 8}), encoding="utf-8")
+
+    def fake_sgp_audit(config_payload, *, samples_per_class=None, top_k=12):
+        assert config_payload == {"rounds": 8}
+        assert samples_per_class == 16
+        assert top_k == 4
+        return {
+            "audit": "sgp_stable_axis_audit",
+            "decision": "sgp_stable_axis_candidate",
+            "candidate_masks": {"sgp_top4_stable": [1, 3, 5, 7]},
+        }
+
+    monkeypatch.setattr(spn_feature_audit, "sgp_stable_axis_audit_from_config", fake_sgp_audit)
+
+    status = audit_spn_features_main(
+        [
+            "--sgp-stable-axis-config",
+            str(config_path),
+            "--samples-per-class",
+            "16",
+            "--top-k",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "sgp_stable_axis_audit"
+    assert payload["candidate_masks"]["sgp_top4_stable"] == [1, 3, 5, 7]
+
+
+def test_sgp_differential_source_uses_empty_selected_bits_by_default():
+    report = spn_feature_audit.sgp_stable_axis_audit_from_config(
+        {
+            "rounds": 8,
+            "seeds": [0, 1],
+            "samples_per_class": 4,
+            "pairs_per_sample": 1,
+            "feature_sources": [
+                {
+                    "name": "invp_delta_bits",
+                    "kind": "differential_feature",
+                    "feature_encoding": "ciphertext_xor_spn_paligned_bits",
+                }
+            ],
+        },
+        samples_per_class=4,
+        top_k=4,
+    )
+
+    assert report["audit"] == "sgp_stable_axis_audit"
+    assert report["best_source"] == "invp_delta_bits"
+    assert report["source_reports"][0]["summary"]["feature_dim"] == 128
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"

@@ -49,6 +49,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
+    parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--row-index", type=int, default=0)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
@@ -56,6 +57,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.sgp_stable_axis_config is not None:
+        config = json.loads(args.sgp_stable_axis_config.read_text(encoding="utf-8"))
+        payload = sgp_stable_axis_audit_from_config(
+            config,
+            samples_per_class=args.samples_per_class,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
     if args.candidate_evidence_feature_probe_config is not None:
         config = json.loads(args.candidate_evidence_feature_probe_config.read_text(encoding="utf-8"))
         payload = candidate_evidence_feature_probe_from_config(
@@ -221,6 +235,195 @@ def audit_dataset(
         "top_bits": _top_feature_rows(bit_scores, top_bit_indices),
         "top_words": _top_feature_rows(word_scores, top_word_indices),
         "top_cells": _top_feature_rows(cell_scores, top_cell_indices),
+    }
+
+
+def sgp_stable_axis_audit_from_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None = None,
+    top_k: int = 12,
+) -> dict[str, Any]:
+    resolved = _sgp_config(config, samples_per_class=samples_per_class, top_k=top_k)
+    source_reports = []
+    for source in resolved["feature_sources"]:
+        probes = []
+        for seed in resolved["seeds"]:
+            for key_split in resolved["key_splits"]:
+                probes.append(
+                    _sgp_source_matrix(
+                        source,
+                        resolved,
+                        seed=seed,
+                        key_split=key_split,
+                    )
+                )
+        controls = [
+            _sgp_source_matrix(
+                control,
+                resolved,
+                seed=resolved["seeds"][0],
+                key_split=resolved["key_splits"][0],
+            )
+            for control in resolved["control_sources"]
+            if int(control.get("feature_dim", -1)) in {-1, int(probes[0]["features"].shape[1])}
+        ]
+        source_reports.append(
+            sgp_stable_axis_report_from_feature_matrices(
+                probes,
+                controls=controls,
+                top_k=resolved["top_k"],
+                stable_top_k=resolved["stable_top_k"],
+                min_composite_auc=resolved["min_composite_auc"],
+                min_topk_jaccard=resolved["min_topk_jaccard"],
+                min_control_delta=resolved["min_control_delta"],
+                source_name=str(source["name"]),
+            )
+        )
+    best_report = max(
+        source_reports,
+        key=lambda item: (
+            item["decision"] == "sgp_stable_axis_candidate",
+            item["summary"]["probe_composite_auc_min"],
+            item["control_gap"]["best_composite_auc_delta"],
+        ),
+    )
+    return {
+        "status": "pass",
+        "audit": "sgp_stable_axis_audit",
+        "decision": best_report["decision"],
+        "best_source": best_report["source_name"],
+        "config": {
+            "rounds": resolved["rounds"],
+            "samples_per_class": resolved["samples_per_class"],
+            "seeds": resolved["seeds"],
+            "key_splits": resolved["key_splits"],
+            "pairs_per_sample": resolved["pairs_per_sample"],
+            "negative_mode": resolved["negative_mode"],
+            "sample_structure": resolved["sample_structure"],
+            "difference_profile": resolved["difference_profile"],
+            "difference_member": resolved["difference_member"],
+            "top_k": resolved["top_k"],
+            "stable_top_k": resolved["stable_top_k"],
+            "min_composite_auc": resolved["min_composite_auc"],
+            "min_topk_jaccard": resolved["min_topk_jaccard"],
+            "min_control_delta": resolved["min_control_delta"],
+        },
+        "source_reports": source_reports,
+        "candidate_masks": best_report["candidate_masks"],
+        "claim_scope": (
+            "Local SGP stable-axis audit only; not neural training, not scale "
+            "evidence, not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
+def sgp_stable_axis_report_from_feature_matrices(
+    probes: list[dict[str, Any]],
+    *,
+    controls: list[dict[str, Any]] | None = None,
+    top_k: int = 12,
+    stable_top_k: int = 32,
+    min_composite_auc: float = 0.55,
+    min_topk_jaccard: float = 0.35,
+    min_control_delta: float = 0.01,
+    source_name: str = "inline",
+) -> dict[str, Any]:
+    if len(probes) < 2:
+        raise ValueError("SGP stable-axis audit requires at least two probes")
+    feature_dim = int(np.asarray(probes[0]["features"]).shape[1])
+    probe_reports = []
+    top_sets: list[set[int]] = []
+    axis_advantages = []
+    for probe in probes:
+        features, labels = _probe_features_and_labels(probe)
+        if features.shape[1] != feature_dim:
+            raise ValueError("all SGP probes for one source must share feature width")
+        axis_scores = _feature_axis_scores(features, labels)
+        top_indices = _top_indices(axis_scores["auc_advantage"], top_k)
+        top_sets.append(set(top_indices))
+        axis_advantages.append(axis_scores["auc_advantage"])
+        probe_reports.append(
+            {
+                "name": str(probe.get("name", f"probe{len(probe_reports)}")),
+                "samples_per_class": int(min((labels == 0).sum(), (labels == 1).sum())),
+                "feature_dim": feature_dim,
+                "top_axes": _top_feature_rows(axis_scores, top_indices),
+            }
+        )
+
+    stable_axes = _stable_axes_from_probe_scores(
+        top_sets=top_sets,
+        axis_advantages=axis_advantages,
+        stable_top_k=stable_top_k,
+        feature_dim=feature_dim,
+    )
+    probe_composites = []
+    for probe, report in zip(probes, probe_reports, strict=True):
+        features, labels = _probe_features_and_labels(probe)
+        composite_scores = _oriented_zscore_composite(features, labels, stable_axes)
+        composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+        report["stable_axis_composite"] = composite
+        probe_composites.append(composite)
+
+    control_reports = []
+    for control in controls or []:
+        features, labels = _probe_features_and_labels(control)
+        if features.shape[1] != feature_dim:
+            continue
+        composite_scores = _oriented_zscore_composite(features, labels, stable_axes)
+        control_reports.append(
+            {
+                "name": str(control.get("name", f"control{len(control_reports)}")),
+                "stable_axis_composite": _scalar_statistic_report(
+                    composite_scores,
+                    labels.astype(np.float32, copy=False),
+                ),
+            }
+        )
+
+    topk_jaccard_min = _topk_jaccard_min(top_sets)
+    probe_composite_auc_min = min(float(item["auc"]) for item in probe_composites) if probe_composites else 0.5
+    control_auc_max = (
+        max(float(item["stable_axis_composite"]["auc"]) for item in control_reports) if control_reports else 0.5
+    )
+    control_delta = probe_composite_auc_min - control_auc_max
+    decision = (
+        "sgp_stable_axis_candidate"
+        if probe_composite_auc_min >= min_composite_auc
+        and topk_jaccard_min >= min_topk_jaccard
+        and control_delta >= min_control_delta
+        else "sgp_stable_axis_hold"
+    )
+    return {
+        "audit": "sgp_stable_axis_audit",
+        "source_name": source_name,
+        "decision": decision,
+        "summary": {
+            "feature_dim": feature_dim,
+            "probe_count": len(probe_reports),
+            "control_count": len(control_reports),
+            "probe_composite_auc_min": probe_composite_auc_min,
+            "probe_composite_auc_mean": float(np.mean([item["auc"] for item in probe_composites])),
+        },
+        "stability": {
+            "top_k": top_k,
+            "stable_top_k": stable_top_k,
+            "topk_jaccard_min": topk_jaccard_min,
+            "stable_axes": stable_axes,
+        },
+        "control_gap": {
+            "control_composite_auc_max": control_auc_max,
+            "best_composite_auc_delta": control_delta,
+            "min_control_delta": min_control_delta,
+        },
+        "candidate_masks": {f"sgp_top{len(stable_axes)}_stable": stable_axes},
+        "probe_reports": probe_reports,
+        "control_reports": control_reports,
+        "claim_scope": (
+            "Local SGP stable-axis audit only; not neural training, not scale evidence, "
+            "not a remote launch gate, and not an ensemble result."
+        ),
     }
 
 
@@ -436,6 +639,146 @@ def _candidate_probe_config(
         "depth": int(config.get("depth", 3)),
         "feature_mode": str(config.get("feature_mode", "aggregate")),
     }
+
+
+def _sgp_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None,
+    top_k: int,
+) -> dict[str, Any]:
+    feature_sources = list(
+        config.get(
+            "feature_sources",
+            [
+                {
+                    "name": "invp_delta",
+                    "kind": "differential_feature",
+                    "feature_encoding": "ciphertext_xor_spn_paligned_bits",
+                }
+            ],
+        )
+    )
+    return {
+        "cipher": str(config.get("cipher", "present80")),
+        "rounds": int(config.get("rounds", 8)),
+        "seeds": [int(seed) for seed in config.get("seeds", [0, 1])],
+        "key_splits": [str(split) for split in config.get("key_splits", ["validation"])],
+        "samples_per_class": int(config.get("samples_per_class", 2048) if samples_per_class is None else samples_per_class),
+        "pairs_per_sample": int(config.get("pairs_per_sample", 16)),
+        "negative_mode": str(config.get("negative_mode", "encrypted_random_plaintexts")),
+        "sample_structure": str(config.get("sample_structure", OFFICIAL_ZHANG_WANG_CASE2_MCND)),
+        "difference_profile": str(config.get("difference_profile", "present_zhang_wang2022_mcnd")),
+        "difference_member": int(config.get("difference_member", 0)),
+        "train_key": _parse_int_like(config.get("train_key", 0)),
+        "validation_key": _parse_int_like(config.get("validation_key", 0x11111111111111111111)),
+        "key_rotation_interval": int(config.get("key_rotation_interval", 0)),
+        "top_k": int(top_k),
+        "stable_top_k": int(config.get("stable_top_k", top_k)),
+        "min_composite_auc": float(config.get("min_composite_auc", 0.55)),
+        "min_topk_jaccard": float(config.get("min_topk_jaccard", 0.35)),
+        "min_control_delta": float(config.get("min_control_delta", 0.01)),
+        "feature_sources": feature_sources,
+        "control_sources": list(config.get("control_sources", [])),
+    }
+
+
+def _sgp_source_matrix(
+    source: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    seed: int,
+    key_split: str,
+) -> dict[str, Any]:
+    kind = str(source.get("kind", "differential_feature"))
+    key = config["validation_key"] if key_split == "validation" else config["train_key"]
+    input_difference = difference_for_profile(config["difference_profile"], config["difference_member"])
+    name = f"{source.get('name', kind)}:seed{seed}:{key_split}"
+    if kind == "candidate_evidence":
+        features, labels = make_candidate_dataset(
+            rounds=config["rounds"],
+            key=key,
+            input_difference=input_difference,
+            seed=seed,
+            samples_per_class=config["samples_per_class"],
+            pairs_per_sample=int(source.get("pairs_per_sample", config["pairs_per_sample"])),
+            negative_mode=config["negative_mode"],
+            sample_structure=config["sample_structure"],
+            key_rotation_interval=config["key_rotation_interval"],
+            beam_width=int(source.get("beam_width", 4)),
+            depth=int(source.get("depth", 3)),
+            feature_mode=str(source.get("feature_mode", "aggregate")),
+            feature_cache_root=None,
+            split=key_split,
+        )
+        return {"name": name, "features": np.asarray(features, dtype=np.float32), "labels": labels}
+    if kind != "differential_feature":
+        raise ValueError(f"unsupported SGP source kind: {kind}")
+    feature_encoding = str(source.get("feature_encoding", "ciphertext_xor_spn_paligned_bits"))
+    cipher = build_cipher(config["cipher"], config["rounds"], key=key)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=input_difference,
+            samples_per_class=config["samples_per_class"],
+            seed=seed,
+            shuffle=True,
+            feature_encoding=feature_encoding,
+            pairs_per_sample=int(source.get("pairs_per_sample", config["pairs_per_sample"])),
+            negative_mode=config["negative_mode"],
+            key_rotation_interval=config["key_rotation_interval"],
+            sample_structure=config["sample_structure"],
+            selected_bit_indices=tuple(source.get("selected_bit_indices") or ()),
+        )
+    )
+    return {
+        "name": name,
+        "features": dataset.features.astype(np.float32, copy=False),
+        "labels": dataset.labels.astype(np.uint8, copy=False),
+    }
+
+
+def _probe_features_and_labels(probe: dict[str, Any]) -> tuple[np.ndarray, np.ndarray]:
+    features = np.asarray(probe["features"], dtype=np.float64)
+    labels = np.asarray(probe["labels"], dtype=np.uint8)
+    if features.ndim != 2:
+        raise ValueError("SGP probe features must be a 2D matrix")
+    if labels.ndim != 1 or labels.shape[0] != features.shape[0]:
+        raise ValueError("SGP probe labels must match feature rows")
+    return features, labels
+
+
+def _stable_axes_from_probe_scores(
+    *,
+    top_sets: list[set[int]],
+    axis_advantages: list[np.ndarray],
+    stable_top_k: int,
+    feature_dim: int,
+) -> list[int]:
+    counts = np.zeros(feature_dim, dtype=np.int64)
+    mean_advantage = np.zeros(feature_dim, dtype=np.float64)
+    for top_set, advantages in zip(top_sets, axis_advantages, strict=True):
+        for index in top_set:
+            counts[index] += 1
+        mean_advantage += advantages
+    mean_advantage /= max(1, len(axis_advantages))
+    order = sorted(
+        range(feature_dim),
+        key=lambda index: (int(counts[index]), float(mean_advantage[index]), -index),
+        reverse=True,
+    )
+    return [int(index) for index in order[: min(stable_top_k, feature_dim)]]
+
+
+def _topk_jaccard_min(top_sets: list[set[int]]) -> float:
+    if len(top_sets) < 2:
+        return 1.0
+    values = []
+    for left_index, left in enumerate(top_sets):
+        for right in top_sets[left_index + 1 :]:
+            union = left | right
+            values.append(float(len(left & right) / len(union)) if union else 1.0)
+    return min(values) if values else 1.0
 
 
 def _parse_int_like(value: Any) -> int:
