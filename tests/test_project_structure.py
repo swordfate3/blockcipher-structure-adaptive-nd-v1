@@ -39,6 +39,7 @@ from blockcipher_nd.planning.pair_evidence_pooling_postprocess import postproces
 from blockcipher_nd.planning.integral_inverse_feature_postprocess import (
     postprocess_integral_inverse_feature_result,
 )
+from blockcipher_nd.planning.r9_weak_probe_postprocess import postprocess_r9_weak_probe_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -9287,6 +9288,37 @@ def _write_integral_inverse_feature_result(
     path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
 
 
+def _write_r9_weak_probe_result(path: Path, model: str, auc: float) -> None:
+    rows = []
+    if path.exists():
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows.append(
+        {
+            "cipher": "PRESENT-80",
+            "structure": "SPN",
+            "rounds": 9,
+            "seed": 0,
+            "samples_per_class": 262144,
+            "pairs_per_sample": 16,
+            "model": model,
+            "selected_model": model,
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "difference_profile": "present_zhang_wang2022_mcnd",
+            "difference_member": 0,
+            "key_rotation_interval": 0,
+            "metrics": {
+                "auc": auc,
+                "accuracy": 0.5 + (auc - 0.5) / 2,
+                "calibrated_accuracy": 0.5 + (auc - 0.5) / 3,
+                "loss": 0.69,
+            },
+        }
+    )
+    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+
 def test_pair_mixer_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "pair_mixer.jsonl"
     _write_pair_mixer_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.552)
@@ -9614,6 +9646,85 @@ def test_monitor_health_emits_integral_inverse_feature_postprocess_command_when_
     assert report["postprocess_allowed"] is True
     assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
     assert "scripts/postprocess-integral-inverse-feature" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "3" in report["postprocess_command"]
+
+
+def test_r9_weak_probe_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "r9_weak_probe.jsonl"
+    _write_r9_weak_probe_result(results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+    plan_doc = tmp_path / "r9_weak_probe_plan.md"
+    plan_doc.write_text("# r9 Weak Probe Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_r9_weak_probe_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="r9_weak_probe_unit",
+        plan_path=Path("configs/experiment/innovation1/innovation1_spn_present_round_extension_r9_262k_seed0.csv"),
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["validation_status"] == "pass"
+    assert report["decision"] == "strong_r9_diagnostic_prepare_1m_seed0"
+    assert report["next_action"]["branch"] == "r9_1m_seed0_plan"
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["best_candidate"]["model"] == "present_nibble_invp_pair_consistency_spn_only"
+    assert report["candidate_delta_vs_baseline_auc"] == pytest.approx(0.045)
+    assert Path(report["r9_weak_probe_gate"]).exists()
+    assert Path(report["curves"]).exists()
+    assert Path(report["history_csv"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved r9 Weak-Probe Result" in plan_text
+    assert "<!-- r9-weak-probe-postprocess:r9_weak_probe_unit:start -->" in plan_text
+    assert "| Decision | `strong_r9_diagnostic_prepare_1m_seed0` |" in plan_text
+    assert "| Best candidate | `present_nibble_invp_pair_consistency_spn_only` |" in plan_text
+
+    postprocess_r9_weak_probe_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="r9_weak_probe_unit",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- r9-weak-probe-postprocess:r9_weak_probe_unit:start -->") == 1
+
+
+def test_monitor_health_emits_r9_weak_probe_postprocess_command_when_result_ready(tmp_path):
+    run_id = "r9_weak_probe_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = Path("configs/experiment/innovation1/innovation1_spn_present_round_extension_r9_262k_seed0.csv")
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    results = results_dir / f"{run_id}.jsonl"
+    _write_r9_weak_probe_result(results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=3,
+        postprocess_kind="r9_weak_probe",
+        now=datetime.fromisoformat("2026-07-05T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-r9-weak-probe" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "3" in report["postprocess_command"]
 

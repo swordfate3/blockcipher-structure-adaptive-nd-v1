@@ -72,6 +72,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "sbox_prior",
             "difference_screen",
             "integral_inverse_feature",
+            "r9_weak_probe",
         ],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
@@ -1075,6 +1076,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-pair-evidence-pooling"
     if kind == "integral_inverse_feature":
         return "scripts/postprocess-integral-inverse-feature"
+    if kind == "r9_weak_probe":
+        return "scripts/postprocess-r9-weak-probe"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -1106,6 +1109,8 @@ def _default_expected_rows(kind: str) -> int:
     if kind == "pair_evidence_pooling":
         return 4
     if kind == "integral_inverse_feature":
+        return 3
+    if kind == "r9_weak_probe":
         return 3
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
