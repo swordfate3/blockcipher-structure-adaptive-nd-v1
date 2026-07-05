@@ -938,6 +938,98 @@ signal.
 
 ---
 
+## [LRN-20260706-010] best_practice
+
+**Logged**: 2026-07-06T05:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not keep adding deterministic InvP(delta) aggregate statistics after group-distribution audit held.
+
+### Details
+After generic InvP global statistics held, a more targeted deterministic
+group-distribution bank was tested over:
+
+```text
+pair_word_cell
+word_cell
+cell
+word_bit_role
+p_layer_orbit
+```
+
+For each scheme it audited:
+
+```text
+activity_mean
+activity_std
+activity_max
+top2_activity_mean
+top4_activity_mean
+bottom2_activity_mean
+bottom4_activity_mean
+activity_span
+```
+
+Protocol:
+
+```text
+cipher = PRESENT-80
+rounds = 8
+samples_per_class = 2048
+seeds = 0, 1
+pairs_per_sample = 16
+negative_mode = encrypted_random_plaintexts
+sample_structure = zhang_wang_case2_official_mcnd
+```
+
+Artifact:
+
+```text
+outputs/local_audits/i1_present_r8_invp_group_distribution_audit_2048.json
+decision = invp_group_distribution_hold
+```
+
+Result:
+
+| Metric | Value |
+|---|---:|
+| Stat feature dim | `40` |
+| Best stat AUC min | `0.514545202255249` |
+| Composite AUC min | `0.5135400295257568` |
+| Composite AUC mean | `0.5136241912841797` |
+| Top-k Jaccard min | `0.18518518518518517` |
+
+Correct interpretation:
+
+- Grouped SGP's higher composite AUC does not translate into stable simple
+  unsupervised distribution statistics.
+- The broad InvP(delta) weak signal is too weak/unstable for another hand-built
+  aggregate-stat pass.
+- Do not create a deterministic group-distribution representation smoke, remote
+  launch, or ensemble expert from this evidence.
+
+### Suggested Action
+Stop deterministic InvP(delta) aggregation for now. If continuing this family,
+use a learned pair/group-interaction representation that directly consumes group
+activities, or shift the next local slot to data/difference search. Do not add
+more handwritten aggregate statistics around the same failed evidence without a
+new reason.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-invp-group-distribution-audit-plan.md, configs/experiment/innovation1/innovation1_spn_present_invp_group_distribution_audit_r8_local.json, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, invp, group-distribution, deterministic-statistics, route-selection
+- See Also: LRN-20260706-009, LRN-20260706-008, LRN-20260706-007, LRN-20260705-003
+- Pattern-Key: innovation1.spn_present.invp_group_distribution_hold_stop_hand_stats
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260623-002] correction
 
 **Logged**: 2026-06-23T21:56:37+08:00

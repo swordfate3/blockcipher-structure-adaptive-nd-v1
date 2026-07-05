@@ -47,6 +47,21 @@ preserve the grouped-SGP evidence more directly: group activities by
 `cell`, `word_cell`, `word_bit_role`, and `p_layer_orbit`, then audit
 distribution variance/span/top-k means and pair-slot consistency.
 
+That targeted group-distribution attempt was also tested and held:
+
+```text
+invp_group_distribution_audit = invp_group_distribution_hold
+best stat AUC min = 0.514545202255249
+composite AUC min = 0.5135400295257568
+top-k Jaccard min = 0.18518518518518517
+```
+
+Updated implication: deterministic aggregation around InvP(delta) should stop
+for now. The grouped-SGP signal appears too weak and label-dependent for simple
+handwritten statistics. The next route should either use a learned
+pair/group-interaction representation with a same-budget local smoke, or move
+to data/difference search instead of adding more handcrafted aggregate stats.
+
 ## Decision
 
 Do not spend the next meaningful slot on a wider near-neighbor ensemble, on the

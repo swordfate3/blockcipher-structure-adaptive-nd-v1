@@ -57,6 +57,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
     parser.add_argument("--invp-global-stats-config", type=Path, default=None)
+    parser.add_argument("--invp-group-distribution-config", type=Path, default=None)
     parser.add_argument("--row-index", type=int, default=0)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
@@ -93,6 +94,19 @@ def main(argv: list[str] | None = None) -> None:
     if args.invp_global_stats_config is not None:
         config = json.loads(args.invp_global_stats_config.read_text(encoding="utf-8"))
         payload = invp_global_stats_audit_from_config(
+            config,
+            samples_per_class=args.samples_per_class,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.invp_group_distribution_config is not None:
+        config = json.loads(args.invp_group_distribution_config.read_text(encoding="utf-8"))
+        payload = invp_group_distribution_audit_from_config(
             config,
             samples_per_class=args.samples_per_class,
             top_k=args.top_k,
@@ -889,6 +903,205 @@ def invp_global_stats_report_from_feature_matrices(
     }
 
 
+def invp_group_distribution_audit_from_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None = None,
+    top_k: int = 12,
+) -> dict[str, Any]:
+    resolved = _sgp_config(config, samples_per_class=samples_per_class, top_k=top_k)
+    group_scheme_names = [str(scheme) for scheme in config.get("group_schemes", ["cell", "word_bit_role"])]
+    reports = []
+    for source in resolved["feature_sources"]:
+        probes = []
+        for seed in resolved["seeds"]:
+            for key_split in resolved["key_splits"]:
+                probes.append(
+                    _sgp_source_matrix(
+                        source,
+                        resolved,
+                        seed=seed,
+                        key_split=key_split,
+                    )
+                )
+        pairs_per_sample = int(source.get("pairs_per_sample", resolved["pairs_per_sample"]))
+        source_with_pairs = {**source, "pairs_per_sample": pairs_per_sample}
+        group_schemes = {
+            group_scheme: _axis_groups_for_sgp_source(
+                source_with_pairs,
+                feature_dim=int(probes[0]["features"].shape[1]),
+                group_scheme=group_scheme,
+            )
+            for group_scheme in group_scheme_names
+        }
+        reports.append(
+            invp_group_distribution_report_from_feature_matrices(
+                probes,
+                group_schemes=group_schemes,
+                top_k=resolved["top_k"],
+                min_composite_auc=resolved["min_composite_auc"],
+                min_topk_jaccard=resolved["min_topk_jaccard"],
+                min_best_stat_auc=float(config.get("min_best_stat_auc", 0.55)),
+                source_name=str(source["name"]),
+            )
+        )
+    best_report = max(
+        reports,
+        key=lambda item: (
+            item["decision"] == "invp_group_distribution_candidate",
+            item["summary"]["probe_composite_auc_min"],
+            item["summary"]["best_stat_auc_min"],
+        ),
+    )
+    return {
+        "status": "pass",
+        "audit": "invp_group_distribution_audit",
+        "decision": best_report["decision"],
+        "best_source": best_report["source_name"],
+        "config": {
+            "rounds": resolved["rounds"],
+            "samples_per_class": resolved["samples_per_class"],
+            "seeds": resolved["seeds"],
+            "key_splits": resolved["key_splits"],
+            "pairs_per_sample": resolved["pairs_per_sample"],
+            "negative_mode": resolved["negative_mode"],
+            "sample_structure": resolved["sample_structure"],
+            "difference_profile": resolved["difference_profile"],
+            "difference_member": resolved["difference_member"],
+            "top_k": resolved["top_k"],
+            "min_composite_auc": resolved["min_composite_auc"],
+            "min_topk_jaccard": resolved["min_topk_jaccard"],
+            "min_best_stat_auc": float(config.get("min_best_stat_auc", 0.55)),
+            "group_schemes": group_scheme_names,
+        },
+        "source_reports": reports,
+        "candidate_feature_names": best_report["candidate_feature_names"],
+        "claim_scope": (
+            "Local InvP group-distribution audit only; not neural training, not "
+            "scale evidence, not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
+def invp_group_distribution_report_from_feature_matrices(
+    probes: list[dict[str, Any]],
+    *,
+    group_schemes: dict[str, list[str]],
+    top_k: int = 12,
+    min_composite_auc: float = 0.62,
+    min_topk_jaccard: float = 0.35,
+    min_best_stat_auc: float = 0.55,
+    source_name: str = "inline",
+) -> dict[str, Any]:
+    if len(probes) < 2:
+        raise ValueError("InvP group distribution audit requires at least two probes")
+    feature_dim = int(np.asarray(probes[0]["features"]).shape[1])
+    for scheme, axis_groups in group_schemes.items():
+        if len(axis_groups) != feature_dim:
+            raise ValueError(f"group scheme {scheme!r} does not match feature width")
+
+    probe_reports = []
+    top_sets: list[set[str]] = []
+    stat_matrices = []
+    stat_names: list[str] | None = None
+    stat_advantages = []
+    for probe in probes:
+        features, labels = _probe_features_and_labels(probe)
+        if features.shape[1] != feature_dim:
+            raise ValueError("all InvP group distribution probes must share feature width")
+        named_scores = _group_distribution_named_scores(features, group_schemes)
+        current_names = list(named_scores)
+        if stat_names is None:
+            stat_names = current_names
+        elif stat_names != current_names:
+            raise ValueError("group distribution statistics changed order across probes")
+        stat_matrix = np.stack([named_scores[name] for name in current_names], axis=1)
+        stat_matrices.append(stat_matrix)
+        stat_scores = _feature_axis_scores(stat_matrix, labels)
+        top_indices = _top_indices(stat_scores["auc_advantage"], top_k)
+        top_names = [current_names[index] for index in top_indices]
+        top_sets.append(set(top_names))
+        stat_advantages.append(stat_scores["auc_advantage"])
+        best_auc = max(float(max(auc, 1.0 - auc)) for auc in stat_scores["auc"])
+        probe_reports.append(
+            {
+                "name": str(probe.get("name", f"probe{len(probe_reports)}")),
+                "samples_per_class": int(min((labels == 0).sum(), (labels == 1).sum())),
+                "input_bits": feature_dim,
+                "stat_feature_dim": len(current_names),
+                "best_stat_auc": best_auc,
+                "top_statistics": [
+                    {
+                        "name": current_names[index],
+                        "index": int(index),
+                        "auc": float(stat_scores["auc"][index]),
+                        "auc_advantage": float(stat_scores["auc_advantage"][index]),
+                        "positive_mean": float(stat_scores["positive_mean"][index]),
+                        "negative_mean": float(stat_scores["negative_mean"][index]),
+                    }
+                    for index in top_indices
+                ],
+            }
+        )
+
+    if stat_names is None:
+        raise ValueError("no group distribution statistics were generated")
+    stable_indices = _stable_axes_from_probe_scores(
+        top_sets=[{stat_names.index(name) for name in top_set} for top_set in top_sets],
+        axis_advantages=stat_advantages,
+        stable_top_k=top_k,
+        feature_dim=len(stat_names),
+    )
+    candidate_feature_names = [stat_names[index] for index in stable_indices]
+    probe_composites = []
+    for probe, stat_matrix, report in zip(probes, stat_matrices, probe_reports, strict=True):
+        _, labels = _probe_features_and_labels(probe)
+        composite_scores = _oriented_zscore_composite(stat_matrix, labels, stable_indices)
+        composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+        report["stable_stat_composite"] = composite
+        probe_composites.append(composite)
+
+    topk_jaccard_min = _group_jaccard_min(top_sets)
+    probe_composite_auc_min = min(float(item["auc"]) for item in probe_composites) if probe_composites else 0.5
+    best_stat_auc_min = min(float(item["best_stat_auc"]) for item in probe_reports) if probe_reports else 0.5
+    decision = (
+        "invp_group_distribution_candidate"
+        if probe_composite_auc_min >= min_composite_auc
+        and topk_jaccard_min >= min_topk_jaccard
+        and best_stat_auc_min >= min_best_stat_auc
+        else "invp_group_distribution_hold"
+    )
+    return {
+        "audit": "invp_group_distribution_audit",
+        "source_name": source_name,
+        "decision": decision,
+        "summary": {
+            "input_bits": feature_dim,
+            "stat_feature_dim": len(stat_names),
+            "probe_count": len(probe_reports),
+            "probe_composite_auc_min": probe_composite_auc_min,
+            "probe_composite_auc_mean": float(np.mean([item["auc"] for item in probe_composites])),
+            "best_stat_auc_min": best_stat_auc_min,
+        },
+        "stability": {
+            "top_k": top_k,
+            "topk_jaccard_min": topk_jaccard_min,
+            "stable_feature_names": candidate_feature_names,
+        },
+        "gates": {
+            "min_composite_auc": min_composite_auc,
+            "min_topk_jaccard": min_topk_jaccard,
+            "min_best_stat_auc": min_best_stat_auc,
+        },
+        "candidate_feature_names": candidate_feature_names,
+        "probe_reports": probe_reports,
+        "claim_scope": (
+            "Local InvP group-distribution audit only; not neural training, not scale evidence, "
+            "not a remote launch gate, and not an ensemble result."
+        ),
+    }
+
+
 def candidate_evidence_feature_probe_from_config(
     config: dict[str, Any],
     *,
@@ -1302,6 +1515,32 @@ def _present_global_stat_names(
     if len(names) != expected:
         raise ValueError(f"expected {expected} global statistic names, got {len(names)}")
     return names
+
+
+def _group_distribution_named_scores(
+    features: np.ndarray,
+    group_schemes: dict[str, list[str]],
+) -> dict[str, np.ndarray]:
+    named_scores: dict[str, np.ndarray] = {}
+    for scheme, axis_groups in group_schemes.items():
+        group_to_axes = _group_to_axes(axis_groups)
+        group_ids = sorted(group_to_axes)
+        group_activity = np.stack(
+            [features[:, group_to_axes[group_id]].mean(axis=1) for group_id in group_ids],
+            axis=1,
+        )
+        sorted_activity = np.sort(group_activity, axis=1)
+        top2_count = min(2, group_activity.shape[1])
+        top4_count = min(4, group_activity.shape[1])
+        named_scores[f"{scheme}:activity_mean"] = group_activity.mean(axis=1)
+        named_scores[f"{scheme}:activity_std"] = group_activity.std(axis=1)
+        named_scores[f"{scheme}:activity_max"] = group_activity.max(axis=1)
+        named_scores[f"{scheme}:top2_activity_mean"] = sorted_activity[:, -top2_count:].mean(axis=1)
+        named_scores[f"{scheme}:top4_activity_mean"] = sorted_activity[:, -top4_count:].mean(axis=1)
+        named_scores[f"{scheme}:bottom2_activity_mean"] = sorted_activity[:, :top2_count].mean(axis=1)
+        named_scores[f"{scheme}:bottom4_activity_mean"] = sorted_activity[:, :top4_count].mean(axis=1)
+        named_scores[f"{scheme}:activity_span"] = group_activity.max(axis=1) - group_activity.min(axis=1)
+    return named_scores
 
 
 def _axis_groups_for_sgp_source(

@@ -13194,6 +13194,76 @@ def test_audit_spn_features_cli_writes_invp_global_stats_audit(tmp_path, monkeyp
     assert payload["candidate_feature_names"] == ["word0_mean"]
 
 
+def test_invp_group_distribution_report_keeps_distribution_when_group_identity_moves():
+    labels = np.array([0] * 8 + [1] * 8, dtype=np.uint8)
+    probe0 = np.zeros((16, 8), dtype=np.float32)
+    probe1 = np.zeros((16, 8), dtype=np.float32)
+    probe0[labels == 1, 0:2] = 1.0
+    probe1[labels == 1, 4:6] = 1.0
+
+    report = spn_feature_audit.invp_group_distribution_report_from_feature_matrices(
+        [
+            {"name": "seed0_validation", "features": probe0, "labels": labels},
+            {"name": "seed1_validation", "features": probe1, "labels": labels},
+        ],
+        group_schemes={
+            "synthetic": ["g0", "g0", "g1", "g1", "g2", "g2", "g3", "g3"],
+        },
+        top_k=3,
+        min_composite_auc=0.9,
+        min_topk_jaccard=1.0,
+        min_best_stat_auc=0.9,
+        source_name="synthetic_group_distribution",
+    )
+
+    assert report["audit"] == "invp_group_distribution_audit"
+    assert report["decision"] == "invp_group_distribution_candidate"
+    assert report["source_name"] == "synthetic_group_distribution"
+    assert report["summary"]["stat_feature_dim"] >= 6
+    assert report["stability"]["topk_jaccard_min"] == 1.0
+    assert "synthetic:activity_span" in report["candidate_feature_names"]
+
+
+def test_audit_spn_features_cli_writes_invp_group_distribution_audit(tmp_path, monkeypatch):
+    output = tmp_path / "invp_group_distribution.json"
+    config_path = tmp_path / "invp_group_distribution_config.json"
+    config_path.write_text(json.dumps({"rounds": 8}), encoding="utf-8")
+
+    def fake_group_distribution_audit(config_payload, *, samples_per_class=None, top_k=12):
+        assert config_payload == {"rounds": 8}
+        assert samples_per_class == 16
+        assert top_k == 4
+        return {
+            "audit": "invp_group_distribution_audit",
+            "decision": "invp_group_distribution_candidate",
+            "candidate_feature_names": ["cell:activity_span"],
+        }
+
+    monkeypatch.setattr(
+        spn_feature_audit,
+        "invp_group_distribution_audit_from_config",
+        fake_group_distribution_audit,
+    )
+
+    status = audit_spn_features_main(
+        [
+            "--invp-group-distribution-config",
+            str(config_path),
+            "--samples-per-class",
+            "16",
+            "--top-k",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "invp_group_distribution_audit"
+    assert payload["candidate_feature_names"] == ["cell:activity_span"]
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"
