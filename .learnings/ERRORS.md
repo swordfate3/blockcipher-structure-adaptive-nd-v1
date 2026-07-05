@@ -575,3 +575,38 @@ Do not add ad hoc main-thread tmux monitoring loops after a run has already been
 - See Also: LRN-20260629-001
 
 ---
+
+## [ERR-20260706-001] bare_python_missing_in_codex_env
+
+**Logged**: 2026-07-06T00:44:44+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+A local result-summary command failed because this environment does not provide a bare `python` executable.
+
+### Error
+```text
+/bin/bash: line 1: python: command not found
+```
+
+### Context
+- Command attempted: summarize local JSON audit artifacts with `python -c ...`.
+- Environment: project Codex shell in `/home/fate/gitproject/blockcipher-structure-adaptive-nd-v1`.
+- Project commands should already prefer `UV_CACHE_DIR=/tmp/uv-cache uv run ...`; simple non-project summaries can use `python3`.
+
+### Suggested Fix
+Use `UV_CACHE_DIR=/tmp/uv-cache uv run python ...` for project commands and `python3` for simple local JSON summaries. Do not assume a bare `python` binary exists.
+
+### Metadata
+- Reproducible: yes
+- Related Files: outputs/local_audits/r8_integral_aligned_difference_control_seed23/
+- See Also: LRN-20260705-001
+
+### Resolution
+- **Resolved**: 2026-07-06T00:45:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the summary with `python3`; the audit commands themselves had already succeeded through `UV_CACHE_DIR=/tmp/uv-cache uv run python`.
+
+---

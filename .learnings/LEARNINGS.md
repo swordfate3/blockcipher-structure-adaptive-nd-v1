@@ -197,8 +197,30 @@ active0 + AutoND / entropy / Wang-Jain differences accuracy ~= 0.51-0.53
 
 This narrows the route further: the deterministic statistic is not a generic integral-multiset signal. It is strongest when the active integral nibble is aligned with the fixed input-difference support.
 
+Aligned active-difference controls then showed that the effect is not unique to Zhang/Wang `0x9`; it also appears for other single-nibble differences when active nibble is aligned:
+
+```text
+Zhang/Wang diff 0x9 active0 accuracy = 0.81494140625
+AutoND diff 0x0d000000 active6 accuracy = 0.804443359375
+Entropy diff 0x00d00000 active5 accuracy = 0.804443359375
+Wang/Jain two-nibble diff active2/14 accuracy ~= 0.518
+```
+
+Current narrower interpretation: the route is a single-nibble aligned active-difference deterministic feature candidate. It does not currently support a two-nibble difference under the one-active-nibble construction.
+
+A second aligned active-difference audit seed preserved the split:
+
+```text
+Zhang/Wang diff 0x9 active0 accuracy = 0.805908203125
+AutoND diff 0x0d000000 active6 accuracy = 0.79296875
+Entropy diff 0x00d00000 active5 accuracy = 0.8056640625
+Wang/Jain two-nibble diff active2/14 accuracy ~= 0.518
+```
+
+This strengthens the local deterministic route decision: first make `pair_xor_column_sum_variance` an explicit baseline and design a multi-active-cell control for multi-nibble differences; do not spend the next meaningful slot on a wider neural ensemble.
+
 ### Suggested Action
-Before scaling the r8 matched-negative integral route, test aligned active-nibble choices for each candidate input difference and keep `pair_xor_column_sum_variance` as an explicit deterministic baseline. If the statistic remains meaningful after aligned controls and same-budget anchor comparison, frame it as a deterministic SPN feature route with neural follow-up as secondary attribution.
+Before scaling the r8 matched-negative integral route, make `pair_xor_column_sum_variance` an explicit deterministic baseline. If multi-nibble differences matter, design a separate multi-active-cell construction instead of forcing the one-active-nibble route. If the statistic remains meaningful after same-budget anchor comparison, frame it as a deterministic SPN feature route with neural follow-up as secondary attribution.
 
 ### Metadata
 - Source: experiment_audit
@@ -206,7 +228,7 @@ Before scaling the r8 matched-negative integral route, test aligned active-nibbl
 - Tags: innovation1, spn, present, integral, deterministic-feature, matched-negative
 - See Also: LRN-20260705-003, LRN-20260705-002
 - Pattern-Key: innovation1.spn_present.matched_negative_raw_pair_feature_bank_explains_signal
-- Recurrence-Count: 3
+- Recurrence-Count: 5
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-06
 

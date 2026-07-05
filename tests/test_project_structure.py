@@ -12411,6 +12411,33 @@ def test_present_r8_integral_feature_variation_control_plan_is_local_audit_only(
     assert all("LOCAL AUDIT only" in task["matching_evidence"] for task in tasks)
 
 
+def test_present_r8_integral_aligned_difference_control_plan_is_local_audit_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 5
+    assert {task["sample_structure"] for task in tasks} == {
+        "plaintext_integral_nibble_difference_matched_negative"
+    }
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {256}
+    assert [
+        (task["difference_profile"], task["integral_active_nibble"])
+        for task in tasks
+    ] == [
+        ("present_zhang_wang2022_mcnd", 0),
+        ("present_autond_dbitnet2023_highround", 6),
+        ("present_entropy2026_gohr", 5),
+        ("present_wang_jain2021_1", 2),
+        ("present_wang_jain2021_1", 14),
+    ]
+    assert all("LOCAL AUDIT only" in task["matching_evidence"] for task in tasks)
+
+
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
     plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv"
     args = parse_args(["--plan", plan])

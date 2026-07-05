@@ -372,10 +372,58 @@ step should therefore test aligned active-nibble choices for each candidate
 difference, and keep `pair_xor_column_sum_variance` as an explicit
 deterministic baseline before using neural models.
 
+The aligned active-difference audit has now been run:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv
+summary = outputs/local_audits/r8_integral_aligned_difference_control/summary_seed17_2048.json
+
+Zhang/Wang diff 0x9, active0:
+  pair_xor_column_sum_variance accuracy = 0.81494140625
+
+AutoND diff 0x0d000000, active6:
+  pair_xor_column_sum_variance accuracy = 0.804443359375
+
+Entropy diff 0x00d00000, active5:
+  pair_xor_column_sum_variance accuracy = 0.804443359375
+
+Wang/Jain diff 0x0700000000000700, active2 or active14:
+  best accuracy = 0.51806640625 / 0.517578125
+```
+
+This is a meaningful refinement. The route is not merely "Zhang/Wang diff
+special"; it appears to generalize across several single-nibble input
+differences when the integral active nibble is aligned to the difference
+support. It does not currently support a two-nibble difference under the
+one-active-nibble construction.
+
+A second local audit seed preserved the same split:
+
+```text
+artifact_dir = outputs/local_audits/r8_integral_aligned_difference_control_seed23/
+
+Zhang/Wang diff 0x9, active0:
+  pair_xor_column_sum_variance accuracy = 0.805908203125
+
+AutoND diff 0x0d000000, active6:
+  pair_xor_column_sum_variance accuracy = 0.79296875
+
+Entropy diff 0x00d00000, active5:
+  pair_xor_column_sum_variance accuracy = 0.8056640625
+
+Wang/Jain diff 0x0700000000000700, active2 or active14:
+  best accuracy = 0.51806640625 / 0.518798828125
+```
+
+This makes the next route choice sharper: build an explicit deterministic
+baseline and multi-active-cell control before spending a neural training slot.
+Diverse neural aggregation remains useful later, but only after this route
+produces controlled, non-neighbor score artifacts.
+
 The current priority is therefore:
 
 ```text
-aligned active-difference SPN feature/input search > new SPN architecture variant > diverse ensemble
+single-nibble aligned active-difference SPN feature/input search > new SPN architecture variant > diverse ensemble
 ```
 
 This is a route correction, not a claim of completion.

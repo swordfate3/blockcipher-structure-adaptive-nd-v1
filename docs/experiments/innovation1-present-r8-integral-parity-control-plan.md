@@ -571,6 +571,104 @@ nonzero nibble support and retest pair_xor_column_sum_variance. Treat this as a
 deterministic feature route first; neural models are secondary attribution.
 ```
 
+## Aligned Active-Difference Control
+
+The next local audit aligned `integral_active_nibble` with each candidate input
+difference's nonzero nibble support:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_aligned_difference_control_smoke.csv
+summary = outputs/local_audits/r8_integral_aligned_difference_control/summary_seed17_2048.json
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+samples_per_class = 2048
+audit seed = 17
+```
+
+Result:
+
+| Difference | Nonzero nibble support tested | Best statistic | Accuracy | pair-xor variance positive mean | pair-xor variance negative mean |
+|---|---:|---|---:|---:|---:|
+| Zhang/Wang `0x9` | `0` | `pair_xor_column_sum_variance` | `0.81494140625` | `7.916776657104492` | `5.891722679138184` |
+| AutoND `0x0d000000` | `6` | `pair_xor_column_sum_variance` | `0.804443359375` | `7.9242730140686035` | `5.926462650299072` |
+| Entropy `0x00d00000` | `5` | `pair_xor_column_sum_variance` | `0.804443359375` | `7.885996341705322` | `5.912894248962402` |
+| Wang/Jain `0x0700000000000700` | `2` | `right_hw_mean` | `0.51806640625` | `3.9441957473754883` | `3.9275248050689697` |
+| Wang/Jain `0x0700000000000700` | `14` | `left_right_column_sum_l2_mean` | `0.517578125` | `3.9349929094314575` | `3.9501113891601562` |
+
+Interpretation:
+
+```text
+The deterministic feature route is now positive across multiple single-nibble
+input differences when the active integral nibble is aligned to the
+difference's nonzero support. It does not work for the tested two-nibble
+Wang/Jain difference when only one active nibble is used.
+```
+
+Decision update:
+
+```text
+keep_single_nibble_aligned_active_difference_route
+do_not_claim_general_multi-nibble_difference_support
+```
+
+Next controls:
+
+```text
+1. Repeat aligned single-nibble controls with a second audit seed.
+2. Add an explicit deterministic baseline evaluator for
+   pair_xor_column_sum_variance.
+3. If multi-nibble differences matter, design a separate multi-active-cell
+   construction instead of forcing the one-active-nibble route.
+```
+
+## Aligned Active-Difference Seed Repeat
+
+The aligned audit was repeated with a second local audit seed:
+
+```text
+artifact_dir = outputs/local_audits/r8_integral_aligned_difference_control_seed23/
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+samples_per_class = 2048
+audit seed = 23
+```
+
+Result:
+
+| Difference | Nonzero nibble support tested | Best statistic | Accuracy | pair-xor variance positive mean | pair-xor variance negative mean |
+|---|---:|---|---:|---:|---:|
+| Zhang/Wang `0x9` | `0` | `pair_xor_column_sum_variance` | `0.805908203125` | `7.8653950691223145` | `5.89998722076416` |
+| AutoND `0x0d000000` | `6` | `pair_xor_column_sum_variance` | `0.79296875` | `7.8247761726379395` | `5.938357830047607` |
+| Entropy `0x00d00000` | `5` | `pair_xor_column_sum_variance` | `0.8056640625` | `7.852012634277344` | `5.9072747230529785` |
+| Wang/Jain `0x0700000000000700` | `2` | `right_column_sum_variance` | `0.51806640625` | `3.929884433746338` | `3.933869481086731` |
+| Wang/Jain `0x0700000000000700` | `14` | `pair_xor_hw_mean` | `0.518798828125` | `3.927819609642029` | `3.94024395942688` |
+
+Interpretation:
+
+```text
+The seed repeat preserves the route split. Single-nibble aligned differences
+retain a strong pair_xor_column_sum_variance separator around 0.79-0.81
+accuracy, while the tested two-nibble Wang/Jain difference remains near chance
+under the one-active-nibble construction.
+```
+
+Decision update:
+
+```text
+advance_single_nibble_aligned_active_difference_route_to_explicit_baseline
+do_not_spend_next_slot_on_diverse_neural_ensemble
+```
+
+Next controls:
+
+```text
+1. Add a first-class deterministic baseline evaluator for
+   pair_xor_column_sum_variance so neural rows cannot claim this signal as an
+   architecture gain.
+2. Design a separate multi-active-cell construction for multi-nibble
+   differences before retesting Wang/Jain-style profiles.
+3. Only after a controlled non-neighbor feature row exists should diverse
+   neural aggregation be used as a secondary validator.
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:
@@ -585,6 +683,11 @@ Pair-order scrambling weakens but does not remove the deterministic
 pair_xor_column_sum_variance separator.
 Clean active/difference variation shows the residual is strong only when the
 active integral nibble is aligned with the input-difference support.
+Aligned active-difference controls are positive for several single-nibble
+input differences and near chance for the tested two-nibble Wang/Jain
+difference under the one-active-nibble construction.
+The aligned active-difference seed repeat preserves the same split at local
+deterministic-audit scale.
 ```
 
 Not allowed:
