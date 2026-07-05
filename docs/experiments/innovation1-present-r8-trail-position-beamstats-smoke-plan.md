@@ -284,3 +284,91 @@ Next action:
 4. Treat the route as a promising SPN representation/data candidate, not as a
    qualified diverse ensemble expert yet.
 ```
+
+## Position-Statistics Attribution Audit
+
+Implementation:
+
+```text
+CLI = scripts/audit-spn-features --trail-position-attribution-plan ...
+API = trail_position_attribution_from_task
+stat_vector = PresentTrailPositionStatsPairSetDistinguisher._position_statistics(...)
+combiner = top_position_stat_oriented_zscore_mean
+```
+
+The audit extracts the deterministic position-statistics vector used by
+`present_trail_position_stats_pairset`, scores each scalar against the labels,
+and builds a fixed top-k oriented z-score composite. This asks whether the
+neural route is mostly rediscovering a small deterministic statistic.
+
+Commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-attribution-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 1 \
+  --samples-per-class 2048 \
+  --seed 0 \
+  --key-split validation \
+  --top-k 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_attribution_seed0_2048.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-attribution-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 3 \
+  --samples-per-class 2048 \
+  --seed 1 \
+  --key-split validation \
+  --top-k 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_attribution_seed1_2048.json
+```
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_trail_position_attribution_seed0_512.json
+outputs/local_audits/i1_present_r8_trail_position_attribution_seed1_512.json
+outputs/local_audits/i1_present_r8_trail_position_attribution_seed0_2048.json
+outputs/local_audits/i1_present_r8_trail_position_attribution_seed1_2048.json
+```
+
+Results:
+
+| Scale | Seed | Best scalar | Directional best-scalar AUC | Top-16 composite AUC | Composite best accuracy |
+|---:|---:|---|---:|---:|---:|
+| 512/class | 0 | `cell_span_cell6` | `0.6741142272949219` | `0.9032249450683594` | `0.8388671875` |
+| 512/class | 1 | `depth_word_span_depth2_trailword3` | `0.6828956604003906` | `0.8659286499023438` | `0.810546875` |
+| 2048/class | 0 | `depth_word_span_depth2_trailword1` | `0.6629594564437866` | `0.8734362125396729` | `0.791748046875` |
+| 2048/class | 1 | `depth_word_span_depth1_trailword1` | `0.6627322435379028` | `0.8486461639404297` | `0.769287109375` |
+
+Attribution decision:
+
+```text
+position_stats_deterministic_baseline_required
+```
+
+Interpretation:
+
+```text
+The deterministic position-statistics vector explains a large fraction of the
+trail-position neural signal. A single span statistic already reaches about
+0.663-0.683 directional AUC, while a fixed top-16 oriented composite reaches
+about 0.849-0.903 AUC.
+
+However, the composite remains below the 512/class neural candidate AUC
+0.985977-0.988831. This leaves possible residual value in the learned nonlinear
+combination, but the route can no longer be judged without an explicit
+deterministic position-statistics baseline.
+```
+
+Updated next action:
+
+```text
+1. Add deterministic position-statistics baseline rows or a postprocess gate
+   before any larger neural diagnostic.
+2. Run pair-order, active-nibble, and difference controls against both the
+   deterministic composite and the neural candidate.
+3. Do not launch remote training until the route survives those controls.
+4. Do not use this as a diverse expert until compatible frozen scores and
+   diversity/error-overlap checks exist.
+```

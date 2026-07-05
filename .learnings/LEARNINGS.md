@@ -2163,3 +2163,60 @@ SPN representation/data candidate, not yet a qualified diverse ensemble expert.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-017] best_practice
+
+**Logged**: 2026-07-06T11:35:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Use a deterministic position-statistics baseline before scaling r8 trail-position beamstats.
+
+### Details
+The `present_trail_position_stats_pairset` route showed very strong local
+neural AUC at 512/class on the r8 matched-negative integral setting:
+
+```text
+seed0 neural AUC = 0.98883056640625
+seed1 neural AUC = 0.9859771728515625
+```
+
+A new local attribution audit extracted the deterministic position-statistics
+vector used by the model and evaluated scalar statistics plus a fixed top-16
+oriented z-score composite:
+
+| Scale | Seed | Best scalar | Directional best-scalar AUC | Top-16 composite AUC |
+|---:|---:|---|---:|---:|
+| 512/class | 0 | `cell_span_cell6` | `0.6741142272949219` | `0.9032249450683594` |
+| 512/class | 1 | `depth_word_span_depth2_trailword3` | `0.6828956604003906` | `0.8659286499023438` |
+| 2048/class | 0 | `depth_word_span_depth2_trailword1` | `0.6629594564437866` | `0.8734362125396729` |
+| 2048/class | 1 | `depth_word_span_depth1_trailword1` | `0.6627322435379028` | `0.8486461639404297` |
+
+Correct interpretation:
+
+- The route is promising but not cleanly a neural architecture win.
+- Deterministic position-statistics features explain much of the signal.
+- The neural candidate remains above the deterministic top-16 composite at
+  512/class, so there may be nonlinear residual value.
+- No remote launch should happen before deterministic baseline and
+  pair-order/active-nibble/difference controls are in place.
+
+### Suggested Action
+For any future trail-position beamstats experiment, compare against the fixed
+deterministic position-statistics composite or equivalent baseline. Treat
+larger neural training as invalid for route claims unless it beats this
+baseline under matched controls.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, outputs/local_audits/i1_present_r8_trail_position_attribution_seed0_2048.json, outputs/local_audits/i1_present_r8_trail_position_attribution_seed1_2048.json
+- Tags: innovation1, spn, present, trail-position, beamstats, attribution, deterministic-baseline
+- See Also: LRN-20260706-016, LRN-20260706-015, LRN-20260706-004
+- Pattern-Key: innovation1.spn_present.trail_position_beamstats_requires_deterministic_baseline
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---

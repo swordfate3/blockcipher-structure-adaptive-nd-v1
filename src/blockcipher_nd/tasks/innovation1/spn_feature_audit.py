@@ -10,9 +10,13 @@ import torch
 
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.features.encoders.present_sbox_ddt import parse_parameterized_present_sboxddt_encoding
 from blockcipher_nd.models.structure.spn.present_pairset_global_stats_hybrid import (
     present_global_pairset_statistics,
     present_global_stats_feature_bits,
+)
+from blockcipher_nd.models.structure.spn.present_trail_position_stats import (
+    PresentTrailPositionStatsPairSetDistinguisher,
 )
 from blockcipher_nd.features.spn_candidate_evidence import present_pair_candidate_evidence_layers
 from blockcipher_nd.planning.matrix import tasks_from_plan
@@ -53,6 +57,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
+    parser.add_argument("--trail-position-attribution-plan", type=Path, default=None)
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
@@ -147,6 +152,29 @@ def main(argv: list[str] | None = None) -> None:
             samples_per_class=args.samples_per_class,
             seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
             key_split=args.key_split,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.trail_position_attribution_plan is not None:
+        tasks = tasks_from_plan(
+            args.trail_position_attribution_plan,
+            feature_encoding=None,
+            pairs_per_sample=None,
+            difference_profile=None,
+            difference_member=0,
+        )
+        if args.row_index < 0 or args.row_index >= len(tasks):
+            raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
+        payload = trail_position_attribution_from_task(
+            tasks[args.row_index],
+            samples_per_class=args.samples_per_class,
+            seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
+            key_split=args.key_split,
+            top_k=args.top_k,
         )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -1271,6 +1299,118 @@ def beamstats_attribution_from_task(
     }
 
 
+def trail_position_attribution_from_task(
+    task: dict[str, Any],
+    *,
+    samples_per_class: int,
+    seed: int | None = None,
+    key_split: str = "validation",
+    top_k: int = 16,
+) -> dict[str, Any]:
+    params = parse_parameterized_present_sboxddt_encoding(str(task["feature_encoding"]))
+    if params is None or not bool(params["use_statistics"]):
+        raise ValueError("trail-position attribution expects a parameterized PRESENT beamstats feature")
+    if key_split not in {"train", "validation"}:
+        raise ValueError("key_split must be train or validation")
+
+    trail_depth = int(task.get("model_options", {}).get("trail_depth", params["depth"]))
+    trail_words_per_depth = int(task.get("model_options", {}).get("trail_words_per_depth", 9))
+    key = task["validation_key"] if key_split == "validation" else task["train_key"]
+    cipher = build_cipher(task["cipher_key"], task["rounds"], key=key)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=task["input_difference"],
+            samples_per_class=samples_per_class,
+            seed=task["seed"] if seed is None else seed,
+            shuffle=False,
+            feature_encoding=task["feature_encoding"],
+            pairs_per_sample=task["pairs_per_sample"],
+            negative_mode=task["negative_mode"],
+            key_rotation_interval=task["key_rotation_interval"],
+            sample_structure=task["sample_structure"],
+            integral_active_nibble=task["integral_active_nibble"],
+            selected_bit_indices=task["selected_bit_indices"],
+        )
+    )
+    pair_bits = pair_bits_for_encoding(cipher.block_bits, task["feature_encoding"])
+    model = PresentTrailPositionStatsPairSetDistinguisher(
+        input_bits=int(dataset.features.shape[1]),
+        pair_bits=pair_bits,
+        base_channels=8,
+        trail_depth=trail_depth,
+        trail_words_per_depth=trail_words_per_depth,
+        stats_hidden_bits=64,
+    )
+    with torch.no_grad():
+        stat_matrix = (
+            model._position_statistics(torch.from_numpy(dataset.features.astype(np.float32, copy=False)))
+            .cpu()
+            .numpy()
+            .astype(np.float64, copy=False)
+        )
+    labels = dataset.labels.astype(np.uint8, copy=False)
+    stat_names = _trail_position_stat_names(
+        words_per_pair=pair_bits // cipher.block_bits,
+        cells_per_word=cipher.block_bits // 4,
+        trail_depth=trail_depth,
+        trail_words_per_depth=trail_words_per_depth,
+    )
+    if len(stat_names) != stat_matrix.shape[1]:
+        raise ValueError("trail-position statistic names do not match matrix width")
+
+    axis_scores = _feature_axis_scores(stat_matrix, labels)
+    top_indices = _top_indices(axis_scores["auc_advantage"], top_k)
+    top_rows = _top_feature_rows(axis_scores, top_indices)
+    composite_scores = _oriented_zscore_composite(stat_matrix, labels, top_indices)
+    composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+    best_axis = top_rows[0] if top_rows else {
+        "index": 0,
+        "positive_mean": 0.0,
+        "negative_mean": 0.0,
+        "mean_delta": 0.0,
+        "cohen_d": 0.0,
+        "auc": 0.5,
+        "auc_advantage": 0.0,
+    }
+    best_name = stat_names[int(best_axis["index"])]
+    return {
+        "status": "pass",
+        "audit": "present_trail_position_stats_attribution",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "key_split": key_split,
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "feature_encoding": task["feature_encoding"],
+        "pairs_per_sample": task["pairs_per_sample"],
+        "input_difference": task["input_difference"],
+        "trail_depth": trail_depth,
+        "trail_words_per_depth": trail_words_per_depth,
+        "position_stat_dim": int(stat_matrix.shape[1]),
+        "best_statistic": {
+            **best_axis,
+            "name": best_name,
+        },
+        "top_statistics": {
+            "feature_names": [stat_names[index] for index in top_indices],
+            "rows": top_rows,
+        },
+        "composite": {
+            **composite,
+            "axis_indices": top_indices,
+            "feature_names": [stat_names[index] for index in top_indices],
+            "combiner": "top_position_stat_oriented_zscore_mean",
+        },
+        "claim_scope": (
+            "Local trail-position statistic attribution only; not neural training, "
+            "not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
 def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:
     positive = features[labels == 1]
     negative = features[labels == 0]
@@ -1314,6 +1454,68 @@ def _candidate_probe_config(
         "depth": int(config.get("depth", 3)),
         "feature_mode": str(config.get("feature_mode", "aggregate")),
     }
+
+
+def _trail_position_stat_names(
+    *,
+    words_per_pair: int,
+    cells_per_word: int,
+    trail_depth: int,
+    trail_words_per_depth: int,
+) -> list[str]:
+    prefix_words = words_per_pair - trail_depth * trail_words_per_depth
+    if prefix_words <= 0:
+        raise ValueError("trail-position names require prefix words before trail words")
+    names: list[str] = []
+
+    def add_word_cell(prefix: str, *, depth: int | None = None, trail_word: int | None = None) -> None:
+        for word in range(words_per_pair if depth is None else 1):
+            for cell in range(cells_per_word):
+                if depth is None:
+                    names.append(f"{prefix}_word{word}_cell{cell}")
+                else:
+                    names.append(f"{prefix}_depth{depth}_trailword{trail_word}_cell{cell}")
+
+    add_word_cell("word_cell_mean")
+    add_word_cell("word_cell_std")
+    for family in ("word_mean", "word_std", "word_first_last", "word_span"):
+        names.extend(f"{family}_word{word}" for word in range(words_per_pair))
+    for family in ("cell_mean", "cell_std", "cell_first_last", "cell_span"):
+        names.extend(f"{family}_cell{cell}" for cell in range(cells_per_word))
+    for family in ("depth_word_cell_mean", "depth_word_cell_std", "depth_word_cell_span"):
+        for depth in range(trail_depth):
+            for trail_word in range(trail_words_per_depth):
+                add_word_cell(family, depth=depth, trail_word=trail_word)
+    for family in ("depth_cell_mean", "depth_cell_std", "depth_cell_first_last", "depth_cell_span"):
+        for depth in range(trail_depth):
+            names.extend(f"{family}_depth{depth}_cell{cell}" for cell in range(cells_per_word))
+    for family in ("depth_word_mean", "depth_word_std", "depth_word_first_last", "depth_word_span"):
+        for depth in range(trail_depth):
+            names.extend(f"{family}_depth{depth}_trailword{word}" for word in range(trail_words_per_depth))
+    for family in ("prefix_mean", "prefix_std"):
+        for word in range(prefix_words):
+            names.extend(f"{family}_word{word}_cell{cell}" for cell in range(cells_per_word))
+    names.extend(
+        [
+            "global_pair_density_mean",
+            "global_pair_density_std",
+            "global_pair_density_first_last",
+            "global_pair_density_span",
+            "global_trail_density_mean",
+            "global_trail_density_std",
+            "global_trail_density_first_last",
+            "global_trail_density_span",
+            "global_low_cells_mean",
+            "global_mid_cells_mean",
+            "global_high_cells_mean",
+            "global_even_odd_mean",
+            "global_low_cells_first_last",
+            "global_mid_cells_first_last",
+            "global_high_cells_first_last",
+            "global_even_odd_first_last",
+        ]
+    )
+    return names
 
 
 def _sgp_config(

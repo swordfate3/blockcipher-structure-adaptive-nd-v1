@@ -12831,6 +12831,66 @@ def test_audit_spn_features_cli_writes_beamstats_attribution(tmp_path):
     assert payload["best_statistic"]["name"] in payload["statistics"]
 
 
+def test_present_r8_trail_position_attribution_reports_position_statistics():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_512_local.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+    trail_position_task = tasks[1]
+
+    report = spn_feature_audit.trail_position_attribution_from_task(
+        trail_position_task,
+        samples_per_class=4,
+        seed=123,
+        key_split="validation",
+        top_k=5,
+    )
+
+    assert report["status"] == "pass"
+    assert report["audit"] == "present_trail_position_stats_attribution"
+    assert report["feature_encoding"] == (
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"
+    )
+    assert report["samples_per_class"] == 4
+    assert report["trail_depth"] == 4
+    assert report["trail_words_per_depth"] == 9
+    assert report["position_stat_dim"] > 0
+    assert report["best_statistic"]["name"] in report["top_statistics"]["feature_names"]
+    assert 0.0 <= report["best_statistic"]["auc_advantage"] <= 0.5
+    assert report["composite"]["combiner"] == "top_position_stat_oriented_zscore_mean"
+    assert 0.0 <= report["composite"]["auc_advantage"] <= 0.5
+    assert "not neural training" in report["claim_scope"]
+
+
+def test_audit_spn_features_cli_writes_trail_position_attribution(tmp_path):
+    output = tmp_path / "trail_position_attribution.json"
+    status = audit_spn_features_main(
+        [
+            "--trail-position-attribution-plan",
+            "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv",
+            "--row-index",
+            "1",
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--key-split",
+            "validation",
+            "--top-k",
+            "5",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "present_trail_position_stats_attribution"
+    assert payload["best_statistic"]["name"] in payload["top_statistics"]["feature_names"]
+    assert "composite" in payload
+
+
 def test_candidate_evidence_feature_probe_reports_lowdim_axis_and_composite():
     config = {
         "rounds": 7,
