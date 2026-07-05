@@ -27,11 +27,13 @@ from blockcipher_nd.planning.transition_spectrum_gate import gate_transition_spe
 from blockcipher_nd.planning.trail_family_gate import gate_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_gate import gate_active_auxiliary_result
 from blockcipher_nd.planning.sbox_prior_gate import gate_sbox_prior_result
+from blockcipher_nd.planning.difference_screen_gate import gate_difference_screen_result
 from blockcipher_nd.planning.candidate_trail_postprocess import postprocess_candidate_trail_result
 from blockcipher_nd.planning.transition_spectrum_postprocess import postprocess_transition_spectrum_result
 from blockcipher_nd.planning.trail_family_postprocess import postprocess_trail_family_result
 from blockcipher_nd.planning.active_auxiliary_postprocess import postprocess_active_auxiliary_result
 from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prior_result
+from blockcipher_nd.planning.difference_screen_postprocess import postprocess_difference_screen_result
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -494,6 +496,7 @@ def test_present_r9_difference_screen_plan_and_remote_assets_are_prepared_not_la
 
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
     assert "difference_profile:difference_member" in monitor_text
+    assert "scripts/gate-difference-screen" in monitor_text
     assert "validate-results" in monitor_text
     assert "plot-results" in monitor_text
     assert "gate_note" in monitor_text
@@ -8703,6 +8706,124 @@ def test_monitor_health_emits_sbox_prior_postprocess_command_when_result_ready(t
     assert "scripts/postprocess-sbox-prior" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "4" in report["postprocess_command"]
+
+
+def _write_difference_screen_result(
+    path: Path,
+    profile: str,
+    member: int,
+    auc: float,
+    *,
+    calibrated_accuracy: float = 0.53,
+) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "model": "present_nibble_invp_pair_consistency_spn_only",
+                    "difference_profile": profile,
+                    "difference_member": member,
+                    "input_difference": "0x0",
+                    "metrics": {
+                        "auc": auc,
+                        "accuracy": calibrated_accuracy - 0.001,
+                        "calibrated_accuracy": calibrated_accuracy,
+                        "loss": 0.69,
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def test_difference_screen_gate_promotes_strong_non_reference_candidate(tmp_path):
+    results = tmp_path / "difference_screen.jsonl"
+    _write_difference_screen_result(results, "present_zhang_wang2022_mcnd", 0, 0.512)
+    _write_difference_screen_result(results, "present_wang_jain2021", 0, 0.517)
+    _write_difference_screen_result(results, "present_autond_dbitnet2023_highround", 0, 0.526)
+
+    report = gate_difference_screen_result(results, expected_rows=3)
+
+    assert report["status"] == "pass"
+    assert report["best"]["difference_id"] == "present_autond_dbitnet2023_highround:0"
+    assert report["reference"]["difference_id"] == "present_zhang_wang2022_mcnd:0"
+    assert report["delta_vs_reference_auc"] == pytest.approx(0.014)
+    assert report["decision"] == "promote_best_difference_to_262k_confirmation"
+    assert report["action"] == "prepare_262k_confirmation_for_best_difference"
+    assert "not same-protocol model-improvement evidence" in report["claim_scope"]
+
+
+def test_difference_screen_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "difference_screen.jsonl"
+    _write_difference_screen_result(results, "present_zhang_wang2022_mcnd", 0, 0.512)
+    _write_difference_screen_result(results, "present_wang_jain2021", 0, 0.526)
+    plan_doc = tmp_path / "difference_screen_plan.md"
+    plan_doc.write_text("# Difference Screen Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_difference_screen_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="difference_screen_unit",
+        expected_rows=2,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_best_difference_to_262k_confirmation"
+    assert report["next_action"]["branch"] == "r9_difference_262k_confirmation"
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["best"]["difference_id"] == "present_wang_jain2021:0"
+    assert Path(report["difference_screen_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Difference-Screen Result" in plan_text
+    assert "<!-- difference-screen-postprocess:difference_screen_unit:start -->" in plan_text
+    assert "| Decision | `promote_best_difference_to_262k_confirmation` |" in plan_text
+
+    postprocess_difference_screen_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="difference_screen_unit",
+        expected_rows=2,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- difference-screen-postprocess:difference_screen_unit:start -->") == 1
+
+
+def test_monitor_health_emits_difference_screen_postprocess_command_when_result_ready(tmp_path):
+    run_id = "difference_screen_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = tmp_path / "difference_screen_plan.csv"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    plan.write_text("model_key\npresent_nibble_invp_pair_consistency_spn_only\n", encoding="utf-8")
+    results = results_dir / f"{run_id}.jsonl"
+    _write_difference_screen_result(results, "present_zhang_wang2022_mcnd", 0, 0.512)
+    _write_difference_screen_result(results, "present_wang_jain2021", 0, 0.526)
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=2,
+        postprocess_kind="difference_screen",
+        now=datetime.fromisoformat("2026-07-05T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-difference-screen" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "2" in report["postprocess_command"]
 
 
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():

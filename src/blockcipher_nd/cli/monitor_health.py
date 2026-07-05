@@ -70,6 +70,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "trail_family",
             "active_auxiliary",
             "sbox_prior",
+            "difference_screen",
         ],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
@@ -1065,6 +1066,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-active-auxiliary"
     if kind == "sbox_prior":
         return "scripts/postprocess-sbox-prior"
+    if kind == "difference_screen":
+        return "scripts/postprocess-difference-screen"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -1089,6 +1092,8 @@ def _default_expected_rows(kind: str) -> int:
         return 3
     if kind == "sbox_prior":
         return 4
+    if kind == "difference_screen":
+        return 7
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 

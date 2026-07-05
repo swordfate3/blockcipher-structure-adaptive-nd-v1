@@ -89,7 +89,19 @@ not breakthrough evidence
 ```text
 validate-results
 plot-results
-gate note by difference_profile:difference_member
+gate-difference-screen by difference_profile:difference_member
+```
+
+手工或 monitor-health 统一 postprocess 入口：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-difference-screen \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv \
+  --results outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.jsonl \
+  --output-dir outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705 \
+  --run-id i1_present_r9_difference_screen_65k_seed0_gpu0_20260705 \
+  --expected-rows 7 \
+  --update-plan-doc docs/experiments/innovation1-present-r9-difference-screen-plan.md
 ```
 
 决策规则：
