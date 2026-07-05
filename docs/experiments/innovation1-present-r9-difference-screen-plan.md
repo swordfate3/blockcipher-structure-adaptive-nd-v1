@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** planned / remote assets prepared / not launched
+**状态：** launched / running / local watcher handoff / awaiting 7-row postprocess gate
 
 **Run ID：** `i1_present_r9_difference_screen_65k_seed0_gpu0_20260705`
 
@@ -127,7 +127,7 @@ source = pushed GitHub commit
 monitor = local tmux watcher / sub-agent retrieval
 ```
 
-当前不立即启动，因为已有两个 watcher-managed 任务正在运行：
+历史启动约束：
 
 ```text
 i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
@@ -142,6 +142,53 @@ i1_present_r8_pairset_1m_seed0_gpu1_20260705
 3. scripts/check-remote-readiness 对 remote config 通过；
 4. 启动后由 tmux watcher 接管，不由主线程循环轮询。
 ```
+
+## Remote Launch Record
+
+<!-- r9-difference-screen-launch:i1_present_r9_difference_screen_65k_seed0_gpu0_20260705:start -->
+
+**Run ID：**
+
+```text
+i1_present_r9_difference_screen_65k_seed0_gpu0_20260705
+```
+
+**状态：**
+
+```text
+launched / running / local watcher handoff / not ready for postprocess
+```
+
+**本地检索到的启动证据：**
+
+```text
+readiness status = pass
+expected_rows = 7
+started.marker = present
+progress jsonl = present
+results jsonl = present, partial 3 / 7 rows
+monitor first local sync = 2026-07-05T18:34:56+08:00
+latest checked monitor state = running
+source commit = 877d419ea8f57bce41b77ce9c86de4a97373bf97
+```
+
+**当前 gate：**
+
+```text
+postprocess_allowed = false
+needs_main_thread_intervention = false
+heartbeat = fresh
+```
+
+解释：
+
+```text
+该 run 已启动并由 watcher 检索本地 artifacts，但当前只有 3 / 7 result rows。
+因此不能执行 difference-screen gate，也不能把 partial rows 解释成 r9 差分
+筛选结论。完整结果 ready 后再运行本文件第 4 节的 postprocess 命令。
+```
+
+<!-- r9-difference-screen-launch:i1_present_r9_difference_screen_65k_seed0_gpu0_20260705:end -->
 
 Automatic next-action source:
 
