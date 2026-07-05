@@ -1129,7 +1129,7 @@ def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
 
     assert "cmd.exe /k" not in monitor_text
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
-    assert "scripts/postprocess-integral-inverse-feature" in monitor_text
+    assert "scripts/advance-integral-inverse-feature-result" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
 
@@ -10353,6 +10353,54 @@ def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_do
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- integral-inverse-feature-postprocess:integral_inverse_feature_unit:start -->") == 1
+
+
+def test_integral_inverse_feature_advance_runs_postprocess_and_writes_summary(tmp_path):
+    from blockcipher_nd.planning.integral_inverse_feature_advance import (
+        advance_integral_inverse_feature_result,
+    )
+
+    results = tmp_path / "integral_inverse_feature.jsonl"
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        feature_encoding="ciphertext_pair_bits",
+        auc=0.552,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp",
+        architecture_rank=1,
+        model="present_matrix_trail_hybrid_pairset_invp",
+        feature_encoding="present_pair_xor_paligned_cell_matrix_bits",
+        auc=0.556,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp_sinv",
+        architecture_rank=2,
+        model="present_matrix_trail_hybrid_pairset_invp_sinv",
+        feature_encoding="present_pair_xor_paligned_sinv_cell_matrix_bits",
+        auc=0.565,
+    )
+    output_dir = tmp_path / "advance"
+
+    report = advance_integral_inverse_feature_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="integral_inverse_advance_unit",
+        plan_path=None,
+        expected_rows=3,
+        skip_plot=True,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_sinv_inverse_feature_to_262k_confirmation"
+    assert report["plot"] is None
+    assert Path(report["summary"]).exists()
+    assert Path(report["postprocess_summary"]).exists()
 
 
 def test_monitor_health_emits_integral_inverse_feature_postprocess_command_when_result_ready(tmp_path):

@@ -39,21 +39,21 @@ while true; do
 
   if [[ "${result_rows}" -ge "${EXPECTED_ROWS}" ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-integral-inverse-feature \
-      --plan "${PLAN}" \
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/advance-integral-inverse-feature-result \
       --results "${result_file}" \
       --output-dir "${LOCAL_ROOT}" \
       --run-id "${RUN_ID}" \
+      --plan "${PLAN}" \
       --expected-rows "${EXPECTED_ROWS}" \
       --update-plan-doc "${PLAN_DOC}" \
-      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
-    postprocess_status=$?
-    if [[ "${postprocess_status}" -eq 0 ]]; then
-      echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
+      > "${MONITOR_DIR}/advance.log" 2> "${MONITOR_DIR}/advance_stderr.log"
+    advance_status=$?
+    if [[ "${advance_status}" -eq 0 ]]; then
+      echo "$(timestamp) advance_done" >> "${MONITOR_DIR}/monitor.log"
     else
-      echo "$(timestamp) postprocess_failed plan=${PLAN}" >> "${MONITOR_DIR}/monitor.log"
+      echo "$(timestamp) advance_failed plan=${PLAN}" >> "${MONITOR_DIR}/monitor.log"
     fi
-    exit "${postprocess_status}"
+    exit "${advance_status}"
   fi
 
   if compgen -G "${LOCAL_ROOT}/logs/*done.marker" > /dev/null; then

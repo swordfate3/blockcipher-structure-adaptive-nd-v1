@@ -99,6 +99,30 @@ i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
 
+结果 ready 后使用 route-specific advance：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/advance-integral-inverse-feature-result \
+  --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
+  --output-dir outputs/remote_results/<run_id> \
+  --run-id <run_id> \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv \
+  --expected-rows 3 \
+  --update-plan-doc docs/experiments/innovation1-present-r8-integral-inverse-feature-screen-plan.md
+```
+
+Advance artifacts：
+
+```text
+<run_id>_local_result_gate.json
+<run_id>_integral_inverse_feature_gate.json
+<run_id>_postprocess_summary.json
+<run_id>_postprocess_summary.md
+<run_id>_advance_summary.json
+<run_id>_curves.svg
+<run_id>_history.csv
+```
+
 ## 4. 证据等级
 
 ```text
