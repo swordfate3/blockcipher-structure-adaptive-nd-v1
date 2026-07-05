@@ -49,6 +49,7 @@ from blockcipher_nd.planning.invp_attribution_postprocess import postprocess_inv
 from blockcipher_nd.planning.ddt_graph_postprocess import postprocess_ddt_graph_result
 from blockcipher_nd.planning.topology_aware_postprocess import postprocess_topology_aware_result
 from blockcipher_nd.cli.plan_next_action import plan_next_action
+from blockcipher_nd.cli.arbitrate_next_actions import arbitrate_next_actions
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -10279,6 +10280,62 @@ def test_monitor_health_emits_r8_pairset_1m_postprocess_command_when_result_read
     assert "scripts/postprocess-r8-pairset-1m" in report["postprocess_command"]
     assert "--expected-rows" in report["postprocess_command"]
     assert "2" in report["postprocess_command"]
+
+
+def test_arbitrate_next_actions_prefers_strong_r9_over_r8_confirmation(tmp_path):
+    r9_results = tmp_path / "r9_weak_probe.jsonl"
+    _write_r9_weak_probe_result(r9_results, "present_zhang_wang_keras_mcnd", 0.511)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_only_spn_only", 0.519)
+    _write_r9_weak_probe_result(r9_results, "present_nibble_invp_pair_consistency_spn_only", 0.556)
+    r9_report = postprocess_r9_weak_probe_result(
+        results_path=r9_results,
+        output_dir=tmp_path / "r9_postprocess",
+        run_id="r9_weak_probe_unit",
+        expected_rows=3,
+    )
+
+    r8_results = tmp_path / "r8_pairset_1m.jsonl"
+    _write_r8_pairset_1m_result(r8_results, "present_zhang_wang_keras_mcnd", 0.542)
+    _write_r8_pairset_1m_result(r8_results, "present_nibble_invp_pair_consistency_spn_only", 0.549)
+    r8_report = postprocess_r8_pairset_1m_result(
+        results_path=r8_results,
+        output_dir=tmp_path / "r8_postprocess",
+        run_id="r8_pairset_1m_unit",
+        expected_rows=2,
+    )
+
+    arbitration = arbitrate_next_actions(
+        [Path(r8_report["summary"]), Path(r9_report["summary"])]
+    )
+
+    assert arbitration["status"] == "selected"
+    assert arbitration["selected"]["branch"] == "r9_1m_seed0_plan"
+    assert arbitration["selected"]["run_id"] == "i1_present_r9_1m_seed0_gpu0_20260705"
+    assert arbitration["deferred"][0]["branch"] == "r8_pairset_seed1_or_frozen_control"
+    assert arbitration["not_ready"] == []
+
+
+def test_arbitrate_next_actions_marks_invalid_or_nonlaunchable_summaries_not_ready(tmp_path):
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text("{not-json\n", encoding="utf-8")
+    r8_results = tmp_path / "r8_pairset_1m_stop.jsonl"
+    _write_r8_pairset_1m_result(r8_results, "present_zhang_wang_keras_mcnd", 0.542)
+    _write_r8_pairset_1m_result(r8_results, "present_nibble_invp_pair_consistency_spn_only", 0.541)
+    r8_report = postprocess_r8_pairset_1m_result(
+        results_path=r8_results,
+        output_dir=tmp_path / "r8_stop_postprocess",
+        run_id="r8_pairset_1m_stop_unit",
+        expected_rows=2,
+    )
+
+    arbitration = arbitrate_next_actions([invalid, Path(r8_report["summary"])])
+
+    assert arbitration["status"] == "no_launchable_action"
+    assert arbitration["selected"] is None
+    assert len(arbitration["not_ready"]) == 2
+    reasons = {entry["reason"] for entry in arbitration["not_ready"]}
+    assert any(reason.startswith("unreadable_or_invalid_summary") for reason in reasons)
+    assert "summary_does_not_request_remote_launch" in reasons
 
 
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():

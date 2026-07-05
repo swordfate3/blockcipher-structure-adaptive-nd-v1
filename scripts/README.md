@@ -65,6 +65,12 @@ Use `scripts/plan-next-action` after a postprocess summary JSON is written. It
 reads `next_action`, runs local readiness checks for any declared remote config,
 and emits a structured branch/readiness report. It does not launch, SSH, or
 touch the remote workstation.
+Use `scripts/arbitrate-next-actions` when more than one postprocess summary has
+a launchable high-round follow-up. It calls `plan-next-action` for each summary,
+keeps the decision local-only, and selects one branch by the documented
+high-round priority policy so r8 seed confirmation, r9 seed confirmation,
+r9 1M scale-up, curriculum, and difference-screen branches are not launched
+blindly in parallel.
 DDT graph, topology-aware, r9 weak-probe, and r8 pair-set 1M postprocess also write
 `<run_id>_next_action_readiness.json` directly, so watcher-managed DDT or
 topology-aware/high-round runs leave both the gate decision and the
