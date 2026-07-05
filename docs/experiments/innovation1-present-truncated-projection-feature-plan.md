@@ -159,6 +159,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-projection-ensemble \
 ```text
 rows[]                  = 单模型指标和输入投影
 ensembles[].mode        = probability_mean / logit_mean / auc_weighted_logit_mean
+diversity               = 弱视角互补性诊断
 best_single             = 最强单模型
 best_ensemble           = 最强融合
 delta_best_ensemble_vs_single_auc
@@ -167,6 +168,11 @@ delta_best_ensemble_vs_single_auc
 `auc_weighted_logit_mean` 只给 `AUC > 0.5` 的弱正模型赋权；若没有任何弱正模型，
 自动退回均匀权重，防止为了提高指标而人为挑权重。这个 ensemble 结果仍然只是
 same-validation diagnostic，后续必须用新 seed 或独立 confirmation split 验证。
+
+`diversity` 记录每对弱模型的 probability/logit correlation、0.5 阈值下预测分歧率、
+double-fault rate、error Jaccard，以及所有模型的 oracle accuracy。融合路线只有在
+`best_ensemble > best_single` 且错误重叠不高时才解释为“可能存在互补结构证据”；若相关性高、
+double-fault 高，则说明这些弱模型大概率在重复同一条弱信号，不应继续堆 ensemble。
 
 ## 6. Gate
 

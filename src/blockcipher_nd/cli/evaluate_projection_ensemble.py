@@ -83,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     assert reference_labels is not None
     probability_matrix = np.stack(probability_columns, axis=1)
     ensemble_reports = ensemble_metrics(reference_labels, probability_matrix, row_reports)
+    diversity_report = diversity_metrics(reference_labels, probability_matrix, row_reports)
     best_single = max(row_reports, key=lambda row: row["metrics"]["auc"])
     best_ensemble = max(ensemble_reports, key=lambda row: row["metrics"]["auc"])
     summary = {
@@ -90,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         "plan": str(args.plan),
         "rows": row_reports,
         "ensembles": ensemble_reports,
+        "diversity": diversity_report,
         "best_single": best_single,
         "best_ensemble": best_ensemble,
         "delta_best_ensemble_vs_single_auc": float(
@@ -222,6 +224,72 @@ def ensemble_metrics(
             ),
         },
     ]
+
+
+def diversity_metrics(
+    labels: np.ndarray,
+    probability_matrix: np.ndarray,
+    row_reports: list[dict[str, Any]],
+) -> dict[str, Any]:
+    predictions = (probability_matrix >= 0.5).astype(np.float32)
+    correctness = predictions == labels.reshape(-1, 1)
+    return {
+        "oracle_accuracy_at_0_5": float(correctness.any(axis=1).mean()) if len(labels) else 0.0,
+        "all_models_wrong_rate_at_0_5": float((~correctness.any(axis=1)).mean()) if len(labels) else 0.0,
+        "pairwise": pairwise_diversity_metrics(labels, probability_matrix, row_reports),
+        "interpretation": (
+            "High disagreement with low double-fault/error overlap supports complementary weak views; "
+            "high correlation and high shared errors suggest ensembling is unlikely to add evidence."
+        ),
+    }
+
+
+def pairwise_diversity_metrics(
+    labels: np.ndarray,
+    probability_matrix: np.ndarray,
+    row_reports: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    reports: list[dict[str, Any]] = []
+    logits = probability_to_logit(probability_matrix)
+    predictions = probability_matrix >= 0.5
+    correct = predictions == labels.reshape(-1, 1)
+    for left in range(probability_matrix.shape[1]):
+        for right in range(left + 1, probability_matrix.shape[1]):
+            left_wrong = ~correct[:, left]
+            right_wrong = ~correct[:, right]
+            either_wrong = left_wrong | right_wrong
+            both_wrong = left_wrong & right_wrong
+            reports.append(
+                {
+                    "left": _row_label(row_reports[left], left),
+                    "right": _row_label(row_reports[right], right),
+                    "probability_correlation": safe_correlation(
+                        probability_matrix[:, left],
+                        probability_matrix[:, right],
+                    ),
+                    "logit_correlation": safe_correlation(logits[:, left], logits[:, right]),
+                    "disagreement_rate_at_0_5": float((predictions[:, left] != predictions[:, right]).mean()),
+                    "double_fault_rate_at_0_5": float(both_wrong.mean()),
+                    "error_jaccard_at_0_5": (
+                        float(both_wrong.sum() / either_wrong.sum()) if int(either_wrong.sum()) else 0.0
+                    ),
+                }
+            )
+    return reports
+
+
+def safe_correlation(left: np.ndarray, right: np.ndarray) -> float | None:
+    if left.size < 2 or right.size < 2:
+        return None
+    left_std = float(np.std(left))
+    right_std = float(np.std(right))
+    if left_std <= 0.0 or right_std <= 0.0:
+        return None
+    return float(np.corrcoef(left, right)[0, 1])
+
+
+def _row_label(row: dict[str, Any], index: int) -> str:
+    return str(row.get("architecture") or row.get("model_key") or f"row_{index + 1}")
 
 
 def metrics_from_probabilities(labels: np.ndarray, probabilities: np.ndarray) -> dict[str, float]:

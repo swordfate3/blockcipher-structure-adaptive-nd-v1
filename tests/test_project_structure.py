@@ -12304,6 +12304,37 @@ def test_projection_ensemble_metrics_reports_weighted_logit_mode():
     assert weighted["metrics"]["auc"] == 1.0
 
 
+def test_projection_ensemble_diversity_reports_error_complementarity():
+    from blockcipher_nd.cli.evaluate_projection_ensemble import diversity_metrics
+
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    probabilities = np.array(
+        [
+            [0.10, 0.60],
+            [0.80, 0.20],
+            [0.40, 0.80],
+            [0.90, 0.30],
+        ],
+        dtype=np.float32,
+    )
+    row_reports = [
+        {"architecture": "raw_projection", "metrics": {"auc": 0.75}},
+        {"architecture": "invp_projection", "metrics": {"auc": 0.75}},
+    ]
+
+    report = diversity_metrics(labels, probabilities, row_reports)
+
+    assert report["oracle_accuracy_at_0_5"] == 1.0
+    assert report["all_models_wrong_rate_at_0_5"] == 0.0
+    assert len(report["pairwise"]) == 1
+    pair = report["pairwise"][0]
+    assert pair["left"] == "raw_projection"
+    assert pair["right"] == "invp_projection"
+    assert pair["disagreement_rate_at_0_5"] == 1.0
+    assert pair["double_fault_rate_at_0_5"] == 0.0
+    assert pair["error_jaccard_at_0_5"] == 0.0
+
+
 def test_projection_feature_gate_triggers_ensemble_for_multiple_weak_views(tmp_path):
     from blockcipher_nd.planning.projection_feature_postprocess import gate_projection_feature_result
 
