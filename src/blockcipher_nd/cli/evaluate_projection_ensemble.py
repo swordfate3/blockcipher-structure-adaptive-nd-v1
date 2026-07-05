@@ -56,12 +56,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dataset-cache-workers", type=int, default=1)
     parser.add_argument("--progress-output", default=None)
     parser.add_argument("--checkpoint-output", default=None)
+    parser.add_argument(
+        "--source-results",
+        type=Path,
+        default=None,
+        help=(
+            "Optional screen JSONL used to restrict ensemble training to weak-positive "
+            "projection candidates from the same plan."
+        ),
+    )
+    parser.add_argument("--weak-positive-auc", type=float, default=0.505)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     tasks = build_tasks(_task_args(args))
+    source_filter = filter_tasks_from_source_results(tasks, args.source_results, args.weak_positive_auc)
+    tasks = source_filter["tasks"]
     if len(tasks) < 2:
         raise ValueError("ensemble evaluation requires at least two plan rows")
 
@@ -89,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     summary = {
         "status": "pass",
         "plan": str(args.plan),
+        "source_filter": source_filter["report"],
         "rows": row_reports,
         "ensembles": ensemble_reports,
         "diversity": diversity_report,
@@ -196,6 +209,83 @@ def train_projection_row(
         "training": training.metadata,
     }
     return report, labels, probabilities
+
+
+def filter_tasks_from_source_results(
+    tasks: list[dict[str, Any]],
+    source_results: Path | None,
+    weak_positive_auc: float,
+) -> dict[str, Any]:
+    if source_results is None:
+        return {
+            "tasks": tasks,
+            "report": {
+                "mode": "all_plan_rows",
+                "source_results": None,
+                "selected_architectures": [str(task["architecture"]) for task in tasks],
+            },
+        }
+
+    rows = read_jsonl(source_results)
+    anchor = next((row for row in rows if int(row.get("architecture_rank", -1)) == 0), None)
+    anchor_auc = _row_auc(anchor)
+    selected_architectures: list[str] = []
+    for row in rows:
+        if int(row.get("architecture_rank", -1)) == 0:
+            continue
+        auc = _row_auc(row)
+        if auc is None or auc <= weak_positive_auc:
+            continue
+        if anchor_auc is not None and auc < anchor_auc:
+            continue
+        selected_architectures.append(str(row.get("architecture")))
+
+    task_by_architecture = {str(task["architecture"]): task for task in tasks}
+    selected_tasks = [
+        task_by_architecture[architecture]
+        for architecture in selected_architectures
+        if architecture in task_by_architecture
+    ]
+    missing_architectures = [
+        architecture for architecture in selected_architectures if architecture not in task_by_architecture
+    ]
+    if len(selected_tasks) < 2:
+        raise ValueError(
+            "source-results selected fewer than two weak-positive projection candidates; "
+            "do not run ensemble without at least two complementary candidate views"
+        )
+
+    return {
+        "tasks": selected_tasks,
+        "report": {
+            "mode": "weak_projection_candidates_from_source_results",
+            "source_results": str(source_results),
+            "weak_positive_auc": weak_positive_auc,
+            "anchor_auc": anchor_auc,
+            "selected_architectures": selected_architectures,
+            "selected_count": len(selected_tasks),
+            "missing_architectures": missing_architectures,
+        },
+    }
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped:
+            rows.append(json.loads(stripped))
+    return rows
+
+
+def _row_auc(row: dict[str, Any] | None) -> float | None:
+    if row is None:
+        return None
+    metrics = row.get("metrics") or {}
+    auc = metrics.get("auc")
+    if isinstance(auc, (int, float)):
+        return float(auc)
+    return None
 
 
 def ensemble_metrics(

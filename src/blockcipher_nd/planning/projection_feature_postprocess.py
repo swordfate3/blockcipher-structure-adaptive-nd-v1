@@ -218,6 +218,7 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "command": (
                 "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-projection-ensemble "
                 "--plan configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_screen_65k_seed0.csv "
+                "--source-results outputs/remote_results/<run_id>/results/<run_id>.jsonl "
                 "--device auto --epochs 1 --batch-size 2048 --hidden-bits 128 "
                 "--output outputs/remote_results/<run_id>/<run_id>_projection_ensemble.json"
             ),

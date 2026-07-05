@@ -12335,6 +12335,38 @@ def test_projection_ensemble_diversity_reports_error_complementarity():
     assert pair["error_jaccard_at_0_5"] == 0.0
 
 
+def test_projection_ensemble_source_results_filter_selects_weak_positive_candidates(tmp_path):
+    from blockcipher_nd.cli.evaluate_projection_ensemble import filter_tasks_from_source_results
+
+    tasks = [
+        {"architecture": "full_raw"},
+        {"architecture": "raw_projection"},
+        {"architecture": "invp_projection"},
+        {"architecture": "thin_projection"},
+    ]
+    source_results = tmp_path / "screen.jsonl"
+    rows = [
+        {"architecture": "full_raw", "architecture_rank": 0, "metrics": {"auc": 0.510}},
+        {"architecture": "raw_projection", "architecture_rank": 1, "metrics": {"auc": 0.512}},
+        {"architecture": "invp_projection", "architecture_rank": 2, "metrics": {"auc": 0.513}},
+        {"architecture": "thin_projection", "architecture_rank": 3, "metrics": {"auc": 0.504}},
+    ]
+    source_results.write_text(
+        "\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    filtered = filter_tasks_from_source_results(tasks, source_results, weak_positive_auc=0.505)
+
+    assert [task["architecture"] for task in filtered["tasks"]] == [
+        "raw_projection",
+        "invp_projection",
+    ]
+    assert filtered["report"]["mode"] == "weak_projection_candidates_from_source_results"
+    assert filtered["report"]["selected_count"] == 2
+    assert filtered["report"]["anchor_auc"] == 0.510
+
+
 def test_projection_feature_gate_triggers_ensemble_for_multiple_weak_views(tmp_path):
     from blockcipher_nd.planning.projection_feature_postprocess import gate_projection_feature_result
 
