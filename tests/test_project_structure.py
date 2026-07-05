@@ -1133,6 +1133,36 @@ def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
     assert "scripts/advance-integral-inverse-feature-result" in monitor_text
     assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
 
+    retry_config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.json"
+    )
+    retry_readiness = remote_readiness_report(retry_config)
+    retry_artifacts = launch_artifacts(retry_config)
+    retry_config_data = json.loads(retry_config.read_text(encoding="utf-8"))
+    retry_launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    retry_monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.sh"
+    ).read_text(encoding="utf-8")
+
+    assert retry_readiness["status"] == "pass"
+    assert retry_readiness["expected_rows"] == 3
+    assert retry_artifacts["status"] == "pass"
+    assert retry_config_data["batch_size"] == 512
+    assert retry_config_data["dataset_cache_root"] == config_data["dataset_cache_root"]
+    assert "CUDA OOM" in retry_config_data["launch_policy"]
+    assert "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True" in retry_launcher_text
+    assert "--batch-size 512" in retry_launcher_text
+    assert "cmd.exe /k" not in retry_launcher_text
+    assert "Desktop" not in retry_launcher_text
+    assert "Downloads" not in retry_launcher_text
+    assert "scripts/advance-integral-inverse-feature-result" in retry_monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in retry_monitor_text
+
 
 def test_present_r10_conditional_plan_has_no_remote_assets_after_r9_gate():
     plan_doc = Path(

@@ -336,3 +336,96 @@ not Zhang/Wang same-protocol model evidence
 not formal route evidence
 not publication-style claim
 ```
+
+## 9. Failure / Repair Record
+
+<!-- integral-inverse-feature-failure:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705:start -->
+
+### i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+
+**状态：**
+
+```text
+failed / partial / do not postprocess
+```
+
+**本地 retrieval 证据：**
+
+```text
+failed_marker = logs/i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705_failed.marker
+results_jsonl_line_count = 1 / 3
+completed row = Row 0 raw integral anchor only
+missing rows = Row 1 InvP matrix, Row 2 InvP+Sinv matrix
+```
+
+**失败原因：**
+
+```text
+torch.OutOfMemoryError during Row 1 / architecture_rank=1
+model = present_matrix_trail_hybrid_pairset_invp
+feature_encoding = present_pair_xor_paligned_cell_matrix_bits
+input_bits = 4096
+batch_size = 2048
+device = cuda:1
+```
+
+stderr 摘要：
+
+```text
+CUDA out of memory. Tried to allocate 2.00 GiB.
+GPU 1 total = 47.99 GiB
+free at failure = 571 MiB
+allocated by PyTorch = 43.25 GiB
+reserved by PyTorch = 2.59 GiB
+```
+
+解释：
+
+```text
+这不是模型路线失败，也不是 inverse-round feature 负结果；
+这是 batch_size=2048 对 4096-bit matrix feature 的显存失败。
+该 run 只有 Row 0 partial evidence，因此不能执行 3-row gate，
+也不能把 Row 0 的 AUC=0.9999795751646161 写成完整 screen 结论。
+```
+
+**Repair run：**
+
+```text
+run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705
+remote_config = configs/remote/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.json
+launcher = configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705.sh
+```
+
+唯一训练资源变化：
+
+```text
+batch_size: 2048 -> 512
+PYTORCH_CUDA_ALLOC_CONF = expandable_segments:True
+```
+
+保持不变：
+
+```text
+plan
+rounds
+seed
+sample_structure
+negative_mode
+train_key / validation_key
+checkpoint_metric
+dataset_cache_root
+expected_rows = 3
+```
+
+Repair launch gate：
+
+```text
+1. 本地 check-remote-readiness 必须 pass；
+2. git commit/push 后从 pushed commit 启动；
+3. 启动后做一次 bounded artifact confirmation；
+4. local tmux watcher 接管；
+5. 若 retry1 再 OOM，不继续堆 GPU，改为 matrix rows 拆分或更小 batch 的单-row plan。
+```
+
+<!-- integral-inverse-feature-failure:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705:end -->
