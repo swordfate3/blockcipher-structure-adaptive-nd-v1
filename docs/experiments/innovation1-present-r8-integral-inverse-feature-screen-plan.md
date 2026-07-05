@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** smoke planned / 65536-class screen prepared / not launched
+**状态：** smoke passed / 65536-class screen prepared / remote assets prepared / not launched
 
 **研究蓝图：** `docs/research/innovation1-present-higher-round-strategy.md`
 
@@ -77,13 +77,22 @@ Screen：
 configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv
 ```
 
+Prepared remote assets：
+
+```text
+run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705
+configs/remote/innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.json
+configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.cmd
+configs/remote/generated/monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.sh
+```
+
 当前状态：
 
 ```text
 prepared / not launched
 ```
 
-当前不创建远程资产、不占用 GPU，因为已有 watcher-managed 任务：
+当前不启动远程、不占用 GPU，因为已有 watcher-managed 任务：
 
 ```text
 i1_present_r9_weak_probe_262k_seed0_gpu0_20260705

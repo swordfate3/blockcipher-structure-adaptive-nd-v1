@@ -36,6 +36,9 @@ from blockcipher_nd.planning.sbox_prior_postprocess import postprocess_sbox_prio
 from blockcipher_nd.planning.difference_screen_postprocess import postprocess_difference_screen_result
 from blockcipher_nd.planning.pair_mixer_postprocess import postprocess_pair_mixer_consistency_result
 from blockcipher_nd.planning.pair_evidence_pooling_postprocess import postprocess_pair_evidence_pooling_result
+from blockcipher_nd.planning.integral_inverse_feature_postprocess import (
+    postprocess_integral_inverse_feature_result,
+)
 from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -814,6 +817,52 @@ def test_present_r8_integral_inverse_feature_screen_plans_are_protocol_locked():
     assert "Integral / inverse-round 数据结构路线" in research_doc
     assert "Stage H5" in research_doc
 
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+    config_data = json.loads(config.read_text(encoding="utf-8"))
+    config_text = config.read_text(encoding="utf-8")
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu0_20260705.sh"
+    ).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 3
+    assert readiness["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert config_data["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config_data["dataset_cache_workers"] == 4
+    assert "cmd.exe /c" in config_text
+    assert "cmd.exe /k" not in config_text
+    assert "prepared but do not launch" in config_data["launch_policy"]
+    assert "not Zhang/Wang same-protocol model evidence" in config_data["claim_scope"]
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "innovation1_spn_present_r8_integral_inverse_feature_screen_65k_seed0.csv" in launcher_text
+    assert "--epochs 20" in launcher_text
+    assert "--dataset-cache-workers 4" in launcher_text
+    assert "r8_integral_inverse_feature_screen_progress.jsonl" in launcher_text
+
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "scripts/postprocess-integral-inverse-feature" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+
 
 def test_present_r10_conditional_plan_has_no_remote_assets_and_waits_for_r9_gate():
     plan_doc = Path(
@@ -1564,7 +1613,8 @@ def test_pairset_aggregation_readiness_ignores_route_names_in_launch_policy():
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 
-    assert "Status:** planned next architecture/data-representation route / do not launch" in plan
+    assert "Status:** seed0 launched / watcher-managed running / waiting for retrieved" in plan
+    assert "Do not\nlaunch seed1 or any replacement SPN route until seed0 is retrieved" in plan
     assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
     assert "PRESENT-80" in plan
     assert "zhang_wang_case2_official_mcnd" in plan
@@ -9204,6 +9254,39 @@ def _write_pair_evidence_pooling_result(
     path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
 
 
+def _write_integral_inverse_feature_result(
+    path: Path,
+    *,
+    architecture: str,
+    architecture_rank: int,
+    model: str,
+    feature_encoding: str,
+    auc: float,
+) -> None:
+    rows = []
+    if path.exists():
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows.append(
+        {
+            "cipher": "PRESENT-80",
+            "architecture": architecture,
+            "architecture_rank": architecture_rank,
+            "selected_model": model,
+            "feature_encoding": feature_encoding,
+            "metrics": {
+                "auc": auc,
+                "accuracy": 0.5 + (auc - 0.5) / 2,
+                "calibrated_accuracy": 0.5 + (auc - 0.5) / 3,
+                "loss": 0.69,
+            },
+            "training": {
+                "feature_encoding": feature_encoding,
+            },
+        }
+    )
+    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n", encoding="utf-8")
+
+
 def test_pair_mixer_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
     results = tmp_path / "pair_mixer.jsonl"
     _write_pair_mixer_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.552)
@@ -9408,10 +9491,138 @@ def test_monitor_health_emits_pair_evidence_pooling_postprocess_command_when_res
     assert "4" in report["postprocess_command"]
 
 
+def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_doc(tmp_path):
+    results = tmp_path / "integral_inverse_feature.jsonl"
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        feature_encoding="ciphertext_pair_bits",
+        auc=0.552,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp",
+        architecture_rank=1,
+        model="present_matrix_trail_hybrid_pairset_invp",
+        feature_encoding="present_pair_xor_paligned_cell_matrix_bits",
+        auc=0.556,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp_sinv",
+        architecture_rank=2,
+        model="present_matrix_trail_hybrid_pairset_invp_sinv",
+        feature_encoding="present_pair_xor_paligned_sinv_cell_matrix_bits",
+        auc=0.565,
+    )
+    plan_doc = tmp_path / "integral_inverse_feature_plan.md"
+    plan_doc.write_text("# Integral / Inverse-Feature Plan\n", encoding="utf-8")
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_integral_inverse_feature_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="integral_inverse_feature_unit",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_sinv_inverse_feature_to_262k_confirmation"
+    assert report["next_action"]["branch"] == "integral_inverse_feature_262k_confirmation"
+    assert report["next_action"]["requires_implementation"] is True
+    assert report["next_action"]["should_launch_remote"] is False
+    assert report["next_action"]["selected_feature_encoding"] == (
+        "present_pair_xor_paligned_sinv_cell_matrix_bits"
+    )
+    assert report["delta_sinv_vs_raw_auc"] == pytest.approx(0.013)
+    assert report["delta_sinv_vs_invp_auc"] == pytest.approx(0.009)
+    assert Path(report["integral_inverse_feature_gate"]).exists()
+    assert Path(report["summary"]).exists()
+    assert Path(report["summary_markdown"]).exists()
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "## Retrieved Integral / Inverse-Feature Result" in plan_text
+    assert "<!-- integral-inverse-feature-postprocess:integral_inverse_feature_unit:start -->" in plan_text
+    assert "| Decision | `promote_sinv_inverse_feature_to_262k_confirmation` |" in plan_text
+    assert "| Best feature | `present_pair_xor_paligned_sinv_cell_matrix_bits` |" in plan_text
+
+    postprocess_integral_inverse_feature_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="integral_inverse_feature_unit",
+        expected_rows=3,
+        plan_doc_paths=[plan_doc],
+    )
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert plan_text.count("<!-- integral-inverse-feature-postprocess:integral_inverse_feature_unit:start -->") == 1
+
+
+def test_monitor_health_emits_integral_inverse_feature_postprocess_command_when_result_ready(tmp_path):
+    run_id = "integral_inverse_feature_monitor_unit"
+    run_root = tmp_path / run_id
+    monitor_dir = run_root / "monitor"
+    results_dir = run_root / "results"
+    plan = tmp_path / "integral_inverse_feature_plan.csv"
+    monitor_dir.mkdir(parents=True)
+    results_dir.mkdir(parents=True)
+    (monitor_dir / "monitor.log").write_text("2026-07-05T12:00:00+08:00 running\n", encoding="utf-8")
+    plan.write_text(
+        "model_key\n"
+        "present_nibble_invp_pair_consistency_spn_only\n"
+        "present_matrix_trail_hybrid_pairset_invp\n"
+        "present_matrix_trail_hybrid_pairset_invp_sinv\n",
+        encoding="utf-8",
+    )
+    results = results_dir / f"{run_id}.jsonl"
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        feature_encoding="ciphertext_pair_bits",
+        auc=0.552,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp",
+        architecture_rank=1,
+        model="present_matrix_trail_hybrid_pairset_invp",
+        feature_encoding="present_pair_xor_paligned_cell_matrix_bits",
+        auc=0.556,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp_sinv",
+        architecture_rank=2,
+        model="present_matrix_trail_hybrid_pairset_invp_sinv",
+        feature_encoding="present_pair_xor_paligned_sinv_cell_matrix_bits",
+        auc=0.565,
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=tmp_path,
+        plan_path=plan,
+        expected_rows=3,
+        postprocess_kind="integral_inverse_feature",
+        now=datetime.fromisoformat("2026-07-05T12:01:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["postprocess_allowed"] is True
+    assert report["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-integral-inverse-feature" in report["postprocess_command"]
+    assert "--expected-rows" in report["postprocess_command"]
+    assert "3" in report["postprocess_command"]
+
+
 def test_active_pattern_auxiliary_head_plan_is_current_not_archived():
     plan = Path("docs/experiments/innovation1-active-pattern-auxiliary-head-plan.md").read_text(encoding="utf-8")
 
-    assert "prepared next-hypothesis plan" in plan
+    assert "Status:** launched / watcher-managed medium diagnostic seed0" in plan
+    assert "This plan is a current experiment plan" in plan
     assert "not the archived 2026-06-22 standalone" in plan
     assert "present_nibble_invp_active_aux_spn_only" in plan
     assert "present_nibble_invp_active_aux_shuffled_targets" in plan
@@ -9419,7 +9630,7 @@ def test_active_pattern_auxiliary_head_plan_is_current_not_archived():
     assert "encrypted_random_plaintexts" in plan
     assert "lambda_aux first value = 0.1" in plan
     assert "shuffled_targets" in plan
-    assert "Do not launch this route while" in plan
+    assert "active-auxiliary seed0 status = launched / watcher_handoff" in plan
     assert "i1_trail_family_r7_262k_seed0_gpu1_20260702" in plan
     assert "formal route evidence" in plan
     assert "Not allowed" in plan
