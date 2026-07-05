@@ -39,32 +39,21 @@ while true; do
 
   if [[ "${result_rows}" -ge "${EXPECTED_ROWS}" ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-projection-feature \
+    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/advance-projection-feature-result \
       --results "${result_file}" \
       --output-dir "${LOCAL_ROOT}" \
       --run-id "${RUN_ID}" \
       --plan "${PLAN}" \
       --expected-rows "${EXPECTED_ROWS}" \
       --update-plan-doc "${PLAN_DOC}" \
-      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
-    postprocess_status=$?
-    if [[ "${postprocess_status}" -ne 0 ]]; then
-      echo "$(timestamp) postprocess_failed" >> "${MONITOR_DIR}/monitor.log"
-      exit "${postprocess_status}"
-    fi
-    env UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
-      --results "${result_file}" \
-      --output "${LOCAL_ROOT}/${RUN_ID}_curves.svg" \
-      --history-csv "${LOCAL_ROOT}/${RUN_ID}_history.csv" \
-      --title "${RUN_ID}" \
-      > "${MONITOR_DIR}/plot.log" 2> "${MONITOR_DIR}/plot_stderr.log"
-    plot_status=$?
-    if [[ "${plot_status}" -eq 0 ]]; then
-      echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
+      > "${MONITOR_DIR}/advance.log" 2> "${MONITOR_DIR}/advance_stderr.log"
+    advance_status=$?
+    if [[ "${advance_status}" -eq 0 ]]; then
+      echo "$(timestamp) advance_done" >> "${MONITOR_DIR}/monitor.log"
     else
-      echo "$(timestamp) plot_failed" >> "${MONITOR_DIR}/monitor.log"
+      echo "$(timestamp) advance_failed" >> "${MONITOR_DIR}/monitor.log"
     fi
-    exit "${plot_status}"
+    exit "${advance_status}"
   fi
 
   if compgen -G "${LOCAL_ROOT}/logs/*done.marker" > /dev/null; then

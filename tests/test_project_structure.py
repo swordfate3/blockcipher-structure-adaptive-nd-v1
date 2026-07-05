@@ -12417,6 +12417,102 @@ def test_projection_feature_gate_triggers_ensemble_for_multiple_weak_views(tmp_p
     assert len(report["weak_ensemble_candidates"]) == 2
 
 
+def test_projection_feature_advance_runs_postprocess_and_writes_summary(tmp_path):
+    from blockcipher_nd.planning.projection_feature_advance import advance_projection_feature_result
+
+    plan_path = tmp_path / "projection_plan.csv"
+    result_path = tmp_path / "projection_results.jsonl"
+    output_dir = tmp_path / "advance"
+    fieldnames = [
+        "cipher",
+        "model_key",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "feature_encoding",
+        "selected_bit_indices",
+    ]
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(
+            [
+                {
+                    "cipher": "PRESENT-80",
+                    "model_key": "mlp",
+                    "rounds": "8",
+                    "seed": "0",
+                    "samples_per_class": "8",
+                    "pairs_per_sample": "16",
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "selected_bit_indices": "",
+                },
+                {
+                    "cipher": "PRESENT-80",
+                    "model_key": "mlp",
+                    "rounds": "8",
+                    "seed": "0",
+                    "samples_per_class": "8",
+                    "pairs_per_sample": "16",
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "selected_bit_indices": "[0,1,64,65]",
+                },
+            ]
+        )
+    result_path.write_text(
+        "\n".join(
+            json.dumps(row, sort_keys=True)
+            for row in [
+                {
+                    "architecture": "full_raw",
+                    "architecture_rank": 0,
+                    "cipher": "PRESENT-80",
+                    "selected_model": "mlp",
+                    "rounds": 8,
+                    "seed": 0,
+                    "samples_per_class": 8,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "metrics": {"auc": 0.51, "accuracy": 0.5, "calibrated_accuracy": 0.52, "loss": 0.69},
+                    "training": {"selected_bit_indices": []},
+                },
+                {
+                    "architecture": "raw_projection",
+                    "architecture_rank": 1,
+                    "cipher": "PRESENT-80",
+                    "selected_model": "mlp",
+                    "rounds": 8,
+                    "seed": 0,
+                    "samples_per_class": 8,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "metrics": {"auc": 0.53, "accuracy": 0.51, "calibrated_accuracy": 0.54, "loss": 0.68},
+                    "training": {"selected_bit_indices": [0, 1, 64, 65]},
+                },
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = advance_projection_feature_result(
+        results_path=result_path,
+        output_dir=output_dir,
+        run_id="projection_advance_unit",
+        plan_path=plan_path,
+        expected_rows=2,
+        skip_plot=True,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_projection_to_262k_confirmation"
+    assert report["plot"] is None
+    assert report["ensemble_ran"] is False
+    assert Path(report["summary"]).exists()
+    assert Path(report["postprocess_summary"]).exists()
+
+
 def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 

@@ -97,10 +97,10 @@ prepared / not launched
 不把 smoke 结果解释为模型能力；smoke 只验证配置解析、selected-bit 投影、训练入口和
 结果校验能跑通。
 
-结果 ready 后使用 route-specific postprocess：
+结果 ready 后使用 route-specific advance：
 
 ```bash
-UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-projection-feature \
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/advance-projection-feature-result \
   --results outputs/remote_results/<run_id>/results/<run_id>.jsonl \
   --output-dir outputs/remote_results/<run_id> \
   --run-id <run_id> \
@@ -116,6 +116,9 @@ Postprocess artifacts：
 <run_id>_projection_feature_gate.json
 <run_id>_postprocess_summary.json
 <run_id>_postprocess_summary.md
+<run_id>_advance_summary.json
+<run_id>_curves.svg
+<run_id>_history.csv
 ```
 
 ## 5. 弱网络融合分支
