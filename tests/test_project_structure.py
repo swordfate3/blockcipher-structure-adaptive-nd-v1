@@ -13129,6 +13129,65 @@ def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_pa
     assert report["duplicate_result_keys"] == []
 
 
+def test_present_r8_projection_v2_smoke_plan_compares_invp_delta_priors():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_truncated_projection_feature_v2_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 4
+    assert {task["model_key"] for task in tasks} == {"mlp"}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {512}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["sample_structure"] for task in tasks} == {"zhang_wang_case2_official_mcnd"}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["feature_encoding"] for task in tasks} == {"ciphertext_xor_spn_paligned_bits"}
+    assert [len(task["selected_bit_indices"]) for task in tasks] == [32, 32, 16, 32]
+    assert all("LOCAL SMOKE only" in task["matching_evidence"] for task in tasks)
+    assert all("projection v2" in task["literature"] for task in tasks)
+
+
+def test_present_r8_projection_v2_seed1_keeps_same_projection_priors():
+    seed0_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_truncated_projection_feature_v2_smoke.csv"
+    )
+    seed1_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_truncated_projection_feature_v2_smoke_seed1.csv"
+    )
+    seed0_tasks = build_tasks(parse_args(["--plan", seed0_plan]))
+    seed1_tasks = build_tasks(parse_args(["--plan", seed1_plan]))
+
+    assert len(seed1_tasks) == len(seed0_tasks) == 4
+    assert {task["seed"] for task in seed1_tasks} == {1}
+    for seed0_task, seed1_task in zip(seed0_tasks, seed1_tasks, strict=True):
+        comparable_keys = {
+            "model_key",
+            "rounds",
+            "samples_per_class",
+            "pairs_per_sample",
+            "feature_encoding",
+            "selected_bit_indices",
+            "negative_mode",
+            "sample_structure",
+            "difference_profile",
+            "difference_member",
+            "loss",
+            "learning_rate",
+            "optimizer",
+            "weight_decay",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "model_options",
+        }
+        assert {key: seed1_task[key] for key in comparable_keys} == {
+            key: seed0_task[key] for key in comparable_keys
+        }
+
+
 def test_result_plan_alignment_distinguishes_difference_screen_rows(tmp_path):
     plan_path = tmp_path / "difference_screen_plan.csv"
     result_path = tmp_path / "difference_screen_results.jsonl"

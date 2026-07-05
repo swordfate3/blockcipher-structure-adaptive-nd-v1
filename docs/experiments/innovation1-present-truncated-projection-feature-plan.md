@@ -246,3 +246,65 @@ SOTA
 | Summary JSON | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_postprocess_summary.json` |
 | Summary Markdown | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_postprocess_summary.md` |
 <!-- projection-feature-postprocess:i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705:end -->
+
+## Projection V2 Local Prior Search
+
+After the 65536/class v1 screen, the best projection was positive but too weak
+to scale:
+
+```text
+best = InvP(delta) P-column32
+AUC = 0.502584959846
+delta_vs_full_raw_anchor = +0.001100227702
+decision = weak_projection_candidate_hold
+```
+
+The v2 local search tested nearby but still pre-registered `InvP(delta)`
+projection priors:
+
+```text
+plan seed0 = configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_v2_smoke.csv
+plan seed1 = configs/experiment/innovation1/innovation1_spn_present_truncated_projection_feature_v2_smoke_seed1.csv
+sample_structure = zhang_wang_case2_official_mcnd
+negative_mode = encrypted_random_plaintexts
+samples_per_class = 512
+pairs_per_sample = 16
+epochs = 3
+device = cpu
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_projection_v2_smoke/results.jsonl
+outputs/local_smoke/i1_present_r8_projection_v2_smoke/curves.svg
+outputs/local_smoke/i1_present_r8_projection_v2_smoke/history.csv
+outputs/local_smoke/i1_present_r8_projection_v2_smoke_seed1/results.jsonl
+outputs/local_smoke/i1_present_r8_projection_v2_smoke_seed1/curves.svg
+outputs/local_smoke/i1_present_r8_projection_v2_smoke_seed1/history.csv
+```
+
+Local smoke results:
+
+| Projection prior | Seed0 AUC | Seed1 AUC | Interpretation |
+|---|---:|---:|---|
+| v1 best P-column32 | `0.5072021484375` | `0.4987335205078125` | not stable at smoke scale |
+| P-column complement32 | `0.5220260620117188` | `0.4816131591796875` | seed0-only spike; do not promote |
+| Active-neighborhood16 | `0.4790802001953125` | `0.54071044921875` | seed1-only spike; do not promote |
+| Edge32 | `0.4916534423828125` | `0.5276947021484375` | seed1-only weak-positive; do not promote |
+
+Decision:
+
+```text
+projection_v2_local_prior_search_unstable
+do_not_launch_remote_from_v2_smoke
+keep projection_feature as a non-neighbor weak-candidate family only
+```
+
+Next action:
+
+```text
+Do not spend the next remote slot on projection v2. If returning to projection,
+derive a stronger prior from DDT/trail or partial-decryption analysis and test
+it against the v1 65536/class anchor before any 262144/class confirmation.
+```
