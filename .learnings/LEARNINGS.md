@@ -40,6 +40,76 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260706-013] best_practice
+
+**Logged**: 2026-07-06T07:25:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Treat the first GIFT-64 generic SPN-aligned representation screen as weak-positive local evidence only.
+
+### Details
+After the user emphasized independent route selection over simply following a
+larger multi-network ensemble idea, a controlled local GIFT-64 cross-SPN
+representation diagnostic was run:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_local.csv
+cipher = GIFT-64
+rounds = 6
+samples_per_class = 2048
+pairs_per_sample = 4
+negative_mode = encrypted_random_plaintexts
+sample_structure = independent_pairs
+difference_profile = gift64_shen2024_spn_screen
+```
+
+Results:
+
+| Model | Feature encoding | AUC |
+|---|---|---:|
+| `mlp` | `ciphertext_pair_bits` | `0.5167593955993652` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5172939300537109` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.4951457977294922` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5226421356201172` |
+
+Deltas:
+
+```text
+SPN-aligned - C||C'||DeltaC token mixer AUC = +0.027496337890625
+SPN-aligned - raw token mixer AUC = +0.00534820556640625
+SPN-aligned - raw MLP AUC = +0.005882740020751953
+```
+
+Correct interpretation:
+
+- The generic inverse-permutation SPN-aligned representation is the best row and
+  clears the local gate against the `C||C'||DeltaC` control.
+- The absolute AUC is only `0.5226421356201172`, so this is a weak local signal,
+  not a GIFT result or remote-launch basis.
+- This route is a candidate non-neighbor expert source for a future diverse
+  pool only after local repeat or medium-scale confirmation.
+
+### Suggested Action
+Keep the route for a local repeat with additional seeds or slightly larger
+diagnostic budget. Do not launch remote training or include it as a qualified
+ensemble expert from this single 2048/class seed0 result. Report it as
+`weak_cross_spn_aligned_positive_keep_for_local_repeat`.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-gift64-cross-spn-cell-representation-local-plan.md, configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_local.csv
+- Tags: innovation1, spn, gift64, cross-spn, representation, inverse-permutation, diverse-experts
+- See Also: LRN-20260706-011, LRN-20260705-002, LRN-20260705-003
+- Pattern-Key: innovation1.spn_gift64.cross_spn_aligned_weak_positive_repeat_before_remote
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-011] best_practice
 
 **Logged**: 2026-07-06T06:20:00+08:00
