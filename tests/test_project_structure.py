@@ -1186,6 +1186,14 @@ def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     )
     readiness = remote_readiness_report(config)
     artifacts = launch_artifacts(config)
+    launcher_text = Path(
+        "configs/remote/generated/"
+        "run_i1_present_r8_pairset_1m_seed0_gpu1_20260705.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_text = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_r8_pairset_1m_seed0_gpu1_20260705.sh"
+    ).read_text(encoding="utf-8")
 
     assert readiness["status"] == "pass"
     assert readiness["expected_rows"] == 2
@@ -1193,6 +1201,10 @@ def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
     assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
     assert artifacts["status"] == "pass"
     assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
+    assert "r8_pairset_1m_progress.jsonl" in launcher_text
+    assert "scripts/postprocess-r8-pairset-1m" in monitor_text
+    assert "--update-plan-doc \"${PLAN_DOC}\"" in monitor_text
+    assert "gate_note" not in monitor_text
 
 
 def test_present_r8_pairset_1m_seed1_confirmation_assets_are_gate_locked():
