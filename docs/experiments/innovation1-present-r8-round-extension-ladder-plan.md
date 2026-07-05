@@ -365,3 +365,68 @@ It is a 262144/class single-seed medium diagnostic.
 No r8 success/failure or breakthrough claim is allowed until watcher retrieval,
 validation, plotting, and gate-note generation complete.
 ```
+
+## 12. Retrieved r8 Diagnostic Result
+
+**Retrieval time:** 2026-07-05 03:05 +08:00
+
+**Status:** retrieved / validated / plotted / gate-note generated
+
+**Evidence level:**
+
+```text
+262144/class single-seed medium diagnostic only
+```
+
+**Validation:**
+
+```text
+status = pass
+expected_rows = 3
+result_rows = 3
+field_mismatches = []
+```
+
+Artifacts:
+
+```text
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704/results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704.jsonl
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704/i1_present_r8_round_extension_262k_seed0_gpu0_20260704_validation.json
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704/i1_present_r8_round_extension_262k_seed0_gpu0_20260704_gate_note.json
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704/i1_present_r8_round_extension_262k_seed0_gpu0_20260704_curves.svg
+outputs/remote_results/i1_present_r8_round_extension_262k_seed0_gpu0_20260704/i1_present_r8_round_extension_262k_seed0_gpu0_20260704_history.csv
+```
+
+Metrics:
+
+| Model | Accuracy | Calibrated accuracy | AUC | Loss | Role |
+|---|---:|---:|---:|---:|---|
+| `present_zhang_wang_keras_mcnd` | 0.518814 | 0.528740 | 0.540349 | 0.694303 | same-budget r8 baseline |
+| `present_nibble_invp_only_spn_only` | 0.500000 | 0.511150 | 0.514940 | 0.693147 | InvP-only representation |
+| `present_nibble_invp_pair_consistency_spn_only` | 0.537376 | 0.537937 | 0.552909 | 0.688330 | pair-set consistency candidate |
+
+Gate note:
+
+```text
+decision = support_scale_r8_to_1m_seed0
+best_model = present_nibble_invp_pair_consistency_spn_only
+best_auc = 0.552908501064
+baseline_auc = 0.540348751209
+delta_vs_baseline = +0.012559749855
+```
+
+Interpretation:
+
+```text
+The r8 diagnostic has a real positive signal, but the signal is carried by
+pair-set consistency rather than InvP-only. This supports continuing the
+round-extension ladder and triggers the planned r9 weak-probe condition.
+```
+
+Claim scope:
+
+```text
+This is not formal r8 success or a breakthrough claim.
+It is a 262144/class single-seed diagnostic that justifies r9 weak-probe and
+later r8 1M/class confirmation if the route remains promising.
+```

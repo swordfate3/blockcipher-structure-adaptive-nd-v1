@@ -538,3 +538,37 @@ cache_rows_per_second = 603.584
 claim_scope = running medium diagnostic only; no metric or route decision yet
 next_action = wait for watcher retrieval; postprocess only after expected 4 result rows
 ```
+
+## Retrieved S-box Prior Result
+
+<!-- sbox-prior-postprocess:i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703:start -->
+### i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703 S-box Prior Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| S-box prior gate status | `pass` |
+| Decision | `stop_sbox_prior_route` |
+| Action | `record_tied_or_negative_evidence_and_switch_hypothesis` |
+| Interpretation | `true S-box transition prior gate does not beat the InvP anchor, calibration regresses, or the no-DDT or shuffled prior control matches/exceeds the true route; do not scale this route` |
+| Candidate model | `present_nibble_invp_sbox_prior_gate` |
+| Candidate AUC | `0.792983775580` |
+| Anchor AUC | `0.792904856411` |
+| Best control model | `present_nibble_invp_no_ddt_gate` |
+| Best control AUC | `0.792552834610` |
+| Require controls | `True` |
+| Margin vs anchor AUC | `0.000078919169` |
+| Margin vs best control AUC | `0.000430940971` |
+| Required margin | `0.001000000000` |
+| Claim scope | `S-box transition prior diagnostic gate; not paper-scale, formal, or breakthrough evidence` |
+| Next action branch | `stop_sbox_prior_route` |
+| Next steps | `Record this as tied or negative S-box prior evidence.; Do not scale S-box transition prior gating as a main route.; Switch to active auxiliary, pair-set evidence pooling, or route consolidation planning.; Write the next docs/experiments plan before implementing or launching a new route.` |
+| Results JSONL | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703.jsonl` |
+| Validation report | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703_local_result_gate.json` |
+| S-box prior gate | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703_sbox_prior_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703_postprocess_summary.md` |
+| Next action readiness | `outputs/remote_results/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703/i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703_next_action_readiness.json` |
+<!-- sbox-prior-postprocess:i1_sbox_prior_gate_r7_262k_seed0_gpu1_20260703:end -->

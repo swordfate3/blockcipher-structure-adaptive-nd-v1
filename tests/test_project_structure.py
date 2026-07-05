@@ -303,6 +303,22 @@ def test_present_r9_weak_probe_configs_are_conditional_and_strict():
         assert "conditional launch only after r8 gate" in task["matching_evidence"]
 
 
+def test_present_r9_weak_probe_remote_readiness_assets_pass():
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_r9_weak_probe_262k_seed0_gpu0_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 3
+    assert readiness["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
+
+
 def test_present_n1v2_262k_structure_ablation_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_n1v2_structure_ablation_r7_262k.csv"
     args = parse_args(["--plan", plan])

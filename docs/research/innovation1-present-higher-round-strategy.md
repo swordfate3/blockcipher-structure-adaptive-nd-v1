@@ -265,6 +265,43 @@ r10 只在以下条件之一成立后启动：
 
 这让项目继续向高轮目标前进，同时不破坏现有 r7/r8 远程闭环。
 
+## 6.1 2026-07-05 更新：r8 已触发 r9 weak-probe
+
+`i1_present_r8_round_extension_262k_seed0_gpu0_20260704` 已经 retrieved /
+validated / plotted / gate-note generated。结果显示：
+
+```text
+best_model = present_nibble_invp_pair_consistency_spn_only
+best_auc = 0.552908501064
+baseline_auc = 0.540348751209
+delta_vs_baseline = +0.012559749855
+decision = support_scale_r8_to_1m_seed0
+```
+
+这改变当前高轮路线的状态：
+
+```text
+H0 r8 watcher result = complete
+H1 r9 smoke = passed
+H2 r9 262144/class weak probe = launchable
+```
+
+新的研究解释：
+
+```text
+r8 信号不是 InvP-only 单独保留下来的，而是 pair-set consistency 明显更强。
+因此高轮推进的主要候选暂时应从“单样本 InvP-only”转向
+“InvP-aligned pair-set evidence pooling”。
+```
+
+下一步：
+
+```text
+启动 r9 262144/class weak-probe；
+如果 r9 仍有弱正信号，再决定 r9 seed1 / r8 1M pair-set confirmation /
+curriculum-transfer 哪个优先。
+```
+
 ## 7. 参考来源
 
 - Jain, Kohli, and Mishra, *Deep Learning based Differential Distinguisher for Lightweight Block Ciphers*, arXiv:2112.05061: https://arxiv.org/abs/2112.05061
