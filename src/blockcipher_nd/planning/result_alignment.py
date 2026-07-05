@@ -24,6 +24,7 @@ PLAN_RESULT_FIELD_PAIRS = [
     ("key_rotation_interval", "key_rotation_interval"),
     ("difference_profile", "difference_profile"),
     ("difference_member", "difference_member"),
+    ("selected_bit_indices", ("training", "selected_bit_indices")),
     ("loss", ("training", "loss")),
     ("learning_rate", ("training", "learning_rate")),
     ("optimizer", ("training", "optimizer")),
@@ -172,8 +173,15 @@ def _load_jsonl_rows(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int]:
-    return (int(row["rounds"]), int(row["seed"]), _model_key(row), int(row["samples_per_class"]))
+def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int, str, str]:
+    return (
+        int(row["rounds"]),
+        int(row["seed"]),
+        _model_key(row),
+        int(row["samples_per_class"]),
+        _normalize_value(row.get("feature_encoding", "")),
+        _selected_indices_key(row),
+    )
 
 
 def _model_key(row: dict[str, Any]) -> str:
@@ -183,8 +191,28 @@ def _model_key(row: dict[str, Any]) -> str:
     return ""
 
 
+def _selected_indices_key(row: dict[str, Any]) -> str:
+    value = row.get("selected_bit_indices")
+    if value is None and isinstance(row.get("training"), dict):
+        value = row["training"].get("selected_bit_indices")
+    if value is None or value == "":
+        return "[]"
+    if isinstance(value, (list, tuple)):
+        return json.dumps([int(item) for item in value], separators=(",", ":"))
+    text = str(value).strip()
+    if not text:
+        return "[]"
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if isinstance(parsed, list):
+        return json.dumps([int(item) for item in parsed], separators=(",", ":"))
+    return text
+
+
 def _field_mismatches(
-    plan_by_key: dict[tuple[int, int, str, int], dict[str, str]],
+    plan_by_key: dict[tuple[int, int, str, int, str, str], dict[str, str]],
     result_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     mismatches: list[dict[str, Any]] = []
@@ -196,11 +224,15 @@ def _field_mismatches(
         for plan_field, result_field in PLAN_RESULT_FIELD_PAIRS:
             if plan_field not in plan_row:
                 continue
-            plan_value = _normalize_value(plan_row[plan_field])
             result_value_raw = _nested_get(result_row, result_field)
             if result_value_raw is None:
                 continue
-            result_value = _normalize_value(result_value_raw)
+            if plan_field == "selected_bit_indices":
+                plan_value = _selected_indices_key(plan_row)
+                result_value = _selected_indices_key({"selected_bit_indices": result_value_raw})
+            else:
+                plan_value = _normalize_value(plan_row[plan_field])
+                result_value = _normalize_value(result_value_raw)
             if plan_value != result_value:
                 mismatches.append(
                     {

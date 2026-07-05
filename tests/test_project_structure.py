@@ -12196,6 +12196,84 @@ def test_result_plan_alignment_is_planning_api(tmp_path):
     assert report["result_rows"] == 1
 
 
+def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_path):
+    plan_path = tmp_path / "projection_plan.csv"
+    result_path = tmp_path / "projection_results.jsonl"
+    fieldnames = [
+        "cipher",
+        "model_key",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "feature_encoding",
+        "selected_bit_indices",
+    ]
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "mlp",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "8",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "selected_bit_indices": "",
+        },
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "mlp",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "8",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "selected_bit_indices": "[0,1,64,65]",
+        },
+    ]
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    result_path.write_text(
+        "\n".join(
+            json.dumps(row, sort_keys=True)
+            for row in [
+                {
+                    "cipher": "PRESENT-80",
+                    "model": "mlp",
+                    "selected_model": "mlp",
+                    "rounds": 8,
+                    "seed": 0,
+                    "samples_per_class": 8,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "training": {"selected_bit_indices": []},
+                },
+                {
+                    "cipher": "PRESENT-80",
+                    "model": "mlp",
+                    "selected_model": "mlp",
+                    "rounds": 8,
+                    "seed": 0,
+                    "samples_per_class": 8,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "training": {"selected_bit_indices": [0, 1, 64, 65]},
+                },
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == "pass"
+    assert report["duplicate_plan_keys"] == []
+    assert report["duplicate_result_keys"] == []
+
+
 def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves, write_history_csv
 
