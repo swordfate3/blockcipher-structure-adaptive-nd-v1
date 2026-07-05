@@ -650,3 +650,27 @@ predeclared improvement margin, so it is diagnostic only and does not justify a
 | Summary JSON | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.json` |
 | Summary Markdown | `outputs/remote_results/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705/postprocess/i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705_postprocess_summary.md` |
 <!-- neural-ensemble-postprocess:i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705:end -->
+
+## 2026-07-06 Diverse-Family Gate Update
+
+The frozen-score ensemble path now supports explicit expert-family metadata:
+
+```text
+scripts/export-checkpoint-scores \
+  --expert-family <family> \
+  --candidate-status <strong_anchor|weak_positive|near_neighbor_control|rejected|pending>
+```
+
+`scripts/evaluate-neural-ensemble` writes a `diverse_expert_pool` readiness
+section when artifacts carry this metadata. `postprocess-neural-ensemble`
+will no longer promote a positive ensemble delta as a diverse route when that
+section fails. Instead it records:
+
+```text
+decision = keep_near_neighbor_ensemble_control_not_diverse_pool
+next_action.branch = neural_ensemble_near_neighbor_control
+```
+
+This preserves the value of the recovered r7 result as a calibration/control
+diagnostic while preventing it from being confused with the user's broader
+"multiple different neural networks" hypothesis.

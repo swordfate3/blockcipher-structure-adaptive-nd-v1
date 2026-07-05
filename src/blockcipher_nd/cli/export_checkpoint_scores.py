@@ -41,6 +41,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--expert-family",
+        default=None,
+        help="Optional diverse-expert family label for later frozen-score pool gating.",
+    )
+    parser.add_argument(
+        "--candidate-status",
+        default="weak_positive",
+        choices=["strong_anchor", "weak_positive", "near_neighbor_control", "rejected", "pending"],
+        help="Candidate status label used by diverse expert pool gates.",
+    )
     parser.add_argument("--output-dir", required=True, type=Path)
     return parser.parse_args(argv)
 
@@ -199,7 +210,7 @@ def score_metadata(
     samples_per_class: int,
     model_options: dict[str, Any],
 ) -> dict[str, Any]:
-    return {
+    metadata = {
         "cipher": cipher_name,
         "cipher_key": task["cipher_key"],
         "rounds": int(task["rounds"]),
@@ -223,6 +234,10 @@ def score_metadata(
         "checkpoint_metadata": checkpoint_metadata(args.checkpoint),
         "git_commit": current_git_commit(),
     }
+    if args.expert_family:
+        metadata["expert_family"] = str(args.expert_family)
+        metadata["candidate_status"] = str(args.candidate_status)
+    return metadata
 
 
 def checkpoint_metadata(path: Path) -> dict[str, Any]:

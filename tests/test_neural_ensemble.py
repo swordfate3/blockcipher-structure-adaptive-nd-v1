@@ -7,6 +7,7 @@ import pytest
 
 from blockcipher_nd.evaluation.neural_ensemble import (
     EnsembleScoreArtifact,
+    assess_diverse_expert_pool,
     evaluate_frozen_score_ensemble,
     load_score_artifact,
     write_score_artifact,
@@ -108,3 +109,77 @@ def test_evaluate_frozen_score_ensemble_rejects_misaligned_labels():
 
     with pytest.raises(ValueError, match="labels differ"):
         evaluate_frozen_score_ensemble([left, right])
+
+
+def test_diverse_expert_pool_passes_with_non_neighbor_low_overlap():
+    summary = {
+        "status": "pass",
+        "models": [
+            {
+                "model_key": "raw",
+                "metrics": {"auc": 0.76},
+                "metadata": {"expert_family": "raw_mcnd", "candidate_status": "weak_positive"},
+            },
+            {
+                "model_key": "invp",
+                "metrics": {"auc": 0.79},
+                "metadata": {"expert_family": "invp_cell", "candidate_status": "strong_anchor"},
+            },
+            {
+                "model_key": "trail",
+                "metrics": {"auc": 0.81},
+                "metadata": {"expert_family": "trail_position", "candidate_status": "weak_positive"},
+            },
+        ],
+        "diversity": {
+            "pairwise": [
+                {"left": "raw", "right": "invp", "error_jaccard_at_0_5": 0.82},
+                {"left": "invp", "right": "trail", "error_jaccard_at_0_5": 0.58},
+                {"left": "raw", "right": "trail", "error_jaccard_at_0_5": 0.61},
+            ]
+        },
+    }
+
+    report = assess_diverse_expert_pool(summary)
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "diverse_expert_pool_ready"
+    assert report["eligible_family_count"] == 3
+    assert "trail_position" in report["non_neighbor_families"]
+    assert report["best_non_neighbor_pair"]["error_jaccard_at_0_5"] == 0.58
+
+
+def test_diverse_expert_pool_rejects_near_neighbor_only_pool():
+    summary = {
+        "status": "pass",
+        "models": [
+            {
+                "model_key": "invp",
+                "metrics": {"auc": 0.79},
+                "metadata": {"expert_family": "invp_cell", "candidate_status": "strong_anchor"},
+            },
+            {
+                "model_key": "ddt",
+                "metrics": {"auc": 0.78},
+                "metadata": {"expert_family": "ddt_graph", "candidate_status": "weak_positive"},
+            },
+            {
+                "model_key": "player",
+                "metrics": {"auc": 0.77},
+                "metadata": {"expert_family": "p_layer_graph", "candidate_status": "weak_positive"},
+            },
+        ],
+        "diversity": {
+            "pairwise": [
+                {"left": "invp", "right": "ddt", "error_jaccard_at_0_5": 0.42},
+                {"left": "invp", "right": "player", "error_jaccard_at_0_5": 0.43},
+                {"left": "ddt", "right": "player", "error_jaccard_at_0_5": 0.44},
+            ]
+        },
+    }
+
+    report = assess_diverse_expert_pool(summary)
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "diverse_expert_pool_not_ready"
+    assert "missing_non_neighbor_expert" in report["errors"]

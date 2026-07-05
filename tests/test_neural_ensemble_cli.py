@@ -133,6 +133,10 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
             "4",
             "--device",
             "cpu",
+            "--expert-family",
+            "raw_mcnd",
+            "--candidate-status",
+            "weak_positive",
             "--output-dir",
             str(artifact_dir),
         ]
@@ -147,6 +151,8 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
     assert labels.shape[0] == 16
     assert metadata["model_key"] == "mlp"
     assert metadata["negative_mode"] == "encrypted_random_plaintexts"
+    assert metadata["expert_family"] == "raw_mcnd"
+    assert metadata["candidate_status"] == "weak_positive"
 
 
 def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
@@ -399,6 +405,83 @@ def test_postprocess_neural_ensemble_keeps_complementary_positive_route(tmp_path
     assert gate["max_error_jaccard_at_0_5"] == 0.66
     assert "Retrieved Neural Ensemble Result" in plan_text
     assert "application-level" in plan_text
+
+
+def test_postprocess_neural_ensemble_does_not_promote_failed_diverse_pool(tmp_path):
+    train_results = tmp_path / "train_matrix.jsonl"
+    train_results.write_text(
+        "\n".join(
+            [
+                json.dumps({"model": "present_nibble_invp_only_spn_only", "metrics": {"auc": 0.797}}),
+                json.dumps({"model": "present_nibble_ddt_graph", "metrics": {"auc": 0.790}}),
+                json.dumps({"model": "present_nibble_invp_p_layer_graph_spn_only", "metrics": {"auc": 0.785}}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    ensemble_summary = tmp_path / "neural_ensemble_summary.json"
+    ensemble_summary.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "best_single": {
+                    "model_key": "present_nibble_invp_only_spn_only",
+                    "metrics": {"auc": 0.7970, "calibrated_accuracy": 0.733},
+                },
+                "best_ensemble": {
+                    "mode": "logit_mean",
+                    "metrics": {"auc": 0.8000, "calibrated_accuracy": 0.737},
+                },
+                "delta_best_ensemble_vs_single_auc": 0.0030,
+                "models": [],
+                "ensembles": [{"mode": "logit_mean", "metrics": {"auc": 0.8000}}],
+                "diversity": {
+                    "pairwise": [
+                        {
+                            "left": "present_nibble_invp_only_spn_only",
+                            "right": "present_nibble_ddt_graph",
+                            "double_fault_rate_at_0_5": 0.16,
+                            "error_jaccard_at_0_5": 0.54,
+                        }
+                    ]
+                },
+                "diverse_expert_pool": {
+                    "status": "fail",
+                    "decision": "diverse_expert_pool_not_ready",
+                    "errors": ["missing_non_neighbor_expert"],
+                },
+                "claim_scope": "application-level frozen score aggregation diagnostic only",
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "postprocess"
+
+    status = postprocess_ensemble_main(
+        [
+            "--train-results",
+            str(train_results),
+            "--ensemble-summary",
+            str(ensemble_summary),
+            "--output-dir",
+            str(output_dir),
+            "--run-id",
+            "near_neighbor_positive",
+            "--expected-rows",
+            "3",
+        ]
+    )
+
+    summary = json.loads((output_dir / "near_neighbor_positive_postprocess_summary.json").read_text())
+
+    assert status == 0
+    assert summary["decision"] == "keep_near_neighbor_ensemble_control_not_diverse_pool"
+    assert summary["next_action"]["branch"] == "neural_ensemble_near_neighbor_control"
+    assert summary["diverse_expert_pool"]["errors"] == ["missing_non_neighbor_expert"]
 
 
 def test_neural_ensemble_status_reports_partial_local_artifacts(tmp_path):

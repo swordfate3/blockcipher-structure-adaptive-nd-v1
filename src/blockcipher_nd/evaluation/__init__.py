@@ -10,6 +10,7 @@ _EXPORT_MODULES = {
     "EnsembleScoreArtifact": "blockcipher_nd.evaluation.neural_ensemble",
     "PairSetAggregationConfig": "blockcipher_nd.evaluation.pairset_aggregation",
     "aggregate_pair_logits": "blockcipher_nd.evaluation.pairset_aggregation",
+    "assess_diverse_expert_pool": "blockcipher_nd.evaluation.neural_ensemble",
     "evaluate_frozen_score_ensemble": "blockcipher_nd.evaluation.neural_ensemble",
     "hparam_summary_row": "blockcipher_nd.evaluation.summary",
     "hparam_summary_rows": "blockcipher_nd.evaluation.summary",

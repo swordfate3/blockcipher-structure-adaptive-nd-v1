@@ -104,6 +104,81 @@ gate at `65536/class` before making any stronger claim.
 
 ---
 
+## [LRN-20260706-023] best_practice
+
+**Logged**: 2026-07-06T09:55:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Require explicit expert-family metadata before treating neural ensembles as diverse SPN expert pools.
+
+### Details
+The user asked whether multiple neural networks should combine diverse
+directions, not merely similar nearby variants. The code now distinguishes:
+
+```text
+near-neighbor score aggregation
+vs
+diverse multi-network expert pooling
+```
+
+Implemented behavior:
+
+```text
+scripts/export-checkpoint-scores --expert-family <family> --candidate-status <status>
+blockcipher_nd.evaluation.neural_ensemble.assess_diverse_expert_pool
+neural_ensemble_summary.json["diverse_expert_pool"]
+postprocess decision keep_near_neighbor_ensemble_control_not_diverse_pool
+```
+
+Default near-neighbor families:
+
+```text
+invp_cell
+ddt_graph
+p_layer_graph
+```
+
+Non-neighbor candidates should use labels such as:
+
+```text
+raw_mcnd
+pair_evidence
+inverse_round_matrix
+trail_position
+projection_feature
+```
+
+Correct interpretation:
+
+- A positive ensemble delta alone is not enough to call a route a diverse
+  multi-network result.
+- If `diverse_expert_pool.status == fail`, postprocess must treat the result as
+  a near-neighbor control even when AUC improves.
+- Trail-position residual can become a future non-neighbor expert only after
+  compatible frozen score artifacts exist and the deterministic/control gates
+  still pass.
+
+### Suggested Action
+When exporting future score artifacts for ensemble work, always include
+`--expert-family` and `--candidate-status`. Before preparing larger ensemble
+confirmations, require the diverse-family gate to pass in addition to AUC delta
+and error-overlap checks.
+
+### Metadata
+- Source: user_feedback, implementation
+- Related Files: src/blockcipher_nd/evaluation/neural_ensemble.py, src/blockcipher_nd/cli/export_checkpoint_scores.py, src/blockcipher_nd/planning/neural_ensemble_postprocess.py, docs/experiments/innovation1-present-diverse-expert-pool-plan.md
+- Tags: innovation1, spn, present, neural-ensemble, diverse-experts, frozen-scores
+- See Also: LRN-20260706-022, LRN-20260706-014
+- Pattern-Key: innovation1.spn_present.neural_ensemble_requires_expert_family_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-013] best_practice
 
 **Logged**: 2026-07-06T07:25:00+08:00

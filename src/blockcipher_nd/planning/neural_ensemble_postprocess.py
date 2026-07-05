@@ -65,6 +65,7 @@ def postprocess_neural_ensemble_result(
         "max_error_jaccard_at_0_5": gate_report["max_error_jaccard_at_0_5"],
         "max_allowed_error_jaccard_at_0_5": gate_report["max_allowed_error_jaccard_at_0_5"],
         "max_double_fault_rate_at_0_5": gate_report["max_double_fault_rate_at_0_5"],
+        "diverse_expert_pool": gate_report["diverse_expert_pool"],
         "models": gate_report["models"],
         "ensembles": gate_report["ensembles"],
         "claim_scope": gate_report["claim_scope"],
@@ -130,12 +131,29 @@ def gate_neural_ensemble_result(
         errors.append("missing pairwise diversity")
     max_observed_error_jaccard = _max_pairwise(pairwise, "error_jaccard_at_0_5")
     max_observed_double_fault = _max_pairwise(pairwise, "double_fault_rate_at_0_5")
+    diverse_expert_pool = summary.get("diverse_expert_pool")
+    if not isinstance(diverse_expert_pool, dict):
+        diverse_expert_pool = {"status": "unknown", "decision": "diverse_expert_pool_not_reported", "errors": []}
+    diverse_pool_failed = diverse_expert_pool.get("status") == "fail"
 
     if errors:
         status = "fail"
         decision = "invalid_neural_ensemble_result"
         action = "repair_result_retrieval_or_artifact_alignment_before_branching"
         interpretation = "The neural ensemble result is incomplete or missing required metrics."
+    elif (
+        diverse_pool_failed
+        and delta is not None
+        and delta >= improvement_margin
+        and (max_observed_error_jaccard is None or max_observed_error_jaccard <= max_error_jaccard)
+    ):
+        status = "pass"
+        decision = "keep_near_neighbor_ensemble_control_not_diverse_pool"
+        action = "record_as_near_neighbor_control_and_seek_non_neighbor_expert"
+        interpretation = (
+            "Fixed score aggregation improves, but the diverse expert pool gate failed; "
+            "this is a near-neighbor control, not a diverse multi-network route."
+        )
     elif delta is not None and delta >= improvement_margin and (
         max_observed_error_jaccard is None or max_observed_error_jaccard <= max_error_jaccard
     ):
@@ -173,6 +191,7 @@ def gate_neural_ensemble_result(
         "max_error_jaccard_at_0_5": max_observed_error_jaccard,
         "max_allowed_error_jaccard_at_0_5": max_error_jaccard,
         "max_double_fault_rate_at_0_5": max_observed_double_fault,
+        "diverse_expert_pool": diverse_expert_pool,
         "decision": decision,
         "action": action,
         "interpretation": interpretation,
@@ -231,6 +250,14 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
             "requires_implementation": False,
             "reason": decision,
         }
+    if decision == "keep_near_neighbor_ensemble_control_not_diverse_pool":
+        return {
+            "branch": "neural_ensemble_near_neighbor_control",
+            "should_launch_remote": False,
+            "requires_implementation": False,
+            "reason": decision,
+            "next_plan_doc": "docs/experiments/innovation1-present-diverse-expert-pool-plan.md",
+        }
     if decision == "weak_neural_ensemble_positive_below_gate":
         return {
             "branch": "neural_ensemble_diagnostic_only",
@@ -275,6 +302,12 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
         return [
             "Inspect pairwise diversity before spending a larger run.",
             "Prefer candidate-pool redesign over simply adding more weak models.",
+        ]
+    if branch == "neural_ensemble_near_neighbor_control":
+        return [
+            "Record the ensemble as a near-neighbor control only.",
+            "Do not prepare a larger confirmation until a non-neighbor expert passes the diverse pool gate.",
+            "Return to SPN representation/data search for a compatible weak-positive expert.",
         ]
     if branch == "neural_ensemble_diagnostic_only":
         return [

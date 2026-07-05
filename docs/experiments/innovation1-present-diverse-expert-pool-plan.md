@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** design ready / secondary validator / not implemented / no remote launch
+**Status:** family-readiness gate implemented / secondary validator / no remote launch
 
 **Scope:** PRESENT/SPN neural distinguishers under strict
 `encrypted_random_plaintexts` negatives. This plan extends the frozen-score
@@ -343,6 +343,57 @@ Keep implementation small and inspectable:
 5. Run the recovered r7 Pool 0 as a baseline control.
 6. Do not launch remote training until a specific missing family is chosen and
    a lean 2-4 row plan is written.
+
+## 2026-07-06 Family-Readiness Gate Implementation
+
+Implemented:
+
+```text
+score artifact metadata:
+  scripts/export-checkpoint-scores --expert-family <family> --candidate-status <status>
+
+gate:
+  blockcipher_nd.evaluation.neural_ensemble.assess_diverse_expert_pool
+
+summary field:
+  neural_ensemble_summary.json["diverse_expert_pool"]
+
+postprocess behavior:
+  if ensemble AUC improves but diverse_expert_pool.status == fail,
+  decision = keep_near_neighbor_ensemble_control_not_diverse_pool
+```
+
+The readiness gate requires:
+
+```text
+eligible family count >= 3
+at least one non-neighbor family outside invp_cell/ddt_graph/p_layer_graph
+non-neighbor pairwise error_jaccard_at_0_5 <= 0.75
+each eligible expert AUC >= 0.52
+candidate_status != rejected
+```
+
+This turns the user's "multiple different neural networks" idea into a
+checkable condition. The current recovered r7 pool can remain useful as Pool 0,
+but it should be labeled as a near-neighbor control unless its artifacts include
+a genuine non-neighbor family with acceptable error overlap.
+
+Suggested family labels for future score exports:
+
+| Route | `expert_family` |
+|---|---|
+| Zhang/Wang raw MCND | `raw_mcnd` |
+| InvP/P-layer aligned anchor | `invp_cell` |
+| DDT graph | `ddt_graph` |
+| P-layer graph | `p_layer_graph` |
+| pair evidence pooling | `pair_evidence` |
+| inverse-round/integral matrix | `inverse_round_matrix` |
+| r8 trail-position residual | `trail_position` |
+| projection/truncated weak feature | `projection_feature` |
+
+The r8 trail-position route is therefore a possible future non-neighbor expert
+only after a same-protocol score artifact exists and the residual/deterministic
+controls still pass at that evidence scale.
 
 ## Literature-Informed Priority Update
 

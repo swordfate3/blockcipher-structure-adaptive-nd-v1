@@ -13,6 +13,9 @@ from blockcipher_nd.training.metrics import (
 )
 
 
+DEFAULT_NEAR_NEIGHBOR_FAMILIES = frozenset({"invp_cell", "ddt_graph", "p_layer_graph"})
+
+
 @dataclass(frozen=True)
 class EnsembleScoreArtifact:
     labels: np.ndarray
@@ -54,6 +57,7 @@ def evaluate_frozen_score_ensemble(artifacts: list[EnsembleScoreArtifact]) -> di
     probability_matrix = np.stack([item.probabilities for item in artifacts], axis=1)
     logit_matrix = np.stack([item.logits for item in artifacts], axis=1)
     row_reports = [_single_report(item) for item in artifacts]
+    diversity = _diversity_report(labels, probability_matrix, logit_matrix, row_reports)
     ensemble_reports = [
         _ensemble_report("probability_mean", labels, probability_matrix.mean(axis=1)),
         _ensemble_report("logit_mean", labels, _sigmoid(logit_matrix.mean(axis=1))),
@@ -76,10 +80,113 @@ def evaluate_frozen_score_ensemble(artifacts: list[EnsembleScoreArtifact]) -> di
         "delta_best_ensemble_vs_single_auc": float(
             best_ensemble["metrics"]["auc"] - best_single["metrics"]["auc"]
         ),
-        "diversity": _diversity_report(labels, probability_matrix, logit_matrix, row_reports),
+        "diversity": diversity,
+        "diverse_expert_pool": assess_diverse_expert_pool(
+            {
+                "status": "pass",
+                "models": row_reports,
+                "diversity": diversity,
+            }
+        ),
         "claim_scope": (
             "application-level frozen score aggregation diagnostic only; "
             "not raw single-sample SOTA, not architecture evidence by itself"
+        ),
+    }
+
+
+def assess_diverse_expert_pool(
+    summary: dict[str, Any],
+    *,
+    min_expert_auc: float = 0.52,
+    min_family_count: int = 3,
+    max_error_jaccard: float = 0.75,
+    near_neighbor_families: set[str] | frozenset[str] = DEFAULT_NEAR_NEIGHBOR_FAMILIES,
+) -> dict[str, Any]:
+    models = summary.get("models", [])
+    pairwise = (summary.get("diversity") or {}).get("pairwise", [])
+    errors: list[str] = []
+    eligible_models: list[dict[str, Any]] = []
+    model_families: dict[str, str] = {}
+
+    if not isinstance(models, list) or not models:
+        errors.append("missing_models")
+        models = []
+    if not isinstance(pairwise, list) or not pairwise:
+        errors.append("missing_pairwise_diversity")
+        pairwise = []
+
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        model_key = str(model.get("model_key", ""))
+        metadata = model.get("metadata") if isinstance(model.get("metadata"), dict) else {}
+        family = str(metadata.get("expert_family", "")).strip()
+        if not family:
+            errors.append(f"missing_expert_family:{model_key}")
+            continue
+        model_families[model_key] = family
+        status = str(metadata.get("candidate_status", "weak_positive"))
+        auc = _metric_auc(model)
+        if auc is None or auc < min_expert_auc:
+            continue
+        if status == "rejected":
+            continue
+        eligible_models.append(model)
+
+    eligible_families = sorted({model_families.get(str(model.get("model_key", "")), "") for model in eligible_models})
+    eligible_families = [family for family in eligible_families if family]
+    non_neighbor_families = sorted(
+        family for family in eligible_families if family not in set(near_neighbor_families)
+    )
+    if len(eligible_families) < min_family_count:
+        errors.append("too_few_eligible_families")
+    if not non_neighbor_families:
+        errors.append("missing_non_neighbor_expert")
+
+    non_neighbor_pairs = []
+    for row in pairwise:
+        if not isinstance(row, dict):
+            continue
+        left = str(row.get("left", ""))
+        right = str(row.get("right", ""))
+        left_family = model_families.get(left)
+        right_family = model_families.get(right)
+        if not left_family or not right_family:
+            continue
+        if left_family in set(near_neighbor_families) and right_family in set(near_neighbor_families):
+            continue
+        error_jaccard = _float_or_none(row.get("error_jaccard_at_0_5"))
+        if error_jaccard is None:
+            continue
+        non_neighbor_pairs.append({**row, "left_family": left_family, "right_family": right_family})
+
+    best_non_neighbor_pair = min(
+        non_neighbor_pairs,
+        key=lambda row: float(row["error_jaccard_at_0_5"]),
+        default=None,
+    )
+    if best_non_neighbor_pair is None:
+        errors.append("missing_non_neighbor_pairwise_diversity")
+    elif float(best_non_neighbor_pair["error_jaccard_at_0_5"]) > max_error_jaccard:
+        errors.append("non_neighbor_error_overlap_too_high")
+
+    return {
+        "status": "pass" if not errors else "fail",
+        "decision": "diverse_expert_pool_ready" if not errors else "diverse_expert_pool_not_ready",
+        "errors": errors,
+        "eligible_models": [str(model.get("model_key", "")) for model in eligible_models],
+        "eligible_family_count": len(eligible_families),
+        "eligible_families": eligible_families,
+        "non_neighbor_families": non_neighbor_families,
+        "min_expert_auc": min_expert_auc,
+        "min_family_count": min_family_count,
+        "max_error_jaccard_at_0_5": max_error_jaccard,
+        "near_neighbor_families": sorted(set(near_neighbor_families)),
+        "best_non_neighbor_pair": best_non_neighbor_pair,
+        "claim_scope": (
+            "diverse expert pool readiness gate only; requires aligned frozen score artifacts "
+            "and does not claim raw single-sample SOTA or formal SPN/PRESENT evidence"
         ),
     }
 
@@ -230,3 +337,17 @@ def _safe_correlation(left: np.ndarray, right: np.ndarray) -> float | None:
     if left_std <= 0.0 or right_std <= 0.0:
         return None
     return float(np.corrcoef(left, right)[0, 1])
+
+
+def _metric_auc(row: dict[str, Any]) -> float | None:
+    metrics = row.get("metrics")
+    if not isinstance(metrics, dict):
+        return None
+    return _float_or_none(metrics.get("auc"))
+
+
+def _float_or_none(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None

@@ -500,3 +500,36 @@ not a SOTA claim, and not evidence that a multi-network route failed. It is the
 next controlled medium diagnostic candidate because current evidence says
 representation/control quality is the bottleneck.
 ```
+
+## 2026-07-06 Diverse-Ensemble Gate Hardening
+
+The code path now enforces a concrete distinction between:
+
+```text
+near-neighbor score aggregation
+vs
+diverse multi-network expert pooling
+```
+
+Implemented gate:
+
+```text
+function = assess_diverse_expert_pool
+metadata = expert_family, candidate_status
+default near-neighbor families = invp_cell, ddt_graph, p_layer_graph
+non-neighbor examples = raw_mcnd, pair_evidence, inverse_round_matrix,
+                        trail_position, projection_feature
+```
+
+If an ensemble improves over the best single model but its diverse-family gate
+fails, postprocess now returns:
+
+```text
+decision = keep_near_neighbor_ensemble_control_not_diverse_pool
+```
+
+This is the practical answer to the multi-network question: multiple networks
+are allowed, but the next main research slot should not be spent on a wider
+near-neighbor pool. The current trail-position residual route can become a
+future non-neighbor expert only after compatible frozen scores exist and the
+same deterministic/control gates still pass.
