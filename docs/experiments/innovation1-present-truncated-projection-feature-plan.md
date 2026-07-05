@@ -219,3 +219,30 @@ SOTA
 ```
 
 除非后续达到 1M/class、多 seed、同协议、retrieved、validated、plan-aligned 的正式证据等级。
+
+## Retrieved Truncated / Projection Feature Result
+
+<!-- projection-feature-postprocess:i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705:start -->
+### i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705 Projection Feature Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Anchor | `Present-MLP-FullRawPair-r8-Projection65k:ciphertext_pair_bits:0` |
+| Anchor AUC | `0.501484732144` |
+| Best projection | `Present-MLP-InvPDelta-PColumn32-r8-Projection65k:ciphertext_xor_spn_paligned_bits:32` |
+| Best AUC | `0.502584959846` |
+| Delta vs anchor AUC | `0.001100227702` |
+| Weak ensemble candidates | `0` |
+| Decision | `weak_projection_candidate_hold` |
+| Action | `do_not_scale_yet; keep_best_projection_as_weak_candidate` |
+| Next action branch | `projection_feature_hold` |
+| Claim scope | `PRESENT r8 truncated/projection feature screen only; 65536/class is diagnostic, not paper-scale, formal, ensemble-confirmed, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_local_result_gate.json` |
+| Projection gate | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_projection_feature_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705/i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705_postprocess_summary.md` |
+<!-- projection-feature-postprocess:i1_present_r8_truncated_projection_feature_screen_65k_seed0_gpu0_20260705:end -->
