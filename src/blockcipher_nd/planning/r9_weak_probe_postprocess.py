@@ -29,6 +29,11 @@ R9_CURRICULUM_REMOTE_CONFIG = (
     "innovation1_spn_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705.json"
 )
 R9_CURRICULUM_RUN_ID = "i1_present_r9_curriculum_from_r8_262k_seed0_gpu0_20260705"
+R9_DIFFERENCE_SCREEN_REMOTE_CONFIG = (
+    "configs/remote/"
+    "innovation1_spn_present_r9_difference_screen_65k_seed0_gpu0_20260705.json"
+)
+R9_DIFFERENCE_SCREEN_RUN_ID = "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705"
 
 DEFAULT_NEAR_RANDOM_AUC_CEILING = 0.505
 DEFAULT_WEAK_TRACE_AUC_CEILING = 0.52
@@ -329,10 +334,19 @@ def _next_action(report: dict[str, Any]) -> dict[str, Any]:
     if decision == "baseline_best_or_candidate_not_above_baseline":
         return {
             "branch": "baseline_best_no_candidate_scale",
-            "should_launch_remote": False,
+            "should_launch_remote": True,
             "requires_implementation": False,
             "reason": decision,
-            "fallback_hypotheses": ["r8_to_r9_curriculum", "r9_difference_screen"],
+            "next_plan_doc": "docs/experiments/innovation1-present-r9-difference-screen-plan.md",
+            "launch_remote_config": R9_DIFFERENCE_SCREEN_REMOTE_CONFIG,
+            "suggested_remote_config": R9_DIFFERENCE_SCREEN_REMOTE_CONFIG,
+            "readiness_command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness "
+                f"--config {R9_DIFFERENCE_SCREEN_REMOTE_CONFIG}"
+            ),
+            "run_id": R9_DIFFERENCE_SCREEN_RUN_ID,
+            "monitor_owner": "tmux watcher or sub-agent",
+            "fallback_hypotheses": ["r9_difference_screen", "r8_to_r9_curriculum"],
         }
     return {
         "branch": "manual_review",
@@ -373,7 +387,8 @@ def _next_steps(report: dict[str, Any]) -> list[str]:
     if branch == "baseline_best_no_candidate_scale":
         return [
             "Do not scale the candidate architecture from this result.",
-            "Use the result to choose curriculum or data-construction branches instead.",
+            "Use the prepared r9 difference-screen to test whether the fixed input difference is the bottleneck.",
+            "Do not interpret this as a same-protocol SPN architecture improvement.",
         ]
     return ["Manual review required before branching."]
 

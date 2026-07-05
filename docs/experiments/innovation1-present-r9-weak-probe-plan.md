@@ -534,3 +534,34 @@ Claim scope:
 It can strengthen a strong 262144/class r9 signal, but it is still not formal
 multi-seed route evidence and not a breakthrough claim.
 ```
+
+## 13. Prepared Baseline-Best Difference-Screen Branch
+
+**Status:** prepared / gate-locked / not launched
+
+If from-scratch r9 shows that the Zhang/Wang-style baseline is tied with or
+better than the SPN candidates, the next automatic branch is not candidate
+scaling. It is the r9 input-difference screen:
+
+```text
+run_id = i1_present_r9_difference_screen_65k_seed0_gpu0_20260705
+plan = configs/experiment/innovation1/innovation1_spn_present_r9_difference_screen_65k_seed0.csv
+remote_config = configs/remote/innovation1_spn_present_r9_difference_screen_65k_seed0_gpu0_20260705.json
+launcher = configs/remote/generated/run_i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.sh
+```
+
+Automatic next-action readiness:
+
+```text
+If seed0 r9 weak-probe postprocess returns:
+
+baseline_best_or_candidate_not_above_baseline
+
+the <seed0_run_id>_next_action_readiness.json artifact marks
+should_launch_remote=true for the difference-screen config above and checks both
+the remote readiness invariants and generated launcher/monitor scripts. This
+tests whether the fixed Zhang/Wang r7-friendly input difference is the high-round
+bottleneck. It is a data-construction / benchmark-search screen, not evidence
+that the current SPN model improved under the same protocol.
+```

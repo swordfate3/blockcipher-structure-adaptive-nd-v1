@@ -143,6 +143,23 @@ i1_present_r8_pairset_1m_seed0_gpu1_20260705
 4. 启动后由 tmux watcher 接管，不由主线程循环轮询。
 ```
 
+Automatic next-action source:
+
+```text
+scripts/postprocess-r9-weak-probe writes
+<seed0_run_id>_next_action_readiness.json.
+
+If the r9 weak-probe gate returns:
+
+baseline_best_or_candidate_not_above_baseline
+
+that artifact points directly to this difference-screen remote config with
+should_launch_remote=true after local readiness and generated launcher/monitor
+checks pass. This branch exists because a baseline-best r9 result says "do not
+scale the current SPN candidate"; it does not by itself prove that a new input
+difference is better.
+```
+
 ## 6. 后续分支
 
 如果 screen 找到强候选：

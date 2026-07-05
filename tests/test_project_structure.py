@@ -10095,6 +10095,37 @@ def test_r9_weak_probe_near_random_points_to_prepared_curriculum_assets(tmp_path
     assert next_action_readiness["readiness_pass"] is True
 
 
+def test_r9_weak_probe_baseline_best_points_to_prepared_difference_screen(tmp_path):
+    results = tmp_path / "r9_weak_probe_baseline_best.jsonl"
+    _write_r9_weak_probe_result(results, "present_zhang_wang_keras_mcnd", 0.534)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_only_spn_only", 0.529)
+    _write_r9_weak_probe_result(results, "present_nibble_invp_pair_consistency_spn_only", 0.531)
+
+    report = postprocess_r9_weak_probe_result(
+        results_path=results,
+        output_dir=tmp_path / "baseline_best_postprocess",
+        run_id="r9_weak_probe_baseline_best_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "baseline_best_or_candidate_not_above_baseline"
+    assert report["next_action"]["branch"] == "baseline_best_no_candidate_scale"
+    assert report["next_action"]["requires_implementation"] is False
+    assert report["next_action"]["should_launch_remote"] is True
+    assert (
+        report["next_action"]["launch_remote_config"]
+        == "configs/remote/innovation1_spn_present_r9_difference_screen_65k_seed0_gpu0_20260705.json"
+    )
+    assert report["next_action"]["run_id"] == "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705"
+    assert "r9_difference_screen" in report["next_action"]["fallback_hypotheses"]
+    assert "scripts/check-remote-readiness" in report["next_action"]["readiness_command"]
+    next_action_readiness = json.loads(Path(report["next_action_readiness"]).read_text(encoding="utf-8"))
+    assert next_action_readiness["status"] == "pass"
+    assert next_action_readiness["should_launch_remote"] is True
+    assert next_action_readiness["readiness_pass"] is True
+
+
 def test_monitor_health_emits_r9_weak_probe_postprocess_command_when_result_ready(tmp_path):
     run_id = "r9_weak_probe_monitor_unit"
     run_root = tmp_path / run_id
