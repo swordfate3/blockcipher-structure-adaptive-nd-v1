@@ -325,3 +325,53 @@ available for retrospective evaluation or whether a lean same-plan 262144/class
 matrix is needed.
 ```
 
+## Implemented Local Tooling
+
+Status as of 2026-07-05:
+
+```text
+score artifact core = implemented
+checkpoint score export CLI = implemented
+frozen artifact ensemble CLI = implemented
+local tiny smoke = implemented as tests only; not research evidence
+remote launch = not started
+```
+
+Export per-checkpoint scores:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <checkpoint.pt> \
+  --eval-plan <same_protocol_eval_plan.csv> \
+  --eval-row-index 0 \
+  --model-key <model_key> \
+  --hidden-bits <hidden_bits> \
+  --batch-size 256 \
+  --device auto \
+  --output-dir <score_artifact_dir>
+```
+
+Evaluate a fixed-rule frozen ensemble:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/evaluate-neural-ensemble \
+  --artifacts <score_artifact_dir_a> <score_artifact_dir_b> [<score_artifact_dir_c>] \
+  --output <ensemble_summary.json>
+```
+
+The evaluator validates labels, sample ids, and protocol identity before
+reporting:
+
+```text
+probability_mean
+logit_mean
+sum_logodds
+auc_positive_weighted_logit_mean
+rank_average
+diversity/error-overlap metrics
+```
+
+Current claim scope remains application-level score aggregation only. The tiny
+smoke tests verify code paths, not SPN/PRESENT model quality. A meaningful
+PRESENT ensemble result still requires aligned strong checkpoints or a lean
+same-protocol model matrix, followed by the scale ladder in this document.

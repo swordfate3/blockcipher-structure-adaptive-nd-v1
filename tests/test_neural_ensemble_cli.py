@@ -152,3 +152,77 @@ def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
     assert summary["best_single"]["model_key"] == "left"
     assert summary["ensembles"][0]["mode"] == "probability_mean"
     assert summary["claim_scope"].startswith("application-level")
+
+
+def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    artifact_dirs = []
+    for seed in [0, 1]:
+        checkpoint = tmp_path / f"model_seed{seed}.pt"
+        train_main(
+            [
+                "--ciphers",
+                "speck32",
+                "--models",
+                "mlp",
+                "--rounds",
+                "1",
+                "--seeds",
+                str(seed),
+                "--samples-per-class",
+                "8",
+                "--pairs-per-sample",
+                "1",
+                "--epochs",
+                "1",
+                "--batch-size",
+                "4",
+                "--hidden-bits",
+                "8",
+                "--device",
+                "cpu",
+                "--checkpoint-output",
+                str(checkpoint),
+                "--output",
+                str(tmp_path / f"train_seed{seed}.jsonl"),
+            ]
+        )
+        artifact_dir = tmp_path / f"artifact_seed{seed}"
+        export_scores_main(
+            [
+                "--checkpoint",
+                str(checkpoint),
+                "--eval-plan",
+                str(plan),
+                "--eval-row-index",
+                "0",
+                "--model-key",
+                "mlp",
+                "--hidden-bits",
+                "8",
+                "--batch-size",
+                "4",
+                "--device",
+                "cpu",
+                "--output-dir",
+                str(artifact_dir),
+            ]
+        )
+        artifact_dirs.append(artifact_dir)
+    output = tmp_path / "ensemble_summary.json"
+
+    status = evaluate_ensemble_main(
+        [
+            "--artifacts",
+            str(artifact_dirs[0]),
+            str(artifact_dirs[1]),
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert len(summary["models"]) == 2
+    assert len(summary["ensembles"]) == 5
