@@ -92,11 +92,38 @@ Correct interpretation:
 - This route is a candidate non-neighbor expert source for a future diverse
   pool only after local repeat or medium-scale confirmation.
 
+The same local protocol was repeated on seeds `1` and `2`. In both repeat seeds,
+the aligned row remained the best row:
+
+```text
+seed1 aligned AUC = 0.5273561477661133
+seed2 aligned AUC = 0.5216836929321289
+```
+
+Three-seed aggregate:
+
+| Model | Feature encoding | Mean AUC | Min AUC | Max AUC |
+|---|---|---:|---:|---:|
+| `mlp` | `ciphertext_pair_bits` | `0.5123786926269531` | `0.5064530372619629` | `0.5167593955993652` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.507353941599528` | `0.5001511573791504` | `0.5172939300537109` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.4998714129130046` | `0.4951457977294922` | `0.5029439926147461` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5238939921061198` | `0.5216836929321289` | `0.5273561477661133` |
+
+Updated interpretation:
+
+- The result is now a stable weak local positive across three seeds at
+  `2048/class`.
+- It still does not justify remote launch or inclusion as a qualified ensemble
+  expert, because the absolute AUC is low and the scale is diagnostic only.
+- It does justify a medium diagnostic design that keeps the same four-row
+  attribution structure.
+
 ### Suggested Action
-Keep the route for a local repeat with additional seeds or slightly larger
-diagnostic budget. Do not launch remote training or include it as a qualified
-ensemble expert from this single 2048/class seed0 result. Report it as
-`weak_cross_spn_aligned_positive_keep_for_local_repeat`.
+Keep the route for a medium diagnostic design with the same raw MLP, raw token,
+`C||C'||DeltaC`, and SPN-aligned controls. Do not launch remote training or
+include it as a qualified ensemble expert from the current `2048/class` local
+evidence. Report it as
+`stable_weak_cross_spn_aligned_positive_local_repeat`.
 
 ### Metadata
 - Source: experiment_audit

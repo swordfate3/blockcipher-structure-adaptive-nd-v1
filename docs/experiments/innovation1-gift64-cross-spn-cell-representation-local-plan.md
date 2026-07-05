@@ -220,3 +220,145 @@ It also beats the same model on raw pairs, but only by about `+0.0053` AUC.
 This supports one narrow next step: a local repeat with more seeds or a slightly
 larger diagnostic budget. It does not support a remote launch, a GIFT result
 claim, or immediate inclusion as a qualified diverse-ensemble expert.
+
+## Seed1/Seed2 Local Repeat Plan
+
+Because the seed0 aligned row was weak but positive, the next bounded action is
+a same-protocol local repeat on seeds `1` and `2`. The repeat keeps the original
+four-row comparison and does not introduce a remote package.
+
+Repeat config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_repeat_local.csv
+```
+
+Repeat command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_repeat_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/results.jsonl \
+  --progress-output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/progress.jsonl
+```
+
+Repeat gate:
+
+```text
+Keep only if the aligned row remains best or near-best across seed1/seed2 and
+its mean AUC stays above the raw token-mixer and C||C'||DeltaC controls.
+Otherwise mark the GIFT-64 cross-SPN route as unstable local evidence.
+```
+
+## Seed1/Seed2 Local Repeat Result
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_repeat_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/results.jsonl \
+  --progress-output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/progress.jsonl
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/results.jsonl
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/progress.jsonl
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/curves.svg
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/history.csv
+```
+
+Plan-alignment verification:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_repeat_local.csv \
+  --results outputs/local_smoke/i1_gift64_cross_spn_cell_repr_repeat_2048/results.jsonl \
+  --expected-rows 8
+```
+
+Result:
+
+```text
+status = pass
+result_rows = 8
+field_mismatches = []
+```
+
+Seed1/seed2 metrics:
+
+| Seed | Model | Feature encoding | AUC | Accuracy | Calibrated accuracy | Loss | Best epoch |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 1 | `mlp` | `ciphertext_pair_bits` | `0.5064530372619629` | `0.50244140625` | `0.515625` | `0.6940612699836493` | `1` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5001511573791504` | `0.5` | `0.51806640625` | `0.6952466666698456` | `1` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5015244483947754` | `0.5029296875` | `0.51416015625` | `0.6932258643209934` | `2` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5273561477661133` | `0.50634765625` | `0.53125` | `0.6926919557154179` | `2` |
+| 2 | `mlp` | `ciphertext_pair_bits` | `0.5139236450195312` | `0.5029296875` | `0.51904296875` | `0.6928888987749815` | `3` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5046167373657227` | `0.4970703125` | `0.51708984375` | `0.6935670729726553` | `1` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5029439926147461` | `0.5029296875` | `0.52001953125` | `0.6935744006186724` | `2` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5216836929321289` | `0.5009765625` | `0.53515625` | `0.6935628708451986` | `3` |
+
+Three-seed aggregate including seed0:
+
+| Model | Feature encoding | Mean AUC | Min AUC | Max AUC |
+|---|---|---:|---:|---:|
+| `mlp` | `ciphertext_pair_bits` | `0.5123786926269531` | `0.5064530372619629` | `0.5167593955993652` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.507353941599528` | `0.5001511573791504` | `0.5172939300537109` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.4998714129130046` | `0.4951457977294922` | `0.5029439926147461` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5238939921061198` | `0.5216836929321289` | `0.5273561477661133` |
+
+Per-seed aligned deltas:
+
+```text
+seed0 aligned - C||C'||DeltaC token mixer AUC = +0.027496337890625
+seed1 aligned - C||C'||DeltaC token mixer AUC = +0.02583169937133789
+seed2 aligned - C||C'||DeltaC token mixer AUC = +0.018739700317382812
+
+seed0 aligned - raw token mixer AUC = +0.00534820556640625
+seed1 aligned - raw token mixer AUC = +0.02720499038696289
+seed2 aligned - raw token mixer AUC = +0.01706695556640625
+```
+
+Decision:
+
+```text
+stable_weak_cross_spn_aligned_positive_local_repeat
+keep_for_next_medium_diagnostic_design
+no_remote_launch_from_2048_class_evidence
+not_yet_a_qualified_diverse_ensemble_expert
+```
+
+Interpretation:
+
+The aligned row remained best on seed1 and seed2. Across all three local seeds,
+the aligned row has the highest mean AUC and its minimum AUC is above the maximum
+AUC of both token-mixer controls. This makes the route more credible than a
+single-seed artifact.
+
+The signal is still weak in absolute terms: mean AUC is only about `0.5239` at
+`2048/class`. The correct next step is a medium diagnostic design that keeps the
+four-row attribution structure, not a remote launch or ensemble claim.
