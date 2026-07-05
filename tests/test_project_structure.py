@@ -12983,6 +12983,43 @@ def test_present_r8_trail_position_attribution_reports_position_statistics():
     assert "not neural training" in report["claim_scope"]
 
 
+def test_present_r8_trail_position_2048_plan_preserves_512_protocol():
+    base_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_512_local.csv"
+    )
+    diagnostic_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv"
+    )
+    base_tasks = build_tasks(parse_args(["--plan", base_plan]))
+    diagnostic_tasks = build_tasks(parse_args(["--plan", diagnostic_plan]))
+
+    assert len(diagnostic_tasks) == len(base_tasks) == 4
+    assert {task["samples_per_class"] for task in diagnostic_tasks} == {2048}
+    assert {task["seed"] for task in diagnostic_tasks} == {0, 1}
+    for base_task, diagnostic_task in zip(base_tasks, diagnostic_tasks, strict=True):
+        for field in (
+            "model_key",
+            "feature_encoding",
+            "rounds",
+            "pairs_per_sample",
+            "sample_structure",
+            "negative_mode",
+            "difference_profile",
+            "integral_active_nibble",
+            "train_key",
+            "validation_key",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "model_options",
+        ):
+            assert diagnostic_task[field] == base_task[field]
+        assert "LOCAL DIAGNOSTIC 2048/class" in diagnostic_task["matching_evidence"]
+        assert "residual gate" in diagnostic_task["matching_evidence"]
+        assert "no remote launch" in diagnostic_task["matching_evidence"]
+
+
 def test_audit_spn_features_cli_writes_trail_position_attribution(tmp_path):
     output = tmp_path / "trail_position_attribution.json"
     status = audit_spn_features_main(

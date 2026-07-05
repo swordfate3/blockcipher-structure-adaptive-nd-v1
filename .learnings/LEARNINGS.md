@@ -2410,3 +2410,72 @@ as route failure.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-021] best_practice
+
+**Logged**: 2026-07-06T06:03:50+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Trail-position neural residual remains positive at 2048/class, but global-stat control is also strong.
+
+### Details
+The r8 trail-position residual-gated diagnostic was extended locally from
+`512/class` to `2048/class`:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_2048.json
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+```
+
+Gate margins:
+
+```text
+min_candidate_margin_vs_deterministic_auc = 0.1573951244354248
+min_candidate_margin_vs_global_auc = 0.10353946685791016
+min_deterministic_margin_vs_mismatch_auc = 0.2893033027648926
+```
+
+Key metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9991159439086914` | `0.8932428359985352` | `0.8056130409240723` | `0.5163097381591797` |
+| 1 | `0.999567985534668` | `0.8960285186767578` | `0.8421728610992432` | `0.5250661373138428` |
+
+Correct interpretation:
+
+- The trail-position candidate still clears deterministic position-statistics,
+  same-input global-stat neural control, and active/difference mismatch
+  controls at `2048/class`.
+- The same-input global-stat control rises to about `0.895` AUC, so this
+  setting exposes strong integral/statistical structure even without position
+  detail.
+- The residual result supports controlled local/medium continuation, not a
+  remote launch, PRESENT r8 breakthrough, or Zhang/Wang r7 Case2 claim.
+- Before ensemble promotion, this route needs frozen-score artifacts and
+  error-overlap/diversity checks against the r7 InvP/P-layer anchor and
+  near-neighbor controls.
+
+### Suggested Action
+Treat trail-position residual as the current best local SPN/integral candidate.
+The next meaningful step is not a wider neural ensemble; it is a cache-ready
+medium diagnostic design plus later frozen-score diversity evaluation if the
+medium result holds.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/research/innovation1-spn-independent-route-recheck-20260706.md
+- Tags: innovation1, spn, present, trail-position, residual-gate, local-diagnostic, medium-readiness
+- See Also: LRN-20260706-020, LRN-20260706-019, LRN-20260706-018
+- Pattern-Key: innovation1.spn_present.trail_position_residual_2048_positive_but_controlled
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---

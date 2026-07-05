@@ -621,3 +621,208 @@ Updated next action:
 3. Keep diverse neural ensemble as a later validator only after this route has
    compatible frozen score artifacts and low error-overlap evidence.
 ```
+
+## 2048/Class Local Residual Confirmation Plan
+
+Purpose:
+
+```text
+Test whether the 512/class trail-position neural residual gate remains positive
+at a larger local diagnostic scale, while preserving the exact same r8
+matched-negative integral protocol and controls.
+```
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv
+```
+
+Rows:
+
+| Row | Seed | Model | Role |
+|---:|---:|---|---|
+| 0 | 0 | `present_pairset_global_stats` | same-input global-statistics neural control |
+| 1 | 0 | `present_trail_position_stats_pairset` | position-aware neural candidate |
+| 2 | 1 | `present_pairset_global_stats` | seed1 global-statistics repeat |
+| 3 | 1 | `present_trail_position_stats_pairset` | seed1 position-aware candidate repeat |
+
+Fixed protocol:
+
+```text
+cipher = PRESENT-80
+rounds = 8
+samples_per_class = 2048
+pairs_per_sample = 16
+feature_encoding = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+integral_active_nibble = 0
+difference_profile = present_zhang_wang2022_mcnd
+negative_mode = encrypted_random_plaintexts
+train_key = 0x00000000000000000000
+validation_key = 0x11111111111111111111
+```
+
+Neural command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --epochs 3 \
+  --batch-size 32 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/progress.jsonl
+```
+
+Required control audits:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --row-index 1 \
+  --samples-per-class 2048 \
+  --seed 0 \
+  --top-k 16 \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_2048.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --row-index 3 \
+  --samples-per-class 2048 \
+  --seed 1 \
+  --top-k 16 \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_2048.json
+```
+
+Residual gate command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-position-residual \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_2048.json \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_2048.json \
+  --margin 0.01 \
+  --output outputs/local_audits/i1_present_r8_trail_position_residual_gate_2048.json
+```
+
+Gate:
+
+```text
+Advance locally only if:
+  candidate clears deterministic baseline by >= 0.01 AUC on both seeds
+  candidate clears same-input global-stat neural control by >= 0.01 AUC on both seeds
+  deterministic baseline clears active-nibble/input-difference mismatch controls
+
+Do not remote-launch from this result alone.
+Do not treat pair-order reverse parity as failure; record it as pair_order_not_bottleneck.
+```
+
+### 2048/Class Result
+
+Neural run:
+
+```text
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/progress.jsonl
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/curves.svg
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/history.csv
+```
+
+Plan alignment:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl \
+  --expected-rows 4
+
+status = pass
+```
+
+Neural metrics:
+
+| Seed | Model | AUC | Calibrated accuracy | Accuracy |
+|---:|---|---:|---:|---:|
+| 0 | `present_pairset_global_stats` | `0.8932428359985352` | `0.81787109375` | `0.79736328125` |
+| 0 | `present_trail_position_stats_pairset` | `0.9991159439086914` | `0.99072265625` | `0.9892578125` |
+| 1 | `present_pairset_global_stats` | `0.8960285186767578` | `0.82470703125` | `0.818359375` |
+| 1 | `present_trail_position_stats_pairset` | `0.999567985534668` | `0.99169921875` | `0.98681640625` |
+
+Control audits:
+
+```text
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_2048.json
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_2048.json
+```
+
+| Seed | Baseline AUC | Active-nibble control AUC | Difference control AUC | Pair-order reverse AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.8056130409240723` | `0.5163097381591797` | `0.5129861831665039` | `0.8056130409240723` |
+| 1 | `0.8421728610992432` | `0.5145645141601562` | `0.5250661373138428` | `0.8421728610992432` |
+
+Residual gate:
+
+```text
+output = outputs/local_audits/i1_present_r8_trail_position_residual_gate_2048.json
+status = pass
+decision = support_trail_position_neural_residual_local
+action = run_controlled_local_medium_diagnostic_before_remote_launch
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.1573951244354248
+min_candidate_margin_vs_global_auc = 0.10353946685791016
+min_deterministic_margin_vs_mismatch_auc = 0.2893033027648926
+```
+
+Per-seed residual margins:
+
+| Seed | Candidate vs deterministic | Candidate vs global | Deterministic vs mismatch |
+|---:|---:|---:|---:|
+| 0 | `+0.19350290298461914` | `+0.10587310791015625` | `+0.2893033027648926` |
+| 1 | `+0.1573951244354248` | `+0.10353946685791016` | `+0.3171067237854004` |
+
+Decision:
+
+```text
+support_trail_position_neural_residual_local_at_2048_class
+```
+
+Interpretation:
+
+```text
+The 2048/class local diagnostic strengthens the 512/class residual result:
+the trail-position neural candidate stays above the deterministic split
+baseline and same-input global-stat control on both seeds, while
+active-nibble and input-difference mismatch controls remain near chance.
+
+The global-stat control also rises to about 0.895 AUC, so the setting is now
+clearly exposing strong integral/statistical structure. The claim is therefore
+not "new PRESENT r8 SOTA"; it is that preserving SPN trail-position structure
+adds residual value over collapsed global statistics and deterministic
+position-statistics under this local matched-negative integral protocol.
+```
+
+Updated next action:
+
+```text
+1. Do not remote-launch immediately from 2048/class local evidence.
+2. Design a lean medium diagnostic ladder only after adding disk-backed
+   feature/cache readiness for this route.
+3. Before treating this as an ensemble expert, export frozen scores and run
+   error-overlap/diversity checks against the r7 InvP/P-layer anchor and
+   near-neighbor controls.
+```

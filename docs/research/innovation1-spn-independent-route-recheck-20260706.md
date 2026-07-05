@@ -291,6 +291,55 @@ The gate supports local neural residual evidence, not remote launch readiness,
 not a PRESENT r8 breakthrough, and not Zhang/Wang r7 Case2 evidence.
 ```
 
+### 2048/Class Residual Confirmation Update
+
+The same residual-gated trail-position protocol was extended from `512/class`
+to `2048/class` locally:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048/results.jsonl
+control_audits =
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_2048.json
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_2048.json
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_2048.json
+```
+
+Gate result:
+
+```text
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.1573951244354248
+min_candidate_margin_vs_global_auc = 0.10353946685791016
+min_deterministic_margin_vs_mismatch_auc = 0.2893033027648926
+```
+
+Key metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9991159439086914` | `0.8932428359985352` | `0.8056130409240723` | `0.5163097381591797` |
+| 1 | `0.999567985534668` | `0.8960285186767578` | `0.8421728610992432` | `0.5250661373138428` |
+
+Updated route ranking:
+
+| Rank | Route | Decision |
+|---:|---|---|
+| 1 | Trail-position neural residual over active/difference-aligned SPN position statistics | Current best local SPN/integral candidate. Confirmed locally at 512/class and 2048/class under deterministic and mismatch controls. |
+| 2 | Disk-backed/cache-ready medium diagnostic design | Required before any remote scale. The route is now worth engineering for controlled medium evidence, but only with durable feature/cache/progress artifacts. |
+| 3 | Frozen-score diversity check | Required before calling this a diverse ensemble expert. It must show compatible scores and low error overlap against r7 InvP/P-layer and near-neighbor controls. |
+| 4 | Direct wider ensemble or generic model replacement | Still hold. The evidence favors representation/control-gated SPN adaptation over model piling. |
+
+Claim boundary:
+
+```text
+The 2048/class result is stronger local diagnostic evidence. It is still not a
+PRESENT r8 breakthrough, not Zhang/Wang r7 Case2 evidence, and not a remote
+launch result. The global-stat control is already high, so future claims must
+keep deterministic and mismatch controls attached.
+```
+
 ## References Used
 
 - `docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md`
