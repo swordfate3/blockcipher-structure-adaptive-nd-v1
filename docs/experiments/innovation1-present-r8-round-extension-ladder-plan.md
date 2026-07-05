@@ -430,3 +430,45 @@ This is not formal r8 success or a breakthrough claim.
 It is a 262144/class single-seed diagnostic that justifies r9 weak-probe and
 later r8 1M/class confirmation if the route remains promising.
 ```
+
+## 13. r8 Pair-Set 1M Confirmation Plan
+
+**Status:** prepared / pending launch after scoped commit and GPU gate
+
+The r8 diagnostic gate supports scaling the pair-set route, but the claim is
+still diagnostic until a paper-scale confirmation exists. The next r8
+confirmation run therefore uses a lean two-row matrix:
+
+| Row | Model | Role |
+|---:|---|---|
+| 0 | `present_zhang_wang_keras_mcnd` | same-budget r8 1M baseline |
+| 1 | `present_nibble_invp_pair_consistency_spn_only` | pair-set consistency candidate |
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_pairset_r8_1m_seed0.csv
+```
+
+Remote assets:
+
+```text
+configs/remote/innovation1_spn_present_pairset_r8_1m_seed0_gpu1_20260705.json
+configs/remote/generated/run_i1_present_r8_pairset_1m_seed0_gpu1_20260705.cmd
+configs/remote/generated/monitor_i1_present_r8_pairset_1m_seed0_gpu1_20260705.sh
+```
+
+Gate:
+
+| Result | Decision |
+|---|---|
+| pair-set AUC - baseline AUC `>= +0.005` | support r8 pair-set 1M confirmation; prepare seed1 or frozen aggregation control |
+| pair-set AUC - baseline AUC `> 0` but `< +0.005` | weak paper-scale positive; repeat seed or run controls |
+| pair-set AUC `<= baseline` | stop or rethink this scale route |
+
+Claim scope:
+
+```text
+1000000/class seed0 is paper-scale single-seed evidence only.
+It is not formal multi-seed route evidence and not a breakthrough claim.
+```

@@ -319,6 +319,47 @@ def test_present_r9_weak_probe_remote_readiness_assets_pass():
     assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
 
 
+def test_present_r8_pairset_1m_confirmation_plan_and_remote_assets_pass():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_pairset_r8_1m_seed0.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "present_zhang_wang_keras_mcnd",
+        "present_nibble_invp_pair_consistency_spn_only",
+    ]
+    for task in tasks:
+        assert task["rounds"] == 8
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == 1_000_000
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert "1000000/class" in task["matching_evidence"]
+
+    config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_pairset_r8_1m_seed0_gpu1_20260705.json"
+    )
+    readiness = remote_readiness_report(config)
+    artifacts = launch_artifacts(config)
+
+    assert readiness["status"] == "pass"
+    assert readiness["expected_rows"] == 2
+    assert readiness["plan_rows"] == 2
+    assert "medium_scale_dataset_cache" in readiness["checked_invariants"]
+    assert artifacts["status"] == "pass"
+    assert "cmd.exe /k" not in config.read_text(encoding="utf-8")
+
+
 def test_present_n1v2_262k_structure_ablation_plan_is_same_protocol():
     plan = "configs/experiment/innovation1/innovation1_spn_present_n1v2_structure_ablation_r7_262k.csv"
     args = parse_args(["--plan", plan])
