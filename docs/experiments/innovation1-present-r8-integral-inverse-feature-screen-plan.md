@@ -124,6 +124,63 @@ i1_present_r9_weak_probe_262k_seed0_gpu0_20260705
 i1_present_r8_pairset_1m_seed0_gpu1_20260705
 ```
 
+## Remote Launch Record
+
+<!-- integral-inverse-feature-launch:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705:start -->
+
+**Run ID：**
+
+```text
+i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+```
+
+**状态：**
+
+```text
+launched / running / local tmux watcher handoff
+```
+
+**启动时间：** 2026-07-05 17:25 Asia/Shanghai
+
+**启动依据：**
+
+```text
+projection feature screen gate = weak_projection_candidate_hold
+GPU1 bounded check = available enough for this 65536/class screen
+remote readiness = pass
+source commit = 413d2a9 experiment: prepare integral inverse screen on gpu1
+```
+
+**远程启动路径：**
+
+```text
+G:\lxy\run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+```
+
+**启动确认：**
+
+```text
+started.marker present
+readiness.txt present
+r8_integral_inverse_feature_screen_progress.jsonl present
+dataset_cache progress observed
+strict negative_mode = encrypted_random_plaintexts
+dataset cache root = G:\lxy\blockcipher-structure-adaptive-nd-runs\r8_integral_inverse_feature_screen_cache
+```
+
+**Watcher：**
+
+```text
+monitor_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705
+```
+
+说明：第一次 detached `start /b` invocation 返回成功但未创建 run artifacts；随后使用
+`cmd.exe /c call G:\lxy\run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd`
+确认进入脚本并启动成功。该启动确认经验已记录到 `.learnings/ERRORS.md` 和 `AGENTS.md`。
+
+<!-- integral-inverse-feature-launch:i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705:end -->
+
 结果 ready 后使用 route-specific advance：
 
 ```bash
