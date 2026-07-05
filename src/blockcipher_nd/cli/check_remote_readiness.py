@@ -136,6 +136,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     pairset_consistency = _pairset_aggregation_consistency(config)
     errors.extend(pairset_consistency["errors"])
     warnings.extend(pairset_consistency["warnings"])
+    neural_ensemble_consistency = _neural_ensemble_consistency(config)
+    errors.extend(neural_ensemble_consistency["errors"])
+    warnings.extend(neural_ensemble_consistency["warnings"])
 
     checked_invariants = [
         "plan_exists",
@@ -160,6 +163,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("sbox_prior_protocol_lock")
     if _is_pairset_aggregation_config(config):
         checked_invariants.append("pairset_aggregation_stage_lock")
+    if _is_neural_ensemble_config(config):
+        checked_invariants.append("neural_ensemble_score_artifact_lock")
 
     return {
         "status": "pass" if not errors else "fail",
@@ -603,6 +608,22 @@ def _pairset_aggregation_consistency(config: dict[str, Any]) -> dict[str, list[s
     return {"errors": errors, "warnings": warnings}
 
 
+def _neural_ensemble_consistency(config: dict[str, Any]) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_neural_ensemble_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    for field in ["checkpoint_output_dir", "score_artifacts_root", "ensemble_summary_output"]:
+        value = _str_value(config.get(field))
+        if not value:
+            errors.append(f"neural_ensemble missing {field}")
+        elif not value.startswith(REMOTE_ROOT):
+            errors.append(f"neural_ensemble {field} must stay under {REMOTE_ROOT}: {value}")
+
+    return {"errors": errors, "warnings": warnings}
+
+
 def _require_remote_path(config: dict[str, Any], field: str, errors: list[str]) -> None:
     value = _str_value(config.get(field))
     if not value:
@@ -738,6 +759,27 @@ def _is_pairset_aggregation_config(config: dict[str, Any]) -> bool:
         "pair-set aggregation",
         "pairset aggregation",
         "frozen_aggregation",
+    ]
+    return any(marker in haystack for marker in markers)
+
+
+def _is_neural_ensemble_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in [
+            "run_id",
+            "task_name",
+            "plan",
+            "claim_scope",
+            "launch_policy",
+            "route",
+            "experiment_route",
+        ]
+    ).lower()
+    markers = [
+        "neural_ensemble",
+        "neural ensemble",
+        "neural-ensemble",
     ]
     return any(marker in haystack for marker in markers)
 

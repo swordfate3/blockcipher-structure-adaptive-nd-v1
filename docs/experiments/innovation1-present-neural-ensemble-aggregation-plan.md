@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** design prepared / implementation not started / no remote launch
+**Status:** remote launch package prepared / no remote launch
 
 **Scope:** PRESENT-80, strict `encrypted_random_plaintexts` negatives, same
 Zhang/Wang Case2 validation protocol unless a later plan explicitly narrows a
@@ -503,3 +503,46 @@ and double-fault/error overlap is not high
 If this 65536/class screen does not improve over the best single model, stop
 this candidate pool and return to architecture/data-representation changes
 rather than widening the ensemble mechanically.
+
+## Prepared Remote Launch Package
+
+Status as of 2026-07-05:
+
+```text
+remote config = configs/remote/innovation1_spn_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.json
+launcher = configs/remote/generated/run_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.cmd
+monitor = configs/remote/generated/monitor_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.sh
+run_id = i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705
+remote launch = not started
+```
+
+Before launch, verify:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.json
+```
+
+The generated launcher is designed to:
+
+```text
+1. create logs/results/checkpoints/score_artifacts under G:\lxy
+2. run scripts\check-remote-readiness on the remote clone before training
+3. train the 3-row checkpoint-producing matrix with --checkpoint-output-dir
+4. verify all three selected checkpoints exist
+5. export aligned frozen score artifacts for Zhang/Wang, InvP-only, and DDT graph
+6. evaluate scripts\evaluate-neural-ensemble into results\neural_ensemble_summary.json
+7. write done/failed markers for the local monitor
+```
+
+The generated monitor retrieves:
+
+```text
+logs/
+results/
+checkpoints/
+score_artifacts/
+```
+
+This package is launch preparation only. It is not evidence that the PRESENT
+neural ensemble screen has completed.

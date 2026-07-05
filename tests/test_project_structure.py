@@ -2013,6 +2013,77 @@ def test_pairset_aggregation_readiness_ignores_route_names_in_launch_policy():
     assert not any("candidate_trail" in error for error in report["errors"])
 
 
+def test_present_neural_ensemble_remote_config_is_ready_and_artifact_locked():
+    config_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    report = remote_readiness_report(config_path)
+
+    assert config["run_id"] == "i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705"
+    assert config["expected_rows"] == 3
+    assert config["device"] == "cuda:0"
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_workers"] == 4
+    assert config["checkpoint_output_dir"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config["score_artifacts_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert config["ensemble_summary_output"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
+    )
+    assert "cmd.exe /c" in config["launch_policy"]
+    assert "cmd.exe /k" not in config["launch_policy"]
+    assert "application-level score aggregation" in config["claim_scope"]
+    assert "not formal" in config["claim_scope"]
+
+    assert report["status"] == "pass"
+    assert report["expected_rows"] == 3
+    assert report["plan_rows"] == 3
+    assert "medium_scale_dataset_cache" in report["checked_invariants"]
+    assert "neural_ensemble_score_artifact_lock" in report["checked_invariants"]
+
+
+def test_present_neural_ensemble_remote_launch_assets_export_and_retrieve_scores():
+    launcher = Path(
+        "configs/remote/generated/"
+        "run_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.cmd"
+    )
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+    monitor_text = monitor.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "cmd.exe /k" not in monitor_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_text
+    assert "C:\\Users" not in launcher_text
+    assert "Desktop" not in launcher_text
+    assert "Downloads" not in launcher_text
+    assert "AppData" not in launcher_text
+    assert "SCORE_ARTIFACT_DIR" in launcher_text
+    assert "--checkpoint-output-dir \"%CHECKPOINT_DIR%\"" in launcher_text
+    assert "scripts\\export-checkpoint-scores" in launcher_text
+    assert "scripts\\evaluate-neural-ensemble" in launcher_text
+    assert "row0001_present_zhang_wang_keras_mcnd_seed0.pt" in launcher_text
+    assert "row0002_present_nibble_invp_only_spn_only_seed0.pt" in launcher_text
+    assert "row0003_present_nibble_ddt_graph_seed0.pt" in launcher_text
+    assert "--eval-row-index 0" in launcher_text
+    assert "--eval-row-index 1" in launcher_text
+    assert "--eval-row-index 2" in launcher_text
+    assert "neural_ensemble_summary.json" in launcher_text
+    assert "score_artifacts" in monitor_text
+    assert "checkpoints" in monitor_text
+    assert "neural_ensemble_summary.json" in monitor_text
+    assert "completed_missing_or_incomplete_results" in monitor_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 
