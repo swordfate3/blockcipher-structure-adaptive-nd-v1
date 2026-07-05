@@ -73,6 +73,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "difference_screen",
             "integral_inverse_feature",
             "r9_weak_probe",
+            "r8_pairset_1m",
         ],
         default="invp",
         help="Which local postprocess entrypoint to emit when the result is ready.",
@@ -1078,6 +1079,8 @@ def _postprocess_script(kind: str) -> str:
         return "scripts/postprocess-integral-inverse-feature"
     if kind == "r9_weak_probe":
         return "scripts/postprocess-r9-weak-probe"
+    if kind == "r8_pairset_1m":
+        return "scripts/postprocess-r8-pairset-1m"
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
@@ -1112,6 +1115,8 @@ def _default_expected_rows(kind: str) -> int:
         return 3
     if kind == "r9_weak_probe":
         return 3
+    if kind == "r8_pairset_1m":
+        return 2
     raise ValueError(f"unsupported postprocess kind: {kind}")
 
 
