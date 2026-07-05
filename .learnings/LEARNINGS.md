@@ -1343,3 +1343,60 @@ family.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-005] best_practice
+
+**Logged**: 2026-07-06T02:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not reopen candidate-trail as a main route from weak local low-dimensional feature probes alone.
+
+### Details
+After the aligned active-difference route was reduced to a deterministic
+baseline, candidate-evidence was rechecked as a possible non-neighbor feature
+family. The local low-dimensional probe on PRESENT r7 official Case2 found
+repeated weak top-axis composite signal:
+
+```text
+seed17 top-axis composite AUC = 0.5382152795791626
+seed17 best axis = 285, AUC advantage = 0.03317534923553467
+seed18 top-axis composite AUC = 0.5390714406967163
+seed18 best axis = 64, AUC advantage = 0.025446653366088867
+```
+
+This is useful route-selection information, but it does not overturn the
+retrieved 262144/class candidate-trail gate:
+
+```text
+best candidate-trail AUC = 0.703854276799
+InvP anchor AUC = 0.793651987187
+shuffled-cell control AUC = 0.702488259296
+decision = stop_candidate_trail_route
+```
+
+Correct framing:
+
+- The local probe is weak-positive but semantically/positionally unstable.
+- It is not enough to reopen candidate-trail seed1 or remote scale.
+- Candidate-trail remains stopped as a main route unless a genuinely different
+  representation or control beats the InvP anchor and shuffled-cell control.
+
+### Suggested Action
+Use candidate-evidence low-dimensional probes only as cheap route-selection
+screens. Before spending remote time, require stability across seeds and a
+control that separates true candidate evidence from shuffled-cell evidence.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-candidate-trail-consistency-plan.md, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py
+- Tags: innovation1, spn, present, candidate-trail, feature-probe, diverse-experts
+- See Also: LRN-20260706-004, LRN-20260705-003, LRN-20260705-002
+- Pattern-Key: innovation1.spn_present.candidate_trail_lowdim_probe_not_reopen_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---

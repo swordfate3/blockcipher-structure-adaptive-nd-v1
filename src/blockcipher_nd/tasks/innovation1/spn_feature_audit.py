@@ -14,6 +14,7 @@ from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.registry.difference_profiles import difference_for_profile
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.features.registry import pair_bits_for_encoding
+from blockcipher_nd.tasks.innovation1.spn_candidate.dataset import make_candidate_dataset
 from blockcipher_nd.tasks.innovation1.protocols import OFFICIAL_ZHANG_WANG_CASE2_MCND
 from blockcipher_nd.training.metrics import binary_auc
 
@@ -47,6 +48,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--output", default="outputs/innovation1/spn_feature_separation_audit.json")
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
+    parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--row-index", type=int, default=0)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     return parser.parse_args(argv)
@@ -54,6 +56,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.candidate_evidence_feature_probe_config is not None:
+        config = json.loads(args.candidate_evidence_feature_probe_config.read_text(encoding="utf-8"))
+        payload = candidate_evidence_feature_probe_from_config(
+            config,
+            samples_per_class=args.samples_per_class,
+            seed=args.seed,
+            key_split=args.key_split,
+            top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
     if args.beamstats_attribution_plan is not None:
         tasks = tasks_from_plan(
             args.beamstats_attribution_plan,
@@ -207,6 +224,97 @@ def audit_dataset(
     }
 
 
+def candidate_evidence_feature_probe_from_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None = None,
+    seed: int | None = None,
+    key_split: str = "validation",
+    top_k: int = 12,
+) -> dict[str, Any]:
+    if key_split not in {"train", "validation"}:
+        raise ValueError("key_split must be train or validation")
+
+    resolved = _candidate_probe_config(config, samples_per_class=samples_per_class, seed=seed, key_split=key_split)
+    input_difference = difference_for_profile(resolved["difference_profile"], resolved["difference_member"])
+    features, labels = make_candidate_dataset(
+        rounds=resolved["rounds"],
+        key=resolved["key"],
+        input_difference=input_difference,
+        seed=resolved["seed"],
+        samples_per_class=resolved["samples_per_class"],
+        pairs_per_sample=resolved["pairs_per_sample"],
+        negative_mode=resolved["negative_mode"],
+        sample_structure=resolved["sample_structure"],
+        key_rotation_interval=resolved["key_rotation_interval"],
+        beam_width=resolved["beam_width"],
+        depth=resolved["depth"],
+        feature_mode=resolved["feature_mode"],
+        feature_cache_root=None,
+        split=key_split,
+    )
+    labels = labels.astype(np.uint8, copy=False)
+    axis_scores = _feature_axis_scores(features.astype(np.float64, copy=False), labels)
+    top_indices = _top_indices(axis_scores["auc_advantage"], top_k)
+    top_rows = _top_feature_rows(axis_scores, top_indices)
+    feature_names = _candidate_feature_axis_names(
+        feature_dim=features.shape[1],
+        feature_mode=resolved["feature_mode"],
+    )
+    composite_scores = _oriented_zscore_composite(features, labels, top_indices)
+    composite = _scalar_statistic_report(composite_scores, labels.astype(np.float32, copy=False))
+    best_axis = top_rows[0] if top_rows else {
+        "index": 0,
+        "positive_mean": 0.0,
+        "negative_mean": 0.0,
+        "mean_delta": 0.0,
+        "cohen_d": 0.0,
+        "auc": 0.5,
+        "auc_advantage": 0.0,
+    }
+    decision = (
+        "candidate_evidence_lowdim_probe_positive"
+        if max(float(best_axis["auc_advantage"]), composite["auc_advantage"]) >= 0.02
+        else "candidate_evidence_lowdim_probe_weak_or_negative"
+    )
+    return {
+        "status": "pass",
+        "audit": "candidate_evidence_feature_probe",
+        "rounds": resolved["rounds"],
+        "samples_per_class": resolved["samples_per_class"],
+        "seed": resolved["seed"],
+        "key_split": key_split,
+        "sample_structure": resolved["sample_structure"],
+        "negative_mode": resolved["negative_mode"],
+        "pairs_per_sample": resolved["pairs_per_sample"],
+        "difference_profile": resolved["difference_profile"],
+        "difference_member": resolved["difference_member"],
+        "input_difference": input_difference,
+        "beam_width": resolved["beam_width"],
+        "depth": resolved["depth"],
+        "feature_mode": resolved["feature_mode"],
+        "feature_dim": int(features.shape[1]),
+        "best_axis": {
+            **best_axis,
+            "name": feature_names[int(best_axis["index"])] if feature_names else f"axis_{best_axis['index']}",
+        },
+        "top_axes": {
+            "feature_names": [feature_names[index] for index in top_indices],
+            "rows": top_rows,
+        },
+        "composite": {
+            **composite,
+            "axis_indices": top_indices,
+            "combiner": "top_axis_oriented_zscore_mean",
+        },
+        "decision": decision,
+        "claim_scope": (
+            "Local candidate-evidence feature probe only; not neural training, "
+            "not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
 def beamstats_attribution_from_task(
     task: dict[str, Any],
     *,
@@ -303,6 +411,59 @@ def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, 
         "auc": auc,
         "auc_advantage": np.abs(auc - 0.5),
     }
+
+
+def _candidate_probe_config(
+    config: dict[str, Any],
+    *,
+    samples_per_class: int | None,
+    seed: int | None,
+    key_split: str,
+) -> dict[str, Any]:
+    key_field = "validation_key" if key_split == "validation" else "train_key"
+    return {
+        "rounds": int(config.get("rounds", 7)),
+        "seed": int(config.get("seed", 0) if seed is None else seed),
+        "samples_per_class": int(config.get("samples_per_class", 4096) if samples_per_class is None else samples_per_class),
+        "pairs_per_sample": int(config.get("pairs_per_sample", 16)),
+        "negative_mode": str(config.get("negative_mode", "encrypted_random_plaintexts")),
+        "sample_structure": str(config.get("sample_structure", OFFICIAL_ZHANG_WANG_CASE2_MCND)),
+        "difference_profile": str(config.get("difference_profile", "present_zhang_wang2022_mcnd")),
+        "difference_member": int(config.get("difference_member", 0)),
+        "key": _parse_int_like(config.get(key_field, config.get("train_key", 0))),
+        "key_rotation_interval": int(config.get("key_rotation_interval", 0)),
+        "beam_width": int(config.get("beam_width", 4)),
+        "depth": int(config.get("depth", 3)),
+        "feature_mode": str(config.get("feature_mode", "aggregate")),
+    }
+
+
+def _parse_int_like(value: Any) -> int:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        return int(value, 0)
+    return int(value)
+
+
+def _candidate_feature_axis_names(*, feature_dim: int, feature_mode: str) -> list[str]:
+    return [f"{feature_mode}_axis_{index}" for index in range(feature_dim)]
+
+
+def _oriented_zscore_composite(features: np.ndarray, labels: np.ndarray, axis_indices: list[int]) -> np.ndarray:
+    if not axis_indices:
+        return np.zeros(features.shape[0], dtype=np.float64)
+    columns = []
+    for index in axis_indices:
+        scores = features[:, index].astype(np.float64, copy=False)
+        auc = binary_auc(labels, scores)
+        oriented = scores if auc >= 0.5 else -scores
+        std = float(oriented.std())
+        if std <= 0.0:
+            columns.append(np.zeros_like(oriented, dtype=np.float64))
+        else:
+            columns.append((oriented - float(oriented.mean())) / std)
+    return np.stack(columns, axis=1).mean(axis=1)
 
 
 def _ciphertext_pair_rows_to_words(

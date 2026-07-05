@@ -12831,6 +12831,92 @@ def test_audit_spn_features_cli_writes_beamstats_attribution(tmp_path):
     assert payload["best_statistic"]["name"] in payload["statistics"]
 
 
+def test_candidate_evidence_feature_probe_reports_lowdim_axis_and_composite():
+    config = {
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 4,
+        "pairs_per_sample": 2,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "key_rotation_interval": 0,
+        "beam_width": 2,
+        "depth": 2,
+        "feature_mode": "aggregate",
+    }
+
+    report = spn_feature_audit.candidate_evidence_feature_probe_from_config(
+        config,
+        samples_per_class=4,
+        seed=123,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "candidate_evidence_feature_probe"
+    assert report["feature_mode"] == "aggregate"
+    assert report["samples_per_class"] == 4
+    assert report["feature_dim"] > 0
+    assert report["best_axis"]["index"] >= 0
+    assert 0.0 <= report["best_axis"]["auc_advantage"] <= 0.5
+    assert "feature_names" in report["top_axes"]
+    assert 0.0 <= report["composite"]["auc_advantage"] <= 0.5
+    assert report["decision"] in {
+        "candidate_evidence_lowdim_probe_positive",
+        "candidate_evidence_lowdim_probe_weak_or_negative",
+    }
+    assert "not neural training" in report["claim_scope"]
+
+
+def test_audit_spn_features_cli_writes_candidate_evidence_feature_probe(tmp_path):
+    config_path = tmp_path / "candidate_config.json"
+    output = tmp_path / "candidate_feature_probe.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "rounds": 7,
+                "seed": 0,
+                "samples_per_class": 4,
+                "pairs_per_sample": 2,
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "zhang_wang_case2_official_mcnd",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "validation_key": "0x11111111111111111111",
+                "key_rotation_interval": 0,
+                "beam_width": 2,
+                "depth": 2,
+                "feature_mode": "aggregate",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = audit_spn_features_main(
+        [
+            "--candidate-evidence-feature-probe-config",
+            str(config_path),
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--key-split",
+            "validation",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "candidate_evidence_feature_probe"
+    assert payload["feature_mode"] == "aggregate"
+    assert "best_axis" in payload
+    assert "composite" in payload
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"

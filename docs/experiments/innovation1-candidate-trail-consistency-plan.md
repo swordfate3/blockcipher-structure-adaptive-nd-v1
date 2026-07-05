@@ -587,3 +587,58 @@ seed, and attribution gates most cleanly.
 | Summary Markdown | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_postprocess_summary.md` |
 | Next action readiness | `outputs/remote_results/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702/i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702_next_action_readiness.json` |
 <!-- candidate-trail-postprocess:i1_candidate_trail_consistency_r7_262k_seed0_gpu1_20260702:end -->
+
+## Local Low-Dimensional Feature Probe
+
+After the r8 aligned active-difference route was reduced to a deterministic
+baseline, candidate-evidence was rechecked as a possible non-neighbor feature
+family. This was deliberately a local feature probe, not a retraining attempt:
+it uses the existing candidate-evidence feature generator, ranks individual
+feature axes by AUC advantage, and evaluates a top-axis oriented z-score
+composite. The goal is to decide whether this family deserves renewed
+attention before neural or ensemble work.
+
+Command shape:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --candidate-evidence-feature-probe-config configs/experiment/innovation1/innovation1_spn_present_candidate_trail_consistency_smoke.json \
+  --samples-per-class 2048 \
+  --seed 17 \
+  --key-split validation \
+  --top-k 12 \
+  --output outputs/local_audits/i1_candidate_evidence_lowdim_probe_r7_case2_seed17_2048.json
+```
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_candidate_evidence_lowdim_probe_r7_case2_seed17_2048.json
+outputs/local_audits/i1_candidate_evidence_lowdim_probe_r7_case2_seed18_2048.json
+```
+
+Results:
+
+| Seed | Feature mode | Best axis | Best axis AUC advantage | Top-axis composite AUC | Composite best accuracy | Decision |
+|---:|---|---:|---:|---:|---:|---|
+| `17` | `cell_structured` | `285` | `0.03317534923553467` | `0.5382152795791626` | `0.52978515625` | `candidate_evidence_lowdim_probe_positive` |
+| `18` | `cell_structured` | `64` | `0.025446653366088867` | `0.5390714406967163` | `0.52783203125` | `candidate_evidence_lowdim_probe_positive` |
+
+Interpretation:
+
+```text
+The local low-dimensional probe finds a repeated weak signal around AUC 0.538-
+0.539, but the best axis changes across seeds and the prior 262144/class
+candidate-trail training gate already stopped this route: best candidate AUC
+0.703854276799 versus InvP anchor AUC 0.793651987187, with shuffled-cell
+control AUC 0.702488259296 close to the candidate.
+```
+
+Decision update:
+
+```text
+do_not_reopen_candidate_trail_as_main_route
+do_not_launch_candidate_trail_seed1_or_remote_scale_from_this_probe
+keep the low-dimensional probe as weak local route-selection evidence only
+search for a different non-neighbor SPN representation before ensemble work
+```
