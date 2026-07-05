@@ -80,7 +80,10 @@ from blockcipher_nd.cli import (
     spn_trail_family_matrix,
     spn_active_auxiliary_matrix,
 )
-from blockcipher_nd.cli.audit_integral_parity_signal import integral_parity_audit_from_task
+from blockcipher_nd.cli.audit_integral_parity_signal import (
+    integral_alignment_audit_from_task,
+    integral_parity_audit_from_task,
+)
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
 
 
@@ -12255,6 +12258,34 @@ def test_integral_parity_audit_matched_negative_removes_pair_xor_separator():
     assert report["interpretation"] == "parity_statistic_does_not_explain_result_by_itself"
 
 
+def test_integral_alignment_audit_reports_pair_order_statistics():
+    plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_inverse_feature_screen_smoke.csv"
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+    task["sample_structure"] = "plaintext_integral_nibble_matched_negative"
+
+    report = integral_alignment_audit_from_task(
+        task,
+        samples_per_class=32,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "integral_pair_alignment"
+    assert report["sample_structure"] == "plaintext_integral_nibble_matched_negative"
+    assert set(report["statistics"]) == {
+        "same_index_xor_hw_mean",
+        "shifted_index_xor_hw_mean",
+        "same_minus_shifted_xor_hw_mean",
+    }
+    for statistic in report["statistics"].values():
+        assert statistic["positive"]["count"] == 32
+        assert statistic["negative"]["count"] == 32
+        assert 0.5 <= statistic["best_threshold"]["accuracy"] <= 1.0
+    assert report["best_statistic"]["name"] in report["statistics"]
+    assert "Deterministic local data-structure audit only" in report["claim_scope"]
+
+
 def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
     plan = "configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv"
     args = parse_args(["--plan", plan])
@@ -12272,6 +12303,46 @@ def test_present_r8_integral_matched_negative_probe_plan_is_local_control():
         "present_pair_xor_paligned_sinv_cell_matrix_bits",
     }
     assert all("SMOKE only" in task["matching_evidence"] for task in tasks)
+
+
+def test_present_r8_integral_matched_negative_probe_seed1_keeps_same_protocol():
+    seed0_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_matched_negative_probe_smoke.csv"
+    )
+    seed1_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_integral_matched_negative_probe_smoke_seed1.csv"
+    )
+
+    seed0_tasks = build_tasks(parse_args(["--plan", seed0_plan]))
+    seed1_tasks = build_tasks(parse_args(["--plan", seed1_plan]))
+
+    assert len(seed1_tasks) == len(seed0_tasks) == 3
+    assert {task["seed"] for task in seed1_tasks} == {1}
+    for seed0_task, seed1_task in zip(seed0_tasks, seed1_tasks, strict=True):
+        comparable_keys = {
+            "model_key",
+            "rounds",
+            "samples_per_class",
+            "pairs_per_sample",
+            "feature_encoding",
+            "negative_mode",
+            "sample_structure",
+            "integral_active_nibble",
+            "difference_profile",
+            "difference_member",
+            "loss",
+            "learning_rate",
+            "optimizer",
+            "weight_decay",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "model_options",
+        }
+        assert {key: seed1_task[key] for key in comparable_keys} == {
+            key: seed0_task[key] for key in comparable_keys
+        }
 
 
 def test_present_nibble_paligned_view_encodes_delta_and_inverse_p_layer():

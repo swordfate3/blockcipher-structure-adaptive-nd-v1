@@ -289,10 +289,33 @@ InvP matrix AUC = 0.530761718750
 InvP+Sinv matrix AUC = 0.547485351562
 ```
 
-The next step is still local, not remote: repeat the matched-negative probe with
-a different seed and add deterministic pair-alignment audits. If the raw-pair
-signal survives those controls, write a lean controlled confirmation plan. If
-it collapses, switch to Candidate B and build a smaller SPN-derived feature
+A second local matched-negative smoke/probe has now been run with `seed = 1`:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke_seed1.csv
+samples_per_class = 256
+validation_samples_per_class = 128
+raw-pair AUC = 0.877990722656
+InvP matrix AUC = 0.530029296875
+InvP+Sinv matrix AUC = 0.574340820312
+```
+
+The follow-up deterministic audits at `2048/class`, audit seed `11`, show:
+
+```text
+pair-xor parity best accuracy = 0.5
+pair-alignment best statistic = same_index_xor_hw_mean
+pair-alignment best accuracy = 0.546630859375
+```
+
+This changes the immediate reading slightly: the matched-negative raw-pair
+signal is not explained by the two simplest deterministic controls checked so
+far, and it survived a second tiny seed. However, it is still only a local
+smoke with `256/class` training and `128/class` validation, so it should not
+consume a remote slot yet. The next step is a local deterministic feature audit
+or shallow-probe control for the raw matched-negative pair route. If that
+identifies a nontrivial controlled statistic, write a lean confirmation plan.
+If it collapses, switch to Candidate B and build a smaller SPN-derived feature
 probe. Keep Candidate C as a secondary validator, not the next remote launch.
 
 The current priority is therefore:

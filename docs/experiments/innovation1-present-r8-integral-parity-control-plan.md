@@ -299,6 +299,89 @@ deterministic pair-alignment audit. Do not launch remote training until those
 controls distinguish artifact from residual SPN signal.
 ```
 
+## Seed Repeat And Pair-Alignment Audit
+
+The second local matched-negative smoke/probe used the same protocol with
+`seed = 1`:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_integral_matched_negative_probe_smoke_seed1.csv
+output = outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke_seed1/results.jsonl
+samples_per_class = 256
+validation_samples_per_class = 128
+epochs = 3
+device = cpu
+```
+
+Result:
+
+| Row | Feature | AUC | Calibrated accuracy | Accuracy |
+|---|---|---:|---:|---:|
+| Raw pair | `ciphertext_pair_bits` | `0.877990722656` | `0.800781250000` | `0.578125000000` |
+| InvP matrix | `present_pair_xor_paligned_cell_matrix_bits` | `0.530029296875` | `0.546875000000` | `0.500000000000` |
+| InvP+Sinv matrix | `present_pair_xor_paligned_sinv_cell_matrix_bits` | `0.574340820312` | `0.578125000000` | `0.500000000000` |
+
+Plot/history artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke_seed1/curves.svg
+outputs/local_smoke/i1_present_r8_integral_matched_negative_probe_smoke_seed1/history.csv
+```
+
+Deterministic parity audit for the seed1 plan, generated at `2048/class` with
+audit seed `11`, still removes the explicit separator:
+
+```text
+artifact = outputs/local_audits/r8_integral_matched_negative_parity_audit_seed11_2048.json
+positive_pair_xor_parity_hw.zero_rate = 1.0
+negative_pair_xor_parity_hw.zero_rate = 1.0
+best threshold = parity_hw <= 0
+accuracy = 0.5
+interpretation = parity_statistic_does_not_explain_result_by_itself
+```
+
+A new pair-alignment audit checks three simple deterministic statistics:
+
+```text
+same_index_xor_hw_mean
+shifted_index_xor_hw_mean
+same_minus_shifted_xor_hw_mean
+```
+
+For the same seed1 plan and audit seed `11`:
+
+```text
+artifact = outputs/local_audits/r8_integral_matched_negative_alignment_audit_seed11_2048.json
+best statistic = same_index_xor_hw_mean
+best threshold accuracy = 0.546630859375
+positive same_index_xor_hw_mean = 31.9224853515625
+negative same_index_xor_hw_mean = 31.95086669921875
+```
+
+Interpretation:
+
+```text
+The matched-negative raw-pair smoke signal survives a second tiny seed, while
+the explicit pair-xor parity leak and the simple pair-order alignment
+statistics remain near chance. This makes the residual raw-pair signal worth a
+controlled local follow-up, but not a remote launch or architecture claim.
+```
+
+Decision:
+
+```text
+keep_as_local_control_candidate
+```
+
+Next action:
+
+```text
+Build a lean deterministic feature audit / shallow-probe control for the raw
+matched-negative pair route. The next remote slot should still wait until a
+nontrivial controlled statistic or same-budget local probe explains why the raw
+pair rows are positive while InvP/Sinv matrix rows remain weak.
+```
+
 ## Claim Scope
 
 Allowed after this plan's local control:

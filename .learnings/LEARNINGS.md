@@ -91,7 +91,7 @@ Create and use a `diverse expert pool` plan for future SPN/PRESENT ensemble work
 
 **Logged**: 2026-07-05T23:55:00+08:00
 **Priority**: high
-**Status**: pending
+**Status**: promoted
 **Area**: research
 
 ### Summary
@@ -133,9 +133,15 @@ Before launching the next Innovation 1 SPN/PRESENT experiment, write or update t
 - Tags: innovation1, spn, route-selection, literature-refresh, independent-judgment, neural-ensemble
 - See Also: LRN-20260705-002, LRN-20260630-001
 - Pattern-Key: innovation1.spn_present.independent_literature_ranked_route_selection
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-05
-- Last-Seen: 2026-07-05
+- Last-Seen: 2026-07-06
+- Promoted: AGENTS.md
+
+### Resolution
+- **Resolved**: 2026-07-06T00:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Promoted a concise rule to `AGENTS.md`: user-proposed routes are hypotheses that must be ranked against literature, local evidence, same-budget baselines, and controls before consuming meaningful experiment slots.
 
 ---
 
