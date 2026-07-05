@@ -12554,6 +12554,44 @@ def test_present_r8_integral_aligned_neural_followup_plan_has_baseline_gate():
     assert all("pair_xor_column_sum_variance" in task["literature"] for task in tasks)
 
 
+def test_present_r8_gpd_style_beamstats_smoke_plan_uses_existing_partial_inverse_features():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert [task["feature_encoding"] for task in tasks] == [
+        "present_pair_xor_paligned_cell_matrix_bits",
+        "present_pair_xor_paligned_sinv_cell_matrix_bits",
+        "present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits",
+        "present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits",
+    ]
+    assert [task["model_key"] for task in tasks] == [
+        "present_matrix_trail_hybrid_pairset_invp",
+        "present_matrix_trail_hybrid_pairset_invp_sinv",
+        "present_matrix_trail_hybrid_pairset_invp_sinv",
+        "present_matrix_trail_hybrid_pairset_invp_sinv",
+    ]
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {128}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["sample_structure"] for task in tasks} == {
+        "plaintext_integral_nibble_difference_matched_negative"
+    }
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["difference_profile"] for task in tasks} == {"present_zhang_wang2022_mcnd"}
+    assert {task["integral_active_nibble"] for task in tasks} == {0}
+    assert {task["checkpoint_metric"] for task in tasks} == {"val_auc"}
+    assert all("LOCAL SMOKE only" in task["matching_evidence"] for task in tasks)
+    assert all("GPD-style partial inverse" in task["matching_evidence"] for task in tasks)
+
+    plan_doc = Path("docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md")
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "Generic Partial Decryption" in plan_text
+    assert "do not duplicate the existing single-step Sinv feature" in plan_text
+
+
 def test_present_r8_integral_multi_active_difference_control_plan_is_local_audit_only():
     plan = (
         "configs/experiment/innovation1/"

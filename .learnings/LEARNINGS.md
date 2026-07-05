@@ -271,6 +271,73 @@ Before scaling the r8 matched-negative integral route, use `pair_xor_column_sum_
 
 ---
 
+## [LRN-20260706-002] best_practice
+
+**Logged**: 2026-07-06T01:30:57+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not re-add PRESENT single-step structural inverse-S as a new GPD feature; it already exists as the Sinv encoding.
+
+### Details
+During the independent SPN route re-check, the next plausible literature-backed
+direction was Generic Partial Decryption / partial inverse feature engineering.
+Code inspection showed that the repository already has the key single-step
+zero-key inverse route:
+
+```text
+present_pair_xor_paligned_sinv_cell_matrix_bits
+```
+
+Its helper computes:
+
+```text
+S^{-1}(P^{-1}(C)) xor S^{-1}(P^{-1}(C'))
+```
+
+Therefore adding a new feature under a GPD name with the same semantics would
+duplicate existing evidence and risk falsely presenting an old route as a new
+SPN adaptation. The better local screen is to use existing multi-round DDT /
+partial-inverse candidate-path encodings, such as:
+
+```text
+present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits
+present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits
+```
+
+A first seed0 local smoke at `128/class` found only a tiny weak-positive beam
+candidate:
+
+```text
+InvP control AUC = 0.496337890625
+Sinv control AUC = 0.44287109375
+DDT beam AUC = 0.5145263671875
+DDT beamstats AUC = 0.462158203125
+```
+
+This is not remote-launch evidence. It only suggests that expanded DDT beam
+paths are a more plausible next local repeat than compressed beamstats.
+
+### Suggested Action
+When continuing the GPD-style branch, compare against the existing Sinv control
+and prefer multi-round DDT/partial-inverse path statistics. Require at least a
+seed1 local repeat before any `65536/class` diagnostic plan, and do not launch
+remote from the seed0 smoke alone.
+
+### Metadata
+- Source: conversation
+- Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/features/encoders/present_sbox_ddt.py, configs/experiment/innovation1/innovation1_spn_present_r8_gpd_style_beamstats_smoke.csv, docs/experiments/innovation1-present-r8-gpd-style-beamstats-plan.md
+- Tags: innovation1, spn, present, gpd, partial-inverse, sinv, ddt-beam
+- See Also: LRN-20260705-003, LRN-20260706-001
+- Pattern-Key: innovation1.spn_present.gpd_do_not_duplicate_existing_sinv
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260630-001] correction
 
 **Logged**: 2026-06-30T00:00:00+08:00
