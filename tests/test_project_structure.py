@@ -9810,6 +9810,28 @@ def test_difference_screen_postprocess_writes_summary_and_updates_plan_doc(tmp_p
     assert plan_text.count("<!-- difference-screen-postprocess:difference_screen_unit:start -->") == 1
 
 
+def test_difference_screen_postprocess_rejects_incomplete_result_rows(tmp_path):
+    results = tmp_path / "difference_screen_incomplete.jsonl"
+    _write_difference_screen_result(results, "present_zhang_wang2022_mcnd", 0, 0.512)
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_difference_screen_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="difference_screen_incomplete_unit",
+        expected_rows=7,
+    )
+
+    assert report["status"] == "fail"
+    assert report["validation_status"] == "not_run"
+    assert report["difference_screen_status"] == "fail"
+    assert report["next_action"]["branch"] == "invalid"
+    gate = json.loads(Path(report["difference_screen_gate"]).read_text(encoding="utf-8"))
+    assert gate["result_rows"] == 1
+    assert gate["expected_rows"] == 7
+    assert any("result_rows=1 expected_rows=7" in error for error in gate["errors"])
+
+
 def test_monitor_health_emits_difference_screen_postprocess_command_when_result_ready(tmp_path):
     run_id = "difference_screen_monitor_unit"
     run_root = tmp_path / run_id
@@ -10552,6 +10574,44 @@ def test_integral_inverse_feature_postprocess_writes_summary_and_updates_plan_do
     )
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert plan_text.count("<!-- integral-inverse-feature-postprocess:integral_inverse_feature_unit:start -->") == 1
+
+
+def test_integral_inverse_feature_postprocess_rejects_incomplete_result_rows(tmp_path):
+    results = tmp_path / "integral_inverse_feature_incomplete.jsonl"
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_nibble_invp_pair_consistency_spn_only",
+        architecture_rank=0,
+        model="present_nibble_invp_pair_consistency_spn_only",
+        feature_encoding="ciphertext_pair_bits",
+        auc=0.552,
+    )
+    _write_integral_inverse_feature_result(
+        results,
+        architecture="present_matrix_trail_hybrid_pairset_invp",
+        architecture_rank=1,
+        model="present_matrix_trail_hybrid_pairset_invp",
+        feature_encoding="present_pair_xor_paligned_cell_matrix_bits",
+        auc=0.556,
+    )
+    output_dir = tmp_path / "postprocess"
+
+    report = postprocess_integral_inverse_feature_result(
+        results_path=results,
+        output_dir=output_dir,
+        run_id="integral_inverse_feature_incomplete_unit",
+        expected_rows=3,
+    )
+
+    assert report["status"] == "fail"
+    assert report["validation_status"] == "not_run"
+    assert report["integral_inverse_feature_status"] == "fail"
+    assert report["decision"] == "invalid_integral_inverse_feature_result"
+    assert report["next_action"]["branch"] == "invalid"
+    gate = json.loads(Path(report["integral_inverse_feature_gate"]).read_text(encoding="utf-8"))
+    assert gate["actual_rows"] == 2
+    assert gate["expected_rows"] == 3
+    assert any("expected_rows=3 actual_rows=2" in error for error in gate["errors"])
 
 
 def test_integral_inverse_feature_advance_runs_postprocess_and_writes_summary(tmp_path):
