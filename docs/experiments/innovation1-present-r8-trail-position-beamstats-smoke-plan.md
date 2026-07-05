@@ -463,3 +463,91 @@ Updated route gate:
    frozen scores and passes an error-overlap/diversity check against the r7
    InvP/P-layer anchor and near-neighbor controls.
 ```
+
+## Trail-Position Control Baseline
+
+Implementation:
+
+```text
+CLI = scripts/audit-spn-features --trail-position-control-baseline-plan ...
+API = trail_position_control_baseline_from_task
+baseline = train-selected position-statistics split baseline
+controls = active_nibble_1, input_difference_0x90, pair_order_reverse
+scale = 512/class
+```
+
+This audit asks whether the deterministic trail-position signal is specific to
+the active-nibble/difference alignment or whether it survives obvious control
+perturbations. Each variant fits its own train-selected deterministic composite
+and evaluates on the validation key.
+
+Commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 1 \
+  --samples-per-class 512 \
+  --seed 0 \
+  --top-k 16 \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_512.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv \
+  --row-index 3 \
+  --samples-per-class 512 \
+  --seed 1 \
+  --top-k 16 \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_512.json
+```
+
+Results:
+
+| Seed | Variant | Validation composite AUC | Validation best accuracy |
+|---:|---|---:|---:|
+| 0 | baseline | `0.7695465087890625` | `0.703125` |
+| 0 | active_nibble_1 | `0.49724578857421875` | `0.515625` |
+| 0 | input_difference_0x90 | `0.5139007568359375` | `0.5322265625` |
+| 0 | pair_order_reverse | `0.7695465087890625` | `0.703125` |
+| 1 | baseline | `0.8455047607421875` | `0.7734375` |
+| 1 | active_nibble_1 | `0.49993133544921875` | `0.521484375` |
+| 1 | input_difference_0x90 | `0.5224685668945312` | `0.5302734375` |
+| 1 | pair_order_reverse | `0.8455047607421875` | `0.7734375` |
+
+Control decision:
+
+```text
+trail_position_signal_requires_active_difference_alignment
+pair_order_not_current_bottleneck
+```
+
+Interpretation:
+
+```text
+The active-nibble and input-difference controls collapse near chance across
+both seeds, so the deterministic signal is not a generic artifact of the
+matched-negative integral sample structure. It depends on the alignment between
+the active plaintext nibble and the chosen input difference.
+
+The pair-order reversal control exactly matches the baseline because the
+selected features are dominated by order-invariant span/range statistics. This
+is useful negative evidence against spending the next model slot on pair-order
+sequence modeling for this route.
+```
+
+Updated next action:
+
+```text
+1. Keep trail-position as a controlled local SPN/integral representation
+   candidate.
+2. Do not remote-launch yet.
+3. Do not prioritize pair-order models for this route.
+4. If training another neural candidate, require it to beat the deterministic
+   split baseline and include active-nibble/difference mismatch controls.
+```

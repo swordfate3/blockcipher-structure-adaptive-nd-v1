@@ -225,6 +225,41 @@ trust the current high neural AUC. The best current path is a controlled
 SPN-aware representation route, with multi-network aggregation reserved for
 later diversity validation.
 
+### 512/Class Control Baseline Update
+
+The first deterministic control suite was run for the trail-position route at
+`512/class` on seeds `0` and `1`:
+
+```text
+baseline = train-selected deterministic position-statistics split baseline
+controls = active_nibble_1, input_difference_0x90, pair_order_reverse
+feature = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+```
+
+| Seed | Baseline AUC | Active-nibble control AUC | Difference control AUC | Pair-order reverse AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.7695465087890625` | `0.49724578857421875` | `0.5139007568359375` | `0.7695465087890625` |
+| 1 | `0.8455047607421875` | `0.49993133544921875` | `0.5224685668945312` | `0.8455047607421875` |
+
+Route implication:
+
+```text
+The signal is specific to active-nibble/input-difference alignment and is not
+just generic matched-negative integral leakage. However, it is order-invariant
+under pair reversal, so pair-order sequence modeling is not the current
+bottleneck.
+```
+
+Updated priority:
+
+| Rank | Route | Decision |
+|---:|---|---|
+| 1 | Active/difference-aligned SPN position statistics | Continue locally with deterministic baseline and mismatch controls. |
+| 2 | Neural residual over order-invariant span/range statistics | Test only against the split baseline; require active/difference mismatch controls. |
+| 3 | Pair-order-sensitive trail models | Hold unless a new statistic shows pair-order sensitivity. Current selected features are span/range dominated. |
+| 4 | Diverse expert aggregation | Still later. Require compatible frozen scores plus low error overlap before aggregation. |
+
 ## References Used
 
 - `docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md`

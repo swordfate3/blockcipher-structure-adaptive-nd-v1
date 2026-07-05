@@ -59,6 +59,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--beamstats-attribution-plan", type=Path, default=None)
     parser.add_argument("--trail-position-attribution-plan", type=Path, default=None)
     parser.add_argument("--trail-position-split-baseline-plan", type=Path, default=None)
+    parser.add_argument("--trail-position-control-baseline-plan", type=Path, default=None)
+    parser.add_argument("--control-active-nibbles", type=int, nargs="*", default=[])
+    parser.add_argument("--control-input-differences", type=lambda value: int(value, 0), nargs="*", default=[])
+    parser.add_argument("--control-pair-orders", choices=["reverse"], nargs="*", default=[])
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
@@ -198,6 +202,31 @@ def main(argv: list[str] | None = None) -> None:
             samples_per_class=args.samples_per_class,
             seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
             top_k=args.top_k,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    if args.trail_position_control_baseline_plan is not None:
+        tasks = tasks_from_plan(
+            args.trail_position_control_baseline_plan,
+            feature_encoding=None,
+            pairs_per_sample=None,
+            difference_profile=None,
+            difference_member=0,
+        )
+        if args.row_index < 0 or args.row_index >= len(tasks):
+            raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
+        payload = trail_position_control_baseline_from_task(
+            tasks[args.row_index],
+            samples_per_class=args.samples_per_class,
+            seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
+            top_k=args.top_k,
+            active_nibbles=tuple(args.control_active_nibbles),
+            input_differences=tuple(args.control_input_differences),
+            pair_orders=tuple(args.control_pair_orders),
         )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -1400,18 +1429,21 @@ def trail_position_split_baseline_from_task(
     samples_per_class: int,
     seed: int | None = None,
     top_k: int = 16,
+    pair_order: str = "identity",
 ) -> dict[str, Any]:
     reference = _trail_position_stat_matrix_from_task(
         task,
         samples_per_class=samples_per_class,
         seed=seed,
         key_split="train",
+        pair_order=pair_order,
     )
     evaluation = _trail_position_stat_matrix_from_task(
         task,
         samples_per_class=samples_per_class,
         seed=seed,
         key_split="validation",
+        pair_order=pair_order,
     )
     if reference["stat_names"] != evaluation["stat_names"]:
         raise ValueError("train and validation trail-position statistic names differ")
@@ -1447,6 +1479,7 @@ def trail_position_split_baseline_from_task(
         "feature_encoding": task["feature_encoding"],
         "pairs_per_sample": task["pairs_per_sample"],
         "input_difference": task["input_difference"],
+        "pair_order": pair_order,
         "trail_depth": reference["trail_depth"],
         "trail_words_per_depth": reference["trail_words_per_depth"],
         "position_stat_dim": int(reference["stat_matrix"].shape[1]),
@@ -1479,12 +1512,115 @@ def trail_position_split_baseline_from_task(
     }
 
 
+def trail_position_control_baseline_from_task(
+    task: dict[str, Any],
+    *,
+    samples_per_class: int,
+    seed: int | None = None,
+    top_k: int = 16,
+    active_nibbles: tuple[int, ...] = (),
+    input_differences: tuple[int, ...] = (),
+    pair_orders: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    baseline = {
+        "variant_kind": "baseline",
+        "variant_label": "baseline",
+        "overrides": {},
+        "report": trail_position_split_baseline_from_task(
+            task,
+            samples_per_class=samples_per_class,
+            seed=seed,
+            top_k=top_k,
+        ),
+    }
+    controls = []
+    for active_nibble in active_nibbles:
+        variant_task = {**task, "integral_active_nibble": int(active_nibble)}
+        controls.append(
+            {
+                "variant_kind": "active_nibble",
+                "variant_label": f"active_nibble_{int(active_nibble)}",
+                "overrides": {"integral_active_nibble": int(active_nibble)},
+                "report": trail_position_split_baseline_from_task(
+                    variant_task,
+                    samples_per_class=samples_per_class,
+                    seed=seed,
+                    top_k=top_k,
+                ),
+            }
+        )
+    for input_difference in input_differences:
+        variant_task = {**task, "input_difference": int(input_difference)}
+        controls.append(
+            {
+                "variant_kind": "input_difference",
+                "variant_label": f"input_difference_0x{int(input_difference):x}",
+                "overrides": {"input_difference": int(input_difference)},
+                "report": trail_position_split_baseline_from_task(
+                    variant_task,
+                    samples_per_class=samples_per_class,
+                    seed=seed,
+                    top_k=top_k,
+                ),
+            }
+        )
+    for pair_order in pair_orders:
+        controls.append(
+            {
+                "variant_kind": "pair_order",
+                "variant_label": f"pair_order_{pair_order}",
+                "overrides": {"pair_order": pair_order},
+                "report": trail_position_split_baseline_from_task(
+                    task,
+                    samples_per_class=samples_per_class,
+                    seed=seed,
+                    top_k=top_k,
+                    pair_order=pair_order,
+                ),
+            }
+        )
+
+    baseline_auc = float(baseline["report"]["evaluation"]["composite"]["auc"])
+    control_aucs = [
+        float(control["report"]["evaluation"]["composite"]["auc"])
+        for control in controls
+    ]
+    max_control_auc = max(control_aucs) if control_aucs else None
+    return {
+        "status": "pass",
+        "audit": "present_trail_position_control_baseline",
+        "cipher_key": task["cipher_key"],
+        "rounds": task["rounds"],
+        "samples_per_class": samples_per_class,
+        "seed": task["seed"] if seed is None else seed,
+        "feature_encoding": task["feature_encoding"],
+        "sample_structure": task["sample_structure"],
+        "negative_mode": task["negative_mode"],
+        "top_k": top_k,
+        "baseline": baseline,
+        "controls": controls,
+        "summary": {
+            "baseline_validation_auc": baseline_auc,
+            "control_count": len(controls),
+            "max_control_validation_auc": max_control_auc,
+            "baseline_vs_max_control_auc_delta": (
+                baseline_auc - max_control_auc if max_control_auc is not None else None
+            ),
+        },
+        "claim_scope": (
+            "Local deterministic trail-position control audit only; not neural training, "
+            "not scale evidence, and not a remote launch gate."
+        ),
+    }
+
+
 def _trail_position_stat_matrix_from_task(
     task: dict[str, Any],
     *,
     samples_per_class: int,
     seed: int | None,
     key_split: str,
+    pair_order: str = "identity",
 ) -> dict[str, Any]:
     params = parse_parameterized_present_sboxddt_encoding(str(task["feature_encoding"]))
     if params is None or not bool(params["use_statistics"]):
@@ -1513,8 +1649,14 @@ def _trail_position_stat_matrix_from_task(
         )
     )
     pair_bits = pair_bits_for_encoding(cipher.block_bits, task["feature_encoding"])
+    features = _apply_pair_order_control(
+        dataset.features.astype(np.float32, copy=False),
+        pairs_per_sample=task["pairs_per_sample"],
+        pair_bits=pair_bits,
+        pair_order=pair_order,
+    )
     model = PresentTrailPositionStatsPairSetDistinguisher(
-        input_bits=int(dataset.features.shape[1]),
+        input_bits=int(features.shape[1]),
         pair_bits=pair_bits,
         base_channels=8,
         trail_depth=trail_depth,
@@ -1523,7 +1665,7 @@ def _trail_position_stat_matrix_from_task(
     )
     with torch.no_grad():
         stat_matrix = (
-            model._position_statistics(torch.from_numpy(dataset.features.astype(np.float32, copy=False)))
+            model._position_statistics(torch.from_numpy(features))
             .cpu()
             .numpy()
             .astype(np.float64, copy=False)
@@ -1538,6 +1680,7 @@ def _trail_position_stat_matrix_from_task(
         raise ValueError("trail-position statistic names do not match matrix width")
     return {
         "key_split": key_split,
+        "pair_order": pair_order,
         "stat_matrix": stat_matrix,
         "labels": dataset.labels.astype(np.uint8, copy=False),
         "stat_names": stat_names,
@@ -1582,6 +1725,25 @@ def _trail_position_split_report(
             "fit_key_split": "train",
         },
     }
+
+
+def _apply_pair_order_control(
+    features: np.ndarray,
+    *,
+    pairs_per_sample: int,
+    pair_bits: int,
+    pair_order: str,
+) -> np.ndarray:
+    if pair_order == "identity":
+        return features
+    if pair_order != "reverse":
+        raise ValueError(f"unsupported pair_order control: {pair_order}")
+    if features.ndim != 2 or features.shape[1] != pairs_per_sample * pair_bits:
+        raise ValueError("pair-order control feature width does not match pairs_per_sample * pair_bits")
+    return features.reshape(features.shape[0], pairs_per_sample, pair_bits)[:, ::-1, :].reshape(
+        features.shape[0],
+        features.shape[1],
+    )
 
 
 def _feature_axis_scores(features: np.ndarray, labels: np.ndarray) -> dict[str, np.ndarray]:

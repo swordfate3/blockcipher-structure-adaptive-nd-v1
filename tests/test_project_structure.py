@@ -12952,6 +12952,83 @@ def test_audit_spn_features_cli_writes_trail_position_split_baseline(tmp_path):
     assert len(payload["selected_statistics"]["indices"]) == 5
 
 
+def test_present_r8_trail_position_control_baseline_reports_requested_controls():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_trail_position_beamstats_512_local.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+    trail_position_task = tasks[1]
+
+    report = spn_feature_audit.trail_position_control_baseline_from_task(
+        trail_position_task,
+        samples_per_class=4,
+        seed=123,
+        top_k=5,
+        active_nibbles=(1,),
+        input_differences=(0x90,),
+        pair_orders=("reverse",),
+    )
+
+    assert report["status"] == "pass"
+    assert report["audit"] == "present_trail_position_control_baseline"
+    assert report["baseline"]["variant_kind"] == "baseline"
+    assert report["baseline"]["report"]["evaluation"]["key_split"] == "validation"
+    assert len(report["controls"]) == 3
+    assert [control["variant_kind"] for control in report["controls"]] == [
+        "active_nibble",
+        "input_difference",
+        "pair_order",
+    ]
+    assert [control["variant_label"] for control in report["controls"]] == [
+        "active_nibble_1",
+        "input_difference_0x90",
+        "pair_order_reverse",
+    ]
+    for control in report["controls"]:
+        assert control["report"]["reference"]["composite"]["fit_key_split"] == "train"
+        assert control["report"]["evaluation"]["composite"]["fit_key_split"] == "train"
+        assert 0.0 <= control["report"]["evaluation"]["composite"]["auc_advantage"] <= 0.5
+    assert report["summary"]["control_count"] == 3
+    assert "baseline_vs_max_control_auc_delta" in report["summary"]
+    assert "not neural training" in report["claim_scope"]
+
+
+def test_audit_spn_features_cli_writes_trail_position_control_baseline(tmp_path):
+    output = tmp_path / "trail_position_control_baseline.json"
+    status = audit_spn_features_main(
+        [
+            "--trail-position-control-baseline-plan",
+            "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv",
+            "--row-index",
+            "1",
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--top-k",
+            "5",
+            "--control-active-nibbles",
+            "1",
+            "--control-input-differences",
+            "0x90",
+            "--control-pair-orders",
+            "reverse",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "present_trail_position_control_baseline"
+    assert payload["baseline"]["report"]["evaluation"]["key_split"] == "validation"
+    assert len(payload["controls"]) == 3
+    assert payload["controls"][0]["variant_label"] == "active_nibble_1"
+    assert payload["controls"][1]["variant_label"] == "input_difference_0x90"
+    assert payload["controls"][2]["variant_label"] == "pair_order_reverse"
+
+
 def test_candidate_evidence_feature_probe_reports_lowdim_axis_and_composite():
     config = {
         "rounds": 7,

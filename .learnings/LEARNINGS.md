@@ -2288,3 +2288,61 @@ as a qualified diverse ensemble expert or remote-launch candidate.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-019] best_practice
+
+**Logged**: 2026-07-06T13:35:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Trail-position controls show active/difference alignment matters more than pair order.
+
+### Details
+The r8 trail-position deterministic control suite was run at `512/class` for
+seeds `0` and `1`:
+
+```text
+audit = present_trail_position_control_baseline
+baseline = train-selected deterministic position-statistics split baseline
+controls = active_nibble_1, input_difference_0x90, pair_order_reverse
+feature = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+negative_mode = encrypted_random_plaintexts
+```
+
+Results:
+
+| Seed | Baseline AUC | Active-nibble control AUC | Difference control AUC | Pair-order reverse AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.7695465087890625` | `0.49724578857421875` | `0.5139007568359375` | `0.7695465087890625` |
+| 1 | `0.8455047607421875` | `0.49993133544921875` | `0.5224685668945312` | `0.8455047607421875` |
+
+Correct interpretation:
+
+- The trail-position deterministic signal collapses when the active plaintext
+  nibble is moved or when the input difference is moved to `0x90`.
+- Therefore it is not merely generic matched-negative integral leakage.
+- The pair-order reverse control exactly matches the baseline because the
+  selected statistics are dominated by order-invariant span/range features.
+- Pair-order-sensitive trail models are not the next best model slot unless a
+  new audit identifies pair-order-sensitive residual signal.
+
+### Suggested Action
+Keep trail-position as a controlled local SPN/integral representation candidate,
+but require active-nibble and input-difference mismatch controls before any
+larger neural claim. Do not prioritize pair-order models for this route unless
+new evidence shows pair-order sensitivity.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/research/innovation1-spn-independent-route-recheck-20260706.md, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_512.json, outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_512.json
+- Tags: innovation1, spn, present, trail-position, controls, active-nibble, input-difference, pair-order
+- See Also: LRN-20260706-018, LRN-20260706-017, LRN-20260706-016
+- Pattern-Key: innovation1.spn_present.trail_position_controls_active_difference_not_pair_order
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
