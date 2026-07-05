@@ -135,6 +135,41 @@ Do not parallelize dependent artifact producer/consumer commands. Generate artif
 
 ---
 
+## [ERR-20260705-001] remote_start_b_returned_without_run_artifacts
+
+**Logged**: 2026-07-05T17:31:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+Remote Windows `start /b cmd.exe /c <script>.cmd` returned success but did not create the expected run directory or logs.
+
+### Error
+```text
+ssh ... "cmd.exe /c start \"\" /b cmd.exe /c G:\lxy\run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd"
+exit code: 0
+
+Later read-only check:
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705\logs -> MISSING
+```
+
+### Context
+- Run ID: `i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705`.
+- Operation: launch a project-owned remote `.cmd` under `G:\lxy` for a PRESENT r8 integral/inverse feature screen.
+- The copied script existed at `G:\lxy\run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd`.
+- A direct `cmd.exe /c call G:\lxy\run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd` entered the script correctly and produced `started.marker`, readiness logs, and dataset-cache progress under the expected `G:\lxy` run directory.
+
+### Suggested Fix
+Do not treat a successful SSH exit from `start /b` as proof of launch. After any remote `.cmd` launch, perform one bounded read-only confirmation that `logs`, `*_started.marker`, readiness output, or progress JSONL exists under the expected `G:\lxy` run root. If a detached `start /b` invocation does not create artifacts, use a more reliable launch wrapper such as `cmd.exe /c call <script>` with a controlled timeout or a PowerShell `Start-Process` command that explicitly sets the working directory and redirects logs inside `G:\lxy`.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: configs/remote/generated/run_i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_20260705.cmd
+- See Also: ERR-20260622-001
+
+---
+
 ## [ERR-20260624-003] remote_dirty_clone_checkout_blocked_launch
 
 **Logged**: 2026-06-24T21:23:10+08:00

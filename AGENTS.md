@@ -54,6 +54,7 @@
 - Do not SSH-poll from the main thread after a remote launch or handoff is recorded. Leave tmux/watchers/monitors to wait for artifacts.
 - Resume interactive remote contact only when a local controlled dry-run says both `should_ssh=true` and `ssh_allowed=true`, or when local monitor health becomes unhealthy.
 - Local tmux sessions are for local monitors/result retrieval. If a supported monitor is missing, restart the local tmux monitor only; do not touch remote training unless the controlled gate allows it.
+- After a remote Windows `.cmd` launch returns, perform one bounded read-only confirmation that the expected `G:\lxy` run directory has `logs`, `*_started.marker`, readiness output, or progress JSONL before leaving the watcher to wait. Do not treat a successful SSH exit from `start /b` alone as proof that training started.
 - Prefer verified Git result branches with complete `results_archive` gates. If the branch is missing or incomplete, use `scripts/monitor_remote_results.py` raw fallback retrieval only from `lxy-a6000:G:/lxy/blockcipher-structure-adaptive-nd-runs`; fallback outputs belong under `outputs/remote_results_incomplete/` and must include the raw retrieval notice.
 - In status reports, separate `planned`, `running`, `completed remotely`, `fallback-retrieved`, `retrieved from verified result branch`, and `plan-aligned`. Do not collapse these states into "done".
 
