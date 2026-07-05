@@ -512,3 +512,35 @@ The watcher is responsible for retrieval, validate-results, plot-results, and
 gate-note generation. Do not claim r8 pair-set confirmation until results are
 retrieved, validated, and plan-aligned.
 ```
+
+## 14. Prepared r8 Pair-Set Aggregation Control
+
+**Status:** prepared / not launched
+
+If the r8 1M pair-set result is positive or if r9 weak-probe keeps pair-set as
+the strongest high-round route, the next attribution question is whether
+learned pair-set consistency beats a frozen single-pair aggregation baseline.
+The prepared control plan is:
+
+```text
+docs/experiments/innovation1-present-r8-pairset-aggregation-control-plan.md
+```
+
+Prepared assets:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_single_pair_r8_262k.csv
+configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r8_262k.csv
+configs/remote/innovation1_spn_present_pairset_aggregation_control_single_pair_r8_262k_gpu0_20260705.json
+configs/remote/innovation1_spn_present_pairset_aggregation_control_r8_262k_gpu0_20260705.json
+configs/remote/generated/run_i1_pairset_aggregation_control_r8_262k_seed0_gpu0_20260705.cmd
+configs/remote/generated/monitor_i1_pairset_aggregation_control_r8_262k_seed0_gpu0_20260705.sh
+```
+
+Purpose:
+
+```text
+Separate learned cross-pair structure from fixed aggregation of independent
+single-pair InvP scores. This is required before treating pair-set consistency
+as an architecture innovation rather than application-level aggregation.
+```

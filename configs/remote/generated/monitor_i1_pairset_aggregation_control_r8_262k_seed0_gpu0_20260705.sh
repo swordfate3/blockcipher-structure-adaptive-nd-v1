@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -u
+
+RUN_ID="i1_pairset_aggregation_control_r8_262k_seed0_gpu0_20260705"
+STAGE_A_ID="i1_pairset_single_pair_scorer_r8_262k_seed0_gpu0_20260705"
+REMOTE="lxy-a6000"
+REMOTE_RUN_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/${RUN_ID}"
+LOCAL_ROOT="outputs/remote_results/${RUN_ID}"
+MONITOR_DIR="${LOCAL_ROOT}/monitor"
+PLAN="configs/experiment/innovation1/innovation1_spn_present_pairset_aggregation_control_r8_262k.csv"
+PLAN_DOC="docs/experiments/innovation1-present-r8-pairset-aggregation-control-plan.md"
+EXPECTED_ROWS="2"
+
+mkdir -p "${LOCAL_ROOT}" "${MONITOR_DIR}" "${LOCAL_ROOT}/logs" "${LOCAL_ROOT}/results" "${LOCAL_ROOT}/checkpoints"
+touch "${MONITOR_DIR}/monitor.log"
+
+timestamp() {
+  date --iso-8601=seconds
+}
+
+sync_artifacts() {
+  scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/logs" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
+  scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/results" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
+  scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/checkpoints" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
+}
+
+while true; do
+  echo "$(timestamp) sync" >> "${MONITOR_DIR}/monitor.log"
+  sync_artifacts
+
+  if compgen -G "${LOCAL_ROOT}/logs/*failed.marker" > /dev/null; then
+    echo "$(timestamp) failed" >> "${MONITOR_DIR}/monitor.log"
+    exit 1
+  fi
+
+  stage_a_file="${LOCAL_ROOT}/results/${STAGE_A_ID}.jsonl"
+  learned_file="${LOCAL_ROOT}/results/${RUN_ID}.jsonl"
+  frozen_file="${LOCAL_ROOT}/results/frozen_aggregation_summary.json"
+  checkpoint_file="${LOCAL_ROOT}/checkpoints/single_pair_invp.pt"
+  learned_rows=0
+  if [[ -f "${learned_file}" ]]; then
+    learned_rows=$(grep -cve '^[[:space:]]*$' "${learned_file}" || true)
+  fi
+
+  if [[ -f "${stage_a_file}" && -f "${checkpoint_file}" && -f "${frozen_file}" && "${learned_rows}" -ge "${EXPECTED_ROWS}" ]]; then
+    echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
+    env UV_CACHE_DIR=/tmp/uv-cache MPLCONFIGDIR=/tmp/mplconfig uv run python scripts/postprocess-pairset-aggregation \
+      --plan "${PLAN}" \
+      --learned-results "${learned_file}" \
+      --frozen-summary "${frozen_file}" \
+      --output-dir "${LOCAL_ROOT}" \
+      --run-id "${RUN_ID}" \
+      --expected-rows "${EXPECTED_ROWS}" \
+      --update-plan-doc "${PLAN_DOC}" \
+      > "${MONITOR_DIR}/postprocess.log" 2> "${MONITOR_DIR}/postprocess_stderr.log"
+    postprocess_status=$?
+    if [[ "${postprocess_status}" -eq 0 ]]; then
+      echo "$(timestamp) postprocess_done" >> "${MONITOR_DIR}/monitor.log"
+    else
+      echo "$(timestamp) postprocess_failed" >> "${MONITOR_DIR}/monitor.log"
+    fi
+    exit "${postprocess_status}"
+  fi
+
+  if compgen -G "${LOCAL_ROOT}/logs/*done.marker" > /dev/null; then
+    echo "$(timestamp) completed_missing_or_incomplete_results rows=${learned_rows}" >> "${MONITOR_DIR}/monitor.log"
+    exit 2
+  fi
+
+  echo "$(timestamp) running" >> "${MONITOR_DIR}/monitor.log"
+  sleep 840
+done
