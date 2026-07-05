@@ -362,3 +362,173 @@ single-seed artifact.
 The signal is still weak in absolute terms: mean AUC is only about `0.5239` at
 `2048/class`. The correct next step is a medium diagnostic design that keeps the
 four-row attribution structure, not a remote launch or ensemble claim.
+
+## 8192/Class Local Medium Diagnostic Plan
+
+The three-seed `2048/class` result justifies one larger local diagnostic, but
+still not a remote launch. The next run increases only `samples_per_class` and
+keeps the same four-row attribution structure.
+
+Medium config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_8192_local.csv
+```
+
+Fixed fields:
+
+| Field | Value |
+|---|---|
+| Cipher | `GIFT-64` |
+| Rounds | `6` |
+| Seeds | `0`, `1`, `2` |
+| Samples per class | `8192` |
+| Pairs per sample | `4` |
+| Negative mode | `encrypted_random_plaintexts` |
+| Sample structure | `independent_pairs` |
+| Difference profile | `gift64_shen2024_spn_screen`, member `0` |
+
+Medium gate:
+
+| Result | Decision |
+|---|---|
+| Aligned row has best mean AUC and beats every control on at least two of three seeds | keep as a medium-supported cross-SPN representation candidate |
+| Aligned row mean AUC is best but seed-level wins are mixed | weak/unstable; repeat before any remote or ensemble work |
+| Raw MLP or raw token mixer wins | model/data capacity, not SPN-aligned representation |
+| `C||C'||DeltaC` wins | generic differential encoding is enough; do not claim inverse-permutation gain |
+| All rows stay near random | hold GIFT route and return to PRESENT data/difference construction |
+
+Planned command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_8192_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/results.jsonl \
+  --progress-output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/progress.jsonl
+```
+
+Planned validation:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_8192_local.csv \
+  --results outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/results.jsonl \
+  --expected-rows 12
+```
+
+## 8192/Class Local Medium Diagnostic Result
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_8192_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/results.jsonl \
+  --progress-output outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/progress.jsonl
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/results.jsonl
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/progress.jsonl
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/curves.svg
+outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/history.csv
+```
+
+Plan-alignment verification:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_cell_repr_8192_local.csv \
+  --results outputs/local_smoke/i1_gift64_cross_spn_cell_repr_8192/results.jsonl \
+  --expected-rows 12
+```
+
+Result:
+
+```text
+status = pass
+result_rows = 12
+field_mismatches = []
+```
+
+Seed metrics:
+
+| Seed | Model | Feature encoding | AUC | Accuracy | Calibrated accuracy | Loss | Best epoch |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 0 | `mlp` | `ciphertext_pair_bits` | `0.49981915950775146` | `0.4959716796875` | `0.5052490234375` | `0.6933137718588114` | `2` |
+| 0 | `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5002586543560028` | `0.5059814453125` | `0.5087890625` | `0.6931493990123272` | `1` |
+| 0 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5042957663536072` | `0.503662109375` | `0.5089111328125` | `0.69313472090289` | `3` |
+| 0 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5075488686561584` | `0.50244140625` | `0.5096435546875` | `0.6931163878180087` | `3` |
+| 1 | `mlp` | `ciphertext_pair_bits` | `0.49839064478874207` | `0.5035400390625` | `0.504150390625` | `0.6937165246345103` | `3` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.4986715614795685` | `0.500244140625` | `0.5045166015625` | `0.6936780563555658` | `2` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5053452849388123` | `0.500244140625` | `0.50927734375` | `0.6936160870827734` | `2` |
+| 1 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5010229349136353` | `0.50048828125` | `0.5093994140625` | `0.6936301314271986` | `1` |
+| 2 | `mlp` | `ciphertext_pair_bits` | `0.4951976239681244` | `0.49609375` | `0.5047607421875` | `0.6933399238623679` | `1` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5061184763908386` | `0.4984130859375` | `0.5091552734375` | `0.6937547428533435` | `1` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5009808540344238` | `0.5` | `0.508544921875` | `0.6937874788418412` | `2` |
+| 2 | `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5074966251850128` | `0.5023193359375` | `0.5103759765625` | `0.6934000137262046` | `2` |
+
+Three-seed aggregate:
+
+| Model | Feature encoding | Mean AUC | Min AUC | Max AUC |
+|---|---|---:|---:|---:|
+| `mlp` | `ciphertext_pair_bits` | `0.497802476088206` | `0.4951976239681244` | `0.49981915950775146` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5016828974088033` | `0.4986715614795685` | `0.5061184763908386` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5035406351089478` | `0.5009808540344238` | `0.5053452849388123` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5053561429182688` | `0.5010229349136353` | `0.5075488686561584` |
+
+Per-seed aligned deltas:
+
+```text
+seed0 aligned - C||C'||DeltaC token mixer AUC = +0.0032531023025512695
+seed1 aligned - C||C'||DeltaC token mixer AUC = -0.004322350025177002
+seed2 aligned - C||C'||DeltaC token mixer AUC = +0.006515771150588989
+
+seed0 aligned - raw token mixer AUC = +0.00729021430015564
+seed1 aligned - raw token mixer AUC = +0.0023513734340667725
+seed2 aligned - raw token mixer AUC = +0.0013781487941741943
+```
+
+Decision:
+
+```text
+gift64_cross_spn_aligned_medium_weak_unstable_hold
+do_not_launch_remote
+do_not_promote_to_diverse_ensemble_expert
+```
+
+Interpretation:
+
+The aligned row still has the best three-seed mean AUC at `8192/class`, but the
+absolute signal collapsed toward chance and the seed-level ordering is mixed.
+The aligned row beats `C||C'||DeltaC` on seed0 and seed2, but loses on seed1.
+Its mean AUC advantage over `C||C'||DeltaC` is only about `+0.0018`.
+
+This medium local diagnostic does not support a remote launch or expert-pool
+promotion. The route should be held unless a new GIFT difference profile,
+stronger architecture/input hypothesis, or deterministic audit shows a cleaner
+signal source.

@@ -118,12 +118,32 @@ Updated interpretation:
 - It does justify a medium diagnostic design that keeps the same four-row
   attribution structure.
 
+The medium diagnostic was then run at `8192/class` across seeds `0`, `1`, and
+`2`, using the same four-row attribution matrix. The aligned row still had the
+best three-seed mean AUC, but the advantage collapsed toward chance and
+seed-level ordering became mixed:
+
+| Model | Feature encoding | Mean AUC | Min AUC | Max AUC |
+|---|---|---:|---:|---:|
+| `mlp` | `ciphertext_pair_bits` | `0.497802476088206` | `0.4951976239681244` | `0.49981915950775146` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_bits` | `0.5016828974088033` | `0.4986715614795685` | `0.5061184763908386` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_bits` | `0.5035406351089478` | `0.5009808540344238` | `0.5053452849388123` |
+| `spn_token_mixer_pairset` | `ciphertext_pair_xor_spn_aligned_bits` | `0.5053561429182688` | `0.5010229349136353` | `0.5075488686561584` |
+
+Updated medium interpretation:
+
+- The 2048/class positive was not cleanly amplified at 8192/class.
+- The aligned row beat `C||C'||DeltaC` on seed0 and seed2 but lost on seed1.
+- Mean aligned advantage over `C||C'||DeltaC` was only about `+0.0018` AUC.
+- This is not enough for remote launch, GIFT route promotion, or qualified
+  diverse-ensemble expert status.
+
 ### Suggested Action
-Keep the route for a medium diagnostic design with the same raw MLP, raw token,
-`C||C'||DeltaC`, and SPN-aligned controls. Do not launch remote training or
-include it as a qualified ensemble expert from the current `2048/class` local
-evidence. Report it as
-`stable_weak_cross_spn_aligned_positive_local_repeat`.
+Hold this exact GIFT-64 cross-SPN aligned route after the `8192/class` medium
+diagnostic unless a new difference profile, stronger architecture/input
+hypothesis, or deterministic audit shows a cleaner source of signal. Do not
+launch remote training or include it as a qualified ensemble expert. Report it
+as `gift64_cross_spn_aligned_medium_weak_unstable_hold`.
 
 ### Metadata
 - Source: experiment_audit
