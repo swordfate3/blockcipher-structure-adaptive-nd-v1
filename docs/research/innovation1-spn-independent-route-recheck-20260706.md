@@ -189,3 +189,75 @@ evidence.
 - Zhang and Wang, *Improving Differential-Neural Distinguisher Model For DES, Chaskey, and PRESENT*: <https://arxiv.org/abs/2204.06341>
 - Zhang et al., *Neural-Inspired Advances in Integral Cryptanalysis*: <https://arxiv.org/abs/2505.10790>
 - Bellini et al., *Generic Partial Decryption as Feature Engineering for Neural Distinguishers*: <https://eprint.iacr.org/2025/1443>
+
+## 2026-07-06 Active-Auxiliary And Route Arbitration Update
+
+The active-pattern auxiliary-head retry has now completed, been retrieved, and
+passed local gate validation:
+
+```text
+run_id = i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704
+scale = 262144/class
+decision = stop_active_auxiliary_route
+candidate_model = present_nibble_invp_active_aux_spn_only
+candidate_auc = 0.786112642265
+anchor_auc = 0.793651987187
+shuffled_auc = 0.784347117180
+margin_vs_anchor_auc = -0.007539344922
+margin_vs_shuffled_auc = +0.001765525085
+```
+
+This closes another tempting but underperforming structure route. The auxiliary
+target was learnable, but it made the main real-vs-random decision worse than
+the InvP anchor and did not create a qualified non-neighbor expert. Do not run
+seed1 or 1M for this route unless a genuinely new auxiliary target is designed
+and justified by a separate local gate.
+
+The user also explicitly corrected the process: route selection must not merely
+follow the latest suggested direction. In particular, the "multiple neural
+networks" idea should be interpreted as a later diversity-gated validator, not
+as the next default experiment. A useful ensemble needs structurally different
+experts with compatible frozen score artifacts and low error overlap. It should
+not be built by adding near-neighbor variants around the same raw/InvP/DDT
+view.
+
+The latest external check still points away from model piling and toward
+SPN-aware representation/search:
+
+```text
+Zhang/Wang 2022: PRESENT gains came from multi-ciphertext-pair derived formats
+and convolution/input changes, not only model capacity.
+
+Zhang et al. 2025: neural methods were most useful as feature explorers for
+integral properties and then fed back into cryptanalytic search.
+
+Sakagami et al. 2026: switching to an LLM-style model did not improve over a
+ResNet baseline on SPECK, while prompt/input representation affected outcomes.
+```
+
+Current arbitration:
+
+| Rank | Route | Decision |
+|---:|---|---|
+| 1 | SPN-aware representation and difference/data search | Keep as the main next research level. Search for a controllable non-neighbor expert before scaling. |
+| 2 | Structure-specific neural architecture | Only after the representation is clean and has an explicit same-input or deterministic baseline. |
+| 3 | Diverse neural ensemble / score aggregation | Preserve the idea, but run only after at least one non-neighbor weak-positive expert has frozen scores and low-overlap evidence. |
+| 4 | Near-neighbor ensemble, active auxiliary, deterministic InvP aggregate stats, current GIFT aligned route, current GPD beam route | Do not spend the next main slot here without a new hypothesis. |
+
+The next practical action should be a lean local route-search plan rather than
+a remote launch:
+
+```text
+question = Can a controlled SPN representation/search route produce a
+           non-neighbor weak-positive expert that is not explained by the
+           existing deterministic baseline?
+
+required controls =
+  same-budget InvP anchor or deterministic feature baseline
+  strict encrypted-random-plaintext negatives
+  fixed validation key and metric
+  shuffled/topology/control row when the route claims structure
+  diversity/error-overlap check before ensemble promotion
+```
+
+This is a process correction, not a new result claim.

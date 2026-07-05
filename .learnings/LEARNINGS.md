@@ -1986,3 +1986,49 @@ control that separates true candidate evidence from shuffled-cell evidence.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-014] correction
+
+**Logged**: 2026-07-06T09:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not let Innovation 1 route selection passively follow the user's latest suggested direction.
+
+### Details
+The user explicitly corrected the research process: the agent should not simply
+agree with a proposed direction such as "multiple neural networks" or "ensemble"
+without independently checking local evidence and external research signals.
+
+Current corrected interpretation:
+
+- Multiple neural networks are still a valid later mechanism, but only as a
+  diversity-gated score aggregation route.
+- The next main experiment should not be a wider near-neighbor ensemble unless
+  there is at least one compatible weak-positive non-neighbor expert with
+  frozen score artifacts and low error overlap.
+- External and local evidence currently rank SPN-aware representation/data
+  search above generic model piling.
+- Active-pattern auxiliary supervision has now stopped at `262144/class`
+  seed0 retry, with candidate AUC `0.786112642265` below the InvP anchor AUC
+  `0.793651987187`, so it should not be used as the next ensemble expert.
+
+### Suggested Action
+Before proposing or launching the next Innovation 1 SPN experiment, do an
+independent route arbitration: inspect current artifacts, check stopped/held
+routes, compare against the strongest same-protocol anchor, and only then decide
+whether the next step is representation search, architecture, or ensemble.
+
+### Metadata
+- Source: user_feedback, experiment_audit, literature_recheck
+- Related Files: docs/research/innovation1-spn-independent-route-recheck-20260706.md, docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, outputs/remote_results/i1_active_auxiliary_r7_262k_seed0_gpu1_retry1_20260704/
+- Tags: innovation1, spn, route-selection, ensemble, independent-judgment, active-auxiliary
+- See Also: LRN-20260706-011, LRN-20260706-013, LRN-20260705-003
+- Pattern-Key: innovation1.spn_route_selection.independent_arbitration_before_following_user_direction
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
