@@ -51,6 +51,7 @@ from blockcipher_nd.planning.topology_aware_postprocess import postprocess_topol
 from blockcipher_nd.cli.plan_next_action import plan_next_action
 from blockcipher_nd.cli.arbitrate_next_actions import arbitrate_next_actions
 from blockcipher_nd.cli.advance_high_round import advance_high_round
+from blockcipher_nd.cli.watch_high_round import watch_high_round
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.cli.monitor_health import _health_status
@@ -3669,6 +3670,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/plan-next-action"),
         Path("scripts/arbitrate-next-actions"),
         Path("scripts/summarize-spn-evidence"),
+        Path("scripts/watch-high-round"),
         Path("scripts/plot-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
@@ -3928,6 +3930,41 @@ def test_advance_high_round_waits_without_touching_running_result(tmp_path):
     assert report["postprocessed"] == []
     assert report["arbitration"] is None
     assert report["remote_policy"] == "local_artifacts_only_no_ssh_no_remote_launch"
+
+
+def test_watch_high_round_one_shot_writes_waiting_report(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "i1_present_r8_pairset_1m_seed0_gpu1_20260705"
+    run_root = root / run_id
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "logs").mkdir()
+    (run_root / "results").mkdir()
+    (run_root / "monitor" / "monitor.log").write_text(
+        "2026-07-05T12:00:00+08:00 sync\n"
+        "2026-07-05T12:00:01+08:00 running\n",
+        encoding="utf-8",
+    )
+    (run_root / "logs" / "r8_pairset_1m_progress.jsonl").write_text(
+        json.dumps({"event": "train_batch", "epoch": 1, "epochs": 30}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (run_root / "results" / f"{run_id}.jsonl").write_text("", encoding="utf-8")
+    output = tmp_path / "watch_report.json"
+
+    report = watch_high_round(
+        root=root,
+        output=output,
+        arbitration_output=tmp_path / "arbitration.json",
+        interval_seconds=0,
+        max_iterations=1,
+        update_plan_docs=False,
+    )
+
+    assert report["status"] == "waiting"
+    assert report["watch_iteration"] == 1
+    assert report["watch_policy"] == "local_artifacts_only_no_ssh_no_remote_launch"
+    assert report["active_recommendation"]["branch"] == "wait_for_high_round_results"
+    assert json.loads(output.read_text(encoding="utf-8"))["status"] == "waiting"
 
 
 def test_advance_high_round_postprocesses_ready_r8_without_plan_doc_update(tmp_path):

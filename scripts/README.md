@@ -54,6 +54,13 @@ For feature-cache jobs, `progress_summary` includes cache progress percentages,
 row rates when timestamps are available, ETA when computable, and
 `cache_rows_remaining` / `cache_class_rows_remaining` for direct status reports.
 
+Use `scripts/watch-high-round` inside a local tmux watcher when high-round
+SPN/PRESENT runs have already been launched and handed off. It loops over
+`scripts/advance-high-round`, reads only local artifacts, never SSH-polls or
+launches remote training, and by default lets route-specific postprocess update
+the relevant `docs/experiments/` plan once a result becomes ready. Use
+`--max-iterations 1` for a bounded one-shot check.
+
 Use `scripts/check-remote-readiness` before launching a remote config. It checks
 the local JSON/CSV invariants only; it does not generate launch scripts, SSH, or
 touch the remote workstation. Route-specific entries in `checked_invariants`
