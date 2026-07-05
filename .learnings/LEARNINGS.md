@@ -40,6 +40,105 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260705-002] correction
+
+**Logged**: 2026-07-05T23:14:37+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not treat a small set of similar SPN/PRESENT neural models as sufficient evidence for the "multiple neural networks combined" route.
+
+### Details
+The user corrected the interpretation of the neural ensemble direction: combining several nearby SPN-aware variants, such as Zhang/Wang-style raw MCND, InvP-only, and DDT graph, is only a near-neighbor score aggregation diagnostic. It is not the full "multiple diverse neural networks" idea.
+
+Correct framing:
+
+- Near-neighbor ensemble rows may show whether closely related SPN views have any error complementarity.
+- A real diverse expert pool should intentionally combine different representation and architecture families: raw bit/MCND, InvP cell tokens, DDT/P-layer graph priors, pair-evidence pooling, inverse-round/integral matrix features, and projection/truncated weak features when they are weak-positive and low-correlation.
+- The selection rule should depend on both per-expert quality and pairwise diversity/error overlap, not just model count.
+- Do not mechanically add more models from the same family when the current pool is weak positive but below gate.
+
+Current evidence motivating this rule:
+
+```text
+run_id = i1_present_neural_ensemble_r7_65k_seed0_gpu0_20260705
+best_single = present_nibble_ddt_graph, AUC 0.789112608414
+best_ensemble = probability_mean, AUC 0.790061685257
+delta = +0.000949076843, below the +0.001 gate
+decision = weak_neural_ensemble_positive_below_gate
+```
+
+This shows mild complementarity but does not prove that the broader diverse-neural-network route is exhausted.
+
+### Suggested Action
+Create and use a `diverse expert pool` plan for future SPN/PRESENT ensemble work. Require candidate expert-family metadata and diversity gates, for example max error Jaccard and at least one low-overlap non-neighbor expert, before deciding to scale an ensemble route.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/experiments/innovation1-present-neural-ensemble-aggregation-plan.md, docs/experiments/innovation1-present-diverse-expert-pool-plan.md
+- Tags: innovation1, spn, present, neural-ensemble, diverse-experts, evidence-gates
+- See Also: LRN-20260628-004, LRN-20260630-001
+- Pattern-Key: innovation1.spn_present.diverse_expert_pool_not_near_neighbor_ensemble
+- Recurrence-Count: 1
+- First-Seen: 2026-07-05
+- Last-Seen: 2026-07-05
+
+---
+
+## [LRN-20260705-003] correction
+
+**Logged**: 2026-07-05T23:55:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not automatically promote the user's proposed SPN route; independently rank it against current literature and local evidence.
+
+### Details
+The user corrected the collaboration style for Innovation 1: the agent should not merely follow the latest suggested direction, such as diverse neural-network aggregation. It should actively inspect local evidence, re-check relevant literature, and decide whether that route deserves the next experiment slot.
+
+Correct framing:
+
+- Treat user-proposed routes as hypotheses, not commands to promote them into the main branch.
+- Compare candidate routes against the strongest current evidence and recent literature before spending remote GPU time.
+- Keep diverse neural aggregation as a valid route, but only as a secondary validator until compatible weak-positive, low-correlation non-neighbor experts exist.
+- Prefer SPN-aware data/feature representation when literature and local evidence point there more strongly than model-family aggregation.
+
+Current route correction after the 2026-07-05 literature refresh:
+
+```text
+SPN feature/input search > structure-aware architecture > diverse ensemble
+```
+
+The same turn also retrieved a completed r8 integral/inverse screen:
+
+```text
+run_id = i1_present_r8_integral_inverse_feature_screen_65k_seed0_gpu1_retry1_20260705
+raw integral anchor AUC = 0.999995831400
+InvP matrix AUC = 0.513465017546
+InvP+Sinv matrix AUC = 0.505787684582
+decision = stop_integral_inverse_feature_screen_for_now
+interpretation = integral/multiset data structure signal, not inverse-round architecture gain
+```
+
+### Suggested Action
+Before launching the next Innovation 1 SPN/PRESENT experiment, write or update the route document with a ranked decision that includes: local result status, same-budget baseline, literature support, expected claim scope, and why the chosen route beats the alternatives. Do not spend the next remote slot on a wider ensemble unless a non-neighbor expert family already has compatible weak-positive score artifacts.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, sources/research_spn_adaptation_20260705.md, docs/experiments/innovation1-present-diverse-expert-pool-plan.md
+- Tags: innovation1, spn, route-selection, literature-refresh, independent-judgment, neural-ensemble
+- See Also: LRN-20260705-002, LRN-20260630-001
+- Pattern-Key: innovation1.spn_present.independent_literature_ranked_route_selection
+- Recurrence-Count: 1
+- First-Seen: 2026-07-05
+- Last-Seen: 2026-07-05
+
+---
+
 ## [LRN-20260630-001] correction
 
 **Logged**: 2026-06-30T00:00:00+08:00

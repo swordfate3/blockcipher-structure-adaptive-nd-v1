@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-05
 
-**状态：** retry1 launched / running / local watcher handoff / awaiting 3-row postprocess gate
+**状态：** retry1 retrieved / validated / postprocessed / stop current InvP-Sinv matrix route
 
 **研究蓝图：** `docs/research/innovation1-present-higher-round-strategy.md`
 
