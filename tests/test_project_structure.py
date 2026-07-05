@@ -12655,6 +12655,78 @@ def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_pa
     assert report["duplicate_result_keys"] == []
 
 
+def test_result_plan_alignment_distinguishes_difference_screen_rows(tmp_path):
+    plan_path = tmp_path / "difference_screen_plan.csv"
+    result_path = tmp_path / "difference_screen_results.jsonl"
+    fieldnames = [
+        "cipher",
+        "model_key",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "feature_encoding",
+        "difference_profile",
+        "difference_member",
+    ]
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_nibble_invp_pair_consistency_spn_only",
+            "rounds": "9",
+            "seed": "0",
+            "samples_per_class": "65536",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "difference_profile": "present_zhang_wang2022_mcnd",
+            "difference_member": "0",
+        },
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_nibble_invp_pair_consistency_spn_only",
+            "rounds": "9",
+            "seed": "0",
+            "samples_per_class": "65536",
+            "pairs_per_sample": "16",
+            "feature_encoding": "ciphertext_pair_bits",
+            "difference_profile": "present_wang_jain2021",
+            "difference_member": "0",
+        },
+    ]
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    result_path.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "cipher": row["cipher"],
+                    "model": row["model_key"],
+                    "selected_model": row["model_key"],
+                    "rounds": int(row["rounds"]),
+                    "seed": int(row["seed"]),
+                    "samples_per_class": int(row["samples_per_class"]),
+                    "pairs_per_sample": int(row["pairs_per_sample"]),
+                    "feature_encoding": row["feature_encoding"],
+                    "difference_profile": row["difference_profile"],
+                    "difference_member": int(row["difference_member"]),
+                },
+                sort_keys=True,
+            )
+            for row in rows
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == "pass"
+    assert report["duplicate_plan_keys"] == []
+    assert report["duplicate_result_keys"] == []
+
+
 def test_projection_ensemble_metrics_reports_weighted_logit_mode():
     from blockcipher_nd.cli.evaluate_projection_ensemble import ensemble_metrics
 

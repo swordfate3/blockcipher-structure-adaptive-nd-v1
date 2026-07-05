@@ -173,7 +173,7 @@ def _load_jsonl_rows(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int, str, str]:
+def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int, str, str, str, str]:
     return (
         int(row["rounds"]),
         int(row["seed"]),
@@ -181,6 +181,8 @@ def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int, str, str]:
         int(row["samples_per_class"]),
         _normalize_value(row.get("feature_encoding", "")),
         _selected_indices_key(row),
+        _normalize_value(row.get("difference_profile", "")),
+        _normalize_value(row.get("difference_member", "")),
     )
 
 
@@ -212,7 +214,7 @@ def _selected_indices_key(row: dict[str, Any]) -> str:
 
 
 def _field_mismatches(
-    plan_by_key: dict[tuple[int, int, str, int, str, str], dict[str, str]],
+    plan_by_key: dict[tuple[int, int, str, int, str, str, str, str], dict[str, str]],
     result_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     mismatches: list[dict[str, Any]] = []

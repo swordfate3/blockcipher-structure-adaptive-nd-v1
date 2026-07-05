@@ -221,3 +221,30 @@ r9 difference candidate 65536/class -> 262144/class confirmation -> 1M/class sin
 回到 r9 weak-probe / r8-to-r9 curriculum / pair-set aggregation 路线；
 不继续盲目扩大差分搜索矩阵。
 ```
+
+## Retrieved Difference-Screen Result
+
+<!-- difference-screen-postprocess:i1_present_r9_difference_screen_65k_seed0_gpu0_20260705:start -->
+### i1_present_r9_difference_screen_65k_seed0_gpu0_20260705 Difference-Screen Result
+
+| Field | Value |
+|---|---|
+| Run ID | `i1_present_r9_difference_screen_65k_seed0_gpu0_20260705` |
+| Postprocess status | `pass` |
+| Validation status | `pass` |
+| Best difference | `present_wang_jain2021:0` |
+| Best AUC | `0.504832437262` |
+| Reference difference | `present_zhang_wang2022_mcnd:0` |
+| Reference AUC | `0.503523722757` |
+| Delta vs reference AUC | `0.001308714505` |
+| Decision | `all_candidates_near_random_stop_difference_screen` |
+| Action | `stop_this_difference_screen_and_return_to_curriculum_or_aggregation` |
+| Next action branch | `stop_current_difference_screen` |
+| Confirmation plan command | `` |
+| Claim scope | `PRESENT input-difference/data-construction screen; not same-protocol model-improvement evidence, not paper-scale, formal, or breakthrough evidence` |
+| Results JSONL | `outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705.jsonl` |
+| Validation report | `outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705_local_result_gate.json` |
+| Difference-screen gate | `outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705_difference_screen_gate.json` |
+| Summary JSON | `outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705_postprocess_summary.json` |
+| Summary Markdown | `outputs/remote_results/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705/i1_present_r9_difference_screen_65k_seed0_gpu0_20260705_postprocess_summary.md` |
+<!-- difference-screen-postprocess:i1_present_r9_difference_screen_65k_seed0_gpu0_20260705:end -->
