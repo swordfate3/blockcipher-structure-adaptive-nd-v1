@@ -5,8 +5,10 @@ from pathlib import Path
 
 import numpy as np
 
+from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.train import main as train_main
+from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
 
 def write_tiny_speck_plan(path: Path) -> Path:
@@ -87,3 +89,66 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
     assert labels.shape[0] == 16
     assert metadata["model_key"] == "mlp"
     assert metadata["negative_mode"] == "encrypted_random_plaintexts"
+
+
+def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
+    left_dir = tmp_path / "left"
+    right_dir = tmp_path / "right"
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 8,
+        "validation_samples_per_class": 4,
+        "pairs_per_sample": 16,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "model_options": {},
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": True,
+        "run_id": "left",
+        "checkpoint_path": "/tmp/left.pt",
+        "git_commit": "test",
+    }
+    write_score_artifact(
+        left_dir,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 0, 1, 1], dtype=np.float32),
+            probabilities=np.array([0.1, 0.3, 0.7, 0.9], dtype=np.float32),
+            logits=np.array([-2.2, -0.8, 0.8, 2.2], dtype=np.float32),
+            sample_ids=np.array(["0", "1", "2", "3"], dtype=str),
+            metadata={**metadata, "model_key": "left"},
+        ),
+    )
+    write_score_artifact(
+        right_dir,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 0, 1, 1], dtype=np.float32),
+            probabilities=np.array([0.2, 0.4, 0.6, 0.8], dtype=np.float32),
+            logits=np.array([-1.4, -0.4, 0.4, 1.4], dtype=np.float32),
+            sample_ids=np.array(["0", "1", "2", "3"], dtype=str),
+            metadata={**metadata, "model_key": "right", "run_id": "right"},
+        ),
+    )
+    output = tmp_path / "ensemble_summary.json"
+
+    status = evaluate_ensemble_main(
+        [
+            "--artifacts",
+            str(left_dir),
+            str(right_dir),
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["best_single"]["model_key"] == "left"
+    assert summary["ensembles"][0]["mode"] == "probability_mean"
+    assert summary["claim_scope"].startswith("application-level")
