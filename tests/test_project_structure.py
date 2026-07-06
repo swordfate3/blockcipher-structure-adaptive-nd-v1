@@ -2246,6 +2246,24 @@ def test_trail_position_262k_followup_remote_assets_are_scale_up_and_verify_scor
         assert '${LOCAL_ROOT}/logs/*done.marker' not in monitor_text
 
 
+def test_trail_position_262k_followup_local_launchers_handoff_to_tmux_monitors():
+    for seed, gpu in [(0, 0), (1, 1)]:
+        run_id = f"i1_present_r8_trail_position_beamstats_262k_seed{seed}_gpu{gpu}_20260706"
+        launcher = Path("configs/remote/generated") / f"launch_{run_id}.sh"
+        launcher_text = launcher.read_text(encoding="utf-8")
+
+        assert "cmd.exe /k" not in launcher_text
+        assert "ssh lxy-a6000" in launcher_text
+        assert "cmd.exe /c call" in launcher_text
+        assert f"run_{run_id}.cmd" in launcher_text
+        assert f"monitor_{run_id}.sh" in launcher_text
+        assert f"monitor_i1_present_r8_trailpos_262k_seed{seed}_20260706" in launcher_text
+        assert f"outputs/remote_results/{run_id}/monitor" in launcher_text
+        assert "tmux new-session -d -s" in launcher_text
+        assert "launch_done.marker" in launcher_text
+        assert "launch_failed.marker" in launcher_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 

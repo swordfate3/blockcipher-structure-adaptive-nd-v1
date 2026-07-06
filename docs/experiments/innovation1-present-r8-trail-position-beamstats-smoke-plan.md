@@ -1796,6 +1796,9 @@ seed1_launcher = configs/remote/generated/run_i1_present_r8_trail_position_beams
 
 seed0_monitor = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.sh
 seed1_monitor = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.sh
+
+seed0_local_launcher = configs/remote/generated/launch_i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.sh
+seed1_local_launcher = configs/remote/generated/launch_i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.sh
 ```
 
 Readiness validation:
@@ -1827,6 +1830,11 @@ Only if score artifacts pass this verifier do the scripts write
 `${RUN_ID}_score_export_done.marker` and `${RUN_ID}_done.marker`. The monitors
 also wait for `score_artifacts/verification_summary.json`, not only
 `models.json`, before reporting `result_ready`.
+
+The local launcher scripts are post-push handoff helpers. They call the
+run-owned remote `.cmd` through `ssh lxy-a6000 "cmd.exe /c call ..."`, write
+launch logs under the matching `outputs/remote_results/<run_id>/monitor/`
+directory, and then start the local tmux monitor session for retrieval.
 
 Claim scope:
 
