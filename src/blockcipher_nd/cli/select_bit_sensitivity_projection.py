@@ -67,6 +67,7 @@ def select_bit_sensitivity_projection(
     )
     selected = stats[order[: min(top_k, len(order))]]
     selected_axes = [int(axis) for axis in selected["axis"]]
+    selected_axis_scores = [_axis_row_to_dict(row) for row in selected]
     mask = {
         "status": "pass",
         "selection_split": selection_split,
@@ -74,6 +75,7 @@ def select_bit_sensitivity_projection(
         "control_artifact": str(control_artifact_dir),
         "anchor_artifact": str(anchor_artifact_dir),
         "selected_axes": selected_axes,
+        "axis_scores": selected_axis_scores,
         "selected_axis_count": len(selected_axes),
         "top_k": int(top_k),
         "feature_shape": [int(value) for value in features.shape],
@@ -88,7 +90,7 @@ def select_bit_sensitivity_projection(
         "decision": "projection_mask_ready_for_local_screen",
         "action": "use_mask_only_in_a_local_same-protocol_projection_screen_with_controls",
         "mask": mask,
-        "axis_scores": [_axis_row_to_dict(row) for row in selected],
+        "axis_scores": selected_axis_scores,
         "summary": _summary_stats(stats, selected),
         "guardrails": [
             "selection_split_must_be_train",
@@ -252,4 +254,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

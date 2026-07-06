@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_trail_position_scores_main
+from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
@@ -831,9 +832,106 @@ def test_select_bit_sensitivity_projection_writes_train_only_mask(tmp_path):
     assert mask["selection_split"] == "train"
     assert mask["selected_axis_count"] == 2
     assert mask["selected_axes"][0] == 2
+    assert mask["axis_scores"][0]["axis"] == 2
+    assert mask["axis_scores"][0]["positive_mean"] > mask["axis_scores"][0]["negative_mean"]
     assert report["decision"] == "projection_mask_ready_for_local_screen"
     assert "do_not_select_mask_on_validation" in report["guardrails"]
     assert "not a trained model result" in report["claim_scope"]
+
+
+def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["v0", "v1", "v2", "v3"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "model_key": "present_trail_position_stats_pairset",
+        "expert_family": "trail_position",
+    }
+    reference_dir = tmp_path / "reference"
+    write_score_artifact(
+        reference_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.2, 0.3, 0.7, 0.8], dtype=np.float32),
+            logits=np.array([-1.0, -0.5, 0.5, 1.0], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata=metadata,
+        ),
+    )
+    features = np.array(
+        [
+            [0.0, 0.2],
+            [0.1, 0.4],
+            [0.8, 0.1],
+            [1.0, 0.3],
+        ],
+        dtype=np.float32,
+    )
+    feature_path = tmp_path / "validation_features.npy"
+    np.save(feature_path, features)
+    mask_path = tmp_path / "mask.json"
+    mask_path.write_text(
+        json.dumps(
+            {
+                "selection_split": "train",
+                "selected_axes": [0],
+                "axis_scores": [
+                    {
+                        "axis": 0,
+                        "positive_mean": 1.0,
+                        "negative_mean": 0.0,
+                        "score": 2.0,
+                    }
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "projection_artifact"
+    report_path = tmp_path / "projection_report.json"
+
+    status = apply_bit_sensitivity_main(
+        [
+            "--features",
+            str(feature_path),
+            "--mask",
+            str(mask_path),
+            "--reference-artifact",
+            str(reference_dir),
+            "--output-dir",
+            str(output_dir),
+            "--output-report",
+            str(report_path),
+            "--run-id",
+            "local_projection_screen",
+        ]
+    )
+
+    assert status == 0
+    artifact = output_dir
+    metadata_out = json.loads((artifact / "models.json").read_text(encoding="utf-8"))
+    probabilities = np.load(artifact / "probabilities.npy")
+    logits = np.load(artifact / "logits.npy")
+    assert metadata_out["model_key"] == "present_r8_bit_sensitivity_projection_expert"
+    assert metadata_out["expert_family"] == "bit_sensitivity_projection"
+    assert metadata_out["candidate_status"] == "projection_screen"
+    assert np.array_equal(np.load(artifact / "labels.npy"), labels)
+    assert np.array_equal(np.load(artifact / "sample_ids.npy").astype(str), sample_ids)
+    assert probabilities[2] > probabilities[0]
+    assert logits.shape == probabilities.shape == labels.shape
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["decision"] == "projection_score_artifact_ready_for_local_gate"
+    assert "not a trained neural model" in report["claim_scope"]
 
 
 def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):

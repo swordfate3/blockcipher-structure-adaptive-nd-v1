@@ -87,6 +87,22 @@ UV_CACHE_DIR=/tmp/uv-cache uv run scripts/select-bit-sensitivity-projection \
 The selector writes only a train-only mask/report. It is not a model result and
 must not be interpreted as candidate AUC.
 
+Prepared frozen scorer:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/apply-bit-sensitivity-projection \
+  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_validation_features_seed{seed}.npy \
+  --mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json \
+  --reference-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --output-dir outputs/local_audits/i1_present_r8_bit_sensitivity_projection_scores_seed{seed} \
+  --output-report outputs/local_audits/i1_present_r8_bit_sensitivity_projection_scores_seed{seed}.json \
+  --run-id i1_present_r8_bit_sensitivity_projection_seed{seed}
+```
+
+The scorer writes a standard frozen-score artifact so the candidate can be
+checked by the existing ensemble/diversity tooling. It is still not a trained
+neural model and cannot be promoted without the local gate below.
+
 ## Gate
 
 Promote to a compatible frozen-score expert only if all of these hold:
