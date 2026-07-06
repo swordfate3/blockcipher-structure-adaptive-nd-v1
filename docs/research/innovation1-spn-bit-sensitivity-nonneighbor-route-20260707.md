@@ -33,14 +33,30 @@ thread already used by this project:
   <https://arxiv.org/abs/2204.06341>.
 - Zhang et al. 2025, "Neural-Inspired Advances in Integral Cryptanalysis",
   arXiv:2505.10790, <https://arxiv.org/abs/2505.10790>.
+- Tashkilkhanova et al. 2025, "Enhancing RX Neural Cryptanalysis: Advanced
+  Data Formatting and Weighted Differential Techniques for Block Ciphers",
+  arXiv:2511.06336, <https://arxiv.org/abs/2511.06336>.
+- Zhang et al. 2025, "More Efficient Deep Learning-Based Distinguishing Attacks
+  with Multiple Ciphertext Pairs", arXiv:2505.10792,
+  <https://arxiv.org/abs/2505.10792>.
 - The local paper index also flags bit selection, GPD, PRESENT entropy, and
   multi-ciphertext-pair work as representation/feature-search evidence rather
   than broad model-ensemble evidence.
+
+The 2026-07-07 re-check adds one concrete implementation lesson. Recent
+RX-neural work uses bit sensitivity tests to reduce the input data format, then
+uses the freed input budget to include more ciphertext-pair evidence. That
+pattern fits this route better than a wider generic ensemble: first identify
+stable, train-only informative axes; then test whether the compact evidence can
+support a non-neighbor expert or higher pair count without changing labels,
+negative construction, or validation keys.
 
 The takeaway is not "add more weak networks." The stronger route is:
 
 ```text
 SPN-aware data/feature representation
+train-only bit/axis sensitivity compression
+multi-pair evidence only under the same protocol
 then structure-aware architecture over that representation
 then diverse aggregation only after a real non-neighbor expert exists
 ```
@@ -96,6 +112,17 @@ selection_split = train only
 validation_split = held-out validation key
 allowed_projection_sources = depth, word, cell, prefix/trail blocks, activity
 disallowed_shortcuts = label leakage, validation-selected masks, changed negatives
+```
+
+The feature-export tooling added for this route now makes that discipline
+executable:
+
+```text
+train export -> features.npy / labels.npy / sample_ids.npy / metadata.json
+validation export -> same files, plus reference-artifact alignment check
+selector -> train-only frozen mask
+scorer -> validation-only frozen projection scores
+gate -> same-protocol margin and error-overlap checks
 ```
 
 This differs from the held SGP route because SGP searched unstable raw axes
@@ -177,4 +204,3 @@ pass with low overlap -> prepare 1M trail-position confirmation first
 pass but high overlap -> prioritize this projection expert as an explanation/diversity screen
 mixed/weak -> use sensitivity analysis diagnostically, not as remote launch basis
 ```
-
