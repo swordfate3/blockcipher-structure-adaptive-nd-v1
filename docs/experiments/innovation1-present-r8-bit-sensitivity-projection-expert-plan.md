@@ -1433,3 +1433,57 @@ slightly polish seed0, but they do not replace the two-family core. Future
 compact SPN architectures should preserve the primary-depth/trailword and
 aux-depth/cell views explicitly before spending capacity on interaction terms.
 ```
+
+## V9 Grouped Late-Fusion Branch Diagnostic
+
+The next architecture diagnostic tested whether the family-dropout insight can
+be converted directly into a branch-logit late-fusion expert:
+
+```text
+cli = scripts/fit-compressed-span-grouped-expert
+samples_per_class = 2048 local diagnostic only
+core_dual_branch =
+  group_mode = coarse
+  primary_prefix = primary_depth_trailword_
+  auxiliary_prefix = aux_depth_cell_
+semantic_grouped =
+  group_mode = semantic
+hybrid_grouped =
+  group_mode = hybrid
+branch_steps = 2000
+combiner_steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+standardize = true
+```
+
+Metrics:
+
+| Model | Feature / branch count | Seed0 AUC | Seed1 AUC | Decision |
+|---|---:|---:|---:|---|
+| Flat core raw anchor | 60 raw features | `0.9999017715454102` | `0.9998178482055664` | baseline |
+| Flat 117D raw-family anchor | 117 raw features | `0.9999246597290039` | `0.9999103546142578` | keep |
+| Core dual-branch late fusion | 2 branch logits | `0.9998054504394531` | `0.9995899200439453` | hold |
+| Semantic grouped late fusion | 12 branch logits | `0.9993896484375000` | `0.9987850189208984` | hold |
+| Semantic grouped late fusion, l2=0 | 12 branch logits | `0.9994039535522461` | `0.9988164901733398` | hold |
+| Hybrid grouped late fusion | 14 branch logits | `0.9992799758911133` | `0.9986753463745117` | hold |
+
+Decision:
+
+```text
+decision = grouped_late_fusion_holds_due_to_raw_family_information_loss
+action = do_not_promote_branch_logit_fusion; preserve within-family raw detail in next architecture
+```
+
+Interpretation:
+
+```text
+The family-dropout result should not be implemented as one logit per family.
+Compressing each branch to a scalar logit before fusion loses useful
+within-family structure. Even the targeted two-branch core model loses to the
+flat 60D raw anchor, and broader semantic/hybrid grouped models lose more. The
+next SPN-aware model should still expose primary-depth/trailword and
+aux-depth/cell as first-class views, but it should preserve their internal
+coordinates or use a shallow structured layer over those coordinates instead
+of late-fusing scalar branch scores.
+```

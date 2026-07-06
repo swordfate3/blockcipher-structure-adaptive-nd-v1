@@ -1323,3 +1323,25 @@ mostly useful for tightening seed1 and polishing the already strong core. That
 suggests the next SPN-aware architecture should make the primary-depth/trailword
 evolution and auxiliary depth/cell map first-class branches, with optional
 lightweight side channels for auxiliary depth/word and word/global summaries.
+
+The first direct branch-fusion test rejects the simplest implementation of that
+idea:
+
+```text
+core_dual_branch = primary_depth_trailword_ branch logit + aux_depth_cell_ branch logit
+seed0 core_dual_branch_auc = 0.9998054504394531
+seed1 core_dual_branch_auc = 0.9995899200439453
+flat60_core_auc = 0.9999017715454102, 0.9998178482055664
+
+semantic_grouped_12_logits_auc = 0.9993896484375000, 0.9987850189208984
+hybrid_grouped_14_logits_auc = 0.9992799758911133, 0.9986753463745117
+decision = grouped_late_fusion_holds_due_to_raw_family_information_loss
+```
+
+This is an architecture constraint, not just a failed variant. The family
+structure matters, but reducing each family to one independently trained logit
+throws away too much within-family coordinate information. A better SPN-aware
+network should keep the core families as structured tensors or small coordinate
+sets, then learn shallow cross-coordinate mixing inside and between those
+families. In other words: first-class branches yes, scalar branch-score late
+fusion no.
