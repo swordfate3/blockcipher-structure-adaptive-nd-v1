@@ -1197,3 +1197,44 @@ representation. The next architecture iteration should not keep stacking more
 similar low-rank corrections; it should either improve the raw-family
 representation itself or introduce a genuinely different SPN-aware expert with
 its own controls.
+
+A follow-up raw-family add-one screen makes the raw-family direction sharper:
+
+```text
+base_anchor = primary_depth_trailword_ + aux_depth_cell_
+screen = add one remaining raw family to the base anchor
+strongest_stable_addition = aux_depth_word_
+seed0 anchor_plus_aux_depth_word_auc = 0.9999208450317383
+seed1 anchor_plus_aux_depth_word_auc = 0.9998998641967773
+```
+
+One extra compact combination was then tested:
+
+```text
+selected_raw_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+selected_raw_feature_count = 117
+model = raw-only logistic
+seed0 validation_auc = 0.9999246597290039
+seed1 validation_auc = 0.9999103546142578
+seed0 delta_vs_full_summary_auc = +0.0000104904174805
+seed1 delta_vs_full_summary_auc = +0.0000667572021484
+seed0 delta_vs_allraw_rank1_auc = -0.0000009536743164
+seed1 delta_vs_allraw_rank1_auc = +0.0000095367431641
+seed0 shuffle_auc = 0.4848761558532715
+seed1 shuffle_auc = 0.5067415237426758
+decision = compact_raw_117d_family_anchor_positive_local_diagnostic
+```
+
+This is the better local direction from this iteration. It improves both seeds
+over the full 273D raw summary while using fewer than half the raw dimensions,
+and its shuffle controls stay near random. It still should not be promoted to
+remote/formal evidence from 2048/class, and it is not a diverse multi-network
+result. The useful hypothesis is now: `aux_depth_word_` and a tiny
+`aux_word_global_` summary recover the missing complement around the 60D
+primary-depth/trailword plus aux-depth/cell anchor. The next controlled step is
+to test this 117D raw-family anchor at the next available plan-aligned scale
+once source publication and remote-monitor gates are clean.

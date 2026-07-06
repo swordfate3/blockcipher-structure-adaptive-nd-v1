@@ -1189,3 +1189,73 @@ small correction, not a stable new primary signal source. Keep the selected
 raw-prefix CLI support because it makes compact ablations reproducible, but do
 not spend a medium remote slot on this exact 96D variant.
 ```
+
+## V5 Raw-Family Add-One Diagnostic
+
+The next local diagnostic used the existing raw-prefix filter to add one raw
+family at a time around the 60D compact raw anchor:
+
+```text
+base_anchor = primary_depth_trailword_ + aux_depth_cell_
+screen = base_anchor + one extra raw family
+seeds = 0, 1
+samples_per_class = 2048 local diagnostic only
+```
+
+The strongest stable addition was `aux_depth_word_`:
+
+| Variant | Feature Count | Seed0 AUC | Seed1 AUC |
+|---|---:|---:|---:|
+| 60D compact raw anchor | 60 | `0.9999017715454102` | `0.9998178482055664` |
+| Anchor + `aux_depth_word_` | 113 | `0.9999208450317383` | `0.9998998641967773` |
+
+One follow-up compact raw combination added the small `aux_word_global_` family:
+
+```text
+selected_raw_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+feature_count = 117
+model = raw-only logistic
+```
+
+Artifacts:
+
+```text
+seed0 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_report.json
+seed1 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_report.json
+seed0 shuffle =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_shuffle_report.json
+seed1 shuffle =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_shuffle_report.json
+```
+
+Metrics:
+
+| Seed | 117D Raw AUC | Delta vs 60D compact raw | Delta vs full 273D | Delta vs 309D allraw+rank1 | Shuffle AUC |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999246597290039` | `+0.0000228881835938` | `+0.0000104904174805` | `-0.0000009536743164` | `0.4848761558532715` |
+| 1 | `0.9999103546142578` | `+0.0000925064086914` | `+0.0000667572021484` | `+0.0000095367431641` | `0.5067415237426758` |
+
+Decision:
+
+```text
+decision = compact_raw_117d_family_anchor_positive_local_diagnostic
+action = keep_as_best_compact_raw_local_candidate
+```
+
+Interpretation:
+
+```text
+The 117D raw-family anchor is a better local direction than the 96D
+compact-raw-plus-low-rank variant. It beats the full 273D raw summary on both
+seeds, matches or nearly matches the 309D allraw+rank1 route, and has clean
+shuffle-label controls. This is still only a 2048/class local diagnostic; do
+not call it remote evidence or formal SPN/PRESENT evidence. The next
+plan-aligned scale step should prioritize this raw-family representation over
+the exact 96D low-rank correction.
+```
