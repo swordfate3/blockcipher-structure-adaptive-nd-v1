@@ -2196,7 +2196,11 @@ def test_trail_position_medium_remote_score_export_repair_launcher_asset():
     assert "cmd.exe /k" not in launcher_text
     assert "scripts\\train" not in launcher_text
     assert "ssh lxy-a6000" in launcher_text
-    assert "cmd.exe /c call" in launcher_text
+    assert "cmd.exe /c if not exist" in launcher_text
+    assert "git fetch origin main" in launcher_text
+    assert "git pull --ff-only origin main" in launcher_text
+    assert "git clone --branch main" in launcher_text
+    assert "&& call" in launcher_text
     assert "G:\\\\lxy\\\\blockcipher-structure-adaptive-nd-runs" in launcher_text
     assert "repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.cmd" in launcher_text
     assert "outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/monitor" in launcher_text
