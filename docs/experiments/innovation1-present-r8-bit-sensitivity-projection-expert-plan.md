@@ -1625,3 +1625,121 @@ Future architecture work should not spend the next slot on hand-selected
 pairwise products; it should either preserve raw117 for scale confirmation or
 test a genuinely different non-neighbor expert family.
 ```
+
+## V12 Trail-Position And Raw117 Frozen-Score Alignment Diagnostic
+
+The raw117 anchor now has an explicit same-validation frozen-score check
+against the recovered 2048-row trail-position score artifacts. This answers a
+narrow ensemble question without training another model:
+
+```text
+question =
+  Are the trail-position neural expert and the 117D compressed SPN structural
+  expert aligned on the same held-out validation rows, and does fixed
+  score-level aggregation improve over the best single expert?
+
+scale = 2048 total validation rows / 1024 per class local diagnostic only
+negative_mode = encrypted_random_plaintexts
+pairs_per_sample = 16
+rounds = PRESENT-80 r8
+```
+
+Alignment artifacts:
+
+```text
+seed0 alignment =
+  outputs/local_audits/i1_present_r8_seed0_trail_global_raw117_alignment_check.json
+seed1 alignment =
+  outputs/local_audits/i1_present_r8_seed1_trail_global_raw117_alignment_check.json
+```
+
+Both alignment checks pass for labels, sample IDs, validation key, feature
+encoding, strict negative mode, sample structure, and pairs-per-sample:
+
+```text
+seed0 status = pass, rows = 2048
+seed1 status = pass, rows = 2048
+```
+
+The first three-artifact diagnostic included the same-input global-statistics
+control, the trail-position expert, and the raw117 compressed structural
+expert:
+
+```text
+seed0 report =
+  outputs/local_audits/i1_present_r8_seed0_trail_global_raw117_fixed_ensemble.json
+seed1 report =
+  outputs/local_audits/i1_present_r8_seed1_trail_global_raw117_fixed_ensemble.json
+
+seed0 best_single = compressed_feature_logistic_expert
+seed0 best_single_auc = 0.9999246597290039
+seed0 best_ensemble = auc_positive_weighted_logit_mean
+seed0 best_ensemble_auc = 0.9999408721923828
+seed0 delta_best_ensemble_vs_single_auc = +0.00001621246337890625
+
+seed1 best_single = compressed_feature_logistic_expert
+seed1 best_single_auc = 0.9999103546142578
+seed1 best_ensemble = auc_positive_weighted_logit_mean
+seed1 best_ensemble_auc = 0.9999113082885742
+seed1 delta_best_ensemble_vs_single_auc = +0.00000095367431640625
+```
+
+This result should not be reported as a diverse expert-pool success because the
+global-statistics row is a control, not a candidate expert. The candidate-only
+diagnostic is therefore the relevant one:
+
+```text
+seed0 candidate report =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_candidate_fixed_ensemble.json
+seed1 candidate report =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_candidate_fixed_ensemble.json
+
+seed0 trail_position_auc = 0.9985876083374023
+seed0 raw117_auc = 0.9999246597290039
+seed0 best_candidate_ensemble = logit_mean
+seed0 best_candidate_ensemble_auc = 0.9999418258666992
+seed0 delta_best_candidate_ensemble_vs_single_auc = +0.0000171661376953125
+seed0 trail_raw117_probability_correlation = 0.9459612966412756
+seed0 trail_raw117_error_jaccard_at_0_5 = 0.057692307692307696
+seed0 diverse_pool_decision = diverse_expert_pool_not_ready
+seed0 diverse_pool_errors = too_few_eligible_families
+
+seed1 trail_position_auc = 0.9982948303222656
+seed1 raw117_auc = 0.9999103546142578
+seed1 best_candidate_ensemble = auc_positive_weighted_logit_mean
+seed1 best_candidate_ensemble_auc = 0.9999189376831055
+seed1 delta_best_candidate_ensemble_vs_single_auc = +0.00000858306884765625
+seed1 trail_raw117_probability_correlation = 0.9417126952090996
+seed1 trail_raw117_error_jaccard_at_0_5 = 0.06153846153846154
+seed1 diverse_pool_decision = diverse_expert_pool_not_ready
+seed1 diverse_pool_errors = too_few_eligible_families
+```
+
+Decision:
+
+```text
+decision = aligned_candidate_fusion_tiny_positive_but_diverse_pool_not_ready
+action =
+  keep raw117 as a compact structural anchor and as a scale-confirmation
+  candidate; do not claim that multi-network aggregation is solved
+```
+
+Interpretation:
+
+```text
+The good news is that raw117 is not merely a detached local audit artifact: it
+is aligned to the same held-out validation rows as the trail-position neural
+expert, and fixed score-level aggregation gives a tiny positive AUC delta on
+both local seeds. The caution is equally important. The deltas are only about
+8.6e-6 to 1.7e-5 AUC, the two candidate experts remain highly correlated
+around 0.94-0.95, and the candidate pool still has only two eligible families.
+This is evidence for a useful aligned compact representation, not evidence
+that a broad multi-network SPN ensemble is ready.
+
+The next meaningful use is medium-scale reuse after the active 262144/class
+trail-position artifacts are retrieved: export the same raw117/compact
+structural score artifact on those exact validation rows, then rerun the
+candidate-only fixed and train-split-calibrated fusion gates. Until then, the
+right architecture hypothesis remains structured SPN-coordinate modeling over
+the raw117 families, not adding more near-neighbor networks.
+```
