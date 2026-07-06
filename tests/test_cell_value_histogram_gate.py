@@ -60,3 +60,39 @@ def test_cell_value_histogram_gate_holds_when_candidate_loses_seed(tmp_path):
     assert payload["decision"] == "hold_cell_value_histogram_local_screen"
     assert payload["action"] == "do_not_promote_to_diverse_expert_pool"
     assert payload["per_seed"][1]["candidate_clears_baseline"] is False
+    assert payload["completion_status"] == "complete"
+
+
+def test_cell_value_histogram_gate_marks_empty_results_incomplete(tmp_path):
+    results = tmp_path / "results.jsonl"
+    _write_jsonl(results, [])
+
+    payload = gate_cell_value_histogram_result(results)
+
+    assert payload["status"] == "fail"
+    assert payload["completion_status"] == "incomplete"
+    assert payload["decision"] == "pending_cell_value_histogram_screen"
+    assert payload["action"] == "wait_for_all_planned_seed_pairs_before_claim"
+    assert payload["incomplete_reasons"] == ["no_seed_results"]
+
+
+def test_cell_value_histogram_gate_marks_missing_candidate_incomplete(tmp_path):
+    results = tmp_path / "results.jsonl"
+    _write_jsonl(
+        results,
+        [
+            _row(0, "present_pairset_global_stats", 0.70),
+            _row(0, "present_pairset_histogram_hybrid", 0.72),
+            _row(1, "present_pairset_global_stats", 0.71),
+        ],
+    )
+
+    payload = gate_cell_value_histogram_result(results)
+
+    assert payload["status"] == "fail"
+    assert payload["completion_status"] == "incomplete"
+    assert payload["decision"] == "pending_cell_value_histogram_screen"
+    assert payload["per_seed"][1]["candidate_auc"] is None
+    assert payload["incomplete_reasons"] == [
+        "seed=1 missing_candidate_model=present_pairset_histogram_hybrid"
+    ]

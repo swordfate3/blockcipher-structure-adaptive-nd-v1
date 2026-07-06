@@ -36,6 +36,7 @@ def gate_cell_value_histogram_result(
     rows = _load_jsonl_rows(results_path)
     by_seed = _metrics_by_seed(rows)
     errors: list[str] = []
+    incomplete_reasons: list[str] = []
     per_seed: list[dict[str, Any]] = []
 
     for seed in sorted(by_seed):
@@ -43,9 +44,9 @@ def gate_cell_value_histogram_result(
         baseline_auc = _metric(seed_rows.get(baseline_model), "auc")
         candidate_auc = _metric(seed_rows.get(candidate_model), "auc")
         if baseline_auc is None:
-            errors.append(f"seed={seed} missing_baseline_model={baseline_model}")
+            incomplete_reasons.append(f"seed={seed} missing_baseline_model={baseline_model}")
         if candidate_auc is None:
-            errors.append(f"seed={seed} missing_candidate_model={candidate_model}")
+            incomplete_reasons.append(f"seed={seed} missing_candidate_model={candidate_model}")
         per_seed.append(
             {
                 "seed": seed,
@@ -60,7 +61,7 @@ def gate_cell_value_histogram_result(
         )
 
     if not per_seed:
-        errors.append("no_seed_results")
+        incomplete_reasons.append("no_seed_results")
 
     baseline_aucs = [row["baseline_auc"] for row in per_seed if row["baseline_auc"] is not None]
     candidate_aucs = [row["candidate_auc"] for row in per_seed if row["candidate_auc"] is not None]
@@ -72,7 +73,16 @@ def gate_cell_value_histogram_result(
     decision = "invalid_cell_value_histogram_screen"
     action = "fix_cell_value_histogram_gate_inputs_before_claim"
     interpretation = "cell-value histogram screen cannot be evaluated"
-    if not errors:
+    completion_status = "complete"
+    if incomplete_reasons:
+        completion_status = "incomplete"
+        decision = "pending_cell_value_histogram_screen"
+        action = "wait_for_all_planned_seed_pairs_before_claim"
+        interpretation = (
+            "cell-value histogram screen is still incomplete; do not treat this as "
+            "a route failure or promotion signal"
+        )
+    elif not errors:
         candidate_beats_baseline_all = all(row["candidate_clears_baseline"] for row in per_seed)
         candidate_clears_auc_all = all(row["candidate_clears_min_auc"] for row in per_seed)
         mean_margin_clears = mean_margin is not None and mean_margin >= min_mean_margin
@@ -92,7 +102,8 @@ def gate_cell_value_histogram_result(
             )
 
     return {
-        "status": "pass" if not errors else "fail",
+        "status": "pass" if not errors and not incomplete_reasons else "fail",
+        "completion_status": completion_status,
         "results_path": str(results_path),
         "baseline_model": baseline_model,
         "candidate_model": candidate_model,
@@ -114,6 +125,7 @@ def gate_cell_value_histogram_result(
             "expert pool evidence by itself"
         ),
         "errors": errors,
+        "incomplete_reasons": incomplete_reasons,
     }
 
 
