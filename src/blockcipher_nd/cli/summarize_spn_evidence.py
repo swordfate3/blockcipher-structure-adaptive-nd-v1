@@ -625,6 +625,7 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
     ]
 
     if scale_up_active:
+        postprocess_command = _trail_position_262k_postprocess_command(root, scale_up_entries)
         return {
             "branch": "wait_for_trail_position_262k_results",
             "status": "running",
@@ -636,9 +637,12 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
             "active_runs": scale_up_active,
             "deferred_ready_runs": scale_up_ready,
             "deferred_repair_runs": repair_needed,
+            "postprocess_when_ready_command": postprocess_command,
             "main_thread_policy": _trail_position_main_thread_policy("waiting"),
         }
     if len(scale_up_ready) == len(scale_up_entries) and scale_up_ready:
+        postprocess_command = _trail_position_262k_postprocess_command(root, scale_up_entries)
+        postprocess_command_parts = _trail_position_262k_postprocess_command_parts(root, scale_up_entries)
         return {
             "branch": "analyze_trail_position_262k_score_artifacts",
             "status": "score_artifacts_ready",
@@ -649,6 +653,8 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
             ),
             "ready_runs": scale_up_ready,
             "deferred_repair_runs": repair_needed,
+            "postprocess_when_ready_command": postprocess_command,
+            "postprocess_command": postprocess_command_parts,
             "main_thread_policy": _trail_position_main_thread_policy("postprocess"),
         }
     if repair_needed:
@@ -734,6 +740,29 @@ def _trail_position_score_artifacts(run_root: Path, require_verification_summary
     if require_verification_summary:
         artifacts["verification_summary.json"] = (score_root / "verification_summary.json").exists()
     return artifacts
+
+
+def _trail_position_262k_postprocess_command(root: Path, entries: list[dict[str, Any]]) -> str:
+    return " ".join(_trail_position_262k_postprocess_command_parts(root, entries))
+
+
+def _trail_position_262k_postprocess_command_parts(root: Path, entries: list[dict[str, Any]]) -> list[str]:
+    run_args: list[str] = []
+    for entry in entries:
+        run_args.extend(["--run-root", str(root / str(entry["run_id"]))])
+    return [
+        "env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "uv",
+        "run",
+        "python",
+        "scripts/postprocess-trail-position-result",
+        *run_args,
+        "--expected-score-rows",
+        "262144",
+        "--output",
+        str(root / "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json"),
+    ]
 
 
 def _jsonl_line_count(path: Path) -> int:

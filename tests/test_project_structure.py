@@ -11098,7 +11098,37 @@ def test_summarize_spn_evidence_prioritizes_trail_position_262k_over_stale_follo
     ]
     assert active["active_runs"][0]["scale"] == "262144/class"
     assert active["active_runs"][0]["progress_summary"]["cache_class_total"] == 262144
+    assert "scripts/postprocess-trail-position-result" in active["postprocess_when_ready_command"]
+    assert "--expected-score-rows 262144" in active["postprocess_when_ready_command"]
     assert "SSH-poll or tmux-loop from the main thread" in active["main_thread_policy"]["forbidden_until_gate"]
+
+
+def test_summarize_spn_evidence_emits_trail_position_262k_postprocess_when_ready(tmp_path):
+    for run_id in [
+        "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+        "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706",
+    ]:
+        run_root = tmp_path / run_id
+        (run_root / "results").mkdir(parents=True)
+        score_root = run_root / "score_artifacts"
+        (score_root / "global_stats_control").mkdir(parents=True)
+        (score_root / "trail_position").mkdir(parents=True)
+        (run_root / "results" / "train_matrix.jsonl").write_text("{}\n{}\n", encoding="utf-8")
+        (score_root / "global_stats_control" / "models.json").write_text("{}", encoding="utf-8")
+        (score_root / "trail_position" / "models.json").write_text("{}", encoding="utf-8")
+        (score_root / "verification_summary.json").write_text("{}", encoding="utf-8")
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "analyze_trail_position_262k_score_artifacts"
+    assert active["status"] == "score_artifacts_ready"
+    assert len(active["ready_runs"]) == 2
+    assert active["postprocess_command"][0:2] == ["env", "UV_CACHE_DIR=/tmp/uv-cache"]
+    assert "scripts/postprocess-trail-position-result" in active["postprocess_command"]
+    assert active["postprocess_command"].count("--run-root") == 2
+    assert "--expected-score-rows 262144" in active["postprocess_when_ready_command"]
+    assert "run frozen-score residual and error-overlap analysis" in active["main_thread_policy"]["allowed_actions"]
 
 
 def test_summarize_spn_evidence_routes_trail_position_65k_score_repair(tmp_path):
