@@ -6378,6 +6378,44 @@ def test_monitor_health_reports_running_result_ready_and_failed(tmp_path):
     assert report["failed_markers"] == ["failed.marker"]
 
 
+def test_monitor_health_accepts_train_matrix_result_file(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_matrix_run"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    results = run_root / "results"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    results.mkdir()
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-07-06T19:00:00+08:00 sync",
+                "2026-07-06T19:00:01+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    (logs / f"{run_id}_train_done.marker").write_text("train_done\n", encoding="utf-8")
+    (results / "train_matrix.jsonl").write_text("{}\n{}\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+        now=datetime.fromisoformat("2026-07-06T19:05:00+08:00"),
+    )
+
+    assert report["status"] == "result_ready"
+    assert report["results_jsonl"].endswith("results/train_matrix.jsonl")
+    assert report["results_jsonl_exists"] is True
+    assert report["results_jsonl_line_count"] == 2
+    assert report["expected_rows"] == 2
+
+
 def test_monitor_health_ignores_stale_failed_marker_when_progress_continues(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "stale_failed_marker_unit"

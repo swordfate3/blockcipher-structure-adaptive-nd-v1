@@ -100,7 +100,7 @@ def monitor_health_report(
     monitor_log = monitor_dir / "monitor.log"
     ssh_stderr = monitor_dir / "monitor_ssh_stderr.log"
     scp_stderr = monitor_dir / "scp_stderr.log"
-    results_jsonl = run_root / "results" / f"{run_id}.jsonl"
+    results_jsonl = _result_jsonl_path(run_root, run_id)
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
     progress_summary = _progress_summary(run_root, stale_after_seconds=stale_after_seconds, now=now)
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
@@ -275,6 +275,16 @@ def _health_status(
 
 def _monitor_has_event(lines: list[str], event: str) -> bool:
     return any(event in line for line in lines)
+
+
+def _result_jsonl_path(run_root: Path, run_id: str) -> Path:
+    default_path = run_root / "results" / f"{run_id}.jsonl"
+    if default_path.exists():
+        return default_path
+    matrix_path = run_root / "results" / "train_matrix.jsonl"
+    if matrix_path.exists():
+        return matrix_path
+    return default_path
 
 
 def _monitor_sync_count(lines: list[str]) -> int:
