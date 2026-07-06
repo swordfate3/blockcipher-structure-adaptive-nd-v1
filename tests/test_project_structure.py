@@ -2244,6 +2244,15 @@ def test_trail_position_report_cli_asset():
     assert "blockcipher_nd.cli.render_trail_position_report" in script_text
 
 
+def test_bit_sensitivity_projection_cli_asset():
+    script = Path("scripts/select-bit-sensitivity-projection")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.select_bit_sensitivity_projection" in script_text
+
+
 def test_trail_position_1m_conditional_plan_is_gated_and_controlled():
     plan = Path("docs/experiments/innovation1-present-r8-trail-position-1m-conditional-plan.md")
     assert plan.exists()

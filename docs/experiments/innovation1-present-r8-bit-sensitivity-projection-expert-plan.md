@@ -72,6 +72,21 @@ sensitivity_csv = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_
 selection_split = train
 ```
 
+Prepared selector:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/select-bit-sensitivity-projection \
+  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_features_seed{seed}.npy \
+  --control-artifact outputs/remote_results/<run_id>/score_artifacts/global_stats_control \
+  --anchor-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --output-mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json \
+  --output-report outputs/local_audits/i1_present_r8_bit_sensitivity_projection_seed{seed}.json \
+  --top-k 64
+```
+
+The selector writes only a train-only mask/report. It is not a model result and
+must not be interpreted as candidate AUC.
+
 ## Gate
 
 Promote to a compatible frozen-score expert only if all of these hold:
@@ -121,4 +136,3 @@ SOTA claim
 remote-launch basis before local gate
 diverse ensemble claim without low-overlap score evidence
 ```
-

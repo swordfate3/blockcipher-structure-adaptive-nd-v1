@@ -11,6 +11,7 @@ from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_ma
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
+from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
@@ -744,6 +745,95 @@ def test_analyze_trail_position_scores_holds_when_candidate_does_not_clear_contr
     assert report["decision"] == "hold_trail_position_score_residual"
     assert report["margins_vs_global_control"]["auc"] == 0.0
     assert report["action"] == "do_not_promote_score_artifacts_beyond_diagnostic_use"
+
+
+def test_select_bit_sensitivity_projection_writes_train_only_mask(tmp_path):
+    labels = np.array([0, 0, 1, 1, 0, 1], dtype=np.float32)
+    sample_ids = np.array(["s0", "s1", "s2", "s3", "s4", "s5"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 3,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    control_dir = tmp_path / "control"
+    anchor_dir = tmp_path / "anchor"
+    write_score_artifact(
+        control_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.4, 0.6, 0.4, 0.6, 0.3, 0.4], dtype=np.float32),
+            logits=np.zeros_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+            },
+        ),
+    )
+    write_score_artifact(
+        anchor_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.3, 0.2, 0.8, 0.7, 0.4, 0.9], dtype=np.float32),
+            logits=np.ones_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+            },
+        ),
+    )
+    features = np.array(
+        [
+            [0, 0, 0, 1],
+            [1, 0, 0, 0],
+            [0, 0, 1, 0],
+            [1, 0, 1, 0],
+            [0, 0, 0, 1],
+            [1, 0, 1, 0],
+        ],
+        dtype=np.float32,
+    )
+    feature_path = tmp_path / "features.npy"
+    np.save(feature_path, features)
+    mask_path = tmp_path / "mask.json"
+    report_path = tmp_path / "report.json"
+
+    status = select_bit_sensitivity_main(
+        [
+            "--features",
+            str(feature_path),
+            "--control-artifact",
+            str(control_dir),
+            "--anchor-artifact",
+            str(anchor_dir),
+            "--output-mask",
+            str(mask_path),
+            "--output-report",
+            str(report_path),
+            "--top-k",
+            "2",
+        ]
+    )
+
+    assert status == 0
+    mask = json.loads(mask_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert mask["selection_split"] == "train"
+    assert mask["selected_axis_count"] == 2
+    assert mask["selected_axes"][0] == 2
+    assert report["decision"] == "projection_mask_ready_for_local_screen"
+    assert "do_not_select_mask_on_validation" in report["guardrails"]
+    assert "not a trained model result" in report["claim_scope"]
 
 
 def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):
