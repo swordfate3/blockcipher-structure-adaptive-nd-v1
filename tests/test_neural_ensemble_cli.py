@@ -167,6 +167,97 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
     assert metadata["candidate_status"] == "weak_positive"
 
 
+def test_export_checkpoint_scores_train_split_aligns_with_feature_export(tmp_path):
+    checkpoint = tmp_path / "model.pt"
+    train_output = tmp_path / "train.jsonl"
+    train_main(
+        [
+            "--ciphers",
+            "speck32",
+            "--models",
+            "mlp",
+            "--rounds",
+            "1",
+            "--seeds",
+            "0",
+            "--samples-per-class",
+            "8",
+            "--pairs-per-sample",
+            "1",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--device",
+            "cpu",
+            "--checkpoint-output",
+            str(checkpoint),
+            "--output",
+            str(train_output),
+        ]
+    )
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    artifact_dir = tmp_path / "train_artifact"
+    features_dir = tmp_path / "train_features"
+
+    status = export_scores_main(
+        [
+            "--checkpoint",
+            str(checkpoint),
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "train",
+            "--samples-per-class",
+            "4",
+            "--model-key",
+            "mlp",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--device",
+            "cpu",
+            "--expert-family",
+            "raw_mcnd",
+            "--candidate-status",
+            "weak_positive",
+            "--output-dir",
+            str(artifact_dir),
+        ]
+    )
+    feature_status = export_bit_sensitivity_features_main(
+        [
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "train",
+            "--samples-per-class",
+            "4",
+            "--output-dir",
+            str(features_dir),
+        ]
+    )
+
+    assert status == 0
+    assert feature_status == 0
+    assert np.array_equal(np.load(artifact_dir / "labels.npy"), np.load(features_dir / "labels.npy"))
+    assert np.array_equal(
+        np.load(artifact_dir / "sample_ids.npy").astype(str),
+        np.load(features_dir / "sample_ids.npy").astype(str),
+    )
+    metadata = json.loads((artifact_dir / "models.json").read_text(encoding="utf-8"))
+    assert metadata["score_split"] == "train"
+    assert metadata["score_samples_per_class"] == 4
+    assert metadata["train_samples_per_class"] == 4
+
+
 def test_export_checkpoint_scores_can_use_dataset_cache_and_progress(tmp_path):
     checkpoint = tmp_path / "model.pt"
     train_output = tmp_path / "train.jsonl"

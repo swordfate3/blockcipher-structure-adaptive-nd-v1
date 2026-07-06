@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-07
 
-**Status:** conditional local-screen plan; blocked on active trail-position
-262144/class score artifacts; no remote launch asset
+**Status:** v0 local seed0 screen held; full 262144/class activation still
+blocked on active trail-position score artifacts; no remote launch asset
 
 ## Question
 
@@ -15,7 +15,7 @@ representation selected from stable trail-position residual sensitivity axes.
 
 ## Dependency
 
-This plan is inactive until:
+The medium-scale route remains inactive until:
 
 ```text
 active_summary_branch = wait_for_trail_position_262k_results
@@ -28,7 +28,61 @@ required_score_rows = 262144
 ```
 
 If those runs are still running or score artifacts are missing, do not start
-this experiment.
+the medium-scale version of this experiment.
+
+## 2048/Class V0 Local Screen
+
+A seed0 local diagnostic was run against the existing 2048/class frozen
+trail-position artifacts to test the mechanics before the active 262144/class
+artifacts exist:
+
+```text
+run_id = i1_present_r8_bit_sensitivity_projection_2048_seed0_local_20260707
+selection_split = train
+validation_split = validation
+top_k = 64 raw feature axes
+score_split_export = train support added to scripts/export-checkpoint-scores
+gate = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_gate.json
+decision = hold_projection_duplicate_or_weak
+action = do_not_promote_projection_to_diverse_pool_or_remote_scale
+```
+
+Metrics:
+
+| Artifact | AUC |
+|---|---:|
+| Same-input global control | `0.8542919158935547` |
+| Trail-position anchor | `0.9985876083374023` |
+| Bit-sensitivity raw-axis projection | `0.49335479736328125` |
+
+Gate deltas:
+
+```text
+projection_margin_vs_global_auc = -0.36093711853027344
+projection_margin_vs_anchor_auc = -0.5052328109741211
+hold_reasons = projection_auc_below_gate, does_not_clear_global_control
+anchor_projection_error_jaccard = 0.02153558052434457
+anchor_projection_probability_correlation = -0.012520744853315167
+```
+
+Interpretation:
+
+```text
+The v0 train-only raw-axis projection is not a useful non-neighbor expert.
+Its low overlap with trail-position is not useful diversity; it comes with
+near-random validation AUC. Do not run seed1 or remote scale for this exact
+raw-axis projection. Keep the tooling because it is needed for aligned
+train/validation feature export and future structure-aware projection variants.
+```
+
+Next route refinement:
+
+```text
+do_not_expand_v0_raw_axis_projection
+wait_for_262144_class_trail_position_score_artifacts
+if projection is revisited, use grouped/structured axes or residual summaries,
+not individual raw feature columns alone
+```
 
 ## Fixed Protocol
 

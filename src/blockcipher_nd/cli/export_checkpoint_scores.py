@@ -14,7 +14,7 @@ from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import configure_structure_aware_model, infer_pair_bits
 from blockcipher_nd.engine.progress import task_progress_payload, write_progress
-from blockcipher_nd.engine.task_config import build_dataset_config
+from blockcipher_nd.engine.task_config import build_dataset_config, resolve_task_keys
 from blockcipher_nd.evaluation.neural_ensemble import (
     EnsembleScoreArtifact,
     write_score_artifact,
@@ -32,6 +32,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkpoint", required=True, type=Path)
     parser.add_argument("--eval-plan", required=True, type=Path)
     parser.add_argument("--eval-row-index", type=int, default=0)
+    parser.add_argument("--split", choices=["train", "validation"], default="validation")
     parser.add_argument("--samples-per-class", type=int, default=None)
     parser.add_argument("--model-key", required=True)
     parser.add_argument("--hidden-bits", type=int, required=True)
@@ -74,36 +75,35 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     task = eval_task_from_plan(args)
-    samples_per_class = validation_samples_per_class(task, args.samples_per_class)
-    validation_key = task.get("validation_key")
-    cipher = build_cipher(task["cipher_key"], task["rounds"], key=validation_key)
+    split_config = score_split_config(task, args.split, args.samples_per_class)
+    cipher = build_cipher(task["cipher_key"], task["rounds"], key=split_config["cipher_key"])
     progress_path = str(args.progress_output) if args.progress_output is not None else None
     eval_dataset = make_task_dataset(
         build_dataset_config(
             task,
             cipher=cipher,
-            samples_per_class=samples_per_class,
-            seed=int(task["seed"]) + 10_000,
+            samples_per_class=int(split_config["samples_per_class"]),
+            seed=int(split_config["seed"]),
         ),
         args,
         task,
-        split="validation",
+        split=args.split,
         progress_path=progress_path,
         index=int(args.eval_row_index) + 1,
         total=None,
     )
-    write_progress(
-        progress_path,
-        "score_export_cache_ready",
-        {
-            "index": int(args.eval_row_index) + 1,
-            "total": None,
-            "dataset_cache_enabled": bool(args.dataset_cache_root),
-            "validation_rows": int(eval_dataset.features.shape[0]),
-            "input_bits": int(eval_dataset.features.shape[1]),
-            **task_progress_payload(task),
-        },
-    )
+    progress_payload = {
+        "index": int(args.eval_row_index) + 1,
+        "total": None,
+        "dataset_cache_enabled": bool(args.dataset_cache_root),
+        "score_split": args.split,
+        "score_rows": int(eval_dataset.features.shape[0]),
+        "input_bits": int(eval_dataset.features.shape[1]),
+        **task_progress_payload(task),
+    }
+    if args.split == "validation":
+        progress_payload["validation_rows"] = int(eval_dataset.features.shape[0])
+    write_progress(progress_path, "score_export_cache_ready", progress_payload)
     pair_bits = infer_pair_bits(cipher.block_bits, task["feature_encoding"])
     model_options = model_options_from_args_or_task(args, task)
     model = build_model(
@@ -126,7 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         args=args,
         task=task,
         cipher_name=cipher.name,
-        samples_per_class=samples_per_class,
+        score_split=args.split,
+        score_samples_per_class=int(split_config["samples_per_class"]),
         model_options=model_options,
     )
     artifact = EnsembleScoreArtifact(
@@ -142,11 +143,16 @@ def main(argv: list[str] | None = None) -> int:
         "output_dir": str(args.output_dir),
         "rows": int(len(eval_dataset.labels)),
         "samples_per_class": int(task["samples_per_class"]),
-        "validation_samples_per_class": int(samples_per_class),
+        "score_split": args.split,
+        "score_samples_per_class": int(split_config["samples_per_class"]),
         "model_key": args.model_key,
         "checkpoint": str(args.checkpoint),
         "claim_scope": "per-sample score artifact for frozen neural ensemble evaluation",
     }
+    if args.split == "validation":
+        summary["validation_samples_per_class"] = int(split_config["samples_per_class"])
+    if args.split == "train":
+        summary["train_samples_per_class"] = int(split_config["samples_per_class"])
     (args.output_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -177,6 +183,23 @@ def validation_samples_per_class(task: dict[str, Any], override: int | None) -> 
     if override is not None:
         return int(override)
     return max(8, int(task["samples_per_class"]) // 2)
+
+
+def score_split_config(task: dict[str, Any], split: str, override: int | None) -> dict[str, Any]:
+    train_key, validation_key = resolve_task_keys(task)
+    if split == "train":
+        return {
+            "cipher_key": train_key,
+            "seed": int(task["seed"]),
+            "samples_per_class": int(override or task["samples_per_class"]),
+        }
+    if split == "validation":
+        return {
+            "cipher_key": validation_key,
+            "seed": int(task["seed"]) + 10_000,
+            "samples_per_class": validation_samples_per_class(task, override),
+        }
+    raise ValueError(f"unsupported score split: {split}")
 
 
 def model_options_from_args_or_task(args: argparse.Namespace, task: dict[str, Any]) -> dict[str, Any]:
@@ -234,7 +257,8 @@ def score_metadata(
     args: argparse.Namespace,
     task: dict[str, Any],
     cipher_name: str,
-    samples_per_class: int,
+    score_split: str,
+    score_samples_per_class: int,
     model_options: dict[str, Any],
 ) -> dict[str, Any]:
     metadata = {
@@ -243,7 +267,6 @@ def score_metadata(
         "rounds": int(task["rounds"]),
         "seed": int(task["seed"]),
         "samples_per_class": int(task["samples_per_class"]),
-        "validation_samples_per_class": int(samples_per_class),
         "pairs_per_sample": int(task["pairs_per_sample"]),
         "feature_encoding": task["feature_encoding"],
         "negative_mode": task["negative_mode"],
@@ -260,6 +283,8 @@ def score_metadata(
         "checkpoint_path": str(args.checkpoint),
         "checkpoint_metadata": checkpoint_metadata(args.checkpoint),
         "git_commit": current_git_commit(),
+        "score_split": score_split,
+        "score_samples_per_class": int(score_samples_per_class),
         "dataset_cache_enabled": bool(args.dataset_cache_root),
         "dataset_cache_root": str(args.dataset_cache_root) if args.dataset_cache_root else None,
         "dataset_cache_chunk_size": int(args.dataset_cache_chunk_size)
@@ -268,6 +293,10 @@ def score_metadata(
         "dataset_cache_workers": int(args.dataset_cache_workers) if args.dataset_cache_root else None,
         "progress_output": str(args.progress_output) if args.progress_output else None,
     }
+    if score_split == "validation":
+        metadata["validation_samples_per_class"] = int(score_samples_per_class)
+    if score_split == "train":
+        metadata["train_samples_per_class"] = int(score_samples_per_class)
     if args.expert_family:
         metadata["expert_family"] = str(args.expert_family)
         metadata["candidate_status"] = str(args.candidate_status)

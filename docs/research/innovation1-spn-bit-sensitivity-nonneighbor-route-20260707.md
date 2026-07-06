@@ -129,6 +129,39 @@ This differs from the held SGP route because SGP searched unstable raw axes
 directly. This route starts from the current strongest controlled
 trail-position residual and asks which axes explain its residual errors.
 
+## 2026-07-07 V0 Raw-Axis Screen
+
+A seed0 local 2048/class screen tested the simplest executable version of this
+idea: select 64 individual raw feature axes on the train split, freeze the
+mask, score the held-out validation split, and compare against the existing
+global-control and trail-position frozen score artifacts.
+
+```text
+gate = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_gate.json
+decision = hold_projection_duplicate_or_weak
+global_control_auc = 0.8542919158935547
+trail_position_anchor_auc = 0.9985876083374023
+projection_auc = 0.49335479736328125
+projection_margin_vs_global_auc = -0.36093711853027344
+projection_margin_vs_anchor_auc = -0.5052328109741211
+```
+
+The low error overlap with the trail-position anchor is not a diversity win:
+the projection is near random. This rejects the raw individual-axis projection
+as a candidate expert. It does not reject the broader bit-sensitivity idea,
+because the external evidence points to feature-format compression and
+multi-pair evidence, not necessarily single raw-axis masks.
+
+Updated implication:
+
+```text
+do_not_expand_v0_raw_axis_projection
+do_not_run_remote_or_seed1_for_this_exact_v0_screen
+keep train/validation-aligned export and gate tooling
+if revisiting projection, use grouped structural axes, residual summaries, or
+multi-pair compressed formats rather than isolated raw feature columns
+```
+
 ## Activation Gate
 
 Do not implement or launch this as a meaningful experiment until the active
