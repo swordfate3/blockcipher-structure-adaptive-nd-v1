@@ -9,6 +9,9 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
+from blockcipher_nd.cli.postprocess_bit_sensitivity_projection import (
+    main as postprocess_bit_sensitivity_main,
+)
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
@@ -932,6 +935,242 @@ def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["decision"] == "projection_score_artifact_ready_for_local_gate"
     assert "not a trained neural model" in report["claim_scope"]
+
+
+def test_postprocess_bit_sensitivity_projection_promotes_low_overlap_expert(tmp_path):
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([f"v{index}" for index in range(len(labels))], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 4,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    global_dir = tmp_path / "global_stats_control"
+    anchor_dir = tmp_path / "trail_position"
+    projection_dir = tmp_path / "bit_sensitivity_projection"
+    write_score_artifact(
+        global_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.2, 0.8, 0.9, 0.4, 0.5, 0.6, 0.7], dtype=np.float32),
+            logits=np.zeros_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+                "candidate_status": "near_neighbor_control",
+            },
+        ),
+    )
+    write_score_artifact(
+        anchor_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.2, 0.3, 0.8, 0.9, 0.7, 0.6, 0.4], dtype=np.float32),
+            logits=np.ones_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+                "candidate_status": "weak_positive",
+            },
+        ),
+    )
+    write_score_artifact(
+        projection_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.05, 0.7, 0.1, 0.2, 0.95, 0.4, 0.85, 0.9], dtype=np.float32),
+            logits=np.full_like(labels, 0.5),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_r8_bit_sensitivity_projection_expert",
+                "expert_family": "bit_sensitivity_projection",
+                "candidate_status": "projection_screen",
+            },
+        ),
+    )
+    output = tmp_path / "bit_sensitivity_gate.json"
+
+    status = postprocess_bit_sensitivity_main(
+        [
+            "--global-artifact",
+            str(global_dir),
+            "--anchor-artifact",
+            str(anchor_dir),
+            "--projection-artifact",
+            str(projection_dir),
+            "--output",
+            str(output),
+            "--min-margin-vs-global",
+            "0.01",
+            "--max-error-jaccard-with-anchor",
+            "0.5",
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "projection_expert_ready_for_local_screen"
+    assert report["projection"]["metrics"]["auc"] > report["global_control"]["metrics"]["auc"]
+    assert report["margins_vs_global_control"]["auc"] > 0.01
+    assert report["overlap_with_anchor"]["error_jaccard_at_0_5"] <= 0.5
+    assert report["next_action"]["branch"] == "bit_sensitivity_projection_local_screen_ready"
+    assert report["next_action"]["should_launch_remote"] is False
+    assert "not formal SPN/PRESENT evidence" in report["claim_scope"]
+
+
+def test_postprocess_bit_sensitivity_projection_holds_high_overlap_duplicate(tmp_path):
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([f"v{index}" for index in range(len(labels))], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 4,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    global_dir = tmp_path / "global_stats_control"
+    anchor_dir = tmp_path / "trail_position"
+    projection_dir = tmp_path / "bit_sensitivity_projection"
+    anchor_probabilities = np.array([0.1, 0.2, 0.3, 0.8, 0.9, 0.7, 0.6, 0.4], dtype=np.float32)
+    write_score_artifact(
+        global_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.2, 0.8, 0.9, 0.4, 0.5, 0.6, 0.7], dtype=np.float32),
+            logits=np.zeros_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+                "candidate_status": "near_neighbor_control",
+            },
+        ),
+    )
+    for path, model_key, family in [
+        (anchor_dir, "present_trail_position_stats_pairset", "trail_position"),
+        (projection_dir, "present_r8_bit_sensitivity_projection_expert", "bit_sensitivity_projection"),
+    ]:
+        write_score_artifact(
+            path,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=anchor_probabilities,
+                logits=np.ones_like(labels),
+                sample_ids=sample_ids,
+                metadata={
+                    **metadata,
+                    "model_key": model_key,
+                    "expert_family": family,
+                    "candidate_status": "projection_screen",
+                },
+            ),
+        )
+    output = tmp_path / "bit_sensitivity_gate.json"
+
+    status = postprocess_bit_sensitivity_main(
+        [
+            "--global-artifact",
+            str(global_dir),
+            "--anchor-artifact",
+            str(anchor_dir),
+            "--projection-artifact",
+            str(projection_dir),
+            "--output",
+            str(output),
+            "--min-margin-vs-global",
+            "0.01",
+            "--max-error-jaccard-with-anchor",
+            "0.5",
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "hold_projection_duplicate_or_weak"
+    assert "high_error_overlap_with_anchor" in report["hold_reasons"]
+    assert report["next_action"]["branch"] == "hold_bit_sensitivity_projection"
+
+
+def test_postprocess_bit_sensitivity_projection_fails_misaligned_labels(tmp_path):
+    sample_ids = np.array(["v0", "v1", "v2", "v3"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    dirs = [tmp_path / "global", tmp_path / "anchor", tmp_path / "projection"]
+    labels_by_dir = [
+        np.array([0, 0, 1, 1], dtype=np.float32),
+        np.array([0, 0, 1, 1], dtype=np.float32),
+        np.array([0, 1, 1, 1], dtype=np.float32),
+    ]
+    for path, labels, model_key, family in zip(
+        dirs,
+        labels_by_dir,
+        [
+            "present_pairset_global_stats",
+            "present_trail_position_stats_pairset",
+            "present_r8_bit_sensitivity_projection_expert",
+        ],
+        ["trail_position_global_control", "trail_position", "bit_sensitivity_projection"],
+    ):
+        write_score_artifact(
+            path,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=np.array([0.1, 0.2, 0.8, 0.9], dtype=np.float32),
+                logits=np.zeros_like(labels),
+                sample_ids=sample_ids,
+                metadata={**metadata, "model_key": model_key, "expert_family": family},
+            ),
+        )
+    output = tmp_path / "bit_sensitivity_gate.json"
+
+    status = postprocess_bit_sensitivity_main(
+        [
+            "--global-artifact",
+            str(dirs[0]),
+            "--anchor-artifact",
+            str(dirs[1]),
+            "--projection-artifact",
+            str(dirs[2]),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 1
+    assert report["status"] == "fail"
+    assert report["decision"] == "fail_protocol_alignment"
+    assert report["errors"]
 
 
 def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):

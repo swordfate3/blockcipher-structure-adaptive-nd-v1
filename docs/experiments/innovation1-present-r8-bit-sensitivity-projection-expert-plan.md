@@ -103,22 +103,39 @@ The scorer writes a standard frozen-score artifact so the candidate can be
 checked by the existing ensemble/diversity tooling. It is still not a trained
 neural model and cannot be promoted without the local gate below.
 
-## Gate
+Prepared postprocess gate:
 
-Promote to a compatible frozen-score expert only if all of these hold:
-
-```text
-candidate_auc > same_input_global_control_auc on both seeds
-candidate_auc >= 0.55 on both seeds
-mean_candidate_auc >= mean_global_control_auc + 0.01
-candidate_error_overlap_with_trail_position < global_control_error_overlap_with_trail_position
-active_nibble_mismatch_auc <= 0.55
-input_difference_mismatch_auc <= 0.55
-score_artifacts_exported = true
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/postprocess-bit-sensitivity-projection \
+  --global-artifact outputs/remote_results/<run_id>/score_artifacts/global_stats_control \
+  --anchor-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --projection-artifact outputs/local_audits/i1_present_r8_bit_sensitivity_projection_scores_seed{seed} \
+  --output outputs/local_audits/i1_present_r8_bit_sensitivity_projection_gate_seed{seed}.json
 ```
 
-If the candidate passes the local gate, the next step is still only a
-`65536/class` diagnostic plan. Do not jump directly to `1000000/class`.
+This gate is a frozen-score diagnostic only. It checks protocol/label/sample-id
+alignment, strict negative mode, projection expert-family metadata, the
+candidate AUC margin over the same-input global control, and error overlap with
+the trail-position anchor. It does not launch remote training and does not make
+formal SPN/PRESENT claims.
+
+## Gate
+
+Promote to a compatible local-screen expert only if all of these hold:
+
+```text
+postprocess decision = projection_expert_ready_for_local_screen
+projection_auc >= configured min_projection_auc
+projection_auc >= same_input_global_control_auc + configured min_margin_vs_global
+projection_error_jaccard_with_trail_position <= configured max_error_jaccard_with_anchor
+score_artifacts_exported = true and aligned
+negative_mode = encrypted_random_plaintexts
+expert_family = bit_sensitivity_projection
+```
+
+If the candidate passes the gate, the next step is still only a local
+frozen-score diversity or ensemble screen against the global and trail-position
+artifacts. Do not jump directly to a remote run or `1000000/class`.
 
 ## Hold Conditions
 
@@ -131,6 +148,8 @@ candidate loses to same-input global control on either seed
 candidate duplicates the trail-position error set
 mask selection uses validation evidence
 mismatch controls separate the classes
+postprocess decision = hold_projection_duplicate_or_weak
+postprocess decision = fail_protocol_alignment
 ```
 
 ## Claim Scope
