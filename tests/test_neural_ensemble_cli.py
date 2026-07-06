@@ -846,6 +846,8 @@ def test_fit_bucket_conditioned_feature_expert_writes_score_artifact(tmp_path):
     assert (output_train_dir / "models.json").exists()
     assert loaded.metadata["feature_model"] == "bucket_conditioned_logistic"
     assert loaded.metadata["expert_family"] == "bucket_conditioned_spn_residual"
+    assert loaded.metadata["bucket_train_values_shuffled"] is False
+    assert loaded.metadata["bucket_validation_values_shuffled"] is False
     assert np.array_equal(loaded.labels, labels)
     assert "train-derived" in loaded.metadata["claim_scope"]
 

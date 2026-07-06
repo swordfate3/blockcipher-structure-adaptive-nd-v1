@@ -67,6 +67,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expert-family", default=DEFAULT_EXPERT_FAMILY)
     parser.add_argument("--candidate-status", default=DEFAULT_CANDIDATE_STATUS)
     parser.add_argument("--shuffle-train-labels", action="store_true")
+    parser.add_argument("--shuffle-train-bucket-values", action="store_true")
+    parser.add_argument("--shuffle-validation-bucket-values", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
     parser.add_argument(
         "--include-feature-family",
@@ -100,6 +102,8 @@ def fit_bucket_conditioned_feature_expert(
     expert_family: str = DEFAULT_EXPERT_FAMILY,
     candidate_status: str = DEFAULT_CANDIDATE_STATUS,
     shuffle_train_labels: bool = False,
+    shuffle_train_bucket_values: bool = False,
+    shuffle_validation_bucket_values: bool = False,
     shuffle_seed: int = 0,
     include_feature_families: list[str] | None = None,
     include_feature_prefixes: list[str] | None = None,
@@ -131,8 +135,19 @@ def fit_bucket_conditioned_feature_expert(
     train_bucket_summary = evaluate_frozen_score_ensemble(train_bucket_artifacts)
     validation_bucket_summary = evaluate_frozen_score_ensemble(validation_bucket_artifacts)
 
-    train_bucket_values = _residual_feature_views(train_bucket_artifacts)[bucket_feature]
-    validation_bucket_values = _residual_feature_views(validation_bucket_artifacts)[bucket_feature]
+    train_bucket_values = _residual_feature_views(train_bucket_artifacts)[bucket_feature].astype(
+        np.float64,
+        copy=True,
+    )
+    validation_bucket_values = _residual_feature_views(validation_bucket_artifacts)[bucket_feature].astype(
+        np.float64,
+        copy=True,
+    )
+    bucket_rng = np.random.default_rng(shuffle_seed)
+    if shuffle_train_bucket_values:
+        train_bucket_values = bucket_rng.permutation(train_bucket_values)
+    if shuffle_validation_bucket_values:
+        validation_bucket_values = bucket_rng.permutation(validation_bucket_values)
     bucket_edges = _quantile_edges(train_bucket_values, bucket_count)
     train_bucket_ids = np.searchsorted(bucket_edges[1:-1], train_bucket_values, side="right")
     validation_bucket_ids = np.searchsorted(bucket_edges[1:-1], validation_bucket_values, side="right")
@@ -195,6 +210,9 @@ def fit_bucket_conditioned_feature_expert(
         "feature_selection": _feature_selection_metadata(feature_selection),
         "fit_train_labels_shuffled": bool(shuffle_train_labels),
         "fit_label_shuffle_seed": int(shuffle_seed),
+        "bucket_train_values_shuffled": bool(shuffle_train_bucket_values),
+        "bucket_validation_values_shuffled": bool(shuffle_validation_bucket_values),
+        "bucket_shuffle_seed": int(shuffle_seed),
         "bucket_feature": bucket_feature,
         "bucket_count": int(bucket_count),
         "bucket_edges": _edge_report(bucket_edges),
@@ -247,6 +265,11 @@ def fit_bucket_conditioned_feature_expert(
         },
         "label_control": {
             "shuffle_train_labels": bool(shuffle_train_labels),
+            "shuffle_seed": int(shuffle_seed),
+        },
+        "bucket_source_control": {
+            "shuffle_train_bucket_values": bool(shuffle_train_bucket_values),
+            "shuffle_validation_bucket_values": bool(shuffle_validation_bucket_values),
             "shuffle_seed": int(shuffle_seed),
         },
         "train_bucket_reports": bucket_reports,
@@ -367,6 +390,8 @@ def main(argv: list[str] | None = None) -> int:
         expert_family=args.expert_family,
         candidate_status=args.candidate_status,
         shuffle_train_labels=args.shuffle_train_labels,
+        shuffle_train_bucket_values=args.shuffle_train_bucket_values,
+        shuffle_validation_bucket_values=args.shuffle_validation_bucket_values,
         shuffle_seed=args.shuffle_seed,
         include_feature_families=args.include_feature_family,
         include_feature_prefixes=args.include_feature_prefix,

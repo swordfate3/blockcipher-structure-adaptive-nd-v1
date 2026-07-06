@@ -1630,6 +1630,20 @@ seed1 shuffle_train_auc = 0.5226397514343262
 seed1 shuffle_validation_auc = 0.5435142517089844
 ```
 
+A train bucket-source mismatch control was then added. This preserves labels,
+sample ids, features, validation scores, and validation bucket values, but
+shuffles train bucket values before fitting bucket-specific experts:
+
+```text
+seed0 train_bucket_shuffle_expert_auc = 0.9998598098754883
+seed0 train_bucket_shuffle_three_score_auc = 0.9999217987060547
+seed0 train_bucket_shuffle_delta_vs_raw117_best_single = -0.00000286102294921875
+
+seed1 train_bucket_shuffle_expert_auc = 0.9997463226318359
+seed1 train_bucket_shuffle_three_score_auc = 0.9998750686645508
+seed1 train_bucket_shuffle_delta_vs_raw117_best_single = -0.00003528594970703125
+```
+
 Interpretation:
 
 ```text
@@ -1642,9 +1656,12 @@ compressed SPN feature prefixes.
 
 The gain is still extremely small and only local. It should be treated as a
 route candidate, not as a breakthrough. The shuffle-label collapse reduces the
-obvious leakage concern, but scale-up still requires mismatch bucket-source
-controls, feature-scope ablations, and the retrieved 262144/class trail-position
-score artifacts.
+obvious leakage concern. The train-bucket mismatch control is also directionally
+good: once train bucket assignments are randomized, the three-score gain
+disappears. That makes the result less like "any third score helps" and more
+like a real but tiny residual-conditioning signal. Scale-up still requires
+feature-scope attribution, train-selection stability, and the retrieved
+262144/class trail-position score artifacts.
 ```
 
 Current route ranking:
@@ -1662,15 +1679,15 @@ Next research action:
 
 ```text
 Do not start a new remote branch for this candidate while 262144/class
-trail-position retrieval is incomplete. Locally, add two controls first:
+trail-position retrieval is incomplete. Locally, keep control work focused:
 
-1. mismatch bucket-source control: preserve validation labels/features but use
-   bucket edges/ids derived from a deliberately mismatched score-source order;
-2. no-bucket raw117-scope control: same 117D prefixes, same train/validation
+1. no-bucket raw117-scope control: same 117D prefixes, same train/validation
    split, but a single logistic expert rather than bucket-conditioned experts.
+2. validation-bucket shuffle or independent bucket-source mismatch only if
+   bucket_feature/bucket_count tuning begins to move the target.
 
-If both controls hold and the 262144/class trail-position score artifacts are
-retrieved, rerun the exact three-family frozen-score comparison at 262144/class.
-Only after that should this route be considered for >=1000000/class formal
-SPN/PRESENT evidence.
+If the remaining controls hold and the 262144/class trail-position score
+artifacts are retrieved, rerun the exact three-family frozen-score comparison at
+262144/class. Only after that should this route be considered for
+>=1000000/class formal SPN/PRESENT evidence.
 ```

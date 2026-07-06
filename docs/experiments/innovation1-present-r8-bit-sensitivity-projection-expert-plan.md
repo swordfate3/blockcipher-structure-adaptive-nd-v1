@@ -2153,6 +2153,34 @@ Shuffle-label controls:
 | 0 | `0.512155294418335` | `0.5372200012207031` |
 | 1 | `0.5226397514343262` | `0.5435142517089844` |
 
+Train bucket-source mismatch control:
+
+```text
+control =
+  shuffle train bucket values before fitting bucket-specific experts;
+  keep labels, sample_ids, features, validation scores, and validation bucket
+  values unchanged
+```
+
+| Seed | Bucket-Train-Shuffled Expert AUC | Three-Score Best Fixed AUC | Delta vs Raw117 Best Single |
+|---:|---:|---:|---:|
+| 0 | `0.9998598098754883` | `0.9999217987060547` | `-0.00000286102294921875` |
+| 1 | `0.9997463226318359` | `0.9998750686645508` | `-0.00003528594970703125` |
+
+Control artifacts:
+
+```text
+seed0 train-bucket-shuffle report =
+  outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_trainbucket_shuffle9200_report.json
+seed1 train-bucket-shuffle report =
+  outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_trainbucket_shuffle9201_report.json
+
+seed0 train-bucket-shuffle three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_trainshuffle_three_score_ensemble.json
+seed1 train-bucket-shuffle three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_trainshuffle_three_score_ensemble.json
+```
+
 Decision:
 
 ```text
@@ -2178,17 +2206,21 @@ over the two-score trail+raw117 fixed fusion on both seeds.
 The improvement is real but tiny. It is enough to keep the route as the best
 current local three-family candidate, but not enough to claim a breakthrough or
 launch remote scale without controls. The shuffled-label control collapses near
-random, reducing the obvious label-leak concern. The remaining control risk is
-whether the bucket source itself overfits the local split or whether the effect
-comes from raw117 feature scope rather than residual conditioning.
+random, reducing the obvious label-leak concern. The train-bucket mismatch
+control removes the three-score gain and lowers the bucket expert on both
+seeds, which supports the interpretation that the small positive signal depends
+on real residual bucket conditioning rather than merely adding a third score.
+The remaining control risk is feature-scope attribution and train-selection
+stability.
 ```
 
 Required controls before scale-up:
 
 ```text
-1. mismatch or shuffled bucket-source control with labels/sample_ids preserved;
-2. feature-scope ablation against the same 117D raw117 prefix set without
+1. feature-scope ablation against the same 117D raw117 prefix set without
    bucket conditioning;
+2. validation-bucket shuffle or independent bucket-source mismatch if tuning
+   starts to depend on bucket_feature variants;
 3. train-selection stability if bucket_feature, bucket_count, l2, or feature
    prefixes are tuned;
 4. same-protocol rerun on retrieved 262144/class artifacts before any
