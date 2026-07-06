@@ -110,6 +110,7 @@ candidate families are not there yet:
 | `gpd_beamstats` | local weak/unstable; beamstats AUC about `0.52-0.57` in recent diagnostics | Keep as candidate score source only |
 | `projection_feature` | 65k weak hold; v2 local priors unstable across seeds | Do not continue hand-picked masks |
 | `integral_active_difference` | neural follow-up stayed below fixed deterministic `pair_xor_column_sum_variance` baseline | Deterministic baseline, not a neural expert yet |
+| `raw_matrix_inception_pair_stack` | 2048/class local screen failed the both-seed global-control gate; seed0 candidate AUC `0.49560022354125977` vs control `0.551426887512207`, seed1 only marginally above control near random | Do not promote to diverse expert pool or remote scale from current evidence |
 
 So the bottleneck is not "number of networks." The bottleneck is that the
 available non-neighbor signals are too weak or too correlated to combine.

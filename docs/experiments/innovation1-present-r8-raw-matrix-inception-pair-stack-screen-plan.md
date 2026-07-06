@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** planned local diagnostic only / no remote launch
+**Status:** local diagnostic complete / gate failed / no remote launch
 
 ## Why This Plan Exists
 
@@ -141,4 +141,67 @@ breakthrough claim
 raw single-sample SOTA claim
 diverse expert pool evidence by itself
 replacement for the trail-position residual gate
+```
+
+## 2048/Class Local Diagnostic Result
+
+Run:
+
+```text
+outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/results.jsonl
+```
+
+Validation:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_raw_matrix_inception_pair_stack_2048_local.csv \
+  --results outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/results.jsonl \
+  --expected-rows 4
+
+status = pass
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/results.jsonl
+outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/progress.jsonl
+outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/curves.svg
+outputs/local_smoke/i1_present_r8_raw_matrix_inception_pair_stack_2048/history.csv
+```
+
+Results:
+
+| Seed | Model | AUC | Accuracy | Calibrated accuracy | Best epoch |
+|---:|---|---:|---:|---:|---:|
+| 0 | `present_pairset_global_stats` | `0.551426887512207` | `0.50390625` | `0.5478515625` | `3` |
+| 0 | `present_inception_mcnd_pair_stack_matrix` | `0.49560022354125977` | `0.49951171875` | `0.50927734375` | `1` |
+| 1 | `present_pairset_global_stats` | `0.5182418823242188` | `0.501953125` | `0.52490234375` | `3` |
+| 1 | `present_inception_mcnd_pair_stack_matrix` | `0.5198588371276855` | `0.49951171875` | `0.52587890625` | `2` |
+
+Gate decision:
+
+```text
+hold_raw_matrix_inception_pair_stack_local_screen
+do_not_promote_to_diverse_expert_pool
+do_not_scale_to_remote_from_current_evidence
+```
+
+Interpretation:
+
+```text
+The raw pair-stack Inception candidate does not beat the same-input
+global-stat control on both seeds. It loses on seed0 and is only marginally
+above the control on seed1 while staying near random. This rejects the current
+raw matrix Inception route as the next non-neighbor expert source.
+```
+
+Route implication:
+
+```text
+The next meaningful slot should stay with the controlled trail-position
+residual/export repair path, or with a new representation/data-construction
+route that has an explicit same-input control. Do not use this raw Inception
+screen as a basis for remote launch or ensemble expansion.
 ```
