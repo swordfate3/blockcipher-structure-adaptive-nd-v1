@@ -815,8 +815,10 @@ def _bit_sensitivity_projection_seed_commands(root: Path, entry: dict[str, Any])
     seed = _seed_label_from_run_id(run_id)
     run_root = root / run_id
     audit_root = Path("outputs/local_audits")
-    train_features = audit_root / f"i1_present_r8_bit_sensitivity_projection_features_{seed}.npy"
-    validation_features = audit_root / f"i1_present_r8_bit_sensitivity_projection_validation_features_{seed}.npy"
+    train_feature_dir = audit_root / f"i1_present_r8_bit_sensitivity_projection_train_features_{seed}"
+    validation_feature_dir = audit_root / f"i1_present_r8_bit_sensitivity_projection_validation_features_{seed}"
+    train_features = train_feature_dir / "features.npy"
+    validation_features = validation_feature_dir / "features.npy"
     mask = audit_root / f"i1_present_r8_bit_sensitivity_projection_mask_{seed}.json"
     selection_report = audit_root / f"i1_present_r8_bit_sensitivity_projection_{seed}.json"
     score_dir = audit_root / f"i1_present_r8_bit_sensitivity_projection_scores_{seed}"
@@ -827,6 +829,42 @@ def _bit_sensitivity_projection_seed_commands(root: Path, entry: dict[str, Any])
     return {
         "run_id": run_id,
         "seed": seed,
+        "train_feature_export_command": " ".join(
+            [
+                "env",
+                "UV_CACHE_DIR=/tmp/uv-cache",
+                "uv",
+                "run",
+                "scripts/export-bit-sensitivity-features",
+                "--eval-plan",
+                str(entry["plan"]),
+                "--eval-row-index",
+                "1",
+                "--split",
+                "train",
+                "--output-dir",
+                str(train_feature_dir),
+            ]
+        ),
+        "validation_feature_export_command": " ".join(
+            [
+                "env",
+                "UV_CACHE_DIR=/tmp/uv-cache",
+                "uv",
+                "run",
+                "scripts/export-bit-sensitivity-features",
+                "--eval-plan",
+                str(entry["plan"]),
+                "--eval-row-index",
+                "1",
+                "--split",
+                "validation",
+                "--reference-artifact",
+                str(anchor_artifact),
+                "--output-dir",
+                str(validation_feature_dir),
+            ]
+        ),
         "select_mask_command": " ".join(
             [
                 "env",

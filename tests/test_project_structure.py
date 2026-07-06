@@ -2253,6 +2253,15 @@ def test_bit_sensitivity_projection_cli_asset():
     assert "blockcipher_nd.cli.select_bit_sensitivity_projection" in script_text
 
 
+def test_export_bit_sensitivity_features_cli_asset():
+    script = Path("scripts/export-bit-sensitivity-features")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.export_bit_sensitivity_features" in script_text
+
+
 def test_apply_bit_sensitivity_projection_cli_asset():
     script = Path("scripts/apply-bit-sensitivity-projection")
     script_text = script.read_text(encoding="utf-8")
@@ -11277,6 +11286,15 @@ def test_summarize_spn_evidence_emits_trail_position_262k_postprocess_when_ready
     assert followup["status"] == "conditional_after_trail_position_postprocess"
     assert followup["should_launch_remote"] is False
     assert len(followup["per_seed_commands"]) == 2
+    assert "scripts/export-bit-sensitivity-features" in followup["per_seed_commands"][0][
+        "train_feature_export_command"
+    ]
+    assert "--split train" in followup["per_seed_commands"][0]["train_feature_export_command"]
+    assert "scripts/export-bit-sensitivity-features" in followup["per_seed_commands"][0][
+        "validation_feature_export_command"
+    ]
+    assert "--split validation" in followup["per_seed_commands"][0]["validation_feature_export_command"]
+    assert "--reference-artifact" in followup["per_seed_commands"][0]["validation_feature_export_command"]
     assert "scripts/select-bit-sensitivity-projection" in followup["per_seed_commands"][0]["select_mask_command"]
     assert "scripts/apply-bit-sensitivity-projection" in followup["per_seed_commands"][0]["apply_projection_command"]
     assert "scripts/postprocess-bit-sensitivity-projection" in followup["per_seed_commands"][0]["postprocess_gate_command"]

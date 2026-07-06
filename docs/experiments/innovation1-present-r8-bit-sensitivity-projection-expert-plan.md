@@ -67,16 +67,38 @@ The candidate is only eligible after a train-only selector writes a frozen mask
 artifact:
 
 ```text
+train_feature_dir = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_train_features_seed{seed}
+validation_feature_dir = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_validation_features_seed{seed}
 mask_artifact = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json
-sensitivity_csv = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_seed{seed}.csv
+sensitivity_report = outputs/local_audits/i1_present_r8_bit_sensitivity_projection_seed{seed}.json
 selection_split = train
 ```
+
+Prepared feature exports:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed{seed_number}.csv \
+  --eval-row-index 1 \
+  --split train \
+  --output-dir outputs/local_audits/i1_present_r8_bit_sensitivity_projection_train_features_seed{seed}
+
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed{seed_number}.csv \
+  --eval-row-index 1 \
+  --split validation \
+  --reference-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --output-dir outputs/local_audits/i1_present_r8_bit_sensitivity_projection_validation_features_seed{seed}
+```
+
+The validation export must pass the reference-artifact label/sample-id alignment
+check before the frozen projection scorer is allowed to run.
 
 Prepared selector:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run scripts/select-bit-sensitivity-projection \
-  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_features_seed{seed}.npy \
+  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_train_features_seed{seed}/features.npy \
   --control-artifact outputs/remote_results/<run_id>/score_artifacts/global_stats_control \
   --anchor-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
   --output-mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json \
@@ -91,7 +113,7 @@ Prepared frozen scorer:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run scripts/apply-bit-sensitivity-projection \
-  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_validation_features_seed{seed}.npy \
+  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_validation_features_seed{seed}/features.npy \
   --mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json \
   --reference-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
   --output-dir outputs/local_audits/i1_present_r8_bit_sensitivity_projection_scores_seed{seed} \

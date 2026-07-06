@@ -9,6 +9,9 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
+from blockcipher_nd.cli.export_bit_sensitivity_features import (
+    main as export_bit_sensitivity_features_main,
+)
 from blockcipher_nd.cli.postprocess_bit_sensitivity_projection import (
     main as postprocess_bit_sensitivity_main,
 )
@@ -935,6 +938,133 @@ def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["decision"] == "projection_score_artifact_ready_for_local_gate"
     assert "not a trained neural model" in report["claim_scope"]
+
+
+def test_export_bit_sensitivity_features_matches_reference_artifact(tmp_path):
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    first_output = tmp_path / "first"
+
+    status = export_bit_sensitivity_features_main(
+        [
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "validation",
+            "--samples-per-class",
+            "4",
+            "--output-dir",
+            str(first_output),
+        ]
+    )
+
+    assert status == 0
+    labels = np.load(first_output / "labels.npy")
+    sample_ids = np.load(first_output / "sample_ids.npy").astype(str)
+    metadata = json.loads((first_output / "metadata.json").read_text(encoding="utf-8"))
+    assert labels.shape[0] == 8
+    assert sample_ids.tolist() == [str(index) for index in range(8)]
+    assert metadata["split"] == "validation"
+    assert metadata["alignment"]["reference_checked"] is False
+
+    reference_dir = tmp_path / "reference_artifact"
+    write_score_artifact(
+        reference_dir,
+        EnsembleScoreArtifact(
+            labels=labels.astype(np.float32, copy=False),
+            probabilities=np.linspace(0.1, 0.9, len(labels), dtype=np.float32),
+            logits=np.linspace(-2.0, 2.0, len(labels), dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                "cipher": metadata["cipher"],
+                "cipher_key": metadata["cipher_key"],
+                "rounds": metadata["rounds"],
+                "validation_samples_per_class": metadata["samples_per_class"],
+                "pairs_per_sample": metadata["pairs_per_sample"],
+                "feature_encoding": metadata["feature_encoding"],
+                "negative_mode": metadata["negative_mode"],
+                "sample_structure": metadata["sample_structure"],
+                "difference_profile": metadata["difference_profile"],
+                "difference_member": metadata["difference_member"],
+                "validation_key": metadata["validation_key"],
+                "model_key": "reference",
+            },
+        ),
+    )
+    aligned_output = tmp_path / "aligned"
+
+    status = export_bit_sensitivity_features_main(
+        [
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "validation",
+            "--samples-per-class",
+            "4",
+            "--reference-artifact",
+            str(reference_dir),
+            "--output-dir",
+            str(aligned_output),
+        ]
+    )
+
+    aligned_metadata = json.loads((aligned_output / "metadata.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert np.array_equal(np.load(aligned_output / "labels.npy"), labels)
+    assert np.array_equal(np.load(aligned_output / "sample_ids.npy").astype(str), sample_ids)
+    assert aligned_metadata["alignment"]["reference_checked"] is True
+    assert aligned_metadata["alignment"]["labels"] is True
+    assert aligned_metadata["alignment"]["sample_ids"] is True
+
+
+def test_export_bit_sensitivity_features_rejects_reference_label_mismatch(tmp_path):
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    reference_dir = tmp_path / "reference_artifact"
+    write_score_artifact(
+        reference_dir,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.float32),
+            probabilities=np.full((8,), 0.5, dtype=np.float32),
+            logits=np.zeros((8,), dtype=np.float32),
+            sample_ids=np.array([str(index) for index in range(8)], dtype=str),
+            metadata={
+                "cipher": "SPECK32/64",
+                "cipher_key": "speck32",
+                "rounds": 1,
+                "validation_samples_per_class": 4,
+                "pairs_per_sample": 1,
+                "feature_encoding": "ciphertext_pair_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "independent_pairs",
+                "difference_profile": "",
+                "difference_member": "",
+                "validation_key": "0x1918111009080101",
+                "model_key": "reference",
+            },
+        ),
+    )
+
+    status = export_bit_sensitivity_features_main(
+        [
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "validation",
+            "--samples-per-class",
+            "4",
+            "--reference-artifact",
+            str(reference_dir),
+            "--output-dir",
+            str(tmp_path / "mismatch"),
+        ]
+    )
+
+    assert status == 1
 
 
 def test_postprocess_bit_sensitivity_projection_promotes_low_overlap_expert(tmp_path):
