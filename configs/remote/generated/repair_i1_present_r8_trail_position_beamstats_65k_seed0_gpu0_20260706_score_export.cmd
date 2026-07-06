@@ -84,6 +84,15 @@ if errorlevel 1 goto failed
 
 if not exist "%SCORE_ARTIFACT_DIR%\global_stats_control\models.json" goto failed
 if not exist "%SCORE_ARTIFACT_DIR%\trail_position\models.json" goto failed
+"%PYTHON_EXE%" scripts\verify-score-artifacts ^
+  --artifacts "%SCORE_ARTIFACT_DIR%\global_stats_control" "%SCORE_ARTIFACT_DIR%\trail_position" ^
+  --expected-rows 65536 ^
+  --require-model present_pairset_global_stats:trail_position_global_control:near_neighbor_control ^
+  --require-model present_trail_position_stats_pairset:trail_position:weak_positive ^
+  --output "%SCORE_ARTIFACT_DIR%\verification_summary.json" ^
+  > "%LOG_DIR%\%RUN_ID%_repair_verify_score_artifacts_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_repair_verify_score_artifacts_stderr.txt"
+if errorlevel 1 goto failed
+
 echo score_export_repair_done>"%LOG_DIR%\%RUN_ID%_score_export_repair_done.marker"
 echo score_export_done>"%LOG_DIR%\%RUN_ID%_score_export_done.marker"
 echo done>"%LOG_DIR%\%RUN_ID%_done.marker"

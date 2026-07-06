@@ -2171,6 +2171,11 @@ def test_trail_position_medium_remote_score_export_repair_asset():
     assert "AppData" not in repair_text
     assert "scripts\\train" not in repair_text
     assert repair_text.count("scripts\\export-checkpoint-scores") == 2
+    assert "scripts\\verify-score-artifacts" in repair_text
+    assert "--expected-rows 65536" in repair_text
+    assert "%SCORE_ARTIFACT_DIR%\\verification_summary.json" in repair_text
+    assert "present_pairset_global_stats:trail_position_global_control:near_neighbor_control" in repair_text
+    assert "present_trail_position_stats_pairset:trail_position:weak_positive" in repair_text
     assert "--dataset-cache-root \"%DATASET_CACHE_ROOT%\"" in repair_text
     assert repair_text.count("--progress-output \"%LOG_DIR%\\trail_position_beamstats_score_export_repair_progress.jsonl\"") == 2
     assert "row0001_present_pairset_global_stats_seed0.pt" in repair_text
