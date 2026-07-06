@@ -10,6 +10,8 @@ import torch
 
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.engine.datasets import make_task_dataset
+from blockcipher_nd.engine.progress import reset_progress
 from blockcipher_nd.features.encoders.present_sbox_ddt import parse_parameterized_present_sboxddt_encoding
 from blockcipher_nd.models.structure.spn.present_pairset_global_stats_hybrid import (
     present_global_pairset_statistics,
@@ -63,6 +65,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--control-active-nibbles", type=int, nargs="*", default=[])
     parser.add_argument("--control-input-differences", type=lambda value: int(value, 0), nargs="*", default=[])
     parser.add_argument("--control-pair-orders", choices=["reverse"], nargs="*", default=[])
+    parser.add_argument("--dataset-cache-root", type=Path, default=None)
+    parser.add_argument("--dataset-cache-chunk-size", type=int, default=8192)
+    parser.add_argument("--dataset-cache-workers", type=int, default=1)
+    parser.add_argument("--progress-output", type=Path, default=None)
     parser.add_argument("--candidate-evidence-feature-probe-config", type=Path, default=None)
     parser.add_argument("--sgp-stable-axis-config", type=Path, default=None)
     parser.add_argument("--sgp-grouped-axis-config", type=Path, default=None)
@@ -75,6 +81,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    reset_progress(str(args.progress_output) if args.progress_output is not None else None)
     if args.sgp_stable_axis_config is not None:
         config = json.loads(args.sgp_stable_axis_config.read_text(encoding="utf-8"))
         payload = sgp_stable_axis_audit_from_config(
@@ -202,6 +209,10 @@ def main(argv: list[str] | None = None) -> None:
             samples_per_class=args.samples_per_class,
             seed=args.seed if args.seed is not None else (args.seeds[0] if args.seeds else None),
             top_k=args.top_k,
+            dataset_cache_root=args.dataset_cache_root,
+            dataset_cache_chunk_size=args.dataset_cache_chunk_size,
+            dataset_cache_workers=args.dataset_cache_workers,
+            progress_output=args.progress_output,
         )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -227,6 +238,10 @@ def main(argv: list[str] | None = None) -> None:
             active_nibbles=tuple(args.control_active_nibbles),
             input_differences=tuple(args.control_input_differences),
             pair_orders=tuple(args.control_pair_orders),
+            dataset_cache_root=args.dataset_cache_root,
+            dataset_cache_chunk_size=args.dataset_cache_chunk_size,
+            dataset_cache_workers=args.dataset_cache_workers,
+            progress_output=args.progress_output,
         )
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -1430,6 +1445,10 @@ def trail_position_split_baseline_from_task(
     seed: int | None = None,
     top_k: int = 16,
     pair_order: str = "identity",
+    dataset_cache_root: Path | None = None,
+    dataset_cache_chunk_size: int = 8192,
+    dataset_cache_workers: int = 1,
+    progress_output: Path | None = None,
 ) -> dict[str, Any]:
     reference = _trail_position_stat_matrix_from_task(
         task,
@@ -1437,6 +1456,10 @@ def trail_position_split_baseline_from_task(
         seed=seed,
         key_split="train",
         pair_order=pair_order,
+        dataset_cache_root=dataset_cache_root,
+        dataset_cache_chunk_size=dataset_cache_chunk_size,
+        dataset_cache_workers=dataset_cache_workers,
+        progress_output=progress_output,
     )
     evaluation = _trail_position_stat_matrix_from_task(
         task,
@@ -1444,6 +1467,10 @@ def trail_position_split_baseline_from_task(
         seed=seed,
         key_split="validation",
         pair_order=pair_order,
+        dataset_cache_root=dataset_cache_root,
+        dataset_cache_chunk_size=dataset_cache_chunk_size,
+        dataset_cache_workers=dataset_cache_workers,
+        progress_output=progress_output,
     )
     if reference["stat_names"] != evaluation["stat_names"]:
         raise ValueError("train and validation trail-position statistic names differ")
@@ -1521,6 +1548,10 @@ def trail_position_control_baseline_from_task(
     active_nibbles: tuple[int, ...] = (),
     input_differences: tuple[int, ...] = (),
     pair_orders: tuple[str, ...] = (),
+    dataset_cache_root: Path | None = None,
+    dataset_cache_chunk_size: int = 8192,
+    dataset_cache_workers: int = 1,
+    progress_output: Path | None = None,
 ) -> dict[str, Any]:
     baseline = {
         "variant_kind": "baseline",
@@ -1531,6 +1562,10 @@ def trail_position_control_baseline_from_task(
             samples_per_class=samples_per_class,
             seed=seed,
             top_k=top_k,
+            dataset_cache_root=dataset_cache_root,
+            dataset_cache_chunk_size=dataset_cache_chunk_size,
+            dataset_cache_workers=dataset_cache_workers,
+            progress_output=progress_output,
         ),
     }
     controls = []
@@ -1546,6 +1581,10 @@ def trail_position_control_baseline_from_task(
                     samples_per_class=samples_per_class,
                     seed=seed,
                     top_k=top_k,
+                    dataset_cache_root=dataset_cache_root,
+                    dataset_cache_chunk_size=dataset_cache_chunk_size,
+                    dataset_cache_workers=dataset_cache_workers,
+                    progress_output=progress_output,
                 ),
             }
         )
@@ -1561,6 +1600,10 @@ def trail_position_control_baseline_from_task(
                     samples_per_class=samples_per_class,
                     seed=seed,
                     top_k=top_k,
+                    dataset_cache_root=dataset_cache_root,
+                    dataset_cache_chunk_size=dataset_cache_chunk_size,
+                    dataset_cache_workers=dataset_cache_workers,
+                    progress_output=progress_output,
                 ),
             }
         )
@@ -1576,6 +1619,10 @@ def trail_position_control_baseline_from_task(
                     seed=seed,
                     top_k=top_k,
                     pair_order=pair_order,
+                    dataset_cache_root=dataset_cache_root,
+                    dataset_cache_chunk_size=dataset_cache_chunk_size,
+                    dataset_cache_workers=dataset_cache_workers,
+                    progress_output=progress_output,
                 ),
             }
         )
@@ -1621,6 +1668,10 @@ def _trail_position_stat_matrix_from_task(
     seed: int | None,
     key_split: str,
     pair_order: str = "identity",
+    dataset_cache_root: Path | None = None,
+    dataset_cache_chunk_size: int = 8192,
+    dataset_cache_workers: int = 1,
+    progress_output: Path | None = None,
 ) -> dict[str, Any]:
     params = parse_parameterized_present_sboxddt_encoding(str(task["feature_encoding"]))
     if params is None or not bool(params["use_statistics"]):
@@ -1632,21 +1683,32 @@ def _trail_position_stat_matrix_from_task(
     trail_words_per_depth = int(task.get("model_options", {}).get("trail_words_per_depth", 9))
     key = task["validation_key"] if key_split == "validation" else task["train_key"]
     cipher = build_cipher(task["cipher_key"], task["rounds"], key=key)
-    dataset = make_differential_dataset(
-        DifferentialDatasetConfig(
-            cipher=cipher,
-            input_difference=task["input_difference"],
-            samples_per_class=samples_per_class,
-            seed=task["seed"] if seed is None else seed,
-            shuffle=False,
-            feature_encoding=task["feature_encoding"],
-            pairs_per_sample=task["pairs_per_sample"],
-            negative_mode=task["negative_mode"],
-            key_rotation_interval=task["key_rotation_interval"],
-            sample_structure=task["sample_structure"],
-            integral_active_nibble=task["integral_active_nibble"],
-            selected_bit_indices=task["selected_bit_indices"],
-        )
+    dataset_config = DifferentialDatasetConfig(
+        cipher=cipher,
+        input_difference=task["input_difference"],
+        samples_per_class=samples_per_class,
+        seed=task["seed"] if seed is None else seed,
+        shuffle=False,
+        feature_encoding=task["feature_encoding"],
+        pairs_per_sample=task["pairs_per_sample"],
+        negative_mode=task["negative_mode"],
+        key_rotation_interval=task["key_rotation_interval"],
+        sample_structure=task["sample_structure"],
+        integral_active_nibble=task["integral_active_nibble"],
+        selected_bit_indices=task["selected_bit_indices"],
+    )
+    dataset = make_task_dataset(
+        dataset_config,
+        argparse.Namespace(
+            dataset_cache_root=str(dataset_cache_root) if dataset_cache_root is not None else None,
+            dataset_cache_chunk_size=dataset_cache_chunk_size,
+            dataset_cache_workers=dataset_cache_workers,
+        ),
+        task,
+        split=key_split,
+        progress_path=str(progress_output) if progress_output is not None else None,
+        index=None,
+        total=None,
     )
     pair_bits = pair_bits_for_encoding(cipher.block_bits, task["feature_encoding"])
     features = _apply_pair_order_control(

@@ -13330,6 +13330,50 @@ def test_audit_spn_features_cli_writes_trail_position_control_baseline(tmp_path)
     assert payload["controls"][2]["variant_label"] == "pair_order_reverse"
 
 
+def test_audit_spn_features_trail_position_split_baseline_uses_dataset_cache(tmp_path):
+    output = tmp_path / "trail_position_split_baseline.json"
+    cache_root = tmp_path / "trail_position_audit_cache"
+    progress = tmp_path / "trail_position_audit_progress.jsonl"
+
+    status = audit_spn_features_main(
+        [
+            "--trail-position-split-baseline-plan",
+            "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_512_local.csv",
+            "--row-index",
+            "1",
+            "--samples-per-class",
+            "4",
+            "--seed",
+            "123",
+            "--top-k",
+            "5",
+            "--dataset-cache-root",
+            str(cache_root),
+            "--dataset-cache-chunk-size",
+            "2",
+            "--dataset-cache-workers",
+            "1",
+            "--progress-output",
+            str(progress),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["audit"] == "present_trail_position_split_baseline"
+    assert list(cache_root.glob("present80/r8/train/*/metadata.json"))
+    assert list(cache_root.glob("present80/r8/validation/*/metadata.json"))
+    progress_events = [
+        json.loads(line)["event"]
+        for line in progress.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert "cache_start" in progress_events
+    assert "cache_done" in progress_events
+
+
 def test_candidate_evidence_feature_probe_reports_lowdim_axis_and_composite():
     config = {
         "rounds": 7,

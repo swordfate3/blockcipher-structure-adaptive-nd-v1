@@ -889,7 +889,7 @@ not formal SPN/PRESENT evidence
 not a diverse-ensemble result
 ```
 
-### 4096/Class Local Bridge Result
+### 4096/Class Local Residual Gate Result
 
 Run:
 
@@ -934,32 +934,78 @@ Metrics:
 | 1 | `present_pairset_global_stats` | `0.9040309190750122` | `0.810791015625` | `0.827880859375` | `3` |
 | 1 | `present_trail_position_stats_pairset` | `0.9999489784240723` | `0.995361328125` | `0.997802734375` | `3` |
 
-Neural bridge decision:
+Control audits:
 
 ```text
-support_trail_position_over_global_control_at_4096_class_local_bridge
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_4096.json
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_4096.json
+```
+
+The 4096/class control audits were rerun through the cached/progress-enabled
+audit path:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_4096_local.csv \
+  --row-index <1-or-3> \
+  --samples-per-class 4096 \
+  --seed <0-or-1> \
+  --key-split validation \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_4096 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --progress-output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_4096_progress.jsonl \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_4096.json
+```
+
+Residual gate:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-position-residual \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/results.jsonl \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_4096.json \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_4096.json \
+  --output outputs/local_audits/i1_present_r8_trail_position_residual_gate_4096.json
+
+status = pass
+decision = support_trail_position_neural_residual_local
+action = run_controlled_local_medium_diagnostic_before_remote_launch
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.16052186489105225
+min_candidate_margin_vs_global_auc = 0.09591805934906006
+min_deterministic_margin_vs_mismatch_auc = 0.26223671436309814
+```
+
+Gate metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC | Max pair-order control AUC |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999396800994873` | `0.8999881744384766` | `0.7746385335922241` | `0.512401819229126` | `0.7746385335922241` |
+| 1 | `0.9999489784240723` | `0.9040309190750122` | `0.83942711353302` | `0.5200802683830261` | `0.83942711353302` |
+
+Decision:
+
+```text
+support_trail_position_neural_residual_local_at_4096_class
 ```
 
 Interpretation:
 
 ```text
-The trail-position candidate continues to beat the same-input global-statistics
-neural control by about +0.096 to +0.100 AUC at the 4096/class local bridge
-scale. This strengthens the local trend from 2048/class.
-```
+The trail-position candidate clears the same-input global-statistics neural
+control, the train-selected deterministic position-statistics baseline, and the
+active-nibble/input-difference mismatch controls at 4096/class. Pair-order
+reverse stays equal to the deterministic baseline, so pair order is recorded as
+not the bottleneck rather than as a mismatch-control failure.
 
-Boundary:
-
-```text
-This is not a full 4096/class residual gate. Two same-scale deterministic
-control-baseline audits were started but interrupted because they were too slow
-for the local CPU path. Two lighter split-baseline-only audits were also tried,
-but even those did not complete within the bounded local wait. Therefore the
-4096/class result may be used only as a neural bridge over the global-control
-row. The current complete residual-gated evidence remains the 2048/class gate
-until the deterministic/mismatch controls are rerun at 4096/class or above,
-preferably through a cached/progress-enabled audit path or on the remote GPU
-workspace.
+This upgrades the previous 4096/class result from a neural bridge over the
+global-control row to a full local residual diagnostic gate. It is still local
+diagnostic evidence only: not remote evidence, not formal SPN/PRESENT evidence,
+not a Zhang/Wang r7 Case2 result, not a breakthrough claim, and not a diverse
+multi-network ensemble result.
 ```
 
 Prepared assets:
