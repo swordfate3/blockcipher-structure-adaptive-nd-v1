@@ -1238,3 +1238,37 @@ result. The useful hypothesis is now: `aux_depth_word_` and a tiny
 primary-depth/trailword plus aux-depth/cell anchor. The next controlled step is
 to test this 117D raw-family anchor at the next available plan-aligned scale
 once source publication and remote-monitor gates are clean.
+
+The controlled re-add test for that 117D anchor does not promote the low-rank
+interaction path:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+selected_raw_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+selected_raw_feature_count = 117
+low_rank_interaction_feature_count = 36
+total_feature_count = 153
+rank = 1
+seed0 raw117_rank1_auc = 0.9999237060546875
+seed1 raw117_rank1_auc = 0.9999132156372070
+seed0 delta_vs_raw117_auc = -0.0000009536743164
+seed1 delta_vs_raw117_auc = +0.0000028610229492
+seed0 delta_vs_allraw_rank1_auc = -0.0000019073486328
+seed1 delta_vs_allraw_rank1_auc = +0.0000123977661133
+seed0 shuffle_auc_by_seed = 0.5383534431457520, 0.5209646224975586, 0.5526294708251953
+seed1 shuffle_auc_by_seed = 0.5321292877197266, 0.5624542236328125, 0.5470128059387207
+decision = raw117_plus_low_rank_rank1_hold_due_mixed_gain_and_shuffle_control
+```
+
+The main AUC is almost tied with the 117D raw-only anchor: seed0 is slightly
+lower and seed1 is slightly higher. The stronger reason to hold the variant is
+control behavior: three shuffle-label fits per seed stay systematically above
+the raw-only shuffle control, with means around `0.537` and `0.547`. That does
+not prove leakage, but it makes the tiny AUC gain too expensive to trust. Keep
+the 117D raw-only family anchor as the cleaner local candidate; treat the
+rank1 interaction add-on as an attribution boundary rather than an architecture
+upgrade.

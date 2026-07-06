@@ -1259,3 +1259,68 @@ not call it remote evidence or formal SPN/PRESENT evidence. The next
 plan-aligned scale step should prioritize this raw-family representation over
 the exact 96D low-rank correction.
 ```
+
+## V6 Raw117 Plus Low-Rank Interaction Control
+
+The next controlled test re-added the rank1 low-rank interaction bank to the
+best compact raw-family anchor:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+feature_model = selected_raw_plus_semantic_low_rank_block_interactions_logistic
+selected_raw_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+selected_raw_feature_count = 117
+low_rank_interaction_feature_count = 36
+feature_count = 153
+rank = 1
+fit_split = train
+score_split = held-out validation
+samples_per_class = 2048 local diagnostic only
+```
+
+Artifacts:
+
+```text
+seed0 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_plus_low_rank_rank1_report.json
+seed1 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_plus_low_rank_rank1_report.json
+seed0 shuffle reports =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_plus_low_rank_rank1_shuffle_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_plus_low_rank_rank1_shuffle7400_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_plus_low_rank_rank1_shuffle7500_report.json
+seed1 shuffle reports =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_plus_low_rank_rank1_shuffle_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_plus_low_rank_rank1_shuffle7401_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_plus_low_rank_rank1_shuffle7501_report.json
+```
+
+Metrics:
+
+| Seed | 153D Raw117 + Rank1 AUC | Delta vs 117D raw | Delta vs full 273D | Delta vs 309D allraw+rank1 | Shuffle AUC min/mean/max |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999237060546875` | `-0.0000009536743164` | `+0.0000095367431641` | `-0.0000019073486328` | `0.5209646225 / 0.5373158455 / 0.5526294708` |
+| 1 | `0.9999132156372070` | `+0.0000028610229492` | `+0.0000696182250977` | `+0.0000123977661133` | `0.5321292877 / 0.5471987724 / 0.5624542236` |
+
+Decision:
+
+```text
+decision = raw117_plus_low_rank_rank1_hold_due_mixed_gain_and_shuffle_control
+action = keep_117d_raw_family_anchor_as_cleaner_candidate
+```
+
+Interpretation:
+
+```text
+The 153D raw117+rank1 variant is not a better promotion target than the 117D
+raw-only anchor. Its main AUC is mixed relative to 117D raw-only, and repeated
+shuffle-label controls stay above the raw-only control distribution. The result
+does not prove a correctness failure, but the tiny main-AUC gain is not worth
+the weaker control behavior. Keep this as an attribution boundary and
+prioritize the 117D raw-family representation for the next plan-aligned scale
+step after source-publication and remote-monitor gates are clean.
+```
