@@ -489,6 +489,93 @@ def test_evaluate_stacked_ensemble_cli_fits_on_train_and_scores_validation(tmp_p
     assert "train-fitted validation-evaluated" in summary["claim_scope"]
 
 
+def test_evaluate_stacked_ensemble_cli_selects_settings_on_train_holdout(tmp_path):
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "seed": 0,
+        "samples_per_class": 8,
+        "validation_samples_per_class": 8,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "model_options": {},
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": True,
+        "git_commit": "test",
+    }
+    labels = np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    left_probabilities = np.array(
+        [0.2, 0.3, 0.25, 0.35, 0.7, 0.75, 0.8, 0.85, 0.8, 0.7, 0.75, 0.65, 0.3, 0.25, 0.2, 0.15],
+        dtype=np.float32,
+    )
+    right_probabilities = 1.0 - left_probabilities
+    artifact_specs = [
+        (tmp_path / "train_left", "left", left_probabilities),
+        (tmp_path / "train_right", "right", right_probabilities),
+        (tmp_path / "validation_left", "left", left_probabilities),
+        (tmp_path / "validation_right", "right", right_probabilities),
+    ]
+    for directory, model_key, probabilities in artifact_specs:
+        write_score_artifact(
+            directory,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=probabilities,
+                logits=np.log(np.clip(probabilities, 1e-6, 1.0) / np.clip(1.0 - probabilities, 1e-6, 1.0)),
+                sample_ids=sample_ids,
+                metadata={**metadata, "model_key": model_key, "run_id": model_key},
+            ),
+        )
+    output = tmp_path / "stacked_selection_summary.json"
+
+    status = evaluate_stacked_ensemble_main(
+        [
+            "--train-artifacts",
+            str(tmp_path / "train_left"),
+            str(tmp_path / "train_right"),
+            "--validation-artifacts",
+            str(tmp_path / "validation_left"),
+            str(tmp_path / "validation_right"),
+            "--train-holdout-fraction",
+            "0.25",
+            "--selection-seed",
+            "0",
+            "--candidate-feature-spaces",
+            "logits",
+            "probabilities",
+            "--candidate-l2",
+            "0.0",
+            "0.1",
+            "--candidate-standardize",
+            "both",
+            "--steps",
+            "80",
+            "--learning-rate",
+            "0.1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["selection"]["mode"] == "train_holdout"
+    assert summary["selection"]["candidate_count"] == 8
+    assert summary["selection"]["fit_rows"] == 12
+    assert summary["selection"]["holdout_rows"] == 4
+    assert "train split holdout" in summary["selection"]["claim_scope"]
+    assert summary["fit"]["l2"] == summary["selection"]["selected"]["l2"]
+    assert summary["feature_space"] == summary["selection"]["selected"]["feature_space"]
+    assert "validation_metrics" in summary
+
+
 def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):
     metadata = {
         "cipher": "PRESENT-80",

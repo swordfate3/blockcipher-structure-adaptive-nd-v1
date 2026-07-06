@@ -331,6 +331,32 @@ single trail-position expert, so the current result remains a diagnostic for a
 real non-neighbor representation, not evidence that multi-network aggregation
 has already improved the strongest local candidate.
 
+A follow-up train-holdout selection diagnostic then selected calibration
+settings only on a deterministic holdout carved from the train artifacts:
+
+```text
+train_holdout_fraction = 0.25
+candidate_feature_spaces = logits, probabilities
+candidate_l2 = 0.0, 0.0001, 0.001, 0.01
+candidate_standardize = both
+
+seed0 selected = logits, l2=0.0, standardize=false
+seed0 stacked_validation_auc = 0.9985494613647461
+seed0 best_single_validation_auc = 0.9985876083374023
+seed0 delta_stacked_vs_best_single_auc = -0.00003814697265625
+
+seed1 selected = probabilities, l2=0.0, standardize=false
+seed1 stacked_validation_auc = 0.9984188079833984
+seed1 best_single_validation_auc = 0.9982948303222656
+seed1 delta_stacked_vs_best_single_auc = +0.0001239776611328125
+```
+
+This is an improvement over the default fixed stacking diagnostic, but it is
+still mixed evidence: one seed nearly ties and one seed improves. It justifies
+keeping train-side calibration selection in the toolbox for the retrieved
+262144/class artifacts, but it still does not justify a remote launch or an
+ensemble-success claim by itself.
+
 Promotion remains hard:
 
 ```text

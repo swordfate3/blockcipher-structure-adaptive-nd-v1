@@ -246,6 +246,35 @@ seed1 delta_stacked_vs_fixed_ensemble_auc = +0.0008611679077148438
 both decisions = stacked_ensemble_diagnostic_no_best_single_gain
 ```
 
+Train-holdout selected stacking diagnostic:
+
+```text
+cli = scripts/evaluate-stacked-ensemble
+selection_split = deterministic train holdout only
+train_holdout_fraction = 0.25
+candidate_feature_spaces = logits, probabilities
+candidate_l2 = 0.0, 0.0001, 0.001, 0.01
+candidate_standardize = both
+
+seed0 stacking_artifact =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_stacking_train_holdout.json
+seed0 selected = logits, l2=0.0, standardize=false
+seed0 stacked_validation_auc = 0.9985494613647461
+seed0 best_single_validation_auc = 0.9985876083374023
+seed0 delta_stacked_vs_best_single_auc = -0.00003814697265625
+seed0 delta_stacked_vs_fixed_ensemble_auc = +0.001628875732421875
+
+seed1 stacking_artifact =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_stacking_train_holdout.json
+seed1 selected = probabilities, l2=0.0, standardize=false
+seed1 stacked_validation_auc = 0.9984188079833984
+seed1 best_single_validation_auc = 0.9982948303222656
+seed1 delta_stacked_vs_best_single_auc = +0.0001239776611328125
+seed1 delta_stacked_vs_fixed_ensemble_auc = +0.0017070770263671875
+
+decision = mixed_train_holdout_stacking_diagnostic
+```
+
 Interpretation:
 
 ```text
@@ -256,8 +285,11 @@ raw-axis masks or contiguous raw-axis means. However, simple score aggregation
 with the trail-position anchor still does not beat the best single
 trail-position expert. Train-fitted logistic stacking improves over the fixed
 ensemble on both seeds, but it also remains below the best single
-trail-position anchor. Treat V2 as a two-seed local non-neighbor diagnostic
-candidate, not as a completed ensemble improvement or remote-launch result.
+trail-position anchor. Train-holdout-selected stacking improves the calibration
+picture: seed0 is nearly tied with the best single anchor and seed1 slightly
+beats it. Because the improvement is not two-seed positive, treat V2 as a
+two-seed local non-neighbor diagnostic candidate, not as a completed ensemble
+improvement or remote-launch result.
 ```
 
 ## Fixed Protocol
