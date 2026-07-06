@@ -574,6 +574,23 @@ about 0.992 AUC, so the other families carry a real but secondary structural
 signal. The next learned architecture should use depth_word_cell_span as the
 primary grouped channel and add lower-rank depth_cell/word/cell span channels
 as auxiliary context rather than treating all 731 span dimensions uniformly.
+
+Structured span-block exporter:
+  cli = scripts/export-compressed-span-blocks
+  kind = compressed_spn_span_blocks
+  input = existing trail_position_stats feature artifact
+  outputs =
+    depth_word_cell_span.npy [rows, depth, trailword, cell]
+    depth_cell_span.npy [rows, depth, cell]
+    word_span.npy [rows, word]
+    depth_word_span.npy [rows, depth, trailword]
+    cell_span.npy [rows, cell]
+  role =
+    depth_word_cell_span -> primary_backbone
+    all other span blocks -> auxiliary_context
+  claim_scope =
+    structure-preserving export only; no training, scoring, label change,
+    negative-sample change, remote evidence, or formal SPN/PRESENT evidence
 ```
 
 ## Fixed Protocol

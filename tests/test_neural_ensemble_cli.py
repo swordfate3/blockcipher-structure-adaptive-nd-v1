@@ -19,6 +19,9 @@ from blockcipher_nd.cli.decode_compressed_feature_sparsity import (
 from blockcipher_nd.cli.audit_compressed_feature_families import (
     main as audit_compressed_feature_families_main,
 )
+from blockcipher_nd.cli.export_compressed_span_blocks import (
+    main as export_compressed_span_blocks_main,
+)
 from blockcipher_nd.cli.summarize_compressed_feature_expert import (
     main as summarize_compressed_feature_main,
 )
@@ -1343,6 +1346,66 @@ def test_audit_compressed_feature_families_reports_single_and_leave_one_out(tmp_
     assert rows[("single_family", "word_span")]["feature_count"] == 39
     assert rows[("leave_one_out", "word_span")]["include_feature_families"] == ["depth_word_cell_span"]
     assert report["claim_scope"].startswith("compressed SPN feature-family attribution diagnostic")
+
+
+def test_export_compressed_span_blocks_preserves_spn_coordinates(tmp_path):
+    feature_dir = tmp_path / "features"
+    output_dir = tmp_path / "span_blocks"
+    feature_count = 3708
+    features = np.zeros((2, feature_count), dtype=np.float32)
+    labels = np.array([0, 1], dtype=np.float32)
+    features[:, 2620] = np.array([1.25, 2.25], dtype=np.float32)
+    features[:, 2764] = np.array([3.25, 4.25], dtype=np.float32)
+    features[:, 3388] = np.array([5.25, 6.25], dtype=np.float32)
+    features[:, 1365] = np.array([7.25, 8.25], dtype=np.float32)
+    features[:, 3560] = np.array([9.25, 10.25], dtype=np.float32)
+    features[:, 1452] = np.array([11.25, 12.25], dtype=np.float32)
+    _write_feature_dir(
+        feature_dir,
+        split="train",
+        features=features,
+        labels=labels,
+        feature_view_metadata={
+            "words_per_pair": 39,
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "output_feature_bits": feature_count,
+        },
+    )
+
+    status = export_compressed_span_blocks_main(
+        [
+            "--feature-dir",
+            str(feature_dir),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+    depth_word_cell = np.load(output_dir / "depth_word_cell_span.npy")
+    depth_cell = np.load(output_dir / "depth_cell_span.npy")
+    word = np.load(output_dir / "word_span.npy")
+    depth_word = np.load(output_dir / "depth_word_span.npy")
+    cell = np.load(output_dir / "cell_span.npy")
+    assert status == 0
+    assert manifest["status"] == "pass"
+    assert manifest["source_feature_count"] == feature_count
+    assert manifest["blocks"]["depth_word_cell_span"]["shape"] == [2, 4, 9, 16]
+    assert manifest["blocks"]["depth_word_cell_span"]["role"] == "primary_backbone"
+    assert manifest["blocks"]["depth_cell_span"]["role"] == "auxiliary_context"
+    assert depth_word_cell.shape == (2, 4, 9, 16)
+    assert depth_cell.shape == (2, 4, 16)
+    assert word.shape == (2, 39)
+    assert depth_word.shape == (2, 4, 9)
+    assert cell.shape == (2, 16)
+    assert depth_word_cell[0, 0, 0, 0] == np.float32(1.25)
+    assert depth_word_cell[1, 1, 0, 0] == np.float32(4.25)
+    assert depth_cell[0, 0, 0] == np.float32(5.25)
+    assert word[1, 0] == np.float32(8.25)
+    assert depth_word[0, 0, 0] == np.float32(9.25)
+    assert cell[1, 0] == np.float32(12.25)
+    assert np.array_equal(np.load(output_dir / "labels.npy"), labels)
 
 
 def _write_compressed_feature_report(

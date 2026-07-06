@@ -769,3 +769,48 @@ promote_to_medium_scale_followup only if:
 otherwise:
   keep as representation diagnostic or discard
 ```
+
+## 2026-07-07 Structured Span-Block Follow-Up
+
+The span-family attribution result makes the next step more architectural than
+ensembling. The useful local structural-stat signal is organized around:
+
+```text
+primary_backbone = depth_word_cell_span
+auxiliary_context = depth_cell_span + word_span + depth_word_span + cell_span
+```
+
+That is different from "add several weak networks." It says the feature
+coordinates themselves matter: depth, P-layer trail word, state cell, and
+span/range statistic type should be preserved as model input structure.
+
+The concrete tooling step is:
+
+```text
+cli = scripts/export-compressed-span-blocks
+kind = compressed_spn_span_blocks
+input = trail_position_stats features.npy / labels.npy / sample_ids.npy / metadata.json
+outputs =
+  depth_word_cell_span.npy [rows, depth, trailword, cell]
+  depth_cell_span.npy [rows, depth, cell]
+  word_span.npy [rows, word]
+  depth_word_span.npy [rows, depth, trailword]
+  cell_span.npy [rows, cell]
+```
+
+This does not add accuracy evidence by itself. Its purpose is to turn the
+flat 731 selected span dimensions into SPN-coordinate tensors so the next
+candidate can be a grouped span/statistic-aware expert:
+
+```text
+1. learn a compact primary channel over depth_word_cell_span
+2. add lower-rank context channels for depth_cell/word/depth_word/cell spans
+3. compare against the same frozen-feature logistic anchor and shuffle-label
+   control at the same local budget
+4. only consider remote scale after active 262144/class trail-position
+   artifacts are retrieved and the local control gate still supports it
+```
+
+This is the current preferred local development route because it changes the
+SPN representation in a way the evidence actually supports, while avoiding
+premature multi-network aggregation.
