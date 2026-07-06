@@ -1550,3 +1550,34 @@ candidate or control-clearing expert with aligned score artifacts. The candidate
 must preserve the benchmark protocol and show improvement under train-derived
 selection only.
 ```
+
+A cheap train-derived bucket router was also probed to avoid over-reading the
+positive bucket diagnostic:
+
+```text
+probe =
+  outputs/local_audits/i1_present_r8_trail_raw117_residual_bucket_router_probe.json
+router =
+  choose trail-position, raw117, probability mean, or logit mean per
+  train-derived residual bucket; evaluate fixed choices on validation
+```
+
+Result:
+
+```text
+seed0 best_bucket_router_auc = 0.9999246597290039
+seed0 best_single_auc = 0.9999246597290039
+seed0 best_fixed_ensemble_auc = 0.9999418258666992
+seed0 router_delta_vs_fixed_auc = -0.0000171661376953125
+
+seed1 best_bucket_router_auc = 0.9999103546142578
+seed1 best_single_auc = 0.9999103546142578
+seed1 best_fixed_ensemble_auc = 0.9999189376831055
+seed1 router_delta_vs_fixed_auc = -0.00000858306884765625
+```
+
+So the bucket route should be interpreted as a design map, not as an immediate
+score-router win. The next credible candidate must add information: for
+example, bucket-conditioned SPN coordinate reliability, depth/cell residual
+features, or a control-clearing hard-case expert. Simply switching among the
+two current scores per bucket is already exhausted by raw117/fixed fusion.

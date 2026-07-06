@@ -2047,3 +2047,44 @@ turn the bucket signal into an interpretable frozen candidate or control gate
 and then test whether it improves over raw117/fixed fusion under the same
 held-out scoring protocol.
 ```
+
+A follow-up local probe tested a deliberately simple train-derived bucket
+router over existing frozen scores:
+
+```text
+probe =
+  outputs/local_audits/i1_present_r8_trail_raw117_residual_bucket_router_probe.json
+per-bucket candidate modes =
+  trail-position score
+  raw117 score
+  probability mean
+  logit mean
+selection =
+  choose the best mode per train-derived bucket on train labels,
+  then apply the fixed bucket choices to validation
+```
+
+Probe result:
+
+```text
+seed0 best_single_auc = 0.9999246597290039
+seed0 best_fixed_ensemble_auc = 0.9999418258666992
+seed0 best_bucket_router_auc = 0.9999246597290039
+seed0 best_bucket_router_feature = signed_logit_delta_model1_minus_model0
+seed0 best_bucket_router_modes = raw117 in all buckets
+seed0 delta_vs_best_fixed_auc = -0.0000171661376953125
+
+seed1 best_single_auc = 0.9999103546142578
+seed1 best_fixed_ensemble_auc = 0.9999189376831055
+seed1 best_bucket_router_auc = 0.9999103546142578
+seed1 best_bucket_router_feature = signed_logit_delta_model1_minus_model0
+seed1 best_bucket_router_modes = raw117 in all buckets
+seed1 delta_vs_best_fixed_auc = -0.00000858306884765625
+```
+
+This is a useful brake. The residual buckets explain where raw117 corrects
+trail-position, but a cheap score router does not improve over raw117 and loses
+to fixed fusion. Therefore the next route should not be a per-bucket score
+switch. It should create an interpretable residual feature or control-clearing
+expert that uses the bucket structure to model cases not already absorbed by
+raw117.
