@@ -1874,6 +1874,34 @@ retrieved status =
   score_artifacts not ready yet
 ```
 
+Latest local watcher snapshot, 2026-07-06T23:32:21+08:00:
+
+```text
+seed0 status = running
+seed0 watcher heartbeat = fresh, newest_timestamp 2026-07-06T23:25:16+08:00
+seed0 needs_main_thread_intervention = false
+seed0 stage = dataset_cache
+seed0 latest_event = cache_positive_chunk
+seed0 class cache progress = 229376 / 262144 = 87.5%
+seed0 total cache progress = 229376 / 524288 = 43.75%
+seed0 train_matrix rows = 0
+seed0 score_artifacts = not ready
+
+seed1 status = running
+seed1 watcher heartbeat = fresh, newest_timestamp 2026-07-06T23:25:18+08:00
+seed1 needs_main_thread_intervention = false
+seed1 stage = dataset_cache
+seed1 latest_event = cache_positive_chunk
+seed1 class cache progress = 229376 / 262144 = 87.5%
+seed1 total cache progress = 229376 / 524288 = 43.75%
+seed1 train_matrix rows = 0
+seed1 score_artifacts = not ready
+
+local policy = keep waiting on the watcher-managed retrieval path; do not
+SSH-poll, do not restart the remote run, and do not launch another SPN branch
+while these 262k watchers are healthy.
+```
+
 After each 262k seed retrieves complete score artifacts and
 `score_artifacts/verification_summary.json`, run:
 
@@ -1896,6 +1924,46 @@ two seeds = variance check for the trail-position route
 no publication-style claim until completed, retrieved, verified, gated, and
 eventually extended to >=1000000/class multi-seed evidence
 ```
+
+## Post-262k Decision Gate
+
+When the watcher retrieves both 262k seed runs, first run the unified
+postprocess command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/postprocess-trail-position-result \
+  --run-root outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706 \
+  --run-root outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706 \
+  --expected-score-rows 262144 \
+  --output outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_postprocess_status.json
+```
+
+Interpret the postprocess result as follows:
+
+| Local postprocess evidence | Decision | Next action |
+|---|---|---|
+| `status=pending` or either run has fewer than 2 train-matrix rows | `wait_for_trail_position_score_artifacts` | Keep the watcher path active; no SPN branch launch and no result claim. |
+| Any score-artifact verification failure | `hold_trail_position_postprocess_failed` | Inspect the failed local verifier output before interpreting AUC or overlap. |
+| Both runs pass and every run has `support_trail_position_score_residual` | `support_trail_position_score_residual_all_runs` | Update this experiment record with per-seed metrics, then prepare a 1000000/class multi-seed plan with an explicit deterministic/mismatch-control story before any launch. |
+| Candidate AUC clears the global control but one seed has high error overlap or weak threshold-side correction | `hold_trail_position_high_overlap_or_threshold_risk` | Treat the 262k result as positive-but-not-complementary; inspect overlap before scale-up or ensemble promotion. |
+| Candidate fails to clear the same-input global-stat control on either seed | `hold_trail_position_score_residual_mixed_runs` | Stop scale-up for this representation and redesign the SPN-aware feature route or search for a different non-neighbor expert. |
+
+Do not convert a passing 262k result directly into a diverse multi-network
+claim. The trail-position score artifacts may become a future
+`expert_family=trail_position` input only after:
+
+```text
+same-protocol score artifacts are complete and sample-aligned
+the residual/error-overlap gate passes on both seeds
+the candidate still clears the same-input global-stat control
+a separate non-neighbor expert family also clears its own same-budget control
+the diverse expert pool gate passes with low enough error overlap
+```
+
+Do not convert a passing 262k result directly into a publication-style SPN
+claim either. A positive 262k result can justify preparing the next scale gate;
+the stronger claim still requires completed, retrieved, plan-aligned
+`>=1000000/class` multi-seed evidence.
 
 The 65k/class score-export repair is not yet active on the remote run because
 `main` is ahead of `origin/main` and external `git push origin main` was
