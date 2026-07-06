@@ -646,6 +646,7 @@ def _progress_summary_for_path(
     latest: dict[str, Any] | None = None
     first_cache_progress: dict[str, Any] | None = None
     latest_cache_progress: dict[str, Any] | None = None
+    latest_cache_class_progress_by_segment: dict[tuple[tuple[Any, ...], str], dict[str, Any]] = {}
     cache_progress_segment: tuple[Any, ...] | None = None
     best_metric: float | int | None = None
     best_epoch: int | None = None
@@ -670,6 +671,9 @@ def _progress_summary_for_path(
                 first_cache_progress = record
                 cache_progress_segment = segment
             latest_cache_progress = record
+            polarity = _cache_class_polarity(record)
+            if polarity is not None:
+                latest_cache_class_progress_by_segment[(segment, polarity)] = record
         if "best_checkpoint_metric" in record:
             best_metric = record.get("best_checkpoint_metric")
             best_epoch = _optional_int(record.get("best_epoch"))
@@ -703,6 +707,9 @@ def _progress_summary_for_path(
     cache_class_rows_done = _optional_int(cache_record.get("class_rows_done"))
     cache_class_total = _optional_int(cache_record.get("class_total"))
     cache_chunk_rows = _optional_int(cache_record.get("chunk_rows"))
+    cache_segment = _cache_progress_segment_key(cache_record)
+    positive_class_record = latest_cache_class_progress_by_segment.get((cache_segment, "positive"))
+    negative_class_record = latest_cache_class_progress_by_segment.get((cache_segment, "negative"))
     cache_rate = _cache_rows_per_second(first_cache_progress, latest_cache_progress)
     cache_rate_window = _cache_rate_window(first_cache_progress, latest_cache_progress)
     cache_eta_seconds = _cache_eta_seconds(
@@ -747,6 +754,8 @@ def _progress_summary_for_path(
         "train_rows_progress_percent": _ratio_percent(train_rows_seen, train_rows),
         "cache_total_progress_percent": _ratio_percent(cache_rows_done, cache_total_rows),
         "cache_class_progress_percent": _ratio_percent(cache_class_rows_done, cache_class_total),
+        **_cache_class_progress_fields("positive", positive_class_record),
+        **_cache_class_progress_fields("negative", negative_class_record),
         "cache_rows_per_second": cache_rate,
         "cache_rate_window_seconds": cache_rate_window["seconds"],
         "cache_rate_window_rows": cache_rate_window["rows"],
@@ -858,6 +867,26 @@ def _cache_progress_segment_key(record: dict[str, Any]) -> tuple[Any, ...]:
         record.get("cache_dir"),
         record.get("false_family"),
     )
+
+
+def _cache_class_polarity(record: dict[str, Any]) -> str | None:
+    event = str(record.get("event", "")).lower()
+    if "positive_chunk" in event:
+        return "positive"
+    if "negative_chunk" in event:
+        return "negative"
+    return None
+
+
+def _cache_class_progress_fields(prefix: str, record: dict[str, Any] | None) -> dict[str, Any]:
+    rows_done = _optional_int(record.get("class_rows_done")) if record else None
+    total = _optional_int(record.get("class_total")) if record else None
+    return {
+        f"cache_{prefix}_class_rows_done": rows_done,
+        f"cache_{prefix}_class_total": total,
+        f"cache_{prefix}_class_rows_remaining": _remaining_rows(rows_done, total),
+        f"cache_{prefix}_class_progress_percent": _ratio_percent(rows_done, total),
+    }
 
 
 def _cache_eta_seconds(

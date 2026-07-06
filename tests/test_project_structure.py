@@ -7484,6 +7484,68 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_eta_seconds"] == 896
 
 
+def test_monitor_health_reports_positive_and_negative_cache_class_progress(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_cache_polarity_progress"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-06T23:53:22+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "trail_position_beamstats_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "cache_positive_chunk",
+                "split": "train",
+                "time": 1000.0,
+                "rows_done": 262144,
+                "total_rows": 524288,
+                "class_rows_done": 262144,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "cache_negative_chunk",
+                "split": "train",
+                "time": 1120.0,
+                "rows_done": 294912,
+                "total_rows": 524288,
+                "class_rows_done": 32768,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+        now=datetime.fromisoformat("2026-07-06T23:54:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert report["status"] == "running"
+    assert progress["latest_event"] == "cache_negative_chunk"
+    assert progress["cache_total_progress_percent"] == pytest.approx(56.25)
+    assert progress["cache_class_progress_percent"] == pytest.approx(12.5)
+    assert progress["cache_positive_class_rows_done"] == 262144
+    assert progress["cache_positive_class_total"] == 262144
+    assert progress["cache_positive_class_rows_remaining"] == 0
+    assert progress["cache_positive_class_progress_percent"] == pytest.approx(100.0)
+    assert progress["cache_negative_class_rows_done"] == 32768
+    assert progress["cache_negative_class_total"] == 262144
+    assert progress["cache_negative_class_rows_remaining"] == 229376
+    assert progress["cache_negative_class_progress_percent"] == pytest.approx(12.5)
+
+
 def test_monitor_health_reports_latest_progress_event_age_independent_of_file_mtime(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_progress_event_age"
