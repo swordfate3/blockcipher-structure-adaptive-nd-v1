@@ -266,6 +266,10 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "scripts/summarize-stacked-selection" in combined
     assert "scripts/summarize-stacked-route" in combined
     assert "stable_but_mixed_cross_seed_stacking_diagnostic" in combined
+    assert "scripts/fit-compressed-feature-expert" in combined
+    assert "compressed_feature_expert_local_screen_positive_needs_controls" in combined
+    assert "compressed_feature_expert_shuffle_train_labels_control" in combined
+    assert "not a multi-network improvement" in combined
 
 
 def test_present_r8_round_extension_plan_preserves_strict_protocol():

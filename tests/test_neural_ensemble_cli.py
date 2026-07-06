@@ -9,6 +9,7 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
+from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compressed_feature_main
 from blockcipher_nd.cli.summarize_stacked_route import main as summarize_stacked_route_main
 from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
@@ -815,6 +816,237 @@ def test_summarize_stacked_route_reports_mixed_cross_seed_diagnostic(tmp_path):
     assert summary["passed_seed_count"] == 1
     assert summary["positive_seed_fraction"] == 0.5
     assert summary["delta_mean_vs_best_single_auc"]["min"] == -0.00004
+
+
+def test_fit_compressed_feature_expert_writes_train_and_validation_artifacts(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_output = tmp_path / "train_scores"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=np.array(
+            [
+                [-2.0, 0.0],
+                [-1.5, 0.2],
+                [1.5, 0.1],
+                [2.0, -0.1],
+            ],
+            dtype=np.float32,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=np.array(
+            [
+                [-1.8, 0.1],
+                [-1.2, -0.1],
+                [1.2, 0.0],
+                [1.8, 0.2],
+            ],
+            dtype=np.float32,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+    )
+
+    status = fit_compressed_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-train-dir",
+            str(train_output),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--run-id",
+            "compressed_feature_test",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    train_metadata = json.loads((train_output / "models.json").read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    validation_labels = np.load(validation_output / "labels.npy")
+    validation_probabilities = np.load(validation_output / "probabilities.npy")
+    assert status == 0
+    assert report["decision"] == "compressed_feature_expert_local_screen_positive_needs_controls"
+    assert "strict_negative_mode_required" in report["guardrails"]
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["model_key"] == "compressed_feature_logistic_expert"
+    assert validation_metadata["expert_family"] == "compressed_spn_structural_stats"
+    assert validation_metadata["feature_fit_split"] == "train"
+    assert validation_metadata["score_split"] == "validation"
+    assert train_metadata["split"] == "train"
+    assert train_metadata["score_split"] == "train"
+    assert train_metadata["train_samples_per_class"] == 2
+    assert np.array_equal(validation_labels, np.array([0, 0, 1, 1], dtype=np.float32))
+    assert validation_metadata["validation_samples_per_class"] == 2
+    assert validation_probabilities[2] > validation_probabilities[1]
+    assert (train_output / "models.json").exists()
+
+
+def test_fit_compressed_feature_expert_requires_train_split(tmp_path):
+    train_dir = tmp_path / "bad_train_features"
+    validation_dir = tmp_path / "validation_features"
+    _write_feature_dir(
+        train_dir,
+        split="validation",
+        features=np.array([[0.0], [1.0]], dtype=np.float32),
+        labels=np.array([0, 1], dtype=np.float32),
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=np.array([[0.0], [1.0]], dtype=np.float32),
+        labels=np.array([0, 1], dtype=np.float32),
+    )
+
+    try:
+        fit_compressed_feature_main(
+            [
+                "--train-feature-dir",
+                str(train_dir),
+                "--validation-feature-dir",
+                str(validation_dir),
+                "--output-validation-dir",
+                str(tmp_path / "scores"),
+                "--output-report",
+                str(tmp_path / "report.json"),
+            ]
+        )
+    except ValueError as exc:
+        assert "train feature dir must have split=train" in str(exc)
+    else:
+        raise AssertionError("expected validation split to be rejected as train input")
+
+
+def test_fit_compressed_feature_expert_requires_strict_negative_mode(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=np.array([[0.0], [1.0]], dtype=np.float32),
+        labels=np.array([0, 1], dtype=np.float32),
+        negative_mode="random_ciphertexts",
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=np.array([[0.0], [1.0]], dtype=np.float32),
+        labels=np.array([0, 1], dtype=np.float32),
+        negative_mode="random_ciphertexts",
+    )
+
+    try:
+        fit_compressed_feature_main(
+            [
+                "--train-feature-dir",
+                str(train_dir),
+                "--validation-feature-dir",
+                str(validation_dir),
+                "--output-validation-dir",
+                str(tmp_path / "scores"),
+                "--output-report",
+                str(tmp_path / "report.json"),
+            ]
+        )
+    except ValueError as exc:
+        assert "negative_mode must be encrypted_random_plaintexts" in str(exc)
+    else:
+        raise AssertionError("expected non-strict negative mode to be rejected")
+
+
+def test_fit_compressed_feature_expert_can_run_shuffle_label_control(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    features = np.array([[-4.0], [-3.0], [-2.0], [-1.0], [1.0], [2.0], [3.0], [4.0]], dtype=np.float32)
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    _write_feature_dir(train_dir, split="train", features=features, labels=labels)
+    _write_feature_dir(validation_dir, split="validation", features=features, labels=labels)
+
+    status = fit_compressed_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.1",
+            "--l2",
+            "0.0",
+            "--shuffle-train-labels",
+            "--shuffle-seed",
+            "2",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "compressed_feature_expert_shuffle_train_labels_control"
+    assert report["label_control"] == {"shuffle_train_labels": True, "shuffle_seed": 2}
+    assert metadata["fit_train_labels_shuffled"] is True
+    assert metadata["fit_label_shuffle_seed"] == 2
+    assert report["validation_metrics"]["auc"] < 1.0
+
+
+def _write_feature_dir(
+    path: Path,
+    *,
+    split: str,
+    features: np.ndarray,
+    labels: np.ndarray,
+    negative_mode: str = "encrypted_random_plaintexts",
+) -> None:
+    path.mkdir(parents=True)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    np.save(path / "features.npy", features.astype(np.float32, copy=False))
+    np.save(path / "labels.npy", labels.astype(np.float32, copy=False))
+    np.save(path / "sample_ids.npy", sample_ids)
+    (path / "metadata.json").write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "kind": "bit_sensitivity_feature_matrix",
+                "split": split,
+                "feature_view": "trail_position_stats",
+                "cipher": "PRESENT-80",
+                "rounds": 8,
+                "samples_per_class": int(len(labels) // 2),
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": negative_mode,
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": "0x00000000000000000000",
+                "validation_key": "0x11111111111111111111",
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_postprocess_trail_position_result_reports_pending_until_artifacts_ready(tmp_path):

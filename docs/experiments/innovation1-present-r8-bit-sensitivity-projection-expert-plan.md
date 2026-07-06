@@ -316,6 +316,72 @@ relaxed delta_mean_vs_best_single_auc:
 decision = stable_but_mixed_cross_seed_stacking_diagnostic
 ```
 
+Compressed structural-stat logistic expert:
+
+```text
+cli = scripts/fit-compressed-feature-expert
+feature_view = trail_position_stats
+fit_split = train feature artifacts
+score_split = held-out validation feature artifacts
+feature_count = 3708
+model = logistic
+steps = 800
+learning_rate = 0.05
+l2 = 0.001
+standardize = true, with train statistics only
+decision = compressed_feature_expert_local_screen_positive_needs_controls
+
+seed0 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_logistic_report.json
+seed0 validation_auc = 1.0
+seed0 validation_accuracy = 0.99951171875
+seed0 calibrated_validation_accuracy = 1.0
+
+seed1 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_logistic_report.json
+seed1 validation_auc = 1.0
+seed1 validation_accuracy = 0.99951171875
+seed1 calibrated_validation_accuracy = 1.0
+```
+
+Shuffle-label control:
+
+```text
+control_cli = scripts/fit-compressed-feature-expert --shuffle-train-labels --shuffle-seed 0
+control_decision = compressed_feature_expert_shuffle_train_labels_control
+control_scope = train labels are shuffled only for fitting; score artifacts and metrics still use true labels
+
+seed0 control_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_logistic_shuffle_train_labels_report.json
+seed0 control_validation_auc = 0.4979085922241211
+seed0 control_validation_accuracy = 0.5029296875
+seed0 control_calibrated_validation_accuracy = 0.51904296875
+
+seed1 control_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_logistic_shuffle_train_labels_report.json
+seed1 control_validation_auc = 0.5246953964233398
+seed1 control_validation_accuracy = 0.51318359375
+seed1 control_calibrated_validation_accuracy = 0.5322265625
+```
+
+Compressed expert ensemble check:
+
+```text
+seed0 ensemble_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_logistic_ensemble.json
+seed0 best_single = compressed_feature_logistic_expert
+seed0 best_single_auc = 1.0
+seed0 best_ensemble_auc = 1.0
+seed0 delta_best_ensemble_vs_single_auc = 0.0
+
+seed1 ensemble_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_logistic_ensemble.json
+seed1 best_single = compressed_feature_logistic_expert
+seed1 best_single_auc = 1.0
+seed1 best_ensemble_auc = 0.999995231628418
+seed1 delta_best_ensemble_vs_single_auc = -0.00000476837158203125
+```
+
 Interpretation:
 
 ```text
@@ -335,6 +401,17 @@ per-seed stability passes only seed1. Because the improvement is not two-seed
 positive, treat V2 as a two-seed local non-neighbor diagnostic candidate and a
 useful frozen-score toolbox item, not as a completed ensemble improvement or
 remote-launch result.
+
+The compressed structural-stat logistic expert is a stronger local diagnostic:
+it fits a tiny logistic model on the exported train-split structural-stat
+features and reaches perfect held-out validation AUC on both local seeds. The
+new shuffle-label control drops to near-random AUC on both seeds, so the signal
+does not survive when the fit labels are randomized. This makes the route worth
+keeping, but it is still a 2048/class local screen with 1024/class validation
+score artifacts, not remote evidence, not formal SPN/PRESENT evidence, and not
+a multi-network improvement. The best ensemble ties the compressed expert on
+seed0 and loses very slightly on seed1, so the immediate result is a stronger
+single compressed SPN-structural expert, not successful diverse aggregation.
 ```
 
 ## Fixed Protocol

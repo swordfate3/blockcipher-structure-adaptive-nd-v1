@@ -401,6 +401,73 @@ frozen-score aggregation, so a future 262144/class result must pass the same
 train-only selection discipline and the same route-level gate before it can be
 called a multi-network improvement.
 
+The next local iteration tested a different question: instead of freezing a
+deterministic projection mask or stacking existing score artifacts, can the
+compressed SPN structural-stat feature view itself train a tiny expert?
+
+```text
+cli = scripts/fit-compressed-feature-expert
+feature_view = trail_position_stats
+feature_count = 3708
+fit_split = train feature artifacts
+score_split = held-out validation feature artifacts
+model = logistic
+decision = compressed_feature_expert_local_screen_positive_needs_controls
+
+seed0 validation_auc = 1.0
+seed0 validation_accuracy = 0.99951171875
+seed0 calibrated_validation_accuracy = 1.0
+
+seed1 validation_auc = 1.0
+seed1 validation_accuracy = 0.99951171875
+seed1 calibrated_validation_accuracy = 1.0
+```
+
+A train-label shuffle control was added and run through the same CLI:
+
+```text
+control = --shuffle-train-labels --shuffle-seed 0
+control_decision = compressed_feature_expert_shuffle_train_labels_control
+
+seed0 control_validation_auc = 0.4979085922241211
+seed0 control_calibrated_validation_accuracy = 0.51904296875
+
+seed1 control_validation_auc = 0.5246953964233398
+seed1 control_calibrated_validation_accuracy = 0.5322265625
+```
+
+This is a strong positive local signal for the representation itself: when the
+tiny logistic expert sees the real train labels, the held-out validation split
+is separated almost perfectly; when the fit labels are shuffled, the signal
+collapses to near random. That is better evidence than the raw deterministic
+projection, but it should be interpreted narrowly. It is still a 2048/class
+local diagnostic with 1024/class validation score artifacts, not remote
+evidence and not formal SPN/PRESENT evidence.
+
+It also is not a multi-network improvement. Re-running the aligned frozen-score
+comparison with global control, trail-position anchor, deterministic
+structural-stat projection, and the compressed logistic expert gives:
+
+```text
+seed0 best_single = compressed_feature_logistic_expert
+seed0 best_single_auc = 1.0
+seed0 best_ensemble_auc = 1.0
+seed0 delta_best_ensemble_vs_single_auc = 0.0
+
+seed1 best_single = compressed_feature_logistic_expert
+seed1 best_single_auc = 1.0
+seed1 best_ensemble_auc = 0.999995231628418
+seed1 delta_best_ensemble_vs_single_auc = -0.00000476837158203125
+```
+
+The generic diverse-expert gate can mark the pool ready because there are now
+multiple aligned families, but route-specific interpretation must be stricter:
+the compressed logistic expert is probably a stronger same structural-stat
+route, not yet proof that genuinely different networks combine to improve the
+best expert. The next useful control is to carry this compressed expert into
+the retrieved 262144/class artifacts only after those artifacts are complete,
+and to add mismatch/permutation controls before any remote promotion.
+
 Promotion remains hard:
 
 ```text
