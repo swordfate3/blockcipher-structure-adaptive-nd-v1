@@ -113,6 +113,81 @@ approved channel; do not use dirty-overlay or unpushed-code launches.
 
 ---
 
+## [LRN-20260706-025] best_practice
+
+**Logged**: 2026-07-06T12:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Trail-position r8 8192/class local residual gate completed and still supports the route.
+
+### Details
+The PRESENT-80 r8 trail-position route now has a completed `8192/class` local
+residual diagnostic gate:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl
+control_audits =
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_8192.json
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_8192.json
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_8192.json
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+```
+
+Gate margins:
+
+```text
+min_candidate_margin_vs_deterministic_auc = 0.16092461347579956
+min_candidate_margin_vs_global_auc = 0.06049758195877075
+min_deterministic_margin_vs_mismatch_auc = 0.274130642414093
+```
+
+Key metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9999940395355225` | `0.9394964575767517` | `0.7937679886817932` | `0.5196373462677002` |
+| 1 | `0.9999982118606567` | `0.9360240697860718` | `0.8390735983848572` | `0.5226998701691628` |
+
+Correct interpretation:
+
+- The 8192/class result is a local diagnostic gate, not remote evidence and not
+  formal SPN/PRESENT evidence.
+- The global-stat neural control is very strong at about `0.936-0.939` AUC, so
+  this benchmark contains strong non-position global structure.
+- The trail-position candidate still clears the global control by at least
+  `+0.0605` AUC and clears the deterministic baseline by at least `+0.1609`
+  AUC, so the position-aware neural residual remains positive.
+- Active-nibble/input-difference mismatch controls remain near random at about
+  `0.52` AUC, while pair-order reverse tracks the deterministic baseline; treat
+  this as `pair_order_not_bottleneck`, not as route failure.
+- This is not evidence for a diverse multi-network ensemble. Diverse ensemble
+  work still requires frozen scores, explicit expert-family metadata, and
+  diversity/error-overlap gates.
+
+### Suggested Action
+Keep trail-position residual as the current strongest controlled local
+SPN/integral candidate. The next meaningful scale step remains a cache-ready
+medium diagnostic once source-publication/remote launch policy allows it, or a
+structurally different non-neighbor expert with compatible frozen scores for
+future diversity evaluation.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md
+- Tags: innovation1, spn, present, trail-position, residual-gate, local-diagnostic
+- See Also: LRN-20260706-024, LRN-20260706-023, LRN-20260706-021
+- Pattern-Key: innovation1.spn_present.trail_position_8192_residual_gate_complete
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-022] best_practice
 
 **Logged**: 2026-07-06T09:20:00+08:00

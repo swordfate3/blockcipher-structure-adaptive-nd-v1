@@ -1104,6 +1104,72 @@ not formal SPN/PRESENT evidence
 not a diverse-ensemble result
 ```
 
+### 8192/Class Local Residual Gate Result
+
+Run artifacts:
+
+```text
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl
+progress = outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/progress.jsonl
+curves = outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/curves.svg
+history = outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/history.csv
+control_audits =
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_8192.json
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_8192.json
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_8192.json
+```
+
+Plan alignment:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl \
+  --expected-rows 4
+
+status = pass
+```
+
+Residual gate:
+
+```text
+decision = support_trail_position_neural_residual_local
+status = pass
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_deterministic_auc = 0.16092461347579956
+min_candidate_margin_vs_global_auc = 0.06049758195877075
+min_deterministic_margin_vs_mismatch_auc = 0.274130642414093
+```
+
+Metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC | Max order control AUC |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999940395355225` | `0.9394964575767517` | `0.7937679886817932` | `0.5196373462677002` | `0.7937679886817932` |
+| 1 | `0.9999982118606567` | `0.9360240697860718` | `0.8390735983848572` | `0.5226998701691628` | `0.8390735983848572` |
+
+Interpretation:
+
+```text
+The 8192/class local extension preserves the trail-position residual pattern:
+the position-aware neural candidate remains above the same-input global-stat
+neural control, the train-selected deterministic position-statistics baseline,
+and the active-nibble/input-difference mismatch controls on both seeds.
+
+The global-stat control is now very strong at about 0.936-0.939 AUC, so this
+task contains strong non-position global structure. The candidate still adds a
+minimum +0.0605 AUC over that control, which keeps the position-aware route
+alive but narrows the residual margin relative to smaller diagnostics.
+
+Pair-order reverse stays equal to the deterministic baseline, so pair order is
+again recorded as pair_order_not_bottleneck rather than as a mismatch-control
+failure.
+
+This is still 8192/class local diagnostic evidence only: not remote evidence,
+not formal SPN/PRESENT evidence, not a Zhang/Wang r7 Case2 result, not a
+breakthrough claim, and not a diverse multi-network ensemble result.
+```
+
 Prepared assets:
 
 ```text
