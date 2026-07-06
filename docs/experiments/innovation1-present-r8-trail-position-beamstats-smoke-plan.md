@@ -1548,40 +1548,21 @@ multi-network aggregation result. The 65k/class matrix exists because the
 same-input, deterministic, active-nibble, and difference controls.
 ```
 
-Launch remains blocked until all of the following are true:
+Prelaunch source-publication gate, historical note:
 
 ```text
-scoped commit exists
-commit is pushed
-GPU/readiness gate passes
-local tmux monitor/retrieval handoff is prepared
-one bounded post-launch remote artifact confirmation is planned
-```
-
-Source-publication gate:
-
-```text
-UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-launch-source
-
-current_status = fail
-branch = main
-upstream = origin/main
-ahead = 48
-dirty = false
-errors = unpushed_commits
+This section originally recorded the remote-launch readiness assets before
+the 65k/class run was started. The remote run below was later launched from
+source_commit = cc8197a83ae5ce7f7edfb484ea1d281110f3b7fa and retrieved through
+the local tmux watcher.
 ```
 
 Interpretation:
 
 ```text
-The remote config and generated launch/monitor artifacts are ready, but the
-source publication gate is not. The worktree is now clean, but `main` is still
-48 commits ahead of `origin/main`; the unpushed-commits state remains a hard
-launch blocker until the branch is pushed with explicit approval. A 2026-07-06
-attempt to run `git push origin main` was rejected by the sandbox reviewer
-because pushing 48 commits to GitHub is a high-risk outbound transfer without
-explicit approval for that exact push. Do not launch this remote job from an
-unpushed source tree or by dirty overlay.
+The launch-readiness checklist is kept here for audit continuity only. Current
+status for the 65k/class run is recorded in the result section below; do not
+read this historical readiness note as the current run state.
 ```
 
 After retrieval, the same residual gate must be rerun at `65536/class` before
@@ -1669,7 +1650,8 @@ Artifact caveat:
 ```text
 training_results = retrieved
 checkpoints = retrieved
-score_artifacts = pending watcher retrieval
+score_artifacts = pending watcher retrieval / export still running or stalled
+final_done_marker = missing
 ```
 
 The first local monitor exited early with:
@@ -1688,15 +1670,60 @@ The trail-position monitor was patched to wait specifically for
 monitor_i1_present_r8_trailpos_65k_20260706
 ```
 
+Second retrieval issue:
+
+```text
+remote_process = python.exe scripts\export-checkpoint-scores
+active_stage = exporting global_stats_control frozen scores
+remote_score_artifacts_dir = empty as of latest bounded check
+export_stdout_stderr = 0 bytes
+```
+
+Root cause hypothesis, supported by source inspection:
+
+```text
+training used disk-backed dataset cache and progress JSONL
+export-checkpoint-scores in source_commit cc8197a used direct in-memory
+make_differential_dataset(...) without dataset-cache-root or progress-output
+```
+
+Local repair prepared:
+
+```text
+10745cd fix: reuse dataset cache for score export
+
+Adds:
+  --dataset-cache-root
+  --dataset-cache-chunk-size
+  --dataset-cache-workers
+  --progress-output
+
+Validation:
+  UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_neural_ensemble_cli.py \
+    tests/test_export_checkpoint_scores_imports.py tests/test_project_structure.py -q \
+    -k "export_checkpoint_scores or trail_position_medium_remote_launch_assets_export_scores_only or trail_position_medium_remote_readiness or monitor_health_accepts_train_matrix_result_file"
+
+  status = 6 passed, 371 deselected
+```
+
+The repair is not yet active on the remote run because `main` is currently
+ahead of `origin/main` by 3 commits and external `git push origin main` was
+rejected by sandbox review without explicit approval for those exact commits.
+
 Next action:
 
 ```text
-1. Let the corrected watcher retrieve score_artifacts/global_stats_control/models.json
-   and score_artifacts/trail_position/models.json.
-2. After score artifacts are retrieved, run the 65k same-protocol residual
+1. Keep the corrected watcher as the retrieval path for any score artifacts
+   produced by the old export process.
+2. Push the three local repair commits when explicit approval permits:
+   2134f0d, 024ef2e, 10745cd.
+3. If old export remains nonproductive, relaunch only the score-export
+   postprocess from pushed cache-aware code under the same G:\lxy run root;
+   do not rerun training unless artifacts/checkpoints are missing.
+4. After score artifacts are retrieved, run the 65k same-protocol residual
    interpretation against deterministic position-statistics and mismatch
    controls before any stronger claim.
-3. Do not spend the next experiment slot on near-neighbor averaging. If this
+5. Do not spend the next experiment slot on near-neighbor averaging. If this
    route remains active, scale or validate it with residual controls; for
    ensemble work, first find a genuinely different expert family that clears
    its own same-input global-stat control.
