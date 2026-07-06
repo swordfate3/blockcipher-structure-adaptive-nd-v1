@@ -1170,6 +1170,91 @@ not formal SPN/PRESENT evidence, not a Zhang/Wang r7 Case2 result, not a
 breakthrough claim, and not a diverse multi-network ensemble result.
 ```
 
+## 16384/Class Local Extension Plan
+
+Because the 8192/class gate passed but external source publication still blocks
+the prepared 65k/class remote diagnostic, the next non-remote step is a narrow
+`16384/class` local extension of the same residual-gate protocol. This tests
+whether the trail-position residual remains positive as the same-input
+global-stat control grows stronger. It is not a new route and not an ensemble.
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_16384_local.csv
+```
+
+Rows:
+
+| Row | Model | Role | Scale |
+|---:|---|---|---:|
+| 0 | `present_pairset_global_stats` | same-input global-statistics neural control, seed0 | `16384/class` |
+| 1 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed0 | `16384/class` |
+| 2 | `present_pairset_global_stats` | same-input global-statistics neural control, seed1 | `16384/class` |
+| 3 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed1 | `16384/class` |
+
+Training command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_16384_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_16384 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --output outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/progress.jsonl
+```
+
+Post-training gates:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_16384_local.csv \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/results.jsonl \
+  --expected-rows 4
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_16384_local.csv \
+  --row-index <1-or-3> \
+  --samples-per-class 16384 \
+  --seed <0-or-1> \
+  --key-split validation \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_16384 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --progress-output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_16384_progress.jsonl \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_16384.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-position-residual \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/results.jsonl \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_16384.json \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_16384.json \
+  --output outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json
+```
+
+Claim scope:
+
+```text
+16384/class local diagnostic only
+not remote evidence
+not formal SPN/PRESENT evidence
+not a diverse-ensemble result
+```
+
 Prepared assets:
 
 ```text
