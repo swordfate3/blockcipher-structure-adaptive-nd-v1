@@ -2209,6 +2209,15 @@ def test_trail_position_medium_remote_score_export_repair_launcher_asset():
     assert "score_export_repair_launch_done.marker" in launcher_text
 
 
+def test_trail_position_score_analysis_cli_asset():
+    script = Path("scripts/analyze-trail-position-scores")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.analyze_trail_position_scores" in script_text
+
+
 def test_trail_position_262k_followup_remote_assets_are_scale_up_and_verify_scores():
     for seed, gpu in [(0, 0), (1, 1)]:
         suffix = f"262k_seed{seed}_gpu{gpu}_20260706"

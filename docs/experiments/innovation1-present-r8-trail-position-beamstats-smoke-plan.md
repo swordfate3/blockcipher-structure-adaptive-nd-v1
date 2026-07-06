@@ -1765,6 +1765,21 @@ This verifier is an artifact-completeness gate only. Passing it means the two
 frozen score exports are complete and sample-aligned; it does not by itself
 claim ensemble improvement or formal SPN/PRESENT evidence.
 
+After the verifier passes, run the trail-position-specific frozen score
+diagnostic before any ensemble language:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/analyze-trail-position-scores \
+  --global-artifact outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/global_stats_control \
+  --candidate-artifact outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position \
+  --output outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position_score_analysis.json
+```
+
+The diagnostic reports candidate-versus-global-control AUC and accuracy
+margins, 0.5-threshold error overlap, double-fault/error Jaccard, and whether
+the candidate corrects more global-control errors than it introduces. It is a
+residual/error-overlap diagnostic only, not a diverse ensemble claim.
+
 ## 262k/Class Follow-Up Launched
 
 The next scale step for the active trail-position route is not another
@@ -1859,6 +1874,20 @@ retrieved status =
   score_artifacts not ready yet
 ```
 
+After each 262k seed retrieves complete score artifacts and
+`score_artifacts/verification_summary.json`, run:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/analyze-trail-position-scores \
+  --global-artifact outputs/remote_results/<run_id>/score_artifacts/global_stats_control \
+  --candidate-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --output outputs/remote_results/<run_id>/score_artifacts/trail_position_score_analysis.json
+```
+
+Compare the two seed reports before any scale-up, ensemble, or publication
+language. A positive candidate margin at 262k/class is still medium diagnostic
+evidence, not formal SPN/PRESENT evidence.
+
 Claim scope:
 
 ```text
@@ -1887,7 +1916,8 @@ Next action:
    postprocess with the repair asset under the same G:\lxy run root; do not
    rerun training unless artifacts/checkpoints are missing.
 4. After score artifacts are retrieved, run `scripts/verify-score-artifacts`
-   with `--expected-rows 65536`; only then run ensemble/error-overlap analysis.
+   with `--expected-rows 65536`; only then run
+   `scripts/analyze-trail-position-scores` for residual/error-overlap analysis.
 5. Wait for the local tmux monitors to retrieve the launched `262144/class`
    seed0/seed1 results and score-artifact verification summaries. This is the
    active scale step; do not treat the 65k run as the endpoint.

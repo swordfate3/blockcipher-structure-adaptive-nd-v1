@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_trail_position_scores_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
@@ -419,6 +420,137 @@ def test_verify_score_artifacts_cli_rejects_misaligned_labels(tmp_path):
     assert summary["status"] == "fail"
     assert summary["alignment"]["labels"] is False
     assert "labels_mismatch" in summary["errors"]
+
+
+def test_analyze_trail_position_scores_supports_candidate_residual(tmp_path):
+    labels = np.array([0, 0, 0, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    common_metadata = {
+        "cipher": "PRESENT-80",
+        "cipher_key": "present80",
+        "rounds": 8,
+        "seed": 0,
+        "samples_per_class": 16,
+        "validation_samples_per_class": 3,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    global_dir = tmp_path / "global_stats_control"
+    candidate_dir = tmp_path / "trail_position"
+    write_score_artifact(
+        global_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.6, 0.2, 0.4, 0.8, 0.9], dtype=np.float32),
+            logits=np.array([-2.0, 0.4, -1.4, -0.2, 1.8, 2.2], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                **common_metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+                "candidate_status": "near_neighbor_control",
+            },
+        ),
+    )
+    write_score_artifact(
+        candidate_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.05, 0.4, 0.15, 0.7, 0.85, 0.95], dtype=np.float32),
+            logits=np.array([-3.0, -0.4, -1.8, 0.9, 2.0, 2.7], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                **common_metadata,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+                "candidate_status": "weak_positive",
+            },
+        ),
+    )
+    output = tmp_path / "trail_position_score_analysis.json"
+
+    status = analyze_trail_position_scores_main(
+        [
+            "--global-artifact",
+            str(global_dir),
+            "--candidate-artifact",
+            str(candidate_dir),
+            "--output",
+            str(output),
+            "--improvement-margin",
+            "0.0",
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_trail_position_score_residual"
+    assert report["margins_vs_global_control"]["auc"] > 0
+    assert report["overlap_at_0_5"]["candidate_correct_global_wrong_rate_at_0_5"] > 0
+    assert report["overlap_at_0_5"]["global_correct_candidate_wrong_rate_at_0_5"] == 0
+    assert "not a diverse ensemble claim" in report["claim_scope"]
+
+
+def test_analyze_trail_position_scores_holds_when_candidate_does_not_clear_control(tmp_path):
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    common_metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    global_dir = tmp_path / "global_stats_control"
+    candidate_dir = tmp_path / "trail_position"
+    for path, model_key, family in [
+        (global_dir, "present_pairset_global_stats", "trail_position_global_control"),
+        (candidate_dir, "present_trail_position_stats_pairset", "trail_position"),
+    ]:
+        write_score_artifact(
+            path,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=np.array([0.1, 0.2, 0.8, 0.9], dtype=np.float32),
+                logits=np.array([-2.0, -1.0, 1.0, 2.0], dtype=np.float32),
+                sample_ids=sample_ids,
+                metadata={
+                    **common_metadata,
+                    "model_key": model_key,
+                    "expert_family": family,
+                    "candidate_status": "weak_positive",
+                },
+            ),
+        )
+    output = tmp_path / "trail_position_score_analysis.json"
+
+    status = analyze_trail_position_scores_main(
+        [
+            "--global-artifact",
+            str(global_dir),
+            "--candidate-artifact",
+            str(candidate_dir),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "hold_trail_position_score_residual"
+    assert report["margins_vs_global_control"]["auc"] == 0.0
+    assert report["action"] == "do_not_promote_score_artifacts_beyond_diagnostic_use"
 
 
 def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):
