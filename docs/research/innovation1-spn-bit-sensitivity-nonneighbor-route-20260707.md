@@ -1061,3 +1061,36 @@ rank1 low-rank interaction expert. A future learned variant should constrain
 the optimization harder, for example by initializing from frozen train-feature
 SVD components, disabling the raw branch to isolate true interaction value, or
 regularizing projection drift from the unsupervised basis.
+
+The stricter SVD-frozen variant confirms that interpretation but does not yet
+produce a promotable candidate:
+
+```text
+cli = scripts/fit-compressed-span-learned-low-rank-interaction-expert
+projection_init = svd
+freeze_projections = true
+trainable_projection_parameter_count = 0
+rank = 1
+total_feature_count = 309
+steps = 2000
+learning_rate = 0.01
+weight_decay = 0.001
+seed0 svd_frozen_validation_auc = 0.9999265670776367
+seed1 svd_frozen_validation_auc = 0.9999094009399414
+seed0 delta_vs_unsupervised_rank1_auc = 0.00000095367431640625
+seed1 delta_vs_unsupervised_rank1_auc = 0.00000858306884765625
+seed0 svd_frozen_shuffle_validation_auc = 0.46834707260131836
+seed1 svd_frozen_shuffle_validation_auc = 0.6085009574890137
+seed1 weight_decay_0.01_validation_auc = 0.9998893737792969
+seed1 weight_decay_0.01_shuffle_validation_auc = 0.6176691055297852
+decision = svd_frozen_learned_rank1_recovers_auc_but_fails_seed1_shuffle_control
+```
+
+This is a useful attribution result, not a promotion result. Frozen SVD
+projections recover the rank1 signal, so the random learned projection was the
+weak link in the first learned module. But the final PyTorch classifier path
+still fails a seed1 shuffle-label control, and stronger weight decay keeps the
+shuffle problem while losing the small main-AUC gain. The route should keep the
+existing unsupervised rank1 logistic expert as the stronger current candidate
+and next test an interaction-only or regularized-logistic variant before any
+remote scale-up.

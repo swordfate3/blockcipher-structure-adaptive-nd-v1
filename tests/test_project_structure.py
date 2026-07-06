@@ -326,6 +326,10 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "seed0 learned_low_rank_validation_auc = 0.9998531341552734" in combined
     assert "seed1 learned_low_rank_validation_auc = 0.9995737075805664" in combined
     assert "learned_low_rank_rank1_hold_local_diagnostic" in combined
+    assert "seed0 svd_frozen_validation_auc = 0.9999265670776367" in combined
+    assert "seed1 svd_frozen_validation_auc = 0.9999094009399414" in combined
+    assert "seed1 svd_frozen_shuffle_validation_auc = 0.6085009574890137" in combined
+    assert "svd_frozen_learned_rank1_recovers_auc_but_fails_seed1_shuffle_control" in combined
     assert "not a multi-network improvement" in combined
 
 

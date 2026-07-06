@@ -857,6 +857,37 @@ variant. Keep the unsupervised rank1 low-rank expert as the current strongest
 block/tensor candidate, and use the learned module only as a scaffold for a
 future stricter ablation such as frozen unsupervised initialization, projection
 regularization, or a raw-branch-disabled interaction-only test.
+
+SVD-frozen learned low-rank diagnostic:
+  cli = scripts/fit-compressed-span-learned-low-rank-interaction-expert
+  projection_init = svd
+  freeze_projections = true
+  trainable_projection_parameter_count = 0
+  rank = 1
+  total_feature_count = 309
+  steps = 2000
+  learning_rate = 0.01
+  weight_decay = 0.001
+  seed0 svd_frozen_validation_auc = 0.9999265670776367
+  seed1 svd_frozen_validation_auc = 0.9999094009399414
+  seed0 delta_vs_unsupervised_rank1_auc = 0.00000095367431640625
+  seed1 delta_vs_unsupervised_rank1_auc = 0.00000858306884765625
+  seed0 svd_frozen_shuffle_validation_auc = 0.46834707260131836
+  seed1 svd_frozen_shuffle_validation_auc = 0.6085009574890137
+  seed1 weight_decay_0.01_validation_auc = 0.9998893737792969
+  seed1 weight_decay_0.01_shuffle_validation_auc = 0.6176691055297852
+  decision = svd_frozen_learned_rank1_recovers_auc_but_fails_seed1_shuffle_control
+
+Interpretation: initializing and freezing the learned projections from
+train-feature SVD recovers the useful rank1 low-rank signal and even gives a
+tiny main-AUC gain over the existing unsupervised rank1 logistic expert on both
+local seeds. However, the same PyTorch classifier path produces a high seed1
+shuffle-label control (`0.6085` AUC), and stronger weight decay does not fix
+that control while preserving the main gain. Treat this as an attribution
+result: the previous learned-random failure was mostly projection drift/random
+initialization, but the SVD-frozen learned classifier is not control-clean
+enough to replace the existing unsupervised rank1 logistic expert or to justify
+remote scale-up.
 ```
 
 ## Fixed Protocol

@@ -41,6 +41,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--weight-decay", type=float, default=0.001)
+    parser.add_argument("--projection-init", choices=["random", "svd"], default="random")
+    parser.add_argument("--freeze-projections", action="store_true")
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
@@ -60,6 +62,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
     steps: int = 2000,
     learning_rate: float = 0.01,
     weight_decay: float = 0.001,
+    projection_init: str = "random",
+    freeze_projections: bool = False,
     standardize: bool = True,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
@@ -77,6 +81,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
         raise ValueError("learning_rate must be positive")
     if weight_decay < 0.0:
         raise ValueError("weight_decay must be non-negative")
+    if projection_init not in {"random", "svd"}:
+        raise ValueError("projection_init must be random or svd")
 
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
@@ -107,6 +113,10 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
         auxiliary_groups=auxiliary_groups,
         rank=rank,
     )
+    if projection_init == "svd":
+        _initialize_projection_weights_from_svd(model, train_model_features)
+    if freeze_projections:
+        _set_projection_trainability(model, trainable=False)
     fit = _fit_model(
         model,
         train_model_features,
@@ -134,6 +144,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
         "feature_steps": int(steps),
         "feature_learning_rate": float(learning_rate),
         "feature_weight_decay": float(weight_decay),
+        "projection_initialization": projection_init,
+        "freeze_projections": bool(freeze_projections),
         "feature_standardize": bool(standardize),
         "fit_train_labels_shuffled": bool(shuffle_train_labels),
         "fit_label_shuffle_seed": int(shuffle_seed),
@@ -145,6 +157,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
         "block_pair_count": int(len(primary_groups) * len(auxiliary_groups)),
         "low_rank_projection_rank": int(rank),
         "learned_low_rank_interaction_count": interaction_count,
+        "projection_parameter_count": int(_projection_parameter_count(model)),
+        "trainable_projection_parameter_count": int(_trainable_projection_parameter_count(model)),
         "block_groups": _group_metadata(groups),
         "claim_scope": (
             "train-fitted learned compressed SPN span-summary low-rank block interaction expert diagnostic only; "
@@ -189,6 +203,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
         "block_pair_count": int(len(primary_groups) * len(auxiliary_groups)),
         "low_rank_projection_rank": int(rank),
         "learned_low_rank_interaction_count": interaction_count,
+        "projection_initialization": projection_init,
+        "freeze_projections": bool(freeze_projections),
         "learned_low_rank_interaction_feature_names": _interaction_feature_names(
             primary_groups,
             auxiliary_groups,
@@ -203,6 +219,8 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
             "seed": int(seed),
             "final_loss": float(fit["final_loss"]),
             "parameter_count": int(sum(parameter.numel() for parameter in model.parameters())),
+            "projection_parameter_count": int(_projection_parameter_count(model)),
+            "trainable_projection_parameter_count": int(_trainable_projection_parameter_count(model)),
             "raw_feature_mean_l2_norm": float(np.linalg.norm(feature_mean.astype(np.float64, copy=False))),
             "raw_feature_scale_min": float(np.min(feature_scale)),
             "raw_feature_scale_max": float(np.max(feature_scale)),
@@ -220,6 +238,7 @@ def fit_compressed_span_learned_low_rank_interaction_expert(
             "compare_against_full_summary_flat_logistic",
             "compare_against_semantic_block_stat_interaction_expert",
             "compare_against_unsupervised_low_rank_interaction_expert",
+            "compare_svd_frozen_against_unsupervised_low_rank_interaction_expert",
             "compare_against_shuffle_train_labels_control",
         ],
         "claim_scope": common_metadata["claim_scope"],
@@ -298,7 +317,8 @@ def _fit_model(
 ) -> dict[str, float]:
     x = torch.as_tensor(features, dtype=torch.float32)
     y = torch.as_tensor(labels, dtype=torch.float32)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    trainable_parameters = [parameter for parameter in model.parameters() if parameter.requires_grad]
+    optimizer = torch.optim.Adam(trainable_parameters, lr=learning_rate, weight_decay=weight_decay)
     criterion = nn.BCEWithLogitsLoss()
     final_loss = 0.0
     model.train()
@@ -310,6 +330,62 @@ def _fit_model(
         optimizer.step()
         final_loss = float(loss.detach().cpu().item())
     return {"final_loss": final_loss}
+
+
+def _initialize_projection_weights_from_svd(
+    model: _LearnedLowRankBlockInteractionModel,
+    train_features: np.ndarray,
+) -> None:
+    for projection, group in zip(model.primary_projections, model.primary_groups, strict=True):
+        _copy_svd_components_to_projection(
+            projection,
+            train_features[:, group["indices"]],
+            rank=model.rank,
+        )
+    for projection, group in zip(model.auxiliary_projections, model.auxiliary_groups, strict=True):
+        _copy_svd_components_to_projection(
+            projection,
+            train_features[:, group["indices"]],
+            rank=model.rank,
+        )
+
+
+def _copy_svd_components_to_projection(projection: nn.Linear, train_block: np.ndarray, *, rank: int) -> None:
+    actual_rank = min(rank, int(train_block.shape[0]), int(train_block.shape[1]))
+    if actual_rank <= 0:
+        raise ValueError("SVD projection initialization requires a non-empty block")
+    _, _, vh = np.linalg.svd(train_block.astype(np.float64, copy=False), full_matrices=False)
+    components = np.zeros((train_block.shape[1], rank), dtype=np.float32)
+    components[:, :actual_rank] = vh[:actual_rank].T.astype(np.float32, copy=False)
+    with torch.no_grad():
+        projection.weight.copy_(torch.as_tensor(components.T, dtype=projection.weight.dtype))
+
+
+def _set_projection_trainability(model: _LearnedLowRankBlockInteractionModel, *, trainable: bool) -> None:
+    for projection in [*model.primary_projections, *model.auxiliary_projections]:
+        for parameter in projection.parameters():
+            parameter.requires_grad = trainable
+
+
+def _projection_parameter_count(model: _LearnedLowRankBlockInteractionModel) -> int:
+    return int(
+        sum(
+            parameter.numel()
+            for projection in [*model.primary_projections, *model.auxiliary_projections]
+            for parameter in projection.parameters()
+        )
+    )
+
+
+def _trainable_projection_parameter_count(model: _LearnedLowRankBlockInteractionModel) -> int:
+    return int(
+        sum(
+            parameter.numel()
+            for projection in [*model.primary_projections, *model.auxiliary_projections]
+            for parameter in projection.parameters()
+            if parameter.requires_grad
+        )
+    )
 
 
 def _predict(model: _LearnedLowRankBlockInteractionModel, features: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -350,6 +426,8 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
+        projection_init=args.projection_init,
+        freeze_projections=args.freeze_projections,
         standardize=not args.no_standardize,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
