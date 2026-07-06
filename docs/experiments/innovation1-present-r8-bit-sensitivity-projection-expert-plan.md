@@ -920,6 +920,40 @@ span summary. Do not spend remote scale on interaction-only low-rank. The next
 better-targeted ablation should compress or partition the raw span-summary
 families to locate which raw semantic blocks carry the dominant PRESENT r8
 signal.
+
+Raw span-family localization diagnostic:
+  cli = scripts/fit-compressed-feature-expert
+  selector = --include-feature-prefix
+  feature_source = compressed_span_summary raw 273D
+  seeds = 0,1
+  samples_per_class = 2048
+  strongest_single_family = primary_depth_trailword
+  seed0 primary_depth_trailword_auc = 0.9997749328613281
+  seed1 primary_depth_trailword_auc = 0.999262809753418
+  seed0 primary_depth_cell_auc = 0.9990720748901367
+  seed1 primary_depth_cell_auc = 0.9978551864624023
+  seed0 aux_depth_cell_auc = 0.9923276901245117
+  seed1 aux_depth_cell_auc = 0.994171142578125
+  compact_combo = primary_depth_trailword + aux_depth_cell
+  compact_combo_feature_count = 60
+  seed0 compact_combo_auc = 0.9999017715454102
+  seed1 compact_combo_auc = 0.9998178482055664
+  seed0 compact_combo_delta_vs_full_summary_auc = -0.00001239776611328125
+  seed1 compact_combo_delta_vs_full_summary_auc = -0.00002574920654296875
+  seed0 compact_combo_shuffle_auc = 0.4941110610961914
+  seed1 compact_combo_shuffle_auc = 0.4871025085449219
+  seed0 compact_combo_l2_0_auc = 0.9999017715454102
+  seed1 compact_combo_l2_0_auc = 0.999821662902832
+  decision = compact_raw_primary_depth_trailword_aux_depth_cell_anchor_local
+
+Interpretation: the raw-family screen localizes the dominant PRESENT r8
+compressed-span signal to primary trajectory/depth structure, especially
+`primary_depth_trailword`, with `aux_depth_cell` providing a strong compact
+complement. A 60D raw combo nearly matches the 273D full-summary expert on both
+seeds and has clean shuffle-label controls. This is a better next anchor than
+interaction-only low-rank: it preserves almost all of the raw signal with much
+lower dimensionality, but it still trails full 273D and rank1 raw+interaction,
+so keep it as a compact local diagnostic rather than a remote-scale candidate.
 ```
 
 ## Fixed Protocol

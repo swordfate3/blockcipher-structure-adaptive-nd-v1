@@ -334,6 +334,10 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "seed0 interaction_only_validation_auc = 0.5190114974975586" in combined
     assert "seed1 interaction_only_validation_auc = 0.5553302764892578" in combined
     assert "interaction_only_low_rank_weak_not_primary_signal_source" in combined
+    assert "strongest_single_family = primary_depth_trailword" in combined
+    assert "seed0 compact_combo_auc = 0.9999017715454102" in combined
+    assert "seed1 compact_combo_auc = 0.9998178482055664" in combined
+    assert "compact_raw_primary_depth_trailword_aux_depth_cell_anchor_local" in combined
     assert "not a multi-network improvement" in combined
 
 

@@ -1128,3 +1128,35 @@ The next useful work is to decompose the raw 273D summary itself: per-family
 raw-only experts, raw-family dropouts, and compact raw block selection should
 tell whether the dominant PRESENT r8 signal lives in primary depth/cell blocks,
 auxiliary word/cell blocks, or their global summaries.
+
+The raw-family decomposition found a compact anchor:
+
+```text
+cli = scripts/fit-compressed-feature-expert
+selector = --include-feature-prefix
+feature_source = compressed_span_summary raw 273D
+strongest_single_family = primary_depth_trailword
+seed0 primary_depth_trailword_auc = 0.9997749328613281
+seed1 primary_depth_trailword_auc = 0.999262809753418
+seed0 primary_depth_cell_auc = 0.9990720748901367
+seed1 primary_depth_cell_auc = 0.9978551864624023
+seed0 aux_depth_cell_auc = 0.9923276901245117
+seed1 aux_depth_cell_auc = 0.994171142578125
+compact_combo = primary_depth_trailword + aux_depth_cell
+compact_combo_feature_count = 60
+seed0 compact_combo_auc = 0.9999017715454102
+seed1 compact_combo_auc = 0.9998178482055664
+seed0 compact_combo_delta_vs_full_summary_auc = -0.00001239776611328125
+seed1 compact_combo_delta_vs_full_summary_auc = -0.00002574920654296875
+seed0 compact_combo_shuffle_auc = 0.4941110610961914
+seed1 compact_combo_shuffle_auc = 0.4871025085449219
+decision = compact_raw_primary_depth_trailword_aux_depth_cell_anchor_local
+```
+
+This moves the route from a broad 273D feature bag to a concrete SPN-localized
+hypothesis. Most of the raw signal lives in primary depth/trailword evolution,
+with auxiliary depth/cell structure adding just enough complementary evidence
+to nearly recover the full-summary expert. The next useful experiments should
+drop or compress raw families around this 60D anchor, and only then re-add a
+small controlled interaction term. Do not treat this as remote or formal
+evidence; it is a local representation-localization result.
