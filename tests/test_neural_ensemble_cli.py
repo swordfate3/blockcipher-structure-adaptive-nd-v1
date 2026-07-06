@@ -10,6 +10,7 @@ from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_ma
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
+from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
 
@@ -300,6 +301,124 @@ def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
     assert summary["best_single"]["model_key"] == "left"
     assert summary["ensembles"][0]["mode"] == "probability_mean"
     assert summary["claim_scope"].startswith("application-level")
+
+
+def test_verify_score_artifacts_cli_accepts_aligned_required_models(tmp_path):
+    labels = np.array([0, 1, 0, 1], dtype=np.float32)
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    left_dir = tmp_path / "global_stats_control"
+    right_dir = tmp_path / "trail_position"
+    write_score_artifact(
+        left_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.8, 0.2, 0.7], dtype=np.float32),
+            logits=np.array([-2.0, 1.5, -1.5, 1.0], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+                "candidate_status": "near_neighbor_control",
+                "cipher_key": "present80",
+                "rounds": 8,
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+            },
+        ),
+    )
+    write_score_artifact(
+        right_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.05, 0.9, 0.1, 0.85], dtype=np.float32),
+            logits=np.array([-3.0, 2.2, -2.1, 1.8], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+                "candidate_status": "weak_positive",
+                "cipher_key": "present80",
+                "rounds": 8,
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+            },
+        ),
+    )
+    summary_path = tmp_path / "verification_summary.json"
+
+    status = verify_score_artifacts_main(
+        [
+            "--artifacts",
+            str(left_dir),
+            str(right_dir),
+            "--expected-rows",
+            "4",
+            "--require-model",
+            "present_pairset_global_stats:trail_position_global_control:near_neighbor_control",
+            "--require-model",
+            "present_trail_position_stats_pairset:trail_position:weak_positive",
+            "--output",
+            str(summary_path),
+        ]
+    )
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["artifact_count"] == 2
+    assert summary["rows"] == 4
+    assert summary["alignment"]["labels"] is True
+    assert summary["alignment"]["sample_ids"] is True
+    assert summary["errors"] == []
+
+
+def test_verify_score_artifacts_cli_rejects_misaligned_labels(tmp_path):
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    left_dir = tmp_path / "left"
+    right_dir = tmp_path / "right"
+    common_metadata = {
+        "expert_family": "trail_position",
+        "candidate_status": "weak_positive",
+    }
+    write_score_artifact(
+        left_dir,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 1, 0, 1], dtype=np.float32),
+            probabilities=np.array([0.1, 0.8, 0.2, 0.7], dtype=np.float32),
+            logits=np.array([-2.0, 1.5, -1.5, 1.0], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={**common_metadata, "model_key": "left"},
+        ),
+    )
+    write_score_artifact(
+        right_dir,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 0, 0, 1], dtype=np.float32),
+            probabilities=np.array([0.05, 0.9, 0.1, 0.85], dtype=np.float32),
+            logits=np.array([-3.0, 2.2, -2.1, 1.8], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={**common_metadata, "model_key": "right"},
+        ),
+    )
+    summary_path = tmp_path / "verification_summary.json"
+
+    status = verify_score_artifacts_main(
+        [
+            "--artifacts",
+            str(left_dir),
+            str(right_dir),
+            "--expected-rows",
+            "4",
+            "--output",
+            str(summary_path),
+        ]
+    )
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert status == 1
+    assert summary["status"] == "fail"
+    assert summary["alignment"]["labels"] is False
+    assert "labels_mismatch" in summary["errors"]
 
 
 def test_neural_ensemble_end_to_end_tiny_smoke(tmp_path):

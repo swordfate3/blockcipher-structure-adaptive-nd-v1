@@ -1706,6 +1706,12 @@ Validation:
     -k "export_checkpoint_scores or trail_position_medium_remote_launch_assets_export_scores_only or trail_position_medium_remote_readiness or monitor_health_accepts_train_matrix_result_file"
 
   status = 6 passed, 371 deselected
+
+  UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_neural_ensemble_cli.py \
+    tests/test_export_checkpoint_scores_imports.py tests/test_project_structure.py -q \
+    -k "score_artifacts or export_checkpoint_scores or neural_ensemble or trail_position_medium_remote_launch_assets_export_scores_only or trail_position_medium_remote_readiness or monitor_health_accepts_train_matrix_result_file"
+
+  status = 17 passed, 364 deselected
 ```
 
 Repair-asset intent:
@@ -1735,6 +1741,24 @@ outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_202
 The existing corrected watcher remains the retrieval path for
 `score_artifacts/` and final markers.
 
+After score artifacts are retrieved locally, verify completeness and alignment
+before evaluating any ensemble/error-overlap gate:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/verify-score-artifacts \
+  --artifacts \
+    outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/global_stats_control \
+    outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position \
+  --expected-rows 65536 \
+  --require-model present_pairset_global_stats:trail_position_global_control:near_neighbor_control \
+  --require-model present_trail_position_stats_pairset:trail_position:weak_positive \
+  --output outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/verification_summary.json
+```
+
+This verifier is an artifact-completeness gate only. Passing it means the two
+frozen score exports are complete and sample-aligned; it does not by itself
+claim ensemble improvement or formal SPN/PRESENT evidence.
+
 The repair is not yet active on the remote run because `main` is ahead of
 `origin/main` and external `git push origin main` was rejected by sandbox
 review without explicit approval for the exact local commit set.
@@ -1751,10 +1775,11 @@ Next action:
 3. If old export remains nonproductive, relaunch only the score-export
    postprocess with the repair asset under the same G:\lxy run root; do not
    rerun training unless artifacts/checkpoints are missing.
-4. After score artifacts are retrieved, run the 65k same-protocol residual
-   interpretation against deterministic position-statistics and mismatch
-   controls before any stronger claim.
-5. Do not spend the next experiment slot on near-neighbor averaging. If this
+4. After score artifacts are retrieved, run `scripts/verify-score-artifacts`
+   with `--expected-rows 65536`; only then run ensemble/error-overlap analysis.
+5. Run the 65k same-protocol residual interpretation against deterministic
+   position-statistics and mismatch controls before any stronger claim.
+6. Do not spend the next experiment slot on near-neighbor averaging. If this
    route remains active, scale or validate it with residual controls; for
    ensemble work, first find a genuinely different expert family that clears
    its own same-input global-stat control.
