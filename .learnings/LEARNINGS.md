@@ -21,9 +21,9 @@ validation artifacts =
   outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_scores
 ```
 
-But no matching train raw117 score artifact was found. The train-side structural
-score input used for fitted stacking was the wider trail-position-stat logistic
-artifact:
+At the time of the first stacking stability audit, no matching train raw117
+score artifact was found. The train-side structural score input used for fitted
+stacking was the wider trail-position-stat logistic artifact:
 
 ```text
 feature_view = trail_position_stats
@@ -58,6 +58,11 @@ matching train score artifacts before making stronger ensemble claims.
 - Recurrence-Count: 1
 - First-Seen: 2026-07-07
 - Last-Seen: 2026-07-07
+
+### Resolution
+- **Resolved**: 2026-07-07T07:18:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Matching train/validation raw117 score artifacts were generated under `outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{0,1}_*_span_raw117_matched_scores`, and a matched stacking stability follow-up was recorded in V14 of the experiment plan. The durable lesson remains: verify feature scope before interpreting stacking.
 
 ---
 

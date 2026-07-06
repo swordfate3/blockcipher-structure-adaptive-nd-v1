@@ -1841,3 +1841,102 @@ raw117 on exactly those rows, and rerun the same fixed-fusion/stability gates.
 Only after a third structurally different candidate clears its own controls
 should the route be called a diverse multi-network pool.
 ```
+
+## V14 Matched Train Raw117 Stacking Follow-Up
+
+The V13 limitation was resolved locally by exporting matched train and
+validation raw117 score artifacts from the same compressed-span-summary feature
+scope:
+
+```text
+seed0 train raw117 scores =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_train_span_raw117_matched_scores
+seed0 validation raw117 scores =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_matched_scores
+seed0 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw117_matched_report.json
+
+seed1 train raw117 scores =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_train_span_raw117_matched_scores
+seed1 validation raw117 scores =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_matched_scores
+seed1 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw117_matched_report.json
+
+feature_view = compressed_span_summary
+feature_count = 117
+include_feature_prefixes =
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+  primary_depth_trailword_
+```
+
+The regenerated validation raw117 metrics match the V12 raw117 anchor:
+
+```text
+seed0 matched raw117 validation_auc = 0.9999246597290039
+seed1 matched raw117 validation_auc = 0.9999103546142578
+```
+
+Matched train-holdout stacking artifacts:
+
+```text
+seed0 matched stability =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_matched_candidate_stacked_selection_stability.json
+seed1 matched stability =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_matched_candidate_stacked_selection_stability.json
+```
+
+Metrics:
+
+```text
+seed0 positive_selection_seeds = 5 / 5
+seed0 delta_stacked_vs_best_single_auc:
+  min = +0.000003814697265625
+  max = +0.000003814697265625
+  mean = +0.000003814697265625
+seed0 same_selection = true
+seed0 dominant_selection = logits, l2=0.0, standardize=false
+seed0 delta_stacked_vs_fixed_ensemble_auc = -0.0000133514404296875
+
+seed1 positive_selection_seeds = 4 / 5
+seed1 delta_stacked_vs_best_single_auc:
+  min = -0.00001811981201171875
+  max = +0.00001049041748046875
+  mean = +0.00000438690185546875
+seed1 same_selection = false
+seed1 dominant_selection = logits, l2=0.0, standardize=false
+seed1 best delta_stacked_vs_fixed_ensemble_auc = +0.0000019073486328125
+seed1 worst delta_stacked_vs_fixed_ensemble_auc = -0.000026702880859375
+```
+
+Decision:
+
+```text
+decision = matched_raw117_stacking_tiny_positive_but_not_promoted_over_fixed_fusion
+action =
+  keep fixed fusion as the cleaner two-expert local gate;
+  keep matched raw117 train scores for future scale/postprocess reuse;
+  do not call this a diverse multi-network success
+```
+
+Interpretation:
+
+```text
+Generating matched train raw117 score artifacts improves the stacking evidence:
+the previous feature-scope caveat is removed, seed0 becomes stably positive,
+and seed1 is positive on four out of five selection seeds. But the gain is only
+around 4e-6 AUC on average. Seed0 still loses to the simpler fixed-fusion rule,
+and seed1 remains selection-sensitive with one negative selection seed.
+
+So the ranking is now clearer:
+1. raw117 remains a strong compact SPN structural expert.
+2. fixed fusion is the cleanest current two-expert aggregation diagnostic.
+3. matched stacking is useful as a calibration audit, but not a stronger route.
+4. broader multi-network aggregation still needs at least one more genuinely
+   different, control-clearing expert family before promotion.
+
+The next scale action should reuse the matched raw117 export path on the exact
+retrieved 262144/class trail-position validation rows.
+```
