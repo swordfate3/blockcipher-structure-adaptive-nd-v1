@@ -218,6 +218,34 @@ seed0 best_ensemble_delta_vs_best_single_auc = -0.001667022705078125
 seed1 best_ensemble_delta_vs_best_single_auc = -0.001583099365234375
 ```
 
+Train-fitted stacking diagnostic:
+
+```text
+cli = scripts/evaluate-stacked-ensemble
+fit_split = train score artifacts
+eval_split = held-out validation score artifacts
+feature_space = logits
+claim_scope = train-fitted validation-evaluated frozen-score stacking diagnostic only
+
+seed0 stacking_artifact =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_stacking.json
+seed0 stacked_validation_auc = 0.998295783996582
+seed0 best_single_validation_auc = 0.9985876083374023
+seed0 best_fixed_ensemble_validation_auc = 0.9969205856323242
+seed0 delta_stacked_vs_best_single_auc = -0.0002918243408203125
+seed0 delta_stacked_vs_fixed_ensemble_auc = +0.0013751983642578125
+
+seed1 stacking_artifact =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_stacking.json
+seed1 stacked_validation_auc = 0.9975728988647461
+seed1 best_single_validation_auc = 0.9982948303222656
+seed1 best_fixed_ensemble_validation_auc = 0.9967117309570312
+seed1 delta_stacked_vs_best_single_auc = -0.0007219314575195312
+seed1 delta_stacked_vs_fixed_ensemble_auc = +0.0008611679077148438
+
+both decisions = stacked_ensemble_diagnostic_no_best_single_gain
+```
+
 Interpretation:
 
 ```text
@@ -226,7 +254,9 @@ same-input global control on both local seeds. It supports the representation
 hypothesis: structure-aware residual summaries are materially better than
 raw-axis masks or contiguous raw-axis means. However, simple score aggregation
 with the trail-position anchor still does not beat the best single
-trail-position expert. Treat V2 as a two-seed local non-neighbor diagnostic
+trail-position expert. Train-fitted logistic stacking improves over the fixed
+ensemble on both seeds, but it also remains below the best single
+trail-position anchor. Treat V2 as a two-seed local non-neighbor diagnostic
 candidate, not as a completed ensemble improvement or remote-launch result.
 ```
 

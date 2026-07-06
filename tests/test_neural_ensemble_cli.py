@@ -8,6 +8,7 @@ import numpy as np
 from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_trail_position_scores_main
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
+from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.export_bit_sensitivity_features import (
     main as export_bit_sensitivity_features_main,
@@ -418,6 +419,121 @@ def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
     assert summary["best_single"]["model_key"] == "left"
     assert summary["ensembles"][0]["mode"] == "probability_mean"
     assert summary["claim_scope"].startswith("application-level")
+
+
+def test_evaluate_stacked_ensemble_cli_fits_on_train_and_scores_validation(tmp_path):
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "seed": 0,
+        "samples_per_class": 4,
+        "validation_samples_per_class": 4,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "model_options": {},
+        "checkpoint_metric": "val_auc",
+        "restore_best_checkpoint": True,
+        "git_commit": "test",
+    }
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    train_left = tmp_path / "train_left"
+    train_right = tmp_path / "train_right"
+    validation_left = tmp_path / "validation_left"
+    validation_right = tmp_path / "validation_right"
+    for directory, model_key, probabilities in [
+        (train_left, "left", np.array([0.1, 0.2, 0.8, 0.7, 0.3, 0.4, 0.9, 0.8], dtype=np.float32)),
+        (train_right, "right", np.array([0.8, 0.7, 0.2, 0.3, 0.6, 0.7, 0.4, 0.5], dtype=np.float32)),
+        (validation_left, "left", np.array([0.1, 0.2, 0.8, 0.7, 0.3, 0.4, 0.9, 0.8], dtype=np.float32)),
+        (validation_right, "right", np.array([0.8, 0.7, 0.2, 0.3, 0.6, 0.7, 0.4, 0.5], dtype=np.float32)),
+    ]:
+        write_score_artifact(
+            directory,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=probabilities,
+                logits=np.log(np.clip(probabilities, 1e-6, 1.0) / np.clip(1.0 - probabilities, 1e-6, 1.0)),
+                sample_ids=sample_ids,
+                metadata={**metadata, "model_key": model_key, "run_id": model_key},
+            ),
+        )
+    output = tmp_path / "stacked_summary.json"
+
+    status = evaluate_stacked_ensemble_main(
+        [
+            "--train-artifacts",
+            str(train_left),
+            str(train_right),
+            "--validation-artifacts",
+            str(validation_left),
+            str(validation_right),
+            "--steps",
+            "200",
+            "--learning-rate",
+            "0.1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["model_order"] == ["left", "right"]
+    assert summary["validation_metrics"]["auc"] >= summary["validation_best_single"]["metrics"]["auc"]
+    assert "train-fitted validation-evaluated" in summary["claim_scope"]
+
+
+def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    dirs = [tmp_path / name for name in ["train_a", "train_b", "validation_a", "validation_b"]]
+    for directory, model_key in zip(dirs, ["a", "b", "b", "a"], strict=True):
+        write_score_artifact(
+            directory,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=np.array([0.1, 0.3, 0.7, 0.9], dtype=np.float32),
+                logits=np.array([-2.2, -0.8, 0.8, 2.2], dtype=np.float32),
+                sample_ids=sample_ids,
+                metadata={**metadata, "model_key": model_key},
+            ),
+        )
+
+    try:
+        evaluate_stacked_ensemble_main(
+            [
+                "--train-artifacts",
+                str(dirs[0]),
+                str(dirs[1]),
+                "--validation-artifacts",
+                str(dirs[2]),
+                str(dirs[3]),
+                "--output",
+                str(tmp_path / "summary.json"),
+            ]
+        )
+    except ValueError as exc:
+        assert "model order differs" in str(exc)
+    else:
+        raise AssertionError("expected mismatched model order to fail")
 
 
 def test_postprocess_trail_position_result_reports_pending_until_artifacts_ready(tmp_path):

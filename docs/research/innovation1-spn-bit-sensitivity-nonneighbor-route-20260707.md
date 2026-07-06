@@ -302,6 +302,35 @@ now exists locally and clears strong controls on two seeds. The next work is to
 test whether it survives larger retrieved trail-position artifacts and whether
 more careful stacking/calibration can exploit its low-overlap errors.
 
+That calibration question has now been tested once with a train-fitted
+logistic stacking diagnostic:
+
+```text
+cli = scripts/evaluate-stacked-ensemble
+fit_split = train frozen-score artifacts
+eval_split = held-out validation frozen-score artifacts
+feature_space = logits
+
+seed0 stacked_validation_auc = 0.998295783996582
+seed0 best_single_validation_auc = 0.9985876083374023
+seed0 delta_stacked_vs_best_single_auc = -0.0002918243408203125
+seed0 delta_stacked_vs_fixed_ensemble_auc = +0.0013751983642578125
+
+seed1 stacked_validation_auc = 0.9975728988647461
+seed1 best_single_validation_auc = 0.9982948303222656
+seed1 delta_stacked_vs_best_single_auc = -0.0007219314575195312
+seed1 delta_stacked_vs_fixed_ensemble_auc = +0.0008611679077148438
+
+both decisions = stacked_ensemble_diagnostic_no_best_single_gain
+```
+
+This is the right kind of ensemble test because the weights are fitted on the
+train split and scored on held-out validation artifacts. It improves over the
+naive fixed ensemble, so calibration matters. It still does not beat the best
+single trail-position expert, so the current result remains a diagnostic for a
+real non-neighbor representation, not evidence that multi-network aggregation
+has already improved the strongest local candidate.
+
 Promotion remains hard:
 
 ```text
