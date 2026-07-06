@@ -13164,6 +13164,43 @@ def test_present_r8_trail_position_65k_plan_is_lean_medium_readiness_matrix():
         assert "not formal evidence" in medium_task["matching_evidence"]
 
 
+def test_present_r8_cell_value_histogram_plan_is_local_diagnostic_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_cell_value_histogram_2048_local.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 4
+    assert [task["model_key"] for task in tasks] == [
+        "present_pairset_global_stats",
+        "present_pairset_histogram_hybrid",
+        "present_pairset_global_stats",
+        "present_pairset_histogram_hybrid",
+    ]
+    assert {task["samples_per_class"] for task in tasks} == {2048}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["feature_encoding"] for task in tasks} == {
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"
+    }
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["sample_structure"] for task in tasks} == {
+        "plaintext_integral_nibble_difference_matched_negative"
+    }
+    assert {task["difference_profile"] for task in tasks} == {"present_zhang_wang2022_mcnd"}
+    assert {task["integral_active_nibble"] for task in tasks} == {0}
+    assert all("LOCAL DIAGNOSTIC 2048/class" in task["matching_evidence"] for task in tasks)
+    assert all("no remote launch" in task["matching_evidence"] for task in tasks)
+
+    plan_doc = Path("docs/experiments/innovation1-present-r8-cell-value-histogram-screen-plan.md")
+    doc_text = plan_doc.read_text(encoding="utf-8")
+    assert "not immediate ensembling" in doc_text
+    assert "negative_mode = encrypted_random_plaintexts" in doc_text
+    assert "formal PRESENT result" in doc_text
+
+
 def test_audit_spn_features_cli_writes_trail_position_attribution(tmp_path):
     output = tmp_path / "trail_position_attribution.json"
     status = audit_spn_features_main(
