@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** remote 65k/class seed0 training retrieved / score export watcher running
+**Status:** remote 262144/class seed0+seed1 launched / watcher-managed running; 65k/class score export repair pending
 
 ## Why This Plan Exists
 
@@ -1765,10 +1765,10 @@ This verifier is an artifact-completeness gate only. Passing it means the two
 frozen score exports are complete and sample-aligned; it does not by itself
 claim ensemble improvement or formal SPN/PRESENT evidence.
 
-## 262k/Class Follow-Up Prepared
+## 262k/Class Follow-Up Launched
 
 The next scale step for the active trail-position route is not another
-`65536/class` run. The prepared follow-up is a two-seed `262144/class` medium
+`65536/class` run. The launched follow-up is a two-seed `262144/class` medium
 diagnostic, keeping the exact r8 matched-negative PRESENT protocol and the same
 two-model comparison:
 
@@ -1782,7 +1782,7 @@ strict negative_mode = encrypted_random_plaintexts
 dataset_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\trail_position_beamstats_262k_cache
 ```
 
-Prepared assets:
+Prepared/launched assets:
 
 ```text
 seed0_plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed0.csv
@@ -1831,10 +1831,33 @@ Only if score artifacts pass this verifier do the scripts write
 also wait for `score_artifacts/verification_summary.json`, not only
 `models.json`, before reporting `result_ready`.
 
-The local launcher scripts are post-push handoff helpers. They call the
-run-owned remote `.cmd` through `ssh lxy-a6000 "cmd.exe /c call ..."`, write
-launch logs under the matching `outputs/remote_results/<run_id>/monitor/`
-directory, and then start the local tmux monitor session for retrieval.
+The local launcher scripts are post-push handoff helpers. They start the local
+tmux monitor session for retrieval before entering the foreground remote
+`.cmd`, then call the run-owned remote command through
+`ssh lxy-a6000 "cmd.exe /c call ..."`, writing launch logs under the matching
+`outputs/remote_results/<run_id>/monitor/` directory. This avoids a long
+foreground SSH training call leaving no local watcher.
+
+Current handoff status, 2026-07-06:
+
+```text
+seed0 launch_tmux = launch_i1_present_r8_trailpos_262k_seed0_20260706
+seed1 launch_tmux = launch_i1_present_r8_trailpos_262k_seed1_20260706
+
+seed0 monitor_tmux = monitor_i1_present_r8_trailpos_262k_seed0_20260706
+seed1 monitor_tmux = monitor_i1_present_r8_trailpos_262k_seed1_20260706
+
+seed0 local artifacts =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706/
+seed1 local artifacts =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706/
+
+retrieved status =
+  started/readiness/progress files present for both seeds
+  train_matrix.jsonl currently 0 rows for both seeds
+  latest progress event = cache_start, split=train, total_rows=524288
+  score_artifacts not ready yet
+```
 
 Claim scope:
 
@@ -1845,9 +1868,11 @@ no publication-style claim until completed, retrieved, verified, gated, and
 eventually extended to >=1000000/class multi-seed evidence
 ```
 
-The repair is not yet active on the remote run because `main` is ahead of
-`origin/main` and external `git push origin main` was rejected by sandbox
-review without explicit approval for the exact local commit set.
+The 65k/class score-export repair is not yet active on the remote run because
+`main` is ahead of `origin/main` and external `git push origin main` was
+rejected by sandbox review without explicit approval for the exact local commit
+set. Treat that repair as diagnostic frozen-score cleanup, not as the main
+scale step.
 
 Next action:
 
@@ -1863,9 +1888,9 @@ Next action:
    rerun training unless artifacts/checkpoints are missing.
 4. After score artifacts are retrieved, run `scripts/verify-score-artifacts`
    with `--expected-rows 65536`; only then run ensemble/error-overlap analysis.
-5. Launch the prepared `262144/class` seed0/seed1 follow-up from the pushed
-   commit when the source-publication gate is cleared. This is the next scale
-   step; do not treat the 65k run as the endpoint.
+5. Wait for the local tmux monitors to retrieve the launched `262144/class`
+   seed0/seed1 results and score-artifact verification summaries. This is the
+   active scale step; do not treat the 65k run as the endpoint.
 6. Run the 65k same-protocol residual interpretation against deterministic
    position-statistics and mismatch controls before any stronger claim.
 7. Do not spend the next experiment slot on near-neighbor averaging. If this
