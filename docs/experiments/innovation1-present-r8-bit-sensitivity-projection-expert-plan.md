@@ -752,6 +752,42 @@ by itself. Keep the implementation as a diagnostic and use the result to guide
 the next architecture toward block-preserving/raw group tensor interaction
 modeling with explicit regularization, rather than promoting this exact
 hand-selected interaction bank as the next scaled candidate.
+
+Semantic block interaction diagnostic:
+  cli = scripts/fit-compressed-span-block-interaction-expert
+  feature_model = raw_plus_semantic_block_interactions_logistic
+  raw_feature_count = 273
+  primary_group_count = 6
+  auxiliary_group_count = 6
+  block_pair_count = 36
+  block_interaction_stat_count = 4
+  block_interaction_feature_count = 144
+  total_feature_count = 417
+  l2 = 0.001
+  seed0 block_interaction_validation_auc = 0.9999065399169922
+  seed1 block_interaction_validation_auc = 0.999908447265625
+  seed0 delta_vs_full_summary_auc = -0.00000762939453125
+  seed1 delta_vs_full_summary_auc = 0.000064849853515625
+  seed0 delta_vs_strict_flat_holdout_auc = 0.000034332275390625
+  seed1 delta_vs_strict_flat_holdout_auc = 0.0000438690185546875
+  seed0 block_interaction_shuffle_validation_auc = 0.5331153869628906
+  seed1 block_interaction_shuffle_validation_auc = 0.5094890594482422
+  l2_0.003_seed0_auc = 0.9999065399169922
+  l2_0.003_seed1_auc = 0.9999074935913086
+  l2_0.01_seed0_auc = 0.9998979568481445
+  l2_0.01_seed1_auc = 0.9999008178710938
+  decision = semantic_block_interaction_mixed_local_diagnostic
+
+Interpretation: semantic block interactions are a cleaner SPN-inductive-bias
+diagnostic than train-selected single-feature cross-products because the block
+features are label-independent: every primary semantic block is paired with
+every auxiliary semantic block using four standardized aggregate product
+statistics. This improves over the strict flat-interaction holdout on both
+seeds and is clearly positive on seed1 versus the full 273D summary anchor, but
+seed0 remains slightly below the full summary anchor. The shuffle controls are
+near random but seed0 is mildly high at `0.5331`, so this should be treated as a
+useful mixed diagnostic and a basis for the next block/tensor model, not as a
+remote-scale candidate. The quick L2 sweep did not improve the result.
 ```
 
 ## Fixed Protocol

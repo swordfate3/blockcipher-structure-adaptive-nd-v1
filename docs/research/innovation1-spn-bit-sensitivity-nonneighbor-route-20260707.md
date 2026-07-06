@@ -955,3 +955,40 @@ controls are random and seed1 survives the stricter split, but the mixed seed
 outcome says the better next move is a block-preserving/raw group tensor
 interaction model with explicit regularization, not more prefit branch logits
 and not premature multi-network aggregation.
+
+The first block-preserving follow-up used semantic primary/auxiliary groups
+instead of train-selected individual feature pairs:
+
+```text
+cli = scripts/fit-compressed-span-block-interaction-expert
+feature_model = raw_plus_semantic_block_interactions_logistic
+raw_feature_count = 273
+primary_group_count = 6
+auxiliary_group_count = 6
+block_pair_count = 36
+block_interaction_stat_count = 4
+block_interaction_feature_count = 144
+total_feature_count = 417
+seed0 block_interaction_validation_auc = 0.9999065399169922
+seed1 block_interaction_validation_auc = 0.999908447265625
+seed0 delta_vs_full_summary_auc = -0.00000762939453125
+seed1 delta_vs_full_summary_auc = 0.000064849853515625
+seed0 delta_vs_strict_flat_holdout_auc = 0.000034332275390625
+seed1 delta_vs_strict_flat_holdout_auc = 0.0000438690185546875
+seed0 block_interaction_shuffle_validation_auc = 0.5331153869628906
+seed1 block_interaction_shuffle_validation_auc = 0.5094890594482422
+l2_0.003_seed0_auc = 0.9999065399169922
+l2_0.003_seed1_auc = 0.9999074935913086
+l2_0.01_seed0_auc = 0.9998979568481445
+l2_0.01_seed1_auc = 0.9999008178710938
+decision = semantic_block_interaction_mixed_local_diagnostic
+```
+
+This is a better direction than the hand-selected flat interaction bank, but
+not yet a stronger candidate. The block features are label-independent and
+preserve semantic SPN coordinates, and they beat the strict flat-interaction
+holdout on both seeds. However, they still do not clear the full-summary anchor
+on seed0, and the seed0 shuffle-label control is mildly high at `0.5331`. The
+next model should therefore keep the block/tensor idea but learn interactions
+with a real block-preserving network or lower-rank constrained interaction
+module, rather than simply adding more aggregate product statistics.
