@@ -829,6 +829,136 @@ Updated next action:
 
 ## 65k/Class Medium Readiness Prepared
 
+## 4096/Class Local Bridge Plan
+
+The `65536/class` medium diagnostic is prepared, but it still requires a
+pushed source commit before remote launch. If source publication is blocked,
+run one bounded local bridge diagnostic rather than widening the ensemble or
+changing the benchmark.
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_4096_local.csv
+```
+
+Rows:
+
+| Row | Model | Role | Scale |
+|---:|---|---|---:|
+| 0 | `present_pairset_global_stats` | same-input global-statistics neural control, seed0 | `4096/class` |
+| 1 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed0 | `4096/class` |
+| 2 | `present_pairset_global_stats` | same-input global-statistics neural control, seed1 | `4096/class` |
+| 3 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed1 | `4096/class` |
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_4096_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --output outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/progress.jsonl
+```
+
+Gate:
+
+```text
+candidate must beat same-input global-stat neural control
+candidate must beat train-selected deterministic position baseline
+deterministic baseline must beat active-nibble/input-difference mismatch controls
+pair-order reverse parity remains a recorded assessment, not an automatic fail
+```
+
+Claim scope:
+
+```text
+local bridge diagnostic only
+not remote evidence
+not formal SPN/PRESENT evidence
+not a diverse-ensemble result
+```
+
+### 4096/Class Local Bridge Result
+
+Run:
+
+```text
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/results.jsonl
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/progress.jsonl
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/curves.svg
+outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/history.csv
+```
+
+Execution note:
+
+```text
+The first no-cache CPU attempt was interrupted before any row completed because
+the medium-size beamstats feature generation had no durable progress. The run
+was restarted with a local disk-backed cache:
+
+dataset_cache_root = outputs/local_cache/i1_present_r8_trail_position_beamstats_4096
+dataset_cache_chunk_size = 512
+dataset_cache_workers = 4
+```
+
+Validation:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_4096_local.csv \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/results.jsonl \
+  --expected-rows 4
+
+status = pass
+result_rows = 4
+field_mismatches = []
+```
+
+Metrics:
+
+| Seed | Model | AUC | Accuracy | Calibrated accuracy | Best epoch |
+|---:|---|---:|---:|---:|---:|
+| 0 | `present_pairset_global_stats` | `0.8999881744384766` | `0.8115234375` | `0.82373046875` | `3` |
+| 0 | `present_trail_position_stats_pairset` | `0.9999396800994873` | `0.995361328125` | `0.99658203125` | `3` |
+| 1 | `present_pairset_global_stats` | `0.9040309190750122` | `0.810791015625` | `0.827880859375` | `3` |
+| 1 | `present_trail_position_stats_pairset` | `0.9999489784240723` | `0.995361328125` | `0.997802734375` | `3` |
+
+Neural bridge decision:
+
+```text
+support_trail_position_over_global_control_at_4096_class_local_bridge
+```
+
+Interpretation:
+
+```text
+The trail-position candidate continues to beat the same-input global-statistics
+neural control by about +0.096 to +0.100 AUC at the 4096/class local bridge
+scale. This strengthens the local trend from 2048/class.
+```
+
+Boundary:
+
+```text
+This is not a full 4096/class residual gate. Two same-scale deterministic
+control-baseline audits were started but interrupted because they were too slow
+for the local CPU path. Therefore the 4096/class result may be used only as a
+neural bridge over the global-control row. The current complete residual-gated
+evidence remains the 2048/class gate until the deterministic/mismatch controls
+are rerun at 4096/class or above.
+```
+
 Prepared assets:
 
 ```text
