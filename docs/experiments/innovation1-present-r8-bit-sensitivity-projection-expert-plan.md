@@ -1743,3 +1743,101 @@ candidate-only fixed and train-split-calibrated fusion gates. Until then, the
 right architecture hypothesis remains structured SPN-coordinate modeling over
 the raw117 families, not adding more near-neighbor networks.
 ```
+
+## V13 Raw117 Candidate Stacking Stability Diagnostic
+
+The V12 candidate-only fixed fusion was extended with a train-holdout stacking
+stability diagnostic across five selection seeds. This checks whether a fitted
+two-score calibration layer is more reliable than the simple frozen fixed
+fusion rule.
+
+Artifacts:
+
+```text
+seed0 stability =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_candidate_stacked_selection_stability.json
+seed1 stability =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_candidate_stacked_selection_stability.json
+
+selection_seeds = 0, 1, 2, 3, 4
+train_holdout_fraction = 0.25
+candidate_feature_spaces = logits, probabilities
+candidate_l2 = 0.0, 0.0001, 0.001, 0.01
+candidate_standardize = true, false
+```
+
+Important scope limitation:
+
+```text
+validation raw117 artifact =
+  compressed_span_summary, feature_count = 117
+train structural artifact used by stacking =
+  trail_position_stats logistic scores, feature_count = 3708
+strict train raw117 score artifact found = false
+```
+
+Because stacking consumes only frozen score columns, the diagnostic is still a
+useful two-expert calibration check. It should not be described as strict
+raw117 train-fitted calibration until a matching train raw117 score artifact is
+generated and substituted.
+
+Metrics:
+
+```text
+seed0 positive_selection_seeds = 0 / 5
+seed0 delta_stacked_vs_best_single_auc:
+  min = -0.0000133514404296875
+  max = -0.0000133514404296875
+  mean = -0.0000133514404296875
+seed0 same_selection = true
+seed0 dominant_selection = logits, l2=0.0, standardize=true
+
+seed1 positive_selection_seeds = 3 / 5
+seed1 delta_stacked_vs_best_single_auc:
+  min = -0.0000362396240234375
+  max = +0.00000667572021484375
+  mean = -0.00001049041748046875
+seed1 same_selection = false
+seed1 dominant_selection = logits, l2=0.0, standardize=false
+
+both decisions = mixed_or_unstable_stacked_selection_diagnostic
+```
+
+Comparison to V12 fixed fusion:
+
+```text
+seed0 fixed_fusion_delta_vs_best_single_auc = +0.0000171661376953125
+seed1 fixed_fusion_delta_vs_best_single_auc = +0.00000858306884765625
+
+seed0 stacking_mean_delta_vs_best_single_auc = -0.0000133514404296875
+seed1 stacking_mean_delta_vs_best_single_auc = -0.00001049041748046875
+```
+
+Decision:
+
+```text
+decision = fixed_fusion_tiny_positive_stacking_not_promoted
+action =
+  keep candidate-only fixed fusion as the clean local aligned-fusion diagnostic;
+  do not promote train-fitted stacking as an ensemble improvement
+```
+
+Interpretation:
+
+```text
+The multi-network question has now been tested in a narrow but useful form.
+Trail-position plus raw117 gives a tiny positive fixed-fusion signal on both
+local seeds, but train-fitted stacking does not make that signal stronger or
+more stable. Seed0 loses to the best single expert under all five selection
+seeds. Seed1 sometimes beats the best single expert by about 6.7e-6 AUC, but
+other selection seeds lose by about 3.6e-5 AUC, so the average effect is
+negative and selection is not stable.
+
+This reinforces the current architecture direction. The useful progress is the
+SPN-aware compact structural representation itself, not a generic stacking
+layer over two highly correlated experts. The next medium-scale step should be
+to wait for retrieved 262144/class trail-position score artifacts, export
+raw117 on exactly those rows, and rerun the same fixed-fusion/stability gates.
+Only after a third structurally different candidate clears its own controls
+should the route be called a diverse multi-network pool.
+```

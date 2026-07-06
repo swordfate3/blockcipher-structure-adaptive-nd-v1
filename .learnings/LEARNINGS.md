@@ -1,3 +1,66 @@
+## [LRN-20260707-001] best_practice
+
+**Logged**: 2026-07-07T07:05:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not overclaim raw117 stacking diagnostics when the train and validation score artifacts use different compressed feature scopes.
+
+### Details
+The PRESENT r8 trail-position plus raw117 candidate stacking diagnostic exposed
+an interpretation risk. The validation-side compact structural expert was the
+intended raw117 artifact:
+
+```text
+feature_view = compressed_span_summary
+feature_count = 117
+validation artifacts =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_scores
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_raw_combo_anchor_plus_aux-depth-word_aux-word-global_scores
+```
+
+But no matching train raw117 score artifact was found. The train-side structural
+score input used for fitted stacking was the wider trail-position-stat logistic
+artifact:
+
+```text
+feature_view = trail_position_stats
+feature_count = 3708
+train artifacts =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_train_trail_stats_logistic_scores
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_train_trail_stats_logistic_scores
+```
+
+Since `scripts/evaluate-stacked-ensemble` fits only on frozen score columns, this
+is still a useful two-score calibration diagnostic if the model keys align. It
+is not strict raw117 train-fitted calibration and should not be promoted as
+evidence that raw117 stacking is solved. The clean evidence remains the
+candidate-only fixed fusion on aligned validation artifacts; fitted stacking
+should be rerun with matching train raw117 score artifacts before stronger
+claims.
+
+### Suggested Action
+Before reporting future frozen-score stacking results as model-specific
+calibration, inspect both train and validation `models.json` files for matching
+feature view, feature count, feature selection, negative mode, sample structure,
+and score split. If only score columns are matched but feature scopes differ,
+label the result as a limited score-level calibration diagnostic and generate
+matching train score artifacts before making stronger ensemble claims.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-bit-sensitivity-projection-expert-plan.md, scripts/evaluate-stacked-ensemble
+- Tags: innovation1, spn, present, raw117, stacking, feature-scope, ensemble
+- See Also: LRN-20260706-027, LRN-20260621-001
+- Pattern-Key: innovation1.spn_present.stacking_feature_scope_must_match
+- Recurrence-Count: 1
+- First-Seen: 2026-07-07
+- Last-Seen: 2026-07-07
+
+---
+
 ## [LRN-20260621-001] correction
 
 **Logged**: 2026-06-21T20:45:00+08:00
