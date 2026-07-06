@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** planned local smoke only / no remote launch
+**Status:** remote 65k/class seed0 training retrieved / score export watcher running
 
 ## Why This Plan Exists
 
@@ -1597,3 +1597,107 @@ pair-order reverse parity should be recorded as pair_order_not_bottleneck
 After retrieval, the score artifacts should be exported with matching
 `--expert-family` and `--candidate-status` metadata. Only then can this route
 be evaluated as a future non-neighbor expert in the diverse-ensemble gate.
+
+## 65k/Class Remote Seed0 Training Result
+
+Run:
+
+```text
+run_id = i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706
+source_commit = cc8197a83ae5ce7f7edfb484ea1d281110f3b7fa
+local_results = outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/results/train_matrix.jsonl
+progress = outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/logs/trail_position_beamstats_progress.jsonl
+monitor = outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/monitor/monitor.log
+```
+
+Protocol:
+
+```text
+cipher = PRESENT-80
+rounds = 8
+seed = 0
+train_samples_per_class = 65536
+train_total_rows = 131072
+validation_samples_per_class = 32768
+validation_total_rows = 65536
+pairs_per_sample = 16
+pair_bits = 2496
+input_bits = 39936
+feature_encoding = present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+negative_mode = encrypted_random_plaintexts
+dataset_storage = disk-backed cache
+```
+
+Remote training matrix result:
+
+| Row | Model | Best epoch | AUC | Accuracy | Calibrated accuracy |
+|---:|---|---:|---:|---:|---:|
+| 0 | `present_pairset_global_stats` | `20` | `0.9916146486066282` | `0.954833984375` | `0.9550933837890625` |
+| 1 | `present_trail_position_stats_pairset` | `19` | `0.9999999953433871` | `0.9999542236328125` | `0.999969482421875` |
+
+Margins:
+
+```text
+candidate_auc_margin_vs_global = +0.008385346736758947
+candidate_accuracy_margin_vs_global = +0.0451202392578125
+candidate_calibrated_accuracy_margin_vs_global = +0.0448760986328125
+```
+
+Decision:
+
+```text
+support_trail_position_remote_medium_seed0_training_result
+```
+
+Interpretation:
+
+- The trail-position candidate still beats the same-input global-stat neural
+  control at `65536/class` on seed0.
+- The global-stat control is now very strong (`0.9916` AUC), so the benchmark
+  contains substantial global statistical signal even without preserving trail
+  positions.
+- The candidate nearly saturates validation AUC, but the AUC margin over the
+  control is now under `0.01`. Treat this as positive medium diagnostic support,
+  not as a formal SPN/PRESENT result or breakthrough claim.
+- This result is remote seed0 training evidence only. It is not multi-seed
+  evidence, not `262144/class` or `1000000/class` evidence, not a Zhang/Wang r7
+  Case2 reproduction, and not a multi-network aggregation result.
+
+Artifact caveat:
+
+```text
+training_results = retrieved
+checkpoints = retrieved
+score_artifacts = pending watcher retrieval
+```
+
+The first local monitor exited early with:
+
+```text
+completed_missing_or_incomplete_results rows=2
+```
+
+Root cause found during retrieval: the monitor treated any
+`logs/*done.marker` as terminal completion, so `train_done.marker` could be
+mistaken for the final `%RUN_ID%_done.marker` before score export completed.
+The trail-position monitor was patched to wait specifically for
+`${RUN_ID}_done.marker`. A corrected local tmux monitor was restarted:
+
+```text
+monitor_i1_present_r8_trailpos_65k_20260706
+```
+
+Next action:
+
+```text
+1. Let the corrected watcher retrieve score_artifacts/global_stats_control/models.json
+   and score_artifacts/trail_position/models.json.
+2. After score artifacts are retrieved, run the 65k same-protocol residual
+   interpretation against deterministic position-statistics and mismatch
+   controls before any stronger claim.
+3. Do not spend the next experiment slot on near-neighbor averaging. If this
+   route remains active, scale or validate it with residual controls; for
+   ensemble work, first find a genuinely different expert family that clears
+   its own same-input global-stat control.
+```

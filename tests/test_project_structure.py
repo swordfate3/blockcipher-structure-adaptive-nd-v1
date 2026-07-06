@@ -2150,6 +2150,8 @@ def test_trail_position_medium_remote_launch_assets_export_scores_only():
     assert "trail_position/models.json" in monitor_text
     assert "postprocess-neural-ensemble" not in monitor_text
     assert "completed_missing_or_incomplete_results" in monitor_text
+    assert '${LOCAL_ROOT}/logs/${RUN_ID}_done.marker' in monitor_text
+    assert '${LOCAL_ROOT}/logs/*done.marker' not in monitor_text
 
 
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():

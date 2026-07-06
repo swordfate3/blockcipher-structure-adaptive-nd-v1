@@ -643,3 +643,56 @@ Use `UV_CACHE_DIR=/tmp/uv-cache uv run python ...` for project commands and `pyt
 - **Notes**: Re-ran the summary with `python3`; the audit commands themselves had already succeeded through `UV_CACHE_DIR=/tmp/uv-cache uv run python`.
 
 ---
+
+## [ERR-20260706-003] remote_monitor_train_done_marker_false_terminal
+
+**Logged**: 2026-07-06T19:15:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+The trail-position remote monitor exited before score artifacts were ready because it matched `train_done.marker` as if it were final completion.
+
+### Error
+```text
+monitor.log:
+2026-07-06T18:52:48+08:00 completed_missing_or_incomplete_results rows=2
+
+local artifacts:
+results/train_matrix.jsonl had 2 rows
+logs/<RUN_ID>_train_done.marker existed
+logs/<RUN_ID>_done.marker was missing
+score_artifacts/global_stats_control/models.json was missing
+score_artifacts/trail_position/models.json was missing
+```
+
+### Context
+- Run ID: `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`.
+- Operation: watcher-managed retrieval for PRESENT r8 trail-position `65536/class` remote seed0 diagnostic.
+- The remote launcher writes `train_done.marker` after training, then starts `scripts\export-checkpoint-scores`.
+- The monitor used `compgen -G "${LOCAL_ROOT}/logs/*done.marker"`, which matched `train_done.marker` and exited before final score export artifacts were retrieved.
+
+### Suggested Fix
+Use an exact final marker in monitor scripts:
+
+```bash
+[[ -f "${LOCAL_ROOT}/logs/${RUN_ID}_done.marker" ]]
+```
+
+Do not use broad `*done.marker` globs when the launcher has stage markers such as
+`train_done.marker` or `score_export_done.marker`. Tests should assert the
+absence of `${LOCAL_ROOT}/logs/*done.marker` in monitors that wait for score
+artifacts.
+
+### Metadata
+- Reproducible: yes
+- Related Files: configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh, tests/test_project_structure.py
+- See Also: LRN-20260706-023, ERR-20260705-001
+
+### Resolution
+- **Resolved**: 2026-07-06T19:16:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Patched the trail-position monitor to wait for `${RUN_ID}_done.marker` and restarted a corrected local tmux watcher.
+
+---

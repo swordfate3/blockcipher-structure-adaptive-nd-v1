@@ -45,7 +45,7 @@ while true; do
     exit 0
   fi
 
-  if compgen -G "${LOCAL_ROOT}/logs/*done.marker" > /dev/null; then
+  if [[ -f "${LOCAL_ROOT}/logs/${RUN_ID}_done.marker" ]]; then
     echo "$(timestamp) completed_missing_or_incomplete_results rows=${result_rows}" >> "${MONITOR_DIR}/monitor.log"
     exit 2
   fi

@@ -2985,3 +2985,133 @@ medium result holds.
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260706-022] best_practice
+
+**Logged**: 2026-07-06T19:10:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 trail-position beamstats completed remote seed0 `65536/class` training and still beats the same-input global-stat control.
+
+### Details
+The remote medium diagnostic completed the two-row seed0 training matrix:
+
+```text
+run_id = i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706
+source_commit = cc8197a83ae5ce7f7edfb484ea1d281110f3b7fa
+results = outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/results/train_matrix.jsonl
+train_samples_per_class = 65536
+validation_samples_per_class = 32768
+pairs_per_sample = 16
+input_bits = 39936
+negative_mode = encrypted_random_plaintexts
+sample_structure = plaintext_integral_nibble_difference_matched_negative
+```
+
+Metrics:
+
+| Model | AUC | Accuracy | Calibrated accuracy | Best epoch |
+|---|---:|---:|---:|---:|
+| `present_pairset_global_stats` | `0.9916146486066282` | `0.954833984375` | `0.9550933837890625` | `20` |
+| `present_trail_position_stats_pairset` | `0.9999999953433871` | `0.9999542236328125` | `0.999969482421875` | `19` |
+
+Margins:
+
+```text
+candidate_auc_margin_vs_global = +0.008385346736758947
+candidate_accuracy_margin_vs_global = +0.0451202392578125
+candidate_calibrated_accuracy_margin_vs_global = +0.0448760986328125
+```
+
+Correct interpretation:
+
+- This is positive remote medium diagnostic evidence for the trail-position
+  route on seed0.
+- The global-stat control is very strong at `0.9916` AUC, so the dataset has
+  strong global statistical signal even without trail-position detail.
+- The candidate still wins, but the AUC residual over global control is under
+  `0.01`; do not overstate the margin.
+- This is not formal SPN/PRESENT evidence, not multi-seed evidence, not a
+  `262144/class` or `1000000/class` result, not a Zhang/Wang r7 Case2
+  reproduction, and not a multi-network aggregation result.
+
+### Suggested Action
+Keep the trail-position route active, but require the corrected watcher to
+retrieve score artifacts and run/record same-protocol residual controls before
+stronger claims. The next research choice should be either controlled scale-up
+or a genuinely different expert family that first clears its own same-input
+global-stat control, not near-neighbor averaging.
+
+### Metadata
+- Source: remote_result_retrieval
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh
+- Tags: innovation1, spn, present, trail-position, remote-medium, seed0
+- See Also: LRN-20260706-021, LRN-20260706-020, LRN-20260621-001
+- Pattern-Key: innovation1.spn_present.trail_position_65k_seed0_positive_medium
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
+## [LRN-20260706-023] correction
+
+**Logged**: 2026-07-06T19:12:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+Remote monitors that wait for score artifacts must not treat `train_done.marker` as final completion.
+
+### Details
+The local monitor for `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`
+exited with:
+
+```text
+completed_missing_or_incomplete_results rows=2
+```
+
+Root cause: the monitor checked:
+
+```bash
+compgen -G "${LOCAL_ROOT}/logs/*done.marker"
+```
+
+The remote launcher writes `train_done.marker` immediately after training and
+before score export. The glob therefore matched `train_done.marker` and allowed
+the monitor to exit before waiting for:
+
+```text
+score_artifacts/global_stats_control/models.json
+score_artifacts/trail_position/models.json
+<RUN_ID>_done.marker
+```
+
+The trail-position monitor was patched to wait for the exact final marker:
+
+```bash
+${LOCAL_ROOT}/logs/${RUN_ID}_done.marker
+```
+
+### Suggested Action
+For future generated monitors with multi-stage post-training work, use exact
+terminal markers such as `${RUN_ID}_done.marker` instead of broad `*done.marker`
+globs. Treat `train_done.marker`, `score_export_done.marker`, and similar stage
+markers as progress signals only. Add tests that assert monitors do not contain
+`${LOCAL_ROOT}/logs/*done.marker` when stage markers exist.
+
+### Metadata
+- Source: remote_monitor_bug
+- Related Files: configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.sh, tests/test_project_structure.py
+- Tags: remote-monitor, score-artifacts, watcher, trail-position
+- See Also: LRN-20260706-022, ERR-20260705-001
+- Pattern-Key: remote.monitor.exact_final_done_marker_required
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
