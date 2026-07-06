@@ -2254,7 +2254,13 @@ def test_trail_position_262k_followup_local_launchers_handoff_to_tmux_monitors()
 
         assert "cmd.exe /k" not in launcher_text
         assert "ssh lxy-a6000" in launcher_text
-        assert "cmd.exe /c call" in launcher_text
+        assert "cmd.exe /c" in launcher_text
+        assert "&& call" in launcher_text
+        assert "REMOTE_RUN_ROOT=\"G:\\\\lxy\\\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+        assert "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git" in launcher_text
+        assert "if not exist \\\"${REMOTE_RUN_ROOT}\\\" mkdir \\\"${REMOTE_RUN_ROOT}\\\"" in launcher_text
+        assert "git clone --branch main" in launcher_text
+        assert "git pull --ff-only origin main" in launcher_text
         assert f"run_{run_id}.cmd" in launcher_text
         assert f"monitor_{run_id}.sh" in launcher_text
         assert f"monitor_i1_present_r8_trailpos_262k_seed{seed}_20260706" in launcher_text
