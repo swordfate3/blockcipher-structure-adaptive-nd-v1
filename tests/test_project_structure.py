@@ -11171,6 +11171,13 @@ def test_summarize_spn_evidence_prioritizes_trail_position_262k_over_stale_follo
     assert active["active_runs"][0]["progress_summary"]["cache_class_total"] == 262144
     assert "scripts/postprocess-trail-position-result" in active["postprocess_when_ready_command"]
     assert "--expected-score-rows 262144" in active["postprocess_when_ready_command"]
+    assert active["decision_report"].endswith(
+        "i1_present_r8_trail_position_beamstats_262k_decision_report.md"
+    )
+    assert "scripts/render-trail-position-report" in active["decision_report_command"]
+    assert "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json" in active[
+        "decision_report_command"
+    ]
     assert "SSH-poll or tmux-loop from the main thread" in active["main_thread_policy"]["forbidden_until_gate"]
 
 
@@ -11199,6 +11206,13 @@ def test_summarize_spn_evidence_emits_trail_position_262k_postprocess_when_ready
     assert "scripts/postprocess-trail-position-result" in active["postprocess_command"]
     assert active["postprocess_command"].count("--run-root") == 2
     assert "--expected-score-rows 262144" in active["postprocess_when_ready_command"]
+    assert active["decision_report"].endswith(
+        "i1_present_r8_trail_position_beamstats_262k_decision_report.md"
+    )
+    assert "scripts/render-trail-position-report" in active["decision_report_command"]
+    assert "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json" in active[
+        "decision_report_command"
+    ]
     assert "run frozen-score residual and error-overlap analysis" in active["main_thread_policy"]["allowed_actions"]
 
 

@@ -626,6 +626,7 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
 
     if scale_up_active:
         postprocess_command = _trail_position_262k_postprocess_command(root, scale_up_entries)
+        decision_report = _trail_position_262k_decision_report(root)
         return {
             "branch": "wait_for_trail_position_262k_results",
             "status": "running",
@@ -638,11 +639,14 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
             "deferred_ready_runs": scale_up_ready,
             "deferred_repair_runs": repair_needed,
             "postprocess_when_ready_command": postprocess_command,
+            "decision_report": str(decision_report),
+            "decision_report_command": _trail_position_262k_decision_report_command(root, decision_report),
             "main_thread_policy": _trail_position_main_thread_policy("waiting"),
         }
     if len(scale_up_ready) == len(scale_up_entries) and scale_up_ready:
         postprocess_command = _trail_position_262k_postprocess_command(root, scale_up_entries)
         postprocess_command_parts = _trail_position_262k_postprocess_command_parts(root, scale_up_entries)
+        decision_report = _trail_position_262k_decision_report(root)
         return {
             "branch": "analyze_trail_position_262k_score_artifacts",
             "status": "score_artifacts_ready",
@@ -655,6 +659,8 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
             "deferred_repair_runs": repair_needed,
             "postprocess_when_ready_command": postprocess_command,
             "postprocess_command": postprocess_command_parts,
+            "decision_report": str(decision_report),
+            "decision_report_command": _trail_position_262k_decision_report_command(root, decision_report),
             "main_thread_policy": _trail_position_main_thread_policy("postprocess"),
         }
     if repair_needed:
@@ -763,6 +769,28 @@ def _trail_position_262k_postprocess_command_parts(root: Path, entries: list[dic
         "--output",
         str(root / "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json"),
     ]
+
+
+def _trail_position_262k_decision_report(root: Path) -> Path:
+    return root / "i1_present_r8_trail_position_beamstats_262k_decision_report.md"
+
+
+def _trail_position_262k_decision_report_command(root: Path, output: Path) -> str:
+    postprocess = root / "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json"
+    return " ".join(
+        [
+            "env",
+            "UV_CACHE_DIR=/tmp/uv-cache",
+            "uv",
+            "run",
+            "python",
+            "scripts/render-trail-position-report",
+            "--postprocess",
+            str(postprocess),
+            "--output",
+            str(output),
+        ]
+    )
 
 
 def _jsonl_line_count(path: Path) -> int:
