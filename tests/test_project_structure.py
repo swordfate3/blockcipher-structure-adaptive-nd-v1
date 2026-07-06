@@ -280,9 +280,12 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "selected_feature_count = 731 / 3708" in combined
     assert "scripts/audit-compressed-feature-families" in combined
     assert "scripts/export-compressed-span-blocks" in combined
+    assert "scripts/summarize-compressed-span-route" in combined
     assert "compressed_spn_span_blocks" in combined
     assert "compressed_span_summary" in combined
+    assert "compressed_span_summary_retains_flat_signal_controls_pass" in combined
     assert "compressed_span_summary_logistic_expert" in combined
+    assert "feature_reduction_ratio = 0.3734610123119015" in combined
     assert "primary_backbone" in combined
     assert "depth_word_cell_span is the dominant span-family backbone" in combined
     assert "leave_out_depth_word_cell_span_auc" in combined
@@ -2318,6 +2321,15 @@ def test_export_compressed_span_blocks_cli_asset():
     assert script.exists()
     assert script.stat().st_mode & 0o111
     assert "blockcipher_nd.cli.export_compressed_span_blocks" in script_text
+
+
+def test_summarize_compressed_span_route_cli_asset():
+    script = Path("scripts/summarize-compressed-span-route")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.summarize_compressed_span_route" in script_text
 
 
 def test_trail_position_1m_conditional_plan_is_gated_and_controlled():

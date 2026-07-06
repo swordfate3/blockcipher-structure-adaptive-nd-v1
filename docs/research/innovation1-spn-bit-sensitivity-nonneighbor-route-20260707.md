@@ -801,13 +801,18 @@ outputs =
 The exporter also writes a compact summary feature artifact:
 
 ```text
+route_summary_cli = scripts/summarize-compressed-span-route
+route_summary_decision = compressed_span_summary_retains_flat_signal_controls_pass
 summary_feature_view = compressed_span_summary
 summary_feature_count = 273
+flat_span_feature_count = 731
+feature_reduction_ratio = 0.3734610123119015
 model = compressed_span_summary_logistic_expert
 seed0 validation_auc = 0.9999141693115234
 seed1 validation_auc = 0.9998435974121094
 seed0 shuffle_train_labels_validation_auc = 0.5048818588256836
 seed1 shuffle_train_labels_validation_auc = 0.4824662208557129
+max_auc_drop_vs_flat_span = 0.00010776519775390625
 ```
 
 That is the important bit: a 273-dimensional SPN-coordinate summary retains

@@ -593,8 +593,14 @@ Structured span-block exporter:
     negative-sample change, remote evidence, or formal SPN/PRESENT evidence
 
 Structured span-summary diagnostic:
+  route_summary_cli = scripts/summarize-compressed-span-route
+  route_summary =
+    outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_span_summary_route.json
+  route_summary_decision = compressed_span_summary_retains_flat_signal_controls_pass
   summary_feature_view = compressed_span_summary
   summary_feature_count = 273
+  flat_span_feature_count = 731
+  feature_reduction_ratio = 0.3734610123119015
   summary_source = pooled depth/word/cell views over compressed_spn_span_blocks
   model = compressed_span_summary_logistic_expert
   fit_split = train
@@ -603,6 +609,7 @@ Structured span-summary diagnostic:
   seed1 validation_auc = 0.9998435974121094
   seed0 shuffle_train_labels_validation_auc = 0.5048818588256836
   seed1 shuffle_train_labels_validation_auc = 0.4824662208557129
+  max_auc_drop_vs_flat_span = 0.00010776519775390625
 
 Interpretation: the compact 273-dimensional structured summary retains nearly
 all local span-family signal while the shuffled-label controls stay near

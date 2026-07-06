@@ -25,6 +25,9 @@ from blockcipher_nd.cli.export_compressed_span_blocks import (
 from blockcipher_nd.cli.summarize_compressed_feature_expert import (
     main as summarize_compressed_feature_main,
 )
+from blockcipher_nd.cli.summarize_compressed_span_route import (
+    main as summarize_compressed_span_route_main,
+)
 from blockcipher_nd.cli.summarize_stacked_route import main as summarize_stacked_route_main
 from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
@@ -1163,6 +1166,76 @@ def test_summarize_compressed_feature_expert_reports_not_ensemble_gain(tmp_path)
     assert summary["claim_scope"].startswith("route-level compressed SPN feature expert diagnostic")
 
 
+def test_summarize_compressed_span_route_reports_compact_retention(tmp_path):
+    flat0 = _write_compressed_feature_report(
+        tmp_path / "seed0_flat.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=0.99997,
+        feature_count=731,
+    )
+    flat1 = _write_compressed_feature_report(
+        tmp_path / "seed1_flat.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=0.99995,
+        feature_count=731,
+    )
+    summary0 = _write_compressed_feature_report(
+        tmp_path / "seed0_summary.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=0.99991,
+        feature_count=273,
+    )
+    summary1 = _write_compressed_feature_report(
+        tmp_path / "seed1_summary.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=0.99984,
+        feature_count=273,
+    )
+    shuffle0 = _write_compressed_feature_report(
+        tmp_path / "seed0_shuffle.json",
+        decision="compressed_feature_expert_shuffle_train_labels_control",
+        validation_auc=0.505,
+        feature_count=273,
+    )
+    shuffle1 = _write_compressed_feature_report(
+        tmp_path / "seed1_shuffle.json",
+        decision="compressed_feature_expert_shuffle_train_labels_control",
+        validation_auc=0.482,
+        feature_count=273,
+    )
+    output = tmp_path / "span_route_summary.json"
+
+    status = summarize_compressed_span_route_main(
+        [
+            "--flat-span-reports",
+            str(flat0),
+            str(flat1),
+            "--summary-reports",
+            str(summary0),
+            str(summary1),
+            "--summary-shuffle-control-reports",
+            str(shuffle0),
+            str(shuffle1),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "compressed_span_summary_retains_flat_signal_controls_pass"
+    assert report["seed_count"] == 2
+    assert report["feature_counts"] == {"flat_span": 731, "summary": 273}
+    assert report["feature_reduction_ratio"] == 273 / 731
+    assert report["summary_auc"]["min"] == 0.99984
+    assert report["shuffle_control_auc"]["max"] == 0.505
+    assert report["auc_drop_vs_flat"]["max"] < 0.001
+    assert report["all_summary_positive"] is True
+    assert report["all_shuffle_controls_random_like"] is True
+    assert report["all_summary_retains_flat_signal"] is True
+    assert report["claim_scope"].startswith("compressed span summary retention diagnostic")
+
+
 def test_audit_compressed_feature_sparsity_selects_train_only_top_features(tmp_path):
     train_dir = tmp_path / "train_features"
     validation_dir = tmp_path / "validation_features"
@@ -1461,12 +1534,13 @@ def _write_compressed_feature_report(
     *,
     decision: str,
     validation_auc: float,
+    feature_count: int = 3708,
 ) -> Path:
     path.write_text(
         json.dumps(
             {
                 "decision": decision,
-                "feature_count": 3708,
+                "feature_count": feature_count,
                 "validation_rows": 2048,
                 "validation_metrics": {
                     "auc": validation_auc,
