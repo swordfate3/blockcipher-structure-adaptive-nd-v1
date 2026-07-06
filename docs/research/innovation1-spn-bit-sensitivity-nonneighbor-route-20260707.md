@@ -854,6 +854,34 @@ tensors so the next candidate can be a grouped span/statistic-aware expert:
    artifacts are retrieved and the local control gate still supports it
 ```
 
+The first grouped expert is intentionally small:
+
+```text
+cli = scripts/fit-compressed-span-grouped-expert
+model = compressed_span_grouped_logistic_expert
+decision = compressed_span_grouped_expert_local_screen_positive_needs_controls
+feature_model = two_branch_logistic
+branch_inputs = primary_logit + auxiliary_logit
+fit_split = train
+score_split = validation
+seed0 grouped_validation_auc = 0.9997968673706055
+seed1 grouped_validation_auc = 0.9996414184570312
+seed0 primary_branch_validation_auc = 0.9997234344482422
+seed1 primary_branch_validation_auc = 0.9992923736572266
+seed0 auxiliary_branch_validation_auc = 0.9964427947998047
+seed1 auxiliary_branch_validation_auc = 0.9976606369018555
+seed0 full_summary_validation_auc = 0.9999141693115234
+seed1 full_summary_validation_auc = 0.9998435974121094
+```
+
+This result says something useful but narrow. The grouped `two_branch_logistic`
+combiner beats both single branches on both local seeds, so the auxiliary
+context is not decorative. The full 273-dimensional summary logistic still
+wins by about `0.00012-0.00020` AUC, so the grouped expert is not the current
+best scorer. Its value is that it converts a flat feature success into an
+interpretable architecture pattern: primary SPN span backbone plus
+lower-rank auxiliary residual context.
+
 This is the current preferred local development route because it changes the
 SPN representation in a way the evidence actually supports, while avoiding
 premature multi-network aggregation.

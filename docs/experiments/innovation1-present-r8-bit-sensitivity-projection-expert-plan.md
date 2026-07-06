@@ -639,6 +639,35 @@ strongly positive on both local seeds, and their shuffled-label controls remain
 near random. This supports a compact grouped expert with a primary backbone
 and lower-rank auxiliary context, not a flat all-feature logistic model as the
 final architecture.
+
+Two-branch grouped expert diagnostic:
+  cli = scripts/fit-compressed-span-grouped-expert
+  model = compressed_span_grouped_logistic_expert
+  decision = compressed_span_grouped_expert_local_screen_positive_needs_controls
+  feature_model = two_branch_logistic
+  branch_features = primary_logit + auxiliary_logit
+  branch_fit_split = train
+  combiner_fit_split = train
+  score_split = validation
+  seed0 grouped_validation_auc = 0.9997968673706055
+  seed1 grouped_validation_auc = 0.9996414184570312
+  seed0 primary_branch_validation_auc = 0.9997234344482422
+  seed1 primary_branch_validation_auc = 0.9992923736572266
+  seed0 auxiliary_branch_validation_auc = 0.9964427947998047
+  seed1 auxiliary_branch_validation_auc = 0.9976606369018555
+  seed0 full_summary_validation_auc = 0.9999141693115234
+  seed1 full_summary_validation_auc = 0.9998435974121094
+
+Interpretation: the two-branch grouped expert improves over primary-only and
+auxiliary-only on both local seeds, so the auxiliary context adds usable
+residual information when combined with the primary backbone. It is still
+slightly below the full 273-dimensional flat summary logistic model, so this is
+not yet an accuracy improvement over the best compact summary anchor. The value
+is architectural: it turns the span-summary route into an explicit
+primary-backbone plus lower-rank-auxiliary-context design that can later be
+upgraded to a real grouped SPN model. This is 2048/class local diagnostic
+evidence only; it is not remote evidence, not formal SPN/PRESENT evidence, and
+not a multi-network improvement.
 ```
 
 ## Fixed Protocol

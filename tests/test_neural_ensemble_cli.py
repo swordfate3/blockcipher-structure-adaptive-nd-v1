@@ -10,6 +10,9 @@ from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bi
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
 from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compressed_feature_main
+from blockcipher_nd.cli.fit_compressed_span_grouped_expert import (
+    main as fit_compressed_span_grouped_main,
+)
 from blockcipher_nd.cli.audit_compressed_feature_sparsity import (
     main as audit_compressed_feature_sparsity_main,
 )
@@ -1065,6 +1068,95 @@ def test_fit_compressed_feature_expert_can_filter_feature_name_prefixes(tmp_path
     assert report["feature_count"] == 2
     assert report["validation_metrics"]["auc"] == 1.0
     assert validation_metadata["feature_selection"]["include_feature_prefixes"] == ["primary_"]
+
+
+def test_fit_compressed_span_grouped_expert_combines_primary_and_aux_branches(tmp_path):
+    train_dir = tmp_path / "train_summary_features"
+    validation_dir = tmp_path / "validation_summary_features"
+    train_output = tmp_path / "train_scores"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    train_features = np.array(
+        [
+            [-2.0, 0.2, -1.8],
+            [-1.5, 0.4, -1.2],
+            [1.5, -0.4, 1.2],
+            [2.0, -0.2, 1.8],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = np.array(
+        [
+            [-1.8, 0.1, -1.5],
+            [-1.2, 0.3, -1.0],
+            [1.2, -0.3, 1.0],
+            [1.8, -0.1, 1.5],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "view": "compressed_span_summary",
+        "output_feature_bits": 3,
+        "feature_names": [
+            "primary_depth_mean_depth0",
+            "aux_cell_mean_cell0",
+            "primary_global_max",
+        ],
+    }
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+
+    status = fit_compressed_span_grouped_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-train-dir",
+            str(train_output),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--branch-steps",
+            "400",
+            "--steps",
+            "300",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    train_metadata = json.loads((train_output / "models.json").read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "compressed_span_grouped_expert_local_screen_positive_needs_controls"
+    assert report["feature_count"] == 2
+    assert report["branch_reports"]["primary"]["feature_count"] == 2
+    assert report["branch_reports"]["auxiliary"]["feature_count"] == 1
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["model_key"] == "compressed_span_grouped_logistic_expert"
+    assert validation_metadata["feature_model"] == "two_branch_logistic"
+    assert validation_metadata["branch_prefixes"] == {"primary": "primary_", "auxiliary": "aux_"}
+    assert train_metadata["score_split"] == "train"
+    assert validation_metadata["score_split"] == "validation"
+    assert np.array_equal(np.load(validation_output / "labels.npy"), labels)
 
 
 def test_fit_compressed_feature_expert_requires_train_split(tmp_path):

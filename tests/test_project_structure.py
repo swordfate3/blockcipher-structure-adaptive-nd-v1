@@ -294,6 +294,11 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "primary_backbone" in combined
     assert "depth_word_cell_span is the dominant span-family backbone" in combined
     assert "leave_out_depth_word_cell_span_auc" in combined
+    assert "scripts/fit-compressed-span-grouped-expert" in combined
+    assert "compressed_span_grouped_expert_local_screen_positive_needs_controls" in combined
+    assert "two_branch_logistic" in combined
+    assert "seed0 grouped_validation_auc = 0.9997968673706055" in combined
+    assert "seed1 grouped_validation_auc = 0.9996414184570312" in combined
     assert "not a multi-network improvement" in combined
 
 
@@ -2335,6 +2340,15 @@ def test_summarize_compressed_span_route_cli_asset():
     assert script.exists()
     assert script.stat().st_mode & 0o111
     assert "blockcipher_nd.cli.summarize_compressed_span_route" in script_text
+
+
+def test_fit_compressed_span_grouped_expert_cli_asset():
+    script = Path("scripts/fit-compressed-span-grouped-expert")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.fit_compressed_span_grouped_expert" in script_text
 
 
 def test_trail_position_1m_conditional_plan_is_gated_and_controlled():
