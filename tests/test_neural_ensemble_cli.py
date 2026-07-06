@@ -1408,6 +1408,54 @@ def test_export_compressed_span_blocks_preserves_spn_coordinates(tmp_path):
     assert np.array_equal(np.load(output_dir / "labels.npy"), labels)
 
 
+def test_export_compressed_span_blocks_can_write_summary_feature_artifact(tmp_path):
+    feature_dir = tmp_path / "features"
+    output_dir = tmp_path / "span_blocks"
+    summary_dir = tmp_path / "span_summary_features"
+    feature_count = 3708
+    features = np.zeros((2, feature_count), dtype=np.float32)
+    labels = np.array([0, 1], dtype=np.float32)
+    features[:, 2620:3196] = 1.0
+    features[:, 3388:3452] = 2.0
+    features[:, 1365:1404] = 3.0
+    features[:, 3560:3596] = 4.0
+    features[:, 1452:1468] = 5.0
+    _write_feature_dir(
+        feature_dir,
+        split="train",
+        features=features,
+        labels=labels,
+        feature_view_metadata={
+            "words_per_pair": 39,
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "output_feature_bits": feature_count,
+        },
+    )
+
+    status = export_compressed_span_blocks_main(
+        [
+            "--feature-dir",
+            str(feature_dir),
+            "--output-dir",
+            str(output_dir),
+            "--output-summary-feature-dir",
+            str(summary_dir),
+        ]
+    )
+
+    summary = np.load(summary_dir / "features.npy")
+    metadata = json.loads((summary_dir / "metadata.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary.shape == (2, 273)
+    assert np.array_equal(np.load(summary_dir / "labels.npy"), labels)
+    assert metadata["feature_view"] == "compressed_span_summary"
+    assert metadata["feature_view_metadata"]["output_feature_bits"] == 273
+    assert metadata["feature_view_metadata"]["source_kind"] == "compressed_spn_span_blocks"
+    assert "primary_depth_mean_depth0" in metadata["feature_view_metadata"]["feature_names"]
+    assert "aux_cell_global_max" in metadata["feature_view_metadata"]["feature_names"]
+
+
 def _write_compressed_feature_report(
     path: Path,
     *,

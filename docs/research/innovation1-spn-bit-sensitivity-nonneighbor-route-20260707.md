@@ -798,9 +798,26 @@ outputs =
   cell_span.npy [rows, cell]
 ```
 
-This does not add accuracy evidence by itself. Its purpose is to turn the
-flat 731 selected span dimensions into SPN-coordinate tensors so the next
-candidate can be a grouped span/statistic-aware expert:
+The exporter also writes a compact summary feature artifact:
+
+```text
+summary_feature_view = compressed_span_summary
+summary_feature_count = 273
+model = compressed_span_summary_logistic_expert
+seed0 validation_auc = 0.9999141693115234
+seed1 validation_auc = 0.9998435974121094
+seed0 shuffle_train_labels_validation_auc = 0.5048818588256836
+seed1 shuffle_train_labels_validation_auc = 0.4824662208557129
+```
+
+That is the important bit: a 273-dimensional SPN-coordinate summary retains
+nearly all local span-family signal while shuffled-label controls remain near
+random. This does not add remote or formal evidence, but it changes the local
+architecture hypothesis from "use all span columns" to "learn over compact
+grouped span channels."
+
+The purpose is to turn the flat 731 selected span dimensions into SPN-coordinate
+tensors so the next candidate can be a grouped span/statistic-aware expert:
 
 ```text
 1. learn a compact primary channel over depth_word_cell_span

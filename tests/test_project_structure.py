@@ -281,6 +281,8 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "scripts/audit-compressed-feature-families" in combined
     assert "scripts/export-compressed-span-blocks" in combined
     assert "compressed_spn_span_blocks" in combined
+    assert "compressed_span_summary" in combined
+    assert "compressed_span_summary_logistic_expert" in combined
     assert "primary_backbone" in combined
     assert "depth_word_cell_span is the dominant span-family backbone" in combined
     assert "leave_out_depth_word_cell_span_auc" in combined

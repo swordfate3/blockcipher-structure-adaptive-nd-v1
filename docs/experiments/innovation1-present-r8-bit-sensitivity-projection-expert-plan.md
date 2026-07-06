@@ -591,6 +591,24 @@ Structured span-block exporter:
   claim_scope =
     structure-preserving export only; no training, scoring, label change,
     negative-sample change, remote evidence, or formal SPN/PRESENT evidence
+
+Structured span-summary diagnostic:
+  summary_feature_view = compressed_span_summary
+  summary_feature_count = 273
+  summary_source = pooled depth/word/cell views over compressed_spn_span_blocks
+  model = compressed_span_summary_logistic_expert
+  fit_split = train
+  score_split = validation
+  seed0 validation_auc = 0.9999141693115234
+  seed1 validation_auc = 0.9998435974121094
+  seed0 shuffle_train_labels_validation_auc = 0.5048818588256836
+  seed1 shuffle_train_labels_validation_auc = 0.4824662208557129
+
+Interpretation: the compact 273-dimensional structured summary retains nearly
+all local span-family signal while the shuffled-label controls stay near
+random. This supports the grouped span/statistic-aware architecture direction
+more strongly than a flat near-neighbor ensemble. It is still a 2048/class
+local diagnostic only, not remote evidence and not formal SPN/PRESENT evidence.
 ```
 
 ## Fixed Protocol
