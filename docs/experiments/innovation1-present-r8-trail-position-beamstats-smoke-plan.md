@@ -1255,13 +1255,21 @@ not formal SPN/PRESENT evidence
 not a diverse-ensemble result
 ```
 
-## 16384/Class Local Neural Matrix Status
+## 16384/Class Local Residual Gate Result
 
-As of 2026-07-06T13:41:18+08:00, the four-row neural training matrix has
-completed and produced validation artifacts, but the residual/control gate is
-still running. Do not report this as a completed 16384/class residual gate until
-`outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json`
-exists and has been inspected.
+As of 2026-07-06T14:08:00+08:00, the four-row neural training matrix and both
+deterministic/control audits have completed. The residual gate passed:
+
+```text
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json
+status = pass
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+min_candidate_margin_vs_global_auc = 0.04398629069328308
+min_candidate_margin_vs_deterministic_auc = 0.2178511768579483
+min_deterministic_margin_vs_mismatch_auc = 0.25441595166921616
+action = run_controlled_local_medium_diagnostic_before_remote_launch
+```
 
 Artifacts:
 
@@ -1282,33 +1290,42 @@ Neural validation metrics:
 | 1 | `present_pairset_global_stats` | `0.9560122638940811` | `0.8880615234375` | `0.8836669921875` |
 | 1 | `present_trail_position_stats_pairset` | `0.9999985545873642` | `0.99981689453125` | `0.99981689453125` |
 
-Current post-gate state:
+Post-gate state:
 
 ```text
 outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_16384.json = present
-outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_16384.json = pending/running
-outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json = pending
-post_gate_done.marker = pending
-post_gate_failed.marker = pending
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_16384.json = present
+outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json = pass
+post_gate_done.marker = present
+post_gate_failed.marker = absent
 ```
 
-Seed0 deterministic/control audit summary:
+Residual gate metrics:
 
-```text
-baseline_validation_auc = 0.7787629086524248
-max_control_validation_auc = 0.7787629086524248
-control_count = 3
-```
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC | Candidate - global | Candidate - deterministic | Deterministic - mismatch |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999993294477463` | `0.9545977339148521` | `0.7787629086524248` | `0.5243469569832087` | `+0.045401595532894135` | `+0.22123642079532146` | `+0.25441595166921616` |
+| 1 | `0.9999985545873642` | `0.9560122638940811` | `0.7821473777294159` | `0.5265582799911499` | `+0.04398629069328308` | `+0.2178511768579483` | `+0.255589097738266` |
 
 Interpretation:
 
 ```text
-The 16384/class neural candidate still greatly exceeds the same-input
-global-statistics neural control, with candidate-global margins of about
-+0.0454 AUC on seed0 and +0.0440 AUC on seed1. This is encouraging, but it is
-not enough for the residual-gate conclusion because the deterministic
-position-statistics and active/difference mismatch controls must still complete
-for seed1 and then be combined by the gate.
+The 16384/class neural candidate still clears the same-input global-statistics
+neural control, the train-selected deterministic position-statistics baseline,
+and active-nibble/input-difference mismatch controls on both seeds. The
+same-input global control is very strong at about 0.955 AUC, so this setting has
+substantial global integral/statistical signal; the candidate's residual margin
+over that control is about +0.044 AUC. The deterministic baseline remains well
+above mismatch controls, while pair-order reverse tracks the deterministic
+baseline, so pair order is not the current bottleneck.
+```
+
+Claim scope:
+
+```text
+This is completed local diagnostic evidence only. It is not remote evidence,
+not formal SPN/PRESENT evidence, not a PRESENT r8 breakthrough claim, not a
+Zhang/Wang r7 Case2 result, and not a diverse multi-network ensemble result.
 ```
 
 Prepared assets:
