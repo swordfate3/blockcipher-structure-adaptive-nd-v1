@@ -382,6 +382,23 @@ seed1 best_ensemble_auc = 0.999995231628418
 seed1 delta_best_ensemble_vs_single_auc = -0.00000476837158203125
 ```
 
+Compressed expert route gate:
+
+```text
+route_gate_cli = scripts/summarize-compressed-feature-expert
+route_gate =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_compressed_expert_route_gate.json
+
+normal_passed_seed_count = 2 / 2
+shuffle_control_passed_seed_count = 2 / 2
+ensemble_gain_passed_seed_count = 0 / 2
+validation_auc_mean = 1.0
+shuffle_control_auc_mean = 0.5113019943237305
+ensemble_delta_vs_best_single_auc_mean = -0.000002384185791015625
+
+decision = compressed_feature_local_positive_controls_pass_not_ensemble_gain
+```
+
 Interpretation:
 
 ```text
@@ -412,6 +429,9 @@ score artifacts, not remote evidence, not formal SPN/PRESENT evidence, and not
 a multi-network improvement. The best ensemble ties the compressed expert on
 seed0 and loses very slightly on seed1, so the immediate result is a stronger
 single compressed SPN-structural expert, not successful diverse aggregation.
+The route-level gate now encodes that distinction directly, so future 262144/class
+retrieved artifacts must pass the same normal/shuffle/ensemble split before this
+route can be promoted.
 ```
 
 ## Fixed Protocol

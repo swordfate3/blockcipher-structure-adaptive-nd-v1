@@ -460,6 +460,20 @@ seed1 best_ensemble_auc = 0.999995231628418
 seed1 delta_best_ensemble_vs_single_auc = -0.00000476837158203125
 ```
 
+The route-level gate now records that interpretation as a machine-readable
+decision:
+
+```text
+route_gate_cli = scripts/summarize-compressed-feature-expert
+route_gate =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_compressed_expert_route_gate.json
+
+normal_passed_seed_count = 2 / 2
+shuffle_control_passed_seed_count = 2 / 2
+ensemble_gain_passed_seed_count = 0 / 2
+decision = compressed_feature_local_positive_controls_pass_not_ensemble_gain
+```
+
 The generic diverse-expert gate can mark the pool ready because there are now
 multiple aligned families, but route-specific interpretation must be stricter:
 the compressed logistic expert is probably a stronger same structural-stat

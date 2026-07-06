@@ -10,6 +10,9 @@ from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bi
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
 from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compressed_feature_main
+from blockcipher_nd.cli.summarize_compressed_feature_expert import (
+    main as summarize_compressed_feature_main,
+)
 from blockcipher_nd.cli.summarize_stacked_route import main as summarize_stacked_route_main
 from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
@@ -1010,6 +1013,124 @@ def test_fit_compressed_feature_expert_can_run_shuffle_label_control(tmp_path):
     assert metadata["fit_train_labels_shuffled"] is True
     assert metadata["fit_label_shuffle_seed"] == 2
     assert report["validation_metrics"]["auc"] < 1.0
+
+
+def test_summarize_compressed_feature_expert_reports_not_ensemble_gain(tmp_path):
+    normal0 = _write_compressed_feature_report(
+        tmp_path / "seed0_normal.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=1.0,
+    )
+    normal1 = _write_compressed_feature_report(
+        tmp_path / "seed1_normal.json",
+        decision="compressed_feature_expert_local_screen_positive_needs_controls",
+        validation_auc=1.0,
+    )
+    shuffle0 = _write_compressed_feature_report(
+        tmp_path / "seed0_shuffle.json",
+        decision="compressed_feature_expert_shuffle_train_labels_control",
+        validation_auc=0.497,
+    )
+    shuffle1 = _write_compressed_feature_report(
+        tmp_path / "seed1_shuffle.json",
+        decision="compressed_feature_expert_shuffle_train_labels_control",
+        validation_auc=0.525,
+    )
+    ensemble0 = _write_compressed_feature_ensemble(
+        tmp_path / "seed0_ensemble.json",
+        best_single_auc=1.0,
+        best_ensemble_auc=1.0,
+        delta=0.0,
+    )
+    ensemble1 = _write_compressed_feature_ensemble(
+        tmp_path / "seed1_ensemble.json",
+        best_single_auc=1.0,
+        best_ensemble_auc=0.999995,
+        delta=-0.000005,
+    )
+    output = tmp_path / "route_gate.json"
+
+    status = summarize_compressed_feature_main(
+        [
+            "--normal-reports",
+            str(normal0),
+            str(normal1),
+            "--shuffle-control-reports",
+            str(shuffle0),
+            str(shuffle1),
+            "--ensemble-reports",
+            str(ensemble0),
+            str(ensemble1),
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["decision"] == "compressed_feature_local_positive_controls_pass_not_ensemble_gain"
+    assert summary["normal_passed_seed_count"] == 2
+    assert summary["shuffle_control_passed_seed_count"] == 2
+    assert summary["ensemble_gain_passed_seed_count"] == 0
+    assert summary["all_normal_positive"] is True
+    assert summary["all_shuffle_controls_random_like"] is True
+    assert summary["all_ensemble_gains_positive"] is False
+    assert summary["validation_auc"]["min"] == 1.0
+    assert summary["shuffle_control_auc"]["max"] == 0.525
+    assert summary["claim_scope"].startswith("route-level compressed SPN feature expert diagnostic")
+
+
+def _write_compressed_feature_report(
+    path: Path,
+    *,
+    decision: str,
+    validation_auc: float,
+) -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "decision": decision,
+                "feature_count": 3708,
+                "validation_rows": 2048,
+                "validation_metrics": {
+                    "auc": validation_auc,
+                    "accuracy": 0.999 if validation_auc > 0.9 else 0.51,
+                },
+                "train_metrics": {
+                    "auc": validation_auc,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _write_compressed_feature_ensemble(
+    path: Path,
+    *,
+    best_single_auc: float,
+    best_ensemble_auc: float,
+    delta: float,
+) -> Path:
+    path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "best_single": {
+                    "model_key": "compressed_feature_logistic_expert",
+                    "metrics": {"auc": best_single_auc},
+                },
+                "best_ensemble": {
+                    "mode": "logit_mean",
+                    "metrics": {"auc": best_ensemble_auc},
+                },
+                "delta_best_ensemble_vs_single_auc": delta,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
 
 
 def _write_feature_dir(
