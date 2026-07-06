@@ -9,6 +9,7 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
+from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
@@ -302,6 +303,112 @@ def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
     assert summary["best_single"]["model_key"] == "left"
     assert summary["ensembles"][0]["mode"] == "probability_mean"
     assert summary["claim_scope"].startswith("application-level")
+
+
+def test_postprocess_trail_position_result_reports_pending_until_artifacts_ready(tmp_path):
+    run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706"
+    (run_root / "results").mkdir(parents=True)
+    (run_root / "score_artifacts").mkdir(parents=True)
+    (run_root / "results" / "train_matrix.jsonl").write_text("", encoding="utf-8")
+    output = tmp_path / "postprocess.json"
+
+    status = postprocess_trail_position_main(
+        [
+            "--run-root",
+            str(run_root),
+            "--expected-score-rows",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_trail_position_score_artifacts"
+    assert report["pending_run_count"] == 1
+    assert report["runs"][0]["train_rows"] == 0
+    assert "not formal SPN/PRESENT evidence" in report["claim_scope"]
+
+
+def test_postprocess_trail_position_result_verifies_and_analyzes_ready_artifacts(tmp_path):
+    run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706"
+    (run_root / "results").mkdir(parents=True)
+    (run_root / "results" / "train_matrix.jsonl").write_text(
+        json.dumps({"model": "present_pairset_global_stats"}) + "\n"
+        + json.dumps({"model": "present_trail_position_stats_pairset"}) + "\n",
+        encoding="utf-8",
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "cipher_key": "present80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    write_score_artifact(
+        run_root / "score_artifacts" / "global_stats_control",
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.2, 0.6, 0.8, 0.4], dtype=np.float32),
+            logits=np.array([-1.4, 0.4, 1.4, -0.4], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+                "candidate_status": "near_neighbor_control",
+            },
+        ),
+    )
+    write_score_artifact(
+        run_root / "score_artifacts" / "trail_position",
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.1, 0.2, 0.8, 0.9], dtype=np.float32),
+            logits=np.array([-2.0, -1.4, 1.4, 2.0], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+                "candidate_status": "weak_positive",
+            },
+        ),
+    )
+    output = tmp_path / "postprocess.json"
+
+    status = postprocess_trail_position_main(
+        [
+            "--run-root",
+            str(run_root),
+            "--expected-score-rows",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    run = report["runs"][0]
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "support_trail_position_score_residual_all_runs"
+    assert report["ready_run_count"] == 1
+    assert run["verification"]["status"] == "pass"
+    assert run["analysis"]["decision"] == "support_trail_position_score_residual"
+    assert run["analysis"]["rows"] == 4
+    assert (run_root / "score_artifacts" / "verification_summary_local.json").exists()
+    assert (run_root / "score_artifacts" / "trail_position_score_analysis.json").exists()
 
 
 def test_verify_score_artifacts_cli_accepts_aligned_required_models(tmp_path):
