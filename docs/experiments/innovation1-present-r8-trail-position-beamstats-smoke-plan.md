@@ -1328,6 +1328,78 @@ not formal SPN/PRESENT evidence, not a PRESENT r8 breakthrough claim, not a
 Zhang/Wang r7 Case2 result, and not a diverse multi-network ensemble result.
 ```
 
+## 2048/Class Local Frozen-Score Recovery Plan
+
+The completed 16384/class diagnostic did not retain checkpoints, so it cannot
+directly produce frozen score artifacts for later diverse-expert evaluation.
+To avoid retraining the larger local diagnostic only for score export, run a
+small `2048/class` score-artifact recovery using the already validated
+trail-position/global-control protocol.
+
+Question:
+
+```text
+Can the r8 trail-position route emit compatible frozen score artifacts for
+future diversity/error-overlap gates without changing the benchmark?
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_2048_score_artifacts \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --checkpoint-output-dir outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/checkpoints \
+  --output outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/progress.jsonl
+```
+
+Then export aligned seed-local score artifacts:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <row0001_global_seed0_checkpoint> \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --eval-row-index 0 \
+  --model-key present_pairset_global_stats \
+  --hidden-bits 16 \
+  --batch-size 256 \
+  --device cpu \
+  --expert-family trail_position_global_control \
+  --candidate-status near_neighbor_control \
+  --output-dir outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/score_artifacts/seed0_global_stats_control
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/export-checkpoint-scores \
+  --checkpoint <row0002_trail_seed0_checkpoint> \
+  --eval-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_2048_local.csv \
+  --eval-row-index 1 \
+  --model-key present_trail_position_stats_pairset \
+  --hidden-bits 16 \
+  --batch-size 256 \
+  --device cpu \
+  --expert-family trail_position \
+  --candidate-status weak_positive \
+  --output-dir outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/score_artifacts/seed0_trail_position
+```
+
+Repeat with row indices `2` and `3` for seed1. The exported artifacts are for
+future compatibility and error-overlap checks only. They do not create a
+diverse ensemble claim by themselves, and they do not replace the completed
+residual gate.
+
 Prepared assets:
 
 ```text
