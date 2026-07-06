@@ -330,6 +330,10 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "seed1 svd_frozen_validation_auc = 0.9999094009399414" in combined
     assert "seed1 svd_frozen_shuffle_validation_auc = 0.6085009574890137" in combined
     assert "svd_frozen_learned_rank1_recovers_auc_but_fails_seed1_shuffle_control" in combined
+    assert "semantic_low_rank_block_interactions_only_logistic" in combined
+    assert "seed0 interaction_only_validation_auc = 0.5190114974975586" in combined
+    assert "seed1 interaction_only_validation_auc = 0.5553302764892578" in combined
+    assert "interaction_only_low_rank_weak_not_primary_signal_source" in combined
     assert "not a multi-network improvement" in combined
 
 

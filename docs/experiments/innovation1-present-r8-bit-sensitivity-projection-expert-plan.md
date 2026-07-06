@@ -888,6 +888,38 @@ result: the previous learned-random failure was mostly projection drift/random
 initialization, but the SVD-frozen learned classifier is not control-clean
 enough to replace the existing unsupervised rank1 logistic expert or to justify
 remote scale-up.
+
+Interaction-only low-rank diagnostic:
+  cli = scripts/fit-compressed-span-low-rank-interaction-expert
+  option = --interaction-only
+  feature_model = semantic_low_rank_block_interactions_only_logistic
+  raw_features_included = false
+  raw_feature_count = 273
+  low_rank_interaction_feature_count = 36
+  total_feature_count = 36
+  rank = 1
+  steps = 2000
+  learning_rate = 0.05
+  l2 = 0.001
+  seed0 interaction_only_validation_auc = 0.5190114974975586
+  seed1 interaction_only_validation_auc = 0.5553302764892578
+  seed0 interaction_only_delta_vs_full_summary_auc = -0.48090267181396484
+  seed1 interaction_only_delta_vs_full_summary_auc = -0.44451332092285156
+  seed0 interaction_only_delta_vs_rank1_low_rank_auc = -0.4809141159057617
+  seed1 interaction_only_delta_vs_rank1_low_rank_auc = -0.44457054138183594
+  seed0 interaction_only_shuffle_validation_auc = 0.5091586112976074
+  seed1 interaction_only_shuffle_validation_auc = 0.4804563522338867
+  decision = interaction_only_low_rank_weak_not_primary_signal_source
+
+Interpretation: the 36 rank1 primary-by-auxiliary interaction features alone
+carry only a weak above-random signal at this local scale, while shuffle-label
+controls are cleanly near random. Therefore the near-perfect rank1 low-rank
+expert is not powered by the interaction bank alone; its useful gain comes
+from adding a small interaction correction on top of the raw 273D compressed
+span summary. Do not spend remote scale on interaction-only low-rank. The next
+better-targeted ablation should compress or partition the raw span-summary
+families to locate which raw semantic blocks carry the dominant PRESENT r8
+signal.
 ```
 
 ## Fixed Protocol

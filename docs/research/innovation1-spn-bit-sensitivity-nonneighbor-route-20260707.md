@@ -1094,3 +1094,37 @@ shuffle problem while losing the small main-AUC gain. The route should keep the
 existing unsupervised rank1 logistic expert as the stronger current candidate
 and next test an interaction-only or regularized-logistic variant before any
 remote scale-up.
+
+The interaction-only low-rank ablation answers that next attribution question:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+option = --interaction-only
+feature_model = semantic_low_rank_block_interactions_only_logistic
+raw_features_included = false
+raw_feature_count = 273
+low_rank_interaction_feature_count = 36
+total_feature_count = 36
+rank = 1
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+seed0 interaction_only_validation_auc = 0.5190114974975586
+seed1 interaction_only_validation_auc = 0.5553302764892578
+seed0 interaction_only_delta_vs_full_summary_auc = -0.48090267181396484
+seed1 interaction_only_delta_vs_full_summary_auc = -0.44451332092285156
+seed0 interaction_only_delta_vs_rank1_low_rank_auc = -0.4809141159057617
+seed1 interaction_only_delta_vs_rank1_low_rank_auc = -0.44457054138183594
+seed0 interaction_only_shuffle_validation_auc = 0.5091586112976074
+seed1 interaction_only_shuffle_validation_auc = 0.4804563522338867
+decision = interaction_only_low_rank_weak_not_primary_signal_source
+```
+
+This is a strong route correction. The primary-by-auxiliary low-rank
+interaction bank is a clean weak signal, not the main source of the near-perfect
+compressed-span AUC. The current rank1 gain is best interpreted as a small
+interaction correction attached to a dominant raw span-summary representation.
+The next useful work is to decompose the raw 273D summary itself: per-family
+raw-only experts, raw-family dropouts, and compact raw block selection should
+tell whether the dominant PRESENT r8 signal lives in primary depth/cell blocks,
+auxiliary word/cell blocks, or their global summaries.

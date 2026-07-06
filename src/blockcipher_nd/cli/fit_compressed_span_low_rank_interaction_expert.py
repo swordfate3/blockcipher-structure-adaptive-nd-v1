@@ -41,6 +41,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--l2", type=float, default=0.001)
+    parser.add_argument("--interaction-only", action="store_true")
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
@@ -59,6 +60,7 @@ def fit_compressed_span_low_rank_interaction_expert(
     steps: int = 2000,
     learning_rate: float = 0.05,
     l2: float = 0.001,
+    interaction_only: bool = False,
     standardize: bool = True,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
@@ -94,6 +96,7 @@ def fit_compressed_span_low_rank_interaction_expert(
         primary_groups=primary_groups,
         auxiliary_groups=auxiliary_groups,
         rank=rank,
+        include_raw_features=not interaction_only,
     )
     fit_labels = train["labels"].astype(np.float64, copy=True)
     if shuffle_train_labels:
@@ -111,7 +114,11 @@ def fit_compressed_span_low_rank_interaction_expert(
     train_probabilities = _sigmoid(train_logits)
     validation_probabilities = _sigmoid(validation_logits)
 
-    feature_model = "raw_plus_semantic_low_rank_block_interactions_logistic"
+    feature_model = (
+        "semantic_low_rank_block_interactions_only_logistic"
+        if interaction_only
+        else "raw_plus_semantic_low_rank_block_interactions_logistic"
+    )
     common_metadata = {
         "model_key": model_key,
         "expert_family": expert_family,
@@ -129,6 +136,7 @@ def fit_compressed_span_low_rank_interaction_expert(
         "fit_label_shuffle_seed": int(shuffle_seed),
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
+        "raw_features_included": bool(not interaction_only),
         "primary_group_count": int(len(primary_groups)),
         "auxiliary_group_count": int(len(auxiliary_groups)),
         "block_pair_count": int(low_rank_metadata["block_pair_count"]),
@@ -174,6 +182,7 @@ def fit_compressed_span_low_rank_interaction_expert(
         "feature_model": feature_model,
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
+        "raw_features_included": bool(not interaction_only),
         "primary_group_count": int(len(primary_groups)),
         "auxiliary_group_count": int(len(auxiliary_groups)),
         "block_pair_count": int(low_rank_metadata["block_pair_count"]),
@@ -220,6 +229,7 @@ def _augment_with_low_rank_interactions(
     primary_groups: list[dict[str, Any]],
     auxiliary_groups: list[dict[str, Any]],
     rank: int,
+    include_raw_features: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     mean = train_features.mean(axis=0)
     scale = train_features.std(axis=0)
@@ -259,9 +269,15 @@ def _augment_with_low_rank_interactions(
 
     train_low_rank_features = np.concatenate(train_interactions, axis=1)
     validation_low_rank_features = np.concatenate(validation_interactions, axis=1)
+    if include_raw_features:
+        train_augmented = np.concatenate([train_features, train_low_rank_features], axis=1)
+        validation_augmented = np.concatenate([validation_features, validation_low_rank_features], axis=1)
+    else:
+        train_augmented = train_low_rank_features
+        validation_augmented = validation_low_rank_features
     return (
-        np.concatenate([train_features, train_low_rank_features], axis=1),
-        np.concatenate([validation_features, validation_low_rank_features], axis=1),
+        train_augmented,
+        validation_augmented,
         {
             "block_pair_count": int(len(primary_groups) * len(auxiliary_groups)),
             "feature_count": int(train_low_rank_features.shape[1]),
@@ -298,6 +314,7 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         learning_rate=args.learning_rate,
         l2=args.l2,
+        interaction_only=args.interaction_only,
         standardize=not args.no_standardize,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
