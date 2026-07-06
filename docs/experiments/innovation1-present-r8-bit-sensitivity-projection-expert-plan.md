@@ -788,6 +788,41 @@ seed0 remains slightly below the full summary anchor. The shuffle controls are
 near random but seed0 is mildly high at `0.5331`, so this should be treated as a
 useful mixed diagnostic and a basis for the next block/tensor model, not as a
 remote-scale candidate. The quick L2 sweep did not improve the result.
+
+Semantic low-rank block interaction diagnostic:
+  cli = scripts/fit-compressed-span-low-rank-interaction-expert
+  feature_model = raw_plus_semantic_low_rank_block_interactions_logistic
+  raw_feature_count = 273
+  primary_group_count = 6
+  auxiliary_group_count = 6
+  block_pair_count = 36
+  rank1_low_rank_interaction_feature_count = 36
+  rank1_total_feature_count = 309
+  rank2_low_rank_interaction_feature_count = 144
+  rank2_total_feature_count = 417
+  seed0 rank1_low_rank_validation_auc = 0.9999256134033203
+  seed1 rank1_low_rank_validation_auc = 0.9999008178710938
+  seed0 rank1_delta_vs_full_summary_auc = 0.000011444091796875
+  seed1 rank1_delta_vs_full_summary_auc = 0.000057220458984375
+  seed0 rank1_delta_vs_block_stat_auc = 0.000019073486328125
+  seed1 rank1_delta_vs_block_stat_auc = -0.00000762939453125
+  seed0 rank1_low_rank_shuffle_validation_auc = 0.4889411926269531
+  seed1 rank1_low_rank_shuffle_validation_auc = 0.4727621078491211
+  seed0 rank2_low_rank_validation_auc = 0.999913215637207
+  seed1 rank2_low_rank_validation_auc = 0.9998798370361328
+  seed0 rank2_low_rank_shuffle_validation_auc = 0.4826202392578125
+  seed1 rank2_low_rank_shuffle_validation_auc = 0.44483137130737305
+  decision = semantic_low_rank_rank1_positive_vs_full_mixed_vs_blockstat_local
+
+Interpretation: rank1 low-rank block interactions are the best current
+block/tensor diagnostic in this local line. The projection is unsupervised on
+train features only, so it avoids train-label feature picking; shuffle-label
+controls are cleanly near random or inverted. Rank1 beats the full 273D summary
+anchor on both seeds and beats the semantic block-stat aggregate on seed0, but
+still trails block-stat by `7.6e-6` AUC on seed1. Rank2 adds more interaction
+dimensions but is weaker than rank1 on both seeds. Keep rank1 low-rank as the
+next candidate baseline for a true learned low-rank/block-tensor module; do
+not promote it to remote scale until it clears a broader local gate.
 ```
 
 ## Fixed Protocol

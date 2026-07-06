@@ -316,6 +316,11 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "seed0 block_interaction_validation_auc = 0.9999065399169922" in combined
     assert "seed1 block_interaction_validation_auc = 0.999908447265625" in combined
     assert "semantic_block_interaction_mixed_local_diagnostic" in combined
+    assert "scripts/fit-compressed-span-low-rank-interaction-expert" in combined
+    assert "raw_plus_semantic_low_rank_block_interactions_logistic" in combined
+    assert "seed0 rank1_low_rank_validation_auc = 0.9999256134033203" in combined
+    assert "seed1 rank1_low_rank_validation_auc = 0.9999008178710938" in combined
+    assert "semantic_low_rank_rank1_positive_vs_full_mixed_vs_blockstat_local" in combined
     assert "not a multi-network improvement" in combined
 
 
@@ -2384,6 +2389,15 @@ def test_fit_compressed_span_block_interaction_expert_cli_asset():
     assert script.exists()
     assert script.stat().st_mode & 0o111
     assert "blockcipher_nd.cli.fit_compressed_span_block_interaction_expert" in script_text
+
+
+def test_fit_compressed_span_low_rank_interaction_expert_cli_asset():
+    script = Path("scripts/fit-compressed-span-low-rank-interaction-expert")
+    script_text = script.read_text(encoding="utf-8")
+
+    assert script.exists()
+    assert script.stat().st_mode & 0o111
+    assert "blockcipher_nd.cli.fit_compressed_span_low_rank_interaction_expert" in script_text
 
 
 def test_trail_position_1m_conditional_plan_is_gated_and_controlled():

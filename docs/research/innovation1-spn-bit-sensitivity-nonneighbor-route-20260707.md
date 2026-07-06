@@ -992,3 +992,37 @@ on seed0, and the seed0 shuffle-label control is mildly high at `0.5331`. The
 next model should therefore keep the block/tensor idea but learn interactions
 with a real block-preserving network or lower-rank constrained interaction
 module, rather than simply adding more aggregate product statistics.
+
+The next low-rank diagnostic replaced hand-written block statistics with
+train-feature-only SVD projections inside each semantic block, then multiplied
+the primary and auxiliary low-rank coordinates:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+feature_model = raw_plus_semantic_low_rank_block_interactions_logistic
+raw_feature_count = 273
+primary_group_count = 6
+auxiliary_group_count = 6
+block_pair_count = 36
+rank1_total_feature_count = 309
+rank2_total_feature_count = 417
+seed0 rank1_low_rank_validation_auc = 0.9999256134033203
+seed1 rank1_low_rank_validation_auc = 0.9999008178710938
+seed0 rank1_delta_vs_full_summary_auc = 0.000011444091796875
+seed1 rank1_delta_vs_full_summary_auc = 0.000057220458984375
+seed0 rank1_delta_vs_block_stat_auc = 0.000019073486328125
+seed1 rank1_delta_vs_block_stat_auc = -0.00000762939453125
+seed0 rank1_low_rank_shuffle_validation_auc = 0.4889411926269531
+seed1 rank1_low_rank_shuffle_validation_auc = 0.4727621078491211
+seed0 rank2_low_rank_validation_auc = 0.999913215637207
+seed1 rank2_low_rank_validation_auc = 0.9998798370361328
+decision = semantic_low_rank_rank1_positive_vs_full_mixed_vs_blockstat_local
+```
+
+Rank1 is more promising than rank2 and cleaner than the aggregate block-stat
+view: it is label-independent, lower-dimensional, clears the full-summary
+anchor on both seeds, and has clean shuffle controls. It still does not
+dominate the block-stat view on both seeds, so the route is not ready for
+remote scaling. The useful next step is not another handcrafted statistic but a
+small learned low-rank/block-tensor module that can keep rank1's restraint
+while learning which SPN block interactions matter.
