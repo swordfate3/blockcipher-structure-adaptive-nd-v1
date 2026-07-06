@@ -823,6 +823,40 @@ still trails block-stat by `7.6e-6` AUC on seed1. Rank2 adds more interaction
 dimensions but is weaker than rank1 on both seeds. Keep rank1 low-rank as the
 next candidate baseline for a true learned low-rank/block-tensor module; do
 not promote it to remote scale until it clears a broader local gate.
+
+Learned low-rank block interaction diagnostic:
+  cli = scripts/fit-compressed-span-learned-low-rank-interaction-expert
+  feature_model = raw_plus_learned_semantic_low_rank_block_interactions
+  raw_feature_count = 273
+  primary_group_count = 6
+  auxiliary_group_count = 6
+  block_pair_count = 36
+  rank = 1
+  learned_low_rank_interaction_count = 36
+  total_feature_count = 309
+  steps = 300
+  learning_rate = 0.01
+  weight_decay = 0.001
+  seed0 learned_low_rank_validation_auc = 0.9998531341552734
+  seed1 learned_low_rank_validation_auc = 0.9995737075805664
+  seed0 delta_vs_full_summary_auc = -0.00006103515625
+  seed1 delta_vs_full_summary_auc = -0.00026988983154296875
+  seed0 delta_vs_unsupervised_rank1_auc = -0.000072479248046875
+  seed1 delta_vs_unsupervised_rank1_auc = -0.00032711029052734375
+  seed0 learned_low_rank_shuffle_validation_auc = 0.5293331146240234
+  seed1 learned_low_rank_shuffle_validation_auc = 0.47176551818847656
+  decision = learned_low_rank_rank1_hold_local_diagnostic
+
+Interpretation: the learned rank1 block-tensor module is now implemented as a
+reusable diagnostic CLI, but this first fixed-budget local gate does not
+improve the route. Shuffle-label controls stay near random, so the failure mode
+is not obvious label leakage; the learned supervised projections simply trail
+the stronger unsupervised rank1 SVD projection and even the full 273D summary
+anchor on both seeds at this budget. Do not remote-scale this learned rank1
+variant. Keep the unsupervised rank1 low-rank expert as the current strongest
+block/tensor candidate, and use the learned module only as a scaffold for a
+future stricter ablation such as frozen unsupervised initialization, projection
+regularization, or a raw-branch-disabled interaction-only test.
 ```
 
 ## Fixed Protocol

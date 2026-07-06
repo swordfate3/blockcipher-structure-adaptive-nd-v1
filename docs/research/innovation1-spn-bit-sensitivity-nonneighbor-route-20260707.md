@@ -1026,3 +1026,38 @@ dominate the block-stat view on both seeds, so the route is not ready for
 remote scaling. The useful next step is not another handcrafted statistic but a
 small learned low-rank/block-tensor module that can keep rank1's restraint
 while learning which SPN block interactions matter.
+
+That learned module has now been added as a local diagnostic, but its first
+fixed-budget gate argues against promoting it:
+
+```text
+cli = scripts/fit-compressed-span-learned-low-rank-interaction-expert
+feature_model = raw_plus_learned_semantic_low_rank_block_interactions
+raw_feature_count = 273
+primary_group_count = 6
+auxiliary_group_count = 6
+block_pair_count = 36
+rank = 1
+total_feature_count = 309
+steps = 300
+learning_rate = 0.01
+weight_decay = 0.001
+seed0 learned_low_rank_validation_auc = 0.9998531341552734
+seed1 learned_low_rank_validation_auc = 0.9995737075805664
+seed0 delta_vs_full_summary_auc = -0.00006103515625
+seed1 delta_vs_full_summary_auc = -0.00026988983154296875
+seed0 delta_vs_unsupervised_rank1_auc = -0.000072479248046875
+seed1 delta_vs_unsupervised_rank1_auc = -0.00032711029052734375
+seed0 learned_low_rank_shuffle_validation_auc = 0.5293331146240234
+seed1 learned_low_rank_shuffle_validation_auc = 0.47176551818847656
+decision = learned_low_rank_rank1_hold_local_diagnostic
+```
+
+The useful lesson is negative but clean: simply making the rank1 projections
+supervised does not improve the present compressed-span route at this local
+scale. Shuffle controls are near random, so this is not an obvious leakage
+artifact. The current best block/tensor candidate remains the unsupervised
+rank1 low-rank interaction expert. A future learned variant should constrain
+the optimization harder, for example by initializing from frozen train-feature
+SVD components, disabling the raw branch to isolate true interaction value, or
+regularizing projection drift from the unsupervised basis.

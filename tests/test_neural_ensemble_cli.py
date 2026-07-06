@@ -22,6 +22,9 @@ from blockcipher_nd.cli.fit_compressed_span_block_interaction_expert import (
 from blockcipher_nd.cli.fit_compressed_span_low_rank_interaction_expert import (
     main as fit_compressed_span_low_rank_interaction_main,
 )
+from blockcipher_nd.cli.fit_compressed_span_learned_low_rank_interaction_expert import (
+    main as fit_compressed_span_learned_low_rank_interaction_main,
+)
 from blockcipher_nd.cli.audit_compressed_feature_sparsity import (
     main as audit_compressed_feature_sparsity_main,
 )
@@ -1699,6 +1702,96 @@ def test_fit_compressed_span_low_rank_interaction_expert_builds_block_tensor_ter
     assert report["validation_metrics"]["auc"] == 1.0
     assert validation_metadata["feature_model"] == "raw_plus_semantic_low_rank_block_interactions_logistic"
     assert validation_metadata["low_rank_interaction_feature_count"] == 4
+    assert validation_metadata["feature_count"] == 8
+
+
+def test_fit_compressed_span_learned_low_rank_interaction_expert_scores_block_tensor_model(tmp_path):
+    train_dir = tmp_path / "train_summary_features"
+    validation_dir = tmp_path / "validation_summary_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    train_features = np.array(
+        [
+            [-2.0, -1.0, 0.5, 0.1],
+            [-1.5, -0.8, 0.4, 0.2],
+            [1.5, 0.8, -0.4, -0.2],
+            [2.0, 1.0, -0.5, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = np.array(
+        [
+            [-1.8, -0.9, 0.4, 0.1],
+            [-1.2, -0.7, 0.3, 0.2],
+            [1.2, 0.7, -0.3, -0.2],
+            [1.8, 0.9, -0.4, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "view": "compressed_span_summary",
+        "output_feature_bits": 4,
+        "feature_names": [
+            "primary_depth_mean_depth0",
+            "primary_cell_mean_cell0",
+            "aux_depth_cell_mean_depth0_cell0",
+            "aux_word_global_max",
+        ],
+    }
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+
+    status = fit_compressed_span_learned_low_rank_interaction_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--rank",
+            "1",
+            "--steps",
+            "250",
+            "--learning-rate",
+            "0.05",
+            "--weight-decay",
+            "0.0",
+            "--seed",
+            "7",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "compressed_span_learned_low_rank_interaction_local_diagnostic"
+    assert report["feature_model"] == "raw_plus_learned_semantic_low_rank_block_interactions"
+    assert report["raw_feature_count"] == 4
+    assert report["primary_group_count"] == 2
+    assert report["auxiliary_group_count"] == 2
+    assert report["block_pair_count"] == 4
+    assert report["learned_low_rank_interaction_count"] == 4
+    assert report["low_rank_projection_rank"] == 1
+    assert report["feature_count"] == 8
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["feature_model"] == "raw_plus_learned_semantic_low_rank_block_interactions"
+    assert validation_metadata["learned_low_rank_interaction_count"] == 4
     assert validation_metadata["feature_count"] == 8
 
 

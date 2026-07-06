@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+from blockcipher_nd.cli.fit_compressed_span_learned_low_rank_interaction_expert import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
