@@ -106,6 +106,17 @@ def test_matrix_runner_lives_in_engine_package():
     assert args.dataset_cache_workers == 2
 
 
+def test_matrix_runner_accepts_difference_matched_integral_sample_structure():
+    args = parse_args(
+        [
+            "--sample-structure",
+            "plaintext_integral_nibble_difference_matched_negative",
+        ]
+    )
+
+    assert args.sample_structure == "plaintext_integral_nibble_difference_matched_negative"
+
+
 def test_official_epoch_cyclic_lr_matches_zhang_wang_schedule():
     from blockcipher_nd.training.optim import make_scheduler
     from blockcipher_nd.training.types import TrainingConfig
