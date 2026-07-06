@@ -241,6 +241,23 @@ def test_present_nibble_paligned_mcnd_262k_scalecheck_plan_is_same_budget_diagno
         assert "MEDIUM 262144/class diagnostic" in task["matching_evidence"]
 
 
+def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
+    research = Path("docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md")
+    plan = Path("docs/experiments/innovation1-present-r8-bit-sensitivity-projection-expert-plan.md")
+
+    research_text = research.read_text(encoding="utf-8")
+    plan_text = plan.read_text(encoding="utf-8")
+    combined = research_text + "\n" + plan_text
+
+    assert "wait_for_trail_position_262k_results" in combined
+    assert "negative_mode = encrypted_random_plaintexts" in combined
+    assert "same-input global control" in combined
+    assert "do_not_launch_remote_now" in combined
+    assert "do_not_claim_formal_spn_present_evidence" in combined
+    assert "selection_split = train" in combined
+    assert "validation_key = 0x11111111111111111111" in combined
+
+
 def test_present_r8_round_extension_plan_preserves_strict_protocol():
     plan = (
         "configs/experiment/innovation1/"
