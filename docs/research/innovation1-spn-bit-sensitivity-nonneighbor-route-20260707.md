@@ -1272,3 +1272,27 @@ not prove leakage, but it makes the tiny AUC gain too expensive to trust. Keep
 the 117D raw-only family anchor as the cleaner local candidate; treat the
 rank1 interaction add-on as an attribution boundary rather than an architecture
 upgrade.
+
+A small fitting-setting sensitivity check reinforces that conclusion:
+
+```text
+candidate = 117D raw-family anchor
+settings =
+  standardize = true, false
+  l2 = 0, 0.00001, 0.0001, 0.001, 0.01
+seed0 best_standardized_auc = 0.9999246597290039
+seed1 best_standardized_auc = 0.9999132156372070
+seed0 default_l2_0.001_auc = 0.9999246597290039
+seed1 default_l2_0.001_auc = 0.9999103546142578
+seed0 no_standardize_l2_0.001_auc = 0.9753389358520508
+seed1 no_standardize_l2_0.001_auc = 0.9899339675903320
+decision = raw117_logistic_setting_sensitivity_standardization_required_l2_not_material
+```
+
+The result is useful because it rules out a shallow explanation. The 117D
+candidate is not mostly a lucky l2 setting: low regularization values are
+effectively tied, and the default remains close to the tied-best setting. By
+contrast, removing train-split standardization hurts badly, so the candidate
+should be described as a standardized SPN raw-family representation. The next
+productive work is still representation scale-up and control-gated comparison,
+not more local l2 tuning.

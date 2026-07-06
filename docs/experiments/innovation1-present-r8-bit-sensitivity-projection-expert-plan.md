@@ -1324,3 +1324,61 @@ the weaker control behavior. Keep this as an attribution boundary and
 prioritize the 117D raw-family representation for the next plan-aligned scale
 step after source-publication and remote-monitor gates are clean.
 ```
+
+## V7 Raw117 Logistic Setting Sensitivity
+
+The next local diagnostic checked whether the 117D raw-family anchor was
+limited by the default logistic fitting settings:
+
+```text
+cli = scripts/fit-compressed-feature-expert
+selected_raw_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+feature_count = 117
+steps = 2000
+learning_rate = 0.05
+setting_sweep =
+  standardize = true, false
+  l2 = 0, 0.00001, 0.0001, 0.001, 0.01
+samples_per_class = 2048 local diagnostic only
+```
+
+Representative metrics:
+
+| Setting | Seed0 AUC | Seed1 AUC | Interpretation |
+|---|---:|---:|---|
+| `standardize=true, l2=0` | `0.9999246597290039` | `0.9999132156372070` | tied best |
+| `standardize=true, l2=0.0001` | `0.9999246597290039` | `0.9999132156372070` | tied best with light regularization |
+| `standardize=true, l2=0.001` | `0.9999246597290039` | `0.9999103546142578` | current default, effectively tied |
+| `standardize=true, l2=0.01` | `0.9999122619628906` | `0.9998855590820312` | too much regularization |
+| `standardize=false, l2=0.001` | `0.9753389358520508` | `0.9899339675903320` | standardization is required |
+
+Matched shuffle-label controls for the tied-best light-regularized setting and
+the default setting were nearly identical:
+
+| Setting | Seed0 shuffle AUC min/mean/max | Seed1 shuffle AUC min/mean/max |
+|---|---:|---:|
+| `standardize=true, l2=0.0001` | `0.5214757919 / 0.5347898801 / 0.5439753532` | `0.4511165619 / 0.4956715902 / 0.5712594986` |
+| `standardize=true, l2=0.001` | `0.5215826035 / 0.5350863139 / 0.5443248749` | `0.4506673813 / 0.4956979752 / 0.5719518661` |
+
+Decision:
+
+```text
+decision = raw117_logistic_setting_sensitivity_standardization_required_l2_not_material
+action = keep_117d_raw_family_anchor; do_not_claim_hyperparameter_breakthrough
+```
+
+Interpretation:
+
+```text
+The 117D raw-family anchor depends on train-split standardization. Removing
+standardization destroys much of the local signal. The exact l2 value is not a
+meaningful bottleneck within the low-regularization range: l2=0 and l2=0.0001
+tie for best AUC, while the existing l2=0.001 default is effectively tied and
+has matched shuffle behavior. This supports the representation hypothesis more
+than a training-tuning explanation. Keep the candidate defined by its SPN raw
+families rather than by a fragile l2 setting.
+```
