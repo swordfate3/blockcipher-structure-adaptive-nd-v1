@@ -1487,3 +1487,66 @@ than a third generic network. If it only reweights the same saturated raw117
 coordinates, hold it. If it identifies a stable subset of hard cases where
 trail-position and raw117 disagree and those cases map to interpretable SPN
 depth/cell/word buckets, it can become the first credible third expert family.
+
+## 2026-07-07 Reliability/Residual Bucket Diagnostic
+
+The residual/reliability route now has a small local frozen-score diagnostic
+instead of remaining only a proposal:
+
+```text
+cli =
+  scripts/analyze-reliability-residual-buckets
+reports =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_reliability_residual_buckets.json
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_reliability_residual_buckets.json
+inputs =
+  trail-position train/validation frozen scores
+  matched raw117 train/validation frozen scores
+method =
+  derive reliability/residual bucket edges on train scores;
+  apply those fixed edges to validation scores;
+  inspect disagreement, double-fault, and one-expert-corrects-the-other rates
+```
+
+Core validation result:
+
+```text
+seed0 decision = reliability_residual_bucket_route_candidate_local
+seed0 disagreement_rate_at_0_5 = 0.02392578125
+seed0 error_jaccard_at_0_5 = 0.057692307692307696
+seed0 trail_wrong_raw117_correct_rate_at_0_5 = 0.021484375
+seed0 raw117_wrong_trail_correct_rate_at_0_5 = 0.00244140625
+
+seed1 decision = reliability_residual_bucket_route_candidate_local
+seed1 disagreement_rate_at_0_5 = 0.02978515625
+seed1 error_jaccard_at_0_5 = 0.06153846153846154
+seed1 trail_wrong_raw117_correct_rate_at_0_5 = 0.0263671875
+seed1 raw117_wrong_trail_correct_rate_at_0_5 = 0.00341796875
+```
+
+The important pattern is directional and bucketed: raw117 is not merely a
+slightly better duplicate of trail-position. In the lowest `min_confidence` and
+lowest `logit_gap_abs` validation buckets, raw117 repeatedly corrects
+trail-position mistakes, and those buckets also have elevated hard-case
+concentration. This supports a next candidate family that models SPN-specific
+reliability or residual cases, rather than adding more near-neighbor neural
+heads.
+
+Current rank of routes:
+
+```text
+1. raw117 compact structural expert remains the strongest local single expert.
+2. fixed trail+raw117 fusion remains the cleanest two-expert diagnostic.
+3. matched stacking is a calibration audit, not the main improvement route.
+4. reliability/residual buckets are now the most promising third-expert design
+   target, but they are not themselves a trained third expert.
+```
+
+Next design constraint:
+
+```text
+Do not promote a residual bucket route unless it becomes an interpretable frozen
+candidate or control-clearing expert with aligned score artifacts. The candidate
+must preserve the benchmark protocol and show improvement under train-derived
+selection only.
+```

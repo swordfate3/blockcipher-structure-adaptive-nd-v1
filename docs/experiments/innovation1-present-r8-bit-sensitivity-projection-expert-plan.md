@@ -1940,3 +1940,110 @@ So the ranking is now clearer:
 The next scale action should reuse the matched raw117 export path on the exact
 retrieved 262144/class trail-position validation rows.
 ```
+
+## V15 Trail + Raw117 Reliability/Residual Bucket Diagnostic
+
+A local frozen-score residual diagnostic was added to avoid treating
+"multi-network" as merely stacking correlated probabilities. The diagnostic
+uses train-derived bucket edges from two aligned score artifacts and then
+applies those same edges to held-out validation scores:
+
+```text
+cli =
+  scripts/analyze-reliability-residual-buckets
+
+seed0 report =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_reliability_residual_buckets.json
+seed1 report =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_reliability_residual_buckets.json
+
+model_order =
+  present_trail_position_stats_pairset
+  compressed_feature_logistic_expert
+bucket_count = 5
+claim_scope =
+  local frozen-score reliability/residual bucket diagnostic only;
+  not a trained third expert, not remote evidence, and not formal SPN/PRESENT evidence
+```
+
+Validation summary:
+
+```text
+seed0:
+  decision = reliability_residual_bucket_route_candidate_local
+  candidate_buckets = 9
+  trail_auc = 0.9985876083374023
+  raw117_auc = 0.9999246597290039
+  best_fixed_ensemble_auc = 0.9999418258666992
+  disagreement_rate_at_0_5 = 0.02392578125
+  error_jaccard_at_0_5 = 0.057692307692307696
+  trail_wrong_raw117_correct_rate_at_0_5 = 0.021484375
+  raw117_wrong_trail_correct_rate_at_0_5 = 0.00244140625
+  both_wrong_count_at_0_5 = 3
+
+seed1:
+  decision = reliability_residual_bucket_route_candidate_local
+  candidate_buckets = 9
+  trail_auc = 0.9982948303222656
+  raw117_auc = 0.9999103546142578
+  best_fixed_ensemble_auc = 0.9999189376831055
+  disagreement_rate_at_0_5 = 0.02978515625
+  error_jaccard_at_0_5 = 0.06153846153846154
+  trail_wrong_raw117_correct_rate_at_0_5 = 0.0263671875
+  raw117_wrong_trail_correct_rate_at_0_5 = 0.00341796875
+  both_wrong_count_at_0_5 = 4
+```
+
+The strongest repeated pattern is not a generic ensemble effect. The lowest
+`min_confidence` bucket and lowest `logit_gap_abs` bucket concentrate cases
+where raw117 corrects trail-position:
+
+```text
+seed0 min_confidence bucket0:
+  rows = 417
+  disagreement_rate = 0.11510791366906475
+  correction_gap = 0.091127
+  both_wrong_lift = 0.005729
+
+seed0 logit_gap_abs bucket0:
+  rows = 415
+  disagreement_rate = 0.07710843373493977
+  correction_gap = 0.053012
+  both_wrong_lift = 0.005764
+
+seed1 min_confidence bucket0:
+  rows = 383
+  disagreement_rate = 0.1566579634464752
+  correction_gap = 0.120104
+  both_wrong_lift = 0.008491
+
+seed1 logit_gap_abs bucket0:
+  rows = 405
+  disagreement_rate = 0.09382716049382717
+  correction_gap = 0.059259
+  both_wrong_lift = 0.007923
+```
+
+Decision:
+
+```text
+decision = reliability_residual_bucket_route_candidate_local
+action =
+  design a frozen residual expert or control gate before training scale-up;
+  do not call current two-score buckets a trained third expert;
+  use these buckets to target interpretable SPN reliability features
+```
+
+Interpretation:
+
+```text
+This is the first useful local evidence that a third route should focus on
+residual reliability rather than another near-neighbor score average. The
+diagnostic identifies train-derived validation buckets where the two strong
+experts genuinely disagree and where raw117 repeatedly fixes trail-position
+errors. That makes a reliability/residual expert worth designing, but it is
+still only a local frozen-score diagnosis. The next implementation step should
+turn the bucket signal into an interpretable frozen candidate or control gate
+and then test whether it improves over raw117/fixed fusion under the same
+held-out scoring protocol.
+```
