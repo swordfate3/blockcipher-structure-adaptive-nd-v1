@@ -1581,3 +1581,96 @@ score-router win. The next credible candidate must add information: for
 example, bucket-conditioned SPN coordinate reliability, depth/cell residual
 features, or a control-clearing hard-case expert. Simply switching among the
 two current scores per bucket is already exhausted by raw117/fixed fusion.
+
+## 2026-07-07 Bucket-Conditioned Residual Expert
+
+The residual-bucket route has now produced a stronger local candidate than the
+cheap score router. Instead of choosing among existing scores per bucket, the
+new candidate fits bucket-specific compressed-SPN logistic experts on the train
+split and applies the train-derived bucket edges unchanged to held-out
+validation rows.
+
+```text
+cli =
+  scripts/fit-bucket-conditioned-feature-expert
+candidate_family =
+  bucket_conditioned_spn_residual
+bucket_feature = logit_gap_abs
+bucket_count = 5
+feature_scope =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+feature_count = 117
+fit_split = train
+score_split = held-out validation
+```
+
+Local 2048/class frozen-score result:
+
+```text
+seed0 bucket_expert_auc = 0.9999361038208008
+seed0 trail_raw117_two_score_best_auc = 0.9999418258666992
+seed0 trail_raw117_bucket_three_score_best_auc = 0.9999475479125977
+seed0 three_vs_two_delta_auc = +0.0000057220458984375
+
+seed1 bucket_expert_auc = 0.9999246597290039
+seed1 trail_raw117_two_score_best_auc = 0.9999189376831055
+seed1 trail_raw117_bucket_three_score_best_auc = 0.9999303817749023
+seed1 three_vs_two_delta_auc = +0.000011444091796875
+```
+
+The shuffled-label control is important:
+
+```text
+seed0 shuffle_train_auc = 0.512155294418335
+seed0 shuffle_validation_auc = 0.5372200012207031
+seed1 shuffle_train_auc = 0.5226397514343262
+seed1 shuffle_validation_auc = 0.5435142517089844
+```
+
+Interpretation:
+
+```text
+This is the first credible local three-family candidate in this branch:
+trail-position, raw117 compressed SPN structure, and bucket-conditioned
+residual structure. It is not just several near-identical neural networks
+averaged together. The third expert is conditioned on where the two strongest
+existing experts disagree or become unreliable, and it uses interpretable
+compressed SPN feature prefixes.
+
+The gain is still extremely small and only local. It should be treated as a
+route candidate, not as a breakthrough. The shuffle-label collapse reduces the
+obvious leakage concern, but scale-up still requires mismatch bucket-source
+controls, feature-scope ablations, and the retrieved 262144/class trail-position
+score artifacts.
+```
+
+Current route ranking:
+
+```text
+1. trail-position remains the strongest controlled SPN residual anchor.
+2. raw117 remains the strongest compact structural single expert.
+3. fixed trail+raw117 fusion remains the clean two-expert anchor.
+4. bucket-conditioned residual feature expert is now the best third-family
+   local candidate, pending controls.
+5. cheap bucket score routing and generic stacking are deprioritized.
+```
+
+Next research action:
+
+```text
+Do not start a new remote branch for this candidate while 262144/class
+trail-position retrieval is incomplete. Locally, add two controls first:
+
+1. mismatch bucket-source control: preserve validation labels/features but use
+   bucket edges/ids derived from a deliberately mismatched score-source order;
+2. no-bucket raw117-scope control: same 117D prefixes, same train/validation
+   split, but a single logistic expert rather than bucket-conditioned experts.
+
+If both controls hold and the 262144/class trail-position score artifacts are
+retrieved, rerun the exact three-family frozen-score comparison at 262144/class.
+Only after that should this route be considered for >=1000000/class formal
+SPN/PRESENT evidence.
+```

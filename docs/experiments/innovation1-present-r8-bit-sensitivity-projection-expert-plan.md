@@ -2088,3 +2088,109 @@ to fixed fusion. Therefore the next route should not be a per-bucket score
 switch. It should create an interpretable residual feature or control-clearing
 expert that uses the bucket structure to model cases not already absorbed by
 raw117.
+
+## V16 Bucket-Conditioned Residual Feature Expert
+
+The residual-bucket route was converted from a score-router probe into a small
+train-fitted feature expert. This is the first local three-family frozen-score
+candidate where the third member has its own structure-derived feature model,
+rather than only switching among existing trail-position/raw117 scores.
+
+```text
+cli =
+  scripts/fit-bucket-conditioned-feature-expert
+feature_model =
+  bucket-conditioned logistic experts fit on train split only
+bucket_source =
+  trail-position frozen scores
+  matched raw117 frozen scores
+bucket_feature = logit_gap_abs
+bucket_count = 5
+feature_scope = raw117-compatible compressed-span prefixes
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+feature_count = 117
+steps = 1000
+learning_rate = 0.05
+l2 = 0.0003
+claim_scope =
+  local 2048/class train-fitted frozen-score diagnostic only;
+  not remote evidence, not formal SPN/PRESENT evidence, and not a breakthrough
+```
+
+Artifacts:
+
+```text
+seed0 candidate report =
+  outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_report.json
+seed1 candidate report =
+  outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_report.json
+
+seed0 three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_residual_three_score_ensemble.json
+seed1 three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_residual_three_score_ensemble.json
+
+seed0 shuffle-label control =
+  outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_shuffle9100_report.json
+seed1 shuffle-label control =
+  outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_shuffle9101_report.json
+```
+
+Metrics:
+
+| Seed | Bucket Expert AUC | Trail+Raw117 Best Fixed AUC | Trail+Raw117+Bucket Best Fixed AUC | Three-vs-Two Delta |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9999361038208008` | `0.9999418258666992` | `0.9999475479125977` | `+0.0000057220458984375` |
+| 1 | `0.9999246597290039` | `0.9999189376831055` | `0.9999303817749023` | `+0.000011444091796875` |
+
+Shuffle-label controls:
+
+| Seed | Shuffled Train AUC | Shuffled Validation AUC |
+|---:|---:|---:|
+| 0 | `0.512155294418335` | `0.5372200012207031` |
+| 1 | `0.5226397514343262` | `0.5435142517089844` |
+
+Decision:
+
+```text
+decision = bucket_conditioned_residual_expert_local_candidate_needs_controls
+status = keep_as_best_current_local_three-family_candidate
+action =
+  keep the CLI and score artifacts;
+  do not remote-scale yet;
+  add mismatch bucket-source and feature-scope ablation controls before any
+  medium-scale promotion;
+  rerun only after 262144/class trail-position score artifacts are complete
+```
+
+Interpretation:
+
+```text
+This is not a generic "more weak networks" result. The third score is a
+bucket-conditioned residual feature expert: train-derived reliability buckets
+choose which compressed SPN structural logistic expert is applied. On the
+2048/class local held-out validation artifacts, the three-score pool improves
+over the two-score trail+raw117 fixed fusion on both seeds.
+
+The improvement is real but tiny. It is enough to keep the route as the best
+current local three-family candidate, but not enough to claim a breakthrough or
+launch remote scale without controls. The shuffled-label control collapses near
+random, reducing the obvious label-leak concern. The remaining control risk is
+whether the bucket source itself overfits the local split or whether the effect
+comes from raw117 feature scope rather than residual conditioning.
+```
+
+Required controls before scale-up:
+
+```text
+1. mismatch or shuffled bucket-source control with labels/sample_ids preserved;
+2. feature-scope ablation against the same 117D raw117 prefix set without
+   bucket conditioning;
+3. train-selection stability if bucket_feature, bucket_count, l2, or feature
+   prefixes are tuned;
+4. same-protocol rerun on retrieved 262144/class artifacts before any
+   1000000/class formal-training discussion.
+```

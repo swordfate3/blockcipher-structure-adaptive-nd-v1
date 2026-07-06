@@ -13,6 +13,9 @@ from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bi
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
 from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compressed_feature_main
+from blockcipher_nd.cli.fit_bucket_conditioned_feature_expert import (
+    main as fit_bucket_conditioned_feature_main,
+)
 from blockcipher_nd.cli.fit_compressed_span_grouped_expert import (
     main as fit_compressed_span_grouped_main,
 )
@@ -62,7 +65,7 @@ from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
-from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
+from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, load_score_artifact, write_score_artifact
 from blockcipher_nd.training.metrics import binary_auc
 
 
@@ -701,6 +704,239 @@ def test_analyze_reliability_residual_buckets_cli_reports_train_derived_buckets(
     assert summary["candidate_buckets"]
     assert summary["decision"] == "reliability_residual_bucket_route_candidate_local"
     assert "train-derived bucket edges" in summary["claim_scope"]
+
+
+def test_fit_bucket_conditioned_feature_expert_writes_score_artifact(tmp_path):
+    metadata = {
+        "status": "pass",
+        "kind": "bit_sensitivity_feature_matrix",
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "train_key": "0x0",
+        "validation_key": "0x1",
+        "feature_view": "compressed_span_summary",
+        "output_feature_bits": 4,
+        "feature_view_metadata": {
+            "feature_names": [
+                "primary_depth_trailword_mean_depth0_trailword0",
+                "aux_depth_cell_global_mean",
+                "aux_depth_word_global_mean",
+                "aux_word_global_mean",
+            ]
+        },
+    }
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    train_features = np.array(
+        [
+            [0.1, 0.2, 0.2, 0.1],
+            [0.2, 0.1, 0.2, 0.1],
+            [0.8, 0.7, 0.8, 0.6],
+            [0.7, 0.8, 0.7, 0.6],
+            [0.8, 0.9, 0.8, 0.9],
+            [0.9, 0.8, 0.7, 0.9],
+            [0.2, 0.3, 0.2, 0.4],
+            [0.3, 0.2, 0.3, 0.4],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = train_features.copy()
+    train_feature_dir = tmp_path / "train_features"
+    validation_feature_dir = tmp_path / "validation_features"
+    for directory, split, features in [
+        (train_feature_dir, "train", train_features),
+        (validation_feature_dir, "validation", validation_features),
+    ]:
+        directory.mkdir()
+        np.save(directory / "features.npy", features)
+        np.save(directory / "labels.npy", labels)
+        np.save(directory / "sample_ids.npy", sample_ids)
+        (directory / "metadata.json").write_text(
+            json.dumps({**metadata, "split": split, "samples_per_class": 4, "total_rows": 8}) + "\n",
+            encoding="utf-8",
+        )
+    bucket_left_probs = np.array([0.1, 0.2, 0.6, 0.7, 0.9, 0.8, 0.4, 0.3], dtype=np.float32)
+    bucket_right_probs = np.array([0.2, 0.1, 0.7, 0.6, 0.8, 0.9, 0.3, 0.4], dtype=np.float32)
+    bucket_dirs = []
+    for name, model_key, probabilities in [
+        ("train_left", "left", bucket_left_probs),
+        ("train_right", "right", bucket_right_probs),
+        ("validation_left", "left", bucket_left_probs),
+        ("validation_right", "right", bucket_right_probs),
+    ]:
+        directory = tmp_path / name
+        bucket_dirs.append(directory)
+        write_score_artifact(
+            directory,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=probabilities,
+                logits=np.log(np.clip(probabilities, 1e-6, 1.0) / np.clip(1.0 - probabilities, 1e-6, 1.0)),
+                sample_ids=sample_ids,
+                metadata={
+                    "cipher": "PRESENT-80",
+                    "rounds": 8,
+                    "validation_samples_per_class": 4,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": metadata["feature_encoding"],
+                    "negative_mode": metadata["negative_mode"],
+                    "sample_structure": metadata["sample_structure"],
+                    "difference_profile": metadata["difference_profile"],
+                    "difference_member": 0,
+                    "validation_key": "0x1",
+                    "model_key": model_key,
+                    "run_id": name,
+                },
+            ),
+        )
+    output_validation_dir = tmp_path / "bucket_expert_validation"
+    output_train_dir = tmp_path / "bucket_expert_train"
+    output_report = tmp_path / "bucket_expert_report.json"
+
+    status = fit_bucket_conditioned_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_feature_dir),
+            "--validation-feature-dir",
+            str(validation_feature_dir),
+            "--train-bucket-artifacts",
+            str(bucket_dirs[0]),
+            str(bucket_dirs[1]),
+            "--validation-bucket-artifacts",
+            str(bucket_dirs[2]),
+            str(bucket_dirs[3]),
+            "--bucket-feature",
+            "logit_gap_abs",
+            "--bucket-count",
+            "2",
+            "--include-feature-prefix",
+            "primary_depth_trailword_",
+            "--include-feature-prefix",
+            "aux_depth_cell_",
+            "--include-feature-prefix",
+            "aux_depth_word_",
+            "--include-feature-prefix",
+            "aux_word_global_",
+            "--steps",
+            "50",
+            "--learning-rate",
+            "0.1",
+            "--output-train-dir",
+            str(output_train_dir),
+            "--output-validation-dir",
+            str(output_validation_dir),
+            "--output-report",
+            str(output_report),
+        ]
+    )
+
+    report = json.loads(output_report.read_text(encoding="utf-8"))
+    loaded = load_score_artifact(output_validation_dir)
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["bucket_feature"] == "logit_gap_abs"
+    assert report["bucket_count"] == 2
+    assert report["feature_count"] == 4
+    assert (output_train_dir / "models.json").exists()
+    assert loaded.metadata["feature_model"] == "bucket_conditioned_logistic"
+    assert loaded.metadata["expert_family"] == "bucket_conditioned_spn_residual"
+    assert np.array_equal(loaded.labels, labels)
+    assert "train-derived" in loaded.metadata["claim_scope"]
+
+
+def test_fit_bucket_conditioned_feature_expert_rejects_second_bucket_sample_mismatch(tmp_path):
+    metadata = {
+        "status": "pass",
+        "kind": "bit_sensitivity_feature_matrix",
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "train_key": "0x0",
+        "validation_key": "0x1",
+        "feature_view": "compressed_span_summary",
+        "output_feature_bits": 2,
+        "feature_view_metadata": {
+            "feature_names": [
+                "primary_depth_trailword_mean_depth0_trailword0",
+                "aux_depth_cell_global_mean",
+            ]
+        },
+    }
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["0", "1", "2", "3"], dtype=str)
+    features = np.array([[0.1, 0.2], [0.2, 0.1], [0.8, 0.9], [0.9, 0.8]], dtype=np.float32)
+    train_feature_dir = tmp_path / "train_features"
+    validation_feature_dir = tmp_path / "validation_features"
+    for directory, split in [(train_feature_dir, "train"), (validation_feature_dir, "validation")]:
+        directory.mkdir()
+        np.save(directory / "features.npy", features)
+        np.save(directory / "labels.npy", labels)
+        np.save(directory / "sample_ids.npy", sample_ids)
+        (directory / "metadata.json").write_text(
+            json.dumps({**metadata, "split": split, "samples_per_class": 2, "total_rows": 4}) + "\n",
+            encoding="utf-8",
+        )
+
+    probabilities = np.array([0.1, 0.3, 0.7, 0.9], dtype=np.float32)
+    logits = np.log(np.clip(probabilities, 1e-6, 1.0) / np.clip(1.0 - probabilities, 1e-6, 1.0))
+    bucket_dirs = []
+    for name, model_key, ids in [
+        ("train_left", "left", sample_ids),
+        ("train_right", "right", sample_ids[::-1]),
+        ("validation_left", "left", sample_ids),
+        ("validation_right", "right", sample_ids),
+    ]:
+        directory = tmp_path / name
+        bucket_dirs.append(directory)
+        write_score_artifact(
+            directory,
+            EnsembleScoreArtifact(
+                labels=labels,
+                probabilities=probabilities,
+                logits=logits,
+                sample_ids=ids,
+                metadata={**metadata, "model_key": model_key, "run_id": name},
+            ),
+        )
+
+    try:
+        fit_bucket_conditioned_feature_main(
+            [
+                "--train-feature-dir",
+                str(train_feature_dir),
+                "--validation-feature-dir",
+                str(validation_feature_dir),
+                "--train-bucket-artifacts",
+                str(bucket_dirs[0]),
+                str(bucket_dirs[1]),
+                "--validation-bucket-artifacts",
+                str(bucket_dirs[2]),
+                str(bucket_dirs[3]),
+                "--bucket-count",
+                "2",
+                "--steps",
+                "10",
+                "--output-validation-dir",
+                str(tmp_path / "validation_scores"),
+                "--output-report",
+                str(tmp_path / "report.json"),
+            ]
+        )
+    except ValueError as exc:
+        assert "train bucket artifact 1 feature sample_ids differ" in str(exc)
+    else:  # pragma: no cover - the assertion above is the behavior under test.
+        raise AssertionError("expected second bucket artifact sample mismatch to be rejected")
 
 
 def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):
