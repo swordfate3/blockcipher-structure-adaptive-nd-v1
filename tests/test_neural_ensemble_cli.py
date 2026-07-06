@@ -9,6 +9,7 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
+from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.export_bit_sensitivity_features import (
     main as export_bit_sensitivity_features_main,
@@ -621,6 +622,99 @@ def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):
         assert "model order differs" in str(exc)
     else:
         raise AssertionError("expected mismatched model order to fail")
+
+
+def test_summarize_stacked_selection_reports_stability(tmp_path):
+    reports = []
+    for index, delta in enumerate([0.1, 0.2, 0.3]):
+        path = tmp_path / f"positive_{index}.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "decision": "stacked_ensemble_improves_validation_best_single",
+                    "selection": {
+                        "selection_seed": index,
+                        "selected": {
+                            "feature_space": "probabilities",
+                            "l2": 0.0,
+                            "standardize": False,
+                        },
+                    },
+                    "fit": {"l2": 0.0, "standardize": False},
+                    "validation_metrics": {"auc": 0.8 + delta},
+                    "validation_best_single": {"metrics": {"auc": 0.8}},
+                    "delta_stacked_vs_validation_best_single_auc": delta,
+                    "delta_stacked_vs_validation_best_fixed_ensemble_auc": delta + 0.01,
+                }
+            ),
+            encoding="utf-8",
+        )
+        reports.append(path)
+    output = tmp_path / "summary.json"
+
+    status = summarize_stacked_selection_main(
+        [
+            "--reports",
+            *(str(path) for path in reports),
+            "--output",
+            str(output),
+            "--require-same-selection",
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["decision"] == "stable_stacked_selection_improves_best_single"
+    assert summary["positive_count"] == 3
+    assert summary["same_selection"] is True
+    assert summary["dominant_selection"]["feature_space"] == "probabilities"
+    assert summary["delta_vs_best_single_auc"]["min"] == 0.1
+    assert "does not train models" in summary["claim_scope"]
+
+
+def test_summarize_stacked_selection_reports_mixed_diagnostic(tmp_path):
+    reports = []
+    for index, delta in enumerate([-0.1, 0.2]):
+        path = tmp_path / f"mixed_{index}.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "decision": "diagnostic",
+                    "selection": {
+                        "selection_seed": index,
+                        "selected": {
+                            "feature_space": "logits" if index == 0 else "probabilities",
+                            "l2": 0.0,
+                            "standardize": False,
+                        },
+                    },
+                    "validation_metrics": {"auc": 0.8 + delta},
+                    "validation_best_single": {"metrics": {"auc": 0.8}},
+                    "delta_stacked_vs_validation_best_single_auc": delta,
+                    "delta_stacked_vs_validation_best_fixed_ensemble_auc": delta + 0.01,
+                }
+            ),
+            encoding="utf-8",
+        )
+        reports.append(path)
+    output = tmp_path / "summary.json"
+
+    status = summarize_stacked_selection_main(
+        [
+            "--reports",
+            *(str(path) for path in reports),
+            "--output",
+            str(output),
+            "--require-same-selection",
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["decision"] == "mixed_or_unstable_stacked_selection_diagnostic"
+    assert summary["positive_count"] == 1
+    assert summary["same_selection"] is False
+    assert summary["delta_vs_best_single_auc"]["max"] == 0.2
 
 
 def test_postprocess_trail_position_result_reports_pending_until_artifacts_ready(tmp_path):

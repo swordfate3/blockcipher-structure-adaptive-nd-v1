@@ -278,6 +278,7 @@ decision = mixed_train_holdout_stacking_diagnostic
 Train-holdout selection-seed stability:
 
 ```text
+stability_cli = scripts/summarize-stacked-selection
 selection_seeds = 0, 1, 2, 3, 4
 
 seed0 delta_stacked_vs_best_single_auc:
