@@ -1692,6 +1692,7 @@ Local repair prepared:
 ```text
 10745cd fix: reuse dataset cache for score export
 repair_asset = configs/remote/generated/repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.cmd
+local_launcher = configs/remote/generated/launch_repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.sh
 
 Adds:
   --dataset-cache-root
@@ -1716,6 +1717,23 @@ run-owned source clone, exports global_stats_control and trail_position frozen
 scores with dataset-cache/progress arguments, then writes score_export_done and
 final done markers. It must not rerun scripts\train.
 ```
+
+Post-push local launch handoff:
+
+```bash
+tmux new-session -d -s repair_i1_present_r8_trailpos_score_export_20260706 \
+  'configs/remote/generated/launch_repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.sh'
+```
+
+The local launcher calls the run-owned remote repair `.cmd` through
+`ssh lxy-a6000 "cmd.exe /c call ..."`, writes launch logs under:
+
+```text
+outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/monitor/
+```
+
+The existing corrected watcher remains the retrieval path for
+`score_artifacts/` and final markers.
 
 The repair is not yet active on the remote run because `main` is ahead of
 `origin/main` and external `git push origin main` was rejected by sandbox

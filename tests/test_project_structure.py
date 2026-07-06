@@ -2181,6 +2181,25 @@ def test_trail_position_medium_remote_score_export_repair_asset():
     assert "%RUN_ID%_score_export_repair_failed.marker" in repair_text
 
 
+def test_trail_position_medium_remote_score_export_repair_launcher_asset():
+    launcher = Path(
+        "configs/remote/generated/"
+        "launch_repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.sh"
+    )
+    launcher_text = launcher.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in launcher_text
+    assert "scripts\\train" not in launcher_text
+    assert "ssh lxy-a6000" in launcher_text
+    assert "cmd.exe /c call" in launcher_text
+    assert "G:\\\\lxy\\\\blockcipher-structure-adaptive-nd-runs" in launcher_text
+    assert "repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.cmd" in launcher_text
+    assert "outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/monitor" in launcher_text
+    assert "score_export_repair_launch.log" in launcher_text
+    assert "score_export_repair_launch_failed.marker" in launcher_text
+    assert "score_export_repair_launch_done.marker" in launcher_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 
