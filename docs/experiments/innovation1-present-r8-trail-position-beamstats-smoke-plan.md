@@ -1765,6 +1765,78 @@ This verifier is an artifact-completeness gate only. Passing it means the two
 frozen score exports are complete and sample-aligned; it does not by itself
 claim ensemble improvement or formal SPN/PRESENT evidence.
 
+## 262k/Class Follow-Up Prepared
+
+The next scale step for the active trail-position route is not another
+`65536/class` run. The prepared follow-up is a two-seed `262144/class` medium
+diagnostic, keeping the exact r8 matched-negative PRESENT protocol and the same
+two-model comparison:
+
+```text
+global control = present_pairset_global_stats
+candidate = present_trail_position_stats_pairset
+train_samples_per_class = 262144
+validation_total_rows_for_score_export = 262144
+seeds = 0, 1
+strict negative_mode = encrypted_random_plaintexts
+dataset_cache_root = G:\lxy\blockcipher-structure-adaptive-nd-runs\trail_position_beamstats_262k_cache
+```
+
+Prepared assets:
+
+```text
+seed0_plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed0.csv
+seed1_plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv
+
+seed0_remote_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.json
+seed1_remote_config = configs/remote/innovation1_spn_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.json
+
+seed0_launcher = configs/remote/generated/run_i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.cmd
+seed1_launcher = configs/remote/generated/run_i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.cmd
+
+seed0_monitor = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.sh
+seed1_monitor = configs/remote/generated/monitor_i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.sh
+```
+
+Readiness validation:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.json
+
+status = pass
+max_samples_per_class = 262144
+checked_invariants includes medium_scale_dataset_cache and trail_position_score_artifact_lock
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-remote-readiness \
+  --config configs/remote/innovation1_spn_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.json
+
+status = pass
+max_samples_per_class = 262144
+checked_invariants includes medium_scale_dataset_cache and trail_position_score_artifact_lock
+```
+
+The generated 262k launch scripts export frozen scores immediately after
+training and then run:
+
+```text
+scripts\verify-score-artifacts --expected-rows 262144
+```
+
+Only if score artifacts pass this verifier do the scripts write
+`${RUN_ID}_score_export_done.marker` and `${RUN_ID}_done.marker`. The monitors
+also wait for `score_artifacts/verification_summary.json`, not only
+`models.json`, before reporting `result_ready`.
+
+Claim scope:
+
+```text
+262144/class = medium diagnostic scale-up, not formal evidence
+two seeds = variance check for the trail-position route
+no publication-style claim until completed, retrieved, verified, gated, and
+eventually extended to >=1000000/class multi-seed evidence
+```
+
 The repair is not yet active on the remote run because `main` is ahead of
 `origin/main` and external `git push origin main` was rejected by sandbox
 review without explicit approval for the exact local commit set.
@@ -1783,9 +1855,12 @@ Next action:
    rerun training unless artifacts/checkpoints are missing.
 4. After score artifacts are retrieved, run `scripts/verify-score-artifacts`
    with `--expected-rows 65536`; only then run ensemble/error-overlap analysis.
-5. Run the 65k same-protocol residual interpretation against deterministic
+5. Launch the prepared `262144/class` seed0/seed1 follow-up from the pushed
+   commit when the source-publication gate is cleared. This is the next scale
+   step; do not treat the 65k run as the endpoint.
+6. Run the 65k same-protocol residual interpretation against deterministic
    position-statistics and mismatch controls before any stronger claim.
-6. Do not spend the next experiment slot on near-neighbor averaging. If this
+7. Do not spend the next experiment slot on near-neighbor averaging. If this
    route remains active, scale or validate it with residual controls; for
    ensemble work, first find a genuinely different expert family that clears
    its own same-input global-stat control.

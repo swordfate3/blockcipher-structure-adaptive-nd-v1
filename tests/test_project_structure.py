@@ -2205,6 +2205,47 @@ def test_trail_position_medium_remote_score_export_repair_launcher_asset():
     assert "score_export_repair_launch_done.marker" in launcher_text
 
 
+def test_trail_position_262k_followup_remote_assets_are_scale_up_and_verify_scores():
+    for seed, gpu in [(0, 0), (1, 1)]:
+        suffix = f"262k_seed{seed}_gpu{gpu}_20260706"
+        run_id = f"i1_present_r8_trail_position_beamstats_{suffix}"
+        plan = Path(
+            "configs/experiment/innovation1/"
+            f"innovation1_spn_present_r8_trail_position_beamstats_262k_seed{seed}.csv"
+        )
+        config = Path(
+            "configs/remote/"
+            f"innovation1_spn_present_r8_trail_position_beamstats_262k_seed{seed}_gpu{gpu}_20260706.json"
+        )
+        launcher = Path("configs/remote/generated") / f"run_{run_id}.cmd"
+        monitor = Path("configs/remote/generated") / f"monitor_{run_id}.sh"
+
+        plan_text = plan.read_text(encoding="utf-8")
+        config_text = config.read_text(encoding="utf-8")
+        launcher_text = launcher.read_text(encoding="utf-8")
+        monitor_text = monitor.read_text(encoding="utf-8")
+
+        assert ",262144,16," in plan_text
+        assert ",65536,16," not in plan_text
+        assert f"seed{seed}" in plan_text
+        assert "MEDIUM DIAGNOSTIC 262144/class" in plan_text
+        assert f'"run_id": "{run_id}"' in config_text
+        assert f'"device": "cuda:{gpu}"' in config_text
+        assert '"score_export_after_training": true' in config_text
+        assert "trail_position_beamstats_262k_cache" in config_text
+        assert "cmd.exe /k" not in launcher_text
+        assert "scripts\\train" in launcher_text
+        assert "scripts\\export-checkpoint-scores" in launcher_text
+        assert "scripts\\verify-score-artifacts" in launcher_text
+        assert "--expected-rows 262144" in launcher_text
+        assert "%SCORE_ARTIFACT_DIR%\\verification_summary.json" in launcher_text
+        assert "scripts\\evaluate-neural-ensemble" not in launcher_text
+        assert f"--device cuda:{gpu}" in launcher_text
+        assert "score_artifacts/verification_summary.json" in monitor_text
+        assert '${LOCAL_ROOT}/logs/${RUN_ID}_done.marker' in monitor_text
+        assert '${LOCAL_ROOT}/logs/*done.marker' not in monitor_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 
