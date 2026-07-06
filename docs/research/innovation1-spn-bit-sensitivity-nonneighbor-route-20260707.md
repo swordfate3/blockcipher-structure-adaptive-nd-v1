@@ -1395,3 +1395,95 @@ therefore either a plan-aligned scale confirmation of raw117 when publishing is
 unblocked, or a genuinely different non-neighbor expert family with compatible
 score artifacts; simple pairwise product expansion should not take the next
 main experiment slot.
+
+## 2026-07-07 Matched Raw117 Stacking And Active 262k Status
+
+The trail-position plus raw117 candidate fusion has now been checked with
+matched train/validation raw117 score artifacts:
+
+```text
+matched_raw117_feature_view = compressed_span_summary
+matched_raw117_feature_count = 117
+matched_raw117_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+
+seed0 matched_raw117_validation_auc = 0.9999246597290039
+seed1 matched_raw117_validation_auc = 0.9999103546142578
+```
+
+The matched train-holdout stacking result is slightly more positive than the
+earlier feature-scope-mixed diagnostic, but still not strong enough to promote
+stacking over the simpler fixed-fusion rule:
+
+```text
+seed0 matched_stacking_positive_selection_seeds = 5 / 5
+seed0 matched_stacking_mean_delta_vs_best_single_auc = +0.000003814697265625
+seed0 matched_stacking_delta_vs_fixed_fusion_auc = -0.0000133514404296875
+
+seed1 matched_stacking_positive_selection_seeds = 4 / 5
+seed1 matched_stacking_mean_delta_vs_best_single_auc = +0.00000438690185546875
+seed1 matched_stacking_best_delta_vs_fixed_fusion_auc = +0.0000019073486328125
+seed1 matched_stacking_worst_delta_vs_fixed_fusion_auc = -0.000026702880859375
+
+decision = matched_raw117_stacking_tiny_positive_but_not_promoted_over_fixed_fusion
+```
+
+This improves the evidence hygiene: the old train-side `3708D` versus
+validation-side `117D` feature-scope caveat has been removed. The research
+conclusion is still conservative. The reliable result is not "stacking solves
+multi-network aggregation"; it is that raw117 is a strong compact SPN
+structural expert, fixed score fusion has a tiny aligned positive signal, and
+stacking is a useful calibration audit but not a stronger route.
+
+The active 262144/class trail-position runs are still not ready for
+score-level claims, but their local retrieved state has advanced:
+
+```text
+postprocess =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_postprocess_status.json
+decision_report =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_decision_report.md
+
+seed0 train_rows = 1 / 2
+seed1 train_rows = 1 / 2
+completed_row = present_pairset_global_stats
+missing_row = present_trail_position_stats_pairset
+score_artifacts_ready = false
+decision = wait_for_trail_position_score_artifacts
+```
+
+The completed global-stat rows are useful progress markers, not final evidence:
+there is still no candidate/global residual margin, no score-artifact overlap
+gate, and no raw117-on-262k export. The local tmux monitors should continue to
+own retrieval. The main thread should avoid starting a new remote branch while
+those watchers are healthy.
+
+The next non-remote research step should not be another near-neighbor score
+average. It should prepare a genuinely different third expert candidate for
+the moment the 262k artifacts arrive:
+
+```text
+candidate_family = spn_reliability_residual_bucket_expert
+input_source =
+  matched raw117 structural scores
+  trail-position/global score residuals after retrieval
+  train-only coordinate reliability buckets from raw117 family attribution
+claim_goal =
+  explain or isolate residual cases where trail-position and raw117 disagree,
+  not simply raise average AUC by stacking correlated probabilities
+promotion_gate =
+  clears same-input global control,
+  has compatible frozen scores,
+  has lower or meaningfully different error overlap with trail-position,
+  survives mismatch/shuffle controls,
+  improves over best single only under train-selected calibration
+```
+
+This candidate is intentionally framed as a residual/reliability route rather
+than a third generic network. If it only reweights the same saturated raw117
+coordinates, hold it. If it identifies a stable subset of hard cases where
+trail-position and raw117 disagree and those cases map to interpretable SPN
+depth/cell/word buckets, it can become the first credible third expert family.
