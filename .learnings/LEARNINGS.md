@@ -188,6 +188,143 @@ future diversity evaluation.
 
 ---
 
+## [LRN-20260706-027] best_practice
+
+**Logged**: 2026-07-06T14:30:46+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 cell-value histogram screen completed and should not be promoted to the diverse expert pool in its current form.
+
+### Details
+The PRESENT-80 r8 cell-value histogram local diagnostic completed the planned
+`2048/class`, seeds `0,1` screen:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_cell_value_histogram_2048_local.csv
+results = outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/results.jsonl
+gate = outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/gate.json
+decision = hold_cell_value_histogram_local_screen
+action = do_not_promote_to_diverse_expert_pool
+```
+
+Gate metrics:
+
+| Seed | Global-stat control AUC | Histogram candidate AUC | Candidate margin |
+|---:|---:|---:|---:|
+| 0 | `0.8532476425170898` | `0.5871686935424805` | `-0.2660789489746094` |
+| 1 | `0.874751091003418` | `0.6144542694091797` | `-0.2602968215942383` |
+
+The histogram candidate is weak-positive above random on both seeds, but it
+loses badly to the same-input global-statistics control. This means it is not a
+useful diverse/non-neighbor expert for current multi-network aggregation. Do
+not treat the gate script's `"status": "pass"` as candidate promotion; the
+research decision is the explicit `hold_cell_value_histogram_local_screen`.
+
+Correct interpretation:
+
+- Completed local diagnostic only, not remote evidence and not formal
+  SPN/PRESENT evidence.
+- Not a breakthrough claim and not a diverse expert pool result.
+- The current bottleneck for multi-network work is finding a structurally
+  different expert that also clears strong same-budget controls, not simply
+  adding a weak different-looking model.
+
+### Suggested Action
+Keep trail-position residual as the current strongest local controlled SPN
+route. For ensemble work, require future non-neighbor experts to first clear
+same-input global-stat controls and then produce compatible frozen scores for
+diversity/error-overlap gates. Redesign or replace the cell-value histogram
+route before spending more ensemble effort on it.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-cell-value-histogram-screen-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_cell_value_histogram_2048_local.csv, outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/gate.json
+- Tags: innovation1, spn, present, cell-value-histogram, diverse-ensemble, local-diagnostic
+- See Also: LRN-20260706-026, LRN-20260706-025, LRN-20260706-021
+- Pattern-Key: innovation1.spn_present.cell_value_histogram_2048_hold
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
+## [LRN-20260706-028] best_practice
+
+**Logged**: 2026-07-06T14:38:35+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Trail-position frozen-score recovery completed, but near-neighbor global/trail aggregation does not improve the best single expert.
+
+### Details
+The r8 trail-position `2048/class` local checkpoint recovery completed and
+exported aligned frozen score artifacts for seed-local global-stat controls and
+trail-position candidates:
+
+```text
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/results.jsonl
+seed0_ensemble = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed0_global_vs_trail_ensemble.json
+seed1_ensemble = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed1_global_vs_trail_ensemble.json
+```
+
+Recovered training metrics:
+
+| Seed | Global-stat AUC | Trail-position AUC | Trail margin |
+|---:|---:|---:|---:|
+| 0 | `0.8490915298461914` | `0.9990301132202148` | `+0.14993858337402344` |
+| 1 | `0.874751091003418` | `0.9994010925292969` | `+0.1246500015258789` |
+
+Frozen-score ensemble diagnostics:
+
+| Seed | Best single AUC | Best ensemble AUC | Delta |
+|---:|---:|---:|---:|
+| 0 | `0.9985876083374023` | `0.9983005523681641` | `-0.00028705596923828125` |
+| 1 | `0.9982948303222656` | `0.9974737167358398` | `-0.0008211135864257812` |
+
+The diverse-expert gate reported:
+
+```text
+decision = diverse_expert_pool_not_ready
+errors = ["too_few_eligible_families"]
+eligible_family_count = 2
+min_family_count = 3
+```
+
+Correct interpretation:
+
+- Score artifact compatibility is now demonstrated for the global/trail pair.
+- Simple near-neighbor aggregation of the global-stat control and
+  trail-position candidate does not improve AUC over the best single
+  trail-position expert.
+- This is local application-level aggregation diagnostic evidence only, not
+  remote evidence, not formal SPN/PRESENT evidence, and not raw single-sample
+  SOTA evidence.
+- Multi-network work remains valuable, but only after adding a genuinely
+  different expert family that clears same-budget controls.
+
+### Suggested Action
+Do not average more near-neighbor global/trail variants expecting a real
+Innovation 1 gain. Prioritize a third non-neighbor expert family that first
+beats the same-input global-stat control, then export compatible frozen scores
+and re-run diversity/error-overlap gates.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed0_global_vs_trail_ensemble.json, outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed1_global_vs_trail_ensemble.json
+- Tags: innovation1, spn, present, trail-position, frozen-scores, neural-ensemble, diverse-expert
+- See Also: LRN-20260706-027, LRN-20260706-026, LRN-20260706-021
+- Pattern-Key: innovation1.spn_present.near_neighbor_ensemble_not_enough
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-026] best_practice
 
 **Logged**: 2026-07-06T14:08:00+08:00

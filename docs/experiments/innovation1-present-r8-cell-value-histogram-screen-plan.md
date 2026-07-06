@@ -2,7 +2,52 @@
 
 **Date:** 2026-07-06
 
-**Status:** planned local diagnostic only / no remote launch
+**Status:** completed local diagnostic / held, no remote launch
+
+## Result
+
+The planned `2048/class`, seeds `0,1` local diagnostic completed with all four
+rows and a complete gate artifact:
+
+```text
+results = outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/results.jsonl
+gate = outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/gate.json
+decision = hold_cell_value_histogram_local_screen
+action = do_not_promote_to_diverse_expert_pool
+```
+
+Per-seed AUC:
+
+| Seed | Global-stat control AUC | Histogram candidate AUC | Candidate margin |
+|---:|---:|---:|---:|
+| 0 | `0.8532476425170898` | `0.5871686935424805` | `-0.2660789489746094` |
+| 1 | `0.874751091003418` | `0.6144542694091797` | `-0.2602968215942383` |
+
+Aggregate:
+
+```text
+mean_global_stat_control_auc = 0.8639993667602539
+mean_histogram_candidate_auc = 0.6008114814758301
+mean_candidate_margin_vs_control_auc = -0.26318788528442383
+min_histogram_candidate_auc = 0.5871686935424805
+```
+
+Interpretation:
+
+The histogram candidate is weak-positive above random on both seeds, but it
+does not clear the same-input global-statistics control. This means it is not a
+good enough non-neighbor expert for the diverse multi-network pool yet. Treat
+this as a held local screen, not a remote-launch basis, not formal SPN/PRESENT
+evidence, and not a breakthrough claim.
+
+Next action:
+
+Keep the trail-position residual route as the current strongest controlled
+local SPN candidate. For multi-network work, search for a genuinely different
+expert family that can beat or complement the global-stat control before
+spending ensemble effort. Do not promote the current cell-value histogram model
+to frozen-score diversity/error-overlap evaluation unless it is redesigned or a
+new same-protocol screen changes this result.
 
 ## Why This Plan Exists
 

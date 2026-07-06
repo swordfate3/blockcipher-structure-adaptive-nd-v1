@@ -1400,6 +1400,72 @@ future compatibility and error-overlap checks only. They do not create a
 diverse ensemble claim by themselves, and they do not replace the completed
 residual gate.
 
+Result:
+
+```text
+status = complete
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/results.jsonl
+log = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/score_artifact_recovery.log
+seed0_ensemble = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed0_global_vs_trail_ensemble.json
+seed1_ensemble = outputs/local_smoke/i1_present_r8_trail_position_beamstats_2048_score_artifacts/seed1_global_vs_trail_ensemble.json
+```
+
+Recovered local metrics:
+
+| Seed | Global-stat AUC | Trail-position AUC | Trail margin |
+|---:|---:|---:|---:|
+| 0 | `0.8490915298461914` | `0.9990301132202148` | `+0.14993858337402344` |
+| 1 | `0.874751091003418` | `0.9994010925292969` | `+0.1246500015258789` |
+
+Frozen score export completed for:
+
+```text
+score_artifacts/seed0_global_stats_control
+score_artifacts/seed0_trail_position
+score_artifacts/seed1_global_stats_control
+score_artifacts/seed1_trail_position
+```
+
+Seed-local frozen-score aggregation diagnostics:
+
+| Seed | Best single model | Best single AUC | Best ensemble mode | Best ensemble AUC | Delta |
+|---:|---|---:|---|---:|---:|
+| 0 | `present_trail_position_stats_pairset` | `0.9985876083374023` | `auc_positive_weighted_logit_mean` | `0.9983005523681641` | `-0.00028705596923828125` |
+| 1 | `present_trail_position_stats_pairset` | `0.9982948303222656` | `auc_positive_weighted_logit_mean` | `0.9974737167358398` | `-0.0008211135864257812` |
+
+The simple global-control plus trail-position frozen-score ensemble does not
+beat the strongest single trail-position model on either seed. This is useful
+negative evidence: near-neighbor control aggregation is not the current
+improvement path.
+
+Diverse-expert pool gate:
+
+```text
+decision = diverse_expert_pool_not_ready
+status = fail
+errors = ["too_few_eligible_families"]
+eligible_family_count = 2
+min_family_count = 3
+```
+
+Claim scope:
+
+```text
+This is local score-artifact compatibility and application-level aggregation
+diagnostic evidence only. It is not remote evidence, not formal SPN/PRESENT
+evidence, not a raw single-sample SOTA claim, and not proof that a diverse
+multi-network pool improves the distinguisher.
+```
+
+Next action:
+
+```text
+Keep trail-position as the strongest local controlled expert. Do not spend
+more effort averaging near-neighbor global/trail models. Screen a genuinely
+different expert family that can first beat the same-input global-stat control,
+then export compatible frozen scores for diversity/error-overlap evaluation.
+```
+
 Prepared assets:
 
 ```text
