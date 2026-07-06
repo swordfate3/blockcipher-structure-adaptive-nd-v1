@@ -162,10 +162,10 @@ if revisiting projection, use grouped structural axes, residual summaries, or
 multi-pair compressed formats rather than isolated raw feature columns
 ```
 
-## 2026-07-07 V1 Grouped-Axis Tooling
+## 2026-07-07 V1 Grouped-Axis Screen
 
-The next concrete step is now implemented as local tooling, not as a new
-remote experiment:
+The next concrete step was implemented and screened locally, not launched as a
+new remote experiment:
 
 ```text
 scripts/select-bit-sensitivity-projection --group-size <n> --top-groups <k>
@@ -189,13 +189,41 @@ so the saved budget can be spent on better evidence, not when it creates a
 standalone single-bit oracle.
 ```
 
+2048/class seed0 validation results:
+
+| Variant | Projection units | AUC |
+|---|---:|---:|
+| group4/top16 | 16 | `0.5030102729797363` |
+| group8/top8 | 8 | `0.5734086036682129` |
+| group16/top4 | 4 | `0.5104804039001465` |
+| group32/top2 | 2 | `0.5292434692382812` |
+
+Anchors:
+
+```text
+same_input_global_control_auc = 0.8542919158935547
+trail_position_anchor_auc = 0.9985876083374023
+best_grouped_projection_auc = 0.5734086036682129
+decision = hold_projection_duplicate_or_weak
+hold_reason = does_not_clear_global_control
+```
+
 Important limitation:
 
 ```text
-grouped-axis tooling is not a result
-no grouped-axis AUC exists yet
-no remote launch is justified while 262144/class trail-position artifacts are
-still running/missing
+grouped-axis projection is a weak diagnostic signal, not an expert
+no grouped-axis variant clears the same-input global control
+no remote launch is justified from this exact contiguous-group mean variant
+```
+
+Updated implication:
+
+```text
+do_not_expand_v1_contiguous_group_mean_projection
+do_not_run_remote_or_seed1_for_this_exact_v1_screen
+preserve grouped tooling for future structure-aware residual summaries
+next local-only route should change the representation, not merely the number
+of contiguous axes averaged together
 ```
 
 The first valid use is after watcher retrieval:
@@ -207,6 +235,12 @@ The first valid use is after watcher retrieval:
 4. apply grouped frozen scorer on validation only
 5. run postprocess-bit-sensitivity-projection against global and trail anchors
 ```
+
+For the next variant, the hypothesis should move from simple contiguous group
+means to structural residual summaries: for example, per-depth/per-cell
+residual response maps, compressed multi-pair block statistics, or explicit
+trail-family residual features. Those are more aligned with the literature
+than adding more weak projection scorers to an ensemble.
 
 Promotion remains hard:
 

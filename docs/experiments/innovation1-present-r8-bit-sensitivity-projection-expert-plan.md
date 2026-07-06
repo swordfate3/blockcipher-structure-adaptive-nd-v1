@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-07
 
-**Status:** v0 local seed0 screen held; full 262144/class activation still
+**Status:** v0/v1 local seed0 screens held; full 262144/class activation still
 blocked on active trail-position score artifacts; no remote launch asset
 
 ## Question
@@ -84,7 +84,7 @@ if projection is revisited, use grouped/structured axes or residual summaries,
 not individual raw feature columns alone
 ```
 
-## V1 Grouped-Axis Tooling
+## V1 Grouped-Axis Local Screen
 
 The 2026-07-07 follow-up implemented grouped-axis projection support without
 starting another remote branch:
@@ -95,7 +95,7 @@ new selector args = --group-size, --top-groups
 scorer = scripts/apply-bit-sensitivity-projection
 projection_unit = contiguous_axis_group
 selection_split = train only
-status = tooling ready; no candidate AUC yet
+status = local seed0 screen held
 ```
 
 Rationale:
@@ -114,11 +114,51 @@ groups and scores the mean group response as one projection unit. This keeps
 the validation split untouched and preserves compatibility with the existing
 frozen-score postprocess gate.
 
+Local 2048/class seed0 results:
+
+| Variant | Projection units | Validation AUC | Decision |
+|---|---:|---:|---|
+| Group size 4, top 16 groups | 16 | `0.5030102729797363` | hold |
+| Group size 8, top 8 groups | 8 | `0.5734086036682129` | hold |
+| Group size 16, top 4 groups | 4 | `0.5104804039001465` | hold |
+| Group size 32, top 2 groups | 2 | `0.5292434692382812` | hold |
+
+Comparison anchors:
+
+| Artifact | AUC |
+|---|---:|
+| Same-input global control | `0.8542919158935547` |
+| Trail-position anchor | `0.9985876083374023` |
+
+Gate outputs:
+
+```text
+group4 decision = hold_projection_duplicate_or_weak
+group8 decision = hold_projection_duplicate_or_weak
+group16 decision = hold_projection_duplicate_or_weak
+group32 decision = hold_projection_duplicate_or_weak
+shared hold reason = does_not_clear_global_control
+```
+
+Interpretation:
+
+```text
+Grouped-axis projection is less dead than raw single-axis projection, but it
+still loses badly to the same-input global-stat control. The best grouped
+variant, group8, reaches only 0.5734 AUC versus 0.8543 for the global control.
+Do not run seed1 or remote scale for this exact contiguous-group mean variant.
+Keep the tooling because it is useful for future structure-aware residual
+summaries, but do not promote the current grouped projection as a diverse
+expert.
+```
+
 Allowed next use:
 
 ```text
 only after 262144/class trail-position score artifacts are retrieved and
-verified, run a local grouped-axis screen before any remote proposal
+verified, use grouped export/scoring as a diagnostic support tool; do not
+repeat this exact group-mean screen unless a new structural residual summary
+changes the hypothesis
 ```
 
 Not allowed:

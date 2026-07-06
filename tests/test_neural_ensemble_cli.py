@@ -23,6 +23,7 @@ from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_st
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
+from blockcipher_nd.training.metrics import binary_auc
 
 
 def write_tiny_speck_plan(path: Path) -> Path:
@@ -1120,6 +1121,7 @@ def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
     assert logits.shape == probabilities.shape == labels.shape
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["decision"] == "projection_score_artifact_ready_for_local_gate"
+    assert report["metrics"]["auc"] == binary_auc(labels, probabilities)
     assert "not a trained neural model" in report["claim_scope"]
 
 
@@ -1210,6 +1212,7 @@ def test_apply_bit_sensitivity_projection_uses_grouped_axes(tmp_path):
     assert probabilities[2] > probabilities[0]
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["group_count"] == 1
+    assert report["metrics"]["auc"] == binary_auc(labels, probabilities)
 
 
 def test_export_bit_sensitivity_features_matches_reference_artifact(tmp_path):

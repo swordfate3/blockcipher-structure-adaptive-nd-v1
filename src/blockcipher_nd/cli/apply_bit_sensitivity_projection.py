@@ -60,6 +60,8 @@ def apply_bit_sensitivity_projection(
     projection_parameters = _projection_parameters(mask)
     logits = _projection_logits(features, projection_parameters)
     probabilities = _sigmoid(logits)
+    probability_array = probabilities.astype(np.float32, copy=False)
+    logit_array = logits.astype(np.float32, copy=False)
     selected_axes = sorted({axis for params in projection_parameters for axis in params["axes"]})
     metadata = {
         **reference.metadata,
@@ -80,8 +82,8 @@ def apply_bit_sensitivity_projection(
     }
     artifact = EnsembleScoreArtifact(
         labels=reference.labels,
-        probabilities=probabilities.astype(np.float32, copy=False),
-        logits=logits.astype(np.float32, copy=False),
+        probabilities=probability_array,
+        logits=logit_array,
         sample_ids=reference.sample_ids,
         metadata=metadata,
     )
@@ -95,7 +97,7 @@ def apply_bit_sensitivity_projection(
         "mask": str(mask_path),
         "reference_artifact": str(reference_artifact_dir),
         "metrics": {
-            "auc": binary_auc(reference.labels.astype(np.float32, copy=False), probabilities),
+            "auc": binary_auc(reference.labels.astype(np.float32, copy=False), probability_array),
         },
         "guardrails": [
             "mask_must_be_train_selected",
