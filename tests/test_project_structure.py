@@ -2270,6 +2270,10 @@ def test_trail_position_262k_followup_local_launchers_handoff_to_tmux_monitors()
         assert f"monitor_i1_present_r8_trailpos_262k_seed{seed}_20260706" in launcher_text
         assert f"outputs/remote_results/{run_id}/monitor" in launcher_text
         assert "tmux new-session -d -s" in launcher_text
+        assert "tmux has-session -t \"${MONITOR_SESSION}\"" in launcher_text
+        assert "monitor_started monitor=${MONITOR_SESSION}" in launcher_text
+        assert "monitor_already_running monitor=${MONITOR_SESSION}" in launcher_text
+        assert launcher_text.index("monitor_started monitor=${MONITOR_SESSION}") < launcher_text.index("ssh lxy-a6000")
         assert "launch_done.marker" in launcher_text
         assert "launch_failed.marker" in launcher_text
 

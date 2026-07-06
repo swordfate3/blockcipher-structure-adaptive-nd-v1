@@ -13,6 +13,13 @@ MONITOR_SESSION="monitor_i1_present_r8_trailpos_262k_seed1_20260706"
 mkdir -p "${LOCAL_MONITOR_DIR}"
 echo "$(date -Is) launch_start" >> "${LOCAL_MONITOR_DIR}/launch.log"
 
+if tmux has-session -t "${MONITOR_SESSION}" >/dev/null 2>&1; then
+  echo "$(date -Is) monitor_already_running monitor=${MONITOR_SESSION}" >> "${LOCAL_MONITOR_DIR}/launch.log"
+else
+  tmux new-session -d -s "${MONITOR_SESSION}" "${MONITOR_SCRIPT}"
+  echo "$(date -Is) monitor_started monitor=${MONITOR_SESSION}" >> "${LOCAL_MONITOR_DIR}/launch.log"
+fi
+
 set +e
 ssh lxy-a6000 "cmd.exe /c if not exist \"${REMOTE_RUN_ROOT}\" mkdir \"${REMOTE_RUN_ROOT}\" && if exist \"${REMOTE_SOURCE_ROOT}\\.git\" (cd /d \"${REMOTE_SOURCE_ROOT}\" && git fetch origin main && git checkout main && git pull --ff-only origin main) else (git clone --branch main \"${REPO_URL}\" \"${REMOTE_SOURCE_ROOT}\") && call \"${REMOTE_RUN_CMD}\"" \
   >> "${LOCAL_MONITOR_DIR}/launch.log" \
@@ -26,6 +33,5 @@ if [[ ${status} -ne 0 ]]; then
   exit "${status}"
 fi
 
-tmux new-session -d -s "${MONITOR_SESSION}" "${MONITOR_SCRIPT}"
 echo "$(date -Is) launch_done monitor=${MONITOR_SESSION}" >> "${LOCAL_MONITOR_DIR}/launch.log"
 echo "done" > "${LOCAL_MONITOR_DIR}/launch_done.marker"
