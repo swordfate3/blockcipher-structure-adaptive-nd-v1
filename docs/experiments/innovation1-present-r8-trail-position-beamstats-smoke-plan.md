@@ -1008,6 +1008,102 @@ not a Zhang/Wang r7 Case2 result, not a breakthrough claim, and not a diverse
 multi-network ensemble result.
 ```
 
+## 8192/Class Local Extension Plan
+
+Because the 65k/class remote diagnostic is still blocked by source publication,
+the next local-only step is a narrow 8192/class extension of the same protocol.
+This is a continuation diagnostic, not a new route and not an ensemble.
+
+Config:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv
+```
+
+Rows:
+
+| Row | Model | Role | Scale |
+|---:|---|---|---:|
+| 0 | `present_pairset_global_stats` | same-input global-statistics neural control, seed0 | `8192/class` |
+| 1 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed0 | `8192/class` |
+| 2 | `present_pairset_global_stats` | same-input global-statistics neural control, seed1 | `8192/class` |
+| 3 | `present_trail_position_stats_pairset` | depth/word/cell trail-position candidate, seed1 | `8192/class` |
+
+Training command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_8192 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --output outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/progress.jsonl
+```
+
+Plan-alignment gate after training:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl \
+  --expected-rows 4
+```
+
+Residual gate after training:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/audit-spn-features \
+  --trail-position-control-baseline-plan configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_8192_local.csv \
+  --row-index <1-or-3> \
+  --samples-per-class 8192 \
+  --seed <0-or-1> \
+  --key-split validation \
+  --control-active-nibbles 1 \
+  --control-input-differences 0x90 \
+  --control-pair-orders reverse \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_trail_position_beamstats_8192 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --progress-output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_8192_progress.jsonl \
+  --output outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed<seed>_8192.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-trail-position-residual \
+  --results outputs/local_smoke/i1_present_r8_trail_position_beamstats_8192/results.jsonl \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_8192.json \
+  --baseline-audit outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_8192.json \
+  --output outputs/local_audits/i1_present_r8_trail_position_residual_gate_8192.json
+```
+
+Gate criteria:
+
+```text
+candidate must beat same-input global-stat neural control
+candidate must beat train-selected deterministic position-statistics baseline
+deterministic baseline must beat active-nibble/input-difference mismatch controls
+pair-order reverse parity remains pair_order_not_bottleneck, not an automatic fail
+```
+
+Claim scope:
+
+```text
+8192/class local diagnostic only
+not remote evidence
+not formal SPN/PRESENT evidence
+not a diverse-ensemble result
+```
+
 Prepared assets:
 
 ```text
