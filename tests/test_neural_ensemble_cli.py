@@ -40,6 +40,20 @@ def write_tiny_speck_plan(path: Path) -> Path:
     return path
 
 
+def write_tiny_present_trail_position_plan(path: Path) -> Path:
+    path.write_text(
+        "\n".join(
+            [
+                "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,samples_per_class,pairs_per_sample,feature_encoding,negative_mode,train_key,validation_key,key_rotation_interval,sample_structure,integral_active_nibble,difference_profile,difference_member,loss,learning_rate,optimizer,weight_decay,lr_scheduler,max_learning_rate,checkpoint_metric,restore_best_checkpoint,early_stopping_patience,early_stopping_min_delta,model_options,evidence,literature",
+                'PRESENT-80,SPN,Tiny-PRESENT-TrailPosition,present_trail_position_stats_pairset,tiny,0,1,8,0,2,2,present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits,encrypted_random_plaintexts,0x00000000000000000000,0x11111111111111111111,0,plaintext_integral_nibble_difference_matched_negative,0,present_zhang_wang2022_mcnd,0,mse,0.0001,adam,0.00001,none,,val_auc,true,0,0.0,"{""trail_depth"":4,""trail_words_per_depth"":9,""stats_hidden_bits"":64}","SMOKE only for bit-sensitivity structural feature view","test"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def write_two_seed_tiny_speck_plan(path: Path) -> Path:
     header = (
         "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,"
@@ -1293,6 +1307,42 @@ def test_export_bit_sensitivity_features_matches_reference_artifact(tmp_path):
     assert aligned_metadata["alignment"]["reference_checked"] is True
     assert aligned_metadata["alignment"]["labels"] is True
     assert aligned_metadata["alignment"]["sample_ids"] is True
+
+
+def test_export_bit_sensitivity_features_can_write_trail_position_stats_view(tmp_path):
+    plan = write_tiny_present_trail_position_plan(tmp_path / "present_plan.csv")
+    output = tmp_path / "trail_stats_features"
+
+    status = export_bit_sensitivity_features_main(
+        [
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "validation",
+            "--samples-per-class",
+            "2",
+            "--feature-view",
+            "trail_position_stats",
+            "--output-dir",
+            str(output),
+        ]
+    )
+
+    assert status == 0
+    features = np.load(output / "features.npy")
+    labels = np.load(output / "labels.npy")
+    metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
+    assert features.shape[0] == labels.shape[0] == 4
+    assert features.shape[1] == metadata["output_feature_bits"]
+    assert metadata["feature_view"] == "trail_position_stats"
+    assert metadata["feature_view_metadata"]["view"] == "trail_position_stats"
+    assert metadata["feature_view_metadata"]["pair_bits"] == 2496
+    assert metadata["feature_view_metadata"]["pairs_per_sample"] == 2
+    assert metadata["feature_view_metadata"]["trail_depth"] == 4
+    assert metadata["feature_view_metadata"]["trail_words_per_depth"] == 9
+    assert metadata["output_feature_bits"] < metadata["input_bits"]
 
 
 def test_export_bit_sensitivity_features_rejects_reference_label_mismatch(tmp_path):

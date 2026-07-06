@@ -169,6 +169,66 @@ claiming that grouped-axis projection is a trained model result
 claiming diverse-expert readiness without same-protocol AUC and overlap gates
 ```
 
+## V2 Trail-Position Structural-Stats Local Screen
+
+The next local-only follow-up changes the representation rather than merely
+changing the number of contiguous raw axes. `export-bit-sensitivity-features`
+now supports:
+
+```text
+--feature-view trail_position_stats
+```
+
+This deterministic view reuses the PRESENT trail-position model's internal
+position statistics, compressing the raw validation matrix from `39936` bits to
+`3708` structure-aware features. The selector still uses only train-split
+scores/features, and the frozen scorer is still applied only on the held-out
+validation split.
+
+Seed0 2048/class local screen:
+
+```text
+train_features =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_train_trail_stats_features
+validation_features =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_validation_trail_stats_features
+mask =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_mask.json
+score_artifact =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_scores
+gate =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_gate.json
+decision = projection_expert_ready_for_local_screen
+```
+
+Metrics:
+
+| Artifact | AUC |
+|---|---:|
+| Same-input global control | `0.8542919158935547` |
+| Trail-position anchor | `0.9985876083374023` |
+| Structural-stats projection | `0.9096775054931641` |
+
+Gate deltas and overlap:
+
+```text
+projection_margin_vs_global_auc = +0.055385589599609375
+projection_margin_vs_anchor_auc = -0.08891010284423828
+anchor_projection_error_jaccard = 0.057441253263707574
+anchor_projection_probability_correlation = 0.7581187418530917
+```
+
+Interpretation:
+
+```text
+This is the first bit-sensitivity projection variant that clears the
+same-input global control. It supports the representation hypothesis:
+structure-aware residual summaries are materially better than raw-axis masks
+or contiguous raw-axis means. It remains a seed0 local diagnostic only. Do not
+launch remote scale or claim diverse-pool readiness until seed1 is repeated
+with train-only selection and the same validation gate.
+```
+
 ## Fixed Protocol
 
 The first screen must keep the active PRESENT r8 protocol fixed:

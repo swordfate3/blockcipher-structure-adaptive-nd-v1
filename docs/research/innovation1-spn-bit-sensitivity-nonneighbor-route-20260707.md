@@ -242,6 +242,48 @@ residual response maps, compressed multi-pair block statistics, or explicit
 trail-family residual features. Those are more aligned with the literature
 than adding more weak projection scorers to an ensemble.
 
+## 2026-07-07 V2 Structural-Stats Projection Screen
+
+The next variant implements that representation shift directly:
+
+```text
+feature_view = trail_position_stats
+raw_input_bits = 39936
+structural_stats_bits = 3708
+selection = train split only
+scoring = held-out validation split only
+```
+
+Instead of selecting isolated raw bits or contiguous raw columns, the selector
+works on deterministic per-depth/per-word/per-cell statistics already used by
+the strongest trail-position model family. This is still a frozen projection,
+not a trained network.
+
+Seed0 2048/class local result:
+
+```text
+same_input_global_control_auc = 0.8542919158935547
+trail_position_anchor_auc = 0.9985876083374023
+structural_stats_projection_auc = 0.9096775054931641
+margin_vs_global_auc = +0.055385589599609375
+margin_vs_anchor_auc = -0.08891010284423828
+error_jaccard_with_anchor = 0.057441253263707574
+decision = projection_expert_ready_for_local_screen
+```
+
+Updated interpretation:
+
+```text
+V0 raw-axis projection failed.
+V1 contiguous raw-axis group means remained weak.
+V2 structural-stat projection clears the same-input global control on seed0.
+```
+
+This is the strongest evidence so far for the non-neighbor projection idea,
+but the claim is narrow: local seed0 screen only. Before this route can become
+a real multi-network/diverse-pool candidate, repeat seed1 with train-only
+selection, then check whether the low error-overlap pattern survives.
+
 Promotion remains hard:
 
 ```text
