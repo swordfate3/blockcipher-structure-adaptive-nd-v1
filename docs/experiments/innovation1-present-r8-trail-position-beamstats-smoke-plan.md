@@ -1355,19 +1355,22 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/check-launch-source
 current_status = fail
 branch = main
 upstream = origin/main
-ahead = 38
-dirty = true
-errors = unpushed_commits, dirty_worktree
+ahead = 48
+dirty = false
+errors = unpushed_commits
 ```
 
 Interpretation:
 
 ```text
 The remote config and generated launch/monitor artifacts are ready, but the
-source publication gate is not. The dirty state is from the local
-check-launch-source gate files before they are committed; the unpushed-commits
-state remains a hard launch blocker until the branch is pushed with explicit
-approval. Do not launch this remote job from an unpushed or dirty source tree.
+source publication gate is not. The worktree is now clean, but `main` is still
+48 commits ahead of `origin/main`; the unpushed-commits state remains a hard
+launch blocker until the branch is pushed with explicit approval. A 2026-07-06
+attempt to run `git push origin main` was rejected by the sandbox reviewer
+because pushing 48 commits to GitHub is a high-risk outbound transfer without
+explicit approval for that exact push. Do not launch this remote job from an
+unpushed source tree or by dirty overlay.
 ```
 
 After retrieval, the same residual gate must be rerun at `65536/class` before

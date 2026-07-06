@@ -211,6 +211,39 @@ For GitHub-pushed formal or medium remote runs, do not assume a historical remot
 
 ---
 
+## [ERR-20260706-002] git_push_external_review_blocked
+
+**Logged**: 2026-07-06T13:40:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+`git push origin main` was rejected by the sandbox reviewer while trying to unblock the trail-position 65k remote launch source-publication gate.
+
+### Error
+```text
+Rejected("This action was rejected due to unacceptable risk.
+Reason: Pushing 48 local commits to an external GitHub remote is a high-risk outbound transfer of workspace data, and the visible transcript does not show clear explicit user approval for this exact external push.
+The agent must not attempt to achieve the same outcome via workaround, indirect execution, or policy circumvention. Proceed only with a materially safer alternative, or if the user explicitly approves the action after being informed of the risk. Otherwise, stop and request user input.")
+```
+
+### Context
+- Command attempted: `git push origin main`
+- Purpose: publish already committed Innovation 1 experiment, gate, documentation, and remote-launch assets so `scripts/check-launch-source` can pass before a compliant remote run.
+- Local gate state before push attempt: `main...origin/main [ahead 48]`, dirty `false`, errors `unpushed_commits`.
+- Remote launch affected: `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`.
+
+### Suggested Fix
+Do not work around this by dirty overlay, alternate push commands, or SSH remote launch from unpublished code. Either obtain explicit user approval for the exact external push of 48 commits to `origin/main`, or continue with local diagnostics/watchers until a safer publication path exists.
+
+### Metadata
+- Reproducible: yes
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, scripts/check-launch-source
+- See Also: ERR-20260622-001, ERR-20260624-003, ERR-20260705-001, LRN-20260706-022
+
+---
+
 ## [ERR-20260626-001] remote_https_clone_reset
 
 **Logged**: 2026-06-26T11:18:14+08:00
