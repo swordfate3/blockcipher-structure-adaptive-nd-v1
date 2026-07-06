@@ -953,10 +953,13 @@ Boundary:
 ```text
 This is not a full 4096/class residual gate. Two same-scale deterministic
 control-baseline audits were started but interrupted because they were too slow
-for the local CPU path. Therefore the 4096/class result may be used only as a
-neural bridge over the global-control row. The current complete residual-gated
-evidence remains the 2048/class gate until the deterministic/mismatch controls
-are rerun at 4096/class or above.
+for the local CPU path. Two lighter split-baseline-only audits were also tried,
+but even those did not complete within the bounded local wait. Therefore the
+4096/class result may be used only as a neural bridge over the global-control
+row. The current complete residual-gated evidence remains the 2048/class gate
+until the deterministic/mismatch controls are rerun at 4096/class or above,
+preferably through a cached/progress-enabled audit path or on the remote GPU
+workspace.
 ```
 
 Prepared assets:
