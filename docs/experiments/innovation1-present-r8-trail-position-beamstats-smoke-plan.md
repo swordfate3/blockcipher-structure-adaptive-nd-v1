@@ -1691,6 +1691,7 @@ Local repair prepared:
 
 ```text
 10745cd fix: reuse dataset cache for score export
+repair_asset = configs/remote/generated/repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.cmd
 
 Adds:
   --dataset-cache-root
@@ -1706,9 +1707,19 @@ Validation:
   status = 6 passed, 371 deselected
 ```
 
-The repair is not yet active on the remote run because `main` is currently
-ahead of `origin/main` by 3 commits and external `git push origin main` was
-rejected by sandbox review without explicit approval for those exact commits.
+Repair-asset intent:
+
+```text
+The repair asset is postprocess-only. It checks the already retrieved
+train_matrix.jsonl and both checkpoints, pulls pushed cache-aware code into the
+run-owned source clone, exports global_stats_control and trail_position frozen
+scores with dataset-cache/progress arguments, then writes score_export_done and
+final done markers. It must not rerun scripts\train.
+```
+
+The repair is not yet active on the remote run because `main` is ahead of
+`origin/main` and external `git push origin main` was rejected by sandbox
+review without explicit approval for the exact local commit set.
 
 Next action:
 
@@ -1716,10 +1727,11 @@ Next action:
 1. Keep the corrected watcher as the retrieval path for any score artifacts
    produced by the old export process.
 2. Push the three local repair commits when explicit approval permits:
-   2134f0d, 024ef2e, 10745cd.
+   2134f0d, 024ef2e, 10745cd. Also push the documentation/repair-asset commit
+   if present in the local branch.
 3. If old export remains nonproductive, relaunch only the score-export
-   postprocess from pushed cache-aware code under the same G:\lxy run root;
-   do not rerun training unless artifacts/checkpoints are missing.
+   postprocess with the repair asset under the same G:\lxy run root; do not
+   rerun training unless artifacts/checkpoints are missing.
 4. After score artifacts are retrieved, run the 65k same-protocol residual
    interpretation against deterministic position-statistics and mismatch
    controls before any stronger claim.

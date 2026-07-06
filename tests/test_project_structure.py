@@ -2156,6 +2156,31 @@ def test_trail_position_medium_remote_launch_assets_export_scores_only():
     assert '${LOCAL_ROOT}/logs/*done.marker' not in monitor_text
 
 
+def test_trail_position_medium_remote_score_export_repair_asset():
+    repair = Path(
+        "configs/remote/generated/"
+        "repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.cmd"
+    )
+    repair_text = repair.read_text(encoding="utf-8")
+
+    assert "cmd.exe /k" not in repair_text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in repair_text
+    assert "C:\\Users" not in repair_text
+    assert "Desktop" not in repair_text
+    assert "Downloads" not in repair_text
+    assert "AppData" not in repair_text
+    assert "scripts\\train" not in repair_text
+    assert repair_text.count("scripts\\export-checkpoint-scores") == 2
+    assert "--dataset-cache-root \"%DATASET_CACHE_ROOT%\"" in repair_text
+    assert repair_text.count("--progress-output \"%LOG_DIR%\\trail_position_beamstats_score_export_repair_progress.jsonl\"") == 2
+    assert "row0001_present_pairset_global_stats_seed0.pt" in repair_text
+    assert "row0002_present_trail_position_stats_pairset_seed0.pt" in repair_text
+    assert "%RUN_ID%_score_export_repair_started.marker" in repair_text
+    assert "%RUN_ID%_score_export_done.marker" in repair_text
+    assert "%RUN_ID%_done.marker" in repair_text
+    assert "%RUN_ID%_score_export_repair_failed.marker" in repair_text
+
+
 def test_sbox_transition_prior_gate_plan_is_protocol_locked_and_deferred():
     plan = Path("docs/experiments/innovation1-sbox-transition-prior-gate-plan.md").read_text(encoding="utf-8")
 
