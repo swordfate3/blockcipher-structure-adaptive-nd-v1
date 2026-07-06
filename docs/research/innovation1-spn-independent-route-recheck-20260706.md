@@ -621,3 +621,78 @@ The gate closes a reporting gap: a route can be cache-ready and launcher-ready
 while still not being eligible for remote execution. For this project, a
 meaningful remote experiment should still launch from a clean pushed commit
 unless explicitly labeled as an emergency dirty-overlay repair.
+
+## 2026-07-06 Trail-Position 262k Wait Gate
+
+The active trail-position route has advanced beyond the earlier 65k readiness
+state. The current main route is the two-seed `262144/class` PRESENT r8
+trail-position medium diagnostic:
+
+```text
+seed0_run = i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706
+seed1_run = i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706
+global_control = present_pairset_global_stats
+candidate = present_trail_position_stats_pairset
+negative_mode = encrypted_random_plaintexts
+status = running / watcher-managed / not postprocess-ready
+```
+
+Latest local-only watcher snapshot, 2026-07-06T23:45:18+08:00:
+
+```text
+seed0 class cache progress = 262144 / 262144 = 100.0%
+seed1 class cache progress = 262144 / 262144 = 100.0%
+seed0 total cache progress = 262144 / 524288 = 50.0%
+seed1 total cache progress = 262144 / 524288 = 50.0%
+seed0 train_matrix rows = 0
+seed1 train_matrix rows = 0
+score_artifacts = missing
+watcher heartbeat = fresh
+needs_main_thread_intervention = false
+```
+
+This is progress, not a result. It means the positive train-class cache has
+completed and the run is still before retrieved training rows and score
+artifacts. The correct action is to keep the watcher path active and not start
+another SPN/PRESENT branch while this medium diagnostic is healthy.
+
+The independent route decision remains:
+
+```text
+1. Wait for 262k trail-position score artifacts.
+2. If both seeds pass the residual/error-overlap gate, prepare a 1000000/class
+   multi-seed plan with deterministic/mismatch controls before any launch.
+3. If one seed weakens, has high overlap, or fails the same-input global
+   control, hold the route and return to SPN-aware representation search.
+4. Do not promote a wider multi-network ensemble until at least one genuinely
+   different expert family has compatible frozen scores and low-overlap
+   evidence.
+```
+
+The external evidence recheck still supports this ordering. The relevant
+primary sources remain:
+
+```text
+Zhang/Wang 2022, arXiv:2204.06341:
+  PRESENT improvements came from multiple-ciphertext-pair derived input
+  formats and model/input changes.
+
+Zhang et al. 2025, arXiv:2505.10790:
+  neural methods are useful as integral-feature explorers, especially when the
+  discovered structure feeds back into cryptanalytic search.
+
+Sakagami et al. 2026, arXiv:2606.10692:
+  changing to an LLM-style model did not by itself beat the ResNet baseline on
+  SPECK, while prompt/input representation mattered.
+```
+
+So the current waiting-period rule is:
+
+```text
+trail-position 262k watcher-managed result first
+SPN-aware representation/control search second
+diverse multi-network aggregation third, only after non-neighbor score evidence
+```
+
+This is a route-management decision only. It is not a 262k result claim, not a
+formal SPN/PRESENT claim, and not a claim that ensemble methods are useless.
