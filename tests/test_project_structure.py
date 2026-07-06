@@ -2227,6 +2227,21 @@ def test_trail_position_report_cli_asset():
     assert "blockcipher_nd.cli.render_trail_position_report" in script_text
 
 
+def test_trail_position_1m_conditional_plan_is_gated_and_controlled():
+    plan = Path("docs/experiments/innovation1-present-r8-trail-position-1m-conditional-plan.md")
+    assert plan.exists()
+    text = plan.read_text(encoding="utf-8")
+
+    assert "conditional plan only / no launch" in text
+    assert "1000000/class" in text
+    assert "encrypted_random_plaintexts" in text
+    assert "present_pairset_global_stats" in text
+    assert "present_trail_position_stats_pairset" in text
+    assert "postprocess decision = support_trail_position_score_residual_all_runs" in text
+    assert "This plan does not authorize an immediate remote run" in text
+    assert "cmd.exe /c, not cmd.exe /k" in text
+
+
 def test_trail_position_262k_followup_remote_assets_are_scale_up_and_verify_scores():
     for seed, gpu in [(0, 0), (1, 1)]:
         suffix = f"262k_seed{seed}_gpu{gpu}_20260706"

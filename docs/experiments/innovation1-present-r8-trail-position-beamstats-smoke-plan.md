@@ -1996,3 +1996,16 @@ Next action:
    ensemble work, first find a genuinely different expert family that clears
    its own same-input global-stat control.
 ```
+
+## Conditional 1M Scale Plan
+
+A separate conditional plan now records the exact activation gate for any
+future `1000000/class` trail-position scale step:
+
+```text
+docs/experiments/innovation1-present-r8-trail-position-1m-conditional-plan.md
+```
+
+That plan is not a launch asset. It is activated only after the active
+`262144/class` seed0+seed1 run is retrieved, score artifacts verify, and the
+postprocess decision is `support_trail_position_score_residual_all_runs`.
