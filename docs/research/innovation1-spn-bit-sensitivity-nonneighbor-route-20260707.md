@@ -357,6 +357,28 @@ keeping train-side calibration selection in the toolbox for the retrieved
 262144/class artifacts, but it still does not justify a remote launch or an
 ensemble-success claim by itself.
 
+A five-selection-seed stability sweep strengthened the interpretation:
+
+```text
+selection_seeds = 0, 1, 2, 3, 4
+
+seed0 delta_vs_best_single range =
+  [-0.0000400543212890625, -0.00003814697265625]
+seed0 positive_selection_seeds = 0 / 5
+
+seed1 delta_vs_best_single range =
+  [+0.0001239776611328125, +0.0001239776611328125]
+seed1 positive_selection_seeds = 5 / 5
+
+decision = stable_but_mixed_train_holdout_stacking_diagnostic
+```
+
+This makes the route more interesting, not more publishable: train-side
+calibration selection is stable within each local seed, but the direction still
+does not clear the two-seed same-protocol improvement gate. The right next
+action remains to wait for the active 262144/class artifacts and rerun the same
+train-only selection discipline there.
+
 Promotion remains hard:
 
 ```text

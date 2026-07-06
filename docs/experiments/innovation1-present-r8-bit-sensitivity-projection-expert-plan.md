@@ -275,6 +275,26 @@ seed1 delta_stacked_vs_fixed_ensemble_auc = +0.0017070770263671875
 decision = mixed_train_holdout_stacking_diagnostic
 ```
 
+Train-holdout selection-seed stability:
+
+```text
+selection_seeds = 0, 1, 2, 3, 4
+
+seed0 delta_stacked_vs_best_single_auc:
+  min = -0.0000400543212890625
+  max = -0.00003814697265625
+  mean = -0.0000385284423828125
+  positive_selection_seeds = 0 / 5
+
+seed1 delta_stacked_vs_best_single_auc:
+  min = +0.0001239776611328125
+  max = +0.0001239776611328125
+  mean = +0.0001239776611328125
+  positive_selection_seeds = 5 / 5
+
+decision = stable_but_mixed_train_holdout_stacking_diagnostic
+```
+
 Interpretation:
 
 ```text
@@ -287,9 +307,11 @@ trail-position expert. Train-fitted logistic stacking improves over the fixed
 ensemble on both seeds, but it also remains below the best single
 trail-position anchor. Train-holdout-selected stacking improves the calibration
 picture: seed0 is nearly tied with the best single anchor and seed1 slightly
-beats it. Because the improvement is not two-seed positive, treat V2 as a
-two-seed local non-neighbor diagnostic candidate, not as a completed ensemble
-improvement or remote-launch result.
+beats it. A five-selection-seed stability sweep shows this is not a one-off
+holdout accident, but the cross-experiment-seed result is still mixed. Because
+the improvement is not two-seed positive, treat V2 as a two-seed local
+non-neighbor diagnostic candidate, not as a completed ensemble improvement or
+remote-launch result.
 ```
 
 ## Fixed Protocol

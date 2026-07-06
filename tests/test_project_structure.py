@@ -261,6 +261,8 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "train-fitted aggregation beats the best single validation AUC" in combined
     assert "train_holdout_fraction = 0.25" in combined
     assert "mixed_train_holdout_stacking_diagnostic" in combined
+    assert "stable_but_mixed_train_holdout_stacking_diagnostic" in combined
+    assert "positive_selection_seeds = 5 / 5" in combined
 
 
 def test_present_r8_round_extension_plan_preserves_strict_protocol():
