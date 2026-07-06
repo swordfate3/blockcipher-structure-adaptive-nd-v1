@@ -11026,6 +11026,108 @@ def test_summarize_spn_evidence_tracks_difference_and_integral_followups(tmp_pat
     assert "scripts/advance-integral-inverse-feature-result" in integral_active["postprocess_when_ready_command"]
 
 
+def test_summarize_spn_evidence_prioritizes_trail_position_262k_over_stale_followup(tmp_path):
+    stale_run_id = "i1_present_r9_difference_screen_65k_seed0_gpu0_20260705"
+    stale_root = tmp_path / stale_run_id
+    stale_root.mkdir(parents=True)
+    (stale_root / f"{stale_run_id}_postprocess_summary.json").write_text(
+        json.dumps(
+            {
+                "run_id": stale_run_id,
+                "status": "pass",
+                "validation_status": "pass",
+                "decision": "all_candidates_near_random_stop_difference_screen",
+                "claim_scope": "PRESENT input-difference/data-construction screen",
+                "next_action": {
+                    "branch": "stop_current_difference_screen",
+                    "should_launch_remote": False,
+                    "requires_implementation": False,
+                },
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    for run_id in [
+        "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+        "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706",
+    ]:
+        run_root = tmp_path / run_id
+        (run_root / "monitor").mkdir(parents=True)
+        (run_root / "logs").mkdir(parents=True)
+        (run_root / "results").mkdir(parents=True)
+        (run_root / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} running\n")
+        (run_root / "logs" / "trail_position_beamstats_progress.jsonl").write_text(
+            json.dumps(
+                {
+                    "event": "trail_position_cache_positive_chunk",
+                    "split": "train",
+                    "rows_done": 8192,
+                    "total_rows": 524288,
+                    "class_rows_done": 8192,
+                    "class_total": 262144,
+                    "chunk_rows": 8192,
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "wait_for_trail_position_262k_results"
+    assert active["should_launch_remote"] is False
+    assert [entry["run_id"] for entry in active["active_runs"]] == [
+        "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+        "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706",
+    ]
+    assert active["active_runs"][0]["scale"] == "262144/class"
+    assert active["active_runs"][0]["progress_summary"]["cache_class_total"] == 262144
+    assert "SSH-poll or tmux-loop from the main thread" in active["main_thread_policy"]["forbidden_until_gate"]
+
+
+def test_summarize_spn_evidence_routes_trail_position_65k_score_repair(tmp_path):
+    run_id = "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706"
+    run_root = tmp_path / run_id
+    (run_root / "monitor").mkdir(parents=True)
+    (run_root / "results").mkdir(parents=True)
+    (run_root / "checkpoints").mkdir(parents=True)
+    (run_root / "logs").mkdir(parents=True)
+    (run_root / "monitor" / "monitor.log").write_text(f"{_fresh_monitor_timestamp()} running\n")
+    (run_root / "monitor" / "score_export_repair_launch_failed.marker").write_text("failed\n")
+    (run_root / "checkpoints" / "row0001_present_pairset_global_stats_seed0.pt").write_text("checkpoint\n")
+    (run_root / "checkpoints" / "row0002_present_trail_position_stats_pairset_seed0.pt").write_text(
+        "checkpoint\n"
+    )
+    (run_root / "results" / "train_matrix.jsonl").write_text(
+        json.dumps({"model": "present_pairset_global_stats", "val_auc": 0.9916}) + "\n"
+        + json.dumps({"model": "present_trail_position_stats_pairset", "val_auc": 0.9999}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = summarize_spn_evidence(tmp_path)
+    active = report["active_recommendation"]
+
+    assert active["branch"] == "repair_trail_position_65k_score_artifacts"
+    assert active["status"] == "score_export_repair_failed"
+    assert active["repair_runs"][0]["train_rows"] == 2
+    assert active["repair_runs"][0]["checkpoint_count"] == 2
+    assert active["repair_runs"][0]["missing_score_artifacts"] == [
+        "global_stats_control/models.json",
+        "trail_position/models.json",
+    ]
+    assert any(
+        "65k/class as medium diagnostic only" in action
+        for action in active["main_thread_policy"]["allowed_actions"]
+    )
+    assert any(
+        "treat 65k/class as the main experiment" in action
+        for action in active["main_thread_policy"]["forbidden_until_gate"]
+    )
+
+
 def test_summarize_spn_evidence_lists_deferred_running_followups(tmp_path):
     heartbeat = datetime.now(timezone.utc).astimezone().replace(microsecond=0).isoformat()
     for run_id, progress_name in [

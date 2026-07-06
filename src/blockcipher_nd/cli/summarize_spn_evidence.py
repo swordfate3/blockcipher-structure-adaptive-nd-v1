@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
-from blockcipher_nd.cli.monitor_health import _progress_summary, monitor_health_report
+from blockcipher_nd.cli.monitor_health import _progress_summary, _tmux_status, monitor_health_report
 
 
 HIGH_ROUND_RUNS = [
@@ -114,6 +114,44 @@ FOLLOWUP_RUNS = [
         "wait_branch": "wait_for_pair_evidence_pooling_result",
         "postprocess_branch": "postprocess_pair_evidence_pooling_result",
         "route_label": "pair-evidence pooling",
+    },
+]
+
+TRAIL_POSITION_RUNS = [
+    {
+        "run_id": "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+        "branch": "trail_position_262k_seed0",
+        "scale": "262144/class",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md",
+        "expected_rows": 2,
+        "require_verification_summary": True,
+        "launch_tmux_session": "launch_i1_present_r8_trailpos_262k_seed0_20260706",
+        "monitor_tmux_session": "monitor_i1_present_r8_trailpos_262k_seed0_20260706",
+        "launcher": "configs/remote/generated/launch_i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706.sh",
+    },
+    {
+        "run_id": "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706",
+        "branch": "trail_position_262k_seed1",
+        "scale": "262144/class",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md",
+        "expected_rows": 2,
+        "require_verification_summary": True,
+        "launch_tmux_session": "launch_i1_present_r8_trailpos_262k_seed1_20260706",
+        "monitor_tmux_session": "monitor_i1_present_r8_trailpos_262k_seed1_20260706",
+        "launcher": "configs/remote/generated/launch_i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706.sh",
+    },
+    {
+        "run_id": "i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706",
+        "branch": "trail_position_65k_score_repair",
+        "scale": "65536/class",
+        "plan": "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_65k_seed0.csv",
+        "plan_doc": "docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md",
+        "expected_rows": 2,
+        "require_verification_summary": False,
+        "monitor_tmux_session": "monitor_i1_present_r8_trailpos_65k_20260706",
+        "launcher": "configs/remote/generated/launch_repair_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706_score_export.sh",
     },
 ]
 
@@ -381,6 +419,9 @@ def _active_recommendation(root: Path, routes: list[dict[str, Any]]) -> dict[str
     followup_running = _followup_running(root)
     if followup_running is not None:
         return followup_running
+    trail_position_active = _trail_position_active(root)
+    if trail_position_active is not None:
+        return trail_position_active
     followup_completed = _followup_completed_recommendation(routes)
     if followup_completed is not None:
         return followup_completed
@@ -566,6 +607,187 @@ def _followup_completed_recommendation(routes: list[dict[str, Any]]) -> dict[str
         "claim_scope": route.get("claim_scope"),
         "fallback_hypotheses": next_action.get("fallback_hypotheses", []),
         "next_action": next_action,
+    }
+
+
+def _trail_position_active(root: Path) -> dict[str, Any] | None:
+    entries = [_trail_position_entry(root, spec) for spec in TRAIL_POSITION_RUNS]
+    scale_up_entries = [entry for entry in entries if entry["scale"] == "262144/class"]
+    scale_up_active = [
+        entry for entry in scale_up_entries if entry["status"] in {"launch_in_progress", "running", "score_artifacts_missing"}
+    ]
+    scale_up_ready = [entry for entry in scale_up_entries if entry["status"] == "score_artifacts_ready"]
+    repair_entries = [entry for entry in entries if entry["scale"] == "65536/class"]
+    repair_needed = [
+        entry
+        for entry in repair_entries
+        if entry["status"] in {"score_export_repair_failed", "score_artifacts_missing", "running"}
+    ]
+
+    if scale_up_active:
+        return {
+            "branch": "wait_for_trail_position_262k_results",
+            "status": "running",
+            "should_launch_remote": False,
+            "reason": (
+                "PRESENT r8 trail-position 262144/class seed0/seed1 scale-up is the active SPN route; "
+                "wait for local watcher retrieval and score-artifact verification before new branch decisions"
+            ),
+            "active_runs": scale_up_active,
+            "deferred_ready_runs": scale_up_ready,
+            "deferred_repair_runs": repair_needed,
+            "main_thread_policy": _trail_position_main_thread_policy("waiting"),
+        }
+    if len(scale_up_ready) == len(scale_up_entries) and scale_up_ready:
+        return {
+            "branch": "analyze_trail_position_262k_score_artifacts",
+            "status": "score_artifacts_ready",
+            "should_launch_remote": False,
+            "reason": (
+                "trail-position 262144/class score artifacts are locally ready; run residual/error-overlap "
+                "analysis before ensemble or scale claims"
+            ),
+            "ready_runs": scale_up_ready,
+            "deferred_repair_runs": repair_needed,
+            "main_thread_policy": _trail_position_main_thread_policy("postprocess"),
+        }
+    if repair_needed:
+        return {
+            "branch": "repair_trail_position_65k_score_artifacts",
+            "status": repair_needed[0]["status"],
+            "should_launch_remote": False,
+            "reason": (
+                "65k/class trail-position training is a medium diagnostic with missing score artifacts; "
+                "repair only the frozen-score export, do not treat this as the main scale-up"
+            ),
+            "repair_runs": repair_needed,
+            "scale_up_runs": scale_up_entries,
+            "main_thread_policy": _trail_position_main_thread_policy("repair"),
+        }
+    return None
+
+
+def _trail_position_entry(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
+    run_id = str(spec["run_id"])
+    run_root = root / run_id
+    train_file = run_root / "results" / "train_matrix.jsonl"
+    train_rows = _jsonl_line_count(train_file)
+    checkpoints = sorted(path.name for path in (run_root / "checkpoints").glob("row*.pt")) if run_root.exists() else []
+    score_artifacts = _trail_position_score_artifacts(run_root, bool(spec["require_verification_summary"]))
+    missing_score_artifacts = [name for name, ready in score_artifacts.items() if not ready]
+    monitor_log = run_root / "monitor" / "monitor.log"
+    recent_monitor_lines = _tail_lines(monitor_log, 8)
+    progress_summary = _active_progress_summary(run_root)
+    repair_failed = (run_root / "monitor" / "score_export_repair_launch_failed.marker").exists()
+    failed_marker_present = bool(list((run_root / "logs").glob("*failed.marker"))) if run_root.exists() else False
+    launch_tmux = _tmux_status(str(spec["launch_tmux_session"])) if spec.get("launch_tmux_session") else {}
+    monitor_tmux = _tmux_status(str(spec["monitor_tmux_session"])) if spec.get("monitor_tmux_session") else {}
+    expected_rows = int(spec["expected_rows"])
+
+    if failed_marker_present:
+        status = "failed"
+    elif repair_failed and missing_score_artifacts:
+        status = "score_export_repair_failed"
+    elif train_rows >= expected_rows and not missing_score_artifacts:
+        status = "score_artifacts_ready"
+    elif train_rows >= expected_rows and missing_score_artifacts:
+        status = "score_artifacts_missing"
+    elif run_root.exists() and (recent_monitor_lines or progress_summary.get("exists")):
+        status = "running"
+    elif launch_tmux.get("exists") is True or monitor_tmux.get("exists") is True:
+        status = "launch_in_progress"
+    else:
+        status = "not_started_or_not_retrieved"
+
+    return {
+        "branch": spec["branch"],
+        "run_id": run_id,
+        "scale": spec["scale"],
+        "status": status,
+        "should_launch_remote": False,
+        "plan": spec["plan"],
+        "plan_doc": spec["plan_doc"],
+        "launcher": spec["launcher"],
+        "expected_rows": expected_rows,
+        "train_matrix": str(train_file),
+        "train_rows": train_rows,
+        "checkpoint_count": len(checkpoints),
+        "checkpoints": checkpoints,
+        "score_artifacts": score_artifacts,
+        "missing_score_artifacts": missing_score_artifacts,
+        "monitor_log": str(monitor_log),
+        "recent_monitor_lines": recent_monitor_lines,
+        "progress_summary": progress_summary,
+        "repair_failed_marker": str(run_root / "monitor" / "score_export_repair_launch_failed.marker"),
+        "repair_failed": repair_failed,
+        "launch_tmux": launch_tmux,
+        "monitor_tmux": monitor_tmux,
+    }
+
+
+def _trail_position_score_artifacts(run_root: Path, require_verification_summary: bool) -> dict[str, bool]:
+    score_root = run_root / "score_artifacts"
+    artifacts = {
+        "global_stats_control/models.json": (score_root / "global_stats_control" / "models.json").exists(),
+        "trail_position/models.json": (score_root / "trail_position" / "models.json").exists(),
+    }
+    if require_verification_summary:
+        artifacts["verification_summary.json"] = (score_root / "verification_summary.json").exists()
+    return artifacts
+
+
+def _jsonl_line_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+
+
+def _trail_position_main_thread_policy(state: str) -> dict[str, Any]:
+    if state == "postprocess":
+        return {
+            "allowed_actions": [
+                "verify score_artifacts/verification_summary.json for each 262144/class seed",
+                "run frozen-score residual and error-overlap analysis",
+                "update docs/experiments with run ids, metrics, deltas, claim scope, and next action",
+            ],
+            "forbidden_until_gate": [
+                "claim formal SPN/PRESENT evidence",
+                "launch 1000000/class trail-position scale-up",
+                "promote a diverse ensemble without frozen-score overlap gates",
+            ],
+            "gate_condition": (
+                "both 262144/class seeds have complete train_matrix rows, score artifacts, verification summaries, "
+                "and documented residual/error-overlap analysis"
+            ),
+        }
+    if state == "repair":
+        return {
+            "allowed_actions": [
+                "repair the 65k/class score export from the pushed source",
+                "retrieve frozen-score artifacts for diagnostic overlap analysis",
+                "keep reporting 65k/class as medium diagnostic only",
+            ],
+            "forbidden_until_gate": [
+                "treat 65k/class as the main experiment",
+                "make formal route or breakthrough claims",
+                "change labels, negatives, validation data, or metrics during repair",
+            ],
+            "gate_condition": "global_stats_control and trail_position score artifacts exist for the 65k diagnostic run",
+        }
+    return {
+        "allowed_actions": [
+            "perform bounded local status checks from watcher artifacts",
+            "wait for tmux launchers/monitors to retrieve artifacts",
+            "improve local postprocess, readiness, or summarization tooling without changing active remote runs",
+        ],
+        "forbidden_until_gate": [
+            "SSH-poll or tmux-loop from the main thread",
+            "launch another SPN branch in parallel",
+            "make route-level, formal, or breakthrough claims",
+        ],
+        "gate_condition": (
+            "watchers retrieve both 262144/class seeds and score-artifact verification becomes locally ready"
+        ),
     }
 
 
