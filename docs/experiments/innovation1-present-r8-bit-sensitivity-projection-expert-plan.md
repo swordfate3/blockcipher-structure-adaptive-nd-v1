@@ -296,6 +296,26 @@ seed1 delta_stacked_vs_best_single_auc:
 decision = stable_but_mixed_train_holdout_stacking_diagnostic
 ```
 
+Route-level stacking stability:
+
+```text
+route_stability_cli = scripts/summarize-stacked-route
+strict_route_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_stacking_route_stability_strict.json
+relaxed_route_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_stacking_route_stability_relaxed.json
+
+strict passed_seed_count = 0 / 2
+relaxed passed_seed_count = 1 / 2
+relaxed positive_seed_fraction = 0.5
+relaxed delta_mean_vs_best_single_auc:
+  min = -0.0000385284423828125
+  max = +0.0001239776611328125
+  mean = +0.000042724609375
+
+decision = stable_but_mixed_cross_seed_stacking_diagnostic
+```
+
 Interpretation:
 
 ```text
@@ -309,9 +329,11 @@ ensemble on both seeds, but it also remains below the best single
 trail-position anchor. Train-holdout-selected stacking improves the calibration
 picture: seed0 is nearly tied with the best single anchor and seed1 slightly
 beats it. A five-selection-seed stability sweep shows this is not a one-off
-holdout accident, but the cross-experiment-seed result is still mixed. Because
-the improvement is not two-seed positive, treat V2 as a two-seed local
-non-neighbor diagnostic candidate, not as a completed ensemble improvement or
+holdout accident, and the route-level summary makes the cross-seed gate
+explicit: strict selection stability passes 0/2 seeds, while relaxed
+per-seed stability passes only seed1. Because the improvement is not two-seed
+positive, treat V2 as a two-seed local non-neighbor diagnostic candidate and a
+useful frozen-score toolbox item, not as a completed ensemble improvement or
 remote-launch result.
 ```
 

@@ -374,11 +374,32 @@ seed1 positive_selection_seeds = 5 / 5
 decision = stable_but_mixed_train_holdout_stacking_diagnostic
 ```
 
+The route-level gate now combines those per-seed stability summaries instead
+of letting one seed dominate the story:
+
+```text
+route_stability_cli = scripts/summarize-stacked-route
+strict_route_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_stacking_route_stability_strict.json
+relaxed_route_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_trail_stats_stacking_route_stability_relaxed.json
+
+strict passed_seed_count = 0 / 2
+relaxed passed_seed_count = 1 / 2
+relaxed positive_seed_fraction = 0.5
+relaxed delta_mean_vs_best_single_auc range =
+  [-0.0000385284423828125, +0.0001239776611328125]
+
+decision = stable_but_mixed_cross_seed_stacking_diagnostic
+```
+
 This makes the route more interesting, not more publishable: train-side
 calibration selection is stable within each local seed, but the direction still
-does not clear the two-seed same-protocol improvement gate. The right next
-action remains to wait for the active 262144/class artifacts and rerun the same
-train-only selection discipline there.
+does not clear the two-seed same-protocol improvement gate. The useful progress
+is methodological: the project now has a reusable cross-seed gate for future
+frozen-score aggregation, so a future 262144/class result must pass the same
+train-only selection discipline and the same route-level gate before it can be
+called a multi-network improvement.
 
 Promotion remains hard:
 

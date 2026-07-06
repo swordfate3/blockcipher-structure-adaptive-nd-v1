@@ -9,6 +9,7 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
+from blockcipher_nd.cli.summarize_stacked_route import main as summarize_stacked_route_main
 from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.export_bit_sensitivity_features import (
@@ -715,6 +716,105 @@ def test_summarize_stacked_selection_reports_mixed_diagnostic(tmp_path):
     assert summary["positive_count"] == 1
     assert summary["same_selection"] is False
     assert summary["delta_vs_best_single_auc"]["max"] == 0.2
+
+
+def test_summarize_stacked_route_reports_cross_seed_pass(tmp_path):
+    summaries = []
+    for index, delta_mean in enumerate([0.01, 0.02]):
+        path = tmp_path / f"seed{index}_summary.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "decision": "stable_stacked_selection_improves_best_single",
+                    "report_count": 5,
+                    "positive_count": 5,
+                    "positive_fraction": 1.0,
+                    "delta_vs_best_single_auc": {
+                        "min": delta_mean,
+                        "max": delta_mean + 0.001,
+                        "mean": delta_mean,
+                    },
+                    "same_selection": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+        summaries.append(path)
+    output = tmp_path / "route_summary.json"
+
+    status = summarize_stacked_route_main(
+        [
+            "--summaries",
+            *(str(path) for path in summaries),
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["decision"] == "stable_cross_seed_stacking_improves_best_single"
+    assert summary["passed_seed_count"] == 2
+    assert summary["positive_seed_fraction"] == 1.0
+    assert summary["delta_mean_vs_best_single_auc"]["min"] == 0.01
+    assert "route-level diagnostic" in summary["claim_scope"]
+
+
+def test_summarize_stacked_route_reports_mixed_cross_seed_diagnostic(tmp_path):
+    rows = [
+        (
+            "seed0_summary.json",
+            "mixed_or_unstable_stacked_selection_diagnostic",
+            0,
+            0.0,
+            -0.00004,
+        ),
+        (
+            "seed1_summary.json",
+            "stable_stacked_selection_improves_best_single",
+            5,
+            1.0,
+            0.00012,
+        ),
+    ]
+    summaries = []
+    for name, decision, positive_count, positive_fraction, delta_mean in rows:
+        path = tmp_path / name
+        path.write_text(
+            json.dumps(
+                {
+                    "decision": decision,
+                    "report_count": 5,
+                    "positive_count": positive_count,
+                    "positive_fraction": positive_fraction,
+                    "delta_vs_best_single_auc": {
+                        "min": delta_mean,
+                        "max": delta_mean,
+                        "mean": delta_mean,
+                    },
+                    "same_selection": False,
+                }
+            ),
+            encoding="utf-8",
+        )
+        summaries.append(path)
+    output = tmp_path / "route_summary.json"
+
+    status = summarize_stacked_route_main(
+        [
+            "--summaries",
+            *(str(path) for path in summaries),
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["decision"] == "stable_but_mixed_cross_seed_stacking_diagnostic"
+    assert summary["passed_seed_count"] == 1
+    assert summary["positive_seed_fraction"] == 0.5
+    assert summary["delta_mean_vs_best_single_auc"]["min"] == -0.00004
 
 
 def test_postprocess_trail_position_result_reports_pending_until_artifacts_ready(tmp_path):

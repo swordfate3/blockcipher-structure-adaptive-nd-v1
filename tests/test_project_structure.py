@@ -264,6 +264,8 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "stable_but_mixed_train_holdout_stacking_diagnostic" in combined
     assert "positive_selection_seeds = 5 / 5" in combined
     assert "scripts/summarize-stacked-selection" in combined
+    assert "scripts/summarize-stacked-route" in combined
+    assert "stable_but_mixed_cross_seed_stacking_diagnostic" in combined
 
 
 def test_present_r8_round_extension_plan_preserves_strict_protocol():
