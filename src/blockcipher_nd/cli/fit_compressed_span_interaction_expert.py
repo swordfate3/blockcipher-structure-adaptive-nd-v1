@@ -39,6 +39,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--auxiliary-prefix", default="aux_")
     parser.add_argument("--top-primary", type=int, default=8)
     parser.add_argument("--top-auxiliary", type=int, default=8)
+    parser.add_argument("--selection-holdout-fraction", type=float, default=0.0)
+    parser.add_argument("--selection-seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--l2", type=float, default=0.001)
@@ -60,6 +62,8 @@ def fit_compressed_span_interaction_expert(
     auxiliary_prefix: str = "aux_",
     top_primary: int = 8,
     top_auxiliary: int = 8,
+    selection_holdout_fraction: float = 0.0,
+    selection_seed: int = 0,
     steps: int = 2000,
     learning_rate: float = 0.05,
     l2: float = 0.001,
@@ -79,6 +83,8 @@ def fit_compressed_span_interaction_expert(
         raise ValueError("top_primary must be positive")
     if top_auxiliary <= 0:
         raise ValueError("top_auxiliary must be positive")
+    if selection_holdout_fraction < 0.0 or selection_holdout_fraction >= 1.0:
+        raise ValueError("selection_holdout_fraction must be in [0.0, 1.0)")
     if steps <= 0:
         raise ValueError("steps must be positive")
     if learning_rate <= 0.0:
@@ -93,10 +99,15 @@ def fit_compressed_span_interaction_expert(
     fit_labels = train["labels"].astype(np.float64, copy=True)
     if shuffle_train_labels:
         fit_labels = np.random.default_rng(shuffle_seed).permutation(fit_labels)
+    split = _selection_fit_split(
+        fit_labels,
+        selection_holdout_fraction=selection_holdout_fraction,
+        selection_seed=selection_seed,
+    )
 
     selection = _interaction_selection(
-        train_features=train["features"].astype(np.float64, copy=False),
-        fit_labels=fit_labels,
+        train_features=train["features"].astype(np.float64, copy=False)[split["selection_indices"]],
+        fit_labels=fit_labels[split["selection_indices"]],
         feature_names=names,
         primary_prefix=primary_prefix,
         auxiliary_prefix=auxiliary_prefix,
@@ -109,8 +120,8 @@ def fit_compressed_span_interaction_expert(
         selection=selection,
     )
     fitted = _fit_logistic(
-        train_augmented,
-        fit_labels,
+        train_augmented[split["fit_indices"]],
+        fit_labels[split["fit_indices"]],
         steps=steps,
         learning_rate=learning_rate,
         l2=l2,
@@ -128,6 +139,11 @@ def fit_compressed_span_interaction_expert(
         "candidate_status": candidate_status,
         "run_id": run_id,
         "feature_fit_split": "train",
+        "selection_fit_split_mode": split["mode"],
+        "selection_holdout_fraction": float(selection_holdout_fraction),
+        "selection_seed": int(selection_seed),
+        "interaction_selection_rows": int(len(split["selection_indices"])),
+        "fit_rows": int(len(split["fit_indices"])),
         "feature_train_dir": str(train_feature_dir),
         "feature_validation_dir": str(validation_feature_dir),
         "feature_model": feature_model,
@@ -176,6 +192,11 @@ def fit_compressed_span_interaction_expert(
         "validation_feature_dir": str(validation_feature_dir),
         "train_rows": int(len(train_artifact.labels)),
         "validation_rows": int(len(validation_artifact.labels)),
+        "selection_fit_split_mode": split["mode"],
+        "selection_holdout_fraction": float(selection_holdout_fraction),
+        "selection_seed": int(selection_seed),
+        "interaction_selection_rows": int(len(split["selection_indices"])),
+        "fit_rows": int(len(split["fit_indices"])),
         "feature_model": feature_model,
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
@@ -262,6 +283,43 @@ def _interaction_selection(
     }
 
 
+def _selection_fit_split(
+    labels: np.ndarray,
+    *,
+    selection_holdout_fraction: float,
+    selection_seed: int,
+) -> dict[str, Any]:
+    row_count = int(len(labels))
+    if selection_holdout_fraction == 0.0:
+        all_indices = np.arange(row_count, dtype=np.int64)
+        return {
+            "mode": "same_train_rows",
+            "selection_indices": all_indices,
+            "fit_indices": all_indices,
+        }
+
+    rng = np.random.default_rng(selection_seed)
+    selection_parts: list[np.ndarray] = []
+    fit_parts: list[np.ndarray] = []
+    for label in sorted(float(value) for value in np.unique(labels)):
+        label_indices = np.flatnonzero(labels == label)
+        if len(label_indices) < 2:
+            raise ValueError("selection holdout requires at least two train rows for each label")
+        shuffled = rng.permutation(label_indices)
+        select_count = int(round(len(shuffled) * selection_holdout_fraction))
+        select_count = max(1, min(len(shuffled) - 1, select_count))
+        selection_parts.append(shuffled[:select_count])
+        fit_parts.append(shuffled[select_count:])
+
+    selection_indices = rng.permutation(np.concatenate(selection_parts)).astype(np.int64, copy=False)
+    fit_indices = rng.permutation(np.concatenate(fit_parts)).astype(np.int64, copy=False)
+    return {
+        "mode": "train_internal_holdout",
+        "selection_indices": selection_indices,
+        "fit_indices": fit_indices,
+    }
+
+
 def _top_mean_gap_indices(
     features: np.ndarray,
     labels: np.ndarray,
@@ -329,6 +387,8 @@ def main(argv: list[str] | None = None) -> int:
         auxiliary_prefix=args.auxiliary_prefix,
         top_primary=args.top_primary,
         top_auxiliary=args.top_auxiliary,
+        selection_holdout_fraction=args.selection_holdout_fraction,
+        selection_seed=args.selection_seed,
         steps=args.steps,
         learning_rate=args.learning_rate,
         l2=args.l2,

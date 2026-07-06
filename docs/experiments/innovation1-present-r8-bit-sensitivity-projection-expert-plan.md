@@ -725,6 +725,33 @@ is tied to train-label-selected SPN coordinate interactions rather than the
 mere presence of extra dimensions. The next step should be a stricter
 interaction gate or a block-preserving model that keeps raw group information,
 not another prefit branch-logit decomposition.
+
+Strict train-internal holdout follow-up:
+  cli = scripts/fit-compressed-span-interaction-expert
+  added_gate = --selection-holdout-fraction 0.5 --selection-seed
+  selection_fit_split_mode = train_internal_holdout
+  interaction_selection_rows = 2048
+  fit_rows = 2048
+  seed0 holdout_interaction_validation_auc = 0.9998722076416016
+  seed1 holdout_interaction_validation_auc = 0.9998645782470703
+  seed0 delta_vs_full_summary_auc = -0.000041961669921875
+  seed1 delta_vs_full_summary_auc = 0.0000209808349609375
+  seed0 delta_vs_original_interaction_auc = -0.00004482269287109375
+  seed1 delta_vs_original_interaction_auc = 0.00000095367431640625
+  seed0 holdout_shuffle_validation_auc = 0.49273252487182617
+  seed1 holdout_shuffle_validation_auc = 0.5002899169921875
+  decision = raw_interaction_holdout_mixed_local_diagnostic
+
+Interpretation: once interaction selection and logistic fitting are separated
+inside the train split, the tiny raw-interaction gain is no longer uniformly
+positive. Seed1 remains slightly above the full 273D summary anchor, but seed0
+falls below it by about `4.2e-5` AUC. The shuffle controls stay near random, so
+the route is not a label-control failure; however, this stricter gate says the
+current flat cross-product expansion is not strong enough for a remote scale-up
+by itself. Keep the implementation as a diagnostic and use the result to guide
+the next architecture toward block-preserving/raw group tensor interaction
+modeling with explicit regularization, rather than promoting this exact
+hand-selected interaction bank as the next scaled candidate.
 ```
 
 ## Fixed Protocol

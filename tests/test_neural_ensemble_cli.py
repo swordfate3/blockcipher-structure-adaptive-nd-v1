@@ -1433,6 +1433,96 @@ def test_fit_compressed_span_interaction_expert_adds_train_selected_cross_group_
     assert validation_metadata["feature_count"] == 6
 
 
+def test_fit_compressed_span_interaction_expert_can_hold_out_selection_rows(tmp_path):
+    train_dir = tmp_path / "train_summary_features"
+    validation_dir = tmp_path / "validation_summary_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    train_features = np.array(
+        [
+            [-2.0, -1.0, 0.5, 0.1],
+            [-1.5, -0.8, 0.4, 0.2],
+            [1.5, 0.8, -0.4, -0.2],
+            [2.0, 1.0, -0.5, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = np.array(
+        [
+            [-1.8, -0.9, 0.4, 0.1],
+            [-1.2, -0.7, 0.3, 0.2],
+            [1.2, 0.7, -0.3, -0.2],
+            [1.8, 0.9, -0.4, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "view": "compressed_span_summary",
+        "output_feature_bits": 4,
+        "feature_names": [
+            "primary_depth_mean_depth0",
+            "primary_cell_mean_cell0",
+            "aux_depth_cell_mean_depth0_cell0",
+            "aux_word_global_max",
+        ],
+    }
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+
+    status = fit_compressed_span_interaction_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--top-primary",
+            "1",
+            "--top-auxiliary",
+            "2",
+            "--selection-holdout-fraction",
+            "0.5",
+            "--selection-seed",
+            "7",
+            "--steps",
+            "250",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["selection_fit_split_mode"] == "train_internal_holdout"
+    assert report["interaction_selection_rows"] == 2
+    assert report["fit_rows"] == 2
+    assert report["selection_holdout_fraction"] == 0.5
+    assert report["selection_seed"] == 7
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["selection_fit_split_mode"] == "train_internal_holdout"
+    assert validation_metadata["interaction_selection_rows"] == 2
+    assert validation_metadata["fit_rows"] == 2
+
+
 def test_fit_compressed_feature_expert_requires_train_split(tmp_path):
     train_dir = tmp_path / "bad_train_features"
     validation_dir = tmp_path / "validation_features"

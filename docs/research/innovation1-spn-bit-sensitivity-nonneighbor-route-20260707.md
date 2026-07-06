@@ -930,6 +930,28 @@ shuffle-label controls stay near random. This supports the next architectural
 move: preserve raw SPN-coordinate group information and add structured
 cross-group interactions, instead of compressing each group into a single logit.
 
-This is the current preferred local development route because it changes the
-SPN representation in a way the evidence actually supports, while avoiding
-premature multi-network aggregation.
+The stricter train-internal holdout gate makes that conclusion more cautious:
+
+```text
+cli = scripts/fit-compressed-span-interaction-expert
+added_gate = --selection-holdout-fraction 0.5 --selection-seed
+selection_fit_split_mode = train_internal_holdout
+interaction_selection_rows = 2048
+fit_rows = 2048
+seed0 holdout_interaction_validation_auc = 0.9998722076416016
+seed1 holdout_interaction_validation_auc = 0.9998645782470703
+seed0 delta_vs_full_summary_auc = -0.000041961669921875
+seed1 delta_vs_full_summary_auc = 0.0000209808349609375
+seed0 delta_vs_original_interaction_auc = -0.00004482269287109375
+seed1 delta_vs_original_interaction_auc = 0.00000095367431640625
+seed0 holdout_shuffle_validation_auc = 0.49273252487182617
+seed1 holdout_shuffle_validation_auc = 0.5002899169921875
+decision = raw_interaction_holdout_mixed_local_diagnostic
+```
+
+This means the exact flat cross-product bank should not be promoted as the next
+remote-scale candidate by itself. The signal is still useful because shuffle
+controls are random and seed1 survives the stricter split, but the mixed seed
+outcome says the better next move is a block-preserving/raw group tensor
+interaction model with explicit regularization, not more prefit branch logits
+and not premature multi-network aggregation.
