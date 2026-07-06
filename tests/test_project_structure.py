@@ -11272,6 +11272,17 @@ def test_summarize_spn_evidence_emits_trail_position_262k_postprocess_when_ready
     assert "i1_present_r8_trail_position_beamstats_262k_postprocess_status.json" in active[
         "decision_report_command"
     ]
+    assert "bit_sensitivity_projection_followup" in active
+    followup = active["bit_sensitivity_projection_followup"]
+    assert followup["status"] == "conditional_after_trail_position_postprocess"
+    assert followup["should_launch_remote"] is False
+    assert len(followup["per_seed_commands"]) == 2
+    assert "scripts/select-bit-sensitivity-projection" in followup["per_seed_commands"][0]["select_mask_command"]
+    assert "scripts/apply-bit-sensitivity-projection" in followup["per_seed_commands"][0]["apply_projection_command"]
+    assert "scripts/postprocess-bit-sensitivity-projection" in followup["per_seed_commands"][0]["postprocess_gate_command"]
+    assert "i1_present_r8_bit_sensitivity_projection_gate_seed0.json" in followup["per_seed_commands"][0][
+        "postprocess_gate_command"
+    ]
     assert "run frozen-score residual and error-overlap analysis" in active["main_thread_policy"]["allowed_actions"]
 
 

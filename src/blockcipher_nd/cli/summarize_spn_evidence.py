@@ -661,6 +661,7 @@ def _trail_position_active(root: Path) -> dict[str, Any] | None:
             "postprocess_command": postprocess_command_parts,
             "decision_report": str(decision_report),
             "decision_report_command": _trail_position_262k_decision_report_command(root, decision_report),
+            "bit_sensitivity_projection_followup": _bit_sensitivity_projection_followup(root, scale_up_entries),
             "main_thread_policy": _trail_position_main_thread_policy("postprocess"),
         }
     if repair_needed:
@@ -791,6 +792,108 @@ def _trail_position_262k_decision_report_command(root: Path, output: Path) -> st
             str(output),
         ]
     )
+
+
+def _bit_sensitivity_projection_followup(root: Path, entries: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "status": "conditional_after_trail_position_postprocess",
+        "should_launch_remote": False,
+        "reason": (
+            "Use only after trail-position postprocess supports the 262144/class residual gate; "
+            "this prepares local frozen-score diversity screening for a non-neighbor projection expert."
+        ),
+        "per_seed_commands": [_bit_sensitivity_projection_seed_commands(root, entry) for entry in entries],
+        "claim_scope": (
+            "local frozen-score projection follow-up only; not a trained neural-model result, "
+            "not remote evidence, and not formal SPN/PRESENT evidence"
+        ),
+    }
+
+
+def _bit_sensitivity_projection_seed_commands(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
+    run_id = str(entry["run_id"])
+    seed = _seed_label_from_run_id(run_id)
+    run_root = root / run_id
+    audit_root = Path("outputs/local_audits")
+    train_features = audit_root / f"i1_present_r8_bit_sensitivity_projection_features_{seed}.npy"
+    validation_features = audit_root / f"i1_present_r8_bit_sensitivity_projection_validation_features_{seed}.npy"
+    mask = audit_root / f"i1_present_r8_bit_sensitivity_projection_mask_{seed}.json"
+    selection_report = audit_root / f"i1_present_r8_bit_sensitivity_projection_{seed}.json"
+    score_dir = audit_root / f"i1_present_r8_bit_sensitivity_projection_scores_{seed}"
+    score_report = audit_root / f"i1_present_r8_bit_sensitivity_projection_scores_{seed}.json"
+    gate_report = audit_root / f"i1_present_r8_bit_sensitivity_projection_gate_{seed}.json"
+    global_artifact = run_root / "score_artifacts" / "global_stats_control"
+    anchor_artifact = run_root / "score_artifacts" / "trail_position"
+    return {
+        "run_id": run_id,
+        "seed": seed,
+        "select_mask_command": " ".join(
+            [
+                "env",
+                "UV_CACHE_DIR=/tmp/uv-cache",
+                "uv",
+                "run",
+                "scripts/select-bit-sensitivity-projection",
+                "--features",
+                str(train_features),
+                "--control-artifact",
+                str(global_artifact),
+                "--anchor-artifact",
+                str(anchor_artifact),
+                "--output-mask",
+                str(mask),
+                "--output-report",
+                str(selection_report),
+                "--top-k",
+                "64",
+            ]
+        ),
+        "apply_projection_command": " ".join(
+            [
+                "env",
+                "UV_CACHE_DIR=/tmp/uv-cache",
+                "uv",
+                "run",
+                "scripts/apply-bit-sensitivity-projection",
+                "--features",
+                str(validation_features),
+                "--mask",
+                str(mask),
+                "--reference-artifact",
+                str(anchor_artifact),
+                "--output-dir",
+                str(score_dir),
+                "--output-report",
+                str(score_report),
+                "--run-id",
+                f"i1_present_r8_bit_sensitivity_projection_{seed}",
+            ]
+        ),
+        "postprocess_gate_command": " ".join(
+            [
+                "env",
+                "UV_CACHE_DIR=/tmp/uv-cache",
+                "uv",
+                "run",
+                "scripts/postprocess-bit-sensitivity-projection",
+                "--global-artifact",
+                str(global_artifact),
+                "--anchor-artifact",
+                str(anchor_artifact),
+                "--projection-artifact",
+                str(score_dir),
+                "--output",
+                str(gate_report),
+            ]
+        ),
+    }
+
+
+def _seed_label_from_run_id(run_id: str) -> str:
+    for token in run_id.split("_"):
+        if token.startswith("seed") and token[4:].isdigit():
+            return token
+    return "seed_unknown"
 
 
 def _jsonl_line_count(path: Path) -> int:
