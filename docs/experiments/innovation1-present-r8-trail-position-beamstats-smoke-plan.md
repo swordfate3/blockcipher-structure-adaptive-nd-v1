@@ -1744,9 +1744,10 @@ Next action:
 ```text
 1. Keep the corrected watcher as the retrieval path for any score artifacts
    produced by the old export process.
-2. Push the three local repair commits when explicit approval permits:
-   2134f0d, 024ef2e, 10745cd. Also push the documentation/repair-asset commit
-   if present in the local branch.
+2. Push the current local `origin/main..HEAD` commit set when explicit
+   approval permits. The required push payload changes as repair and handoff
+   commits are added; before pushing, re-run `git log --oneline origin/main..HEAD`
+   and report the exact commit list.
 3. If old export remains nonproductive, relaunch only the score-export
    postprocess with the repair asset under the same G:\lxy run root; do not
    rerun training unless artifacts/checkpoints are missing.
