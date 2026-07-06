@@ -276,6 +276,8 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "sparse_compressed_feature_local_screen_positive" in combined
     assert "depth_word_cell_span" in combined
     assert "span-type structural statistics" in combined
+    assert "span_family_filter" in combined
+    assert "selected_feature_count = 731 / 3708" in combined
     assert "not a multi-network improvement" in combined
 
 

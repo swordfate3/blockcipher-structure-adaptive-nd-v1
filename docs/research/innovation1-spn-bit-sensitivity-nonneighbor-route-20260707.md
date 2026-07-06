@@ -536,6 +536,29 @@ cell structure visible to the network, then learn compact combinations across
 those groups. This is more aligned with the evidence than either a single
 hand-written scalar or a larger average of near-neighbor neural models.
 
+A direct span-family restricted expert confirms that this is not just a
+post-hoc reading of the top-256 sparse indices:
+
+```text
+span_family_cli = scripts/fit-compressed-feature-expert
+span_family_filter = depth_word_cell_span + depth_cell_span + word_span +
+  depth_word_span + cell_span
+selected_feature_count = 731 / 3708
+
+seed0 validation_auc = 0.9999723434448242
+seed0 shuffle_train_labels_auc = 0.4802093505859375
+
+seed1 validation_auc = 0.9999513626098633
+seed1 shuffle_train_labels_auc = 0.47839784622192383
+```
+
+This makes the next architectural move sharper. A span/statistic-aware expert
+should not start from all 3708 flat dimensions equally; it should explicitly
+group span families, preserve depth/word/cell coordinates, and then learn
+compact cross-group interactions. The result is still a local diagnostic, but
+it is a better design signal than either the full compressed logistic expert or
+near-neighbor network averaging.
+
 The generic diverse-expert gate can mark the pool ready because there are now
 multiple aligned families, but route-specific interpretation must be stricter:
 the compressed logistic expert is probably a stronger same structural-stat

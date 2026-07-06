@@ -907,6 +907,77 @@ def test_fit_compressed_feature_expert_writes_train_and_validation_artifacts(tmp
     assert (train_output / "models.json").exists()
 
 
+def test_fit_compressed_feature_expert_can_filter_span_feature_families(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    feature_count = 3708
+    span_index = 2620
+    train_features = np.zeros((4, feature_count), dtype=np.float32)
+    validation_features = np.zeros((4, feature_count), dtype=np.float32)
+    train_features[:, 0] = np.array([2.0, 1.5, -1.5, -2.0], dtype=np.float32)
+    validation_features[:, 0] = np.array([1.8, 1.2, -1.2, -1.8], dtype=np.float32)
+    train_features[:, span_index] = np.array([-2.0, -1.5, 1.5, 2.0], dtype=np.float32)
+    validation_features[:, span_index] = np.array([-1.8, -1.2, 1.2, 1.8], dtype=np.float32)
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+        feature_view_metadata={
+            "words_per_pair": 39,
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "output_feature_bits": feature_count,
+        },
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+        feature_view_metadata={
+            "words_per_pair": 39,
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "output_feature_bits": feature_count,
+        },
+    )
+
+    status = fit_compressed_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--include-feature-family",
+            "depth_word_cell_span",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["feature_selection"]["include_feature_families"] == ["depth_word_cell_span"]
+    assert report["feature_selection"]["original_feature_count"] == feature_count
+    assert report["feature_count"] == 576
+    assert span_index in report["feature_selection"]["selected_feature_indices"]
+    assert 0 not in report["feature_selection"]["selected_feature_indices"]
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["feature_selection"]["include_feature_families"] == ["depth_word_cell_span"]
+
+
 def test_fit_compressed_feature_expert_requires_train_split(tmp_path):
     train_dir = tmp_path / "bad_train_features"
     validation_dir = tmp_path / "validation_features"
@@ -1266,32 +1337,34 @@ def _write_feature_dir(
     features: np.ndarray,
     labels: np.ndarray,
     negative_mode: str = "encrypted_random_plaintexts",
+    feature_view_metadata: dict[str, int] | None = None,
 ) -> None:
     path.mkdir(parents=True)
     sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
     np.save(path / "features.npy", features.astype(np.float32, copy=False))
     np.save(path / "labels.npy", labels.astype(np.float32, copy=False))
     np.save(path / "sample_ids.npy", sample_ids)
+    metadata = {
+        "status": "pass",
+        "kind": "bit_sensitivity_feature_matrix",
+        "split": split,
+        "feature_view": "trail_position_stats",
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "samples_per_class": int(len(labels) // 2),
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": negative_mode,
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "train_key": "0x00000000000000000000",
+        "validation_key": "0x11111111111111111111",
+    }
+    if feature_view_metadata is not None:
+        metadata["feature_view_metadata"] = feature_view_metadata
     (path / "metadata.json").write_text(
-        json.dumps(
-            {
-                "status": "pass",
-                "kind": "bit_sensitivity_feature_matrix",
-                "split": split,
-                "feature_view": "trail_position_stats",
-                "cipher": "PRESENT-80",
-                "rounds": 8,
-                "samples_per_class": int(len(labels) // 2),
-                "pairs_per_sample": 16,
-                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
-                "negative_mode": negative_mode,
-                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
-                "difference_profile": "present_zhang_wang2022_mcnd",
-                "difference_member": 0,
-                "train_key": "0x00000000000000000000",
-                "validation_key": "0x11111111111111111111",
-            }
-        ),
+        json.dumps(metadata),
         encoding="utf-8",
     )
 

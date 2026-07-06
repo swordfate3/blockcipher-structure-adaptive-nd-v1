@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 
+from blockcipher_nd.cli.decode_compressed_feature_sparsity import _family_for_name, _feature_names_from_metadata
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 from blockcipher_nd.training.metrics import binary_auc, best_threshold_accuracy_and_threshold
 
@@ -38,6 +39,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--candidate-status", default=DEFAULT_CANDIDATE_STATUS)
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
+    parser.add_argument(
+        "--include-feature-family",
+        action="append",
+        default=[],
+        help="Restrict fitting/scoring to decoded compressed-feature families; repeat for multiple families.",
+    )
     return parser.parse_args(argv)
 
 
@@ -55,6 +62,7 @@ def fit_compressed_feature_expert(
     candidate_status: str = DEFAULT_CANDIDATE_STATUS,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
+    include_feature_families: list[str] | None = None,
 ) -> tuple[EnsembleScoreArtifact, EnsembleScoreArtifact, dict[str, Any]]:
     if steps <= 0:
         raise ValueError("steps must be positive")
@@ -66,19 +74,27 @@ def fit_compressed_feature_expert(
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
     _validate_feature_dirs(train, validation)
+    feature_selection = _select_feature_columns(
+        train["metadata"],
+        feature_count=int(train["features"].shape[1]),
+        include_feature_families=include_feature_families or [],
+    )
+    selected_indices = np.asarray(feature_selection["selected_feature_indices"], dtype=np.int64)
+    train_features = train["features"][:, selected_indices]
+    validation_features = validation["features"][:, selected_indices]
     fit_labels = train["labels"].astype(np.float64, copy=True)
     if shuffle_train_labels:
         fit_labels = np.random.default_rng(shuffle_seed).permutation(fit_labels)
     fitted = _fit_logistic(
-        train["features"].astype(np.float64, copy=False),
+        train_features.astype(np.float64, copy=False),
         fit_labels,
         steps=steps,
         learning_rate=learning_rate,
         l2=l2,
         standardize=standardize,
     )
-    train_logits = _predict_logits(train["features"], fitted)
-    validation_logits = _predict_logits(validation["features"], fitted)
+    train_logits = _predict_logits(train_features, fitted)
+    validation_logits = _predict_logits(validation_features, fitted)
     train_probabilities = _sigmoid(train_logits)
     validation_probabilities = _sigmoid(validation_logits)
 
@@ -97,7 +113,9 @@ def fit_compressed_feature_expert(
         "feature_standardize": bool(standardize),
         "fit_train_labels_shuffled": bool(shuffle_train_labels),
         "fit_label_shuffle_seed": int(shuffle_seed),
-        "feature_count": int(train["features"].shape[1]),
+        "feature_count": int(train_features.shape[1]),
+        "feature_original_count": int(train["features"].shape[1]),
+        "feature_selection": _feature_selection_metadata(feature_selection),
         "claim_scope": (
             "train-fitted compressed SPN feature expert diagnostic only; validation is "
             "held out for final scoring, and this is not remote or formal SPN/PRESENT evidence"
@@ -132,7 +150,8 @@ def fit_compressed_feature_expert(
         "validation_feature_dir": str(validation_feature_dir),
         "train_rows": int(len(train["labels"])),
         "validation_rows": int(len(validation["labels"])),
-        "feature_count": int(train["features"].shape[1]),
+        "feature_count": int(train_features.shape[1]),
+        "feature_selection": _feature_selection_metadata(feature_selection),
         "fit": {
             "steps": int(steps),
             "learning_rate": float(learning_rate),
@@ -162,6 +181,45 @@ def fit_compressed_feature_expert(
         "claim_scope": common_metadata["claim_scope"],
     }
     return train_artifact, validation_artifact, report
+
+
+def _select_feature_columns(
+    metadata: dict[str, Any],
+    *,
+    feature_count: int,
+    include_feature_families: list[str],
+) -> dict[str, Any]:
+    families = sorted({family for family in include_feature_families if family})
+    if not families:
+        return {
+            "mode": "all",
+            "include_feature_families": [],
+            "original_feature_count": int(feature_count),
+            "selected_feature_count": int(feature_count),
+            "selected_feature_indices": [int(index) for index in range(feature_count)],
+        }
+    view_metadata = metadata.get("feature_view_metadata", metadata)
+    names = _feature_names_from_metadata(view_metadata)
+    if len(names) != feature_count:
+        raise ValueError(f"expected {feature_count} feature names, got {len(names)}")
+    family_set = set(families)
+    selected = [index for index, name in enumerate(names) if _family_for_name(name) in family_set]
+    if not selected:
+        raise ValueError(f"include_feature_family matched no features: {families}")
+    return {
+        "mode": "family_filter",
+        "include_feature_families": families,
+        "original_feature_count": int(feature_count),
+        "selected_feature_count": int(len(selected)),
+        "selected_feature_indices": [int(index) for index in selected],
+    }
+
+
+def _feature_selection_metadata(feature_selection: dict[str, Any]) -> dict[str, Any]:
+    metadata = dict(feature_selection)
+    if metadata.get("mode") == "all":
+        metadata.pop("selected_feature_indices", None)
+    return metadata
 
 
 def _score_metadata(
@@ -300,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
         candidate_status=args.candidate_status,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
+        include_feature_families=args.include_feature_family,
     )
     if args.output_train_dir is not None:
         write_score_artifact(args.output_train_dir, train_artifact)

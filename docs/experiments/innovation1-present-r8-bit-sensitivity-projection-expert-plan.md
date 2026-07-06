@@ -511,6 +511,37 @@ depth_word_cell_span, depth_cell_span, word_span, depth_word_span, and
 cell_span. The useful features are spread across all four trail depths rather
 than concentrated in one depth or one cell. This points away from a single
 leakage-like scalar and toward a grouped span/statistic-aware SPN expert.
+
+Span-family restricted expert:
+
+span_family_cli = scripts/fit-compressed-feature-expert
+span_family_filter =
+  --include-feature-family depth_word_cell_span
+  --include-feature-family depth_cell_span
+  --include-feature-family word_span
+  --include-feature-family depth_word_span
+  --include-feature-family cell_span
+selected_feature_count = 731 / 3708
+
+seed0 span_family_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_span_family_report.json
+seed0 validation_auc = 0.9999723434448242
+seed0 validation_accuracy = 0.99560546875
+seed0 calibrated_validation_accuracy = 0.998046875
+seed0 shuffle_train_labels_auc = 0.4802093505859375
+
+seed1 span_family_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_span_family_report.json
+seed1 validation_auc = 0.9999513626098633
+seed1 validation_accuracy = 0.99658203125
+seed1 calibrated_validation_accuracy = 0.99853515625
+seed1 shuffle_train_labels_auc = 0.47839784622192383
+
+This strengthens the span/statistic-aware architecture direction: the five
+span families alone retain almost all of the compressed structural-stat signal
+while the shuffle-label control stays near random. It is still a 2048/class
+local diagnostic only, not remote evidence, not formal SPN/PRESENT evidence,
+and not a multi-network improvement.
 ```
 
 ## Fixed Protocol
