@@ -56,9 +56,11 @@ def apply_bit_sensitivity_projection(
     mask = json.loads(mask_path.read_text(encoding="utf-8"))
     if mask.get("selection_split") != "train":
         raise ValueError("bit-sensitivity projection mask must be selected on the train split")
-    axis_parameters = _axis_parameters(mask)
-    logits = _projection_logits(features, axis_parameters)
+    projection_unit = str(mask.get("projection_unit") or "axis")
+    projection_parameters = _projection_parameters(mask)
+    logits = _projection_logits(features, projection_parameters)
     probabilities = _sigmoid(logits)
+    selected_axes = sorted({axis for params in projection_parameters for axis in params["axes"]})
     metadata = {
         **reference.metadata,
         "model_key": model_key,
@@ -67,7 +69,9 @@ def apply_bit_sensitivity_projection(
         "run_id": run_id,
         "projection_mask": str(mask_path),
         "projection_features": str(features_path),
-        "projection_axis_count": len(axis_parameters),
+        "projection_unit": projection_unit,
+        "projection_axis_count": len(selected_axes),
+        "projection_group_count": len(projection_parameters) if projection_unit != "axis" else 0,
         "projection_source": "bit_sensitivity_train_only_mask",
         "claim_scope": (
             "frozen bit-sensitivity projection score artifact only; not a trained neural model, "
@@ -86,7 +90,8 @@ def apply_bit_sensitivity_projection(
         "decision": "projection_score_artifact_ready_for_local_gate",
         "rows": int(len(reference.labels)),
         "feature_shape": [int(value) for value in features.shape],
-        "axis_count": len(axis_parameters),
+        "axis_count": len(selected_axes),
+        "group_count": len(projection_parameters) if projection_unit != "axis" else 0,
         "mask": str(mask_path),
         "reference_artifact": str(reference_artifact_dir),
         "metrics": {
@@ -110,7 +115,14 @@ def _load_feature_matrix(path: Path) -> np.ndarray:
     return features.reshape(features.shape[0], -1).astype(np.float32, copy=False)
 
 
-def _axis_parameters(mask: dict[str, Any]) -> list[dict[str, float]]:
+def _projection_parameters(mask: dict[str, Any]) -> list[dict[str, Any]]:
+    selected_groups = mask.get("selected_groups")
+    if isinstance(selected_groups, list) and selected_groups:
+        return _group_parameters(selected_groups)
+    return _axis_parameters(mask)
+
+
+def _axis_parameters(mask: dict[str, Any]) -> list[dict[str, Any]]:
     selected_axes = [int(axis) for axis in mask.get("selected_axes", [])]
     if not selected_axes:
         raise ValueError("projection mask must contain selected_axes")
@@ -119,7 +131,7 @@ def _axis_parameters(mask: dict[str, Any]) -> list[dict[str, float]]:
         for row in mask.get("axis_scores", [])
         if isinstance(row, dict) and "axis" in row
     }
-    parameters: list[dict[str, float]] = []
+    parameters: list[dict[str, Any]] = []
     for axis in selected_axes:
         row = score_rows.get(axis, {})
         positive_mean = _float(row.get("positive_mean"), 1.0)
@@ -131,7 +143,7 @@ def _axis_parameters(mask: dict[str, Any]) -> list[dict[str, float]]:
         weight = max(_float(row.get("score"), 1.0), 1e-6)
         parameters.append(
             {
-                "axis": float(axis),
+                "axes": [axis],
                 "direction": direction,
                 "center": center,
                 "scale": scale,
@@ -141,19 +153,50 @@ def _axis_parameters(mask: dict[str, Any]) -> list[dict[str, float]]:
     return parameters
 
 
-def _projection_logits(features: np.ndarray, axis_parameters: list[dict[str, float]]) -> np.ndarray:
+def _group_parameters(groups: list[Any]) -> list[dict[str, Any]]:
+    parameters: list[dict[str, Any]] = []
+    for group in groups:
+        if not isinstance(group, dict):
+            continue
+        axes = [int(axis) for axis in group.get("axes", [])]
+        if not axes:
+            continue
+        positive_mean = _float(group.get("positive_mean"), 1.0)
+        negative_mean = _float(group.get("negative_mean"), 0.0)
+        delta = positive_mean - negative_mean
+        direction = 1.0 if delta >= 0.0 else -1.0
+        center = (positive_mean + negative_mean) / 2.0
+        scale = max(abs(delta), 1e-6)
+        weight = max(_float(group.get("score"), 1.0), 1e-6)
+        parameters.append(
+            {
+                "axes": axes,
+                "direction": direction,
+                "center": center,
+                "scale": scale,
+                "weight": weight,
+            }
+        )
+    if not parameters:
+        raise ValueError("projection mask selected_groups must contain axes")
+    return parameters
+
+
+def _projection_logits(features: np.ndarray, projection_parameters: list[dict[str, Any]]) -> np.ndarray:
     logits = np.zeros((features.shape[0],), dtype=np.float64)
     total_weight = 0.0
-    for params in axis_parameters:
-        axis = int(params["axis"])
-        if axis < 0 or axis >= features.shape[1]:
-            raise ValueError(f"projection axis out of range: {axis}")
+    for params in projection_parameters:
+        axes = [int(axis) for axis in params["axes"]]
+        for axis in axes:
+            if axis < 0 or axis >= features.shape[1]:
+                raise ValueError(f"projection axis out of range: {axis}")
+        values = features[:, axes].mean(axis=1).astype(np.float64, copy=False)
         weight = float(params["weight"])
         total_weight += weight
         logits += (
             weight
             * float(params["direction"])
-            * (features[:, axis].astype(np.float64, copy=False) - float(params["center"]))
+            * (values - float(params["center"]))
             / float(params["scale"])
         )
     return logits / max(total_weight, 1e-6)
@@ -190,4 +233,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

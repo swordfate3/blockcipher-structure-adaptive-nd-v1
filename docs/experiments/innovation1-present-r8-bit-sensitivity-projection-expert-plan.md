@@ -84,6 +84,51 @@ if projection is revisited, use grouped/structured axes or residual summaries,
 not individual raw feature columns alone
 ```
 
+## V1 Grouped-Axis Tooling
+
+The 2026-07-07 follow-up implemented grouped-axis projection support without
+starting another remote branch:
+
+```text
+selector = scripts/select-bit-sensitivity-projection
+new selector args = --group-size, --top-groups
+scorer = scripts/apply-bit-sensitivity-projection
+projection_unit = contiguous_axis_group
+selection_split = train only
+status = tooling ready; no candidate AUC yet
+```
+
+Rationale:
+
+```text
+The v0 single-axis mask was near random. That failure is consistent with the
+external evidence: SPN neural distinguishers benefit from structured
+multi-pair/derived representations and convolutional or grouped views, not
+isolated scalar feature columns.
+```
+
+The grouped selector ranks contiguous feature blocks using the same train-only
+residual/class statistics, expands the selected block axes for auditability,
+and writes `selected_groups` into the frozen mask. The scorer reads those
+groups and scores the mean group response as one projection unit. This keeps
+the validation split untouched and preserves compatibility with the existing
+frozen-score postprocess gate.
+
+Allowed next use:
+
+```text
+only after 262144/class trail-position score artifacts are retrieved and
+verified, run a local grouped-axis screen before any remote proposal
+```
+
+Not allowed:
+
+```text
+remote launch from grouped-axis tooling alone
+claiming that grouped-axis projection is a trained model result
+claiming diverse-expert readiness without same-protocol AUC and overlap gates
+```
+
 ## Fixed Protocol
 
 The first screen must keep the active PRESENT r8 protocol fixed:
@@ -158,6 +203,19 @@ UV_CACHE_DIR=/tmp/uv-cache uv run scripts/select-bit-sensitivity-projection \
   --output-mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_mask_seed{seed}.json \
   --output-report outputs/local_audits/i1_present_r8_bit_sensitivity_projection_seed{seed}.json \
   --top-k 64
+```
+
+Prepared grouped selector variant:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/select-bit-sensitivity-projection \
+  --features outputs/local_audits/i1_present_r8_bit_sensitivity_projection_train_features_seed{seed}/features.npy \
+  --control-artifact outputs/remote_results/<run_id>/score_artifacts/global_stats_control \
+  --anchor-artifact outputs/remote_results/<run_id>/score_artifacts/trail_position \
+  --output-mask outputs/local_audits/i1_present_r8_bit_sensitivity_projection_grouped_mask_seed{seed}.json \
+  --output-report outputs/local_audits/i1_present_r8_bit_sensitivity_projection_grouped_seed{seed}.json \
+  --group-size 8 \
+  --top-groups 8
 ```
 
 The selector writes only a train-only mask/report. It is not a model result and

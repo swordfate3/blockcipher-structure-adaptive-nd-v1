@@ -936,6 +936,98 @@ def test_select_bit_sensitivity_projection_writes_train_only_mask(tmp_path):
     assert "not a trained model result" in report["claim_scope"]
 
 
+def test_select_bit_sensitivity_projection_can_select_grouped_axes(tmp_path):
+    labels = np.array([0, 0, 1, 1, 0, 1], dtype=np.float32)
+    sample_ids = np.array(["s0", "s1", "s2", "s3", "s4", "s5"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 3,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+    }
+    control_dir = tmp_path / "control"
+    anchor_dir = tmp_path / "anchor"
+    write_score_artifact(
+        control_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.4, 0.6, 0.4, 0.6, 0.3, 0.4], dtype=np.float32),
+            logits=np.zeros_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_pairset_global_stats",
+                "expert_family": "trail_position_global_control",
+            },
+        ),
+    )
+    write_score_artifact(
+        anchor_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.3, 0.2, 0.8, 0.7, 0.4, 0.9], dtype=np.float32),
+            logits=np.ones_like(labels),
+            sample_ids=sample_ids,
+            metadata={
+                **metadata,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+            },
+        ),
+    )
+    features = np.array(
+        [
+            [0.0, 0.1, 0.0, 0.1],
+            [0.1, 0.0, 0.1, 0.0],
+            [0.8, 0.9, 0.0, 0.1],
+            [0.9, 0.8, 0.1, 0.0],
+            [0.0, 0.0, 0.0, 0.1],
+            [0.9, 0.9, 0.1, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    feature_path = tmp_path / "features.npy"
+    np.save(feature_path, features)
+    mask_path = tmp_path / "mask.json"
+    report_path = tmp_path / "report.json"
+
+    status = select_bit_sensitivity_main(
+        [
+            "--features",
+            str(feature_path),
+            "--control-artifact",
+            str(control_dir),
+            "--anchor-artifact",
+            str(anchor_dir),
+            "--output-mask",
+            str(mask_path),
+            "--output-report",
+            str(report_path),
+            "--group-size",
+            "2",
+            "--top-groups",
+            "1",
+        ]
+    )
+
+    assert status == 0
+    mask = json.loads(mask_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert mask["projection_unit"] == "contiguous_axis_group"
+    assert mask["selected_axis_count"] == 2
+    assert mask["selected_axes"] == [0, 1]
+    assert mask["selected_groups"][0]["axes"] == [0, 1]
+    assert mask["selected_groups"][0]["positive_mean"] > mask["selected_groups"][0]["negative_mean"]
+    assert report["summary"]["selected_group_count"] == 1
+    assert "group_selection_must_be_train_only" in report["guardrails"]
+
+
 def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
     labels = np.array([0, 0, 1, 1], dtype=np.float32)
     sample_ids = np.array(["v0", "v1", "v2", "v3"], dtype=str)
@@ -1029,6 +1121,95 @@ def test_apply_bit_sensitivity_projection_writes_score_artifact(tmp_path):
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["decision"] == "projection_score_artifact_ready_for_local_gate"
     assert "not a trained neural model" in report["claim_scope"]
+
+
+def test_apply_bit_sensitivity_projection_uses_grouped_axes(tmp_path):
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["v0", "v1", "v2", "v3"], dtype=str)
+    metadata = {
+        "cipher": "PRESENT-80",
+        "rounds": 8,
+        "validation_samples_per_class": 2,
+        "pairs_per_sample": 16,
+        "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+        "difference_profile": "present_zhang_wang2022_mcnd",
+        "difference_member": 0,
+        "validation_key": "0x11111111111111111111",
+        "model_key": "present_trail_position_stats_pairset",
+        "expert_family": "trail_position",
+    }
+    reference_dir = tmp_path / "reference"
+    write_score_artifact(
+        reference_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=np.array([0.2, 0.3, 0.7, 0.8], dtype=np.float32),
+            logits=np.array([-1.0, -0.5, 0.5, 1.0], dtype=np.float32),
+            sample_ids=sample_ids,
+            metadata=metadata,
+        ),
+    )
+    features = np.array(
+        [
+            [0.0, 0.2, 0.9],
+            [0.1, 0.1, 0.8],
+            [0.8, 1.0, 0.1],
+            [1.0, 0.9, 0.2],
+        ],
+        dtype=np.float32,
+    )
+    feature_path = tmp_path / "validation_features.npy"
+    np.save(feature_path, features)
+    mask_path = tmp_path / "mask.json"
+    mask_path.write_text(
+        json.dumps(
+            {
+                "selection_split": "train",
+                "projection_unit": "contiguous_axis_group",
+                "selected_axes": [0, 1],
+                "selected_groups": [
+                    {
+                        "group_id": 0,
+                        "axes": [0, 1],
+                        "positive_mean": 1.0,
+                        "negative_mean": 0.0,
+                        "score": 2.0,
+                    }
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "projection_artifact"
+    report_path = tmp_path / "projection_report.json"
+
+    status = apply_bit_sensitivity_main(
+        [
+            "--features",
+            str(feature_path),
+            "--mask",
+            str(mask_path),
+            "--reference-artifact",
+            str(reference_dir),
+            "--output-dir",
+            str(output_dir),
+            "--output-report",
+            str(report_path),
+        ]
+    )
+
+    assert status == 0
+    metadata_out = json.loads((output_dir / "models.json").read_text(encoding="utf-8"))
+    probabilities = np.load(output_dir / "probabilities.npy")
+    assert metadata_out["projection_unit"] == "contiguous_axis_group"
+    assert metadata_out["projection_axis_count"] == 2
+    assert metadata_out["projection_group_count"] == 1
+    assert probabilities[2] > probabilities[0]
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["group_count"] == 1
 
 
 def test_export_bit_sensitivity_features_matches_reference_artifact(tmp_path):

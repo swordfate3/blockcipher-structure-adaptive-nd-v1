@@ -162,6 +162,61 @@ if revisiting projection, use grouped structural axes, residual summaries, or
 multi-pair compressed formats rather than isolated raw feature columns
 ```
 
+## 2026-07-07 V1 Grouped-Axis Tooling
+
+The next concrete step is now implemented as local tooling, not as a new
+remote experiment:
+
+```text
+scripts/select-bit-sensitivity-projection --group-size <n> --top-groups <k>
+scripts/apply-bit-sensitivity-projection
+projection_unit = contiguous_axis_group
+mask fields = selected_groups, selected_axes, selected_group_count
+scorer behavior = average each selected group as one frozen projection unit
+```
+
+This is a deliberately small correction to the v0 failure. It keeps the same
+train-only mask discipline, but changes the projection unit from an isolated
+raw scalar to a contiguous structure block. That is closer to the external
+evidence thread:
+
+```text
+Zhang/Wang-style PRESENT gains are representation-driven.
+Multi-pair neural distinguisher work treats input formatting as part of the
+attack, not as a neutral preprocessing detail.
+Bit-selection/sensitivity work is useful when it compresses structured input
+so the saved budget can be spent on better evidence, not when it creates a
+standalone single-bit oracle.
+```
+
+Important limitation:
+
+```text
+grouped-axis tooling is not a result
+no grouped-axis AUC exists yet
+no remote launch is justified while 262144/class trail-position artifacts are
+still running/missing
+```
+
+The first valid use is after watcher retrieval:
+
+```text
+1. postprocess 262144/class trail-position score artifacts
+2. export train/validation bit-sensitivity features aligned to those artifacts
+3. select grouped masks on train only
+4. apply grouped frozen scorer on validation only
+5. run postprocess-bit-sensitivity-projection against global and trail anchors
+```
+
+Promotion remains hard:
+
+```text
+both seeds must clear same-input global control
+both seeds must be weak-positive
+error overlap with trail-position must be low for the right reason
+mismatch controls must stay near random
+```
+
 ## Activation Gate
 
 Do not implement or launch this as a meaningful experiment until the active
