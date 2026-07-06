@@ -882,6 +882,27 @@ best scorer. Its value is that it converts a flat feature success into an
 interpretable architecture pattern: primary SPN span backbone plus
 lower-rank auxiliary residual context.
 
+The obvious next question was whether finer semantic branch logits improve the
+two-branch grouped result. They do not:
+
+```text
+semantic_feature_model = semantic_group_logistic
+hybrid_feature_model = hybrid_group_logistic
+seed0 semantic_group_validation_auc = 0.998713493347168
+seed1 semantic_group_validation_auc = 0.9978828430175781
+seed0 semantic_l2zero_validation_auc = 0.9994039535522461
+seed1 semantic_l2zero_validation_auc = 0.9988164901733398
+seed0 hybrid_group_validation_auc = 0.9992799758911133
+seed1 hybrid_group_validation_auc = 0.9986753463745117
+decision = semantic_or_hybrid_branch_logit_decomposition_hold
+```
+
+This is a useful negative result. The semantic groups themselves are
+meaningful, but compressing each group into one prefit branch logit throws away
+too much within-group information. The better next model should consume raw
+group tensors or group-level raw summaries with structured regularization,
+not a larger stack of prefit branch logits.
+
 This is the current preferred local development route because it changes the
 SPN representation in a way the evidence actually supports, while avoiding
 premature multi-network aggregation.

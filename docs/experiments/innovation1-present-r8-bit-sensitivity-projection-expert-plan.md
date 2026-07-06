@@ -668,6 +668,34 @@ primary-backbone plus lower-rank-auxiliary-context design that can later be
 upgraded to a real grouped SPN model. This is 2048/class local diagnostic
 evidence only; it is not remote evidence, not formal SPN/PRESENT evidence, and
 not a multi-network improvement.
+
+Semantic/hybrid grouped branch-logit diagnostic:
+  cli = scripts/fit-compressed-span-grouped-expert --group-mode semantic|hybrid
+  semantic_feature_model = semantic_group_logistic
+  hybrid_feature_model = hybrid_group_logistic
+  semantic_branch_count = 12
+  hybrid_branch_count = 14
+  semantic_groups =
+    primary_depth, primary_trailword, primary_cell, primary_depth_cell,
+    primary_depth_trailword, primary_global, aux_depth_cell, aux_word,
+    aux_depth_word, aux_cell, aux_word_global, aux_cell_global
+  hybrid_groups = primary, auxiliary + semantic_groups
+  seed0 semantic_group_validation_auc = 0.998713493347168
+  seed1 semantic_group_validation_auc = 0.9978828430175781
+  seed0 semantic_l2zero_validation_auc = 0.9994039535522461
+  seed1 semantic_l2zero_validation_auc = 0.9988164901733398
+  seed0 hybrid_group_validation_auc = 0.9992799758911133
+  seed1 hybrid_group_validation_auc = 0.9986753463745117
+  decision = semantic_or_hybrid_branch_logit_decomposition_hold
+
+Interpretation: finer semantic branch-logit decomposition is not the next
+accuracy route. Even after a no-L2/longer-fit sanity pass, the 12-way semantic
+combiner remains below the coarse two-branch result, and the hybrid
+primary/auxiliary plus semantic combiner also remains below the coarse
+two-branch result. The likely issue is information loss from precompressing
+each semantic group into one fitted logit. The next architectural follow-up
+should preserve within-group raw features or block tensors while applying
+structured regularization, rather than adding more prefit branch logits.
 ```
 
 ## Fixed Protocol

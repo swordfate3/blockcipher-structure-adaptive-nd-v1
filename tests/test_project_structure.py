@@ -299,6 +299,12 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "two_branch_logistic" in combined
     assert "seed0 grouped_validation_auc = 0.9997968673706055" in combined
     assert "seed1 grouped_validation_auc = 0.9996414184570312" in combined
+    assert "semantic_group_logistic" in combined
+    assert "hybrid_group_logistic" in combined
+    assert "seed0 semantic_group_validation_auc = 0.998713493347168" in combined
+    assert "seed1 semantic_l2zero_validation_auc = 0.9988164901733398" in combined
+    assert "seed0 hybrid_group_validation_auc = 0.9992799758911133" in combined
+    assert "semantic_or_hybrid_branch_logit_decomposition_hold" in combined
     assert "not a multi-network improvement" in combined
 
 
