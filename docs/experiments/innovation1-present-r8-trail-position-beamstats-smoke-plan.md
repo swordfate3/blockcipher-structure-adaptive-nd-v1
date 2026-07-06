@@ -1709,9 +1709,9 @@ Validation:
 
   UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_neural_ensemble_cli.py \
     tests/test_export_checkpoint_scores_imports.py tests/test_project_structure.py -q \
-    -k "score_artifacts or export_checkpoint_scores or neural_ensemble or trail_position_medium_remote_launch_assets_export_scores_only or trail_position_medium_remote_readiness or monitor_health_accepts_train_matrix_result_file"
+    -k "score_artifacts or export_checkpoint_scores or neural_ensemble or trail_position_medium_remote_launch_assets_export_scores_only or trail_position_medium_remote_readiness or monitor_health_accepts_train_matrix_result_file or monitor_health_does_not_treat_train_done_as_final_done or monitor_health_reports_running_result_ready_and_failed"
 
-  status = 17 passed, 364 deselected
+  status = 19 passed, 363 deselected
 ```
 
 Repair-asset intent:
@@ -1740,6 +1740,12 @@ outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_202
 
 The existing corrected watcher remains the retrieval path for
 `score_artifacts/` and final markers.
+
+The local `scripts/monitor-health` helper was also corrected to report only
+`done.marker` or exact `${RUN_ID}_done.marker` as final done markers. Stage
+markers such as `${RUN_ID}_train_done.marker` no longer appear in
+`done_markers`; a complete `train_matrix.jsonl` may still make the training
+matrix `result_ready`, but that is separate from score-artifact readiness.
 
 After score artifacts are retrieved locally, verify completeness and alignment
 before evaluating any ensemble/error-overlap gate:

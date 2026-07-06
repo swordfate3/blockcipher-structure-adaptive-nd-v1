@@ -6462,6 +6462,39 @@ def test_monitor_health_accepts_train_matrix_result_file(tmp_path):
     assert report["expected_rows"] == 2
 
 
+def test_monitor_health_does_not_treat_train_done_as_final_done(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_matrix_run"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-07-06T19:00:00+08:00 sync",
+                "2026-07-06T19:00:01+08:00 running",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (monitor / "monitor_ssh_stderr.log").write_text("", encoding="utf-8")
+    (logs / f"{run_id}_train_done.marker").write_text("train_done\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=2,
+        now=datetime.fromisoformat("2026-07-06T19:05:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["done_markers"] == []
+    assert report["needs_main_thread_intervention"] is False
+
+
 def test_monitor_health_ignores_stale_failed_marker_when_progress_continues(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "stale_failed_marker_unit"

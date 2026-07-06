@@ -106,7 +106,7 @@ def monitor_health_report(
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
     if expected_result_rows is None and plan_path is not None:
         expected_result_rows = _default_expected_rows(postprocess_kind)
-    done_markers = _relative_paths(run_root, sorted(run_root.glob("**/*done*")))
+    done_markers = _relative_paths(run_root, _final_done_marker_paths(run_root, run_id))
     failed_marker_paths = sorted(run_root.glob("**/*failed*"))
     failed_markers = _relative_paths(run_root, failed_marker_paths)
     artifact_files = _relative_paths(run_root, sorted(path for path in run_root.glob("**/*") if path.is_file()))
@@ -275,6 +275,14 @@ def _health_status(
 
 def _monitor_has_event(lines: list[str], event: str) -> bool:
     return any(event in line for line in lines)
+
+
+def _final_done_marker_paths(run_root: Path, run_id: str) -> list[Path]:
+    candidates = [
+        run_root / "done.marker",
+        run_root / "logs" / f"{run_id}_done.marker",
+    ]
+    return sorted(path for path in candidates if path.exists())
 
 
 def _result_jsonl_path(run_root: Path, run_id: str) -> Path:
