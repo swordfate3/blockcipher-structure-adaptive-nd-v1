@@ -506,6 +506,36 @@ expert: preserve grouped trail-position/statistic structure and learn compact
 combinations, rather than searching for a single magic statistic or averaging
 more near-neighbor networks.
 
+The sparse-feature decoder makes the medium-sparse signal more concrete:
+
+```text
+decode_cli = scripts/decode-compressed-feature-sparsity
+
+seed0 top-256:
+  depth_word_cell_span = 108
+  depth_cell_span = 64
+  word_span = 34
+  depth_word_span = 33
+  cell_span = 15
+  depths = 44 / 51 / 54 / 56 across depth0..depth3
+
+seed1 top-256:
+  depth_word_cell_span = 119
+  depth_cell_span = 61
+  word_span = 30
+  depth_word_span = 29
+  cell_span = 15
+  depths = 54 / 48 / 54 / 53 across depth0..depth3
+```
+
+That is the most useful architecture hint from this local diagnostic. The
+strong dimensions are mostly span-type structural statistics, not raw bit
+columns, isolated S-box cells, or one trail depth. The next model should act
+like a grouped span/statistic-aware SPN expert: keep family, depth, word, and
+cell structure visible to the network, then learn compact combinations across
+those groups. This is more aligned with the evidence than either a single
+hand-written scalar or a larger average of near-neighbor neural models.
+
 The generic diverse-expert gate can mark the pool ready because there are now
 multiple aligned families, but route-specific interpretation must be stricter:
 the compressed logistic expert is probably a stronger same structural-stat

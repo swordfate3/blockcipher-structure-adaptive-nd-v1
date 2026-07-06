@@ -475,6 +475,42 @@ structural dimensions are only weak positive, 64 dimensions are still below the
 against a trivial single-feature leakage explanation and favors a medium-sparse
 SPN structural-stat expert: future model work should preserve grouped
 trail-position/statistic structure rather than collapsing to a tiny scalar rule.
+
+Sparse-feature decoding uses:
+
+decode_cli = scripts/decode-compressed-feature-sparsity
+seed0 decode_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_sparse_decode.json
+seed1 decode_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_sparse_decode.json
+
+seed0 top-256 family_counts:
+  depth_word_cell_span = 108
+  depth_cell_span = 64
+  word_span = 34
+  depth_word_span = 33
+  cell_span = 15
+  global_pair_density = 1
+  global_trail_density = 1
+seed0 top-256 depth_counts:
+  depth0 = 44, depth1 = 51, depth2 = 54, depth3 = 56
+
+seed1 top-256 family_counts:
+  depth_word_cell_span = 119
+  depth_cell_span = 61
+  word_span = 30
+  depth_word_span = 29
+  cell_span = 15
+  global_pair_density = 1
+  global_trail_density = 1
+seed1 top-256 depth_counts:
+  depth0 = 54, depth1 = 48, depth2 = 54, depth3 = 53
+
+The top sparse dimensions are dominated by span-type structural statistics:
+depth_word_cell_span, depth_cell_span, word_span, depth_word_span, and
+cell_span. The useful features are spread across all four trail depths rather
+than concentrated in one depth or one cell. This points away from a single
+leakage-like scalar and toward a grouped span/statistic-aware SPN expert.
 ```
 
 ## Fixed Protocol

@@ -13,6 +13,9 @@ from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compres
 from blockcipher_nd.cli.audit_compressed_feature_sparsity import (
     main as audit_compressed_feature_sparsity_main,
 )
+from blockcipher_nd.cli.decode_compressed_feature_sparsity import (
+    main as decode_compressed_feature_sparsity_main,
+)
 from blockcipher_nd.cli.summarize_compressed_feature_expert import (
     main as summarize_compressed_feature_main,
 )
@@ -1144,6 +1147,63 @@ def test_audit_compressed_feature_sparsity_selects_train_only_top_features(tmp_p
     assert report["rows"][0]["validation_metrics"]["auc"] == 1.0
     assert report["best_row"]["top_k"] == 1
     assert report["claim_scope"].startswith("train-ranked compressed SPN feature sparsity diagnostic")
+
+
+def test_decode_compressed_feature_sparsity_maps_indices_to_stat_families(tmp_path):
+    feature_dir = tmp_path / "features"
+    feature_dir.mkdir()
+    (feature_dir / "metadata.json").write_text(
+        json.dumps(
+            {
+                "feature_view_metadata": {
+                    "words_per_pair": 39,
+                    "trail_depth": 4,
+                    "trail_words_per_depth": 9,
+                    "prefix_words": 3,
+                    "output_feature_bits": 3708,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    sparse_report = tmp_path / "sparse.json"
+    sparse_report.write_text(
+        json.dumps(
+            {
+                "train_feature_dir": str(feature_dir),
+                "feature_count": 3708,
+                "rows": [
+                    {
+                        "top_k": 3,
+                        "selected_feature_indices": [0, 624, 1248],
+                        "validation_metrics": {"auc": 0.75},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "decoded.json"
+
+    status = decode_compressed_feature_sparsity_main(
+        [
+            "--sparse-report",
+            str(sparse_report),
+            "--output",
+            str(output),
+        ]
+    )
+
+    decoded = json.loads(output.read_text(encoding="utf-8"))
+    row = decoded["rows"][0]
+    assert status == 0
+    assert decoded["status"] == "pass"
+    assert row["top_k"] == 3
+    assert row["decoded_features"][0]["name"] == "word_cell_mean_word0_cell0"
+    assert row["decoded_features"][1]["name"] == "word_cell_std_word0_cell0"
+    assert row["decoded_features"][2]["name"] == "word_mean_word0"
+    assert row["family_counts"] == {"word_cell_mean": 1, "word_cell_std": 1, "word_mean": 1}
+    assert row["validation_auc"] == 0.75
 
 
 def _write_compressed_feature_report(
