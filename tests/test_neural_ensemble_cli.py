@@ -2377,6 +2377,80 @@ def test_audit_compressed_feature_sparsity_selects_train_only_top_features(tmp_p
     assert report["claim_scope"].startswith("train-ranked compressed SPN feature sparsity diagnostic")
 
 
+def test_audit_compressed_feature_sparsity_can_filter_feature_prefixes(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    output = tmp_path / "sparse_audit.json"
+    feature_names = [
+        "drop_global_noise",
+        "keep_primary_weak",
+        "keep_primary_strong",
+        "drop_auxiliary_strong",
+    ]
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=np.array(
+            [
+                [8.0, -0.5, -3.0, -4.0],
+                [7.0, -0.2, -2.0, -3.5],
+                [6.0, 0.3, 2.0, 3.5],
+                [5.0, 0.5, 3.0, 4.0],
+            ],
+            dtype=np.float32,
+        ),
+        labels=labels,
+        feature_view_metadata={"feature_names": feature_names},
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=np.array(
+            [
+                [4.0, -0.4, -2.5, -4.5],
+                [3.0, -0.1, -1.5, -3.0],
+                [2.0, 0.2, 1.5, 3.0],
+                [1.0, 0.4, 2.5, 4.5],
+            ],
+            dtype=np.float32,
+        ),
+        labels=labels,
+        feature_view_metadata={"feature_names": feature_names},
+    )
+
+    status = audit_compressed_feature_sparsity_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--top-k",
+            "1",
+            "--include-feature-prefix",
+            "keep_primary_",
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    row = report["rows"][0]
+    assert status == 0
+    assert report["feature_selection"]["mode"] == "prefix_filter"
+    assert report["feature_selection"]["include_feature_prefixes"] == ["keep_primary_"]
+    assert report["feature_selection"]["selected_feature_indices"] == [1, 2]
+    assert row["selected_feature_indices"] == [2]
+    assert row["selected_feature_names"] == ["keep_primary_strong"]
+    assert row["validation_metrics"]["auc"] == 1.0
+
+
 def test_decode_compressed_feature_sparsity_maps_indices_to_stat_families(tmp_path):
     feature_dir = tmp_path / "features"
     feature_dir.mkdir()

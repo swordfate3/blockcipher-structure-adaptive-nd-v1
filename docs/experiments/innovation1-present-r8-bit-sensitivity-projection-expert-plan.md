@@ -1487,3 +1487,70 @@ aux-depth/cell as first-class views, but it should preserve their internal
 coordinates or use a shallow structured layer over those coordinates instead
 of late-fusing scalar branch scores.
 ```
+
+## V10 Raw117 Prefix Sparsity Diagnostic
+
+The follow-up checked whether the 117D raw-family anchor can be reduced to a
+smaller train-ranked coordinate set without losing the local signal. This uses
+the same `2048/class` span-summary feature artifacts and ranks features with
+train labels only, then scores held-out validation:
+
+```text
+cli = scripts/audit-compressed-feature-sparsity
+samples_per_class = 2048 local diagnostic only
+feature_scope =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+selected_scope_feature_count = 117
+top_k = 8, 12, 16, 24, 32, 48, 60, 80, 117
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+standardize = true
+```
+
+Artifacts:
+
+```text
+seed0 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_raw117_prefix_sparsity_audit.json
+seed1 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_raw117_prefix_sparsity_audit.json
+```
+
+Metrics:
+
+| Top-k inside raw117 | Seed0 AUC | Seed1 AUC |
+|---:|---:|---:|
+| 8 | `0.9906158447265625` | `0.9952144622802734` |
+| 12 | `0.9979648590087891` | `0.9970254898071289` |
+| 16 | `0.9990558624267578` | `0.9987335205078125` |
+| 24 | `0.9997768402099609` | `0.9989719390869141` |
+| 32 | `0.9998035430908203` | `0.9994058609008789` |
+| 48 | `0.9998989105224609` | `0.9995336532592773` |
+| 60 | `0.9998931884765625` | `0.9996490478515625` |
+| 80 | `0.9999227523803711` | `0.9996881484985352` |
+| 117 | `0.9999246597290039` | `0.9999103546142578` |
+
+Decision:
+
+```text
+decision = raw117_prefix_sparsity_full117_remains_best_local_diagnostic
+action = keep_117d_raw_family_anchor; do_not_promote_sparse_topk_as_replacement
+```
+
+Interpretation:
+
+```text
+The sparse screen is useful, but it does not justify replacing the 117D anchor.
+Very small coordinate sets already recover most of the signal: top8 reaches
+about 0.991/0.995 AUC, and top24 already reaches about 0.9998/0.9990 AUC.
+However, the full 117D scope remains best on both seeds, with the seed1 gap
+from top80 to top117 still about 2.22e-4 AUC. The top-ranked coordinates are
+mostly aux depth/cell global or depth means plus a few primary depth/trailword
+coordinates, so the representation is not arbitrary. The next architecture
+should keep the 117D raw-family anchor as the clean compact candidate and use
+the top-k ranking as an attribution map, not as a promoted replacement.
+```

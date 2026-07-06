@@ -12,6 +12,7 @@ from blockcipher_nd.cli.fit_compressed_feature_expert import (
     _load_feature_dir,
     _metrics,
     _predict_logits,
+    _select_feature_columns,
     _sigmoid,
     _validate_feature_dirs,
 )
@@ -33,6 +34,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--l2", type=float, default=0.001)
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--min-positive-auc", type=float, default=0.99)
+    parser.add_argument(
+        "--include-feature-family",
+        action="append",
+        default=[],
+        help="Restrict ranking/fitting to decoded compressed-feature families; repeat for multiple families.",
+    )
+    parser.add_argument(
+        "--include-feature-prefix",
+        action="append",
+        default=[],
+        help="Restrict ranking/fitting to metadata feature_names prefixes; repeat for multiple prefixes.",
+    )
     return parser.parse_args(argv)
 
 
@@ -46,6 +59,8 @@ def audit_compressed_feature_sparsity(
     l2: float = 0.001,
     standardize: bool = True,
     min_positive_auc: float = 0.99,
+    include_feature_families: list[str] | None = None,
+    include_feature_prefixes: list[str] | None = None,
 ) -> dict[str, Any]:
     if not top_k_values:
         raise ValueError("at least one top-k value is required")
@@ -57,8 +72,20 @@ def audit_compressed_feature_sparsity(
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
     _validate_feature_dirs(train, validation)
-    train_features = train["features"].astype(np.float64, copy=False)
-    validation_features = validation["features"].astype(np.float64, copy=False)
+    feature_selection = _select_feature_columns(
+        train["metadata"],
+        feature_count=int(train["features"].shape[1]),
+        include_feature_families=include_feature_families or [],
+        include_feature_prefixes=include_feature_prefixes or [],
+    )
+    selected_original_indices = np.asarray(feature_selection["selected_feature_indices"], dtype=np.int64)
+    selected_feature_names = _feature_names_for_indices(
+        train["metadata"],
+        feature_count=int(train["features"].shape[1]),
+        indices=selected_original_indices,
+    )
+    train_features = train["features"][:, selected_original_indices].astype(np.float64, copy=False)
+    validation_features = validation["features"][:, selected_original_indices].astype(np.float64, copy=False)
     labels = train["labels"].astype(np.float64, copy=False)
     ranking = _rank_features_by_train_separation(train_features, labels)
     rows = [
@@ -68,6 +95,8 @@ def audit_compressed_feature_sparsity(
             train_labels=train["labels"],
             validation_labels=validation["labels"],
             ranking=ranking,
+            selected_original_indices=selected_original_indices,
+            selected_feature_names=selected_feature_names,
             top_k=top_k,
             steps=steps,
             learning_rate=learning_rate,
@@ -88,6 +117,8 @@ def audit_compressed_feature_sparsity(
         "train_feature_dir": str(train_feature_dir),
         "validation_feature_dir": str(validation_feature_dir),
         "feature_count": int(train_features.shape[1]),
+        "feature_original_count": int(train["features"].shape[1]),
+        "feature_selection": _feature_selection_metadata(feature_selection),
         "top_k_values": [int(value) for value in sorted(set(top_k_values))],
         "ranking_method": "abs_train_class_mean_difference_over_train_std",
         "fit": {
@@ -127,6 +158,8 @@ def _sparse_row(
     train_labels: np.ndarray,
     validation_labels: np.ndarray,
     ranking: np.ndarray,
+    selected_original_indices: np.ndarray,
+    selected_feature_names: list[str],
     top_k: int,
     steps: int,
     learning_rate: float,
@@ -134,7 +167,7 @@ def _sparse_row(
     standardize: bool,
 ) -> dict[str, Any]:
     feature_count = train_features.shape[1]
-    selected = ranking[: min(top_k, feature_count)].astype(int)
+    selected = ranking[: min(top_k, feature_count)].astype(np.int64)
     fitted = _fit_logistic(
         train_features[:, selected],
         train_labels.astype(np.float64, copy=False),
@@ -145,13 +178,37 @@ def _sparse_row(
     )
     train_probabilities = _sigmoid(_predict_logits(train_features[:, selected], fitted))
     validation_probabilities = _sigmoid(_predict_logits(validation_features[:, selected], fitted))
+    selected_original = selected_original_indices[selected]
+    selected_names = [selected_feature_names[int(index)] for index in selected] if selected_feature_names else []
     return {
         "top_k": int(top_k),
         "effective_top_k": int(len(selected)),
-        "selected_feature_indices": [int(index) for index in selected],
+        "selected_feature_indices": [int(index) for index in selected_original],
+        "selected_feature_indices_within_selection": [int(index) for index in selected],
+        "selected_feature_names": selected_names,
         "train_metrics": _metrics(train_labels, train_probabilities),
         "validation_metrics": _metrics(validation_labels, validation_probabilities),
     }
+
+
+def _feature_selection_metadata(feature_selection: dict[str, Any]) -> dict[str, Any]:
+    metadata = dict(feature_selection)
+    if metadata.get("mode") == "all":
+        metadata.pop("selected_feature_indices", None)
+    return metadata
+
+
+def _feature_names_for_indices(
+    metadata: dict[str, Any],
+    *,
+    feature_count: int,
+    indices: np.ndarray,
+) -> list[str]:
+    view_metadata = metadata.get("feature_view_metadata", metadata)
+    names = list(view_metadata.get("feature_names", []))
+    if len(names) != feature_count:
+        return []
+    return [str(names[int(index)]) for index in indices]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
         l2=args.l2,
         standardize=not args.no_standardize,
         min_positive_auc=args.min_positive_auc,
+        include_feature_families=args.include_feature_family,
+        include_feature_prefixes=args.include_feature_prefix,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

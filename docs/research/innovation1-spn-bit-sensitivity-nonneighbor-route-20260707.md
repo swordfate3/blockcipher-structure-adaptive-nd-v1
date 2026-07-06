@@ -1345,3 +1345,29 @@ network should keep the core families as structured tensors or small coordinate
 sets, then learn shallow cross-coordinate mixing inside and between those
 families. In other words: first-class branches yes, scalar branch-score late
 fusion no.
+
+A raw117-internal sparsity check refines that constraint:
+
+```text
+cli = scripts/audit-compressed-feature-sparsity
+feature_scope =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+selected_scope_feature_count = 117
+top_k = 8, 12, 16, 24, 32, 48, 60, 80, 117
+seed0 best_top_k = 117, auc = 0.9999246597290039
+seed1 best_top_k = 117, auc = 0.9999103546142578
+decision = raw117_prefix_sparsity_full117_remains_best_local_diagnostic
+```
+
+The result is not a sparse-model promotion. It says the signal is highly
+localized but not exhausted by the first few coordinates. Top8 already reaches
+about `0.991/0.995` AUC and top24 reaches about `0.9998/0.9990`, so a small
+set of depth/global coordinates explains most of the effect. But the full
+117D scope remains best on both seeds, especially seed1 where top80 still lags
+top117 by about `2.22e-4` AUC. So the current compact anchor should remain the
+full standardized 117D raw-family representation. Use the top-k ordering as an
+attribution map for future structured layers, not as evidence that a sparse
+replacement is better.
