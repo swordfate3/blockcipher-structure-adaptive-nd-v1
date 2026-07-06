@@ -1132,3 +1132,60 @@ SOTA claim
 remote-launch basis before local gate
 diverse ensemble claim without low-overlap score evidence
 ```
+
+## V4 Compact Raw Plus Low-Rank Interaction Diagnostic
+
+The 2026-07-07 follow-up added selected raw-prefix support to the existing
+low-rank interaction CLI so the compact raw anchor can be tested with a small
+controlled interaction correction:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+new option = --include-raw-feature-prefix
+feature_model = selected_raw_plus_semantic_low_rank_block_interactions_logistic
+selected_raw_prefixes = primary_depth_trailword_, aux_depth_cell_
+selected_raw_feature_count = 60
+low_rank_interaction_feature_count = 36
+feature_count = 96
+rank = 1
+fit_split = train
+score_split = held-out validation
+```
+
+Artifacts:
+
+```text
+seed0 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_compact_raw_plus_low_rank_rank1_report.json
+seed1 report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_compact_raw_plus_low_rank_rank1_report.json
+seed0 shuffle =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_span_compact_raw_plus_low_rank_rank1_shuffle_report.json
+seed1 shuffle =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_span_compact_raw_plus_low_rank_rank1_shuffle_report.json
+```
+
+Metrics:
+
+| Seed | Compact raw + rank1 AUC | Delta vs 60D compact raw | Delta vs full 273D | Delta vs 309D allraw+rank1 | Shuffle AUC |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9998960494995117` | `-0.0000057220458984` | `-0.0000181198120117` | `-0.0000295639038086` | `0.4553308486938477` |
+| 1 | `0.9998569488525391` | `+0.0000391006469727` | `+0.0000133514404297` | `-0.0000438690185547` | `0.4464559555053711` |
+
+Decision:
+
+```text
+decision = compact_raw_plus_low_rank_rank1_mixed_local_diagnostic
+action = do_not_promote_to_remote_or_formal_claim
+```
+
+Interpretation:
+
+```text
+The selected 96D feature set has clean shuffle controls and remains very strong
+locally, but it is mixed against the 60D compact raw anchor and loses to the
+309D allraw+rank1 expert on both seeds. The low-rank interaction term is a
+small correction, not a stable new primary signal source. Keep the selected
+raw-prefix CLI support because it makes compact ablations reproducible, but do
+not spend a medium remote slot on this exact 96D variant.
+```

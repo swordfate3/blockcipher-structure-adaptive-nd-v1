@@ -1160,3 +1160,40 @@ to nearly recover the full-summary expert. The next useful experiments should
 drop or compress raw families around this 60D anchor, and only then re-add a
 small controlled interaction term. Do not treat this as remote or formal
 evidence; it is a local representation-localization result.
+
+The 60D raw anchor plus rank1 low-rank interaction correction has now been
+tested as that controlled re-add step:
+
+```text
+cli = scripts/fit-compressed-span-low-rank-interaction-expert
+new option = --include-raw-feature-prefix
+selected_raw_prefixes = primary_depth_trailword_, aux_depth_cell_
+selected_raw_feature_count = 60
+low_rank_interaction_feature_count = 36
+total_feature_count = 96
+rank = 1
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+seed0 compact_raw_rank1_auc = 0.9998960494995117
+seed1 compact_raw_rank1_auc = 0.9998569488525391
+seed0 delta_vs_compact_raw_auc = -0.0000057220458984
+seed1 delta_vs_compact_raw_auc = +0.0000391006469727
+seed0 delta_vs_full_summary_auc = -0.0000181198120117
+seed1 delta_vs_full_summary_auc = +0.0000133514404297
+seed0 delta_vs_allraw_rank1_auc = -0.0000295639038086
+seed1 delta_vs_allraw_rank1_auc = -0.0000438690185547
+seed0 shuffle_auc = 0.4553308486938477
+seed1 shuffle_auc = 0.4464559555053711
+decision = compact_raw_plus_low_rank_rank1_mixed_local_diagnostic
+```
+
+The correction is clean under shuffle controls, but it is not a stable
+improvement over the compact raw anchor and it does not beat the full 273D
+raw+rank1 expert on either seed. Treat it as another attribution result: the
+low-rank interaction bank can help seed1 slightly when attached to the compact
+raw anchor, but the robust signal is still the selected raw SPN family
+representation. The next architecture iteration should not keep stacking more
+similar low-rank corrections; it should either improve the raw-family
+representation itself or introduce a genuinely different SPN-aware expert with
+its own controls.

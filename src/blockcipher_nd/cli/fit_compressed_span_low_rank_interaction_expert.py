@@ -42,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--l2", type=float, default=0.001)
     parser.add_argument("--interaction-only", action="store_true")
+    parser.add_argument("--include-raw-feature-prefix", action="append", default=[])
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
@@ -61,6 +62,7 @@ def fit_compressed_span_low_rank_interaction_expert(
     learning_rate: float = 0.05,
     l2: float = 0.001,
     interaction_only: bool = False,
+    include_raw_feature_prefixes: list[str] | None = None,
     standardize: bool = True,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
@@ -77,6 +79,9 @@ def fit_compressed_span_low_rank_interaction_expert(
         raise ValueError("learning_rate must be positive")
     if l2 < 0.0:
         raise ValueError("l2 must be non-negative")
+    raw_feature_prefixes = sorted(set(include_raw_feature_prefixes or []))
+    if interaction_only and raw_feature_prefixes:
+        raise ValueError("--include-raw-feature-prefix cannot be used with --interaction-only")
 
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
@@ -89,15 +94,32 @@ def fit_compressed_span_low_rank_interaction_expert(
         raise ValueError("no primary semantic span groups found")
     if not auxiliary_groups:
         raise ValueError("no auxiliary semantic span groups found")
+    if raw_feature_prefixes:
+        selected_raw_feature_indices = _select_raw_feature_indices(names, prefixes=raw_feature_prefixes)
+        raw_feature_selection = "prefix_filter"
+    elif interaction_only:
+        selected_raw_feature_indices = []
+        raw_feature_selection = "none"
+    else:
+        selected_raw_feature_indices = list(range(int(train["features"].shape[1])))
+        raw_feature_selection = "all"
 
-    train_augmented, validation_augmented, low_rank_metadata = _augment_with_low_rank_interactions(
+    train_low_rank_features, validation_low_rank_features, low_rank_metadata = _augment_with_low_rank_interactions(
         train["features"].astype(np.float64, copy=False),
         validation["features"].astype(np.float64, copy=False),
         primary_groups=primary_groups,
         auxiliary_groups=auxiliary_groups,
         rank=rank,
-        include_raw_features=not interaction_only,
+        include_raw_features=False,
     )
+    if interaction_only:
+        train_augmented = train_low_rank_features
+        validation_augmented = validation_low_rank_features
+    else:
+        train_raw = train["features"][:, selected_raw_feature_indices].astype(np.float64, copy=False)
+        validation_raw = validation["features"][:, selected_raw_feature_indices].astype(np.float64, copy=False)
+        train_augmented = np.concatenate([train_raw, train_low_rank_features], axis=1)
+        validation_augmented = np.concatenate([validation_raw, validation_low_rank_features], axis=1)
     fit_labels = train["labels"].astype(np.float64, copy=True)
     if shuffle_train_labels:
         fit_labels = np.random.default_rng(shuffle_seed).permutation(fit_labels)
@@ -114,11 +136,12 @@ def fit_compressed_span_low_rank_interaction_expert(
     train_probabilities = _sigmoid(train_logits)
     validation_probabilities = _sigmoid(validation_logits)
 
-    feature_model = (
-        "semantic_low_rank_block_interactions_only_logistic"
-        if interaction_only
-        else "raw_plus_semantic_low_rank_block_interactions_logistic"
-    )
+    if interaction_only:
+        feature_model = "semantic_low_rank_block_interactions_only_logistic"
+    elif raw_feature_prefixes:
+        feature_model = "selected_raw_plus_semantic_low_rank_block_interactions_logistic"
+    else:
+        feature_model = "raw_plus_semantic_low_rank_block_interactions_logistic"
     common_metadata = {
         "model_key": model_key,
         "expert_family": expert_family,
@@ -137,6 +160,11 @@ def fit_compressed_span_low_rank_interaction_expert(
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
         "raw_features_included": bool(not interaction_only),
+        "raw_feature_selection": raw_feature_selection,
+        "selected_raw_feature_count": int(len(selected_raw_feature_indices)),
+        "selected_raw_feature_prefixes": raw_feature_prefixes,
+        "selected_raw_feature_indices": [int(index) for index in selected_raw_feature_indices],
+        "selected_raw_feature_names": [names[index] for index in selected_raw_feature_indices],
         "primary_group_count": int(len(primary_groups)),
         "auxiliary_group_count": int(len(auxiliary_groups)),
         "block_pair_count": int(low_rank_metadata["block_pair_count"]),
@@ -183,6 +211,11 @@ def fit_compressed_span_low_rank_interaction_expert(
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
         "raw_features_included": bool(not interaction_only),
+        "raw_feature_selection": raw_feature_selection,
+        "selected_raw_feature_count": int(len(selected_raw_feature_indices)),
+        "selected_raw_feature_prefixes": raw_feature_prefixes,
+        "selected_raw_feature_indices": [int(index) for index in selected_raw_feature_indices],
+        "selected_raw_feature_names": [names[index] for index in selected_raw_feature_indices],
         "primary_group_count": int(len(primary_groups)),
         "auxiliary_group_count": int(len(auxiliary_groups)),
         "block_pair_count": int(low_rank_metadata["block_pair_count"]),
@@ -216,10 +249,22 @@ def fit_compressed_span_low_rank_interaction_expert(
             "compare_against_full_summary_flat_logistic",
             "compare_against_semantic_block_stat_interaction_expert",
             "compare_against_shuffle_train_labels_control",
+            "selected_raw_features_must_be_train_validation_aligned",
         ],
         "claim_scope": common_metadata["claim_scope"],
     }
     return train_artifact, validation_artifact, report
+
+
+def _select_raw_feature_indices(names: list[str], *, prefixes: list[str]) -> list[int]:
+    indices = [
+        index
+        for index, name in enumerate(names)
+        if any(name.startswith(prefix) for prefix in prefixes)
+    ]
+    if not indices:
+        raise ValueError("no raw features matched --include-raw-feature-prefix")
+    return indices
 
 
 def _augment_with_low_rank_interactions(
@@ -315,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
         learning_rate=args.learning_rate,
         l2=args.l2,
         interaction_only=args.interaction_only,
+        include_raw_feature_prefixes=args.include_raw_feature_prefix,
         standardize=not args.no_standardize,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
