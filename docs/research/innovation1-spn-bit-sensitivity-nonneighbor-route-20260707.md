@@ -1644,6 +1644,24 @@ seed1 train_bucket_shuffle_three_score_auc = 0.9998750686645508
 seed1 train_bucket_shuffle_delta_vs_raw117_best_single = -0.00003528594970703125
 ```
 
+A no-bucket raw117-scope control was then run with the same 117D feature
+prefixes and the same optimizer settings, but with one global logistic expert
+instead of bucket-specific experts:
+
+```text
+seed0 no_bucket_117d_auc = 0.9999074935913086
+seed0 bucket_conditioned_auc = 0.9999361038208008
+seed0 bucket_vs_no_bucket_delta_auc = +0.0000286102294921875
+seed0 trail_no_bucket_two_score_auc = 0.9999303817749023
+seed0 trail_no_bucket_bucket_three_score_auc = 0.9999446868896484
+
+seed1 no_bucket_117d_auc = 0.9998846054077148
+seed1 bucket_conditioned_auc = 0.9999246597290039
+seed1 bucket_vs_no_bucket_delta_auc = +0.0000400543212890625
+seed1 trail_no_bucket_two_score_auc = 0.9998941421508789
+seed1 trail_no_bucket_bucket_three_score_auc = 0.9999237060546875
+```
+
 Interpretation:
 
 ```text
@@ -1659,9 +1677,13 @@ route candidate, not as a breakthrough. The shuffle-label collapse reduces the
 obvious leakage concern. The train-bucket mismatch control is also directionally
 good: once train bucket assignments are randomized, the three-score gain
 disappears. That makes the result less like "any third score helps" and more
-like a real but tiny residual-conditioning signal. Scale-up still requires
-feature-scope attribution, train-selection stability, and the retrieved
-262144/class trail-position score artifacts.
+like a real but tiny residual-conditioning signal. The no-bucket 117D control
+adds a second attribution point: with the same feature scope and optimizer
+settings, bucket conditioning is higher on both seeds. But the cleanest
+multi-expert anchor remains the original matched raw117 plus bucket-conditioned
+expert, not a pool of several same-scope 117D variants. Scale-up still requires
+train-selection stability if tuning begins and the retrieved 262144/class
+trail-position score artifacts.
 ```
 
 Current route ranking:
@@ -1671,7 +1693,8 @@ Current route ranking:
 2. raw117 remains the strongest compact structural single expert.
 3. fixed trail+raw117 fusion remains the clean two-expert anchor.
 4. bucket-conditioned residual feature expert is now the best third-family
-   local candidate, pending controls.
+   local candidate, with label-shuffle, train-bucket-shuffle, and no-bucket
+   same-scope controls now supporting the route.
 5. cheap bucket score routing and generic stacking are deprioritized.
 ```
 
@@ -1679,15 +1702,14 @@ Next research action:
 
 ```text
 Do not start a new remote branch for this candidate while 262144/class
-trail-position retrieval is incomplete. Locally, keep control work focused:
+trail-position retrieval is incomplete. Locally, avoid broadening into a large
+matrix. The main missing evidence is now not another tiny 2048/class variant,
+but same-protocol migration once the 262144/class score artifacts exist.
+Run validation-bucket shuffle, independent bucket-source mismatch, or
+train-selection stability only if bucket_feature/bucket_count/l2 tuning begins
+to move the target.
 
-1. no-bucket raw117-scope control: same 117D prefixes, same train/validation
-   split, but a single logistic expert rather than bucket-conditioned experts.
-2. validation-bucket shuffle or independent bucket-source mismatch only if
-   bucket_feature/bucket_count tuning begins to move the target.
-
-If the remaining controls hold and the 262144/class trail-position score
-artifacts are retrieved, rerun the exact three-family frozen-score comparison at
-262144/class. Only after that should this route be considered for
->=1000000/class formal SPN/PRESENT evidence.
+When the 262144/class trail-position score artifacts are retrieved, rerun the
+exact three-family frozen-score comparison at 262144/class. Only after that
+should this route be considered for >=1000000/class formal SPN/PRESENT evidence.
 ```

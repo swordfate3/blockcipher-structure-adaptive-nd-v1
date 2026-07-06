@@ -2181,6 +2181,50 @@ seed1 train-bucket-shuffle three-score ensemble =
   outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_trainshuffle_three_score_ensemble.json
 ```
 
+No-bucket raw117-scope control:
+
+```text
+control =
+  same 117D compressed-span prefixes;
+  same train and validation feature artifacts;
+  same steps, learning_rate, l2, and standardization as the bucket expert;
+  fit one global logistic expert instead of one expert per residual bucket
+steps = 1000
+learning_rate = 0.05
+l2 = 0.0003
+```
+
+| Seed | No-Bucket 117D Expert AUC | Bucket Expert AUC | Bucket-vs-No-Bucket Delta |
+|---:|---:|---:|---:|
+| 0 | `0.9999074935913086` | `0.9999361038208008` | `+0.0000286102294921875` |
+| 1 | `0.9998846054077148` | `0.9999246597290039` | `+0.0000400543212890625` |
+
+No-bucket fusion checks:
+
+| Seed | Trail+No-Bucket Best Fixed AUC | Trail+No-Bucket+Bucket Best Fixed AUC |
+|---:|---:|---:|
+| 0 | `0.9999303817749023` | `0.9999446868896484` |
+| 1 | `0.9998941421508789` | `0.9999237060546875` |
+
+Control artifacts:
+
+```text
+seed0 no-bucket report =
+  outputs/local_audits/i1_present_r8_seed0_raw117_nobucket_l2_0p0003_report.json
+seed1 no-bucket report =
+  outputs/local_audits/i1_present_r8_seed1_raw117_nobucket_l2_0p0003_report.json
+
+seed0 trail+no-bucket ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_nobucket_l2_0p0003_two_score_ensemble.json
+seed1 trail+no-bucket ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_nobucket_l2_0p0003_two_score_ensemble.json
+
+seed0 trail+no-bucket+bucket ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_nobucket_bucket_three_score_ensemble.json
+seed1 trail+no-bucket+bucket ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_nobucket_bucket_three_score_ensemble.json
+```
+
 Decision:
 
 ```text
@@ -2189,8 +2233,8 @@ status = keep_as_best_current_local_three-family_candidate
 action =
   keep the CLI and score artifacts;
   do not remote-scale yet;
-  add mismatch bucket-source and feature-scope ablation controls before any
-  medium-scale promotion;
+  keep matched raw117 plus bucket-conditioned residual as the cleanest local
+  three-family pool;
   rerun only after 262144/class trail-position score artifacts are complete
 ```
 
@@ -2210,19 +2254,21 @@ random, reducing the obvious label-leak concern. The train-bucket mismatch
 control removes the three-score gain and lowers the bucket expert on both
 seeds, which supports the interpretation that the small positive signal depends
 on real residual bucket conditioning rather than merely adding a third score.
-The remaining control risk is feature-scope attribution and train-selection
-stability.
+The no-bucket same-117D control also supports this reading: fitting one global
+117D expert with the same optimizer settings is lower than the bucket expert on
+both seeds. However, replacing the matched raw117 anchor with the no-bucket
+same-setting control is not better as a fusion pool, especially on seed1. Keep
+the original matched raw117 artifact as the two-expert anchor and use the
+no-bucket control only for attribution.
 ```
 
 Required controls before scale-up:
 
 ```text
-1. feature-scope ablation against the same 117D raw117 prefix set without
-   bucket conditioning;
-2. validation-bucket shuffle or independent bucket-source mismatch if tuning
+1. validation-bucket shuffle or independent bucket-source mismatch if tuning
    starts to depend on bucket_feature variants;
-3. train-selection stability if bucket_feature, bucket_count, l2, or feature
+2. train-selection stability if bucket_feature, bucket_count, l2, or feature
    prefixes are tuned;
-4. same-protocol rerun on retrieved 262144/class artifacts before any
+3. same-protocol rerun on retrieved 262144/class artifacts before any
    1000000/class formal-training discussion.
 ```
