@@ -696,3 +696,60 @@ artifacts.
 - **Notes**: Patched the trail-position monitor to wait for `${RUN_ID}_done.marker` and restarted a corrected local tmux watcher.
 
 ---
+
+## [ERR-20260706-004] score_export_missing_dataset_cache_progress
+
+**Logged**: 2026-07-06T19:35:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+The trail-position remote run completed training, but post-training frozen-score export looked stuck because `export-checkpoint-scores` regenerated the validation dataset without disk cache reuse or progress logging.
+
+### Error
+```text
+remote logs:
+<RUN_ID>_train_done.marker existed
+<RUN_ID>_export_global_stats_control_stdout.txt was 0 bytes
+<RUN_ID>_export_global_stats_control_stderr.txt was 0 bytes
+<RUN_ID>_score_export_done.marker was missing
+<RUN_ID>_done.marker was missing
+
+remote process:
+python.exe scripts\export-checkpoint-scores ... --output-dir ...\score_artifacts\global_stats_control
+
+local score_artifacts:
+empty
+```
+
+### Context
+- Run ID: `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`.
+- Operation: PRESENT r8 trail-position `65536/class` remote seed0 diagnostic.
+- Training used `run_innovation_one_matrix.py` with `--dataset-cache-root`, `--dataset-cache-workers`, and progress JSONL.
+- Score export used `make_differential_dataset(...)` directly, so it bypassed the existing disk-backed validation cache and had no progress output.
+- This made the remote state look ambiguous: training was done, but frozen-score artifacts for ensemble/error-overlap analysis were not ready.
+
+### Suggested Fix
+`scripts/export-checkpoint-scores` should support the same cache/progress route for evaluation data:
+
+```text
+--dataset-cache-root
+--dataset-cache-chunk-size
+--dataset-cache-workers
+--progress-output
+```
+
+When those arguments are present, it should call `engine.datasets.make_task_dataset(...)` with `split="validation"` so parameter-matched validation caches can be reused and progress events can be monitored.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/export_checkpoint_scores.py, configs/remote/generated/run_i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706.cmd, tests/test_neural_ensemble_cli.py, tests/test_project_structure.py
+- See Also: ERR-20260706-003
+
+### Resolution
+- **Resolved**: 2026-07-06T19:38:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added cache/progress CLI support to `export-checkpoint-scores`, wired the trail-position launcher exports to the shared dataset cache, and added focused tests.
+
+---

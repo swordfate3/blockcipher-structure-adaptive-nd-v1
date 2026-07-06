@@ -11,9 +11,10 @@ import numpy as np
 import torch
 
 from blockcipher_nd.data.differential import DifferentialDataset
-from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
-from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import configure_structure_aware_model, infer_pair_bits
+from blockcipher_nd.engine.progress import task_progress_payload, write_progress
+from blockcipher_nd.engine.task_config import build_dataset_config
 from blockcipher_nd.evaluation.neural_ensemble import (
     EnsembleScoreArtifact,
     write_score_artifact,
@@ -42,6 +43,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--device", default="auto")
     parser.add_argument(
+        "--dataset-cache-root",
+        type=Path,
+        default=None,
+        help="Optional disk-backed dataset cache root for the evaluation split.",
+    )
+    parser.add_argument("--dataset-cache-chunk-size", type=int, default=8192)
+    parser.add_argument("--dataset-cache-workers", type=int, default=1)
+    parser.add_argument(
+        "--progress-output",
+        type=Path,
+        default=None,
+        help="Optional JSONL progress file for cache reuse/generation events.",
+    )
+    parser.add_argument(
         "--expert-family",
         default=None,
         help="Optional diverse-expert family label for later frozen-score pool gating.",
@@ -62,20 +77,32 @@ def main(argv: list[str] | None = None) -> int:
     samples_per_class = validation_samples_per_class(task, args.samples_per_class)
     validation_key = task.get("validation_key")
     cipher = build_cipher(task["cipher_key"], task["rounds"], key=validation_key)
-    eval_dataset = make_differential_dataset(
-        DifferentialDatasetConfig(
+    progress_path = str(args.progress_output) if args.progress_output is not None else None
+    eval_dataset = make_task_dataset(
+        build_dataset_config(
+            task,
             cipher=cipher,
-            input_difference=task["input_difference"],
             samples_per_class=samples_per_class,
             seed=int(task["seed"]) + 10_000,
-            feature_encoding=task["feature_encoding"],
-            pairs_per_sample=task["pairs_per_sample"],
-            negative_mode=task["negative_mode"],
-            key_rotation_interval=task["key_rotation_interval"],
-            sample_structure=task["sample_structure"],
-            integral_active_nibble=task["integral_active_nibble"],
-            selected_bit_indices=task["selected_bit_indices"],
-        )
+        ),
+        args,
+        task,
+        split="validation",
+        progress_path=progress_path,
+        index=int(args.eval_row_index) + 1,
+        total=None,
+    )
+    write_progress(
+        progress_path,
+        "score_export_cache_ready",
+        {
+            "index": int(args.eval_row_index) + 1,
+            "total": None,
+            "dataset_cache_enabled": bool(args.dataset_cache_root),
+            "validation_rows": int(eval_dataset.features.shape[0]),
+            "input_bits": int(eval_dataset.features.shape[1]),
+            **task_progress_payload(task),
+        },
     )
     pair_bits = infer_pair_bits(cipher.block_bits, task["feature_encoding"])
     model_options = model_options_from_args_or_task(args, task)
@@ -233,6 +260,13 @@ def score_metadata(
         "checkpoint_path": str(args.checkpoint),
         "checkpoint_metadata": checkpoint_metadata(args.checkpoint),
         "git_commit": current_git_commit(),
+        "dataset_cache_enabled": bool(args.dataset_cache_root),
+        "dataset_cache_root": str(args.dataset_cache_root) if args.dataset_cache_root else None,
+        "dataset_cache_chunk_size": int(args.dataset_cache_chunk_size)
+        if args.dataset_cache_root
+        else None,
+        "dataset_cache_workers": int(args.dataset_cache_workers) if args.dataset_cache_root else None,
+        "progress_output": str(args.progress_output) if args.progress_output else None,
     }
     if args.expert_family:
         metadata["expert_family"] = str(args.expert_family)

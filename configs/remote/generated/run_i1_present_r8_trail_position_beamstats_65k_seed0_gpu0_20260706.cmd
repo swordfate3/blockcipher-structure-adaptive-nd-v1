@@ -95,6 +95,10 @@ echo train_done>"%LOG_DIR%\%RUN_ID%_train_done.marker"
   --hidden-bits 16 ^
   --batch-size 512 ^
   --device cuda:0 ^
+  --dataset-cache-root "%DATASET_CACHE_ROOT%" ^
+  --dataset-cache-chunk-size 8192 ^
+  --dataset-cache-workers 4 ^
+  --progress-output "%LOG_DIR%\trail_position_beamstats_score_export_progress.jsonl" ^
   --expert-family trail_position_global_control ^
   --candidate-status near_neighbor_control ^
   --output-dir "%SCORE_ARTIFACT_DIR%\global_stats_control" ^
@@ -109,6 +113,10 @@ if errorlevel 1 goto failed
   --hidden-bits 16 ^
   --batch-size 512 ^
   --device cuda:0 ^
+  --dataset-cache-root "%DATASET_CACHE_ROOT%" ^
+  --dataset-cache-chunk-size 8192 ^
+  --dataset-cache-workers 4 ^
+  --progress-output "%LOG_DIR%\trail_position_beamstats_score_export_progress.jsonl" ^
   --expert-family trail_position ^
   --candidate-status weak_positive ^
   --output-dir "%SCORE_ARTIFACT_DIR%\trail_position" ^

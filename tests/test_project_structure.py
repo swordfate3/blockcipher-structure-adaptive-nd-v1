@@ -2135,6 +2135,8 @@ def test_trail_position_medium_remote_launch_assets_export_scores_only():
     assert "--dataset-cache-root \"%DATASET_CACHE_ROOT%\"" in launcher_text
     assert "--dataset-cache-workers 4" in launcher_text
     assert "scripts\\export-checkpoint-scores" in launcher_text
+    assert launcher_text.count("--dataset-cache-root \"%DATASET_CACHE_ROOT%\"") >= 3
+    assert launcher_text.count("--progress-output \"%LOG_DIR%\\trail_position_beamstats_score_export_progress.jsonl\"") == 2
     assert "scripts\\evaluate-neural-ensemble" not in launcher_text
     assert "row0001_present_pairset_global_stats_seed0.pt" in launcher_text
     assert "row0002_present_trail_position_stats_pairset_seed0.pt" in launcher_text

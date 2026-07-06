@@ -155,6 +155,90 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
     assert metadata["candidate_status"] == "weak_positive"
 
 
+def test_export_checkpoint_scores_can_use_dataset_cache_and_progress(tmp_path):
+    checkpoint = tmp_path / "model.pt"
+    train_output = tmp_path / "train.jsonl"
+    train_main(
+        [
+            "--ciphers",
+            "speck32",
+            "--models",
+            "mlp",
+            "--rounds",
+            "1",
+            "--seeds",
+            "0",
+            "--samples-per-class",
+            "8",
+            "--pairs-per-sample",
+            "1",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--device",
+            "cpu",
+            "--checkpoint-output",
+            str(checkpoint),
+            "--output",
+            str(train_output),
+        ]
+    )
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    artifact_dir = tmp_path / "artifact"
+    cache_root = tmp_path / "dataset_cache"
+    progress_output = tmp_path / "score_export_progress.jsonl"
+
+    status = export_scores_main(
+        [
+            "--checkpoint",
+            str(checkpoint),
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--model-key",
+            "mlp",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--device",
+            "cpu",
+            "--expert-family",
+            "raw_mcnd",
+            "--candidate-status",
+            "weak_positive",
+            "--dataset-cache-root",
+            str(cache_root),
+            "--dataset-cache-chunk-size",
+            "5",
+            "--dataset-cache-workers",
+            "1",
+            "--progress-output",
+            str(progress_output),
+            "--output-dir",
+            str(artifact_dir),
+        ]
+    )
+
+    assert status == 0
+    assert (artifact_dir / "labels.npy").exists()
+    assert list(cache_root.glob("**/features.npy"))
+    progress_events = [
+        json.loads(line)["event"]
+        for line in progress_output.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert "cache_start" in progress_events
+    assert "cache_done" in progress_events
+    metadata = json.loads((artifact_dir / "models.json").read_text(encoding="utf-8"))
+    assert metadata["dataset_cache_enabled"] is True
+    assert metadata["dataset_cache_root"] == str(cache_root)
+
+
 def test_evaluate_neural_ensemble_cli_writes_summary(tmp_path):
     left_dir = tmp_path / "left"
     right_dir = tmp_path / "right"
