@@ -696,3 +696,66 @@ diverse multi-network aggregation third, only after non-neighbor score evidence
 
 This is a route-management decision only. It is not a 262k result claim, not a
 formal SPN/PRESENT claim, and not a claim that ensemble methods are useless.
+
+## 2026-07-07 Continuation Check
+
+The active 262144/class trail-position medium diagnostic is still running under
+local watcher management. Latest local-only status check:
+
+```text
+checked_at = 2026-07-07T00:07:23+08:00 watcher heartbeat
+seed0_train_matrix_rows = 0
+seed1_train_matrix_rows = 0
+seed0_cache_total_progress = 56.25%
+seed1_cache_total_progress = 56.25%
+seed0_positive_class_cache = 100.0%
+seed1_positive_class_cache = 100.0%
+seed0_negative_class_cache = 12.5%
+seed1_negative_class_cache = 12.5%
+postprocess_allowed = false
+needs_main_thread_intervention = false
+```
+
+This confirms the current state is still `running`, not result-ready. The
+project should not launch another SPN/PRESENT training branch while these
+watchers are healthy. The useful waiting-period work is route design and
+tooling only.
+
+The next non-neighbor expert family should be treated as a candidate only if it
+meets all of these preconditions:
+
+```text
+same negative mode = encrypted_random_plaintexts
+same-budget global/statistical control is included
+deterministic or mismatch control is included when the route exposes a simple
+  hand-written statistic
+frozen score export is planned from the start
+expert_family metadata is explicit
+error-overlap or disagreement analysis is possible on aligned samples
+```
+
+Do not promote a route merely because its architecture is different. The next
+candidate must either clear a same-input control or explain a residual that the
+control cannot capture. In practical terms, this prioritizes one of:
+
+```text
+1. a controlled subspace/position-consistency route derived from the current
+   trail-position evidence, after 262k retrieval;
+2. a structurally different SPN cell-state representation that is not just
+   global InvP aggregation or a renamed Sinv/GPD feature;
+3. a frozen-score diverse expert pool only after at least one such
+   non-neighbor candidate becomes weak-positive and low-overlap.
+```
+
+Current route order remains:
+
+```text
+trail-position 262k retrieval and postprocess first
+post-262k residual/control decision second
+new non-neighbor route planning third
+diverse multi-network aggregation fourth
+```
+
+This is deliberately conservative: it keeps the user's diverse-network idea in
+scope, but prevents the project from spending compute on wider pools of similar
+experts before there is a truly different expert worth combining.
