@@ -16,6 +16,9 @@ from blockcipher_nd.cli.audit_compressed_feature_sparsity import (
 from blockcipher_nd.cli.decode_compressed_feature_sparsity import (
     main as decode_compressed_feature_sparsity_main,
 )
+from blockcipher_nd.cli.audit_compressed_feature_families import (
+    main as audit_compressed_feature_families_main,
+)
 from blockcipher_nd.cli.summarize_compressed_feature_expert import (
     main as summarize_compressed_feature_main,
 )
@@ -1275,6 +1278,71 @@ def test_decode_compressed_feature_sparsity_maps_indices_to_stat_families(tmp_pa
     assert row["decoded_features"][2]["name"] == "word_mean_word0"
     assert row["family_counts"] == {"word_cell_mean": 1, "word_cell_std": 1, "word_mean": 1}
     assert row["validation_auc"] == 0.75
+
+
+def test_audit_compressed_feature_families_reports_single_and_leave_one_out(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    output = tmp_path / "family_audit.json"
+    feature_count = 3708
+    depth_span_index = 2620
+    word_span_index = 1365
+    train_features = np.zeros((4, feature_count), dtype=np.float32)
+    validation_features = np.zeros((4, feature_count), dtype=np.float32)
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    train_features[:, depth_span_index] = np.array([-2.0, -1.5, 1.5, 2.0], dtype=np.float32)
+    validation_features[:, depth_span_index] = np.array([-1.8, -1.2, 1.2, 1.8], dtype=np.float32)
+    train_features[:, word_span_index] = np.array([-1.0, -0.8, 0.8, 1.0], dtype=np.float32)
+    validation_features[:, word_span_index] = np.array([-0.9, -0.7, 0.7, 0.9], dtype=np.float32)
+    for directory, split, features in (
+        (train_dir, "train", train_features),
+        (validation_dir, "validation", validation_features),
+    ):
+        _write_feature_dir(
+            directory,
+            split=split,
+            features=features,
+            labels=labels,
+            feature_view_metadata={
+                "words_per_pair": 39,
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "output_feature_bits": feature_count,
+            },
+        )
+
+    status = audit_compressed_feature_families_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--family",
+            "depth_word_cell_span",
+            "--family",
+            "word_span",
+            "--output",
+            str(output),
+            "--steps",
+            "300",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    rows = {(row["mode"], row.get("family", row.get("left_out_family", ""))): row for row in report["rows"]}
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["families"] == ["depth_word_cell_span", "word_span"]
+    assert report["union_row"]["mode"] == "union"
+    assert report["union_row"]["validation_metrics"]["auc"] == 1.0
+    assert rows[("single_family", "depth_word_cell_span")]["feature_count"] == 576
+    assert rows[("single_family", "word_span")]["feature_count"] == 39
+    assert rows[("leave_one_out", "word_span")]["include_feature_families"] == ["depth_word_cell_span"]
+    assert report["claim_scope"].startswith("compressed SPN feature-family attribution diagnostic")
 
 
 def _write_compressed_feature_report(

@@ -559,6 +559,33 @@ compact cross-group interactions. The result is still a local diagnostic, but
 it is a better design signal than either the full compressed logistic expert or
 near-neighbor network averaging.
 
+The family attribution diagnostic narrows the design further:
+
+```text
+span_family_attribution_cli = scripts/audit-compressed-feature-families
+
+single-family validation AUC:
+  seed0 depth_word_cell_span = 0.9999923706054688
+  seed1 depth_word_cell_span = 0.999969482421875
+  seed0 depth_cell_span = 0.9865589141845703
+  seed1 depth_cell_span = 0.9866390228271484
+  seed0 word_span / depth_word_span / cell_span =
+    0.9422855377197266 / 0.9392290115356445 / 0.8775739669799805
+  seed1 word_span / depth_word_span / cell_span =
+    0.9360342025756836 / 0.9317569732666016 / 0.8646869659423828
+
+leave-out depth_word_cell_span validation AUC:
+  seed0 = 0.9918107986450195
+  seed1 = 0.9919548034667969
+```
+
+So the next grouped expert should have a clear backbone: depth_word_cell_span
+is the primary channel. The other span families are not useless, because the
+leave-one-out run without depth_word_cell_span still clears about 0.992 AUC,
+but they should be modeled as auxiliary context or regularized lower-rank
+channels. This is a sharper architecture hypothesis than "use all span features"
+or "combine several networks".
+
 The generic diverse-expert gate can mark the pool ready because there are now
 multiple aligned families, but route-specific interpretation must be stricter:
 the compressed logistic expert is probably a stronger same structural-stat

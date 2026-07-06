@@ -278,6 +278,9 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "span-type structural statistics" in combined
     assert "span_family_filter" in combined
     assert "selected_feature_count = 731 / 3708" in combined
+    assert "scripts/audit-compressed-feature-families" in combined
+    assert "depth_word_cell_span is the dominant span-family backbone" in combined
+    assert "leave_out_depth_word_cell_span_auc" in combined
     assert "not a multi-network improvement" in combined
 
 

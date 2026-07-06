@@ -542,6 +542,38 @@ span families alone retain almost all of the compressed structural-stat signal
 while the shuffle-label control stays near random. It is still a 2048/class
 local diagnostic only, not remote evidence, not formal SPN/PRESENT evidence,
 and not a multi-network improvement.
+
+Span-family attribution:
+
+span_family_attribution_cli = scripts/audit-compressed-feature-families
+
+seed0 attribution_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_span_family_attribution.json
+seed0 single_family_validation_auc:
+  depth_word_cell_span = 0.9999923706054688
+  depth_cell_span = 0.9865589141845703
+  word_span = 0.9422855377197266
+  depth_word_span = 0.9392290115356445
+  cell_span = 0.8775739669799805
+seed0 leave_out_depth_word_cell_span_auc = 0.9918107986450195
+
+seed1 attribution_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_span_family_attribution.json
+seed1 single_family_validation_auc:
+  depth_word_cell_span = 0.999969482421875
+  depth_cell_span = 0.9866390228271484
+  word_span = 0.9360342025756836
+  depth_word_span = 0.9317569732666016
+  cell_span = 0.8646869659423828
+seed1 leave_out_depth_word_cell_span_auc = 0.9919548034667969
+
+Interpretation: depth_word_cell_span is the dominant span-family backbone. It
+is nearly saturated by itself on both local seeds. Removing it produces the
+largest leave-one-out drop, though the remaining four span families still score
+about 0.992 AUC, so the other families carry a real but secondary structural
+signal. The next learned architecture should use depth_word_cell_span as the
+primary grouped channel and add lower-rank depth_cell/word/cell span channels
+as auxiliary context rather than treating all 731 span dimensions uniformly.
 ```
 
 ## Fixed Protocol
