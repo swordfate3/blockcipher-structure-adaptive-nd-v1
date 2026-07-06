@@ -474,6 +474,38 @@ ensemble_gain_passed_seed_count = 0 / 2
 decision = compressed_feature_local_positive_controls_pass_not_ensemble_gain
 ```
 
+The follow-up sparsity audit ranks dimensions using only train-split labels and
+then scores sparse logistic experts on held-out validation:
+
+```text
+sparsity_cli = scripts/audit-compressed-feature-sparsity
+ranking = train-only abs(class_mean_difference) / train_std
+
+seed0 validation_auc_by_top_k:
+  k=1   0.6603231430053711
+  k=16  0.8615026473999023
+  k=64  0.966217041015625
+  k=128 0.9928836822509766
+  k=256 0.9996299743652344
+
+seed1 validation_auc_by_top_k:
+  k=1   0.639317512512207
+  k=16  0.8639602661132812
+  k=64  0.9727020263671875
+  k=128 0.995387077331543
+  k=256 0.9996557235717773
+
+both decisions = sparse_compressed_feature_local_screen_positive
+```
+
+This changes the route intuition. The compressed structural-stat signal is not
+explained by one or two dominating scalar features; those are only weak
+positive. It becomes strong around 128 train-ranked structural dimensions and
+nearly saturated by 256. That points toward a medium-sparse SPN-structural
+expert: preserve grouped trail-position/statistic structure and learn compact
+combinations, rather than searching for a single magic statistic or averaging
+more near-neighbor networks.
+
 The generic diverse-expert gate can mark the pool ready because there are now
 multiple aligned families, but route-specific interpretation must be stricter:
 the compressed logistic expert is probably a stronger same structural-stat

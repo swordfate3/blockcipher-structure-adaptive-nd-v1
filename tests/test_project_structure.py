@@ -268,9 +268,11 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "stable_but_mixed_cross_seed_stacking_diagnostic" in combined
     assert "scripts/fit-compressed-feature-expert" in combined
     assert "scripts/summarize-compressed-feature-expert" in combined
+    assert "scripts/audit-compressed-feature-sparsity" in combined
     assert "compressed_feature_expert_local_screen_positive_needs_controls" in combined
     assert "compressed_feature_expert_shuffle_train_labels_control" in combined
     assert "compressed_feature_local_positive_controls_pass_not_ensemble_gain" in combined
+    assert "sparse_compressed_feature_local_screen_positive" in combined
     assert "not a multi-network improvement" in combined
 
 

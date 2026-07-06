@@ -399,6 +399,42 @@ ensemble_delta_vs_best_single_auc_mean = -0.000002384185791015625
 decision = compressed_feature_local_positive_controls_pass_not_ensemble_gain
 ```
 
+Compressed feature sparsity audit:
+
+```text
+sparsity_cli = scripts/audit-compressed-feature-sparsity
+ranking = train-only abs(class_mean_difference) / train_std
+top_k = 1, 2, 4, 8, 16, 32, 64, 128, 256
+
+seed0 sparsity_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_sparse_audit.json
+seed0 decision = sparse_compressed_feature_local_screen_positive
+seed0 validation_auc_by_top_k:
+  k=1   0.6603231430053711
+  k=2   0.6603231430053711
+  k=4   0.7419681549072266
+  k=8   0.7881331443786621
+  k=16  0.8615026473999023
+  k=32  0.9242277145385742
+  k=64  0.966217041015625
+  k=128 0.9928836822509766
+  k=256 0.9996299743652344
+
+seed1 sparsity_report =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_trail_stats_sparse_audit.json
+seed1 decision = sparse_compressed_feature_local_screen_positive
+seed1 validation_auc_by_top_k:
+  k=1   0.639317512512207
+  k=2   0.639317512512207
+  k=4   0.6965384483337402
+  k=8   0.7919750213623047
+  k=16  0.8639602661132812
+  k=32  0.9326858520507812
+  k=64  0.9727020263671875
+  k=128 0.995387077331543
+  k=256 0.9996557235717773
+```
+
 Interpretation:
 
 ```text
@@ -432,6 +468,13 @@ single compressed SPN-structural expert, not successful diverse aggregation.
 The route-level gate now encodes that distinction directly, so future 262144/class
 retrieved artifacts must pass the same normal/shuffle/ensemble split before this
 route can be promoted.
+
+The sparsity audit adds an important architecture hint. One or two train-ranked
+structural dimensions are only weak positive, 64 dimensions are still below the
+0.99 local gate, and 128 dimensions clear 0.99 AUC on both seeds. This argues
+against a trivial single-feature leakage explanation and favors a medium-sparse
+SPN structural-stat expert: future model work should preserve grouped
+trail-position/statistic structure rather than collapsing to a tiny scalar rule.
 ```
 
 ## Fixed Protocol

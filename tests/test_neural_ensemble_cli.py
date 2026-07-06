@@ -10,6 +10,9 @@ from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bi
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
 from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compressed_feature_main
+from blockcipher_nd.cli.audit_compressed_feature_sparsity import (
+    main as audit_compressed_feature_sparsity_main,
+)
 from blockcipher_nd.cli.summarize_compressed_feature_expert import (
     main as summarize_compressed_feature_main,
 )
@@ -1078,6 +1081,69 @@ def test_summarize_compressed_feature_expert_reports_not_ensemble_gain(tmp_path)
     assert summary["validation_auc"]["min"] == 1.0
     assert summary["shuffle_control_auc"]["max"] == 0.525
     assert summary["claim_scope"].startswith("route-level compressed SPN feature expert diagnostic")
+
+
+def test_audit_compressed_feature_sparsity_selects_train_only_top_features(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    output = tmp_path / "sparse_audit.json"
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=np.array(
+            [
+                [-3.0, 0.9, 0.0],
+                [-2.0, 0.1, 0.0],
+                [2.0, 0.8, 0.0],
+                [3.0, 0.2, 0.0],
+            ],
+            dtype=np.float32,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=np.array(
+            [
+                [-2.5, 0.2, 0.0],
+                [-1.5, 0.8, 0.0],
+                [1.5, 0.1, 0.0],
+                [2.5, 0.9, 0.0],
+            ],
+            dtype=np.float32,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.float32),
+    )
+
+    status = audit_compressed_feature_sparsity_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--top-k",
+            "1",
+            "2",
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "sparse_compressed_feature_local_screen_positive"
+    assert report["rows"][0]["top_k"] == 1
+    assert report["rows"][0]["selected_feature_indices"] == [0]
+    assert report["rows"][0]["validation_metrics"]["auc"] == 1.0
+    assert report["best_row"]["top_k"] == 1
+    assert report["claim_scope"].startswith("train-ranked compressed SPN feature sparsity diagnostic")
 
 
 def _write_compressed_feature_report(
