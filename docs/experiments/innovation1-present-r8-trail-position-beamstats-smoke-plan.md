@@ -1255,6 +1255,62 @@ not formal SPN/PRESENT evidence
 not a diverse-ensemble result
 ```
 
+## 16384/Class Local Neural Matrix Status
+
+As of 2026-07-06T13:41:18+08:00, the four-row neural training matrix has
+completed and produced validation artifacts, but the residual/control gate is
+still running. Do not report this as a completed 16384/class residual gate until
+`outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json`
+exists and has been inspected.
+
+Artifacts:
+
+```text
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/results.jsonl
+progress = outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/progress.jsonl
+curves = outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/curves.svg
+history = outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/history.csv
+post_gate_log = outputs/local_smoke/i1_present_r8_trail_position_beamstats_16384/post_gate.log
+```
+
+Neural validation metrics:
+
+| Seed | Model | AUC | Best accuracy | Accuracy |
+|---:|---|---:|---:|---:|
+| 0 | `present_pairset_global_stats` | `0.9545977339148521` | `0.8861083984375` | `0.875244140625` |
+| 0 | `present_trail_position_stats_pairset` | `0.9999993294477463` | `0.9996337890625` | `0.9996337890625` |
+| 1 | `present_pairset_global_stats` | `0.9560122638940811` | `0.8880615234375` | `0.8836669921875` |
+| 1 | `present_trail_position_stats_pairset` | `0.9999985545873642` | `0.99981689453125` | `0.99981689453125` |
+
+Current post-gate state:
+
+```text
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_16384.json = present
+outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_16384.json = pending/running
+outputs/local_audits/i1_present_r8_trail_position_residual_gate_16384.json = pending
+post_gate_done.marker = pending
+post_gate_failed.marker = pending
+```
+
+Seed0 deterministic/control audit summary:
+
+```text
+baseline_validation_auc = 0.7787629086524248
+max_control_validation_auc = 0.7787629086524248
+control_count = 3
+```
+
+Interpretation:
+
+```text
+The 16384/class neural candidate still greatly exceeds the same-input
+global-statistics neural control, with candidate-global margins of about
++0.0454 AUC on seed0 and +0.0440 AUC on seed1. This is encouraging, but it is
+not enough for the residual-gate conclusion because the deterministic
+position-statistics and active/difference mismatch controls must still complete
+for seed1 and then be combined by the gate.
+```
+
 Prepared assets:
 
 ```text
