@@ -696,6 +696,35 @@ two-branch result. The likely issue is information loss from precompressing
 each semantic group into one fitted logit. The next architectural follow-up
 should preserve within-group raw features or block tensors while applying
 structured regularization, rather than adding more prefit branch logits.
+
+Raw interaction summary diagnostic:
+  cli = scripts/fit-compressed-span-interaction-expert
+  feature_model = raw_plus_primary_auxiliary_interactions_logistic
+  raw_feature_count = 273
+  interaction_selection_split = train
+  top_primary = 8
+  top_auxiliary = 8
+  interaction_count = 64
+  total_feature_count = 337
+  model = compressed_span_interaction_logistic_expert
+  seed0 interaction_validation_auc = 0.9999170303344727
+  seed1 interaction_validation_auc = 0.9998636245727539
+  seed0 delta_vs_full_summary_auc = 0.000002860 ... positive
+  seed1 delta_vs_full_summary_auc = 0.000020027 ... positive
+  seed0 interaction_shuffle_validation_auc = 0.5185546875
+  seed1 interaction_shuffle_validation_auc = 0.48958492279052734
+  decision = raw_interaction_summary_tiny_positive_controls_pass_local
+
+Interpretation: preserving all raw 273 summary features and adding a small
+train-selected primary/auxiliary interaction bank is the first local
+architecture diagnostic in this span-summary line that beats the full-summary
+linear anchor on both seeds. The margin is tiny, so this is not a strong
+result, not remote evidence, and not formal SPN/PRESENT evidence. The shuffled
+train-label controls are near random, which supports that the positive signal
+is tied to train-label-selected SPN coordinate interactions rather than the
+mere presence of extra dimensions. The next step should be a stricter
+interaction gate or a block-preserving model that keeps raw group information,
+not another prefit branch-logit decomposition.
 ```
 
 ## Fixed Protocol

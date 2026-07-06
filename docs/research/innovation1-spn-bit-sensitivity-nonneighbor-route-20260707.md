@@ -903,6 +903,33 @@ too much within-group information. The better next model should consume raw
 group tensors or group-level raw summaries with structured regularization,
 not a larger stack of prefit branch logits.
 
+The raw-interaction follow-up is the first small positive step in that
+direction:
+
+```text
+cli = scripts/fit-compressed-span-interaction-expert
+feature_model = raw_plus_primary_auxiliary_interactions_logistic
+raw_feature_count = 273
+top_primary = 8
+top_auxiliary = 8
+interaction_count = 64
+total_feature_count = 337
+seed0 interaction_validation_auc = 0.9999170303344727
+seed1 interaction_validation_auc = 0.9998636245727539
+seed0 full_summary_validation_auc = 0.9999141693115234
+seed1 full_summary_validation_auc = 0.9998435974121094
+seed0 interaction_shuffle_validation_auc = 0.5185546875
+seed1 interaction_shuffle_validation_auc = 0.48958492279052734
+decision = raw_interaction_summary_tiny_positive_controls_pass_local
+```
+
+The result is tiny but directionally important. It keeps the full raw
+span-summary vector, adds only train-selected primary/auxiliary interaction
+terms, and beats the full linear summary anchor on both local seeds while
+shuffle-label controls stay near random. This supports the next architectural
+move: preserve raw SPN-coordinate group information and add structured
+cross-group interactions, instead of compressing each group into a single logit.
+
 This is the current preferred local development route because it changes the
 SPN representation in a way the evidence actually supports, while avoiding
 premature multi-network aggregation.
