@@ -415,3 +415,94 @@ pass with low overlap -> prepare 1M trail-position confirmation first
 pass but high overlap -> prioritize this projection expert as an explanation/diversity screen
 mixed/weak -> use sensitivity analysis diagnostically, not as remote launch basis
 ```
+
+## 2026-07-07 Literature-Integrated Next Route
+
+The latest local evidence and the external literature point to the same next
+research shape:
+
+```text
+not = wider pool of near-neighbor neural models
+yes = better SPN evidence presentation, then calibrated aggregation
+```
+
+Relevant external pressure:
+
+```text
+Zhang/Wang 2022 PRESENT/DES/Chaskey work:
+  derived multi-ciphertext-pair features and PRESENT-specific kernel choices
+  matter for PRESENT distinguishers.
+
+Neural-inspired integral cryptanalysis:
+  neural models are useful as feature explorers for integral/SPN properties,
+  so the right abstraction is often the state/data view, not just model size.
+
+LLM-neural-distinguisher negative signal:
+  a very different model family does not automatically improve a strong
+  neural distinguisher; prompt/data representation carries much of the value.
+```
+
+Current local pressure:
+
+```text
+V0 raw-axis bit projection -> rejected
+V1 contiguous raw-axis group projection -> rejected
+V2 trail-position structural-stat projection -> clears same-input global
+control on seed0 and seed1
+train-fitted stacking -> improves over fixed ensemble but still loses to
+best single trail-position anchor on both seeds
+```
+
+Therefore the next method-level route is:
+
+```text
+SPN compressed evidence pooling
+```
+
+This means converting the trail-position/bit-sensitivity signal into a compact
+state-cell evidence table that can support more samples or more pair evidence
+without simply concatenating more raw bits. The candidate should reuse
+structural summaries already shown to matter:
+
+```text
+per depth / active cell
+per word / P-layer position
+S-box DDT-consistent beam statistics
+train-only sensitivity-selected structural axes
+optional pair-count or cell-count pooling summaries
+```
+
+The first implementation must be a local tooling/diagnostic step only while the
+active 262144/class remote run is incomplete. Do not launch a new remote branch
+or spend a GPU slot until the existing watcher retrieves both seed score
+artifact sets.
+
+Concrete next gate after 262144/class artifacts are ready:
+
+```text
+1. postprocess trail-position seed0/seed1 score artifacts
+2. classify the anchor as pass / mixed / high-overlap hold
+3. if pass or high-overlap hold, reuse the retrieved train/validation score
+   artifacts to export the V2 structural-stat projection at the same scale
+4. fit stacking only on train artifacts
+5. score only on held-out validation artifacts
+6. require improvement over best single anchor before calling aggregation useful
+```
+
+Do not run a validation hyperparameter sweep and call the best variant a
+research gain. Any calibration choice beyond the current default should be
+chosen by a train-side rule or a nested split before reporting validation AUC.
+
+Promotion rule:
+
+```text
+promote_to_medium_scale_followup only if:
+  same-budget global control is cleared
+  deterministic/mismatch controls remain non-explanatory
+  frozen scores are compatible
+  error overlap with trail-position is low or explains a real residual
+  train-fitted aggregation beats the best single validation AUC
+
+otherwise:
+  keep as representation diagnostic or discard
+```

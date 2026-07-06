@@ -256,6 +256,9 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "do_not_claim_formal_spn_present_evidence" in combined
     assert "selection_split = train" in combined
     assert "validation_key = 0x11111111111111111111" in combined
+    assert "SPN compressed evidence pooling" in combined
+    assert "Do not run a validation hyperparameter sweep" in combined
+    assert "train-fitted aggregation beats the best single validation AUC" in combined
 
 
 def test_present_r8_round_extension_plan_preserves_strict_protocol():
