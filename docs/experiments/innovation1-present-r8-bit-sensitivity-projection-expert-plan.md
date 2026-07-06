@@ -185,48 +185,49 @@ position statistics, compressing the raw validation matrix from `39936` bits to
 scores/features, and the frozen scorer is still applied only on the held-out
 validation split.
 
-Seed0 2048/class local screen:
+2048/class local screen artifacts:
 
 ```text
 train_features =
-  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_train_trail_stats_features
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{seed}_train_trail_stats_features
 validation_features =
-  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_validation_trail_stats_features
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{seed}_validation_trail_stats_features
 mask =
-  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_mask.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{seed}_trail_stats_mask.json
 score_artifact =
-  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_scores
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{seed}_trail_stats_scores
 gate =
-  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_trail_stats_gate.json
-decision = projection_expert_ready_for_local_screen
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{seed}_trail_stats_gate.json
+seed0 decision = projection_expert_ready_for_local_screen
+seed1 decision = projection_expert_ready_for_local_screen
 ```
 
 Metrics:
 
-| Artifact | AUC |
-|---|---:|
-| Same-input global control | `0.8542919158935547` |
-| Trail-position anchor | `0.9985876083374023` |
-| Structural-stats projection | `0.9096775054931641` |
+| Seed | Global control AUC | Structural-stats projection AUC | Trail-position anchor AUC | Projection margin vs global |
+|---:|---:|---:|---:|---:|
+| 0 | `0.8542919158935547` | `0.9096775054931641` | `0.9985876083374023` | `+0.055385589599609375` |
+| 1 | `0.8728437423706055` | `0.9378452301025391` | `0.9982948303222656` | `+0.0650014877319336` |
 
-Gate deltas and overlap:
+Gate overlap and ensemble diagnostics:
 
 ```text
-projection_margin_vs_global_auc = +0.055385589599609375
-projection_margin_vs_anchor_auc = -0.08891010284423828
-anchor_projection_error_jaccard = 0.057441253263707574
-anchor_projection_probability_correlation = 0.7581187418530917
+seed0 anchor_projection_error_jaccard = 0.057441253263707574
+seed1 anchor_projection_error_jaccard = 0.08157099697885196
+seed0 best_ensemble_delta_vs_best_single_auc = -0.001667022705078125
+seed1 best_ensemble_delta_vs_best_single_auc = -0.001583099365234375
 ```
 
 Interpretation:
 
 ```text
 This is the first bit-sensitivity projection variant that clears the
-same-input global control. It supports the representation hypothesis:
-structure-aware residual summaries are materially better than raw-axis masks
-or contiguous raw-axis means. It remains a seed0 local diagnostic only. Do not
-launch remote scale or claim diverse-pool readiness until seed1 is repeated
-with train-only selection and the same validation gate.
+same-input global control on both local seeds. It supports the representation
+hypothesis: structure-aware residual summaries are materially better than
+raw-axis masks or contiguous raw-axis means. However, simple score aggregation
+with the trail-position anchor still does not beat the best single
+trail-position expert. Treat V2 as a two-seed local non-neighbor diagnostic
+candidate, not as a completed ensemble improvement or remote-launch result.
 ```
 
 ## Fixed Protocol

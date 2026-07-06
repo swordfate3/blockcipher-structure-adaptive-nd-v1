@@ -259,16 +259,22 @@ works on deterministic per-depth/per-word/per-cell statistics already used by
 the strongest trail-position model family. This is still a frozen projection,
 not a trained network.
 
-Seed0 2048/class local result:
+2048/class local result:
 
 ```text
-same_input_global_control_auc = 0.8542919158935547
-trail_position_anchor_auc = 0.9985876083374023
-structural_stats_projection_auc = 0.9096775054931641
-margin_vs_global_auc = +0.055385589599609375
-margin_vs_anchor_auc = -0.08891010284423828
-error_jaccard_with_anchor = 0.057441253263707574
-decision = projection_expert_ready_for_local_screen
+seed0 global_control_auc = 0.8542919158935547
+seed0 structural_stats_projection_auc = 0.9096775054931641
+seed0 trail_position_anchor_auc = 0.9985876083374023
+seed0 margin_vs_global_auc = +0.055385589599609375
+seed0 error_jaccard_with_anchor = 0.057441253263707574
+
+seed1 global_control_auc = 0.8728437423706055
+seed1 structural_stats_projection_auc = 0.9378452301025391
+seed1 trail_position_anchor_auc = 0.9982948303222656
+seed1 margin_vs_global_auc = +0.0650014877319336
+seed1 error_jaccard_with_anchor = 0.08157099697885196
+
+both decisions = projection_expert_ready_for_local_screen
 ```
 
 Updated interpretation:
@@ -276,13 +282,25 @@ Updated interpretation:
 ```text
 V0 raw-axis projection failed.
 V1 contiguous raw-axis group means remained weak.
-V2 structural-stat projection clears the same-input global control on seed0.
+V2 structural-stat projection clears the same-input global control on seed0
+and seed1.
 ```
 
 This is the strongest evidence so far for the non-neighbor projection idea,
-but the claim is narrow: local seed0 screen only. Before this route can become
-a real multi-network/diverse-pool candidate, repeat seed1 with train-only
-selection, then check whether the low error-overlap pattern survives.
+but the claim is still narrow: two-seed local diagnostic only. The low
+error-overlap pattern survives seed1, but naive frozen-score aggregation still
+does not beat the best single trail-position expert:
+
+```text
+seed0 best_ensemble_delta_vs_best_single_auc = -0.001667022705078125
+seed1 best_ensemble_delta_vs_best_single_auc = -0.001583099365234375
+```
+
+So the route should not be sold as "many networks already improve the best
+model." The real result is better: a structurally different projection expert
+now exists locally and clears strong controls on two seeds. The next work is to
+test whether it survives larger retrieved trail-position artifacts and whether
+more careful stacking/calibration can exploit its low-overlap errors.
 
 Promotion remains hard:
 
