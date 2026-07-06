@@ -40,6 +40,79 @@ For future SPN/PRESENT experiments, always state the scale class in reports and 
 
 ---
 
+## [LRN-20260706-024] best_practice
+
+**Logged**: 2026-07-06T12:08:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Trail-position r8 4096/class has a completed local residual gate; 65k remote launch remains blocked by unpushed source.
+
+### Details
+The PRESENT-80 r8 trail-position route was extended from a 4096/class neural
+bridge to a completed same-scale residual diagnostic gate:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_4096_local.csv
+results = outputs/local_smoke/i1_present_r8_trail_position_beamstats_4096/results.jsonl
+control_audits =
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed0_4096.json
+  outputs/local_audits/i1_present_r8_trail_position_control_baseline_seed1_4096.json
+gate = outputs/local_audits/i1_present_r8_trail_position_residual_gate_4096.json
+decision = support_trail_position_neural_residual_local
+pair_order_assessment = pair_order_not_bottleneck
+```
+
+Gate margins:
+
+```text
+min_candidate_margin_vs_deterministic_auc = 0.16052186489105225
+min_candidate_margin_vs_global_auc = 0.09591805934906006
+min_deterministic_margin_vs_mismatch_auc = 0.26223671436309814
+```
+
+Key metrics:
+
+| Seed | Candidate AUC | Global control AUC | Deterministic baseline AUC | Max mismatch control AUC |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9999396800994873` | `0.8999881744384766` | `0.7746385335922241` | `0.512401819229126` |
+| 1 | `0.9999489784240723` | `0.9040309190750122` | `0.83942711353302` | `0.5200802683830261` |
+
+Correct interpretation:
+
+- The 4096/class result is now a full local residual diagnostic gate, not only
+  a neural bridge over the global-stat control.
+- It remains local diagnostic evidence only: not remote evidence, not formal
+  SPN/PRESENT evidence, not a Zhang/Wang r7 Case2 result, not a breakthrough
+  claim, and not a diverse multi-network ensemble result.
+- The cached/progress-enabled `audit-spn-features` path is required for
+  practical same-scale deterministic/mismatch controls.
+- The prepared 65k/class remote diagnostic is still not launched. The local
+  source publication gate remains blocked because `main` is ahead of
+  `origin/main` and external `git push origin main` was rejected by safety
+  review without explicit user approval for pushing all local commits.
+
+### Suggested Action
+When reporting current Innovation 1 trail-position status, cite 4096/class as
+completed local residual diagnostic evidence and 65k/class as prepared only /
+not launched. Before remote launch, obtain explicit approval for the exact
+external push or otherwise get the source publication gate to pass through an
+approved channel; do not use dirty-overlay or unpushed-code launches.
+
+### Metadata
+- Source: experiment_audit, implementation, safety_review
+- Related Files: src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, tests/test_project_structure.py, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md
+- Tags: innovation1, spn, present, trail-position, residual-gate, local-diagnostic, source-publication
+- See Also: LRN-20260706-022, LRN-20260706-021, LRN-20260706-020
+- Pattern-Key: innovation1.spn_present.trail_position_4096_residual_gate_complete
+- Recurrence-Count: 1
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-06
+
+---
+
 ## [LRN-20260706-022] best_practice
 
 **Logged**: 2026-07-06T09:20:00+08:00
