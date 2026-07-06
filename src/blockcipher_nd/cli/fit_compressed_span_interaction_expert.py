@@ -41,6 +41,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--top-auxiliary", type=int, default=8)
     parser.add_argument("--selection-holdout-fraction", type=float, default=0.0)
     parser.add_argument("--selection-seed", type=int, default=0)
+    parser.add_argument("--include-raw-feature-prefix", action="append", default=[])
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--l2", type=float, default=0.001)
@@ -64,6 +65,7 @@ def fit_compressed_span_interaction_expert(
     top_auxiliary: int = 8,
     selection_holdout_fraction: float = 0.0,
     selection_seed: int = 0,
+    include_raw_feature_prefixes: list[str] | None = None,
     steps: int = 2000,
     learning_rate: float = 0.05,
     l2: float = 0.001,
@@ -91,11 +93,18 @@ def fit_compressed_span_interaction_expert(
         raise ValueError("learning_rate must be positive")
     if l2 < 0.0:
         raise ValueError("l2 must be non-negative")
+    raw_feature_prefixes = sorted(set(include_raw_feature_prefixes or []))
 
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
     _validate_feature_dirs(train, validation)
     names = _feature_names(train["metadata"], feature_count=int(train["features"].shape[1]))
+    if raw_feature_prefixes:
+        selected_raw_feature_indices = _select_raw_feature_indices(names, prefixes=raw_feature_prefixes)
+        raw_feature_selection = "prefix_filter"
+    else:
+        selected_raw_feature_indices = list(range(int(train["features"].shape[1])))
+        raw_feature_selection = "all"
     fit_labels = train["labels"].astype(np.float64, copy=True)
     if shuffle_train_labels:
         fit_labels = np.random.default_rng(shuffle_seed).permutation(fit_labels)
@@ -118,6 +127,7 @@ def fit_compressed_span_interaction_expert(
         train["features"].astype(np.float64, copy=False),
         validation["features"].astype(np.float64, copy=False),
         selection=selection,
+        raw_feature_indices=selected_raw_feature_indices,
     )
     fitted = _fit_logistic(
         train_augmented[split["fit_indices"]],
@@ -132,7 +142,11 @@ def fit_compressed_span_interaction_expert(
     train_probabilities = _sigmoid(train_logits)
     validation_probabilities = _sigmoid(validation_logits)
 
-    feature_model = "raw_plus_primary_auxiliary_interactions_logistic"
+    feature_model = (
+        "selected_raw_plus_primary_auxiliary_interactions_logistic"
+        if raw_feature_prefixes
+        else "raw_plus_primary_auxiliary_interactions_logistic"
+    )
     common_metadata = {
         "model_key": model_key,
         "expert_family": expert_family,
@@ -155,6 +169,11 @@ def fit_compressed_span_interaction_expert(
         "fit_label_shuffle_seed": int(shuffle_seed),
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
+        "raw_feature_selection": raw_feature_selection,
+        "selected_raw_feature_count": int(len(selected_raw_feature_indices)),
+        "selected_raw_feature_prefixes": raw_feature_prefixes,
+        "selected_raw_feature_indices": [int(index) for index in selected_raw_feature_indices],
+        "selected_raw_feature_names": [names[index] for index in selected_raw_feature_indices],
         "interaction_count": int(selection["interaction_count"]),
         "interaction_selection": _selection_metadata(selection, include_indices=False),
         "claim_scope": (
@@ -200,6 +219,11 @@ def fit_compressed_span_interaction_expert(
         "feature_model": feature_model,
         "feature_count": int(train_augmented.shape[1]),
         "raw_feature_count": int(train["features"].shape[1]),
+        "raw_feature_selection": raw_feature_selection,
+        "selected_raw_feature_count": int(len(selected_raw_feature_indices)),
+        "selected_raw_feature_prefixes": raw_feature_prefixes,
+        "selected_raw_feature_indices": [int(index) for index in selected_raw_feature_indices],
+        "selected_raw_feature_names": [names[index] for index in selected_raw_feature_indices],
         "interaction_count": int(selection["interaction_count"]),
         "interaction_selection": _selection_metadata(selection, include_indices=True),
         "fit": {
@@ -237,6 +261,17 @@ def _feature_names(metadata: dict[str, Any], *, feature_count: int) -> list[str]
     if len(names) != feature_count:
         raise ValueError(f"expected {feature_count} feature_names, got {len(names)}")
     return [str(name) for name in names]
+
+
+def _select_raw_feature_indices(names: list[str], *, prefixes: list[str]) -> list[int]:
+    indices = [
+        index
+        for index, name in enumerate(names)
+        if any(name.startswith(prefix) for prefix in prefixes)
+    ]
+    if not indices:
+        raise ValueError("no raw features matched --include-raw-feature-prefix")
+    return indices
 
 
 def _interaction_selection(
@@ -340,6 +375,7 @@ def _augment_features(
     validation_features: np.ndarray,
     *,
     selection: dict[str, Any],
+    raw_feature_indices: list[int],
 ) -> tuple[np.ndarray, np.ndarray]:
     mean = train_features.mean(axis=0)
     scale = train_features.std(axis=0)
@@ -355,9 +391,11 @@ def _augment_features(
         [validation_standardized[:, left] * validation_standardized[:, right] for left, right in interaction_pairs],
         axis=1,
     )
+    train_raw = train_features[:, raw_feature_indices]
+    validation_raw = validation_features[:, raw_feature_indices]
     return (
-        np.concatenate([train_features, train_interactions], axis=1),
-        np.concatenate([validation_features, validation_interactions], axis=1),
+        np.concatenate([train_raw, train_interactions], axis=1),
+        np.concatenate([validation_raw, validation_interactions], axis=1),
     )
 
 
@@ -389,6 +427,7 @@ def main(argv: list[str] | None = None) -> int:
         top_auxiliary=args.top_auxiliary,
         selection_holdout_fraction=args.selection_holdout_fraction,
         selection_seed=args.selection_seed,
+        include_raw_feature_prefixes=args.include_raw_feature_prefix,
         steps=args.steps,
         learning_rate=args.learning_rate,
         l2=args.l2,

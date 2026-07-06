@@ -1532,6 +1532,102 @@ def test_fit_compressed_span_interaction_expert_can_hold_out_selection_rows(tmp_
     assert validation_metadata["fit_rows"] == 2
 
 
+def test_fit_compressed_span_interaction_expert_can_select_raw_prefixes(tmp_path):
+    train_dir = tmp_path / "train_summary_features"
+    validation_dir = tmp_path / "validation_summary_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    train_features = np.array(
+        [
+            [-2.0, -1.0, 4.0, 0.5, 0.1],
+            [-1.5, -0.8, 3.5, 0.4, 0.2],
+            [1.5, 0.8, 3.0, -0.4, -0.2],
+            [2.0, 1.0, 2.5, -0.5, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = np.array(
+        [
+            [-1.8, -0.9, 5.0, 0.4, 0.1],
+            [-1.2, -0.7, 4.5, 0.3, 0.2],
+            [1.2, 0.7, 4.0, -0.3, -0.2],
+            [1.8, 0.9, 3.5, -0.4, -0.1],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "view": "compressed_span_summary",
+        "output_feature_bits": 5,
+        "feature_names": [
+            "primary_depth_trailword_mean_depth0_trailword0",
+            "primary_depth_trailword_mean_depth0_trailword1",
+            "drop_global_noise",
+            "aux_depth_cell_depth_mean_depth0",
+            "aux_word_global_mean",
+        ],
+    }
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+
+    status = fit_compressed_span_interaction_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--primary-prefix",
+            "primary_depth_trailword_",
+            "--auxiliary-prefix",
+            "aux_depth_cell_",
+            "--top-primary",
+            "1",
+            "--top-auxiliary",
+            "1",
+            "--include-raw-feature-prefix",
+            "primary_depth_trailword_",
+            "--include-raw-feature-prefix",
+            "aux_depth_cell_",
+            "--steps",
+            "250",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["feature_model"] == "selected_raw_plus_primary_auxiliary_interactions_logistic"
+    assert report["raw_feature_selection"] == "prefix_filter"
+    assert report["selected_raw_feature_prefixes"] == ["aux_depth_cell_", "primary_depth_trailword_"]
+    assert report["selected_raw_feature_count"] == 3
+    assert report["selected_raw_feature_indices"] == [0, 1, 3]
+    assert report["feature_count"] == 4
+    assert report["interaction_count"] == 1
+    assert validation_metadata["feature_model"] == "selected_raw_plus_primary_auxiliary_interactions_logistic"
+    assert validation_metadata["selected_raw_feature_count"] == 3
+    assert validation_metadata["feature_count"] == 4
+
+
 def test_fit_compressed_span_block_interaction_expert_builds_semantic_block_terms(tmp_path):
     train_dir = tmp_path / "train_summary_features"
     validation_dir = tmp_path / "validation_summary_features"

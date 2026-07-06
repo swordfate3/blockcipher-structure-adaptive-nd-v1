@@ -1554,3 +1554,74 @@ coordinates, so the representation is not arbitrary. The next architecture
 should keep the 117D raw-family anchor as the clean compact candidate and use
 the top-k ranking as an attribution map, not as a promoted replacement.
 ```
+
+## V11 Raw117 Pairwise Interaction Diagnostic
+
+The next coordinate-preserving check tested whether simple train-selected
+pairwise products can improve the 117D raw-family anchor without reintroducing
+the full 273D raw span summary. This required adding raw-prefix selection to
+`scripts/fit-compressed-span-interaction-expert`, so the raw branch is exactly
+the 117D family scope while the interaction branch uses selected
+primary/auxiliary coordinates:
+
+```text
+cli = scripts/fit-compressed-span-interaction-expert
+samples_per_class = 2048 local diagnostic only
+raw_feature_scope =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+raw_feature_count = 117
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+standardize = true
+```
+
+Artifacts:
+
+```text
+core top4x4 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_raw117_core_pair_interaction_top4_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_raw117_core_pair_interaction_top4_report.json
+core top8x8 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_raw117_core_pair_interaction_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_raw117_core_pair_interaction_report.json
+core top12x8 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_raw117_core_pair_interaction_top12x8_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_raw117_core_pair_interaction_top12x8_report.json
+primary x aux_depth_word top8x8 =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed0_raw117_primary_auxword_pair_interaction_report.json
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed1_raw117_primary_auxword_pair_interaction_report.json
+```
+
+Metrics:
+
+| Variant | Feature count | Interaction count | Seed0 AUC | Delta vs raw117 | Seed1 AUC | Delta vs raw117 |
+|---|---:|---:|---:|---:|---:|---:|
+| Raw117 anchor | 117 | 0 | `0.9999246597290039` | `0.0` | `0.9999103546142578` | `0.0` |
+| Primary x aux-depth-cell top4x4 | 133 | 16 | `0.9999227523803711` | `-0.0000019073486328` | `0.9999027252197266` | `-0.0000076293945312` |
+| Primary x aux-depth-cell top8x8 | 181 | 64 | `0.9999217987060547` | `-0.0000028610229492` | `0.9998884201049805` | `-0.0000219345092773` |
+| Primary x aux-depth-cell top12x8 | 213 | 96 | `0.9999265670776367` | `+0.0000019073486328` | `0.9998846054077148` | `-0.0000257492065430` |
+| Primary x aux-depth-word top8x8 | 181 | 64 | `0.9999132156372070` | `-0.0000114440917969` | `0.9998893737792969` | `-0.0000209808349609` |
+
+Decision:
+
+```text
+decision = raw117_pairwise_interactions_hold_due_no_stable_gain
+action = keep_117d_raw_family_anchor; do_not_promote_simple_pairwise_product_layer
+```
+
+Interpretation:
+
+```text
+The result rejects the simplest coordinate-preserving interaction layer. The
+only positive delta is seed0 top12x8 at about +1.9e-6 AUC, but the same variant
+loses about 2.6e-5 AUC on seed1. Smaller core interactions and aux-depth-word
+interactions lose on both seeds. Therefore the current 117D standardized raw
+family anchor is still cleaner than adding explicit pairwise product features.
+Future architecture work should not spend the next slot on hand-selected
+pairwise products; it should either preserve raw117 for scale confirmation or
+test a genuinely different non-neighbor expert family.
+```

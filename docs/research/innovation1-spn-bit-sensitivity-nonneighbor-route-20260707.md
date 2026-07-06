@@ -1371,3 +1371,27 @@ top117 by about `2.22e-4` AUC. So the current compact anchor should remain the
 full standardized 117D raw-family representation. Use the top-k ordering as an
 attribution map for future structured layers, not as evidence that a sparse
 replacement is better.
+
+The first shallow coordinate-mixing follow-up also holds rather than improves:
+
+```text
+cli = scripts/fit-compressed-span-interaction-expert
+raw_scope = 117D raw-family anchor
+interaction_family =
+  primary_depth_trailword_ x aux_depth_cell_
+  primary_depth_trailword_ x aux_depth_word_
+top_k_grid = core top4x4, core top8x8, core top12x8, auxword top8x8
+best_single_delta = seed0 core top12x8 +0.0000019073486328
+paired_seed1_delta_for_same_variant = -0.0000257492065430
+decision = raw117_pairwise_interactions_hold_due_no_stable_gain
+```
+
+This is a useful negative constraint. Preserving raw coordinates matters, but
+simple explicit pairwise products between the strongest primary and auxiliary
+families do not provide a stable improvement. The raw117 anchor appears to be a
+strong standardized linear/statistical representation, not an obvious feature
+bag waiting for hand-selected quadratic products. The next promising branch is
+therefore either a plan-aligned scale confirmation of raw117 when publishing is
+unblocked, or a genuinely different non-neighbor expert family with compatible
+score artifacts; simple pairwise product expansion should not take the next
+main experiment slot.
