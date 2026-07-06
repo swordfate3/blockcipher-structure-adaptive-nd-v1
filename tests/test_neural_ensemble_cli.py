@@ -60,6 +60,7 @@ from blockcipher_nd.cli.postprocess_bit_sensitivity_projection import (
 )
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
+from blockcipher_nd.cli.plan_bucket_residual_262k import main as plan_bucket_residual_262k_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
@@ -3303,6 +3304,132 @@ def test_postprocess_trail_position_result_verifies_and_analyzes_ready_artifacts
     assert run["analysis"]["rows"] == 4
     assert (run_root / "score_artifacts" / "verification_summary_local.json").exists()
     assert (run_root / "score_artifacts" / "trail_position_score_analysis.json").exists()
+
+
+def test_plan_bucket_residual_262k_waits_for_trail_position_postprocess(tmp_path):
+    postprocess = tmp_path / "postprocess.json"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pending",
+                "decision": "wait_for_trail_position_score_artifacts",
+                "expected_matrix_rows": 2,
+                "runs": [
+                    {
+                        "run_id": "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+                        "train_matrix": str(tmp_path / "run0" / "results" / "train_matrix.jsonl"),
+                        "train_rows": 1,
+                        "missing_score_files": ["score_artifacts/trail_position/models.json"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "bucket_plan.json"
+
+    status = plan_bucket_residual_262k_main(
+        [
+            "--postprocess-status",
+            str(postprocess),
+            "--artifact-root",
+            str(tmp_path / "bucket262k"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_trail_position_262k_score_artifacts"
+    assert report["should_run"] is False
+    assert "score_artifacts/trail_position/models.json" in report["missing"]
+    assert "not prove a breakthrough" in report["claim_scope"]
+
+
+def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
+    run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706"
+    trail_scores = run_root / "score_artifacts" / "trail_position"
+    trail_scores.mkdir(parents=True)
+    (trail_scores / "models.json").write_text(
+        json.dumps(
+            {
+                "checkpoint_path": (
+                    "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+                    "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706\\"
+                    "checkpoints\\row0002_present_trail_position_stats_pairset_seed1.pt"
+                ),
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+            }
+        ),
+        encoding="utf-8",
+    )
+    postprocess = tmp_path / "postprocess.json"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "support_trail_position_score_residual_all_runs",
+                "expected_score_rows": 262144,
+                "runs": [
+                    {
+                        "status": "pass",
+                        "run_id": run_root.name,
+                        "run_root": str(run_root),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "bucket_plan.json"
+
+    status = plan_bucket_residual_262k_main(
+        [
+            "--postprocess-status",
+            str(postprocess),
+            "--artifact-root",
+            str(tmp_path / "bucket262k"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    command_text = "\n".join(report["commands"])
+    control_text = "\n".join(report["control_commands"])
+    seed = report["seeds"][0]
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "bucket_residual_262k_action_plan_ready"
+    assert report["should_run"] is True
+    assert report["expected_score_rows"] == 262144
+    assert seed["seed"] == 1
+    assert seed["eval_plan"].endswith("innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv")
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in seed["train_trail_position_checkpoint"]
+    assert seed["remote_checkpoint_reference"] is True
+    assert "remote Windows checkpoint path" in seed["warnings"][0]
+    assert "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features" in command_text
+    assert "--feature-view trail_position_stats" in command_text
+    assert "scripts/export-compressed-span-blocks" in command_text
+    assert "scripts/export-checkpoint-scores" in command_text
+    assert "--split train" in command_text
+    assert "scripts/fit-compressed-feature-expert" in command_text
+    assert "scripts/fit-bucket-conditioned-feature-expert" in command_text
+    assert "--train-bucket-artifacts" in command_text
+    assert "scripts/evaluate-neural-ensemble" in command_text
+    assert "primary_depth_trailword_" in command_text
+    assert "aux_depth_cell_" in command_text
+    assert "aux_depth_word_" in command_text
+    assert "aux_word_global_" in command_text
+    assert "--shuffle-train-labels" in control_text
+    assert "--shuffle-train-bucket-values" in control_text
+    assert "raw117_nobucket_l2_0p0003" in control_text
+    assert "cmd.exe /k" not in command_text
+    assert "SSH" not in command_text
+    assert "not prove a breakthrough" in report["claim_scope"]
 
 
 def test_render_trail_position_report_keeps_pending_claim_guardrails(tmp_path):

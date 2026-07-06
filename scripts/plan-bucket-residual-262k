@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+from blockcipher_nd.cli.plan_bucket_residual_262k import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
