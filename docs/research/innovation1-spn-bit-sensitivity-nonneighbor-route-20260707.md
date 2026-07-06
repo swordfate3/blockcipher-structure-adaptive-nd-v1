@@ -1296,3 +1296,30 @@ contrast, removing train-split standardization hurts badly, so the candidate
 should be described as a standardized SPN raw-family representation. The next
 productive work is still representation scale-up and control-gated comparison,
 not more local l2 tuning.
+
+Family dropout attribution makes the representation hypothesis more concrete:
+
+```text
+baseline = 117D raw-family anchor
+drop primary_depth_trailword_:
+  seed0 delta_vs_117D = -0.0033121109008789
+  seed1 delta_vs_117D = -0.0022211074829102
+drop aux_depth_cell_:
+  seed0 delta_vs_117D = -0.0000696182250977
+  seed1 delta_vs_117D = -0.0002288818359375
+drop aux_depth_word_:
+  seed0 delta_vs_117D = +0.0000000000000000
+  seed1 delta_vs_117D = -0.0000228881835938
+drop aux_word_global_:
+  seed0 delta_vs_117D = -0.0000038146972656
+  seed1 delta_vs_117D = -0.0000104904174805
+decision = raw117_family_dropout_primary_depth_trailword_main_aux_depth_cell_required
+```
+
+This changes the mental model from "117 useful dimensions" to a two-level
+structure. The core is `primary_depth_trailword_` plus `aux_depth_cell_`.
+`aux_depth_word_` and `aux_word_global_` are small complementary additions,
+mostly useful for tightening seed1 and polishing the already strong core. That
+suggests the next SPN-aware architecture should make the primary-depth/trailword
+evolution and auxiliary depth/cell map first-class branches, with optional
+lightweight side channels for auxiliary depth/word and word/global summaries.

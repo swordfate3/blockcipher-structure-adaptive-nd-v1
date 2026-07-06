@@ -1382,3 +1382,54 @@ has matched shuffle behavior. This supports the representation hypothesis more
 than a training-tuning explanation. Keep the candidate defined by its SPN raw
 families rather than by a fragile l2 setting.
 ```
+
+## V8 Raw117 Family Dropout Attribution
+
+The next local diagnostic tested which of the four selected raw families are
+structurally important by dropping one family at a time from the 117D anchor:
+
+```text
+cli = scripts/fit-compressed-feature-expert
+baseline_prefixes =
+  primary_depth_trailword_
+  aux_depth_cell_
+  aux_depth_word_
+  aux_word_global_
+dropout = leave one prefix family out
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+standardize = true
+samples_per_class = 2048 local diagnostic only
+```
+
+Metrics:
+
+| Dropped family | Feature count | Seed0 AUC | Seed0 delta vs 117D | Seed1 AUC | Seed1 delta vs 117D |
+|---|---:|---:|---:|---:|---:|
+| none, 117D anchor | 117 | `0.9999246597290039` | `0.0` | `0.9999103546142578` | `0.0` |
+| `primary_depth_trailword_` | 81 | `0.9966125488281250` | `-0.0033121109008789` | `0.9976892471313477` | `-0.0022211074829102` |
+| `aux_depth_cell_` | 93 | `0.9998550415039062` | `-0.0000696182250977` | `0.9996814727783203` | `-0.0002288818359375` |
+| `aux_depth_word_` | 64 | `0.9999246597290039` | `+0.0000000000000000` | `0.9998874664306641` | `-0.0000228881835938` |
+| `aux_word_global_` | 113 | `0.9999208450317383` | `-0.0000038146972656` | `0.9998998641967773` | `-0.0000104904174805` |
+
+Decision:
+
+```text
+decision = raw117_family_dropout_primary_depth_trailword_main_aux_depth_cell_required
+action = keep_117d_anchor; prioritize primary_depth_trailword + aux_depth_cell as the core,
+         treat aux_depth_word and aux_word_global as small complementary families
+```
+
+Interpretation:
+
+```text
+The 117D anchor is not an arbitrary feature bag. The primary depth/trailword
+family is the main signal axis: removing it costs about 0.002-0.003 AUC even
+when all auxiliary families remain. The aux depth/cell family is the important
+second axis and costs about 7e-5 to 2.3e-4 AUC when removed. The aux depth/word
+and aux word/global families are smaller complements: they help seed1 and
+slightly polish seed0, but they do not replace the two-family core. Future
+compact SPN architectures should preserve the primary-depth/trailword and
+aux-depth/cell views explicitly before spending capacity on interaction terms.
+```
