@@ -987,6 +987,86 @@ def test_fit_compressed_feature_expert_can_filter_span_feature_families(tmp_path
     assert validation_metadata["feature_selection"]["include_feature_families"] == ["depth_word_cell_span"]
 
 
+def test_fit_compressed_feature_expert_can_filter_feature_name_prefixes(tmp_path):
+    train_dir = tmp_path / "train_summary_features"
+    validation_dir = tmp_path / "validation_summary_features"
+    validation_output = tmp_path / "validation_scores"
+    report_output = tmp_path / "report.json"
+    train_features = np.array(
+        [
+            [-2.0, 2.0, -1.5],
+            [-1.5, 1.5, -1.0],
+            [1.5, -1.5, 1.0],
+            [2.0, -2.0, 1.5],
+        ],
+        dtype=np.float32,
+    )
+    validation_features = np.array(
+        [
+            [-1.8, 1.8, -1.2],
+            [-1.2, 1.2, -0.8],
+            [1.2, -1.2, 0.8],
+            [1.8, -1.8, 1.2],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "view": "compressed_span_summary",
+        "output_feature_bits": 3,
+        "feature_names": [
+            "primary_depth_mean_depth0",
+            "aux_cell_mean_cell0",
+            "primary_global_max",
+        ],
+    }
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=validation_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+
+    status = fit_compressed_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+            "--steps",
+            "400",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--include-feature-prefix",
+            "primary_",
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["feature_selection"]["mode"] == "prefix_filter"
+    assert report["feature_selection"]["include_feature_prefixes"] == ["primary_"]
+    assert report["feature_selection"]["selected_feature_indices"] == [0, 2]
+    assert report["feature_count"] == 2
+    assert report["validation_metrics"]["auc"] == 1.0
+    assert validation_metadata["feature_selection"]["include_feature_prefixes"] == ["primary_"]
+
+
 def test_fit_compressed_feature_expert_requires_train_split(tmp_path):
     train_dir = tmp_path / "bad_train_features"
     validation_dir = tmp_path / "validation_features"

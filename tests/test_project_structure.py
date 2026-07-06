@@ -286,6 +286,11 @@ def test_bit_sensitivity_projection_plan_is_conditional_and_controlled():
     assert "compressed_span_summary_retains_flat_signal_controls_pass" in combined
     assert "compressed_span_summary_logistic_expert" in combined
     assert "feature_reduction_ratio = 0.3734610123119015" in combined
+    assert "--include-feature-prefix" in combined
+    assert "primary_feature_count = 133" in combined
+    assert "auxiliary_feature_count = 140" in combined
+    assert "seed0 primary_validation_auc = 0.9997234344482422" in combined
+    assert "seed1 auxiliary_validation_auc = 0.9976606369018555" in combined
     assert "primary_backbone" in combined
     assert "depth_word_cell_span is the dominant span-family backbone" in combined
     assert "leave_out_depth_word_cell_span_auc" in combined

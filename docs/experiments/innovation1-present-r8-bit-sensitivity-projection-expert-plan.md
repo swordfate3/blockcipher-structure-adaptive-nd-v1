@@ -616,6 +616,29 @@ all local span-family signal while the shuffled-label controls stay near
 random. This supports the grouped span/statistic-aware architecture direction
 more strongly than a flat near-neighbor ensemble. It is still a 2048/class
 local diagnostic only, not remote evidence and not formal SPN/PRESENT evidence.
+
+Primary/auxiliary prefix attribution:
+  cli = scripts/fit-compressed-feature-expert
+  new_filter = --include-feature-prefix
+  primary_prefix = primary_
+  auxiliary_prefix = aux_
+  primary_feature_count = 133
+  auxiliary_feature_count = 140
+  seed0 primary_validation_auc = 0.9997234344482422
+  seed1 primary_validation_auc = 0.9992923736572266
+  seed0 auxiliary_validation_auc = 0.9964427947998047
+  seed1 auxiliary_validation_auc = 0.9976606369018555
+  seed0 primary_shuffle_validation_auc = 0.45572566986083984
+  seed1 primary_shuffle_validation_auc = 0.5348129272460938
+  seed0 auxiliary_shuffle_validation_auc = 0.5421538352966309
+  seed1 auxiliary_shuffle_validation_auc = 0.5033082962036133
+
+Interpretation: primary depth_word_cell-derived summary channels are the
+strong backbone. Auxiliary depth/cell/word summaries are weaker but still
+strongly positive on both local seeds, and their shuffled-label controls remain
+near random. This supports a compact grouped expert with a primary backbone
+and lower-rank auxiliary context, not a flat all-feature logistic model as the
+final architecture.
 ```
 
 ## Fixed Protocol

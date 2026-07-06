@@ -45,6 +45,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="Restrict fitting/scoring to decoded compressed-feature families; repeat for multiple families.",
     )
+    parser.add_argument(
+        "--include-feature-prefix",
+        action="append",
+        default=[],
+        help="Restrict fitting/scoring to explicit metadata feature_names prefixes; repeat for multiple prefixes.",
+    )
     return parser.parse_args(argv)
 
 
@@ -63,6 +69,7 @@ def fit_compressed_feature_expert(
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
     include_feature_families: list[str] | None = None,
+    include_feature_prefixes: list[str] | None = None,
 ) -> tuple[EnsembleScoreArtifact, EnsembleScoreArtifact, dict[str, Any]]:
     if steps <= 0:
         raise ValueError("steps must be positive")
@@ -78,6 +85,7 @@ def fit_compressed_feature_expert(
         train["metadata"],
         feature_count=int(train["features"].shape[1]),
         include_feature_families=include_feature_families or [],
+        include_feature_prefixes=include_feature_prefixes or [],
     )
     selected_indices = np.asarray(feature_selection["selected_feature_indices"], dtype=np.int64)
     train_features = train["features"][:, selected_indices]
@@ -188,12 +196,37 @@ def _select_feature_columns(
     *,
     feature_count: int,
     include_feature_families: list[str],
+    include_feature_prefixes: list[str],
 ) -> dict[str, Any]:
     families = sorted({family for family in include_feature_families if family})
+    prefixes = sorted({prefix for prefix in include_feature_prefixes if prefix})
+    if families and prefixes:
+        raise ValueError("include_feature_family and include_feature_prefix cannot be combined")
+    if prefixes:
+        view_metadata = metadata.get("feature_view_metadata", metadata)
+        names = list(view_metadata.get("feature_names", []))
+        if len(names) != feature_count:
+            raise ValueError(f"expected {feature_count} metadata feature_names, got {len(names)}")
+        selected = [
+            index
+            for index, name in enumerate(names)
+            if any(str(name).startswith(prefix) for prefix in prefixes)
+        ]
+        if not selected:
+            raise ValueError(f"include_feature_prefix matched no features: {prefixes}")
+        return {
+            "mode": "prefix_filter",
+            "include_feature_families": [],
+            "include_feature_prefixes": prefixes,
+            "original_feature_count": int(feature_count),
+            "selected_feature_count": int(len(selected)),
+            "selected_feature_indices": [int(index) for index in selected],
+        }
     if not families:
         return {
             "mode": "all",
             "include_feature_families": [],
+            "include_feature_prefixes": [],
             "original_feature_count": int(feature_count),
             "selected_feature_count": int(feature_count),
             "selected_feature_indices": [int(index) for index in range(feature_count)],
@@ -209,6 +242,7 @@ def _select_feature_columns(
     return {
         "mode": "family_filter",
         "include_feature_families": families,
+        "include_feature_prefixes": [],
         "original_feature_count": int(feature_count),
         "selected_feature_count": int(len(selected)),
         "selected_feature_indices": [int(index) for index in selected],
@@ -359,6 +393,7 @@ def main(argv: list[str] | None = None) -> int:
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
         include_feature_families=args.include_feature_family,
+        include_feature_prefixes=args.include_feature_prefix,
     )
     if args.output_train_dir is not None:
         write_score_artifact(args.output_train_dir, train_artifact)

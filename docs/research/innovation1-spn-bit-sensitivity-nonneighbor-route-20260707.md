@@ -821,6 +821,27 @@ random. This does not add remote or formal evidence, but it changes the local
 architecture hypothesis from "use all span columns" to "learn over compact
 grouped span channels."
 
+The primary/auxiliary prefix attribution sharpens the architecture split:
+
+```text
+filter_cli = scripts/fit-compressed-feature-expert --include-feature-prefix
+primary_prefix = primary_
+auxiliary_prefix = aux_
+primary_feature_count = 133
+auxiliary_feature_count = 140
+seed0 primary_validation_auc = 0.9997234344482422
+seed1 primary_validation_auc = 0.9992923736572266
+seed0 auxiliary_validation_auc = 0.9964427947998047
+seed1 auxiliary_validation_auc = 0.9976606369018555
+primary_shuffle_validation_auc = 0.45572566986083984 / 0.5348129272460938
+auxiliary_shuffle_validation_auc = 0.5421538352966309 / 0.5033082962036133
+```
+
+This means the `depth_word_cell_span`-derived primary channel is the backbone,
+but the auxiliary context is not dead weight. The next learned model should not
+spend capacity equally across all 273 features; it should privilege the primary
+channel and use the auxiliary channels as lower-rank context/residual features.
+
 The purpose is to turn the flat 731 selected span dimensions into SPN-coordinate
 tensors so the next candidate can be a grouped span/statistic-aware expert:
 
