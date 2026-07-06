@@ -120,6 +120,14 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
   --progress-output outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/progress.jsonl
 ```
 
+Postprocess gate:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-cell-value-histogram \
+  --results outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/results.jsonl \
+  --output outputs/local_smoke/i1_present_r8_cell_value_histogram_2048/gate.json
+```
+
 ## Claim Scope
 
 Allowed:
