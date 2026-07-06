@@ -10,6 +10,7 @@ from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensembl
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
+from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
 from blockcipher_nd.cli.train import main as train_main
 from blockcipher_nd.cli.verify_score_artifacts import main as verify_score_artifacts_main
@@ -409,6 +410,91 @@ def test_postprocess_trail_position_result_verifies_and_analyzes_ready_artifacts
     assert run["analysis"]["rows"] == 4
     assert (run_root / "score_artifacts" / "verification_summary_local.json").exists()
     assert (run_root / "score_artifacts" / "trail_position_score_analysis.json").exists()
+
+
+def test_render_trail_position_report_keeps_pending_claim_guardrails(tmp_path):
+    postprocess = tmp_path / "postprocess.json"
+    report_path = tmp_path / "decision.md"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pending",
+                "decision": "wait_for_trail_position_score_artifacts",
+                "action": "let_tmux_watchers_finish_retrieval_before_score_claims",
+                "ready_run_count": 0,
+                "pending_run_count": 1,
+                "failed_run_count": 0,
+                "expected_score_rows": 262144,
+                "expected_matrix_rows": 2,
+                "claim_scope": "PRESENT r8 trail-position score postprocess only; not formal SPN/PRESENT evidence",
+                "runs": [
+                    {
+                        "run_id": "seed0",
+                        "status": "pending",
+                        "train_rows": 0,
+                        "reason": "train_matrix_or_score_artifacts_not_ready",
+                        "missing_score_files": ["models.json", "labels.npy"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = render_trail_position_report_main(
+        ["--postprocess", str(postprocess), "--output", str(report_path)]
+    )
+
+    markdown = report_path.read_text(encoding="utf-8")
+    assert status == 0
+    assert "Status: `pending`" in markdown
+    assert "`train_matrix_or_score_artifacts_not_ready`" in markdown
+    assert "no AUC or score-overlap claim is allowed yet" in markdown
+    assert "not formal SPN/PRESENT evidence" in markdown
+
+
+def test_render_trail_position_report_includes_pass_gate_metrics(tmp_path):
+    postprocess = tmp_path / "postprocess.json"
+    report_path = tmp_path / "decision.md"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "support_trail_position_score_residual_all_runs",
+                "action": "update_experiment_record_and_compare_against_medium_gate_scope",
+                "ready_run_count": 1,
+                "pending_run_count": 0,
+                "failed_run_count": 0,
+                "expected_score_rows": 262144,
+                "expected_matrix_rows": 2,
+                "claim_scope": "medium diagnostic only",
+                "runs": [
+                    {
+                        "run_id": "seed0",
+                        "status": "pass",
+                        "train_rows": 2,
+                        "missing_score_files": [],
+                        "analysis": {
+                            "decision": "support_trail_position_score_residual",
+                            "margins_vs_global_control": {"auc": 0.0123456789},
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = render_trail_position_report_main(
+        ["--postprocess", str(postprocess), "--output", str(report_path)]
+    )
+
+    markdown = report_path.read_text(encoding="utf-8")
+    assert status == 0
+    assert "Status: `pass`" in markdown
+    assert "`support_trail_position_score_residual`" in markdown
+    assert "`0.0123456789`" in markdown
+    assert "Prepare a `>=1000000/class` multi-seed plan" in markdown
 
 
 def test_verify_score_artifacts_cli_accepts_aligned_required_models(tmp_path):
