@@ -210,6 +210,105 @@ def test_residual_focus_status_summarizes_progress_by_seed_and_split(tmp_path):
     assert grouped[1]["event"] == "cache_negative_chunk"
 
 
+def test_residual_focus_status_reports_source_selection_summary_when_present(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False, include_source_summary=True)
+    action = json.loads(action_plan.read_text(encoding="utf-8"))
+    summary_path = Path(action["source_selection_summary_output"])
+    summary_path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_axis_spectrum_stable_groups_selected",
+                "recommended_feature_prefixes": ["aux_word_", "aux_depth_word_"],
+                "selected_groups": ["aux_word_mean", "aux_depth_word_global_mean"],
+                "claim_scope": "train-only axis-spectrum source selection diagnostic",
+            }
+        ),
+        encoding="utf-8",
+    )
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "running"
+    assert report["source_selection_summary_status"] == "pass"
+    assert report["source_selection_summary_decision"] == "residual_axis_spectrum_stable_groups_selected"
+    assert report["source_selection_summary_output"] == str(summary_path)
+    assert report["source_selection_recommended_feature_prefixes"] == ["aux_word_", "aux_depth_word_"]
+    assert report["source_selection_selected_groups"] == ["aux_word_mean", "aux_depth_word_global_mean"]
+    assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+
+
+def test_residual_focus_status_reports_missing_source_selection_summary_without_changing_branch(
+    tmp_path,
+):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False, include_source_summary=True)
+    action = json.loads(action_plan.read_text(encoding="utf-8"))
+    summary_path = Path(action["source_selection_summary_output"])
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "running"
+    assert report["source_selection_summary_status"] == "missing"
+    assert report["source_selection_summary_output"] == str(summary_path)
+    assert report["source_selection_recommended_feature_prefixes"] == []
+    assert report["source_selection_selected_groups"] == []
+    assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+
+
 def test_residual_focus_status_reports_outputs_ready_before_gate(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
@@ -519,7 +618,12 @@ def test_residual_focus_status_ignores_stale_repair_plan_while_gate_pending(tmp_
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
-def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
+def _write_action_plan(
+    tmp_path: Path,
+    *,
+    create_outputs: bool,
+    include_source_summary: bool = False,
+) -> Path:
     paths = [
         tmp_path / "artifacts" / "seed0" / "residual_focus05_slice_eval.json",
         tmp_path / "artifacts" / "seed1" / "residual_focus05_slice_eval.json",
@@ -528,23 +632,21 @@ def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
         for path in paths:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("{}", encoding="utf-8")
-    action_plan = tmp_path / "action_plan.json"
-    action_plan.write_text(
-        json.dumps(
+    payload = {
+        "status": "pass",
+        "seeds": [
             {
-                "status": "pass",
-                "seeds": [
-                    {
-                        "seed": 0,
-                        "planned_outputs": {"focus05_slice_eval": str(paths[0])},
-                    },
-                    {
-                        "seed": 1,
-                        "planned_outputs": {"focus05_slice_eval": str(paths[1])},
-                    },
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
+                "seed": 0,
+                "planned_outputs": {"focus05_slice_eval": str(paths[0])},
+            },
+            {
+                "seed": 1,
+                "planned_outputs": {"focus05_slice_eval": str(paths[1])},
+            },
+        ],
+    }
+    if include_source_summary:
+        payload["source_selection_summary_output"] = str(tmp_path / "residual_axis_spectrum_summary.json")
+    action_plan = tmp_path / "action_plan.json"
+    action_plan.write_text(json.dumps(payload), encoding="utf-8")
     return action_plan

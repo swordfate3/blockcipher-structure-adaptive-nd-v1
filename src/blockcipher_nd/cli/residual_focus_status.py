@@ -46,6 +46,7 @@ def residual_focus_status(
     pool = _read_json_or_empty(pool_plan)
     pool_eval_report = _read_json_or_empty(pool_eval)
     repair_report = _read_json_or_empty(repair_plan)
+    source_selection_summary = _source_selection_summary(action, action_plan)
     planned_outputs = _planned_outputs(action)
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
@@ -100,6 +101,13 @@ def residual_focus_status(
         "repair_hints": [str(hint) for hint in repair_report.get("repair_hints", [])],
         "missing_pool3_score_artifact_count": len(missing_pool3_score_artifacts),
         "missing_pool3_score_artifacts": missing_pool3_score_artifacts,
+        "source_selection_summary_output": source_selection_summary["output"],
+        "source_selection_summary_status": source_selection_summary["status"],
+        "source_selection_summary_decision": source_selection_summary["decision"],
+        "source_selection_recommended_feature_prefixes": source_selection_summary[
+            "recommended_feature_prefixes"
+        ],
+        "source_selection_selected_groups": source_selection_summary["selected_groups"],
         "monitor_dir": str(monitor_dir),
         "latest_monitor_event": _latest_monitor_event(monitor_lines),
         "latest_progress": latest_progress,
@@ -117,6 +125,35 @@ def residual_focus_status(
             "local residual-focus status summary only; does not SSH, launch remote jobs, "
             "run gates, or prove a medium/formal SPN/PRESENT claim"
         ),
+    }
+
+
+def _source_selection_summary(action_plan: dict[str, Any], action_plan_path: Path) -> dict[str, Any]:
+    output = Path(
+        str(
+            action_plan.get(
+                "source_selection_summary_output",
+                action_plan_path.parent / "residual_axis_spectrum_summary.json",
+            )
+        )
+    )
+    if not output.exists():
+        return {
+            "output": str(output),
+            "status": "missing",
+            "decision": "wait_for_train_axis_spectrum_summary",
+            "recommended_feature_prefixes": [],
+            "selected_groups": [],
+        }
+    payload = _read_json_or_empty(output)
+    return {
+        "output": str(output),
+        "status": str(payload.get("status", "")),
+        "decision": str(payload.get("decision", "")),
+        "recommended_feature_prefixes": [
+            str(prefix) for prefix in payload.get("recommended_feature_prefixes", [])
+        ],
+        "selected_groups": [str(group) for group in payload.get("selected_groups", [])],
     }
 
 

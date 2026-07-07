@@ -191,6 +191,10 @@ including class-level and total-row cache fractions when those counters exist.
 It also emits `progress_by_seed_split`, which keeps the latest progress row for
 each `(seed, split)` pair so one active seed does not hide another seed's cache
 state.
+It also surfaces the train-only source-selection summary from the action plan's
+`source_selection_summary_output` as status/decision, selected groups, and
+recommended feature prefixes. These fields are observability only; they do not
+change the residual-focus gate, Pool 3 state, or `next_action`.
 It does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot

@@ -766,6 +766,19 @@ The generated summary is carried in the advance report via
 This automation does not alter the residual-focus gate, Pool 3 readiness, or
 claim scope.
 
+`scripts/residual-focus-status` also exposes that summary when it exists:
+
+```text
+source_selection_summary_status
+source_selection_summary_decision
+source_selection_recommended_feature_prefixes
+source_selection_selected_groups
+```
+
+These status fields are observability only; the status branch and next action
+remain controlled by retrieved residual-focus outputs, the gate, Pool 3 plan,
+Pool 3 fixed-fusion evaluation, and repair plan.
+
 Local 2048/class sanity output from existing train spectrum reports:
 
 ```text
