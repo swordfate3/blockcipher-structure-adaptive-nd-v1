@@ -135,6 +135,13 @@ def _route_decision(
             "wait_for_pool3_score_artifacts",
             _compact_next_action(pool3_route.get("next_action")),
         )
+    if pool3_route["status"] == "waiting_for_pool_plan":
+        next_action = _compact_next_action(pool3_route.get("next_action"))
+        return (
+            "pending",
+            next_action["branch"] or "run_residual_guided_pool_planner",
+            next_action,
+        )
     return (
         "pending",
         "wait_for_residual_focus_outputs",
