@@ -279,6 +279,7 @@ def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path)
     launcher_name = launcher.name
     monitor_session = f"monitor_{RUN_ID}_20260707"
     remote_run_root = f"{REMOTE_RUNS_ROOT}\\{RUN_ID}"
+    remote_source_root = f"{remote_run_root}\\source"
     remote_cmd = f"{remote_run_root}\\source\\configs\\remote\\generated\\{launcher_name}"
     local_monitor_dir = f"outputs/remote_results/{RUN_ID}/monitor"
     return f"""#!/usr/bin/env bash
@@ -288,7 +289,9 @@ RUN_ID="{RUN_ID}"
 PACKAGE_REPORT="{package_report}"
 LOCAL_MONITOR_DIR="{local_monitor_dir}"
 REMOTE_RUN_ROOT="{remote_run_root}"
+REMOTE_SOURCE_ROOT="{remote_source_root}"
 REMOTE_RUN_CMD="{remote_cmd}"
+REPO_URL="{REPO_URL}"
 MONITOR_SCRIPT="{monitor}"
 MONITOR_SESSION="{monitor_session}"
 
@@ -310,7 +313,7 @@ else
 fi
 
 set +e
-ssh lxy-a6000 "cmd.exe /c call \\"${{REMOTE_RUN_CMD}}\\"" \\
+ssh lxy-a6000 "cmd.exe /c if not exist \\"${{REMOTE_RUN_ROOT}}\\" mkdir \\"${{REMOTE_RUN_ROOT}}\\" && if exist \\"${{REMOTE_SOURCE_ROOT}}\\.git\\" (cd /d \\"${{REMOTE_SOURCE_ROOT}}\\" && git fetch origin main && git checkout main && git pull --ff-only origin main) else (git clone --branch main \\"${{REPO_URL}}\\" \\"${{REMOTE_SOURCE_ROOT}}\\") && call \\"${{REMOTE_RUN_CMD}}\\"" \\
   >> "${{LOCAL_MONITOR_DIR}}/launch.log" \\
   2>> "${{LOCAL_MONITOR_DIR}}/launch_stderr.log"
 status=$?

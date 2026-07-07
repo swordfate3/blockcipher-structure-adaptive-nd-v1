@@ -5,7 +5,9 @@ RUN_ID="i1_present_r8_residual_focus_262k"
 PACKAGE_REPORT="outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json"
 LOCAL_MONITOR_DIR="outputs/remote_results/i1_present_r8_residual_focus_262k/monitor"
 REMOTE_RUN_ROOT="G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k"
+REMOTE_SOURCE_ROOT="G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k\source"
 REMOTE_RUN_CMD="G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k\source\configs\remote\generated\run_i1_present_r8_residual_focus_262k_20260707.cmd"
+REPO_URL="git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git"
 MONITOR_SCRIPT="configs/remote/generated/monitor_i1_present_r8_residual_focus_262k_20260707.sh"
 MONITOR_SESSION="monitor_i1_present_r8_residual_focus_262k_20260707"
 
@@ -27,7 +29,7 @@ else
 fi
 
 set +e
-ssh lxy-a6000 "cmd.exe /c call \"${REMOTE_RUN_CMD}\"" \
+ssh lxy-a6000 "cmd.exe /c if not exist \"${REMOTE_RUN_ROOT}\" mkdir \"${REMOTE_RUN_ROOT}\" && if exist \"${REMOTE_SOURCE_ROOT}\.git\" (cd /d \"${REMOTE_SOURCE_ROOT}\" && git fetch origin main && git checkout main && git pull --ff-only origin main) else (git clone --branch main \"${REPO_URL}\" \"${REMOTE_SOURCE_ROOT}\") && call \"${REMOTE_RUN_CMD}\"" \
   >> "${LOCAL_MONITOR_DIR}/launch.log" \
   2>> "${LOCAL_MONITOR_DIR}/launch_stderr.log"
 status=$?

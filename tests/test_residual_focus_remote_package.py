@@ -99,7 +99,12 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
     assert "source_gate_not_pass" in launch_wrapper
     assert "tmux new-session -d -s monitor_i1_present_r8_residual_focus_262k_20260707" in launch_wrapper
     assert "ssh lxy-a6000" in launch_wrapper
-    assert "cmd.exe /c call" in launch_wrapper
+    assert "REMOTE_SOURCE_ROOT=" in launch_wrapper
+    assert "git clone --branch main" in launch_wrapper
+    assert "git fetch origin main" in launch_wrapper
+    assert "cmd.exe /c if not exist" in launch_wrapper
+    assert "&& call" in launch_wrapper
+    assert launch_wrapper.index("git clone --branch main") < launch_wrapper.index("&& call")
     assert "run_i1_present_r8_residual_focus_262k_20260707.cmd" in launch_wrapper
     assert "outputs/local_audits/i1_present_r8_residual_focus_262k" in monitor
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs/i1_present_r8_residual_focus_262k/artifacts" in monitor
