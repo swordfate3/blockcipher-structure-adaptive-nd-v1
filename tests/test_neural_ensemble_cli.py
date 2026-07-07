@@ -3426,6 +3426,9 @@ def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
     assert "aux_word_global_" in command_text
     assert "--shuffle-train-labels" in control_text
     assert "--shuffle-train-bucket-values" in control_text
+    assert "--shuffle-validation-bucket-values" in control_text
+    assert "bucket_raw117_logitgap_valbucket_shuffle" in control_text
+    assert "trail_raw117_bucket_valshuffle_three_score_ensemble" in control_text
     assert "raw117_nobucket_l2_0p0003" in control_text
     assert "cmd.exe /k" not in command_text
     assert "SSH" not in command_text

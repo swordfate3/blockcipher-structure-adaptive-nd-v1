@@ -182,11 +182,21 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "bucket_report": seed_root / "bucket_raw117_logitgap_report.json",
         "two_score_ensemble": seed_root / "trail_raw117_two_score_ensemble.json",
         "three_score_ensemble": seed_root / "trail_raw117_bucket_three_score_ensemble.json",
+        "bucket_shuffle_train_scores": seed_root / "bucket_raw117_logitgap_shuffle_labels_train_scores",
+        "bucket_shuffle_validation_scores": seed_root / "bucket_raw117_logitgap_shuffle_labels_validation_scores",
         "nobucket_train_scores": seed_root / "raw117_nobucket_l2_0p0003_train_scores",
         "nobucket_validation_scores": seed_root / "raw117_nobucket_l2_0p0003_validation_scores",
         "nobucket_report": seed_root / "raw117_nobucket_l2_0p0003_report.json",
+        "bucket_trainshuffle_train_scores": seed_root / "bucket_raw117_logitgap_trainbucket_shuffle_train_scores",
+        "bucket_trainshuffle_validation_scores": seed_root / (
+            "bucket_raw117_logitgap_trainbucket_shuffle_validation_scores"
+        ),
+        "bucket_valshuffle_train_scores": seed_root / "bucket_raw117_logitgap_valbucket_shuffle_train_scores",
+        "bucket_valshuffle_validation_scores": seed_root / "bucket_raw117_logitgap_valbucket_shuffle_validation_scores",
         "bucket_shuffle_report": seed_root / "bucket_raw117_logitgap_shuffle_labels_report.json",
         "bucket_trainshuffle_report": seed_root / "bucket_raw117_logitgap_trainbucket_shuffle_report.json",
+        "bucket_valshuffle_report": seed_root / "bucket_raw117_logitgap_valbucket_shuffle_report.json",
+        "bucket_valshuffle_ensemble": seed_root / "trail_raw117_bucket_valshuffle_three_score_ensemble.json",
     }
     commands = [
         _feature_export_command(eval_plan, seed, "train", paths["train_feature_dir"], None, paths),
@@ -214,6 +224,8 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
             validation_trail_scores,
             seed,
             suffix=["--shuffle-train-labels", "--shuffle-seed", str(9300 + seed)],
+            output_train_dir=paths["bucket_shuffle_train_scores"],
+            output_validation_dir=paths["bucket_shuffle_validation_scores"],
             output_report=paths["bucket_shuffle_report"],
         ),
         _bucket_command(
@@ -221,7 +233,22 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
             validation_trail_scores,
             seed,
             suffix=["--shuffle-train-bucket-values", "--shuffle-seed", str(9400 + seed)],
+            output_train_dir=paths["bucket_trainshuffle_train_scores"],
+            output_validation_dir=paths["bucket_trainshuffle_validation_scores"],
             output_report=paths["bucket_trainshuffle_report"],
+        ),
+        _bucket_command(
+            paths,
+            validation_trail_scores,
+            seed,
+            suffix=["--shuffle-validation-bucket-values", "--shuffle-seed", str(9500 + seed)],
+            output_train_dir=paths["bucket_valshuffle_train_scores"],
+            output_validation_dir=paths["bucket_valshuffle_validation_scores"],
+            output_report=paths["bucket_valshuffle_report"],
+        ),
+        _ensemble_command(
+            [validation_trail_scores, paths["validation_raw117_scores"], paths["bucket_valshuffle_validation_scores"]],
+            paths["bucket_valshuffle_ensemble"],
         ),
         _nobucket_command(paths, seed),
     ]
@@ -436,6 +463,8 @@ def _bucket_command(
     seed: int,
     *,
     suffix: list[str] | None = None,
+    output_train_dir: Path | None = None,
+    output_validation_dir: Path | None = None,
     output_report: Path | None = None,
 ) -> str:
     parts = [
@@ -454,9 +483,9 @@ def _bucket_command(
         str(validation_trail_scores),
         str(paths["validation_raw117_scores"]),
         "--output-train-dir",
-        str(paths["bucket_train_scores"]),
+        str(output_train_dir or paths["bucket_train_scores"]),
         "--output-validation-dir",
-        str(paths["bucket_validation_scores"]),
+        str(output_validation_dir or paths["bucket_validation_scores"]),
         "--output-report",
         str(output_report or paths["bucket_report"]),
         "--run-id",
