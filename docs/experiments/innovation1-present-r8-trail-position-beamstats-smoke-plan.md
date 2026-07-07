@@ -1965,6 +1965,69 @@ claim either. A positive 262k result can justify preparing the next scale gate;
 the stronger claim still requires completed, retrieved, plan-aligned
 `>=1000000/class` multi-seed evidence.
 
+## 2026-07-07 262k Retrieved Postprocess
+
+The watcher-managed retrieval path has now produced complete local artifacts for
+both `262144/class` seed runs:
+
+| Run ID | Retrieval status | Score verification | Train rows | Score rows |
+|---|---|---|---:|---:|
+| `i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706` | retrieved locally | `pass` | 2 | 262144 |
+| `i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706` | retrieved locally | `pass` | 2 | 262144 |
+
+Unified postprocess artifact:
+
+```text
+outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_postprocess_status.json
+```
+
+Rendered decision report:
+
+```text
+outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_decision_report.md
+```
+
+Postprocess summary:
+
+```text
+status = pass
+decision = hold_trail_position_score_residual_mixed_runs
+ready_run_count = 2
+pending_run_count = 0
+failed_run_count = 0
+min_candidate_auc_margin_vs_global = 0.0005689403915312141
+action = inspect_per_seed_overlap_before_scale_or_ensemble_promotion
+claim_scope = 262144/class medium diagnostic only
+```
+
+Per-seed frozen-score metrics:
+
+| Seed | Candidate AUC | Global-control AUC | AUC margin | Candidate wrong @0.5 | Global wrong @0.5 | Error Jaccard @0.5 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 0.9999999995343387 | 0.9993830765306484 | 0.0006169230036903173 | 3 | 2934 | 0.0 |
+| 1 | 0.9999999979045242 | 0.9994310575129930 | 0.0005689403915312141 | 7 | 2862 | 0.0 |
+
+Interpretation:
+
+```text
+Both runs retrieved and score-artifact verification passed. The trail-position
+candidate is extremely strong in absolute AUC and greatly reduces threshold-side
+errors versus the same-input global-stat control. However, the postprocess gate
+requires a candidate AUC margin of 0.001 over the global control before promoting
+the route. The observed margins are only about 0.00057 to 0.00062, so the
+correct decision is hold, not scale directly to 1M and not promote as a diverse
+ensemble input.
+```
+
+Current route action:
+
+```text
+Do not launch the conditional 1M trail-position plan from this result alone.
+Use the retrieved artifacts for residual/overlap inspection, then either tune
+the representation-gate story or shift the next experiment slot to a genuinely
+different non-neighbor SPN expert family.
+```
+
 The 65k/class score-export repair is not yet active on the remote run because
 `main` is ahead of `origin/main` and external `git push origin main` was
 rejected by sandbox review without explicit approval for the exact local commit
