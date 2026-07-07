@@ -663,7 +663,15 @@ pending condition =
 
 ready condition =
   status = pass
-  decision = support_trail_position_score_residual_all_runs
+  score artifacts are complete enough to build train/validation frozen bases
+
+source gate assessment =
+  support_trail_position_score_residual_all_runs means the old trail-position
+  scale gate passed;
+  hold_trail_position_score_residual_mixed_runs is still allowed for this
+  residual-focus diagnostic, because the purpose here is to test whether
+  hard residual slices can be repaired when the old global-AUC margin gate is
+  too saturated to be decisive
 
 base =
   train/validation trail-position frozen scores
@@ -685,7 +693,9 @@ evaluation =
 
 This planner does not launch remote jobs, does not SSH-poll, and does not prove
 the 262144/class claim by itself. It is the command skeleton to run once the
-source-publication and trail-position retrieval gates are both satisfied.
+source-publication and trail-position retrieval gates are both satisfied. If
+the source gate assessment is mixed, the generated plan is only a residual
+diagnostic follow-up, not promotion of the old trail-position scale gate.
 
 ## Claim Scope
 

@@ -4030,7 +4030,7 @@ def test_plan_residual_focus_262k_waits_for_trail_position_postprocess(tmp_path)
     assert "does not SSH-poll" in report["claim_scope"]
 
 
-def test_plan_residual_focus_262k_emits_focus_and_slice_commands(tmp_path):
+def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trail_gate(tmp_path):
     run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706"
     trail_scores = run_root / "score_artifacts" / "trail_position"
     trail_scores.mkdir(parents=True)
@@ -4053,7 +4053,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands(tmp_path):
         json.dumps(
             {
                 "status": "pass",
-                "decision": "support_trail_position_score_residual_all_runs",
+                "decision": "hold_trail_position_score_residual_mixed_runs",
                 "expected_score_rows": 262144,
                 "runs": [
                     {
@@ -4087,6 +4087,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands(tmp_path):
     assert report["status"] == "pass"
     assert report["decision"] == "residual_focus_262k_action_plan_ready"
     assert report["should_run"] is True
+    assert report["source_gate_assessment"] == "score_artifacts_ready_but_trail_position_gate_not_promoted"
     assert report["expected_score_rows"] == 262144
     assert report["candidates"] == ["focus05", "focus10"]
     assert report["controls"] == ["uniform_no_focus", "focus10_label_shuffle"]

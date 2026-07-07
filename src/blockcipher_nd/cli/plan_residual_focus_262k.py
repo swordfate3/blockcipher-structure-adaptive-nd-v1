@@ -60,7 +60,7 @@ def plan_residual_focus_262k(
     source = json.loads(postprocess_status.read_text(encoding="utf-8"))
     source_status = str(source.get("status", "unknown"))
     source_decision = str(source.get("decision", ""))
-    if source_status != "pass" or source_decision != READY_DECISION:
+    if source_status != "pass":
         return _pending_report(
             postprocess_status=postprocess_status,
             artifact_root=artifact_root,
@@ -100,6 +100,7 @@ def plan_residual_focus_262k(
         "postprocess_status": str(postprocess_status),
         "source_status": source_status,
         "source_decision": source_decision,
+        "source_gate_assessment": _source_gate_assessment(source_decision),
         "artifact_root": str(artifact_root),
         "expected_score_rows": int(source.get("expected_score_rows", 262144)),
         "base": "logit_mean(trail_position, raw117_matched)",
@@ -113,7 +114,8 @@ def plan_residual_focus_262k(
         "next_action": (
             "Run these commands only after the 262k trail-position postprocess remains pass; "
             "compare global metrics and train-derived hard residual slice metrics before any "
-            "remote-scale claim."
+            "remote-scale claim. If source_gate_assessment is mixed, use this only as a "
+            "residual-diagnostic follow-up, not as promotion of the trail-position scale gate."
         ),
         "claim_scope": _claim_scope(),
     }
@@ -407,6 +409,12 @@ def _slice_eval_command(
 
 def _format_fraction(value: float) -> str:
     return f"{value:g}"
+
+
+def _source_gate_assessment(source_decision: str) -> str:
+    if source_decision == READY_DECISION:
+        return "trail_position_gate_support_all_runs"
+    return "score_artifacts_ready_but_trail_position_gate_not_promoted"
 
 
 def _claim_scope() -> str:
