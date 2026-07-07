@@ -73,6 +73,10 @@ def summarize_present_r8_diverse_route(
             "gate_status": str(residual.get("gate_status", "")),
             "gate_decision": str(residual.get("gate_decision", "")),
             "missing_output_count": int(residual.get("missing_output_count", 0)),
+            "repair_active": bool(residual.get("repair_active", False)),
+            "repair_status": str(residual.get("repair_status", "")),
+            "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
+            "repair_context_current": bool(residual.get("repair_context_current", False)),
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {

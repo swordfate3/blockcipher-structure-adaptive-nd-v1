@@ -16,6 +16,9 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
             "gate_status": "pending",
             "gate_decision": "wait_for_residual_focus_262k_outputs",
             "missing_output_count": 18,
+            "repair_active": False,
+            "repair_stale_reason": "source_summary_not_current_context",
+            "repair_context_current": False,
             "next_action": {"branch": "wait_for_residual_focus_outputs"},
         },
     )
@@ -51,6 +54,9 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["status"] == "pending"
     assert report["decision"] == "wait_for_residual_focus_outputs"
     assert report["selected_next_action"]["branch"] == "wait_for_residual_focus_outputs"
+    assert report["residual_focus"]["repair_active"] is False
+    assert report["residual_focus"]["repair_stale_reason"] == "source_summary_not_current_context"
+    assert report["residual_focus"]["repair_context_current"] is False
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
     assert report["should_launch_remote"] is False
