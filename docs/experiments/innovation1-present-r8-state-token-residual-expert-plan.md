@@ -326,6 +326,53 @@ span features at all. A state-token route should not be promoted as
 coordinate-aware unless it beats both the shuffled-coordinate and dropped-
 coordinate controls under the same train/validation protocol.
 
+The first 2048/class drop-coordinate diagnostic used the same 20-step local
+feature-artifact setup as the earlier state-token smoke:
+
+```text
+script = scripts/fit-state-token-residual-expert
+flag = --drop-token-coordinates
+steps = 20
+token_dim = 8
+hidden_bits = 16
+batch_size = 256
+```
+
+| Seed | Normal AUC | Coordinate-Shuffle AUC | Drop-Coordinate AUC |
+|---:|---:|---:|---:|
+| 0 | `0.9979028701782227` | `0.9968814849853516` | `0.997344970703125` |
+| 1 | `0.995269775390625` | `0.99542236328125` | `0.9963893890380859` |
+
+The drop-coordinate control does not collapse. It remains a strong value-only
+token classifier, so the current global state-token implementation is better
+described as a learned selected-span-value expert than as proven coordinate-
+layout evidence.
+
+A fair zero-init residual-correction coordinate attribution check was also run
+with focus10 and the frozen trail+raw117 base:
+
+| Seed | True Focus Residual-Loss Delta | Coordinate-Shuffle Delta | Drop-Coordinate Delta |
+|---:|---:|---:|---:|
+| 0 | `-0.00026168495156135563` | `-0.00025688090503773325` | `-0.00035369516459912015` |
+| 1 | `-0.00012316551115307273` | `-0.00011917128751281342` | `-0.00013718681714702807` |
+
+Global AUC and accuracy remained unchanged in all three zero-init focus10
+correction variants. The hard-slice residual-loss drops are real local
+diagnostics, but they survive both coordinate shuffle and coordinate drop.
+
+Interpretation:
+
+```text
+decision = hold_state_token_coordinate_layout_claim
+status = local_2048class_value_only_control_matches_coordinate_model
+action =
+  keep state-token/drop-coordinate controls in the gate;
+  do not promote current state-token as coordinate-aware;
+  next architecture work should either add a stronger coordinate-dependent
+  mechanism or prioritize residual family/source selection after the active
+  262144/class residual-focus artifacts are retrieved
+```
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:
