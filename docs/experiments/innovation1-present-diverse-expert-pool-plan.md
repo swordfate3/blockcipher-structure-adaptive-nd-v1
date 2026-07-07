@@ -552,14 +552,19 @@ inputs =
   residual-focus status
   residual-guided Pool 3 plan/eval
   state-token plan-with-controls
+  bucket residual 262k plan/control gate
 ```
 
 This is a decision summary, not a new experiment. It keeps residual-focus
 262144/class as the primary gate, reports state-token coordinate/control holds
 without letting them override a still-pending residual-focus branch, and prefers
 the residual-guided Pool 3 fixed-fusion path once residual-focus passes and Pool
-3 is ready. It never SSHes, launches remote work, trains, changes labels or
-negative mode, or upgrades any evidence claim.
+3 is ready. It also reports the bucket-conditioned residual route as a
+third-family migration candidate when the local 2048/class controls pass, while
+keeping it blocked or pending until 262144/class score artifacts and the
+same-protocol migration plan are actually ready. It never SSHes, launches
+remote work, trains, changes labels or negative mode, or upgrades any evidence
+claim.
 
 ## Claim Scope
 

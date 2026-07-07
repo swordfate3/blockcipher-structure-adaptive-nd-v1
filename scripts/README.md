@@ -178,16 +178,20 @@ remote scale, or a coordinate-layout claim. It reads JSON reports only; it does
 not train, SSH, launch remote jobs, change labels, or change negative mode.
 
 Use `scripts/summarize-present-r8-diverse-route` for the local PRESENT r8
-diverse-expert route decision across residual-focus, Pool 3, and state-token
-controls. It reads the residual-focus status, residual-guided Pool 3 plan/eval,
-and optional state-token plan-with-controls, then emits a single
-`selected_next_action` plus compact candidate-route statuses. Residual-focus is
-the primary gate: while it is pending, state-token holds are reported but do not
-override the wait; after residual-focus passes, Pool 3 readiness is preferred
-and state-token coordinate/control holds remain blocked. Once Pool 3 fixed
-fusion has been evaluated, it reports the evaluator's document-or-repair next
-action instead of falling back to the residual-focus wait state. It does not
-train, SSH, sync, launch remote jobs, change labels, or make a result claim.
+diverse-expert route decision across residual-focus, Pool 3, state-token
+controls, and the bucket-conditioned residual migration candidate. It reads the
+residual-focus status, residual-guided Pool 3 plan/eval, optional state-token
+plan-with-controls, and optional bucket residual plan/control gate, then emits a
+single `selected_next_action` plus compact candidate-route statuses.
+Residual-focus is the primary gate: while it is pending, state-token and bucket
+residual states are reported but do not override the wait; after residual-focus
+passes, Pool 3 readiness is preferred and state-token coordinate/control holds
+remain blocked. Once Pool 3 fixed fusion has been evaluated, it reports the
+evaluator's document-or-repair next action instead of falling back to the
+residual-focus wait state. The bucket residual route is tracked as a genuinely
+different third-family migration candidate only; local control pass plus a
+pending 262144/class plan is still not launch permission. It does not train,
+SSH, sync, launch remote jobs, change labels, or make a result claim.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

@@ -261,6 +261,198 @@ def test_present_r8_diverse_route_summary_repairs_pool3_control_hold(tmp_path: P
     )
 
 
+def test_present_r8_diverse_route_summary_reports_bucket_residual_pending_migration(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "running",
+            "gate_status": "pending",
+            "gate_decision": "wait_for_residual_focus_262k_outputs",
+            "next_action": {"branch": "wait_for_residual_focus_outputs"},
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    bucket_plan = _write_json(
+        tmp_path / "bucket_plan.json",
+        {
+            "status": "pending",
+            "decision": "wait_for_trail_position_262k_score_artifacts",
+            "should_run": False,
+            "reason": "trail_position_262k_postprocess_not_ready",
+            "missing": ["validation_trail_position_scores"],
+            "next_action": "Let the local tmux watchers retrieve and verify the 262k score artifacts first.",
+        },
+    )
+    bucket_gate = _write_json(
+        tmp_path / "bucket_gate.json",
+        {
+            "status": "pass",
+            "decision": "bucket_conditioned_residual_controls_pass_local_diagnostic",
+            "seed_count": 2,
+            "min_three_vs_two_auc_delta": 0.000005,
+            "min_bucket_vs_nobucket_auc_delta": 0.000028,
+            "next_action": {"branch": "wait_for_262k_trail_position_artifacts_then_run_v16_planner"},
+        },
+    )
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--bucket-residual-plan",
+            str(bucket_plan),
+            "--bucket-residual-control-gate",
+            str(bucket_gate),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    route = report["candidate_routes"]["bucket_conditioned_residual"]
+    assert status == 0
+    assert report["decision"] == "wait_for_residual_focus_outputs"
+    assert route["status"] == "pending_262k_artifacts"
+    assert route["control_status"] == "pass"
+    assert route["plan_status"] == "pending"
+    assert route["plan_decision"] == "wait_for_trail_position_262k_score_artifacts"
+    assert route["reason"] == "trail_position_262k_postprocess_not_ready"
+    assert route["missing"] == ["validation_trail_position_scores"]
+    assert route["min_three_vs_two_auc_delta"] == 0.000005
+
+
+def test_present_r8_diverse_route_summary_blocks_bucket_residual_failed_controls(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "running",
+            "gate_status": "pending",
+            "gate_decision": "wait_for_residual_focus_262k_outputs",
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    bucket_plan = _write_json(
+        tmp_path / "bucket_plan.json",
+        {
+            "status": "pass",
+            "decision": "bucket_residual_262k_action_plan_ready",
+            "should_run": True,
+            "next_action": "Run commands after postprocess remains pass.",
+        },
+    )
+    bucket_gate = _write_json(
+        tmp_path / "bucket_gate.json",
+        {
+            "status": "fail",
+            "decision": "hold_bucket_conditioned_residual_controls_failed",
+            "errors": ["seed1: validation_bucket_shuffle_three_score_not_below_two_score"],
+            "next_action": {"branch": "repair_bucket_conditioned_residual_controls"},
+        },
+    )
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--bucket-residual-plan",
+            str(bucket_plan),
+            "--bucket-residual-control-gate",
+            str(bucket_gate),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    route = report["candidate_routes"]["bucket_conditioned_residual"]
+    assert status == 0
+    assert route["status"] == "blocked_by_controls"
+    assert route["control_status"] == "fail"
+    assert route["errors"] == ["seed1: validation_bucket_shuffle_three_score_not_below_two_score"]
+    assert route["next_action"]["branch"] == "repair_bucket_conditioned_residual_controls"
+
+
+def test_present_r8_diverse_route_summary_reports_bucket_residual_ready(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "pool_ready",
+            "gate_status": "pass",
+            "gate_decision": "keep_residual_focus_262k_hard_slice_candidate",
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    bucket_plan = _write_json(
+        tmp_path / "bucket_plan.json",
+        {
+            "status": "pass",
+            "decision": "bucket_residual_262k_action_plan_ready",
+            "should_run": True,
+            "gate_output": "bucket_residual_controls_gate.json",
+            "next_action": "Run these commands only after the 262k trail-position postprocess remains pass.",
+        },
+    )
+    bucket_gate = _write_json(
+        tmp_path / "bucket_gate.json",
+        {
+            "status": "pass",
+            "decision": "bucket_conditioned_residual_controls_pass_local_diagnostic",
+            "seed_count": 2,
+            "min_three_vs_two_auc_delta": 0.000005,
+            "next_action": {"branch": "wait_for_262k_trail_position_artifacts_then_run_v16_planner"},
+        },
+    )
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--bucket-residual-plan",
+            str(bucket_plan),
+            "--bucket-residual-control-gate",
+            str(bucket_gate),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    route = report["candidate_routes"]["bucket_conditioned_residual"]
+    assert status == 0
+    assert route["status"] == "ready_262k_migration_plan"
+    assert route["plan_status"] == "pass"
+    assert route["control_status"] == "pass"
+    assert route["should_run"] is True
+    assert route["next_action"]["branch"] == "wait_for_262k_trail_position_artifacts_then_run_v16_planner"
+
+
 def _write_json(path: Path, payload: dict[str, object]) -> Path:
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
