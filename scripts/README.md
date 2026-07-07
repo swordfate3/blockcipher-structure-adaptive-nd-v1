@@ -116,6 +116,14 @@ it mark local state-token smoke and same-protocol controls as ready. It never
 SSHes, launches remote jobs, scales to 1M/class, changes labels or negative
 mode, or makes an SPN/PRESENT claim.
 
+Use `scripts/fit-state-token-residual-expert` for the local feature-artifact
+smoke behind that route. It fits `present_state_token_residual` on exported
+`trail_position_stats` train features and scores held-out validation features,
+then writes train/validation frozen-score artifacts plus a JSON report. This is
+not a `scripts/train` matrix row: it consumes 3708D feature artifacts, not raw
+beamstats pair matrices. It does not SSH, launch remote jobs, change labels,
+change negative mode, or make a medium/formal SPN/PRESENT claim.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score

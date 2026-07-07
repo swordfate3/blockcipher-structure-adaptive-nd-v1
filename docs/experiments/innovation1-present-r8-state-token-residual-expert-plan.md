@@ -150,6 +150,56 @@ tests/test_state_token_residual_model.py
   registry key = present_state_token_residual
 ```
 
+Initial local feature-artifact fitter:
+
+```text
+script = scripts/fit-state-token-residual-expert
+fit_split = train feature artifact
+score_split = held-out validation feature artifact
+output =
+  EnsembleScoreArtifact train/validation score directories
+  JSON report with train/validation metrics and guardrails
+claim_scope = local feature-artifact diagnostic only
+```
+
+This makes the next local check executable without changing the remote training
+protocol. The fitter is intentionally separate from `scripts/train` because its
+input is the exported 3708D `trail_position_stats` artifact, not the raw
+beamstats pair matrix used by the current residual-focus remote run.
+
+First 2048/class local feature-artifact smoke:
+
+```text
+feature_artifacts =
+  outputs/local_audits/i1_present_r8_bit_sensitivity_projection_2048_seed{0,1}_*_trail_stats_features
+settings =
+  steps = 20
+  token_dim = 8
+  hidden_bits = 16
+  batch_size = 256
+```
+
+| Seed | State-Token Validation AUC | State-Token Validation Accuracy | Label-Shuffle Validation AUC | Label-Shuffle Calibrated Accuracy |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9979028701782227` | `0.97607421875` | `0.29055213928222656` | `0.5` |
+| 1 | `0.995269775390625` | `0.96826171875` | `0.28820180892944336` | `0.5` |
+
+Interpretation:
+
+```text
+decision = state_token_residual_feature_artifact_smoke_pass_controls
+status = local_2048class_feature_artifact_diagnostic_only
+```
+
+The state-token model learns a strong train-fitted signal from the structured
+span tokens, and the label-shuffle control collapses to calibrated-random
+accuracy. This validates the route as an executable local candidate. It does
+not yet beat the previous flat `trail_position_stats` logistic diagnostic, which
+reached saturated local AUC on the same feature view. Therefore the next useful
+work is not to promote this as a global classifier; it is to use the tokenized
+model for the intended residual-correction or token-coordinate control setting
+after the residual-focus 262144/class artifacts are available.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:
@@ -224,7 +274,9 @@ The first implementation must be local and boring:
    Prove the model accepts the planned tokenized feature shape.
 
 2. local_2048class_residual_slice_screen
-   Compare state-token correction against frozen trail+raw117 base and controls.
+   Use `scripts/fit-state-token-residual-expert` on existing train/validation
+   `trail_position_stats` feature artifacts, then compare the frozen score
+   artifact against the compressed logistic/span baselines and controls.
 
 3. same_protocol_control_gate
    Require the route to beat same-input/global, uniform residual, label-shuffle,
