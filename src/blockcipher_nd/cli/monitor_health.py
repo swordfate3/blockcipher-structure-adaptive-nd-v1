@@ -310,11 +310,23 @@ def _stale_failed_markers(
     if not failed_marker_paths or not any("running" in line for line in recent_monitor_lines):
         return []
     progress_paths = [path for path in run_root.glob("**/*progress.jsonl") if path.is_file()]
-    if not progress_paths:
+    evidence_paths = progress_paths + _post_failure_launch_evidence_paths(run_root)
+    if not evidence_paths:
         return []
-    newest_progress_mtime = max(path.stat().st_mtime for path in progress_paths)
-    stale = [path for path in failed_marker_paths if path.stat().st_mtime < newest_progress_mtime]
+    newest_evidence_mtime = max(path.stat().st_mtime for path in evidence_paths)
+    stale = [path for path in failed_marker_paths if path.stat().st_mtime < newest_evidence_mtime]
     return _relative_paths(run_root, stale)
+
+
+def _post_failure_launch_evidence_paths(run_root: Path) -> list[Path]:
+    logs = run_root / "logs"
+    if not logs.exists():
+        return []
+    patterns = ("*started.marker", "*_git_revision.txt", "*_git_status_before_run.txt")
+    paths: list[Path] = []
+    for pattern in patterns:
+        paths.extend(path for path in logs.glob(pattern) if path.is_file())
+    return paths
 
 
 def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: int) -> dict[str, Any]:

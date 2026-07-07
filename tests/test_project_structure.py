@@ -6862,6 +6862,52 @@ def test_monitor_health_ignores_stale_failed_marker_when_progress_continues(tmp_
     assert report["stale_failed_markers"] == [f"logs/{run_id}_failed.marker"]
 
 
+def test_monitor_health_ignores_stale_launch_failed_marker_after_started_artifact(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "stale_launch_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    (monitor / "monitor.log").write_text(
+        "\n".join(
+            [
+                "2026-07-07T16:29:49+08:00 launch_failed status=255",
+                "2026-07-07T20:20:43+08:00 running missing=18",
+                "2026-07-07T20:34:43+08:00 sync",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    failed = monitor / "launch_failed.marker"
+    failed.write_text("failed\n", encoding="utf-8")
+    started = logs / f"{run_id}_started.marker"
+    started.write_text("started\n", encoding="utf-8")
+    git_revision = logs / f"{run_id}_git_revision.txt"
+    git_revision.write_text("962f524\n", encoding="utf-8")
+    import os
+
+    failed_time = datetime.fromisoformat("2026-07-07T16:29:49+08:00").timestamp()
+    started_time = datetime.fromisoformat("2026-07-07T20:34:44+08:00").timestamp()
+    os.utime(failed, (failed_time, failed_time))
+    os.utime(started, (started_time, started_time))
+    os.utime(git_revision, (started_time, started_time))
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=3,
+        now=datetime.fromisoformat("2026-07-07T20:45:00+08:00"),
+    )
+
+    assert report["status"] == "running"
+    assert report["needs_main_thread_intervention"] is False
+    assert report["failed_markers"] == ["monitor/launch_failed.marker"]
+    assert report["stale_failed_markers"] == ["monitor/launch_failed.marker"]
+
+
 def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "launch_stalled_unit"
