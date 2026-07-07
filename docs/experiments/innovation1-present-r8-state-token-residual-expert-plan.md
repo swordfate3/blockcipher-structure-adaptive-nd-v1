@@ -281,6 +281,37 @@ meaningful scale; it says this tiny local validation screen has too little
 remaining headroom for a global AUC gain. The route should wait for the active
 262144/class residual-focus artifacts before any promotion or rejection.
 
+The additive correction head is now zero-initialized by default:
+
+```text
+default = base_logit_mean + 0.0 correction at step 0
+ablation flag = --no-zero-init-correction-head
+```
+
+This is a semantic/stability fix rather than a performance claim. The residual
+expert should begin as the frozen base and then learn only deviations justified
+by the train split. A short local 20-step focus10 diagnostic with zero init kept
+global AUC and accuracy unchanged and lowered hard-slice residual loss less than
+the earlier random-head smoke:
+
+| Seed | Zero-Init Focus Residual-Loss Delta | Prior Random-Head Focus Residual-Loss Delta |
+|---:|---:|---:|
+| 0 | `-0.00026168495156135563` | `-0.0006984658851611619` |
+| 1 | `-0.00012316551115307273` | `-0.0004869211776279414` |
+
+Interpretation:
+
+```text
+decision = keep_zero_init_as_default_semantic_guard
+status = local_2048class_training_semantics_fix_not_performance_win
+```
+
+The true-label focus10 correction lowered residual loss on the hard slice,
+while label-shuffle controls made residual loss much worse. Token-coordinate
+shuffle controls still partially lowered residual loss, so these diagnostics
+show label-dependent residual signal but do not prove true depth/word/cell
+coordinate-layout dependence.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

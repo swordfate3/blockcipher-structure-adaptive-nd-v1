@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from blockcipher_nd.cli.fit_state_token_residual_expert import main as fit_state_token_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, load_score_artifact, write_score_artifact
@@ -221,11 +222,13 @@ def test_fit_state_token_residual_correction_expert_adds_to_frozen_base(tmp_path
     assert report["status"] == "pass"
     assert report["model_key"] == "present_state_token_residual_correction"
     assert report["base_model_order"] == ["trail", "raw117"]
+    assert report["correction_initialization"] == {"zero_initialize_correction_head": True}
     assert report["validation_base_logit_mean_metrics"]["auc"] < 1.0
     assert "delta_validation_corrected_vs_base_logit_mean_auc" in report
     assert validation_artifact.metadata["feature_model"] == "state_token_residual_logit_correction"
     assert validation_artifact.metadata["base_fusion"] == "logit_mean"
     assert validation_artifact.metadata["base_model_order"] == ["trail", "raw117"]
+    assert validation_artifact.metadata["correction_head_zero_initialized"] is True
     assert validation_artifact.metadata["score_split"] == "validation"
     assert not np.allclose(validation_artifact.logits, base_logits)
     assert np.isfinite(validation_artifact.probabilities).all()
@@ -286,6 +289,20 @@ def test_fit_state_token_residual_correction_expert_requires_strict_negatives(tm
         assert "negative_mode must be encrypted_random_plaintexts" in str(exc)
     else:
         raise AssertionError("expected non-strict negative mode to be rejected")
+
+
+def test_state_token_residual_correction_head_can_start_at_zero():
+    from blockcipher_nd.cli.fit_state_token_residual_correction_expert import (
+        _zero_initialize_correction_head,
+    )
+
+    model = PresentStateTokenResidualDistinguisher(input_bits=3708, token_dim=4, hidden_bits=8)
+    features = torch.randn(5, 3708)
+
+    _zero_initialize_correction_head(model)
+
+    logits = model(features).squeeze(1)
+    assert torch.allclose(logits, torch.zeros_like(logits))
 
 
 def _toy_trail_position_features(*, rows: int) -> tuple[np.ndarray, np.ndarray]:

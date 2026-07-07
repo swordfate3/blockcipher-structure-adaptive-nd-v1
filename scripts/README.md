@@ -136,7 +136,9 @@ only `base_logit_mean + state_token_correction`, and writes corrected
 train/validation score artifacts plus a JSON report. Optional
 `--residual-focus-fraction` up-weights train rows with high frozen-base residual
 loss. It still does not SSH, launch remote jobs, change labels, change negative
-mode, or make a medium/formal SPN/PRESENT claim.
+mode, or make a medium/formal SPN/PRESENT claim. By default it zero-initializes
+the final correction head so step 0 equals the frozen base; use
+`--no-zero-init-correction-head` only as an initialization ablation.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

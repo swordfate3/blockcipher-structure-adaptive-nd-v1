@@ -77,6 +77,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--shuffle-seed", type=int, default=0)
     parser.add_argument("--shuffle-token-coordinates", action="store_true")
     parser.add_argument("--token-coordinate-shuffle-seed", type=int, default=0)
+    parser.add_argument("--no-zero-init-correction-head", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run-id", default="")
     parser.add_argument("--model-key", default=DEFAULT_MODEL_KEY)
@@ -105,6 +106,7 @@ def fit_state_token_residual_correction_expert(
     shuffle_seed: int = 0,
     shuffle_token_coordinates: bool = False,
     token_coordinate_shuffle_seed: int = 0,
+    zero_initialize_correction_head: bool = True,
     seed: int = 0,
     run_id: str = "",
     model_key: str = DEFAULT_MODEL_KEY,
@@ -165,6 +167,8 @@ def fit_state_token_residual_correction_expert(
     )
     if shuffle_token_coordinates:
         _shuffle_token_coordinates(model, seed=token_coordinate_shuffle_seed)
+    if zero_initialize_correction_head:
+        _zero_initialize_correction_head(model)
     fit = _fit_correction_model(
         model,
         train_model_features,
@@ -207,6 +211,7 @@ def fit_state_token_residual_correction_expert(
         "fit_label_shuffle_seed": int(shuffle_seed),
         "token_coordinates_shuffled": bool(shuffle_token_coordinates),
         "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
+        "correction_head_zero_initialized": bool(zero_initialize_correction_head),
         "seed": int(seed),
         "feature_count": int(train_features.shape[1]),
         "selected_span_feature_bits": int(model.selected_span_feature_bits),
@@ -282,6 +287,9 @@ def fit_state_token_residual_correction_expert(
             "shuffle_token_coordinates": bool(shuffle_token_coordinates),
             "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
         },
+        "correction_initialization": {
+            "zero_initialize_correction_head": bool(zero_initialize_correction_head),
+        },
         "train_base_logit_mean_metrics": train_base_metrics,
         "validation_base_logit_mean_metrics": validation_base_metrics,
         "train_metrics": train_metrics,
@@ -355,6 +363,14 @@ def _decision(
     return "state_token_residual_correction_diagnostic_no_base_gain"
 
 
+def _zero_initialize_correction_head(model: PresentStateTokenResidualDistinguisher) -> None:
+    output = model.classifier[-1]
+    if not isinstance(output, nn.Linear) or output.out_features != 1:
+        raise TypeError("expected final state-token classifier layer to be a single-output Linear")
+    nn.init.zeros_(output.weight)
+    nn.init.zeros_(output.bias)
+
+
 def _fit_correction_model(
     model: PresentStateTokenResidualDistinguisher,
     features: np.ndarray,
@@ -419,6 +435,7 @@ def main(argv: list[str] | None = None) -> int:
         shuffle_seed=args.shuffle_seed,
         shuffle_token_coordinates=args.shuffle_token_coordinates,
         token_coordinate_shuffle_seed=args.token_coordinate_shuffle_seed,
+        zero_initialize_correction_head=not args.no_zero_init_correction_head,
         seed=args.seed,
         run_id=args.run_id,
         model_key=args.model_key,
