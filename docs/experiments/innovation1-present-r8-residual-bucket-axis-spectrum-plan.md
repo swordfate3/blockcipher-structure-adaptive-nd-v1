@@ -266,6 +266,76 @@ the sample is uncertain or where experts disagree, then apply the auxiliary
 family only where it explains residual loss.
 ```
 
+## 2048/Class Bucket-Conditioned Aux-Depth-Word/Aux-Word Probe
+
+The follow-up probe tested whether the same auxiliary family becomes useful
+when trained as a bucket-conditioned classifier over train-derived
+`logit_gap_abs` reliability buckets:
+
+```text
+cli = scripts/fit-bucket-conditioned-feature-expert
+selected_prefixes =
+  aux_depth_word_
+  aux_word_
+feature_count = 96
+bucket_artifacts =
+  trail_stats_logistic_scores
+  span_raw117_matched_scores
+bucket_feature = logit_gap_abs
+bucket_count = 5
+fit_split = train
+score_split = held-out validation
+steps = 1000
+learning_rate = 0.05
+l2 = 0.0003
+standardize = true
+```
+
+Artifacts:
+
+```text
+seed0 bucket probe report =
+  outputs/local_audits/i1_present_r8_seed0_bucket_aux_depth_word_aux_word_probe_report.json
+seed1 bucket probe report =
+  outputs/local_audits/i1_present_r8_seed1_bucket_aux_depth_word_aux_word_probe_report.json
+
+seed0 trail+raw117+bucket aux probe ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_auxword_probe_three_score_ensemble.json
+seed1 trail+raw117+bucket aux probe ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_auxword_probe_three_score_ensemble.json
+```
+
+Metrics:
+
+| Seed | Bucket Aux Probe AUC | Trail+Raw117 AUC | Trail+Raw117+Bucket Aux AUC | Three-vs-Two Delta |
+|---:|---:|---:|---:|---:|
+| 0 | `0.9528608322143555` | `0.9999990463256836` | `0.9999780654907227` | `-0.0000209808349609375` |
+| 1 | `0.9466629028320312` | `0.999995231628418` | `0.9999561309814453` | `-0.00003910064697265625` |
+
+Decision:
+
+```text
+decision = hold_bucket_conditioned_aux_depth_word_aux_word_classifier
+status = useful_axis_family_but_wrong_training_objective
+action =
+  do not promote this bucket-conditioned aux-depth-word/word classifier;
+  do not remote-scale this route;
+  preserve the aux-depth-word/word family as a residual-source candidate;
+  next architecture should predict residual_loss, signed correction, or a
+  learned gate over frozen strong scores rather than reclassifying labels
+  globally
+```
+
+Interpretation:
+
+```text
+Bucket conditioning alone is not enough. The auxiliary family still contains
+non-random SPN signal, but training it as another ordinary label classifier
+does not improve the strong trail+raw117 anchor. The failure mode points to the
+objective, not necessarily the feature family: the next probe should learn a
+small residual/gated correction on top of frozen strong scores.
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a
