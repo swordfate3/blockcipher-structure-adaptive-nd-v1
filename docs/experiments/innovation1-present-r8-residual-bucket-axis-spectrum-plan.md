@@ -830,6 +830,118 @@ it exited before SSH and wrote:
 outputs/remote_results/i1_present_r8_residual_focus_262k/monitor/launch_blocked.marker
 ```
 
+## 2026-07-07 Remote Launch Update
+
+The source-publication gate was later cleared and the residual-focus remote
+package became launchable:
+
+```text
+source_gate =
+  outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.json
+source_gate_status = pass
+branch = main
+upstream = origin/main
+ahead = 0
+behind = 0
+dirty = false
+
+default_package =
+  outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json
+default_package_status = pass
+default_package_decision = residual_focus_remote_package_ready
+default_launch_allowed = true
+```
+
+The first default remote launch reached the remote run directory and cloned the
+pushed source, but failed at command 0 before feature export:
+
+```text
+run_id = i1_present_r8_residual_focus_262k
+remote_revision = 7c015c4e3628d145708e6ac3559ff14f0707b2a9
+failure_stage = command_0
+failure =
+  ModuleNotFoundError: No module named 'blockcipher_nd'
+local_retrieved_logs =
+  outputs/remote_results/i1_present_r8_residual_focus_262k/logs/
+status = failed_launch_not_training_result
+```
+
+This was an environment/bootstrap bug in the generated remote package, not a
+negative residual-focus experiment result. The package generator was fixed to
+emit:
+
+```text
+set PYTHONPATH=%SOURCE_ROOT%\src;%PYTHONPATH%
+```
+
+before running the `scripts\...` Python entrypoints. It was also extended to
+support an isolated retry run id and to mark generated local `.sh` launcher and
+monitor scripts executable.
+
+Fix commits:
+
+```text
+000fae2 fix: set residual focus remote pythonpath
+6ae26d5 fix: make residual focus remote scripts executable
+```
+
+Relevant verification:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
+  tests/test_residual_focus_remote_package.py \
+  tests/test_check_launch_source.py -q
+
+result = 8 passed
+```
+
+The active remote run is now the isolated retry package:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+retry_package =
+  outputs/local_audits/i1_present_r8_residual_focus_262k_retry1_remote_package.json
+retry_package_status = pass
+retry_package_decision = residual_focus_remote_package_ready
+retry_launch_allowed = true
+
+remote_root =
+  G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k_retry1
+remote_revision =
+  6ae26d50f8052c24182eb40f616c4e6d487cf815
+local_launch_session =
+  launch_i1_present_r8_residual_focus_262k_retry1_20260707
+local_monitor_session =
+  monitor_i1_present_r8_residual_focus_262k_retry1_20260707
+```
+
+One bounded read-only launch confirmation found:
+
+```text
+started_marker = present
+command_0_marker = present
+git_revision = 6ae26d50f8052c24182eb40f616c4e6d487cf815
+pythonpath =
+  G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k_retry1\source\src;
+```
+
+Current interpretation:
+
+```text
+planned = yes
+launched_from_pushed_commit = yes
+running_or_waiting_for_monitor = yes
+completed_remotely = no
+retrieved_result_outputs = no
+residual_focus_gate_passed = no
+formal_or_breakthrough_claim = no
+```
+
+The local monitor is responsible for retrieving the 18 planned outputs under
+`outputs/local_audits/i1_present_r8_residual_focus_262k/`. Until those outputs
+exist and `scripts/gate-residual-focus-262k` is run, the experiment status
+remains running/pending, not complete.
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a
