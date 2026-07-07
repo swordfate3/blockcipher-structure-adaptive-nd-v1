@@ -226,9 +226,46 @@ def test_present_r8_diverse_route_summary_repairs_failed_residual_focus_first(tm
     report = json.loads(output.read_text(encoding="utf-8"))
     assert status == 0
     assert report["status"] == "hold"
-    assert report["decision"] == "repair_residual_focus_before_diverse_pool"
+    assert report["decision"] == "separate_focus_from_uniform_residual_objective"
     assert report["selected_next_action"]["branch"] == "separate_focus_from_uniform_residual_objective"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
+
+
+def test_present_r8_diverse_route_summary_uses_residual_repair_branch_as_decision(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "gate_failed",
+            "gate_status": "fail",
+            "gate_decision": "hold_residual_focus_262k_controls_failed",
+            "next_action": {"branch": "repair_residual_focus_controls_before_scaleup"},
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "ready"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "repair_residual_focus_controls_before_scaleup"
+    assert report["selected_next_action"]["branch"] == "repair_residual_focus_controls_before_scaleup"
 
 
 def test_present_r8_diverse_route_summary_documents_evaluated_pool3_support(tmp_path: Path):

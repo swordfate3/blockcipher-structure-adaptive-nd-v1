@@ -104,10 +104,11 @@ def _route_decision(
     gate_status = str(residual.get("gate_status", ""))
     gate_decision = str(residual.get("gate_decision", ""))
     if gate_status in {"fail", "hold"} or gate_decision.startswith("hold_") or residual_status == "repair_ready":
+        next_action = _compact_next_action(residual.get("next_action"))
         return (
             "hold",
-            "repair_residual_focus_before_diverse_pool",
-            _compact_next_action(residual.get("next_action")),
+            next_action["branch"] or "repair_residual_focus_before_diverse_pool",
+            next_action,
         )
     if residual_status == "outputs_ready_gate_needed":
         next_action = _compact_next_action(residual.get("next_action"))
