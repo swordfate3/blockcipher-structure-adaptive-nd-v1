@@ -71,6 +71,7 @@ from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_e
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
 from blockcipher_nd.cli.gate_bucket_residual_controls import main as gate_bucket_residual_controls_main
 from blockcipher_nd.cli.plan_bucket_residual_262k import main as plan_bucket_residual_262k_main
+from blockcipher_nd.cli.plan_residual_focus_262k import main as plan_residual_focus_262k_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
@@ -3985,6 +3986,139 @@ def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
     assert "cmd.exe /k" not in command_text
     assert "SSH" not in command_text
     assert "not prove a breakthrough" in report["claim_scope"]
+
+
+def test_plan_residual_focus_262k_waits_for_trail_position_postprocess(tmp_path):
+    postprocess = tmp_path / "postprocess.json"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pending",
+                "decision": "wait_for_trail_position_score_artifacts",
+                "expected_matrix_rows": 2,
+                "runs": [
+                    {
+                        "run_id": "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706",
+                        "train_matrix": str(tmp_path / "run0" / "results" / "train_matrix.jsonl"),
+                        "train_rows": 1,
+                        "missing_score_files": ["score_artifacts/trail_position/models.json"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "residual_focus_plan.json"
+
+    status = plan_residual_focus_262k_main(
+        [
+            "--postprocess-status",
+            str(postprocess),
+            "--artifact-root",
+            str(tmp_path / "residual_focus262k"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_trail_position_262k_score_artifacts"
+    assert report["should_run"] is False
+    assert "score_artifacts/trail_position/models.json" in report["missing"]
+    assert "does not SSH-poll" in report["claim_scope"]
+
+
+def test_plan_residual_focus_262k_emits_focus_and_slice_commands(tmp_path):
+    run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706"
+    trail_scores = run_root / "score_artifacts" / "trail_position"
+    trail_scores.mkdir(parents=True)
+    (trail_scores / "models.json").write_text(
+        json.dumps(
+            {
+                "checkpoint_path": (
+                    "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+                    "i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706\\"
+                    "checkpoints\\row0002_present_trail_position_stats_pairset_seed1.pt"
+                ),
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+            }
+        ),
+        encoding="utf-8",
+    )
+    postprocess = tmp_path / "postprocess.json"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "support_trail_position_score_residual_all_runs",
+                "expected_score_rows": 262144,
+                "runs": [
+                    {
+                        "status": "pass",
+                        "run_id": run_root.name,
+                        "run_root": str(run_root),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "residual_focus_plan.json"
+
+    status = plan_residual_focus_262k_main(
+        [
+            "--postprocess-status",
+            str(postprocess),
+            "--artifact-root",
+            str(tmp_path / "residual_focus262k"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    command_text = "\n".join(report["commands"])
+    control_text = "\n".join(report["control_commands"])
+    seed = report["seeds"][0]
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "residual_focus_262k_action_plan_ready"
+    assert report["should_run"] is True
+    assert report["expected_score_rows"] == 262144
+    assert report["candidates"] == ["focus05", "focus10"]
+    assert report["controls"] == ["uniform_no_focus", "focus10_label_shuffle"]
+    assert seed["seed"] == 1
+    assert seed["eval_plan"].endswith("innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv")
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in seed["train_trail_position_checkpoint"]
+    assert seed["remote_checkpoint_reference"] is True
+    assert "remote Windows checkpoint path" in seed["warnings"][0]
+    assert "scripts/export-bit-sensitivity-features" in command_text
+    assert "--feature-view trail_position_stats" in command_text
+    assert "scripts/export-compressed-span-blocks" in command_text
+    assert "scripts/export-checkpoint-scores" in command_text
+    assert "scripts/fit-compressed-feature-expert" in command_text
+    assert "scripts/fit-residual-correction-feature-expert" in command_text
+    assert "scripts/evaluate-residual-slice-correction" in command_text
+    assert "--residual-focus-fraction 0.05" in command_text
+    assert "--residual-focus-fraction 0.1" in command_text
+    assert "--bucket-count 0" in command_text
+    assert "--include-feature-prefix aux_depth_word_" in command_text
+    assert "--include-feature-prefix aux_word_" in command_text
+    assert "--include-feature-prefix aux_depth_cell_" in command_text
+    assert "--include-feature-prefix aux_word_global_" in command_text
+    assert "residual_focus05_slice_eval.json" in command_text
+    assert "residual_focus10_slice_eval.json" in command_text
+    assert "scripts/fit-bucket-conditioned-feature-expert" not in command_text
+    assert "scripts/gate-bucket-residual-controls" not in command_text
+    assert "--shuffle-train-labels" in control_text
+    assert "residual_focus10_labelshuffle_slice_eval.json" in control_text
+    assert "residual_uniform_slice_eval.json" in control_text
+    assert "cmd.exe /k" not in command_text
+    assert "SSH" not in command_text
+    assert "does not SSH-poll" in report["claim_scope"]
 
 
 def test_render_trail_position_report_keeps_pending_claim_guardrails(tmp_path):

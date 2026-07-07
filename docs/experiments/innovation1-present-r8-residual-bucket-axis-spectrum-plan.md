@@ -641,6 +641,52 @@ score is already extremely strong, and no formal SPN/PRESENT claim is allowed
 until completed, retrieved, plan-aligned larger-scale evidence exists.
 ```
 
+## 262144/Class Residual-Focus Action Planner
+
+The medium-scale route should not reuse the older bucket-conditioned V16 gate as
+the promoted candidate. A dedicated planner now emits the residual-focused
+follow-up commands after the 262144/class trail-position score postprocess is
+complete:
+
+```text
+scripts/plan-residual-focus-262k
+```
+
+Planner behavior:
+
+```text
+input =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_postprocess_status.json
+
+pending condition =
+  trail-position score artifacts are missing, incomplete, or not postprocessed
+
+ready condition =
+  status = pass
+  decision = support_trail_position_score_residual_all_runs
+
+base =
+  train/validation trail-position frozen scores
+  train/validation raw117 matched compressed-span scores
+
+candidates =
+  residual-focus 5%
+  residual-focus 10%
+
+controls =
+  uniform no-focus residual correction
+  focus 10% label-shuffle residual correction
+
+evaluation =
+  global validation metrics from the residual-correction reports
+  train-derived hard residual slice metrics from
+  scripts/evaluate-residual-slice-correction
+```
+
+This planner does not launch remote jobs, does not SSH-poll, and does not prove
+the 262144/class claim by itself. It is the command skeleton to run once the
+source-publication and trail-position retrieval gates are both satisfied.
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a
