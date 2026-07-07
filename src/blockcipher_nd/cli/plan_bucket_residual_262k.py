@@ -21,6 +21,17 @@ FEATURE_PREFIXES = (
     "aux_depth_word_",
     "aux_word_global_",
 )
+_GATE_INPUT_PATH_KEYS = (
+    "bucket_report",
+    "two_score_ensemble",
+    "three_score_ensemble",
+    "bucket_shuffle_report",
+    "bucket_trainshuffle_report",
+    "bucket_trainshuffle_ensemble",
+    "bucket_valshuffle_report",
+    "bucket_valshuffle_ensemble",
+    "nobucket_report",
+)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -87,6 +98,8 @@ def plan_bucket_residual_262k(
             "claim_scope": _claim_scope(),
         }
 
+    gate_output = artifact_root / "bucket_residual_controls_gate.json"
+    gate_command = _gate_command(seed_plans, gate_output)
     return {
         "status": "pass",
         "decision": "bucket_residual_262k_action_plan_ready",
@@ -108,9 +121,12 @@ def plan_bucket_residual_262k(
         "seeds": seed_plans,
         "commands": [command for seed in seed_plans for command in seed["commands"]],
         "control_commands": [command for seed in seed_plans for command in seed["control_commands"]],
+        "gate_output": str(gate_output),
+        "gate_command": gate_command,
         "next_action": (
             "Run these commands only after the 262k trail-position postprocess remains pass; "
-            "then compare trail+raw117 against trail+raw117+bucket at the same 262144/class scale."
+            "then run the control gate before comparing trail+raw117 against trail+raw117+bucket "
+            "at the same 262144/class scale."
         ),
         "claim_scope": _claim_scope(),
     }
@@ -196,6 +212,7 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "bucket_shuffle_report": seed_root / "bucket_raw117_logitgap_shuffle_labels_report.json",
         "bucket_trainshuffle_report": seed_root / "bucket_raw117_logitgap_trainbucket_shuffle_report.json",
         "bucket_valshuffle_report": seed_root / "bucket_raw117_logitgap_valbucket_shuffle_report.json",
+        "bucket_trainshuffle_ensemble": seed_root / "trail_raw117_bucket_trainshuffle_three_score_ensemble.json",
         "bucket_valshuffle_ensemble": seed_root / "trail_raw117_bucket_valshuffle_three_score_ensemble.json",
     }
     commands = [
@@ -237,6 +254,14 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
             output_validation_dir=paths["bucket_trainshuffle_validation_scores"],
             output_report=paths["bucket_trainshuffle_report"],
         ),
+        _ensemble_command(
+            [
+                validation_trail_scores,
+                paths["validation_raw117_scores"],
+                paths["bucket_trainshuffle_validation_scores"],
+            ],
+            paths["bucket_trainshuffle_ensemble"],
+        ),
         _bucket_command(
             paths,
             validation_trail_scores,
@@ -265,6 +290,7 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "artifact_root": str(seed_root),
         "commands": commands,
         "control_commands": control_commands,
+        "gate_inputs": {name: str(paths[name]) for name in _GATE_INPUT_PATH_KEYS},
     }
 
 
@@ -521,6 +547,32 @@ def _ensemble_command(artifacts: list[Path], output: Path) -> str:
             str(output),
         ]
     )
+
+
+def _gate_command(seed_plans: list[dict[str, Any]], output: Path) -> str:
+    parts = [
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "uv",
+        "run",
+        "scripts/gate-bucket-residual-controls",
+    ]
+    flag_by_key = {
+        "bucket_report": "--candidate-report",
+        "two_score_ensemble": "--two-score-ensemble",
+        "three_score_ensemble": "--three-score-ensemble",
+        "bucket_shuffle_report": "--shuffle-label-report",
+        "bucket_trainshuffle_report": "--train-bucket-shuffle-report",
+        "bucket_trainshuffle_ensemble": "--train-bucket-shuffle-ensemble",
+        "bucket_valshuffle_report": "--validation-bucket-shuffle-report",
+        "bucket_valshuffle_ensemble": "--validation-bucket-shuffle-ensemble",
+        "nobucket_report": "--no-bucket-report",
+    }
+    for seed in seed_plans:
+        gate_inputs = seed["gate_inputs"]
+        for key, flag in flag_by_key.items():
+            parts.extend([flag, str(gate_inputs[key])])
+    parts.extend(["--output", str(output)])
+    return _command(parts)
 
 
 def _command(parts: list[str]) -> str:

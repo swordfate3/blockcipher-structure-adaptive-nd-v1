@@ -3592,6 +3592,7 @@ def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
     report = json.loads(output.read_text(encoding="utf-8"))
     command_text = "\n".join(report["commands"])
     control_text = "\n".join(report["control_commands"])
+    gate_command = report["gate_command"]
     seed = report["seeds"][0]
     assert status == 0
     assert report["status"] == "pass"
@@ -3622,6 +3623,26 @@ def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
     assert "bucket_raw117_logitgap_valbucket_shuffle" in control_text
     assert "trail_raw117_bucket_valshuffle_three_score_ensemble" in control_text
     assert "raw117_nobucket_l2_0p0003" in control_text
+    assert report["gate_output"].endswith("bucket_residual_controls_gate.json")
+    assert "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/gate-bucket-residual-controls" in gate_command
+    assert "--candidate-report" in gate_command
+    assert "bucket_raw117_logitgap_report.json" in gate_command
+    assert "--two-score-ensemble" in gate_command
+    assert "trail_raw117_two_score_ensemble.json" in gate_command
+    assert "--three-score-ensemble" in gate_command
+    assert "trail_raw117_bucket_three_score_ensemble.json" in gate_command
+    assert "--shuffle-label-report" in gate_command
+    assert "bucket_raw117_logitgap_shuffle_labels_report.json" in gate_command
+    assert "--train-bucket-shuffle-report" in gate_command
+    assert "bucket_raw117_logitgap_trainbucket_shuffle_report.json" in gate_command
+    assert "--train-bucket-shuffle-ensemble" in gate_command
+    assert "trail_raw117_bucket_trainshuffle_three_score_ensemble.json" in gate_command
+    assert "--validation-bucket-shuffle-report" in gate_command
+    assert "bucket_raw117_logitgap_valbucket_shuffle_report.json" in gate_command
+    assert "--validation-bucket-shuffle-ensemble" in gate_command
+    assert "trail_raw117_bucket_valshuffle_three_score_ensemble.json" in gate_command
+    assert "--no-bucket-report" in gate_command
+    assert "raw117_nobucket_l2_0p0003_report.json" in gate_command
     assert "cmd.exe /k" not in command_text
     assert "SSH" not in command_text
     assert "not prove a breakthrough" in report["claim_scope"]

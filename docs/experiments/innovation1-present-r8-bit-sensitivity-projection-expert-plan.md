@@ -2352,6 +2352,9 @@ The V16 candidate/control bundle now has a machine-readable local control gate.
 This does not add a new model or a new training result; it freezes the current
 interpretation into a JSON decision so that the 262144/class migration step can
 reuse the same evidence criteria instead of relying on prose.
+The 262144/class bucket-residual action planner now emits the corresponding
+final `scripts/gate-bucket-residual-controls` command when the trail-position
+postprocess status becomes ready.
 
 Gate command:
 
