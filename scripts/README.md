@@ -105,6 +105,17 @@ branch includes local `command_templates` and `implementation_notes`; these are
 handoff aids only and do not SSH, launch remote jobs, or change validation
 protocols.
 
+Use `scripts/plan-state-token-residual-expert` to prepare the next PRESENT r8
+state-token residual architecture route while the active residual-focus
+262144/class job is still pending. It reads only the local residual-focus status
+JSON and emits
+`outputs/local_audits/i1_present_r8_state_token_residual_expert_plan.json`. When
+the residual-focus gate is pending it allows only plan/smoke preparation; when
+the gate fails or holds it routes back to residual repair; only after a pass does
+it mark local state-token smoke and same-protocol controls as ready. It never
+SSHes, launches remote jobs, scales to 1M/class, changes labels or negative
+mode, or makes an SPN/PRESENT claim.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score
