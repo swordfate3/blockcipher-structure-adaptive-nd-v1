@@ -232,7 +232,9 @@ branch rather than a blind ensemble or scale-up.
 Repair fields in the advance report use the same current-context check as
 `residual-focus-status`, so an old ready repair file whose `source_summary`
 does not match the current gate, Pool 3 plan, or Pool 3 eval is reported as
-stale instead of actionable.
+stale instead of actionable. The advance report also includes
+`repair_source_summary`, `repair_context_current`, and `repair_primary_branch`
+so watcher iteration reports can explain why a repair plan is or is not current.
 It does not SSH, sync, launch remote jobs, or fit ensemble weights.
 
 Use `scripts/watch-residual-focus-results` when a local tmux watcher should keep
