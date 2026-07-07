@@ -17,6 +17,9 @@ from blockcipher_nd.models.structure.spn.present_pairset_global_stats_hybrid imp
 from blockcipher_nd.models.structure.spn.present_trail_position_stats import (
     PresentTrailPositionStatsPairSetDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.present_state_token_residual import (
+    PresentStateTokenResidualDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.present_p_layer_mixer import (
     PresentPLayerMixerBlock,
     PresentPLayerMixerPairSetDistinguisher,
@@ -69,6 +72,7 @@ __all__ = [
     "PresentPairSetHistogramHybridDistinguisher",
     "PresentPairSetStatsHybridDistinguisher",
     "PresentTrailPositionStatsPairSetDistinguisher",
+    "PresentStateTokenResidualDistinguisher",
     "PresentInceptionMCNDBlock",
     "PresentInceptionMCNDDistinguisher",
     "PresentInceptionMCNDGlobalMatrixDistinguisher",

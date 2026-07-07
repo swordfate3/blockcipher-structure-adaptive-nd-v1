@@ -115,6 +115,41 @@ This should be a residual expert, not another global classifier. A global
 classifier may rediscover the already saturated trail-position/raw117 signal,
 which is not the missing piece.
 
+## Implementation Status
+
+Initial local model skeleton:
+
+```text
+model_key = present_state_token_residual
+class = PresentStateTokenResidualDistinguisher
+input_feature_view = trail_position_stats
+input_feature_count = 3708
+selected_span_tokens = 731
+token_families =
+  word_span
+  cell_span
+  depth_word_cell_span
+  depth_cell_span
+  depth_word_span
+```
+
+The model does not consume the raw 39936-bit beamstats training matrix directly.
+It consumes the deterministic `trail_position_stats` feature artifact exported
+by `scripts/export-bit-sensitivity-features --feature-view trail_position_stats`.
+That distinction matters: until a route-specific feature-artifact training CLI
+or plan-aligned runner exists, this is a local feature-artifact expert, not a
+remote training-matrix row.
+
+Current validated smoke:
+
+```text
+tests/test_state_token_residual_model.py
+  forward shape = [batch, 1]
+  selected_span_feature_bits = 731
+  attention_weights shape = [batch, 731]
+  registry key = present_state_token_residual
+```
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:
