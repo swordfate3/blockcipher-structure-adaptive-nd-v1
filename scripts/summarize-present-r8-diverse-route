@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+from blockcipher_nd.cli.summarize_present_r8_diverse_route import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

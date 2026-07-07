@@ -540,6 +540,27 @@ context, but it is no longer the next mainline action. The next aggregation work
 should be residual-guided and same-protocol, not a wider pile of similar SPN
 graph variants.
 
+## Local Route Summary
+
+The current r8 diverse-expert branch also has a local-only route summary:
+
+```text
+script = scripts/summarize-present-r8-diverse-route
+default_output =
+  outputs/local_audits/i1_present_r8_diverse_route_summary.json
+inputs =
+  residual-focus status
+  residual-guided Pool 3 plan/eval
+  state-token plan-with-controls
+```
+
+This is a decision summary, not a new experiment. It keeps residual-focus
+262144/class as the primary gate, reports state-token coordinate/control holds
+without letting them override a still-pending residual-focus branch, and prefers
+the residual-guided Pool 3 fixed-fusion path once residual-focus passes and Pool
+3 is ready. It never SSHes, launches remote work, trains, changes labels or
+negative mode, or upgrades any evidence claim.
+
 ## Claim Scope
 
 Allowed after local Pool 0 postprocess:

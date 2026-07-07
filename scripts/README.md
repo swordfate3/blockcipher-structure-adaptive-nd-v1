@@ -177,6 +177,16 @@ state-token route remains a local diagnostic and must not be promoted to Pool 3,
 remote scale, or a coordinate-layout claim. It reads JSON reports only; it does
 not train, SSH, launch remote jobs, change labels, or change negative mode.
 
+Use `scripts/summarize-present-r8-diverse-route` for the local PRESENT r8
+diverse-expert route decision across residual-focus, Pool 3, and state-token
+controls. It reads the residual-focus status, residual-guided Pool 3 plan/eval,
+and optional state-token plan-with-controls, then emits a single
+`selected_next_action` plus compact candidate-route statuses. Residual-focus is
+the primary gate: while it is pending, state-token holds are reported but do not
+override the wait; after residual-focus passes, Pool 3 readiness is preferred
+and state-token coordinate/control holds remain blocked. It does not train,
+SSH, sync, launch remote jobs, change labels, or make a result claim.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score
