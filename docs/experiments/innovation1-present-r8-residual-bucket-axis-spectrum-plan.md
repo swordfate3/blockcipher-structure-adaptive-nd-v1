@@ -689,6 +689,9 @@ evaluation =
   global validation metrics from the residual-correction reports
   train-derived hard residual slice metrics from
   scripts/evaluate-residual-slice-correction
+
+gate =
+  scripts/gate-residual-focus-262k
 ```
 
 This planner does not launch remote jobs, does not SSH-poll, and does not prove
@@ -696,6 +699,34 @@ the 262144/class claim by itself. It is the command skeleton to run once the
 source-publication and trail-position retrieval gates are both satisfied. If
 the source gate assessment is mixed, the generated plan is only a residual
 diagnostic follow-up, not promotion of the old trail-position scale gate.
+
+The companion gate consumes the action plan's planned outputs after the
+residual-focus commands finish. It keeps a candidate only when:
+
+```text
+1. focus05 or focus10 has a train-derived hard-slice residual-loss drop;
+2. the candidate's hard-slice loss drop beats the uniform no-focus correction;
+3. the focus10 label-shuffle control worsens hard-slice residual loss;
+4. the result remains labeled as medium diagnostic evidence, not formal
+   SPN/PRESENT evidence.
+```
+
+Current local gate status before running the residual-focus 262144/class
+commands:
+
+```text
+status = pending
+decision = wait_for_residual_focus_262k_outputs
+missing_outputs =
+  seed0 residual_uniform_slice_eval.json
+  seed0 residual_focus10_labelshuffle_slice_eval.json
+  seed0 residual_focus05_slice_eval.json
+  seed0 residual_focus10_slice_eval.json
+  seed1 residual_uniform_slice_eval.json
+  seed1 residual_focus10_labelshuffle_slice_eval.json
+  seed1 residual_focus05_slice_eval.json
+  seed1 residual_focus10_slice_eval.json
+```
 
 ## Claim Scope
 

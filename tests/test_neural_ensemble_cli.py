@@ -72,6 +72,7 @@ from blockcipher_nd.cli.postprocess_trail_position_result import main as postpro
 from blockcipher_nd.cli.gate_bucket_residual_controls import main as gate_bucket_residual_controls_main
 from blockcipher_nd.cli.plan_bucket_residual_262k import main as plan_bucket_residual_262k_main
 from blockcipher_nd.cli.plan_residual_focus_262k import main as plan_residual_focus_262k_main
+from blockcipher_nd.cli.gate_residual_focus_262k import main as gate_residual_focus_262k_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
@@ -4120,6 +4121,245 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "cmd.exe /k" not in command_text
     assert "SSH" not in command_text
     assert "does not SSH-poll" in report["claim_scope"]
+
+
+def _write_residual_focus_slice_eval(
+    path: Path,
+    *,
+    rows: int,
+    focus_loss_delta: float,
+    focus_auc_delta: float = 0.0001,
+    mode: str = "train_derived_base_residual_loss_threshold",
+) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    base_loss = 0.05
+    base_auc = 0.999
+    path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": (
+                    "residual_slice_correction_improves_focus_loss"
+                    if focus_loss_delta < 0.0
+                    else "residual_slice_correction_diagnostic_no_focus_loss_gain"
+                ),
+                "focus": {
+                    "mode": mode,
+                    "focus_fraction": 0.1,
+                    "validation_focus_rows": rows,
+                },
+                "validation_focus_metrics": {"rows": rows},
+                "validation_focus_base_metrics": {
+                    "auc": base_auc,
+                    "residual_loss_mean": base_loss,
+                },
+                "validation_focus_corrected_metrics": {
+                    "auc": base_auc + focus_auc_delta,
+                    "residual_loss_mean": base_loss + focus_loss_delta,
+                },
+                "validation_focus_delta": {
+                    "auc": focus_auc_delta,
+                    "residual_loss_mean": focus_loss_delta,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _write_residual_focus_report(path: Path, *, global_auc_delta: float = 0.0) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    base_auc = 0.9999
+    path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_correction_local_candidate_needs_controls",
+                "validation_base_logit_mean_metrics": {"auc": base_auc},
+                "validation_metrics": {"auc": base_auc + global_auc_delta},
+                "delta_validation_corrected_vs_base_logit_mean_auc": global_auc_delta,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _write_residual_focus_action_plan(
+    tmp_path: Path,
+    *,
+    bad_shuffle: bool = False,
+    bad_focus05: bool = False,
+) -> Path:
+    seeds = []
+    for seed in [0, 1]:
+        seed_root = tmp_path / f"seed{seed}"
+        planned_outputs = {
+            "focus05_report": str(_write_residual_focus_report(seed_root / "focus05_report.json")),
+            "focus05_slice_eval": str(
+                _write_residual_focus_slice_eval(
+                    seed_root / "focus05_slice_eval.json",
+                    rows=100 + seed,
+                    focus_loss_delta=-0.001 if bad_focus05 else -0.015 - seed * 0.001,
+                    focus_auc_delta=-0.001 if bad_focus05 else 0.0001,
+                )
+            ),
+            "focus10_report": str(_write_residual_focus_report(seed_root / "focus10_report.json")),
+            "focus10_slice_eval": str(
+                _write_residual_focus_slice_eval(
+                    seed_root / "focus10_slice_eval.json",
+                    rows=200 + seed,
+                    focus_loss_delta=-0.010 - seed * 0.001,
+                )
+            ),
+            "uniform_report": str(_write_residual_focus_report(seed_root / "uniform_report.json")),
+            "uniform_slice_eval": str(
+                _write_residual_focus_slice_eval(
+                    seed_root / "uniform_slice_eval.json",
+                    rows=200 + seed,
+                    focus_loss_delta=-0.003,
+                )
+            ),
+            "focus10_shuffle_report": str(
+                _write_residual_focus_report(seed_root / "focus10_shuffle_report.json", global_auc_delta=-0.1)
+            ),
+            "focus10_shuffle_slice_eval": str(
+                _write_residual_focus_slice_eval(
+                    seed_root / "focus10_shuffle_slice_eval.json",
+                    rows=200 + seed,
+                    focus_loss_delta=-0.002 if bad_shuffle else 0.2,
+                    focus_auc_delta=-0.2,
+                )
+            ),
+        }
+        seeds.append({"seed": seed, "planned_outputs": planned_outputs})
+    action_plan = tmp_path / "action_plan.json"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_focus_262k_action_plan_ready",
+                "source_decision": "hold_trail_position_score_residual_mixed_runs",
+                "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
+                "expected_score_rows": 262144,
+                "seeds": seeds,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return action_plan
+
+
+def test_gate_residual_focus_262k_keeps_focus_variants_when_slice_controls_pass(tmp_path):
+    action_plan = _write_residual_focus_action_plan(tmp_path)
+    output = tmp_path / "gate.json"
+
+    status = gate_residual_focus_262k_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "keep_residual_focus_262k_hard_slice_candidate"
+    assert report["passing_candidates"] == ["focus05", "focus10"]
+    assert report["seed_count"] == 2
+    assert report["min_focus05_vs_uniform_loss_margin"] < 0.0
+    assert report["min_focus10_vs_uniform_loss_margin"] < 0.0
+    assert report["min_shuffle_focus_loss_delta"] > 0.0
+    assert report["next_action"]["branch"] == "residual_focus_1m_candidate_after_medium_confirmation"
+    assert "medium diagnostic" in report["claim_scope"]
+
+
+def test_gate_residual_focus_262k_holds_when_label_shuffle_repairs_slice(tmp_path):
+    action_plan = _write_residual_focus_action_plan(tmp_path, bad_shuffle=True)
+    output = tmp_path / "gate.json"
+
+    status = gate_residual_focus_262k_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 1
+    assert report["status"] == "fail"
+    assert report["decision"] == "hold_residual_focus_262k_controls_failed"
+    assert "seed0: label_shuffle_did_not_worsen_focus_loss" in report["errors"]
+    assert report["next_action"]["branch"] == "repair_residual_focus_controls_before_scaleup"
+
+
+def test_gate_residual_focus_262k_keeps_single_passing_focus_variant(tmp_path):
+    action_plan = _write_residual_focus_action_plan(tmp_path, bad_focus05=True)
+    output = tmp_path / "gate.json"
+
+    status = gate_residual_focus_262k_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["passing_candidates"] == ["focus10"]
+    assert "seed0: focus05_focus_auc_delta_too_low" in report["errors"]
+    assert report["next_action"]["branch"] == "residual_focus_1m_candidate_after_medium_confirmation"
+
+
+def test_gate_residual_focus_262k_reports_pending_when_outputs_missing(tmp_path):
+    action_plan = tmp_path / "action_plan.json"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_focus_262k_action_plan_ready",
+                "source_decision": "hold_trail_position_score_residual_mixed_runs",
+                "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
+                "seeds": [
+                    {
+                        "seed": 0,
+                        "planned_outputs": {
+                            "uniform_slice_eval": str(tmp_path / "missing_uniform_slice_eval.json"),
+                            "focus10_shuffle_slice_eval": str(tmp_path / "missing_shuffle_slice_eval.json"),
+                            "focus05_slice_eval": str(tmp_path / "missing_focus05_slice_eval.json"),
+                            "focus10_slice_eval": str(tmp_path / "missing_focus10_slice_eval.json"),
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "gate.json"
+
+    status = gate_residual_focus_262k_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_residual_focus_262k_outputs"
+    assert "missing_uniform_slice_eval.json" in report["missing_outputs"][0]
+    assert report["next_action"]["branch"] == "finish_residual_focus_262k_outputs"
 
 
 def test_render_trail_position_report_keeps_pending_claim_guardrails(tmp_path):
