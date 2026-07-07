@@ -229,6 +229,58 @@ architecture iteration should either optimize the intended residual-correction
 objective directly or add a stronger coordinate-dependent mechanism whose
 coordinate-shuffle control is expected to matter.
 
+The next local implementation moved from global classification to the intended
+frozen-base correction objective:
+
+```text
+script = scripts/fit-state-token-residual-correction-expert
+base_artifacts =
+  train/validation trail_position_stats logistic score artifact
+  train/validation matched raw117 compressed SPN structural score artifact
+objective =
+  base_logit_mean + state_token_residual_correction
+feature_view = trail_position_stats
+strict_negative_mode = encrypted_random_plaintexts
+```
+
+The correction fitter validates train/validation feature dirs, aligned labels
+and sample ids, strict negative mode, and the required `trail_position_stats`
+view. It freezes the two base score artifacts and trains only the additive
+state-token correction term.
+
+First 2048/class frozen-base correction smoke:
+
+| Seed | Mode | Base Validation AUC | Corrected Validation AUC | Delta AUC | Base Accuracy | Corrected Accuracy |
+|---:|---|---:|---:|---:|---:|---:|
+| 0 | uniform | `0.9999990463256836` | `0.9999990463256836` | `0.0` | `0.9990234375` | `0.9990234375` |
+| 1 | uniform | `0.999995231628418` | `0.999995231628418` | `0.0` | `0.9990234375` | `0.9990234375` |
+| 0 | focus10 | `0.9999990463256836` | `0.9999990463256836` | `0.0` | `0.9990234375` | `0.9990234375` |
+| 1 | focus10 | `0.999995231628418` | `0.999995231628418` | `0.0` | `0.9990234375` | `0.9990234375` |
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_state_token_residual_correction_seed0_report.json
+outputs/local_audits/i1_present_r8_state_token_residual_correction_seed1_report.json
+outputs/local_audits/i1_present_r8_state_token_residual_correction_focus10_seed0_report.json
+outputs/local_audits/i1_present_r8_state_token_residual_correction_focus10_seed1_report.json
+```
+
+Interpretation:
+
+```text
+decision = state_token_residual_correction_diagnostic_no_base_gain
+status = local_2048class_frozen_base_correction_diagnostic_only
+```
+
+The correction objective is now executable and guarded, but the available
+2048/class validation artifacts are already near-saturated under the frozen
+trail+raw117 base. Uniform and focus10 correction variants did not improve AUC
+or accuracy. This is not evidence that state-token correction has failed at
+meaningful scale; it says this tiny local validation screen has too little
+remaining headroom for a global AUC gain. The route should wait for the active
+262144/class residual-focus artifacts before any promotion or rejection.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

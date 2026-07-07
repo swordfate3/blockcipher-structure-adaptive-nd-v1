@@ -128,6 +128,16 @@ the same span feature values but permutes family/depth/word/cell token ids, so a
 passing control means the current model has not proven true coordinate-layout
 dependence.
 
+Use `scripts/fit-state-token-residual-correction-expert` for the next local
+state-token check: an additive logit correction over two frozen base score
+artifacts, usually trail-position plus matched raw117. It consumes the same
+3708D `trail_position_stats` feature artifacts, freezes the base logits, trains
+only `base_logit_mean + state_token_correction`, and writes corrected
+train/validation score artifacts plus a JSON report. Optional
+`--residual-focus-fraction` up-weights train rows with high frozen-base residual
+loss. It still does not SSH, launch remote jobs, change labels, change negative
+mode, or make a medium/formal SPN/PRESENT claim.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score
