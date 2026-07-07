@@ -60,6 +60,7 @@ def advance_residual_focus_results(
         gate=gate_output,
         pool_plan=pool_output,
         pool_eval=pool_eval_output,
+        repair_plan=repair_output,
         monitor_dir=monitor_dir,
         artifact_root=artifact_root,
     )
@@ -104,6 +105,7 @@ def advance_residual_focus_results(
         gate=gate_output,
         pool_plan=pool_output,
         pool_eval=pool_eval_output,
+        repair_plan=repair_output,
         monitor_dir=monitor_dir,
         artifact_root=artifact_root,
     )

@@ -118,11 +118,13 @@ generate datasets, SSH, launch remote jobs, or make a formal SPN/PRESENT claim.
 
 Use `scripts/residual-focus-status` for a local-only status summary of the
 active residual-focus 262144/class route. It reads the action plan, gate report,
-Pool 3 plan, Pool 3 fixed-fusion eval report, local monitor log, and locally
-retrieved progress/output artifacts to classify the state as running,
+Pool 3 plan, Pool 3 fixed-fusion eval report, repair plan, local monitor log,
+and locally retrieved progress/output artifacts to classify the state as running,
 outputs-ready, gate-passed, gate-failed, pool-ready, waiting for Pool 3 score
-artifacts, pool-control-held, or pool-evaluated. It does not SSH, launch, sync,
-run gates, or make a result claim.
+artifacts, pool-control-held, repair-ready, or pool-evaluated. A repair plan is
+used only when its `source_summary` matches the current gate/pool artifact, so
+stale local repair files do not override a pending or running experiment. It
+does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot
 postprocess after the residual-focus monitor has retrieved outputs. If outputs

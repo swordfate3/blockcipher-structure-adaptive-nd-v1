@@ -10,6 +10,7 @@ DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_26
 DEFAULT_GATE = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json")
 DEFAULT_POOL_PLAN = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
 DEFAULT_POOL_EVAL = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json")
+DEFAULT_REPAIR_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_repair_plan.json")
 DEFAULT_MONITOR_DIR = Path("outputs/remote_results/i1_present_r8_residual_focus_262k_retry1/monitor")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_status.json")
@@ -23,6 +24,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gate", type=Path, default=DEFAULT_GATE)
     parser.add_argument("--pool-plan", type=Path, default=DEFAULT_POOL_PLAN)
     parser.add_argument("--pool-eval", type=Path, default=DEFAULT_POOL_EVAL)
+    parser.add_argument("--repair-plan", type=Path, default=DEFAULT_REPAIR_PLAN)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
@@ -37,11 +39,13 @@ def residual_focus_status(
     monitor_dir: Path,
     artifact_root: Path,
     pool_eval: Path = DEFAULT_POOL_EVAL,
+    repair_plan: Path = DEFAULT_REPAIR_PLAN,
 ) -> dict[str, Any]:
     action = _read_json_or_empty(action_plan)
     gate_report = _read_json_or_empty(gate)
     pool = _read_json_or_empty(pool_plan)
     pool_eval_report = _read_json_or_empty(pool_eval)
+    repair_report = _read_json_or_empty(repair_plan)
     planned_outputs = _planned_outputs(action)
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
@@ -51,6 +55,13 @@ def residual_focus_status(
     pool_status = str(pool.get("status", "missing" if not pool_plan.exists() else ""))
     pool_eval_status = str(pool_eval_report.get("status", "missing" if not pool_eval.exists() else ""))
     pool_eval_decision = str(pool_eval_report.get("decision", ""))
+    repair_status = str(repair_report.get("status", "missing" if not repair_plan.exists() else ""))
+    repair_primary_branch = str(repair_report.get("primary_repair_branch", ""))
+    repair_source_summary = str(repair_report.get("source_summary", ""))
+    repair_matches_current_context = repair_source_summary in {str(gate), str(pool_plan), str(pool_eval)}
+    effective_repair_status = (
+        "stale" if repair_status == "ready" and not repair_matches_current_context else repair_status
+    )
     should_run_pool = bool(pool.get("should_run_pool", False))
     missing_pool3_score_artifacts = [
         str(path) for path in pool_eval_report.get("missing_score_artifacts", [])
@@ -60,6 +71,9 @@ def residual_focus_status(
         pool_status=pool_status,
         pool_eval_status=pool_eval_status,
         pool_eval_decision=pool_eval_decision,
+        repair_status=effective_repair_status,
+        repair_primary_branch=repair_primary_branch,
+        repair_matches_current_context=repair_matches_current_context,
         should_run_pool=should_run_pool,
         planned_outputs=planned_outputs,
         missing_outputs=missing_outputs,
@@ -76,6 +90,13 @@ def residual_focus_status(
         "pool_eval": str(pool_eval),
         "pool_eval_status": pool_eval_status,
         "pool_eval_decision": pool_eval_decision,
+        "repair_plan": str(repair_plan),
+        "repair_status": effective_repair_status,
+        "repair_decision": str(repair_report.get("decision", "")),
+        "repair_source_summary": repair_source_summary,
+        "repair_context_current": repair_matches_current_context,
+        "repair_primary_branch": repair_primary_branch,
+        "repair_hints": [str(hint) for hint in repair_report.get("repair_hints", [])],
         "missing_pool3_score_artifact_count": len(missing_pool3_score_artifacts),
         "missing_pool3_score_artifacts": missing_pool3_score_artifacts,
         "monitor_dir": str(monitor_dir),
@@ -102,10 +123,20 @@ def _status_and_branch(
     pool_status: str,
     pool_eval_status: str,
     pool_eval_decision: str,
+    repair_status: str,
+    repair_primary_branch: str,
+    repair_matches_current_context: bool,
     should_run_pool: bool,
     planned_outputs: list[Path],
     missing_outputs: list[str],
 ) -> tuple[str, str]:
+    if (
+        repair_status == "ready"
+        and repair_primary_branch
+        and repair_matches_current_context
+        and (gate_status == "fail" or pool_status == "hold" or pool_eval_status == "hold")
+    ):
+        return "repair_ready", repair_primary_branch
     if pool_eval_status == "pending" and pool_eval_decision == "wait_for_pool3_score_artifacts":
         return "pool3_scores_pending", "wait_for_pool3_score_artifacts"
     if pool_eval_status == "pass":
@@ -189,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
         gate=args.gate,
         pool_plan=args.pool_plan,
         pool_eval=args.pool_eval,
+        repair_plan=args.repair_plan,
         monitor_dir=args.monitor_dir,
         artifact_root=args.artifact_root,
     )

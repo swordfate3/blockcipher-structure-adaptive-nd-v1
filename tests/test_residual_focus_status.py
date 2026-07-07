@@ -251,6 +251,129 @@ def test_residual_focus_status_reports_pool3_control_hold(tmp_path):
     assert report["next_action"]["branch"] == "repair_residual_guided_pool3_before_scaleup"
 
 
+def test_residual_focus_status_reports_repair_ready_when_repair_plan_exists(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    repair = tmp_path / "repair.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps(
+            {
+                "status": "fail",
+                "decision": "hold_residual_focus_262k_controls_failed",
+                "repair_hints": ["candidate_not_better_than_uniform_control"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pool.write_text(
+        json.dumps(
+            {
+                "status": "hold",
+                "decision": "repair_residual_focus_before_pool",
+                "should_run_pool": False,
+                "repair_hints": ["candidate_not_better_than_uniform_control"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    repair.write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "decision": "repair_residual_focus_before_pool_or_scaleup",
+                "source_summary": str(gate),
+                "primary_repair_branch": "separate_focus_from_uniform_residual_objective",
+                "repair_hints": ["candidate_not_better_than_uniform_control"],
+                "repair_branches": [{"branch": "separate_focus_from_uniform_residual_objective"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--repair-plan",
+            str(repair),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "repair_ready"
+    assert report["repair_status"] == "ready"
+    assert report["repair_primary_branch"] == "separate_focus_from_uniform_residual_objective"
+    assert report["repair_hints"] == ["candidate_not_better_than_uniform_control"]
+    assert report["next_action"]["branch"] == "separate_focus_from_uniform_residual_objective"
+
+
+def test_residual_focus_status_ignores_stale_repair_plan_while_gate_pending(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    repair = tmp_path / "repair.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+    repair.write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "decision": "repair_residual_focus_before_pool_or_scaleup",
+                "source_summary": str(tmp_path / "other_gate.json"),
+                "primary_repair_branch": "separate_focus_from_uniform_residual_objective",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--repair-plan",
+            str(repair),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "running"
+    assert report["repair_status"] == "stale"
+    assert report["repair_context_current"] is False
+    assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+
+
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
     paths = [
         tmp_path / "artifacts" / "seed0" / "residual_focus05_slice_eval.json",

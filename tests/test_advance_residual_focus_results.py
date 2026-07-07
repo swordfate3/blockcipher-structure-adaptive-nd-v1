@@ -216,12 +216,15 @@ def test_advance_residual_focus_results_writes_repair_plan_when_gate_fails(tmp_p
 
     report = json.loads(output.read_text(encoding="utf-8"))
     repair_report = json.loads(repair.read_text(encoding="utf-8"))
+    status_report = json.loads(status_output.read_text(encoding="utf-8"))
     assert status == 0
     assert report["status"] == "hold"
     assert report["decision"] == "repair_residual_focus_before_pool"
     assert report["repair_status"] == "ready"
     assert report["repair_plan"] == str(repair)
     assert repair_report["primary_repair_branch"] == "separate_focus_from_uniform_residual_objective"
+    assert status_report["status"] == "repair_ready"
+    assert status_report["repair_plan"] == str(repair)
 
 
 def _write_action_plan(
