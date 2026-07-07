@@ -26,6 +26,27 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
             "source_selection_missing_report_count": 4,
             "source_selection_recommended_feature_prefixes": [],
             "source_selection_selected_groups": [],
+            "latest_monitor_event": "running missing=18",
+            "progress_summary": {
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "seed": 0,
+                "split": "train",
+                "class_progress_fraction": 0.5625,
+                "total_progress_fraction": 0.28125,
+            },
+            "progress_by_seed_split": [
+                {
+                    "event": "cache_positive_chunk",
+                    "stage": "dataset_cache",
+                    "seed": 0,
+                    "split": "train",
+                    "class_progress_fraction": 0.5625,
+                    "total_progress_fraction": 0.28125,
+                }
+            ],
+            "planned_output_count": 18,
+            "existing_planned_output_count": 0,
             "next_action": {"branch": "wait_for_residual_focus_outputs"},
         },
     )
@@ -69,6 +90,11 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["residual_focus"]["source_selection_missing_report_count"] == 4
     assert report["residual_focus"]["source_selection_recommended_feature_prefixes"] == []
     assert report["residual_focus"]["source_selection_selected_groups"] == []
+    assert report["residual_focus"]["latest_monitor_event"] == "running missing=18"
+    assert report["residual_focus"]["progress_summary"]["class_progress_fraction"] == 0.5625
+    assert report["residual_focus"]["progress_by_seed_split"][0]["split"] == "train"
+    assert report["residual_focus"]["planned_output_count"] == 18
+    assert report["residual_focus"]["existing_planned_output_count"] == 0
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
     assert report["should_launch_remote"] is False

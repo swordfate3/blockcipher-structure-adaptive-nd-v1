@@ -116,6 +116,13 @@ def summarize_present_r8_diverse_route(
             "source_selection_selected_groups": [
                 str(group) for group in residual.get("source_selection_selected_groups", [])
             ],
+            "latest_monitor_event": str(residual.get("latest_monitor_event", "")),
+            "progress_summary": _dict_value(residual.get("progress_summary")),
+            "progress_by_seed_split": [
+                _dict_value(row) for row in residual.get("progress_by_seed_split", [])
+            ],
+            "planned_output_count": int(residual.get("planned_output_count", 0)),
+            "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
@@ -350,6 +357,12 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
+
+def _dict_value(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return value
 
 
 def _optional_float(value: object) -> float | None:
