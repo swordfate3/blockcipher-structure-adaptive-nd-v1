@@ -779,6 +779,15 @@ These status fields are observability only; the status branch and next action
 remain controlled by retrieved residual-focus outputs, the gate, Pool 3 plan,
 Pool 3 fixed-fusion evaluation, and repair plan.
 
+For compatibility with action plans generated before
+`source_selection_summary_output` existed, both
+`scripts/advance-residual-focus-results` and `scripts/residual-focus-status`
+fall back to:
+
+```text
+<artifact-root>/residual_axis_spectrum_summary.json
+```
+
 Local 2048/class sanity output from existing train spectrum reports:
 
 ```text

@@ -46,7 +46,7 @@ def residual_focus_status(
     pool = _read_json_or_empty(pool_plan)
     pool_eval_report = _read_json_or_empty(pool_eval)
     repair_report = _read_json_or_empty(repair_plan)
-    source_selection_summary = _source_selection_summary(action, action_plan)
+    source_selection_summary = _source_selection_summary(action, artifact_root)
     planned_outputs = _planned_outputs(action)
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
@@ -128,12 +128,12 @@ def residual_focus_status(
     }
 
 
-def _source_selection_summary(action_plan: dict[str, Any], action_plan_path: Path) -> dict[str, Any]:
+def _source_selection_summary(action_plan: dict[str, Any], artifact_root: Path) -> dict[str, Any]:
     output = Path(
         str(
             action_plan.get(
                 "source_selection_summary_output",
-                action_plan_path.parent / "residual_axis_spectrum_summary.json",
+                artifact_root / "residual_axis_spectrum_summary.json",
             )
         )
     )

@@ -309,6 +309,47 @@ def test_residual_focus_status_reports_missing_source_selection_summary_without_
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
+def test_residual_focus_status_defaults_source_summary_under_artifact_root_for_old_plan(
+    tmp_path,
+):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    artifact_root = tmp_path / "artifacts"
+    summary_path = artifact_root / "residual_axis_spectrum_summary.json"
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(artifact_root),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["source_selection_summary_status"] == "missing"
+    assert report["source_selection_summary_output"] == str(summary_path)
+    assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+
+
 def test_residual_focus_status_reports_outputs_ready_before_gate(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"

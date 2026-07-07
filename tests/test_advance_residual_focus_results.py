@@ -139,6 +139,53 @@ def test_advance_residual_focus_results_runs_source_selection_summary_when_repor
     assert "validation" not in "\n".join(summary["spectrum_reports"])
 
 
+def test_advance_residual_focus_results_defaults_source_summary_under_artifact_root_for_old_plan(
+    tmp_path,
+):
+    artifact_root = tmp_path / "residual_focus262k"
+    action_plan = _write_action_plan(
+        tmp_path,
+        create_outputs=True,
+        create_source_reports=True,
+        include_source_summary_output=False,
+    )
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    summary_path = artifact_root / "residual_axis_spectrum_summary.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--artifact-root",
+            str(artifact_root),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["ran_source_selection_summary"] is True
+    assert report["source_selection_summary_output"] == str(summary_path)
+    assert summary_path.exists()
+
+
 def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts_exist(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True, create_score_artifacts=True)
     gate = tmp_path / "gate.json"
@@ -274,6 +321,7 @@ def _write_action_plan(
     *,
     create_outputs: bool,
     create_source_reports: bool = False,
+    include_source_summary_output: bool = True,
     create_score_artifacts: bool = False,
     bad_score_seed: int | None = None,
     strong_uniform: bool = False,
@@ -323,20 +371,16 @@ def _write_action_plan(
                 "source_selection_outputs": source_selection_outputs,
             }
         )
-    source_selection_summary_output = tmp_path / "residual_axis_spectrum_summary.json"
+    payload = {
+        "status": "pass",
+        "source_decision": "hold_trail_position_score_residual_mixed_runs",
+        "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
+        "seeds": seeds,
+    }
+    if include_source_summary_output:
+        payload["source_selection_summary_output"] = str(tmp_path / "residual_axis_spectrum_summary.json")
     action_plan = tmp_path / "action_plan.json"
-    action_plan.write_text(
-        json.dumps(
-            {
-                "status": "pass",
-                "source_decision": "hold_trail_position_score_residual_mixed_runs",
-                "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
-                "seeds": seeds,
-                "source_selection_summary_output": str(source_selection_summary_output),
-            }
-        ),
-        encoding="utf-8",
-    )
+    action_plan.write_text(json.dumps(payload), encoding="utf-8")
     return action_plan
 
 

@@ -75,7 +75,10 @@ def advance_residual_focus_results(
     pool_report: dict[str, Any] = _read_json_or_empty(pool_output)
     pool_eval_report: dict[str, Any] = _read_json_or_empty(pool_eval_output)
     repair_report: dict[str, Any] = _read_json_or_empty(repair_output)
-    source_selection_summary_report = _source_selection_summary_when_ready(action_plan)
+    source_selection_summary_report = _source_selection_summary_when_ready(
+        action_plan,
+        artifact_root=artifact_root,
+    )
     if source_selection_summary_report.get("status") in {"pass", "hold"}:
         ran_source_selection_summary = bool(source_selection_summary_report.get("wrote_summary", False))
 
@@ -159,7 +162,7 @@ def advance_residual_focus_results(
     }
 
 
-def _source_selection_summary_when_ready(action_plan: Path) -> dict[str, Any]:
+def _source_selection_summary_when_ready(action_plan: Path, *, artifact_root: Path) -> dict[str, Any]:
     plan = _read_json_or_empty(action_plan)
     if not plan:
         return {
@@ -172,7 +175,7 @@ def _source_selection_summary_when_ready(action_plan: Path) -> dict[str, Any]:
         str(
             plan.get(
                 "source_selection_summary_output",
-                action_plan.parent / "residual_axis_spectrum_summary.json",
+                artifact_root / "residual_axis_spectrum_summary.json",
             )
         )
     )

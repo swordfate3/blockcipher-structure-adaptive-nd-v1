@@ -194,7 +194,9 @@ state.
 It also surfaces the train-only source-selection summary from the action plan's
 `source_selection_summary_output` as status/decision, selected groups, and
 recommended feature prefixes. These fields are observability only; they do not
-change the residual-focus gate, Pool 3 state, or `next_action`.
+change the residual-focus gate, Pool 3 state, or `next_action`. If an older
+action plan lacks `source_selection_summary_output`, the local tools default to
+`<artifact-root>/residual_axis_spectrum_summary.json`.
 It does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot
@@ -209,7 +211,9 @@ Pool 3 fixed-fusion evaluator and writes
 When all train-only residual axis-spectrum reports named by the action plan are
 present, it also writes the local source-selection summary at the action plan's
 `source_selection_summary_output`. That summary is diagnostic only and does not
-change the residual-focus gate or Pool 3 promotion rule.
+change the residual-focus gate or Pool 3 promotion rule. For older action plans
+without that field, the fallback path is
+`<artifact-root>/residual_axis_spectrum_summary.json`.
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.
