@@ -773,6 +773,10 @@ source_selection_summary_status
 source_selection_summary_decision
 source_selection_recommended_feature_prefixes
 source_selection_selected_groups
+source_selection_report_count
+source_selection_existing_report_count
+source_selection_missing_report_count
+source_selection_missing_reports
 ```
 
 These status fields are observability only; the status branch and next action

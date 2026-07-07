@@ -197,6 +197,9 @@ recommended feature prefixes. These fields are observability only; they do not
 change the residual-focus gate, Pool 3 state, or `next_action`. If an older
 action plan lacks `source_selection_summary_output`, the local tools default to
 `<artifact-root>/residual_axis_spectrum_summary.json`.
+The status report also includes source-selection report readiness counts and
+missing paths, so a running job can distinguish "summary not written yet" from
+"the train residual-loss / hard-error axis-spectrum reports have not arrived."
 It does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot

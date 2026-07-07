@@ -306,6 +306,13 @@ def test_residual_focus_status_reports_missing_source_selection_summary_without_
     assert report["source_selection_summary_output"] == str(summary_path)
     assert report["source_selection_recommended_feature_prefixes"] == []
     assert report["source_selection_selected_groups"] == []
+    assert report["source_selection_report_count"] == 2
+    assert report["source_selection_missing_report_count"] == 2
+    assert report["source_selection_existing_report_count"] == 0
+    assert report["source_selection_missing_reports"] == [
+        str(tmp_path / "artifacts" / "seed0" / "train_residual_loss_axis_spectrum.json"),
+        str(tmp_path / "artifacts" / "seed0" / "train_hard_error_axis_spectrum.json"),
+    ]
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
@@ -347,6 +354,8 @@ def test_residual_focus_status_defaults_source_summary_under_artifact_root_for_o
     assert status == 0
     assert report["source_selection_summary_status"] == "missing"
     assert report["source_selection_summary_output"] == str(summary_path)
+    assert report["source_selection_report_count"] == 0
+    assert report["source_selection_missing_report_count"] == 0
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
@@ -688,6 +697,14 @@ def _write_action_plan(
     }
     if include_source_summary:
         payload["source_selection_summary_output"] = str(tmp_path / "residual_axis_spectrum_summary.json")
+        payload["seeds"][0]["source_selection_outputs"] = {
+            "train_residual_loss_axis_spectrum": str(
+                tmp_path / "artifacts" / "seed0" / "train_residual_loss_axis_spectrum.json"
+            ),
+            "train_hard_error_axis_spectrum": str(
+                tmp_path / "artifacts" / "seed0" / "train_hard_error_axis_spectrum.json"
+            ),
+        }
     action_plan = tmp_path / "action_plan.json"
     action_plan.write_text(json.dumps(payload), encoding="utf-8")
     return action_plan

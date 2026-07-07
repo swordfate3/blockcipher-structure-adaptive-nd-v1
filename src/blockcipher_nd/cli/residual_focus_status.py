@@ -47,6 +47,11 @@ def residual_focus_status(
     pool_eval_report = _read_json_or_empty(pool_eval)
     repair_report = _read_json_or_empty(repair_plan)
     source_selection_summary = _source_selection_summary(action, artifact_root)
+    source_selection_reports = _source_selection_report_paths(action)
+    existing_source_selection_reports = [path for path in source_selection_reports if path.exists()]
+    missing_source_selection_reports = [
+        str(path) for path in source_selection_reports if not path.exists()
+    ]
     planned_outputs = _planned_outputs(action)
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
@@ -108,6 +113,10 @@ def residual_focus_status(
             "recommended_feature_prefixes"
         ],
         "source_selection_selected_groups": source_selection_summary["selected_groups"],
+        "source_selection_report_count": len(source_selection_reports),
+        "source_selection_existing_report_count": len(existing_source_selection_reports),
+        "source_selection_missing_report_count": len(missing_source_selection_reports),
+        "source_selection_missing_reports": missing_source_selection_reports,
         "monitor_dir": str(monitor_dir),
         "latest_monitor_event": _latest_monitor_event(monitor_lines),
         "latest_progress": latest_progress,
@@ -126,6 +135,21 @@ def residual_focus_status(
             "run gates, or prove a medium/formal SPN/PRESENT claim"
         ),
     }
+
+
+def _source_selection_report_paths(action_plan: dict[str, Any]) -> list[Path]:
+    reports: list[Path] = []
+    for seed_plan in action_plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        outputs = seed_plan.get("source_selection_outputs", {})
+        if not isinstance(outputs, dict):
+            continue
+        for key in ("train_residual_loss_axis_spectrum", "train_hard_error_axis_spectrum"):
+            value = outputs.get(key)
+            if value:
+                reports.append(Path(str(value)))
+    return reports
 
 
 def _source_selection_summary(action_plan: dict[str, Any], artifact_root: Path) -> dict[str, Any]:
