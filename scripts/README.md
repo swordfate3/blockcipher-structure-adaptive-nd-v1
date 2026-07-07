@@ -244,7 +244,9 @@ and exits only when the local postprocess reaches a pass/hold terminal state or
 when `--max-iterations` is reached. It is a local watcher; it does not replace
 the remote-result retrieval monitor and it does not contact the remote host. Its
 watch report includes whether the residual gate, Pool 3 planner, and Pool 3
-fixed-fusion evaluator ran in the last iteration.
+fixed-fusion evaluator ran in the last iteration. It accepts `--repair-output`
+and passes that path to the one-shot advance command, so test watchers and real
+watchers can keep repair plans isolated from stale local audit files.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route

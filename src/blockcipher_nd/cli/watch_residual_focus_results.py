@@ -14,6 +14,7 @@ from blockcipher_nd.cli.advance_residual_focus_results import (
     DEFAULT_OUTPUT as DEFAULT_ADVANCE_OUTPUT,
     DEFAULT_POOL_EVAL_OUTPUT,
     DEFAULT_POOL_OUTPUT,
+    DEFAULT_REPAIR_OUTPUT,
     DEFAULT_STATUS_OUTPUT,
     advance_residual_focus_results,
 )
@@ -34,6 +35,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gate-output", type=Path, default=DEFAULT_GATE_OUTPUT)
     parser.add_argument("--pool-output", type=Path, default=DEFAULT_POOL_OUTPUT)
     parser.add_argument("--pool-eval-output", type=Path, default=DEFAULT_POOL_EVAL_OUTPUT)
+    parser.add_argument("--repair-output", type=Path, default=DEFAULT_REPAIR_OUTPUT)
     parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     parser.add_argument("--advance-output", type=Path, default=DEFAULT_ADVANCE_OUTPUT)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
@@ -54,6 +56,7 @@ def watch_residual_focus_results(
     monitor_dir: Path,
     artifact_root: Path,
     pool_eval_output: Path = DEFAULT_POOL_EVAL_OUTPUT,
+    repair_output: Path = DEFAULT_REPAIR_OUTPUT,
     output: Path | None = None,
     max_iterations: int = 0,
     sleep_seconds: float = 900.0,
@@ -67,6 +70,7 @@ def watch_residual_focus_results(
             gate_output=gate_output,
             pool_output=pool_output,
             pool_eval_output=pool_eval_output,
+            repair_output=repair_output,
             status_output=status_output,
             monitor_dir=monitor_dir,
             artifact_root=artifact_root,
@@ -121,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         gate_output=args.gate_output,
         pool_output=args.pool_output,
         pool_eval_output=args.pool_eval_output,
+        repair_output=args.repair_output,
         status_output=args.status_output,
         advance_output=args.advance_output,
         output=args.output,

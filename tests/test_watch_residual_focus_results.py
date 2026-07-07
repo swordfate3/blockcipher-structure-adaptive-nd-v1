@@ -53,6 +53,52 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     assert advance["ran_pool_planner"] is False
 
 
+def test_watch_residual_focus_results_passes_repair_output_to_advance(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    repair = tmp_path / "repair.json"
+    status_output = tmp_path / "status.json"
+    advance_output = tmp_path / "advance.json"
+    output = tmp_path / "watch.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = watch_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--repair-output",
+            str(repair),
+            "--status-output",
+            str(status_output),
+            "--advance-output",
+            str(advance_output),
+            "--output",
+            str(output),
+            "--max-iterations",
+            "1",
+            "--sleep-seconds",
+            "0",
+        ]
+    )
+
+    advance = json.loads(advance_output.read_text(encoding="utf-8"))
+    status_report = json.loads(status_output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert advance["repair_plan"] == str(repair)
+    assert status_report["repair_plan"] == str(repair)
+
+
 def test_watch_residual_focus_results_writes_report_each_iteration(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=False)
     gate = tmp_path / "gate.json"
