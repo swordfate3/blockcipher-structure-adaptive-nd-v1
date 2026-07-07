@@ -9,6 +9,9 @@ from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_tra
 from blockcipher_nd.cli.analyze_reliability_residual_buckets import (
     main as analyze_reliability_residual_buckets_main,
 )
+from blockcipher_nd.cli.analyze_residual_bucket_axis_spectrum import (
+    main as analyze_residual_bucket_axis_spectrum_main,
+)
 from blockcipher_nd.cli.apply_bit_sensitivity_projection import main as apply_bit_sensitivity_main
 from blockcipher_nd.cli.evaluate_neural_ensemble import main as evaluate_ensemble_main
 from blockcipher_nd.cli.evaluate_stacked_ensemble import main as evaluate_stacked_ensemble_main
@@ -3353,6 +3356,144 @@ def test_gate_bucket_residual_controls_holds_when_valbucket_shuffle_keeps_gain(t
     assert "seed0: validation_bucket_shuffle_three_score_not_below_two_score" in report["errors"]
 
 
+def test_analyze_residual_bucket_axis_spectrum_ranks_grouped_residual_error_axes(tmp_path):
+    labels = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    features = np.array(
+        [
+            [0.0, 0.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    feature_dir = tmp_path / "features"
+    feature_names = [
+        "primary_depth_mean_depth0",
+        "primary_depth_mean_depth1",
+        "aux_word_mean_word0",
+        "aux_word_mean_word1",
+    ]
+    _write_feature_dir(
+        feature_dir,
+        split="train",
+        features=features,
+        labels=labels,
+        feature_view_metadata={"feature_names": feature_names},
+    )
+    left_probabilities = np.array([0.10, 0.40, 0.70, 0.90, 0.05, 0.95, 0.95, 0.05], dtype=np.float32)
+    right_probabilities = np.array([0.12, 0.42, 0.72, 0.88, 0.15, 0.85, 0.65, 0.35], dtype=np.float32)
+    left_scores = tmp_path / "left_scores"
+    right_scores = tmp_path / "right_scores"
+    _write_tiny_score_artifact(left_scores, labels, left_probabilities, sample_ids, model_key="trail")
+    _write_tiny_score_artifact(right_scores, labels, right_probabilities, sample_ids, model_key="raw117")
+    output = tmp_path / "spectrum.json"
+
+    status = analyze_residual_bucket_axis_spectrum_main(
+        [
+            "--feature-dir",
+            str(feature_dir),
+            "--bucket-artifacts",
+            str(left_scores),
+            str(right_scores),
+            "--bucket-count",
+            "2",
+            "--top-groups",
+            "2",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    low_bucket = report["bucket_reports"][0]
+    high_bucket = report["bucket_reports"][1]
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "residual_bucket_axis_spectrum_ready"
+    assert report["row_count"] == 8
+    assert report["bucket_feature"] == "logit_gap_abs"
+    assert report["group_count"] == 2
+    assert report["residual_error_rate_at_0_5"] == 0.5
+    assert low_bucket["top_groups"][0]["group"] == "primary_depth_mean"
+    assert low_bucket["top_groups"][0]["residual_error_auc"] == 1.0
+    assert high_bucket["top_groups"][0]["group"] == "aux_word_mean"
+    assert high_bucket["top_groups"][0]["residual_error_auc"] == 1.0
+    assert "train-only or validation-only diagnostic" in report["claim_scope"]
+
+
+def test_analyze_residual_bucket_axis_spectrum_supports_continuous_residual_loss(tmp_path):
+    labels = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    features = np.array(
+        [
+            [1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    feature_dir = tmp_path / "features"
+    _write_feature_dir(
+        feature_dir,
+        split="validation",
+        features=features,
+        labels=labels,
+        feature_view_metadata={
+            "feature_names": [
+                "uncertain_depth_mean_depth0",
+                "uncertain_depth_mean_depth1",
+                "confident_word_mean_word0",
+                "confident_word_mean_word1",
+            ]
+        },
+    )
+    left_probabilities = np.array([0.44, 0.54, 0.40, 0.44, 0.01, 0.97, 0.01, 0.91], dtype=np.float32)
+    right_probabilities = np.array([0.46, 0.56, 0.56, 0.60, 0.03, 0.99, 0.09, 0.99], dtype=np.float32)
+    left_scores = tmp_path / "left_scores"
+    right_scores = tmp_path / "right_scores"
+    _write_tiny_score_artifact(left_scores, labels, left_probabilities, sample_ids, model_key="trail")
+    _write_tiny_score_artifact(right_scores, labels, right_probabilities, sample_ids, model_key="raw117")
+    output = tmp_path / "continuous_spectrum.json"
+
+    status = analyze_residual_bucket_axis_spectrum_main(
+        [
+            "--feature-dir",
+            str(feature_dir),
+            "--bucket-artifacts",
+            str(left_scores),
+            str(right_scores),
+            "--bucket-count",
+            "2",
+            "--top-groups",
+            "2",
+            "--target",
+            "residual_loss",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["target"] == "residual_loss"
+    assert report["residual_error_rate_at_0_5"] == 0.0
+    assert report["target_mean"] > 0.0
+    by_group = {group["group"]: group for group in report["global_top_groups"]}
+    assert by_group["uncertain_depth_mean"]["target_auc"] == 1.0
+    assert by_group["uncertain_depth_mean"]["target_score"] == 0.5
+
+
 def _write_feature_dir(
     path: Path,
     *,
@@ -3389,6 +3530,36 @@ def _write_feature_dir(
     (path / "metadata.json").write_text(
         json.dumps(metadata),
         encoding="utf-8",
+    )
+
+
+def _write_tiny_score_artifact(
+    path: Path,
+    labels: np.ndarray,
+    probabilities: np.ndarray,
+    sample_ids: np.ndarray,
+    *,
+    model_key: str,
+) -> None:
+    clipped = np.clip(probabilities.astype(np.float64), 1e-6, 1.0 - 1e-6)
+    logits = np.log(clipped / (1.0 - clipped))
+    write_score_artifact(
+        path,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=probabilities,
+            logits=logits.astype(np.float32),
+            sample_ids=sample_ids,
+            metadata={
+                "model_key": model_key,
+                "expert_family": model_key,
+                "candidate_status": "weak_positive",
+                "cipher": "PRESENT-80",
+                "rounds": 8,
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+            },
+        ),
     )
 
 
