@@ -236,6 +236,72 @@ projection_feature if weak-positive and low-correlation
 This pool is mainly for route selection at r8/r9. It must not be reported as a
 PRESENT r7 same-protocol improvement.
 
+### Pool 3: r8 Residual-Guided Diverse Expert Pool
+
+Use only after the active PRESENT r8 residual-focus 262144/class gate completes
+and passes. This pool is the first concrete path from the residual-focused
+structure work back into the user's multi-network idea.
+
+Candidate families:
+
+```text
+trail_position_anchor =
+  PRESENT r8 trail-position neural frozen score
+
+compressed_span_structural =
+  matched raw117 compressed SPN structural expert
+
+residual_focus_aux_word =
+  residual-focused aux_depth_word_ + aux_word_ correction expert,
+  promoted only if scripts/gate-residual-focus-262k keeps focus05 or focus10
+
+near_neighbor_controls =
+  global trail-position control,
+  uniform no-focus residual correction,
+  focus10 label-shuffle residual correction
+```
+
+Promotion requirements:
+
+```text
+residual_focus_gate_status = pass
+decision = keep_residual_focus_262k_hard_slice_candidate
+passing_candidates contains focus05 or focus10
+label_shuffle_control worsens hard-slice residual loss
+uniform_no_focus does not match the kept focus candidate
+all artifacts share the same PRESENT r8 protocol group and sample ids
+```
+
+If those requirements pass, the next ensemble test should still be a fixed
+frozen-score diagnostic, not a learned final-validation stack:
+
+```text
+best_single
+trail_position + raw117 fixed logit/probability fusion
+trail_position + raw117 + residual_focus fixed fusion
+trail_position + raw117 + uniform residual control
+trail_position + raw117 + label-shuffle residual control
+```
+
+The expected claim scope is:
+
+```text
+application-level medium diagnostic evidence for residual-guided diverse expert
+combination
+```
+
+It is not:
+
+```text
+raw single-sample SOTA
+PRESENT r8 solved
+formal SPN/PRESENT evidence
+```
+
+If the residual-focus 262144/class gate fails, do not run this pool. The next
+action should return to residual-source repair or a different SPN-aware feature
+family, not broader aggregation.
+
 ## Selection Rule
 
 Start from all valid artifacts in one `protocol_group`. Compute per-model
@@ -420,26 +486,26 @@ pooling, has already produced compatible weak-positive score artifacts.
 
 Do not start a new remote run from this plan yet.
 
-This plan is not the next mainline action after the 2026-07-05 literature and
-r8 integral refresh. The next mainline action belongs to:
+As of 2026-07-07, the active mainline action is the remote
+`i1_present_r8_residual_focus_262k_retry1` run documented in:
 
 ```text
-docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md
-Candidate A = audit/control the r8 integral raw-anchor data-structure signal
+docs/experiments/innovation1-present-r8-residual-bucket-axis-spectrum-plan.md
 ```
 
-Next concrete step for this plan, only when ensemble work is reactivated:
+Next concrete step for this plan, only when the residual-focus 262144/class
+gate finishes:
 
 ```text
-Implement the manifest/diversity postprocess locally and run it against the
-recovered r7 artifacts as Pool 0. The expected output should explicitly label
-the result as partial-diversity or near-neighbor diagnostic, not a full diverse
-expert pool.
+If scripts/gate-residual-focus-262k keeps focus05 or focus10, instantiate Pool
+3 as a same-protocol fixed-fusion diagnostic. If the gate fails, do not broaden
+the ensemble; repair the residual source first.
 ```
 
-After that, inspect current and watcher-retrieved r8/r9 artifacts to decide
-whether a genuinely different family exists. If no such weak-positive family is
-available, continue SPN feature/input search rather than widening the ensemble.
+The recovered r7 Pool 0 remains the near-neighbor control for historical
+context, but it is no longer the next mainline action. The next aggregation work
+should be residual-guided and same-protocol, not a wider pile of similar SPN
+graph variants.
 
 ## Claim Scope
 
