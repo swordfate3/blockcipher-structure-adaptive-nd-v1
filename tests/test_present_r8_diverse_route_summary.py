@@ -281,6 +281,8 @@ def test_present_r8_diverse_route_summary_reports_bucket_residual_pending_migrat
             "decision": "wait_for_trail_position_262k_score_artifacts",
             "should_run": False,
             "reason": "trail_position_262k_postprocess_not_ready",
+            "source_status": "pass",
+            "source_decision": "hold_trail_position_score_residual_mixed_runs",
             "missing": ["validation_trail_position_scores"],
             "next_action": "Let the local tmux watchers retrieve and verify the 262k score artifacts first.",
         },
@@ -326,6 +328,8 @@ def test_present_r8_diverse_route_summary_reports_bucket_residual_pending_migrat
     assert route["plan_status"] == "pending"
     assert route["plan_decision"] == "wait_for_trail_position_262k_score_artifacts"
     assert route["reason"] == "trail_position_262k_postprocess_not_ready"
+    assert route["source_status"] == "pass"
+    assert route["source_decision"] == "hold_trail_position_score_residual_mixed_runs"
     assert route["missing"] == ["validation_trail_position_scores"]
     assert route["min_three_vs_two_auc_delta"] == 0.000005
 

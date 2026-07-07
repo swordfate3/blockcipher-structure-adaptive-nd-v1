@@ -222,6 +222,8 @@ def _bucket_residual_route(plan: dict[str, Any], control_gate: dict[str, Any]) -
         "status": _bucket_residual_status(plan_status, control_status, plan),
         "plan_status": plan_status or "missing",
         "plan_decision": str(plan.get("decision", "")),
+        "source_status": str(plan.get("source_status", "")),
+        "source_decision": str(plan.get("source_decision", "")),
         "control_status": control_status or "missing",
         "control_decision": str(control_gate.get("decision", "")),
         "should_run": bool(plan.get("should_run", False)),
