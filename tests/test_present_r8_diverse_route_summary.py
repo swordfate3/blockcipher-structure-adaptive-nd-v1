@@ -97,6 +97,12 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["residual_focus"]["existing_planned_output_count"] == 0
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
+    linear_combo = report["candidate_routes"]["linear_combo_integral_residual"]
+    assert linear_combo["status"] == "blocked_by_residual_focus"
+    assert linear_combo["decision"] == "wait_for_residual_focus_outputs_before_linear_combo_integral_expert"
+    assert linear_combo["selection_split"] == "train_only"
+    assert linear_combo["requires_source_selection"] is True
+    assert linear_combo["next_action"]["branch"] == "wait_for_residual_focus_outputs"
     assert report["should_launch_remote"] is False
 
 
@@ -309,6 +315,53 @@ def test_present_r8_diverse_route_summary_runs_pool_planner_after_gate_pass(tmp_
     assert report["decision"] == "run_residual_guided_pool_planner"
     assert report["selected_next_action"]["branch"] == "run_residual_guided_pool_planner"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "waiting_for_pool_plan"
+    linear_combo = report["candidate_routes"]["linear_combo_integral_residual"]
+    assert linear_combo["status"] == "waiting_for_train_source_selection"
+    assert linear_combo["decision"] == "wait_for_train_axis_spectrum_before_linear_combo_integral_expert"
+
+
+def test_present_r8_diverse_route_summary_tracks_linear_combo_after_source_selection(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "gate_passed_pool_plan_needed",
+            "gate_status": "pass",
+            "gate_decision": "keep_residual_focus_262k_hard_slice_candidate",
+            "source_selection_summary_status": "pass",
+            "source_selection_summary_decision": "residual_axis_spectrum_stable_groups_selected",
+            "source_selection_recommended_feature_prefixes": ["aux_depth_word_", "aux_word_"],
+            "source_selection_selected_groups": ["aux_depth_word_global_mean"],
+            "next_action": {"branch": "run_residual_guided_pool_planner"},
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    route = report["candidate_routes"]["linear_combo_integral_residual"]
+    assert status == 0
+    assert route["status"] == "planned_after_source_selection"
+    assert route["decision"] == "plan_linear_combo_integral_residual_expert"
+    assert route["recommended_feature_prefixes"] == ["aux_depth_word_", "aux_word_"]
+    assert route["selected_groups"] == ["aux_depth_word_global_mean"]
+    assert route["next_action"]["should_launch_remote"] is False
 
 
 def test_present_r8_diverse_route_summary_runs_residual_gate_after_outputs_ready(tmp_path: Path):

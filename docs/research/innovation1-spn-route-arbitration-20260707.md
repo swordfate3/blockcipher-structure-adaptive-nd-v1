@@ -116,8 +116,9 @@ or more than, generic network capacity.
 |---:|---|---|---|
 | 1 | Wait for 262144/class trail-position score artifacts, then run V16/V17 bucket residual planner + gate | Keep as active main branch | This is the strongest controlled local branch and now has an automatic migration gate. |
 | 2 | Design a structural residual source over train-only selected SPN evidence buckets | Plan only, no remote launch yet | This extends the literature-aligned representation-first idea without changing labels or negatives. |
-| 3 | Diverse expert pool | Validator only | Useful after a real non-neighbor expert exists; not the next main experiment by itself. |
-| 4 | Raw matrix Inception / cell histogram / contiguous bit projection variants already screened | Hold | Current evidence is weak, near-random, or below same-input controls. |
+| 3 | Linear-combination integral residual expert | Track as a machine-readable backup route, blocked until residual-focus/source-selection are ready | Neural-inspired integral work supports searching for structure-preserving linear/integral combinations, but this must be train-only and residual-conditioned. |
+| 4 | Diverse expert pool | Validator only | Useful after a real non-neighbor expert exists; not the next main experiment by itself. |
+| 5 | Raw matrix Inception / cell histogram / contiguous bit projection variants already screened | Hold | Current evidence is weak, near-random, or below same-input controls. |
 
 ## Next Implementable Idea After 262k
 
@@ -158,6 +159,48 @@ score held-out validation split without changing labels, negatives, or keys
 This is a better "multiple networks" story: not many similar networks, but
 specialized structural experts conditioned on a real residual regime.
 
+## 2026-07-07 V2 Route Addition
+
+The route summary now tracks an explicit backup route:
+
+```text
+candidate_route = linear_combo_integral_residual
+status_now = blocked_by_residual_focus
+selection_split = train_only
+requires_source_selection = true
+decision_now =
+  wait_for_residual_focus_outputs_before_linear_combo_integral_expert
+```
+
+This is not a new remote launch and not a benchmark change. It is a route-level
+commitment that, if residual-focus passes but Pool 3 is too near-neighbor or too
+fragile, the next SPN-adaptive expert should be built from train-selected
+linear/integral structural combinations rather than from more nearby trail
+variants.
+
+Design constraint:
+
+```text
+input family =
+  residual-axis train summaries
+  stable SPN depth/word/cell groups
+  integral-style linear-combination candidates over compressed structural bits
+forbidden =
+  validation-selected feature search
+  random-ciphertext negatives
+  immediate remote launch while residual-focus pending
+  weighted/fitted ensemble claims before fixed-score controls pass
+```
+
+Rationale from source-checked literature:
+
+- Zhang/Wang PRESENT work reinforces that multiple-ciphertext/derived feature
+  formatting matters for SPN neural distinguishers.
+- Neural-inspired integral work supports using neural methods to identify
+  useful integral or linear-combination structure, not just to add capacity.
+- RX/data-format work reinforces the same practical bias: change the evidence
+  format and allocation before increasing the count of near-identical models.
+
 ## Non-Actions
 
 Do not do these next:
@@ -166,6 +209,7 @@ Do not do these next:
 do_not_start_new_remote_training_until_262k_status_is_ready_or_current_run_fails_cleanly
 do_not_expand_2048_class_variant_search
 do_not_average_more_near_neighbor_trail_global_raw117_scores
+do_not_launch_linear_combo_integral_residual_before_residual_focus_gate_and_train_source_selection
 do_not_cite_arxiv_2505_10792_as_neural_cryptanalysis
 do_not_make_formal_or_breakthrough_claims_from_2048_or_262144_class_evidence
 ```

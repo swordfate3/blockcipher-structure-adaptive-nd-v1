@@ -579,6 +579,35 @@ same-protocol migration plan are actually ready. It never SSHes, launches
 remote work, trains, changes labels or negative mode, or upgrades any evidence
 claim.
 
+As of the V2 route refresh, the same summary also reports:
+
+```text
+candidate_routes.linear_combo_integral_residual
+```
+
+This route is a literature-guided backup candidate, not the next active run. It
+exists to keep the project from collapsing the "multiple networks" idea into a
+plain average of near-neighbor trail/global/raw scores. Its intended role is:
+
+```text
+if residual_focus_gate passes
+and train-only source-selection summaries are current
+and Pool 3 remains too near-neighbor or too fragile:
+  plan a linear-combination / integral residual expert over stable SPN
+  depth/word/cell groups
+else:
+  keep waiting or repair the residual source
+```
+
+Hard guards:
+
+```text
+do_not_launch_linear_combo_integral_residual_while_residual_focus_pending
+do_not_use_validation_split_for_linear_combo_selection
+do_not_change_negative_mode_or_sample_structure
+do_not_report_it_as_an_implemented_expert_before_aligned_score_artifacts_exist
+```
+
 ## Claim Scope
 
 Allowed after local Pool 0 postprocess:

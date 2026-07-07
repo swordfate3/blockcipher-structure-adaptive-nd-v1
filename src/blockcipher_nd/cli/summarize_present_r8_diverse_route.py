@@ -69,6 +69,7 @@ def summarize_present_r8_diverse_route(
     pool3_route = _pool3_route(residual, pool_plan, pool_eval)
     state_token_route = _state_token_route(state_token)
     bucket_residual_route = _bucket_residual_route(bucket_residual_plan, bucket_residual_control_gate)
+    linear_combo_route = _linear_combo_integral_residual_route(residual)
     status, decision, selected_next_action = _route_decision(
         residual=residual,
         pool3_route=pool3_route,
@@ -129,12 +130,17 @@ def summarize_present_r8_diverse_route(
             "pool3_residual_guided": pool3_route,
             "state_token_residual": state_token_route,
             "bucket_conditioned_residual": bucket_residual_route,
+            "linear_combo_integral_residual": linear_combo_route,
         },
         "policy": {
             "primary_gate": "residual_focus_262k_before_diverse_pool",
             "pool3_priority": "prefer residual-guided Pool 3 when residual-focus passes and controls are available",
             "state_token_policy": "do not promote when coordinate/value-only controls hold",
             "bucket_residual_policy": "track as a genuinely different third-family migration candidate without bypassing residual-focus or control gates",
+            "linear_combo_integral_policy": (
+                "track as a literature-guided SPN/integral residual candidate; select only from train "
+                "source-selection summaries and do not launch while residual-focus is pending"
+            ),
             "remote_policy": "local summary only; never SSH, launch, or scale by itself",
         },
         "claim_scope": (
@@ -334,6 +340,48 @@ def _bucket_residual_status(plan_status: str, control_status: str, plan: dict[st
     if control_status == "pass":
         return "controls_pass_plan_missing"
     return plan_status or control_status or "missing"
+
+
+def _linear_combo_integral_residual_route(residual: dict[str, Any]) -> dict[str, Any]:
+    gate_status = str(residual.get("gate_status", ""))
+    source_status = str(residual.get("source_selection_summary_status", ""))
+    source_decision = str(residual.get("source_selection_summary_decision", ""))
+    next_action = _compact_next_action(residual.get("next_action"))
+    base = {
+        "decision": "wait_for_residual_focus_outputs_before_linear_combo_integral_expert",
+        "selection_split": "train_only",
+        "requires_source_selection": True,
+        "source_selection_summary_status": source_status,
+        "source_selection_summary_decision": source_decision,
+        "recommended_feature_prefixes": _string_list(
+            residual.get("source_selection_recommended_feature_prefixes")
+        ),
+        "selected_groups": _string_list(residual.get("source_selection_selected_groups")),
+        "next_action": next_action,
+        "claim_scope": (
+            "route-arbitration candidate only; inspired by SPN/integral representation work and "
+            "requires retrieved residual-focus artifacts before any scoring or remote launch"
+        ),
+    }
+    if gate_status != "pass":
+        return {
+            **base,
+            "status": "blocked_by_residual_focus",
+            "reason": "residual_focus_gate_not_passed",
+        }
+    if source_status != "pass":
+        return {
+            **base,
+            "status": "waiting_for_train_source_selection",
+            "decision": "wait_for_train_axis_spectrum_before_linear_combo_integral_expert",
+            "reason": "train_only_source_selection_not_ready",
+        }
+    return {
+        **base,
+        "status": "planned_after_source_selection",
+        "decision": "plan_linear_combo_integral_residual_expert",
+        "reason": "residual_focus_passed_and_train_source_selection_ready",
+    }
 
 
 def _compact_next_action(value: object) -> dict[str, Any]:
