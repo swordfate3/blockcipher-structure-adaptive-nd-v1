@@ -42,6 +42,18 @@ def test_plan_residual_focus_repair_maps_control_hints_to_repair_branches(tmp_pa
         "separate_focus_from_uniform_residual_objective",
         "repair_label_shuffle_attribution_control",
     ]
+    first_branch = report["repair_branches"][0]
+    assert [command["name"] for command in first_branch["command_templates"]] == [
+        "inspect_status",
+        "rerun_repair_plan",
+    ]
+    assert all(command["remote"] is False for command in first_branch["command_templates"])
+    assert "scripts/residual-focus-status" in first_branch["command_templates"][0]["command"]
+    assert "scripts/plan-residual-focus-repair" in first_branch["command_templates"][1]["command"]
+    assert first_branch["implementation_notes"] == [
+        "Compare residual-focused and uniform correction on identical train-derived hard slices.",
+        "Do not change labels, negative_mode, sample_structure, or validation split.",
+    ]
     assert "launch_residual_guided_pool3" in report["forbidden_actions"]
     assert "scale_residual_focus_to_1m" in report["forbidden_actions"]
 
@@ -93,3 +105,7 @@ def test_plan_residual_focus_repair_handles_pool3_control_hold_without_hints(tmp
     assert report["repair_branches"][0]["success_gate"] == (
         "residual-focus fusion strictly beats trail+raw117 and both residual controls"
     )
+    assert report["repair_branches"][0]["implementation_notes"] == [
+        "Inspect per-seed Pool 3 fixed-fusion reports before changing any model.",
+        "Do not launch 1M/class until residual-focus fusion beats both controls.",
+    ]

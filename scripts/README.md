@@ -100,7 +100,10 @@ machine-readable `repair_hints` such as
 `label_shuffle_control_failed`, and `focus_candidate_metric_failed` into a
 local-only repair plan. The plan explicitly forbids Pool 3 launch, 1M/class
 scale-up, and candidate claims until the indicated residual objective,
-attribution control, or feature-family repair branch is checked.
+attribution control, or feature-family repair branch is checked. Each repair
+branch includes local `command_templates` and `implementation_notes`; these are
+handoff aids only and do not SSH, launch remote jobs, or change validation
+protocols.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

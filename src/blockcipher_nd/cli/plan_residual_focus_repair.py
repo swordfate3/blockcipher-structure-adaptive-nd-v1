@@ -52,7 +52,7 @@ def plan_residual_focus_repair(*, summary: Path) -> dict[str, Any]:
             "claim_scope": "local repair planning guard only; no failed residual-focus repair hint was present",
         }
 
-    branches = _repair_branches(hints, decision=decision)
+    branches = _with_command_templates(_repair_branches(hints, decision=decision), summary=summary)
     return {
         "status": "ready",
         "decision": "repair_residual_focus_before_pool_or_scaleup",
@@ -85,18 +85,30 @@ def _repair_branches(hints: list[str], *, decision: str = "") -> list[dict[str, 
             ),
             "next_local_check": "fit residual correction with focus-vs-uniform attribution controls",
             "success_gate": "candidate hard-slice residual-loss drop is strictly better than uniform across seeds",
+            "implementation_notes": [
+                "Compare residual-focused and uniform correction on identical train-derived hard slices.",
+                "Do not change labels, negative_mode, sample_structure, or validation split.",
+            ],
         },
         "label_shuffle_control_failed": {
             "branch": "repair_label_shuffle_attribution_control",
             "question": "Is the label-shuffle artifact/control generation invalidating the residual signal?",
             "next_local_check": "audit label-shuffle score artifacts and rerun shuffle controls before promotion",
             "success_gate": "label-shuffle correction worsens focus residual loss while true labels improve it",
+            "implementation_notes": [
+                "Verify label-shuffle artifacts share sample_ids and protocol metadata with true-label artifacts.",
+                "Do not promote residual-focus evidence when shuffled labels match or beat true labels.",
+            ],
         },
         "focus_candidate_metric_failed": {
             "branch": "rescan_residual_feature_family",
             "question": "Is aux_depth_word_ + aux_word_ the wrong residual source at this scale?",
             "next_local_check": "rerun axis-spectrum source selection on retrieved train artifacts",
             "success_gate": "new frozen feature family passes train-derived hard-slice controls",
+            "implementation_notes": [
+                "Use retrieved train artifacts for source selection and held-out artifacts only for scoring.",
+                "Keep the strong trail-position/raw117 base frozen while rescanning residual axes.",
+            ],
         },
     }
     branches = [branch_by_hint[hint] for hint in hints if hint in branch_by_hint]
@@ -109,6 +121,10 @@ def _repair_branches(hints: list[str], *, decision: str = "") -> list[dict[str, 
                 "question": "Does the residual-focus expert add value after fixed fusion controls?",
                 "next_local_check": "inspect Pool 3 seed reports and compare against uniform/label-shuffle fusions",
                 "success_gate": "residual-focus fusion strictly beats trail+raw117 and both residual controls",
+                "implementation_notes": [
+                    "Inspect per-seed Pool 3 fixed-fusion reports before changing any model.",
+                    "Do not launch 1M/class until residual-focus fusion beats both controls.",
+                ],
             }
         ]
     return [
@@ -117,8 +133,35 @@ def _repair_branches(hints: list[str], *, decision: str = "") -> list[dict[str, 
             "question": "Which residual-focus invariant failed?",
             "next_local_check": "inspect gate errors and add a dedicated repair hint before launching more work",
             "success_gate": "a specific repair branch is selected and documented",
+            "implementation_notes": [
+                "Classify the failure before creating a new remote experiment.",
+                "Add a specific repair hint if this fallback recurs.",
+            ],
         }
     ]
+
+
+def _with_command_templates(branches: list[dict[str, Any]], *, summary: Path) -> list[dict[str, Any]]:
+    commands = [
+        {
+            "name": "inspect_status",
+            "command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/residual-focus-status "
+                "--output outputs/local_audits/i1_present_r8_residual_focus_status.json"
+            ),
+            "remote": False,
+        },
+        {
+            "name": "rerun_repair_plan",
+            "command": (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/plan-residual-focus-repair "
+                f"--summary {summary} "
+                "--output outputs/local_audits/i1_present_r8_residual_focus_repair_plan.json"
+            ),
+            "remote": False,
+        },
+    ]
+    return [{**branch, "command_templates": commands} for branch in branches]
 
 
 def _load_json(path: Path) -> dict[str, Any]:
