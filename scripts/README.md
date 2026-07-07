@@ -99,6 +99,14 @@ Pool 3 plan, local monitor log, and locally retrieved progress/output artifacts
 to classify the state as running, outputs-ready, gate-passed, gate-failed, or
 pool-ready. It does not SSH, launch, sync, run gates, or make a result claim.
 
+Use `scripts/advance-residual-focus-results` as a local-only one-shot
+postprocess after the residual-focus monitor has retrieved outputs. If outputs
+are still missing it writes a pending report and exits without action. If the
+planned outputs are all present and the gate is still pending, it runs
+`scripts/gate-residual-focus-262k` through the local Python API, then runs
+`scripts/plan-residual-guided-diverse-pool`. It does not SSH, sync, launch
+remote jobs, or fit ensemble weights.
+
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
 neural metrics. It generates a small deterministic dataset from a plan row and
