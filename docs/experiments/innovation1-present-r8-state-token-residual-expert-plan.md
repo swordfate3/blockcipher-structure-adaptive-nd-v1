@@ -434,6 +434,32 @@ residual-loss decrease also survived coordinate drop, with drop-coordinate again
 slightly better for both seeds. This makes FiLM useful as an implemented
 negative diagnostic, not as a state-token coordinate-layout result.
 
+## Machine Control Summary
+
+The local control interpretation is now encoded in:
+
+```text
+script = scripts/summarize-state-token-residual-controls
+default_output =
+  outputs/local_audits/i1_present_r8_state_token_residual_control_summary.json
+inputs =
+  candidate correction reports
+  drop-coordinate correction reports
+  coordinate-shuffle correction reports
+  label-shuffle correction reports
+gate =
+  candidate AUC must beat frozen base AUC
+  candidate AUC must beat drop-coordinate control AUC
+  candidate AUC must beat coordinate-shuffle control AUC
+  candidate AUC must beat label-shuffle control AUC
+```
+
+This summary is deliberately local and conservative. It reads already-written
+JSON reports, aligns them by seed, and emits `hold_state_token_coordinate_controls`
+when the candidate does not beat the value-only or shuffled-coordinate controls.
+It does not train, launch remote work, change labels, change negative mode, or
+upgrade the route to medium/formal SPN/PRESENT evidence.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

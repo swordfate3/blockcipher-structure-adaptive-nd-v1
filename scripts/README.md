@@ -164,6 +164,15 @@ It also supports `--drop-token-coordinates` as the same value-only coordinate
 attribution control and `--coordinate-mode film` as the same FiLM-style
 value/coordinate token interaction used by `scripts/fit-state-token-residual-expert`.
 
+Use `scripts/summarize-state-token-residual-controls` after candidate,
+drop-coordinate, coordinate-shuffle, and label-shuffle state-token residual
+correction reports exist. It aligns reports by seed and requires the candidate
+to beat the frozen base and all coordinate/label controls by the configured AUC
+margins before returning `state_token_residual_controls_pass`. A hold means the
+state-token route remains a local diagnostic and must not be promoted to Pool 3,
+remote scale, or a coordinate-layout claim. It reads JSON reports only; it does
+not train, SSH, launch remote jobs, change labels, or change negative mode.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score
