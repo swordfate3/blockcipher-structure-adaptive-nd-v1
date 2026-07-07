@@ -50,7 +50,8 @@ def residual_focus_status(
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
     monitor_lines = _read_lines(monitor_dir / "monitor.log")
-    latest_progress = _latest_progress(artifact_root)
+    progress_rows = _progress_rows(artifact_root)
+    latest_progress = _latest_progress(progress_rows)
     gate_status = str(gate_report.get("status", "missing" if not gate.exists() else ""))
     pool_status = str(pool.get("status", "missing" if not pool_plan.exists() else ""))
     pool_eval_status = str(pool_eval_report.get("status", "missing" if not pool_eval.exists() else ""))
@@ -103,6 +104,7 @@ def residual_focus_status(
         "latest_monitor_event": _latest_monitor_event(monitor_lines),
         "latest_progress": latest_progress,
         "progress_summary": _progress_summary(latest_progress),
+        "progress_by_seed_split": _progress_by_seed_split(progress_rows),
         "planned_output_count": len(planned_outputs),
         "existing_planned_output_count": len(existing_outputs),
         "missing_output_count": len(missing_outputs),
@@ -166,17 +168,37 @@ def _planned_outputs(action_plan: dict[str, Any]) -> list[Path]:
     return sorted(set(outputs))
 
 
-def _latest_progress(artifact_root: Path) -> dict[str, Any] | None:
-    progress_files = sorted(artifact_root.glob("**/*progress*.jsonl"))
+def _progress_rows(artifact_root: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in sorted(artifact_root.glob("**/*progress*.jsonl")):
+        rows.extend(_read_jsonl(path))
+    return rows
+
+
+def _latest_progress(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     latest_row: dict[str, Any] | None = None
     latest_time = float("-inf")
-    for path in progress_files:
-        for row in _read_jsonl(path):
-            row_time = float(row.get("time", 0.0)) if isinstance(row, dict) else 0.0
-            if latest_row is None or row_time >= latest_time:
-                latest_row = row
-                latest_time = row_time
+    for row in rows:
+        row_time = float(row.get("time", 0.0))
+        if latest_row is None or row_time >= latest_time:
+            latest_row = row
+            latest_time = row_time
     return latest_row
+
+
+def _progress_by_seed_split(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    latest_by_key: dict[tuple[int | None, str], dict[str, Any]] = {}
+    latest_time_by_key: dict[tuple[int | None, str], float] = {}
+    for row in rows:
+        key = (_int_or_none(row.get("seed")), str(row.get("split", "")))
+        row_time = float(row.get("time", 0.0))
+        if key not in latest_time_by_key or row_time >= latest_time_by_key[key]:
+            latest_by_key[key] = row
+            latest_time_by_key[key] = row_time
+    return [
+        _progress_summary(latest_by_key[key])
+        for key in sorted(latest_by_key, key=lambda item: (-1 if item[0] is None else item[0], item[1]))
+    ]
 
 
 def _progress_summary(progress: dict[str, Any] | None) -> dict[str, Any]:

@@ -129,6 +129,9 @@ used only when its `source_summary` matches the current gate/pool artifact, so
 stale local repair files do not override a pending or running experiment. It
 also emits a `progress_summary` from the latest local progress JSONL row,
 including class-level and total-row cache fractions when those counters exist.
+It also emits `progress_by_seed_split`, which keeps the latest progress row for
+each `(seed, split)` pair so one active seed does not hide another seed's cache
+state.
 It does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot

@@ -131,6 +131,85 @@ def test_residual_focus_status_summarizes_dataset_cache_progress(tmp_path):
     assert summary["total_progress_fraction"] == 0.03125
 
 
+def test_residual_focus_status_summarizes_progress_by_seed_and_split(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    seed0_progress = tmp_path / "artifacts" / "seed0" / "dataset_cache" / "progress.jsonl"
+    seed1_progress = tmp_path / "artifacts" / "seed1" / "dataset_cache" / "progress.jsonl"
+    monitor_dir.mkdir(parents=True)
+    seed0_progress.parent.mkdir(parents=True)
+    seed1_progress.parent.mkdir(parents=True)
+    seed0_progress.write_text(
+        json.dumps(
+            {
+                "time": 10.0,
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "seed": 0,
+                "split": "train",
+                "rows_done": 8192,
+                "total_rows": 524288,
+                "class_rows_done": 8192,
+                "class_total": 262144,
+                "samples_per_class": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    seed1_progress.write_text(
+        json.dumps(
+            {
+                "time": 20.0,
+                "event": "cache_negative_chunk",
+                "stage": "dataset_cache",
+                "seed": 1,
+                "split": "validation",
+                "rows_done": 32768,
+                "total_rows": 524288,
+                "class_rows_done": 32768,
+                "class_total": 262144,
+                "samples_per_class": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    grouped = report["progress_by_seed_split"]
+    assert status == 0
+    assert [(row["seed"], row["split"]) for row in grouped] == [(0, "train"), (1, "validation")]
+    assert grouped[0]["class_progress_fraction"] == 0.03125
+    assert grouped[1]["class_progress_fraction"] == 0.125
+    assert grouped[1]["event"] == "cache_negative_chunk"
+
+
 def test_residual_focus_status_reports_outputs_ready_before_gate(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
