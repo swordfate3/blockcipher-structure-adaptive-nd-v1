@@ -748,13 +748,29 @@ next_action =
   publish_source_then_run_remote_or_retrieve_checkpoints
 ```
 
+Current source-publication gate:
+
+```text
+script = scripts/check-launch-source
+artifact = outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.json
+status = fail
+branch = main
+upstream = origin/main
+ahead = 86
+dirty = false
+errors =
+  unpushed_commits
+should_push = true
+```
+
 This means the generated command plan is structurally safe, but it is not a
 local execution plan in the current workspace. The train trail-position score
 exports reference Windows checkpoints under `G:\lxy`, so the residual-focus
 262144/class package should run from the pushed source on the remote
 workstation, or the required checkpoints/score artifacts must be retrieved
-first. Do not treat the local readiness audit as permission to dirty-overlay or
-SSH-poll from the main thread.
+first. The current Git source-publication gate is also failing only because
+`main` is ahead of `origin/main`; the worktree is clean. Do not treat the local
+readiness audit as permission to dirty-overlay or SSH-poll from the main thread.
 
 ## Claim Scope
 
