@@ -10,6 +10,7 @@ from blockcipher_nd.cli.evaluate_residual_guided_diverse_pool import (
 )
 from blockcipher_nd.cli.gate_residual_focus_262k import gate_residual_focus_262k
 from blockcipher_nd.cli.plan_residual_guided_diverse_pool import plan_residual_guided_diverse_pool
+from blockcipher_nd.cli.plan_residual_focus_repair import plan_residual_focus_repair
 from blockcipher_nd.cli.residual_focus_status import residual_focus_status
 
 
@@ -17,6 +18,7 @@ DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_26
 DEFAULT_GATE_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json")
 DEFAULT_POOL_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
 DEFAULT_POOL_EVAL_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json")
+DEFAULT_REPAIR_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_repair_plan.json")
 DEFAULT_STATUS_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_status.json")
 DEFAULT_MONITOR_DIR = Path("outputs/remote_results/i1_present_r8_residual_focus_262k_retry1/monitor")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
@@ -34,6 +36,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gate-output", type=Path, default=DEFAULT_GATE_OUTPUT)
     parser.add_argument("--pool-output", type=Path, default=DEFAULT_POOL_OUTPUT)
     parser.add_argument("--pool-eval-output", type=Path, default=DEFAULT_POOL_EVAL_OUTPUT)
+    parser.add_argument("--repair-output", type=Path, default=DEFAULT_REPAIR_OUTPUT)
     parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
@@ -50,6 +53,7 @@ def advance_residual_focus_results(
     monitor_dir: Path,
     artifact_root: Path,
     pool_eval_output: Path = DEFAULT_POOL_EVAL_OUTPUT,
+    repair_output: Path = DEFAULT_REPAIR_OUTPUT,
 ) -> dict[str, Any]:
     initial_status = residual_focus_status(
         action_plan=action_plan,
@@ -65,6 +69,7 @@ def advance_residual_focus_results(
     gate_report: dict[str, Any] = _read_json_or_empty(gate_output)
     pool_report: dict[str, Any] = _read_json_or_empty(pool_output)
     pool_eval_report: dict[str, Any] = _read_json_or_empty(pool_eval_output)
+    repair_report: dict[str, Any] = _read_json_or_empty(repair_output)
 
     if initial_status["status"] == "outputs_ready_gate_needed":
         gate_report = gate_residual_focus_262k(action_plan=action_plan)
@@ -86,6 +91,13 @@ def advance_residual_focus_results(
         _write_json(pool_eval_output, pool_eval_report)
         if pool_eval_report.get("status") == "pass":
             ran_pool_evaluator = True
+
+    if gate_report.get("status") == "fail":
+        repair_report = plan_residual_focus_repair(summary=gate_output)
+        _write_json(repair_output, repair_report)
+    elif pool_eval_report.get("status") == "hold":
+        repair_report = plan_residual_focus_repair(summary=pool_eval_output)
+        _write_json(repair_output, repair_report)
 
     final_status = residual_focus_status(
         action_plan=action_plan,
@@ -116,6 +128,9 @@ def advance_residual_focus_results(
         "pool_status": final_status["pool_status"],
         "pool_eval_status": str(pool_eval_report.get("status", "")),
         "pool_eval_decision": str(pool_eval_report.get("decision", "")),
+        "repair_plan": str(repair_output) if repair_report else "",
+        "repair_status": str(repair_report.get("status", "")),
+        "repair_decision": str(repair_report.get("decision", "")),
         "missing_pool3_score_artifact_count": len(pool_eval_report.get("missing_score_artifacts", [])),
         "missing_pool3_score_artifacts": [str(path) for path in pool_eval_report.get("missing_score_artifacts", [])],
         "should_run_pool": final_status["should_run_pool"],
@@ -265,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
         gate_output=args.gate_output,
         pool_output=args.pool_output,
         pool_eval_output=args.pool_eval_output,
+        repair_output=args.repair_output,
         status_output=args.status_output,
         monitor_dir=args.monitor_dir,
         artifact_root=args.artifact_root,

@@ -93,6 +93,15 @@ repair, and only when the gate keeps `focus05` or `focus10` does it mark the
 residual-guided fixed-fusion pool as ready. It does not launch remote training,
 fit ensemble weights, or make an ensemble claim.
 
+Use `scripts/plan-residual-focus-repair` after a residual-focus gate, Pool 3
+plan, or Pool 3 fixed-fusion evaluation reaches `fail`/`hold`. It maps
+machine-readable `repair_hints` such as
+`candidate_not_better_than_uniform_control`,
+`label_shuffle_control_failed`, and `focus_candidate_metric_failed` into a
+local-only repair plan. The plan explicitly forbids Pool 3 launch, 1M/class
+scale-up, and candidate claims until the indicated residual objective,
+attribution control, or feature-family repair branch is checked.
+
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
 `residual_guided_diverse_pool_ready` and all five aligned validation score
@@ -127,6 +136,11 @@ Pool 3 fixed-fusion evaluator and writes
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.
+If the residual-focus gate fails, or if the Pool 3 evaluator returns `hold`, it
+also writes
+`outputs/local_audits/i1_present_r8_residual_focus_repair_plan.json` through
+`scripts/plan-residual-focus-repair`, so the next local action is a repair
+branch rather than a blind ensemble or scale-up.
 It does not SSH, sync, launch remote jobs, or fit ensemble weights.
 
 Use `scripts/watch-residual-focus-results` when a local tmux watcher should keep

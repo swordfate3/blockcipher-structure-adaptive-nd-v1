@@ -182,12 +182,55 @@ def test_advance_residual_focus_results_holds_when_pool_evaluator_controls_fail(
     assert [seed_report["status"] for seed_report in pool_eval_report["seed_reports"]] == ["pass", "hold"]
 
 
+def test_advance_residual_focus_results_writes_repair_plan_when_gate_fails(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True, strong_uniform=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    repair = tmp_path / "repair.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--repair-output",
+            str(repair),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    repair_report = json.loads(repair.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "repair_residual_focus_before_pool"
+    assert report["repair_status"] == "ready"
+    assert report["repair_plan"] == str(repair)
+    assert repair_report["primary_repair_branch"] == "separate_focus_from_uniform_residual_objective"
+
+
 def _write_action_plan(
     tmp_path: Path,
     *,
     create_outputs: bool,
     create_score_artifacts: bool = False,
     bad_score_seed: int | None = None,
+    strong_uniform: bool = False,
 ) -> Path:
     seeds = []
     for seed in [0, 1]:
@@ -200,7 +243,7 @@ def _write_action_plan(
         }
         if create_outputs:
             seed_root.mkdir(parents=True, exist_ok=True)
-            _write_slice(outputs["uniform_slice_eval"], loss_delta=-0.001, auc_delta=0.001)
+            _write_slice(outputs["uniform_slice_eval"], loss_delta=-0.03 if strong_uniform else -0.001, auc_delta=0.001)
             _write_slice(outputs["focus10_shuffle_slice_eval"], loss_delta=0.03, auc_delta=-0.1)
             _write_slice(outputs["focus05_slice_eval"], loss_delta=-0.01, auc_delta=0.002)
             _write_slice(outputs["focus10_slice_eval"], loss_delta=-0.02, auc_delta=0.003)
