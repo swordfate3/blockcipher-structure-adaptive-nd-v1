@@ -5,6 +5,15 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.residual_focus_status import (
+    DEFAULT_ACTION_PLAN as DEFAULT_RESIDUAL_ACTION_PLAN,
+    DEFAULT_ARTIFACT_ROOT as DEFAULT_RESIDUAL_ARTIFACT_ROOT,
+    DEFAULT_GATE as DEFAULT_RESIDUAL_GATE,
+    DEFAULT_MONITOR_DIR as DEFAULT_RESIDUAL_MONITOR_DIR,
+    DEFAULT_REPAIR_PLAN as DEFAULT_RESIDUAL_REPAIR_PLAN,
+    residual_focus_status,
+)
+
 
 DEFAULT_RESIDUAL_STATUS = Path("outputs/local_audits/i1_present_r8_residual_focus_status.json")
 DEFAULT_POOL_PLAN = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
@@ -29,6 +38,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--bucket-residual-plan", type=Path, default=DEFAULT_BUCKET_RESIDUAL_PLAN)
     parser.add_argument("--bucket-residual-control-gate", type=Path, default=DEFAULT_BUCKET_RESIDUAL_CONTROL_GATE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--refresh-residual-status",
+        action="store_true",
+        help="Recompute and write the residual-focus status before summarizing routes.",
+    )
+    parser.add_argument("--residual-action-plan", type=Path, default=DEFAULT_RESIDUAL_ACTION_PLAN)
+    parser.add_argument("--residual-gate", type=Path, default=DEFAULT_RESIDUAL_GATE)
+    parser.add_argument("--residual-repair-plan", type=Path, default=DEFAULT_RESIDUAL_REPAIR_PLAN)
+    parser.add_argument("--residual-monitor-dir", type=Path, default=DEFAULT_RESIDUAL_MONITOR_DIR)
+    parser.add_argument("--residual-artifact-root", type=Path, default=DEFAULT_RESIDUAL_ARTIFACT_ROOT)
     return parser.parse_args(argv)
 
 
@@ -352,8 +371,24 @@ def _load_json_or_empty(path: Path) -> dict[str, Any]:
     return _load_json(path)
 
 
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.refresh_residual_status:
+        residual_status_report = residual_focus_status(
+            action_plan=args.residual_action_plan,
+            gate=args.residual_gate,
+            pool_plan=args.pool_plan,
+            pool_eval=args.pool_eval,
+            repair_plan=args.residual_repair_plan,
+            monitor_dir=args.residual_monitor_dir,
+            artifact_root=args.residual_artifact_root,
+        )
+        _write_json(args.residual_status, residual_status_report)
     report = summarize_present_r8_diverse_route(
         residual_status_path=args.residual_status,
         pool_plan_path=args.pool_plan,

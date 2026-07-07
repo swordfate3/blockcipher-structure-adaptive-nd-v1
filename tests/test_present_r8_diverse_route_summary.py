@@ -74,6 +74,90 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["should_launch_remote"] is False
 
 
+def test_present_r8_diverse_route_summary_can_refresh_residual_status_before_reading(tmp_path: Path):
+    stale_residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "running",
+            "gate_status": "pending",
+            "gate_decision": "stale_wait",
+            "missing_output_count": 0,
+            "source_selection_report_count": 0,
+            "source_selection_missing_report_count": 0,
+            "next_action": {"branch": "stale_branch"},
+        },
+    )
+    planned_output = tmp_path / "artifacts" / "seed0" / "residual_focus10_report.json"
+    source_loss = tmp_path / "artifacts" / "seed0" / "train_residual_loss_axis_spectrum.json"
+    source_hard = tmp_path / "artifacts" / "seed0" / "train_hard_error_axis_spectrum.json"
+    action_plan = _write_json(
+        tmp_path / "action_plan.json",
+        {
+            "seeds": [
+                {
+                    "seed": 0,
+                    "planned_outputs": {"focus10": str(planned_output)},
+                    "source_selection_outputs": {
+                        "train_residual_loss_axis_spectrum": str(source_loss),
+                        "train_hard_error_axis_spectrum": str(source_hard),
+                    },
+                }
+            ],
+        },
+    )
+    gate = _write_json(
+        tmp_path / "gate.json",
+        {"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"},
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    repair = _write_json(tmp_path / "repair.json", {"status": "pending"})
+    monitor_dir = tmp_path / "monitor"
+    monitor_dir.mkdir()
+    monitor_dir.joinpath("monitor.log").write_text(
+        "2026-07-07T21:05:31+08:00 running missing=1\n",
+        encoding="utf-8",
+    )
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--refresh-residual-status",
+            "--residual-status",
+            str(stale_residual_status),
+            "--residual-action-plan",
+            str(action_plan),
+            "--residual-gate",
+            str(gate),
+            "--residual-repair-plan",
+            str(repair),
+            "--residual-monitor-dir",
+            str(monitor_dir),
+            "--residual-artifact-root",
+            str(tmp_path / "artifacts"),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    refreshed_status = json.loads(stale_residual_status.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["decision"] == "wait_for_residual_focus_outputs"
+    assert report["residual_focus"]["gate_decision"] == "wait_for_residual_focus_262k_outputs"
+    assert report["residual_focus"]["missing_output_count"] == 1
+    assert report["residual_focus"]["source_selection_report_count"] == 2
+    assert report["residual_focus"]["source_selection_missing_report_count"] == 2
+    assert refreshed_status["latest_monitor_event"] == "running missing=1"
+
+
 def test_present_r8_diverse_route_summary_prefers_pool3_after_residual_pool_ready(tmp_path: Path):
     residual_status = _write_json(
         tmp_path / "residual_status.json",
