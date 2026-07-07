@@ -502,6 +502,27 @@ If scripts/gate-residual-focus-262k keeps focus05 or focus10, instantiate Pool
 the ensemble; repair the residual source first.
 ```
 
+The local Pool 3 fixed-fusion diagnostic is now wired as:
+
+```text
+scripts/evaluate-residual-guided-diverse-pool
+```
+
+It is deliberately narrow. It reads the Pool 3 plan and aligned frozen
+validation score artifacts, then compares:
+
+```text
+trail_position + raw117
+trail_position + raw117 + selected residual_focus
+trail_position + raw117 + uniform residual control
+trail_position + raw117 + label-shuffle residual control
+```
+
+The tool blocks when the Pool 3 plan is pending or held, and it reports missing
+score artifacts instead of trying to generate or retrieve them. It does not fit
+ensemble weights, contact the remote host, launch training, or upgrade the
+claim beyond application-level medium diagnostic evidence.
+
 The recovered r7 Pool 0 remains the near-neighbor control for historical
 context, but it is no longer the next mainline action. The next aggregation work
 should be residual-guided and same-protocol, not a wider pile of similar SPN

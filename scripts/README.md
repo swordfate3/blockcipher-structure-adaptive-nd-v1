@@ -93,6 +93,17 @@ repair, and only when the gate keeps `focus05` or `focus10` does it mark the
 residual-guided fixed-fusion pool as ready. It does not launch remote training,
 fit ensemble weights, or make an ensemble claim.
 
+Use `scripts/evaluate-residual-guided-diverse-pool` after
+`scripts/plan-residual-guided-diverse-pool` reports
+`residual_guided_diverse_pool_ready` and all five aligned validation score
+artifacts exist: trail-position, raw117, selected residual-focus correction,
+uniform residual control, and label-shuffle residual control. It runs only
+fixed frozen-score fusions:
+trail-position+raw117, trail-position+raw117+residual-focus,
+trail-position+raw117+uniform-control, and
+trail-position+raw117+label-shuffle-control. It does not fit stacking weights,
+generate datasets, SSH, launch remote jobs, or make a formal SPN/PRESENT claim.
+
 Use `scripts/residual-focus-status` for a local-only status summary of the
 active residual-focus 262144/class route. It reads the action plan, gate report,
 Pool 3 plan, local monitor log, and locally retrieved progress/output artifacts
