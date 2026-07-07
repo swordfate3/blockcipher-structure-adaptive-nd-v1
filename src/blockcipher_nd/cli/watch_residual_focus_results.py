@@ -114,6 +114,8 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "progress_by_seed_split": report.get("progress_by_seed_split", []),
         "repair_plan": str(report.get("repair_plan", "")),
         "repair_status": str(report.get("repair_status", "")),
+        "repair_active": bool(report.get("repair_active", False)),
+        "repair_stale_reason": str(report.get("repair_stale_reason", "")),
         "repair_decision": str(report.get("repair_decision", "")),
         "repair_source_summary": str(report.get("repair_source_summary", "")),
         "repair_context_current": bool(report.get("repair_context_current", False)),

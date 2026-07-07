@@ -611,6 +611,8 @@ def test_residual_focus_status_reports_repair_ready_when_repair_plan_exists(tmp_
     assert status == 0
     assert report["status"] == "repair_ready"
     assert report["repair_status"] == "ready"
+    assert report["repair_active"] is True
+    assert report["repair_stale_reason"] == ""
     assert report["repair_primary_branch"] == "separate_focus_from_uniform_residual_objective"
     assert report["repair_hints"] == ["candidate_not_better_than_uniform_control"]
     assert report["next_action"]["branch"] == "separate_focus_from_uniform_residual_objective"
@@ -664,6 +666,8 @@ def test_residual_focus_status_ignores_stale_repair_plan_while_gate_pending(tmp_
     assert status == 0
     assert report["status"] == "running"
     assert report["repair_status"] == "stale"
+    assert report["repair_active"] is False
+    assert report["repair_stale_reason"] == "source_summary_not_current_context"
     assert report["repair_context_current"] is False
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 

@@ -69,6 +69,10 @@ def residual_focus_status(
     effective_repair_status = (
         "stale" if repair_status == "ready" and not repair_matches_current_context else repair_status
     )
+    repair_active = effective_repair_status == "ready" and repair_matches_current_context
+    repair_stale_reason = (
+        "source_summary_not_current_context" if effective_repair_status == "stale" else ""
+    )
     should_run_pool = bool(pool.get("should_run_pool", False))
     missing_pool3_score_artifacts = [
         str(path) for path in pool_eval_report.get("missing_score_artifacts", [])
@@ -99,6 +103,8 @@ def residual_focus_status(
         "pool_eval_decision": pool_eval_decision,
         "repair_plan": str(repair_plan),
         "repair_status": effective_repair_status,
+        "repair_active": repair_active,
+        "repair_stale_reason": repair_stale_reason,
         "repair_decision": str(repair_report.get("decision", "")),
         "repair_source_summary": repair_source_summary,
         "repair_context_current": repair_matches_current_context,

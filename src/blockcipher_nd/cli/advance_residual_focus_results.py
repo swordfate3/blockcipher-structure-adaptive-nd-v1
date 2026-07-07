@@ -143,6 +143,8 @@ def advance_residual_focus_results(
         "pool_eval_decision": str(pool_eval_report.get("decision", "")),
         "repair_plan": final_status["repair_plan"],
         "repair_status": final_status["repair_status"],
+        "repair_active": final_status["repair_active"],
+        "repair_stale_reason": final_status["repair_stale_reason"],
         "repair_decision": final_status["repair_decision"],
         "repair_source_summary": final_status["repair_source_summary"],
         "repair_context_current": final_status["repair_context_current"],
