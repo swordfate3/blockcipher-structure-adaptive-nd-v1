@@ -12,7 +12,7 @@ DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_26
 DEFAULT_SOURCE_GATE = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.json")
 DEFAULT_OUTPUT_DIR = Path("configs/remote/generated")
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json")
-RUN_ID = "i1_present_r8_residual_focus_262k"
+DEFAULT_RUN_ID = "i1_present_r8_residual_focus_262k"
 REMOTE_RUNS_ROOT = "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
 REMOTE_RUNS_ROOT_SCP = "G:/lxy/blockcipher-structure-adaptive-nd-runs"
 REPO_URL = "git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git"
@@ -26,6 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--source-gate", type=Path, default=DEFAULT_SOURCE_GATE)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--run-id", default=DEFAULT_RUN_ID)
     return parser.parse_args(argv)
 
 
@@ -35,13 +36,14 @@ def plan_residual_focus_remote_package(
     source_gate: Path,
     output_dir: Path,
     package_report: Path = DEFAULT_OUTPUT,
+    run_id: str = DEFAULT_RUN_ID,
 ) -> dict[str, Any]:
     plan = _read_json(action_plan)
     gate = _read_json(source_gate)
     output_dir.mkdir(parents=True, exist_ok=True)
-    launcher = output_dir / f"run_{RUN_ID}_20260707.cmd"
-    monitor = output_dir / f"monitor_{RUN_ID}_20260707.sh"
-    launch_wrapper = output_dir / f"launch_{RUN_ID}_20260707.sh"
+    launcher = output_dir / f"run_{run_id}_20260707.cmd"
+    monitor = output_dir / f"monitor_{run_id}_20260707.sh"
+    launch_wrapper = output_dir / f"launch_{run_id}_20260707.sh"
     local_artifact_root = str(plan.get("artifact_root", "outputs/local_audits/i1_present_r8_residual_focus_262k"))
     planned_outputs = _planned_outputs(plan)
     commands = [str(command) for command in plan.get("commands", [])]
@@ -58,9 +60,9 @@ def plan_residual_focus_remote_package(
         blockers.append("source_gate_not_pass")
     if _contains_unsafe_command(windows_commands):
         blockers.append("unsafe_generated_command")
-    launcher.write_text(_launcher_text(windows_commands), encoding="utf-8")
+    launcher.write_text(_launcher_text(windows_commands, run_id=run_id), encoding="utf-8")
     monitor.write_text(
-        _monitor_text(local_artifact_root=local_artifact_root, planned_outputs=planned_outputs),
+        _monitor_text(run_id=run_id, local_artifact_root=local_artifact_root, planned_outputs=planned_outputs),
         encoding="utf-8",
     )
     launch_allowed = not blockers
@@ -69,13 +71,14 @@ def plan_residual_focus_remote_package(
             package_report=package_report,
             launcher=launcher,
             monitor=monitor,
+            run_id=run_id,
         ),
         encoding="utf-8",
     )
     return {
         "status": "pass" if launch_allowed else "pending",
         "decision": "residual_focus_remote_package_ready" if launch_allowed else "residual_focus_remote_package_blocked",
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "action_plan": str(action_plan),
         "source_gate": str(source_gate),
         "source_gate_status": str(gate.get("status", "")),
@@ -156,12 +159,12 @@ def _contains_unsafe_command(commands: list[str]) -> bool:
     return any("cmd.exe /k" in command.lower() or " ssh " in f" {command.lower()} " for command in commands)
 
 
-def _launcher_text(commands: list[str]) -> str:
+def _launcher_text(commands: list[str], *, run_id: str) -> str:
     lines = [
         "@echo off",
         "setlocal EnableExtensions EnableDelayedExpansion",
         "",
-        f"set RUN_ID={RUN_ID}",
+        f"set RUN_ID={run_id}",
         f"set REPO_URL={REPO_URL}",
         "set BRANCH=main",
         f"set RUN_ROOT={REMOTE_RUNS_ROOT}\\%RUN_ID%",
@@ -192,6 +195,8 @@ def _launcher_text(commands: list[str]) -> str:
         ")",
         "",
         "git rev-parse HEAD > \"%LOG_DIR%\\%RUN_ID%_git_revision.txt\" 2>&1",
+        "set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%",
+        "echo pythonpath=%PYTHONPATH%>>\"%LOG_DIR%\\%RUN_ID%_launch_env.txt\"",
         "echo started>\"%LOG_DIR%\\%RUN_ID%_started.marker\"",
         "",
     ]
@@ -218,7 +223,7 @@ def _launcher_text(commands: list[str]) -> str:
     return "\n".join(lines)
 
 
-def _monitor_text(*, local_artifact_root: str, planned_outputs: list[str]) -> str:
+def _monitor_text(*, run_id: str, local_artifact_root: str, planned_outputs: list[str]) -> str:
     expected_checks = "\n".join(
         f"  [[ -f \"{path}\" ]] || missing=$((missing + 1))"
         for path in planned_outputs
@@ -228,10 +233,10 @@ def _monitor_text(*, local_artifact_root: str, planned_outputs: list[str]) -> st
     return f"""#!/usr/bin/env bash
 set -u
 
-RUN_ID="{RUN_ID}"
+RUN_ID="{run_id}"
 REMOTE="lxy-a6000"
 REMOTE_RUN_ROOT="{REMOTE_RUNS_ROOT_SCP}/${{RUN_ID}}"
-REMOTE_ARTIFACT_ROOT="{REMOTE_RUNS_ROOT_SCP}/{RUN_ID}/artifacts"
+REMOTE_ARTIFACT_ROOT="{REMOTE_RUNS_ROOT_SCP}/{run_id}/artifacts"
 LOCAL_ARTIFACT_ROOT="{local_artifact_root}"
 LOCAL_ROOT="outputs/remote_results/${{RUN_ID}}"
 MONITOR_DIR="${{LOCAL_ROOT}}/monitor"
@@ -275,17 +280,17 @@ done
 """
 
 
-def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path) -> str:
+def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path, run_id: str) -> str:
     launcher_name = launcher.name
-    monitor_session = f"monitor_{RUN_ID}_20260707"
-    remote_run_root = f"{REMOTE_RUNS_ROOT}\\{RUN_ID}"
+    monitor_session = f"monitor_{run_id}_20260707"
+    remote_run_root = f"{REMOTE_RUNS_ROOT}\\{run_id}"
     remote_source_root = f"{remote_run_root}\\source"
     remote_cmd = f"{remote_run_root}\\source\\configs\\remote\\generated\\{launcher_name}"
-    local_monitor_dir = f"outputs/remote_results/{RUN_ID}/monitor"
+    local_monitor_dir = f"outputs/remote_results/{run_id}/monitor"
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
-RUN_ID="{RUN_ID}"
+RUN_ID="{run_id}"
 PACKAGE_REPORT="{package_report}"
 LOCAL_MONITOR_DIR="{local_monitor_dir}"
 REMOTE_RUN_ROOT="{remote_run_root}"
@@ -337,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
         source_gate=args.source_gate,
         output_dir=args.output_dir,
         package_report=args.output,
+        run_id=args.run_id,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

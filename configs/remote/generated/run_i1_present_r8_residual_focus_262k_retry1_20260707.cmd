@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-set RUN_ID=i1_present_r8_residual_focus_262k
+set RUN_ID=i1_present_r8_residual_focus_262k_retry1
 set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
 set BRANCH=main
 set RUN_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs\%RUN_ID%

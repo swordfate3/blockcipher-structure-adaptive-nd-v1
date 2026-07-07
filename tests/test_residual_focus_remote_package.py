@@ -88,6 +88,8 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
     assert "cmd.exe /k" not in launcher.lower()
     assert "UV_CACHE_DIR" not in launcher
     assert "outputs/remote_results" not in launcher
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%" in launcher
+    assert launcher.index("set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%") < launcher.index("echo command_0>")
     assert "%PYTHON_EXE% scripts\\export-checkpoint-scores" in launcher
     assert (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
@@ -143,3 +145,56 @@ def test_residual_focus_remote_package_blocks_launch_when_source_gate_fails(tmp_
     assert report["launch_allowed"] is False
     assert "source_gate_not_pass" in report["blockers"]
     assert report["source_gate_errors"] == ["unpushed_commits"]
+
+
+def test_residual_focus_remote_package_accepts_isolated_retry_run_id(tmp_path):
+    action_plan = tmp_path / "action_plan.json"
+    source_gate = tmp_path / "source_gate.json"
+    output_dir = tmp_path / "generated"
+    report_path = tmp_path / "remote_package.json"
+    retry_run_id = "i1_present_r8_residual_focus_262k_retry1_20260707"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "artifact_root": "outputs/local_audits/i1_present_r8_residual_focus_262k",
+                "commands": [
+                    "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features "
+                    "--output-dir outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/features"
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source_gate.write_text(
+        json.dumps({"status": "pass", "dirty": False, "ahead": 0, "behind": 0}),
+        encoding="utf-8",
+    )
+
+    status = plan_remote_package_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--source-gate",
+            str(source_gate),
+            "--output-dir",
+            str(output_dir),
+            "--output",
+            str(report_path),
+            "--run-id",
+            retry_run_id,
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    launcher = Path(report["launcher"]).read_text(encoding="utf-8")
+    launch_wrapper = Path(report["launch_wrapper"]).read_text(encoding="utf-8")
+    monitor = Path(report["monitor"]).read_text(encoding="utf-8")
+    assert status == 0
+    assert report["run_id"] == retry_run_id
+    assert f"run_{retry_run_id}_20260707.cmd" in report["launcher"]
+    assert f"RUN_ID=\"{retry_run_id}\"" in launch_wrapper
+    assert f"G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\{retry_run_id}" in launch_wrapper
+    assert f"RUN_ID={retry_run_id}" in launcher
+    assert f"G:/lxy/blockcipher-structure-adaptive-nd-runs/{retry_run_id}/artifacts" in monitor
+    assert "outputs/local_audits/i1_present_r8_residual_focus_262k" in monitor
