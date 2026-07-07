@@ -7,6 +7,9 @@ from typing import Any
 
 
 DEFAULT_RESIDUAL_FOCUS_GATE = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json")
+DEFAULT_SOURCE_SELECTION_SUMMARY = Path(
+    "outputs/local_audits/i1_present_r8_residual_focus_262k/residual_axis_spectrum_summary.json"
+)
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
 
 
@@ -18,41 +21,64 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument("--residual-focus-gate", type=Path, default=DEFAULT_RESIDUAL_FOCUS_GATE)
+    parser.add_argument("--source-selection-summary", type=Path, default=DEFAULT_SOURCE_SELECTION_SUMMARY)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     return parser.parse_args(argv)
 
 
-def plan_residual_guided_diverse_pool(*, residual_focus_gate: Path) -> dict[str, Any]:
+def plan_residual_guided_diverse_pool(
+    *,
+    residual_focus_gate: Path,
+    source_selection_summary: Path = DEFAULT_SOURCE_SELECTION_SUMMARY,
+) -> dict[str, Any]:
     gate = _load_json(residual_focus_gate)
+    source_selection = _load_json_or_empty(source_selection_summary)
     status = str(gate.get("status", ""))
     decision = str(gate.get("decision", ""))
     passing_candidates = [str(candidate) for candidate in gate.get("passing_candidates", [])]
     if status == "pass" and decision == "keep_residual_focus_262k_hard_slice_candidate" and passing_candidates:
         selected = _select_candidate(gate, passing_candidates)
+        source_expert = _source_selected_expert(source_selection)
+        expert_families = [
+            "trail_position_anchor",
+            "compressed_span_structural",
+            "residual_focus_aux_word",
+        ]
+        planned_fixed_fusions = [
+            "best_single",
+            "trail_position + raw117",
+            "trail_position + raw117 + residual_focus",
+            "trail_position + raw117 + uniform_residual_control",
+            "trail_position + raw117 + labelshuffle_residual_control",
+        ]
+        if source_expert["enabled"]:
+            expert_families.append("residual_focus_source_selected_aux")
+            planned_fixed_fusions.insert(
+                3,
+                "trail_position + raw117 + source_selected_residual_focus",
+            )
+        source_selection_status = str(
+            source_selection.get("status", "missing" if not source_selection else "")
+        )
         return {
             "status": "pass",
             "decision": "residual_guided_diverse_pool_ready",
             "should_run_pool": True,
             "residual_focus_gate": str(residual_focus_gate),
+            "source_selection_summary": str(source_selection_summary),
+            "source_selection_status": source_selection_status,
+            "source_selection_decision": str(source_selection.get("decision", "")),
+            "source_selection_recommended_feature_prefixes": source_expert["recommended_feature_prefixes"],
+            "source_selection_selected_groups": source_expert["selected_groups"],
             "residual_focus_decision": decision,
             "selected_residual_candidate": selected,
-            "expert_families": [
-                "trail_position_anchor",
-                "compressed_span_structural",
-                "residual_focus_aux_word",
-            ],
+            "expert_families": expert_families,
             "control_families": [
                 "global_trail_position_control",
                 "uniform_residual_control",
                 "labelshuffle_residual_control",
             ],
-            "planned_fixed_fusions": [
-                "best_single",
-                "trail_position + raw117",
-                "trail_position + raw117 + residual_focus",
-                "trail_position + raw117 + uniform_residual_control",
-                "trail_position + raw117 + labelshuffle_residual_control",
-            ],
+            "planned_fixed_fusions": planned_fixed_fusions,
             "next_action": {
                 "branch": "instantiate_residual_guided_pool3_fixed_fusion",
                 "should_launch_remote": False,
@@ -106,6 +132,22 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_json_or_empty(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return _load_json(path)
+
+
+def _source_selected_expert(summary: dict[str, Any]) -> dict[str, Any]:
+    prefixes = [str(prefix) for prefix in summary.get("recommended_feature_prefixes", [])]
+    groups = [str(group) for group in summary.get("selected_groups", [])]
+    return {
+        "enabled": str(summary.get("status", "")) == "pass" and bool(prefixes or groups),
+        "recommended_feature_prefixes": prefixes,
+        "selected_groups": groups,
+    }
+
+
 def _select_candidate(gate: dict[str, Any], passing_candidates: list[str]) -> str:
     if "focus10" in passing_candidates and "focus05" in passing_candidates:
         focus10_margin = _float_or_none(gate.get("min_focus10_vs_uniform_loss_margin"))
@@ -132,7 +174,10 @@ def _gate_next_branch(gate: dict[str, Any], *, default: str) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    report = plan_residual_guided_diverse_pool(residual_focus_gate=args.residual_focus_gate)
+    report = plan_residual_guided_diverse_pool(
+        residual_focus_gate=args.residual_focus_gate,
+        source_selection_summary=args.source_selection_summary,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, sort_keys=True))

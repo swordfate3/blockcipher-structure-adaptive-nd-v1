@@ -68,6 +68,58 @@ def test_plan_residual_guided_pool_promotes_passing_focus_candidate(tmp_path):
     assert report["claim_scope"].startswith("application-level medium diagnostic")
 
 
+def test_plan_residual_guided_pool_includes_source_selected_residual_expert(tmp_path):
+    gate = tmp_path / "gate.json"
+    source_summary = tmp_path / "residual_axis_spectrum_summary.json"
+    output = tmp_path / "pool_plan.json"
+    gate.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "keep_residual_focus_262k_hard_slice_candidate",
+                "passing_candidates": ["focus10"],
+                "min_focus10_vs_uniform_loss_margin": -0.004,
+            }
+        ),
+        encoding="utf-8",
+    )
+    source_summary.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_axis_spectrum_stable_groups_selected",
+                "recommended_feature_prefixes": ["aux_depth_word_", "aux_word_"],
+                "selected_groups": ["aux_depth_word_global_mean", "aux_word_global_mean"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = plan_pool_main(
+        [
+            "--residual-focus-gate",
+            str(gate),
+            "--source-selection-summary",
+            str(source_summary),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert "residual_focus_source_selected_aux" in report["expert_families"]
+    assert "trail_position + raw117 + source_selected_residual_focus" in report["planned_fixed_fusions"]
+    assert report["source_selection_status"] == "pass"
+    assert report["source_selection_decision"] == "residual_axis_spectrum_stable_groups_selected"
+    assert report["source_selection_recommended_feature_prefixes"] == ["aux_depth_word_", "aux_word_"]
+    assert report["source_selection_selected_groups"] == [
+        "aux_depth_word_global_mean",
+        "aux_word_global_mean",
+    ]
+
+
 def test_plan_residual_guided_pool_holds_failed_residual_focus_gate(tmp_path):
     gate = tmp_path / "gate.json"
     output = tmp_path / "pool_plan.json"
