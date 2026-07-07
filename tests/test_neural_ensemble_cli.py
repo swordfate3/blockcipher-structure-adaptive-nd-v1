@@ -22,6 +22,9 @@ from blockcipher_nd.cli.fit_bucket_conditioned_feature_expert import (
 from blockcipher_nd.cli.fit_residual_correction_feature_expert import (
     main as fit_residual_correction_feature_main,
 )
+from blockcipher_nd.cli.evaluate_residual_slice_correction import (
+    main as evaluate_residual_slice_correction_main,
+)
 from blockcipher_nd.cli.fit_compressed_span_grouped_expert import (
     main as fit_compressed_span_grouped_main,
 )
@@ -1060,6 +1063,54 @@ def test_fit_residual_correction_feature_expert_writes_corrected_artifact(tmp_pa
     assert validation_metadata["base_model_order"] == ["trail", "raw117"]
     assert validation_metadata["base_run_order"] == ["trail", "raw117"]
     assert np.array_equal(validation_artifact.sample_ids, sample_ids)
+
+
+def test_evaluate_residual_slice_correction_uses_train_derived_threshold(tmp_path):
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    left_train = tmp_path / "left_train"
+    right_train = tmp_path / "right_train"
+    left_validation = tmp_path / "left_validation"
+    right_validation = tmp_path / "right_validation"
+    corrected_validation = tmp_path / "corrected_validation"
+    base_left = np.array([0.1, 0.2, 0.6, 0.7, 0.3, 0.4, 0.8, 0.9], dtype=np.float32)
+    base_right = np.array([0.15, 0.25, 0.55, 0.65, 0.35, 0.45, 0.75, 0.85], dtype=np.float32)
+    corrected = np.array([0.1, 0.2, 0.2, 0.3, 0.7, 0.8, 0.8, 0.9], dtype=np.float32)
+    for path, model_key, probabilities in [
+        (left_train, "trail", base_left),
+        (right_train, "raw117", base_right),
+        (left_validation, "trail", base_left),
+        (right_validation, "raw117", base_right),
+        (corrected_validation, "residual_focus", corrected),
+    ]:
+        _write_tiny_score_artifact(path, labels, probabilities, sample_ids, model_key=model_key)
+    output = tmp_path / "slice_report.json"
+
+    status = evaluate_residual_slice_correction_main(
+        [
+            "--train-base-artifacts",
+            str(left_train),
+            str(right_train),
+            "--validation-base-artifacts",
+            str(left_validation),
+            str(right_validation),
+            "--validation-corrected-artifact",
+            str(corrected_validation),
+            "--focus-fraction",
+            "0.5",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["focus"]["mode"] == "train_derived_base_residual_loss_threshold"
+    assert report["validation_focus_metrics"]["rows"] == 4
+    assert report["validation_focus_delta"]["residual_loss_mean"] < 0.0
+    assert report["validation_focus_corrected_metrics"]["auc"] > report["validation_focus_base_metrics"]["auc"]
+    assert "validation is sliced by train-derived base residual threshold" in report["claim_scope"]
 
 
 def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):

@@ -553,6 +553,94 @@ PRESENT r8 solved"; it is "the residual-focused correction objective is now the
 best local next candidate for a medium-scale SPN/PRESENT diagnostic."
 ```
 
+## 2048/Class Train-Derived Hard Residual Slice Evaluation
+
+Because the full held-out validation AUC is saturated, the next diagnostic
+evaluated the same corrected score artifacts on the validation rows that are
+hard for the frozen base score. The slice threshold is selected only from train
+base residual loss:
+
+```text
+train_base = logit_mean(train trail_stats_logistic_scores, train span_raw117_matched_scores)
+train_residual_loss = abs(label - sigmoid(train_base))
+threshold = top residual_focus_fraction cutoff on train_residual_loss
+validation_slice = validation rows where validation_base_residual_loss >= threshold
+```
+
+This avoids using validation labels to choose an after-the-fact slice. The
+validation split is only scored after the train-derived threshold is frozen.
+
+New local CLI:
+
+```text
+scripts/evaluate-residual-slice-correction
+```
+
+Artifacts:
+
+```text
+seed0 focus 5% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus05_slice_eval.json
+seed1 focus 5% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus05_slice_eval.json
+
+seed0 focus 10% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus10_slice_eval.json
+seed1 focus 10% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus10_slice_eval.json
+
+seed0 focus 20% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus20_slice_eval.json
+seed1 focus 20% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus20_slice_eval.json
+
+seed0 focus 10% label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus10_labelshuffle_slice_eval.json
+seed1 focus 10% label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus10_labelshuffle_slice_eval.json
+```
+
+Train-derived validation hard-slice metrics:
+
+| Seed | Route | Slice Rows | Base Slice AUC | Corrected Slice AUC | Delta AUC | Base Slice Residual Loss | Corrected Slice Residual Loss | Delta Loss |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 0 | focus 5% | `140` | `0.9997938569367141` | `1.0` | `+0.00020614306328592402` | `0.07913075997560895` | `0.06574271403120033` | `-0.013388045944408622` |
+| 0 | focus 10% | `229` | `0.9999226485148515` | `1.0` | `+0.00007735148514853574` | `0.05332041171749253` | `0.04405268186532514` | `-0.009267729852167388` |
+| 0 | focus 20% | `432` | `0.99997854997855` | `1.0` | `+0.000021450021450042378` | `0.0308982023407884` | `0.02638943614039346` | `-0.004508766200394941` |
+| 0 | focus 10% label-shuffle | `229` | `0.9999226485148515` | `0.7379331683168316` | `-0.2619894801980198` | `0.05332041171749253` | `0.3395830523144762` | `+0.2862626405969837` |
+| 1 | focus 5% | `109` | `0.9983050847457627` | `1.0` | `+0.0016949152542372614` | `0.09033436224564191` | `0.07015369929492883` | `-0.02018066295071308` |
+| 1 | focus 10% | `217` | `0.9995741781638563` | `1.0` | `+0.0004258218361437027` | `0.052570848049561913` | `0.04173601037835539` | `-0.01083483767120652` |
+| 1 | focus 20% | `424` | `0.9998887108262108` | `0.9999777421652422` | `+0.00008903133903137572` | `0.030039898719409312` | `0.025137205725153558` | `-0.004902692994255754` |
+| 1 | focus 10% label-shuffle | `217` | `0.9995741781638563` | `0.7989269289729177` | `-0.20064724919093857` | `0.052570848049561913` | `0.2924646814365919` | `+0.23989383338702996` |
+
+Decision:
+
+```text
+decision = keep_focus05_focus10_for_medium_scale_residual_slice_gate
+status = train_derived_hard_slice_diagnostic_pass_local_2048class
+action =
+  keep focus 5% and focus 10% as the next medium-scale candidates;
+  treat focus 5% as the sharper hard-slice repair variant;
+  treat focus 10% as the broader and still stable repair variant;
+  keep the focus 10% label-shuffle control in future gates;
+  evaluate future 262144/class runs with both global metrics and train-derived
+  hard residual slice metrics
+```
+
+Interpretation:
+
+```text
+The hard-slice view is more informative than saturated global AUC. On both
+seeds, focus 5% and focus 10% reduce validation residual loss on the train-
+derived hard slice, and the label-shuffle control sharply worsens the same
+slice. This supports the residual-focused aux-depth-word/aux-word correction as
+the current strongest local candidate for medium-scale confirmation.
+
+The claim remains local diagnostic only. The run size is 2048/class, the base
+score is already extremely strong, and no formal SPN/PRESENT claim is allowed
+until completed, retrieved, plan-aligned larger-scale evidence exists.
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a
