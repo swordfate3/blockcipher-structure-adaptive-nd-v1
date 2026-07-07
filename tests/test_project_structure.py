@@ -6908,6 +6908,20 @@ def test_monitor_health_ignores_stale_launch_failed_marker_after_started_artifac
     assert report["stale_failed_markers"] == ["monitor/launch_failed.marker"]
 
 
+def test_present_r8_residual_bucket_plan_documents_source_selected_pool3_handoff():
+    residual_plan = Path("docs/experiments/innovation1-present-r8-residual-bucket-axis-spectrum-plan.md")
+    pool_plan = Path("docs/experiments/innovation1-present-diverse-expert-pool-plan.md")
+
+    residual_text = residual_plan.read_text(encoding="utf-8")
+    pool_text = pool_plan.read_text(encoding="utf-8")
+
+    assert "source-selected residual expert handoff" in residual_text
+    assert "train-only source selection" in residual_text
+    assert "do_not_launch_new_remote_branch_while_residual_focus_262k_pending" in residual_text
+    assert "residual_focus_source_selected_aux" in pool_text
+    assert "trail_position + raw117 + source_selected_residual_focus" in pool_text
+
+
 def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "launch_stalled_unit"

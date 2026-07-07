@@ -1055,6 +1055,53 @@ The local monitor is responsible for retrieving the 18 planned outputs under
 exist and `scripts/gate-residual-focus-262k` is run, the experiment status
 remains running/pending, not complete.
 
+## 2026-07-07 Source-Selected Pool 3 Handoff
+
+The source-selected residual expert handoff is the planned bridge from this
+axis-spectrum diagnostic into the Pool 3 diverse-expert route. Its purpose is
+not to add another near-neighbor vote. Its purpose is to freeze a small,
+train-only source selection over SPN depth/word/cell families and use those
+families only as a residual-conditioned expert after the 262144/class
+residual-focus gate has passed.
+
+Required ordering:
+
+```text
+1. wait for the active residual-focus 262144/class watcher to retrieve all
+   18 planned outputs;
+2. run the residual-focus gate on the retrieved local artifacts;
+3. run train-only source selection from:
+   train_residual_loss_axis_spectrum.json
+   train_hard_error_axis_spectrum.json
+4. summarize stable train groups into residual_axis_spectrum_summary.json;
+5. only if the residual-focus gate passes, let Pool 3 consume the selected
+   group prefixes as residual_focus_source_selected_aux.
+```
+
+The intended Pool 3 fixed-fusion row is:
+
+```text
+trail_position + raw117 + source_selected_residual_focus
+```
+
+Guardrails:
+
+```text
+do_not_launch_new_remote_branch_while_residual_focus_262k_pending
+do_not_use_validation_axis_spectrum_for_source_selection
+do_not_promote_aux_depth_word_aux_word_as_a_plain_global_ensemble_member
+do_not_report_source_selection_as_a_trained_third_expert_before_Pool3_scoring
+```
+
+Interpretation:
+
+```text
+train-only source selection can choose candidate feature families, but it does
+not itself prove a new distinguisher. The evidence becomes meaningful only
+after the selected residual expert produces aligned frozen scores and clears
+the same-protocol Pool 3 controls.
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a

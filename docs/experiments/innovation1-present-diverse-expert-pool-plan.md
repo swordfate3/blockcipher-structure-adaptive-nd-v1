@@ -255,6 +255,11 @@ residual_focus_aux_word =
   residual-focused aux_depth_word_ + aux_word_ correction expert,
   promoted only if scripts/gate-residual-focus-262k keeps focus05 or focus10
 
+residual_focus_source_selected_aux =
+  train-only residual-axis-spectrum selected SPN depth/word/cell families,
+  promoted only if residual_axis_spectrum_summary.json status is pass and the
+  selected prefixes/groups are derived without validation source selection
+
 near_neighbor_controls =
   global trail-position control,
   uniform no-focus residual correction,
@@ -279,6 +284,7 @@ frozen-score diagnostic, not a learned final-validation stack:
 best_single
 trail_position + raw117 fixed logit/probability fusion
 trail_position + raw117 + residual_focus fixed fusion
+trail_position + raw117 + source_selected_residual_focus fixed fusion
 trail_position + raw117 + uniform residual control
 trail_position + raw117 + label-shuffle residual control
 ```
@@ -514,9 +520,16 @@ validation score artifacts, then compares:
 ```text
 trail_position + raw117
 trail_position + raw117 + selected residual_focus
+trail_position + raw117 + source_selected_residual_focus
 trail_position + raw117 + uniform residual control
 trail_position + raw117 + label-shuffle residual control
 ```
+
+The source-selected variant must be treated as a stricter residual route, not a
+generic fourth score. It is allowed only when the source-selection summary is
+current, train-derived, and records stable selected groups. If the summary is
+missing or stale, Pool 3 may still track the residual-focus route but must not
+claim the source-selected expert family.
 
 The tool blocks when the Pool 3 plan is pending or held, and it reports missing
 score artifacts instead of trying to generate or retrieve them. It does not fit
