@@ -4,9 +4,53 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
+import blockcipher_nd.cli.advance_residual_focus_results as advance_cli
 from blockcipher_nd.cli.advance_residual_focus_results import main as advance_main
 from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
+
+
+@pytest.fixture(autouse=True)
+def _isolate_default_repair_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(advance_cli, "DEFAULT_REPAIR_OUTPUT", tmp_path / "isolated_default_repair.json")
+
+
+def test_advance_residual_focus_results_uses_isolated_default_repair_output(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    status_report = json.loads(status_output.read_text(encoding="utf-8"))
+    isolated_repair = tmp_path / "isolated_default_repair.json"
+    assert status == 0
+    assert report["repair_plan"] == str(isolated_repair)
+    assert status_report["repair_plan"] == str(isolated_repair)
 
 
 def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
