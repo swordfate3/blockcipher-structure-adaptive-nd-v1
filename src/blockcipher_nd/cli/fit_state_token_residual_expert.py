@@ -42,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--token-dim", type=int, default=32)
     parser.add_argument("--hidden-bits", type=int, default=64)
     parser.add_argument("--dropout", type=float, default=0.0)
+    parser.add_argument("--coordinate-mode", choices=["additive", "film"], default="additive")
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
@@ -67,6 +68,7 @@ def fit_state_token_residual_expert(
     token_dim: int = 32,
     hidden_bits: int = 64,
     dropout: float = 0.0,
+    coordinate_mode: str = "additive",
     standardize: bool = True,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
@@ -115,6 +117,7 @@ def fit_state_token_residual_expert(
         token_dim=token_dim,
         hidden_bits=hidden_bits,
         dropout=dropout,
+        coordinate_mode=coordinate_mode,
     )
     if shuffle_token_coordinates:
         _shuffle_token_coordinates(model, seed=token_coordinate_shuffle_seed)
@@ -149,6 +152,7 @@ def fit_state_token_residual_expert(
         "feature_weight_decay": float(weight_decay),
         "feature_batch_size": int(batch_size),
         "feature_standardize": bool(standardize),
+        "coordinate_mode": coordinate_mode,
         "fit_train_labels_shuffled": bool(shuffle_train_labels),
         "fit_label_shuffle_seed": int(shuffle_seed),
         "token_coordinates_shuffled": bool(shuffle_token_coordinates),
@@ -194,6 +198,7 @@ def fit_state_token_residual_expert(
         "validation_rows": int(len(validation_artifact.labels)),
         "feature_view": str(train["metadata"].get("feature_view")),
         "feature_count": int(train_features.shape[1]),
+        "coordinate_mode": coordinate_mode,
         "selected_span_feature_bits": int(model.selected_span_feature_bits),
         "fit": {
             "steps": int(steps),
@@ -335,6 +340,7 @@ def main(argv: list[str] | None = None) -> int:
         token_dim=args.token_dim,
         hidden_bits=args.hidden_bits,
         dropout=args.dropout,
+        coordinate_mode=args.coordinate_mode,
         standardize=not args.no_standardize,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,

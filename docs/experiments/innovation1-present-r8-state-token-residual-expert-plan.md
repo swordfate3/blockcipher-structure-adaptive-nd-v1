@@ -373,6 +373,67 @@ action =
   262144/class residual-focus artifacts are retrieved
 ```
 
+The next local coordinate-mechanism check is a minimal FiLM-style value/coordinate
+interaction mode:
+
+```text
+flag = --coordinate-mode film
+default = --coordinate-mode additive
+mechanism = value_token * (1 + tanh(coordinate_token)) + coordinate_token
+scope = local 2048/class feature-artifact diagnostic only
+```
+
+This keeps the selected span values, labels, negative mode, and train/validation
+split unchanged. It only changes how the state-token model combines the scalar
+span value with family/depth/word/cell embeddings. The required interpretation
+gate is:
+
+```text
+film must beat or at least separate from its own drop-coordinate control before
+it can be treated as coordinate-layout evidence
+```
+
+The 2048/class FiLM diagnostic was run for both the global state-token fitter
+and the zero-init focus10 frozen-base correction objective:
+
+```text
+global artifacts =
+  outputs/local_audits/i1_present_r8_state_token_residual_film_seed{0,1}_report.json
+  outputs/local_audits/i1_present_r8_state_token_residual_film_dropcoord_seed{0,1}_report.json
+
+correction artifacts =
+  outputs/local_audits/i1_present_r8_state_token_residual_correction_film_focus10_seed{0,1}_report.json
+  outputs/local_audits/i1_present_r8_state_token_residual_correction_film_focus10_seed{0,1}_slice_eval.json
+  outputs/local_audits/i1_present_r8_state_token_residual_correction_film_focus10_dropcoord_seed{0,1}_report.json
+  outputs/local_audits/i1_present_r8_state_token_residual_correction_film_focus10_dropcoord_seed{0,1}_slice_eval.json
+```
+
+| Seed | FiLM Global AUC | FiLM Drop-Coordinate Global AUC | FiLM Focus Residual-Loss Delta | FiLM Drop-Coordinate Focus Delta | Correction AUC Delta |
+|---:|---:|---:|---:|---:|---:|
+| 0 | `0.996525764465332` | `0.997344970703125` | `-0.00026313784324612927` | `-0.00035369516459912015` | `0.0` |
+| 1 | `0.994359016418457` | `0.9963893890380859` | `-0.00011991600651958811` | `-0.00013718681714702807` | `0.0` |
+
+Interpretation:
+
+```text
+decision = hold_state_token_film_coordinate_interaction
+status = local_2048class_film_no_coordinate_gain
+action =
+  keep --coordinate-mode film available as a local diagnostic knob;
+  do not promote FiLM as coordinate-layout evidence;
+  do not launch a state-token FiLM remote job while the active 262144/class
+  residual-focus branch is pending;
+  use the retrieved 262144/class residual-focus artifacts to choose the next
+  residual source/family before designing another coordinate-dependent mechanism
+```
+
+FiLM did not beat its own value-only drop-coordinate control. On the global
+state-token classifier, drop-coordinate was better for both seeds. On the
+focus10 correction objective, global AUC stayed unchanged and the hard-slice
+residual-loss decrease also survived coordinate drop, with drop-coordinate again
+slightly better for both seeds. This makes FiLM useful as an implemented
+negative diagnostic, not as a state-token coordinate-layout result.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

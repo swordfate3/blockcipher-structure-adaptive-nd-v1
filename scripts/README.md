@@ -123,6 +123,8 @@ then writes train/validation frozen-score artifacts plus a JSON report. This is
 not a `scripts/train` matrix row: it consumes 3708D feature artifacts, not raw
 beamstats pair matrices. It does not SSH, launch remote jobs, change labels,
 change negative mode, or make a medium/formal SPN/PRESENT claim. Use
+`--coordinate-mode film` to test a FiLM-style value/coordinate token interaction
+instead of the default additive value+coordinate token combination. Use
 `--shuffle-token-coordinates` as the coordinate attribution control: it keeps
 the same span feature values but permutes family/depth/word/cell token ids, so a
 passing control means the current model has not proven true coordinate-layout
@@ -142,7 +144,8 @@ mode, or make a medium/formal SPN/PRESENT claim. By default it zero-initializes
 the final correction head so step 0 equals the frozen base; use
 `--no-zero-init-correction-head` only as an initialization ablation.
 It also supports `--drop-token-coordinates` as the same value-only coordinate
-attribution control used by `scripts/fit-state-token-residual-expert`.
+attribution control and `--coordinate-mode film` as the same FiLM-style
+value/coordinate token interaction used by `scripts/fit-state-token-residual-expert`.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

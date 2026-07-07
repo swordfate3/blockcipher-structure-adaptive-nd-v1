@@ -25,8 +25,11 @@ class PresentStateTokenResidualDistinguisher(nn.Module):
         activation: str = "gelu",
         norm: str = "layernorm",
         dropout: float = 0.0,
+        coordinate_mode: str = "additive",
     ) -> None:
         super().__init__()
+        if coordinate_mode not in {"additive", "film"}:
+            raise ValueError("coordinate_mode must be one of: additive, film")
         if pair_bits % 64 != 0:
             raise ValueError("PresentStateTokenResidual pair_bits must be a multiple of 64")
         if 64 % nibble_bits != 0:
@@ -60,6 +63,7 @@ class PresentStateTokenResidualDistinguisher(nn.Module):
         self.activation = activation
         self.norm = norm
         self.dropout = dropout
+        self.coordinate_mode = coordinate_mode
 
         spec = _span_token_spec(
             words_per_pair=words_per_pair,
@@ -114,11 +118,17 @@ class PresentStateTokenResidualDistinguisher(nn.Module):
 
     def _span_tokens(self, features: torch.Tensor) -> torch.Tensor:
         selected = features.index_select(1, self.span_feature_indices).float().unsqueeze(-1)
-        tokens = self.value_encoder(selected)
-        tokens = tokens + self.family_embedding(self.span_family_ids)
-        tokens = tokens + self.depth_embedding(self.span_depth_ids)
-        tokens = tokens + self.word_embedding(self.span_word_ids)
-        tokens = tokens + self.cell_embedding(self.span_cell_ids)
+        value_tokens = self.value_encoder(selected)
+        coordinate_tokens = (
+            self.family_embedding(self.span_family_ids)
+            + self.depth_embedding(self.span_depth_ids)
+            + self.word_embedding(self.span_word_ids)
+            + self.cell_embedding(self.span_cell_ids)
+        )
+        if self.coordinate_mode == "film":
+            tokens = value_tokens * (1.0 + torch.tanh(coordinate_tokens)) + coordinate_tokens
+        else:
+            tokens = value_tokens + coordinate_tokens
         return self.token_projection(tokens)
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:

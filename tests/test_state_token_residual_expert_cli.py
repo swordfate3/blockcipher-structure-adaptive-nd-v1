@@ -198,6 +198,51 @@ def test_fit_state_token_residual_expert_can_drop_token_coordinates(tmp_path: Pa
     assert np.isfinite(validation_artifact.probabilities).all()
 
 
+def test_fit_state_token_residual_expert_records_coordinate_mode(tmp_path: Path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_features, train_labels = _toy_trail_position_features(rows=12)
+    validation_features, validation_labels = _toy_trail_position_features(rows=8)
+    _write_feature_dir(train_dir, split="train", features=train_features, labels=train_labels)
+    _write_feature_dir(validation_dir, split="validation", features=validation_features, labels=validation_labels)
+
+    validation_scores = tmp_path / "coordinate_film_scores"
+    report_path = tmp_path / "coordinate_film_report.json"
+    status = fit_state_token_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_scores),
+            "--output-report",
+            str(report_path),
+            "--steps",
+            "4",
+            "--learning-rate",
+            "0.01",
+            "--token-dim",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--seed",
+            "7",
+            "--coordinate-mode",
+            "film",
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    validation_artifact = load_score_artifact(validation_scores)
+    assert status == 0
+    assert report["coordinate_mode"] == "film"
+    assert validation_artifact.metadata["coordinate_mode"] == "film"
+    assert np.isfinite(validation_artifact.probabilities).all()
+
+
 def test_fit_state_token_residual_correction_expert_adds_to_frozen_base(tmp_path: Path):
     from blockcipher_nd.cli.fit_state_token_residual_correction_expert import (
         main as fit_correction_main,
@@ -259,6 +304,8 @@ def test_fit_state_token_residual_correction_expert_adds_to_frozen_base(tmp_path
             "4",
             "--seed",
             "7",
+            "--coordinate-mode",
+            "film",
         ]
     )
 
@@ -271,11 +318,13 @@ def test_fit_state_token_residual_correction_expert_adds_to_frozen_base(tmp_path
     assert status == 0
     assert report["status"] == "pass"
     assert report["model_key"] == "present_state_token_residual_correction"
+    assert report["coordinate_mode"] == "film"
     assert report["base_model_order"] == ["trail", "raw117"]
     assert report["correction_initialization"] == {"zero_initialize_correction_head": True}
     assert report["validation_base_logit_mean_metrics"]["auc"] < 1.0
     assert "delta_validation_corrected_vs_base_logit_mean_auc" in report
     assert validation_artifact.metadata["feature_model"] == "state_token_residual_logit_correction"
+    assert validation_artifact.metadata["coordinate_mode"] == "film"
     assert validation_artifact.metadata["base_fusion"] == "logit_mean"
     assert validation_artifact.metadata["base_model_order"] == ["trail", "raw117"]
     assert validation_artifact.metadata["correction_head_zero_initialized"] is True
