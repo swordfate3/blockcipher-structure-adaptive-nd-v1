@@ -31,7 +31,24 @@ while true; do
   fi
 
   missing=0
-  missing=0
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/raw117_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus05_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus05_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus10_labelshuffle_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus10_labelshuffle_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus10_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus10_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_uniform_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_uniform_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/raw117_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus05_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus05_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus10_labelshuffle_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus10_labelshuffle_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus10_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_focus10_slice_eval.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_uniform_report.json" ]] || missing=$((missing + 1))
+  [[ -f "outputs/local_audits/i1_present_r8_residual_focus_262k/seed1/residual_uniform_slice_eval.json" ]] || missing=$((missing + 1))
   if [[ "${missing}" -eq 0 ]]; then
     echo "$(timestamp) result_ready" >> "${MONITOR_DIR}/monitor.log"
     exit 0

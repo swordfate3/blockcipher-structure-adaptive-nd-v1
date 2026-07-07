@@ -78,6 +78,7 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
     launcher = Path(report["launcher"]).read_text(encoding="utf-8")
+    launch_wrapper = Path(report["launch_wrapper"]).read_text(encoding="utf-8")
     monitor = Path(report["monitor"]).read_text(encoding="utf-8")
     assert status == 0
     assert report["status"] == "pass"
@@ -93,6 +94,13 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
         f"{source_run}\\checkpoints\\row0002_present_trail_position_stats_pairset_seed0.pt"
     ) in launcher
     assert "%ARTIFACT_ROOT%\\seed0\\train_trail_position_scores" in launcher
+    assert "launch_allowed" in launch_wrapper
+    assert f'PACKAGE_REPORT="{report_path}"' in launch_wrapper
+    assert "source_gate_not_pass" in launch_wrapper
+    assert "tmux new-session -d -s monitor_i1_present_r8_residual_focus_262k_20260707" in launch_wrapper
+    assert "ssh lxy-a6000" in launch_wrapper
+    assert "cmd.exe /c call" in launch_wrapper
+    assert "run_i1_present_r8_residual_focus_262k_20260707.cmd" in launch_wrapper
     assert "outputs/local_audits/i1_present_r8_residual_focus_262k" in monitor
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs/i1_present_r8_residual_focus_262k/artifacts" in monitor
 
@@ -100,6 +108,7 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
 def test_residual_focus_remote_package_blocks_launch_when_source_gate_fails(tmp_path):
     action_plan = tmp_path / "action_plan.json"
     source_gate = tmp_path / "source_gate.json"
+    output_dir = tmp_path / "generated"
     report_path = tmp_path / "remote_package.json"
     action_plan.write_text(
         json.dumps({"status": "pass", "artifact_root": "outputs/local_audits/i1_present_r8_residual_focus_262k"}),
@@ -116,6 +125,8 @@ def test_residual_focus_remote_package_blocks_launch_when_source_gate_fails(tmp_
             str(action_plan),
             "--source-gate",
             str(source_gate),
+            "--output-dir",
+            str(output_dir),
             "--output",
             str(report_path),
         ]

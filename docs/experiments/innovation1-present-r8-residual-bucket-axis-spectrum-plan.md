@@ -801,6 +801,9 @@ report =
 launcher =
   configs/remote/generated/run_i1_present_r8_residual_focus_262k_20260707.cmd
 
+launch_wrapper =
+  configs/remote/generated/launch_i1_present_r8_residual_focus_262k_20260707.sh
+
 monitor =
   configs/remote/generated/monitor_i1_present_r8_residual_focus_262k_20260707.sh
 
@@ -820,6 +823,12 @@ under `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focu
 and uses the existing remote 262144/class trail-position run artifacts as frozen
 inputs. It is prepared only: the source-publication gate must pass before launch,
 and launch still needs the normal remote handoff and local tmux monitor discipline.
+The generated launch wrapper was locally dry-run while `launch_allowed=false`;
+it exited before SSH and wrote:
+
+```text
+outputs/remote_results/i1_present_r8_residual_focus_262k/monitor/launch_blocked.marker
+```
 
 ## Claim Scope
 

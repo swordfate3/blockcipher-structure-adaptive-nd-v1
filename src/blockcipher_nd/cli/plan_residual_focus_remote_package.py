@@ -34,12 +34,14 @@ def plan_residual_focus_remote_package(
     action_plan: Path,
     source_gate: Path,
     output_dir: Path,
+    package_report: Path = DEFAULT_OUTPUT,
 ) -> dict[str, Any]:
     plan = _read_json(action_plan)
     gate = _read_json(source_gate)
     output_dir.mkdir(parents=True, exist_ok=True)
     launcher = output_dir / f"run_{RUN_ID}_20260707.cmd"
     monitor = output_dir / f"monitor_{RUN_ID}_20260707.sh"
+    launch_wrapper = output_dir / f"launch_{RUN_ID}_20260707.sh"
     local_artifact_root = str(plan.get("artifact_root", "outputs/local_audits/i1_present_r8_residual_focus_262k"))
     planned_outputs = _planned_outputs(plan)
     commands = [str(command) for command in plan.get("commands", [])]
@@ -62,6 +64,14 @@ def plan_residual_focus_remote_package(
         encoding="utf-8",
     )
     launch_allowed = not blockers
+    launch_wrapper.write_text(
+        _launch_wrapper_text(
+            package_report=package_report,
+            launcher=launcher,
+            monitor=monitor,
+        ),
+        encoding="utf-8",
+    )
     return {
         "status": "pass" if launch_allowed else "pending",
         "decision": "residual_focus_remote_package_ready" if launch_allowed else "residual_focus_remote_package_blocked",
@@ -71,6 +81,7 @@ def plan_residual_focus_remote_package(
         "source_gate_status": str(gate.get("status", "")),
         "source_gate_errors": [str(error) for error in gate.get("errors", [])],
         "launcher": str(launcher),
+        "launch_wrapper": str(launch_wrapper),
         "monitor": str(monitor),
         "command_count": len(commands),
         "control_command_count": len(control_commands),
@@ -264,12 +275,65 @@ done
 """
 
 
+def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path) -> str:
+    launcher_name = launcher.name
+    monitor_session = f"monitor_{RUN_ID}_20260707"
+    remote_run_root = f"{REMOTE_RUNS_ROOT}\\{RUN_ID}"
+    remote_cmd = f"{remote_run_root}\\source\\configs\\remote\\generated\\{launcher_name}"
+    local_monitor_dir = f"outputs/remote_results/{RUN_ID}/monitor"
+    return f"""#!/usr/bin/env bash
+set -euo pipefail
+
+RUN_ID="{RUN_ID}"
+PACKAGE_REPORT="{package_report}"
+LOCAL_MONITOR_DIR="{local_monitor_dir}"
+REMOTE_RUN_ROOT="{remote_run_root}"
+REMOTE_RUN_CMD="{remote_cmd}"
+MONITOR_SCRIPT="{monitor}"
+MONITOR_SESSION="{monitor_session}"
+
+mkdir -p "${{LOCAL_MONITOR_DIR}}"
+echo "$(date -Is) launch_start" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+
+launch_allowed="$(UV_CACHE_DIR=/tmp/uv-cache uv run python -c "import json; print(json.load(open('${{PACKAGE_REPORT}}')).get('launch_allowed'))")"
+if [[ "${{launch_allowed}}" != "True" ]]; then
+  echo "$(date -Is) launch_blocked source_gate_not_pass launch_allowed=${{launch_allowed}}" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+  echo "blocked" > "${{LOCAL_MONITOR_DIR}}/launch_blocked.marker"
+  exit 3
+fi
+
+if tmux has-session -t "${{MONITOR_SESSION}}" >/dev/null 2>&1; then
+  echo "$(date -Is) monitor_already_running monitor=${{MONITOR_SESSION}}" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+else
+  tmux new-session -d -s {monitor_session} "${{MONITOR_SCRIPT}}"
+  echo "$(date -Is) monitor_started monitor=${{MONITOR_SESSION}}" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+fi
+
+set +e
+ssh lxy-a6000 "cmd.exe /c call \\"${{REMOTE_RUN_CMD}}\\"" \\
+  >> "${{LOCAL_MONITOR_DIR}}/launch.log" \\
+  2>> "${{LOCAL_MONITOR_DIR}}/launch_stderr.log"
+status=$?
+set -e
+
+if [[ ${{status}} -ne 0 ]]; then
+  echo "$(date -Is) launch_failed status=${{status}}" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+  echo "failed" > "${{LOCAL_MONITOR_DIR}}/launch_failed.marker"
+  exit "${{status}}"
+fi
+
+echo "$(date -Is) launch_done monitor=${{MONITOR_SESSION}}" >> "${{LOCAL_MONITOR_DIR}}/launch.log"
+echo "done" > "${{LOCAL_MONITOR_DIR}}/launch_done.marker"
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = plan_residual_focus_remote_package(
         action_plan=args.action_plan,
         source_gate=args.source_gate,
         output_dir=args.output_dir,
+        package_report=args.output,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

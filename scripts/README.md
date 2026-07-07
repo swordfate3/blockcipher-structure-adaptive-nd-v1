@@ -82,6 +82,8 @@ residual-focus action plan into a prepared Windows `.cmd` and local monitor
 `.sh` package under `configs/remote/generated/`, while preserving the source
 gate as a launch blocker when commits are still unpushed. It does not SSH,
 launch, or mark the residual-focus 262144/class gate complete.
+The generated `launch_*.sh` wrapper is also gated: it reads the package JSON and
+exits with `launch_blocked.marker` before SSH when `launch_allowed` is not true.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
