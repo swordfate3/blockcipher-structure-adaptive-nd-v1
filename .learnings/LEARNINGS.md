@@ -3224,3 +3224,57 @@ markers as progress signals only. Add tests that assert monitors do not contain
 - Last-Seen: 2026-07-06
 
 ---
+
+## [LRN-20260707-003] correction
+
+**Logged**: 2026-07-07T13:30:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: infra
+
+### Summary
+The user does not want conversational approval loops before normal project `git push` attempts.
+
+### Details
+During the Innovation 1 residual-focus remote-launch preparation, repeated
+`git push origin main` attempts were blocked by the sandbox reviewer because
+the push would transfer many local commits to an external GitHub remote and the
+reviewer wanted exact-current-payload approval. The user then clarified:
+
+```text
+遇到git push你提交得了不用等我审批
+```
+
+Correct future behavior:
+
+```text
+After scoped commits and verification, proactively attempt the normal configured
+push instead of stopping in chat to ask for permission. If the platform
+reviewer rejects the push, do not use workarounds such as dirty overlay,
+alternate external transfer routes, or remote launches from unpublished code.
+Report the exact rejected payload/head and continue with safe local preparation
+or wait for a platform-acceptable approval path.
+```
+
+This preference changes the agent's conversational behavior, not the platform
+safety boundary.
+
+### Suggested Action
+When repository rules say to push after a completed commit, run the normal push
+command with the required escalation request immediately. Do not ask the user
+in chat first. If the escalation reviewer rejects the external transfer, treat
+that as a tool/policy blocker for publication only and keep progressing on
+non-publication local work when possible.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, .learnings/ERRORS.md
+- Tags: git, push, approval, source-publication, remote-launch
+- See Also: ERR-20260706-002
+- Pattern-Key: workflow.git_push.proactive_attempt_after_commit
+- Recurrence-Count: 1
+- First-Seen: 2026-07-07
+- Last-Seen: 2026-07-07
+- Promoted: AGENTS.md
+
+---
