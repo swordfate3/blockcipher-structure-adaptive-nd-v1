@@ -60,6 +60,7 @@ from blockcipher_nd.cli.postprocess_bit_sensitivity_projection import (
 )
 from blockcipher_nd.cli.postprocess_neural_ensemble import main as postprocess_ensemble_main
 from blockcipher_nd.cli.postprocess_trail_position_result import main as postprocess_trail_position_main
+from blockcipher_nd.cli.gate_bucket_residual_controls import main as gate_bucket_residual_controls_main
 from blockcipher_nd.cli.plan_bucket_residual_262k import main as plan_bucket_residual_262k_main
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
@@ -3159,6 +3160,197 @@ def _write_compressed_feature_ensemble(
         encoding="utf-8",
     )
     return path
+
+
+def test_gate_bucket_residual_controls_keeps_bucket_route_when_controls_pass(tmp_path):
+    candidate0 = _write_compressed_feature_report(tmp_path / "seed0_bucket.json", decision="keep", validation_auc=0.999936)
+    candidate1 = _write_compressed_feature_report(tmp_path / "seed1_bucket.json", decision="keep", validation_auc=0.999925)
+    nobucket0 = _write_compressed_feature_report(tmp_path / "seed0_nobucket.json", decision="keep", validation_auc=0.999907)
+    nobucket1 = _write_compressed_feature_report(tmp_path / "seed1_nobucket.json", decision="keep", validation_auc=0.999885)
+    shuffle0 = _write_compressed_feature_report(tmp_path / "seed0_shuffle_label.json", decision="hold", validation_auc=0.53722)
+    shuffle1 = _write_compressed_feature_report(tmp_path / "seed1_shuffle_label.json", decision="hold", validation_auc=0.54351)
+    trainshuffle0 = _write_compressed_feature_report(
+        tmp_path / "seed0_trainbucket_shuffle.json", decision="hold", validation_auc=0.999860
+    )
+    trainshuffle1 = _write_compressed_feature_report(
+        tmp_path / "seed1_trainbucket_shuffle.json", decision="hold", validation_auc=0.999746
+    )
+    valshuffle0 = _write_compressed_feature_report(
+        tmp_path / "seed0_valbucket_shuffle.json", decision="hold", validation_auc=0.999318
+    )
+    valshuffle1 = _write_compressed_feature_report(
+        tmp_path / "seed1_valbucket_shuffle.json", decision="hold", validation_auc=0.999369
+    )
+    two0 = _write_compressed_feature_ensemble(
+        tmp_path / "seed0_two_score.json",
+        best_single_auc=0.999925,
+        best_ensemble_auc=0.999942,
+        delta=0.000017,
+    )
+    two1 = _write_compressed_feature_ensemble(
+        tmp_path / "seed1_two_score.json",
+        best_single_auc=0.999910,
+        best_ensemble_auc=0.999919,
+        delta=0.000009,
+    )
+    three0 = _write_compressed_feature_ensemble(
+        tmp_path / "seed0_three_score.json",
+        best_single_auc=0.999936,
+        best_ensemble_auc=0.999948,
+        delta=0.000012,
+    )
+    three1 = _write_compressed_feature_ensemble(
+        tmp_path / "seed1_three_score.json",
+        best_single_auc=0.999925,
+        best_ensemble_auc=0.999930,
+        delta=0.000005,
+    )
+    trainshuffle_ensemble0 = _write_compressed_feature_ensemble(
+        tmp_path / "seed0_trainshuffle_three_score.json",
+        best_single_auc=0.999936,
+        best_ensemble_auc=0.999922,
+        delta=-0.000014,
+    )
+    trainshuffle_ensemble1 = _write_compressed_feature_ensemble(
+        tmp_path / "seed1_trainshuffle_three_score.json",
+        best_single_auc=0.999925,
+        best_ensemble_auc=0.999875,
+        delta=-0.000050,
+    )
+    valshuffle_ensemble0 = _write_compressed_feature_ensemble(
+        tmp_path / "seed0_valshuffle_three_score.json",
+        best_single_auc=0.999936,
+        best_ensemble_auc=0.999866,
+        delta=-0.000070,
+    )
+    valshuffle_ensemble1 = _write_compressed_feature_ensemble(
+        tmp_path / "seed1_valshuffle_three_score.json",
+        best_single_auc=0.999925,
+        best_ensemble_auc=0.999849,
+        delta=-0.000076,
+    )
+    output = tmp_path / "gate.json"
+
+    status = gate_bucket_residual_controls_main(
+        [
+            "--candidate-report",
+            str(candidate0),
+            "--candidate-report",
+            str(candidate1),
+            "--two-score-ensemble",
+            str(two0),
+            "--two-score-ensemble",
+            str(two1),
+            "--three-score-ensemble",
+            str(three0),
+            "--three-score-ensemble",
+            str(three1),
+            "--shuffle-label-report",
+            str(shuffle0),
+            "--shuffle-label-report",
+            str(shuffle1),
+            "--train-bucket-shuffle-report",
+            str(trainshuffle0),
+            "--train-bucket-shuffle-report",
+            str(trainshuffle1),
+            "--train-bucket-shuffle-ensemble",
+            str(trainshuffle_ensemble0),
+            "--train-bucket-shuffle-ensemble",
+            str(trainshuffle_ensemble1),
+            "--validation-bucket-shuffle-report",
+            str(valshuffle0),
+            "--validation-bucket-shuffle-report",
+            str(valshuffle1),
+            "--validation-bucket-shuffle-ensemble",
+            str(valshuffle_ensemble0),
+            "--validation-bucket-shuffle-ensemble",
+            str(valshuffle_ensemble1),
+            "--no-bucket-report",
+            str(nobucket0),
+            "--no-bucket-report",
+            str(nobucket1),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "bucket_conditioned_residual_controls_pass_local_diagnostic"
+    assert report["action"] == "keep_as_262k_migration_candidate_wait_for_trail_position_artifacts"
+    assert report["seed_count"] == 2
+    assert report["min_bucket_vs_nobucket_auc_delta"] > 0.0
+    assert report["min_three_vs_two_auc_delta"] > 0.0
+    assert report["max_shuffle_label_validation_auc"] < 0.60
+    assert report["max_trainbucket_shuffle_three_vs_two_delta"] <= 0.0
+    assert report["max_valbucket_shuffle_three_vs_two_delta"] <= 0.0
+    assert report["next_action"]["should_launch_remote"] is False
+    assert "local 2048/class frozen-score control gate only" in report["claim_scope"]
+
+
+def test_gate_bucket_residual_controls_holds_when_valbucket_shuffle_keeps_gain(tmp_path):
+    candidate = _write_compressed_feature_report(tmp_path / "bucket.json", decision="keep", validation_auc=0.95)
+    nobucket = _write_compressed_feature_report(tmp_path / "nobucket.json", decision="keep", validation_auc=0.94)
+    shuffle = _write_compressed_feature_report(tmp_path / "shuffle_label.json", decision="hold", validation_auc=0.51)
+    trainshuffle = _write_compressed_feature_report(tmp_path / "trainbucket_shuffle.json", decision="hold", validation_auc=0.93)
+    valshuffle = _write_compressed_feature_report(tmp_path / "valbucket_shuffle.json", decision="hold", validation_auc=0.93)
+    two = _write_compressed_feature_ensemble(
+        tmp_path / "two_score.json",
+        best_single_auc=0.94,
+        best_ensemble_auc=0.945,
+        delta=0.005,
+    )
+    three = _write_compressed_feature_ensemble(
+        tmp_path / "three_score.json",
+        best_single_auc=0.95,
+        best_ensemble_auc=0.951,
+        delta=0.001,
+    )
+    trainshuffle_ensemble = _write_compressed_feature_ensemble(
+        tmp_path / "trainshuffle_three_score.json",
+        best_single_auc=0.95,
+        best_ensemble_auc=0.944,
+        delta=-0.006,
+    )
+    valshuffle_ensemble = _write_compressed_feature_ensemble(
+        tmp_path / "valshuffle_three_score.json",
+        best_single_auc=0.95,
+        best_ensemble_auc=0.946,
+        delta=-0.004,
+    )
+    output = tmp_path / "gate.json"
+
+    status = gate_bucket_residual_controls_main(
+        [
+            "--candidate-report",
+            str(candidate),
+            "--two-score-ensemble",
+            str(two),
+            "--three-score-ensemble",
+            str(three),
+            "--shuffle-label-report",
+            str(shuffle),
+            "--train-bucket-shuffle-report",
+            str(trainshuffle),
+            "--train-bucket-shuffle-ensemble",
+            str(trainshuffle_ensemble),
+            "--validation-bucket-shuffle-report",
+            str(valshuffle),
+            "--validation-bucket-shuffle-ensemble",
+            str(valshuffle_ensemble),
+            "--no-bucket-report",
+            str(nobucket),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 1
+    assert report["status"] == "fail"
+    assert report["decision"] == "hold_bucket_conditioned_residual_controls_failed"
+    assert "seed0: validation_bucket_shuffle_three_score_not_below_two_score" in report["errors"]
 
 
 def _write_feature_dir(

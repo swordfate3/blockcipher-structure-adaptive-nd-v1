@@ -2345,3 +2345,84 @@ SPN/PRESENT result, or publication-style ensemble claim. It is a tighter local
 trail-position + matched raw117 + bucket-conditioned residual pool to the
 retrieved 262144/class artifacts, once those artifacts are complete.
 ```
+
+### V17 Addendum: Machine-Readable Bucket Residual Control Gate
+
+The V16 candidate/control bundle now has a machine-readable local control gate.
+This does not add a new model or a new training result; it freezes the current
+interpretation into a JSON decision so that the 262144/class migration step can
+reuse the same evidence criteria instead of relying on prose.
+
+Gate command:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run scripts/gate-bucket-residual-controls \
+  --candidate-report outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_report.json \
+  --candidate-report outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_report.json \
+  --two-score-ensemble outputs/local_audits/i1_present_r8_seed0_trail_raw117_candidate_fixed_ensemble.json \
+  --two-score-ensemble outputs/local_audits/i1_present_r8_seed1_trail_raw117_candidate_fixed_ensemble.json \
+  --three-score-ensemble outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_residual_three_score_ensemble.json \
+  --three-score-ensemble outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_residual_three_score_ensemble.json \
+  --shuffle-label-report outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_shuffle9100_report.json \
+  --shuffle-label-report outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_shuffle9101_report.json \
+  --train-bucket-shuffle-report outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_trainbucket_shuffle9200_report.json \
+  --train-bucket-shuffle-report outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_trainbucket_shuffle9201_report.json \
+  --train-bucket-shuffle-ensemble outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_trainshuffle_three_score_ensemble.json \
+  --train-bucket-shuffle-ensemble outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_trainshuffle_three_score_ensemble.json \
+  --validation-bucket-shuffle-report outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_valbucket_shuffle9300_report.json \
+  --validation-bucket-shuffle-report outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_valbucket_shuffle9301_report.json \
+  --validation-bucket-shuffle-ensemble outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_valshuffle_three_score_ensemble.json \
+  --validation-bucket-shuffle-ensemble outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_valshuffle_three_score_ensemble.json \
+  --no-bucket-report outputs/local_audits/i1_present_r8_seed0_raw117_nobucket_l2_0p0003_report.json \
+  --no-bucket-report outputs/local_audits/i1_present_r8_seed1_raw117_nobucket_l2_0p0003_report.json \
+  --output outputs/local_audits/i1_present_r8_bucket_residual_controls_gate.json
+```
+
+Gate artifact:
+
+```text
+outputs/local_audits/i1_present_r8_bucket_residual_controls_gate.json
+```
+
+Gate result:
+
+```text
+status = pass
+decision = bucket_conditioned_residual_controls_pass_local_diagnostic
+action = keep_as_262k_migration_candidate_wait_for_trail_position_artifacts
+seed_count = 2
+min_bucket_vs_nobucket_auc_delta = +0.0000286102294921875
+min_three_vs_two_auc_delta = +0.0000057220458984375
+max_shuffle_label_validation_auc = 0.5435142517089844
+max_trainbucket_shuffle_three_vs_two_delta = -0.00002002716064453125
+max_valbucket_shuffle_three_vs_two_delta = -0.00006961822509765625
+```
+
+Decision:
+
+```text
+decision = bucket_conditioned_residual_controls_pass_local_diagnostic
+status = keep_as_262k_migration_candidate_only
+action =
+  keep the trail-position + matched raw117 + bucket-conditioned residual pool;
+  wait for completed 262144/class trail-position score artifacts;
+  then run the V16/V17 action planner under the same protocol;
+  do not launch a separate remote run from this local gate alone
+```
+
+Interpretation:
+
+```text
+The local gate formalizes the current reading: the bucket-conditioned residual
+expert beats the same-117D no-bucket control on both seeds, the three-score
+pool beats the trail+raw117 two-score anchor on both seeds, shuffled labels
+drop near random, and both train-bucket and validation-bucket shuffles remove
+the three-score gain. This supports keeping V16/V17 as the best current local
+third-family candidate.
+
+The claim scope remains narrow. This is local 2048/class frozen-score control
+evidence only. It is not remote evidence, not formal SPN/PRESENT evidence, not
+a breakthrough claim, and not a raw single-sample SOTA claim. The next
+meaningful step is still the 262144/class same-protocol migration after the
+trail-position score artifacts are retrieved and verified.
+```
