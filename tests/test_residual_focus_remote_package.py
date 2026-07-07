@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 from pathlib import Path
 
 from blockcipher_nd.cli.plan_residual_focus_remote_package import main as plan_remote_package_main
@@ -78,8 +79,10 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
     launcher = Path(report["launcher"]).read_text(encoding="utf-8")
-    launch_wrapper = Path(report["launch_wrapper"]).read_text(encoding="utf-8")
-    monitor = Path(report["monitor"]).read_text(encoding="utf-8")
+    launch_wrapper_path = Path(report["launch_wrapper"])
+    monitor_path = Path(report["monitor"])
+    launch_wrapper = launch_wrapper_path.read_text(encoding="utf-8")
+    monitor = monitor_path.read_text(encoding="utf-8")
     assert status == 0
     assert report["status"] == "pass"
     assert report["launch_allowed"] is True
@@ -110,6 +113,8 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
     assert "run_i1_present_r8_residual_focus_262k_20260707.cmd" in launch_wrapper
     assert "outputs/local_audits/i1_present_r8_residual_focus_262k" in monitor
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs/i1_present_r8_residual_focus_262k/artifacts" in monitor
+    assert launch_wrapper_path.stat().st_mode & stat.S_IXUSR
+    assert monitor_path.stat().st_mode & stat.S_IXUSR
 
 
 def test_residual_focus_remote_package_blocks_launch_when_source_gate_fails(tmp_path):

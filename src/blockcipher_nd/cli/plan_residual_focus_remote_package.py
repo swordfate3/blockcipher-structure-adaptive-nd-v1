@@ -65,6 +65,7 @@ def plan_residual_focus_remote_package(
         _monitor_text(run_id=run_id, local_artifact_root=local_artifact_root, planned_outputs=planned_outputs),
         encoding="utf-8",
     )
+    monitor.chmod(0o755)
     launch_allowed = not blockers
     launch_wrapper.write_text(
         _launch_wrapper_text(
@@ -75,6 +76,7 @@ def plan_residual_focus_remote_package(
         ),
         encoding="utf-8",
     )
+    launch_wrapper.chmod(0o755)
     return {
         "status": "pass" if launch_allowed else "pending",
         "decision": "residual_focus_remote_package_ready" if launch_allowed else "residual_focus_remote_package_blocked",
