@@ -127,7 +127,9 @@ outputs-ready, gate-passed, gate-failed, pool-ready, waiting for Pool 3 score
 artifacts, pool-control-held, repair-ready, or pool-evaluated. A repair plan is
 used only when its `source_summary` matches the current gate/pool artifact, so
 stale local repair files do not override a pending or running experiment. It
-does not SSH, launch, sync, run gates, or make a result claim.
+also emits a `progress_summary` from the latest local progress JSONL row,
+including class-level and total-row cache fractions when those counters exist.
+It does not SSH, launch, sync, run gates, or make a result claim.
 
 Use `scripts/advance-residual-focus-results` as a local-only one-shot
 postprocess after the residual-focus monitor has retrieved outputs. If outputs

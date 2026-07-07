@@ -65,6 +65,72 @@ def test_residual_focus_status_reports_running_with_progress_and_missing_outputs
     assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
+def test_residual_focus_status_summarizes_dataset_cache_progress(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    progress = tmp_path / "artifacts" / "seed0" / "dataset_cache" / "progress.jsonl"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    progress.parent.mkdir(parents=True)
+    progress.write_text(
+        json.dumps(
+            {
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "seed": 0,
+                "split": "train",
+                "rows_done": 16384,
+                "total_rows": 524288,
+                "class_rows_done": 16384,
+                "class_total": 262144,
+                "samples_per_class": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    pool.write_text(json.dumps({"status": "pending", "should_run_pool": False}), encoding="utf-8")
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    summary = report["progress_summary"]
+    assert status == 0
+    assert summary["event"] == "cache_positive_chunk"
+    assert summary["stage"] == "dataset_cache"
+    assert summary["seed"] == 0
+    assert summary["split"] == "train"
+    assert summary["class_rows_done"] == 16384
+    assert summary["class_total"] == 262144
+    assert summary["class_rows_remaining"] == 245760
+    assert summary["class_progress_fraction"] == 0.0625
+    assert summary["rows_done"] == 16384
+    assert summary["total_rows"] == 524288
+    assert summary["rows_remaining"] == 507904
+    assert summary["total_progress_fraction"] == 0.03125
+
+
 def test_residual_focus_status_reports_outputs_ready_before_gate(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"

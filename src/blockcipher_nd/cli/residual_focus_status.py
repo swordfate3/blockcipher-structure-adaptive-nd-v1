@@ -102,6 +102,7 @@ def residual_focus_status(
         "monitor_dir": str(monitor_dir),
         "latest_monitor_event": _latest_monitor_event(monitor_lines),
         "latest_progress": latest_progress,
+        "progress_summary": _progress_summary(latest_progress),
         "planned_output_count": len(planned_outputs),
         "existing_planned_output_count": len(existing_outputs),
         "missing_output_count": len(missing_outputs),
@@ -176,6 +177,49 @@ def _latest_progress(artifact_root: Path) -> dict[str, Any] | None:
                 latest_row = row
                 latest_time = row_time
     return latest_row
+
+
+def _progress_summary(progress: dict[str, Any] | None) -> dict[str, Any]:
+    if not progress:
+        return {}
+    rows_done = _int_or_none(progress.get("rows_done"))
+    total_rows = _int_or_none(progress.get("total_rows"))
+    class_rows_done = _int_or_none(progress.get("class_rows_done"))
+    class_total = _int_or_none(progress.get("class_total"))
+    summary: dict[str, Any] = {
+        "event": str(progress.get("event", "")),
+        "stage": str(progress.get("stage", "")),
+        "seed": _int_or_none(progress.get("seed")),
+        "split": str(progress.get("split", "")),
+        "samples_per_class": _int_or_none(progress.get("samples_per_class")),
+        "rows_done": rows_done,
+        "total_rows": total_rows,
+        "rows_remaining": _remaining(rows_done, total_rows),
+        "total_progress_fraction": _fraction(rows_done, total_rows),
+        "class_rows_done": class_rows_done,
+        "class_total": class_total,
+        "class_rows_remaining": _remaining(class_rows_done, class_total),
+        "class_progress_fraction": _fraction(class_rows_done, class_total),
+    }
+    return summary
+
+
+def _int_or_none(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)
+
+
+def _remaining(done: int | None, total: int | None) -> int | None:
+    if done is None or total is None:
+        return None
+    return max(0, total - done)
+
+
+def _fraction(done: int | None, total: int | None) -> float | None:
+    if done is None or total is None or total <= 0:
+        return None
+    return done / total
 
 
 def _latest_monitor_event(lines: list[str]) -> str | None:
