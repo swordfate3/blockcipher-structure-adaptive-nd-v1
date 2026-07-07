@@ -251,7 +251,9 @@ report also carries repair context and source-selection readiness fields from
 the advance report, so a tmux watcher summary can explain stale repair plans and
 missing train axis-spectrum reports without requiring a second JSON lookup. When
 Pool 3 is waiting on fixed-score artifacts, it also carries the missing score
-artifact count and paths.
+artifact count and paths. It also carries the latest monitor event and dataset
+cache progress summaries, allowing status reports to show which seed/split is
+currently generating or waiting.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route

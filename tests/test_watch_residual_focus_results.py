@@ -15,6 +15,30 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     status_output = tmp_path / "status.json"
     advance_output = tmp_path / "advance.json"
     output = tmp_path / "watch.json"
+    monitor_dir = tmp_path / "monitor"
+    artifact_root = tmp_path / "artifacts"
+    progress = artifact_root / "seed0" / "dataset_cache" / "progress.jsonl"
+    monitor_dir.mkdir(parents=True)
+    progress.parent.mkdir(parents=True)
+    monitor_dir.joinpath("monitor.log").write_text("2026-07-07T14:17:57+08:00 running missing=4\n", encoding="utf-8")
+    progress.write_text(
+        json.dumps(
+            {
+                "time": 10.0,
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "seed": 0,
+                "split": "train",
+                "rows_done": 8192,
+                "total_rows": 524288,
+                "class_rows_done": 8192,
+                "class_total": 262144,
+                "samples_per_class": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     gate.write_text(
         json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
         encoding="utf-8",
@@ -34,6 +58,10 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
             str(status_output),
             "--advance-output",
             str(advance_output),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(artifact_root),
             "--output",
             str(output),
             "--max-iterations",
@@ -51,6 +79,10 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     assert report["terminal"] is False
     assert advance["ran_gate"] is False
     assert advance["ran_pool_planner"] is False
+    assert report["latest_monitor_event"] == "running missing=4"
+    assert report["progress_summary"]["event"] == "cache_positive_chunk"
+    assert report["progress_summary"]["class_progress_fraction"] == 0.03125
+    assert report["progress_by_seed_split"][0]["seed"] == 0
     assert report["source_selection_report_count"] == 0
     assert report["source_selection_missing_report_count"] == 0
 

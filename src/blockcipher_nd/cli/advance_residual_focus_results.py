@@ -166,6 +166,10 @@ def advance_residual_focus_results(
         "missing_pool3_score_artifact_count": len(pool_eval_report.get("missing_score_artifacts", [])),
         "missing_pool3_score_artifacts": [str(path) for path in pool_eval_report.get("missing_score_artifacts", [])],
         "should_run_pool": final_status["should_run_pool"],
+        "latest_monitor_event": final_status["latest_monitor_event"],
+        "latest_progress": final_status["latest_progress"],
+        "progress_summary": final_status["progress_summary"],
+        "progress_by_seed_split": final_status["progress_by_seed_split"],
         "missing_output_count": final_status["missing_output_count"],
         "next_action": _advance_next_action(final_status, pool_eval_report),
         "claim_scope": (

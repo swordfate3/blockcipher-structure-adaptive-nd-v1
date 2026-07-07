@@ -108,6 +108,10 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "missing_pool3_score_artifacts": [
             str(path) for path in report.get("missing_pool3_score_artifacts", [])
         ],
+        "latest_monitor_event": str(report.get("latest_monitor_event", "")),
+        "latest_progress": report.get("latest_progress"),
+        "progress_summary": report.get("progress_summary", {}),
+        "progress_by_seed_split": report.get("progress_by_seed_split", []),
         "repair_plan": str(report.get("repair_plan", "")),
         "repair_status": str(report.get("repair_status", "")),
         "repair_decision": str(report.get("repair_decision", "")),

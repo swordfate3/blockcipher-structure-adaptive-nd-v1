@@ -60,6 +60,30 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     output = tmp_path / "advance.json"
+    monitor_dir = tmp_path / "monitor"
+    artifact_root = tmp_path / "artifacts"
+    progress = artifact_root / "seed0" / "dataset_cache" / "progress.jsonl"
+    monitor_dir.mkdir(parents=True)
+    progress.parent.mkdir(parents=True)
+    monitor_dir.joinpath("monitor.log").write_text("2026-07-07T14:17:57+08:00 running missing=8\n", encoding="utf-8")
+    progress.write_text(
+        json.dumps(
+            {
+                "time": 10.0,
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "seed": 0,
+                "split": "train",
+                "rows_done": 8192,
+                "total_rows": 524288,
+                "class_rows_done": 8192,
+                "class_total": 262144,
+                "samples_per_class": 262144,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     gate.write_text(
         json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
         encoding="utf-8",
@@ -77,6 +101,10 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
             str(pool_eval),
             "--status-output",
             str(status_output),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(artifact_root),
             "--output",
             str(output),
         ]
@@ -88,6 +116,10 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     assert report["decision"] == "wait_for_residual_focus_outputs"
     assert report["ran_gate"] is False
     assert report["ran_pool_planner"] is False
+    assert report["latest_monitor_event"] == "running missing=8"
+    assert report["progress_summary"]["event"] == "cache_positive_chunk"
+    assert report["progress_summary"]["class_progress_fraction"] == 0.03125
+    assert report["progress_by_seed_split"][0]["seed"] == 0
     assert not pool.exists()
 
 
