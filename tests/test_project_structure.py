@@ -7767,6 +7767,61 @@ def test_monitor_health_reports_feature_cache_progress_percent(tmp_path):
     assert progress["cache_eta_seconds"] == 896
 
 
+def test_monitor_health_reports_feature_cache_progress_from_command_stdout(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_cache_progress_stdout"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-07T21:19:31+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / f"{run_id}_started.marker").write_text("started\n", encoding="utf-8")
+    (logs / f"{run_id}_command_0_stdout.txt").write_text(
+        "warming up\n"
+        + json.dumps(
+            {
+                "event": "cache_positive_chunk",
+                "stage": "dataset_cache",
+                "split": "train",
+                "time": 1783439971.0,
+                "rows_done": 147456,
+                "total_rows": 524288,
+                "class_rows_done": 147456,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+                "samples_per_class": 262144,
+                "model": "present_trail_position_stats_pairset",
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=18,
+        now=datetime.fromisoformat("2026-07-07T21:20:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert report["status"] == "running"
+    assert progress["exists"] is True
+    assert progress["path"].endswith(f"{run_id}_command_0_stdout.txt")
+    assert progress["source_kind"] == "stdout_json_progress"
+    assert progress["latest_event"] == "cache_positive_chunk"
+    assert progress["stage"] == "dataset_cache"
+    assert progress["latest_split"] == "train"
+    assert progress["model"] == "present_trail_position_stats_pairset"
+    assert progress["cache_rows_done"] == 147456
+    assert progress["cache_total_rows"] == 524288
+    assert progress["cache_class_rows_done"] == 147456
+    assert progress["cache_class_total"] == 262144
+    assert progress["cache_total_progress_percent"] == pytest.approx(28.125)
+    assert progress["cache_class_progress_percent"] == pytest.approx(56.25)
+
+
 def test_monitor_health_reports_positive_and_negative_cache_class_progress(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_cache_polarity_progress"

@@ -594,10 +594,15 @@ def _progress_summary(
     now: datetime | None = None,
 ) -> dict[str, Any]:
     paths = sorted((run_root / "logs").glob("*progress.jsonl"))
+    source_kind = "progress_jsonl"
+    if not paths:
+        paths = _stdout_progress_paths(run_root)
+        source_kind = "stdout_json_progress"
     if not paths:
         return {
             "path": None,
             "exists": False,
+            "source_kind": None,
             "mtime": None,
             "age_seconds": None,
             "stale_after_seconds": stale_after_seconds,
@@ -607,11 +612,46 @@ def _progress_summary(
             "latest_event": None,
         }
     path = _select_latest_progress_path(paths)
-    return _progress_summary_for_path(
+    summary = _progress_summary_for_path(
         path,
         stale_after_seconds=stale_after_seconds,
         now=now,
     )
+    summary["source_kind"] = source_kind
+    return summary
+
+
+def _stdout_progress_paths(run_root: Path) -> list[Path]:
+    logs = run_root / "logs"
+    if not logs.exists():
+        return []
+    return sorted(path for path in logs.glob("*_stdout.txt") if _has_progress_json_record(path))
+
+
+def _has_progress_json_record(path: Path) -> bool:
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict) or not record.get("event"):
+            continue
+        if any(
+            key in record
+            for key in (
+                "rows_done",
+                "class_rows_done",
+                "total_rows",
+                "epoch",
+                "step",
+                "train_rows_seen",
+                "best_checkpoint_metric",
+            )
+        ):
+            return True
+    return False
 
 
 def _select_latest_progress_path(paths: list[Path]) -> Path:
