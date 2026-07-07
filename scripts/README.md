@@ -93,6 +93,12 @@ repair, and only when the gate keeps `focus05` or `focus10` does it mark the
 residual-guided fixed-fusion pool as ready. It does not launch remote training,
 fit ensemble weights, or make an ensemble claim.
 
+Use `scripts/residual-focus-status` for a local-only status summary of the
+active residual-focus 262144/class route. It reads the action plan, gate report,
+Pool 3 plan, local monitor log, and locally retrieved progress/output artifacts
+to classify the state as running, outputs-ready, gate-passed, gate-failed, or
+pool-ready. It does not SSH, launch, sync, run gates, or make a result claim.
+
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
 neural metrics. It generates a small deterministic dataset from a plan row and
