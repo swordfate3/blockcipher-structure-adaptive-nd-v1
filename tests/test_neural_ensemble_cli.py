@@ -4259,6 +4259,7 @@ def _write_residual_focus_action_plan(
     *,
     bad_shuffle: bool = False,
     bad_focus05: bool = False,
+    strong_uniform: bool = False,
 ) -> Path:
     seeds = []
     for seed in [0, 1]:
@@ -4286,7 +4287,7 @@ def _write_residual_focus_action_plan(
                 _write_residual_focus_slice_eval(
                     seed_root / "uniform_slice_eval.json",
                     rows=200 + seed,
-                    focus_loss_delta=-0.003,
+                    focus_loss_delta=-0.02 if strong_uniform else -0.003,
                 )
             ),
             "focus10_shuffle_report": str(
@@ -4363,6 +4364,29 @@ def test_gate_residual_focus_262k_holds_when_label_shuffle_repairs_slice(tmp_pat
     assert report["status"] == "fail"
     assert report["decision"] == "hold_residual_focus_262k_controls_failed"
     assert "seed0: label_shuffle_did_not_worsen_focus_loss" in report["errors"]
+    assert report["next_action"]["branch"] == "repair_residual_focus_controls_before_scaleup"
+    assert "label_shuffle_control_failed" in report["repair_hints"]
+
+
+def test_gate_residual_focus_262k_reports_repair_hint_when_uniform_matches_candidate(tmp_path):
+    action_plan = _write_residual_focus_action_plan(tmp_path, strong_uniform=True)
+    output = tmp_path / "gate.json"
+
+    status = gate_residual_focus_262k_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 1
+    assert report["status"] == "fail"
+    assert report["decision"] == "hold_residual_focus_262k_controls_failed"
+    assert report["passing_candidates"] == []
+    assert "candidate_not_better_than_uniform_control" in report["repair_hints"]
     assert report["next_action"]["branch"] == "repair_residual_focus_controls_before_scaleup"
 
 

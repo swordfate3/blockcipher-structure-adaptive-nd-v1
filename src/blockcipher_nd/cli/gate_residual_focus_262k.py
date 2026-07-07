@@ -244,6 +244,7 @@ def _report(
         "source_gate_assessment": source_gate_assessment,
         "seed_count": len(runs),
         "passing_candidates": passing_candidates,
+        "repair_hints": _repair_hints(errors) if status == "fail" else [],
         "errors": errors,
         "missing_outputs": missing_outputs or [],
         "min_focus05_vs_uniform_loss_margin": _min_candidate_value(
@@ -288,6 +289,25 @@ def _min_candidate_value(runs: list[dict[str, Any]], candidate: str, key: str) -
         if candidate in run.get("candidates", {}) and key in run["candidates"][candidate]
     ]
     return min(values) if values else None
+
+
+def _repair_hints(errors: list[str]) -> list[str]:
+    hints: set[str] = set()
+    for error in errors:
+        if "label_shuffle_did_not_worsen_focus_loss" in error:
+            hints.add("label_shuffle_control_failed")
+        if "not_better_than_uniform_focus_loss" in error:
+            hints.add("candidate_not_better_than_uniform_control")
+        if (
+            "focus_rows_too_low" in error
+            or "focus_auc_delta_too_low" in error
+            or "focus_loss_not_reduced" in error
+            or "slice_not_train_derived" in error
+        ):
+            hints.add("focus_candidate_metric_failed")
+    if not hints and errors:
+        hints.add("inspect_residual_focus_gate_errors")
+    return sorted(hints)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -71,6 +71,7 @@ def plan_residual_guided_diverse_pool(*, residual_focus_gate: Path) -> dict[str,
             "residual_focus_gate": str(residual_focus_gate),
             "residual_focus_decision": decision,
             "errors": [str(error) for error in gate.get("errors", [])],
+            "repair_hints": [str(hint) for hint in gate.get("repair_hints", [])],
             "next_action": {
                 "branch": _gate_next_branch(gate, default="repair_residual_focus_controls_before_scaleup"),
                 "should_launch_remote": False,

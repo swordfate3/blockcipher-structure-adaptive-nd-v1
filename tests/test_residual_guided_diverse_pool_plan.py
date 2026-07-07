@@ -78,6 +78,7 @@ def test_plan_residual_guided_pool_holds_failed_residual_focus_gate(tmp_path):
                 "decision": "hold_residual_focus_262k_controls_failed",
                 "passing_candidates": [],
                 "errors": ["seed0: label_shuffle_did_not_worsen_focus_loss"],
+                "repair_hints": ["label_shuffle_control_failed"],
                 "next_action": {"branch": "repair_residual_focus_controls_before_scaleup"},
             }
         ),
@@ -91,4 +92,5 @@ def test_plan_residual_guided_pool_holds_failed_residual_focus_gate(tmp_path):
     assert report["status"] == "hold"
     assert report["decision"] == "repair_residual_focus_before_pool"
     assert report["should_run_pool"] is False
+    assert report["repair_hints"] == ["label_shuffle_control_failed"]
     assert report["next_action"]["branch"] == "repair_residual_focus_controls_before_scaleup"
