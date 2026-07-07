@@ -47,6 +47,59 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     assert not pool.exists()
 
 
+def test_advance_residual_focus_results_marks_stale_repair_plan_when_outputs_missing(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=False)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    repair = tmp_path / "repair.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+    repair.write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "decision": "repair_residual_guided_pool3_before_scaleup",
+                "source_summary": str(tmp_path / "old_pool_eval.json"),
+                "primary_repair_branch": "repair_residual_guided_pool3_controls",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--repair-output",
+            str(repair),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    status_report = json.loads(status_output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_residual_focus_outputs"
+    assert report["repair_status"] == "stale"
+    assert status_report["repair_status"] == "stale"
+    assert status_report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+
+
 def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
