@@ -692,6 +692,9 @@ evaluation =
 
 gate =
   scripts/gate-residual-focus-262k
+
+readiness audit =
+  scripts/audit-residual-focus-262k-readiness
 ```
 
 This planner does not launch remote jobs, does not SSH-poll, and does not prove
@@ -727,6 +730,31 @@ missing_outputs =
   seed1 residual_focus05_slice_eval.json
   seed1 residual_focus10_slice_eval.json
 ```
+
+Current readiness audit:
+
+```text
+status = pending
+decision = residual_focus_262k_execution_not_ready
+command_count = 20
+control_command_count = 8
+unsafe_command_count = 0
+remote_checkpoint_seed_count = 2
+missing_outputs_count = 8
+blockers =
+  gate_missing_outputs
+  remote_checkpoint_reference_requires_remote_or_retrieved_checkpoint
+next_action =
+  publish_source_then_run_remote_or_retrieve_checkpoints
+```
+
+This means the generated command plan is structurally safe, but it is not a
+local execution plan in the current workspace. The train trail-position score
+exports reference Windows checkpoints under `G:\lxy`, so the residual-focus
+262144/class package should run from the pushed source on the remote
+workstation, or the required checkpoints/score artifacts must be retrieved
+first. Do not treat the local readiness audit as permission to dirty-overlay or
+SSH-poll from the main thread.
 
 ## Claim Scope
 

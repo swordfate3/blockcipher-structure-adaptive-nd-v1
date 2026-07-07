@@ -73,6 +73,9 @@ from blockcipher_nd.cli.gate_bucket_residual_controls import main as gate_bucket
 from blockcipher_nd.cli.plan_bucket_residual_262k import main as plan_bucket_residual_262k_main
 from blockcipher_nd.cli.plan_residual_focus_262k import main as plan_residual_focus_262k_main
 from blockcipher_nd.cli.gate_residual_focus_262k import main as gate_residual_focus_262k_main
+from blockcipher_nd.cli.audit_residual_focus_262k_readiness import (
+    main as audit_residual_focus_262k_readiness_main,
+)
 from blockcipher_nd.cli.render_trail_position_report import main as render_trail_position_report_main
 from blockcipher_nd.cli.select_bit_sensitivity_projection import main as select_bit_sensitivity_main
 from blockcipher_nd.cli.neural_ensemble_status import main as neural_ensemble_status_main
@@ -4360,6 +4363,105 @@ def test_gate_residual_focus_262k_reports_pending_when_outputs_missing(tmp_path)
     assert report["decision"] == "wait_for_residual_focus_262k_outputs"
     assert "missing_uniform_slice_eval.json" in report["missing_outputs"][0]
     assert report["next_action"]["branch"] == "finish_residual_focus_262k_outputs"
+
+
+def _write_residual_focus_readiness_inputs(
+    tmp_path: Path,
+    *,
+    unsafe_command: bool = False,
+) -> tuple[Path, Path]:
+    action_plan = tmp_path / "action_plan.json"
+    gate = tmp_path / "gate.json"
+    command = "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-checkpoint-scores"
+    if unsafe_command:
+        command = "cmd.exe /k run_bad_window.cmd"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_focus_262k_action_plan_ready",
+                "source_decision": "hold_trail_position_score_residual_mixed_runs",
+                "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
+                "commands": [command],
+                "control_commands": ["UV_CACHE_DIR=/tmp/uv-cache uv run scripts/gate-residual-focus-262k"],
+                "seeds": [
+                    {
+                        "seed": 0,
+                        "remote_checkpoint_reference": True,
+                        "train_trail_position_checkpoint": (
+                            "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\run\\checkpoint.pt"
+                        ),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    gate.write_text(
+        json.dumps(
+            {
+                "status": "pending",
+                "decision": "wait_for_residual_focus_262k_outputs",
+                "missing_outputs": [
+                    "outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/residual_focus05_slice_eval.json"
+                ],
+                "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return action_plan, gate
+
+
+def test_audit_residual_focus_262k_readiness_reports_remote_checkpoint_and_missing_outputs(tmp_path):
+    action_plan, gate = _write_residual_focus_readiness_inputs(tmp_path)
+    output = tmp_path / "readiness.json"
+
+    status = audit_residual_focus_262k_readiness_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-report",
+            str(gate),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "residual_focus_262k_execution_not_ready"
+    assert report["should_run_local_commands"] is False
+    assert report["remote_checkpoint_seed_count"] == 1
+    assert report["missing_outputs_count"] == 1
+    assert "remote_checkpoint_reference_requires_remote_or_retrieved_checkpoint" in report["blockers"]
+    assert "gate_missing_outputs" in report["blockers"]
+    assert report["next_action"]["branch"] == "publish_source_then_run_remote_or_retrieve_checkpoints"
+    assert "does not launch" in report["claim_scope"]
+
+
+def test_audit_residual_focus_262k_readiness_fails_on_unsafe_command(tmp_path):
+    action_plan, gate = _write_residual_focus_readiness_inputs(tmp_path, unsafe_command=True)
+    output = tmp_path / "readiness.json"
+
+    status = audit_residual_focus_262k_readiness_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-report",
+            str(gate),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 1
+    assert report["status"] == "fail"
+    assert report["decision"] == "residual_focus_262k_execution_plan_unsafe"
+    assert report["unsafe_command_count"] == 1
+    assert "unsafe_command_contains_cmd_exe_k" in report["blockers"]
 
 
 def test_render_trail_position_report_keeps_pending_claim_guardrails(tmp_path):
