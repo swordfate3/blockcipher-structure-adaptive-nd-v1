@@ -36,12 +36,15 @@ thread already used by this project:
 - Tashkilkhanova et al. 2025, "Enhancing RX Neural Cryptanalysis: Advanced
   Data Formatting and Weighted Differential Techniques for Block Ciphers",
   arXiv:2511.06336, <https://arxiv.org/abs/2511.06336>.
-- Zhang et al. 2025, "More Efficient Deep Learning-Based Distinguishing Attacks
-  with Multiple Ciphertext Pairs", arXiv:2505.10792,
-  <https://arxiv.org/abs/2505.10792>.
 - The local paper index also flags bit selection, GPD, PRESENT entropy, and
   multi-ciphertext-pair work as representation/feature-search evidence rather
   than broad model-ensemble evidence.
+
+Correction note: a previous draft linked arXiv:2505.10792 as a
+multiple-ciphertext-pair neural distinguisher source. Re-checking the arXiv
+record shows that this identifier is a retrieval-augmented generation / LLM
+paper, not a block-cipher neural-cryptanalysis paper. Do not use that arXiv ID
+as evidence for this route.
 
 The 2026-07-07 re-check adds one concrete implementation lesson. Recent
 RX-neural work uses bit sensitivity tests to reduce the input data format, then

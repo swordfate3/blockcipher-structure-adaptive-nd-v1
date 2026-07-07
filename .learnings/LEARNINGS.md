@@ -66,6 +66,47 @@ matching train score artifacts before making stronger ensemble claims.
 
 ---
 
+## [LRN-20260707-002] correction
+
+**Logged**: 2026-07-07T09:55:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not trust a stored arXiv identifier in research notes until the title and
+topic are re-opened and verified.
+
+### Details
+During the Innovation 1 SPN route refresh, the local research note
+`docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md`
+listed arXiv:2505.10792 as "More Efficient Deep Learning-Based
+Distinguishing Attacks with Multiple Ciphertext Pairs." Re-opening
+`https://arxiv.org/abs/2505.10792` showed that the identifier belongs to an
+unrelated retrieval-augmented generation / LLM paper, not a block-cipher
+neural-cryptanalysis paper.
+
+This kind of citation mismatch can distort route arbitration by making a
+weakly verified literature thread look stronger than it is.
+
+### Suggested Action
+Before using a paper as evidence for route ranking, verify at least the title,
+venue/source page, year, and topic from the actual URL or PDF. If an arXiv ID
+does not match the claimed title/topic, remove it from the evidence list and
+record the correction in the relevant research note.
+
+### Metadata
+- Source: research_audit
+- Related Files: docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md, docs/research/innovation1-spn-route-arbitration-20260707.md
+- Tags: innovation1, literature, citation-hygiene, arxiv, spn
+- See Also: LRN-20260707-001
+- Pattern-Key: research.citation_id_must_match_title_topic
+- Recurrence-Count: 1
+- First-Seen: 2026-07-07
+- Last-Seen: 2026-07-07
+
+---
+
 ## [LRN-20260621-001] correction
 
 **Logged**: 2026-06-21T20:45:00+08:00
