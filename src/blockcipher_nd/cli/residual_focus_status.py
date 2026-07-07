@@ -9,6 +9,7 @@ from typing import Any
 DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json")
 DEFAULT_GATE = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json")
 DEFAULT_POOL_PLAN = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
+DEFAULT_POOL_EVAL = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json")
 DEFAULT_MONITOR_DIR = Path("outputs/remote_results/i1_present_r8_residual_focus_262k_retry1/monitor")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_status.json")
@@ -21,6 +22,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--action-plan", type=Path, default=DEFAULT_ACTION_PLAN)
     parser.add_argument("--gate", type=Path, default=DEFAULT_GATE)
     parser.add_argument("--pool-plan", type=Path, default=DEFAULT_POOL_PLAN)
+    parser.add_argument("--pool-eval", type=Path, default=DEFAULT_POOL_EVAL)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
@@ -34,10 +36,12 @@ def residual_focus_status(
     pool_plan: Path,
     monitor_dir: Path,
     artifact_root: Path,
+    pool_eval: Path = DEFAULT_POOL_EVAL,
 ) -> dict[str, Any]:
     action = _read_json_or_empty(action_plan)
     gate_report = _read_json_or_empty(gate)
     pool = _read_json_or_empty(pool_plan)
+    pool_eval_report = _read_json_or_empty(pool_eval)
     planned_outputs = _planned_outputs(action)
     existing_outputs = [path for path in planned_outputs if path.exists()]
     missing_outputs = [str(path) for path in planned_outputs if not path.exists()]
@@ -45,10 +49,17 @@ def residual_focus_status(
     latest_progress = _latest_progress(artifact_root)
     gate_status = str(gate_report.get("status", "missing" if not gate.exists() else ""))
     pool_status = str(pool.get("status", "missing" if not pool_plan.exists() else ""))
+    pool_eval_status = str(pool_eval_report.get("status", "missing" if not pool_eval.exists() else ""))
+    pool_eval_decision = str(pool_eval_report.get("decision", ""))
     should_run_pool = bool(pool.get("should_run_pool", False))
+    missing_pool3_score_artifacts = [
+        str(path) for path in pool_eval_report.get("missing_score_artifacts", [])
+    ]
     status, branch = _status_and_branch(
         gate_status=gate_status,
         pool_status=pool_status,
+        pool_eval_status=pool_eval_status,
+        pool_eval_decision=pool_eval_decision,
         should_run_pool=should_run_pool,
         planned_outputs=planned_outputs,
         missing_outputs=missing_outputs,
@@ -62,6 +73,11 @@ def residual_focus_status(
         "pool_plan": str(pool_plan),
         "pool_status": pool_status,
         "should_run_pool": should_run_pool,
+        "pool_eval": str(pool_eval),
+        "pool_eval_status": pool_eval_status,
+        "pool_eval_decision": pool_eval_decision,
+        "missing_pool3_score_artifact_count": len(missing_pool3_score_artifacts),
+        "missing_pool3_score_artifacts": missing_pool3_score_artifacts,
         "monitor_dir": str(monitor_dir),
         "latest_monitor_event": _latest_monitor_event(monitor_lines),
         "latest_progress": latest_progress,
@@ -84,10 +100,16 @@ def _status_and_branch(
     *,
     gate_status: str,
     pool_status: str,
+    pool_eval_status: str,
+    pool_eval_decision: str,
     should_run_pool: bool,
     planned_outputs: list[Path],
     missing_outputs: list[str],
 ) -> tuple[str, str]:
+    if pool_eval_status == "pending" and pool_eval_decision == "wait_for_pool3_score_artifacts":
+        return "pool3_scores_pending", "wait_for_pool3_score_artifacts"
+    if pool_eval_status == "pass":
+        return "pool_evaluated", "document_residual_guided_pool3_fixed_fusion"
     if should_run_pool and pool_status == "pass":
         return "pool_ready", "instantiate_residual_guided_pool3_fixed_fusion"
     if gate_status == "pass":
@@ -164,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         action_plan=args.action_plan,
         gate=args.gate,
         pool_plan=args.pool_plan,
+        pool_eval=args.pool_eval,
         monitor_dir=args.monitor_dir,
         artifact_root=args.artifact_root,
     )

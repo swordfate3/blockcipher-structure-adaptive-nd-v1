@@ -144,6 +144,61 @@ def test_residual_focus_status_reports_pool_ready_after_gate(tmp_path):
     assert report["next_action"]["branch"] == "instantiate_residual_guided_pool3_fixed_fusion"
 
 
+def test_residual_focus_status_reports_waiting_for_pool3_score_artifacts(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pass", "decision": "keep_residual_focus_262k_hard_slice_candidate"}),
+        encoding="utf-8",
+    )
+    pool.write_text(
+        json.dumps({"status": "pass", "decision": "residual_guided_diverse_pool_ready", "should_run_pool": True}),
+        encoding="utf-8",
+    )
+    pool_eval.write_text(
+        json.dumps(
+            {
+                "status": "pending",
+                "decision": "wait_for_pool3_score_artifacts",
+                "missing_score_artifacts": ["seed0/validation_raw117_scores"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--pool-eval",
+            str(pool_eval),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pool3_scores_pending"
+    assert report["pool_eval_status"] == "pending"
+    assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
+    assert report["missing_pool3_score_artifact_count"] == 1
+    assert report["next_action"]["branch"] == "wait_for_pool3_score_artifacts"
+
+
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
     paths = [
         tmp_path / "artifacts" / "seed0" / "residual_focus05_slice_eval.json",

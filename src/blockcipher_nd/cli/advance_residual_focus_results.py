@@ -55,6 +55,7 @@ def advance_residual_focus_results(
         action_plan=action_plan,
         gate=gate_output,
         pool_plan=pool_output,
+        pool_eval=pool_eval_output,
         monitor_dir=monitor_dir,
         artifact_root=artifact_root,
     )
@@ -90,6 +91,7 @@ def advance_residual_focus_results(
         action_plan=action_plan,
         gate=gate_output,
         pool_plan=pool_output,
+        pool_eval=pool_eval_output,
         monitor_dir=monitor_dir,
         artifact_root=artifact_root,
     )

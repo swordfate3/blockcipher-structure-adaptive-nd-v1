@@ -77,6 +77,7 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     )
 
     report = json.loads(output.read_text(encoding="utf-8"))
+    status_report = json.loads(status_output.read_text(encoding="utf-8"))
     gate_report = json.loads(gate.read_text(encoding="utf-8"))
     pool_report = json.loads(pool.read_text(encoding="utf-8"))
     assert status == 0
@@ -91,6 +92,9 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert report["pool_eval_status"] == "pending"
     assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
     assert report["missing_pool3_score_artifact_count"] > 0
+    assert status_report["pool_eval"] == str(pool_eval)
+    assert status_report["pool_eval_status"] == "pending"
+    assert status_report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
 
 
 def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts_exist(tmp_path):
