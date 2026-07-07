@@ -19,6 +19,9 @@ from blockcipher_nd.cli.fit_compressed_feature_expert import main as fit_compres
 from blockcipher_nd.cli.fit_bucket_conditioned_feature_expert import (
     main as fit_bucket_conditioned_feature_main,
 )
+from blockcipher_nd.cli.fit_residual_correction_feature_expert import (
+    main as fit_residual_correction_feature_main,
+)
 from blockcipher_nd.cli.fit_compressed_span_grouped_expert import (
     main as fit_compressed_span_grouped_main,
 )
@@ -944,6 +947,111 @@ def test_fit_bucket_conditioned_feature_expert_rejects_second_bucket_sample_mism
         assert "train bucket artifact 1 feature sample_ids differ" in str(exc)
     else:  # pragma: no cover - the assertion above is the behavior under test.
         raise AssertionError("expected second bucket artifact sample mismatch to be rejected")
+
+
+def test_fit_residual_correction_feature_expert_writes_corrected_artifact(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_output = tmp_path / "residual_train_scores"
+    validation_output = tmp_path / "residual_validation_scores"
+    report_output = tmp_path / "residual_report.json"
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "feature_names": [
+            "aux_word_global_mean",
+            "primary_depth_mean_depth0",
+        ]
+    }
+    train_features = np.array(
+        [
+            [-2.0, 0.0],
+            [-1.5, 0.1],
+            [-1.0, 0.2],
+            [-0.8, 0.3],
+            [0.8, 0.3],
+            [1.0, 0.2],
+            [1.5, 0.1],
+            [2.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=train_features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=train_features.copy(),
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    left_train = tmp_path / "left_train"
+    right_train = tmp_path / "right_train"
+    left_validation = tmp_path / "left_validation"
+    right_validation = tmp_path / "right_validation"
+    left_probabilities = np.array([0.1, 0.2, 0.65, 0.7, 0.3, 0.35, 0.8, 0.9], dtype=np.float32)
+    right_probabilities = np.array([0.15, 0.25, 0.55, 0.75, 0.25, 0.45, 0.75, 0.85], dtype=np.float32)
+    for path, model_key, probabilities in [
+        (left_train, "trail", left_probabilities),
+        (right_train, "raw117", right_probabilities),
+        (left_validation, "trail", left_probabilities),
+        (right_validation, "raw117", right_probabilities),
+    ]:
+        _write_tiny_score_artifact(path, labels, probabilities, sample_ids, model_key=model_key)
+
+    status = fit_residual_correction_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--train-base-artifacts",
+            str(left_train),
+            str(right_train),
+            "--validation-base-artifacts",
+            str(left_validation),
+            str(right_validation),
+            "--include-feature-prefix",
+            "aux_word_",
+            "--bucket-feature",
+            "logit_gap_abs",
+            "--bucket-count",
+            "2",
+            "--steps",
+            "500",
+            "--learning-rate",
+            "0.2",
+            "--l2",
+            "0.0",
+            "--output-train-dir",
+            str(train_output),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    validation_artifact = load_score_artifact(validation_output)
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["feature_selection"]["include_feature_prefixes"] == ["aux_word_"]
+    assert report["selected_feature_count"] == 1
+    assert report["bucket_count"] == 2
+    assert report["validation_metrics"]["auc"] > report["validation_base_logit_mean_metrics"]["auc"]
+    assert report["delta_validation_corrected_vs_base_logit_mean_auc"] > 0.0
+    assert validation_metadata["feature_model"] == "residual_logit_correction"
+    assert validation_metadata["score_split"] == "validation"
+    assert validation_metadata["base_model_order"] == ["trail", "raw117"]
+    assert validation_metadata["base_run_order"] == ["trail", "raw117"]
+    assert np.array_equal(validation_artifact.sample_ids, sample_ids)
 
 
 def test_evaluate_stacked_ensemble_rejects_mismatched_model_order(tmp_path):
@@ -3552,6 +3660,7 @@ def _write_tiny_score_artifact(
             sample_ids=sample_ids,
             metadata={
                 "model_key": model_key,
+                "run_id": model_key,
                 "expert_family": model_key,
                 "candidate_status": "weak_positive",
                 "cipher": "PRESENT-80",

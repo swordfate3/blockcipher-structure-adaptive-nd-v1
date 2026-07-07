@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-07
 
-**Status:** local axis-spectrum diagnostic complete; aux-depth-word global probe held
+**Status:** local axis-spectrum diagnostic complete; aux-depth-word global/bucket probes held; residual correction probe held pending stronger attribution
 
 ## Question
 
@@ -334,6 +334,122 @@ non-random SPN signal, but training it as another ordinary label classifier
 does not improve the strong trail+raw117 anchor. The failure mode points to the
 objective, not necessarily the feature family: the next probe should learn a
 small residual/gated correction on top of frozen strong scores.
+```
+
+## 2048/Class Residual Logit Correction Probe
+
+The next implementation changed the objective from ordinary label
+classification to frozen-score correction:
+
+```text
+base_score =
+  logit_mean(trail_stats_logistic_scores, span_raw117_matched_scores)
+
+corrected_score =
+  base_score + residual_correction(aux_depth_word_, aux_word_, reliability views, optional buckets)
+```
+
+New local CLI:
+
+```text
+scripts/fit-residual-correction-feature-expert
+```
+
+The base score artifacts stay frozen. The fitted model only learns an additive
+correction from train split features. Validation remains final-only. This tests
+the hypothesis that the auxiliary family should repair residual uncertainty
+rather than vote globally as another classifier.
+
+Primary probe settings:
+
+```text
+selected_prefixes =
+  aux_depth_word_
+  aux_word_
+selected_feature_count = 96
+base_fusion = logit_mean
+reliability_features =
+  min_confidence
+  confidence_gap_abs
+  logit_gap_abs
+  signed_logit_delta_model1_minus_model0
+bucket_feature = logit_gap_abs
+bucket_count = 5
+correction_feature_count = 585
+steps = 1000
+learning_rate = 0.05
+l2 = 0.001
+```
+
+Artifacts:
+
+```text
+seed0 primary correction report =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_correction_report.json
+seed1 primary correction report =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_correction_report.json
+
+seed0 no-bucket control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_correction_nobucket_report.json
+seed1 no-bucket control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_correction_nobucket_report.json
+
+seed0 label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_correction_labelshuffle_report.json
+seed1 label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_correction_labelshuffle_report.json
+
+seed0 train-bucket-shuffle control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_correction_trainbucketshuffle_report.json
+seed1 train-bucket-shuffle control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_correction_trainbucketshuffle_report.json
+
+seed0 validation-bucket-shuffle control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_correction_valbucketshuffle_report.json
+seed1 validation-bucket-shuffle control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_correction_valbucketshuffle_report.json
+```
+
+Metrics:
+
+| Seed | Route | Base Logit Mean AUC | Corrected AUC | Delta |
+|---:|---|---:|---:|---:|
+| 0 | bucketed correction | `0.9999990463256836` | `1.0` | `+0.00000095367431640625` |
+| 0 | no-bucket control | `0.9999990463256836` | `0.9999990463256836` | `0.0` |
+| 0 | label-shuffle control | `0.9999990463256836` | `0.7959432601928711` | `-0.2040557861328125` |
+| 0 | train-bucket-shuffle control | `0.9999990463256836` | `1.0` | `+0.00000095367431640625` |
+| 0 | validation-bucket-shuffle control | `0.9999990463256836` | `0.9999990463256836` | `0.0` |
+| 1 | bucketed correction | `0.999995231628418` | `0.9999961853027344` | `+0.00000095367431640625` |
+| 1 | no-bucket control | `0.999995231628418` | `0.9999971389770508` | `+0.0000019073486328125` |
+| 1 | label-shuffle control | `0.999995231628418` | `0.8183321952819824` | `-0.18166303634643555` |
+| 1 | train-bucket-shuffle control | `0.999995231628418` | `0.9999971389770508` | `+0.0000019073486328125` |
+| 1 | validation-bucket-shuffle control | `0.999995231628418` | `0.9999961853027344` | `+0.00000095367431640625` |
+
+Decision:
+
+```text
+decision = hold_aux_residual_correction_bucket_gate
+status = residual_objective_tool_ready_but_current_bucket_gate_not_attributed
+action =
+  do not remote-scale this exact bucketed correction route;
+  keep the residual-correction objective and CLI as useful infrastructure;
+  do not claim that logit_gap_abs bucket gating adds independent signal here;
+  next residual architecture should target a harder residual slice, use a
+  train-holdout selected correction family, or optimize soft residual loss more
+  directly before medium-scale promotion
+```
+
+Interpretation:
+
+```text
+This probe is better aligned with the research direction than plain multi-score
+averaging because it freezes the strong trail+raw117 score and learns only a
+small correction. However, the measured AUC gains are at the 1e-6 level on an
+already saturated 2048/class local split. The label-shuffle controls collapse,
+which argues against a simple leakage bug, but no-bucket and bucket-shuffle
+controls match or exceed the primary bucketed route. Therefore the current
+evidence supports the residual-correction objective as tooling, not this
+specific bucket gate as a candidate for remote scale-up.
 ```
 
 ## Claim Scope
