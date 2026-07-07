@@ -522,6 +522,10 @@ The tool blocks when the Pool 3 plan is pending or held, and it reports missing
 score artifacts instead of trying to generate or retrieve them. It does not fit
 ensemble weights, contact the remote host, launch training, or upgrade the
 claim beyond application-level medium diagnostic evidence.
+If the residual-focus fusion fails to strictly beat the base/control comparisons
+for a seed, the evaluator returns `hold`, and the upper-level residual-focus
+postprocess reports `repair_residual_guided_pool3_before_scaleup` rather than
+promoting the pool.
 
 `scripts/advance-residual-focus-results` and
 `scripts/watch-residual-focus-results` now call this fixed-fusion evaluator

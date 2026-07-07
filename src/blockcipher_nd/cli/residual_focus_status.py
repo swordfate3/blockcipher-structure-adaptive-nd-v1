@@ -110,6 +110,8 @@ def _status_and_branch(
         return "pool3_scores_pending", "wait_for_pool3_score_artifacts"
     if pool_eval_status == "pass":
         return "pool_evaluated", "document_residual_guided_pool3_fixed_fusion"
+    if pool_eval_status == "hold":
+        return "pool3_control_hold", "repair_residual_guided_pool3_before_scaleup"
     if should_run_pool and pool_status == "pass":
         return "pool_ready", "instantiate_residual_guided_pool3_fixed_fusion"
     if gate_status == "pass":

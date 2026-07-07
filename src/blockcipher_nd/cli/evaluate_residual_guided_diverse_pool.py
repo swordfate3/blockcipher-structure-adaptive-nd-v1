@@ -115,7 +115,7 @@ def evaluate_residual_guided_diverse_pool(
         and candidate_delta_vs_labelshuffle > min_control_delta
     )
     return {
-        "status": "pass",
+        "status": "pass" if supported else "hold",
         "decision": (
             "support_residual_guided_pool3_fixed_fusion"
             if supported

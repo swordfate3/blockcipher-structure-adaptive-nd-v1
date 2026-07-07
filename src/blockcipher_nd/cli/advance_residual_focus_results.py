@@ -138,6 +138,8 @@ def _advance_status(
 ) -> tuple[str, str]:
     if ran_pool_evaluator and pool_eval_report.get("status") == "pass":
         return "pass", "residual_guided_pool_evaluated"
+    if pool_eval_report.get("status") == "hold":
+        return "hold", "repair_residual_guided_pool3_before_scaleup"
     if pool_eval_report.get("status") == "pending" and pool_eval_report.get("decision") == "wait_for_pool3_score_artifacts":
         return "pending", "wait_for_pool3_score_artifacts"
     if final_status["should_run_pool"]:
@@ -153,6 +155,11 @@ def _advance_next_action(final_status: dict[str, Any], pool_eval_report: dict[st
     if pool_eval_report.get("status") == "pending" and pool_eval_report.get("decision") == "wait_for_pool3_score_artifacts":
         return {
             "branch": "wait_for_pool3_score_artifacts",
+            "should_launch_remote": False,
+        }
+    if pool_eval_report.get("status") == "hold":
+        return {
+            "branch": "repair_residual_guided_pool3_before_scaleup",
             "should_launch_remote": False,
         }
     return final_status["next_action"]

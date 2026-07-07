@@ -154,3 +154,76 @@ def test_residual_guided_pool_evaluation_compares_candidate_to_controls(tmp_path
     assert report["candidate_delta_vs_uniform_control_auc"] >= 0.0
     assert report["candidate_delta_vs_labelshuffle_control_auc"] > 0.0
     assert report["claim_scope"].startswith("application-level medium diagnostic")
+
+
+def test_residual_guided_pool_evaluation_holds_when_candidate_fails_controls(tmp_path):
+    plan = tmp_path / "pool_plan.json"
+    output = tmp_path / "pool_eval.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_guided_diverse_pool_ready",
+                "should_run_pool": True,
+                "selected_residual_candidate": "focus10",
+            }
+        ),
+        encoding="utf-8",
+    )
+    trail = _write_artifact(
+        tmp_path / "trail",
+        "trail_position",
+        [0.10, 0.60, 0.40, 0.90],
+        family="trail_position_anchor",
+    )
+    raw117 = _write_artifact(
+        tmp_path / "raw117",
+        "raw117",
+        [0.20, 0.55, 0.45, 0.80],
+        family="compressed_span_structural",
+    )
+    residual = _write_artifact(
+        tmp_path / "residual_focus10",
+        "residual_focus10",
+        [0.90, 0.80, 0.20, 0.10],
+        family="residual_focus_aux_word",
+    )
+    uniform = _write_artifact(
+        tmp_path / "uniform",
+        "residual_uniform",
+        [0.50, 0.50, 0.50, 0.50],
+        family="uniform_residual_control",
+    )
+    labelshuffle = _write_artifact(
+        tmp_path / "labelshuffle",
+        "residual_labelshuffle",
+        [0.90, 0.80, 0.20, 0.10],
+        family="labelshuffle_residual_control",
+    )
+
+    status = evaluate_pool_main(
+        [
+            "--pool-plan",
+            str(plan),
+            "--trail-position-artifact",
+            str(trail),
+            "--raw117-artifact",
+            str(raw117),
+            "--residual-focus-artifact",
+            str(residual),
+            "--uniform-control-artifact",
+            str(uniform),
+            "--labelshuffle-control-artifact",
+            str(labelshuffle),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "residual_guided_pool3_fixed_fusion_diagnostic_only"
+    assert report["candidate_delta_vs_base_auc"] <= 0.0
+    assert report["candidate_delta_vs_labelshuffle_control_auc"] == 0.0
+    assert report["next_action"]["branch"] == "repair_residual_guided_pool3_before_scaleup"

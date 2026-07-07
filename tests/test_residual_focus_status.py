@@ -199,6 +199,58 @@ def test_residual_focus_status_reports_waiting_for_pool3_score_artifacts(tmp_pat
     assert report["next_action"]["branch"] == "wait_for_pool3_score_artifacts"
 
 
+def test_residual_focus_status_reports_pool3_control_hold(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    monitor_dir = tmp_path / "remote" / "monitor"
+    output = tmp_path / "status.json"
+    monitor_dir.mkdir(parents=True)
+    gate.write_text(
+        json.dumps({"status": "pass", "decision": "keep_residual_focus_262k_hard_slice_candidate"}),
+        encoding="utf-8",
+    )
+    pool.write_text(
+        json.dumps({"status": "pass", "decision": "residual_guided_diverse_pool_ready", "should_run_pool": True}),
+        encoding="utf-8",
+    )
+    pool_eval.write_text(
+        json.dumps(
+            {
+                "status": "hold",
+                "decision": "residual_guided_pool3_fixed_fusion_mixed_or_controlled",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    status = status_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate",
+            str(gate),
+            "--pool-plan",
+            str(pool),
+            "--pool-eval",
+            str(pool_eval),
+            "--monitor-dir",
+            str(monitor_dir),
+            "--artifact-root",
+            str(tmp_path / "artifacts"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pool3_control_hold"
+    assert report["pool_eval_status"] == "hold"
+    assert report["next_action"]["branch"] == "repair_residual_guided_pool3_before_scaleup"
+
+
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
     paths = [
         tmp_path / "artifacts" / "seed0" / "residual_focus05_slice_eval.json",

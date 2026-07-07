@@ -138,11 +138,56 @@ def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts
     assert all(seed_report["decision"] == "support_residual_guided_pool3_fixed_fusion" for seed_report in pool_eval_report["seed_reports"])
 
 
+def test_advance_residual_focus_results_holds_when_pool_evaluator_controls_fail(tmp_path):
+    action_plan = _write_action_plan(
+        tmp_path,
+        create_outputs=True,
+        create_score_artifacts=True,
+        bad_score_seed=1,
+    )
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    pool_eval_report = json.loads(pool_eval.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "repair_residual_guided_pool3_before_scaleup"
+    assert report["pool_eval_status"] == "hold"
+    assert pool_eval_report["decision"] == "residual_guided_pool3_fixed_fusion_mixed_or_controlled"
+    assert [seed_report["status"] for seed_report in pool_eval_report["seed_reports"]] == ["pass", "hold"]
+
+
 def _write_action_plan(
     tmp_path: Path,
     *,
     create_outputs: bool,
     create_score_artifacts: bool = False,
+    bad_score_seed: int | None = None,
 ) -> Path:
     seeds = []
     for seed in [0, 1]:
@@ -160,7 +205,7 @@ def _write_action_plan(
             _write_slice(outputs["focus05_slice_eval"], loss_delta=-0.01, auc_delta=0.002)
             _write_slice(outputs["focus10_slice_eval"], loss_delta=-0.02, auc_delta=0.003)
         if create_score_artifacts:
-            _write_pool3_score_artifacts(seed_root, seed=seed)
+            _write_pool3_score_artifacts(seed_root, seed=seed, bad_scores=seed == bad_score_seed)
         seeds.append(
             {
                 "seed": seed,
@@ -184,7 +229,7 @@ def _write_action_plan(
     return action_plan
 
 
-def _write_pool3_score_artifacts(seed_root: Path, *, seed: int) -> None:
+def _write_pool3_score_artifacts(seed_root: Path, *, seed: int, bad_scores: bool = False) -> None:
     _write_score_artifact(
         seed_root / "validation_trail_position_scores",
         "trail_position",
@@ -202,7 +247,7 @@ def _write_pool3_score_artifacts(seed_root: Path, *, seed: int) -> None:
     _write_score_artifact(
         seed_root / "residual_focus10_validation_scores",
         "residual_focus10",
-        [0.45, 0.10, 0.90, 0.55],
+        [0.90, 0.80, 0.20, 0.10] if bad_scores else [0.45, 0.10, 0.90, 0.55],
         family="residual_focus_aux_word",
         seed=seed,
     )
