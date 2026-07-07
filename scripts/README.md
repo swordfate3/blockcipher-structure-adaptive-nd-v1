@@ -85,6 +85,14 @@ launch, or mark the residual-focus 262144/class gate complete.
 The generated `launch_*.sh` wrapper is also gated: it reads the package JSON and
 exits with `launch_blocked.marker` before SSH when `launch_allowed` is not true.
 
+Use `scripts/plan-residual-guided-diverse-pool` after
+`scripts/gate-residual-focus-262k` has written its report. It is a local-only
+guard for the r8 Pool 3 diverse expert route: when the residual-focus gate is
+pending it waits, when the gate fails it holds the pool and asks for residual
+repair, and only when the gate keeps `focus05` or `focus10` does it mark the
+residual-guided fixed-fusion pool as ready. It does not launch remote training,
+fit ensemble weights, or make an ensemble claim.
+
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
 neural metrics. It generates a small deterministic dataset from a plan row and
