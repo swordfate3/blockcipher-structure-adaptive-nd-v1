@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-07
 
-**Status:** tool-ready local diagnostic plan; no training launched
+**Status:** local axis-spectrum diagnostic complete; aux-depth-word global probe held
 
 ## Question
 
@@ -128,9 +128,147 @@ V16/V17 bucket residual planner is ready:
    no-bucket controls before any remote-scale claim.
 ```
 
+## 2048/Class Train/Validation Axis Spectrum
+
+The first same-protocol local diagnostic used existing 2048/class train and
+held-out validation artifacts:
+
+```text
+feature_view = compressed_span_summary
+bucket_artifacts =
+  trail_stats_logistic_scores
+  span_raw117_matched_scores
+bucket_feature = logit_gap_abs
+bucket_count = 5
+targets =
+  residual_error_at_0_5
+  residual_loss
+```
+
+Artifacts:
+
+```text
+seed0 train residual_loss =
+  outputs/local_audits/i1_present_r8_seed0_train_residual_loss_axis_spectrum.json
+seed0 validation residual_loss =
+  outputs/local_audits/i1_present_r8_seed0_validation_residual_loss_axis_spectrum.json
+seed1 train residual_loss =
+  outputs/local_audits/i1_present_r8_seed1_train_residual_loss_axis_spectrum.json
+seed1 validation residual_loss =
+  outputs/local_audits/i1_present_r8_seed1_validation_residual_loss_axis_spectrum.json
+
+seed0 train hard error =
+  outputs/local_audits/i1_present_r8_seed0_train_hard_error_axis_spectrum.json
+seed1 train hard error =
+  outputs/local_audits/i1_present_r8_seed1_train_hard_error_axis_spectrum.json
+```
+
+Hard 0.5-threshold residual errors are too sparse for source selection:
+
+| Split | Rows | Hard Error Rate | Soft Residual Mean |
+|---|---:|---:|---:|
+| seed0 train | `4096` | `0.0` | `0.006508632420401186` |
+| seed0 validation | `2048` | `0.0009765625` | `0.009336364924479985` |
+| seed1 train | `4096` | `0.000244140625` | `0.007914455329723208` |
+| seed1 validation | `2048` | `0.0009765625` | `0.009156557486921957` |
+
+The recurring `residual_loss` axis families are:
+
+| Axis Family | Evidence | Interpretation |
+|---|---|---|
+| `aux_word_global_mean` / `aux_word_mean` | appears in seed0 validation and both seed1 splits | stable weak auxiliary residual signal |
+| `aux_depth_word_*` | dominates seed1 train and validation, especially global/depth/trailword aggregates | strongest non-neighbor residual candidate family, but not stable enough at exact depth index |
+| `primary_depth_cell/trailword depth1-depth2` | appears across seed0 validation and seed1 train | strong but likely overlaps the already dominant primary/trail signal |
+| `aux_cell_*` | appears mainly in seed0 train/validation | seed-dependent auxiliary cell residual; keep as secondary context, not first next expert |
+
+Decision:
+
+```text
+decision = aux_depth_word_aux_word_residual_family_selected_for_probe
+status = local_source_selection_diagnostic_only
+action =
+  do not freeze a single depth index;
+  use the family-level aux_depth_word_ + aux_word_ scope as a sanity probe;
+  treat primary_depth_* recurrence as evidence of strong existing signal, not
+  as a new non-neighbor expert by itself
+```
+
+## 2048/Class Aux-Depth-Word/Aux-Word Probe
+
+The next local probe tested whether the axis-spectrum-selected auxiliary
+families should be added as an ordinary global frozen-score expert:
+
+```text
+cli = scripts/fit-compressed-feature-expert
+selected_prefixes =
+  aux_depth_word_
+  aux_word_
+feature_count = 96
+fit_split = train
+score_split = held-out validation
+steps = 2000
+learning_rate = 0.05
+l2 = 0.001
+standardize = true
+```
+
+Artifacts:
+
+```text
+seed0 probe report =
+  outputs/local_audits/i1_present_r8_seed0_aux_depth_word_aux_word_probe_report.json
+seed1 probe report =
+  outputs/local_audits/i1_present_r8_seed1_aux_depth_word_aux_word_probe_report.json
+
+seed0 trail+raw117+aux probe ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_auxword_probe_three_score_ensemble.json
+seed1 trail+raw117+aux probe ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_auxword_probe_three_score_ensemble.json
+```
+
+Metrics:
+
+| Seed | Aux Probe AUC | Trail+Raw117 AUC | Trail+Raw117+Aux Probe AUC | Three-vs-Two Delta |
+|---:|---:|---:|---:|---:|
+| 0 | `0.960240364074707` | `0.9999990463256836` | `0.9999790191650391` | `-0.00002002716064453125` |
+| 1 | `0.9550857543945312` | `0.999995231628418` | `0.9999704360961914` | `-0.0000247955322265625` |
+
+The probe is meaningfully non-random and less correlated with the strong
+structural experts, but direct global score averaging is worse:
+
+```text
+seed0 aux-pair probability correlation ~= 0.84, disagreement ~= 0.098
+seed1 aux-pair probability correlation ~= 0.83, disagreement ~= 0.111
+```
+
+Decision:
+
+```text
+decision = hold_aux_depth_word_aux_word_as_global_ensemble_member
+status = useful_residual_source_but_not_global_vote_expert
+action =
+  do not add aux_depth_word_ + aux_word_ as a plain fourth/global ensemble
+  score;
+  use this family only through bucket-conditioned or residual-conditioned
+  selection;
+  next implementation candidate should combine the axis-spectrum family with
+  train-derived residual buckets rather than average it globally
+```
+
+Interpretation:
+
+```text
+The auxiliary depth-word/word family has real information, but it is weaker
+than the existing trail-position and raw117 anchors. Its value is not as a
+standalone or globally averaged expert. The correct next architecture is a
+conditional residual expert: use the current strong scores to identify where
+the sample is uncertain or where experts disagree, then apply the auxiliary
+family only where it explains residual loss.
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a
-new PRESENT r8 result, does not claim a breakthrough, does not replace the
-pending 262144/class trail-position retrieval, and does not provide formal
+formal PRESENT r8 result, does not claim a breakthrough, does not replace the
+262144/class trail-position postprocess gate, and does not provide formal
 SPN/PRESENT evidence.
