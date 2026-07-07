@@ -122,7 +122,11 @@ smoke behind that route. It fits `present_state_token_residual` on exported
 then writes train/validation frozen-score artifacts plus a JSON report. This is
 not a `scripts/train` matrix row: it consumes 3708D feature artifacts, not raw
 beamstats pair matrices. It does not SSH, launch remote jobs, change labels,
-change negative mode, or make a medium/formal SPN/PRESENT claim.
+change negative mode, or make a medium/formal SPN/PRESENT claim. Use
+`--shuffle-token-coordinates` as the coordinate attribution control: it keeps
+the same span feature values but permutes family/depth/word/cell token ids, so a
+passing control means the current model has not proven true coordinate-layout
+dependence.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

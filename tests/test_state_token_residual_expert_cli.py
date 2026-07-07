@@ -96,6 +96,57 @@ def test_fit_state_token_residual_expert_requires_trail_position_stats(tmp_path:
         raise AssertionError("expected feature_view validation failure")
 
 
+def test_fit_state_token_residual_expert_can_shuffle_token_coordinates(tmp_path: Path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_features, train_labels = _toy_trail_position_features(rows=12)
+    validation_features, validation_labels = _toy_trail_position_features(rows=8)
+    _write_feature_dir(train_dir, split="train", features=train_features, labels=train_labels)
+    _write_feature_dir(validation_dir, split="validation", features=validation_features, labels=validation_labels)
+
+    validation_scores = tmp_path / "coordinate_shuffle_scores"
+    report_path = tmp_path / "coordinate_shuffle_report.json"
+    status = fit_state_token_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_scores),
+            "--output-report",
+            str(report_path),
+            "--steps",
+            "4",
+            "--learning-rate",
+            "0.01",
+            "--token-dim",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--seed",
+            "7",
+            "--shuffle-token-coordinates",
+            "--token-coordinate-shuffle-seed",
+            "11",
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    validation_artifact = load_score_artifact(validation_scores)
+    assert status == 0
+    assert report["decision"] == "state_token_residual_token_coordinate_shuffle_control"
+    assert report["token_coordinate_control"] == {
+        "shuffle_token_coordinates": True,
+        "token_coordinate_shuffle_seed": 11,
+    }
+    assert validation_artifact.metadata["token_coordinates_shuffled"] is True
+    assert validation_artifact.metadata["token_coordinate_shuffle_seed"] == 11
+    assert np.isfinite(validation_artifact.probabilities).all()
+
+
 def _toy_trail_position_features(*, rows: int) -> tuple[np.ndarray, np.ndarray]:
     model = PresentStateTokenResidualDistinguisher(input_bits=3708, token_dim=4, hidden_bits=8)
     features = np.zeros((rows, 3708), dtype=np.float32)

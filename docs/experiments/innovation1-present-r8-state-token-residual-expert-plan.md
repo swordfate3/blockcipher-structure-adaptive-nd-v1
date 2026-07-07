@@ -200,6 +200,35 @@ work is not to promote this as a global classifier; it is to use the tokenized
 model for the intended residual-correction or token-coordinate control setting
 after the residual-focus 262144/class artifacts are available.
 
+Token-coordinate shuffle control was then added to the fitter:
+
+```text
+flag = --shuffle-token-coordinates
+control = permute family/depth/word/cell coordinate ids across the same 731
+  span feature values
+```
+
+| Seed | Normal State-Token AUC | Token-Coordinate-Shuffle AUC | Delta |
+|---:|---:|---:|---:|
+| 0 | `0.9979028701782227` | `0.9968814849853516` | `-0.0010213851928710938` |
+| 1 | `0.995269775390625` | `0.99542236328125` | `+0.000152587890625` |
+
+Interpretation:
+
+```text
+decision = hold_coordinate_structure_claim_for_current_state_token_smoke
+status = local_2048class_coordinate_control_diagnostic
+```
+
+The coordinate-shuffle control does not collapse. That is useful negative
+evidence: the current small state-token expert mostly benefits from the selected
+span scalar values, not from proven use of the true depth/word/cell coordinate
+layout. The model and fitter remain useful local infrastructure, but the route
+must not claim that token coordinates are already validated. The next
+architecture iteration should either optimize the intended residual-correction
+objective directly or add a stronger coordinate-dependent mechanism whose
+coordinate-shuffle control is expected to matter.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

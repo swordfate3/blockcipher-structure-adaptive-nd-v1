@@ -45,6 +45,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--shuffle-train-labels", action="store_true")
     parser.add_argument("--shuffle-seed", type=int, default=0)
+    parser.add_argument("--shuffle-token-coordinates", action="store_true")
+    parser.add_argument("--token-coordinate-shuffle-seed", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run-id", default="")
     parser.add_argument("--model-key", default=DEFAULT_MODEL_KEY)
@@ -67,6 +69,8 @@ def fit_state_token_residual_expert(
     standardize: bool = True,
     shuffle_train_labels: bool = False,
     shuffle_seed: int = 0,
+    shuffle_token_coordinates: bool = False,
+    token_coordinate_shuffle_seed: int = 0,
     seed: int = 0,
     run_id: str = "",
     model_key: str = DEFAULT_MODEL_KEY,
@@ -108,6 +112,8 @@ def fit_state_token_residual_expert(
         hidden_bits=hidden_bits,
         dropout=dropout,
     )
+    if shuffle_token_coordinates:
+        _shuffle_token_coordinates(model, seed=token_coordinate_shuffle_seed)
     fit = _fit_model(
         model,
         train_model_features,
@@ -139,6 +145,8 @@ def fit_state_token_residual_expert(
         "feature_standardize": bool(standardize),
         "fit_train_labels_shuffled": bool(shuffle_train_labels),
         "fit_label_shuffle_seed": int(shuffle_seed),
+        "token_coordinates_shuffled": bool(shuffle_token_coordinates),
+        "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
         "seed": int(seed),
         "feature_count": int(train_features.shape[1]),
         "selected_span_feature_bits": int(model.selected_span_feature_bits),
@@ -166,10 +174,9 @@ def fit_state_token_residual_expert(
     )
     report = {
         "status": "pass",
-        "decision": (
-            "state_token_residual_shuffle_train_labels_control"
-            if shuffle_train_labels
-            else "state_token_residual_feature_artifact_local_diagnostic"
+        "decision": _decision(
+            shuffle_train_labels=shuffle_train_labels,
+            shuffle_token_coordinates=shuffle_token_coordinates,
         ),
         "model_key": model_key,
         "expert_family": expert_family,
@@ -196,6 +203,10 @@ def fit_state_token_residual_expert(
         "label_control": {
             "shuffle_train_labels": bool(shuffle_train_labels),
             "shuffle_seed": int(shuffle_seed),
+        },
+        "token_coordinate_control": {
+            "shuffle_token_coordinates": bool(shuffle_token_coordinates),
+            "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
         },
         "train_metrics": _metrics(train_artifact.labels, train_artifact.probabilities),
         "validation_metrics": _metrics(validation_artifact.labels, validation_artifact.probabilities),
@@ -232,6 +243,23 @@ def _standardization_stats(features: np.ndarray, *, standardize: bool) -> tuple[
     scale = features.std(axis=0).astype(np.float32, copy=False)
     scale = np.where(scale < 1e-6, 1.0, scale).astype(np.float32, copy=False)
     return mean, scale
+
+
+def _decision(*, shuffle_train_labels: bool, shuffle_token_coordinates: bool) -> str:
+    if shuffle_token_coordinates:
+        return "state_token_residual_token_coordinate_shuffle_control"
+    if shuffle_train_labels:
+        return "state_token_residual_shuffle_train_labels_control"
+    return "state_token_residual_feature_artifact_local_diagnostic"
+
+
+def _shuffle_token_coordinates(model: PresentStateTokenResidualDistinguisher, *, seed: int) -> None:
+    generator = torch.Generator().manual_seed(seed)
+    permutation = torch.randperm(model.selected_span_feature_bits, generator=generator)
+    model.span_family_ids.copy_(model.span_family_ids[permutation])
+    model.span_depth_ids.copy_(model.span_depth_ids[permutation])
+    model.span_word_ids.copy_(model.span_word_ids[permutation])
+    model.span_cell_ids.copy_(model.span_cell_ids[permutation])
 
 
 def _fit_model(
@@ -287,6 +315,8 @@ def main(argv: list[str] | None = None) -> int:
         standardize=not args.no_standardize,
         shuffle_train_labels=args.shuffle_train_labels,
         shuffle_seed=args.shuffle_seed,
+        shuffle_token_coordinates=args.shuffle_token_coordinates,
+        token_coordinate_shuffle_seed=args.token_coordinate_shuffle_seed,
         seed=args.seed,
         run_id=args.run_id,
         model_key=args.model_key,
