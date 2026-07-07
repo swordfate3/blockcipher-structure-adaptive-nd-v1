@@ -104,6 +104,10 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "ran_pool_evaluator": bool(report.get("ran_pool_evaluator", False)),
         "pool_eval_status": str(report.get("pool_eval_status", "")),
         "pool_eval_decision": str(report.get("pool_eval_decision", "")),
+        "missing_pool3_score_artifact_count": int(report.get("missing_pool3_score_artifact_count", 0)),
+        "missing_pool3_score_artifacts": [
+            str(path) for path in report.get("missing_pool3_score_artifacts", [])
+        ],
         "repair_plan": str(report.get("repair_plan", "")),
         "repair_status": str(report.get("repair_status", "")),
         "repair_decision": str(report.get("repair_decision", "")),

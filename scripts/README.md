@@ -249,7 +249,9 @@ and passes that path to the one-shot advance command, so test watchers and real
 watchers can keep repair plans isolated from stale local audit files. The watch
 report also carries repair context and source-selection readiness fields from
 the advance report, so a tmux watcher summary can explain stale repair plans and
-missing train axis-spectrum reports without requiring a second JSON lookup.
+missing train axis-spectrum reports without requiring a second JSON lookup. When
+Pool 3 is waiting on fixed-score artifacts, it also carries the missing score
+artifact count and paths.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route

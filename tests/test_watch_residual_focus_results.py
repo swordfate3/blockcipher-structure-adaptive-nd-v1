@@ -228,6 +228,8 @@ def test_watch_residual_focus_results_waits_for_pool3_score_artifacts(tmp_path):
     assert report["ran_pool_evaluator"] is False
     assert report["pool_eval_status"] == "pending"
     assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
+    assert report["missing_pool3_score_artifact_count"] == advance["missing_pool3_score_artifact_count"]
+    assert report["missing_pool3_score_artifacts"] == advance["missing_pool3_score_artifacts"]
 
 
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
