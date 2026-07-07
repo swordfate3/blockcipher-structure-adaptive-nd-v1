@@ -789,6 +789,38 @@ from pushed source for a normal remote claim, and the local readiness audit
 must not be treated as permission to dirty-overlay or SSH-poll from the main
 thread.
 
+Remote package preparation:
+
+```text
+script =
+  scripts/plan-residual-focus-remote-package
+
+report =
+  outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json
+
+launcher =
+  configs/remote/generated/run_i1_present_r8_residual_focus_262k_20260707.cmd
+
+monitor =
+  configs/remote/generated/monitor_i1_present_r8_residual_focus_262k_20260707.sh
+
+status = pending
+decision = residual_focus_remote_package_blocked
+launch_allowed = false
+blockers =
+  source_gate_not_pass
+
+command_count = 20
+control_command_count = 8
+planned_output_count = 18
+```
+
+The package translates action-plan commands into remote Windows commands rooted
+under `G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_present_r8_residual_focus_262k`
+and uses the existing remote 262144/class trail-position run artifacts as frozen
+inputs. It is prepared only: the source-publication gate must pass before launch,
+and launch still needs the normal remote handoff and local tmux monitor discipline.
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a

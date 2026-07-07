@@ -75,6 +75,14 @@ commits. A passing remote-readiness report is therefore not enough to launch:
 remote training still requires a clean pushed source commit, generated launch
 artifacts, GPU/readiness confirmation, and monitor handoff.
 
+Use `scripts/plan-residual-focus-remote-package` after
+`scripts/plan-residual-focus-262k`, `scripts/gate-residual-focus-262k`, and
+`scripts/check-launch-source` have written their reports. It translates the
+residual-focus action plan into a prepared Windows `.cmd` and local monitor
+`.sh` package under `configs/remote/generated/`, while preserving the source
+gate as a launch blocker when commits are still unpushed. It does not SSH,
+launch, or mark the residual-focus 262144/class gate complete.
+
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
 neural metrics. It generates a small deterministic dataset from a plan row and

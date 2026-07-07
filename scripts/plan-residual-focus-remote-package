@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plan_residual_focus_remote_package import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
