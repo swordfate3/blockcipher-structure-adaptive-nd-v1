@@ -763,6 +763,17 @@ when every train-only source-selection report named by the action plan exists.
 The generated summary is carried in the advance report via
 `ran_source_selection_summary`, `source_selection_summary_status`,
 `source_selection_summary_decision`, and `source_selection_summary_output`.
+The same advance report also exposes report readiness:
+
+```text
+source_selection_report_count
+source_selection_existing_report_count
+source_selection_missing_report_count
+source_selection_missing_reports
+```
+
+This lets the watcher iteration report distinguish "waiting for train
+axis-spectrum reports" from "all reports exist and the summary was written."
 This automation does not alter the residual-focus gate, Pool 3 readiness, or
 claim scope.
 

@@ -92,6 +92,15 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert report["pool_eval_status"] == "pending"
     assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
     assert report["missing_pool3_score_artifact_count"] > 0
+    assert report["source_selection_report_count"] == 4
+    assert report["source_selection_existing_report_count"] == 0
+    assert report["source_selection_missing_report_count"] == 4
+    assert report["source_selection_missing_reports"] == [
+        str(tmp_path / "seed0" / "train_residual_loss_axis_spectrum.json"),
+        str(tmp_path / "seed0" / "train_hard_error_axis_spectrum.json"),
+        str(tmp_path / "seed1" / "train_residual_loss_axis_spectrum.json"),
+        str(tmp_path / "seed1" / "train_hard_error_axis_spectrum.json"),
+    ]
     assert status_report["pool_eval"] == str(pool_eval)
     assert status_report["pool_eval_status"] == "pending"
     assert status_report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
@@ -135,6 +144,10 @@ def test_advance_residual_focus_results_runs_source_selection_summary_when_repor
     assert report["source_selection_summary_status"] == "pass"
     assert report["source_selection_summary_decision"] == "residual_axis_spectrum_stable_groups_selected"
     assert report["source_selection_summary_output"] == str(summary_path)
+    assert report["source_selection_report_count"] == 4
+    assert report["source_selection_existing_report_count"] == 4
+    assert report["source_selection_missing_report_count"] == 0
+    assert report["source_selection_missing_reports"] == []
     assert summary["recommended_feature_prefixes"][:2] == ["aux_word_", "aux_depth_word_"]
     assert "validation" not in "\n".join(summary["spectrum_reports"])
 

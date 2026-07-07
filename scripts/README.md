@@ -217,6 +217,10 @@ present, it also writes the local source-selection summary at the action plan's
 change the residual-focus gate or Pool 3 promotion rule. For older action plans
 without that field, the fallback path is
 `<artifact-root>/residual_axis_spectrum_summary.json`.
+The advance report includes source-selection readiness counts and missing paths
+alongside the summary status, so watcher iteration reports can show whether the
+train residual-loss / hard-error axis-spectrum reports are still absent or the
+source-selection summary has already been generated.
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.

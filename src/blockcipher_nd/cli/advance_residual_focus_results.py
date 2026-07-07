@@ -150,6 +150,16 @@ def advance_residual_focus_results(
         "source_selection_summary_missing_report_count": int(
             source_selection_summary_report.get("missing_report_count", 0)
         ),
+        "source_selection_report_count": int(source_selection_summary_report.get("report_count", 0)),
+        "source_selection_existing_report_count": int(
+            source_selection_summary_report.get("existing_report_count", 0)
+        ),
+        "source_selection_missing_report_count": int(
+            source_selection_summary_report.get("missing_report_count", 0)
+        ),
+        "source_selection_missing_reports": [
+            str(path) for path in source_selection_summary_report.get("missing_reports", [])
+        ],
         "missing_pool3_score_artifact_count": len(pool_eval_report.get("missing_score_artifacts", [])),
         "missing_pool3_score_artifacts": [str(path) for path in pool_eval_report.get("missing_score_artifacts", [])],
         "should_run_pool": final_status["should_run_pool"],
@@ -180,12 +190,15 @@ def _source_selection_summary_when_ready(action_plan: Path, *, artifact_root: Pa
         )
     )
     reports = _source_selection_report_paths(plan)
+    existing = [path for path in reports if path.exists()]
     missing = [str(path) for path in reports if not path.exists()]
     if missing or not reports:
         return {
             "status": "pending",
             "decision": "wait_for_train_axis_spectrum_reports",
             "output": str(output),
+            "report_count": len(reports),
+            "existing_report_count": len(existing),
             "missing_reports": missing,
             "missing_report_count": len(missing),
         }
@@ -198,6 +211,9 @@ def _source_selection_summary_when_ready(action_plan: Path, *, artifact_root: Pa
         "status": str(summary.get("status", "")),
         "decision": str(summary.get("decision", "")),
         "output": str(output),
+        "report_count": len(reports),
+        "existing_report_count": len(existing),
+        "missing_reports": [],
         "missing_report_count": 0,
         "wrote_summary": True,
     }
