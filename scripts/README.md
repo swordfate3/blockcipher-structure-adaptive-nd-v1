@@ -202,6 +202,10 @@ planned outputs are all present and the gate is still pending, it runs
 all per-seed fixed-score artifacts are already present, it also runs the local
 Pool 3 fixed-fusion evaluator and writes
 `outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json`.
+When all train-only residual axis-spectrum reports named by the action plan are
+present, it also writes the local source-selection summary at the action plan's
+`source_selection_summary_output`. That summary is diagnostic only and does not
+change the residual-focus gate or Pool 3 promotion rule.
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.

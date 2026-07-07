@@ -12,6 +12,9 @@ from blockcipher_nd.cli.gate_residual_focus_262k import gate_residual_focus_262k
 from blockcipher_nd.cli.plan_residual_guided_diverse_pool import plan_residual_guided_diverse_pool
 from blockcipher_nd.cli.plan_residual_focus_repair import plan_residual_focus_repair
 from blockcipher_nd.cli.residual_focus_status import residual_focus_status
+from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
+    summarize_residual_axis_spectrum,
+)
 
 
 DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json")
@@ -67,10 +70,14 @@ def advance_residual_focus_results(
     ran_gate = False
     ran_pool_planner = False
     ran_pool_evaluator = False
+    ran_source_selection_summary = False
     gate_report: dict[str, Any] = _read_json_or_empty(gate_output)
     pool_report: dict[str, Any] = _read_json_or_empty(pool_output)
     pool_eval_report: dict[str, Any] = _read_json_or_empty(pool_eval_output)
     repair_report: dict[str, Any] = _read_json_or_empty(repair_output)
+    source_selection_summary_report = _source_selection_summary_when_ready(action_plan)
+    if source_selection_summary_report.get("status") in {"pass", "hold"}:
+        ran_source_selection_summary = bool(source_selection_summary_report.get("wrote_summary", False))
 
     if initial_status["status"] == "outputs_ready_gate_needed":
         gate_report = gate_residual_focus_262k(action_plan=action_plan)
@@ -123,6 +130,7 @@ def advance_residual_focus_results(
         "ran_gate": ran_gate,
         "ran_pool_planner": ran_pool_planner,
         "ran_pool_evaluator": ran_pool_evaluator,
+        "ran_source_selection_summary": ran_source_selection_summary,
         "initial_status": initial_status["status"],
         "final_status": final_status["status"],
         "gate_status": final_status["gate_status"],
@@ -133,6 +141,12 @@ def advance_residual_focus_results(
         "repair_plan": str(repair_output) if repair_report else "",
         "repair_status": str(repair_report.get("status", "")),
         "repair_decision": str(repair_report.get("decision", "")),
+        "source_selection_summary_output": str(source_selection_summary_report.get("output", "")),
+        "source_selection_summary_status": str(source_selection_summary_report.get("status", "")),
+        "source_selection_summary_decision": str(source_selection_summary_report.get("decision", "")),
+        "source_selection_summary_missing_report_count": int(
+            source_selection_summary_report.get("missing_report_count", 0)
+        ),
         "missing_pool3_score_artifact_count": len(pool_eval_report.get("missing_score_artifacts", [])),
         "missing_pool3_score_artifacts": [str(path) for path in pool_eval_report.get("missing_score_artifacts", [])],
         "should_run_pool": final_status["should_run_pool"],
@@ -143,6 +157,62 @@ def advance_residual_focus_results(
             "remote jobs, or make a formal/breakthrough SPN/PRESENT claim"
         ),
     }
+
+
+def _source_selection_summary_when_ready(action_plan: Path) -> dict[str, Any]:
+    plan = _read_json_or_empty(action_plan)
+    if not plan:
+        return {
+            "status": "pending",
+            "decision": "wait_for_residual_focus_action_plan",
+            "output": "",
+            "missing_report_count": 0,
+        }
+    output = Path(
+        str(
+            plan.get(
+                "source_selection_summary_output",
+                action_plan.parent / "residual_axis_spectrum_summary.json",
+            )
+        )
+    )
+    reports = _source_selection_report_paths(plan)
+    missing = [str(path) for path in reports if not path.exists()]
+    if missing or not reports:
+        return {
+            "status": "pending",
+            "decision": "wait_for_train_axis_spectrum_reports",
+            "output": str(output),
+            "missing_reports": missing,
+            "missing_report_count": len(missing),
+        }
+    summary = summarize_residual_axis_spectrum(
+        spectrum_reports=reports,
+        min_report_support=2,
+    )
+    _write_json(output, summary)
+    return {
+        "status": str(summary.get("status", "")),
+        "decision": str(summary.get("decision", "")),
+        "output": str(output),
+        "missing_report_count": 0,
+        "wrote_summary": True,
+    }
+
+
+def _source_selection_report_paths(plan: dict[str, Any]) -> list[Path]:
+    reports: list[Path] = []
+    for seed_plan in plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        outputs = seed_plan.get("source_selection_outputs", {})
+        if not isinstance(outputs, dict):
+            continue
+        for key in ("train_residual_loss_axis_spectrum", "train_hard_error_axis_spectrum"):
+            value = outputs.get(key)
+            if value:
+                reports.append(Path(str(value)))
+    return reports
 
 
 def _advance_status(

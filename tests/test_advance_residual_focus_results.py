@@ -97,6 +97,48 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert status_report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
 
 
+def test_advance_residual_focus_results_runs_source_selection_summary_when_reports_exist(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True, create_source_reports=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    action_payload = json.loads(action_plan.read_text(encoding="utf-8"))
+    summary_path = Path(action_payload["source_selection_summary_output"])
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["ran_source_selection_summary"] is True
+    assert report["source_selection_summary_status"] == "pass"
+    assert report["source_selection_summary_decision"] == "residual_axis_spectrum_stable_groups_selected"
+    assert report["source_selection_summary_output"] == str(summary_path)
+    assert summary["recommended_feature_prefixes"][:2] == ["aux_word_", "aux_depth_word_"]
+    assert "validation" not in "\n".join(summary["spectrum_reports"])
+
+
 def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts_exist(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True, create_score_artifacts=True)
     gate = tmp_path / "gate.json"
@@ -231,6 +273,7 @@ def _write_action_plan(
     tmp_path: Path,
     *,
     create_outputs: bool,
+    create_source_reports: bool = False,
     create_score_artifacts: bool = False,
     bad_score_seed: int | None = None,
     strong_uniform: bool = False,
@@ -252,14 +295,35 @@ def _write_action_plan(
             _write_slice(outputs["focus10_slice_eval"], loss_delta=-0.02, auc_delta=0.003)
         if create_score_artifacts:
             _write_pool3_score_artifacts(seed_root, seed=seed, bad_scores=seed == bad_score_seed)
+        source_selection_outputs = {
+            "train_residual_loss_axis_spectrum": str(seed_root / "train_residual_loss_axis_spectrum.json"),
+            "train_hard_error_axis_spectrum": str(seed_root / "train_hard_error_axis_spectrum.json"),
+        }
+        if create_source_reports:
+            _write_axis_spectrum_report(
+                seed_root / "train_residual_loss_axis_spectrum.json",
+                feature_dir=f"outputs/run/seed{seed}/train_span_summary_features",
+                target="residual_loss",
+                global_groups=[("aux_word_global_mean", 0.07), ("aux_depth_word_global_mean", 0.06)],
+                bucket_groups=[("aux_word_mean", 0.08)],
+            )
+            _write_axis_spectrum_report(
+                seed_root / "train_hard_error_axis_spectrum.json",
+                feature_dir=f"outputs/run/seed{seed}/train_span_summary_features",
+                target="residual_error_at_0_5",
+                global_groups=[("aux_cell_global_max", 0.48)],
+                bucket_groups=[("aux_cell_mean", 0.47)],
+            )
         seeds.append(
             {
                 "seed": seed,
                 "artifact_root": str(seed_root),
                 "validation_trail_position_scores": str(seed_root / "validation_trail_position_scores"),
                 "planned_outputs": {key: str(path) for key, path in outputs.items()},
+                "source_selection_outputs": source_selection_outputs,
             }
         )
+    source_selection_summary_output = tmp_path / "residual_axis_spectrum_summary.json"
     action_plan = tmp_path / "action_plan.json"
     action_plan.write_text(
         json.dumps(
@@ -268,11 +332,56 @@ def _write_action_plan(
                 "source_decision": "hold_trail_position_score_residual_mixed_runs",
                 "source_gate_assessment": "score_artifacts_ready_but_trail_position_gate_not_promoted",
                 "seeds": seeds,
+                "source_selection_summary_output": str(source_selection_summary_output),
             }
         ),
         encoding="utf-8",
     )
     return action_plan
+
+
+def _write_axis_spectrum_report(
+    path: Path,
+    *,
+    feature_dir: str,
+    target: str,
+    global_groups: list[tuple[str, float]],
+    bucket_groups: list[tuple[str, float]],
+) -> None:
+    def group_report(group: str, target_score: float) -> dict[str, object]:
+        return {
+            "group": group,
+            "feature_count": 1,
+            "label_auc": 0.5,
+            "label_score": 0.0,
+            "residual_error_auc": 0.5,
+            "residual_error_score": 0.0,
+            "target_auc": 0.5 + target_score,
+            "target_score": target_score,
+        }
+
+    path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_bucket_axis_spectrum_ready",
+                "feature_dir": feature_dir,
+                "target": target,
+                "row_count": 16,
+                "residual_error_rate_at_0_5": 0.125,
+                "global_top_groups": [group_report(group, score) for group, score in global_groups],
+                "bucket_reports": [
+                    {
+                        "bucket": 0,
+                        "rows": 8,
+                        "top_groups": [group_report(group, score) for group, score in bucket_groups],
+                    }
+                ],
+                "claim_scope": "train-only diagnostic",
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _write_pool3_score_artifacts(seed_root: Path, *, seed: int, bad_scores: bool = False) -> None:

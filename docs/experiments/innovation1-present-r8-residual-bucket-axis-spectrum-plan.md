@@ -758,6 +758,14 @@ residual-source recommendation prioritizes non-primary groups and stable
 `residual_loss` evidence over sparse hard-error-only spikes. It remains
 diagnostic only.
 
+`scripts/advance-residual-focus-results` now runs this summary automatically
+when every train-only source-selection report named by the action plan exists.
+The generated summary is carried in the advance report via
+`ran_source_selection_summary`, `source_selection_summary_status`,
+`source_selection_summary_decision`, and `source_selection_summary_output`.
+This automation does not alter the residual-focus gate, Pool 3 readiness, or
+claim scope.
+
 Local 2048/class sanity output from existing train spectrum reports:
 
 ```text
