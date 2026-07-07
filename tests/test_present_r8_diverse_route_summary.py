@@ -153,6 +153,46 @@ def test_present_r8_diverse_route_summary_runs_pool_planner_after_gate_pass(tmp_
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "waiting_for_pool_plan"
 
 
+def test_present_r8_diverse_route_summary_runs_residual_gate_after_outputs_ready(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "outputs_ready_gate_needed",
+            "gate_status": "missing",
+            "gate_decision": "",
+            "missing_output_count": 0,
+            "next_action": {"branch": "run_residual_focus_gate"},
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "run_residual_focus_gate"
+    assert report["selected_next_action"]["branch"] == "run_residual_focus_gate"
+    assert report["residual_focus"]["missing_output_count"] == 0
+    assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
+
+
 def test_present_r8_diverse_route_summary_repairs_failed_residual_focus_first(tmp_path: Path):
     residual_status = _write_json(
         tmp_path / "residual_status.json",

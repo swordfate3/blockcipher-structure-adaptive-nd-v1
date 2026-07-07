@@ -109,6 +109,13 @@ def _route_decision(
             "repair_residual_focus_before_diverse_pool",
             _compact_next_action(residual.get("next_action")),
         )
+    if residual_status == "outputs_ready_gate_needed":
+        next_action = _compact_next_action(residual.get("next_action"))
+        return (
+            "pending",
+            next_action["branch"] or "run_residual_focus_gate",
+            next_action,
+        )
     if pool3_route["status"] == "ready":
         return (
             "ready",
