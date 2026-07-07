@@ -184,8 +184,10 @@ and optional state-token plan-with-controls, then emits a single
 `selected_next_action` plus compact candidate-route statuses. Residual-focus is
 the primary gate: while it is pending, state-token holds are reported but do not
 override the wait; after residual-focus passes, Pool 3 readiness is preferred
-and state-token coordinate/control holds remain blocked. It does not train,
-SSH, sync, launch remote jobs, change labels, or make a result claim.
+and state-token coordinate/control holds remain blocked. Once Pool 3 fixed
+fusion has been evaluated, it reports the evaluator's document-or-repair next
+action instead of falling back to the residual-focus wait state. It does not
+train, SSH, sync, launch remote jobs, change labels, or make a result claim.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

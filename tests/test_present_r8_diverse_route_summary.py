@@ -153,6 +153,114 @@ def test_present_r8_diverse_route_summary_repairs_failed_residual_focus_first(tm
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
 
 
+def test_present_r8_diverse_route_summary_documents_evaluated_pool3_support(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "pool_evaluated",
+            "gate_status": "pass",
+            "gate_decision": "keep_residual_focus_262k_hard_slice_candidate",
+        },
+    )
+    pool_plan = _write_json(
+        tmp_path / "pool_plan.json",
+        {
+            "status": "pass",
+            "decision": "residual_guided_diverse_pool_ready",
+            "should_run_pool": True,
+            "selected_residual_candidate": "focus10",
+        },
+    )
+    pool_eval = _write_json(
+        tmp_path / "pool_eval.json",
+        {
+            "status": "pass",
+            "decision": "support_residual_guided_pool3_fixed_fusion",
+            "next_action": {"branch": "document_residual_guided_pool3_fixed_fusion"},
+        },
+    )
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "hold"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "document_residual_guided_pool3_fixed_fusion"
+    assert report["selected_next_action"]["branch"] == "document_residual_guided_pool3_fixed_fusion"
+    assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "evaluated"
+    assert report["candidate_routes"]["pool3_residual_guided"]["decision"] == "support_residual_guided_pool3_fixed_fusion"
+
+
+def test_present_r8_diverse_route_summary_repairs_pool3_control_hold(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "pool3_control_hold",
+            "gate_status": "pass",
+            "gate_decision": "keep_residual_focus_262k_hard_slice_candidate",
+        },
+    )
+    pool_plan = _write_json(
+        tmp_path / "pool_plan.json",
+        {
+            "status": "pass",
+            "decision": "residual_guided_diverse_pool_ready",
+            "should_run_pool": True,
+            "selected_residual_candidate": "focus10",
+        },
+    )
+    pool_eval = _write_json(
+        tmp_path / "pool_eval.json",
+        {
+            "status": "hold",
+            "decision": "residual_guided_pool3_fixed_fusion_diagnostic_only",
+            "next_action": {"branch": "repair_residual_guided_pool3_before_scaleup"},
+        },
+    )
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "ready"})
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "repair_residual_guided_pool3_before_scaleup"
+    assert report["selected_next_action"]["branch"] == "repair_residual_guided_pool3_before_scaleup"
+    assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "control_hold"
+    assert report["candidate_routes"]["pool3_residual_guided"]["decision"] == (
+        "residual_guided_pool3_fixed_fusion_diagnostic_only"
+    )
+
+
 def _write_json(path: Path, payload: dict[str, object]) -> Path:
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path

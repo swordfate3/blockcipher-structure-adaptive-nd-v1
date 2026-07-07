@@ -102,6 +102,20 @@ def _route_decision(
             "instantiate_residual_guided_pool3_fixed_fusion",
             _compact_next_action(pool3_route.get("next_action")),
         )
+    if pool3_route["status"] == "evaluated":
+        next_action = _compact_next_action(pool3_route.get("next_action"))
+        return (
+            "pass",
+            next_action["branch"] or "document_residual_guided_pool3_fixed_fusion",
+            next_action,
+        )
+    if pool3_route["status"] == "control_hold":
+        next_action = _compact_next_action(pool3_route.get("next_action"))
+        return (
+            "hold",
+            next_action["branch"] or "repair_residual_guided_pool3_before_scaleup",
+            next_action,
+        )
     if pool3_route["status"] == "waiting_for_pool3_score_artifacts":
         return (
             "pending",
@@ -132,6 +146,12 @@ def _pool3_route(
     if pool_eval_status == "pass":
         return {
             "status": "evaluated",
+            "decision": str(pool_eval.get("decision", "")),
+            "next_action": _compact_next_action(pool_eval.get("next_action")),
+        }
+    if pool_eval_status in {"hold", "fail"}:
+        return {
+            "status": "control_hold",
             "decision": str(pool_eval.get("decision", "")),
             "next_action": _compact_next_action(pool_eval.get("next_action")),
         }
