@@ -164,9 +164,10 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
     eval_plan = Path(f"{DEFAULT_SEED_PLAN_PREFIX}{seed}.csv")
     validation_trail_scores = run_root / "score_artifacts" / "trail_position"
     trail_models = _read_models_json(validation_trail_scores / "models.json")
-    checkpoint_path = str(trail_models.get("checkpoint_path", ""))
-    if not checkpoint_path:
+    remote_checkpoint_path = str(trail_models.get("checkpoint_path", ""))
+    if not remote_checkpoint_path:
         raise ValueError(f"{run_id}: trail_position checkpoint_path_missing")
+    checkpoint_path = _prefer_retrieved_checkpoint(run_root, remote_checkpoint_path)
     remote_checkpoint_reference = _is_windows_path(checkpoint_path)
 
     seed_root = artifact_root / f"seed{seed}"
@@ -232,6 +233,7 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "eval_row_index": 1,
         "validation_trail_position_scores": str(validation_trail_scores),
         "train_trail_position_checkpoint": checkpoint_path,
+        "remote_train_trail_position_checkpoint": remote_checkpoint_path,
         "remote_checkpoint_reference": remote_checkpoint_reference,
         "warnings": _seed_warnings(remote_checkpoint_reference),
         "artifact_root": str(seed_root),
@@ -252,6 +254,16 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
             )
         },
     }
+
+
+def _prefer_retrieved_checkpoint(run_root: Path, checkpoint_path: str) -> str:
+    if not _is_windows_path(checkpoint_path):
+        return checkpoint_path
+    checkpoint_name = checkpoint_path.replace("\\", "/").split("/")[-1]
+    local_checkpoint = run_root / "checkpoints" / checkpoint_name
+    if local_checkpoint.exists():
+        return str(local_checkpoint)
+    return checkpoint_path
 
 
 def _checkpoint_score_command(

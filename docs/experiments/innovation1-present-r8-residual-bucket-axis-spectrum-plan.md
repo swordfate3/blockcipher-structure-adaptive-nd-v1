@@ -739,13 +739,33 @@ decision = residual_focus_262k_execution_not_ready
 command_count = 20
 control_command_count = 8
 unsafe_command_count = 0
-remote_checkpoint_seed_count = 2
+remote_checkpoint_seed_count = 0
 missing_outputs_count = 8
 blockers =
   gate_missing_outputs
-  remote_checkpoint_reference_requires_remote_or_retrieved_checkpoint
 next_action =
-  publish_source_then_run_remote_or_retrieve_checkpoints
+  finish_residual_focus_262k_outputs
+```
+
+Checkpoint resolution update:
+
+```text
+planner behavior =
+  if models.json records a remote Windows checkpoint path but the retrieved
+  checkpoint exists under run_root/checkpoints/<same filename>, use the local
+  retrieved checkpoint for generated score-export commands and keep the remote
+  path as remote_train_trail_position_checkpoint for provenance.
+
+seed0 local checkpoint =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706/checkpoints/row0002_present_trail_position_stats_pairset_seed0.pt
+
+seed1 local checkpoint =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706/checkpoints/row0002_present_trail_position_stats_pairset_seed1.pt
+
+readiness impact =
+  remote_checkpoint_reference_requires_remote_or_retrieved_checkpoint removed;
+  the only current readiness blocker is the eight missing residual-focus
+  slice-evaluation outputs listed above.
 ```
 
 Current source-publication gate:
@@ -756,21 +776,18 @@ artifact = outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.js
 status = fail
 branch = main
 upstream = origin/main
-ahead = 86
-dirty = false
 errors =
   unpushed_commits
 should_push = true
 ```
 
-This means the generated command plan is structurally safe, but it is not a
-local execution plan in the current workspace. The train trail-position score
-exports reference Windows checkpoints under `G:\lxy`, so the residual-focus
-262144/class package should run from the pushed source on the remote
-workstation, or the required checkpoints/score artifacts must be retrieved
-first. The current Git source-publication gate is also failing only because
-`main` is ahead of `origin/main`; the worktree is clean. Do not treat the local
-readiness audit as permission to dirty-overlay or SSH-poll from the main thread.
+This means the generated command plan is structurally safe and no longer blocked
+by remote-only checkpoint paths. The remaining source-publication issue is that
+`main` is ahead of `origin/main`; the exact ahead count changes as local
+research commits accrue. The residual-focus 262144/class package should run
+from pushed source for a normal remote claim, and the local readiness audit
+must not be treated as permission to dirty-overlay or SSH-poll from the main
+thread.
 
 ## Claim Scope
 

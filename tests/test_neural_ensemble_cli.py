@@ -4126,6 +4126,71 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "does not SSH-poll" in report["claim_scope"]
 
 
+def test_plan_residual_focus_262k_prefers_retrieved_local_checkpoint(tmp_path):
+    run_root = tmp_path / "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706"
+    trail_scores = run_root / "score_artifacts" / "trail_position"
+    trail_scores.mkdir(parents=True)
+    remote_checkpoint = (
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+        "i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706\\"
+        "checkpoints\\row0002_present_trail_position_stats_pairset_seed0.pt"
+    )
+    local_checkpoint = run_root / "checkpoints" / "row0002_present_trail_position_stats_pairset_seed0.pt"
+    local_checkpoint.parent.mkdir(parents=True)
+    local_checkpoint.write_bytes(b"checkpoint")
+    (trail_scores / "models.json").write_text(
+        json.dumps(
+            {
+                "checkpoint_path": remote_checkpoint,
+                "model_key": "present_trail_position_stats_pairset",
+                "expert_family": "trail_position",
+            }
+        ),
+        encoding="utf-8",
+    )
+    postprocess = tmp_path / "postprocess.json"
+    postprocess.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "hold_trail_position_score_residual_mixed_runs",
+                "expected_score_rows": 262144,
+                "runs": [
+                    {
+                        "status": "pass",
+                        "run_id": run_root.name,
+                        "run_root": str(run_root),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "residual_focus_plan.json"
+
+    status = plan_residual_focus_262k_main(
+        [
+            "--postprocess-status",
+            str(postprocess),
+            "--artifact-root",
+            str(tmp_path / "residual_focus262k"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    command_text = "\n".join(report["commands"])
+    seed = report["seeds"][0]
+    assert status == 0
+    assert seed["train_trail_position_checkpoint"] == str(local_checkpoint)
+    assert seed["remote_train_trail_position_checkpoint"] == remote_checkpoint
+    assert seed["remote_checkpoint_reference"] is False
+    assert seed["warnings"] == []
+    assert str(local_checkpoint) in command_text
+    assert remote_checkpoint not in command_text
+
+
 def _write_residual_focus_slice_eval(
     path: Path,
     *,
