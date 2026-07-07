@@ -115,15 +115,20 @@ postprocess after the residual-focus monitor has retrieved outputs. If outputs
 are still missing it writes a pending report and exits without action. If the
 planned outputs are all present and the gate is still pending, it runs
 `scripts/gate-residual-focus-262k` through the local Python API, then runs
-`scripts/plan-residual-guided-diverse-pool`. It does not SSH, sync, launch
-remote jobs, or fit ensemble weights.
+`scripts/plan-residual-guided-diverse-pool`. If that Pool 3 plan is ready and
+all per-seed fixed-score artifacts are already present, it also runs the local
+Pool 3 fixed-fusion evaluator and writes
+`outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json`.
+It does not SSH, sync, launch remote jobs, or fit ensemble weights.
 
 Use `scripts/watch-residual-focus-results` when a local tmux watcher should keep
 running the same local-only postprocess loop. It repeatedly calls
 `advance-residual-focus-results`, writes an iteration report after every check,
 and exits only when the local postprocess reaches a pass/hold terminal state or
 when `--max-iterations` is reached. It is a local watcher; it does not replace
-the remote-result retrieval monitor and it does not contact the remote host.
+the remote-result retrieval monitor and it does not contact the remote host. Its
+watch report includes whether the residual gate, Pool 3 planner, and Pool 3
+fixed-fusion evaluator ran in the last iteration.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route

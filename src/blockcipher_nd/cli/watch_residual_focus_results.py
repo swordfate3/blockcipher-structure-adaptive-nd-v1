@@ -12,6 +12,7 @@ from blockcipher_nd.cli.advance_residual_focus_results import (
     DEFAULT_GATE_OUTPUT,
     DEFAULT_MONITOR_DIR,
     DEFAULT_OUTPUT as DEFAULT_ADVANCE_OUTPUT,
+    DEFAULT_POOL_EVAL_OUTPUT,
     DEFAULT_POOL_OUTPUT,
     DEFAULT_STATUS_OUTPUT,
     advance_residual_focus_results,
@@ -32,6 +33,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--action-plan", type=Path, default=DEFAULT_ACTION_PLAN)
     parser.add_argument("--gate-output", type=Path, default=DEFAULT_GATE_OUTPUT)
     parser.add_argument("--pool-output", type=Path, default=DEFAULT_POOL_OUTPUT)
+    parser.add_argument("--pool-eval-output", type=Path, default=DEFAULT_POOL_EVAL_OUTPUT)
     parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     parser.add_argument("--advance-output", type=Path, default=DEFAULT_ADVANCE_OUTPUT)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
@@ -49,9 +51,10 @@ def watch_residual_focus_results(
     pool_output: Path,
     status_output: Path,
     advance_output: Path,
-    output: Path | None = None,
     monitor_dir: Path,
     artifact_root: Path,
+    pool_eval_output: Path = DEFAULT_POOL_EVAL_OUTPUT,
+    output: Path | None = None,
     max_iterations: int = 0,
     sleep_seconds: float = 900.0,
 ) -> dict[str, Any]:
@@ -63,6 +66,7 @@ def watch_residual_focus_results(
             action_plan=action_plan,
             gate_output=gate_output,
             pool_output=pool_output,
+            pool_eval_output=pool_eval_output,
             status_output=status_output,
             monitor_dir=monitor_dir,
             artifact_root=artifact_root,
@@ -93,6 +97,9 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "terminal": terminal,
         "ran_gate": bool(report.get("ran_gate", False)),
         "ran_pool_planner": bool(report.get("ran_pool_planner", False)),
+        "ran_pool_evaluator": bool(report.get("ran_pool_evaluator", False)),
+        "pool_eval_status": str(report.get("pool_eval_status", "")),
+        "pool_eval_decision": str(report.get("pool_eval_decision", "")),
         "missing_output_count": int(report.get("missing_output_count", 0)),
         "next_action": report.get("next_action", {}),
         "claim_scope": (
@@ -113,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
         action_plan=args.action_plan,
         gate_output=args.gate_output,
         pool_output=args.pool_output,
+        pool_eval_output=args.pool_eval_output,
         status_output=args.status_output,
         advance_output=args.advance_output,
         output=args.output,

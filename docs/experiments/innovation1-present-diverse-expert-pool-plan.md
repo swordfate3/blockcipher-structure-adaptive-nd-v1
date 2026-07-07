@@ -523,6 +523,13 @@ score artifacts instead of trying to generate or retrieve them. It does not fit
 ensemble weights, contact the remote host, launch training, or upgrade the
 claim beyond application-level medium diagnostic evidence.
 
+`scripts/advance-residual-focus-results` and
+`scripts/watch-residual-focus-results` now call this fixed-fusion evaluator
+automatically after the residual-focus gate passes, the Pool 3 plan is ready,
+and all per-seed validation score artifacts are present. If the artifacts are
+not present yet, the route remains at `residual_guided_pool_ready` rather than
+pretending an ensemble result exists.
+
 The recovered r7 Pool 0 remains the near-neighbor control for historical
 context, but it is no longer the next mainline action. The next aggregation work
 should be residual-guided and same-protocol, not a wider pile of similar SPN

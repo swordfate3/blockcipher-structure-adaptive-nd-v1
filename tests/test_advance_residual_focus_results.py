@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
+
 from blockcipher_nd.cli.advance_residual_focus_results import main as advance_main
+from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
 
 def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
@@ -78,9 +81,56 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert gate_report["decision"] == "keep_residual_focus_262k_hard_slice_candidate"
     assert pool_report["decision"] == "residual_guided_diverse_pool_ready"
     assert pool_report["selected_residual_candidate"] == "focus10"
+    assert report["ran_pool_evaluator"] is False
 
 
-def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
+def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts_exist(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True, create_score_artifacts=True)
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    pool_eval_report = json.loads(pool_eval.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pass"
+    assert report["decision"] == "residual_guided_pool_evaluated"
+    assert report["ran_pool_evaluator"] is True
+    assert report["pool_eval_status"] == "pass"
+    assert pool_eval_report["decision"] == "residual_guided_pool3_fixed_fusion_evaluated"
+    assert [seed_report["seed"] for seed_report in pool_eval_report["seed_reports"]] == [0, 1]
+    assert all(seed_report["decision"] == "support_residual_guided_pool3_fixed_fusion" for seed_report in pool_eval_report["seed_reports"])
+
+
+def _write_action_plan(
+    tmp_path: Path,
+    *,
+    create_outputs: bool,
+    create_score_artifacts: bool = False,
+) -> Path:
     seeds = []
     for seed in [0, 1]:
         seed_root = tmp_path / f"seed{seed}"
@@ -96,9 +146,13 @@ def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
             _write_slice(outputs["focus10_shuffle_slice_eval"], loss_delta=0.03, auc_delta=-0.1)
             _write_slice(outputs["focus05_slice_eval"], loss_delta=-0.01, auc_delta=0.002)
             _write_slice(outputs["focus10_slice_eval"], loss_delta=-0.02, auc_delta=0.003)
+        if create_score_artifacts:
+            _write_pool3_score_artifacts(seed_root, seed=seed)
         seeds.append(
             {
                 "seed": seed,
+                "artifact_root": str(seed_root),
+                "validation_trail_position_scores": str(seed_root / "validation_trail_position_scores"),
                 "planned_outputs": {key: str(path) for key, path in outputs.items()},
             }
         )
@@ -115,6 +169,86 @@ def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
         encoding="utf-8",
     )
     return action_plan
+
+
+def _write_pool3_score_artifacts(seed_root: Path, *, seed: int) -> None:
+    _write_score_artifact(
+        seed_root / "validation_trail_position_scores",
+        "trail_position",
+        [0.10, 0.60, 0.40, 0.90],
+        family="trail_position_anchor",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "validation_raw117_scores",
+        "raw117",
+        [0.20, 0.55, 0.45, 0.80],
+        family="compressed_span_structural",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_focus10_validation_scores",
+        "residual_focus10",
+        [0.45, 0.10, 0.90, 0.55],
+        family="residual_focus_aux_word",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_uniform_validation_scores",
+        "residual_uniform",
+        [0.50, 0.50, 0.50, 0.50],
+        family="uniform_residual_control",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_focus10_labelshuffle_validation_scores",
+        "residual_focus10_labelshuffle",
+        [0.90, 0.80, 0.20, 0.10],
+        family="labelshuffle_residual_control",
+        seed=seed,
+    )
+
+
+def _write_score_artifact(
+    path: Path,
+    model_key: str,
+    probabilities: list[float],
+    *,
+    family: str,
+    seed: int,
+) -> None:
+    probs = np.array(probabilities, dtype=np.float32)
+    logits = np.log(np.clip(probs, 1e-6, 1.0 - 1e-6) / np.clip(1.0 - probs, 1e-6, 1.0))
+    write_score_artifact(
+        path,
+        EnsembleScoreArtifact(
+            labels=np.array([0, 0, 1, 1], dtype=np.float32),
+            probabilities=probs,
+            logits=logits.astype(np.float32),
+            sample_ids=np.array(["s0", "s1", "s2", "s3"], dtype=str),
+            metadata={
+                "cipher": "PRESENT-80",
+                "rounds": 8,
+                "seed": seed,
+                "samples_per_class": 262144,
+                "validation_samples_per_class": 262144,
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": "0x00000000000000000000",
+                "validation_key": "0x11111111111111111111",
+                "model_key": model_key,
+                "run_id": f"run_seed{seed}_{model_key}",
+                "checkpoint_path": f"/tmp/seed{seed}_{model_key}.pt",
+                "expert_family": family,
+                "candidate_status": "weak_positive",
+                "git_commit": "test",
+            },
+        ),
+    )
 
 
 def _write_slice(path: Path, *, loss_delta: float, auc_delta: float) -> None:

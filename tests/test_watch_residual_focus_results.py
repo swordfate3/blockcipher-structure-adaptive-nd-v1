@@ -11,6 +11,7 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=False)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     advance_output = tmp_path / "advance.json"
     output = tmp_path / "watch.json"
@@ -27,6 +28,8 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
             str(gate),
             "--pool-output",
             str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
             "--status-output",
             str(status_output),
             "--advance-output",
@@ -54,6 +57,7 @@ def test_watch_residual_focus_results_writes_report_each_iteration(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=False)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     advance_output = tmp_path / "advance.json"
     output = tmp_path / "watch.json"
@@ -70,6 +74,8 @@ def test_watch_residual_focus_results_writes_report_each_iteration(tmp_path):
             str(gate),
             "--pool-output",
             str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
             "--status-output",
             str(status_output),
             "--advance-output",
@@ -94,6 +100,7 @@ def test_watch_residual_focus_results_function_writes_iteration_report(tmp_path)
     action_plan = _write_action_plan(tmp_path, create_outputs=False)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     advance_output = tmp_path / "advance.json"
     output = tmp_path / "watch.json"
@@ -106,6 +113,7 @@ def test_watch_residual_focus_results_function_writes_iteration_report(tmp_path)
         action_plan=action_plan,
         gate_output=gate,
         pool_output=pool,
+        pool_eval_output=pool_eval,
         status_output=status_output,
         advance_output=advance_output,
         monitor_dir=tmp_path / "monitor",
@@ -125,6 +133,7 @@ def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     advance_output = tmp_path / "advance.json"
     output = tmp_path / "watch.json"
@@ -141,6 +150,8 @@ def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
             str(gate),
             "--pool-output",
             str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
             "--status-output",
             str(status_output),
             "--advance-output",
@@ -162,6 +173,8 @@ def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
     assert report["terminal"] is True
     assert advance["ran_gate"] is True
     assert advance["ran_pool_planner"] is True
+    assert report["ran_pool_evaluator"] is False
+    assert report["pool_eval_status"] == ""
 
 
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:

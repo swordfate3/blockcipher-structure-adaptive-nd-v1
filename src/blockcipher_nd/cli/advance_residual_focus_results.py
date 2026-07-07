@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.evaluate_residual_guided_diverse_pool import (
+    evaluate_residual_guided_diverse_pool,
+)
 from blockcipher_nd.cli.gate_residual_focus_262k import gate_residual_focus_262k
 from blockcipher_nd.cli.plan_residual_guided_diverse_pool import plan_residual_guided_diverse_pool
 from blockcipher_nd.cli.residual_focus_status import residual_focus_status
@@ -13,6 +16,7 @@ from blockcipher_nd.cli.residual_focus_status import residual_focus_status
 DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json")
 DEFAULT_GATE_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json")
 DEFAULT_POOL_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_plan.json")
+DEFAULT_POOL_EVAL_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json")
 DEFAULT_STATUS_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_status.json")
 DEFAULT_MONITOR_DIR = Path("outputs/remote_results/i1_present_r8_residual_focus_262k_retry1/monitor")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
@@ -29,6 +33,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--action-plan", type=Path, default=DEFAULT_ACTION_PLAN)
     parser.add_argument("--gate-output", type=Path, default=DEFAULT_GATE_OUTPUT)
     parser.add_argument("--pool-output", type=Path, default=DEFAULT_POOL_OUTPUT)
+    parser.add_argument("--pool-eval-output", type=Path, default=DEFAULT_POOL_EVAL_OUTPUT)
     parser.add_argument("--status-output", type=Path, default=DEFAULT_STATUS_OUTPUT)
     parser.add_argument("--monitor-dir", type=Path, default=DEFAULT_MONITOR_DIR)
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
@@ -44,6 +49,7 @@ def advance_residual_focus_results(
     status_output: Path,
     monitor_dir: Path,
     artifact_root: Path,
+    pool_eval_output: Path = DEFAULT_POOL_EVAL_OUTPUT,
 ) -> dict[str, Any]:
     initial_status = residual_focus_status(
         action_plan=action_plan,
@@ -54,8 +60,10 @@ def advance_residual_focus_results(
     )
     ran_gate = False
     ran_pool_planner = False
+    ran_pool_evaluator = False
     gate_report: dict[str, Any] = _read_json_or_empty(gate_output)
     pool_report: dict[str, Any] = _read_json_or_empty(pool_output)
+    pool_eval_report: dict[str, Any] = _read_json_or_empty(pool_eval_output)
 
     if initial_status["status"] == "outputs_ready_gate_needed":
         gate_report = gate_residual_focus_262k(action_plan=action_plan)
@@ -67,6 +75,17 @@ def advance_residual_focus_results(
         _write_json(pool_output, pool_report)
         ran_pool_planner = True
 
+    if pool_report.get("should_run_pool") is True:
+        candidate_pool_report = _evaluate_pool3_if_artifacts_ready(
+            action_plan=action_plan,
+            pool_plan=pool_output,
+            pool_report=pool_report,
+        )
+        if candidate_pool_report is not None:
+            pool_eval_report = candidate_pool_report
+            _write_json(pool_eval_output, pool_eval_report)
+            ran_pool_evaluator = True
+
     final_status = residual_focus_status(
         action_plan=action_plan,
         gate=gate_output,
@@ -75,17 +94,26 @@ def advance_residual_focus_results(
         artifact_root=artifact_root,
     )
     _write_json(status_output, final_status)
-    status, decision = _advance_status(final_status, ran_gate=ran_gate, ran_pool_planner=ran_pool_planner)
+    status, decision = _advance_status(
+        final_status,
+        ran_gate=ran_gate,
+        ran_pool_planner=ran_pool_planner,
+        ran_pool_evaluator=ran_pool_evaluator,
+        pool_eval_report=pool_eval_report,
+    )
     return {
         "status": status,
         "decision": decision,
         "ran_gate": ran_gate,
         "ran_pool_planner": ran_pool_planner,
+        "ran_pool_evaluator": ran_pool_evaluator,
         "initial_status": initial_status["status"],
         "final_status": final_status["status"],
         "gate_status": final_status["gate_status"],
         "gate_decision": final_status["gate_decision"],
         "pool_status": final_status["pool_status"],
+        "pool_eval_status": str(pool_eval_report.get("status", "")),
+        "pool_eval_decision": str(pool_eval_report.get("decision", "")),
         "should_run_pool": final_status["should_run_pool"],
         "missing_output_count": final_status["missing_output_count"],
         "next_action": final_status["next_action"],
@@ -101,7 +129,11 @@ def _advance_status(
     *,
     ran_gate: bool,
     ran_pool_planner: bool,
+    ran_pool_evaluator: bool,
+    pool_eval_report: dict[str, Any],
 ) -> tuple[str, str]:
+    if ran_pool_evaluator and pool_eval_report.get("status") == "pass":
+        return "pass", "residual_guided_pool_evaluated"
     if final_status["should_run_pool"]:
         return "pass", "residual_guided_pool_ready"
     if final_status["gate_status"] == "fail":
@@ -109,6 +141,69 @@ def _advance_status(
     if ran_gate or ran_pool_planner:
         return "processed", "residual_focus_postprocess_updated"
     return "pending", "wait_for_residual_focus_outputs"
+
+
+def _evaluate_pool3_if_artifacts_ready(
+    *,
+    action_plan: Path,
+    pool_plan: Path,
+    pool_report: dict[str, Any],
+) -> dict[str, Any] | None:
+    plan = _read_json_or_empty(action_plan)
+    selected = str(pool_report.get("selected_residual_candidate", ""))
+    if not selected:
+        return None
+    seed_reports: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for seed_plan in plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        paths = _pool3_artifact_paths(seed_plan, selected_residual_candidate=selected)
+        missing.extend(str(path) for path in paths.values() if not path.exists())
+        if missing:
+            continue
+        seed_report = evaluate_residual_guided_diverse_pool(
+            pool_plan=pool_plan,
+            trail_position_artifact=paths["trail_position_artifact"],
+            raw117_artifact=paths["raw117_artifact"],
+            residual_focus_artifact=paths["residual_focus_artifact"],
+            uniform_control_artifact=paths["uniform_control_artifact"],
+            labelshuffle_control_artifact=paths["labelshuffle_control_artifact"],
+        )
+        seed_report["seed"] = int(seed_plan.get("seed", len(seed_reports)))
+        seed_reports.append(seed_report)
+    if missing or not seed_reports:
+        return None
+    decisions = {str(report.get("decision", "")) for report in seed_reports}
+    return {
+        "status": "pass" if all(report.get("status") == "pass" for report in seed_reports) else "hold",
+        "decision": (
+            "residual_guided_pool3_fixed_fusion_evaluated"
+            if decisions == {"support_residual_guided_pool3_fixed_fusion"}
+            else "residual_guided_pool3_fixed_fusion_mixed_or_controlled"
+        ),
+        "selected_residual_candidate": selected,
+        "seed_reports": seed_reports,
+        "claim_scope": (
+            "application-level medium diagnostic fixed-fusion summary across retrieved "
+            "residual-focus seeds; not formal SPN/PRESENT evidence and not a breakthrough claim"
+        ),
+    }
+
+
+def _pool3_artifact_paths(
+    seed_plan: dict[str, Any],
+    *,
+    selected_residual_candidate: str,
+) -> dict[str, Path]:
+    artifact_root = Path(str(seed_plan.get("artifact_root", "")))
+    return {
+        "trail_position_artifact": Path(str(seed_plan.get("validation_trail_position_scores", ""))),
+        "raw117_artifact": artifact_root / "validation_raw117_scores",
+        "residual_focus_artifact": artifact_root / f"residual_{selected_residual_candidate}_validation_scores",
+        "uniform_control_artifact": artifact_root / "residual_uniform_validation_scores",
+        "labelshuffle_control_artifact": artifact_root / "residual_focus10_labelshuffle_validation_scores",
+    }
 
 
 def _read_json_or_empty(path: Path) -> dict[str, Any]:
@@ -131,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
         action_plan=args.action_plan,
         gate_output=args.gate_output,
         pool_output=args.pool_output,
+        pool_eval_output=args.pool_eval_output,
         status_output=args.status_output,
         monitor_dir=args.monitor_dir,
         artifact_root=args.artifact_root,
