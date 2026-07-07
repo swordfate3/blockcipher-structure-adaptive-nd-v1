@@ -19,6 +19,13 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
             "repair_active": False,
             "repair_stale_reason": "source_summary_not_current_context",
             "repair_context_current": False,
+            "source_selection_summary_status": "missing",
+            "source_selection_summary_decision": "wait_for_train_axis_spectrum_summary",
+            "source_selection_report_count": 4,
+            "source_selection_existing_report_count": 0,
+            "source_selection_missing_report_count": 4,
+            "source_selection_recommended_feature_prefixes": [],
+            "source_selection_selected_groups": [],
             "next_action": {"branch": "wait_for_residual_focus_outputs"},
         },
     )
@@ -57,6 +64,11 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["residual_focus"]["repair_active"] is False
     assert report["residual_focus"]["repair_stale_reason"] == "source_summary_not_current_context"
     assert report["residual_focus"]["repair_context_current"] is False
+    assert report["residual_focus"]["source_selection_summary_status"] == "missing"
+    assert report["residual_focus"]["source_selection_summary_decision"] == "wait_for_train_axis_spectrum_summary"
+    assert report["residual_focus"]["source_selection_missing_report_count"] == 4
+    assert report["residual_focus"]["source_selection_recommended_feature_prefixes"] == []
+    assert report["residual_focus"]["source_selection_selected_groups"] == []
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
     assert report["should_launch_remote"] is False

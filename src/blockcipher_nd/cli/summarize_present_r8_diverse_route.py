@@ -77,6 +77,26 @@ def summarize_present_r8_diverse_route(
             "repair_status": str(residual.get("repair_status", "")),
             "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
             "repair_context_current": bool(residual.get("repair_context_current", False)),
+            "source_selection_summary_status": str(
+                residual.get("source_selection_summary_status", "")
+            ),
+            "source_selection_summary_decision": str(
+                residual.get("source_selection_summary_decision", "")
+            ),
+            "source_selection_report_count": int(residual.get("source_selection_report_count", 0)),
+            "source_selection_existing_report_count": int(
+                residual.get("source_selection_existing_report_count", 0)
+            ),
+            "source_selection_missing_report_count": int(
+                residual.get("source_selection_missing_report_count", 0)
+            ),
+            "source_selection_recommended_feature_prefixes": [
+                str(prefix)
+                for prefix in residual.get("source_selection_recommended_feature_prefixes", [])
+            ],
+            "source_selection_selected_groups": [
+                str(group) for group in residual.get("source_selection_selected_groups", [])
+            ],
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
