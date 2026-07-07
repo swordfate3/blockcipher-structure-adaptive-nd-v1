@@ -2272,3 +2272,76 @@ Required controls before scale-up:
 3. same-protocol rerun on retrieved 262144/class artifacts before any
    1000000/class formal-training discussion.
 ```
+
+### V16 Addendum: Validation Bucket-Source Shuffle Control
+
+The missing validation-side bucket control was run after the initial V16
+candidate/control set. This control keeps the trained bucket-specific 117D
+experts, train labels, train bucket values, validation features, validation
+labels, and validation score artifacts fixed, but shuffles the validation
+bucket values before assigning validation rows to bucket experts.
+
+```text
+control =
+  shuffle validation bucket values only;
+  keep train bucket values unchanged;
+  keep train-derived bucket edges unchanged;
+  keep labels, sample_ids, features, and validation score artifacts unchanged
+bucket_feature = logit_gap_abs
+bucket_count = 5
+feature_scope = same raw117-compatible 117D prefixes
+steps = 1000
+learning_rate = 0.05
+l2 = 0.0003
+```
+
+Artifacts:
+
+```text
+seed0 validation-bucket-shuffle report =
+  outputs/local_audits/i1_present_r8_seed0_bucket_raw117_logitgap_valbucket_shuffle9300_report.json
+seed1 validation-bucket-shuffle report =
+  outputs/local_audits/i1_present_r8_seed1_bucket_raw117_logitgap_valbucket_shuffle9301_report.json
+
+seed0 validation-bucket-shuffle three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed0_trail_raw117_bucket_valshuffle_three_score_ensemble.json
+seed1 validation-bucket-shuffle three-score ensemble =
+  outputs/local_audits/i1_present_r8_seed1_trail_raw117_bucket_valshuffle_three_score_ensemble.json
+```
+
+Metrics:
+
+| Seed | Original Bucket Expert AUC | Validation-Bucket-Shuffled Expert AUC | Original Three-Score AUC | Val-Bucket-Shuffled Three-Score AUC | Original Three-vs-Two Delta | Shuffled Three-vs-Two Delta |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | `0.9999361038208008` | `0.9993181228637695` | `0.9999475479125977` | `0.9998664855957031` | `+0.0000057220458984375` | `-0.00007534027099609375` |
+| 1 | `0.9999246597290039` | `0.9993686676025391` | `0.9999303817749023` | `0.9998493194580078` | `+0.000011444091796875` | `-0.00006961822509765625` |
+
+Decision:
+
+```text
+decision = validation_bucket_shuffle_control_supports_real_bucket_alignment
+status = strengthens_v16_as_best_current_local_three-family_candidate
+action =
+  keep bucket-conditioned residual as a 262144/class migration candidate;
+  do not tune more 2048/class variants before 262k artifacts arrive;
+  treat this as local frozen-score control evidence only
+```
+
+Interpretation:
+
+```text
+This control strengthens the bucket-conditioned residual reading. The original
+three-score pool improves slightly over the trail+raw117 two-score anchor on
+both seeds. When only validation bucket assignments are shuffled, the bucket
+expert drops far below the original bucket expert and the three-score pool
+falls below the trail+raw117 two-score anchor on both seeds. That means the
+small V16 gain is not explained by merely adding a third score or by arbitrary
+validation partitioning; it depends on real alignment between the residual
+score-derived bucket and the held-out validation rows.
+
+This still does not make the result a breakthrough, remote result, formal
+SPN/PRESENT result, or publication-style ensemble claim. It is a tighter local
+2048/class frozen-score control that justifies migrating exactly this
+trail-position + matched raw117 + bucket-conditioned residual pool to the
+retrieved 262144/class artifacts, once those artifacts are complete.
+```
