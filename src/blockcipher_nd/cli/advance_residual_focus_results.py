@@ -170,7 +170,10 @@ def advance_residual_focus_results(
         "latest_progress": final_status["latest_progress"],
         "progress_summary": final_status["progress_summary"],
         "progress_by_seed_split": final_status["progress_by_seed_split"],
+        "planned_output_count": final_status["planned_output_count"],
+        "existing_planned_output_count": final_status["existing_planned_output_count"],
         "missing_output_count": final_status["missing_output_count"],
+        "missing_outputs": [str(path) for path in final_status["missing_outputs"]],
         "next_action": _advance_next_action(final_status, pool_eval_report),
         "claim_scope": (
             "local residual-focus postprocess advancement only; does not SSH, sync, launch "

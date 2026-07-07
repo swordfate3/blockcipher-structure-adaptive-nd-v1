@@ -111,11 +111,20 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     )
 
     report = json.loads(output.read_text(encoding="utf-8"))
+    action_payload = json.loads(action_plan.read_text(encoding="utf-8"))
+    expected_missing_outputs = sorted(
+        output_path
+        for seed_plan in action_payload["seeds"]
+        for output_path in seed_plan["planned_outputs"].values()
+    )
     assert status == 0
     assert report["status"] == "pending"
     assert report["decision"] == "wait_for_residual_focus_outputs"
     assert report["ran_gate"] is False
     assert report["ran_pool_planner"] is False
+    assert report["planned_output_count"] == 8
+    assert report["existing_planned_output_count"] == 0
+    assert report["missing_outputs"] == expected_missing_outputs
     assert report["latest_monitor_event"] == "running missing=8"
     assert report["progress_summary"]["event"] == "cache_positive_chunk"
     assert report["progress_summary"]["class_progress_fraction"] == 0.03125

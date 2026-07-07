@@ -77,6 +77,9 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     assert report["status"] == "pending"
     assert report["iteration_count"] == 1
     assert report["terminal"] is False
+    assert report["planned_output_count"] == 4
+    assert report["existing_planned_output_count"] == 0
+    assert report["missing_outputs"] == advance["missing_outputs"]
     assert advance["ran_gate"] is False
     assert advance["ran_pool_planner"] is False
     assert report["latest_monitor_event"] == "running missing=4"

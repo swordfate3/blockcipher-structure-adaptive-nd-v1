@@ -127,7 +127,10 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "source_selection_summary_status": str(report.get("source_selection_summary_status", "")),
         "source_selection_summary_decision": str(report.get("source_selection_summary_decision", "")),
         "source_selection_summary_output": str(report.get("source_selection_summary_output", "")),
+        "planned_output_count": int(report.get("planned_output_count", 0)),
+        "existing_planned_output_count": int(report.get("existing_planned_output_count", 0)),
         "missing_output_count": int(report.get("missing_output_count", 0)),
+        "missing_outputs": [str(path) for path in report.get("missing_outputs", [])],
         "next_action": report.get("next_action", {}),
         "claim_scope": (
             "local residual-focus watch report only; does not SSH, sync, launch remote jobs, "

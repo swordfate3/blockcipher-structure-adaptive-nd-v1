@@ -221,6 +221,9 @@ The advance report includes source-selection readiness counts and missing paths
 alongside the summary status, so watcher iteration reports can show whether the
 train residual-loss / hard-error axis-spectrum reports are still absent or the
 source-selection summary has already been generated.
+It also includes the planned residual-focus output count, existing planned
+output count, and full missing planned output paths, so a pending run can be
+distinguished from a partially retrieved or plan-misaligned artifact set.
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.
@@ -252,8 +255,9 @@ the advance report, so a tmux watcher summary can explain stale repair plans and
 missing train axis-spectrum reports without requiring a second JSON lookup. When
 Pool 3 is waiting on fixed-score artifacts, it also carries the missing score
 artifact count and paths. It also carries the latest monitor event and dataset
-cache progress summaries, allowing status reports to show which seed/split is
-currently generating or waiting.
+cache progress summaries, and it mirrors the planned/missing residual-focus
+output paths, allowing status reports to show which seed/split is currently
+generating or waiting and which local artifacts are still absent.
 
 Use `scripts/audit-integral-parity-signal` for local-only audits of
 `plaintext_integral_nibble` PRESENT rows before interpreting integral-route
