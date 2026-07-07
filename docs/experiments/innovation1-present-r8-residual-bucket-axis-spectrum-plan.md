@@ -452,6 +452,107 @@ evidence supports the residual-correction objective as tooling, not this
 specific bucket gate as a candidate for remote scale-up.
 ```
 
+## 2048/Class Residual-Focused Correction Follow-up
+
+The next local follow-up kept the same frozen base score and auxiliary feature
+family, but changed the fitting objective to focus on rows that the frozen base
+score finds least comfortable:
+
+```text
+base_score = logit_mean(trail_stats_logistic_scores, span_raw117_matched_scores)
+selected_prefixes = aux_depth_word_ + aux_word_
+bucket_count = 0
+reliability_features = enabled
+residual_focus =
+  rank train rows by abs(label - sigmoid(base_score))
+  give the top residual-loss rows full weight
+  give background rows weight 0.1
+validation = full held-out split, not residual-sliced
+```
+
+This directly tests the hypothesis from the previous section:
+
+```text
+The auxiliary depth-word/word family should be used to repair the frozen strong
+score's soft residual cases, not as a global classifier and not as a
+logit_gap_abs bucket gate.
+```
+
+New CLI options:
+
+```text
+--residual-focus-fraction
+--residual-focus-background-weight
+```
+
+Artifacts:
+
+```text
+seed0 focus 5% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus05_nobucket_report.json
+seed1 focus 5% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus05_nobucket_report.json
+
+seed0 focus 10% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus10_nobucket_report.json
+seed1 focus 10% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus10_nobucket_report.json
+
+seed0 focus 20% =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus20_nobucket_report.json
+seed1 focus 20% =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus20_nobucket_report.json
+
+seed0 focus 10% label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed0_aux_residual_focus10_labelshuffle_report.json
+seed1 focus 10% label-shuffle control =
+  outputs/local_audits/i1_present_r8_seed1_aux_residual_focus10_labelshuffle_report.json
+```
+
+Metrics:
+
+| Seed | Route | Focused Train Rows | Base Logit Mean AUC | Corrected AUC | Delta | Validation Accuracy |
+|---:|---|---:|---:|---:|---:|---:|
+| 0 | uniform no-bucket | n/a | `0.9999990463256836` | `0.9999990463256836` | `0.0` | `0.99951171875` |
+| 0 | focus 5% | `205` | `0.9999990463256836` | `1.0` | `+0.00000095367431640625` | `0.99951171875` |
+| 0 | focus 10% | `410` | `0.9999990463256836` | `1.0` | `+0.00000095367431640625` | `0.99951171875` |
+| 0 | focus 20% | `820` | `0.9999990463256836` | `1.0` | `+0.00000095367431640625` | `0.99951171875` |
+| 0 | focus 10% label-shuffle | `410` | `0.9999990463256836` | `0.8786773681640625` | `-0.1213216781616211` | `0.79345703125` |
+| 1 | uniform no-bucket | n/a | `0.999995231628418` | `0.9999971389770508` | `+0.0000019073486328125` | `0.9990234375` |
+| 1 | focus 5% | `205` | `0.999995231628418` | `1.0` | `+0.00000476837158203125` | `0.9990234375` |
+| 1 | focus 10% | `410` | `0.999995231628418` | `1.0` | `+0.00000476837158203125` | `0.9990234375` |
+| 1 | focus 20% | `820` | `0.999995231628418` | `0.9999990463256836` | `+0.000003814697265625` | `0.99951171875` |
+| 1 | focus 10% label-shuffle | `410` | `0.999995231628418` | `0.9135026931762695` | `-0.08649253845214844` | `0.830078125` |
+
+Decision:
+
+```text
+decision = keep_residual_focused_aux_correction_as_local_candidate
+status = local_2048class_candidate_needs_medium_scale_gate
+action =
+  keep focus 5% and focus 10% as the current best residual-correction variants;
+  do not claim a breakthrough from 2048/class saturated validation;
+  do not use the older logit_gap_abs bucketed gate as the promoted route;
+  next meaningful experiment should run the residual-focused no-bucket
+  correction at 262144/class with the same frozen base artifacts, if source
+  publication/push gate is available
+```
+
+Interpretation:
+
+```text
+The residual-focused objective is a stronger match to the observed failure
+mode than global aux voting or bucketed aux classification. Across seed0 and
+seed1, focus 5% and focus 10% reach AUC 1.0 on this local 2048/class held-out
+split, while the focus 10% label-shuffle control drops sharply. This supports
+the route as a local candidate.
+
+However, this remains a tiny saturated validation setting: the base score is
+already between 0.999995 and 0.999999 AUC. The useful claim is not "formal
+PRESENT r8 solved"; it is "the residual-focused correction objective is now the
+best local next candidate for a medium-scale SPN/PRESENT diagnostic."
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a

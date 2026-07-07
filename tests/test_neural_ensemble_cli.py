@@ -1028,6 +1028,10 @@ def test_fit_residual_correction_feature_expert_writes_corrected_artifact(tmp_pa
             "0.2",
             "--l2",
             "0.0",
+            "--residual-focus-fraction",
+            "0.25",
+            "--residual-focus-background-weight",
+            "0.2",
             "--output-train-dir",
             str(train_output),
             "--output-validation-dir",
@@ -1045,9 +1049,13 @@ def test_fit_residual_correction_feature_expert_writes_corrected_artifact(tmp_pa
     assert report["feature_selection"]["include_feature_prefixes"] == ["aux_word_"]
     assert report["selected_feature_count"] == 1
     assert report["bucket_count"] == 2
+    assert report["fit"]["residual_focus"]["mode"] == "top_base_residual_loss"
+    assert report["fit"]["residual_focus"]["focused_rows"] == 2
     assert report["validation_metrics"]["auc"] > report["validation_base_logit_mean_metrics"]["auc"]
     assert report["delta_validation_corrected_vs_base_logit_mean_auc"] > 0.0
     assert validation_metadata["feature_model"] == "residual_logit_correction"
+    assert validation_metadata["residual_focus_fraction"] == 0.25
+    assert validation_metadata["residual_focus_background_weight"] == 0.2
     assert validation_metadata["score_split"] == "validation"
     assert validation_metadata["base_model_order"] == ["trail", "raw117"]
     assert validation_metadata["base_run_order"] == ["trail", "raw117"]

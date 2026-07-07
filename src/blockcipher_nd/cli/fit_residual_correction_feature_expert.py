@@ -69,6 +69,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--learning-rate", type=float, default=0.05)
     parser.add_argument("--l2", type=float, default=0.001)
+    parser.add_argument(
+        "--residual-focus-fraction",
+        type=float,
+        default=0.0,
+        help=(
+            "If positive, give top train rows by frozen-base residual loss full "
+            "weight and down-weight the background rows."
+        ),
+    )
+    parser.add_argument(
+        "--residual-focus-background-weight",
+        type=float,
+        default=0.1,
+        help="Background train-row weight when --residual-focus-fraction is positive.",
+    )
     parser.add_argument("--no-standardize", action="store_true")
     parser.add_argument("--no-reliability-features", action="store_true")
     parser.add_argument("--no-bucket-interactions", action="store_true")
@@ -106,6 +121,8 @@ def fit_residual_correction_feature_expert(
     steps: int = 1000,
     learning_rate: float = 0.05,
     l2: float = 0.001,
+    residual_focus_fraction: float = 0.0,
+    residual_focus_background_weight: float = 0.1,
     standardize: bool = True,
     include_reliability_features: bool = True,
     include_bucket_interactions: bool = True,
@@ -130,6 +147,10 @@ def fit_residual_correction_feature_expert(
         raise ValueError("learning_rate must be positive")
     if l2 < 0.0:
         raise ValueError("l2 must be non-negative")
+    if residual_focus_fraction < 0.0 or residual_focus_fraction >= 1.0:
+        raise ValueError("residual_focus_fraction must be in [0, 1)")
+    if residual_focus_background_weight < 0.0 or residual_focus_background_weight > 1.0:
+        raise ValueError("residual_focus_background_weight must be in [0, 1]")
     if bucket_count == 0 and (shuffle_train_bucket_values or shuffle_validation_bucket_values):
         raise ValueError("bucket shuffles require bucket_count >= 2")
 
@@ -176,12 +197,19 @@ def fit_residual_correction_feature_expert(
     )
 
     fit_labels = train_features["labels"].astype(np.float64, copy=True)
+    train_sample_weights, sample_weight_report = _residual_focus_weights(
+        labels=train_features["labels"].astype(np.float64, copy=False),
+        base_logits=train_base_logits,
+        residual_focus_fraction=residual_focus_fraction,
+        background_weight=residual_focus_background_weight,
+    )
     if shuffle_train_labels:
         fit_labels = np.random.default_rng(shuffle_seed).permutation(fit_labels)
     fitted = _fit_logit_correction(
         train_design,
         train_base_logits,
         fit_labels,
+        sample_weights=train_sample_weights,
         steps=steps,
         learning_rate=learning_rate,
         l2=l2,
@@ -209,6 +237,8 @@ def fit_residual_correction_feature_expert(
         "feature_learning_rate": float(learning_rate),
         "feature_l2": float(l2),
         "feature_standardize": bool(standardize),
+        "residual_focus_fraction": float(residual_focus_fraction),
+        "residual_focus_background_weight": float(residual_focus_background_weight),
         "feature_count": int(train_selected.shape[1]),
         "feature_original_count": int(train_features["features"].shape[1]),
         "correction_feature_count": int(train_design.shape[1]),
@@ -280,6 +310,7 @@ def fit_residual_correction_feature_expert(
             "learning_rate": float(learning_rate),
             "l2": float(l2),
             "standardize": bool(standardize),
+            "residual_focus": sample_weight_report,
             "weight_count": int(len(correction_weights)),
             "weight_l2_norm": float(np.linalg.norm(correction_weights)),
             "weight_abs_max": float(np.max(np.abs(correction_weights))) if len(correction_weights) else 0.0,
@@ -411,10 +442,58 @@ def _bucket_rows(bucket_ids: np.ndarray, bucket_count: int) -> list[dict[str, in
     ]
 
 
+def _residual_focus_weights(
+    *,
+    labels: np.ndarray,
+    base_logits: np.ndarray,
+    residual_focus_fraction: float,
+    background_weight: float,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    base_probabilities = _sigmoid(base_logits)
+    residual_loss = np.abs(labels.astype(np.float64, copy=False) - base_probabilities)
+    if residual_focus_fraction <= 0.0:
+        weights = np.ones_like(residual_loss, dtype=np.float64)
+        return weights, {
+            "mode": "uniform",
+            "residual_focus_fraction": 0.0,
+            "background_weight": 1.0,
+            "focused_rows": int(len(weights)),
+            "total_rows": int(len(weights)),
+            "effective_weight_sum": float(weights.sum()),
+            "residual_loss_mean": float(residual_loss.mean()) if len(residual_loss) else 0.0,
+            "residual_loss_threshold": None,
+        }
+
+    focus_count = int(np.ceil(len(residual_loss) * residual_focus_fraction))
+    focus_count = max(1, min(len(residual_loss), focus_count))
+    order = np.argsort(residual_loss)
+    focus_indices = order[-focus_count:]
+    weights = np.full(len(residual_loss), float(background_weight), dtype=np.float64)
+    weights[focus_indices] = 1.0
+    mean_weight = float(weights.mean()) if len(weights) else 1.0
+    if mean_weight > 0.0:
+        weights = weights / mean_weight
+    threshold = float(residual_loss[focus_indices].min()) if len(focus_indices) else None
+    return weights, {
+        "mode": "top_base_residual_loss",
+        "residual_focus_fraction": float(residual_focus_fraction),
+        "background_weight": float(background_weight),
+        "focused_rows": int(focus_count),
+        "total_rows": int(len(weights)),
+        "effective_weight_sum": float(weights.sum()),
+        "residual_loss_mean": float(residual_loss.mean()) if len(residual_loss) else 0.0,
+        "focused_residual_loss_mean": float(residual_loss[focus_indices].mean())
+        if len(focus_indices)
+        else 0.0,
+        "residual_loss_threshold": threshold,
+    }
+
+
 def _fit_logit_correction(
     features: np.ndarray,
     base_logits: np.ndarray,
     labels: np.ndarray,
+    sample_weights: np.ndarray,
     *,
     steps: int,
     learning_rate: float,
@@ -433,12 +512,13 @@ def _fit_logit_correction(
     weights = np.zeros(features.shape[1], dtype=np.float64)
     bias = 0.0
     y = labels.astype(np.float64, copy=False)
-    n = max(1, len(y))
+    row_weights = sample_weights.astype(np.float64, copy=False)
+    weight_sum = max(float(row_weights.sum()), 1.0)
     for _ in range(steps):
         probabilities = _sigmoid(base_logits + x @ weights + bias)
-        error = probabilities - y
-        grad_w = (x.T @ error) / n + l2 * weights
-        grad_b = float(error.mean())
+        error = (probabilities - y) * row_weights
+        grad_w = (x.T @ error) / weight_sum + l2 * weights
+        grad_b = float(error.sum() / weight_sum)
         weights -= learning_rate * grad_w
         bias -= learning_rate * grad_b
     return {"weights": weights, "bias": bias, "mean": mean, "scale": scale}
@@ -471,6 +551,8 @@ def main(argv: list[str] | None = None) -> int:
         steps=args.steps,
         learning_rate=args.learning_rate,
         l2=args.l2,
+        residual_focus_fraction=args.residual_focus_fraction,
+        residual_focus_background_weight=args.residual_focus_background_weight,
         standardize=not args.no_standardize,
         include_reliability_features=not args.no_reliability_features,
         include_bucket_interactions=not args.no_bucket_interactions,
