@@ -104,6 +104,21 @@ def _watch_report(report: dict[str, Any], *, iteration_count: int, terminal: boo
         "ran_pool_evaluator": bool(report.get("ran_pool_evaluator", False)),
         "pool_eval_status": str(report.get("pool_eval_status", "")),
         "pool_eval_decision": str(report.get("pool_eval_decision", "")),
+        "repair_plan": str(report.get("repair_plan", "")),
+        "repair_status": str(report.get("repair_status", "")),
+        "repair_decision": str(report.get("repair_decision", "")),
+        "repair_source_summary": str(report.get("repair_source_summary", "")),
+        "repair_context_current": bool(report.get("repair_context_current", False)),
+        "repair_primary_branch": str(report.get("repair_primary_branch", "")),
+        "source_selection_report_count": int(report.get("source_selection_report_count", 0)),
+        "source_selection_existing_report_count": int(report.get("source_selection_existing_report_count", 0)),
+        "source_selection_missing_report_count": int(report.get("source_selection_missing_report_count", 0)),
+        "source_selection_missing_reports": [
+            str(path) for path in report.get("source_selection_missing_reports", [])
+        ],
+        "source_selection_summary_status": str(report.get("source_selection_summary_status", "")),
+        "source_selection_summary_decision": str(report.get("source_selection_summary_decision", "")),
+        "source_selection_summary_output": str(report.get("source_selection_summary_output", "")),
         "missing_output_count": int(report.get("missing_output_count", 0)),
         "next_action": report.get("next_action", {}),
         "claim_scope": (

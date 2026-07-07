@@ -51,6 +51,8 @@ def test_watch_residual_focus_results_runs_one_pending_iteration(tmp_path):
     assert report["terminal"] is False
     assert advance["ran_gate"] is False
     assert advance["ran_pool_planner"] is False
+    assert report["source_selection_report_count"] == 0
+    assert report["source_selection_missing_report_count"] == 0
 
 
 def test_watch_residual_focus_results_passes_repair_output_to_advance(tmp_path):
@@ -93,10 +95,13 @@ def test_watch_residual_focus_results_passes_repair_output_to_advance(tmp_path):
     )
 
     advance = json.loads(advance_output.read_text(encoding="utf-8"))
+    report = json.loads(output.read_text(encoding="utf-8"))
     status_report = json.loads(status_output.read_text(encoding="utf-8"))
     assert status == 0
     assert advance["repair_plan"] == str(repair)
     assert status_report["repair_plan"] == str(repair)
+    assert report["repair_plan"] == str(repair)
+    assert report["repair_context_current"] is False
 
 
 def test_watch_residual_focus_results_writes_report_each_iteration(tmp_path):
