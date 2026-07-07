@@ -85,6 +85,14 @@ launch, or mark the residual-focus 262144/class gate complete.
 The generated `launch_*.sh` wrapper is also gated: it reads the package JSON and
 exits with `launch_blocked.marker` before SSH when `launch_allowed` is not true.
 
+`scripts/plan-residual-focus-262k` also emits `source_selection_commands` for
+train-only `scripts/analyze-residual-bucket-axis-spectrum` diagnostics. These
+commands rank SPN feature families under `residual_loss` and hard-error targets
+using train frozen scores only, so they can guide the next residual expert
+source without selecting structure from held-out validation labels. They are
+local analysis commands, not remote launch commands and not residual-focus gate
+outputs.
+
 Use `scripts/plan-residual-guided-diverse-pool` after
 `scripts/gate-residual-focus-262k` has written its report. It is a local-only
 guard for the r8 Pool 3 diverse expert route: when the residual-focus gate is

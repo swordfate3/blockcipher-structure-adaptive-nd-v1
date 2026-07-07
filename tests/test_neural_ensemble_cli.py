@@ -4086,6 +4086,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     report = json.loads(output.read_text(encoding="utf-8"))
     command_text = "\n".join(report["commands"])
     control_text = "\n".join(report["control_commands"])
+    source_selection_text = "\n".join(report["source_selection_commands"])
     seed = report["seeds"][0]
     assert status == 0
     assert report["status"] == "pass"
@@ -4095,6 +4096,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert report["expected_score_rows"] == 262144
     assert report["candidates"] == ["focus05", "focus10"]
     assert report["controls"] == ["uniform_no_focus", "focus10_label_shuffle"]
+    assert report["source_selection_targets"] == ["residual_loss", "residual_error_at_0_5"]
     assert seed["seed"] == 1
     assert seed["eval_plan"].endswith("innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv")
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in seed["train_trail_position_checkpoint"]
@@ -4121,8 +4123,27 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "--shuffle-train-labels" in control_text
     assert "residual_focus10_labelshuffle_slice_eval.json" in control_text
     assert "residual_uniform_slice_eval.json" in control_text
+    assert "scripts/analyze-residual-bucket-axis-spectrum" in source_selection_text
+    assert "--feature-dir" in source_selection_text
+    assert "train_span_summary_features" in source_selection_text
+    assert "validation_span_summary_features" not in source_selection_text
+    assert "--bucket-artifacts" in source_selection_text
+    assert "train_trail_position_scores" in source_selection_text
+    assert "train_raw117_scores" in source_selection_text
+    assert "--target residual_loss" in source_selection_text
+    assert "--target residual_error_at_0_5" in source_selection_text
+    assert "train_residual_loss_axis_spectrum.json" in source_selection_text
+    assert "train_hard_error_axis_spectrum.json" in source_selection_text
+    assert seed["source_selection_outputs"]["train_residual_loss_axis_spectrum"].endswith(
+        "train_residual_loss_axis_spectrum.json"
+    )
+    assert seed["source_selection_outputs"]["train_hard_error_axis_spectrum"].endswith(
+        "train_hard_error_axis_spectrum.json"
+    )
     assert "cmd.exe /k" not in command_text
+    assert "cmd.exe /k" not in source_selection_text
     assert "SSH" not in command_text
+    assert "SSH" not in source_selection_text
     assert "does not SSH-poll" in report["claim_scope"]
 
 

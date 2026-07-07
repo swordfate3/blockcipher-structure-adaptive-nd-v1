@@ -690,6 +690,13 @@ evaluation =
   train-derived hard residual slice metrics from
   scripts/evaluate-residual-slice-correction
 
+source selection =
+  train-only residual bucket axis spectra from
+  scripts/analyze-residual-bucket-axis-spectrum
+  targets =
+    residual_loss
+    residual_error_at_0_5
+
 gate =
   scripts/gate-residual-focus-262k
 
@@ -702,6 +709,30 @@ the 262144/class claim by itself. It is the command skeleton to run once the
 source-publication and trail-position retrieval gates are both satisfied. If
 the source gate assessment is mixed, the generated plan is only a residual
 diagnostic follow-up, not promotion of the old trail-position scale gate.
+
+The planner now emits `source_selection_commands` in addition to the candidate
+and control commands. These commands use only the train compressed-span summary
+features and train frozen trail+raw117 score artifacts:
+
+```text
+train_residual_loss_axis_spectrum =
+  train_span_summary_features
+  train_trail_position_scores
+  train_raw117_scores
+  target = residual_loss
+
+train_hard_error_axis_spectrum =
+  train_span_summary_features
+  train_trail_position_scores
+  train_raw117_scores
+  target = residual_error_at_0_5
+```
+
+They are deliberately not validation-spectrum selection commands. Their role is
+to identify which SPN feature families should seed the next residual expert
+after the 262144/class residual-focus gate is available. They do not block or
+pass the residual-focus gate, do not launch remote work, and do not make a
+medium/formal claim by themselves.
 
 The companion gate consumes the action plan's planned outputs after the
 residual-focus commands finish. It keeps a candidate only when:

@@ -28,6 +28,7 @@ RAW117_PREFIXES = (
     "primary_depth_trailword_",
 )
 RESIDUAL_PREFIXES = ("aux_depth_word_", "aux_word_")
+SOURCE_SELECTION_TARGETS = ("residual_loss", "residual_error_at_0_5")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -108,9 +109,13 @@ def plan_residual_focus_262k(
         "residual_feature_prefixes": list(RESIDUAL_PREFIXES),
         "candidates": ["focus05", "focus10"],
         "controls": ["uniform_no_focus", "focus10_label_shuffle"],
+        "source_selection_targets": list(SOURCE_SELECTION_TARGETS),
         "seeds": seed_plans,
         "commands": [command for seed in seed_plans for command in seed["commands"]],
         "control_commands": [command for seed in seed_plans for command in seed["control_commands"]],
+        "source_selection_commands": [
+            command for seed in seed_plans for command in seed["source_selection_commands"]
+        ],
         "next_action": (
             "Run these commands only after the 262k trail-position postprocess remains pass; "
             "compare global metrics and train-derived hard residual slice metrics before any "
@@ -199,6 +204,8 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "focus10_shuffle_validation_scores": seed_root / "residual_focus10_labelshuffle_validation_scores",
         "focus10_shuffle_report": seed_root / "residual_focus10_labelshuffle_report.json",
         "focus10_shuffle_slice_eval": seed_root / "residual_focus10_labelshuffle_slice_eval.json",
+        "train_residual_loss_axis_spectrum": seed_root / "train_residual_loss_axis_spectrum.json",
+        "train_hard_error_axis_spectrum": seed_root / "train_hard_error_axis_spectrum.json",
     }
     commands = [
         _feature_export_command(eval_plan, seed, "train", paths["train_feature_dir"], None, paths),
@@ -225,6 +232,10 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         ),
         _slice_eval_command(paths, validation_trail_scores, corrected_key="focus10_shuffle", focus_fraction=0.10),
     ]
+    source_selection_commands = [
+        _axis_spectrum_command(paths, target="residual_loss", output_key="train_residual_loss_axis_spectrum"),
+        _axis_spectrum_command(paths, target="residual_error_at_0_5", output_key="train_hard_error_axis_spectrum"),
+    ]
     return {
         "seed": seed,
         "run_id": run_id,
@@ -239,6 +250,11 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "artifact_root": str(seed_root),
         "commands": commands,
         "control_commands": control_commands,
+        "source_selection_commands": source_selection_commands,
+        "source_selection_outputs": {
+            "train_residual_loss_axis_spectrum": str(paths["train_residual_loss_axis_spectrum"]),
+            "train_hard_error_axis_spectrum": str(paths["train_hard_error_axis_spectrum"]),
+        },
         "planned_outputs": {
             key: str(paths[key])
             for key in (
@@ -415,6 +431,32 @@ def _slice_eval_command(
             _format_fraction(focus_fraction),
             "--output",
             str(paths[f"{corrected_key}_slice_eval"]),
+        ]
+    )
+
+
+def _axis_spectrum_command(paths: dict[str, Path], *, target: str, output_key: str) -> str:
+    return _command(
+        [
+            "UV_CACHE_DIR=/tmp/uv-cache",
+            "uv",
+            "run",
+            "scripts/analyze-residual-bucket-axis-spectrum",
+            "--feature-dir",
+            str(paths["train_span_summary"]),
+            "--bucket-artifacts",
+            str(paths["train_trail_scores"]),
+            str(paths["train_raw117_scores"]),
+            "--bucket-feature",
+            "logit_gap_abs",
+            "--bucket-count",
+            "5",
+            "--top-groups",
+            "12",
+            "--target",
+            target,
+            "--output",
+            str(paths[output_key]),
         ]
     )
 
