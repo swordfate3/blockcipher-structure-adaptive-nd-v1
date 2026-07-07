@@ -77,6 +77,7 @@ def test_state_token_residual_plan_ready_after_residual_focus_pass(tmp_path):
         "uniform_residual_control",
         "label_shuffle_control",
         "token_coordinate_shuffle_control",
+        "token_coordinate_drop_control",
         "train_only_selection_control",
     ]
 

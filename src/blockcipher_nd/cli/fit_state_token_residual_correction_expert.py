@@ -19,6 +19,7 @@ from blockcipher_nd.cli.fit_compressed_feature_expert import (
 )
 from blockcipher_nd.cli.fit_residual_correction_feature_expert import _base_logit_mean, _residual_focus_weights
 from blockcipher_nd.cli.fit_state_token_residual_expert import (
+    _drop_token_coordinates,
     _shuffle_token_coordinates,
     _standardization_stats,
     _validate_state_token_feature_view,
@@ -77,6 +78,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--shuffle-seed", type=int, default=0)
     parser.add_argument("--shuffle-token-coordinates", action="store_true")
     parser.add_argument("--token-coordinate-shuffle-seed", type=int, default=0)
+    parser.add_argument("--drop-token-coordinates", action="store_true")
     parser.add_argument("--no-zero-init-correction-head", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run-id", default="")
@@ -106,6 +108,7 @@ def fit_state_token_residual_correction_expert(
     shuffle_seed: int = 0,
     shuffle_token_coordinates: bool = False,
     token_coordinate_shuffle_seed: int = 0,
+    drop_token_coordinates: bool = False,
     zero_initialize_correction_head: bool = True,
     seed: int = 0,
     run_id: str = "",
@@ -124,6 +127,8 @@ def fit_state_token_residual_correction_expert(
         hidden_bits=hidden_bits,
         residual_focus_fraction=residual_focus_fraction,
         residual_focus_background_weight=residual_focus_background_weight,
+        shuffle_token_coordinates=shuffle_token_coordinates,
+        drop_token_coordinates=drop_token_coordinates,
     )
 
     train = _load_feature_dir(train_feature_dir)
@@ -167,6 +172,8 @@ def fit_state_token_residual_correction_expert(
     )
     if shuffle_token_coordinates:
         _shuffle_token_coordinates(model, seed=token_coordinate_shuffle_seed)
+    if drop_token_coordinates:
+        _drop_token_coordinates(model)
     if zero_initialize_correction_head:
         _zero_initialize_correction_head(model)
     fit = _fit_correction_model(
@@ -211,6 +218,7 @@ def fit_state_token_residual_correction_expert(
         "fit_label_shuffle_seed": int(shuffle_seed),
         "token_coordinates_shuffled": bool(shuffle_token_coordinates),
         "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
+        "token_coordinates_dropped": bool(drop_token_coordinates),
         "correction_head_zero_initialized": bool(zero_initialize_correction_head),
         "seed": int(seed),
         "feature_count": int(train_features.shape[1]),
@@ -250,6 +258,7 @@ def fit_state_token_residual_correction_expert(
             validation_base_auc=validation_base_metrics["auc"],
             shuffle_train_labels=shuffle_train_labels,
             shuffle_token_coordinates=shuffle_token_coordinates,
+            drop_token_coordinates=drop_token_coordinates,
         ),
         "model_key": model_key,
         "expert_family": expert_family,
@@ -286,6 +295,7 @@ def fit_state_token_residual_correction_expert(
         "token_coordinate_control": {
             "shuffle_token_coordinates": bool(shuffle_token_coordinates),
             "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
+            "drop_token_coordinates": bool(drop_token_coordinates),
         },
         "correction_initialization": {
             "zero_initialize_correction_head": bool(zero_initialize_correction_head),
@@ -308,6 +318,7 @@ def fit_state_token_residual_correction_expert(
             "strict_negative_mode_required",
             "compare_against_label_shuffle_control",
             "compare_against_token_coordinate_shuffle_control",
+            "compare_against_token_coordinate_drop_control",
         ],
         "claim_scope": common_metadata["claim_scope"],
     }
@@ -326,6 +337,8 @@ def _validate_args(
     hidden_bits: int,
     residual_focus_fraction: float,
     residual_focus_background_weight: float,
+    shuffle_token_coordinates: bool,
+    drop_token_coordinates: bool,
 ) -> None:
     if len(train_base_artifact_dirs) != 2 or len(validation_base_artifact_dirs) != 2:
         raise ValueError("state-token residual correction requires exactly two base artifacts per split")
@@ -345,6 +358,8 @@ def _validate_args(
         raise ValueError("residual_focus_fraction must be in [0, 1)")
     if residual_focus_background_weight < 0.0 or residual_focus_background_weight > 1.0:
         raise ValueError("residual_focus_background_weight must be in [0, 1]")
+    if shuffle_token_coordinates and drop_token_coordinates:
+        raise ValueError("shuffle_token_coordinates and drop_token_coordinates are mutually exclusive")
 
 
 def _decision(
@@ -353,7 +368,10 @@ def _decision(
     validation_base_auc: float,
     shuffle_train_labels: bool,
     shuffle_token_coordinates: bool,
+    drop_token_coordinates: bool,
 ) -> str:
+    if drop_token_coordinates:
+        return "state_token_residual_correction_drop_token_coordinates_control"
     if shuffle_token_coordinates:
         return "state_token_residual_correction_token_coordinate_shuffle_control"
     if shuffle_train_labels:
@@ -435,6 +453,7 @@ def main(argv: list[str] | None = None) -> int:
         shuffle_seed=args.shuffle_seed,
         shuffle_token_coordinates=args.shuffle_token_coordinates,
         token_coordinate_shuffle_seed=args.token_coordinate_shuffle_seed,
+        drop_token_coordinates=args.drop_token_coordinates,
         zero_initialize_correction_head=not args.no_zero_init_correction_head,
         seed=args.seed,
         run_id=args.run_id,

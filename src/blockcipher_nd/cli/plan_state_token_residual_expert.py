@@ -122,6 +122,7 @@ def _required_controls() -> list[str]:
         "uniform_residual_control",
         "label_shuffle_control",
         "token_coordinate_shuffle_control",
+        "token_coordinate_drop_control",
         "train_only_selection_control",
     ]
 

@@ -142,9 +142,59 @@ def test_fit_state_token_residual_expert_can_shuffle_token_coordinates(tmp_path:
     assert report["token_coordinate_control"] == {
         "shuffle_token_coordinates": True,
         "token_coordinate_shuffle_seed": 11,
+        "drop_token_coordinates": False,
     }
     assert validation_artifact.metadata["token_coordinates_shuffled"] is True
     assert validation_artifact.metadata["token_coordinate_shuffle_seed"] == 11
+    assert np.isfinite(validation_artifact.probabilities).all()
+
+
+def test_fit_state_token_residual_expert_can_drop_token_coordinates(tmp_path: Path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_features, train_labels = _toy_trail_position_features(rows=12)
+    validation_features, validation_labels = _toy_trail_position_features(rows=8)
+    _write_feature_dir(train_dir, split="train", features=train_features, labels=train_labels)
+    _write_feature_dir(validation_dir, split="validation", features=validation_features, labels=validation_labels)
+
+    validation_scores = tmp_path / "coordinate_drop_scores"
+    report_path = tmp_path / "coordinate_drop_report.json"
+    status = fit_state_token_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--output-validation-dir",
+            str(validation_scores),
+            "--output-report",
+            str(report_path),
+            "--steps",
+            "4",
+            "--learning-rate",
+            "0.01",
+            "--token-dim",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--seed",
+            "7",
+            "--drop-token-coordinates",
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    validation_artifact = load_score_artifact(validation_scores)
+    assert status == 0
+    assert report["decision"] == "state_token_residual_drop_token_coordinates_control"
+    assert report["token_coordinate_control"] == {
+        "shuffle_token_coordinates": False,
+        "token_coordinate_shuffle_seed": 0,
+        "drop_token_coordinates": True,
+    }
+    assert validation_artifact.metadata["token_coordinates_dropped"] is True
     assert np.isfinite(validation_artifact.probabilities).all()
 
 
@@ -234,6 +284,77 @@ def test_fit_state_token_residual_correction_expert_adds_to_frozen_base(tmp_path
     assert np.isfinite(validation_artifact.probabilities).all()
 
 
+def test_fit_state_token_residual_correction_expert_can_drop_token_coordinates(tmp_path: Path):
+    from blockcipher_nd.cli.fit_state_token_residual_correction_expert import (
+        main as fit_correction_main,
+    )
+
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_features, train_labels = _toy_trail_position_features(rows=12)
+    validation_features, validation_labels = _toy_trail_position_features(rows=8)
+    _write_feature_dir(train_dir, split="train", features=train_features, labels=train_labels)
+    _write_feature_dir(validation_dir, split="validation", features=validation_features, labels=validation_labels)
+
+    left_train = tmp_path / "left_train"
+    right_train = tmp_path / "right_train"
+    left_validation = tmp_path / "left_validation"
+    right_validation = tmp_path / "right_validation"
+    for path, labels, model_key in [
+        (left_train, train_labels, "trail"),
+        (right_train, train_labels, "raw117"),
+        (left_validation, validation_labels, "trail"),
+        (right_validation, validation_labels, "raw117"),
+    ]:
+        _write_score_dir(path, labels=labels, probabilities=np.full(len(labels), 0.5), model_key=model_key)
+
+    validation_scores = tmp_path / "correction_drop_scores"
+    report_path = tmp_path / "correction_drop_report.json"
+    status = fit_correction_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--train-base-artifacts",
+            str(left_train),
+            str(right_train),
+            "--validation-base-artifacts",
+            str(left_validation),
+            str(right_validation),
+            "--output-validation-dir",
+            str(validation_scores),
+            "--output-report",
+            str(report_path),
+            "--steps",
+            "2",
+            "--learning-rate",
+            "0.01",
+            "--token-dim",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--seed",
+            "7",
+            "--drop-token-coordinates",
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    validation_artifact = load_score_artifact(validation_scores)
+    assert status == 0
+    assert report["decision"] == "state_token_residual_correction_drop_token_coordinates_control"
+    assert report["token_coordinate_control"] == {
+        "shuffle_token_coordinates": False,
+        "token_coordinate_shuffle_seed": 0,
+        "drop_token_coordinates": True,
+    }
+    assert validation_artifact.metadata["token_coordinates_dropped"] is True
+    assert np.isfinite(validation_artifact.probabilities).all()
+
+
 def test_fit_state_token_residual_correction_expert_requires_strict_negatives(tmp_path: Path):
     from blockcipher_nd.cli.fit_state_token_residual_correction_expert import (
         main as fit_correction_main,
@@ -303,6 +424,32 @@ def test_state_token_residual_correction_head_can_start_at_zero():
 
     logits = model(features).squeeze(1)
     assert torch.allclose(logits, torch.zeros_like(logits))
+
+
+def test_state_token_coordinate_drop_makes_coordinate_shuffle_output_invariant():
+    from blockcipher_nd.cli.fit_state_token_residual_expert import (
+        _drop_token_coordinates,
+        _shuffle_token_coordinates,
+    )
+
+    torch.manual_seed(3)
+    model = PresentStateTokenResidualDistinguisher(input_bits=3708, token_dim=4, hidden_bits=8, dropout=0.0)
+    features = torch.randn(5, 3708)
+
+    _drop_token_coordinates(model)
+    before = model(features)
+    _shuffle_token_coordinates(model, seed=19)
+    after = model(features)
+
+    assert torch.allclose(before, after)
+    for embedding in [
+        model.family_embedding,
+        model.depth_embedding,
+        model.word_embedding,
+        model.cell_embedding,
+    ]:
+        assert not embedding.weight.requires_grad
+        assert torch.count_nonzero(embedding.weight) == 0
 
 
 def _toy_trail_position_features(*, rows: int) -> tuple[np.ndarray, np.ndarray]:

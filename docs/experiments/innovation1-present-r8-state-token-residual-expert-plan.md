@@ -312,6 +312,20 @@ shuffle controls still partially lowered residual loss, so these diagnostics
 show label-dependent residual signal but do not prove true depth/word/cell
 coordinate-layout dependence.
 
+The next local attribution guard adds a stricter value-only token control:
+
+```text
+flag = --drop-token-coordinates
+control = zero and freeze family/depth/word/cell embeddings while keeping the
+  same selected span feature values
+```
+
+This differs from coordinate shuffle. Shuffle asks whether wrong coordinates
+hurt. Drop asks whether coordinates add any value beyond the selected scalar
+span features at all. A state-token route should not be promoted as
+coordinate-aware unless it beats both the shuffled-coordinate and dropped-
+coordinate controls under the same train/validation protocol.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:
@@ -321,6 +335,7 @@ same_input_global_control
 uniform_residual_control
 label_shuffle_control
 token_coordinate_shuffle_control
+token_coordinate_drop_control
 train_only_selection_control
 ```
 
@@ -338,6 +353,9 @@ label_shuffle_control =
 
 token_coordinate_shuffle_control =
   proves depth/word/cell coordinates matter, not just feature count
+
+token_coordinate_drop_control =
+  proves coordinate embeddings add value beyond the selected span scalar values
 
 train_only_selection_control =
   proves validation labels did not choose token families, masks, buckets, or
@@ -392,7 +410,8 @@ The first implementation must be local and boring:
 
 3. same_protocol_control_gate
    Require the route to beat same-input/global, uniform residual, label-shuffle,
-   and token-coordinate-shuffle controls before any remote promotion.
+   token-coordinate-shuffle, and token-coordinate-drop controls before any
+   remote promotion.
 ```
 
 ## Claim Scope

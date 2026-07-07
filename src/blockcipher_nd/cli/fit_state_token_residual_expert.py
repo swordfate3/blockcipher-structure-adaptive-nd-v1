@@ -47,6 +47,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--shuffle-seed", type=int, default=0)
     parser.add_argument("--shuffle-token-coordinates", action="store_true")
     parser.add_argument("--token-coordinate-shuffle-seed", type=int, default=0)
+    parser.add_argument("--drop-token-coordinates", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run-id", default="")
     parser.add_argument("--model-key", default=DEFAULT_MODEL_KEY)
@@ -71,6 +72,7 @@ def fit_state_token_residual_expert(
     shuffle_seed: int = 0,
     shuffle_token_coordinates: bool = False,
     token_coordinate_shuffle_seed: int = 0,
+    drop_token_coordinates: bool = False,
     seed: int = 0,
     run_id: str = "",
     model_key: str = DEFAULT_MODEL_KEY,
@@ -89,6 +91,8 @@ def fit_state_token_residual_expert(
         raise ValueError("token_dim must be positive")
     if hidden_bits <= 0:
         raise ValueError("hidden_bits must be positive")
+    if shuffle_token_coordinates and drop_token_coordinates:
+        raise ValueError("shuffle_token_coordinates and drop_token_coordinates are mutually exclusive")
 
     train = _load_feature_dir(train_feature_dir)
     validation = _load_feature_dir(validation_feature_dir)
@@ -114,6 +118,8 @@ def fit_state_token_residual_expert(
     )
     if shuffle_token_coordinates:
         _shuffle_token_coordinates(model, seed=token_coordinate_shuffle_seed)
+    if drop_token_coordinates:
+        _drop_token_coordinates(model)
     fit = _fit_model(
         model,
         train_model_features,
@@ -147,6 +153,7 @@ def fit_state_token_residual_expert(
         "fit_label_shuffle_seed": int(shuffle_seed),
         "token_coordinates_shuffled": bool(shuffle_token_coordinates),
         "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
+        "token_coordinates_dropped": bool(drop_token_coordinates),
         "seed": int(seed),
         "feature_count": int(train_features.shape[1]),
         "selected_span_feature_bits": int(model.selected_span_feature_bits),
@@ -177,6 +184,7 @@ def fit_state_token_residual_expert(
         "decision": _decision(
             shuffle_train_labels=shuffle_train_labels,
             shuffle_token_coordinates=shuffle_token_coordinates,
+            drop_token_coordinates=drop_token_coordinates,
         ),
         "model_key": model_key,
         "expert_family": expert_family,
@@ -207,6 +215,7 @@ def fit_state_token_residual_expert(
         "token_coordinate_control": {
             "shuffle_token_coordinates": bool(shuffle_token_coordinates),
             "token_coordinate_shuffle_seed": int(token_coordinate_shuffle_seed),
+            "drop_token_coordinates": bool(drop_token_coordinates),
         },
         "train_metrics": _metrics(train_artifact.labels, train_artifact.probabilities),
         "validation_metrics": _metrics(validation_artifact.labels, validation_artifact.probabilities),
@@ -218,6 +227,7 @@ def fit_state_token_residual_expert(
             "compare_against_compressed_feature_logistic_expert",
             "compare_against_label_shuffle_control",
             "compare_against_token_coordinate_shuffle_control",
+            "compare_against_token_coordinate_drop_control",
         ],
         "claim_scope": common_metadata["claim_scope"],
     }
@@ -245,7 +255,9 @@ def _standardization_stats(features: np.ndarray, *, standardize: bool) -> tuple[
     return mean, scale
 
 
-def _decision(*, shuffle_train_labels: bool, shuffle_token_coordinates: bool) -> str:
+def _decision(*, shuffle_train_labels: bool, shuffle_token_coordinates: bool, drop_token_coordinates: bool) -> str:
+    if drop_token_coordinates:
+        return "state_token_residual_drop_token_coordinates_control"
     if shuffle_token_coordinates:
         return "state_token_residual_token_coordinate_shuffle_control"
     if shuffle_train_labels:
@@ -260,6 +272,17 @@ def _shuffle_token_coordinates(model: PresentStateTokenResidualDistinguisher, *,
     model.span_depth_ids.copy_(model.span_depth_ids[permutation])
     model.span_word_ids.copy_(model.span_word_ids[permutation])
     model.span_cell_ids.copy_(model.span_cell_ids[permutation])
+
+
+def _drop_token_coordinates(model: PresentStateTokenResidualDistinguisher) -> None:
+    for embedding in [
+        model.family_embedding,
+        model.depth_embedding,
+        model.word_embedding,
+        model.cell_embedding,
+    ]:
+        nn.init.zeros_(embedding.weight)
+        embedding.weight.requires_grad_(False)
 
 
 def _fit_model(
@@ -317,6 +340,7 @@ def main(argv: list[str] | None = None) -> int:
         shuffle_seed=args.shuffle_seed,
         shuffle_token_coordinates=args.shuffle_token_coordinates,
         token_coordinate_shuffle_seed=args.token_coordinate_shuffle_seed,
+        drop_token_coordinates=args.drop_token_coordinates,
         seed=args.seed,
         run_id=args.run_id,
         model_key=args.model_key,
