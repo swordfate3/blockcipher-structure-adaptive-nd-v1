@@ -19,12 +19,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument("--status", type=Path, default=DEFAULT_STATUS)
+    parser.add_argument("--control-summary", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     return parser.parse_args(argv)
 
 
-def plan_state_token_residual_expert(*, status_path: Path) -> dict[str, Any]:
+def plan_state_token_residual_expert(*, status_path: Path, control_summary_path: Path | None = None) -> dict[str, Any]:
     status = _load_json(status_path)
+    control_summary = _load_json_or_empty(control_summary_path)
     gate_status = str(status.get("gate_status", status.get("status", "")))
     gate_decision = str(status.get("gate_decision", status.get("decision", "")))
     repair_hints = [str(hint) for hint in status.get("repair_hints", [])]
@@ -37,6 +39,11 @@ def plan_state_token_residual_expert(*, status_path: Path) -> dict[str, Any]:
             "gate_decision": gate_decision,
             "next_action_branch": _next_action_branch(status),
         },
+        "state_token_control_summary": str(control_summary_path or ""),
+        "state_token_control_status": str(control_summary.get("status", "missing" if not control_summary else "")),
+        "state_token_control_decision": str(control_summary.get("decision", "")),
+        "state_token_failing_seed_count": int(control_summary.get("failing_seed_count", 0)),
+        "state_token_failing_control_event_count": int(control_summary.get("failing_control_event_count", 0)),
         "candidate": _candidate_summary(),
         "required_controls": _required_controls(),
         "forbidden_actions": [
@@ -63,6 +70,13 @@ def plan_state_token_residual_expert(*, status_path: Path) -> dict[str, Any]:
         }
 
     if gate_status == "pass":
+        if control_summary.get("status") == "hold":
+            return {
+                **base,
+                "status": "hold",
+                "decision": "repair_state_token_controls_before_pool",
+                "allowed_local_actions": ["repair_state_token_coordinate_or_value_only_controls"],
+            }
         return {
             **base,
             "status": "ready",
@@ -161,9 +175,18 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_json_or_empty(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
+        return {}
+    return _load_json(path)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    report = plan_state_token_residual_expert(status_path=args.status)
+    report = plan_state_token_residual_expert(
+        status_path=args.status,
+        control_summary_path=args.control_summary,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, sort_keys=True))

@@ -129,9 +129,13 @@ JSON and emits
 `outputs/local_audits/i1_present_r8_state_token_residual_expert_plan.json`. When
 the residual-focus gate is pending it allows only plan/smoke preparation; when
 the gate fails or holds it routes back to residual repair; only after a pass does
-it mark local state-token smoke and same-protocol controls as ready. It never
-SSHes, launches remote jobs, scales to 1M/class, changes labels or negative
-mode, or makes an SPN/PRESENT claim.
+it mark local state-token smoke and same-protocol controls as ready. If
+`--control-summary` points at a state-token control summary with status `hold`,
+that hold is applied only after the residual-focus gate passes, so a pending
+residual-focus branch stays pending but a control-failed state-token route is
+not promoted into Pool 3 preparation. It never SSHes, launches remote jobs,
+scales to 1M/class, changes labels or negative mode, or makes an SPN/PRESENT
+claim.
 
 Use `scripts/fit-state-token-residual-expert` for the local feature-artifact
 smoke behind that route. It fits `present_state_token_residual` on exported

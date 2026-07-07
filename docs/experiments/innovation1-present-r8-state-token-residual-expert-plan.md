@@ -460,6 +460,22 @@ when the candidate does not beat the value-only or shuffled-coordinate controls.
 It does not train, launch remote work, change labels, change negative mode, or
 upgrade the route to medium/formal SPN/PRESENT evidence.
 
+The route planner can consume this summary explicitly:
+
+```text
+script = scripts/plan-state-token-residual-expert
+flag = --control-summary
+behavior =
+  residual-focus pending -> keep waiting for residual-focus outputs
+  residual-focus fail/hold -> repair residual-focus first
+  residual-focus pass + state-token summary hold -> repair state-token controls
+  residual-focus pass + no state-token hold -> allow local smoke/control checks
+```
+
+This keeps the activation order clean: the active 262144/class residual-focus
+run remains the primary gate, while completed state-token controls prevent a
+known control-failed coordinate/value expert from being promoted after that gate.
+
 ## Required Controls
 
 Do not promote the route unless these controls are present:

@@ -39,6 +39,53 @@ def test_state_token_residual_plan_waits_for_pending_residual_focus(tmp_path):
     ]
 
 
+def test_state_token_residual_plan_keeps_pending_residual_focus_ahead_of_control_summary(tmp_path):
+    status = tmp_path / "residual_status.json"
+    control_summary = tmp_path / "state_token_control_summary.json"
+    output = tmp_path / "state_token_plan.json"
+    status.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "gate_status": "pending",
+                "gate_decision": "wait_for_residual_focus_262k_outputs",
+                "missing_output_count": 18,
+                "next_action": {"branch": "wait_for_residual_focus_outputs"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    control_summary.write_text(
+        json.dumps(
+            {
+                "status": "hold",
+                "decision": "hold_state_token_coordinate_controls",
+                "failing_seed_count": 2,
+                "failing_control_event_count": 6,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = plan_state_token_main(
+        [
+            "--status",
+            str(status),
+            "--control-summary",
+            str(control_summary),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_residual_focus_outputs_before_state_token_expert"
+    assert report["state_token_control_status"] == "hold"
+    assert report["state_token_failing_seed_count"] == 2
+
+
 def test_state_token_residual_plan_ready_after_residual_focus_pass(tmp_path):
     status = tmp_path / "residual_status.json"
     output = tmp_path / "state_token_plan.json"
@@ -80,6 +127,58 @@ def test_state_token_residual_plan_ready_after_residual_focus_pass(tmp_path):
         "token_coordinate_drop_control",
         "train_only_selection_control",
     ]
+
+
+def test_state_token_residual_plan_holds_when_control_summary_holds(tmp_path):
+    status = tmp_path / "residual_status.json"
+    control_summary = tmp_path / "state_token_control_summary.json"
+    output = tmp_path / "state_token_plan.json"
+    status.write_text(
+        json.dumps(
+            {
+                "status": "ready",
+                "gate_status": "pass",
+                "gate_decision": "keep_residual_focus_262k_hard_slice_candidate",
+                "pool_eval_status": "pending",
+                "next_action": {"branch": "run_residual_guided_pool3"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    control_summary.write_text(
+        json.dumps(
+            {
+                "status": "hold",
+                "decision": "hold_state_token_coordinate_controls",
+                "failing_seed_count": 2,
+                "failing_control_event_count": 6,
+                "next_action": {"branch": "do_not_promote_state_token_coordinate_route"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = plan_state_token_main(
+        [
+            "--status",
+            str(status),
+            "--control-summary",
+            str(control_summary),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert report["status"] == "hold"
+    assert report["decision"] == "repair_state_token_controls_before_pool"
+    assert report["should_launch_remote"] is False
+    assert report["state_token_control_summary"] == str(control_summary)
+    assert report["state_token_control_status"] == "hold"
+    assert report["state_token_control_decision"] == "hold_state_token_coordinate_controls"
+    assert report["state_token_failing_seed_count"] == 2
+    assert report["allowed_local_actions"] == ["repair_state_token_coordinate_or_value_only_controls"]
 
 
 def test_state_token_residual_plan_repairs_when_residual_focus_holds(tmp_path):
