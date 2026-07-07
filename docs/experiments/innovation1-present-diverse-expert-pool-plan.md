@@ -527,8 +527,9 @@ claim beyond application-level medium diagnostic evidence.
 `scripts/watch-residual-focus-results` now call this fixed-fusion evaluator
 automatically after the residual-focus gate passes, the Pool 3 plan is ready,
 and all per-seed validation score artifacts are present. If the artifacts are
-not present yet, the route remains at `residual_guided_pool_ready` rather than
-pretending an ensemble result exists.
+not present yet, the route reports `wait_for_pool3_score_artifacts` and remains
+non-terminal so the local watcher can keep waiting for later retrieval/sync
+cycles rather than pretending an ensemble result exists.
 
 The recovered r7 Pool 0 remains the near-neighbor control for historical
 context, but it is no longer the next mainline action. The next aggregation work

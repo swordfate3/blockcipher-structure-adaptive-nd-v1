@@ -119,6 +119,9 @@ planned outputs are all present and the gate is still pending, it runs
 all per-seed fixed-score artifacts are already present, it also runs the local
 Pool 3 fixed-fusion evaluator and writes
 `outputs/local_audits/i1_present_r8_residual_guided_diverse_pool_eval.json`.
+If the Pool 3 plan is ready but any per-seed score artifact is missing, it
+reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
+watcher can continue after later retrieval/sync cycles.
 It does not SSH, sync, launch remote jobs, or fit ensemble weights.
 
 Use `scripts/watch-residual-focus-results` when a local tmux watcher should keep

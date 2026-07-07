@@ -13,6 +13,7 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=False)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     output = tmp_path / "advance.json"
     gate.write_text(
@@ -28,6 +29,8 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
             str(gate),
             "--pool-output",
             str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
             "--status-output",
             str(status_output),
             "--output",
@@ -48,6 +51,7 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
     status_output = tmp_path / "status.json"
     output = tmp_path / "advance.json"
     gate.write_text(
@@ -63,6 +67,8 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
             str(gate),
             "--pool-output",
             str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
             "--status-output",
             str(status_output),
             "--output",
@@ -74,14 +80,17 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     gate_report = json.loads(gate.read_text(encoding="utf-8"))
     pool_report = json.loads(pool.read_text(encoding="utf-8"))
     assert status == 0
-    assert report["status"] == "pass"
-    assert report["decision"] == "residual_guided_pool_ready"
     assert report["ran_gate"] is True
     assert report["ran_pool_planner"] is True
     assert gate_report["decision"] == "keep_residual_focus_262k_hard_slice_candidate"
     assert pool_report["decision"] == "residual_guided_diverse_pool_ready"
     assert pool_report["selected_residual_candidate"] == "focus10"
     assert report["ran_pool_evaluator"] is False
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_pool3_score_artifacts"
+    assert report["pool_eval_status"] == "pending"
+    assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
+    assert report["missing_pool3_score_artifact_count"] > 0
 
 
 def test_advance_residual_focus_results_runs_pool_evaluator_when_score_artifacts_exist(tmp_path):

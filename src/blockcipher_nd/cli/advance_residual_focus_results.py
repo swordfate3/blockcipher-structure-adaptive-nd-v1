@@ -76,14 +76,14 @@ def advance_residual_focus_results(
         ran_pool_planner = True
 
     if pool_report.get("should_run_pool") is True:
-        candidate_pool_report = _evaluate_pool3_if_artifacts_ready(
+        candidate_pool_report = _evaluate_pool3_when_artifacts_ready(
             action_plan=action_plan,
             pool_plan=pool_output,
             pool_report=pool_report,
         )
-        if candidate_pool_report is not None:
-            pool_eval_report = candidate_pool_report
-            _write_json(pool_eval_output, pool_eval_report)
+        pool_eval_report = candidate_pool_report
+        _write_json(pool_eval_output, pool_eval_report)
+        if pool_eval_report.get("status") == "pass":
             ran_pool_evaluator = True
 
     final_status = residual_focus_status(
@@ -114,9 +114,11 @@ def advance_residual_focus_results(
         "pool_status": final_status["pool_status"],
         "pool_eval_status": str(pool_eval_report.get("status", "")),
         "pool_eval_decision": str(pool_eval_report.get("decision", "")),
+        "missing_pool3_score_artifact_count": len(pool_eval_report.get("missing_score_artifacts", [])),
+        "missing_pool3_score_artifacts": [str(path) for path in pool_eval_report.get("missing_score_artifacts", [])],
         "should_run_pool": final_status["should_run_pool"],
         "missing_output_count": final_status["missing_output_count"],
-        "next_action": final_status["next_action"],
+        "next_action": _advance_next_action(final_status, pool_eval_report),
         "claim_scope": (
             "local residual-focus postprocess advancement only; does not SSH, sync, launch "
             "remote jobs, or make a formal/breakthrough SPN/PRESENT claim"
@@ -134,6 +136,8 @@ def _advance_status(
 ) -> tuple[str, str]:
     if ran_pool_evaluator and pool_eval_report.get("status") == "pass":
         return "pass", "residual_guided_pool_evaluated"
+    if pool_eval_report.get("status") == "pending" and pool_eval_report.get("decision") == "wait_for_pool3_score_artifacts":
+        return "pending", "wait_for_pool3_score_artifacts"
     if final_status["should_run_pool"]:
         return "pass", "residual_guided_pool_ready"
     if final_status["gate_status"] == "fail":
@@ -143,24 +147,39 @@ def _advance_status(
     return "pending", "wait_for_residual_focus_outputs"
 
 
-def _evaluate_pool3_if_artifacts_ready(
+def _advance_next_action(final_status: dict[str, Any], pool_eval_report: dict[str, Any]) -> dict[str, Any]:
+    if pool_eval_report.get("status") == "pending" and pool_eval_report.get("decision") == "wait_for_pool3_score_artifacts":
+        return {
+            "branch": "wait_for_pool3_score_artifacts",
+            "should_launch_remote": False,
+        }
+    return final_status["next_action"]
+
+
+def _evaluate_pool3_when_artifacts_ready(
     *,
     action_plan: Path,
     pool_plan: Path,
     pool_report: dict[str, Any],
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     plan = _read_json_or_empty(action_plan)
     selected = str(pool_report.get("selected_residual_candidate", ""))
     if not selected:
-        return None
+        return {
+            "status": "pending",
+            "decision": "wait_for_pool3_selected_candidate",
+            "missing_score_artifacts": [],
+            "claim_scope": "local Pool 3 evaluator guard only; selected residual candidate is not available yet",
+        }
     seed_reports: list[dict[str, Any]] = []
     missing: list[str] = []
     for seed_plan in plan.get("seeds", []):
         if not isinstance(seed_plan, dict):
             continue
         paths = _pool3_artifact_paths(seed_plan, selected_residual_candidate=selected)
-        missing.extend(str(path) for path in paths.values() if not path.exists())
-        if missing:
+        seed_missing = [str(path) for path in paths.values() if not path.exists()]
+        missing.extend(seed_missing)
+        if seed_missing:
             continue
         seed_report = evaluate_residual_guided_diverse_pool(
             pool_plan=pool_plan,
@@ -173,7 +192,17 @@ def _evaluate_pool3_if_artifacts_ready(
         seed_report["seed"] = int(seed_plan.get("seed", len(seed_reports)))
         seed_reports.append(seed_report)
     if missing or not seed_reports:
-        return None
+        return {
+            "status": "pending",
+            "decision": "wait_for_pool3_score_artifacts",
+            "selected_residual_candidate": selected,
+            "missing_score_artifacts": missing,
+            "seed_report_count": len(seed_reports),
+            "claim_scope": (
+                "local Pool 3 evaluator guard only; fixed-fusion evaluation waits until "
+                "all per-seed score artifacts are present and aligned"
+            ),
+        }
     decisions = {str(report.get("decision", "")) for report in seed_reports}
     return {
         "status": "pass" if all(report.get("status") == "pass" for report in seed_reports) else "hold",

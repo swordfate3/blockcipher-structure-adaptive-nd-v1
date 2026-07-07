@@ -129,7 +129,7 @@ def test_watch_residual_focus_results_function_writes_iteration_report(tmp_path)
     assert written["iteration_count"] == 1
 
 
-def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
+def test_watch_residual_focus_results_waits_for_pool3_score_artifacts(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True)
     gate = tmp_path / "gate.json"
     pool = tmp_path / "pool.json"
@@ -159,7 +159,7 @@ def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
             "--output",
             str(output),
             "--max-iterations",
-            "3",
+            "1",
             "--sleep-seconds",
             "0",
         ]
@@ -168,13 +168,15 @@ def test_watch_residual_focus_results_stops_after_terminal_pass(tmp_path):
     report = json.loads(output.read_text(encoding="utf-8"))
     advance = json.loads(advance_output.read_text(encoding="utf-8"))
     assert status == 0
-    assert report["status"] == "pass"
+    assert report["status"] == "pending"
+    assert report["decision"] == "wait_for_pool3_score_artifacts"
     assert report["iteration_count"] == 1
-    assert report["terminal"] is True
+    assert report["terminal"] is False
     assert advance["ran_gate"] is True
     assert advance["ran_pool_planner"] is True
     assert report["ran_pool_evaluator"] is False
-    assert report["pool_eval_status"] == ""
+    assert report["pool_eval_status"] == "pending"
+    assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
 
 
 def _write_action_plan(tmp_path: Path, *, create_outputs: bool) -> Path:
