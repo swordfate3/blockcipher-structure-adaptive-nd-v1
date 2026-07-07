@@ -218,6 +218,17 @@ def _pool3_route(
             "status": "ready",
             "decision": str(pool_plan.get("decision", "")),
             "selected_residual_candidate": str(pool_plan.get("selected_residual_candidate", "")),
+            "expert_families": _string_list(pool_plan.get("expert_families")),
+            "control_families": _string_list(pool_plan.get("control_families")),
+            "planned_fixed_fusions": _string_list(pool_plan.get("planned_fixed_fusions")),
+            "source_selection_status": str(pool_plan.get("source_selection_status", "")),
+            "source_selection_decision": str(pool_plan.get("source_selection_decision", "")),
+            "source_selection_recommended_feature_prefixes": _string_list(
+                pool_plan.get("source_selection_recommended_feature_prefixes")
+            ),
+            "source_selection_selected_groups": _string_list(
+                pool_plan.get("source_selection_selected_groups")
+            ),
             "next_action": _compact_next_action(pool_plan.get("next_action")),
         }
     return {
@@ -314,6 +325,12 @@ def _compact_bucket_next_action(value: object) -> dict[str, Any]:
     if isinstance(value, str) and value:
         return {"branch": value, "should_launch_remote": False}
     return {"branch": "", "should_launch_remote": False}
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
 
 
 def _optional_float(value: object) -> float | None:

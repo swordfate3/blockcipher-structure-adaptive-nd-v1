@@ -93,6 +93,25 @@ def test_present_r8_diverse_route_summary_prefers_pool3_after_residual_pool_read
             "decision": "residual_guided_diverse_pool_ready",
             "selected_residual_candidate": "focus10",
             "should_run_pool": True,
+            "expert_families": [
+                "trail_position_anchor",
+                "compressed_span_structural",
+                "residual_focus_aux_word",
+                "residual_focus_source_selected_aux",
+            ],
+            "planned_fixed_fusions": [
+                "best_single",
+                "trail_position + raw117",
+                "trail_position + raw117 + residual_focus",
+                "trail_position + raw117 + source_selected_residual_focus",
+            ],
+            "source_selection_status": "pass",
+            "source_selection_decision": "residual_axis_spectrum_stable_groups_selected",
+            "source_selection_recommended_feature_prefixes": ["aux_depth_word_", "aux_word_"],
+            "source_selection_selected_groups": [
+                "aux_depth_word_global_mean",
+                "aux_word_global_mean",
+            ],
             "next_action": {"branch": "instantiate_residual_guided_pool3_fixed_fusion"},
         },
     )
@@ -130,6 +149,17 @@ def test_present_r8_diverse_route_summary_prefers_pool3_after_residual_pool_read
     assert report["selected_next_action"]["branch"] == "instantiate_residual_guided_pool3_fixed_fusion"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "ready"
     assert report["candidate_routes"]["pool3_residual_guided"]["selected_residual_candidate"] == "focus10"
+    assert "residual_focus_source_selected_aux" in report["candidate_routes"]["pool3_residual_guided"]["expert_families"]
+    assert "trail_position + raw117 + source_selected_residual_focus" in report["candidate_routes"]["pool3_residual_guided"]["planned_fixed_fusions"]
+    assert report["candidate_routes"]["pool3_residual_guided"]["source_selection_status"] == "pass"
+    assert report["candidate_routes"]["pool3_residual_guided"]["source_selection_recommended_feature_prefixes"] == [
+        "aux_depth_word_",
+        "aux_word_",
+    ]
+    assert report["candidate_routes"]["pool3_residual_guided"]["source_selection_selected_groups"] == [
+        "aux_depth_word_global_mean",
+        "aux_word_global_mean",
+    ]
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
 
 
