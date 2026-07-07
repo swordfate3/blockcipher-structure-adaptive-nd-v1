@@ -94,6 +94,12 @@ def plan_residual_focus_262k(
             "claim_scope": _claim_scope(),
         }
 
+    source_selection_summary_output = artifact_root / "residual_axis_spectrum_summary.json"
+    source_selection_summary_command = _source_selection_summary_command(
+        seed_plans,
+        output=source_selection_summary_output,
+    )
+
     return {
         "status": "pass",
         "decision": "residual_focus_262k_action_plan_ready",
@@ -116,6 +122,8 @@ def plan_residual_focus_262k(
         "source_selection_commands": [
             command for seed in seed_plans for command in seed["source_selection_commands"]
         ],
+        "source_selection_summary_output": str(source_selection_summary_output),
+        "source_selection_summary_command": source_selection_summary_command,
         "next_action": (
             "Run these commands only after the 262k trail-position postprocess remains pass; "
             "compare global metrics and train-derived hard residual slice metrics before any "
@@ -457,6 +465,28 @@ def _axis_spectrum_command(paths: dict[str, Path], *, target: str, output_key: s
             target,
             "--output",
             str(paths[output_key]),
+        ]
+    )
+
+
+def _source_selection_summary_command(seed_plans: list[dict[str, Any]], *, output: Path) -> str:
+    reports: list[str] = []
+    for seed in seed_plans:
+        source_outputs = seed["source_selection_outputs"]
+        reports.append(str(source_outputs["train_residual_loss_axis_spectrum"]))
+        reports.append(str(source_outputs["train_hard_error_axis_spectrum"]))
+    return _command(
+        [
+            "UV_CACHE_DIR=/tmp/uv-cache",
+            "uv",
+            "run",
+            "scripts/summarize-residual-axis-spectrum",
+            "--spectrum-reports",
+            *reports,
+            "--min-report-support",
+            "2",
+            "--output",
+            str(output),
         ]
     )
 

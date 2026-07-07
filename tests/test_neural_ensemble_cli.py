@@ -3666,6 +3666,194 @@ def test_analyze_residual_bucket_axis_spectrum_supports_continuous_residual_loss
     assert by_group["uncertain_depth_mean"]["target_score"] == 0.5
 
 
+def test_summarize_residual_axis_spectrum_selects_train_stable_groups(tmp_path):
+    from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
+        main as summarize_residual_axis_spectrum_main,
+    )
+
+    report0 = tmp_path / "seed0_residual_loss.json"
+    report1 = tmp_path / "seed1_residual_loss.json"
+    _write_axis_spectrum_report(
+        report0,
+        feature_dir="outputs/run/seed0/train_span_summary_features",
+        target="residual_loss",
+        global_groups=[
+            ("aux_depth_word_mean", 0.09),
+            ("aux_word_mean", 0.04),
+        ],
+        bucket_groups=[
+            ("aux_depth_word_mean", 0.12),
+            ("aux_cell_mean", 0.11),
+        ],
+    )
+    _write_axis_spectrum_report(
+        report1,
+        feature_dir="outputs/run/seed1/train_span_summary_features",
+        target="residual_loss",
+        global_groups=[
+            ("aux_depth_word_mean", 0.07),
+            ("aux_word_global_mean", 0.05),
+        ],
+        bucket_groups=[
+            ("aux_depth_word_mean", 0.08),
+            ("primary_depth_trailword_mean", 0.06),
+        ],
+    )
+    output = tmp_path / "summary.json"
+
+    status = summarize_residual_axis_spectrum_main(
+        [
+            "--spectrum-reports",
+            str(report0),
+            str(report1),
+            "--min-report-support",
+            "2",
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["status"] == "pass"
+    assert summary["decision"] == "residual_axis_spectrum_stable_groups_selected"
+    assert summary["spectrum_count"] == 2
+    assert summary["selected_groups"] == ["aux_depth_word_mean"]
+    assert summary["recommended_feature_prefixes"] == ["aux_depth_word_"]
+    assert summary["stable_groups"][0]["group"] == "aux_depth_word_mean"
+    assert summary["stable_groups"][0]["report_support_count"] == 2
+    assert summary["stable_groups"][0]["global_top_count"] == 2
+    assert summary["stable_groups"][0]["bucket_top_count"] == 2
+    assert summary["stable_groups"][0]["mean_target_score"] > 0.0
+    assert "train-only axis-spectrum source selection" in summary["claim_scope"]
+
+
+def test_summarize_residual_axis_spectrum_rejects_validation_reports(tmp_path):
+    from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
+        main as summarize_residual_axis_spectrum_main,
+    )
+
+    report = tmp_path / "validation_residual_loss.json"
+    _write_axis_spectrum_report(
+        report,
+        feature_dir="outputs/run/seed0/validation_span_summary_features",
+        target="residual_loss",
+        global_groups=[("aux_word_mean", 0.07)],
+        bucket_groups=[("aux_word_mean", 0.08)],
+    )
+
+    try:
+        summarize_residual_axis_spectrum_main(
+            [
+                "--spectrum-reports",
+                str(report),
+                "--output",
+                str(tmp_path / "summary.json"),
+            ]
+        )
+    except ValueError as exc:
+        assert "expected train-only spectrum report" in str(exc)
+    else:
+        raise AssertionError("expected validation spectrum report to be rejected")
+
+
+def test_summarize_residual_axis_spectrum_prefers_non_primary_residual_sources(tmp_path):
+    from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
+        main as summarize_residual_axis_spectrum_main,
+    )
+
+    reports = []
+    for index in range(3):
+        report = tmp_path / f"seed{index}_train_residual_loss.json"
+        reports.append(report)
+        _write_axis_spectrum_report(
+            report,
+            feature_dir=f"outputs/run/seed{index}/train_span_summary_features",
+            target="residual_loss",
+            global_groups=[
+                ("primary_depth_trailword_mean_depth1", 0.03),
+                ("aux_depth_word_global_mean", 0.17),
+            ],
+            bucket_groups=[
+                ("primary_depth_cell_mean_depth1", 0.04),
+                ("aux_word_global_mean", 0.16),
+            ],
+        )
+    output = tmp_path / "summary.json"
+
+    status = summarize_residual_axis_spectrum_main(
+        [
+            "--spectrum-reports",
+            *[str(report) for report in reports],
+            "--min-report-support",
+            "2",
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["selected_groups"][:2] == ["aux_depth_word_global_mean", "aux_word_global_mean"]
+    assert summary["recommended_feature_prefixes"][:2] == ["aux_depth_word_", "aux_word_"]
+    assert summary["stable_groups"][0]["group"].startswith("aux_")
+    assert any(group["group"].startswith("primary_") for group in summary["all_groups"])
+
+
+def test_summarize_residual_axis_spectrum_ranks_by_residual_loss_before_sparse_hard_error(
+    tmp_path,
+):
+    from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
+        main as summarize_residual_axis_spectrum_main,
+    )
+
+    loss0 = tmp_path / "seed0_train_residual_loss.json"
+    loss1 = tmp_path / "seed1_train_residual_loss.json"
+    hard0 = tmp_path / "seed0_train_hard_error.json"
+    hard1 = tmp_path / "seed1_train_hard_error.json"
+    for path in [loss0, loss1]:
+        _write_axis_spectrum_report(
+            path,
+            feature_dir=f"outputs/run/{path.stem}/train_span_summary_features",
+            target="residual_loss",
+            global_groups=[
+                ("aux_word_global_mean", 0.07),
+                ("aux_depth_word_global_mean", 0.06),
+            ],
+            bucket_groups=[("aux_word_mean", 0.08)],
+        )
+    for path in [hard0, hard1]:
+        _write_axis_spectrum_report(
+            path,
+            feature_dir=f"outputs/run/{path.stem}/train_span_summary_features",
+            target="residual_error_at_0_5",
+            global_groups=[("aux_cell_global_max", 0.48)],
+            bucket_groups=[("aux_cell_mean", 0.47)],
+        )
+    output = tmp_path / "summary.json"
+
+    status = summarize_residual_axis_spectrum_main(
+        [
+            "--spectrum-reports",
+            str(loss0),
+            str(loss1),
+            str(hard0),
+            str(hard1),
+            "--min-report-support",
+            "2",
+            "--output",
+            str(output),
+        ]
+    )
+
+    summary = json.loads(output.read_text(encoding="utf-8"))
+    assert status == 0
+    assert summary["selected_groups"][:2] == ["aux_word_mean", "aux_word_global_mean"]
+    assert summary["recommended_feature_prefixes"][:2] == ["aux_word_", "aux_depth_word_"]
+    assert summary["stable_groups"][0]["preferred_target"] == "residual_loss"
+    assert any(group["group"] == "aux_cell_global_max" for group in summary["all_groups"])
+
+
 def _write_feature_dir(
     path: Path,
     *,
@@ -3701,6 +3889,50 @@ def _write_feature_dir(
         metadata["feature_view_metadata"] = feature_view_metadata
     (path / "metadata.json").write_text(
         json.dumps(metadata),
+        encoding="utf-8",
+    )
+
+
+def _write_axis_spectrum_report(
+    path: Path,
+    *,
+    feature_dir: str,
+    target: str,
+    global_groups: list[tuple[str, float]],
+    bucket_groups: list[tuple[str, float]],
+) -> None:
+    def group_report(group: str, target_score: float) -> dict[str, object]:
+        return {
+            "group": group,
+            "feature_count": 1,
+            "label_auc": 0.5,
+            "label_score": 0.0,
+            "residual_error_auc": 0.5,
+            "residual_error_score": 0.0,
+            "target_auc": 0.5 + target_score,
+            "target_score": target_score,
+        }
+
+    path.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_bucket_axis_spectrum_ready",
+                "feature_dir": feature_dir,
+                "target": target,
+                "row_count": 16,
+                "residual_error_rate_at_0_5": 0.125,
+                "global_top_groups": [group_report(group, score) for group, score in global_groups],
+                "bucket_reports": [
+                    {
+                        "bucket": 0,
+                        "rows": 8,
+                        "top_groups": [group_report(group, score) for group, score in bucket_groups],
+                    }
+                ],
+                "claim_scope": "train-only or validation-only diagnostic",
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -4087,6 +4319,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     command_text = "\n".join(report["commands"])
     control_text = "\n".join(report["control_commands"])
     source_selection_text = "\n".join(report["source_selection_commands"])
+    source_summary_text = report["source_selection_summary_command"]
     seed = report["seeds"][0]
     assert status == 0
     assert report["status"] == "pass"
@@ -4097,6 +4330,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert report["candidates"] == ["focus05", "focus10"]
     assert report["controls"] == ["uniform_no_focus", "focus10_label_shuffle"]
     assert report["source_selection_targets"] == ["residual_loss", "residual_error_at_0_5"]
+    assert report["source_selection_summary_output"].endswith("residual_axis_spectrum_summary.json")
     assert seed["seed"] == 1
     assert seed["eval_plan"].endswith("innovation1_spn_present_r8_trail_position_beamstats_262k_seed1.csv")
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in seed["train_trail_position_checkpoint"]
@@ -4134,6 +4368,13 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "--target residual_error_at_0_5" in source_selection_text
     assert "train_residual_loss_axis_spectrum.json" in source_selection_text
     assert "train_hard_error_axis_spectrum.json" in source_selection_text
+    assert "scripts/summarize-residual-axis-spectrum" in source_summary_text
+    assert "--spectrum-reports" in source_summary_text
+    assert "train_residual_loss_axis_spectrum.json" in source_summary_text
+    assert "train_hard_error_axis_spectrum.json" in source_summary_text
+    assert "--min-report-support 2" in source_summary_text
+    assert "residual_axis_spectrum_summary.json" in source_summary_text
+    assert "validation" not in source_summary_text
     assert seed["source_selection_outputs"]["train_residual_loss_axis_spectrum"].endswith(
         "train_residual_loss_axis_spectrum.json"
     )
@@ -4144,6 +4385,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "cmd.exe /k" not in source_selection_text
     assert "SSH" not in command_text
     assert "SSH" not in source_selection_text
+    assert "SSH" not in source_summary_text
     assert "does not SSH-poll" in report["claim_scope"]
 
 

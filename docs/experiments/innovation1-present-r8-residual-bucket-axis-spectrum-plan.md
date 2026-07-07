@@ -734,6 +734,43 @@ after the 262144/class residual-focus gate is available. They do not block or
 pass the residual-focus gate, do not launch remote work, and do not make a
 medium/formal claim by themselves.
 
+The planner also emits:
+
+```text
+source_selection_summary_command =
+  scripts/summarize-residual-axis-spectrum
+```
+
+This command consumes the train-only `train_residual_loss_axis_spectrum.json`
+and `train_hard_error_axis_spectrum.json` reports across available seeds, then
+writes:
+
+```text
+residual_axis_spectrum_summary.json
+```
+
+The summary selects recurring SPN axis groups and recommended feature prefixes
+for the next residual source probe. It rejects validation feature reports by
+default, so it is a train-derived source-selection aid rather than a held-out
+validation structure search. `primary_*` groups are retained in `all_groups`
+as secondary overlap with the current trail-position anchor, but the selected
+residual-source recommendation prioritizes non-primary groups and stable
+`residual_loss` evidence over sparse hard-error-only spikes. It remains
+diagnostic only.
+
+Local 2048/class sanity output from existing train spectrum reports:
+
+```text
+artifact =
+  outputs/local_audits/i1_present_r8_residual_axis_spectrum_summary.json
+recommended_feature_prefixes =
+  aux_word_
+  aux_depth_word_
+  aux_cell_
+decision = residual_axis_spectrum_stable_groups_selected
+claim_scope = train-only source-selection diagnostic
+```
+
 The companion gate consumes the action plan's planned outputs after the
 residual-focus commands finish. It keeps a candidate only when:
 

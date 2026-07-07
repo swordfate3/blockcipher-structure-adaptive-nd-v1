@@ -93,6 +93,15 @@ source without selecting structure from held-out validation labels. They are
 local analysis commands, not remote launch commands and not residual-focus gate
 outputs.
 
+Use `scripts/summarize-residual-axis-spectrum` after those train-only spectrum
+reports exist. It rejects validation feature reports, counts which SPN axis
+groups recur across reports/seeds, and writes a machine-readable
+`selected_groups` plus `recommended_feature_prefixes` summary for residual
+source selection. The ranking treats `primary_*` groups as secondary overlap
+with the existing trail-position anchor and prefers stable `residual_loss`
+evidence over sparse hard-error-only spikes. It does not train, SSH, launch
+remote work, or upgrade the residual-focus evidence claim.
+
 Use `scripts/plan-residual-guided-diverse-pool` after
 `scripts/gate-residual-focus-262k` has written its report. It is a local-only
 guard for the r8 Pool 3 diverse expert route: when the residual-focus gate is
