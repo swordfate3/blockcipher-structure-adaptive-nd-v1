@@ -214,6 +214,10 @@ gate, or missing train-only source-selection reports. The top-level
 `post_retrieval_sequence` field records the intended local-only handoff order:
 watch until residual outputs exist, run the one-shot advance command, then
 follow the selected local route or repair branch.
+The adjacent `residual_focus.action_plan_summary` field counts the planned
+seeds, candidates, commands, controls, source-selection commands, and expected
+outputs from the residual-focus action plan so status reports can distinguish a
+single heavy stage from many concurrently launched jobs.
 The top-level `local_command_safety` field scans the emitted local command
 fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
 `G:\lxy`; it should remain `pass` for this local-only route summary.

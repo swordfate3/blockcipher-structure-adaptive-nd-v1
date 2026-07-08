@@ -61,11 +61,46 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
         },
     )
     output = tmp_path / "summary.json"
+    action_plan = _write_json(
+        tmp_path / "action_plan.json",
+        {
+            "status": "pass",
+            "should_run": True,
+            "candidates": ["focus05", "focus10"],
+            "commands": ["cmd0", "cmd1", "cmd2"],
+            "control_commands": ["control0"],
+            "source_selection_commands": ["source0", "source1"],
+            "seeds": [
+                {
+                    "seed": 0,
+                    "planned_outputs": {
+                        "raw117_report": "seed0/raw117_report.json",
+                        "focus10_report": "seed0/focus10_report.json",
+                    },
+                    "source_selection_outputs": {
+                        "train_residual_loss_axis_spectrum": "seed0/loss.json",
+                    },
+                },
+                {
+                    "seed": 1,
+                    "planned_outputs": {
+                        "raw117_report": "seed1/raw117_report.json",
+                    },
+                    "source_selection_outputs": {
+                        "train_residual_loss_axis_spectrum": "seed1/loss.json",
+                        "train_hard_error_axis_spectrum": "seed1/hard.json",
+                    },
+                },
+            ],
+        },
+    )
 
     status = summarize_route_main(
         [
             "--residual-status",
             str(residual_status),
+            "--residual-action-plan",
+            str(action_plan),
             "--pool-plan",
             str(pool_plan),
             "--pool-eval",
@@ -105,15 +140,28 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["residual_focus"]["blockers"][0]["planned_count"] == 18
     assert report["residual_focus"]["blockers"][0]["existing_count"] == 0
     assert report["residual_focus"]["blockers"][2]["missing_count"] == 4
+    assert report["residual_focus"]["action_plan_summary"] == {
+        "exists": True,
+        "status": "pass",
+        "should_run": True,
+        "seed_count": 2,
+        "candidate_count": 2,
+        "candidates": ["focus05", "focus10"],
+        "command_count": 3,
+        "control_command_count": 1,
+        "source_selection_command_count": 2,
+        "planned_output_count": 3,
+        "source_selection_output_count": 3,
+    }
     assert "scripts/monitor-health" in report["residual_focus"]["monitor_health_command"]
     assert "--run-id i1_present_r8_residual_focus_262k_retry1" in report["residual_focus"]["monitor_health_command"]
     assert "--progress-root outputs/local_audits/i1_present_r8_residual_focus_262k" in report["residual_focus"]["monitor_health_command"]
     assert "scripts/advance-residual-focus-results" in report["residual_focus"]["advance_command"]
-    assert "--action-plan outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json" in report["residual_focus"]["advance_command"]
+    assert f"--action-plan {action_plan}" in report["residual_focus"]["advance_command"]
     assert "--gate-output outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json" in report["residual_focus"]["advance_command"]
     assert "ssh" not in report["residual_focus"]["advance_command"]
     assert "scripts/watch-residual-focus-results" in report["residual_focus"]["watch_command"]
-    assert "--action-plan outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json" in report["residual_focus"]["watch_command"]
+    assert f"--action-plan {action_plan}" in report["residual_focus"]["watch_command"]
     assert f"--pool-output {pool_plan}" in report["residual_focus"]["watch_command"]
     assert "ssh" not in report["residual_focus"]["watch_command"]
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"

@@ -80,6 +80,7 @@ def summarize_present_r8_diverse_route(
     bucket_residual_plan_path: Path,
     bucket_residual_control_gate_path: Path,
     monitor_health: dict[str, Any] | None = None,
+    residual_action_plan: dict[str, Any] | None = None,
     advance_command: str | None = None,
     watch_command: str | None = None,
 ) -> dict[str, Any]:
@@ -122,6 +123,7 @@ def summarize_present_r8_diverse_route(
             "gate_decision": str(residual.get("gate_decision", "")),
             "missing_output_count": int(residual.get("missing_output_count", 0)),
             "blockers": _residual_focus_blockers(residual),
+            "action_plan_summary": _residual_action_plan_summary(residual_action_plan),
             "repair_active": bool(residual.get("repair_active", False)),
             "repair_status": str(residual.get("repair_status", "")),
             "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
@@ -472,6 +474,30 @@ def _residual_focus_blockers(residual: dict[str, Any]) -> list[dict[str, Any]]:
     return blockers
 
 
+def _residual_action_plan_summary(plan: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(plan, dict):
+        return {"exists": False}
+    seeds = plan.get("seeds", [])
+    if not isinstance(seeds, list):
+        seeds = []
+    candidates = _string_list(plan.get("candidates"))
+    return {
+        "exists": True,
+        "status": str(plan.get("status", "")),
+        "should_run": bool(plan.get("should_run", False)),
+        "seed_count": len(seeds),
+        "candidate_count": len(candidates),
+        "candidates": candidates,
+        "command_count": _list_len(plan.get("commands")),
+        "control_command_count": _list_len(plan.get("control_commands")),
+        "source_selection_command_count": _list_len(plan.get("source_selection_commands")),
+        "planned_output_count": sum(_dict_len(seed.get("planned_outputs")) for seed in seeds if isinstance(seed, dict)),
+        "source_selection_output_count": sum(
+            _dict_len(seed.get("source_selection_outputs")) for seed in seeds if isinstance(seed, dict)
+        ),
+    }
+
+
 def _post_retrieval_sequence() -> list[dict[str, Any]]:
     return [
         {
@@ -680,6 +706,18 @@ def _string_list(value: object) -> list[str]:
     return [str(item) for item in value]
 
 
+def _list_len(value: object) -> int:
+    if not isinstance(value, list):
+        return 0
+    return len(value)
+
+
+def _dict_len(value: object) -> int:
+    if not isinstance(value, dict):
+        return 0
+    return len(value)
+
+
 def _dict_value(value: object) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {}
@@ -733,6 +771,7 @@ def main(argv: list[str] | None = None) -> int:
             stale_after_seconds=args.monitor_health_stale_after_seconds,
             progress_roots=progress_roots,
         )
+    residual_action_plan = _load_json_or_empty(args.residual_action_plan)
     report = summarize_present_r8_diverse_route(
         residual_status_path=args.residual_status,
         pool_plan_path=args.pool_plan,
@@ -741,6 +780,7 @@ def main(argv: list[str] | None = None) -> int:
         bucket_residual_plan_path=args.bucket_residual_plan,
         bucket_residual_control_gate_path=args.bucket_residual_control_gate,
         monitor_health=monitor_health,
+        residual_action_plan=residual_action_plan,
         advance_command=_residual_advance_command(
             action_plan=args.residual_action_plan,
             gate_output=args.residual_gate,
