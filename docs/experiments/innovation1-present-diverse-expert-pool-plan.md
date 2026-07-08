@@ -612,6 +612,10 @@ The adjacent `residual_focus.action_plan_summary` field counts planned seeds,
 candidates, commands, controls, source-selection commands, and expected outputs
 from the residual-focus action plan. This lets status reports distinguish a
 single heavy feature-cache/export stage from many concurrently launched jobs.
+`residual_focus.execution_interpretation` combines that planned scale with the
+currently observed progress streams. When only one dataset-cache stream is
+visible, it reports `single_heavy_dataset_cache_stage`; this is intended to
+prevent mistaking many planned stages for many simultaneous jobs.
 The top-level `local_command_safety` field scans those emitted local command
 fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
 `G:\lxy`; this summary should remain local-only and report `pass` unless a

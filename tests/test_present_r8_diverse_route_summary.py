@@ -153,6 +153,16 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
         "planned_output_count": 3,
         "source_selection_output_count": 3,
     }
+    assert report["residual_focus"]["execution_interpretation"] == {
+        "observed_progress_stream_count": 1,
+        "planned_stage_command_count": 6,
+        "current_stage": "dataset_cache",
+        "current_event": "cache_positive_chunk",
+        "current_split": "train",
+        "current_seed": 0,
+        "interpretation": "single_heavy_dataset_cache_stage",
+        "reason": "one progress stream is currently observed even though multiple stage commands are planned",
+    }
     assert "scripts/monitor-health" in report["residual_focus"]["monitor_health_command"]
     assert "--run-id i1_present_r8_residual_focus_262k_retry1" in report["residual_focus"]["monitor_health_command"]
     assert "--progress-root outputs/local_audits/i1_present_r8_residual_focus_262k" in report["residual_focus"]["monitor_health_command"]

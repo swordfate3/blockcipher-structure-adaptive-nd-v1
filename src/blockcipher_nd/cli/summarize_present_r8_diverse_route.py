@@ -104,6 +104,7 @@ def summarize_present_r8_diverse_route(
         "residual_focus.advance_command": advance_command or _residual_advance_command(),
         "residual_focus.watch_command": watch_command or _residual_watch_command(),
     }
+    residual_action_summary = _residual_action_plan_summary(residual_action_plan)
     return {
         "status": status,
         "decision": decision,
@@ -123,7 +124,11 @@ def summarize_present_r8_diverse_route(
             "gate_decision": str(residual.get("gate_decision", "")),
             "missing_output_count": int(residual.get("missing_output_count", 0)),
             "blockers": _residual_focus_blockers(residual),
-            "action_plan_summary": _residual_action_plan_summary(residual_action_plan),
+            "action_plan_summary": residual_action_summary,
+            "execution_interpretation": _residual_execution_interpretation(
+                residual=residual,
+                action_plan_summary=residual_action_summary,
+            ),
             "repair_active": bool(residual.get("repair_active", False)),
             "repair_status": str(residual.get("repair_status", "")),
             "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
@@ -495,6 +500,47 @@ def _residual_action_plan_summary(plan: dict[str, Any] | None) -> dict[str, Any]
         "source_selection_output_count": sum(
             _dict_len(seed.get("source_selection_outputs")) for seed in seeds if isinstance(seed, dict)
         ),
+    }
+
+
+def _residual_execution_interpretation(
+    *,
+    residual: dict[str, Any],
+    action_plan_summary: dict[str, Any],
+) -> dict[str, Any]:
+    progress_streams = [
+        row for row in residual.get("progress_by_seed_split", []) if isinstance(row, dict)
+    ]
+    progress = _dict_value(residual.get("progress_summary"))
+    planned_stage_command_count = (
+        int(action_plan_summary.get("command_count", 0))
+        + int(action_plan_summary.get("control_command_count", 0))
+        + int(action_plan_summary.get("source_selection_command_count", 0))
+    )
+    current_stage = str(progress.get("stage", ""))
+    current_event = str(progress.get("event", ""))
+    if not current_event:
+        current_event = str(progress.get("cache_event", ""))
+    interpretation = "no_progress_stream_observed"
+    reason = "no progress stream is currently visible in the residual-focus status"
+    if len(progress_streams) == 1 and current_stage == "dataset_cache":
+        interpretation = "single_heavy_dataset_cache_stage"
+        reason = "one progress stream is currently observed even though multiple stage commands are planned"
+    elif len(progress_streams) == 1:
+        interpretation = "single_progress_stream_observed"
+        reason = "one progress stream is currently observed"
+    elif len(progress_streams) > 1:
+        interpretation = "multiple_progress_streams_observed"
+        reason = "multiple progress streams are currently visible in the residual-focus status"
+    return {
+        "observed_progress_stream_count": len(progress_streams),
+        "planned_stage_command_count": planned_stage_command_count,
+        "current_stage": current_stage,
+        "current_event": current_event,
+        "current_split": str(progress.get("split", progress.get("cache_split", ""))),
+        "current_seed": progress.get("seed"),
+        "interpretation": interpretation,
+        "reason": reason,
     }
 
 
