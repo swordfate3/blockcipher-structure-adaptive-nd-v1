@@ -78,6 +78,8 @@ def plan_residual_focus_remote_package(
         blockers.append("action_plan_not_pass")
     if gate.get("status") != "pass":
         blockers.append("source_gate_not_pass")
+    if _has_medium_cache_command_without_workers(plan, all_commands):
+        blockers.append("medium_cache_workers_not_configured")
     if _contains_unsafe_command(windows_commands):
         blockers.append("unsafe_generated_command")
     launcher.write_text(_launcher_text(windows_commands, run_id=run_id), encoding="utf-8")
@@ -165,6 +167,53 @@ def _command_option_paths(
             if token in option_names and tokens[index + 1].startswith(local_artifact_root):
                 paths.append(tokens[index + 1])
     return sorted(set(paths))
+
+
+def _has_medium_cache_command_without_workers(plan: dict[str, Any], commands: list[str]) -> bool:
+    if not _is_medium_or_larger_plan(plan):
+        return False
+    for command in commands:
+        tokens = shlex.split(command)
+        if not any(
+            token.endswith("scripts/export-bit-sensitivity-features")
+            or token.endswith("scripts/export-checkpoint-scores")
+            for token in tokens
+        ):
+            continue
+        if "--dataset-cache-root" not in tokens:
+            continue
+        worker_count = _int_option(tokens, "--dataset-cache-workers")
+        if worker_count is None or worker_count < 2:
+            return True
+    return False
+
+
+def _is_medium_or_larger_plan(plan: dict[str, Any]) -> bool:
+    expected_score_rows = plan.get("expected_score_rows")
+    if isinstance(expected_score_rows, int) and expected_score_rows >= 65_536:
+        return True
+    if isinstance(expected_score_rows, str) and expected_score_rows.isdigit() and int(expected_score_rows) >= 65_536:
+        return True
+    text = " ".join(
+        str(value)
+        for value in (
+            plan.get("artifact_root", ""),
+            plan.get("claim_scope", ""),
+            plan.get("decision", ""),
+        )
+    )
+    return "262k" in text or "262144" in text
+
+
+def _int_option(tokens: list[str], option_name: str) -> int | None:
+    for index, token in enumerate(tokens[:-1]):
+        if token != option_name:
+            continue
+        try:
+            return int(tokens[index + 1])
+        except ValueError:
+            return None
+    return None
 
 
 def _final_sync_outputs(

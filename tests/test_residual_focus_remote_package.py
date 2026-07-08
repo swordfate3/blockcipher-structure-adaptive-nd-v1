@@ -187,6 +187,55 @@ def test_residual_focus_remote_package_blocks_launch_when_source_gate_fails(tmp_
     assert report["source_gate_errors"] == ["unpushed_commits"]
 
 
+def test_residual_focus_remote_package_blocks_medium_cache_commands_without_workers(tmp_path):
+    action_plan = tmp_path / "action_plan.json"
+    source_gate = tmp_path / "source_gate.json"
+    output_dir = tmp_path / "generated"
+    report_path = tmp_path / "remote_package.json"
+    artifact_root = "outputs/local_audits/i1_present_r8_residual_focus_262k"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "artifact_root": artifact_root,
+                "expected_score_rows": 262144,
+                "commands": [
+                    (
+                        "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features "
+                        f"--dataset-cache-root {artifact_root}/seed0/dataset_cache/train "
+                        f"--progress-output {artifact_root}/seed0/dataset_cache/seed0_train_progress.jsonl "
+                        f"--output-dir {artifact_root}/seed0/train_trail_position_stats_features"
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source_gate.write_text(
+        json.dumps({"status": "pass", "dirty": False, "ahead": 0, "behind": 0}),
+        encoding="utf-8",
+    )
+
+    status = plan_remote_package_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--source-gate",
+            str(source_gate),
+            "--output-dir",
+            str(output_dir),
+            "--output",
+            str(report_path),
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["status"] == "pending"
+    assert report["launch_allowed"] is False
+    assert "medium_cache_workers_not_configured" in report["blockers"]
+
+
 def test_residual_focus_remote_package_accepts_isolated_retry_run_id(tmp_path):
     action_plan = tmp_path / "action_plan.json"
     source_gate = tmp_path / "source_gate.json"
