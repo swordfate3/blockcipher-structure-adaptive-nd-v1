@@ -288,6 +288,7 @@ def test_advance_residual_focus_results_runs_source_selection_summary_when_repor
 
     report = json.loads(output.read_text(encoding="utf-8"))
     action_payload = json.loads(action_plan.read_text(encoding="utf-8"))
+    pool_report = json.loads(pool.read_text(encoding="utf-8"))
     summary_path = Path(action_payload["source_selection_summary_output"])
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     assert status == 0
@@ -301,6 +302,13 @@ def test_advance_residual_focus_results_runs_source_selection_summary_when_repor
     assert report["source_selection_missing_reports"] == []
     assert summary["recommended_feature_prefixes"][:2] == ["aux_word_", "aux_depth_word_"]
     assert "validation" not in "\n".join(summary["spectrum_reports"])
+    assert pool_report["source_selection_summary"] == str(summary_path)
+    assert pool_report["source_selection_status"] == "pass"
+    assert "residual_focus_source_selected_aux" in pool_report["expert_families"]
+    assert (
+        "trail_position + raw117 + source_selected_residual_focus"
+        in pool_report["planned_fixed_fusions"]
+    )
 
 
 def test_advance_residual_focus_results_defaults_source_summary_under_artifact_root_for_old_plan(

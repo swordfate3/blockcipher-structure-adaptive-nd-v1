@@ -10,7 +10,10 @@ from blockcipher_nd.cli.evaluate_residual_guided_diverse_pool import (
     evaluate_residual_guided_diverse_pool,
 )
 from blockcipher_nd.cli.gate_residual_focus_262k import gate_residual_focus_262k
-from blockcipher_nd.cli.plan_residual_guided_diverse_pool import plan_residual_guided_diverse_pool
+from blockcipher_nd.cli.plan_residual_guided_diverse_pool import (
+    DEFAULT_SOURCE_SELECTION_SUMMARY as DEFAULT_POOL_SOURCE_SELECTION_SUMMARY,
+    plan_residual_guided_diverse_pool,
+)
 from blockcipher_nd.cli.plan_residual_focus_repair import plan_residual_focus_repair
 from blockcipher_nd.cli.residual_focus_status import residual_focus_status
 from blockcipher_nd.cli.summarize_residual_axis_spectrum import (
@@ -89,7 +92,13 @@ def advance_residual_focus_results(
         ran_gate = True
 
     if gate_report.get("status") in {"pass", "fail"}:
-        pool_report = plan_residual_guided_diverse_pool(residual_focus_gate=gate_output)
+        source_selection_summary = Path(
+            str(source_selection_summary_report.get("output") or DEFAULT_POOL_SOURCE_SELECTION_SUMMARY)
+        )
+        pool_report = plan_residual_guided_diverse_pool(
+            residual_focus_gate=gate_output,
+            source_selection_summary=source_selection_summary,
+        )
         _write_json(pool_output, pool_report)
         ran_pool_planner = True
 
