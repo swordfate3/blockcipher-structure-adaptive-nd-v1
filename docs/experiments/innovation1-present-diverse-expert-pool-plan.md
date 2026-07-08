@@ -579,6 +579,11 @@ same-protocol migration plan are actually ready. It never SSHes, launches
 remote work, trains, changes labels or negative mode, or upgrades any evidence
 claim.
 
+The `residual_focus.monitor_health_command` field emits the bounded local
+health check with the residual-focus `--progress-root` already attached. Use it
+for status reports instead of reconstructing the command by hand; it remains a
+read-only local check and does not contact the remote workstation.
+
 As of the V2 route refresh, the same summary also reports:
 
 ```text

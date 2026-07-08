@@ -124,6 +124,7 @@ def summarize_present_r8_diverse_route(
             ],
             "planned_output_count": int(residual.get("planned_output_count", 0)),
             "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
+            "monitor_health_command": _residual_monitor_health_command(),
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
@@ -382,6 +383,16 @@ def _linear_combo_integral_residual_route(residual: dict[str, Any]) -> dict[str,
         "decision": "plan_linear_combo_integral_residual_expert",
         "reason": "residual_focus_passed_and_train_source_selection_ready",
     }
+
+
+def _residual_monitor_health_command() -> str:
+    return (
+        "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/monitor-health "
+        "--run-id i1_present_r8_residual_focus_262k_retry1 "
+        "--recent-lines 10 "
+        "--stale-after-seconds 3600 "
+        "--progress-root outputs/local_audits/i1_present_r8_residual_focus_262k"
+    )
 
 
 def _compact_next_action(value: object) -> dict[str, Any]:
