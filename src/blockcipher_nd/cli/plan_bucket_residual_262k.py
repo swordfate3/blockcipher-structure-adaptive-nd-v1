@@ -15,6 +15,8 @@ DEFAULT_POSTPROCESS_STATUS = Path(
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_bucket_residual_262k_action_plan.json")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_bucket_residual_262k")
 DEFAULT_SEED_PLAN_PREFIX = "configs/experiment/innovation1/innovation1_spn_present_r8_trail_position_beamstats_262k_seed"
+FEATURE_EXPORT_CACHE_WORKERS = 4
+CHECKPOINT_SCORE_CACHE_WORKERS = 4
 FEATURE_PREFIXES = (
     "primary_depth_trailword_",
     "aux_depth_cell_",
@@ -216,8 +218,24 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "bucket_valshuffle_ensemble": seed_root / "trail_raw117_bucket_valshuffle_three_score_ensemble.json",
     }
     commands = [
-        _feature_export_command(eval_plan, seed, "train", paths["train_feature_dir"], None, paths),
-        _feature_export_command(eval_plan, seed, "validation", paths["validation_feature_dir"], validation_trail_scores, paths),
+        _feature_export_command(
+            eval_plan,
+            seed,
+            "train",
+            paths["train_feature_dir"],
+            None,
+            paths,
+            dataset_cache_workers=FEATURE_EXPORT_CACHE_WORKERS,
+        ),
+        _feature_export_command(
+            eval_plan,
+            seed,
+            "validation",
+            paths["validation_feature_dir"],
+            validation_trail_scores,
+            paths,
+            dataset_cache_workers=FEATURE_EXPORT_CACHE_WORKERS,
+        ),
         _span_command(paths["train_feature_dir"], paths["train_span_blocks"], paths["train_span_summary"]),
         _span_command(paths["validation_feature_dir"], paths["validation_span_blocks"], paths["validation_span_summary"]),
         _checkpoint_score_command(
@@ -415,6 +433,8 @@ def _checkpoint_score_command(
             str(cache_root / "train_scores"),
             "--progress-output",
             str(cache_root / f"seed{seed}_train_score_export_progress.jsonl"),
+            "--dataset-cache-workers",
+            str(CHECKPOINT_SCORE_CACHE_WORKERS),
             "--output-dir",
             str(output_dir),
         ]

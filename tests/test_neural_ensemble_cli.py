@@ -4283,6 +4283,7 @@ def test_plan_bucket_residual_262k_emits_same_protocol_v16_commands(tmp_path):
     assert "remote Windows checkpoint path" in seed["warnings"][0]
     assert "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features" in command_text
     assert "--feature-view trail_position_stats" in command_text
+    assert command_text.count("--dataset-cache-workers 4") == 3
     assert "scripts/export-compressed-span-blocks" in command_text
     assert "scripts/export-checkpoint-scores" in command_text
     assert "--split train" in command_text
