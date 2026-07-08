@@ -341,6 +341,8 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
         "cache_eta_seconds": 100,
         "cache_eta_hours": 0.028,
         "monitor_status": "running",
+        "latest_command_index": 3,
+        "latest_command_marker": f"logs/{run_id}_command_3.marker",
     }
 
 

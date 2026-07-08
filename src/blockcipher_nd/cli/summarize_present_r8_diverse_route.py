@@ -714,6 +714,7 @@ def _residual_wait_diagnosis(monitor_health: dict[str, Any]) -> dict[str, Any]:
     results_ready = bool(monitor_health.get("results_jsonl_exists", False)) and int(
         monitor_health.get("results_jsonl_line_count", 0)
     ) > 0
+    command_markers = _dict_value(monitor_health.get("command_markers"))
     status = "needs_main_thread_intervention" if intervention else "results_ready" if results_ready else "continue_monitoring"
     return {
         "status": status,
@@ -722,6 +723,8 @@ def _residual_wait_diagnosis(monitor_health: dict[str, Any]) -> dict[str, Any]:
         "cache_eta_seconds": eta_seconds,
         "cache_eta_hours": eta_hours,
         "monitor_status": str(monitor_health.get("status", "")),
+        "latest_command_index": command_markers.get("latest_command_index"),
+        "latest_command_marker": str(command_markers.get("latest_marker", "")),
     }
 
 

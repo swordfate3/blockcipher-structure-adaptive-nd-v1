@@ -233,7 +233,9 @@ many planned commands do not imply many concurrent jobs.
 `residual_focus.wait_diagnosis` condenses the embedded monitor-health state into
 the current wait decision, including whether main-thread intervention is needed,
 whether results are ready, and the cache ETA in seconds and hours when
-available.
+available. When command markers have been retrieved, it also carries the latest
+command index and marker path so compact status reports can say which script
+step is currently active.
 The top-level `local_command_safety` field scans the emitted local command
 fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
 `G:\lxy`; it should remain `pass` for this local-only route summary.
