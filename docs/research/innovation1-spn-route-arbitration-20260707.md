@@ -28,8 +28,9 @@ Verified sources used for this memo:
   <https://arxiv.org/abs/2204.06341>.
 - L. Zhang et al., "Neural-Inspired Advances in Integral Cryptanalysis,"
   arXiv:2505.10790, <https://arxiv.org/abs/2505.10790>.
-- A. Tashkilkhanova et al., "Enhancing RX Neural Cryptanalysis: Advanced Data
-  Formatting and Weighted Differential Techniques for Block Ciphers,"
+- C. Liu, S. Chen, Z. Xiang, S. Zhang, and X. Zeng, "Enhancing Deep
+  Learning-Based Rotational-XOR Attacks on Lightweight Block Ciphers
+  Simon32/64 and Simeck32/64,"
   arXiv:2511.06336, <https://arxiv.org/abs/2511.06336>.
 
 Source hygiene correction:
@@ -38,6 +39,17 @@ Source hygiene correction:
 arXiv:2505.10792 is not a multiple-ciphertext-pair block-cipher neural
 distinguisher paper. It is an unrelated retrieval-augmented generation / LLM
 paper. Do not cite it as cryptanalysis evidence.
+```
+
+2026-07-08 source hygiene correction:
+
+```text
+arXiv:2511.06336 was previously cited under an incorrect title and author
+line. The verified arXiv title is "Enhancing Deep Learning-Based
+Rotational-XOR Attacks on Lightweight Block Ciphers Simon32/64 and
+Simeck32/64" by Liu, Chen, Xiang, Zhang, and Zeng. The route takeaway still
+holds: the relevant evidence is bit-sensitivity data-format compression that
+allows more multi-ciphertext-pair evidence, not a generic ensemble argument.
 ```
 
 ## Current Local Evidence

@@ -1,3 +1,44 @@
+## [LRN-20260708-001] correction
+
+**Logged**: 2026-07-08T12:00:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Verify every arXiv identifier against its current title and authors before
+using it in Innovation 1 route arbitration.
+
+### Details
+During a follow-up source check for the SPN/PRESENT route arbitration, the
+project notes correctly treated arXiv:2511.06336 as relevant RX-neural
+cryptanalysis evidence, but cited it under an incorrect title and author line.
+The verified arXiv page identifies the paper as "Enhancing Deep Learning-Based
+Rotational-XOR Attacks on Lightweight Block Ciphers Simon32/64 and
+Simeck32/64" by Liu, Chen, Xiang, Zhang, and Zeng.
+
+This is related to the earlier arXiv:2505.10792 correction: an arXiv ID can be
+present in a local note while the title, topic, or authors are wrong. A route
+decision should not rely on memory or copied citation metadata alone.
+
+### Suggested Action
+Before citing a paper as route evidence, open the arXiv/ePrint/source page and
+verify the identifier, title, authors, year/date, and topic. If only the broad
+takeaway remains valid after correction, update the note to separate the
+verified bibliographic fact from the inferred route implication.
+
+### Metadata
+- Source: source_recheck
+- Related Files: docs/research/innovation1-spn-route-arbitration-20260707.md, docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md
+- Tags: innovation1, literature, citation-hygiene, arxiv, spn
+- See Also: LRN-20260707-002
+- Pattern-Key: research.citation_id_must_match_title_topic
+- Recurrence-Count: 2
+- First-Seen: 2026-07-07
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260707-001] best_practice
 
 **Logged**: 2026-07-07T07:05:00+08:00

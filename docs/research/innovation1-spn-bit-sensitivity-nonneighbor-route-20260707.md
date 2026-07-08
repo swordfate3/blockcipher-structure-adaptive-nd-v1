@@ -33,8 +33,9 @@ thread already used by this project:
   <https://arxiv.org/abs/2204.06341>.
 - Zhang et al. 2025, "Neural-Inspired Advances in Integral Cryptanalysis",
   arXiv:2505.10790, <https://arxiv.org/abs/2505.10790>.
-- Tashkilkhanova et al. 2025, "Enhancing RX Neural Cryptanalysis: Advanced
-  Data Formatting and Weighted Differential Techniques for Block Ciphers",
+- Liu, Chen, Xiang, Zhang, and Zeng 2025, "Enhancing Deep Learning-Based
+  Rotational-XOR Attacks on Lightweight Block Ciphers Simon32/64 and
+  Simeck32/64",
   arXiv:2511.06336, <https://arxiv.org/abs/2511.06336>.
 - The local paper index also flags bit selection, GPD, PRESENT entropy, and
   multi-ciphertext-pair work as representation/feature-search evidence rather
@@ -45,6 +46,13 @@ multiple-ciphertext-pair neural distinguisher source. Re-checking the arXiv
 record shows that this identifier is a retrieval-augmented generation / LLM
 paper, not a block-cipher neural-cryptanalysis paper. Do not use that arXiv ID
 as evidence for this route.
+
+Additional 2026-07-08 citation correction: arXiv:2511.06336 itself is a
+relevant RX-neural cryptanalysis source, but the previous local title/author
+line was wrong. The verified arXiv record names Liu, Chen, Xiang, Zhang, and
+Zeng as authors, and the paper's concrete contribution to this route is
+bit-sensitivity compression of RX-neural data formats so that the saved input
+budget can include more multi-ciphertext-pair evidence.
 
 The 2026-07-07 re-check adds one concrete implementation lesson. Recent
 RX-neural work uses bit sensitivity tests to reduce the input data format, then
