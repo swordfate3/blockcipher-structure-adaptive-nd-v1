@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-06
 
-**Status:** remote 262144/class seed0+seed1 launched / watcher-managed running; 65k/class score export repair pending
+**Status:** remote 262144/class seed0+seed1 retrieved/gated; 65k/class seed0 score artifacts verified; residual-focus 262144/class follow-up tracked separately
 
 ## Why This Plan Exists
 
@@ -1779,6 +1779,97 @@ The diagnostic reports candidate-versus-global-control AUC and accuracy
 margins, 0.5-threshold error overlap, double-fault/error Jaccard, and whether
 the candidate corrects more global-control errors than it introduces. It is a
 residual/error-overlap diagnostic only, not a diverse ensemble claim.
+
+### 65k/Class Score Artifact Verification Refresh
+
+The 65k/class seed0 score-export state has since advanced from the older
+`pending watcher retrieval / export still running or stalled` caveat to a
+verified local artifact state.
+
+Verified artifacts:
+
+```text
+global_stats_control =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/global_stats_control
+trail_position =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position
+verification =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/verification_summary.json
+analysis =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position_score_analysis.json
+two-score ensemble diagnostic =
+  outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/global_trail_ensemble.json
+```
+
+Score-artifact verification:
+
+```text
+status = pass
+rows = 65536
+expected_rows = 65536
+alignment.labels = true
+alignment.sample_ids = true
+required_models =
+  present_pairset_global_stats:trail_position_global_control:near_neighbor_control
+  present_trail_position_stats_pairset:trail_position:weak_positive
+```
+
+Frozen-score trail-position diagnostic:
+
+| Model | AUC | Accuracy | Calibrated accuracy | Wrong @0.5 |
+|---|---:|---:|---:|---:|
+| `present_pairset_global_stats` | `0.9919177521951497` | `0.955718994140625` | `0.955902099609375` | `2902` |
+| `present_trail_position_stats_pairset` | `0.9999999878928065` | `0.9998779296875` | `0.9999542236328125` | `8` |
+
+Margins and overlap:
+
+```text
+decision = support_trail_position_score_residual
+candidate_auc_margin_vs_global = +0.00808223569765687
+candidate_accuracy_margin_vs_global = +0.044158935546875
+candidate_calibrated_accuracy_margin_vs_global = +0.0440521240234375
+candidate_correct_global_wrong_rate_at_0_5 = 0.044219970703125
+global_correct_candidate_wrong_rate_at_0_5 = 0.00006103515625
+both_wrong_count_at_0_5 = 4
+error_jaccard_at_0_5 = 0.0013764624913971094
+probability_correlation = 0.9273702362941236
+logit_correlation = 0.878545023024244
+```
+
+Plain interpretation:
+
+```text
+The 65k seed0 result is not just "all scores are similarly high." The
+same-input global-stat control is already strong, but the trail-position
+candidate corrects a large share of the global-control errors and introduces
+very few new 0.5-threshold errors. This supports the position-aware residual
+reading at 65536/class seed0.
+```
+
+The simple two-score global+trail ensemble still does not improve over the best
+single trail-position expert:
+
+```text
+best_single_auc = 0.9999999878928065
+best_ensemble_auc = 0.999999638646841
+delta_best_ensemble_vs_single_auc = -0.00000034924596548080444
+decision = diverse_expert_pool_not_ready
+reason = too_few_eligible_families
+```
+
+Decision:
+
+```text
+decision = support_trail_position_score_residual_65k_seed0_verified
+status = medium_seed0_diagnostic_only
+action =
+  use the verified 65k artifacts as a quick evidence anchor;
+  do not relaunch the same 65k seed0 run;
+  do not claim formal SPN/PRESENT evidence from this single seed;
+  do not promote near-neighbor score averaging;
+  keep using 262144/class retrieved trail-position artifacts and the separate
+  residual-focus 262144/class route for the next actual gate.
+```
 
 ## 262k/Class Follow-Up Launched
 
