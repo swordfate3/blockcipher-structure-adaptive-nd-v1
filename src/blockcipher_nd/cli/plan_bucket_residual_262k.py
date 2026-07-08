@@ -333,6 +333,8 @@ def _feature_export_command(
     output_dir: Path,
     reference_artifact: Path | None,
     paths: dict[str, Path],
+    *,
+    dataset_cache_workers: int | None = None,
 ) -> str:
     parts = [
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -352,6 +354,8 @@ def _feature_export_command(
         "--progress-output",
         str(paths["dataset_cache_root"] / f"seed{seed}_{split}_feature_export_progress.jsonl"),
     ]
+    if dataset_cache_workers is not None:
+        parts.extend(["--dataset-cache-workers", str(dataset_cache_workers)])
     if reference_artifact is not None:
         parts.extend(["--reference-artifact", str(reference_artifact)])
     parts.extend(["--output-dir", str(output_dir)])

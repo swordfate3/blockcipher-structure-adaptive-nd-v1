@@ -4440,6 +4440,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "remote Windows checkpoint path" in seed["warnings"][0]
     assert "scripts/export-bit-sensitivity-features" in command_text
     assert "--feature-view trail_position_stats" in command_text
+    assert command_text.count("--dataset-cache-workers 4") == 2
     assert "scripts/export-compressed-span-blocks" in command_text
     assert "scripts/export-checkpoint-scores" in command_text
     assert "scripts/fit-compressed-feature-expert" in command_text
