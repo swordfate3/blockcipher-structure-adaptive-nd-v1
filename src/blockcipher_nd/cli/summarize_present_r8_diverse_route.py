@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +80,7 @@ def summarize_present_r8_diverse_route(
     bucket_residual_plan_path: Path,
     bucket_residual_control_gate_path: Path,
     monitor_health: dict[str, Any] | None = None,
+    advance_command: str | None = None,
 ) -> dict[str, Any]:
     residual = _load_json(residual_status_path)
     pool_plan = _load_json_or_empty(pool_plan_path)
@@ -146,6 +148,7 @@ def summarize_present_r8_diverse_route(
             "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
             "monitor_health_command": _residual_monitor_health_command(),
             "monitor_health_summary": _compact_monitor_health(monitor_health),
+            "advance_command": advance_command or _residual_advance_command(),
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
@@ -416,6 +419,42 @@ def _residual_monitor_health_command() -> str:
     )
 
 
+def _residual_advance_command(
+    *,
+    action_plan: Path = DEFAULT_RESIDUAL_ACTION_PLAN,
+    gate_output: Path = DEFAULT_RESIDUAL_GATE,
+    pool_output: Path = DEFAULT_POOL_PLAN,
+    pool_eval_output: Path = DEFAULT_POOL_EVAL,
+    repair_output: Path = DEFAULT_RESIDUAL_REPAIR_PLAN,
+    status_output: Path = DEFAULT_RESIDUAL_STATUS,
+    monitor_dir: Path = DEFAULT_RESIDUAL_MONITOR_DIR,
+    artifact_root: Path = DEFAULT_RESIDUAL_ARTIFACT_ROOT,
+) -> str:
+    parts = [
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "uv",
+        "run",
+        "scripts/advance-residual-focus-results",
+        "--action-plan",
+        str(action_plan),
+        "--gate-output",
+        str(gate_output),
+        "--pool-output",
+        str(pool_output),
+        "--pool-eval-output",
+        str(pool_eval_output),
+        "--repair-output",
+        str(repair_output),
+        "--status-output",
+        str(status_output),
+        "--monitor-dir",
+        str(monitor_dir),
+        "--artifact-root",
+        str(artifact_root),
+    ]
+    return " ".join(shlex.quote(part) for part in parts)
+
+
 def _compact_monitor_health(report: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(report, dict):
         return {}
@@ -561,6 +600,16 @@ def main(argv: list[str] | None = None) -> int:
         bucket_residual_plan_path=args.bucket_residual_plan,
         bucket_residual_control_gate_path=args.bucket_residual_control_gate,
         monitor_health=monitor_health,
+        advance_command=_residual_advance_command(
+            action_plan=args.residual_action_plan,
+            gate_output=args.residual_gate,
+            pool_output=args.pool_plan,
+            pool_eval_output=args.pool_eval,
+            repair_output=args.residual_repair_plan,
+            status_output=args.residual_status,
+            monitor_dir=args.residual_monitor_dir,
+            artifact_root=args.residual_artifact_root,
+        ),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -200,6 +200,10 @@ Add `--include-monitor-health` to embed a compact local monitor-health summary
 under `residual_focus.monitor_health_summary`; this keeps ETA/progress,
 heartbeat, and intervention state in the same local route JSON while still
 remaining read-only and local-only.
+The `residual_focus.advance_command` field emits the matching local one-shot
+`scripts/advance-residual-focus-results` command for the same residual action
+plan, gate, Pool 3, repair, monitor, and artifact paths. It is a local
+postprocess handoff command, not remote launch permission.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

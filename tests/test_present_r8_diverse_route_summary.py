@@ -98,6 +98,10 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert "scripts/monitor-health" in report["residual_focus"]["monitor_health_command"]
     assert "--run-id i1_present_r8_residual_focus_262k_retry1" in report["residual_focus"]["monitor_health_command"]
     assert "--progress-root outputs/local_audits/i1_present_r8_residual_focus_262k" in report["residual_focus"]["monitor_health_command"]
+    assert "scripts/advance-residual-focus-results" in report["residual_focus"]["advance_command"]
+    assert "--action-plan outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json" in report["residual_focus"]["advance_command"]
+    assert "--gate-output outputs/local_audits/i1_present_r8_residual_focus_262k_gate.json" in report["residual_focus"]["advance_command"]
+    assert "ssh" not in report["residual_focus"]["advance_command"]
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "blocked_by_residual_focus"
     linear_combo = report["candidate_routes"]["linear_combo_integral_residual"]
