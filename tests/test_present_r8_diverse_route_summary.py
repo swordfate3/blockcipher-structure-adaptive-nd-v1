@@ -525,6 +525,16 @@ def test_present_r8_diverse_route_summary_prefers_pool3_after_residual_pool_read
     assert readiness["decision"] == "pool3_ready_linear_combo_tracked"
     assert readiness["primary_route"] == "pool3_residual_guided"
     assert readiness["selected_next_route"] == "trail_position + raw117 + source_selected_residual_focus"
+    assert readiness["route_priority_order"] == [
+        "pool3_residual_guided",
+        "linear_combo_integral_residual",
+        "bucket_conditioned_residual",
+        "state_token_residual",
+    ]
+    assert readiness["priority_reason"] == (
+        "prefer Pool3 when residual-focus and controls are ready; keep linear/integral as train-selected "
+        "backup, bucket-conditioned as migration candidate, and state-token held by controls"
+    )
     assert readiness["routes"]["pool3_residual_guided"] == {
         "status": "ready",
         "ready": True,
@@ -585,6 +595,12 @@ def test_present_r8_diverse_route_summary_runs_pool_planner_after_gate_pass(tmp_
     assert report["status"] == "pending"
     assert report["decision"] == "run_residual_guided_pool_planner"
     assert report["selected_next_action"]["branch"] == "run_residual_guided_pool_planner"
+    assert report["post_gate_route_readiness"]["route_priority_order"] == [
+        "pool3_residual_guided",
+        "linear_combo_integral_residual",
+        "bucket_conditioned_residual",
+        "state_token_residual",
+    ]
     assert report["candidate_routes"]["pool3_residual_guided"]["status"] == "waiting_for_pool_plan"
     linear_combo = report["candidate_routes"]["linear_combo_integral_residual"]
     assert linear_combo["status"] == "waiting_for_train_source_selection"

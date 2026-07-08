@@ -593,6 +593,7 @@ def _post_gate_route_readiness(
             "primary_route": "pool3_residual_guided",
             "selected_next_route": _selected_pool3_fusion(pool3_route),
             "routes": routes,
+            **_route_priority_context(),
         }
     if linear_ready:
         return {
@@ -601,6 +602,7 @@ def _post_gate_route_readiness(
             "primary_route": "linear_combo_integral_residual",
             "selected_next_route": "plan_linear_combo_integral_residual_expert",
             "routes": routes,
+            **_route_priority_context(),
         }
     return {
         "status": "blocked",
@@ -608,6 +610,22 @@ def _post_gate_route_readiness(
         "primary_route": "",
         "selected_next_route": "",
         "routes": routes,
+        **_route_priority_context(),
+    }
+
+
+def _route_priority_context() -> dict[str, Any]:
+    return {
+        "route_priority_order": [
+            "pool3_residual_guided",
+            "linear_combo_integral_residual",
+            "bucket_conditioned_residual",
+            "state_token_residual",
+        ],
+        "priority_reason": (
+            "prefer Pool3 when residual-focus and controls are ready; keep linear/integral as train-selected "
+            "backup, bucket-conditioned as migration candidate, and state-token held by controls"
+        ),
     }
 
 
