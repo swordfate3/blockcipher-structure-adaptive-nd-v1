@@ -591,6 +591,10 @@ The adjacent `residual_focus.advance_command` field emits the matching local
 one-shot `scripts/advance-residual-focus-results` command for the same residual
 action-plan, gate, Pool 3, repair, monitor, and artifact paths. This is for
 post-retrieval gate/Pool3 handoff only; it is not remote launch permission.
+`residual_focus.watch_command` emits the matching local
+`scripts/watch-residual-focus-results` loop command for restarting or handing
+off the local postprocess watcher with the same paths; run it only under a local
+tmux/session manager when continuous waiting is intended.
 When a single route JSON should include the bounded health snapshot directly,
 run the same route summary with `--include-monitor-health`. The embedded
 `residual_focus.monitor_health_summary` is intentionally compact: it carries the

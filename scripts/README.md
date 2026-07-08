@@ -204,6 +204,10 @@ The `residual_focus.advance_command` field emits the matching local one-shot
 `scripts/advance-residual-focus-results` command for the same residual action
 plan, gate, Pool 3, repair, monitor, and artifact paths. It is a local
 postprocess handoff command, not remote launch permission.
+The `residual_focus.watch_command` field emits the matching local
+`scripts/watch-residual-focus-results` loop command for restarting or handing
+off the local postprocess watcher with the same paths. It is also local-only;
+run it under a local tmux/session manager when continuous waiting is intended.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
