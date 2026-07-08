@@ -148,6 +148,7 @@ def advance_residual_focus_results(
         ran_pool_evaluator=ran_pool_evaluator,
         pool_eval_report=pool_eval_report,
     )
+    repair_fields = _advance_repair_fields(final_status)
     return {
         "status": status,
         "decision": decision,
@@ -169,13 +170,13 @@ def advance_residual_focus_results(
         "pool_eval_status": str(pool_eval_report.get("status", "")),
         "pool_eval_decision": str(pool_eval_report.get("decision", "")),
         "repair_plan": final_status["repair_plan"],
-        "repair_status": final_status["repair_status"],
-        "repair_active": final_status["repair_active"],
-        "repair_stale_reason": final_status["repair_stale_reason"],
-        "repair_decision": final_status["repair_decision"],
-        "repair_source_summary": final_status["repair_source_summary"],
-        "repair_context_current": final_status["repair_context_current"],
-        "repair_primary_branch": final_status["repair_primary_branch"],
+        "repair_status": repair_fields["repair_status"],
+        "repair_active": repair_fields["repair_active"],
+        "repair_stale_reason": repair_fields["repair_stale_reason"],
+        "repair_decision": repair_fields["repair_decision"],
+        "repair_source_summary": repair_fields["repair_source_summary"],
+        "repair_context_current": repair_fields["repair_context_current"],
+        "repair_primary_branch": repair_fields["repair_primary_branch"],
         "source_selection_summary_output": str(source_selection_summary_report.get("output", "")),
         "source_selection_summary_status": str(source_selection_summary_report.get("status", "")),
         "source_selection_summary_decision": str(source_selection_summary_report.get("decision", "")),
@@ -219,6 +220,31 @@ def advance_residual_focus_results(
             "local residual-focus postprocess advancement only; does not SSH, sync, launch "
             "remote jobs, or make a formal/breakthrough SPN/PRESENT claim"
         ),
+    }
+
+
+def _advance_repair_fields(final_status: dict[str, Any]) -> dict[str, Any]:
+    repair_status = str(final_status.get("repair_status", ""))
+    repair_active = bool(final_status.get("repair_active", False))
+    repair_context_current = bool(final_status.get("repair_context_current", False))
+    if repair_status == "stale" and not repair_active and not repair_context_current:
+        return {
+            "repair_status": repair_status,
+            "repair_active": False,
+            "repair_stale_reason": str(final_status.get("repair_stale_reason", "")),
+            "repair_decision": "",
+            "repair_source_summary": "",
+            "repair_context_current": False,
+            "repair_primary_branch": "",
+        }
+    return {
+        "repair_status": repair_status,
+        "repair_active": repair_active,
+        "repair_stale_reason": str(final_status.get("repair_stale_reason", "")),
+        "repair_decision": str(final_status.get("repair_decision", "")),
+        "repair_source_summary": str(final_status.get("repair_source_summary", "")),
+        "repair_context_current": repair_context_current,
+        "repair_primary_branch": str(final_status.get("repair_primary_branch", "")),
     }
 
 

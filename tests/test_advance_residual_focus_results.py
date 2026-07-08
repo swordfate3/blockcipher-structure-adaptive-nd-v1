@@ -187,11 +187,13 @@ def test_advance_residual_focus_results_marks_stale_repair_plan_when_outputs_mis
     assert report["repair_status"] == "stale"
     assert report["repair_active"] is False
     assert report["repair_stale_reason"] == "source_summary_not_current_context"
-    assert report["repair_source_summary"] == str(tmp_path / "old_pool_eval.json")
+    assert report["repair_source_summary"] == ""
     assert report["repair_context_current"] is False
-    assert report["repair_primary_branch"] == "repair_residual_guided_pool3_controls"
+    assert report["repair_decision"] == ""
+    assert report["repair_primary_branch"] == ""
     assert status_report["repair_status"] == "stale"
     assert status_report["repair_active"] is False
+    assert status_report["repair_source_summary"] == str(tmp_path / "old_pool_eval.json")
     assert status_report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
 
 
