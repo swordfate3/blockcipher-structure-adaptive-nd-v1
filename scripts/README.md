@@ -204,6 +204,10 @@ The embedded monitor-health summary also preserves `source_revision`, including
 the launched remote commit, current local `HEAD`, and whether the remote run is
 behind the current worktree head, so slow runs from older pushed commits can be
 explained without SSH polling.
+It also keeps `command_markers`, a compact view of retrieved
+`command_N.marker` files, so status reports can distinguish "one script still
+inside command 0" from "many commands already advanced" without inspecting the
+raw artifact listing.
 The `residual_focus.advance_command` field emits the matching local one-shot
 `scripts/advance-residual-focus-results` command for the same residual action
 plan, gate, Pool 3, repair, monitor, and artifact paths. It is a local

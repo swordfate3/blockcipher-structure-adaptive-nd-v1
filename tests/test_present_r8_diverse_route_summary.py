@@ -238,6 +238,8 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
     old_head = _git_output("rev-list", "--max-count=1", "HEAD~1")
     current_head = _git_output("rev-parse", "HEAD")
     logs_dir.joinpath(f"{run_id}_git_revision.txt").write_text(old_head + "\n", encoding="utf-8")
+    logs_dir.joinpath(f"{run_id}_command_0.marker").write_text("command_0\n", encoding="utf-8")
+    logs_dir.joinpath(f"{run_id}_command_3.marker").write_text("command_3\n", encoding="utf-8")
     monitor_dir.joinpath("monitor.log").write_text(
         "2026-07-08T08:41:41+08:00 running missing=18\n",
         encoding="utf-8",
@@ -321,6 +323,12 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
     assert monitor["source_revision"]["revision_lag"] == {
         "status": "behind_current_head",
         "commits_behind": 1,
+    }
+    assert monitor["command_markers"] == {
+        "marker_count": 2,
+        "command_indices": [0, 3],
+        "latest_command_index": 3,
+        "latest_marker": f"logs/{run_id}_command_3.marker",
     }
     assert progress["source_kind"] == "external_progress_jsonl"
     assert progress["cache_total_progress_percent"] == 75.0

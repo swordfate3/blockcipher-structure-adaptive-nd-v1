@@ -6949,6 +6949,39 @@ def test_monitor_health_reports_launched_revision_lag(tmp_path):
     assert report["launch_state"]["has_git_revision"] is True
 
 
+def test_monitor_health_reports_command_marker_progress(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "command_marker_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    monitor.joinpath("monitor.log").write_text(
+        "2026-07-08T11:00:00+08:00 running missing=18\n",
+        encoding="utf-8",
+    )
+    for index in [0, 1, 12]:
+        logs.joinpath(f"{run_id}_command_{index}.marker").write_text(
+            f"command_{index}\n",
+            encoding="utf-8",
+        )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        now=datetime.fromisoformat("2026-07-08T11:05:00+08:00"),
+    )
+
+    assert report["command_markers"] == {
+        "marker_count": 3,
+        "command_indices": [0, 1, 12],
+        "latest_command_index": 12,
+        "latest_marker": f"logs/{run_id}_command_12.marker",
+    }
+    assert report["status"] == "running"
+
+
 def test_present_r8_residual_bucket_plan_documents_source_selected_pool3_handoff():
     residual_plan = Path("docs/experiments/innovation1-present-r8-residual-bucket-axis-spectrum-plan.md")
     pool_plan = Path("docs/experiments/innovation1-present-diverse-expert-pool-plan.md")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -143,6 +144,7 @@ def monitor_health_report(
     tmux = _tmux_status(tmux_session)
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
     source_revision = _source_revision_report(run_root)
+    command_markers = _command_marker_summary(artifact_files)
     status = _health_status(
         run_root_exists=run_root.exists(),
         has_synced_remote_artifacts=has_synced_remote_artifacts,
@@ -209,6 +211,7 @@ def monitor_health_report(
         "stale_failed_markers": stale_failed_markers,
         "launch_state": launch_state,
         "source_revision": source_revision,
+        "command_markers": command_markers,
         "auxiliary_artifacts": auxiliary_artifacts,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
@@ -433,6 +436,21 @@ def _source_revision_report(run_root: Path) -> dict[str, Any]:
         "launched_commit": launched_commit,
         "current_head": current_head,
         "revision_lag": _revision_lag(launched_commit, current_head),
+    }
+
+
+def _command_marker_summary(artifact_files: list[str]) -> dict[str, Any]:
+    markers: list[tuple[int, str]] = []
+    for path in artifact_files:
+        match = re.search(r"_command_(\d+)\.marker$", path)
+        if match is not None:
+            markers.append((int(match.group(1)), path))
+    markers.sort()
+    return {
+        "marker_count": len(markers),
+        "command_indices": [index for index, _ in markers],
+        "latest_command_index": markers[-1][0] if markers else None,
+        "latest_marker": markers[-1][1] if markers else "",
     }
 
 
