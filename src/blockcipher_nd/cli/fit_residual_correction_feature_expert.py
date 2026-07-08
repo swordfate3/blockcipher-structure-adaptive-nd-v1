@@ -107,6 +107,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=[],
         help="Restrict fitting/scoring to explicit metadata feature_names prefixes; repeat for multiple prefixes.",
     )
+    parser.add_argument(
+        "--include-feature-prefixes-from-summary",
+        action="append",
+        default=[],
+        type=Path,
+        help=(
+            "Load recommended_feature_prefixes from a train-only residual axis-spectrum "
+            "summary; repeat for multiple summaries."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -539,8 +549,35 @@ def _feature_selection_metadata(feature_selection: dict[str, Any]) -> dict[str, 
     return metadata
 
 
+def _feature_prefixes_from_summaries(paths: list[Path]) -> list[str]:
+    prefixes: list[str] = []
+    for path in paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"{path}: expected JSON object")
+        loaded = [str(prefix) for prefix in payload.get("recommended_feature_prefixes", []) if str(prefix)]
+        if not loaded:
+            raise ValueError(f"{path}: recommended_feature_prefixes is empty")
+        prefixes.extend(loaded)
+    return _dedupe_strings(prefixes)
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    for value in values:
+        if value and value not in deduped:
+            deduped.append(value)
+    return deduped
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    include_feature_prefixes = _dedupe_strings(
+        [
+            *[str(prefix) for prefix in args.include_feature_prefix],
+            *_feature_prefixes_from_summaries(args.include_feature_prefixes_from_summary),
+        ]
+    )
     train_artifact, validation_artifact, report = fit_residual_correction_feature_expert(
         train_feature_dir=args.train_feature_dir,
         validation_feature_dir=args.validation_feature_dir,
@@ -565,7 +602,7 @@ def main(argv: list[str] | None = None) -> int:
         shuffle_validation_bucket_values=args.shuffle_validation_bucket_values,
         shuffle_seed=args.shuffle_seed,
         include_feature_families=args.include_feature_family,
-        include_feature_prefixes=args.include_feature_prefix,
+        include_feature_prefixes=include_feature_prefixes,
     )
     if args.output_train_dir is not None:
         write_score_artifact(args.output_train_dir, train_artifact)

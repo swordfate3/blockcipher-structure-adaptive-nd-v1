@@ -71,6 +71,7 @@ def plan_residual_focus_262k(
             source_decision=source_decision,
         )
 
+    source_selection_summary_output = artifact_root / "residual_axis_spectrum_summary.json"
     seed_plans = []
     errors: list[str] = []
     for index, run in enumerate(source.get("runs", [])):
@@ -78,7 +79,13 @@ def plan_residual_focus_262k(
             errors.append(f"run_{index}_not_object")
             continue
         try:
-            seed_plans.append(_seed_plan(run, artifact_root=artifact_root))
+            seed_plans.append(
+                _seed_plan(
+                    run,
+                    artifact_root=artifact_root,
+                    source_selection_summary=source_selection_summary_output,
+                )
+            )
         except ValueError as exc:
             errors.append(str(exc))
     if errors:
@@ -94,7 +101,6 @@ def plan_residual_focus_262k(
             "claim_scope": _claim_scope(),
         }
 
-    source_selection_summary_output = artifact_root / "residual_axis_spectrum_summary.json"
     source_selection_summary_command = _source_selection_summary_command(
         seed_plans,
         output=source_selection_summary_output,
@@ -124,6 +130,9 @@ def plan_residual_focus_262k(
         ],
         "source_selection_summary_output": str(source_selection_summary_output),
         "source_selection_summary_command": source_selection_summary_command,
+        "source_selected_commands": [
+            command for seed in seed_plans for command in seed["source_selected_commands"]
+        ],
         "next_action": (
             "Run these commands only after the 262k trail-position postprocess remains pass; "
             "compare global metrics and train-derived hard residual slice metrics before any "
@@ -168,7 +177,12 @@ def _missing_from_postprocess(source: dict[str, Any]) -> list[str]:
     return sorted({item for item in missing if item})
 
 
-def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
+def _seed_plan(
+    run: dict[str, Any],
+    *,
+    artifact_root: Path,
+    source_selection_summary: Path,
+) -> dict[str, Any]:
     run_root = Path(str(run.get("run_root", "")))
     if not run_root:
         raise ValueError("run_root_missing")
@@ -212,6 +226,12 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "focus10_shuffle_validation_scores": seed_root / "residual_focus10_labelshuffle_validation_scores",
         "focus10_shuffle_report": seed_root / "residual_focus10_labelshuffle_report.json",
         "focus10_shuffle_slice_eval": seed_root / "residual_focus10_labelshuffle_slice_eval.json",
+        "focus05_source_selected_train_scores": seed_root / "residual_focus05_source_selected_train_scores",
+        "focus05_source_selected_validation_scores": seed_root / "residual_focus05_source_selected_validation_scores",
+        "focus05_source_selected_report": seed_root / "residual_focus05_source_selected_report.json",
+        "focus10_source_selected_train_scores": seed_root / "residual_focus10_source_selected_train_scores",
+        "focus10_source_selected_validation_scores": seed_root / "residual_focus10_source_selected_validation_scores",
+        "focus10_source_selected_report": seed_root / "residual_focus10_source_selected_report.json",
         "train_residual_loss_axis_spectrum": seed_root / "train_residual_loss_axis_spectrum.json",
         "train_hard_error_axis_spectrum": seed_root / "train_hard_error_axis_spectrum.json",
     }
@@ -244,6 +264,28 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         _axis_spectrum_command(paths, target="residual_loss", output_key="train_residual_loss_axis_spectrum"),
         _axis_spectrum_command(paths, target="residual_error_at_0_5", output_key="train_hard_error_axis_spectrum"),
     ]
+    source_selected_commands = [
+        _residual_command(
+            paths,
+            validation_trail_scores,
+            seed,
+            label="focus05_source_selected",
+            focus_fraction=0.05,
+            include_default_prefixes=False,
+            source_selection_summary=source_selection_summary,
+            expert_family="residual_focus_source_selected_aux",
+        ),
+        _residual_command(
+            paths,
+            validation_trail_scores,
+            seed,
+            label="focus10_source_selected",
+            focus_fraction=0.10,
+            include_default_prefixes=False,
+            source_selection_summary=source_selection_summary,
+            expert_family="residual_focus_source_selected_aux",
+        ),
+    ]
     return {
         "seed": seed,
         "run_id": run_id,
@@ -259,9 +301,18 @@ def _seed_plan(run: dict[str, Any], *, artifact_root: Path) -> dict[str, Any]:
         "commands": commands,
         "control_commands": control_commands,
         "source_selection_commands": source_selection_commands,
+        "source_selected_commands": source_selected_commands,
         "source_selection_outputs": {
             "train_residual_loss_axis_spectrum": str(paths["train_residual_loss_axis_spectrum"]),
             "train_hard_error_axis_spectrum": str(paths["train_hard_error_axis_spectrum"]),
+        },
+        "source_selected_outputs": {
+            "focus05_train_scores": str(paths["focus05_source_selected_train_scores"]),
+            "focus05_validation_scores": str(paths["focus05_source_selected_validation_scores"]),
+            "focus05_report": str(paths["focus05_source_selected_report"]),
+            "focus10_train_scores": str(paths["focus10_source_selected_train_scores"]),
+            "focus10_validation_scores": str(paths["focus10_source_selected_validation_scores"]),
+            "focus10_report": str(paths["focus10_source_selected_report"]),
         },
         "planned_outputs": {
             key: str(paths[key])
@@ -368,6 +419,9 @@ def _residual_command(
     label: str,
     focus_fraction: float,
     suffix: list[str] | None = None,
+    include_default_prefixes: bool = True,
+    source_selection_summary: Path | None = None,
+    expert_family: str | None = None,
 ) -> str:
     parts = [
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -405,10 +459,15 @@ def _residual_command(
         "--candidate-status",
         "residual_focus_262k_candidate",
     ]
+    if expert_family:
+        parts.extend(["--expert-family", expert_family])
     if focus_fraction > 0.0:
         parts.extend(["--residual-focus-fraction", _format_fraction(focus_fraction)])
-    for prefix in RESIDUAL_PREFIXES:
-        parts.extend(["--include-feature-prefix", prefix])
+    if include_default_prefixes:
+        for prefix in RESIDUAL_PREFIXES:
+            parts.extend(["--include-feature-prefix", prefix])
+    if source_selection_summary is not None:
+        parts.extend(["--include-feature-prefixes-from-summary", str(source_selection_summary)])
     if suffix:
         parts.extend(suffix)
     return _command(parts)

@@ -48,7 +48,16 @@ def plan_residual_focus_remote_package(
     planned_outputs = _planned_outputs(plan)
     commands = [str(command) for command in plan.get("commands", [])]
     control_commands = [str(command) for command in plan.get("control_commands", [])]
-    all_commands = commands + control_commands
+    source_selection_commands = [str(command) for command in plan.get("source_selection_commands", [])]
+    source_selection_summary_command = str(plan.get("source_selection_summary_command", ""))
+    source_selected_commands = [str(command) for command in plan.get("source_selected_commands", [])]
+    all_commands = [
+        *commands,
+        *control_commands,
+        *source_selection_commands,
+        *([source_selection_summary_command] if source_selection_summary_command else []),
+        *source_selected_commands,
+    ]
     windows_commands = [
         _windows_command_from_action(command, local_artifact_root=local_artifact_root)
         for command in all_commands
@@ -90,6 +99,8 @@ def plan_residual_focus_remote_package(
         "monitor": str(monitor),
         "command_count": len(commands),
         "control_command_count": len(control_commands),
+        "source_selection_command_count": len(source_selection_commands),
+        "source_selected_command_count": len(source_selected_commands),
         "planned_output_count": len(planned_outputs),
         "blockers": blockers,
         "launch_allowed": launch_allowed,
@@ -113,12 +124,16 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _planned_outputs(plan: dict[str, Any]) -> list[str]:
     outputs: list[str] = []
+    summary_output = str(plan.get("source_selection_summary_output", ""))
+    if summary_output:
+        outputs.append(summary_output)
     for seed in plan.get("seeds", []):
         if not isinstance(seed, dict):
             continue
-        planned = seed.get("planned_outputs", {})
-        if isinstance(planned, dict):
-            outputs.extend(str(value) for value in planned.values())
+        for key in ("planned_outputs", "source_selection_outputs", "source_selected_outputs"):
+            planned = seed.get(key, {})
+            if isinstance(planned, dict):
+                outputs.extend(str(value) for value in planned.values())
     return sorted(set(outputs))
 
 

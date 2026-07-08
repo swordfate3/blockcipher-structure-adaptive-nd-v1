@@ -55,6 +55,30 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
                         "seed0/residual_focus10_slice_eval.json"
                     )
                 ],
+                "source_selection_commands": [
+                    (
+                        "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/analyze-residual-bucket-axis-spectrum "
+                        "--output outputs/local_audits/i1_present_r8_residual_focus_262k/"
+                        "seed0/train_residual_loss_axis_spectrum.json"
+                    )
+                ],
+                "source_selection_summary_command": (
+                    "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/summarize-residual-axis-spectrum "
+                    "--output outputs/local_audits/i1_present_r8_residual_focus_262k/"
+                    "residual_axis_spectrum_summary.json"
+                ),
+                "source_selected_commands": [
+                    (
+                        "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/fit-residual-correction-feature-expert "
+                        "--include-feature-prefixes-from-summary outputs/local_audits/"
+                        "i1_present_r8_residual_focus_262k/residual_axis_spectrum_summary.json "
+                        "--output-validation-dir outputs/local_audits/"
+                        "i1_present_r8_residual_focus_262k/seed0/"
+                        "residual_focus10_source_selected_validation_scores "
+                        "--output-report outputs/local_audits/i1_present_r8_residual_focus_262k/"
+                        "seed0/residual_focus10_source_selected_report.json"
+                    )
+                ],
             }
         ),
         encoding="utf-8",
@@ -94,6 +118,17 @@ def test_residual_focus_remote_package_translates_action_plan_to_windows_launche
     assert "set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%" in launcher
     assert launcher.index("set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%") < launcher.index("echo command_0>")
     assert "%PYTHON_EXE% scripts\\export-checkpoint-scores" in launcher
+    assert "%PYTHON_EXE% scripts\\analyze-residual-bucket-axis-spectrum" in launcher
+    assert "%PYTHON_EXE% scripts\\summarize-residual-axis-spectrum" in launcher
+    assert "%PYTHON_EXE% scripts\\fit-residual-correction-feature-expert" in launcher
+    assert (
+        launcher.index("scripts\\evaluate-residual-slice-correction")
+        < launcher.index("scripts\\analyze-residual-bucket-axis-spectrum")
+        < launcher.index("scripts\\summarize-residual-axis-spectrum")
+        < launcher.index("scripts\\fit-residual-correction-feature-expert")
+    )
+    assert "%ARTIFACT_ROOT%\\residual_axis_spectrum_summary.json" in launcher
+    assert "%ARTIFACT_ROOT%\\seed0\\residual_focus10_source_selected_validation_scores" in launcher
     assert (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
         f"{source_run}\\checkpoints\\row0002_present_trail_position_stats_pairset_seed0.pt"

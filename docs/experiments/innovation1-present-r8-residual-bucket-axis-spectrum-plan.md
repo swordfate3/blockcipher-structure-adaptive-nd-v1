@@ -1093,6 +1093,35 @@ do_not_promote_aux_depth_word_aux_word_as_a_plain_global_ensemble_member
 do_not_report_source_selection_as_a_trained_third_expert_before_Pool3_scoring
 ```
 
+2026-07-08 implementation update:
+
+```text
+status = source_selected_residual_score_production_chain_wired
+scope = local/remote package planning only; active retry1 run still pending
+fitter_arg =
+  --include-feature-prefixes-from-summary residual_axis_spectrum_summary.json
+planner_outputs =
+  residual_focus05_source_selected_train_scores
+  residual_focus05_source_selected_validation_scores
+  residual_focus05_source_selected_report.json
+  residual_focus10_source_selected_train_scores
+  residual_focus10_source_selected_validation_scores
+  residual_focus10_source_selected_report.json
+remote_package_order =
+  main residual-focus commands
+  controls
+  train-only source-selection spectrum commands
+  source-selection summary
+  source-selected residual score commands
+claim_scope =
+  no new result, no remote relaunch, no benchmark change, no formal claim
+```
+
+The source-selected score commands are intentionally separate from the original
+18 residual-focus gate outputs. They prepare Pool 3 inputs after train-only
+source selection, but they do not redefine the residual-focus gate or change
+the strict negative/sample-structure protocol.
+
 Interpretation:
 
 ```text

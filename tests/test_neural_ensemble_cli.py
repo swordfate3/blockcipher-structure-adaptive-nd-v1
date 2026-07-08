@@ -1070,6 +1070,107 @@ def test_fit_residual_correction_feature_expert_writes_corrected_artifact(tmp_pa
     assert np.array_equal(validation_artifact.sample_ids, sample_ids)
 
 
+def test_fit_residual_correction_feature_expert_loads_prefixes_from_source_summary(tmp_path):
+    train_dir = tmp_path / "train_features"
+    validation_dir = tmp_path / "validation_features"
+    train_output = tmp_path / "source_selected_train_scores"
+    validation_output = tmp_path / "source_selected_validation_scores"
+    report_output = tmp_path / "source_selected_report.json"
+    summary = tmp_path / "residual_axis_spectrum_summary.json"
+    labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
+    feature_view_metadata = {
+        "feature_names": [
+            "aux_word_global_mean",
+            "aux_depth_cell_mean",
+            "primary_depth_mean_depth0",
+        ]
+    }
+    features = np.array(
+        [
+            [-2.0, 0.0, 3.0],
+            [-1.5, 0.1, 2.0],
+            [-1.0, 0.2, 1.0],
+            [-0.8, 0.3, 0.5],
+            [0.8, 0.3, -0.5],
+            [1.0, 0.2, -1.0],
+            [1.5, 0.1, -2.0],
+            [2.0, 0.0, -3.0],
+        ],
+        dtype=np.float32,
+    )
+    _write_feature_dir(
+        train_dir,
+        split="train",
+        features=features,
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    _write_feature_dir(
+        validation_dir,
+        split="validation",
+        features=features.copy(),
+        labels=labels,
+        feature_view_metadata=feature_view_metadata,
+    )
+    summary.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "residual_axis_spectrum_stable_groups_selected",
+                "recommended_feature_prefixes": ["aux_word_"],
+                "selected_groups": ["aux_word_global_mean"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
+    left_train = tmp_path / "left_train"
+    right_train = tmp_path / "right_train"
+    left_validation = tmp_path / "left_validation"
+    right_validation = tmp_path / "right_validation"
+    left_probabilities = np.array([0.1, 0.2, 0.65, 0.7, 0.3, 0.35, 0.8, 0.9], dtype=np.float32)
+    right_probabilities = np.array([0.15, 0.25, 0.55, 0.75, 0.25, 0.45, 0.75, 0.85], dtype=np.float32)
+    for path, model_key, probabilities in [
+        (left_train, "trail", left_probabilities),
+        (right_train, "raw117", right_probabilities),
+        (left_validation, "trail", left_probabilities),
+        (right_validation, "raw117", right_probabilities),
+    ]:
+        _write_tiny_score_artifact(path, labels, probabilities, sample_ids, model_key=model_key)
+
+    status = fit_residual_correction_feature_main(
+        [
+            "--train-feature-dir",
+            str(train_dir),
+            "--validation-feature-dir",
+            str(validation_dir),
+            "--train-base-artifacts",
+            str(left_train),
+            str(right_train),
+            "--validation-base-artifacts",
+            str(left_validation),
+            str(right_validation),
+            "--include-feature-prefixes-from-summary",
+            str(summary),
+            "--steps",
+            "10",
+            "--output-train-dir",
+            str(train_output),
+            "--output-validation-dir",
+            str(validation_output),
+            "--output-report",
+            str(report_output),
+        ]
+    )
+
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    validation_metadata = json.loads((validation_output / "models.json").read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["feature_selection"]["include_feature_prefixes"] == ["aux_word_"]
+    assert report["feature_selection"]["selected_feature_indices"] == [0]
+    assert validation_metadata["feature_selection"]["include_feature_prefixes"] == ["aux_word_"]
+
+
 def test_evaluate_residual_slice_correction_uses_train_derived_threshold(tmp_path):
     labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.float32)
     sample_ids = np.array([str(index) for index in range(len(labels))], dtype=str)
@@ -4320,6 +4421,7 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     control_text = "\n".join(report["control_commands"])
     source_selection_text = "\n".join(report["source_selection_commands"])
     source_summary_text = report["source_selection_summary_command"]
+    source_selected_text = "\n".join(report["source_selected_commands"])
     seed = report["seeds"][0]
     assert status == 0
     assert report["status"] == "pass"
@@ -4375,6 +4477,18 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     assert "--min-report-support 2" in source_summary_text
     assert "residual_axis_spectrum_summary.json" in source_summary_text
     assert "validation" not in source_summary_text
+    assert "scripts/fit-residual-correction-feature-expert" in source_selected_text
+    assert "--include-feature-prefixes-from-summary" in source_selected_text
+    assert "residual_axis_spectrum_summary.json" in source_selected_text
+    assert "residual_focus05_source_selected_validation_scores" in source_selected_text
+    assert "residual_focus10_source_selected_validation_scores" in source_selected_text
+    assert "--expert-family residual_focus_source_selected_aux" in source_selected_text
+    assert seed["source_selected_outputs"]["focus05_validation_scores"].endswith(
+        "residual_focus05_source_selected_validation_scores"
+    )
+    assert seed["source_selected_outputs"]["focus10_validation_scores"].endswith(
+        "residual_focus10_source_selected_validation_scores"
+    )
     assert seed["source_selection_outputs"]["train_residual_loss_axis_spectrum"].endswith(
         "train_residual_loss_axis_spectrum.json"
     )
@@ -4383,9 +4497,11 @@ def test_plan_residual_focus_262k_emits_focus_and_slice_commands_from_mixed_trai
     )
     assert "cmd.exe /k" not in command_text
     assert "cmd.exe /k" not in source_selection_text
+    assert "cmd.exe /k" not in source_selected_text
     assert "SSH" not in command_text
     assert "SSH" not in source_selection_text
     assert "SSH" not in source_summary_text
+    assert "SSH" not in source_selected_text
     assert "does not SSH-poll" in report["claim_scope"]
 
 
