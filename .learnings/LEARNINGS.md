@@ -1,3 +1,49 @@
+## [LRN-20260708-006] best_practice
+
+**Logged**: 2026-07-08T22:45:00+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: research
+**Promoted**: AGENTS.md
+
+### Summary
+Use local small-scale evidence as the default gate before remote large-scale
+SPN/PRESENT runs.
+
+### Details
+The user clarified the desired remote-scaling discipline: for Innovation 1
+SPN/PRESENT experiments, first use a small local diagnostic to check whether a
+route has a real positive signal and whether controls invalidate the protocol.
+Only when the local gate is promising should the route move to remote
+medium/large scale to test stability. If the local small-scale result is near
+chance, unstable, or already invalidated by an easier control/protocol shortcut,
+do not spend remote GPU on a larger version of the same route by default.
+
+This rule complements the existing scale language: small runs are not formal
+training and are not definitive failures, but they are still valuable
+triage/readiness gates. A remote run after a bad local gate should require an
+explicit diagnostic reason, such as proving a suspected data-scarcity effect,
+not just "try bigger anyway."
+
+### Suggested Action
+Before launching SPN/PRESENT remote medium/large runs, require a documented
+local readiness gate with same-protocol baseline/control comparison. If the
+local gate is weak or invalidated, stop or redesign the protocol/model locally
+instead of scaling. Record any exception as an explicit diagnostic exception in
+the experiment plan.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/innovation1-present-r8-bridge-protocol-attribution-plan.md
+- Tags: innovation1, present, spn, remote-scale, local-gate, gpu-budget
+- See Also: LRN-20260708-005, LRN-20260708-004, LRN-20260621-001
+- Pattern-Key: innovation1.remote_scale.requires_promising_local_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-005] best_practice
 
 **Logged**: 2026-07-08T22:15:00+08:00
