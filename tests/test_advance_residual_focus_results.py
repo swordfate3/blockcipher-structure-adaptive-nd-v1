@@ -257,6 +257,80 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert status_report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
 
 
+def test_advance_residual_focus_results_runs_missing_source_selection_commands(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True)
+    action_payload = json.loads(action_plan.read_text(encoding="utf-8"))
+    for seed_plan in action_payload["seeds"]:
+        seed = int(seed_plan["seed"])
+        seed_root = Path(seed_plan["artifact_root"])
+        _write_source_selection_inputs(seed_root, seed=seed)
+        seed_plan["source_selection_commands"] = [
+            (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/analyze-residual-bucket-axis-spectrum "
+                f"--feature-dir {seed_root / 'train_span_summary_features'} "
+                f"--bucket-artifacts {seed_root / 'train_trail_position_scores'} "
+                f"{seed_root / 'train_raw117_scores'} "
+                "--bucket-feature logit_gap_abs --bucket-count 2 --top-groups 2 "
+                "--target residual_loss "
+                f"--output {seed_root / 'train_residual_loss_axis_spectrum.json'}"
+            ),
+            (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/analyze-residual-bucket-axis-spectrum "
+                f"--feature-dir {seed_root / 'train_span_summary_features'} "
+                f"--bucket-artifacts {seed_root / 'train_trail_position_scores'} "
+                f"{seed_root / 'train_raw117_scores'} "
+                "--bucket-feature logit_gap_abs --bucket-count 2 --top-groups 2 "
+                "--target residual_error_at_0_5 "
+                f"--output {seed_root / 'train_hard_error_axis_spectrum.json'}"
+            ),
+        ]
+    action_payload["source_selection_commands"] = [
+        command
+        for seed_plan in action_payload["seeds"]
+        for command in seed_plan["source_selection_commands"]
+    ]
+    action_plan.write_text(json.dumps(action_payload), encoding="utf-8")
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    summary_path = Path(action_payload["source_selection_summary_output"])
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["ran_source_selection_commands"] is True
+    assert report["source_selection_command_run_count"] == 4
+    assert report["ran_source_selection_summary"] is True
+    assert report["source_selection_existing_report_count"] == 4
+    assert report["source_selection_missing_report_count"] == 0
+    assert summary["status"] == "pass"
+    assert summary["recommended_feature_prefixes"]
+    assert "ssh" not in json.dumps(report["source_selection_command_results"]).lower()
+
+
 def test_advance_residual_focus_results_runs_source_selection_summary_when_reports_exist(tmp_path):
     action_plan = _write_action_plan(tmp_path, create_outputs=True, create_source_reports=True)
     gate = tmp_path / "gate.json"
@@ -308,6 +382,85 @@ def test_advance_residual_focus_results_runs_source_selection_summary_when_repor
     assert (
         "trail_position + raw117 + source_selected_residual_focus"
         in pool_report["planned_fixed_fusions"]
+    )
+
+
+def test_advance_residual_focus_results_runs_missing_source_selected_commands(tmp_path):
+    action_plan = _write_action_plan(tmp_path, create_outputs=True, create_source_reports=True)
+    action_payload = json.loads(action_plan.read_text(encoding="utf-8"))
+    summary_path = Path(action_payload["source_selection_summary_output"])
+    for seed_plan in action_payload["seeds"]:
+        seed = int(seed_plan["seed"])
+        seed_root = Path(seed_plan["artifact_root"])
+        _write_source_selected_fit_inputs(seed_root, seed=seed)
+        seed_plan["source_selected_commands"] = [
+            (
+                "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/fit-residual-correction-feature-expert "
+                f"--train-feature-dir {seed_root / 'train_span_summary_features'} "
+                f"--validation-feature-dir {seed_root / 'validation_span_summary_features'} "
+                f"--train-base-artifacts {seed_root / 'train_trail_position_scores'} "
+                f"{seed_root / 'train_raw117_scores'} "
+                f"--validation-base-artifacts {seed_root / 'validation_trail_position_scores'} "
+                f"{seed_root / 'validation_raw117_scores'} "
+                f"--output-train-dir {seed_root / 'residual_focus10_source_selected_train_scores'} "
+                f"--output-validation-dir {seed_root / 'residual_focus10_source_selected_validation_scores'} "
+                f"--output-report {seed_root / 'residual_focus10_source_selected_report.json'} "
+                "--run-id test_source_selected --bucket-count 0 --steps 5 "
+                "--learning-rate 0.05 --l2 0.001 --residual-focus-fraction 0.1 "
+                "--expert-family residual_focus_source_selected_aux "
+                f"--include-feature-prefixes-from-summary {summary_path}"
+            )
+        ]
+        seed_plan["source_selected_outputs"] = {
+            "focus10_train_scores": str(seed_root / "residual_focus10_source_selected_train_scores"),
+            "focus10_validation_scores": str(seed_root / "residual_focus10_source_selected_validation_scores"),
+            "focus10_report": str(seed_root / "residual_focus10_source_selected_report.json"),
+        }
+    action_payload["source_selected_commands"] = [
+        command
+        for seed_plan in action_payload["seeds"]
+        for command in seed_plan["source_selected_commands"]
+    ]
+    action_plan.write_text(json.dumps(action_payload), encoding="utf-8")
+    gate = tmp_path / "gate.json"
+    pool = tmp_path / "pool.json"
+    pool_eval = tmp_path / "pool_eval.json"
+    status_output = tmp_path / "status.json"
+    output = tmp_path / "advance.json"
+    gate.write_text(
+        json.dumps({"status": "pending", "decision": "wait_for_residual_focus_262k_outputs"}),
+        encoding="utf-8",
+    )
+
+    status = advance_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--gate-output",
+            str(gate),
+            "--pool-output",
+            str(pool),
+            "--pool-eval-output",
+            str(pool_eval),
+            "--status-output",
+            str(status_output),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    pool_eval_report = json.loads(pool_eval.read_text(encoding="utf-8"))
+    assert status == 0
+    assert report["ran_source_selection_summary"] is True
+    assert report["ran_source_selected_commands"] is True
+    assert report["source_selected_command_run_count"] == 2
+    assert report["ran_pool_evaluator"] is True
+    assert report["pool_eval_status"] == "pass"
+    assert pool_eval_report["selected_residual_candidate"] == "focus10"
+    assert all(
+        Path(seed_plan["source_selected_outputs"]["focus10_validation_scores"]).exists()
+        for seed_plan in action_payload["seeds"]
     )
 
 
@@ -644,6 +797,154 @@ def _write_axis_spectrum_report(
             }
         ),
         encoding="utf-8",
+    )
+
+
+def _write_source_selection_inputs(seed_root: Path, *, seed: int) -> None:
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["s0", "s1", "s2", "s3"], dtype=str)
+    feature_dir = seed_root / "train_span_summary_features"
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    np.save(
+        feature_dir / "features.npy",
+        np.array(
+            [
+                [0.9, 0.1],
+                [0.8, 0.2],
+                [0.2, 0.8],
+                [0.1, 0.9],
+            ],
+            dtype=np.float32,
+        ),
+    )
+    np.save(feature_dir / "labels.npy", labels)
+    np.save(feature_dir / "sample_ids.npy", sample_ids)
+    (feature_dir / "metadata.json").write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "kind": "bit_sensitivity_feature_matrix",
+                "split": "train",
+                "cipher": "PRESENT-80",
+                "rounds": 8,
+                "samples_per_class": 262144,
+                "validation_samples_per_class": 262144,
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": "0x00000000000000000000",
+                "validation_key": "0x11111111111111111111",
+                "feature_view_metadata": {
+                    "feature_names": [
+                        "aux_word_global_mean",
+                        "aux_depth_word_global_mean",
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_score_artifact(
+        seed_root / "train_trail_position_scores",
+        "trail_position",
+        [0.2, 0.4, 0.6, 0.8],
+        family="trail_position_anchor",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "train_raw117_scores",
+        "raw117",
+        [0.25, 0.35, 0.65, 0.75],
+        family="compressed_span_structural",
+        seed=seed,
+    )
+
+
+def _write_source_selected_fit_inputs(seed_root: Path, *, seed: int) -> None:
+    _write_source_selection_inputs(seed_root, seed=seed)
+    labels = np.array([0, 0, 1, 1], dtype=np.float32)
+    sample_ids = np.array(["s0", "s1", "s2", "s3"], dtype=str)
+    feature_dir = seed_root / "validation_span_summary_features"
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    np.save(
+        feature_dir / "features.npy",
+        np.array(
+            [
+                [0.9, 0.1],
+                [0.8, 0.2],
+                [0.2, 0.8],
+                [0.1, 0.9],
+            ],
+            dtype=np.float32,
+        ),
+    )
+    np.save(feature_dir / "labels.npy", labels)
+    np.save(feature_dir / "sample_ids.npy", sample_ids)
+    (feature_dir / "metadata.json").write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "kind": "bit_sensitivity_feature_matrix",
+                "split": "validation",
+                "cipher": "PRESENT-80",
+                "rounds": 8,
+                "samples_per_class": 262144,
+                "validation_samples_per_class": 262144,
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": "0x00000000000000000000",
+                "validation_key": "0x11111111111111111111",
+                "feature_view_metadata": {
+                    "feature_names": [
+                        "aux_word_global_mean",
+                        "aux_depth_word_global_mean",
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_score_artifact(
+        seed_root / "validation_trail_position_scores",
+        "trail_position",
+        [0.10, 0.60, 0.40, 0.90],
+        family="trail_position_anchor",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "validation_raw117_scores",
+        "raw117",
+        [0.20, 0.55, 0.45, 0.80],
+        family="compressed_span_structural",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_focus10_validation_scores",
+        "residual_focus10",
+        [0.45, 0.10, 0.90, 0.55],
+        family="residual_focus_aux_word",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_uniform_validation_scores",
+        "residual_uniform",
+        [0.50, 0.50, 0.50, 0.50],
+        family="uniform_residual_control",
+        seed=seed,
+    )
+    _write_score_artifact(
+        seed_root / "residual_focus10_labelshuffle_validation_scores",
+        "residual_focus10_labelshuffle",
+        [0.90, 0.80, 0.20, 0.10],
+        family="labelshuffle_residual_control",
+        seed=seed,
     )
 
 

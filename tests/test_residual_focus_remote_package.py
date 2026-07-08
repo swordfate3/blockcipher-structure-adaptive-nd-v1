@@ -238,3 +238,61 @@ def test_residual_focus_remote_package_accepts_isolated_retry_run_id(tmp_path):
     assert f"RUN_ID={retry_run_id}" in launcher
     assert f"G:/lxy/blockcipher-structure-adaptive-nd-runs/{retry_run_id}/artifacts" in monitor
     assert "outputs/local_audits/i1_present_r8_residual_focus_262k" in monitor
+
+
+def test_residual_focus_remote_package_monitor_avoids_broad_artifact_cache_sync(tmp_path):
+    action_plan = tmp_path / "action_plan.json"
+    source_gate = tmp_path / "source_gate.json"
+    output_dir = tmp_path / "generated"
+    report_path = tmp_path / "remote_package.json"
+    artifact_root = "outputs/local_audits/i1_present_r8_residual_focus_262k"
+    action_plan.write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "artifact_root": artifact_root,
+                "seeds": [
+                    {
+                        "seed": 0,
+                        "planned_outputs": {
+                            "slice_eval": f"{artifact_root}/seed0/residual_focus10_slice_eval.json",
+                        },
+                    }
+                ],
+                "commands": [
+                    (
+                        "UV_CACHE_DIR=/tmp/uv-cache uv run scripts/export-bit-sensitivity-features "
+                        f"--dataset-cache-root {artifact_root}/seed0/dataset_cache/train "
+                        f"--progress-output {artifact_root}/seed0/dataset_cache/seed0_train_progress.jsonl "
+                        f"--output-dir {artifact_root}/seed0/train_trail_position_stats_features"
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source_gate.write_text(
+        json.dumps({"status": "pass", "dirty": False, "ahead": 0, "behind": 0}),
+        encoding="utf-8",
+    )
+
+    status = plan_remote_package_main(
+        [
+            "--action-plan",
+            str(action_plan),
+            "--source-gate",
+            str(source_gate),
+            "--output-dir",
+            str(output_dir),
+            "--output",
+            str(report_path),
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    monitor = Path(report["monitor"]).read_text(encoding="utf-8")
+    assert status == 0
+    assert '"${REMOTE_ARTIFACT_ROOT}/"*' not in monitor
+    assert "dataset_cache/train" not in monitor
+    assert "seed0/dataset_cache/seed0_train_progress.jsonl" in monitor
+    assert "seed0/residual_focus10_slice_eval.json" in monitor

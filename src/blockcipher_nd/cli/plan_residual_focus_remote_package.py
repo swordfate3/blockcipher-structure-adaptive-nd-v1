@@ -62,6 +62,17 @@ def plan_residual_focus_remote_package(
         _windows_command_from_action(command, local_artifact_root=local_artifact_root)
         for command in all_commands
     ]
+    progress_outputs = _command_option_paths(
+        all_commands,
+        local_artifact_root=local_artifact_root,
+        option_names={"--progress-output"},
+    )
+    final_sync_outputs = _final_sync_outputs(
+        all_commands,
+        planned_outputs=planned_outputs,
+        progress_outputs=progress_outputs,
+        local_artifact_root=local_artifact_root,
+    )
     blockers: list[str] = []
     if plan.get("status") != "pass":
         blockers.append("action_plan_not_pass")
@@ -71,7 +82,13 @@ def plan_residual_focus_remote_package(
         blockers.append("unsafe_generated_command")
     launcher.write_text(_launcher_text(windows_commands, run_id=run_id), encoding="utf-8")
     monitor.write_text(
-        _monitor_text(run_id=run_id, local_artifact_root=local_artifact_root, planned_outputs=planned_outputs),
+        _monitor_text(
+            run_id=run_id,
+            local_artifact_root=local_artifact_root,
+            planned_outputs=planned_outputs,
+            progress_outputs=progress_outputs,
+            final_sync_outputs=final_sync_outputs,
+        ),
         encoding="utf-8",
     )
     monitor.chmod(0o755)
@@ -102,6 +119,8 @@ def plan_residual_focus_remote_package(
         "source_selection_command_count": len(source_selection_commands),
         "source_selected_command_count": len(source_selected_commands),
         "planned_output_count": len(planned_outputs),
+        "progress_sync_count": len(progress_outputs),
+        "final_sync_count": len(final_sync_outputs),
         "blockers": blockers,
         "launch_allowed": launch_allowed,
         "launch_policy": (
@@ -124,17 +143,67 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _planned_outputs(plan: dict[str, Any]) -> list[str]:
     outputs: list[str] = []
-    summary_output = str(plan.get("source_selection_summary_output", ""))
-    if summary_output:
-        outputs.append(summary_output)
     for seed in plan.get("seeds", []):
         if not isinstance(seed, dict):
             continue
-        for key in ("planned_outputs", "source_selection_outputs", "source_selected_outputs"):
-            planned = seed.get(key, {})
-            if isinstance(planned, dict):
-                outputs.extend(str(value) for value in planned.values())
+        planned = seed.get("planned_outputs", {})
+        if isinstance(planned, dict):
+            outputs.extend(str(value) for value in planned.values())
     return sorted(set(outputs))
+
+
+def _command_option_paths(
+    commands: list[str],
+    *,
+    local_artifact_root: str,
+    option_names: set[str],
+) -> list[str]:
+    paths: list[str] = []
+    for command in commands:
+        tokens = shlex.split(command)
+        for index, token in enumerate(tokens[:-1]):
+            if token in option_names and tokens[index + 1].startswith(local_artifact_root):
+                paths.append(tokens[index + 1])
+    return sorted(set(paths))
+
+
+def _final_sync_outputs(
+    commands: list[str],
+    *,
+    planned_outputs: list[str],
+    progress_outputs: list[str],
+    local_artifact_root: str,
+) -> list[str]:
+    command_outputs = _command_option_paths(
+        commands,
+        local_artifact_root=local_artifact_root,
+        option_names={
+            "--output",
+            "--output-dir",
+            "--output-report",
+            "--output-summary-feature-dir",
+            "--output-train-dir",
+            "--output-validation-dir",
+        },
+    )
+    outputs = [*planned_outputs, *progress_outputs]
+    for path in command_outputs:
+        if _is_large_intermediate_artifact(path):
+            continue
+        outputs.append(path)
+    return sorted(set(outputs))
+
+
+def _is_large_intermediate_artifact(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    return any(
+        marker in normalized
+        for marker in (
+            "/dataset_cache/",
+            "trail_position_stats_features",
+            "span_blocks",
+        )
+    )
 
 
 def _windows_command_from_action(command: str, *, local_artifact_root: str) -> str:
@@ -240,13 +309,25 @@ def _launcher_text(commands: list[str], *, run_id: str) -> str:
     return "\n".join(lines)
 
 
-def _monitor_text(*, run_id: str, local_artifact_root: str, planned_outputs: list[str]) -> str:
+def _monitor_text(
+    *,
+    run_id: str,
+    local_artifact_root: str,
+    planned_outputs: list[str],
+    progress_outputs: list[str],
+    final_sync_outputs: list[str],
+) -> str:
     expected_checks = "\n".join(
-        f"  [[ -f \"{path}\" ]] || missing=$((missing + 1))"
+        _missing_check_line(path)
         for path in planned_outputs
     )
     if not expected_checks:
         expected_checks = "  missing=0"
+    immediate_sync_pairs = _sync_pair_lines(
+        [*progress_outputs, *_file_like_outputs(planned_outputs)],
+        local_artifact_root=local_artifact_root,
+    )
+    final_sync_pairs = _sync_pair_lines(final_sync_outputs, local_artifact_root=local_artifact_root)
     return f"""#!/usr/bin/env bash
 set -u
 
@@ -267,7 +348,30 @@ timestamp() {{
 
 sync_artifacts() {{
   scp -r "${{REMOTE}}:${{REMOTE_RUN_ROOT}}/logs" "${{LOCAL_ROOT}}/" >> "${{MONITOR_DIR}}/scp.log" 2>> "${{MONITOR_DIR}}/scp_stderr.log" || true
-  scp -r "${{REMOTE}}:${{REMOTE_ARTIFACT_ROOT}}/"* "${{LOCAL_ARTIFACT_ROOT}}/" >> "${{MONITOR_DIR}}/scp.log" 2>> "${{MONITOR_DIR}}/scp_stderr.log" || true
+  sync_path_list <<'SYNC_IMMEDIATE_ARTIFACTS'
+{immediate_sync_pairs}
+SYNC_IMMEDIATE_ARTIFACTS
+}}
+
+sync_final_artifacts() {{
+  sync_path_list <<'SYNC_FINAL_ARTIFACTS'
+{final_sync_pairs}
+SYNC_FINAL_ARTIFACTS
+}}
+
+sync_path_list() {{
+  while IFS='|' read -r remote_path local_path; do
+    if [[ -z "${{remote_path}}" || -z "${{local_path}}" ]]; then
+      continue
+    fi
+    mkdir -p "$(dirname "${{local_path}}")"
+    scp -r "${{REMOTE}}:${{remote_path}}" "${{local_path}}" >> "${{MONITOR_DIR}}/scp.log" 2>> "${{MONITOR_DIR}}/scp_stderr.log" || true
+  done
+}}
+
+count_missing_outputs() {{
+  missing=0
+{expected_checks}
 }}
 
 while true; do
@@ -279,22 +383,51 @@ while true; do
     exit 1
   fi
 
-  missing=0
-{expected_checks}
-  if [[ "${{missing}}" -eq 0 ]]; then
-    echo "$(timestamp) result_ready" >> "${{MONITOR_DIR}}/monitor.log"
-    exit 0
-  fi
+  count_missing_outputs
 
   if compgen -G "${{LOCAL_ROOT}}/logs/*done.marker" > /dev/null; then
+    sync_final_artifacts
+    count_missing_outputs
+    if [[ "${{missing}}" -eq 0 ]]; then
+      echo "$(timestamp) result_ready" >> "${{MONITOR_DIR}}/monitor.log"
+      exit 0
+    fi
     echo "$(timestamp) completed_missing_outputs missing=${{missing}}" >> "${{MONITOR_DIR}}/monitor.log"
     exit 2
   fi
 
-  echo "$(timestamp) running missing=${{missing}}" >> "${{MONITOR_DIR}}/monitor.log"
+  if [[ "${{missing}}" -eq 0 ]]; then
+    echo "$(timestamp) outputs_ready_waiting_done" >> "${{MONITOR_DIR}}/monitor.log"
+  else
+    echo "$(timestamp) running missing=${{missing}}" >> "${{MONITOR_DIR}}/monitor.log"
+  fi
   sleep 840
 done
 """
+
+
+def _missing_check_line(path: str) -> str:
+    test_operator = "-f" if _is_file_like_output(path) else "-d"
+    return f"  [[ {test_operator} \"{path}\" ]] || missing=$((missing + 1))"
+
+
+def _file_like_outputs(paths: list[str]) -> list[str]:
+    return [path for path in paths if _is_file_like_output(path)]
+
+
+def _is_file_like_output(path: str) -> bool:
+    suffix = Path(path.replace("\\", "/")).suffix
+    return bool(suffix)
+
+
+def _sync_pair_lines(paths: list[str], *, local_artifact_root: str) -> str:
+    lines = []
+    for path in sorted(set(paths)):
+        if not path.startswith(local_artifact_root):
+            continue
+        suffix = path[len(local_artifact_root) :].lstrip("/")
+        lines.append(f"${{REMOTE_ARTIFACT_ROOT}}/{suffix}|{path}")
+    return "\n".join(lines)
 
 
 def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path, run_id: str) -> str:

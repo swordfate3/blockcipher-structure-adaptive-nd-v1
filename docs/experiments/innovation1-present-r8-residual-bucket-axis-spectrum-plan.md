@@ -1122,6 +1122,58 @@ The source-selected score commands are intentionally separate from the original
 source selection, but they do not redefine the residual-focus gate or change
 the strict negative/sample-structure protocol.
 
+2026-07-08 post-retrieval automation update:
+
+```text
+status = old_retry1_package_handoff_hardened
+problem =
+  active retry1 was launched before source-selection/source-selected commands
+  were added to remote package generation
+local_repair =
+  scripts/advance-residual-focus-results now runs missing local
+  source_selection_commands after the 18 planned residual-focus outputs exist
+  and before source-selection summary
+  scripts/advance-residual-focus-results now runs missing local
+  source_selected_commands before Pool 3 fixed-fusion evaluation
+safety =
+  only UV_CACHE_DIR=/tmp/uv-cache uv run commands are accepted
+  source-selection commands are restricted to
+    scripts/analyze-residual-bucket-axis-spectrum
+  source-selected commands are restricted to
+    scripts/fit-residual-correction-feature-expert
+  forbidden remote tokens include ssh, scp, cmd.exe, and G:\lxy
+claim_scope =
+ local post-retrieval handoff only; no SSH polling, no relaunch, no
+  benchmark change, no completed result claim
+```
+
+2026-07-08 monitor retrieval update:
+
+```text
+status = lightweight_monitor_sync_hardened
+problem =
+  the generated retry1 monitor used a broad scp of artifacts/* and began
+  retrieving large dataset-cache intermediates, including seed0 train
+  features.npy around 20G, which made the local monitor heartbeat stale
+fix =
+  generated monitors now sync logs plus explicit progress JSONL and planned
+  residual-focus JSON outputs during the polling loop
+  generated monitors do not recursively sync artifacts/* and skip large
+  dataset_cache, trail_position_stats_features, and span_blocks intermediates
+  final sync is restricted to explicit postprocess-needed artifacts such as
+  score directories, span summary features, JSON reports, and progress JSONL
+  monitor readiness now waits for remote done.marker before result_ready, so
+  future packages with source-selection/source-selected tail commands do not
+  exit early after the original 18 residual-focus gate files appear
+gate_scope =
+  planned_output_count remains the 18 residual-focus gate files; train-only
+  source-selection and source-selected score artifacts are post-gate handoff
+  artifacts, not extra residual-focus gate requirements
+claim_scope =
+  monitor/retrieval robustness only; no remote relaunch, no benchmark change,
+  no completed result claim, and no formal SPN/PRESENT evidence
+```
+
 Interpretation:
 
 ```text

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +81,11 @@ def advance_residual_focus_results(
     pool_report: dict[str, Any] = _read_json_or_empty(pool_output)
     pool_eval_report: dict[str, Any] = _read_json_or_empty(pool_eval_output)
     repair_report: dict[str, Any] = _read_json_or_empty(repair_output)
+    source_selection_command_report = _run_source_selection_commands_when_ready(
+        action_plan,
+        initial_status=initial_status,
+    )
+    source_selected_command_report = {"ran_commands": False, "run_count": 0, "results": []}
     source_selection_summary_report = _source_selection_summary_when_ready(
         action_plan,
         artifact_root=artifact_root,
@@ -103,6 +110,10 @@ def advance_residual_focus_results(
         ran_pool_planner = True
 
     if pool_report.get("should_run_pool") is True:
+        source_selected_command_report = _run_source_selected_commands_when_ready(
+            action_plan,
+            pool_report=pool_report,
+        )
         candidate_pool_report = _evaluate_pool3_when_artifacts_ready(
             action_plan=action_plan,
             pool_plan=pool_output,
@@ -143,6 +154,12 @@ def advance_residual_focus_results(
         "ran_gate": ran_gate,
         "ran_pool_planner": ran_pool_planner,
         "ran_pool_evaluator": ran_pool_evaluator,
+        "ran_source_selection_commands": bool(source_selection_command_report["ran_commands"]),
+        "source_selection_command_run_count": int(source_selection_command_report["run_count"]),
+        "source_selection_command_results": source_selection_command_report["results"],
+        "ran_source_selected_commands": bool(source_selected_command_report["ran_commands"]),
+        "source_selected_command_run_count": int(source_selected_command_report["run_count"]),
+        "source_selected_command_results": source_selected_command_report["results"],
         "ran_source_selection_summary": ran_source_selection_summary,
         "initial_status": initial_status["status"],
         "final_status": final_status["status"],
@@ -252,6 +269,60 @@ def _source_selection_summary_when_ready(action_plan: Path, *, artifact_root: Pa
     }
 
 
+def _run_source_selection_commands_when_ready(
+    action_plan: Path,
+    *,
+    initial_status: dict[str, Any],
+) -> dict[str, Any]:
+    if int(initial_status.get("missing_output_count", 0)) != 0:
+        return {"ran_commands": False, "run_count": 0, "results": []}
+    plan = _read_json_or_empty(action_plan)
+    missing_reports = [
+        path for path in _source_selection_report_paths(plan) if not path.exists()
+    ]
+    if not missing_reports:
+        return {"ran_commands": False, "run_count": 0, "results": []}
+    commands = _source_selection_commands(plan)
+    results = [
+        _run_local_action_command(
+            command,
+            allowed_scripts={"scripts/analyze-residual-bucket-axis-spectrum"},
+        )
+        for command in commands
+    ]
+    return {
+        "ran_commands": bool(results),
+        "run_count": len(results),
+        "results": results,
+    }
+
+
+def _run_source_selected_commands_when_ready(
+    action_plan: Path,
+    *,
+    pool_report: dict[str, Any],
+) -> dict[str, Any]:
+    if not _pool_plan_requires_source_selected(pool_report):
+        return {"ran_commands": False, "run_count": 0, "results": []}
+    plan = _read_json_or_empty(action_plan)
+    missing_outputs = [path for path in _source_selected_output_paths(plan) if not path.exists()]
+    if not missing_outputs:
+        return {"ran_commands": False, "run_count": 0, "results": []}
+    commands = _source_selected_commands(plan)
+    results = [
+        _run_local_action_command(
+            command,
+            allowed_scripts={"scripts/fit-residual-correction-feature-expert"},
+        )
+        for command in commands
+    ]
+    return {
+        "ran_commands": bool(results),
+        "run_count": len(results),
+        "results": results,
+    }
+
+
 def _source_selection_report_paths(plan: dict[str, Any]) -> list[Path]:
     reports: list[Path] = []
     for seed_plan in plan.get("seeds", []):
@@ -265,6 +336,82 @@ def _source_selection_report_paths(plan: dict[str, Any]) -> list[Path]:
             if value:
                 reports.append(Path(str(value)))
     return reports
+
+
+def _source_selected_output_paths(plan: dict[str, Any]) -> list[Path]:
+    outputs: list[Path] = []
+    for seed_plan in plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        planned = seed_plan.get("source_selected_outputs", {})
+        if not isinstance(planned, dict):
+            continue
+        outputs.extend(Path(str(value)) for value in planned.values())
+    return outputs
+
+
+def _source_selection_commands(plan: dict[str, Any]) -> list[str]:
+    commands = [str(command) for command in plan.get("source_selection_commands", [])]
+    if commands:
+        return commands
+    nested: list[str] = []
+    for seed_plan in plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        nested.extend(str(command) for command in seed_plan.get("source_selection_commands", []))
+    return nested
+
+
+def _source_selected_commands(plan: dict[str, Any]) -> list[str]:
+    commands = [str(command) for command in plan.get("source_selected_commands", [])]
+    if commands:
+        return commands
+    nested: list[str] = []
+    for seed_plan in plan.get("seeds", []):
+        if not isinstance(seed_plan, dict):
+            continue
+        nested.extend(str(command) for command in seed_plan.get("source_selected_commands", []))
+    return nested
+
+
+def _run_local_action_command(command: str, *, allowed_scripts: set[str]) -> dict[str, Any]:
+    tokens = shlex.split(command)
+    _validate_local_action_tokens(tokens, allowed_scripts=allowed_scripts)
+    env = os.environ.copy()
+    while tokens and "=" in tokens[0] and not tokens[0].startswith("-"):
+        key, value = tokens.pop(0).split("=", 1)
+        env[key] = value
+    completed = subprocess.run(
+        tokens,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    return {
+        "command": _redacted_command(tokens),
+        "returncode": int(completed.returncode),
+        "stdout_tail": completed.stdout[-500:],
+        "stderr_tail": completed.stderr[-500:],
+    }
+
+
+def _validate_local_action_tokens(tokens: list[str], *, allowed_scripts: set[str]) -> None:
+    lowered = [token.lower() for token in tokens]
+    forbidden = ("ssh", "scp", "cmd.exe", "g:\\lxy")
+    if any(any(item in token for item in forbidden) for token in lowered):
+        raise ValueError("source-selection command contains forbidden remote token")
+    command_tokens = list(tokens)
+    while command_tokens and "=" in command_tokens[0] and not command_tokens[0].startswith("-"):
+        command_tokens.pop(0)
+    if len(command_tokens) < 3 or command_tokens[:2] != ["uv", "run"]:
+        raise ValueError("source-selection command must start with UV_CACHE_DIR=/tmp/uv-cache uv run")
+    if command_tokens[2] not in allowed_scripts:
+        raise ValueError(f"local action command must run one of {sorted(allowed_scripts)}")
+
+
+def _redacted_command(tokens: list[str]) -> str:
+    return " ".join(shlex.quote(token) for token in tokens)
 
 
 def _advance_status(
