@@ -116,6 +116,7 @@ def summarize_present_r8_diverse_route(
             "gate_status": str(residual.get("gate_status", "")),
             "gate_decision": str(residual.get("gate_decision", "")),
             "missing_output_count": int(residual.get("missing_output_count", 0)),
+            "blockers": _residual_focus_blockers(residual),
             "repair_active": bool(residual.get("repair_active", False)),
             "repair_status": str(residual.get("repair_status", "")),
             "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
@@ -159,6 +160,7 @@ def summarize_present_r8_diverse_route(
             "bucket_conditioned_residual": bucket_residual_route,
             "linear_combo_integral_residual": linear_combo_route,
         },
+        "post_retrieval_sequence": _post_retrieval_sequence(),
         "policy": {
             "primary_gate": "residual_focus_262k_before_diverse_pool",
             "pool3_priority": "prefer residual-guided Pool 3 when residual-focus passes and controls are available",
@@ -409,6 +411,85 @@ def _linear_combo_integral_residual_route(residual: dict[str, Any]) -> dict[str,
         "decision": "plan_linear_combo_integral_residual_expert",
         "reason": "residual_focus_passed_and_train_source_selection_ready",
     }
+
+
+def _residual_focus_blockers(residual: dict[str, Any]) -> list[dict[str, Any]]:
+    blockers: list[dict[str, Any]] = []
+    planned_count = int(residual.get("planned_output_count", 0))
+    existing_count = int(residual.get("existing_planned_output_count", 0))
+    missing_count = int(residual.get("missing_output_count", 0))
+    if missing_count > 0:
+        blockers.append(
+            {
+                "code": "residual_focus_outputs_missing",
+                "missing_count": missing_count,
+                "planned_count": planned_count,
+                "existing_count": existing_count,
+            }
+        )
+    gate_status = str(residual.get("gate_status", ""))
+    gate_decision = str(residual.get("gate_decision", ""))
+    if gate_status and gate_status != "pass":
+        blockers.append(
+            {
+                "code": "residual_focus_gate_pending"
+                if gate_status == "pending"
+                else "residual_focus_gate_not_passed",
+                "gate_status": gate_status,
+                "gate_decision": gate_decision,
+            }
+        )
+    source_missing_count = int(residual.get("source_selection_missing_report_count", 0))
+    if source_missing_count > 0:
+        blockers.append(
+            {
+                "code": "train_source_selection_reports_missing",
+                "missing_count": source_missing_count,
+                "planned_count": int(residual.get("source_selection_report_count", 0)),
+                "existing_count": int(residual.get("source_selection_existing_report_count", 0)),
+                "source_selection_summary_status": str(
+                    residual.get("source_selection_summary_status", "")
+                ),
+                "source_selection_summary_decision": str(
+                    residual.get("source_selection_summary_decision", "")
+                ),
+            }
+        )
+    if bool(residual.get("repair_active", False)):
+        blockers.append(
+            {
+                "code": "residual_focus_repair_active",
+                "repair_status": str(residual.get("repair_status", "")),
+                "repair_stale_reason": str(residual.get("repair_stale_reason", "")),
+            }
+        )
+    return blockers
+
+
+def _post_retrieval_sequence() -> list[dict[str, Any]]:
+    return [
+        {
+            "step": "watch_until_residual_focus_outputs_exist",
+            "command_field": "residual_focus.watch_command",
+            "condition": "residual_focus.missing_output_count > 0",
+            "remote_action": False,
+        },
+        {
+            "step": "advance_residual_focus_gate_and_pool_handoff",
+            "command_field": "residual_focus.advance_command",
+            "condition": (
+                "residual_focus.missing_output_count == 0 or "
+                "residual_focus.status == outputs_ready_gate_needed"
+            ),
+            "remote_action": False,
+        },
+        {
+            "step": "follow_selected_local_route_or_repair_branch",
+            "command_field": "selected_next_action",
+            "condition": "advance command emits gate, pool, or repair decision",
+            "remote_action": False,
+        },
+    ]
 
 
 def _residual_monitor_health_command() -> str:

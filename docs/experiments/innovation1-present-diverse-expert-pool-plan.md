@@ -602,6 +602,12 @@ local monitor status, main-thread intervention flag, result-line state,
 heartbeat, and progress/ETA fields from `scripts/monitor-health`, without
 training, syncing, SSH polling, launching, changing labels, or changing claim
 scope.
+The same summary now also emits `residual_focus.blockers`, a compact
+machine-readable explanation of what still prevents residual-focus handoff
+such as missing planned outputs, a pending gate, or missing train-only
+source-selection reports. The top-level `post_retrieval_sequence` records the
+local-only handoff order: watch until outputs exist, run the residual-focus
+advance command, then follow the selected local route or repair branch.
 
 As of the V2 route refresh, the same summary also reports:
 

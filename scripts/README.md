@@ -208,6 +208,12 @@ The `residual_focus.watch_command` field emits the matching local
 `scripts/watch-residual-focus-results` loop command for restarting or handing
 off the local postprocess watcher with the same paths. It is also local-only;
 run it under a local tmux/session manager when continuous waiting is intended.
+The `residual_focus.blockers` field gives a compact machine-readable list of
+the current residual-focus blockers, such as missing planned outputs, a pending
+gate, or missing train-only source-selection reports. The top-level
+`post_retrieval_sequence` field records the intended local-only handoff order:
+watch until residual outputs exist, run the one-shot advance command, then
+follow the selected local route or repair branch.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports

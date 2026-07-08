@@ -95,6 +95,16 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["residual_focus"]["progress_by_seed_split"][0]["split"] == "train"
     assert report["residual_focus"]["planned_output_count"] == 18
     assert report["residual_focus"]["existing_planned_output_count"] == 0
+    blocker_codes = [blocker["code"] for blocker in report["residual_focus"]["blockers"]]
+    assert blocker_codes == [
+        "residual_focus_outputs_missing",
+        "residual_focus_gate_pending",
+        "train_source_selection_reports_missing",
+    ]
+    assert report["residual_focus"]["blockers"][0]["missing_count"] == 18
+    assert report["residual_focus"]["blockers"][0]["planned_count"] == 18
+    assert report["residual_focus"]["blockers"][0]["existing_count"] == 0
+    assert report["residual_focus"]["blockers"][2]["missing_count"] == 4
     assert "scripts/monitor-health" in report["residual_focus"]["monitor_health_command"]
     assert "--run-id i1_present_r8_residual_focus_262k_retry1" in report["residual_focus"]["monitor_health_command"]
     assert "--progress-root outputs/local_audits/i1_present_r8_residual_focus_262k" in report["residual_focus"]["monitor_health_command"]
@@ -114,6 +124,26 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert linear_combo["selection_split"] == "train_only"
     assert linear_combo["requires_source_selection"] is True
     assert linear_combo["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+    assert report["post_retrieval_sequence"] == [
+        {
+            "step": "watch_until_residual_focus_outputs_exist",
+            "command_field": "residual_focus.watch_command",
+            "condition": "residual_focus.missing_output_count > 0",
+            "remote_action": False,
+        },
+        {
+            "step": "advance_residual_focus_gate_and_pool_handoff",
+            "command_field": "residual_focus.advance_command",
+            "condition": "residual_focus.missing_output_count == 0 or residual_focus.status == outputs_ready_gate_needed",
+            "remote_action": False,
+        },
+        {
+            "step": "follow_selected_local_route_or_repair_branch",
+            "command_field": "selected_next_action",
+            "condition": "advance command emits gate, pool, or repair decision",
+            "remote_action": False,
+        },
+    ]
     assert report["should_launch_remote"] is False
 
 
