@@ -495,6 +495,34 @@ def test_present_r8_diverse_route_summary_prefers_pool3_after_residual_pool_read
         "aux_word_global_mean",
     ]
     assert report["candidate_routes"]["state_token_residual"]["status"] == "blocked_by_controls"
+    readiness = report["post_gate_route_readiness"]
+    assert readiness["status"] == "ready"
+    assert readiness["decision"] == "pool3_ready_linear_combo_tracked"
+    assert readiness["primary_route"] == "pool3_residual_guided"
+    assert readiness["selected_next_route"] == "trail_position + raw117 + source_selected_residual_focus"
+    assert readiness["routes"]["pool3_residual_guided"] == {
+        "status": "ready",
+        "ready": True,
+        "reason": "residual_guided_pool3_plan_ready",
+        "selected_residual_candidate": "focus10",
+        "source_selection_status": "pass",
+        "planned_fixed_fusions": [
+            "best_single",
+            "trail_position + raw117",
+            "trail_position + raw117 + residual_focus",
+            "trail_position + raw117 + source_selected_residual_focus",
+        ],
+    }
+    assert readiness["routes"]["linear_combo_integral_residual"] == {
+        "status": "waiting_for_train_source_selection",
+        "ready": False,
+        "reason": "train_source_selection_required",
+        "source_selection_summary_status": "",
+        "selected_groups": [],
+    }
+    assert readiness["routes"]["state_token_residual"]["ready"] is False
+    assert readiness["routes"]["state_token_residual"]["reason"] == "controls_hold"
+    assert readiness["routes"]["bucket_conditioned_residual"]["ready"] is False
 
 
 def test_present_r8_diverse_route_summary_runs_pool_planner_after_gate_pass(tmp_path: Path):

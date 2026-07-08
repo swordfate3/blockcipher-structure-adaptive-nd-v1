@@ -174,6 +174,12 @@ def summarize_present_r8_diverse_route(
             "bucket_conditioned_residual": bucket_residual_route,
             "linear_combo_integral_residual": linear_combo_route,
         },
+        "post_gate_route_readiness": _post_gate_route_readiness(
+            pool3_route=pool3_route,
+            state_token_route=state_token_route,
+            bucket_residual_route=bucket_residual_route,
+            linear_combo_route=linear_combo_route,
+        ),
         "post_retrieval_sequence": _post_retrieval_sequence(),
         "local_command_safety": _local_command_safety(residual_focus_commands),
         "policy": {
@@ -544,6 +550,116 @@ def _residual_execution_interpretation(
         "interpretation": interpretation,
         "reason": reason,
     }
+
+
+def _post_gate_route_readiness(
+    *,
+    pool3_route: dict[str, Any],
+    state_token_route: dict[str, Any],
+    bucket_residual_route: dict[str, Any],
+    linear_combo_route: dict[str, Any],
+) -> dict[str, Any]:
+    pool_ready = pool3_route.get("status") == "ready"
+    linear_ready = linear_combo_route.get("status") == "planned_after_source_selection"
+    routes = {
+        "pool3_residual_guided": _pool3_readiness(pool3_route),
+        "linear_combo_integral_residual": _linear_combo_readiness(linear_combo_route),
+        "state_token_residual": _state_token_readiness(state_token_route),
+        "bucket_conditioned_residual": _bucket_residual_readiness(bucket_residual_route),
+    }
+    if pool_ready:
+        return {
+            "status": "ready",
+            "decision": "pool3_and_linear_combo_ready" if linear_ready else "pool3_ready_linear_combo_tracked",
+            "primary_route": "pool3_residual_guided",
+            "selected_next_route": _selected_pool3_fusion(pool3_route),
+            "routes": routes,
+        }
+    if linear_ready:
+        return {
+            "status": "partial",
+            "decision": "linear_combo_ready_pool3_not_ready",
+            "primary_route": "linear_combo_integral_residual",
+            "selected_next_route": "plan_linear_combo_integral_residual_expert",
+            "routes": routes,
+        }
+    return {
+        "status": "blocked",
+        "decision": "wait_for_post_gate_route_inputs",
+        "primary_route": "",
+        "selected_next_route": "",
+        "routes": routes,
+    }
+
+
+def _pool3_readiness(route: dict[str, Any]) -> dict[str, Any]:
+    ready = route.get("status") == "ready"
+    return {
+        "status": str(route.get("status", "")),
+        "ready": ready,
+        "reason": "residual_guided_pool3_plan_ready" if ready else _pool3_wait_reason(route),
+        "selected_residual_candidate": str(route.get("selected_residual_candidate", "")),
+        "source_selection_status": str(route.get("source_selection_status", "")),
+        "planned_fixed_fusions": _string_list(route.get("planned_fixed_fusions")),
+    }
+
+
+def _linear_combo_readiness(route: dict[str, Any]) -> dict[str, Any]:
+    ready = route.get("status") == "planned_after_source_selection"
+    return {
+        "status": str(route.get("status", "")),
+        "ready": ready,
+        "reason": "train_source_selection_ready" if ready else "train_source_selection_required",
+        "source_selection_summary_status": str(route.get("source_selection_summary_status", "")),
+        "selected_groups": _string_list(route.get("selected_groups")),
+    }
+
+
+def _state_token_readiness(route: dict[str, Any]) -> dict[str, Any]:
+    ready = route.get("status") == "ready"
+    reason = "ready"
+    if not ready:
+        reason = "controls_hold" if route.get("status") == "blocked_by_controls" else "not_selected"
+    return {
+        "status": str(route.get("status", "")),
+        "ready": ready,
+        "reason": reason,
+        "control_status": str(route.get("control_status", "")),
+    }
+
+
+def _bucket_residual_readiness(route: dict[str, Any]) -> dict[str, Any]:
+    ready = route.get("status") == "ready_262k_migration_plan"
+    return {
+        "status": str(route.get("status", "")),
+        "ready": ready,
+        "reason": "migration_plan_ready" if ready else "waiting_for_262k_artifacts_or_controls",
+        "plan_status": str(route.get("plan_status", "")),
+        "control_status": str(route.get("control_status", "")),
+    }
+
+
+def _pool3_wait_reason(route: dict[str, Any]) -> str:
+    status = str(route.get("status", ""))
+    if status == "blocked_by_residual_focus":
+        return "residual_focus_gate_required"
+    if status == "waiting_for_pool_plan":
+        return "pool_plan_required"
+    if status == "waiting_for_pool3_score_artifacts":
+        return "pool3_score_artifacts_required"
+    if status == "control_hold":
+        return "pool3_controls_hold"
+    if status == "evaluated":
+        return "already_evaluated"
+    return "not_ready"
+
+
+def _selected_pool3_fusion(route: dict[str, Any]) -> str:
+    fusions = _string_list(route.get("planned_fixed_fusions"))
+    preferred = "trail_position + raw117 + source_selected_residual_focus"
+    if preferred in fusions:
+        return preferred
+    return fusions[-1] if fusions else ""
 
 
 def _post_retrieval_sequence() -> list[dict[str, Any]]:
