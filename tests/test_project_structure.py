@@ -14021,6 +14021,70 @@ def test_integral_same_difference_random_negative_generates_rows():
     assert dataset.metadata["negative_mode"] == "encrypted_random_plaintexts"
 
 
+def test_integral_pair_shuffled_preserves_pair_multiset():
+    cipher = build_cipher("present80", 8, key=0)
+    common = {
+        "cipher": cipher,
+        "input_difference": 0x0000000000000090,
+        "samples_per_class": 1,
+        "seed": 19,
+        "shuffle": False,
+        "feature_encoding": "ciphertext_pair_bits",
+        "pairs_per_sample": 16,
+        "negative_mode": "encrypted_random_plaintexts",
+        "integral_active_nibble": 0,
+    }
+    anchor = make_differential_dataset(
+        DifferentialDatasetConfig(
+            **common,
+            sample_structure="plaintext_integral_nibble_difference_matched_negative",
+        )
+    )
+    shuffled = make_differential_dataset(
+        DifferentialDatasetConfig(
+            **common,
+            sample_structure="plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
+        )
+    )
+    pair_width = 2 * cipher.block_bits
+
+    def pair_chunks(row):
+        return [
+            tuple(row[index * pair_width : (index + 1) * pair_width].tolist())
+            for index in range(16)
+        ]
+
+    assert shuffled.features.shape == anchor.features.shape
+    assert sorted(pair_chunks(shuffled.features[0])) == sorted(pair_chunks(anchor.features[0]))
+    assert pair_chunks(shuffled.features[0]) != pair_chunks(anchor.features[0])
+
+
+def test_integral_random_active_and_partial8_bridge_rows_generate():
+    cipher = build_cipher("present80", 8, key=0)
+    for sample_structure in [
+        "plaintext_integral_nibble_difference_matched_negative_random_active",
+        "plaintext_integral_nibble_difference_matched_negative_partial8",
+    ]:
+        dataset = make_differential_dataset(
+            DifferentialDatasetConfig(
+                cipher=cipher,
+                input_difference=0x0000000000000090,
+                samples_per_class=2,
+                seed=19,
+                shuffle=False,
+                feature_encoding="ciphertext_pair_bits",
+                pairs_per_sample=16,
+                negative_mode="encrypted_random_plaintexts",
+                sample_structure=sample_structure,
+                integral_active_nibble=0,
+            )
+        )
+
+        assert dataset.features.shape == (4, 16 * 2 * cipher.block_bits)
+        assert dataset.labels.tolist() == [1, 1, 0, 0]
+        assert dataset.metadata["sample_structure"] == sample_structure
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(
@@ -14059,6 +14123,30 @@ def test_present_r8_integral_pair_order_control_plan_is_local_audit_only():
         assert task["feature_encoding"] == "ciphertext_pair_bits"
         assert task["negative_mode"] == "encrypted_random_plaintexts"
         assert "LOCAL AUDIT only" in task["matching_evidence"]
+
+
+def test_present_r8_bridge_protocol_attribution_plan_is_complete_local_diagnostic():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_bridge_protocol_attribution_512_seed0_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 30
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {512}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {
+        "plaintext_integral_nibble_difference_matched_negative",
+        "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
+        "plaintext_integral_nibble_difference_matched_negative_random_active",
+        "plaintext_integral_nibble_difference_matched_negative_partial8",
+        "plaintext_integral_nibble_same_difference_random_negative",
+        "independent_pairs",
+    }.issubset({task["sample_structure"] for task in tasks})
+    assert all("LOCAL DIAGNOSTIC" in task["matching_evidence"] for task in tasks)
 
 
 def test_present_r8_integral_feature_variation_control_plan_is_local_audit_only():

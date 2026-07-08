@@ -15,6 +15,9 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "independent_pairs",
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
+        "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
+        "plaintext_integral_nibble_difference_matched_negative_partial8",
+        "plaintext_integral_nibble_difference_matched_negative_random_active",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
@@ -28,6 +31,9 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
     if config.sample_structure in {
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
+        "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
+        "plaintext_integral_nibble_difference_matched_negative_partial8",
+        "plaintext_integral_nibble_difference_matched_negative_random_active",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
@@ -40,6 +46,15 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         max_nibble = config.cipher.block_bits // 4
         if config.integral_active_nibble < 0 or config.integral_active_nibble >= max_nibble:
             raise ValueError("integral_active_nibble is outside the cipher block")
+    if (
+        config.sample_structure
+        == "plaintext_integral_nibble_difference_matched_negative_partial8"
+        and config.pairs_per_sample != 16
+    ):
+        raise ValueError(
+            "plaintext_integral_nibble_difference_matched_negative_partial8 "
+            "requires pairs_per_sample=16"
+        )
     if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
         active_nibbles = _nonzero_nibble_support(config.input_difference, config.cipher.block_bits)
         if not active_nibbles:

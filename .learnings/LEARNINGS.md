@@ -1,3 +1,55 @@
+## [LRN-20260708-005] best_practice
+
+**Logged**: 2026-07-08T22:15:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Treat fixed active-nibble alignment as the leading explanation for PRESENT r8
+matched/integral trail-position strength until active-nibble generalization is
+tested.
+
+### Details
+The PRESENT r8 bridge protocol attribution diagnostic at 512/class seed0+seed1
+showed a clear split:
+
+- Matched-negative full trail stayed high: seed0 AUC 0.973907471, seed1 AUC
+  0.994628906.
+- Pair-shuffled full trail also stayed high: seed0 AUC 0.951980591, seed1 AUC
+  0.992156982. Fixed pair index is therefore not the main explanation.
+- Random-active full trail collapsed: seed0 AUC 0.541259766, seed1 AUC
+  0.529830933.
+- Partial8 full trail collapsed: seed0 AUC 0.498107910, seed1 AUC 0.497482300.
+- Same-difference full trail remained near perfect, confirming that protocol is
+  too easy to scale as candidate evidence.
+- Independent-pair full trail remained near chance, confirming it is not the
+  current route.
+
+The useful next research step is active-nibble generalization rather than
+larger same-difference or independent-pair scale. Candidate next controls:
+train with randomized active nibble plus explicit/equivariant nibble metadata,
+or train on some active nibbles and validate on held-out active nibbles.
+
+### Suggested Action
+For future Innovation 1 PRESENT/SPN planning, prioritize active-nibble
+generalization controls before medium/large matched-negative scale-up. Do not
+describe pair-order dependence as the leading hypothesis unless new evidence
+contradicts the pair-shuffle result. Do not scale same-difference or
+independent-pair variants based on the current bridge diagnostic.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-bridge-protocol-attribution-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_bridge_protocol_attribution_512_seed0_seed1.csv, src/blockcipher_nd/data/differential/rows.py
+- Tags: innovation1, present, spn, bridge-protocol, active-nibble, trail-position
+- See Also: LRN-20260708-004, LRN-20260708-003, LRN-20260708-002
+- Pattern-Key: innovation1.spn_present.active_nibble_alignment_bridge_signal
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-004] best_practice
 
 **Logged**: 2026-07-08T18:08:00+08:00
