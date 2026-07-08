@@ -16229,6 +16229,56 @@ def test_training_history_plot_outputs_svg_and_csv(tmp_path):
     assert "val_auc" in csv_text
 
 
+def test_training_history_plot_ignores_nonfinite_points(tmp_path):
+    from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves
+
+    results_path = tmp_path / "results.jsonl"
+    svg_path = tmp_path / "curves.svg"
+    results_path.write_text(
+        json.dumps(
+            {
+                "cipher": "PRESENT-80",
+                "model": "present_pairset_global_stats",
+                "selected_model": "present_pairset_global_stats",
+                "rounds": 8,
+                "seed": 0,
+                "samples_per_class": 8,
+                "pairs_per_sample": 16,
+                "history": [
+                    {
+                        "epoch": 1.0,
+                        "train_eval_loss": float("nan"),
+                        "train_accuracy": 0.5,
+                        "train_auc": 0.0,
+                        "val_loss": float("nan"),
+                        "val_accuracy": 0.5,
+                        "val_auc": 0.0,
+                        "learning_rate": 0.0001,
+                    },
+                    {
+                        "epoch": 2.0,
+                        "train_eval_loss": 0.69,
+                        "train_accuracy": 0.5,
+                        "train_auc": 0.0,
+                        "val_loss": 0.70,
+                        "val_accuracy": 0.5,
+                        "val_auc": 0.0,
+                        "learning_rate": 0.0001,
+                    },
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = plot_jsonl_training_curves(results_path, svg_path)
+
+    assert report["series"] == 6
+    assert "<svg" in svg_path.read_text(encoding="utf-8")
+
+
 def test_training_history_records_train_and_validation_metrics():
     from blockcipher_nd.ciphers.arx.speck import Speck32_64
     from blockcipher_nd.data.differential import DifferentialDatasetConfig

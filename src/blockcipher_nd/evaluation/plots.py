@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import os
 import tempfile
 import textwrap
@@ -104,11 +105,7 @@ def training_curve_series(
             train_key = "train_eval_loss" if metric == "loss" else f"train_{metric}"
             val_key = f"val_{metric}"
             for split, key in (("train", train_key), ("val", val_key)):
-                points = [
-                    (float(item["epoch"]), float(item[key]))
-                    for item in row.get("history", [])
-                    if key in item and item.get(key) is not None
-                ]
+                points = _finite_history_points(row.get("history", []), key)
                 if points:
                     series.append(
                         {
@@ -121,6 +118,18 @@ def training_curve_series(
                         }
                     )
     return series
+
+
+def _finite_history_points(history: list[dict[str, Any]], key: str) -> list[tuple[float, float]]:
+    points: list[tuple[float, float]] = []
+    for item in history:
+        if key not in item or item.get(key) is None:
+            continue
+        epoch = float(item["epoch"])
+        value = float(item[key])
+        if math.isfinite(epoch) and math.isfinite(value):
+            points.append((epoch, value))
+    return points
 
 
 def history_records(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
