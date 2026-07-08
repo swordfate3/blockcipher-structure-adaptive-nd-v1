@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from blockcipher_nd.cli.summarize_present_r8_diverse_route import (
@@ -232,6 +233,11 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
     run_root = tmp_path / "remote_results" / run_id
     monitor_dir = run_root / "monitor"
     monitor_dir.mkdir(parents=True)
+    logs_dir = run_root / "logs"
+    logs_dir.mkdir(parents=True)
+    old_head = _git_output("rev-list", "--max-count=1", "HEAD~1")
+    current_head = _git_output("rev-parse", "HEAD")
+    logs_dir.joinpath(f"{run_id}_git_revision.txt").write_text(old_head + "\n", encoding="utf-8")
     monitor_dir.joinpath("monitor.log").write_text(
         "2026-07-08T08:41:41+08:00 running missing=18\n",
         encoding="utf-8",
@@ -310,6 +316,12 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
     assert monitor["status"] == "running"
     assert monitor["needs_main_thread_intervention"] is False
     assert monitor["results_jsonl_exists"] is False
+    assert monitor["source_revision"]["launched_commit"] == old_head
+    assert monitor["source_revision"]["current_head"] == current_head
+    assert monitor["source_revision"]["revision_lag"] == {
+        "status": "behind_current_head",
+        "commits_behind": 1,
+    }
     assert progress["source_kind"] == "external_progress_jsonl"
     assert progress["cache_total_progress_percent"] == 75.0
     assert progress["cache_negative_class_progress_percent"] == 50.0
@@ -1032,3 +1044,12 @@ def test_present_r8_diverse_route_summary_reports_bucket_residual_ready(tmp_path
 def _write_json(path: Path, payload: dict[str, object]) -> Path:
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
+
+
+def _git_output(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()

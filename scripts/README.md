@@ -200,6 +200,10 @@ Add `--include-monitor-health` to embed a compact local monitor-health summary
 under `residual_focus.monitor_health_summary`; this keeps ETA/progress,
 heartbeat, and intervention state in the same local route JSON while still
 remaining read-only and local-only.
+The embedded monitor-health summary also preserves `source_revision`, including
+the launched remote commit, current local `HEAD`, and whether the remote run is
+behind the current worktree head, so slow runs from older pushed commits can be
+explained without SSH polling.
 The `residual_focus.advance_command` field emits the matching local one-shot
 `scripts/advance-residual-focus-results` command for the same residual action
 plan, gate, Pool 3, repair, monitor, and artifact paths. It is a local

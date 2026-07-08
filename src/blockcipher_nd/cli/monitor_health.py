@@ -142,6 +142,7 @@ def monitor_health_report(
     )
     tmux = _tmux_status(tmux_session)
     auxiliary_artifacts = _postprocess_auxiliary_artifacts(postprocess_kind, run_root)
+    source_revision = _source_revision_report(run_root)
     status = _health_status(
         run_root_exists=run_root.exists(),
         has_synced_remote_artifacts=has_synced_remote_artifacts,
@@ -207,6 +208,7 @@ def monitor_health_report(
         "failed_markers": failed_markers,
         "stale_failed_markers": stale_failed_markers,
         "launch_state": launch_state,
+        "source_revision": source_revision,
         "auxiliary_artifacts": auxiliary_artifacts,
         "artifact_files": artifact_files,
         "needs_main_thread_intervention": status
@@ -420,6 +422,72 @@ def _launch_state(run_root: Path, artifact_files: list[str], *, recent_lines: in
         "is_stalled": is_stalled,
         "reason": reason,
     }
+
+
+def _source_revision_report(run_root: Path) -> dict[str, Any]:
+    revision_path = _latest_git_revision_path(run_root)
+    launched_commit = _read_first_nonempty_line(revision_path) if revision_path is not None else ""
+    current_head = _git_output(["rev-parse", "HEAD"])
+    return {
+        "revision_path": str(revision_path) if revision_path is not None else "",
+        "launched_commit": launched_commit,
+        "current_head": current_head,
+        "revision_lag": _revision_lag(launched_commit, current_head),
+    }
+
+
+def _latest_git_revision_path(run_root: Path) -> Path | None:
+    logs = run_root / "logs"
+    if not logs.exists():
+        return None
+    candidates = sorted(
+        logs.glob("*_git_revision.txt"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return candidates[0] if candidates else None
+
+
+def _read_first_nonempty_line(path: Path | None) -> str:
+    if path is None or not path.exists():
+        return ""
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if stripped:
+            return stripped
+    return ""
+
+
+def _revision_lag(launched_commit: str, current_head: str) -> dict[str, Any]:
+    if not launched_commit:
+        return {"status": "missing_launched_commit"}
+    if not current_head:
+        return {"status": "current_head_unavailable"}
+    if launched_commit == current_head:
+        return {"status": "matches_current_head", "commits_behind": 0}
+    if _git_returncode(["merge-base", "--is-ancestor", launched_commit, current_head]) == 0:
+        count = _git_output(["rev-list", "--count", f"{launched_commit}..{current_head}"])
+        try:
+            commits_behind = int(count)
+        except ValueError:
+            commits_behind = None
+        return {"status": "behind_current_head", "commits_behind": commits_behind}
+    return {"status": "not_ancestor_of_current_head"}
+
+
+def _git_output(args: list[str]) -> str:
+    try:
+        result = subprocess.run(["git", *args], check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+    return result.stdout.strip()
+
+
+def _git_returncode(args: list[str]) -> int:
+    try:
+        return subprocess.run(["git", *args], check=False, capture_output=True, text=True).returncode
+    except OSError:
+        return 127
 
 
 def _postprocess_auxiliary_artifacts(postprocess_kind: str, run_root: Path) -> list[dict[str, Any]]:

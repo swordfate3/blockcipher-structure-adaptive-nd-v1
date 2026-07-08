@@ -816,6 +816,7 @@ def _compact_monitor_health(report: dict[str, Any] | None) -> dict[str, Any]:
         "results_jsonl_exists": bool(report.get("results_jsonl_exists", False)),
         "results_jsonl_line_count": int(report.get("results_jsonl_line_count", 0)),
         "heartbeat": _dict_value(report.get("heartbeat")),
+        "source_revision": _dict_value(report.get("source_revision")),
         "progress_summary": _compact_monitor_progress(report.get("progress_summary")),
     }
 

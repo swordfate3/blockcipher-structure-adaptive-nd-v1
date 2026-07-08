@@ -6908,6 +6908,47 @@ def test_monitor_health_ignores_stale_launch_failed_marker_after_started_artifac
     assert report["stale_failed_markers"] == ["monitor/launch_failed.marker"]
 
 
+def test_monitor_health_reports_launched_revision_lag(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "revision_lag_unit"
+    run_root = root / run_id
+    monitor = run_root / "monitor"
+    logs = run_root / "logs"
+    monitor.mkdir(parents=True)
+    logs.mkdir()
+    monitor.joinpath("monitor.log").write_text(
+        "2026-07-08T11:00:00+08:00 running missing=18\n",
+        encoding="utf-8",
+    )
+    old_head = subprocess.run(
+        ["git", "rev-list", "--max-count=1", "HEAD~1"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    current_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    logs.joinpath(f"{run_id}_git_revision.txt").write_text(old_head + "\n", encoding="utf-8")
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        now=datetime.fromisoformat("2026-07-08T11:05:00+08:00"),
+    )
+
+    assert report["source_revision"]["launched_commit"] == old_head
+    assert report["source_revision"]["current_head"] == current_head
+    assert report["source_revision"]["revision_lag"] == {
+        "status": "behind_current_head",
+        "commits_behind": 1,
+    }
+    assert report["launch_state"]["has_git_revision"] is True
+
+
 def test_present_r8_residual_bucket_plan_documents_source_selected_pool3_handoff():
     residual_plan = Path("docs/experiments/innovation1-present-r8-residual-bucket-axis-spectrum-plan.md")
     pool_plan = Path("docs/experiments/innovation1-present-diverse-expert-pool-plan.md")
