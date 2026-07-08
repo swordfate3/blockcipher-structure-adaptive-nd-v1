@@ -348,13 +348,13 @@ timestamp() {{
 
 sync_artifacts() {{
   scp -r "${{REMOTE}}:${{REMOTE_RUN_ROOT}}/logs" "${{LOCAL_ROOT}}/" >> "${{MONITOR_DIR}}/scp.log" 2>> "${{MONITOR_DIR}}/scp_stderr.log" || true
-  sync_path_list <<'SYNC_IMMEDIATE_ARTIFACTS'
+  sync_path_list <<SYNC_IMMEDIATE_ARTIFACTS
 {immediate_sync_pairs}
 SYNC_IMMEDIATE_ARTIFACTS
 }}
 
 sync_final_artifacts() {{
-  sync_path_list <<'SYNC_FINAL_ARTIFACTS'
+  sync_path_list <<SYNC_FINAL_ARTIFACTS
 {final_sync_pairs}
 SYNC_FINAL_ARTIFACTS
 }}

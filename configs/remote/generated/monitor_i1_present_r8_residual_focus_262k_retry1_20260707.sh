@@ -18,7 +18,7 @@ timestamp() {
 
 sync_artifacts() {
   scp -r "${REMOTE}:${REMOTE_RUN_ROOT}/logs" "${LOCAL_ROOT}/" >> "${MONITOR_DIR}/scp.log" 2>> "${MONITOR_DIR}/scp_stderr.log" || true
-  sync_path_list <<'SYNC_IMMEDIATE_ARTIFACTS'
+  sync_path_list <<SYNC_IMMEDIATE_ARTIFACTS
 ${REMOTE_ARTIFACT_ROOT}/seed0/dataset_cache/seed0_train_feature_export_progress.jsonl|outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/dataset_cache/seed0_train_feature_export_progress.jsonl
 ${REMOTE_ARTIFACT_ROOT}/seed0/dataset_cache/seed0_train_score_export_progress.jsonl|outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/dataset_cache/seed0_train_score_export_progress.jsonl
 ${REMOTE_ARTIFACT_ROOT}/seed0/dataset_cache/seed0_validation_feature_export_progress.jsonl|outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/dataset_cache/seed0_validation_feature_export_progress.jsonl
@@ -47,7 +47,7 @@ SYNC_IMMEDIATE_ARTIFACTS
 }
 
 sync_final_artifacts() {
-  sync_path_list <<'SYNC_FINAL_ARTIFACTS'
+  sync_path_list <<SYNC_FINAL_ARTIFACTS
 ${REMOTE_ARTIFACT_ROOT}/residual_axis_spectrum_summary.json|outputs/local_audits/i1_present_r8_residual_focus_262k/residual_axis_spectrum_summary.json
 ${REMOTE_ARTIFACT_ROOT}/seed0/dataset_cache/seed0_train_feature_export_progress.jsonl|outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/dataset_cache/seed0_train_feature_export_progress.jsonl
 ${REMOTE_ARTIFACT_ROOT}/seed0/dataset_cache/seed0_train_score_export_progress.jsonl|outputs/local_audits/i1_present_r8_residual_focus_262k/seed0/dataset_cache/seed0_train_score_export_progress.jsonl

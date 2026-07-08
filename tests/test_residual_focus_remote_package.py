@@ -293,6 +293,9 @@ def test_residual_focus_remote_package_monitor_avoids_broad_artifact_cache_sync(
     monitor = Path(report["monitor"]).read_text(encoding="utf-8")
     assert status == 0
     assert '"${REMOTE_ARTIFACT_ROOT}/"*' not in monitor
+    assert "<<'SYNC_" not in monitor
+    assert "<<SYNC_IMMEDIATE_ARTIFACTS" in monitor
+    assert "<<SYNC_FINAL_ARTIFACTS" in monitor
     assert "dataset_cache/train" not in monitor
     assert "seed0/dataset_cache/seed0_train_progress.jsonl" in monitor
     assert "seed0/residual_focus10_slice_eval.json" in monitor
