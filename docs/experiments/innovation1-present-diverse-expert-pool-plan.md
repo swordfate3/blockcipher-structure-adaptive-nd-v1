@@ -583,6 +583,13 @@ The `residual_focus.monitor_health_command` field emits the bounded local
 health check with the residual-focus `--progress-root` already attached. Use it
 for status reports instead of reconstructing the command by hand; it remains a
 read-only local check and does not contact the remote workstation.
+When a single route JSON should include the bounded health snapshot directly,
+run the same route summary with `--include-monitor-health`. The embedded
+`residual_focus.monitor_health_summary` is intentionally compact: it carries the
+local monitor status, main-thread intervention flag, result-line state,
+heartbeat, and progress/ETA fields from `scripts/monitor-health`, without
+training, syncing, SSH polling, launching, changing labels, or changing claim
+scope.
 
 As of the V2 route refresh, the same summary also reports:
 

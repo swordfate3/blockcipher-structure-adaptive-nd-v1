@@ -109,6 +109,108 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     assert report["should_launch_remote"] is False
 
 
+def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path: Path):
+    residual_status = _write_json(
+        tmp_path / "residual_status.json",
+        {
+            "status": "running",
+            "gate_status": "pending",
+            "gate_decision": "wait_for_residual_focus_262k_outputs",
+            "missing_output_count": 18,
+            "next_action": {"branch": "wait_for_residual_focus_outputs"},
+        },
+    )
+    pool_plan = _write_json(tmp_path / "pool_plan.json", {"status": "pending"})
+    pool_eval = _write_json(tmp_path / "pool_eval.json", {"status": "pending"})
+    state_token_plan = _write_json(tmp_path / "state_token_plan.json", {"status": "pending"})
+    run_id = "i1_present_r8_residual_focus_262k_retry1"
+    run_root = tmp_path / "remote_results" / run_id
+    monitor_dir = run_root / "monitor"
+    monitor_dir.mkdir(parents=True)
+    monitor_dir.joinpath("monitor.log").write_text(
+        "2026-07-08T08:41:41+08:00 running missing=18\n",
+        encoding="utf-8",
+    )
+    progress_root = tmp_path / "residual_focus_262k"
+    progress_path = progress_root / "seed0" / "dataset_cache" / "seed0_train_feature_export_progress.jsonl"
+    progress_path.parent.mkdir(parents=True)
+    progress_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "time": 100.0,
+                        "event": "cache_positive_chunk",
+                        "stage": "dataset_cache",
+                        "seed": 0,
+                        "split": "train",
+                        "samples_per_class": 262144,
+                        "rows_done": 262144,
+                        "total_rows": 524288,
+                        "class_rows_done": 262144,
+                        "class_total": 262144,
+                        "chunk_rows": 8192,
+                        "model": "present_trail_position_stats_pairset",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "time": 200.0,
+                        "event": "cache_negative_chunk",
+                        "stage": "dataset_cache",
+                        "seed": 0,
+                        "split": "train",
+                        "samples_per_class": 262144,
+                        "rows_done": 393216,
+                        "total_rows": 524288,
+                        "class_rows_done": 131072,
+                        "class_total": 262144,
+                        "chunk_rows": 8192,
+                        "model": "present_trail_position_stats_pairset",
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "summary.json"
+
+    status = summarize_route_main(
+        [
+            "--residual-status",
+            str(residual_status),
+            "--pool-plan",
+            str(pool_plan),
+            "--pool-eval",
+            str(pool_eval),
+            "--state-token-plan",
+            str(state_token_plan),
+            "--include-monitor-health",
+            "--monitor-health-root",
+            str(tmp_path / "remote_results"),
+            "--monitor-health-progress-root",
+            str(progress_root),
+            "--monitor-health-stale-after-seconds",
+            "999999999",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    monitor = report["residual_focus"]["monitor_health_summary"]
+    progress = monitor["progress_summary"]
+    assert status == 0
+    assert monitor["status"] == "running"
+    assert monitor["needs_main_thread_intervention"] is False
+    assert monitor["results_jsonl_exists"] is False
+    assert progress["source_kind"] == "external_progress_jsonl"
+    assert progress["cache_total_progress_percent"] == 75.0
+    assert progress["cache_negative_class_progress_percent"] == 50.0
+    assert progress["cache_eta_seconds"] == 100
+
+
 def test_present_r8_diverse_route_summary_can_refresh_residual_status_before_reading(tmp_path: Path):
     stale_residual_status = _write_json(
         tmp_path / "residual_status.json",

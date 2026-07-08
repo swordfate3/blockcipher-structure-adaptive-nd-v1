@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.cli.monitor_health import monitor_health_report
 from blockcipher_nd.cli.residual_focus_status import (
     DEFAULT_ACTION_PLAN as DEFAULT_RESIDUAL_ACTION_PLAN,
     DEFAULT_ARTIFACT_ROOT as DEFAULT_RESIDUAL_ARTIFACT_ROOT,
@@ -22,6 +23,9 @@ DEFAULT_STATE_TOKEN_PLAN = Path("outputs/local_audits/i1_present_r8_state_token_
 DEFAULT_BUCKET_RESIDUAL_PLAN = Path("outputs/local_audits/i1_present_r8_bucket_residual_262k_action_plan.json")
 DEFAULT_BUCKET_RESIDUAL_CONTROL_GATE = Path("outputs/local_audits/i1_present_r8_bucket_residual_controls_gate.json")
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_diverse_route_summary.json")
+DEFAULT_MONITOR_HEALTH_RUN_ID = "i1_present_r8_residual_focus_262k_retry1"
+DEFAULT_MONITOR_HEALTH_ROOT = Path("outputs/remote_results")
+DEFAULT_MONITOR_HEALTH_PROGRESS_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -48,6 +52,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--residual-repair-plan", type=Path, default=DEFAULT_RESIDUAL_REPAIR_PLAN)
     parser.add_argument("--residual-monitor-dir", type=Path, default=DEFAULT_RESIDUAL_MONITOR_DIR)
     parser.add_argument("--residual-artifact-root", type=Path, default=DEFAULT_RESIDUAL_ARTIFACT_ROOT)
+    parser.add_argument(
+        "--include-monitor-health",
+        action="store_true",
+        help="Embed a compact local monitor-health summary for the residual-focus run.",
+    )
+    parser.add_argument("--monitor-health-run-id", default=DEFAULT_MONITOR_HEALTH_RUN_ID)
+    parser.add_argument("--monitor-health-root", type=Path, default=DEFAULT_MONITOR_HEALTH_ROOT)
+    parser.add_argument(
+        "--monitor-health-progress-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Optional local progress root to pass through to monitor-health.",
+    )
+    parser.add_argument("--monitor-health-stale-after-seconds", type=int, default=3600)
     return parser.parse_args(argv)
 
 
@@ -59,6 +78,7 @@ def summarize_present_r8_diverse_route(
     state_token_plan_path: Path,
     bucket_residual_plan_path: Path,
     bucket_residual_control_gate_path: Path,
+    monitor_health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     residual = _load_json(residual_status_path)
     pool_plan = _load_json_or_empty(pool_plan_path)
@@ -125,6 +145,7 @@ def summarize_present_r8_diverse_route(
             "planned_output_count": int(residual.get("planned_output_count", 0)),
             "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
             "monitor_health_command": _residual_monitor_health_command(),
+            "monitor_health_summary": _compact_monitor_health(monitor_health),
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
@@ -395,6 +416,67 @@ def _residual_monitor_health_command() -> str:
     )
 
 
+def _compact_monitor_health(report: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(report, dict):
+        return {}
+    return {
+        "status": str(report.get("status", "")),
+        "needs_main_thread_intervention": bool(report.get("needs_main_thread_intervention", False)),
+        "results_jsonl_exists": bool(report.get("results_jsonl_exists", False)),
+        "results_jsonl_line_count": int(report.get("results_jsonl_line_count", 0)),
+        "heartbeat": _dict_value(report.get("heartbeat")),
+        "progress_summary": _compact_monitor_progress(report.get("progress_summary")),
+    }
+
+
+def _compact_monitor_progress(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    keys = [
+        "path",
+        "exists",
+        "source_kind",
+        "line_count",
+        "parsed_line_count",
+        "latest_event",
+        "latest_split",
+        "latest_total_rows",
+        "latest_samples_per_class",
+        "stage",
+        "model",
+        "cache_event",
+        "cache_split",
+        "cache_rows_done",
+        "cache_total_rows",
+        "cache_rows_remaining",
+        "cache_class_rows_done",
+        "cache_class_total",
+        "cache_class_rows_remaining",
+        "cache_chunk_rows",
+        "cache_chunk_index",
+        "cache_class_chunk_index",
+        "cache_total_progress_percent",
+        "cache_class_progress_percent",
+        "cache_positive_class_rows_done",
+        "cache_positive_class_total",
+        "cache_positive_class_rows_remaining",
+        "cache_positive_class_progress_percent",
+        "cache_negative_class_rows_done",
+        "cache_negative_class_total",
+        "cache_negative_class_rows_remaining",
+        "cache_negative_class_progress_percent",
+        "cache_rows_per_second",
+        "cache_rate_window_seconds",
+        "cache_rate_window_rows",
+        "cache_eta_seconds",
+        "epoch",
+        "epochs",
+        "val_auc",
+        "best_checkpoint_metric",
+    ]
+    return {key: value.get(key) for key in keys if key in value}
+
+
 def _compact_next_action(value: object) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {"branch": "", "should_launch_remote": False}
@@ -461,6 +543,16 @@ def main(argv: list[str] | None = None) -> int:
             artifact_root=args.residual_artifact_root,
         )
         _write_json(args.residual_status, residual_status_report)
+    monitor_health = None
+    if args.include_monitor_health:
+        progress_roots = args.monitor_health_progress_root or [DEFAULT_MONITOR_HEALTH_PROGRESS_ROOT]
+        monitor_health = monitor_health_report(
+            run_id=args.monitor_health_run_id,
+            root=args.monitor_health_root,
+            recent_lines=10,
+            stale_after_seconds=args.monitor_health_stale_after_seconds,
+            progress_roots=progress_roots,
+        )
     report = summarize_present_r8_diverse_route(
         residual_status_path=args.residual_status,
         pool_plan_path=args.pool_plan,
@@ -468,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
         state_token_plan_path=args.state_token_plan,
         bucket_residual_plan_path=args.bucket_residual_plan,
         bucket_residual_control_gate_path=args.bucket_residual_control_gate,
+        monitor_health=monitor_health,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

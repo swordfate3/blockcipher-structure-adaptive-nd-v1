@@ -196,6 +196,10 @@ residual-focus wait state. The bucket residual route is tracked as a genuinely
 different third-family migration candidate only; local control pass plus a
 pending 262144/class plan is still not launch permission. It does not train,
 SSH, sync, launch remote jobs, change labels, or make a result claim.
+Add `--include-monitor-health` to embed a compact local monitor-health summary
+under `residual_focus.monitor_health_summary`; this keeps ETA/progress,
+heartbeat, and intervention state in the same local route JSON while still
+remaining read-only and local-only.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
