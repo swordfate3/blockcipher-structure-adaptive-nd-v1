@@ -542,6 +542,8 @@ def _residual_execution_interpretation(
         reason = "multiple progress streams are currently visible in the residual-focus status"
     return {
         "observed_progress_stream_count": len(progress_streams),
+        "active_workload_estimate": len(progress_streams),
+        "parallel_competition_likelihood": "low" if len(progress_streams) <= 1 else "possible",
         "planned_stage_command_count": planned_stage_command_count,
         "current_stage": current_stage,
         "current_event": current_event,
@@ -549,7 +551,24 @@ def _residual_execution_interpretation(
         "current_seed": progress.get("seed"),
         "interpretation": interpretation,
         "reason": reason,
+        "workload_message": _workload_message(
+            active_workload_count=len(progress_streams),
+            current_stage=current_stage,
+        ),
     }
+
+
+def _workload_message(*, active_workload_count: int, current_stage: str) -> str:
+    if active_workload_count == 1 and current_stage == "dataset_cache":
+        return (
+            "one active dataset-cache stream observed; planned commands are sequential work items, "
+            "not evidence of many parallel training jobs"
+        )
+    if active_workload_count == 1:
+        return "one active progress stream observed"
+    if active_workload_count > 1:
+        return "multiple active progress streams observed"
+    return "no active progress stream observed"
 
 
 def _post_gate_route_readiness(

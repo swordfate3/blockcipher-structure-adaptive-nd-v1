@@ -156,6 +156,8 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
     }
     assert report["residual_focus"]["execution_interpretation"] == {
         "observed_progress_stream_count": 1,
+        "active_workload_estimate": 1,
+        "parallel_competition_likelihood": "low",
         "planned_stage_command_count": 6,
         "current_stage": "dataset_cache",
         "current_event": "cache_positive_chunk",
@@ -163,6 +165,7 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
         "current_seed": 0,
         "interpretation": "single_heavy_dataset_cache_stage",
         "reason": "one progress stream is currently observed even though multiple stage commands are planned",
+        "workload_message": "one active dataset-cache stream observed; planned commands are sequential work items, not evidence of many parallel training jobs",
     }
     assert "scripts/monitor-health" in report["residual_focus"]["monitor_health_command"]
     assert "--run-id i1_present_r8_residual_focus_262k_retry1" in report["residual_focus"]["monitor_health_command"]
