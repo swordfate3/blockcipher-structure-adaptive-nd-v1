@@ -1,3 +1,47 @@
+## [LRN-20260708-002] correction
+
+**Logged**: 2026-07-08T16:58:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not describe `plaintext_integral_nibble_difference_matched_negative` as strict random-plaintext negatives.
+
+### Details
+While auditing why the PRESENT r8 trail-position route scores unusually high,
+the source path in `src/blockcipher_nd/data/differential/rows.py` showed that
+`_generate_integral_difference_matched_negative_row` constructs negative rows
+from the same integral base and shifted active-nibble variants, then encrypts
+both plaintexts. In this branch, the `negative_mode` metadata value
+`encrypted_random_plaintexts` does not mean the second plaintext is an
+independent random plaintext as in the ordinary independent-pair negative path.
+
+This matters for interpretation: the route is a controlled matched-negative
+integral diagnostic, not a strict random-plaintext-negative PRESENT r8
+benchmark. Strong AUC may reflect a real active-nibble/input-difference
+alignment signal in this structured protocol, but it should not be reported as
+a standard raw 8-round distinguisher result without qualification.
+
+### Suggested Action
+When reporting trail-position beamstats results, explicitly call the protocol
+`matched-negative integral` and separate it from strict encrypted-random-
+plaintext-negative evidence. Before publication-style claims, add or require a
+strict independent random-plaintext negative control and a random-key/generalized
+key split audit.
+
+### Metadata
+- Source: source_audit
+- Related Files: src/blockcipher_nd/data/differential/rows.py, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md
+- Tags: innovation1, present, spn, negative-samples, matched-negative, interpretation
+- See Also: LRN-20260621-001
+- Pattern-Key: innovation1.spn_present.matched_negative_not_strict_random_negative
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-001] correction
 
 **Logged**: 2026-07-08T12:00:00+08:00
