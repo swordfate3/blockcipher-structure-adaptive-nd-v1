@@ -208,7 +208,12 @@ def _alignment_key(
         int(row["seed"]),
         _model_key(row),
         int(row["samples_per_class"]),
+        int(row.get("pairs_per_sample") or 1),
         _normalize_value(row.get("feature_encoding", "")),
+        _normalize_value(row.get("negative_mode", "")),
+        _normalize_value(row.get("sample_structure", "")),
+        _normalize_value(row.get("integral_active_nibble", "")),
+        _normalize_value(row.get("key_rotation_interval", "")),
         _selected_indices_key(row),
     ]
     key.extend(_normalize_value(row.get(field, "")) for field in optional_key_fields)

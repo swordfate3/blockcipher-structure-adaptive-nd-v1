@@ -117,6 +117,17 @@ def test_matrix_runner_accepts_difference_matched_integral_sample_structure():
     assert args.sample_structure == "plaintext_integral_nibble_difference_matched_negative"
 
 
+def test_matrix_runner_accepts_strict_random_integral_negative_sample_structure():
+    args = parse_args(
+        [
+            "--sample-structure",
+            "plaintext_integral_nibble_strict_random_negative",
+        ]
+    )
+
+    assert args.sample_structure == "plaintext_integral_nibble_strict_random_negative"
+
+
 def test_official_epoch_cyclic_lr_matches_zhang_wang_schedule():
     from blockcipher_nd.training.optim import make_scheduler
     from blockcipher_nd.training.types import TrainingConfig
@@ -13731,6 +13742,29 @@ def test_integral_difference_matched_negative_removes_left_right_column_sum_sepa
     assert separator["accuracy"] < 0.6
 
 
+def test_integral_strict_random_negative_generates_independent_negative_rows():
+    cipher = build_cipher("present80", 8, key=0)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000090,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_nibble_strict_random_negative",
+            integral_active_nibble=0,
+        )
+    )
+
+    assert dataset.features.shape == (4, 16 * 2 * cipher.block_bits)
+    assert dataset.labels.tolist() == [1, 1, 0, 0]
+    assert dataset.metadata["sample_structure"] == "plaintext_integral_nibble_strict_random_negative"
+    assert dataset.metadata["negative_mode"] == "encrypted_random_plaintexts"
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(
@@ -15412,6 +15446,86 @@ def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_pa
                     "training": {"selected_bit_indices": [0, 1, 64, 65]},
                 },
             ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == "pass"
+    assert report["duplicate_plan_keys"] == []
+    assert report["duplicate_result_keys"] == []
+
+
+def test_result_plan_alignment_distinguishes_protocol_audit_rows(tmp_path):
+    plan_path = tmp_path / "protocol_audit_plan.csv"
+    result_path = tmp_path / "protocol_audit_results.jsonl"
+    fieldnames = [
+        "cipher",
+        "model_key",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "integral_active_nibble",
+        "key_rotation_interval",
+    ]
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_pairset_global_stats",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "512",
+            "pairs_per_sample": "16",
+            "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+            "integral_active_nibble": "0",
+            "key_rotation_interval": "0",
+        },
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_pairset_global_stats",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "512",
+            "pairs_per_sample": "16",
+            "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "plaintext_integral_nibble_strict_random_negative",
+            "integral_active_nibble": "0",
+            "key_rotation_interval": "1",
+        },
+    ]
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    result_path.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "cipher": row["cipher"],
+                    "model": row["model_key"],
+                    "selected_model": row["model_key"],
+                    "rounds": int(row["rounds"]),
+                    "seed": int(row["seed"]),
+                    "samples_per_class": int(row["samples_per_class"]),
+                    "pairs_per_sample": int(row["pairs_per_sample"]),
+                    "feature_encoding": row["feature_encoding"],
+                    "negative_mode": row["negative_mode"],
+                    "sample_structure": row["sample_structure"],
+                    "integral_active_nibble": int(row["integral_active_nibble"]),
+                    "key_rotation_interval": int(row["key_rotation_interval"]),
+                },
+                sort_keys=True,
+            )
+            for row in rows
         )
         + "\n",
         encoding="utf-8",

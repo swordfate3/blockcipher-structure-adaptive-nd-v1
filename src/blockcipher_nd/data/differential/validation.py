@@ -16,6 +16,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_strict_random_negative",
         "plaintext_integral_multi_nibble_difference_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
         "zhang_wang_case2_mcnd",
@@ -27,6 +28,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_strict_random_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:
         if config.pairs_per_sample < 2 or config.pairs_per_sample & (config.pairs_per_sample - 1):

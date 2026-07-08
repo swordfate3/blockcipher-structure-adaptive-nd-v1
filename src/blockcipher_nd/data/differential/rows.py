@@ -19,6 +19,7 @@ def generate_positive_row(
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_strict_random_negative",
     }:
         return _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
@@ -47,6 +48,8 @@ def generate_negative_row(
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative":
         mask = (1 << block_bits) - 1
         return _generate_integral_difference_matched_negative_row(config, rng, block_bits, mask, row_index)
+    if config.sample_structure == "plaintext_integral_nibble_strict_random_negative":
+        return _generate_independent_negative_row(config, rng, block_bits, row_index)
     if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
         mask = (1 << block_bits) - 1
         return _generate_integral_multi_nibble_difference_matched_negative_row(
