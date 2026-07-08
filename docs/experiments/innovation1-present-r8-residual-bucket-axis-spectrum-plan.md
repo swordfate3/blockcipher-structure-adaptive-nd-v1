@@ -1183,6 +1183,84 @@ after the selected residual expert produces aligned frozen scores and clears
 the same-protocol Pool 3 controls.
 ```
 
+## 2026-07-08 Bounded Status Check
+
+A bounded local monitor/advance/route-summary check was run while the active
+retry package was still watcher-managed. The check did not SSH-poll, did not
+launch new remote work, and did not run postprocess before the planned outputs
+existed.
+
+Current active run:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+monitor_status = running
+needs_main_thread_intervention = false
+failed_markers = []
+stale_failed_markers =
+  monitor/launch_failed.marker
+latest_command_index = 0
+stage = dataset_cache
+current_seed = 0
+current_split = train
+current_event = cache_negative_chunk
+```
+
+Current cache progress:
+
+```text
+samples_per_class = 262144
+cache_total_rows = 524288
+positive_class_rows = 262144 / 262144 = 100%
+negative_class_rows = 204800 / 262144 = 78.125%
+total_cache_rows = 466944 / 524288 = 89.0625%
+rows_remaining = 57344
+cache_rows_per_second ~= 6.025
+cache_eta_hours ~= 2.64
+```
+
+Execution interpretation:
+
+```text
+interpretation = single_heavy_dataset_cache_stage
+observed_progress_stream_count = 1
+planned_stage_command_count = 32
+reason =
+  one progress stream is currently observed even though multiple stage commands
+  are planned
+```
+
+This means the run is slow because it is still generating disk-backed
+PRESENT r8 trail-position/residual-focus features, not because many remote
+training jobs are competing. The local tmux sessions are monitor/watch sessions,
+not extra training jobs, and `running missing=18` means the 18 planned
+residual-focus gate outputs have not appeared yet; it does not mean 18 active
+remote training tasks.
+
+Current route summary:
+
+```text
+decision = wait_for_residual_focus_outputs
+should_launch_remote = false
+postprocess_allowed = false
+residual_focus_gate = pending
+source_selection_summary = pending
+pool3_residual_guided = blocked_by_residual_focus
+bucket_conditioned_residual = pending_262k_artifacts
+linear_combo_integral_residual = blocked_by_residual_focus
+state_token_residual = blocked_by_controls
+```
+
+Operational decision:
+
+```text
+do_not_restart_while_monitor_health_is_running
+do_not_launch_new_remote_branch_while_residual_focus_262k_pending
+let the watcher retrieve the planned outputs
+run advance-residual-focus-results only after outputs are ready or to produce
+bounded local status
+```
+
 ## Claim Scope
 
 This is a local diagnostic plan and tooling record only. It does not report a

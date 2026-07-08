@@ -6996,6 +6996,18 @@ def test_present_r8_residual_bucket_plan_documents_source_selected_pool3_handoff
     assert "trail_position + raw117 + source_selected_residual_focus" in pool_text
 
 
+def test_present_r8_residual_bucket_plan_documents_retry1_wait_diagnosis():
+    residual_plan = Path("docs/experiments/innovation1-present-r8-residual-bucket-axis-spectrum-plan.md")
+    residual_text = residual_plan.read_text(encoding="utf-8")
+
+    assert "2026-07-08 Bounded Status Check" in residual_text
+    assert "single_heavy_dataset_cache_stage" in residual_text
+    assert "not because many remote" in residual_text
+    assert "training jobs are competing" in residual_text
+    assert "`running missing=18` means the 18 planned" in residual_text
+    assert "do_not_restart_while_monitor_health_is_running" in residual_text
+
+
 def test_monitor_health_marks_launch_stalled_before_training_logs(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "launch_stalled_unit"
