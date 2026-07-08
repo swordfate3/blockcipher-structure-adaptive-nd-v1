@@ -6858,7 +6858,7 @@ def test_monitor_health_ignores_stale_failed_marker_when_progress_continues(tmp_
 
     assert report["status"] == "running"
     assert report["needs_main_thread_intervention"] is False
-    assert report["failed_markers"] == [f"logs/{run_id}_failed.marker"]
+    assert report["failed_markers"] == []
     assert report["stale_failed_markers"] == [f"logs/{run_id}_failed.marker"]
 
 
@@ -6904,7 +6904,7 @@ def test_monitor_health_ignores_stale_launch_failed_marker_after_started_artifac
 
     assert report["status"] == "running"
     assert report["needs_main_thread_intervention"] is False
-    assert report["failed_markers"] == ["monitor/launch_failed.marker"]
+    assert report["failed_markers"] == []
     assert report["stale_failed_markers"] == ["monitor/launch_failed.marker"]
 
 

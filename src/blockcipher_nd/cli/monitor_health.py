@@ -207,7 +207,7 @@ def monitor_health_report(
         "results_jsonl_line_count": results_jsonl_line_count,
         "expected_rows": expected_result_rows,
         "done_markers": done_markers,
-        "failed_markers": failed_markers,
+        "failed_markers": active_failed_markers,
         "stale_failed_markers": stale_failed_markers,
         "launch_state": launch_state,
         "source_revision": source_revision,
