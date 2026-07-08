@@ -29,8 +29,16 @@ def generate_positive_row(
         row = _generate_integral_positive_row(config, rng, block_bits, mask, row_index)
         return _shuffle_encoded_pair_order(row, config, rng)
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active":
-        active_config = _with_random_active_nibble(config, rng, block_bits)
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
         return _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
+    if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_metadata":
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
+        row = _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
+        return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_relative":
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
+        row = _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
+        return _relative_active_nibble_row(row, active_config, block_bits)
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_partial8":
         return _generate_integral_partial_positive_row(config, rng, block_bits, mask, row_index)
     if config.sample_structure == "plaintext_integral_multi_nibble_difference_matched_negative":
@@ -65,10 +73,24 @@ def generate_negative_row(
         return _shuffle_encoded_pair_order(row, config, rng)
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active":
         mask = (1 << block_bits) - 1
-        active_config = _with_random_active_nibble(config, rng, block_bits)
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
         return _generate_integral_difference_matched_negative_row(
             active_config, rng, block_bits, mask, row_index
         )
+    if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_metadata":
+        mask = (1 << block_bits) - 1
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
+        row = _generate_integral_difference_matched_negative_row(
+            active_config, rng, block_bits, mask, row_index
+        )
+        return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_relative":
+        mask = (1 << block_bits) - 1
+        active_config = _with_sampled_active_nibble(config, rng, block_bits)
+        row = _generate_integral_difference_matched_negative_row(
+            active_config, rng, block_bits, mask, row_index
+        )
+        return _relative_active_nibble_row(row, active_config, block_bits)
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_partial8":
         mask = (1 << block_bits) - 1
         return _generate_integral_partial_negative_row(config, rng, block_bits, mask, row_index)
@@ -456,13 +478,65 @@ def _integral_active_mask(config: DifferentialDatasetConfig) -> int:
     return ((1 << (config.pairs_per_sample.bit_length() - 1)) - 1) << shift
 
 
-def _with_random_active_nibble(
+def _with_sampled_active_nibble(
     config: DifferentialDatasetConfig,
     rng: np.random.Generator,
     block_bits: int,
 ) -> DifferentialDatasetConfig:
-    active_nibble = int(rng.integers(0, block_bits // 4))
+    choices = config.integral_active_nibbles or tuple(range(block_bits // 4))
+    active_nibble = int(choices[int(rng.integers(0, len(choices)))])
     return replace(config, integral_active_nibble=active_nibble)
+
+
+def _active_nibble_one_hot(active_nibble: int, block_bits: int) -> list[int]:
+    nibbles = block_bits // 4
+    return [1 if index == active_nibble else 0 for index in range(nibbles)]
+
+
+def _relative_active_nibble_row(
+    encoded_pairs: list[int],
+    config: DifferentialDatasetConfig,
+    block_bits: int,
+) -> list[int]:
+    if block_bits % 4 != 0:
+        raise ValueError("relative active-nibble rows require 4-bit cells")
+    pair_width = len(encoded_pairs) // config.pairs_per_sample
+    if pair_width * config.pairs_per_sample != len(encoded_pairs):
+        raise ValueError("encoded row width is not divisible by pairs_per_sample")
+    if pair_width % block_bits != 0:
+        raise ValueError("relative active-nibble rows require whole block-width feature words")
+
+    aligned: list[int] = []
+    for pair_index in range(config.pairs_per_sample):
+        pair = encoded_pairs[pair_index * pair_width : (pair_index + 1) * pair_width]
+        aligned.extend(_rotate_feature_cells_to_active_zero(pair, config.integral_active_nibble, block_bits))
+    return aligned
+
+
+def _rotate_feature_cells_to_active_zero(
+    pair: list[int],
+    active_nibble: int,
+    block_bits: int,
+) -> list[int]:
+    cells_per_word = block_bits // 4
+    cell_bits = 4
+    word_width = cells_per_word * cell_bits
+    words = len(pair) // word_width
+    rotated: list[int] = []
+    for word_index in range(words):
+        word = pair[word_index * word_width : (word_index + 1) * word_width]
+        cells = [
+            word[cell_index * cell_bits : (cell_index + 1) * cell_bits]
+            for cell_index in range(cells_per_word)
+        ]
+        shifted = [None] * cells_per_word
+        for cell_index, cell in enumerate(cells):
+            shifted[(cell_index + active_nibble) % cells_per_word] = cell
+        for cell in shifted:
+            if cell is None:
+                raise ValueError("failed to rotate active-nibble feature cells")
+            rotated.extend(cell)
+    return rotated
 
 
 def _shuffle_encoded_pair_order(

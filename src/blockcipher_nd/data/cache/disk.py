@@ -41,7 +41,10 @@ def make_chunked_differential_dataset(
     metadata_path = cache_path / "metadata.json"
     expected_metadata = dataset_metadata(config)
     total_rows = config.samples_per_class * 2
-    input_bits = expected_metadata["pair_bits"] * config.pairs_per_sample
+    input_bits = (
+        expected_metadata["pair_bits"] * config.pairs_per_sample
+        + expected_metadata["row_metadata_bits"]
+    )
     context = dict(progress_context or {})
 
     if reuse and features_path.exists() and labels_path.exists() and metadata_path.exists():

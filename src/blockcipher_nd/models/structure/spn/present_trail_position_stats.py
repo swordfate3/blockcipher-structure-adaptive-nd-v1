@@ -27,23 +27,31 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         norm: str = "layernorm",
         dropout: float = 0.0,
         stats_hidden_bits: int | None = None,
+        metadata_bits: int = 0,
     ) -> None:
         super().__init__()
-        if input_bits % pair_bits != 0:
+        if metadata_bits < 0:
+            raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
+        base_input_bits = input_bits - metadata_bits
+        if base_input_bits <= 0:
+            raise ValueError("PresentTrailPositionStats metadata_bits must leave base feature bits")
+        if base_input_bits % pair_bits != 0:
             raise ValueError("PresentTrailPositionStats input_bits must be a multiple of pair_bits")
         if pair_bits % 64 != 0:
             raise ValueError("PresentTrailPositionStats pair_bits must be a multiple of 64-bit PRESENT words")
         if pair_bits % nibble_bits != 0:
             raise ValueError("PresentTrailPositionStats pair_bits must be a multiple of nibble_bits")
-        if input_bits // pair_bits < 2:
+        if base_input_bits // pair_bits < 2:
             raise ValueError("PresentTrailPositionStats needs at least two pairs per sample")
         words_per_pair = pair_bits // 64
         if words_per_pair <= trail_depth * trail_words_per_depth:
             raise ValueError("PresentTrailPositionStats requires prefix words before trail words")
 
         self.input_bits = input_bits
+        self.base_input_bits = base_input_bits
+        self.metadata_bits = metadata_bits
         self.pair_bits = pair_bits
-        self.pairs_per_sample = input_bits // pair_bits
+        self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
         self.nibble_bits = nibble_bits
         self.words_per_pair = words_per_pair
@@ -61,7 +69,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             trail_depth,
             self.prefix_words,
             trail_words_per_depth,
-        )
+        ) + metadata_bits
         classifier_hidden = max(64, base_channels * 4)
         self.classifier = nn.Sequential(
             build_norm(norm, self.stats_feature_bits),
@@ -102,8 +110,9 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
     def _position_statistics(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
             raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
-        cells = features.float().reshape(
-            features.shape[0],
+        base_features = features[:, : self.base_input_bits]
+        cells = base_features.float().reshape(
+            base_features.shape[0],
             self.pairs_per_sample,
             self.words_per_pair,
             self.cells_per_word,
@@ -219,7 +228,10 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
-        return self.classifier(self._position_statistics(features))
+        stats = self._position_statistics(features)
+        if self.metadata_bits:
+            stats = torch.cat([stats, features[:, -self.metadata_bits :].float()], dim=1)
+        return self.classifier(stats)
 
 
 __all__ = ["PresentTrailPositionStatsPairSetDistinguisher"]

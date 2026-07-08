@@ -1,3 +1,56 @@
+## [LRN-20260708-007] best_practice
+
+**Logged**: 2026-07-08T23:55:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not remote-scale the current PRESENT r8 fixed-active matched-negative trail
+protocol until active-nibble generalization is redesigned locally.
+
+### Details
+The PRESENT r8 active-nibble generalization local diagnostic at 512/class
+seed0+seed1 compared the same-budget fixed-active anchor against random-active,
+heldout-active, explicit active-nibble metadata, and first-pass relative
+coordinate alignment:
+
+- Fixed-active trail stayed high: seed0 AUC 0.989562988, seed1 AUC
+  0.992324829.
+- Random-active trail stayed near chance: seed0 AUC 0.541259766, seed1 AUC
+  0.529830933.
+- Heldout-active train {0,1,2,3} -> validation {4,5,6,7} did not transfer:
+  seed0 AUC 0.539070129, seed1 AUC 0.473754883.
+- Random-active + 16-bit active metadata did not restore signal at this local
+  budget: seed0 AUC 0.473663330, seed1 AUC 0.471611023.
+- Random-active + first-pass feature-cell relative-coordinate alignment also
+  did not restore signal: seed0 AUC 0.534194946, seed1 AUC 0.483474731.
+
+This supports the interpretation that the current high fixed-active score is
+mostly tied to fixed active-nibble coordinates/templates, not yet a robust
+SPN-general active-nibble adaptive distinguisher. The result is diagnostic only
+because 512/class is small, but it is enough to block default remote scale-up
+of the unchanged fixed-active protocol under the local-gate rule.
+
+### Suggested Action
+For Innovation 1 PRESENT/SPN, redesign the active-conditioned or
+nibble-equivariant representation locally before requesting 65k/262k remote
+scale. A future remote run should require a local gate where heldout-active,
+metadata-conditioned, or relative-coordinate rows beat the unconditioned
+random-active control on both seeds.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-nibble-generalization-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_nibble_generalization_512_seed0_seed1.csv, src/blockcipher_nd/data/differential/rows.py, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py
+- Tags: innovation1, present, spn, active-nibble, generalization, local-gate
+- See Also: LRN-20260708-006, LRN-20260708-005, LRN-20260708-004
+- Pattern-Key: innovation1.spn_present.active_nibble_generalization_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-006] best_practice
 
 **Logged**: 2026-07-08T22:45:00+08:00

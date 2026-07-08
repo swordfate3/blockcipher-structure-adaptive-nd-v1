@@ -21,7 +21,11 @@ def build_dataset_config(
     cipher,
     samples_per_class: int,
     seed: int,
+    split: str = "train",
 ) -> DifferentialDatasetConfig:
+    active_nibbles = task.get("integral_active_nibbles", ())
+    if split == "validation" and task.get("validation_integral_active_nibbles"):
+        active_nibbles = task["validation_integral_active_nibbles"]
     return DifferentialDatasetConfig(
         cipher=cipher,
         input_difference=task["input_difference"],
@@ -33,6 +37,7 @@ def build_dataset_config(
         key_rotation_interval=task["key_rotation_interval"],
         sample_structure=task["sample_structure"],
         integral_active_nibble=task["integral_active_nibble"],
+        integral_active_nibbles=tuple(active_nibbles),
         selected_bit_indices=task["selected_bit_indices"],
     )
 

@@ -561,6 +561,7 @@ def build_spn_model(
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
             stats_hidden_bits=int_option(options, "stats_hidden_bits"),
+            metadata_bits=int_option(options, "metadata_bits", 0) or 0,
         )
     if name == "present_p_layer_mixer_pairset":
         return PresentPLayerMixerPairSetDistinguisher(

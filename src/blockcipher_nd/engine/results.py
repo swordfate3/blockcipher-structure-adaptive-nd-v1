@@ -50,6 +50,10 @@ def build_task_result(
         "key_rotation_interval": task["key_rotation_interval"],
         "sample_structure": task["sample_structure"],
         "integral_active_nibble": task["integral_active_nibble"],
+        "integral_active_nibbles": list(task.get("integral_active_nibbles", ())),
+        "validation_integral_active_nibbles": list(
+            task.get("validation_integral_active_nibbles", ())
+        ),
         "metrics": training_result.final_metrics,
         "history": training_result.history,
         "training": {
@@ -64,6 +68,10 @@ def build_task_result(
             "key_rotation_interval": task["key_rotation_interval"],
             "sample_structure": task["sample_structure"],
             "integral_active_nibble": task["integral_active_nibble"],
+            "integral_active_nibbles": list(task.get("integral_active_nibbles", ())),
+            "validation_integral_active_nibbles": list(
+                task.get("validation_integral_active_nibbles", ())
+            ),
             "model_options": task.get("model_options", {}),
             "selected_bit_indices": task["selected_bit_indices"],
             "pretraining": pretraining_metadata(pretrain_result),
@@ -80,5 +88,6 @@ def build_task_result(
             "key_rotation_interval": validation_dataset.metadata["key_rotation_interval"],
             "sample_structure": validation_dataset.metadata["sample_structure"],
             "integral_active_nibble": validation_dataset.metadata["integral_active_nibble"],
+            "integral_active_nibbles": validation_dataset.metadata["integral_active_nibbles"],
         },
     }

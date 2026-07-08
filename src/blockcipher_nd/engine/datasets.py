@@ -60,6 +60,7 @@ def dataset_cache_dir(
         "key_rotation_interval": config.key_rotation_interval,
         "sample_structure": config.sample_structure,
         "integral_active_nibble": config.integral_active_nibble,
+        "integral_active_nibbles": config.integral_active_nibbles,
         "selected_bit_indices": config.selected_bit_indices,
         "key": task.get("train_key") if split in {"train", "pretrain_train"} else task.get("validation_key"),
     }

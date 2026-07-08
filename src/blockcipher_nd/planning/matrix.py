@@ -45,6 +45,8 @@ def build_tasks(args: argparse.Namespace) -> list[dict[str, Any]]:
                             "key_rotation_interval": args.key_rotation_interval,
                             "sample_structure": args.sample_structure,
                             "integral_active_nibble": args.integral_active_nibble,
+                            "integral_active_nibbles": (),
+                            "validation_integral_active_nibbles": (),
                             "selected_bit_indices": (),
                             "loss": args.loss,
                             "learning_rate": args.learning_rate,
@@ -130,6 +132,10 @@ def plan_task(
         "integral_active_nibble": optional_int(row.get("integral_active_nibble"))
         if row.get("integral_active_nibble") not in {None, ""}
         else integral_active_nibble,
+        "integral_active_nibbles": optional_int_tuple(row.get("integral_active_nibbles")),
+        "validation_integral_active_nibbles": optional_int_tuple(
+            row.get("validation_integral_active_nibbles")
+        ),
         "loss": row.get("loss") or "bce",
         "learning_rate": optional_float(row.get("learning_rate")),
         "optimizer": row.get("optimizer") or None,

@@ -18,6 +18,8 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
         "plaintext_integral_nibble_difference_matched_negative_partial8",
         "plaintext_integral_nibble_difference_matched_negative_random_active",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_relative",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
@@ -34,6 +36,8 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
         "plaintext_integral_nibble_difference_matched_negative_partial8",
         "plaintext_integral_nibble_difference_matched_negative_random_active",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_relative",
         "plaintext_integral_nibble_matched_negative",
         "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
@@ -46,6 +50,11 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         max_nibble = config.cipher.block_bits // 4
         if config.integral_active_nibble < 0 or config.integral_active_nibble >= max_nibble:
             raise ValueError("integral_active_nibble is outside the cipher block")
+        for active_nibble in config.integral_active_nibbles:
+            if active_nibble < 0 or active_nibble >= max_nibble:
+                raise ValueError("integral_active_nibbles contains a nibble outside the cipher block")
+        if len(set(config.integral_active_nibbles)) != len(config.integral_active_nibbles):
+            raise ValueError("integral_active_nibbles must not contain duplicates")
     if (
         config.sample_structure
         == "plaintext_integral_nibble_difference_matched_negative_partial8"

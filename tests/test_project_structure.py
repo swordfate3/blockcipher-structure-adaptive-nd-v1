@@ -15,7 +15,9 @@ from blockcipher_nd.engine.matrix_runner import parse_args
 from blockcipher_nd.data.cache import make_chunked_differential_dataset
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
+from blockcipher_nd.engine.datasets import dataset_cache_dir
 from blockcipher_nd.engine.modeling import infer_pair_bits
+from blockcipher_nd.engine.task_config import build_dataset_config
 from blockcipher_nd.features.registry import (
     encode_ciphertext_pair,
     is_supported_feature_encoding,
@@ -14085,6 +14087,155 @@ def test_integral_random_active_and_partial8_bridge_rows_generate():
         assert dataset.metadata["sample_structure"] == sample_structure
 
 
+def test_integral_random_active_metadata_and_relative_rows_generate():
+    cipher = build_cipher("present80", 8, key=0)
+    base_bits = 16 * 2 * cipher.block_bits
+    metadata_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000090,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+            integral_active_nibbles=(0, 1, 2, 3),
+        )
+    )
+    relative_dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000090,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_nibble_difference_matched_negative_random_active_relative",
+            integral_active_nibbles=(0, 1, 2, 3),
+        )
+    )
+
+    assert metadata_dataset.features.shape == (4, base_bits + 16)
+    assert relative_dataset.features.shape == (4, base_bits)
+    assert metadata_dataset.metadata["integral_active_nibbles"] == [0, 1, 2, 3]
+    assert relative_dataset.metadata["integral_active_nibbles"] == [0, 1, 2, 3]
+    metadata_tail = metadata_dataset.features[:, -16:]
+    assert metadata_tail.sum(axis=1).tolist() == [1, 1, 1, 1]
+    assert set(np.argmax(metadata_tail, axis=1).tolist()).issubset({0, 1, 2, 3})
+
+
+def test_active_nibble_set_changes_cache_identity(tmp_path):
+    cipher = build_cipher("present80", 8, key=0)
+    task = {
+        "cipher_key": "present80",
+        "rounds": 8,
+        "train_key": 0,
+        "validation_key": 1,
+    }
+    common = {
+        "cipher": cipher,
+        "input_difference": 0x0000000000000090,
+        "samples_per_class": 8,
+        "seed": 19,
+        "feature_encoding": "ciphertext_pair_bits",
+        "pairs_per_sample": 16,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "plaintext_integral_nibble_difference_matched_negative_random_active",
+    }
+
+    train_cache = dataset_cache_dir(
+        tmp_path,
+        task,
+        DifferentialDatasetConfig(**common, integral_active_nibbles=(0, 1, 2, 3)),
+        "train",
+    )
+    heldout_cache = dataset_cache_dir(
+        tmp_path,
+        task,
+        DifferentialDatasetConfig(**common, integral_active_nibbles=(4, 5, 6, 7)),
+        "train",
+    )
+
+    assert train_cache != heldout_cache
+
+
+def test_active_nibble_plan_split_overrides_are_parsed_and_applied(tmp_path):
+    plan = tmp_path / "active_split.csv"
+    plan.write_text(
+        "\n".join(
+            [
+                "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,"
+                "samples_per_class,pairs_per_sample,feature_encoding,negative_mode,train_key,"
+                "validation_key,key_rotation_interval,sample_structure,integral_active_nibble,"
+                "integral_active_nibbles,validation_integral_active_nibbles,difference_profile,"
+                "difference_member,loss,learning_rate,optimizer,weight_decay,lr_scheduler,"
+                "max_learning_rate,checkpoint_metric,restore_best_checkpoint,early_stopping_patience,"
+                "early_stopping_min_delta,model_options,evidence,literature",
+                'PRESENT-80,SPN,Heldout,present_trail_position_stats_pairset,test,0,100,8,0,'
+                '512,16,present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits,'
+                'encrypted_random_plaintexts,0x0,0x1,0,'
+                'plaintext_integral_nibble_difference_matched_negative_random_active,0,'
+                '"[0,1,2,3]","[4,5,6,7]",present_zhang_wang2022_mcnd,0,mse,0.0001,'
+                'adam,0.00001,none,0,val_auc,true,0,0.0,'
+                '"{""activation"":""gelu"",""norm"":""layernorm""}",LOCAL DIAGNOSTIC,heldout active test',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    task = build_tasks(parse_args(["--plan", str(plan)]))[0]
+    cipher = build_cipher(task["cipher_key"], task["rounds"], key=task["train_key"])
+
+    train_config = build_dataset_config(
+        task,
+        cipher=cipher,
+        samples_per_class=task["samples_per_class"],
+        seed=task["seed"],
+        split="train",
+    )
+    validation_config = build_dataset_config(
+        task,
+        cipher=cipher,
+        samples_per_class=task["samples_per_class"] // 2,
+        seed=task["seed"] + 10_000,
+        split="validation",
+    )
+
+    assert task["integral_active_nibbles"] == (0, 1, 2, 3)
+    assert task["validation_integral_active_nibbles"] == (4, 5, 6, 7)
+    assert train_config.integral_active_nibbles == (0, 1, 2, 3)
+    assert validation_config.integral_active_nibbles == (4, 5, 6, 7)
+
+
+def test_present_trail_position_model_accepts_active_metadata_bits():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits + 16,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "metadata_bits": 16,
+        },
+    )
+
+    logits = model(torch.zeros(2, 16 * pair_bits + 16))
+
+    assert logits.shape == (2, 1)
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(
@@ -14147,6 +14298,58 @@ def test_present_r8_bridge_protocol_attribution_plan_is_complete_local_diagnosti
         "independent_pairs",
     }.issubset({task["sample_structure"] for task in tasks})
     assert all("LOCAL DIAGNOSTIC" in task["matching_evidence"] for task in tasks)
+
+
+def test_present_r8_active_nibble_generalization_plan_is_split_controlled():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_active_nibble_generalization_512_seed0_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 10
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {512}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["model_key"] for task in tasks} == {"present_trail_position_stats_pairset"}
+    assert {
+        "plaintext_integral_nibble_difference_matched_negative",
+        "plaintext_integral_nibble_difference_matched_negative_random_active",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+        "plaintext_integral_nibble_difference_matched_negative_random_active_relative",
+    } == {task["sample_structure"] for task in tasks}
+
+    heldout_tasks = [
+        task
+        for task in tasks
+        if task["validation_integral_active_nibbles"] == (4, 5, 6, 7)
+    ]
+    metadata_tasks = [
+        task
+        for task in tasks
+        if task["sample_structure"]
+        == "plaintext_integral_nibble_difference_matched_negative_random_active_metadata"
+    ]
+    relative_tasks = [
+        task
+        for task in tasks
+        if task["sample_structure"]
+        == "plaintext_integral_nibble_difference_matched_negative_random_active_relative"
+    ]
+
+    assert len(heldout_tasks) == 2
+    assert all(task["integral_active_nibbles"] == (0, 1, 2, 3) for task in heldout_tasks)
+    assert len(metadata_tasks) == 2
+    assert all(task["model_options"]["metadata_bits"] == 16 for task in metadata_tasks)
+    assert len(relative_tasks) == 2
+    assert all("relative-coordinate" in task["matching_evidence"] for task in relative_tasks)
+
+    plan_doc = Path("docs/experiments/innovation1-present-r8-active-nibble-generalization-plan.md")
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "heldout-active" in plan_text
+    assert "metadata_bits = 16" in plan_text
 
 
 def test_present_r8_integral_feature_variation_control_plan_is_local_audit_only():

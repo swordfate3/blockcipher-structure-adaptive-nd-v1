@@ -155,6 +155,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "plaintext_integral_nibble_difference_matched_negative_pair_shuffled",
             "plaintext_integral_nibble_difference_matched_negative_partial8",
             "plaintext_integral_nibble_difference_matched_negative_random_active",
+            "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+            "plaintext_integral_nibble_difference_matched_negative_random_active_relative",
             "plaintext_integral_nibble_matched_negative",
             "plaintext_integral_nibble_same_difference_random_negative",
             "plaintext_integral_nibble_strict_random_negative",
