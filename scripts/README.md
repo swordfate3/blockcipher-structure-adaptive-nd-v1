@@ -53,6 +53,10 @@ postprocess entrypoint and expected row count.
 For feature-cache jobs, `progress_summary` includes cache progress percentages,
 row rates when timestamps are available, ETA when computable, and
 `cache_rows_remaining` / `cache_class_rows_remaining` for direct status reports.
+When a route stores progress JSONL outside the remote-result run directory, pass
+one or more `--progress-root <local-artifact-root>` values. These extra roots
+are scanned only for local progress visibility; they do not make the run
+complete, do not permit postprocess, and do not change remote health status.
 
 Use `scripts/watch-high-round` inside a local tmux watcher when high-round
 SPN/PRESENT runs have already been launched and handed off. It loops over

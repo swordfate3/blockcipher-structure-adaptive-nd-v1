@@ -40,6 +40,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Optional experiment plan Markdown path for postprocess --update-plan-doc.",
     )
     parser.add_argument(
+        "--progress-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Optional extra local artifact root to scan for progress JSONL files.",
+    )
+    parser.add_argument(
         "--recent-lines",
         type=int,
         default=8,
@@ -93,6 +100,7 @@ def monitor_health_report(
     postprocess_kind: str = "invp",
     recent_lines: int = 8,
     stale_after_seconds: int = 1800,
+    progress_roots: list[Path] | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     run_root = root / run_id
@@ -102,7 +110,12 @@ def monitor_health_report(
     scp_stderr = monitor_dir / "scp_stderr.log"
     results_jsonl = _result_jsonl_path(run_root, run_id)
     results_jsonl_line_count = _jsonl_nonempty_line_count(results_jsonl)
-    progress_summary = _progress_summary(run_root, stale_after_seconds=stale_after_seconds, now=now)
+    progress_summary = _progress_summary(
+        run_root,
+        progress_roots=progress_roots,
+        stale_after_seconds=stale_after_seconds,
+        now=now,
+    )
     expected_result_rows = expected_rows if expected_rows is not None else _plan_row_count(plan_path)
     if expected_result_rows is None and plan_path is not None:
         expected_result_rows = _default_expected_rows(postprocess_kind)
@@ -590,6 +603,7 @@ def _resolve_scp_missing_artifacts(
 def _progress_summary(
     run_root: Path,
     *,
+    progress_roots: list[Path] | None = None,
     stale_after_seconds: int = 1800,
     now: datetime | None = None,
 ) -> dict[str, Any]:
@@ -598,6 +612,9 @@ def _progress_summary(
     if not paths:
         paths = _stdout_progress_paths(run_root)
         source_kind = "stdout_json_progress"
+    if not paths and progress_roots:
+        paths = _external_progress_paths(progress_roots)
+        source_kind = "external_progress_jsonl"
     if not paths:
         return {
             "path": None,
@@ -619,6 +636,19 @@ def _progress_summary(
     )
     summary["source_kind"] = source_kind
     return summary
+
+
+def _external_progress_paths(progress_roots: list[Path]) -> list[Path]:
+    paths: set[Path] = set()
+    for root in progress_roots:
+        if not root.exists():
+            continue
+        if root.is_file() and "progress" in root.name and root.suffix == ".jsonl":
+            paths.add(root)
+            continue
+        if root.is_dir():
+            paths.update(path for path in root.glob("**/*progress*.jsonl") if path.is_file())
+    return sorted(paths)
 
 
 def _stdout_progress_paths(run_root: Path) -> list[Path]:
@@ -1279,6 +1309,7 @@ def main(argv: list[str] | None = None) -> int:
         postprocess_kind=args.postprocess_kind,
         recent_lines=args.recent_lines,
         stale_after_seconds=args.stale_after_seconds,
+        progress_roots=args.progress_root,
     )
     text = json.dumps(report, indent=2, sort_keys=True)
     if args.output is not None:
