@@ -629,3 +629,93 @@ next useful step is a residualized/frozen-score comparison that explicitly
 controls for pair_xor_column_sum_variance, then a lean 65k/class or 262k/class
 remote run only if that residual check remains positive.
 ```
+
+## Frozen-Score Deterministic Residual Result
+
+Question:
+
+```text
+Using the already retrieved PRESENT r8 trail-position score artifacts, does the
+frozen neural score still separate labels after conditioning on the deterministic
+pair_xor_column_sum_variance statistic?
+```
+
+Method:
+
+```text
+scripts/analyze-deterministic-score-residual rebuilds the validation split from
+score-artifact metadata, computes the deterministic statistic on ciphertext
+pair bits, validates labels against the score artifact, then sorts samples by
+the deterministic statistic and computes neural-score AUC inside equal-frequency
+buckets.
+```
+
+Implementation note:
+
+```text
+The 65k score artifact used in-memory shuffled row order. The 262k score
+artifacts were generated from disk-cache semantics, where rows are physically
+stored as positive rows followed by negative rows even when the original config
+requested shuffle. The residual analyzer now records deterministic_dataset
+metadata and uses the disk-cache chunk_size/workers from the artifact when
+dataset_cache_enabled=true. This prevents comparing neural scores against a
+wrong regenerated row order.
+```
+
+Commands:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/analyze-deterministic-score-residual \
+  --score-artifact outputs/remote_results/i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706/score_artifacts/trail_position \
+  --buckets 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_score_residual_deterministic_65k_seed0.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/analyze-deterministic-score-residual \
+  --score-artifact outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed0_gpu0_20260706/score_artifacts/trail_position \
+  --buckets 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_score_residual_deterministic_262k_seed0.json
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/analyze-deterministic-score-residual \
+  --score-artifact outputs/remote_results/i1_present_r8_trail_position_beamstats_262k_seed1_gpu1_20260706/score_artifacts/trail_position \
+  --buckets 16 \
+  --output outputs/local_audits/i1_present_r8_trail_position_score_residual_deterministic_262k_seed1.json
+```
+
+Metrics:
+
+| Artifact | Seed | Validation rows | Validation samples/class | Regeneration mode | Deterministic AUC | Neural AUC | Delta | Bucketed residual weighted AUC | Bucket min AUC | Decision |
+|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---|
+| 65k trail-position | 0 | `65536` | `32768` | in-memory shuffled | `0.886715334374` | `0.999999987893` | `+0.113284653518` | `0.999999972686` | `0.999999746789` | support |
+| 262k trail-position | 0 | `262144` | `131072` | disk-cache positive-then-negative | `0.886362475227` | `0.999999999534` | `+0.113637524308` | `1.000000000000` | `1.000000000000` | support |
+| 262k trail-position | 1 | `262144` | `131072` | disk-cache positive-then-negative | `0.885577809182` | `0.999999997905` | `+0.114422188723` | `0.999999998307` | `0.999999984269` | support |
+
+Interpretation:
+
+```text
+The deterministic pair_xor_column_sum_variance statistic remains strong at
+about 0.885-0.887 AUC on these matched-negative validation artifacts. However,
+the frozen trail-position neural score remains near-perfect even within buckets
+of similar deterministic statistic value.
+
+This supports the narrower claim that the matched-negative trail-position score
+is not merely a monotone re-expression of pair_xor_column_sum_variance. It does
+not turn the result into a formal standard PRESENT r8 distinguisher, because
+the protocol is still matched-negative integral structure and not strict
+independent random-plaintext negatives.
+```
+
+Decision:
+
+```text
+support_neural_residual_after_deterministic_conditioning
+```
+
+Next action:
+
+```text
+Keep matched-negative trail-position as a serious residual route. The next
+scientific question should be stricter attribution, not larger same-protocol
+scale by itself: compare against strict independent random-plaintext negatives,
+random/per-sample key rotation at score-artifact scale, and feature ablations
+that remove trail-position or DDT/beam statistics one level at a time.
+```

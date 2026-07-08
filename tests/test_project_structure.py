@@ -12,6 +12,7 @@ import pytest
 import torch
 
 from blockcipher_nd.engine.matrix_runner import parse_args
+from blockcipher_nd.data.cache import make_chunked_differential_dataset
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.engine.modeling import infer_pair_bits
@@ -92,6 +93,7 @@ from blockcipher_nd.cli.audit_integral_parity_signal import (
 )
 from blockcipher_nd.cli.audit_spn_features import main as audit_spn_features_main
 from blockcipher_nd.cli.summarize_spn_evidence import summarize_spn_evidence
+from blockcipher_nd.evaluation.neural_ensemble import EnsembleScoreArtifact, write_score_artifact
 
 
 def test_matrix_runner_lives_in_engine_package():
@@ -13727,6 +13729,166 @@ def test_integral_composite_residual_audit_cli_can_force_ciphertext_pair_bits(tm
     assert report["sample_structure"] == "plaintext_integral_nibble_same_difference_random_negative"
     assert report["feature_encoding"] == "ciphertext_pair_bits"
     assert "delta_composite_vs_baseline_auc" in report
+
+
+def test_analyze_deterministic_score_residual_cli_rebuilds_score_split(tmp_path):
+    score_dir = tmp_path / "score_artifact"
+    output = tmp_path / "deterministic_residual.json"
+    cipher = build_cipher("present80", 8, key=0x11111111111111111111)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000009,
+            samples_per_class=8,
+            seed=10000,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_nibble_difference_matched_negative",
+            integral_active_nibble=0,
+        )
+    )
+    labels = dataset.labels.astype(np.float32, copy=False)
+    write_score_artifact(
+        score_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=labels * 0.8 + 0.1,
+            logits=labels * 4.0 - 2.0,
+            sample_ids=np.array([str(index) for index in range(len(labels))], dtype=str),
+            metadata={
+                "cipher": "PRESENT-80",
+                "cipher_key": "present80",
+                "rounds": 8,
+                "seed": 0,
+                "samples_per_class": 16,
+                "score_split": "validation",
+                "score_samples_per_class": 8,
+                "validation_samples_per_class": 8,
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": 0,
+                "validation_key": 0x11111111111111111111,
+                "model_key": "present_trail_position_stats_pairset",
+            },
+        ),
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/analyze-deterministic-score-residual",
+            "--score-artifact",
+            str(score_dir),
+            "--buckets",
+            "4",
+            "--output",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["rows"] == 16
+    assert report["statistic"] == "pair_xor_column_sum_variance"
+    assert report["neural"]["auc"] == 1.0
+    assert report["bucketed_residual"]["bucket_count"] == 4
+    assert report["metadata"]["sample_structure"] == "plaintext_integral_nibble_difference_matched_negative"
+    assert report["deterministic_dataset"]["generation_mode"] == "in_memory"
+    assert report["deterministic_dataset"]["label_order"] == "shuffled"
+    assert "Frozen-score deterministic residual diagnostic only" in report["claim_scope"]
+
+
+def test_analyze_deterministic_score_residual_cli_rebuilds_disk_cache_order(tmp_path):
+    score_dir = tmp_path / "score_artifact"
+    output = tmp_path / "deterministic_residual.json"
+    cache_root = tmp_path / "deterministic_cache"
+    cipher = build_cipher("present80", 8, key=0x11111111111111111111)
+    config = DifferentialDatasetConfig(
+        cipher=cipher,
+        input_difference=0x0000000000000009,
+        samples_per_class=8,
+        seed=10000,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=16,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure="plaintext_integral_nibble_difference_matched_negative",
+        integral_active_nibble=0,
+    )
+    dataset = make_chunked_differential_dataset(
+        config,
+        cache_dir=tmp_path / "source_cache",
+        chunk_size=4,
+        workers=2,
+    )
+    labels = dataset.labels.astype(np.float32, copy=False)
+    assert labels[:8].tolist() == [1.0] * 8
+    assert labels[8:].tolist() == [0.0] * 8
+    write_score_artifact(
+        score_dir,
+        EnsembleScoreArtifact(
+            labels=labels,
+            probabilities=labels * 0.8 + 0.1,
+            logits=labels * 4.0 - 2.0,
+            sample_ids=np.array([str(index) for index in range(len(labels))], dtype=str),
+            metadata={
+                "cipher": "PRESENT-80",
+                "cipher_key": "present80",
+                "rounds": 8,
+                "seed": 0,
+                "samples_per_class": 16,
+                "score_split": "validation",
+                "score_samples_per_class": 8,
+                "validation_samples_per_class": 8,
+                "pairs_per_sample": 16,
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "plaintext_integral_nibble_difference_matched_negative",
+                "difference_profile": "present_zhang_wang2022_mcnd",
+                "difference_member": 0,
+                "train_key": 0,
+                "validation_key": 0x11111111111111111111,
+                "model_key": "present_trail_position_stats_pairset",
+                "dataset_cache_enabled": True,
+                "dataset_cache_chunk_size": 4,
+                "dataset_cache_workers": 2,
+            },
+        ),
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/analyze-deterministic-score-residual",
+            "--score-artifact",
+            str(score_dir),
+            "--buckets",
+            "4",
+            "--dataset-cache-root",
+            str(cache_root),
+            "--output",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["rows"] == 16
+    assert report["deterministic_dataset"]["generation_mode"] == "disk_cache_semantics"
+    assert report["deterministic_dataset"]["label_order"] == "positive_then_negative"
+    assert report["deterministic_dataset"]["chunk_size"] == 4
+    assert report["deterministic_dataset"]["workers"] == 2
+    assert report["neural"]["auc"] == 1.0
 
 
 def test_integral_deterministic_baseline_script_defaults_to_baseline_audit(tmp_path):
