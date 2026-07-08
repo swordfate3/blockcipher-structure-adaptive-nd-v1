@@ -226,6 +226,70 @@ do_not_cite_arxiv_2505_10792_as_neural_cryptanalysis
 do_not_make_formal_or_breakthrough_claims_from_2048_or_262144_class_evidence
 ```
 
+## 2026-07-08 Active Remote Wait Arbitration
+
+The active 262144/class residual-focus run is still the main evidence gate.
+The latest bounded local check was deliberately local-only: it read
+watcher-synced monitor artifacts, ran the local advance/status commands, and
+did not SSH-poll or launch new remote work.
+
+Current state:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+status = running
+current_stage = dataset_cache
+current_seed = 0
+current_split = train
+active_workload_estimate = 1
+parallel_competition_likelihood = low
+total_cache_progress = 475136 / 524288 = 90.625%
+results_ready = false
+missing_residual_focus_gate_outputs = 18
+```
+
+This preserves the route order rather than changing it because of wait time:
+
+```text
+1. residual-focus gate on the retrieved 262144/class artifacts
+2. Pool3 residual-guided fixed fusion if the gate and controls allow it
+3. train-selected linear/integral residual expert as backup
+4. bucket-conditioned residual as a migration candidate
+5. state-token residual only after control repair
+```
+
+Reasoning:
+
+```text
+slow_cache_generation != evidence_that_the_route_is_wrong
+missing_outputs != many_parallel_remote_jobs
+revision_lag_on_a_healthy_run != restart_trigger
+```
+
+The multiple-network idea remains a useful later form, but only in the stricter
+version:
+
+```text
+acceptable =
+  structurally different experts
+  aligned frozen train/validation score artifacts
+  low-overlap or residual-conditioned contribution
+  same-protocol controls against no-bucket, shuffle, and best-single baselines
+
+not acceptable as the next main move =
+  average more near-neighbor trail/raw/global scores while the 262144/class
+  residual-focus gate is still pending
+```
+
+Decision:
+
+```text
+wait_for_residual_focus_outputs
+do_not_launch_new_remote_branch_now
+do_not_promote_generic_multi_network_aggregation_now
+prepare_to_advance_gate_pool3_or_repair_branch_as_soon_as_outputs_arrive
+```
+
 ## Claim Scope
 
 This memo is research triage only. It does not report a new model result, does

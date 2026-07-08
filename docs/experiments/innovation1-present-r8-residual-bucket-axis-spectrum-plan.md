@@ -1267,3 +1267,86 @@ This is a local diagnostic plan and tooling record only. It does not report a
 formal PRESENT r8 result, does not claim a breakthrough, does not replace the
 262144/class trail-position postprocess gate, and does not provide formal
 SPN/PRESENT evidence.
+
+## 2026-07-08 Follow-Up Bounded Check
+
+A second bounded local check refreshed the watcher-synced status without SSH
+polling or touching the remote runner. The active run remained healthy and in
+the same single heavy cache stage:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+status = running
+needs_main_thread_intervention = false
+postprocess_allowed = false
+results_jsonl_exists = false
+latest_command_index = 0
+stage = dataset_cache
+current_seed = 0
+current_split = train
+current_event = cache_negative_chunk
+active_workload_estimate = 1
+parallel_competition_likelihood = low
+```
+
+Refreshed cache progress:
+
+```text
+samples_per_class = 262144
+cache_total_rows = 524288
+positive_class_rows = 262144 / 262144 = 100%
+negative_class_rows = 212992 / 262144 = 81.25%
+total_cache_rows = 475136 / 524288 = 90.625%
+rows_remaining = 49152
+cache_rows_per_second ~= 6.032
+cache_eta_hours ~= 2.26
+```
+
+The route summary still selected the wait branch:
+
+```text
+decision = wait_for_residual_focus_outputs
+should_launch_remote = false
+gate_decision = wait_for_residual_focus_262k_outputs
+missing_output_count = 18
+source_selection_missing_report_count = 4
+post_gate_route_priority =
+  1. pool3_residual_guided
+  2. linear_combo_integral_residual
+  3. bucket_conditioned_residual
+  4. state_token_residual
+```
+
+Operational implication:
+
+```text
+do_not_restart_the_healthy_retry1_run
+do_not_launch_an_extra_remote_branch_to_compensate_for_wait_time
+do_not_interpret_missing_output_count_as_parallel_training_count
+continue_watcher_managed_retrieval
+after_outputs_exist_run_advance_residual_focus_results_for_gate_and_pool_handoff
+```
+
+Research implication:
+
+```text
+The next improvement attempt remains representation-first:
+  residual-focus 262144/class gate
+  train-only source selection
+  Pool3 fixed fusion using a genuinely residual-conditioned structural expert
+
+It is not a count-first multi-network expansion. More networks become useful
+only after at least one non-neighbor expert clears same-protocol controls and
+has aligned frozen train/validation scores.
+```
+
+Claim scope:
+
+```text
+running = yes
+completed_remotely = no
+fallback_retrieved = no
+retrieved_from_verified_branch = no
+plan_aligned = not yet
+formal = no
+```
