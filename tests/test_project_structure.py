@@ -13574,6 +13574,28 @@ def test_integral_feature_bank_audit_reports_named_deterministic_statistics():
     assert report["best_statistic"]["interpretation"].startswith("deterministic_statistic_")
 
 
+def test_integral_feature_bank_audit_accepts_same_difference_random_negative():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_same_difference_audit_2048_seed0_seed1.csv"
+    )
+    args = parse_args(["--plan", plan])
+    task = dict(build_tasks(args)[0])
+    task["feature_encoding"] = "ciphertext_pair_bits"
+
+    report = integral_feature_bank_audit_from_task(
+        task,
+        samples_per_class=16,
+        seed=7,
+        key_split="validation",
+    )
+
+    assert report["audit"] == "integral_feature_bank"
+    assert report["sample_structure"] == "plaintext_integral_nibble_same_difference_random_negative"
+    assert report["feature_encoding"] == "ciphertext_pair_bits"
+    assert report["best_statistic"]["name"] in report["statistics"]
+
+
 def test_integral_deterministic_baseline_reports_fixed_pair_xor_variance():
     plan = (
         "configs/experiment/innovation1/"
@@ -13669,6 +13691,42 @@ def test_integral_composite_residual_audit_cli_writes_report(tmp_path):
     assert "delta_composite_vs_baseline_auc" in report
     assert "delta_best_pair_vs_baseline_auc" in report
     assert "integral_composite_residual" in result.stdout
+
+
+def test_integral_composite_residual_audit_cli_can_force_ciphertext_pair_bits(tmp_path):
+    output = tmp_path / "same_difference_composite_residual.json"
+
+    subprocess.run(
+        [
+            sys.executable,
+            "scripts/audit-integral-parity-signal",
+            "--plan",
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_r8_same_difference_audit_2048_seed0_seed1.csv",
+            "--row-index",
+            "0",
+            "--audit",
+            "composite-residual",
+            "--samples-per-class",
+            "8",
+            "--seed",
+            "23",
+            "--key-split",
+            "validation",
+            "--force-ciphertext-pair-bits",
+            "--output",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["audit"] == "integral_composite_residual"
+    assert report["sample_structure"] == "plaintext_integral_nibble_same_difference_random_negative"
+    assert report["feature_encoding"] == "ciphertext_pair_bits"
+    assert "delta_composite_vs_baseline_auc" in report
 
 
 def test_integral_deterministic_baseline_script_defaults_to_baseline_audit(tmp_path):

@@ -452,3 +452,180 @@ ciphertext_xor_bits sign-flipped separation. The next useful question is not
 separates the labels, and can a protocol variant remove that statistic while
 preserving meaningful trail-position residual signal?"
 ```
+
+## Deterministic Weak-XOR Audit Result
+
+Artifacts:
+
+```text
+strict seed0 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_strict_seed0_2048.json
+strict seed1 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_strict_seed1_2048.json
+same-diff seed0 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_samediff_seed0_2048.json
+same-diff seed1 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_samediff_seed1_2048.json
+matched seed0 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_matched_seed0_2048.json
+matched seed1 = outputs/local_audits/i1_present_r8_weak_xor_deterministic_matched_seed1_2048.json
+```
+
+Metrics:
+
+| Protocol | Seed | `left_right_column_sum_l1_mean` AUC | `pair_xor_column_sum_variance` AUC | Decision |
+|---|---:|---:|---:|---|
+| strict random negative | 0 | `1.000000000` | `0.997581720` | exact multiset shortcut |
+| strict random negative | 1 | `1.000000000` | `0.997450113` | exact multiset shortcut |
+| same-difference random negative | 0 | `1.000000000` | `0.997866392` | exact multiset shortcut |
+| same-difference random negative | 1 | `1.000000000` | `0.997518897` | exact multiset shortcut |
+| matched negative | 0 | `0.500000000` | `0.890203834` | multiset shortcut removed; pair-XOR variance remains |
+| matched negative | 1 | `0.500000000` | `0.882089019` | multiset shortcut removed; pair-XOR variance remains |
+
+Interpretation:
+
+```text
+strict and same-difference random negatives:
+  Positive rows have left/right ciphertext multisets that are identical across
+  the 16 integral pairs. Negative rows do not. Therefore the mean absolute
+  difference between left and right bit-column sums is 0 for positives and
+  nonzero for negatives, giving a perfect deterministic separator. These
+  protocols are too easy and should not be scaled.
+
+matched negative:
+  The exact left/right column-sum shortcut is removed: both positive and
+  negative rows have left_right_column_sum_l1_mean = 0. But a weaker hand-coded
+  statistic, pair_xor_column_sum_variance, still reaches about 0.88-0.89 AUC.
+  Future trail-position claims should be compared against this deterministic
+  baseline at the same scale.
+```
+
+## Matched-Negative Residual Follow-Up Plan
+
+Purpose:
+
+```text
+The deterministic weak-XOR audit found that strict and same-difference random
+negative rows are perfectly separated by a left/right ciphertext column-sum
+multiset statistic. The matched-negative protocol removes that exact shortcut,
+but still has a strong pair_xor_column_sum_variance deterministic baseline
+around 0.88-0.89 AUC at 2048/class.
+
+This follow-up asks whether the neural full beamstats/trail-position rows add
+residual value beyond that hand-coded weak-XOR statistic under the more
+meaningful matched-negative protocol.
+```
+
+Plan:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_matched_residual_audit_2048_seed0_seed1.csv
+```
+
+Gate:
+
+```text
+If trail-position is only near the deterministic pair_xor_column_sum_variance
+baseline, treat the high score as mostly explained by weak-XOR pair variance.
+
+If trail-position clearly exceeds that deterministic baseline on both seeds,
+keep it as a residual candidate, but still report it as local diagnostic
+evidence rather than formal PRESENT r8 evidence.
+
+If per-row key rotation collapses, treat fixed-key dependence as unresolved.
+```
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_matched_residual_audit_2048_seed0_seed1.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_matched_residual_audit_2048_seed0_seed1 \
+  --dataset-cache-chunk-size 256 \
+  --dataset-cache-workers 4 \
+  --output outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/progress.jsonl
+```
+
+## Matched-Negative Residual Result
+
+Run artifacts:
+
+```text
+results = outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/results.jsonl
+progress = outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/progress.jsonl
+curves = outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/curves.svg
+history = outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/history.csv
+cache = outputs/local_cache/i1_present_r8_matched_residual_audit_2048_seed0_seed1
+```
+
+Validation:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_matched_residual_audit_2048_seed0_seed1.csv \
+  --results outputs/local_smoke/i1_present_r8_matched_residual_audit_2048_seed0_seed1/results.jsonl \
+  --expected-rows 14
+
+status = pass
+field_mismatches = []
+```
+
+Metrics:
+
+| Seed | Role | Key rotation | Feature | Model | AUC | Oriented AUC | Delta vs deterministic pair-XOR variance |
+|---:|---|---:|---|---|---:|---:|---:|
+| 0 | deterministic baseline | `0` | pair-XOR column variance | hand-coded | `0.890203834` | `0.890203834` | `0.000000000` |
+| 0 | matched full global | `0` | full beamstats | global | `0.866194725` | `0.866194725` | `-0.024009109` |
+| 0 | matched full trail | `0` | full beamstats | trail-position | `0.999062538` | `0.999062538` | `+0.108858705` |
+| 0 | matched full global per-row key | `1` | full beamstats | global | `0.860925198` | `0.860925198` | `-0.029278636` |
+| 0 | matched full trail per-row key | `1` | full beamstats | trail-position | `0.998202324` | `0.998202324` | `+0.107998490` |
+| 0 | matched xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | sign-flipped weak feature |
+| 0 | matched PAligned global | `0` | P-layer aligned xor | global | `0.591629505` | `0.591629505` | `-0.298574328` |
+| 0 | matched InvS global | `0` | P-layer + InvS | global | `0.616469860` | `0.616469860` | `-0.273733974` |
+| 1 | deterministic baseline | `0` | pair-XOR column variance | hand-coded | `0.882089019` | `0.882089019` | `0.000000000` |
+| 1 | matched full global | `0` | full beamstats | global | `0.878118038` | `0.878118038` | `-0.003970981` |
+| 1 | matched full trail | `0` | full beamstats | trail-position | `0.996650696` | `0.996650696` | `+0.114561677` |
+| 1 | matched full global per-row key | `1` | full beamstats | global | `0.877559662` | `0.877559662` | `-0.004529357` |
+| 1 | matched full trail per-row key | `1` | full beamstats | trail-position | `0.998130798` | `0.998130798` | `+0.116041780` |
+| 1 | matched xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | sign-flipped weak feature |
+| 1 | matched PAligned global | `0` | P-layer aligned xor | global | `0.577971458` | `0.577971458` | `-0.304117560` |
+| 1 | matched InvS global | `0` | P-layer + InvS | global | `0.591490269` | `0.591490269` | `-0.290598750` |
+
+Interpretation:
+
+```text
+The matched-negative protocol removes the exact left/right multiset shortcut,
+but a deterministic pair-XOR variance statistic remains strong at about
+0.88-0.89 AUC.
+
+The global full-beamstats neural row does not beat that deterministic baseline.
+It is at or slightly below the hand-coded statistic on both seeds.
+
+The trail-position full-beamstats row does beat the deterministic baseline on
+both seeds by about +0.108 to +0.116 AUC, and per-row key rotation does not
+collapse it. This supports trail-position residual value at local diagnostic
+scale, but it is still not formal PRESENT r8 evidence.
+```
+
+Decision:
+
+```text
+matched_trail_position_residual_supported_local_diagnostic
+```
+
+Next action:
+
+```text
+Keep matched-negative as the main local protocol for trail-position residual
+work. Do not scale strict or same-difference random-negative protocols. The
+next useful step is a residualized/frozen-score comparison that explicitly
+controls for pair_xor_column_sum_variance, then a lean 65k/class or 262k/class
+remote run only if that residual check remains positive.
+```

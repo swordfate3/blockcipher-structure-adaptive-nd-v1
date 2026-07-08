@@ -1,3 +1,58 @@
+## [LRN-20260708-004] best_practice
+
+**Logged**: 2026-07-08T18:08:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Separate PRESENT r8 multiset shortcuts from matched-negative trail-position
+residual evidence.
+
+### Details
+The PRESENT r8 weak-XOR deterministic audit found two different effects that
+must not be collapsed into one interpretation:
+
+- Strict random-negative and same-difference random-negative protocols are
+  perfectly separable by `left_right_column_sum_l1_mean`: positives have
+  identical left/right ciphertext multisets across the 16 integral pairs while
+  negatives do not. These protocols are too easy and should not be scaled.
+- The matched-negative protocol removes that exact multiset shortcut
+  (`left_right_column_sum_l1_mean` AUC = 0.5), but still has a strong
+  deterministic `pair_xor_column_sum_variance` baseline around 0.88-0.89 AUC at
+  2048/class.
+
+In the matched residual neural audit, the global full-beamstats row did not
+beat the deterministic pair-XOR variance baseline, but the trail-position row
+did by about +0.11 AUC on seed0 and seed1, including per-row key rotation.
+That supports local residual value for trail-position, but remains diagnostic
+evidence rather than formal PRESENT r8 evidence.
+
+### Suggested Action
+For future Innovation 1 PRESENT/SPN reports, say explicitly which level is
+being discussed:
+
+1. strict/same-difference random-negative protocol ease from left/right
+   multiset mismatch;
+2. matched-negative deterministic pair-XOR variance baseline;
+3. trail-position residual over that deterministic baseline.
+
+Do not recommend remote scale-up for strict or same-difference random-negative
+protocols. For matched-negative scale-up, first require a frozen-score or
+residualized comparison against `pair_xor_column_sum_variance`.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-leakage-audit-plan.md, src/blockcipher_nd/cli/audit_integral_parity_signal.py, configs/experiment/innovation1/innovation1_spn_present_r8_matched_residual_audit_2048_seed0_seed1.csv
+- Tags: innovation1, present, spn, leakage-audit, matched-negative, deterministic-baseline, trail-position
+- See Also: LRN-20260708-003, LRN-20260708-002, LRN-20260621-001
+- Pattern-Key: innovation1.spn_present.matched_residual_vs_deterministic_baseline
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-003] best_practice
 
 **Logged**: 2026-07-08T17:28:35+08:00

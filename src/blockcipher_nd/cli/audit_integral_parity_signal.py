@@ -27,6 +27,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--key-split", choices=["train", "validation"], default="validation")
     parser.add_argument(
+        "--force-ciphertext-pair-bits",
+        action="store_true",
+        help=(
+            "Audit raw ciphertext-pair bits even when the plan row uses a "
+            "derived feature encoding."
+        ),
+    )
+    parser.add_argument(
         "--audit",
         choices=[
             "parity",
@@ -339,6 +347,8 @@ def _ciphertext_pair_feature_arrays(
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_same_difference_random_negative",
+        "plaintext_integral_nibble_strict_random_negative",
         "plaintext_integral_multi_nibble_difference_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:
@@ -584,6 +594,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.row_index < 0 or args.row_index >= len(tasks):
         raise ValueError(f"row-index {args.row_index} outside plan rows 0..{len(tasks) - 1}")
+    task = tasks[args.row_index]
+    if args.force_ciphertext_pair_bits:
+        task = {
+            **task,
+            "feature_encoding": "ciphertext_pair_bits",
+            "selected_bit_indices": (),
+        }
     audit_fns = {
         "alignment": integral_alignment_audit_from_task,
         "composite-residual": integral_composite_residual_audit_from_task,
@@ -598,7 +615,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.audit == "composite-residual":
         kwargs["baseline_statistic"] = args.statistic
     report = audit_fn(
-        tasks[args.row_index],
+        task,
         samples_per_class=args.samples_per_class,
         seed=args.seed,
         key_split=args.key_split,
