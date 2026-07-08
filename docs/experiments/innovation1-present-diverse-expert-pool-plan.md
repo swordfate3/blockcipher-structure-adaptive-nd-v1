@@ -525,6 +525,12 @@ trail_position + raw117 + uniform residual control
 trail_position + raw117 + label-shuffle residual control
 ```
 
+The default source-selected score artifact path for a kept candidate is:
+
+```text
+<seed artifact_root>/residual_<selected_residual_candidate>_source_selected_validation_scores
+```
+
 The source-selected variant must be treated as a stricter residual route, not a
 generic fourth score. It is allowed only when the source-selection summary is
 current, train-derived, and records stable selected groups. If the summary is

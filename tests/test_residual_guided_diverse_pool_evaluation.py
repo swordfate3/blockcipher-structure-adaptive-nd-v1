@@ -108,6 +108,12 @@ def test_residual_guided_pool_evaluation_compares_candidate_to_controls(tmp_path
         [0.45, 0.10, 0.90, 0.55],
         family="residual_focus_aux_word",
     )
+    source_selected = _write_artifact(
+        tmp_path / "residual_focus10_source_selected",
+        "residual_focus10_source_selected",
+        [0.40, 0.05, 0.95, 0.60],
+        family="residual_focus_source_selected_aux",
+    )
     uniform = _write_artifact(
         tmp_path / "uniform",
         "residual_uniform",
@@ -131,6 +137,8 @@ def test_residual_guided_pool_evaluation_compares_candidate_to_controls(tmp_path
             str(raw117),
             "--residual-focus-artifact",
             str(residual),
+            "--source-selected-residual-artifact",
+            str(source_selected),
             "--uniform-control-artifact",
             str(uniform),
             "--labelshuffle-control-artifact",
@@ -147,10 +155,13 @@ def test_residual_guided_pool_evaluation_compares_candidate_to_controls(tmp_path
     assert [row["name"] for row in report["comparisons"]] == [
         "trail_position_plus_raw117",
         "trail_position_plus_raw117_plus_residual_focus",
+        "trail_position_plus_raw117_plus_source_selected_residual_focus",
         "trail_position_plus_raw117_plus_uniform_control",
         "trail_position_plus_raw117_plus_labelshuffle_control",
     ]
     assert report["candidate_delta_vs_base_auc"] > 0.0
+    assert report["source_selected_delta_vs_base_auc"] >= report["candidate_delta_vs_base_auc"]
+    assert report["selected_candidate_fusion"] == "source_selected_residual_focus"
     assert report["candidate_delta_vs_uniform_control_auc"] >= 0.0
     assert report["candidate_delta_vs_labelshuffle_control_auc"] > 0.0
     assert report["claim_scope"].startswith("application-level medium diagnostic")

@@ -386,7 +386,11 @@ def _evaluate_pool3_when_artifacts_ready(
     for seed_plan in plan.get("seeds", []):
         if not isinstance(seed_plan, dict):
             continue
-        paths = _pool3_artifact_paths(seed_plan, selected_residual_candidate=selected)
+        paths = _pool3_artifact_paths(
+            seed_plan,
+            selected_residual_candidate=selected,
+            include_source_selected=_pool_plan_requires_source_selected(pool_report),
+        )
         seed_missing = [str(path) for path in paths.values() if not path.exists()]
         missing.extend(seed_missing)
         if seed_missing:
@@ -398,6 +402,7 @@ def _evaluate_pool3_when_artifacts_ready(
             residual_focus_artifact=paths["residual_focus_artifact"],
             uniform_control_artifact=paths["uniform_control_artifact"],
             labelshuffle_control_artifact=paths["labelshuffle_control_artifact"],
+            source_selected_residual_artifact=paths.get("source_selected_residual_artifact"),
         )
         seed_report["seed"] = int(seed_plan.get("seed", len(seed_reports)))
         seed_reports.append(seed_report)
@@ -434,15 +439,27 @@ def _pool3_artifact_paths(
     seed_plan: dict[str, Any],
     *,
     selected_residual_candidate: str,
+    include_source_selected: bool = False,
 ) -> dict[str, Path]:
     artifact_root = Path(str(seed_plan.get("artifact_root", "")))
-    return {
+    paths = {
         "trail_position_artifact": Path(str(seed_plan.get("validation_trail_position_scores", ""))),
         "raw117_artifact": artifact_root / "validation_raw117_scores",
         "residual_focus_artifact": artifact_root / f"residual_{selected_residual_candidate}_validation_scores",
         "uniform_control_artifact": artifact_root / "residual_uniform_validation_scores",
         "labelshuffle_control_artifact": artifact_root / "residual_focus10_labelshuffle_validation_scores",
     }
+    if include_source_selected:
+        paths["source_selected_residual_artifact"] = (
+            artifact_root / f"residual_{selected_residual_candidate}_source_selected_validation_scores"
+        )
+    return paths
+
+
+def _pool_plan_requires_source_selected(pool_report: dict[str, Any]) -> bool:
+    return "trail_position + raw117 + source_selected_residual_focus" in [
+        str(fusion) for fusion in pool_report.get("planned_fixed_fusions", [])
+    ]
 
 
 def _read_json_or_empty(path: Path) -> dict[str, Any]:

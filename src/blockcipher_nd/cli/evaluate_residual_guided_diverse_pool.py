@@ -27,6 +27,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--trail-position-artifact", type=Path)
     parser.add_argument("--raw117-artifact", type=Path)
     parser.add_argument("--residual-focus-artifact", type=Path)
+    parser.add_argument("--source-selected-residual-artifact", type=Path)
     parser.add_argument("--uniform-control-artifact", type=Path)
     parser.add_argument("--labelshuffle-control-artifact", type=Path)
     parser.add_argument("--min-auc-delta", type=float, default=0.0)
@@ -43,6 +44,7 @@ def evaluate_residual_guided_diverse_pool(
     residual_focus_artifact: Path | None,
     uniform_control_artifact: Path | None,
     labelshuffle_control_artifact: Path | None,
+    source_selected_residual_artifact: Path | None = None,
     min_auc_delta: float = 0.0,
     min_control_delta: float = 0.0,
 ) -> dict[str, Any]:
@@ -66,10 +68,14 @@ def evaluate_residual_guided_diverse_pool(
         "trail_position_artifact": trail_position_artifact,
         "raw117_artifact": raw117_artifact,
         "residual_focus_artifact": residual_focus_artifact,
+        "source_selected_residual_artifact": source_selected_residual_artifact,
         "uniform_control_artifact": uniform_control_artifact,
         "labelshuffle_control_artifact": labelshuffle_control_artifact,
     }
-    missing = [name for name, path in artifact_paths.items() if path is None or not path.exists()]
+    required_artifacts = dict(artifact_paths)
+    if not _requires_source_selected_fusion(plan) and source_selected_residual_artifact is None:
+        required_artifacts.pop("source_selected_residual_artifact")
+    missing = [name for name, path in required_artifacts.items() if path is None or not path.exists()]
     if missing:
         return {
             "status": "pending",
@@ -91,20 +97,49 @@ def evaluate_residual_guided_diverse_pool(
     trail = load_score_artifact(trail_position_artifact)
     raw117 = load_score_artifact(raw117_artifact)
     residual_focus = load_score_artifact(residual_focus_artifact)
+    source_selected_residual = (
+        load_score_artifact(source_selected_residual_artifact)
+        if source_selected_residual_artifact is not None and source_selected_residual_artifact.exists()
+        else None
+    )
     uniform = load_score_artifact(uniform_control_artifact)
     labelshuffle = load_score_artifact(labelshuffle_control_artifact)
 
     comparisons = [
         _comparison("trail_position_plus_raw117", [trail, raw117]),
         _comparison("trail_position_plus_raw117_plus_residual_focus", [trail, raw117, residual_focus]),
-        _comparison("trail_position_plus_raw117_plus_uniform_control", [trail, raw117, uniform]),
-        _comparison("trail_position_plus_raw117_plus_labelshuffle_control", [trail, raw117, labelshuffle]),
     ]
+    if source_selected_residual is not None:
+        comparisons.append(
+            _comparison(
+                "trail_position_plus_raw117_plus_source_selected_residual_focus",
+                [trail, raw117, source_selected_residual],
+            )
+        )
+    comparisons.extend(
+        [
+            _comparison("trail_position_plus_raw117_plus_uniform_control", [trail, raw117, uniform]),
+            _comparison("trail_position_plus_raw117_plus_labelshuffle_control", [trail, raw117, labelshuffle]),
+        ]
+    )
     by_name = {row["name"]: row for row in comparisons}
     base_auc = by_name["trail_position_plus_raw117"]["best_ensemble_auc"]
-    candidate_auc = by_name["trail_position_plus_raw117_plus_residual_focus"]["best_ensemble_auc"]
+    residual_candidate_auc = by_name["trail_position_plus_raw117_plus_residual_focus"]["best_ensemble_auc"]
+    source_selected_auc = (
+        by_name["trail_position_plus_raw117_plus_source_selected_residual_focus"]["best_ensemble_auc"]
+        if "trail_position_plus_raw117_plus_source_selected_residual_focus" in by_name
+        else None
+    )
+    selected_candidate_name = "source_selected_residual_focus" if (
+        source_selected_auc is not None and source_selected_auc >= residual_candidate_auc
+    ) else "residual_focus"
+    candidate_auc = source_selected_auc if selected_candidate_name == "source_selected_residual_focus" else residual_candidate_auc
     uniform_auc = by_name["trail_position_plus_raw117_plus_uniform_control"]["best_ensemble_auc"]
     labelshuffle_auc = by_name["trail_position_plus_raw117_plus_labelshuffle_control"]["best_ensemble_auc"]
+    residual_delta_vs_base = float(residual_candidate_auc - base_auc)
+    source_selected_delta_vs_base = (
+        float(source_selected_auc - base_auc) if source_selected_auc is not None else None
+    )
     candidate_delta_vs_base = float(candidate_auc - base_auc)
     candidate_delta_vs_uniform = float(candidate_auc - uniform_auc)
     candidate_delta_vs_labelshuffle = float(candidate_auc - labelshuffle_auc)
@@ -126,7 +161,10 @@ def evaluate_residual_guided_diverse_pool(
         "selected_residual_candidate": str(plan.get("selected_residual_candidate", "")),
         "artifact_dirs": {name: str(path) for name, path in artifact_paths.items()},
         "comparisons": comparisons,
+        "selected_candidate_fusion": selected_candidate_name,
         "candidate_delta_vs_base_auc": candidate_delta_vs_base,
+        "residual_focus_delta_vs_base_auc": residual_delta_vs_base,
+        "source_selected_delta_vs_base_auc": source_selected_delta_vs_base,
         "candidate_delta_vs_uniform_control_auc": candidate_delta_vs_uniform,
         "candidate_delta_vs_labelshuffle_control_auc": candidate_delta_vs_labelshuffle,
         "min_auc_delta": min_auc_delta,
@@ -161,6 +199,12 @@ def _comparison(name: str, artifacts: list[EnsembleScoreArtifact]) -> dict[str, 
     }
 
 
+def _requires_source_selected_fusion(plan: dict[str, Any]) -> bool:
+    return "trail_position + raw117 + source_selected_residual_focus" in [
+        str(fusion) for fusion in plan.get("planned_fixed_fusions", [])
+    ]
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -192,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         trail_position_artifact=args.trail_position_artifact,
         raw117_artifact=args.raw117_artifact,
         residual_focus_artifact=args.residual_focus_artifact,
+        source_selected_residual_artifact=args.source_selected_residual_artifact,
         uniform_control_artifact=args.uniform_control_artifact,
         labelshuffle_control_artifact=args.labelshuffle_control_artifact,
         min_auc_delta=args.min_auc_delta,
