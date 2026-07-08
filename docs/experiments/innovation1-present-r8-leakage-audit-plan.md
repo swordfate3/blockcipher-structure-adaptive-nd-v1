@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-08
 
-**Status:** planned local 512/class seed0 audit
+**Status:** local diagnostics completed through same-difference 2048/class seed0+seed1 audit
 
 ## Question
 
@@ -189,4 +189,266 @@ fixed train/validation keys, but it does not prove a formal PRESENT r8 claim.
 The next useful audit is a lean 2048/class seed0+seed1 repeat with strict
 negative, per-row key rotation, full beamstats trail-position/global rows, and
 an oriented-AUC check for ciphertext_xor_bits.
+```
+
+## 2048/Class Seed0+Seed1 Follow-Up Plan
+
+Purpose:
+
+```text
+Repeat the strict random-negative and per-row key-rotation checks at 2048/class
+on two seeds, and run the weak feature ablations under strict negatives rather
+than matched negatives.
+```
+
+Plan:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_leakage_audit_2048_seed0_seed1.csv
+```
+
+Rows per seed:
+
+| Role | Sample structure | Key rotation | Feature | Model |
+|---|---|---:|---|---|
+| strict full global | `plaintext_integral_nibble_strict_random_negative` | `0` | full beamstats | `present_pairset_global_stats` |
+| strict full trail | `plaintext_integral_nibble_strict_random_negative` | `0` | full beamstats | `present_trail_position_stats_pairset` |
+| strict full global per-row key | `plaintext_integral_nibble_strict_random_negative` | `1` | full beamstats | `present_pairset_global_stats` |
+| strict full trail per-row key | `plaintext_integral_nibble_strict_random_negative` | `1` | full beamstats | `present_trail_position_stats_pairset` |
+| strict xor global | `plaintext_integral_nibble_strict_random_negative` | `0` | `ciphertext_xor_bits` | `present_pairset_global_stats` |
+| strict PAligned global | `plaintext_integral_nibble_strict_random_negative` | `0` | `ciphertext_xor_spn_paligned_bits` | `present_pairset_global_stats` |
+| strict InvS global | `plaintext_integral_nibble_strict_random_negative` | `0` | `present_pair_xor_paligned_sinv_cell_matrix_bits` | `present_pairset_global_stats` |
+
+Command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_leakage_audit_2048_seed0_seed1.csv \
+  --epochs 3 \
+  --batch-size 64 \
+  --hidden-bits 16 \
+  --device cpu \
+  --learning-rate 0.0001 \
+  --optimizer adam \
+  --weight-decay 0.00001 \
+  --loss mse \
+  --checkpoint-metric val_auc \
+  --restore-best-checkpoint \
+  --train-eval-interval 1 \
+  --dataset-cache-root outputs/local_cache/i1_present_r8_leakage_audit_2048_seed0_seed1 \
+  --dataset-cache-chunk-size 256 \
+  --dataset-cache-workers 4 \
+  --output outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/results.jsonl \
+  --progress-output outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/progress.jsonl
+```
+
+Validation:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_leakage_audit_2048_seed0_seed1.csv \
+  --results outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/results.jsonl \
+  --expected-rows 14
+```
+
+## 2048/Class Seed0+Seed1 Result
+
+Run artifacts:
+
+```text
+results = outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/results.jsonl
+progress = outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/progress.jsonl
+curves = outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/curves.svg
+history = outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/history.csv
+cache = outputs/local_cache/i1_present_r8_leakage_audit_2048_seed0_seed1
+```
+
+Validation:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_leakage_audit_2048_seed0_seed1.csv \
+  --results outputs/local_smoke/i1_present_r8_leakage_audit_2048_seed0_seed1/results.jsonl \
+  --expected-rows 14
+
+status = pass
+field_mismatches = []
+```
+
+Metrics:
+
+| Seed | Role | Key rotation | Feature | Model | AUC | Oriented AUC | Accuracy | Calibrated accuracy |
+|---:|---|---:|---|---|---:|---:|---:|---:|
+| 0 | strict full global | `0` | full beamstats | global | `0.969344139` | `0.969344139` | `0.906250` | `0.911133` |
+| 0 | strict full trail | `0` | full beamstats | trail-position | `1.000000000` | `1.000000000` | `1.000000` | `1.000000` |
+| 0 | strict full global per-row key | `1` | full beamstats | global | `0.969796181` | `0.969796181` | `0.905273` | `0.910156` |
+| 0 | strict full trail per-row key | `1` | full beamstats | trail-position | `0.999984741` | `0.999984741` | `0.999512` | `0.999512` |
+| 0 | strict xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | `0.500000` | `0.500000` |
+| 0 | strict PAligned global | `0` | P-layer aligned xor | global | `0.661911011` | `0.661911011` | `0.512695` | `0.625488` |
+| 0 | strict InvS global | `0` | P-layer + InvS | global | `0.731975079` | `0.731975079` | `0.520508` | `0.678223` |
+| 1 | strict full global | `0` | full beamstats | global | `0.968549728` | `0.968549728` | `0.904785` | `0.914551` |
+| 1 | strict full trail | `0` | full beamstats | trail-position | `0.999997139` | `0.999997139` | `0.998535` | `0.999023` |
+| 1 | strict full global per-row key | `1` | full beamstats | global | `0.976821899` | `0.976821899` | `0.901367` | `0.918945` |
+| 1 | strict full trail per-row key | `1` | full beamstats | trail-position | `0.999995232` | `0.999995232` | `0.998047` | `0.999023` |
+| 1 | strict xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | `0.500000` | `0.500000` |
+| 1 | strict PAligned global | `0` | P-layer aligned xor | global | `0.614149094` | `0.614149094` | `0.591309` | `0.593262` |
+| 1 | strict InvS global | `0` | P-layer + InvS | global | `0.702373028` | `0.702373028` | `0.646484` | `0.649414` |
+
+Interpretation:
+
+```text
+strict random-negative + full beamstats:
+  The trail-position candidate is stable across both seeds, with AUC
+  1.000000000 and 0.999997139. The same-input global control is also very
+  strong at about 0.969 on both seeds. This means the strict-negative protocol
+  is much easier than the matched-negative protocol for the full feature route.
+
+per-row key rotation:
+  Per-row key rotation does not collapse the result. The full trail-position
+  rows remain 0.999984741 and 0.999995232, while global controls remain about
+  0.970-0.977.
+
+weak feature ablation:
+  `ciphertext_xor_bits` reports AUC 0.0 on both seeds, but oriented AUC is 1.0.
+  This is not clean chance evidence; it means the learned score ranks labels
+  perfectly in the opposite direction. PAligned and InvS views are positive but
+  much weaker than full beamstats.
+```
+
+Decision:
+
+```text
+strict_negative_keyrot_survives_but_protocol_too_easy
+```
+
+Claim scope:
+
+```text
+This result reduces the likelihood of direct label leakage, fixed-key leakage,
+or matched-negative-only artifacts. However, it also shows that strict random
+negative is a much easier protocol: even raw ciphertext XOR carries a perfect
+sign-flipped ranking under the current trained global-stat row. Therefore this
+is not evidence for a standard PRESENT r8 breakthrough. It is evidence that
+the current positive structure versus independent-random negative split is
+too easy for publication-style claims.
+```
+
+Next action:
+
+```text
+1. Add an oriented-AUC/sign-control audit for weak-feature rows, especially
+   ciphertext_xor_bits.
+2. Build a stricter same-difference negative: negative plaintext pairs should
+   keep the same input difference or matched output-difference budget while
+   breaking the specific trail/integral alignment.
+3. Treat matched-negative, not strict random-negative, as the more meaningful
+   control family for evaluating trail-position residual value.
+4. Do not scale strict random-negative to remote medium runs; it is now a
+   diagnostic for leakage/protocol ease, not a candidate benchmark.
+```
+
+## Same-Difference Random-Negative Follow-Up
+
+Purpose:
+
+```text
+The strict random-negative protocol was too easy because positives used
+fixed-difference pairs while negatives used independent random plaintext pairs.
+This follow-up keeps the same input difference in both classes:
+
+positive:
+  one row is an integral active-nibble set of P, P xor Delta pairs.
+
+negative:
+  each pair is also P, P xor Delta, but every P is independently random, so
+  the 16-pair integral active-nibble sweep is broken.
+
+This asks whether the model still separates integral/trail structure when the
+obvious fixed-difference-vs-random-difference shortcut is removed.
+```
+
+Plan:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_same_difference_audit_2048_seed0_seed1.csv
+```
+
+Run artifacts:
+
+```text
+results = outputs/local_smoke/i1_present_r8_same_difference_audit_2048_seed0_seed1/results.jsonl
+progress = outputs/local_smoke/i1_present_r8_same_difference_audit_2048_seed0_seed1/progress.jsonl
+curves = outputs/local_smoke/i1_present_r8_same_difference_audit_2048_seed0_seed1/curves.svg
+history = outputs/local_smoke/i1_present_r8_same_difference_audit_2048_seed0_seed1/history.csv
+cache = outputs/local_cache/i1_present_r8_same_difference_audit_2048_seed0_seed1
+```
+
+Validation:
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+  --plan configs/experiment/innovation1/innovation1_spn_present_r8_same_difference_audit_2048_seed0_seed1.csv \
+  --results outputs/local_smoke/i1_present_r8_same_difference_audit_2048_seed0_seed1/results.jsonl \
+  --expected-rows 14
+
+status = pass
+field_mismatches = []
+```
+
+Metrics:
+
+| Seed | Role | Key rotation | Feature | Model | AUC | Oriented AUC | Accuracy | Calibrated accuracy |
+|---:|---|---:|---|---|---:|---:|---:|---:|
+| 0 | same-diff full global | `0` | full beamstats | global | `0.971157074` | `0.971157074` | `0.914551` | `0.916504` |
+| 0 | same-diff full trail | `0` | full beamstats | trail-position | `1.000000000` | `1.000000000` | `0.999512` | `1.000000` |
+| 0 | same-diff full global per-row key | `1` | full beamstats | global | `0.970283508` | `0.970283508` | `0.904297` | `0.911133` |
+| 0 | same-diff full trail per-row key | `1` | full beamstats | trail-position | `0.999978065` | `0.999978065` | `0.999023` | `0.999512` |
+| 0 | same-diff xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | `0.500000` | `0.500000` |
+| 0 | same-diff PAligned global | `0` | P-layer aligned xor | global | `0.634251118` | `0.634251118` | `0.514648` | `0.603516` |
+| 0 | same-diff InvS global | `0` | P-layer + InvS | global | `0.720172882` | `0.720172882` | `0.533203` | `0.670898` |
+| 1 | same-diff full global | `0` | full beamstats | global | `0.974644661` | `0.974644661` | `0.909668` | `0.932129` |
+| 1 | same-diff full trail | `0` | full beamstats | trail-position | `0.999991417` | `0.999991417` | `0.997559` | `0.998535` |
+| 1 | same-diff full global per-row key | `1` | full beamstats | global | `0.978249550` | `0.978249550` | `0.906250` | `0.927246` |
+| 1 | same-diff full trail per-row key | `1` | full beamstats | trail-position | `0.999996185` | `0.999996185` | `0.998047` | `0.999023` |
+| 1 | same-diff xor global | `0` | ciphertext xor | global | `0.000000000` | `1.000000000` | `0.500000` | `0.500000` |
+| 1 | same-diff PAligned global | `0` | P-layer aligned xor | global | `0.600473404` | `0.600473404` | `0.561035` | `0.574219` |
+| 1 | same-diff InvS global | `0` | P-layer + InvS | global | `0.694131374` | `0.694131374` | `0.637207` | `0.639160` |
+
+Interpretation:
+
+```text
+same-difference control:
+  Removing the fixed-difference-vs-random-difference shortcut does not collapse
+  the full beamstats route. Trail-position remains almost perfect on both
+  seeds, and per-row key rotation still does not collapse it.
+
+weak feature audit:
+  The weak rows remain suspicious. ciphertext_xor_bits still gives AUC 0.0
+  with oriented AUC 1.0, which means a perfect reversed score ordering exists
+  even though the ordinary thresholded accuracy is 0.5. PAligned and InvS are
+  not perfect, but remain above chance.
+
+meaning:
+  The high score is not explained only by matched-negative construction,
+  fixed train/validation key, or fixed-difference-vs-random-difference
+  separation. But it is still not clean evidence for a publication-style
+  PRESENT r8 distinguisher, because very weak public XOR-derived views still
+  expose class structure.
+```
+
+Decision:
+
+```text
+same_difference_full_signal_survives_but_weak_xor_control_still_suspicious
+```
+
+Next action:
+
+```text
+Do not launch a larger remote version of this exact full-feature protocol yet.
+First add a deterministic / non-neural feature audit that explains the
+ciphertext_xor_bits sign-flipped separation. The next useful question is not
+"can the network score 0.999 again"; it is "which simple statistic already
+separates the labels, and can a protocol variant remove that statistic while
+preserving meaningful trail-position residual signal?"
 ```

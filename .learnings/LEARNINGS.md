@@ -1,3 +1,47 @@
+## [LRN-20260708-003] best_practice
+
+**Logged**: 2026-07-08T17:28:35+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+For PRESENT r8 integral/trail-position audits, explain weak XOR sign-flipped
+separation before scaling a high-AUC protocol.
+
+### Details
+The PRESENT r8 leakage audit showed that strict random-negative and
+same-difference random-negative variants can both keep full beamstats and
+trail-position AUC near 1.0 at 2048/class across seed0 and seed1. Per-row key
+rotation also did not collapse those rows.
+
+However, the weak `ciphertext_xor_bits` global-stat row produced AUC 0.0 with
+oriented AUC 1.0 in both audits, while P-layer aligned and InvS-only views were
+also above chance. This means a simple public XOR-derived view already carries
+class structure in a sign-flipped direction. A larger remote run of the exact
+full-feature protocol would mostly confirm that the protocol is easy, not that
+the trail-position network has isolated a publication-quality PRESENT r8
+neural distinguisher.
+
+### Suggested Action
+Before scaling PRESENT/SPN integral or trail-position protocols that score near
+1.0 locally, add a deterministic or non-neural audit that identifies the simple
+statistic behind the `ciphertext_xor_bits` reversed ordering. Only scale a
+candidate protocol after weak XOR-derived controls are explained, removed, or
+clearly separated from the claimed trail-position residual signal.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-leakage-audit-plan.md, src/blockcipher_nd/data/differential/rows.py, configs/experiment/innovation1/innovation1_spn_present_r8_same_difference_audit_2048_seed0_seed1.csv
+- Tags: innovation1, present, spn, leakage-audit, weak-xor, protocol-design
+- See Also: LRN-20260708-002, LRN-20260621-001
+- Pattern-Key: innovation1.spn_present.weak_xor_sign_flip_before_scaling
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-002] correction
 
 **Logged**: 2026-07-08T16:58:00+08:00

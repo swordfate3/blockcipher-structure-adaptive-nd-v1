@@ -16,6 +16,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
         "plaintext_integral_multi_nibble_difference_matched_negative",
         "plaintext_integral_nibble_scrambled_positive",
@@ -28,6 +29,7 @@ def validate_differential_config(config: DifferentialDatasetConfig) -> None:
         "plaintext_integral_nibble",
         "plaintext_integral_nibble_difference_matched_negative",
         "plaintext_integral_nibble_matched_negative",
+        "plaintext_integral_nibble_same_difference_random_negative",
         "plaintext_integral_nibble_strict_random_negative",
         "plaintext_integral_nibble_scrambled_positive",
     }:

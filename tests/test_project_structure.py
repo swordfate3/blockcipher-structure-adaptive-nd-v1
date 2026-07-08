@@ -128,6 +128,17 @@ def test_matrix_runner_accepts_strict_random_integral_negative_sample_structure(
     assert args.sample_structure == "plaintext_integral_nibble_strict_random_negative"
 
 
+def test_matrix_runner_accepts_same_difference_random_integral_negative_sample_structure():
+    args = parse_args(
+        [
+            "--sample-structure",
+            "plaintext_integral_nibble_same_difference_random_negative",
+        ]
+    )
+
+    assert args.sample_structure == "plaintext_integral_nibble_same_difference_random_negative"
+
+
 def test_official_epoch_cyclic_lr_matches_zhang_wang_schedule():
     from blockcipher_nd.training.optim import make_scheduler
     from blockcipher_nd.training.types import TrainingConfig
@@ -13762,6 +13773,31 @@ def test_integral_strict_random_negative_generates_independent_negative_rows():
     assert dataset.features.shape == (4, 16 * 2 * cipher.block_bits)
     assert dataset.labels.tolist() == [1, 1, 0, 0]
     assert dataset.metadata["sample_structure"] == "plaintext_integral_nibble_strict_random_negative"
+    assert dataset.metadata["negative_mode"] == "encrypted_random_plaintexts"
+
+
+def test_integral_same_difference_random_negative_generates_rows():
+    cipher = build_cipher("present80", 8, key=0)
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000090,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure="plaintext_integral_nibble_same_difference_random_negative",
+            integral_active_nibble=0,
+        )
+    )
+
+    assert dataset.features.shape == (4, 16 * 2 * cipher.block_bits)
+    assert dataset.labels.tolist() == [1, 1, 0, 0]
+    assert dataset.metadata["sample_structure"] == (
+        "plaintext_integral_nibble_same_difference_random_negative"
+    )
     assert dataset.metadata["negative_mode"] == "encrypted_random_plaintexts"
 
 
