@@ -144,6 +144,15 @@ def test_present_r8_diverse_route_summary_waits_for_running_residual_focus(tmp_p
             "remote_action": False,
         },
     ]
+    safety = report["local_command_safety"]
+    assert safety["status"] == "pass"
+    assert safety["forbidden_tokens"] == ["ssh", "scp", "cmd.exe", "G:\\lxy"]
+    assert safety["checked_fields"] == [
+        "residual_focus.monitor_health_command",
+        "residual_focus.advance_command",
+        "residual_focus.watch_command",
+    ]
+    assert safety["findings"] == []
     assert report["should_launch_remote"] is False
 
 

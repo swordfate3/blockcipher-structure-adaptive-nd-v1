@@ -98,6 +98,11 @@ def summarize_present_r8_diverse_route(
         pool3_route=pool3_route,
         state_token_route=state_token_route,
     )
+    residual_focus_commands = {
+        "residual_focus.monitor_health_command": _residual_monitor_health_command(),
+        "residual_focus.advance_command": advance_command or _residual_advance_command(),
+        "residual_focus.watch_command": watch_command or _residual_watch_command(),
+    }
     return {
         "status": status,
         "decision": decision,
@@ -148,10 +153,10 @@ def summarize_present_r8_diverse_route(
             ],
             "planned_output_count": int(residual.get("planned_output_count", 0)),
             "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
-            "monitor_health_command": _residual_monitor_health_command(),
+            "monitor_health_command": residual_focus_commands["residual_focus.monitor_health_command"],
             "monitor_health_summary": _compact_monitor_health(monitor_health),
-            "advance_command": advance_command or _residual_advance_command(),
-            "watch_command": watch_command or _residual_watch_command(),
+            "advance_command": residual_focus_commands["residual_focus.advance_command"],
+            "watch_command": residual_focus_commands["residual_focus.watch_command"],
             "next_action": _compact_next_action(residual.get("next_action")),
         },
         "candidate_routes": {
@@ -161,6 +166,7 @@ def summarize_present_r8_diverse_route(
             "linear_combo_integral_residual": linear_combo_route,
         },
         "post_retrieval_sequence": _post_retrieval_sequence(),
+        "local_command_safety": _local_command_safety(residual_focus_commands),
         "policy": {
             "primary_gate": "residual_focus_262k_before_diverse_pool",
             "pool3_priority": "prefer residual-guided Pool 3 when residual-focus passes and controls are available",
@@ -490,6 +496,22 @@ def _post_retrieval_sequence() -> list[dict[str, Any]]:
             "remote_action": False,
         },
     ]
+
+
+def _local_command_safety(commands: dict[str, str]) -> dict[str, Any]:
+    forbidden_tokens = ["ssh", "scp", "cmd.exe", "G:\\lxy"]
+    findings = []
+    for field, command in commands.items():
+        lowered = command.lower()
+        for token in forbidden_tokens:
+            if token.lower() in lowered:
+                findings.append({"field": field, "token": token})
+    return {
+        "status": "pass" if not findings else "fail",
+        "checked_fields": list(commands.keys()),
+        "forbidden_tokens": forbidden_tokens,
+        "findings": findings,
+    }
 
 
 def _residual_monitor_health_command() -> str:

@@ -608,6 +608,10 @@ such as missing planned outputs, a pending gate, or missing train-only
 source-selection reports. The top-level `post_retrieval_sequence` records the
 local-only handoff order: watch until outputs exist, run the residual-focus
 advance command, then follow the selected local route or repair branch.
+The top-level `local_command_safety` field scans those emitted local command
+fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
+`G:\lxy`; this summary should remain local-only and report `pass` unless a
+future edit accidentally exposes remote action text.
 
 As of the V2 route refresh, the same summary also reports:
 

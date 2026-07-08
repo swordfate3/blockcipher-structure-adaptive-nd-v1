@@ -214,6 +214,9 @@ gate, or missing train-only source-selection reports. The top-level
 `post_retrieval_sequence` field records the intended local-only handoff order:
 watch until residual outputs exist, run the one-shot advance command, then
 follow the selected local route or repair branch.
+The top-level `local_command_safety` field scans the emitted local command
+fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
+`G:\lxy`; it should remain `pass` for this local-only route summary.
 
 Use `scripts/evaluate-residual-guided-diverse-pool` after
 `scripts/plan-residual-guided-diverse-pool` reports
