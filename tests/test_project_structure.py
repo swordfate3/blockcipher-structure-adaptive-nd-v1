@@ -7981,6 +7981,69 @@ def test_monitor_health_reports_progress_from_extra_progress_root(tmp_path):
     assert progress["cache_class_progress_percent"] == pytest.approx(53.125)
 
 
+def test_monitor_health_carries_cache_dimension_workload_from_start_event(tmp_path):
+    root = tmp_path / "remote_results"
+    run_id = "unit_cache_dimension_workload"
+    monitor = root / run_id / "monitor"
+    monitor.mkdir(parents=True)
+    (monitor / "monitor.log").write_text("2026-07-08T12:29:07+08:00 running\n", encoding="utf-8")
+    logs = root / run_id / "logs"
+    logs.mkdir()
+    (logs / "trail_position_cache_progress.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "cache_start",
+                "stage": "dataset_cache",
+                "split": "train",
+                "time": 1783405102.0,
+                "input_bits": 39936,
+                "pairs_per_sample": 16,
+                "samples_per_class": 262144,
+                "total_rows": 524288,
+                "model": "present_trail_position_stats_pairset",
+                "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "event": "cache_negative_chunk",
+                "stage": "dataset_cache",
+                "split": "train",
+                "time": 1783483938.0,
+                "rows_done": 475136,
+                "total_rows": 524288,
+                "class_rows_done": 212992,
+                "class_total": 262144,
+                "chunk_rows": 8192,
+                "samples_per_class": 262144,
+                "model": "present_trail_position_stats_pairset",
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = monitor_health_report(
+        run_id=run_id,
+        root=root,
+        expected_rows=18,
+        now=datetime.fromisoformat("2026-07-08T12:30:00+08:00"),
+    )
+
+    progress = report["progress_summary"]
+    assert progress["latest_event"] == "cache_negative_chunk"
+    assert progress["cache_input_bits"] == 39936
+    assert progress["cache_pairs_per_sample"] == 16
+    assert progress["cache_pair_bits"] == 2496
+    assert progress["cache_total_feature_bits"] == 20_937_965_568
+    assert progress["cache_rows_done_feature_bits"] == 18_975_031_296
+    assert progress["cache_total_feature_bytes"] == pytest.approx(2_617_245_696.0)
+    assert progress["cache_rows_done_feature_bytes"] == pytest.approx(2_371_878_912.0)
+
+
 def test_monitor_health_reports_positive_and_negative_cache_class_progress(tmp_path):
     root = tmp_path / "remote_results"
     run_id = "unit_cache_polarity_progress"

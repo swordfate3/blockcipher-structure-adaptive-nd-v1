@@ -814,6 +814,7 @@ def _progress_summary_for_path(
     latest: dict[str, Any] | None = None
     first_cache_progress: dict[str, Any] | None = None
     latest_cache_progress: dict[str, Any] | None = None
+    cache_shape_record: dict[str, Any] | None = None
     latest_cache_class_progress_by_segment: dict[tuple[tuple[Any, ...], str], dict[str, Any]] = {}
     cache_progress_segment: tuple[Any, ...] | None = None
     best_metric: float | int | None = None
@@ -833,6 +834,8 @@ def _progress_summary_for_path(
             continue
         parsed_line_count += 1
         latest = record
+        if _optional_int(record.get("input_bits")) is not None:
+            cache_shape_record = record
         if _optional_int(record.get("rows_done")) is not None and _optional_float(record.get("time")) is not None:
             segment = _cache_progress_segment_key(record)
             if first_cache_progress is None or segment != cache_progress_segment:
@@ -885,6 +888,12 @@ def _progress_summary_for_path(
         total_rows=cache_total_rows,
         rows_per_second=cache_rate,
     )
+    cache_shape = _cache_shape_summary(
+        shape_record=cache_shape_record,
+        cache_record=cache_record,
+        rows_done=cache_rows_done,
+        total_rows=cache_total_rows,
+    )
     return {
         "path": str(path),
         "exists": True,
@@ -928,6 +937,7 @@ def _progress_summary_for_path(
         "cache_rate_window_seconds": cache_rate_window["seconds"],
         "cache_rate_window_rows": cache_rate_window["rows"],
         "cache_eta_seconds": cache_eta_seconds,
+        **cache_shape,
         "validation_rows": _optional_int(latest.get("validation_rows")),
         "val_accuracy": latest.get("val_accuracy"),
         "val_auc": latest.get("val_auc"),
@@ -1069,6 +1079,41 @@ def _cache_eta_seconds(
     if remaining_rows <= 0:
         return 0
     return int(round(remaining_rows / rows_per_second))
+
+
+def _cache_shape_summary(
+    *,
+    shape_record: dict[str, Any] | None,
+    cache_record: dict[str, Any],
+    rows_done: int | None,
+    total_rows: int | None,
+) -> dict[str, Any]:
+    input_bits = _optional_int((shape_record or {}).get("input_bits"))
+    if input_bits is None:
+        input_bits = _optional_int(cache_record.get("input_bits"))
+    pairs_per_sample = _optional_int((shape_record or {}).get("pairs_per_sample"))
+    if pairs_per_sample is None:
+        pairs_per_sample = _optional_int(cache_record.get("pairs_per_sample"))
+    pair_bits = None
+    if input_bits is not None and pairs_per_sample is not None and pairs_per_sample > 0:
+        pair_bits = input_bits // pairs_per_sample if input_bits % pairs_per_sample == 0 else None
+    rows_done_feature_bits = rows_done * input_bits if rows_done is not None and input_bits is not None else None
+    total_feature_bits = total_rows * input_bits if total_rows is not None and input_bits is not None else None
+    return {
+        "cache_input_bits": input_bits,
+        "cache_pairs_per_sample": pairs_per_sample,
+        "cache_pair_bits": pair_bits,
+        "cache_rows_done_feature_bits": rows_done_feature_bits,
+        "cache_total_feature_bits": total_feature_bits,
+        "cache_rows_done_feature_bytes": _bits_to_bytes(rows_done_feature_bits),
+        "cache_total_feature_bytes": _bits_to_bytes(total_feature_bits),
+    }
+
+
+def _bits_to_bytes(bits: int | None) -> float | None:
+    if bits is None:
+        return None
+    return round(bits / 8.0, 3)
 
 
 def _cache_chunk_index(rows_done: int | None, chunk_rows: int | None) -> int | None:

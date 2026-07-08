@@ -4,6 +4,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from blockcipher_nd.cli.summarize_present_r8_diverse_route import (
     main as summarize_route_main,
 )
@@ -255,6 +257,20 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
             [
                 json.dumps(
                     {
+                        "time": 50.0,
+                        "event": "cache_start",
+                        "stage": "dataset_cache",
+                        "seed": 0,
+                        "split": "train",
+                        "samples_per_class": 262144,
+                        "total_rows": 524288,
+                        "input_bits": 39936,
+                        "pairs_per_sample": 16,
+                        "model": "present_trail_position_stats_pairset",
+                    }
+                ),
+                json.dumps(
+                    {
                         "time": 100.0,
                         "event": "cache_positive_chunk",
                         "stage": "dataset_cache",
@@ -340,6 +356,10 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
         "latest_marker": f"logs/{run_id}_command_3.marker",
     }
     assert progress["source_kind"] == "external_progress_jsonl"
+    assert progress["cache_input_bits"] == 39936
+    assert progress["cache_pairs_per_sample"] == 16
+    assert progress["cache_pair_bits"] == 2496
+    assert progress["cache_total_feature_bytes"] == pytest.approx(2_617_245_696.0)
     assert progress["cache_total_progress_percent"] == 75.0
     assert progress["cache_negative_class_progress_percent"] == 50.0
     assert progress["cache_eta_seconds"] == 100
