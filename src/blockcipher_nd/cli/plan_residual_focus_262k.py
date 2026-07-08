@@ -22,6 +22,7 @@ from blockcipher_nd.cli.plan_bucket_residual_262k import (
 DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json")
 DEFAULT_ARTIFACT_ROOT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k")
 FEATURE_EXPORT_CACHE_WORKERS = 4
+CHECKPOINT_SCORE_CACHE_WORKERS = 4
 RAW117_PREFIXES = (
     "aux_depth_cell_",
     "aux_depth_word_",
@@ -392,6 +393,8 @@ def _checkpoint_score_command(
             str(paths["dataset_cache_root"] / "train_scores"),
             "--progress-output",
             str(paths["dataset_cache_root"] / f"seed{seed}_train_score_export_progress.jsonl"),
+            "--dataset-cache-workers",
+            str(CHECKPOINT_SCORE_CACHE_WORKERS),
             "--output-dir",
             str(paths["train_trail_scores"]),
         ]
