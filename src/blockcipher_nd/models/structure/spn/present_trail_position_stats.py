@@ -31,8 +31,11 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         active_conditioning: str = "none",
     ) -> None:
         super().__init__()
-        if active_conditioning not in {"none", "relative_stats"}:
-            raise ValueError("PresentTrailPositionStats active_conditioning must be none or relative_stats")
+        if active_conditioning not in {"none", "relative_stats", "p_layer_relative_stats"}:
+            raise ValueError(
+                "PresentTrailPositionStats active_conditioning must be none, "
+                "relative_stats, or p_layer_relative_stats"
+            )
         if metadata_bits < 0:
             raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
         base_input_bits = input_bits - metadata_bits
@@ -63,9 +66,17 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.trail_depth = trail_depth
         self.trail_words_per_depth = trail_words_per_depth
         self.prefix_words = self.words_per_pair - trail_depth * trail_words_per_depth
-        if self.active_conditioning == "relative_stats" and self.metadata_bits != self.cells_per_word:
+        if self.active_conditioning != "none" and self.metadata_bits != self.cells_per_word:
             raise ValueError(
-                "PresentTrailPositionStats relative_stats requires one metadata bit per PRESENT cell"
+                "PresentTrailPositionStats active conditioning requires one metadata bit per PRESENT cell"
+            )
+        if self.active_conditioning == "p_layer_relative_stats" and self.cells_per_word != 16:
+            raise ValueError("PresentTrailPositionStats p_layer_relative_stats requires 16 PRESENT cells")
+        if self.active_conditioning == "p_layer_relative_stats":
+            self.register_buffer(
+                "active_cell_permutations",
+                torch.tensor(_present_p_layer_relative_cell_permutations(), dtype=torch.long),
+                persistent=False,
             )
         self.stats_hidden_bits = stats_hidden_bits or max(64, base_channels * 8)
         self.activation = activation
@@ -127,7 +138,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             self.nibble_bits,
         )
         activity = cells.mean(dim=-1)
-        if self.active_conditioning == "relative_stats":
+        if self.active_conditioning != "none":
             activity = self._active_relative_activity(activity, features)
         word_activity = activity.mean(dim=-1)
         cell_activity = activity.mean(dim=2)
@@ -212,8 +223,14 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
     ) -> torch.Tensor:
         active_metadata = features[:, -self.metadata_bits :].float()
         active_indices = active_metadata.argmax(dim=1)
-        relative_cells = torch.arange(self.cells_per_word, device=activity.device)
-        source_cells = (active_indices[:, None] + relative_cells[None, :]) % self.cells_per_word
+        if self.active_conditioning == "p_layer_relative_stats":
+            source_cells = self.active_cell_permutations.to(activity.device).index_select(
+                dim=0,
+                index=active_indices,
+            )
+        else:
+            relative_cells = torch.arange(self.cells_per_word, device=activity.device)
+            source_cells = (active_indices[:, None] + relative_cells[None, :]) % self.cells_per_word
         gather_index = source_cells[:, None, None, :].expand(
             -1,
             self.pairs_per_sample,
@@ -259,6 +276,34 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         if self.metadata_bits:
             stats = torch.cat([stats, features[:, -self.metadata_bits :].float()], dim=1)
         return self.classifier(stats)
+
+
+def _present_p_layer_relative_cell_permutations() -> list[list[int]]:
+    permutations: list[list[int]] = []
+    for active_nibble in range(16):
+        source_cell = 15 - active_nibble
+        p_targets = _present_p_layer_target_cells(active_nibble)
+        head: list[int] = []
+        for cell in [source_cell, *p_targets]:
+            if cell not in head:
+                head.append(cell)
+        tail = sorted(
+            (cell for cell in range(16) if cell not in head),
+            key=lambda cell: (abs(cell - source_cell), cell),
+        )
+        permutations.append(head + tail)
+    return permutations
+
+
+def _present_p_layer_target_cells(source_nibble: int) -> list[int]:
+    targets: list[int] = []
+    for bit_offset in range(4):
+        source_bit = source_nibble * 4 + bit_offset
+        target_bit = 63 if source_bit == 63 else (16 * source_bit) % 63
+        target_cell = 15 - (target_bit // 4)
+        if target_cell not in targets:
+            targets.append(target_cell)
+    return targets
 
 
 __all__ = ["PresentTrailPositionStatsPairSetDistinguisher"]

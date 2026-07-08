@@ -133,10 +133,22 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         dropout: float = 0.0,
         top_k: int = 4,
         lse_temperature: float = 1.0,
+        metadata_bits: int = 0,
+        active_conditioning: str = "none",
     ) -> None:
         super().__init__()
-        if input_bits % pair_bits != 0:
-            raise ValueError("PresentPLayerMixerPairSet input_bits must be a multiple of pair_bits")
+        if active_conditioning not in {"none", "p_layer_active_token_bias"}:
+            raise ValueError(
+                "PresentPLayerMixerPairSet active_conditioning must be none "
+                "or p_layer_active_token_bias"
+            )
+        if metadata_bits < 0:
+            raise ValueError("PresentPLayerMixerPairSet metadata_bits must be non-negative")
+        base_input_bits = input_bits - metadata_bits
+        if base_input_bits <= 0:
+            raise ValueError("PresentPLayerMixerPairSet metadata_bits must leave base feature bits")
+        if base_input_bits % pair_bits != 0:
+            raise ValueError("PresentPLayerMixerPairSet base input bits must be a multiple of pair_bits")
         if pair_bits % 64 != 0:
             raise ValueError("PresentPLayerMixerPairSet currently requires 64-bit PRESENT word groups")
         if pair_bits % nibble_bits != 0:
@@ -146,8 +158,11 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         if pooling not in {"attention", "attention_mean_max", "mean_max", "gated_attention", "topk_mean", "logsumexp", "topk_logsumexp"}:
             raise ValueError(f"unsupported pooling: {pooling}")
         self.input_bits = input_bits
+        self.base_input_bits = base_input_bits
+        self.metadata_bits = metadata_bits
+        self.active_conditioning = active_conditioning
         self.pair_bits = pair_bits
-        self.pairs_per_sample = input_bits // pair_bits
+        self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
         self.nibble_bits = nibble_bits
         self.words_per_pair = pair_bits // 64
@@ -171,6 +186,18 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         self.nibble_embedding = nn.Parameter(torch.zeros(1, 1, 16, self.token_dim))
         nn.init.trunc_normal_(self.word_embedding, std=0.02)
         nn.init.trunc_normal_(self.nibble_embedding, std=0.02)
+        if self.active_conditioning != "none" and self.metadata_bits != 16:
+            raise ValueError(
+                "PresentPLayerMixerPairSet active conditioning requires one metadata bit per PRESENT cell"
+            )
+        if self.active_conditioning == "p_layer_active_token_bias":
+            self.active_role_embedding = nn.Embedding(3, self.token_dim)
+            nn.init.trunc_normal_(self.active_role_embedding.weight, std=0.02)
+            self.register_buffer(
+                "active_cell_roles",
+                torch.tensor(_present_p_layer_active_cell_roles(), dtype=torch.long),
+                persistent=False,
+            )
         self.mixer_blocks = nn.ModuleList(
             [
                 PresentPLayerMixerBlock(
@@ -238,9 +265,19 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
     def set_structure_features(self, features: torch.Tensor) -> None:
         return None
 
-    def _encode_pairs(self, pair_features: torch.Tensor) -> torch.Tensor:
+    def _encode_pairs(
+        self,
+        pair_features: torch.Tensor,
+        active_metadata: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         nibbles = pair_features.reshape(pair_features.shape[0], self.words_per_pair, 16, self.nibble_bits)
         hidden = self.nibble_encoder(nibbles) + self.word_embedding + self.nibble_embedding
+        if self.active_conditioning == "p_layer_active_token_bias":
+            if active_metadata is None:
+                raise ValueError("active metadata is required for p_layer_active_token_bias")
+            active_indices = active_metadata.float().argmax(dim=1)
+            role_ids = self.active_cell_roles.to(hidden.device).index_select(dim=0, index=active_indices)
+            hidden = hidden + self.active_role_embedding(role_ids)[:, None, :, :]
         hidden = hidden.reshape(pair_features.shape[0], self.nibbles_per_pair, self.token_dim)
         for block in self.mixer_blocks:
             hidden = block(hidden)
@@ -256,8 +293,17 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
             raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
-        pair_features = features.float().reshape(features.shape[0] * self.pairs_per_sample, self.pair_bits)
-        pair_embeddings = self._encode_pairs(pair_features).reshape(
+        base_features = features[:, : self.base_input_bits].float()
+        pair_features = base_features.reshape(features.shape[0] * self.pairs_per_sample, self.pair_bits)
+        active_metadata = None
+        if self.metadata_bits:
+            active_metadata = features[:, -self.metadata_bits :].float()
+            active_metadata = active_metadata[:, None, :].expand(
+                features.shape[0],
+                self.pairs_per_sample,
+                self.metadata_bits,
+            ).reshape(features.shape[0] * self.pairs_per_sample, self.metadata_bits)
+        pair_embeddings = self._encode_pairs(pair_features, active_metadata).reshape(
             features.shape[0],
             self.pairs_per_sample,
             self.projected_pair_embedding_bits,
@@ -273,6 +319,29 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         else:
             pooled = torch.cat([attention_embedding, mean_embedding, max_embedding], dim=1)
         return self.classifier(pooled)
+
+
+def _present_p_layer_active_cell_roles() -> list[list[int]]:
+    roles: list[list[int]] = []
+    for active_nibble in range(16):
+        source_cell = 15 - active_nibble
+        row = [0 for _ in range(16)]
+        for target in _present_p_layer_target_cells(active_nibble):
+            row[target] = 1
+        row[source_cell] = 2
+        roles.append(row)
+    return roles
+
+
+def _present_p_layer_target_cells(source_nibble: int) -> list[int]:
+    targets: list[int] = []
+    for bit_offset in range(4):
+        source_bit = source_nibble * 4 + bit_offset
+        target_bit = 63 if source_bit == 63 else (16 * source_bit) % 63
+        target_cell = 15 - (target_bit // 4)
+        if target_cell not in targets:
+            targets.append(target_cell)
+    return targets
 
 
 __all__ = ["PresentPLayerMixerBlock", "PresentPLayerMixerPairSetDistinguisher"]

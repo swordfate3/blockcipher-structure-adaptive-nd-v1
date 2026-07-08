@@ -1,3 +1,60 @@
+## [LRN-20260709-001] best_practice
+
+**Logged**: 2026-07-09T00:08:48+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+P-layer-relative statistics improve narrow active-set stability but still do
+not unlock PRESENT r8 random-active or heldout-active transfer.
+
+### Details
+The PRESENT r8 P-layer-relative active curriculum local diagnostic at
+512/class seed0+seed1 added `active_conditioning = p_layer_relative_stats` to
+`present_trail_position_stats_pairset`. This maps the active nibble metadata
+into PRESENT feature-cell coordinates, places the active S-box cell first, and
+places its direct P-layer target cells next before computing trail-position
+statistics.
+
+The local gate result:
+
+- Unconditioned random16 baseline stayed near chance: seed0 AUC 0.500534058,
+  seed1 AUC 0.525375366.
+- Previous simple `relative_stats` random16 stayed unstable: seed0 AUC
+  0.526580811, seed1 AUC 0.481582642.
+- P-layer-relative active1 stayed high: seed0 AUC 0.975738525, seed1 AUC
+  0.993362427.
+- P-layer-relative active2 became stable and stronger than the previous
+  narrow-set route: seed0 AUC 0.754165649, seed1 AUC 0.761306763.
+- P-layer-relative active4/8/16 still collapsed near chance, and heldout train
+  {0,1,2,3} -> validation {4,5,6,7} did not transfer: heldout seed0 AUC
+  0.492782593, seed1 AUC 0.492889404.
+
+This blocks remote scale for the current statistics-only P-layer-relative
+route. The result is useful because it shows PRESENT-aware coordinate ordering
+helps the two-active curriculum, but it still does not provide broad
+active-coordinate generalization.
+
+### Suggested Action
+Do not move `p_layer_relative_stats` to 65k/262k by default. The next local
+step should be a real active-conditioned PRESENT graph/token model, where
+active metadata modulates token embeddings or P-layer message passing directly,
+then rerun the same random-active/heldout gate against the unconditioned
+baseline on seed0+seed1.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-p-layer-relative-active-curriculum-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_p_layer_relative_active_curriculum_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py
+- Tags: innovation1, present, spn, active-conditioning, p-layer, local-gate
+- See Also: LRN-20260708-008, LRN-20260708-007, LRN-20260708-006
+- Pattern-Key: innovation1.spn_present.p_layer_relative_stats_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260708-008] best_practice
 
 **Logged**: 2026-07-08T23:32:48+08:00

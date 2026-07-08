@@ -14268,6 +14268,41 @@ def test_present_trail_position_relative_stats_conditions_on_active_metadata():
     assert not torch.allclose(stats[0], stats[1])
 
 
+def test_present_trail_position_p_layer_relative_stats_uses_present_coordinates():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits + 16,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "metadata_bits": 16,
+            "active_conditioning": "p_layer_relative_stats",
+        },
+    )
+    activity = torch.arange(16, dtype=torch.float32).reshape(1, 1, 1, 16).expand(
+        1,
+        16,
+        pair_bits // 64,
+        16,
+    )
+    features = torch.zeros(1, 16 * pair_bits + 16)
+    features[0, -16] = 1.0
+
+    conditioned = model._active_relative_activity(activity, features)
+
+    assert model.active_cell_permutations[0].tolist()[:4] == [15, 11, 7, 3]
+    assert conditioned[0, 0, 0, :4].tolist() == [15.0, 11.0, 7.0, 3.0]
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(
@@ -14429,6 +14464,54 @@ def test_present_r8_active_conditioned_curriculum_plan_is_local_gate_only():
     plan_doc = Path("docs/experiments/innovation1-present-r8-active-conditioned-curriculum-plan.md")
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "active_conditioning = relative_stats" in plan_text
+    assert "Remote scale remains blocked" in plan_text
+
+
+def test_present_r8_p_layer_relative_active_curriculum_plan_is_local_gate_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_p_layer_relative_active_curriculum_512_seed0_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 16
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {512}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["model_key"] for task in tasks} == {"present_trail_position_stats_pairset"}
+    assert all("LOCAL DIAGNOSTIC" in task["matching_evidence"] for task in tasks)
+
+    p_layer_tasks = [
+        task
+        for task in tasks
+        if task["model_options"].get("active_conditioning") == "p_layer_relative_stats"
+    ]
+    assert len(p_layer_tasks) == 12
+    assert {task["model_options"]["metadata_bits"] for task in p_layer_tasks} == {16}
+    assert {
+        task["integral_active_nibbles"]
+        for task in p_layer_tasks
+        if not task["validation_integral_active_nibbles"]
+    } == {
+        (0,),
+        (0, 1),
+        (0, 1, 2, 3),
+        (0, 1, 2, 3, 4, 5, 6, 7),
+        tuple(range(16)),
+    }
+    heldout_tasks = [
+        task
+        for task in p_layer_tasks
+        if task["validation_integral_active_nibbles"] == (4, 5, 6, 7)
+    ]
+    assert len(heldout_tasks) == 2
+    assert all(task["integral_active_nibbles"] == (0, 1, 2, 3) for task in heldout_tasks)
+
+    plan_doc = Path("docs/experiments/innovation1-present-r8-p-layer-relative-active-curriculum-plan.md")
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "active_conditioning = p_layer_relative_stats" in plan_text
     assert "Remote scale remains blocked" in plan_text
 
 
@@ -15825,6 +15908,45 @@ def test_present_nibble_invp_p_layer_graph_models_build_and_use_distinct_topolog
     assert candidate_sources.shape == control_sources.shape
     assert not torch.equal(candidate_sources, control_sources)
     assert torch.equal(candidate_cells, control_cells)
+
+
+def test_present_p_layer_mixer_active_token_bias_conditions_tokens_from_metadata():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_p_layer_mixer_pairset",
+        input_bits=16 * pair_bits + 16,
+        hidden_bits=4,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "mixer_depth": 1,
+            "token_dim": 8,
+            "metadata_bits": 16,
+            "active_conditioning": "p_layer_active_token_bias",
+            "pooling": "topk_logsumexp",
+            "top_k": 2,
+        },
+    )
+    features = torch.zeros(2, 16 * pair_bits + 16)
+    features[0, -16] = 1.0
+    features[1, -15] = 1.0
+    pair_features = torch.zeros(2, pair_bits)
+    active_metadata = features[:, -16:]
+
+    pair_embeddings = model._encode_pairs(pair_features, active_metadata)
+    logits = model(features)
+
+    assert logits.shape == (2, 1)
+    assert pair_embeddings.shape[0] == 2
+    assert model.active_cell_roles[0, 15].item() == 2
+    assert model.active_cell_roles[0, 11].item() == 1
+    assert model.active_cell_roles[0, 7].item() == 1
+    assert model.active_cell_roles[0, 3].item() == 1
+    assert not torch.allclose(pair_embeddings[0], pair_embeddings[1])
 
 
 def test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast():
