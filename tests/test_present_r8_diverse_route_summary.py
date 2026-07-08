@@ -327,6 +327,12 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
         "status": "behind_current_head",
         "commits_behind": 1,
     }
+    assert monitor["source_revision_policy"] == {
+        "status": "informational",
+        "restart_recommended": False,
+        "reason": "running_monitor_health_takes_precedence_over_revision_lag",
+        "action": "do_not_restart_healthy_run_for_revision_lag",
+    }
     assert monitor["command_markers"] == {
         "marker_count": 2,
         "command_indices": [0, 3],

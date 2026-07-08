@@ -850,15 +850,49 @@ def _residual_watch_command(
 def _compact_monitor_health(report: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(report, dict):
         return {}
+    source_revision = _dict_value(report.get("source_revision"))
+    status = str(report.get("status", ""))
+    needs_intervention = bool(report.get("needs_main_thread_intervention", False))
     return {
-        "status": str(report.get("status", "")),
-        "needs_main_thread_intervention": bool(report.get("needs_main_thread_intervention", False)),
+        "status": status,
+        "needs_main_thread_intervention": needs_intervention,
         "results_jsonl_exists": bool(report.get("results_jsonl_exists", False)),
         "results_jsonl_line_count": int(report.get("results_jsonl_line_count", 0)),
         "heartbeat": _dict_value(report.get("heartbeat")),
-        "source_revision": _dict_value(report.get("source_revision")),
+        "source_revision": source_revision,
+        "source_revision_policy": _source_revision_policy(
+            source_revision=source_revision,
+            monitor_status=status,
+            needs_main_thread_intervention=needs_intervention,
+        ),
         "command_markers": _dict_value(report.get("command_markers")),
         "progress_summary": _compact_monitor_progress(report.get("progress_summary")),
+    }
+
+
+def _source_revision_policy(
+    *,
+    source_revision: dict[str, Any],
+    monitor_status: str,
+    needs_main_thread_intervention: bool,
+) -> dict[str, Any]:
+    revision_lag = _dict_value(source_revision.get("revision_lag"))
+    if (
+        monitor_status == "running"
+        and not needs_main_thread_intervention
+        and revision_lag.get("status") == "behind_current_head"
+    ):
+        return {
+            "status": "informational",
+            "restart_recommended": False,
+            "reason": "running_monitor_health_takes_precedence_over_revision_lag",
+            "action": "do_not_restart_healthy_run_for_revision_lag",
+        }
+    return {
+        "status": "no_action",
+        "restart_recommended": False,
+        "reason": "",
+        "action": "",
     }
 
 
