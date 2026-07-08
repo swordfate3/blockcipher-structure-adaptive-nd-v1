@@ -222,6 +222,10 @@ single heavy stage from many concurrently launched jobs.
 currently observed progress streams. When only one dataset-cache stream is
 visible, it reports `single_heavy_dataset_cache_stage`, which makes clear that
 many planned commands do not imply many concurrent jobs.
+`residual_focus.wait_diagnosis` condenses the embedded monitor-health state into
+the current wait decision, including whether main-thread intervention is needed,
+whether results are ready, and the cache ETA in seconds and hours when
+available.
 The top-level `local_command_safety` field scans the emitted local command
 fields for forbidden remote-action tokens such as `ssh`, `scp`, `cmd.exe`, and
 `G:\lxy`; it should remain `pass` for this local-only route summary.

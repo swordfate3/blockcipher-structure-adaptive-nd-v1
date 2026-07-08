@@ -314,6 +314,14 @@ def test_present_r8_diverse_route_summary_can_embed_monitor_health_eta(tmp_path:
     assert progress["cache_total_progress_percent"] == 75.0
     assert progress["cache_negative_class_progress_percent"] == 50.0
     assert progress["cache_eta_seconds"] == 100
+    assert report["residual_focus"]["wait_diagnosis"] == {
+        "status": "continue_monitoring",
+        "main_thread_intervention_required": False,
+        "results_ready": False,
+        "cache_eta_seconds": 100,
+        "cache_eta_hours": 0.028,
+        "monitor_status": "running",
+    }
 
 
 def test_present_r8_diverse_route_summary_can_refresh_residual_status_before_reading(tmp_path: Path):

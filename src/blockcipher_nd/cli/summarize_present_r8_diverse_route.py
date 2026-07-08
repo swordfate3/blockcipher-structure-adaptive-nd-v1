@@ -105,6 +105,7 @@ def summarize_present_r8_diverse_route(
         "residual_focus.watch_command": watch_command or _residual_watch_command(),
     }
     residual_action_summary = _residual_action_plan_summary(residual_action_plan)
+    compact_monitor_health = _compact_monitor_health(monitor_health)
     return {
         "status": status,
         "decision": decision,
@@ -161,7 +162,8 @@ def summarize_present_r8_diverse_route(
             "planned_output_count": int(residual.get("planned_output_count", 0)),
             "existing_planned_output_count": int(residual.get("existing_planned_output_count", 0)),
             "monitor_health_command": residual_focus_commands["residual_focus.monitor_health_command"],
-            "monitor_health_summary": _compact_monitor_health(monitor_health),
+            "monitor_health_summary": compact_monitor_health,
+            "wait_diagnosis": _residual_wait_diagnosis(compact_monitor_health),
             "advance_command": residual_focus_commands["residual_focus.advance_command"],
             "watch_command": residual_focus_commands["residual_focus.watch_command"],
             "next_action": _compact_next_action(residual.get("next_action")),
@@ -583,6 +585,27 @@ def _local_command_safety(commands: dict[str, str]) -> dict[str, Any]:
         "checked_fields": list(commands.keys()),
         "forbidden_tokens": forbidden_tokens,
         "findings": findings,
+    }
+
+
+def _residual_wait_diagnosis(monitor_health: dict[str, Any]) -> dict[str, Any]:
+    if not monitor_health:
+        return {"status": "unknown"}
+    progress = _dict_value(monitor_health.get("progress_summary"))
+    eta_seconds = progress.get("cache_eta_seconds")
+    eta_hours = round(float(eta_seconds) / 3600, 3) if eta_seconds is not None else None
+    intervention = bool(monitor_health.get("needs_main_thread_intervention", False))
+    results_ready = bool(monitor_health.get("results_jsonl_exists", False)) and int(
+        monitor_health.get("results_jsonl_line_count", 0)
+    ) > 0
+    status = "needs_main_thread_intervention" if intervention else "results_ready" if results_ready else "continue_monitoring"
+    return {
+        "status": status,
+        "main_thread_intervention_required": intervention,
+        "results_ready": results_ready,
+        "cache_eta_seconds": eta_seconds,
+        "cache_eta_hours": eta_hours,
+        "monitor_status": str(monitor_health.get("status", "")),
     }
 
 
