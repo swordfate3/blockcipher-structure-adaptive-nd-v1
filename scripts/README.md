@@ -264,6 +264,10 @@ distinguished from a partially retrieved or plan-misaligned artifact set.
 If the Pool 3 plan is ready but any per-seed score artifact is missing, it
 reports `wait_for_pool3_score_artifacts` and remains non-terminal so the local
 watcher can continue after later retrieval/sync cycles.
+The `next_action.local_command` field is a one-shot local rerun command with
+the same action-plan, gate, pool, repair, monitor, and artifact paths attached;
+it is intended for handoff or automation after the next sync and does not SSH,
+launch remote work, or change the experiment protocol.
 If the residual-focus gate fails, or if the Pool 3 evaluator returns `hold`, it
 also writes
 `outputs/local_audits/i1_present_r8_residual_focus_repair_plan.json` through

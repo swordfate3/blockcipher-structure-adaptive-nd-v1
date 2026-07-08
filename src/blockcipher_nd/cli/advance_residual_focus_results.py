@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -176,7 +177,18 @@ def advance_residual_focus_results(
         "existing_planned_output_count": final_status["existing_planned_output_count"],
         "missing_output_count": final_status["missing_output_count"],
         "missing_outputs": [str(path) for path in final_status["missing_outputs"]],
-        "next_action": _advance_next_action(final_status, pool_eval_report),
+        "next_action": _advance_next_action(
+            final_status,
+            pool_eval_report,
+            action_plan=action_plan,
+            gate_output=gate_output,
+            pool_output=pool_output,
+            pool_eval_output=pool_eval_output,
+            repair_output=repair_output,
+            status_output=status_output,
+            monitor_dir=monitor_dir,
+            artifact_root=artifact_root,
+        ),
         "claim_scope": (
             "local residual-focus postprocess advancement only; does not SSH, sync, launch "
             "remote jobs, or make a formal/breakthrough SPN/PRESENT claim"
@@ -269,18 +281,80 @@ def _advance_status(
     return "pending", "wait_for_residual_focus_outputs"
 
 
-def _advance_next_action(final_status: dict[str, Any], pool_eval_report: dict[str, Any]) -> dict[str, Any]:
+def _advance_next_action(
+    final_status: dict[str, Any],
+    pool_eval_report: dict[str, Any],
+    *,
+    action_plan: Path,
+    gate_output: Path,
+    pool_output: Path,
+    pool_eval_output: Path,
+    repair_output: Path,
+    status_output: Path,
+    monitor_dir: Path,
+    artifact_root: Path,
+) -> dict[str, Any]:
+    local_command = _advance_local_command(
+        action_plan=action_plan,
+        gate_output=gate_output,
+        pool_output=pool_output,
+        pool_eval_output=pool_eval_output,
+        repair_output=repair_output,
+        status_output=status_output,
+        monitor_dir=monitor_dir,
+        artifact_root=artifact_root,
+    )
     if pool_eval_report.get("status") == "pending" and pool_eval_report.get("decision") == "wait_for_pool3_score_artifacts":
         return {
             "branch": "wait_for_pool3_score_artifacts",
             "should_launch_remote": False,
+            "local_command": local_command,
         }
     if pool_eval_report.get("status") == "hold":
         return {
             "branch": "repair_residual_guided_pool3_before_scaleup",
             "should_launch_remote": False,
+            "local_command": local_command,
         }
-    return final_status["next_action"]
+    next_action = dict(final_status["next_action"])
+    next_action["local_command"] = local_command
+    return next_action
+
+
+def _advance_local_command(
+    *,
+    action_plan: Path,
+    gate_output: Path,
+    pool_output: Path,
+    pool_eval_output: Path,
+    repair_output: Path,
+    status_output: Path,
+    monitor_dir: Path,
+    artifact_root: Path,
+) -> str:
+    parts = [
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "uv",
+        "run",
+        "scripts/advance-residual-focus-results",
+        "--action-plan",
+        str(action_plan),
+        "--gate-output",
+        str(gate_output),
+        "--pool-output",
+        str(pool_output),
+        "--pool-eval-output",
+        str(pool_eval_output),
+        "--repair-output",
+        str(repair_output),
+        "--status-output",
+        str(status_output),
+        "--monitor-dir",
+        str(monitor_dir),
+        "--artifact-root",
+        str(artifact_root),
+    ]
+    return " ".join(shlex.quote(part) for part in parts)
 
 
 def _evaluate_pool3_when_artifacts_ready(

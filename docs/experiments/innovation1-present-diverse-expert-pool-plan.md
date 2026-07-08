@@ -547,6 +547,10 @@ and all per-seed validation score artifacts are present. If the artifacts are
 not present yet, the route reports `wait_for_pool3_score_artifacts` and remains
 non-terminal so the local watcher can keep waiting for later retrieval/sync
 cycles rather than pretending an ensemble result exists.
+The one-shot advance report now carries `next_action.local_command`, a local
+rerun command with the same action-plan, gate, pool, repair, monitor, and
+artifact paths attached. This is for handoff/automation after later sync cycles;
+it is not launch permission and it does not SSH, train, or change protocol.
 
 The recovered r7 Pool 0 remains the near-neighbor control for historical
 context, but it is no longer the next mainline action. The next aggregation work

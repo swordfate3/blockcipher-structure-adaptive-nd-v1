@@ -129,6 +129,10 @@ def test_advance_residual_focus_results_waits_when_outputs_missing(tmp_path):
     assert report["progress_summary"]["event"] == "cache_positive_chunk"
     assert report["progress_summary"]["class_progress_fraction"] == 0.03125
     assert report["progress_by_seed_split"][0]["seed"] == 0
+    assert report["next_action"]["branch"] == "wait_for_residual_focus_outputs"
+    assert "scripts/advance-residual-focus-results" in report["next_action"]["local_command"]
+    assert f"--action-plan {action_plan}" in report["next_action"]["local_command"]
+    assert "ssh" not in report["next_action"]["local_command"]
     assert not pool.exists()
 
 
@@ -236,6 +240,9 @@ def test_advance_residual_focus_results_runs_gate_and_pool_when_outputs_ready(tm
     assert report["pool_eval_status"] == "pending"
     assert report["pool_eval_decision"] == "wait_for_pool3_score_artifacts"
     assert report["missing_pool3_score_artifact_count"] > 0
+    assert report["next_action"]["branch"] == "wait_for_pool3_score_artifacts"
+    assert "scripts/advance-residual-focus-results" in report["next_action"]["local_command"]
+    assert f"--pool-eval-output {pool_eval}" in report["next_action"]["local_command"]
     assert report["source_selection_report_count"] == 4
     assert report["source_selection_existing_report_count"] == 0
     assert report["source_selection_missing_report_count"] == 4
