@@ -1,3 +1,60 @@
+## [LRN-20260708-008] best_practice
+
+**Logged**: 2026-07-08T23:32:48+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Simple stats-level active-relative shifting is not enough to unlock PRESENT r8
+random-active or heldout-active transfer.
+
+### Details
+The PRESENT r8 active-conditioned curriculum local diagnostic at 512/class
+seed0+seed1 added `active_conditioning = relative_stats` to
+`present_trail_position_stats_pairset`. Instead of only appending active one-hot
+metadata to the final statistics vector, it rotates the per-word cell activity
+before computing trail-position statistics, so the active nibble becomes
+relative cell 0.
+
+The local gate result:
+
+- Unconditioned random16 baseline stayed near chance: seed0 AUC 0.498641968,
+  seed1 AUC 0.525375366.
+- Shallow metadata random16 stayed below chance-ish: seed0 AUC 0.473663330,
+  seed1 AUC 0.471611023.
+- Relative-stats active1 stayed high: seed0 AUC 0.979125977, seed1 AUC
+  0.994842529.
+- Relative-stats active2 retained some signal: seed0 AUC 0.691108704, seed1
+  AUC 0.768592834.
+- Relative-stats active4/8/16 mostly collapsed to near chance, and heldout
+  train {0,1,2,3} -> validation {4,5,6,7} did not transfer: heldout seed0 AUC
+  0.496734619, seed1 AUC 0.460891724.
+
+This blocks remote scale for the current active-conditioned stats route. The
+route is locally useful as a diagnostic: it shows the model can use active
+conditioning for fixed or two-coordinate cases, but the representation still
+does not carry the PRESENT coordinate relationship needed for broad
+random-active or heldout-active generalization.
+
+### Suggested Action
+Do not move `relative_stats` to 65k/262k by default. The next local step should
+use a stricter PRESENT-aware relative-coordinate representation based on the
+S-box/P-layer graph, then rerun the same active-set curriculum and heldout gate
+against the unconditioned random-active baseline on seed0+seed1.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-conditioned-curriculum-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_conditioned_curriculum_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py
+- Tags: innovation1, present, spn, active-conditioning, active-nibble, local-gate
+- See Also: LRN-20260708-007, LRN-20260708-006, LRN-20260708-005
+- Pattern-Key: innovation1.spn_present.active_conditioned_relative_stats_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-08
+- Last-Seen: 2026-07-08
+
+---
+
 ## [LRN-20260708-007] best_practice
 
 **Logged**: 2026-07-08T23:55:00+08:00

@@ -28,8 +28,11 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         dropout: float = 0.0,
         stats_hidden_bits: int | None = None,
         metadata_bits: int = 0,
+        active_conditioning: str = "none",
     ) -> None:
         super().__init__()
+        if active_conditioning not in {"none", "relative_stats"}:
+            raise ValueError("PresentTrailPositionStats active_conditioning must be none or relative_stats")
         if metadata_bits < 0:
             raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
         base_input_bits = input_bits - metadata_bits
@@ -50,6 +53,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.input_bits = input_bits
         self.base_input_bits = base_input_bits
         self.metadata_bits = metadata_bits
+        self.active_conditioning = active_conditioning
         self.pair_bits = pair_bits
         self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
@@ -59,6 +63,10 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.trail_depth = trail_depth
         self.trail_words_per_depth = trail_words_per_depth
         self.prefix_words = self.words_per_pair - trail_depth * trail_words_per_depth
+        if self.active_conditioning == "relative_stats" and self.metadata_bits != self.cells_per_word:
+            raise ValueError(
+                "PresentTrailPositionStats relative_stats requires one metadata bit per PRESENT cell"
+            )
         self.stats_hidden_bits = stats_hidden_bits or max(64, base_channels * 8)
         self.activation = activation
         self.norm = norm
@@ -119,6 +127,8 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             self.nibble_bits,
         )
         activity = cells.mean(dim=-1)
+        if self.active_conditioning == "relative_stats":
+            activity = self._active_relative_activity(activity, features)
         word_activity = activity.mean(dim=-1)
         cell_activity = activity.mean(dim=2)
 
@@ -194,6 +204,23 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             ],
             dim=1,
         )
+
+    def _active_relative_activity(
+        self,
+        activity: torch.Tensor,
+        features: torch.Tensor,
+    ) -> torch.Tensor:
+        active_metadata = features[:, -self.metadata_bits :].float()
+        active_indices = active_metadata.argmax(dim=1)
+        relative_cells = torch.arange(self.cells_per_word, device=activity.device)
+        source_cells = (active_indices[:, None] + relative_cells[None, :]) % self.cells_per_word
+        gather_index = source_cells[:, None, None, :].expand(
+            -1,
+            self.pairs_per_sample,
+            self.words_per_pair,
+            -1,
+        )
+        return torch.gather(activity, dim=3, index=gather_index)
 
     def _global_position_stats(self, activity: torch.Tensor, trail: torch.Tensor) -> torch.Tensor:
         pair_density = activity.mean(dim=(2, 3))

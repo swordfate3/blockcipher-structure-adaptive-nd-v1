@@ -14236,6 +14236,38 @@ def test_present_trail_position_model_accepts_active_metadata_bits():
     assert logits.shape == (2, 1)
 
 
+def test_present_trail_position_relative_stats_conditions_on_active_metadata():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits + 16,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "metadata_bits": 16,
+            "active_conditioning": "relative_stats",
+        },
+    )
+    features = torch.zeros(2, 16 * pair_bits + 16)
+    for pair_index in range(16):
+        start = pair_index * pair_bits
+        features[:, start : start + 4] = 1.0
+    features[0, -16] = 1.0
+    features[1, -15] = 1.0
+
+    stats = model._position_statistics(features)
+
+    assert not torch.allclose(stats[0], stats[1])
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(
@@ -14350,6 +14382,54 @@ def test_present_r8_active_nibble_generalization_plan_is_split_controlled():
     plan_text = plan_doc.read_text(encoding="utf-8")
     assert "heldout-active" in plan_text
     assert "metadata_bits = 16" in plan_text
+
+
+def test_present_r8_active_conditioned_curriculum_plan_is_local_gate_only():
+    plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_active_conditioned_curriculum_512_seed0_seed1.csv"
+    )
+    tasks = build_tasks(parse_args(["--plan", plan]))
+
+    assert len(tasks) == 16
+    assert {task["rounds"] for task in tasks} == {8}
+    assert {task["samples_per_class"] for task in tasks} == {512}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["model_key"] for task in tasks} == {"present_trail_position_stats_pairset"}
+    assert all("LOCAL DIAGNOSTIC" in task["matching_evidence"] for task in tasks)
+
+    conditioned_tasks = [
+        task
+        for task in tasks
+        if task["model_options"].get("active_conditioning") == "relative_stats"
+    ]
+    assert len(conditioned_tasks) == 12
+    assert {task["model_options"]["metadata_bits"] for task in conditioned_tasks} == {16}
+    assert {
+        task["integral_active_nibbles"]
+        for task in conditioned_tasks
+        if not task["validation_integral_active_nibbles"]
+    } == {
+        (0,),
+        (0, 1),
+        (0, 1, 2, 3),
+        (0, 1, 2, 3, 4, 5, 6, 7),
+        tuple(range(16)),
+    }
+    heldout_tasks = [
+        task
+        for task in conditioned_tasks
+        if task["validation_integral_active_nibbles"] == (4, 5, 6, 7)
+    ]
+    assert len(heldout_tasks) == 2
+    assert all(task["integral_active_nibbles"] == (0, 1, 2, 3) for task in heldout_tasks)
+
+    plan_doc = Path("docs/experiments/innovation1-present-r8-active-conditioned-curriculum-plan.md")
+    plan_text = plan_doc.read_text(encoding="utf-8")
+    assert "active_conditioning = relative_stats" in plan_text
+    assert "Remote scale remains blocked" in plan_text
 
 
 def test_present_r8_integral_feature_variation_control_plan_is_local_audit_only():
@@ -15993,6 +16073,78 @@ def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_pa
                     "training": {"selected_bit_indices": [0, 1, 64, 65]},
                 },
             ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == "pass"
+    assert report["duplicate_plan_keys"] == []
+    assert report["duplicate_result_keys"] == []
+
+
+def test_result_plan_alignment_distinguishes_model_options_rows(tmp_path):
+    plan_path = tmp_path / "model_options_plan.csv"
+    result_path = tmp_path / "model_options_results.jsonl"
+    fieldnames = [
+        "cipher",
+        "model_key",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "pairs_per_sample",
+        "feature_encoding",
+        "sample_structure",
+        "model_options",
+    ]
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_trail_position_stats_pairset",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "512",
+            "pairs_per_sample": "16",
+            "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+            "sample_structure": "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+            "model_options": '{"metadata_bits":16}',
+        },
+        {
+            "cipher": "PRESENT-80",
+            "model_key": "present_trail_position_stats_pairset",
+            "rounds": "8",
+            "seed": "0",
+            "samples_per_class": "512",
+            "pairs_per_sample": "16",
+            "feature_encoding": "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+            "sample_structure": "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+            "model_options": '{"active_conditioning":"relative_stats","metadata_bits":16}',
+        },
+    ]
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    result_path.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "cipher": row["cipher"],
+                    "model": row["model_key"],
+                    "selected_model": row["model_key"],
+                    "rounds": int(row["rounds"]),
+                    "seed": int(row["seed"]),
+                    "samples_per_class": int(row["samples_per_class"]),
+                    "pairs_per_sample": int(row["pairs_per_sample"]),
+                    "feature_encoding": row["feature_encoding"],
+                    "sample_structure": row["sample_structure"],
+                    "training": {"model_options": json.loads(row["model_options"])},
+                },
+                sort_keys=True,
+            )
+            for row in rows
         )
         + "\n",
         encoding="utf-8",

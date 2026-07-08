@@ -36,6 +36,7 @@ PLAN_RESULT_FIELD_PAIRS = [
     ("early_stopping_patience", ("training", "early_stopping_patience")),
     ("early_stopping_min_delta", ("training", "early_stopping_min_delta")),
     ("pretrain_epochs", ("training", "pretraining", "epochs_ran")),
+    ("model_options", ("training", "model_options")),
 ]
 
 
@@ -219,6 +220,7 @@ def _alignment_key(
         _int_tuple_key(row.get("validation_integral_active_nibbles", "")),
         _normalize_value(row.get("key_rotation_interval", "")),
         _selected_indices_key(row),
+        _json_object_key(_row_model_options(row)),
     ]
     key.extend(_normalize_value(row.get(field, "")) for field in optional_key_fields)
     return tuple(key)
@@ -251,6 +253,14 @@ def _selected_indices_key(row: dict[str, Any]) -> str:
     return text
 
 
+def _row_model_options(row: dict[str, Any]) -> Any:
+    if "model_options" in row:
+        return row["model_options"]
+    if isinstance(row.get("training"), dict):
+        return row["training"].get("model_options", {})
+    return {}
+
+
 def _int_tuple_key(value: Any) -> str:
     if value is None or value == "":
         return "[]"
@@ -265,6 +275,23 @@ def _int_tuple_key(value: Any) -> str:
         return text
     if isinstance(parsed, list):
         return json.dumps([int(item) for item in parsed], separators=(",", ":"))
+    return text
+
+
+def _json_object_key(value: Any) -> str:
+    if value is None or value == "":
+        return "{}"
+    if isinstance(value, dict):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+    text = str(value).strip()
+    if not text:
+        return "{}"
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return text
+    if isinstance(parsed, dict):
+        return json.dumps(parsed, sort_keys=True, separators=(",", ":"))
     return text
 
 
@@ -292,6 +319,9 @@ def _field_mismatches(
             elif plan_field in {"integral_active_nibbles", "validation_integral_active_nibbles"}:
                 plan_value = _int_tuple_key(plan_row.get(plan_field))
                 result_value = _int_tuple_key(result_value_raw)
+            elif plan_field == "model_options":
+                plan_value = _json_object_key(plan_row.get(plan_field))
+                result_value = _json_object_key(result_value_raw)
             else:
                 plan_value = _normalize_value(plan_row[plan_field])
                 result_value = _normalize_value(result_value_raw)
