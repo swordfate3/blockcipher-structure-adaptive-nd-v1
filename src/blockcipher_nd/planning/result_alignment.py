@@ -65,8 +65,9 @@ def validate_result_plan_alignment(
     if len(result_rows) != expected_rows:
         errors.append(f"result_rows={len(result_rows)} expected_rows={expected_rows}")
 
-    plan_keys = [_alignment_key(row) for row in plan_rows]
-    result_keys = [_alignment_key(row) for row in result_rows]
+    optional_key_fields = _optional_alignment_key_fields(plan_rows, result_rows)
+    plan_keys = [_alignment_key(row, optional_key_fields=optional_key_fields) for row in plan_rows]
+    result_keys = [_alignment_key(row, optional_key_fields=optional_key_fields) for row in result_rows]
     plan_counter = Counter(plan_keys)
     result_counter = Counter(result_keys)
 
@@ -84,8 +85,16 @@ def validate_result_plan_alignment(
     if unexpected_result_keys:
         errors.append(f"unexpected_result_key={unexpected_result_keys}")
 
-    plan_by_key = {_alignment_key(row): row for row in plan_rows if plan_counter[_alignment_key(row)] == 1}
-    field_mismatches = _field_mismatches(plan_by_key, result_rows)
+    plan_by_key = {
+        _alignment_key(row, optional_key_fields=optional_key_fields): row
+        for row in plan_rows
+        if plan_counter[_alignment_key(row, optional_key_fields=optional_key_fields)] == 1
+    }
+    field_mismatches = _field_mismatches(
+        plan_by_key,
+        result_rows,
+        optional_key_fields=optional_key_fields,
+    )
     if field_mismatches:
         errors.append(f"field_mismatches={field_mismatches[:10]}")
 
@@ -94,6 +103,7 @@ def validate_result_plan_alignment(
         "expected_rows": expected_rows,
         "plan_rows": len(plan_rows),
         "result_rows": len(result_rows),
+        "optional_key_fields": list(optional_key_fields),
         "plan_keys": plan_keys,
         "result_keys": result_keys,
         "duplicate_plan_keys": duplicate_plan_keys,
@@ -173,17 +183,36 @@ def _load_jsonl_rows(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _alignment_key(row: dict[str, Any]) -> tuple[int, int, str, int, str, str, str, str]:
-    return (
+def _optional_alignment_key_fields(
+    plan_rows: list[dict[str, Any]],
+    result_rows: list[dict[str, Any]],
+) -> tuple[str, ...]:
+    fields = []
+    for field in ("difference_profile", "difference_member"):
+        if _any_nonempty(plan_rows, field) and _any_nonempty(result_rows, field):
+            fields.append(field)
+    return tuple(fields)
+
+
+def _any_nonempty(rows: list[dict[str, Any]], field: str) -> bool:
+    return any(_normalize_value(row.get(field, "")) != "" for row in rows)
+
+
+def _alignment_key(
+    row: dict[str, Any],
+    *,
+    optional_key_fields: tuple[str, ...] = (),
+) -> tuple[Any, ...]:
+    key: list[Any] = [
         int(row["rounds"]),
         int(row["seed"]),
         _model_key(row),
         int(row["samples_per_class"]),
         _normalize_value(row.get("feature_encoding", "")),
         _selected_indices_key(row),
-        _normalize_value(row.get("difference_profile", "")),
-        _normalize_value(row.get("difference_member", "")),
-    )
+    ]
+    key.extend(_normalize_value(row.get(field, "")) for field in optional_key_fields)
+    return tuple(key)
 
 
 def _model_key(row: dict[str, Any]) -> str:
@@ -214,12 +243,14 @@ def _selected_indices_key(row: dict[str, Any]) -> str:
 
 
 def _field_mismatches(
-    plan_by_key: dict[tuple[int, int, str, int, str, str, str, str], dict[str, str]],
+    plan_by_key: dict[tuple[Any, ...], dict[str, str]],
     result_rows: list[dict[str, Any]],
+    *,
+    optional_key_fields: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
     mismatches: list[dict[str, Any]] = []
     for result_row in result_rows:
-        key = _alignment_key(result_row)
+        key = _alignment_key(result_row, optional_key_fields=optional_key_fields)
         plan_row = plan_by_key.get(key)
         if not plan_row:
             continue

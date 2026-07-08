@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-07
 
-**Status:** local axis-spectrum diagnostic complete; aux-depth-word global/bucket probes held; residual correction probe held pending stronger attribution
+**Status:** local axis-spectrum and prefetch Pool3 diagnostics complete; residual-focused 262144/class remote gate running; no formal claim yet
 
 ## Question
 
@@ -1349,4 +1349,123 @@ fallback_retrieved = no
 retrieved_from_verified_branch = no
 plan_aligned = not yet
 formal = no
+```
+
+## V22 Prefetch Top5 Pool3 Frozen-Score Diagnostic
+
+While the 262144/class residual-focused remote gate continued under the local
+watcher, a lightweight local prefetch checked whether the train-only
+axis-spectrum recommendation should seed the next Pool3 residual expert.
+
+Source selection used only train-side reports from both seeds:
+
+```text
+outputs/local_audits/i1_present_r8_seed0_train_residual_loss_axis_spectrum.json
+outputs/local_audits/i1_present_r8_seed1_train_residual_loss_axis_spectrum.json
+outputs/local_audits/i1_present_r8_seed0_train_hard_error_axis_spectrum.json
+outputs/local_audits/i1_present_r8_seed1_train_hard_error_axis_spectrum.json
+```
+
+The strict top5 summary selected the same auxiliary family as the 2048/class
+residual-focus no-bucket artifacts:
+
+```text
+summary =
+  outputs/local_audits/i1_present_r8_residual_axis_spectrum_summary_prefetch_top5.json
+decision = residual_axis_spectrum_stable_groups_selected
+recommended_feature_prefixes = ["aux_word_", "aux_depth_word_"]
+selected_groups =
+  aux_word_mean
+  aux_word_global_mean
+  aux_depth_word_depth_mean
+  aux_depth_word_trailword_mean
+  aux_depth_word_global_mean
+claim_scope = train-only source selection diagnostic
+```
+
+Frozen-score Pool3 checks then compared:
+
+```text
+two-score anchor =
+  trail_stats_logistic_scores
+  span_raw117_matched_scores
+
+candidate Pool3 =
+  trail_stats_logistic_scores
+  span_raw117_matched_scores
+  aux_depth_word_ + aux_word_ residual_focus10_nobucket_scores
+
+label-shuffle Pool3 control =
+  trail_stats_logistic_scores
+  span_raw117_matched_scores
+  aux_depth_word_ + aux_word_ residual_focus10_labelshuffle_scores
+```
+
+Result summary:
+
+| Seed | Pool | Best single AUC | Best ensemble AUC | Delta vs best single | Decision |
+|---:|---|---:|---:|---:|---|
+| 0 | trail+raw117 | `1.0` | `0.9999990463256836` | `-0.0000009536743164` | saturated two-score anchor |
+| 0 | trail+raw117+source-selected residual | `1.0` | `1.0` | `0.0` | candidate does not hurt best single; tiny gain vs two-score ensemble |
+| 0 | trail+raw117+labelshuffle residual | `1.0` | `0.9999980926513672` | `-0.0000019073486328` | shuffled residual hurts |
+| 1 | trail+raw117 | `1.0` | `0.999995231628418` | `-0.0000047683715820` | saturated two-score anchor |
+| 1 | trail+raw117+source-selected residual | `1.0` | `0.9999990463256836` | `-0.0000009536743164` | candidate improves vs two-score ensemble but not vs best single |
+| 1 | trail+raw117+labelshuffle residual | `1.0` | `0.9999809265136719` | `-0.0000190734863281` | shuffled residual clearly hurts |
+
+Artifacts:
+
+```text
+outputs/local_audits/i1_present_r8_seed0_prefetch_top5_trail_raw117_ensemble.json
+outputs/local_audits/i1_present_r8_seed0_prefetch_top5_source_selected_pool3.json
+outputs/local_audits/i1_present_r8_seed0_prefetch_top5_labelshuffle_pool3.json
+outputs/local_audits/i1_present_r8_seed1_prefetch_top5_trail_raw117_ensemble.json
+outputs/local_audits/i1_present_r8_seed1_prefetch_top5_source_selected_pool3.json
+outputs/local_audits/i1_present_r8_seed1_prefetch_top5_labelshuffle_pool3.json
+```
+
+Decision:
+
+```text
+decision = keep_aux_depth_word_aux_word_residual_focus10_as_prefetch_pool3_candidate
+status = local_2048class_diagnostic_only_wait_for_262k_gate
+action =
+  use aux_word_ + aux_depth_word_ as the first source-selected residual family
+  when the 262144/class residual-focus artifacts are available;
+  do not promote this to a formal claim because the 2048 validation split is
+  saturated by the strongest single trail-position expert;
+  do not expand to many weak networks by count alone, because the label-shuffle
+  third score hurts on both seeds and the diverse pool still has only two
+  eligible non-neighbor families.
+```
+
+Interpretation:
+
+```text
+The useful signal is not "three networks beat one network" at 2048/class. The
+useful signal is narrower: train-only source selection repeatedly points to
+aux_word_ and aux_depth_word_, and the matching residual-focused candidate is
+less harmful than the label-shuffle control when added to the frozen trail+raw117
+anchor. Because the strongest single expert already reaches AUC 1.0 locally,
+this diagnostic can only choose the next residual source; it cannot prove final
+AUC improvement. The 262144/class gate remains the required scale check.
+```
+
+Bounded watcher-synced remote status at this point:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+status = running
+needs_main_thread_intervention = false
+postprocess_allowed = false
+results_jsonl_exists = false
+stage = dataset_cache
+seed = 0
+split = validation
+model = present_trail_position_stats_pairset
+cache_total_rows = 262144
+cache_rows_done = 24576
+cache_total_progress_percent = 9.375
+cache_rows_per_second ~= 5.454
+cache_eta_seconds ~= 43558
+claim_scope = watcher-synced status only; not completed or retrieved evidence
 ```
