@@ -45,6 +45,43 @@ def _active_role_ids(graph_mode: str) -> list[list[int]]:
     return rows
 
 
+def _persistent_edge_indices(graph_mode: str) -> tuple[list[int], list[int]]:
+    if graph_mode not in {"true", "shuffled"}:
+        raise ValueError("persistent edge graph_mode must be true or shuffled")
+    permutation = list(range(16))
+    if graph_mode == "shuffled":
+        generator = torch.Generator().manual_seed(20260709)
+        permutation = torch.randperm(16, generator=generator).tolist()
+    sources: list[int] = []
+    targets: list[int] = []
+    for source_nibble in range(16):
+        source_cell = 15 - source_nibble
+        for target in _present_p_layer_target_cells(source_nibble):
+            sources.append(source_cell)
+            targets.append(permutation[target])
+    return sources, targets
+
+
+def _persistent_edge_role_ids(graph_mode: str) -> list[list[int]]:
+    sources, targets = _persistent_edge_indices(graph_mode)
+    source_cells = _active_source_cells()
+    target_masks = _active_target_mask(graph_mode)
+    rows: list[list[int]] = []
+    for active_nibble, source_cell in enumerate(source_cells):
+        row: list[int] = []
+        for edge_source, edge_target in zip(sources, targets):
+            if edge_source == source_cell:
+                row.append(2)
+            elif edge_target == source_cell:
+                row.append(3)
+            elif target_masks[active_nibble][edge_target]:
+                row.append(1)
+            else:
+                row.append(0)
+        rows.append(row)
+    return rows
+
+
 class PresentActiveCellGraphLayer(nn.Module):
     """Per-sample source-target message layer selected by active PRESENT nibble."""
 
@@ -120,10 +157,13 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         lse_temperature: float = 1.0,
         metadata_bits: int = 0,
         graph_mode: str = "true",
+        edge_mode: str = "active_only",
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
             raise ValueError("PresentActiveCellGraph graph_mode must be true, shuffled, or metadata_only")
+        if edge_mode not in {"active_only", "persistent"}:
+            raise ValueError("PresentActiveCellGraph edge_mode must be active_only or persistent")
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
         if graph_depth < 1:
@@ -145,6 +185,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.token_dim = token_dim or max(16, base_channels * 2)
         self.graph_depth = graph_depth
         self.graph_mode = graph_mode
+        self.edge_mode = edge_mode
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -182,6 +223,16 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
             build_activation(activation),
         )
+        self.persistent_edge_role_embedding = nn.Embedding(4, self.token_dim)
+        nn.init.trunc_normal_(self.persistent_edge_role_embedding.weight, std=0.02)
+        self.persistent_edge_encoder = nn.Sequential(
+            nn.Linear(self.token_dim * 4, max(self.token_dim, self.token_dim * token_mlp_ratio)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
+            build_activation(activation),
+        )
+        self.persistent_edge_norm = build_norm(norm, self.token_dim)
         self.register_buffer(
             "source_cells",
             torch.tensor(_active_source_cells(), dtype=torch.long),
@@ -198,6 +249,22 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
                 torch.tensor(_active_role_ids(graph_mode), dtype=torch.long),
                 persistent=False,
             )
+            edge_sources, edge_targets = _persistent_edge_indices(graph_mode)
+            self.register_buffer(
+                "persistent_edge_sources",
+                torch.tensor(edge_sources, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "persistent_edge_targets",
+                torch.tensor(edge_targets, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "persistent_edge_role_ids",
+                torch.tensor(_persistent_edge_role_ids(graph_mode), dtype=torch.long),
+                persistent=False,
+            )
         else:
             self.register_buffer(
                 "target_masks",
@@ -207,6 +274,21 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.register_buffer(
                 "role_ids",
                 torch.zeros(16, self.cells_per_word, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "persistent_edge_sources",
+                torch.zeros(1, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "persistent_edge_targets",
+                torch.zeros(1, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "persistent_edge_role_ids",
+                torch.zeros(16, 1, dtype=torch.long),
                 persistent=False,
             )
         self.pair_embedding_bits = self.token_dim * 6
@@ -267,6 +349,33 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         )
         return self.cell_encoder(cells) + self.cell_embedding
 
+    def _persistent_edge_embedding(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+    ) -> torch.Tensor:
+        edge_sources = self.persistent_edge_sources.to(hidden.device)
+        edge_targets = self.persistent_edge_targets.to(hidden.device)
+        source_tokens = hidden.index_select(dim=1, index=edge_sources)
+        target_tokens = hidden.index_select(dim=1, index=edge_targets)
+        role_ids = self.persistent_edge_role_ids.to(hidden.device).index_select(dim=0, index=active_indices)
+        role_tokens = self.persistent_edge_role_embedding(role_ids)
+        edge_inputs = torch.cat(
+            [
+                source_tokens,
+                target_tokens,
+                target_tokens - source_tokens,
+                source_tokens * target_tokens,
+            ],
+            dim=-1,
+        )
+        edge_tokens = self.persistent_edge_norm(self.persistent_edge_encoder(edge_inputs) + role_tokens)
+        active_edge_weights = (role_ids == 2).to(hidden.dtype).unsqueeze(-1)
+        active_edge_embedding = (edge_tokens * active_edge_weights).sum(dim=1) / active_edge_weights.sum(
+            dim=1
+        ).clamp_min(1.0)
+        return 0.5 * (edge_tokens.mean(dim=1) + active_edge_embedding)
+
     def _encode_pairs(
         self,
         pair_features: torch.Tensor,
@@ -306,6 +415,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             )
             edge_values = self.edge_encoder(edge_inputs) * target_weights
             edge_embedding = edge_values.sum(dim=1) / target_weights.sum(dim=1).clamp_min(1.0)
+            if self.edge_mode == "persistent":
+                edge_embedding = self._persistent_edge_embedding(hidden, active_indices)
         else:
             edge_embedding = torch.zeros_like(source_embedding)
         pair_embedding = torch.cat(

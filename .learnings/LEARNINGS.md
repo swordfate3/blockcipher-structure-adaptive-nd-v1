@@ -1,3 +1,57 @@
+## [LRN-20260709-014] best_practice
+
+**Logged**: 2026-07-09T18:10:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 persistent edge-token graph remains unstable and fails the
+true-vs-control gate at 512/class.
+
+### Details
+The local diagnostic gate extended `present_active_cell_graph_pairset` with
+`edge_mode = persistent`. It still consumed no DDT trail-value block and used:
+
+- `present_pair_xor_paligned_sinv_cell_matrix_bits`
+- 16-bit active-nibble metadata as coordinate conditioning
+- persistent PRESENT P-layer source-target edge tokens
+- true, shuffled, and metadata-only controls
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives.
+
+Results:
+
+- true AUC = 0.519042969 seed0, 0.503952026 seed1
+- shuffled AUC = 0.529899597 seed0, 0.466140747 seed1
+- metadata-only AUC = 0.532554626 seed0, 0.465972900 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Seed1 shows the desired ordering, but seed0 reverses it and
+metadata-only is highest. This is not stable evidence that persistent public
+P-layer edge tokens are enough to extract a PRESENT r8 signal from the raw
+prefix route.
+
+### Suggested Action
+Do not remote-scale the persistent edge-token graph. Keep it as a diagnostic
+baseline. The next local architecture should add a stronger topology learning
+signal without feeding DDT trail values as dense main input, such as a
+topology-control auxiliary head, cross-pair edge consistency tokens, or a
+stricter split between active coordinate conditioning and final metadata.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-persistent-edge-token-graph-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_persistent_edge_token_graph_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, persistent-edge-token, active-conditioning, raw-prefix, topology-control, local-gate
+- See Also: LRN-20260709-013, LRN-20260709-012, LRN-20260709-011
+- Pattern-Key: innovation1.spn_present.persistent_edge_token_graph_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-013] best_practice
 
 **Logged**: 2026-07-09T17:34:00+08:00

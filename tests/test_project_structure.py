@@ -16608,21 +16608,38 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
         "present_active_cell_graph_pairset",
         **{**common, "model_options": {**common["model_options"], "graph_mode": "metadata_only"}},
     )
+    persistent_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{
+            **common,
+            "model_options": {
+                **common["model_options"],
+                "graph_mode": "true",
+                "edge_mode": "persistent",
+            },
+        },
+    )
     features = torch.zeros(2, 16 * pair_bits + 16)
     features[:, -16] = 1
 
     true_logits = true_model(features)
     shuffled_logits = shuffled_model(features)
     metadata_logits = metadata_model(features)
+    persistent_logits = persistent_model(features)
 
     assert true_logits.shape == (2, 1)
     assert shuffled_logits.shape == (2, 1)
     assert metadata_logits.shape == (2, 1)
+    assert persistent_logits.shape == (2, 1)
     assert torch.isfinite(true_logits).all()
     assert torch.isfinite(shuffled_logits).all()
     assert torch.isfinite(metadata_logits).all()
+    assert torch.isfinite(persistent_logits).all()
     assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
     assert not metadata_model.target_masks.any()
+    assert persistent_model.persistent_edge_sources.shape == persistent_model.persistent_edge_targets.shape
+    assert persistent_model.persistent_edge_role_ids.shape[1] == persistent_model.persistent_edge_sources.numel()
+    assert persistent_model.edge_mode == "persistent"
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():

@@ -567,6 +567,7 @@ def build_spn_model(
             lse_temperature=float(options.get("lse_temperature", 1.0)),
             metadata_bits=int_option(options, "metadata_bits", 0) or 0,
             graph_mode=str(options.get("graph_mode", "true")),
+            edge_mode=str(options.get("edge_mode", "active_only")),
         )
     if name == "present_trail_position_stats_pairset":
         trail_depth = int_option(options, "trail_depth", 4)
