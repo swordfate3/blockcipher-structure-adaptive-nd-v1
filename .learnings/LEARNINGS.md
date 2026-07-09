@@ -1,3 +1,59 @@
+## [LRN-20260709-024] best_practice
+
+**Logged**: 2026-07-09T23:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 pair8 topology contrast at 2048/class fails controls on seed0, so
+the raw-prefix pair-count ladder is not remote-ready.
+
+### Details
+The local diagnostic gate kept the pair4 2048/class topology-contrast protocol
+and changed only `pairs_per_sample` from `4` to `8`, increasing input size
+from 1296 bits to 2576 bits per sample. The feature route, strict encrypted
+random-plaintext negative protocol, aligned random-active metadata,
+`topology_auxiliary_scale = 0.3`, `topology_contrast_fusion =
+true_minus_shuffled`, persistent edge tokens, and cross-pair consistency stayed
+unchanged.
+
+Results:
+
+- true AUC = 0.502781391 seed0, 0.525839329 seed1
+- shuffled AUC = 0.510715961 seed0, 0.490370274 seed1
+- metadata-only AUC = 0.504064560 seed0, 0.482904911 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Pair8 fails the ordering on seed0:
+
+- seed0 true-shuffled = -0.007934570, true-metadata = -0.001283169
+- seed1 true-shuffled = +0.035469055, true-metadata = +0.042934418
+
+Pair8 improves seed1's absolute AUC and control margin versus pair4 2048/class,
+but seed0 reintroduces the topology-control reversal. This suggests that
+increasing pair count within the raw-prefix topology-contrast route does not
+reliably fix the weak pair4 2048/class signal.
+
+### Suggested Action
+Do not remote-scale pair8 or continue broad pair-count sweeps. Treat pair4 as
+the current minimum control-clean pair count, but redesign the representation
+so topology is active-coordinate-relative before global pooling. A future local
+gate should compare that redesign against pair4 2048/class and the necessary
+shuffled/metadata controls.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-pair8-2048-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_pair8_2048_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, pair-count, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-023, LRN-20260709-022, LRN-20260709-021
+- Pattern-Key: innovation1.spn_present.topology_contrast_pair_count_gate
+- Recurrence-Count: 4
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-023] best_practice
 
 **Logged**: 2026-07-09T23:20:00+08:00
