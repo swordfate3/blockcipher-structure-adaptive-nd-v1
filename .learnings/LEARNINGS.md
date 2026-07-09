@@ -1,3 +1,53 @@
+## [LRN-20260709-022] best_practice
+
+**Logged**: 2026-07-09T22:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 topology contrast loses the clean control ordering at 2
+pairs/sample under the 512/class local gate.
+
+### Details
+The local diagnostic gate kept the pair4 topology-contrast route and changed
+only `pairs_per_sample` from `4` to `2`, reducing input size from 1296 bits to
+656 bits per sample. The feature route, strict encrypted random-plaintext
+negative protocol, aligned random-active metadata, `topology_auxiliary_scale =
+0.3`, `topology_contrast_fusion = true_minus_shuffled`, persistent edge tokens,
+and cross-pair consistency stayed unchanged.
+
+Results:
+
+- true AUC = 0.479537964 seed0, 0.522048950 seed1
+- shuffled AUC = 0.507637024 seed0, 0.513809204 seed1
+- metadata-only AUC = 0.494918823 seed0, 0.507316589 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Pair2 fails the ordering on seed0:
+
+- seed0 true-shuffled = -0.028099060, true-metadata = -0.015380859
+- seed1 true-shuffled = +0.008239746, true-metadata = +0.014732361
+
+### Suggested Action
+Do not scale pair2. Treat pair4 as the current minimum useful pair count for
+this raw-prefix topology-contrast representation. The next local follow-up
+should keep `pairs_per_sample = 4` and test whether the signal is stable under
+a slightly stronger local budget or a narrow pair4-vs-pair8 ladder, rather
+than jumping to remote scale from pair2.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-pair2-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_pair2_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, pair-count, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-021, LRN-20260709-020, LRN-20260709-019
+- Pattern-Key: innovation1.spn_present.topology_contrast_pair_count_gate
+- Recurrence-Count: 2
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-021] best_practice
 
 **Logged**: 2026-07-09T22:15:00+08:00
