@@ -1,3 +1,53 @@
+## [LRN-20260709-016] best_practice
+
+**Logged**: 2026-07-09T19:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 coordinate-only active graph removes direct active metadata fusion
+but still fails the true-vs-control gate at 512/class.
+
+### Details
+The local diagnostic gate extended `present_active_cell_graph_pairset` with
+`active_metadata_fusion = coordinate_only`. In this mode, active metadata is
+used to select source cells, target cells, and persistent edge roles, but it is
+not concatenated into pair embeddings or the final classifier.
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives, with no DDT trail-value block. The model
+also used persistent P-layer edge tokens and cross-pair edge consistency.
+
+Results:
+
+- true AUC = 0.516448975 seed0, 0.545082092 seed1
+- shuffled AUC = 0.547363281 seed0, 0.540908813 seed1
+- metadata-only AUC = 0.552482605 seed0, 0.471466064 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Seed1 shows the desired ordering, but seed0 reverses and metadata-only
+is highest. Direct active metadata fusion is therefore not the only instability
+source in the raw-prefix graph route.
+
+### Suggested Action
+Do not scale coordinate-only active graph. Keep the option as a diagnostic
+control. The next local route should add an explicit topology-control objective
+or pretext task over raw-prefix edge embeddings, so true and shuffled topology
+representations become separable before the main distinguisher head is trusted.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-coordinate-only-active-graph-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_coordinate_only_active_graph_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, coordinate-only-active, active-conditioning, raw-prefix, topology-control, local-gate
+- See Also: LRN-20260709-015, LRN-20260709-014, LRN-20260709-013
+- Pattern-Key: innovation1.spn_present.coordinate_only_active_graph_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-015] best_practice
 
 **Logged**: 2026-07-09T18:45:00+08:00

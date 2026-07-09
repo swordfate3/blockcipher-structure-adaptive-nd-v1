@@ -159,6 +159,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         graph_mode: str = "true",
         edge_mode: str = "active_only",
         cross_pair_consistency: str = "none",
+        active_metadata_fusion: str = "direct",
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
@@ -169,6 +170,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             raise ValueError("PresentActiveCellGraph cross_pair_consistency must be none or edge_mean_absdev")
         if cross_pair_consistency != "none" and edge_mode != "persistent":
             raise ValueError("PresentActiveCellGraph cross-pair consistency requires persistent edge_mode")
+        if active_metadata_fusion not in {"direct", "coordinate_only"}:
+            raise ValueError("PresentActiveCellGraph active_metadata_fusion must be direct or coordinate_only")
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
         if graph_depth < 1:
@@ -192,6 +195,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.graph_mode = graph_mode
         self.edge_mode = edge_mode
         self.cross_pair_consistency = cross_pair_consistency
+        self.active_metadata_fusion = active_metadata_fusion
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -304,7 +308,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
                 torch.zeros(16, 1, dtype=torch.long),
                 persistent=False,
             )
-        self.pair_embedding_bits = self.token_dim * 6
+        self.pair_embedding_bits = self.token_dim * (6 if self.active_metadata_fusion == "direct" else 5)
         projected_bits = max(32, base_channels * 4)
         self.pair_projection = nn.Sequential(
             nn.Linear(self.pair_embedding_bits, max(64, base_channels * 8)),
@@ -331,7 +335,9 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
                 activation=activation,
                 norm=norm,
             )
-        classifier_input_bits = projected_bits + self.token_dim
+        classifier_input_bits = projected_bits
+        if self.active_metadata_fusion == "direct":
+            classifier_input_bits += self.token_dim
         if self.cross_pair_consistency != "none":
             classifier_input_bits += self.token_dim
         self.classifier = nn.Sequential(
@@ -454,17 +460,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         else:
             edge_embedding = torch.zeros_like(source_embedding)
             consistency_edge_tokens = self._persistent_edge_tokens(hidden, active_indices)
-        pair_embedding = torch.cat(
-            [
-                mean_embedding,
-                max_embedding,
-                source_embedding,
-                target_embedding,
-                edge_embedding,
-                metadata_embedding,
-            ],
-            dim=1,
-        )
+        pair_parts = [mean_embedding, max_embedding, source_embedding, target_embedding, edge_embedding]
+        if self.active_metadata_fusion == "direct":
+            pair_parts.append(metadata_embedding)
+        pair_embedding = torch.cat(pair_parts, dim=1)
         return self.pair_projection(pair_embedding), consistency_edge_tokens
 
     def _cross_pair_consistency_embedding(self, edge_tokens: torch.Tensor) -> torch.Tensor:
@@ -499,8 +498,9 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         )
         attention_embedding, attention_weights = self.attention(pair_embeddings)
         self.last_attention_weights = attention_weights.detach()
-        metadata_embedding = self.active_metadata_projection(active_metadata)
-        classifier_inputs = [attention_embedding, metadata_embedding]
+        classifier_inputs = [attention_embedding]
+        if self.active_metadata_fusion == "direct":
+            classifier_inputs.append(self.active_metadata_projection(active_metadata))
         if self.cross_pair_consistency != "none":
             classifier_inputs.append(self._cross_pair_consistency_embedding(edge_tokens))
         return self.classifier(torch.cat(classifier_inputs, dim=1))

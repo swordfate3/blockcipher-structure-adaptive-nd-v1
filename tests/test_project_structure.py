@@ -16631,6 +16631,19 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
             },
         },
     )
+    coordinate_only_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{
+            **common,
+            "model_options": {
+                **common["model_options"],
+                "graph_mode": "true",
+                "edge_mode": "persistent",
+                "cross_pair_consistency": "edge_mean_absdev",
+                "active_metadata_fusion": "coordinate_only",
+            },
+        },
+    )
     features = torch.zeros(2, 16 * pair_bits + 16)
     features[:, -16] = 1
 
@@ -16639,23 +16652,28 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     metadata_logits = metadata_model(features)
     persistent_logits = persistent_model(features)
     consistency_logits = consistency_model(features)
+    coordinate_only_logits = coordinate_only_model(features)
 
     assert true_logits.shape == (2, 1)
     assert shuffled_logits.shape == (2, 1)
     assert metadata_logits.shape == (2, 1)
     assert persistent_logits.shape == (2, 1)
     assert consistency_logits.shape == (2, 1)
+    assert coordinate_only_logits.shape == (2, 1)
     assert torch.isfinite(true_logits).all()
     assert torch.isfinite(shuffled_logits).all()
     assert torch.isfinite(metadata_logits).all()
     assert torch.isfinite(persistent_logits).all()
     assert torch.isfinite(consistency_logits).all()
+    assert torch.isfinite(coordinate_only_logits).all()
     assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
     assert not metadata_model.target_masks.any()
     assert persistent_model.persistent_edge_sources.shape == persistent_model.persistent_edge_targets.shape
     assert persistent_model.persistent_edge_role_ids.shape[1] == persistent_model.persistent_edge_sources.numel()
     assert persistent_model.edge_mode == "persistent"
     assert consistency_model.cross_pair_consistency == "edge_mean_absdev"
+    assert coordinate_only_model.active_metadata_fusion == "coordinate_only"
+    assert coordinate_only_model.pair_embedding_bits == coordinate_only_model.token_dim * 5
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():
