@@ -1,3 +1,52 @@
+## [LRN-20260709-019] best_practice
+
+**Logged**: 2026-07-09T21:05:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 topology contrast with stronger auxiliary scale nearly fixes the
+seed1 true-vs-shuffled reversal but still fails the 512/class gate.
+
+### Details
+The local diagnostic gate kept the explicit true-minus-shuffled topology
+contrast route and changed only `topology_auxiliary_scale` from `0.1` to `0.3`.
+The data protocol, raw-prefix feature route, strict encrypted random-plaintext
+negatives, active metadata protocol, graph controls, and training budget stayed
+the same.
+
+Results:
+
+- true AUC = 0.552261353 seed0, 0.562301636 seed1
+- shuffled AUC = 0.522621155 seed0, 0.565795898 seed1
+- metadata-only AUC = 0.504234314 seed0, 0.548995972 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The aux03 route keeps true above metadata-only on both seeds and reduces
+the seed1 true-vs-shuffled gap from -0.021308899 AUC at auxiliary scale 0.1 to
+-0.003494263 AUC. However, shuffled still wins seed1 by a small margin, so the
+gate remains failed.
+
+### Suggested Action
+Do not scale aux03. It is the best raw-prefix topology-contrast stability so
+far, but it remains below the predefined gate. A very narrow local follow-up
+can check whether scale `0.2` or `0.5` crosses the true-vs-shuffled gate; if
+not, redesign the representation so topology contrast is active-coordinate
+relative before global pooling.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-aux03-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_aux03_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, auxiliary-scale, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-018, LRN-20260709-017, LRN-20260709-016
+- Pattern-Key: innovation1.spn_present.topology_contrast_aux_scale_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-018] best_practice
 
 **Logged**: 2026-07-09T20:35:00+08:00
