@@ -1,3 +1,52 @@
+## [LRN-20260709-020] best_practice
+
+**Logged**: 2026-07-09T21:35:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 topology contrast auxiliary-scale sweep at 0.2 and 0.5 fails the
+true-vs-shuffled 512/class gate.
+
+### Details
+The local diagnostic gate kept the explicit true-minus-shuffled topology
+contrast route and tested `topology_auxiliary_scale = 0.2` and `0.5`. The data
+protocol, raw-prefix feature route, strict encrypted random-plaintext
+negatives, active metadata protocol, graph controls, and training budget stayed
+the same as aux03.
+
+Results:
+
+- aux02 true AUC = 0.494728088 seed0, 0.559402466 seed1
+- aux02 shuffled AUC = 0.528297424 seed0, 0.573776245 seed1
+- aux02 metadata-only AUC = 0.503036499 seed0, 0.550537109 seed1
+- aux05 true AUC = 0.582015991 seed0, 0.553604126 seed1
+- aux05 shuffled AUC = 0.522415161 seed0, 0.568588257 seed1
+- aux05 metadata-only AUC = 0.503303528 seed0, 0.548706055 seed1
+
+Aux02 fails both controls on seed0 and also loses true-vs-shuffled on seed1.
+Aux05 preserves the seed0 improvement and keeps true above metadata-only on
+both seeds, but shuffled still beats true on seed1 by 0.014984131 AUC.
+
+### Suggested Action
+Do not scale aux02, aux03, or aux05 topology contrast. The auxiliary-strength
+sweep did not solve true-vs-shuffled instability. Treat this representation as
+blocked and move to active-coordinate-relative topology contrast before global
+pooling, rather than spending more local/remote runs on auxiliary scale alone.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-aux02-aux05-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_aux02_aux05_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, auxiliary-scale, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-019, LRN-20260709-018, LRN-20260709-017
+- Pattern-Key: innovation1.spn_present.topology_contrast_aux_scale_gate
+- Recurrence-Count: 2
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-019] best_practice
 
 **Logged**: 2026-07-09T21:05:00+08:00
