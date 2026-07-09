@@ -1,3 +1,57 @@
+## [LRN-20260709-027] best_practice
+
+**Logged**: 2026-07-09T22:01:22+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 active-relative contrast remains control-clean at pair4 4096/class,
+but true-vs-shuffled margins collapse, so the route is not remote-ready.
+
+### Details
+The 4096/class follow-up kept the completed pair4 2048/class
+active-relative contrast protocol and changed only `samples_per_class` from
+2048 to 4096. Pair count, feature encoding, strict
+encrypted-random-plaintext negatives, active metadata, graph modes, topology
+contrast, and `active_relative_contrast_fusion = true_minus_shuffled_slots`
+stayed unchanged.
+
+Results:
+
+- true AUC = 0.502257228 seed0, 0.515355825 seed1
+- shuffled AUC = 0.497941256 seed0, 0.514409304 seed1
+- metadata-only AUC = 0.490000367 seed0, 0.497988820 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The route still passes that ordering:
+
+- seed0 true-shuffled = +0.004315972, true-metadata = +0.012256861
+- seed1 true-shuffled = +0.000946522, true-metadata = +0.017367005
+
+However, compared with the 2048/class active-relative contrast gate, the
+true-vs-shuffled margins drop sharply from +0.042667866/+0.021866322 to
++0.004315972/+0.000946522, and absolute true AUC does not strengthen with
+more local data.
+
+### Suggested Action
+Do not remote-scale this route from the 4096/class result. Treat it as
+control-clean but fragile diagnostic evidence. Either run one same-protocol
+8192/class fragility check before any remote slot, or redesign the
+active-relative contrast branch to produce larger true-vs-shuffled separation.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-relative-contrast-pair4-4096-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_relative_contrast_pair4_4096_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, active-relative, active-relative-contrast, pair-count, active-conditioning, local-gate, fragile-margin
+- See Also: LRN-20260709-026, LRN-20260709-025, LRN-20260709-023
+- Pattern-Key: innovation1.spn_present.active_relative_contrast_gate
+- Recurrence-Count: 2
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-026] best_practice
 
 **Logged**: 2026-07-09T21:53:39+08:00
