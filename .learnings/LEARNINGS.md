@@ -1,3 +1,57 @@
+## [LRN-20260709-023] best_practice
+
+**Logged**: 2026-07-09T23:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 pair4 topology contrast remains control-clean at 2048/class, but
+the local signal is weak and not scale-ready.
+
+### Details
+The local diagnostic gate kept `pairs_per_sample = 4` and changed only
+`samples_per_class` from `512` to `2048`. The feature route, strict encrypted
+random-plaintext negative protocol, aligned random-active metadata,
+`topology_auxiliary_scale = 0.3`, `topology_contrast_fusion =
+true_minus_shuffled`, persistent edge tokens, and cross-pair consistency stayed
+unchanged.
+
+Results:
+
+- true AUC = 0.487174988 seed0, 0.509993553 seed1
+- shuffled AUC = 0.482413769 seed0, 0.504078388 seed1
+- metadata-only AUC = 0.478052616 seed0, 0.499298096 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Pair4 2048/class passes that ordering:
+
+- seed0 true-shuffled = +0.004761219, true-metadata = +0.009122372
+- seed1 true-shuffled = +0.005915165, true-metadata = +0.010695457
+
+However, the absolute AUC values are close to chance and the margins are much
+smaller than the 512/class pair4 gate. Treat this as control-clean but weak
+local diagnostic evidence, not remote scale-ready evidence.
+
+### Suggested Action
+Do not launch a remote scale-up from pair4 2048/class alone. Run a narrow
+pair8 local diagnostic under the same protocol to test whether modestly more
+pairs improve absolute AUC without returning to the 16-pair shuffled-topology
+instability. If pair8 fails or remains weak, redesign active-coordinate-relative
+topology features before scaling.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-pair4-2048-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_pair4_2048_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, pair-count, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-022, LRN-20260709-021, LRN-20260709-020
+- Pattern-Key: innovation1.spn_present.topology_contrast_pair_count_gate
+- Recurrence-Count: 3
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-022] best_practice
 
 **Logged**: 2026-07-09T22:45:00+08:00
