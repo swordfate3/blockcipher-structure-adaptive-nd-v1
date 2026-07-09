@@ -1,3 +1,67 @@
+## [LRN-20260709-026] best_practice
+
+**Logged**: 2026-07-09T21:53:39+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 active-relative true-minus-shuffled slot contrast passes the pair4
+2048/class controls on both seeds and is the strongest current local candidate
+in this family.
+
+### Details
+The follow-up to the direct active-relative summary kept the pair4 2048/class
+protocol and changed only the model-side active-relative fusion to
+`active_relative_contrast_fusion = true_minus_shuffled_slots`. The branch
+computes true and shuffled active-relative source/target-slot summaries from
+the same hidden pair tokens, then projects
+`[true_summary, shuffled_summary, true - shuffled, abs(true - shuffled)]` as a
+sample-level classifier token.
+
+The feature route, strict encrypted-random-plaintext negative protocol,
+aligned random-active metadata, `pairs_per_sample = 4`, `input_bits = 1296`,
+`topology_auxiliary_scale = 0.3`, `topology_contrast_fusion =
+true_minus_shuffled`, persistent edge tokens, and cross-pair consistency stayed
+unchanged.
+
+Results:
+
+- true AUC = 0.520668507 seed0, 0.520288944 seed1
+- shuffled AUC = 0.478000641 seed0, 0.498422623 seed1
+- metadata-only AUC = 0.479330063 seed0, 0.484719276 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. This route passes both controls:
+
+- seed0 true-shuffled = +0.042667866, true-metadata = +0.041338444
+- seed1 true-shuffled = +0.021866322, true-metadata = +0.035569668
+
+Compared with raw-prefix pair4 2048/class, true AUC improves from
+0.487174988/0.509993553 to 0.520668507/0.520288944, and the
+true-vs-shuffled deltas improve from +0.004761219/+0.005915165 to
++0.042667866/+0.021866322. Compared with direct active-relative summary, this
+fixes the seed1 shuffled-control reversal (-0.009750366 -> +0.021866322).
+
+### Suggested Action
+Keep this candidate as the current best local active-relative representation,
+but do not remote-scale directly from a 2048/class two-seed gate. Run the same
+6-row matrix at 4096/class or 8192/class first, preserving shuffled and
+metadata-only controls. Treat this as diagnostic-only evidence until larger
+plan-aligned SPN/PRESENT scale evidence exists.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-relative-contrast-pair4-2048-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_relative_contrast_pair4_2048_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, topology-contrast, active-relative, active-relative-contrast, pair-count, active-conditioning, local-gate
+- See Also: LRN-20260709-025, LRN-20260709-024, LRN-20260709-023
+- Pattern-Key: innovation1.spn_present.active_relative_contrast_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-025] best_practice
 
 **Logged**: 2026-07-09T23:58:00+08:00
