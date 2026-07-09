@@ -1,3 +1,59 @@
+## [LRN-20260709-003] best_practice
+
+**Logged**: 2026-07-09T11:48:13+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Aligned active-difference protocol resolves the active0-only PRESENT r8
+artifact, but p-layer-relative stats may hurt mixed active-set performance.
+
+### Details
+The PRESENT r8 aligned-active-difference screen at 256/class seed0 added sample
+structures where sampled active nibble `k` also moves the one-nibble input
+difference to `0x9 << (4*k)`.
+
+Result:
+
+- aligned active0 p-layer-relative AUC = 0.971069336
+- aligned active1 p-layer-relative AUC = 0.951477051
+- aligned active5 p-layer-relative AUC = 0.983154297
+- aligned active15 p-layer-relative AUC = 0.987121582
+- aligned random16 unconditioned AUC = 0.958923340
+- aligned random16 p-layer-relative AUC = 0.657165527
+- aligned active4 p-layer-relative AUC = 0.712707520
+- aligned heldout4to4 p-layer-relative AUC = 0.758972168
+
+This confirms that the earlier single-active sweep's active0-only pattern was
+largely a protocol-alignment issue: the active coordinate moved, but the input
+difference stayed fixed at low nibble 0. Once the difference follows the active
+coordinate, representative active positions all become high.
+
+The unconditioned aligned random16 row being high shows that the current strong
+feature route can distinguish the aligned random-active protocol without active
+metadata at this small scale. The p-layer-relative stats route is weaker on
+mixed active sets, suggesting that its coordinate reordering may discard useful
+absolute-coordinate or feature-order information.
+
+### Suggested Action
+Do not move directly to remote or active-token-bias based only on this screen.
+Next run full aligned single-active seed0+seed1 and aligned random16
+unconditioned versus p-layer-relative at 512/class seed0+seed1, plus aligned
+feature ablation to identify which feature tier creates the high score.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-active-difference-screen-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_active_difference_screen_256_seed0.csv, src/blockcipher_nd/data/differential/rows.py
+- Tags: innovation1, present, spn, active-nibble, input-difference, protocol-audit
+- See Also: LRN-20260709-002, LRN-20260709-001, LRN-20260708-008
+- Pattern-Key: innovation1.spn_present.aligned_active_difference_screen
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-002] best_practice
 
 **Logged**: 2026-07-09T10:51:06+08:00

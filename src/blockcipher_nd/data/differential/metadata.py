@@ -39,7 +39,10 @@ def effective_pair_bits(config: DifferentialDatasetConfig, block_bits: int) -> i
 def row_metadata_bits(config: DifferentialDatasetConfig, block_bits: int) -> int:
     if (
         config.sample_structure
-        == "plaintext_integral_nibble_difference_matched_negative_random_active_metadata"
+        in {
+            "plaintext_integral_nibble_difference_matched_negative_random_active_metadata",
+            "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata",
+        }
     ):
         return block_bits // 4
     return 0

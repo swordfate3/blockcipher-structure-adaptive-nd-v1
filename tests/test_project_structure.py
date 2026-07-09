@@ -14128,6 +14128,86 @@ def test_integral_random_active_metadata_and_relative_rows_generate():
     assert set(np.argmax(metadata_tail, axis=1).tolist()).issubset({0, 1, 2, 3})
 
 
+def test_aligned_active_difference_metadata_rows_generate():
+    cipher = build_cipher("present80", 8, key=0)
+    base_bits = 16 * 2 * cipher.block_bits
+    dataset = make_differential_dataset(
+        DifferentialDatasetConfig(
+            cipher=cipher,
+            input_difference=0x0000000000000009,
+            samples_per_class=2,
+            seed=19,
+            shuffle=False,
+            feature_encoding="ciphertext_pair_bits",
+            pairs_per_sample=16,
+            negative_mode="encrypted_random_plaintexts",
+            sample_structure=(
+                "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata"
+            ),
+            integral_active_nibbles=(4, 5, 6, 7),
+        )
+    )
+
+    assert dataset.features.shape == (4, base_bits + 16)
+    assert dataset.metadata["row_metadata_bits"] == 16
+    assert dataset.metadata["integral_active_nibbles"] == [4, 5, 6, 7]
+    metadata_tail = dataset.features[:, -16:]
+    assert metadata_tail.sum(axis=1).tolist() == [1, 1, 1, 1]
+    assert set(np.argmax(metadata_tail, axis=1).tolist()).issubset({4, 5, 6, 7})
+
+
+def test_active_aligned_input_difference_moves_single_nibble_delta():
+    from dataclasses import replace
+
+    from blockcipher_nd.data.differential.rows import _active_aligned_input_difference
+
+    cipher = build_cipher("present80", 8, key=0)
+    base_config = DifferentialDatasetConfig(
+        cipher=cipher,
+        input_difference=0x0000000000000009,
+        samples_per_class=2,
+        seed=19,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=16,
+        negative_mode="encrypted_random_plaintexts",
+        sample_structure=(
+            "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata"
+        ),
+    )
+
+    assert _active_aligned_input_difference(
+        replace(base_config, integral_active_nibble=0), cipher.block_bits
+    ) == 0x0000000000000009
+    assert _active_aligned_input_difference(
+        replace(base_config, integral_active_nibble=5), cipher.block_bits
+    ) == 0x0000000000900000
+    assert _active_aligned_input_difference(
+        replace(base_config, integral_active_nibble=15), cipher.block_bits
+    ) == 0x9000000000000000
+
+
+def test_active_aligned_input_difference_requires_single_nibble_delta():
+    cipher = build_cipher("present80", 8, key=0)
+
+    with pytest.raises(ValueError, match="single-nibble input_difference"):
+        make_differential_dataset(
+            DifferentialDatasetConfig(
+                cipher=cipher,
+                input_difference=0x0000000000000909,
+                samples_per_class=1,
+                seed=19,
+                shuffle=False,
+                feature_encoding="ciphertext_pair_bits",
+                pairs_per_sample=16,
+                negative_mode="encrypted_random_plaintexts",
+                sample_structure=(
+                    "plaintext_integral_nibble_aligned_difference_matched_negative_random_active"
+                ),
+                integral_active_nibbles=(0, 1),
+            )
+        )
+
+
 def test_active_nibble_set_changes_cache_identity(tmp_path):
     cipher = build_cipher("present80", 8, key=0)
     task = {

@@ -35,6 +35,19 @@ def generate_positive_row(
         active_config = _with_sampled_active_nibble(config, rng, block_bits)
         row = _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
         return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if (
+        config.sample_structure
+        == "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata"
+    ):
+        active_config = _with_sampled_active_nibble_and_aligned_difference(config, rng, block_bits)
+        row = _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
+        return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if (
+        config.sample_structure
+        == "plaintext_integral_nibble_aligned_difference_matched_negative_random_active"
+    ):
+        active_config = _with_sampled_active_nibble_and_aligned_difference(config, rng, block_bits)
+        return _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_relative":
         active_config = _with_sampled_active_nibble(config, rng, block_bits)
         row = _generate_integral_positive_row(active_config, rng, block_bits, mask, row_index)
@@ -84,6 +97,25 @@ def generate_negative_row(
             active_config, rng, block_bits, mask, row_index
         )
         return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if (
+        config.sample_structure
+        == "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata"
+    ):
+        mask = (1 << block_bits) - 1
+        active_config = _with_sampled_active_nibble_and_aligned_difference(config, rng, block_bits)
+        row = _generate_integral_difference_matched_negative_row(
+            active_config, rng, block_bits, mask, row_index
+        )
+        return row + _active_nibble_one_hot(active_config.integral_active_nibble, block_bits)
+    if (
+        config.sample_structure
+        == "plaintext_integral_nibble_aligned_difference_matched_negative_random_active"
+    ):
+        mask = (1 << block_bits) - 1
+        active_config = _with_sampled_active_nibble_and_aligned_difference(config, rng, block_bits)
+        return _generate_integral_difference_matched_negative_row(
+            active_config, rng, block_bits, mask, row_index
+        )
     if config.sample_structure == "plaintext_integral_nibble_difference_matched_negative_random_active_relative":
         mask = (1 << block_bits) - 1
         active_config = _with_sampled_active_nibble(config, rng, block_bits)
@@ -486,6 +518,27 @@ def _with_sampled_active_nibble(
     choices = config.integral_active_nibbles or tuple(range(block_bits // 4))
     active_nibble = int(choices[int(rng.integers(0, len(choices)))])
     return replace(config, integral_active_nibble=active_nibble)
+
+
+def _with_sampled_active_nibble_and_aligned_difference(
+    config: DifferentialDatasetConfig,
+    rng: np.random.Generator,
+    block_bits: int,
+) -> DifferentialDatasetConfig:
+    active_config = _with_sampled_active_nibble(config, rng, block_bits)
+    return replace(
+        active_config,
+        input_difference=_active_aligned_input_difference(active_config, block_bits),
+    )
+
+
+def _active_aligned_input_difference(config: DifferentialDatasetConfig, block_bits: int) -> int:
+    active_nibbles = _nonzero_nibble_support(config.input_difference, block_bits)
+    if len(active_nibbles) != 1:
+        raise ValueError("active-aligned integral rows require a single-nibble input_difference")
+    source_nibble = active_nibbles[0]
+    nibble_value = (config.input_difference >> (4 * source_nibble)) & 0xF
+    return nibble_value << (4 * config.integral_active_nibble)
 
 
 def _active_nibble_one_hot(active_nibble: int, block_bits: int) -> list[int]:
