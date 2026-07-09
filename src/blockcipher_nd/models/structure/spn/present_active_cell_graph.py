@@ -177,6 +177,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         topology_auxiliary_scale: float = 0.0,
         topology_contrast_fusion: str = "none",
         active_relative_summary: str = "none",
+        active_relative_contrast_fusion: str = "none",
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
@@ -198,6 +199,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         if active_relative_summary not in {"none", "source_target_slots"}:
             raise ValueError(
                 "PresentActiveCellGraph active_relative_summary must be none or source_target_slots"
+            )
+        if active_relative_contrast_fusion not in {"none", "true_minus_shuffled_slots"}:
+            raise ValueError(
+                "PresentActiveCellGraph active_relative_contrast_fusion must be none or true_minus_shuffled_slots"
             )
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
@@ -226,6 +231,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.topology_auxiliary_scale = topology_auxiliary_scale
         self.topology_contrast_fusion = topology_contrast_fusion
         self.active_relative_summary = active_relative_summary
+        self.active_relative_contrast_fusion = active_relative_contrast_fusion
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -295,6 +301,13 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         )
         self.active_relative_projection = nn.Sequential(
             nn.Linear(self.token_dim * 6, max(self.token_dim, self.token_dim * token_mlp_ratio)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
+            build_activation(activation),
+        )
+        self.active_relative_contrast_projection = nn.Sequential(
+            nn.Linear(self.token_dim * 4, max(self.token_dim, self.token_dim * token_mlp_ratio)),
             build_activation(activation),
             nn.Dropout(dropout),
             nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
@@ -400,6 +413,16 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             torch.tensor(_persistent_edge_role_ids("shuffled"), dtype=torch.long),
             persistent=False,
         )
+        self.register_buffer(
+            "active_relative_true_target_slots",
+            torch.tensor(_active_target_slots("true"), dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "active_relative_shuffled_target_slots",
+            torch.tensor(_active_target_slots("shuffled"), dtype=torch.long),
+            persistent=False,
+        )
         pair_embedding_parts = 6 if self.active_metadata_fusion == "direct" else 5
         if self.active_relative_summary != "none":
             pair_embedding_parts += 1
@@ -436,6 +459,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         if self.cross_pair_consistency != "none":
             classifier_input_bits += self.token_dim
         if self.topology_contrast_fusion != "none":
+            classifier_input_bits += self.token_dim
+        if self.active_relative_contrast_fusion != "none":
             classifier_input_bits += self.token_dim
         self.classifier = nn.Sequential(
             build_norm(norm, classifier_input_bits),
@@ -605,11 +630,57 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         )
         return self.active_relative_projection(relative_tokens.reshape(hidden.shape[0], -1))
 
+    def _active_relative_embedding_from_slots(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+        source_embedding: torch.Tensor,
+        target_slots: torch.Tensor,
+    ) -> torch.Tensor:
+        slots = target_slots.to(hidden.device).index_select(dim=0, index=active_indices)
+        target_tokens = hidden.gather(
+            dim=1,
+            index=slots[:, :, None].expand(hidden.shape[0], slots.shape[1], self.token_dim),
+        )
+        target_embedding = target_tokens.mean(dim=1)
+        relative_tokens = torch.cat(
+            [
+                source_embedding[:, None, :],
+                target_tokens,
+                (target_embedding - source_embedding)[:, None, :],
+            ],
+            dim=1,
+        )
+        return self.active_relative_projection(relative_tokens.reshape(hidden.shape[0], -1))
+
+    def _active_relative_contrast_embedding(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+        source_embedding: torch.Tensor,
+    ) -> torch.Tensor:
+        true_summary = self._active_relative_embedding_from_slots(
+            hidden=hidden,
+            active_indices=active_indices,
+            source_embedding=source_embedding,
+            target_slots=self.active_relative_true_target_slots,
+        )
+        shuffled_summary = self._active_relative_embedding_from_slots(
+            hidden=hidden,
+            active_indices=active_indices,
+            source_embedding=source_embedding,
+            target_slots=self.active_relative_shuffled_target_slots,
+        )
+        delta = true_summary - shuffled_summary
+        return self.active_relative_contrast_projection(
+            torch.cat([true_summary, shuffled_summary, delta, delta.abs()], dim=1)
+        )
+
     def _encode_pairs(
         self,
         pair_features: torch.Tensor,
         active_metadata: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         hidden = self._cell_tokens(pair_features)
         active_indices = active_metadata.float().argmax(dim=1)
         metadata_embedding = self.active_metadata_projection(active_metadata.float())
@@ -677,7 +748,17 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             if self.topology_contrast_fusion == "true_minus_shuffled"
             else hidden.new_zeros(hidden.shape[0], self.token_dim)
         )
-        return self.pair_projection(pair_embedding), consistency_edge_tokens, topology_contrast
+        active_relative_contrast = (
+            self._active_relative_contrast_embedding(hidden, active_indices, source_embedding)
+            if self.active_relative_contrast_fusion == "true_minus_shuffled_slots"
+            else hidden.new_zeros(hidden.shape[0], self.token_dim)
+        )
+        return (
+            self.pair_projection(pair_embedding),
+            consistency_edge_tokens,
+            topology_contrast,
+            active_relative_contrast,
+        )
 
     def _cross_pair_consistency_embedding(self, edge_tokens: torch.Tensor) -> torch.Tensor:
         edge_mean = edge_tokens.mean(dim=1)
@@ -697,7 +778,12 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.pairs_per_sample,
             self.metadata_bits,
         ).reshape(features.shape[0] * self.pairs_per_sample, self.metadata_bits)
-        flat_pair_embeddings, flat_edge_tokens, flat_topology_contrast = self._encode_pairs(
+        (
+            flat_pair_embeddings,
+            flat_edge_tokens,
+            flat_topology_contrast,
+            flat_active_relative_contrast,
+        ) = self._encode_pairs(
             pair_features,
             pair_metadata,
         )
@@ -717,6 +803,11 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.pairs_per_sample,
             self.token_dim,
         )
+        active_relative_contrast = flat_active_relative_contrast.reshape(
+            features.shape[0],
+            self.pairs_per_sample,
+            self.token_dim,
+        )
         attention_embedding, attention_weights = self.attention(pair_embeddings)
         self.last_attention_weights = attention_weights.detach()
         classifier_inputs = [attention_embedding]
@@ -726,6 +817,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             classifier_inputs.append(self._cross_pair_consistency_embedding(edge_tokens))
         if self.topology_contrast_fusion != "none":
             classifier_inputs.append(topology_contrast.mean(dim=1))
+        if self.active_relative_contrast_fusion != "none":
+            classifier_inputs.append(active_relative_contrast.mean(dim=1))
         return self.classifier(torch.cat(classifier_inputs, dim=1))
 
 
