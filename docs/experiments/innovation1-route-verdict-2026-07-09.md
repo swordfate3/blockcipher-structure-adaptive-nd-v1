@@ -114,6 +114,37 @@ Interpretation:
 - If margins reopen on both seeds, prepare one medium diagnostic plan; do not
   call it formal evidence.
 
+### 2026-07-09 E1 Completion Update
+
+E1 has completed:
+
+```text
+plan = configs/experiment/innovation1/innovation1_spn_present_r8_active_relative_contrast_pair4_8192_seed0_seed1.csv
+results = outputs/local_smoke/i1_present_r8_active_relative_contrast_pair4_8192_seed0_seed1/results.jsonl
+status = completed local adjudication diagnostic
+validation = pass
+```
+
+Control deltas:
+
+| seed | true - shuffled AUC | true - metadata-only AUC |
+| ---: | ---: | ---: |
+| 0 | +0.003980964 | +0.009444445 |
+| 1 | +0.008310705 | +0.020662129 |
+
+Verdict:
+
+```text
+active-relative topology-architecture branch = held / redesign-before-scale
+remote_scale = no
+next_adjudication = E2 trail-position neural residual with deterministic baseline
+```
+
+The route remains control-clean, but it did not reopen true-vs-shuffled margins
+on both seeds. Seed1 improved over the 4096/class near-tie, while seed0 stayed
+near-tied. Do not run 16k/32k/65k follow-ups for this branch without a new
+representation hypothesis.
+
 ### E2: Trail-Position Neural Residual With Deterministic Baseline
 
 Purpose:

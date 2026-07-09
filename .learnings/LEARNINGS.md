@@ -1,3 +1,47 @@
+## [LRN-20260709-029] best_practice
+
+**Logged**: 2026-07-09T22:54:29+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Innovation 1 E1 active-relative contrast 8192/class stays control-clean but
+does not reopen margins on both seeds, so the topology-architecture branch
+should be held rather than scaled.
+
+### Details
+The E1 adjudication gate kept the active-relative contrast pair4 protocol and
+changed only `samples_per_class` from 4096 to 8192. The route remained
+control-clean:
+
+- seed0 true-shuffled = +0.003980964, true-metadata = +0.009444445
+- seed1 true-shuffled = +0.008310705, true-metadata = +0.020662129
+
+Compared with 4096/class, seed1 improved from +0.000946522 to +0.008310705,
+but seed0 stayed near-tied and slightly below its 4096/class margin
+(+0.004315972 -> +0.003980964). The gate required both seeds to materially
+reopen true-vs-shuffled margins. That did not happen.
+
+### Suggested Action
+Do not run 16k/32k/65k follow-ups or remote scale for this active-relative
+topology-architecture branch without a new representation hypothesis. Treat it
+as diagnostic-only, control-clean, and still fragile. The next Innovation 1
+adjudication should move to E2: trail-position neural residual with a
+deterministic baseline.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-relative-contrast-pair4-8192-plan.md, docs/experiments/innovation1-route-verdict-2026-07-09.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_relative_contrast_pair4_8192_seed0_seed1.csv
+- Tags: innovation1, route-verdict, active-relative-contrast, topology-architecture, local-gate, fragile-margin, adjudication
+- See Also: LRN-20260709-028, LRN-20260709-027, LRN-20260709-026
+- Pattern-Key: innovation1.spn_present.active_relative_contrast_gate
+- Recurrence-Count: 3
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-028] best_practice
 
 **Logged**: 2026-07-09T22:34:42+08:00
