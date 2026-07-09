@@ -14383,6 +14383,182 @@ def test_present_trail_position_p_layer_relative_stats_uses_present_coordinates(
     assert conditioned[0, 0, 0, :4].tolist() == [15.0, 11.0, 7.0, 3.0]
 
 
+def test_present_trail_position_prefix_only_control_masks_trail_words():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    common = {
+        "input_bits": 16 * pair_bits,
+        "hidden_bits": 16,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_position_control": "prefix_only",
+        },
+    }
+    control = build_model("present_trail_position_stats_pairset", **common)
+    anchor_options = dict(common["model_options"])
+    anchor_options["trail_position_control"] = "none"
+    anchor = build_model(
+        "present_trail_position_stats_pairset",
+        **{**common, "model_options": anchor_options},
+    )
+    features = torch.zeros(1, 16 * pair_bits)
+    trail_start = control.prefix_words * 64
+    for pair_index in range(16):
+        pair_start = pair_index * pair_bits
+        features[:, pair_start + trail_start : pair_start + trail_start + 64] = 1.0
+
+    zero_stats = control._position_statistics(torch.zeros_like(features))
+    prefix_only_stats = control._position_statistics(features)
+    anchor_stats = anchor._position_statistics(features)
+
+    assert torch.allclose(prefix_only_stats, zero_stats)
+    assert not torch.allclose(anchor_stats, zero_stats)
+
+
+def test_present_trail_position_trail_only_control_masks_prefix_words():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    common = {
+        "input_bits": 16 * pair_bits,
+        "hidden_bits": 16,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_position_control": "trail_only",
+        },
+    }
+    control = build_model("present_trail_position_stats_pairset", **common)
+    anchor_options = dict(common["model_options"])
+    anchor_options["trail_position_control"] = "none"
+    anchor = build_model(
+        "present_trail_position_stats_pairset",
+        **{**common, "model_options": anchor_options},
+    )
+    features = torch.zeros(1, 16 * pair_bits)
+    for pair_index in range(16):
+        pair_start = pair_index * pair_bits
+        features[:, pair_start : pair_start + 64] = 1.0
+
+    zero_stats = control._position_statistics(torch.zeros_like(features))
+    trail_only_stats = control._position_statistics(features)
+    anchor_stats = anchor._position_statistics(features)
+
+    assert torch.allclose(trail_only_stats, zero_stats)
+    assert not torch.allclose(anchor_stats, zero_stats)
+
+
+def test_present_trail_position_reverse_control_changes_position_statistics():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    common = {
+        "input_bits": 16 * pair_bits,
+        "hidden_bits": 16,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+        },
+    }
+    anchor = build_model("present_trail_position_stats_pairset", **common)
+    reverse_options = dict(common["model_options"])
+    reverse_options["trail_position_control"] = "reverse_trail_positions"
+    reversed_model = build_model(
+        "present_trail_position_stats_pairset",
+        **{**common, "model_options": reverse_options},
+    )
+    features = torch.zeros(1, 16 * pair_bits)
+    trail_start = anchor.prefix_words * 64
+    for pair_index in range(16):
+        pair_start = pair_index * pair_bits
+        second_trail_word = trail_start + 64
+        features[:, pair_start + second_trail_word : pair_start + second_trail_word + 64] = 1.0
+
+    anchor_stats = anchor._position_statistics(features)
+    reversed_stats = reversed_model._position_statistics(features)
+
+    assert not torch.allclose(anchor_stats, reversed_stats)
+
+
+def test_present_trail_position_permute_control_uses_fixed_trail_permutation():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    common = {
+        "input_bits": 16 * pair_bits,
+        "hidden_bits": 16,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+        },
+    }
+    anchor = build_model("present_trail_position_stats_pairset", **common)
+    permute_options = dict(common["model_options"])
+    permute_options["trail_position_control"] = "permute_trail_positions"
+    permuted_model = build_model(
+        "present_trail_position_stats_pairset",
+        **{**common, "model_options": permute_options},
+    )
+    features = torch.zeros(1, 16 * pair_bits)
+    trail_start = anchor.prefix_words * 64
+    for pair_index in range(16):
+        pair_start = pair_index * pair_bits
+        second_trail_word = trail_start + 64
+        features[:, pair_start + second_trail_word : pair_start + second_trail_word + 64] = 1.0
+
+    permutation = permuted_model.trail_word_permutation.tolist()
+    anchor_stats = anchor._position_statistics(features)
+    permuted_stats = permuted_model._position_statistics(features)
+
+    assert sorted(permutation) == list(range(36))
+    assert permutation[:6] == [0, 7, 14, 21, 28, 35]
+    assert not torch.allclose(anchor_stats, permuted_stats)
+
+
+def test_present_trail_position_rejects_unknown_position_control():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+
+    with pytest.raises(ValueError, match="trail_position_control"):
+        build_model(
+            "present_trail_position_stats_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=16,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "trail_position_control": "random_shuffle",
+            },
+        )
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(

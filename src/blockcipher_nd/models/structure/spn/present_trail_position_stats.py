@@ -29,12 +29,24 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         stats_hidden_bits: int | None = None,
         metadata_bits: int = 0,
         active_conditioning: str = "none",
+        trail_position_control: str = "none",
     ) -> None:
         super().__init__()
         if active_conditioning not in {"none", "relative_stats", "p_layer_relative_stats"}:
             raise ValueError(
                 "PresentTrailPositionStats active_conditioning must be none, "
                 "relative_stats, or p_layer_relative_stats"
+            )
+        if trail_position_control not in {
+            "none",
+            "prefix_only",
+            "trail_only",
+            "reverse_trail_positions",
+            "permute_trail_positions",
+        }:
+            raise ValueError(
+                "PresentTrailPositionStats trail_position_control must be none, "
+                "prefix_only, trail_only, reverse_trail_positions, or permute_trail_positions"
             )
         if metadata_bits < 0:
             raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
@@ -57,6 +69,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.base_input_bits = base_input_bits
         self.metadata_bits = metadata_bits
         self.active_conditioning = active_conditioning
+        self.trail_position_control = trail_position_control
         self.pair_bits = pair_bits
         self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
@@ -76,6 +89,12 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             self.register_buffer(
                 "active_cell_permutations",
                 torch.tensor(_present_p_layer_relative_cell_permutations(), dtype=torch.long),
+                persistent=False,
+            )
+        if self.trail_position_control == "permute_trail_positions":
+            self.register_buffer(
+                "trail_word_permutation",
+                torch.tensor(_coprime_trail_word_permutation(trail_depth * trail_words_per_depth), dtype=torch.long),
                 persistent=False,
             )
         self.stats_hidden_bits = stats_hidden_bits or max(64, base_channels * 8)
@@ -140,6 +159,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         activity = cells.mean(dim=-1)
         if self.active_conditioning != "none":
             activity = self._active_relative_activity(activity, features)
+        activity = self._trail_position_controlled_activity(activity)
         word_activity = activity.mean(dim=-1)
         cell_activity = activity.mean(dim=2)
 
@@ -215,6 +235,21 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             ],
             dim=1,
         )
+
+    def _trail_position_controlled_activity(self, activity: torch.Tensor) -> torch.Tensor:
+        if self.trail_position_control == "none":
+            return activity
+        prefix = activity[:, :, : self.prefix_words]
+        trail = activity[:, :, self.prefix_words :]
+        if self.trail_position_control == "prefix_only":
+            trail = torch.zeros_like(trail)
+        elif self.trail_position_control == "trail_only":
+            prefix = torch.zeros_like(prefix)
+        elif self.trail_position_control == "reverse_trail_positions":
+            trail = torch.flip(trail, dims=[2])
+        elif self.trail_position_control == "permute_trail_positions":
+            trail = trail.index_select(dim=2, index=self.trail_word_permutation.to(trail.device))
+        return torch.cat([prefix, trail], dim=2)
 
     def _active_relative_activity(
         self,
@@ -304,6 +339,21 @@ def _present_p_layer_target_cells(source_nibble: int) -> list[int]:
         if target_cell not in targets:
             targets.append(target_cell)
     return targets
+
+
+def _coprime_trail_word_permutation(length: int) -> list[int]:
+    if length <= 0:
+        return []
+    step = 7
+    while _gcd(step, length) != 1:
+        step += 2
+    return [(index * step) % length for index in range(length)]
+
+
+def _gcd(left: int, right: int) -> int:
+    while right:
+        left, right = right, left % right
+    return abs(left)
 
 
 __all__ = ["PresentTrailPositionStatsPairSetDistinguisher"]

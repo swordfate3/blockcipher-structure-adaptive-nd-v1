@@ -563,6 +563,7 @@ def build_spn_model(
             stats_hidden_bits=int_option(options, "stats_hidden_bits"),
             metadata_bits=int_option(options, "metadata_bits", 0) or 0,
             active_conditioning=str(options.get("active_conditioning", "none")),
+            trail_position_control=str(options.get("trail_position_control", "none")),
         )
     if name == "present_p_layer_mixer_pairset":
         return PresentPLayerMixerPairSetDistinguisher(

@@ -1,3 +1,56 @@
+## [LRN-20260709-005] best_practice
+
+**Logged**: 2026-07-09T13:36:34+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 aligned random16 trail signal is carried by trail-derived values,
+not by prefix-only features, exact trail-word order, or fixed-key artifacts at
+the local 512/class gate.
+
+### Details
+The PRESENT r8 aligned trail-position attribution gate at 512/class seed0+seed1
+tested `present_trail_position_stats_pairset` with internal model controls:
+
+- full anchor AUC = 0.971763611 seed0, 0.972396851 seed1
+- prefix_only AUC = 0.600173950 seed0, 0.601318359 seed1
+- trail_only AUC = 0.973968506 seed0, 0.973541260 seed1
+- reverse_trail_positions AUC = 0.960464478 seed0, 0.971984863 seed1
+- permute_trail_positions AUC = 0.985290527 seed0, 0.979141235 seed1
+- per_sample_key_full AUC = 0.970565796 seed0, 0.980911255 seed1
+
+This sharpens the previous full-gate interpretation. The prefix words are not
+sufficient, but the trail-derived words are sufficient. Exact ordered
+trail-position semantics are not necessary at this small scale, because both
+simple reversal and a deterministic non-monotonic trail-word permutation remain
+high. Per-sample key rotation also remains high, so the result is not explained
+by fixed train/validation key artifacts at this gate.
+
+The best current wording is: the aligned random16 signal is concentrated in the
+public trail-derived statistics themselves, and the trail-position statistics
+model can extract that signal even after trail-word order is scrambled.
+
+### Suggested Action
+Do not remote-scale as a formal claim yet. The next local control should
+destroy or mismatch trail-derived values, not only their order. Prefer
+random-trail-value, mismatched-source, or label-preserving protocol controls
+that keep input shape and encryption protocol but break the relation between
+each sample's ciphertext pair and its trail words.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-trail-position-attribution-plan.md, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_trail_position_attribution_512_seed0_seed1.csv, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_trail_position_permute_512_seed0_seed1.csv, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_trail_only_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, trail-position, attribution, active-nibble, key-rotation
+- See Also: LRN-20260709-004, LRN-20260709-003, LRN-20260709-002
+- Pattern-Key: innovation1.spn_present.aligned_trail_position_attribution
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-004] best_practice
 
 **Logged**: 2026-07-09T12:49:23+08:00
