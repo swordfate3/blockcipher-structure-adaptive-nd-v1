@@ -1,3 +1,56 @@
+## [LRN-20260709-021] best_practice
+
+**Logged**: 2026-07-09T22:15:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 topology contrast becomes control-clean at 4 pairs/sample under the
+512/class local gate.
+
+### Details
+The local diagnostic gate kept the aux03 topology-contrast route and changed
+only `pairs_per_sample` from `16` to `4`, reducing input size from 5136 bits to
+1296 bits per sample. The feature route, strict encrypted random-plaintext
+negative protocol, aligned random-active metadata, `topology_auxiliary_scale =
+0.3`, `topology_contrast_fusion = true_minus_shuffled`, persistent edge tokens,
+and cross-pair consistency stayed unchanged.
+
+Results:
+
+- true AUC = 0.530555725 seed0, 0.540649414 seed1
+- shuffled AUC = 0.500633240 seed0, 0.473312378 seed1
+- metadata-only AUC = 0.489967346 seed0, 0.490112305 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. Pair4 passes that ordering on both seeds:
+
+- seed0 true-shuffled = +0.029922485, true-metadata = +0.040588379
+- seed1 true-shuffled = +0.067337036, true-metadata = +0.050537109
+
+The absolute AUC values are modest, so this is diagnostic only. However, it is
+the cleanest true-vs-shuffled ordering seen so far in the raw-prefix
+topology-contrast family.
+
+### Suggested Action
+Do not scale pair4 yet. Run the same protocol at `pairs_per_sample = 2` before
+remote scale-up. If pair2 also passes both controls, prioritize smaller
+pair-set topology contrast over 16-pair aggregation; if pair2 fails, treat
+pair4 as the current minimum useful pair count for this representation.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-pair4-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_pair4_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, topology-contrast, pair-count, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-020, LRN-20260709-019, LRN-20260709-018
+- Pattern-Key: innovation1.spn_present.topology_contrast_pair_count_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-020] best_practice
 
 **Logged**: 2026-07-09T21:35:00+08:00
