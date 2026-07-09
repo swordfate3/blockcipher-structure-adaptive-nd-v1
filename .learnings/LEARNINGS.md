@@ -1,3 +1,55 @@
+## [LRN-20260709-028] best_practice
+
+**Logged**: 2026-07-09T22:34:42+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Innovation 1 should switch from broad exploration to route-verdict
+adjudication after more than 100 experiment configs and repeated weak/fragile
+SPN/PRESENT gates.
+
+### Details
+The project now has a large Innovation 1 experiment inventory:
+
+- `configs/experiment/innovation1` files = 147
+- CSV configs = 129
+- JSON configs = 17
+- `docs/experiments/innovation1*` files = 82
+
+At this scale, another small variant is only useful if it decides a route.
+The route verdict document records that broad search should stop and that the
+next phase allows only bounded adjudication experiments:
+
+- active-relative contrast 8192/class fragility gate;
+- trail-position neural residual with deterministic baseline;
+- same-budget route anchor comparison.
+
+The goal is to decide whether Innovation 1 continues as a topology-aware
+architecture route, an SPN-aware representation route, or a controlled
+negative-result/methodology contribution.
+
+### Suggested Action
+Before launching any new Innovation 1 experiment, check
+`docs/experiments/innovation1-route-verdict-2026-07-09.md`. Do not spend a
+meaningful slot on broad pair-count sweeps, near-neighbor ensemble widening,
+more deterministic InvP aggregate statistics, repeated r8/r9 difference
+screens, or remote scaling from weak local gates unless the route verdict is
+updated with a new evidence-backed exception.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/experiments/innovation1-route-verdict-2026-07-09.md, configs/experiment/innovation1/, docs/experiments/
+- Tags: innovation1, route-verdict, adjudication-mode, experiment-governance, spn, present
+- See Also: LRN-20260709-027, LRN-20260709-026, LRN-20260706-023, LRN-20260706-020
+- Pattern-Key: innovation1.workflow.switch_to_route_verdict_mode
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-027] best_practice
 
 **Logged**: 2026-07-09T22:01:22+08:00
