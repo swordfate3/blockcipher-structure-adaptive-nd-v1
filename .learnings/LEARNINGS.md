@@ -1,3 +1,56 @@
+## [LRN-20260709-017] best_practice
+
+**Logged**: 2026-07-09T19:55:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 topology auxiliary graph fixes metadata-only ordering but still
+fails true-vs-shuffled topology on seed1 at 512/class.
+
+### Details
+The local diagnostic gate added a model-side `topology_auxiliary_scale = 0.1`
+objective to `present_active_cell_graph_pairset`. During each forward pass, the
+model builds both true and shuffled persistent-edge summaries from the same
+hidden cell tokens and trains a small auxiliary head to distinguish them. The
+main binary distinguisher labels and strict encrypted random-plaintext negative
+protocol are unchanged.
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, no DDT
+trail-value block, coordinate-only active metadata, persistent edge tokens, and
+cross-pair edge consistency.
+
+Results:
+
+- true AUC = 0.549957275 seed0, 0.513763428 seed1
+- shuffled AUC = 0.519607544 seed0, 0.555465698 seed1
+- metadata-only AUC = 0.502563477 seed0, 0.475112915 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The topology auxiliary objective passes `true > metadata-only` on both
+seeds and fixes the seed0 metadata-only reversal from the coordinate-only gate.
+However, shuffled topology still beats true topology on seed1.
+
+### Suggested Action
+Do not scale topology auxiliary graph yet. It is the strongest raw-prefix graph
+diagnostic so far because it beats metadata-only on both seeds, but it remains
+blocked by true-vs-shuffled instability. Next local work should target that
+specific separation, such as a small auxiliary-scale sweep, an explicit
+true-minus-shuffled contrast feature, or a staged/pretext topology objective.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-auxiliary-graph-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_auxiliary_graph_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py, src/blockcipher_nd/training/trainer.py
+- Tags: innovation1, present, spn, topology-auxiliary, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-016, LRN-20260709-015, LRN-20260709-014
+- Pattern-Key: innovation1.spn_present.topology_auxiliary_graph_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-016] best_practice
 
 **Logged**: 2026-07-09T19:20:00+08:00

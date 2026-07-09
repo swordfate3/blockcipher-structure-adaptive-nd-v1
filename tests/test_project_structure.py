@@ -16644,6 +16644,20 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
             },
         },
     )
+    auxiliary_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{
+            **common,
+            "model_options": {
+                **common["model_options"],
+                "graph_mode": "true",
+                "edge_mode": "persistent",
+                "cross_pair_consistency": "edge_mean_absdev",
+                "active_metadata_fusion": "coordinate_only",
+                "topology_auxiliary_scale": 0.1,
+            },
+        },
+    )
     features = torch.zeros(2, 16 * pair_bits + 16)
     features[:, -16] = 1
 
@@ -16653,6 +16667,7 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     persistent_logits = persistent_model(features)
     consistency_logits = consistency_model(features)
     coordinate_only_logits = coordinate_only_model(features)
+    auxiliary_logits = auxiliary_model(features)
 
     assert true_logits.shape == (2, 1)
     assert shuffled_logits.shape == (2, 1)
@@ -16660,12 +16675,14 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert persistent_logits.shape == (2, 1)
     assert consistency_logits.shape == (2, 1)
     assert coordinate_only_logits.shape == (2, 1)
+    assert auxiliary_logits.shape == (2, 1)
     assert torch.isfinite(true_logits).all()
     assert torch.isfinite(shuffled_logits).all()
     assert torch.isfinite(metadata_logits).all()
     assert torch.isfinite(persistent_logits).all()
     assert torch.isfinite(consistency_logits).all()
     assert torch.isfinite(coordinate_only_logits).all()
+    assert torch.isfinite(auxiliary_logits).all()
     assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
     assert not metadata_model.target_masks.any()
     assert persistent_model.persistent_edge_sources.shape == persistent_model.persistent_edge_targets.shape
@@ -16674,6 +16691,8 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert consistency_model.cross_pair_consistency == "edge_mean_absdev"
     assert coordinate_only_model.active_metadata_fusion == "coordinate_only"
     assert coordinate_only_model.pair_embedding_bits == coordinate_only_model.token_dim * 5
+    assert auxiliary_model.last_auxiliary_loss is not None
+    assert torch.isfinite(auxiliary_model.last_auxiliary_loss)
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():

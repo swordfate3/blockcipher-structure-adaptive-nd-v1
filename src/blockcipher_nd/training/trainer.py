@@ -77,6 +77,9 @@ def train_binary_classifier(
             optimizer.zero_grad(set_to_none=True)
             logits = model(features).squeeze(1)
             loss = compute_loss(loss_fn, logits, labels, config.loss)
+            auxiliary_loss = getattr(model, "last_auxiliary_loss", None)
+            if auxiliary_loss is not None:
+                loss = loss + auxiliary_loss
             loss.backward()
             optimizer.step()
             if scheduler is not None and not isinstance(scheduler, OfficialEpochCyclicLR):

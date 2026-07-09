@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 from blockcipher_nd.models.common.components import (
     AttentionPooling,
@@ -160,6 +161,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         edge_mode: str = "active_only",
         cross_pair_consistency: str = "none",
         active_metadata_fusion: str = "direct",
+        topology_auxiliary_scale: float = 0.0,
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
@@ -172,6 +174,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             raise ValueError("PresentActiveCellGraph cross-pair consistency requires persistent edge_mode")
         if active_metadata_fusion not in {"direct", "coordinate_only"}:
             raise ValueError("PresentActiveCellGraph active_metadata_fusion must be direct or coordinate_only")
+        if topology_auxiliary_scale < 0.0:
+            raise ValueError("PresentActiveCellGraph topology_auxiliary_scale must be non-negative")
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
         if graph_depth < 1:
@@ -196,6 +200,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.edge_mode = edge_mode
         self.cross_pair_consistency = cross_pair_consistency
         self.active_metadata_fusion = active_metadata_fusion
+        self.topology_auxiliary_scale = topology_auxiliary_scale
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -249,6 +254,12 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
             build_activation(activation),
+        )
+        self.topology_auxiliary_head = nn.Sequential(
+            nn.Linear(self.token_dim, max(self.token_dim, self.token_dim * token_mlp_ratio)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), 1),
         )
         self.register_buffer(
             "source_cells",
@@ -308,6 +319,38 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
                 torch.zeros(16, 1, dtype=torch.long),
                 persistent=False,
             )
+        true_sources, true_targets = _persistent_edge_indices("true")
+        shuffled_sources, shuffled_targets = _persistent_edge_indices("shuffled")
+        self.register_buffer(
+            "topology_auxiliary_true_sources",
+            torch.tensor(true_sources, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "topology_auxiliary_true_targets",
+            torch.tensor(true_targets, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "topology_auxiliary_true_role_ids",
+            torch.tensor(_persistent_edge_role_ids("true"), dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "topology_auxiliary_shuffled_sources",
+            torch.tensor(shuffled_sources, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "topology_auxiliary_shuffled_targets",
+            torch.tensor(shuffled_targets, dtype=torch.long),
+            persistent=False,
+        )
+        self.register_buffer(
+            "topology_auxiliary_shuffled_role_ids",
+            torch.tensor(_persistent_edge_role_ids("shuffled"), dtype=torch.long),
+            persistent=False,
+        )
         self.pair_embedding_bits = self.token_dim * (6 if self.active_metadata_fusion == "direct" else 5)
         projected_bits = max(32, base_channels * 4)
         self.pair_projection = nn.Sequential(
@@ -350,6 +393,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             nn.Linear(128, 1),
         )
         self.last_attention_weights: torch.Tensor | None = None
+        self.last_auxiliary_loss: torch.Tensor | None = None
 
     def set_cipher_structure(self, structure: str) -> None:
         return None
@@ -379,11 +423,27 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         if self.graph_mode not in {"true", "shuffled"}:
             edge_count = self.persistent_edge_sources.numel()
             return hidden.new_zeros(hidden.shape[0], edge_count, self.token_dim)
-        edge_sources = self.persistent_edge_sources.to(hidden.device)
-        edge_targets = self.persistent_edge_targets.to(hidden.device)
+        return self._edge_tokens_from_buffers(
+            hidden=hidden,
+            active_indices=active_indices,
+            edge_sources=self.persistent_edge_sources,
+            edge_targets=self.persistent_edge_targets,
+            edge_role_ids=self.persistent_edge_role_ids,
+        )
+
+    def _edge_tokens_from_buffers(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+        edge_sources: torch.Tensor,
+        edge_targets: torch.Tensor,
+        edge_role_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        edge_sources = edge_sources.to(hidden.device)
+        edge_targets = edge_targets.to(hidden.device)
         source_tokens = hidden.index_select(dim=1, index=edge_sources)
         target_tokens = hidden.index_select(dim=1, index=edge_targets)
-        role_ids = self.persistent_edge_role_ids.to(hidden.device).index_select(dim=0, index=active_indices)
+        role_ids = edge_role_ids.to(hidden.device).index_select(dim=0, index=active_indices)
         role_tokens = self.persistent_edge_role_embedding(role_ids)
         edge_inputs = torch.cat(
             [
@@ -395,6 +455,35 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             dim=-1,
         )
         return self.persistent_edge_norm(self.persistent_edge_encoder(edge_inputs) + role_tokens)
+
+    def _topology_auxiliary_loss(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+    ) -> torch.Tensor:
+        true_tokens = self._edge_tokens_from_buffers(
+            hidden=hidden,
+            active_indices=active_indices,
+            edge_sources=self.topology_auxiliary_true_sources,
+            edge_targets=self.topology_auxiliary_true_targets,
+            edge_role_ids=self.topology_auxiliary_true_role_ids,
+        ).mean(dim=1)
+        shuffled_tokens = self._edge_tokens_from_buffers(
+            hidden=hidden,
+            active_indices=active_indices,
+            edge_sources=self.topology_auxiliary_shuffled_sources,
+            edge_targets=self.topology_auxiliary_shuffled_targets,
+            edge_role_ids=self.topology_auxiliary_shuffled_role_ids,
+        ).mean(dim=1)
+        true_logits = self.topology_auxiliary_head(true_tokens).squeeze(1)
+        shuffled_logits = self.topology_auxiliary_head(shuffled_tokens).squeeze(1)
+        true_targets = torch.ones_like(true_logits)
+        shuffled_targets = torch.zeros_like(shuffled_logits)
+        loss = 0.5 * (
+            F.binary_cross_entropy_with_logits(true_logits, true_targets)
+            + F.binary_cross_entropy_with_logits(shuffled_logits, shuffled_targets)
+        )
+        return loss * self.topology_auxiliary_scale
 
     def _persistent_edge_embedding(
         self,
@@ -430,6 +519,11 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             for layer in self.layers:
                 hidden = hidden + layer.local_mlp(layer.local_norm(hidden))
         hidden = self.sequence_norm(hidden)
+        self.last_auxiliary_loss = (
+            self._topology_auxiliary_loss(hidden, active_indices)
+            if self.topology_auxiliary_scale > 0.0
+            else None
+        )
         mean_embedding = hidden.mean(dim=1)
         max_embedding = hidden.max(dim=1).values
         source_embedding = hidden.gather(
