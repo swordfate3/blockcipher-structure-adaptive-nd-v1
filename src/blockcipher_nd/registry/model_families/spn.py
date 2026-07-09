@@ -551,12 +551,14 @@ def build_spn_model(
             global_hidden_bits=int_option(options, "global_hidden_bits"),
         )
     if name == "present_trail_position_stats_pairset":
+        trail_depth = int_option(options, "trail_depth", 4)
+        trail_words_per_depth = int_option(options, "trail_words_per_depth", 9)
         return PresentTrailPositionStatsPairSetDistinguisher(
             input_bits=input_bits,
             pair_bits=pair_bits or 2496,
             base_channels=hidden_bits,
-            trail_depth=int_option(options, "trail_depth", 4) or 4,
-            trail_words_per_depth=int_option(options, "trail_words_per_depth", 9) or 9,
+            trail_depth=4 if trail_depth is None else trail_depth,
+            trail_words_per_depth=9 if trail_words_per_depth is None else trail_words_per_depth,
             activation=str(options.get("activation", "gelu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),

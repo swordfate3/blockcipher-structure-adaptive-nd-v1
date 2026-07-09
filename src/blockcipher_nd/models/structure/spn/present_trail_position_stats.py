@@ -271,21 +271,35 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             self.cells_per_word,
         )
 
-        depth_word_cell_mean = trail.mean(dim=1)
-        depth_word_cell_std = trail.std(dim=1, unbiased=False)
-        depth_word_cell_span = trail.amax(dim=1) - trail.amin(dim=1)
+        if self.trail_depth == 0 or self.trail_words_per_depth == 0:
+            empty_trail_stats = activity.new_zeros(features.shape[0], 0)
+            depth_word_cell_mean = empty_trail_stats
+            depth_word_cell_std = empty_trail_stats
+            depth_word_cell_span = empty_trail_stats
+            depth_cell_mean = empty_trail_stats
+            depth_cell_std = empty_trail_stats
+            depth_cell_first_last = empty_trail_stats
+            depth_cell_span = empty_trail_stats
+            depth_word_mean = empty_trail_stats
+            depth_word_std = empty_trail_stats
+            depth_word_first_last = empty_trail_stats
+            depth_word_span = empty_trail_stats
+        else:
+            depth_word_cell_mean = trail.mean(dim=1)
+            depth_word_cell_std = trail.std(dim=1, unbiased=False)
+            depth_word_cell_span = trail.amax(dim=1) - trail.amin(dim=1)
 
-        depth_cell_activity = trail.mean(dim=3)
-        depth_cell_mean = depth_cell_activity.mean(dim=1)
-        depth_cell_std = depth_cell_activity.std(dim=1, unbiased=False)
-        depth_cell_first_last = depth_cell_activity[:, -1] - depth_cell_activity[:, 0]
-        depth_cell_span = depth_cell_activity.amax(dim=1) - depth_cell_activity.amin(dim=1)
+            depth_cell_activity = trail.mean(dim=3)
+            depth_cell_mean = depth_cell_activity.mean(dim=1)
+            depth_cell_std = depth_cell_activity.std(dim=1, unbiased=False)
+            depth_cell_first_last = depth_cell_activity[:, -1] - depth_cell_activity[:, 0]
+            depth_cell_span = depth_cell_activity.amax(dim=1) - depth_cell_activity.amin(dim=1)
 
-        depth_word_activity = trail.mean(dim=4)
-        depth_word_mean = depth_word_activity.mean(dim=1)
-        depth_word_std = depth_word_activity.std(dim=1, unbiased=False)
-        depth_word_first_last = depth_word_activity[:, -1] - depth_word_activity[:, 0]
-        depth_word_span = depth_word_activity.amax(dim=1) - depth_word_activity.amin(dim=1)
+            depth_word_activity = trail.mean(dim=4)
+            depth_word_mean = depth_word_activity.mean(dim=1)
+            depth_word_std = depth_word_activity.std(dim=1, unbiased=False)
+            depth_word_first_last = depth_word_activity[:, -1] - depth_word_activity[:, 0]
+            depth_word_span = depth_word_activity.amax(dim=1) - depth_word_activity.amin(dim=1)
 
         prefix_mean = prefix.mean(dim=1)
         prefix_std = prefix.std(dim=1, unbiased=False)
@@ -394,6 +408,15 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         )
 
     def _trail_statistics(self, trail: torch.Tensor) -> torch.Tensor:
+        if self.trail_depth == 0 or self.trail_words_per_depth == 0:
+            return trail.new_zeros(
+                trail.shape[0],
+                self.trail_position_stats_feature_bits(
+                    self.trail_depth,
+                    self.trail_words_per_depth,
+                    self.cells_per_word,
+                ),
+            )
         depth_word_cell_mean = trail.mean(dim=1)
         depth_word_cell_std = trail.std(dim=1, unbiased=False)
         depth_word_cell_span = trail.amax(dim=1) - trail.amin(dim=1)
@@ -463,6 +486,8 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             return activity
         prefix = activity[:, :, : self.prefix_words]
         trail = activity[:, :, self.prefix_words :]
+        if trail.numel() == 0:
+            return activity
         center = trail.mean(dim=(2, 3), keepdim=True)
         trail = trail - center
         if self.trail_normalization == "trail_zscore":
@@ -495,7 +520,10 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
 
     def _global_position_stats(self, activity: torch.Tensor, trail: torch.Tensor) -> torch.Tensor:
         pair_density = activity.mean(dim=(2, 3))
-        trail_density = trail.mean(dim=(2, 3, 4))
+        if trail.numel() == 0:
+            trail_density = torch.zeros_like(pair_density)
+        else:
+            trail_density = trail.mean(dim=(2, 3, 4))
         low_cells = activity[..., :4].mean(dim=(2, 3))
         mid_cells = activity[..., 4:12].mean(dim=(2, 3))
         high_cells = activity[..., 12:].mean(dim=(2, 3))

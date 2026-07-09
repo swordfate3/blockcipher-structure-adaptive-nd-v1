@@ -1,3 +1,56 @@
+## [LRN-20260709-012] best_practice
+
+**Logged**: 2026-07-09T16:52:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 raw-prefix relative summary statistics remain weak, and
+P-layer-relative statistics do not beat metadata-only controls at 512/class.
+
+### Details
+The local diagnostic gate used `present_trail_position_stats_pairset` with
+`trail_depth = 0` and `trail_words_per_depth = 0`, so the model summarized only
+raw prefix words and consumed no DDT trail-value block.
+
+It compared:
+
+- `p_layer_relative_stats`
+- `relative_stats`
+- `none` with `metadata_bits = 16` as a metadata-only control
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives.
+
+Results:
+
+- p-layer-relative AUC = 0.523223877 seed0, 0.560836792 seed1
+- simple-relative AUC = 0.510566711 seed0, 0.543212891 seed1
+- metadata-only AUC = 0.549835205 seed0, 0.576095581 seed1
+
+P-layer-relative is slightly above simple-relative, but metadata-only is higher
+on both seeds. This blocks any claim that the summary-stat route has learned a
+useful PRESENT P-layer relative coordinate system.
+
+### Suggested Action
+Do not scale raw-prefix relative summary statistics. The next local route should
+preserve cell/edge-local evidence as tokens, for example a dynamic
+active-conditioned SPN cell graph with true-vs-shuffled topology and
+metadata-only controls.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-raw-prefix-relative-stats-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_raw_prefix_relative_stats_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py
+- Tags: innovation1, present, spn, raw-prefix, relative-stats, active-conditioning, local-gate
+- See Also: LRN-20260709-011, LRN-20260709-010, LRN-20260709-009
+- Pattern-Key: innovation1.spn_present.raw_prefix_relative_stats_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-011] best_practice
 
 **Logged**: 2026-07-09T16:32:00+08:00

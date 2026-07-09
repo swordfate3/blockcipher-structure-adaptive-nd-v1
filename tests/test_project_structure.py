@@ -16551,6 +16551,36 @@ def test_present_p_layer_mixer_rejects_unknown_topology():
         )
 
 
+def test_present_trail_position_stats_accepts_zero_trail_depth_for_raw_prefix_stats():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits + 16,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 0,
+            "trail_words_per_depth": 0,
+            "stats_hidden_bits": 64,
+            "metadata_bits": 16,
+            "active_conditioning": "p_layer_relative_stats",
+        },
+    )
+
+    assert model.trail_depth == 0
+    assert model.trail_words_per_depth == 0
+    assert model.prefix_words == pair_bits // 64
+
+    features = torch.zeros(2, 16 * pair_bits + 16)
+    features[:, -16] = 1
+    logits = model(features)
+
+    assert logits.shape == (2, 1)
+    assert torch.isfinite(logits).all()
+
+
 def test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast():
     from blockcipher_nd.models.common.components import EvidencePooling
 
