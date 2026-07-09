@@ -4,6 +4,8 @@ from blockcipher_nd.features.encoders.present_matrix import (
     parameterized_present_sboxddt_cell_matrix_bits,
     present_delta_paligned_sinv_sboxddt_beam4deep3_cell_matrix_bits,
     present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits,
+    present_delta_paligned_sinv_sboxddt_beamstats8deep4_constantsource_cell_matrix_bits,
+    present_delta_paligned_sinv_sboxddt_beamstats8deep4_maskedsource_cell_matrix_bits,
     present_mcnd_cell_matrix_bits,
     present_pair_xor_cell_matrix_bits,
     present_pair_xor_paligned_cell_matrix_bits,

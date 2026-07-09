@@ -264,6 +264,75 @@ def present_delta_paligned_sinv_sboxddt_beamstats4deep3_cell_matrix_bits(
     )
 
 
+def present_delta_paligned_sinv_sboxddt_beamstats8deep4_maskedsource_cell_matrix_bits(
+    left: int,
+    right: int,
+    width: int,
+    cipher: ReducedRoundCipher,
+) -> list[int]:
+    return _present_delta_paligned_sinv_sboxddt_beamstats8deep4_source_control_cell_matrix_bits(
+        left,
+        right,
+        width,
+        cipher,
+        trail_source="masked",
+        feature_encoding="present_delta_paligned_sinv_sboxddt_beamstats8deep4_maskedsource_cell_matrix_bits",
+    )
+
+
+def present_delta_paligned_sinv_sboxddt_beamstats8deep4_constantsource_cell_matrix_bits(
+    left: int,
+    right: int,
+    width: int,
+    cipher: ReducedRoundCipher,
+) -> list[int]:
+    return _present_delta_paligned_sinv_sboxddt_beamstats8deep4_source_control_cell_matrix_bits(
+        left,
+        right,
+        width,
+        cipher,
+        trail_source="constant",
+        feature_encoding="present_delta_paligned_sinv_sboxddt_beamstats8deep4_constantsource_cell_matrix_bits",
+    )
+
+
+def _present_delta_paligned_sinv_sboxddt_beamstats8deep4_source_control_cell_matrix_bits(
+    left: int,
+    right: int,
+    width: int,
+    cipher: ReducedRoundCipher,
+    *,
+    trail_source: str,
+    feature_encoding: str,
+) -> list[int]:
+    difference = left ^ right
+    aligned_difference = inverse_permutation_difference(difference, width, cipher)
+    structural_inverse_difference = present_structural_inverse_sbox_difference(left, right, width, cipher)
+    if trail_source == "masked":
+        source_difference = structural_inverse_difference ^ _repeated_present_nibble_word(0x1, width)
+    elif trail_source == "constant":
+        source_difference = 0x9 & ((1 << width) - 1)
+    else:
+        raise ValueError(f"unsupported PRESENT trail source control: {trail_source}")
+    trail_stats = present_sbox_ddt_beam_statistics_words(
+        source_difference,
+        width,
+        cipher,
+        beam_width=8,
+        depth=4,
+    )
+    return words_to_present_cell_matrix_bits(
+        [
+            difference,
+            aligned_difference,
+            structural_inverse_difference,
+            *trail_stats,
+        ],
+        width,
+        feature_encoding,
+    )
+
+
 def parameterized_present_sboxddt_cell_matrix_bits(
     left: int,
     right: int,
@@ -341,3 +410,10 @@ def words_to_present_cell_matrix_bits(words: list[int], width: int, feature_enco
         bits.extend(int_to_bits(word, width))
     cells = [bits[index : index + 4] for index in range(0, len(bits), 4)]
     return [cell[bit_index] for bit_index in range(4) for cell in cells]
+
+
+def _repeated_present_nibble_word(nibble: int, width: int) -> int:
+    word = 0
+    for nibble_index in range(width // 4):
+        word |= (nibble & 0xF) << (4 * nibble_index)
+    return word

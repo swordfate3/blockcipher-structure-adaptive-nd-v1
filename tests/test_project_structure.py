@@ -14559,6 +14559,28 @@ def test_present_trail_position_rejects_unknown_position_control():
         )
 
 
+def test_present_trail_value_mismatch_encodings_preserve_full_trail_shape():
+    cipher = build_cipher("present80", 8, key=0)
+    full_encoding = "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"
+    masked_encoding = "present_delta_paligned_sinv_sboxddt_beamstats8deep4_maskedsource_cell_matrix_bits"
+    constant_encoding = "present_delta_paligned_sinv_sboxddt_beamstats8deep4_constantsource_cell_matrix_bits"
+    left = 0x0123456789ABCDEF
+    right = 0x1123456789ABCDEF
+
+    full = encode_ciphertext_pair(left, right, width=64, feature_encoding=full_encoding, cipher=cipher)
+    masked = encode_ciphertext_pair(left, right, width=64, feature_encoding=masked_encoding, cipher=cipher)
+    constant = encode_ciphertext_pair(left, right, width=64, feature_encoding=constant_encoding, cipher=cipher)
+
+    assert pair_bits_for_encoding(64, masked_encoding) == pair_bits_for_encoding(64, full_encoding)
+    assert pair_bits_for_encoding(64, constant_encoding) == pair_bits_for_encoding(64, full_encoding)
+    assert is_supported_feature_encoding(masked_encoding)
+    assert is_supported_feature_encoding(constant_encoding)
+    assert len(full) == len(masked) == len(constant) == 2496
+    assert masked != full
+    assert constant != full
+    assert constant != masked
+
+
 def test_integral_multi_nibble_difference_matched_negative_generates_256_pair_rows():
     cipher = build_cipher("present80", 8, key=0)
     dataset = make_differential_dataset(

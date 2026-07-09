@@ -1,3 +1,56 @@
+## [LRN-20260709-006] best_practice
+
+**Logged**: 2026-07-09T14:55:20+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 aligned trail-value mismatch gate blocks remote scale for the
+current beamstats8deep4 trail route.
+
+### Details
+The intended final local gate before remote scale tested whether trail-derived
+values must correspond to the current ciphertext pair. The 512/class seed0+seed1
+aligned random16 control used the same full 2496-bit pair shape but changed the
+trail-stat source:
+
+- full anchor AUC = 0.971763611 seed0, 0.972396851 seed1
+- trail_only anchor AUC = 0.973968506 seed0, 0.973541260 seed1
+- prefix_only anchor AUC = 0.600173950 seed0, 0.601318359 seed1
+- maskedsource AUC = 0.981689453 seed0, 0.988342285 seed1
+- constantsource AUC = 0.902770996 seed0, 0.938705444 seed1
+
+`maskedsource` keeps the real prefix but computes beamstats8deep4 trail words
+from `sinv_delta xor 0x111...`. `constantsource` keeps the real prefix but
+computes trail words from a fixed source `0x9`. Both preserve the full
+trail-stat input shape.
+
+The mismatch controls did not drop as required. In particular, masked wrong
+source is as high as the full route, and fixed-source trail remains much higher
+than prefix-only. This suggests that the current beamstats8deep4 trail-value
+block can act as a strong representation scaffold or shortcut even when trail
+values are not correctly sample-specific.
+
+### Suggested Action
+Do not remote-scale the current aligned full/trail-only route as a formal
+readiness run. Redesign locally instead: normalize trail-stat blocks, separate
+prefix/trail branches with same-budget controls, reduce beam depth/width, or
+move trail information into a gated auxiliary graph/token representation rather
+than a large dense hand-crafted trail-stat block.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-trail-value-mismatch-plan.md, src/blockcipher_nd/features/encoders/present_matrix.py, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_trail_value_mismatch_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, trail-position, trail-value, mismatch-control, local-gate
+- See Also: LRN-20260709-005, LRN-20260709-004, LRN-20260709-003
+- Pattern-Key: innovation1.spn_present.aligned_trail_value_mismatch_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-005] best_practice
 
 **Logged**: 2026-07-09T13:36:34+08:00
