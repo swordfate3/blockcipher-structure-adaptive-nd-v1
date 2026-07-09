@@ -585,5 +585,6 @@ def build_spn_model(
             lse_temperature=float(options.get("lse_temperature", 1.0)),
             metadata_bits=int_option(options, "metadata_bits", 0) or 0,
             active_conditioning=str(options.get("active_conditioning", "none")),
+            p_topology=str(options.get("p_topology", "true")),
         )
     return None

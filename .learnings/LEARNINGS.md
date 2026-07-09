@@ -1,3 +1,109 @@
+## [LRN-20260709-011] best_practice
+
+**Logged**: 2026-07-09T16:32:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 active-conditioned raw-prefix P-layer topology remains weak and does
+not consistently beat shuffled topology at the 512/class aligned gate.
+
+### Details
+The local diagnostic gate removed DDT trail values and tested raw prefix
+features with explicit active-nibble metadata:
+
+- `present_pair_xor_paligned_sinv_cell_matrix_bits`
+- `present_pair_xor_paligned_cell_matrix_bits`
+- `metadata_bits = 16`
+- `active_conditioning = p_layer_active_token_bias`
+
+It compared true PRESENT P-layer adjacency, shuffled P-layer adjacency, and a
+no-`sinv` control under aligned random16 PRESENT r8, 512/class, seed0+seed1,
+strict encrypted random-plaintext negatives.
+
+Results:
+
+- true-sinv AUC = 0.550659180 seed0, 0.510643005 seed1
+- shuffled-sinv AUC = 0.506835938 seed0, 0.530029297 seed1
+- true-no-sinv AUC = 0.502883911 seed0, 0.512893677 seed1
+
+The active marker did not rescue the raw-prefix topology route. True topology
+won seed0 but lost seed1, and all routes stayed near chance.
+
+### Suggested Action
+Do not scale active-conditioned raw-prefix topology. The next local route should
+use a stronger relative-coordinate or cell-equivariant representation, not just
+active one-hot metadata or token bias. Keep true-vs-shuffled topology controls
+and wrong-source/fixed-source mismatch controls as local gates before any
+medium or remote PRESENT r8 run.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-active-conditioned-raw-prefix-topology-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_active_conditioned_raw_prefix_topology_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_p_layer_mixer.py
+- Tags: innovation1, present, spn, raw-prefix, p-layer-topology, active-conditioning, local-gate
+- See Also: LRN-20260709-010, LRN-20260709-009, LRN-20260709-006
+- Pattern-Key: innovation1.spn_present.active_conditioned_raw_prefix_topology_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
+## [LRN-20260709-010] best_practice
+
+**Logged**: 2026-07-09T16:03:18+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Unconditioned PRESENT r8 raw-prefix P-layer topology mixer is near chance and
+does not beat shuffled topology at the 512/class aligned random-active gate.
+
+### Details
+The local diagnostic gate removed DDT trail values and tested raw prefix
+features only:
+
+- `present_pair_xor_paligned_sinv_cell_matrix_bits`
+- `present_pair_xor_paligned_cell_matrix_bits`
+
+It compared `present_p_layer_mixer_pairset` with true PRESENT P-layer topology,
+a shuffled P-layer topology control, a no-`sinv` control, and a
+`present_pairset_global_stats` baseline under aligned random16 PRESENT r8,
+512/class, seed0+seed1, strict encrypted random-plaintext negatives.
+
+Results:
+
+- true-sinv AUC = 0.540695190 seed0, 0.520507812 seed1
+- shuffled-sinv AUC = 0.567588806 seed0, 0.537811279 seed1
+- true-no-sinv AUC = 0.535354614 seed0, 0.524757385 seed1
+- global-sinv AUC = 0.528747559 seed0, 0.485214233 seed1
+
+The true P-layer topology did not beat the shuffled topology, and all raw-prefix
+routes stayed near chance. This suggests that the strong prior DDT trail routes
+were not reproduced by simply giving a token mixer the PRESENT P-layer topology.
+
+### Suggested Action
+Do not scale the unconditioned raw-prefix topology route. The next local
+diagnostic should test active-conditioned raw-prefix topology, because the
+aligned random-active protocol changes the active coordinate per sample. If
+active-conditioned true topology remains weak or tied with shuffled topology,
+the architecture needs a stronger SPN-coordinate mechanism than basic P-layer
+message passing.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-raw-prefix-topology-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_raw_prefix_topology_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_p_layer_mixer.py
+- Tags: innovation1, present, spn, raw-prefix, p-layer-topology, active-nibble, local-gate
+- See Also: LRN-20260709-009, LRN-20260709-008, LRN-20260709-007
+- Pattern-Key: innovation1.spn_present.raw_prefix_topology_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-009] best_practice
 
 **Logged**: 2026-07-09T15:51:43+08:00

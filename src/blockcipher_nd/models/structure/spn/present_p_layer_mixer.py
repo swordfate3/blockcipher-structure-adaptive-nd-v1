@@ -135,6 +135,7 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         lse_temperature: float = 1.0,
         metadata_bits: int = 0,
         active_conditioning: str = "none",
+        p_topology: str = "true",
     ) -> None:
         super().__init__()
         if active_conditioning not in {"none", "p_layer_active_token_bias"}:
@@ -155,6 +156,8 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
             raise ValueError("PresentPLayerMixerPairSet pair_bits must be a multiple of nibble_bits")
         if mixer_depth < 1:
             raise ValueError("PresentPLayerMixerPairSet mixer_depth must be >= 1")
+        if p_topology not in {"true", "shuffled"}:
+            raise ValueError("PresentPLayerMixerPairSet p_topology must be true or shuffled")
         if pooling not in {"attention", "attention_mean_max", "mean_max", "gated_attention", "topk_mean", "logsumexp", "topk_logsumexp"}:
             raise ValueError(f"unsupported pooling: {pooling}")
         self.input_bits = input_bits
@@ -176,6 +179,7 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
         self.dropout = dropout
         self.top_k = top_k
         self.lse_temperature = lse_temperature
+        self.p_topology = p_topology
 
         self.nibble_encoder = nn.Sequential(
             nn.Linear(nibble_bits, self.token_dim),
@@ -207,6 +211,7 @@ class PresentPLayerMixerPairSetDistinguisher(nn.Module):
                     activation=activation,
                     norm=norm,
                     dropout=dropout,
+                    p_topology=p_topology,
                 )
                 for _ in range(mixer_depth)
             ]

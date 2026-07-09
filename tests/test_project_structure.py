@@ -16499,6 +16499,58 @@ def test_present_p_layer_mixer_active_token_bias_conditions_tokens_from_metadata
     assert not torch.allclose(pair_embeddings[0], pair_embeddings[1])
 
 
+def test_present_p_layer_mixer_shuffled_topology_control_changes_adjacency():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+    common = {
+        "input_bits": 16 * pair_bits,
+        "hidden_bits": 4,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "mixer_depth": 1,
+            "token_dim": 8,
+            "pooling": "topk_logsumexp",
+            "top_k": 2,
+        },
+    }
+    true_model = build_model("present_p_layer_mixer_pairset", **common)
+    shuffled_model = build_model(
+        "present_p_layer_mixer_pairset",
+        **{**common, "model_options": {**common["model_options"], "p_topology": "shuffled"}},
+    )
+    features = torch.zeros(2, 16 * pair_bits)
+
+    true_logits = true_model(features)
+    shuffled_logits = shuffled_model(features)
+
+    assert true_logits.shape == (2, 1)
+    assert shuffled_logits.shape == (2, 1)
+    assert true_model.p_topology == "true"
+    assert shuffled_model.p_topology == "shuffled"
+    assert not torch.equal(
+        true_model.mixer_blocks[0].p_sources,
+        shuffled_model.mixer_blocks[0].p_sources,
+    )
+
+
+def test_present_p_layer_mixer_rejects_unknown_topology():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+
+    with pytest.raises(ValueError, match="p_topology"):
+        build_model(
+            "present_p_layer_mixer_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=4,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "mixer_depth": 1,
+                "token_dim": 8,
+                "p_topology": "teleport",
+            },
+        )
+
+
 def test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast():
     from blockcipher_nd.models.common.components import EvidencePooling
 
