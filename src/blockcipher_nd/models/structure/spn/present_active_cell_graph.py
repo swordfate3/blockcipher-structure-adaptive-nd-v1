@@ -35,6 +35,19 @@ def _active_target_mask(graph_mode: str) -> list[list[int]]:
     return rows
 
 
+def _active_target_slots(graph_mode: str) -> list[list[int]]:
+    if graph_mode not in {"true", "shuffled"}:
+        raise ValueError("active target slots graph_mode must be true or shuffled")
+    permutation = list(range(16))
+    if graph_mode == "shuffled":
+        generator = torch.Generator().manual_seed(20260709)
+        permutation = torch.randperm(16, generator=generator).tolist()
+    return [
+        [permutation[target] for target in _present_p_layer_target_cells(active_nibble)]
+        for active_nibble in range(16)
+    ]
+
+
 def _active_role_ids(graph_mode: str) -> list[list[int]]:
     target_masks = _active_target_mask(graph_mode)
     source_cells = _active_source_cells()
@@ -163,6 +176,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         active_metadata_fusion: str = "direct",
         topology_auxiliary_scale: float = 0.0,
         topology_contrast_fusion: str = "none",
+        active_relative_summary: str = "none",
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
@@ -180,6 +194,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         if topology_contrast_fusion not in {"none", "true_minus_shuffled"}:
             raise ValueError(
                 "PresentActiveCellGraph topology_contrast_fusion must be none or true_minus_shuffled"
+            )
+        if active_relative_summary not in {"none", "source_target_slots"}:
+            raise ValueError(
+                "PresentActiveCellGraph active_relative_summary must be none or source_target_slots"
             )
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
@@ -207,6 +225,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.active_metadata_fusion = active_metadata_fusion
         self.topology_auxiliary_scale = topology_auxiliary_scale
         self.topology_contrast_fusion = topology_contrast_fusion
+        self.active_relative_summary = active_relative_summary
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -274,6 +293,13 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
             build_activation(activation),
         )
+        self.active_relative_projection = nn.Sequential(
+            nn.Linear(self.token_dim * 6, max(self.token_dim, self.token_dim * token_mlp_ratio)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
+            build_activation(activation),
+        )
         self.register_buffer(
             "source_cells",
             torch.tensor(_active_source_cells(), dtype=torch.long),
@@ -288,6 +314,11 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.register_buffer(
                 "role_ids",
                 torch.tensor(_active_role_ids(graph_mode), dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "active_target_slots",
+                torch.tensor(_active_target_slots(graph_mode), dtype=torch.long),
                 persistent=False,
             )
             edge_sources, edge_targets = _persistent_edge_indices(graph_mode)
@@ -315,6 +346,11 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.register_buffer(
                 "role_ids",
                 torch.zeros(16, self.cells_per_word, dtype=torch.long),
+                persistent=False,
+            )
+            self.register_buffer(
+                "active_target_slots",
+                torch.zeros(16, 4, dtype=torch.long),
                 persistent=False,
             )
             self.register_buffer(
@@ -364,7 +400,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             torch.tensor(_persistent_edge_role_ids("shuffled"), dtype=torch.long),
             persistent=False,
         )
-        self.pair_embedding_bits = self.token_dim * (6 if self.active_metadata_fusion == "direct" else 5)
+        pair_embedding_parts = 6 if self.active_metadata_fusion == "direct" else 5
+        if self.active_relative_summary != "none":
+            pair_embedding_parts += 1
+        self.pair_embedding_bits = self.token_dim * pair_embedding_parts
         projected_bits = max(32, base_channels * 4)
         self.pair_projection = nn.Sequential(
             nn.Linear(self.pair_embedding_bits, max(64, base_channels * 8)),
@@ -538,6 +577,34 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         ).clamp_min(1.0)
         return 0.5 * (edge_tokens.mean(dim=1) + active_edge_embedding), edge_tokens
 
+    def _active_relative_embedding(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+        source_embedding: torch.Tensor,
+        target_embedding: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.graph_mode not in {"true", "shuffled"}:
+            return torch.zeros_like(source_embedding)
+        target_slots = self.active_target_slots.to(hidden.device).index_select(dim=0, index=active_indices)
+        target_tokens = hidden.gather(
+            dim=1,
+            index=target_slots[:, :, None].expand(
+                hidden.shape[0],
+                target_slots.shape[1],
+                self.token_dim,
+            ),
+        )
+        relative_tokens = torch.cat(
+            [
+                source_embedding[:, None, :],
+                target_tokens,
+                (target_embedding - source_embedding)[:, None, :],
+            ],
+            dim=1,
+        )
+        return self.active_relative_projection(relative_tokens.reshape(hidden.shape[0], -1))
+
     def _encode_pairs(
         self,
         pair_features: torch.Tensor,
@@ -595,6 +662,15 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         pair_parts = [mean_embedding, max_embedding, source_embedding, target_embedding, edge_embedding]
         if self.active_metadata_fusion == "direct":
             pair_parts.append(metadata_embedding)
+        if self.active_relative_summary == "source_target_slots":
+            pair_parts.append(
+                self._active_relative_embedding(
+                    hidden=hidden,
+                    active_indices=active_indices,
+                    source_embedding=source_embedding,
+                    target_embedding=target_embedding,
+                )
+            )
         pair_embedding = torch.cat(pair_parts, dim=1)
         topology_contrast = (
             self._topology_contrast_embedding(hidden, active_indices)

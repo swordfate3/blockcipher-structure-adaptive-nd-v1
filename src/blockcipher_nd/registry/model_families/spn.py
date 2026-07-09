@@ -572,6 +572,7 @@ def build_spn_model(
             active_metadata_fusion=str(options.get("active_metadata_fusion", "direct")),
             topology_auxiliary_scale=float(options.get("topology_auxiliary_scale", 0.0)),
             topology_contrast_fusion=str(options.get("topology_contrast_fusion", "none")),
+            active_relative_summary=str(options.get("active_relative_summary", "none")),
         )
     if name == "present_trail_position_stats_pairset":
         trail_depth = int_option(options, "trail_depth", 4)

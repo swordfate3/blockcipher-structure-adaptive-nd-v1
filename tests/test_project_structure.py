@@ -16673,6 +16673,22 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
             },
         },
     )
+    active_relative_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{
+            **common,
+            "model_options": {
+                **common["model_options"],
+                "graph_mode": "true",
+                "edge_mode": "persistent",
+                "cross_pair_consistency": "edge_mean_absdev",
+                "active_metadata_fusion": "coordinate_only",
+                "topology_auxiliary_scale": 0.1,
+                "topology_contrast_fusion": "true_minus_shuffled",
+                "active_relative_summary": "source_target_slots",
+            },
+        },
+    )
     features = torch.zeros(2, 16 * pair_bits + 16)
     features[:, -16] = 1
 
@@ -16684,6 +16700,7 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     coordinate_only_logits = coordinate_only_model(features)
     auxiliary_logits = auxiliary_model(features)
     contrast_logits = contrast_model(features)
+    active_relative_logits = active_relative_model(features)
 
     assert true_logits.shape == (2, 1)
     assert shuffled_logits.shape == (2, 1)
@@ -16693,6 +16710,7 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert coordinate_only_logits.shape == (2, 1)
     assert auxiliary_logits.shape == (2, 1)
     assert contrast_logits.shape == (2, 1)
+    assert active_relative_logits.shape == (2, 1)
     assert torch.isfinite(true_logits).all()
     assert torch.isfinite(shuffled_logits).all()
     assert torch.isfinite(metadata_logits).all()
@@ -16701,6 +16719,7 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert torch.isfinite(coordinate_only_logits).all()
     assert torch.isfinite(auxiliary_logits).all()
     assert torch.isfinite(contrast_logits).all()
+    assert torch.isfinite(active_relative_logits).all()
     assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
     assert not metadata_model.target_masks.any()
     assert persistent_model.persistent_edge_sources.shape == persistent_model.persistent_edge_targets.shape
@@ -16712,6 +16731,9 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert auxiliary_model.last_auxiliary_loss is not None
     assert torch.isfinite(auxiliary_model.last_auxiliary_loss)
     assert contrast_model.topology_contrast_fusion == "true_minus_shuffled"
+    assert active_relative_model.active_relative_summary == "source_target_slots"
+    assert active_relative_model.active_target_slots.shape == (16, 4)
+    assert active_relative_model.pair_embedding_bits == active_relative_model.token_dim * 6
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():
