@@ -1,3 +1,59 @@
+## [LRN-20260709-007] best_practice
+
+**Logged**: 2026-07-09T15:12:41+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 aligned trail-stat centering/z-score normalization does not remove
+the beamstats8deep4 mismatch shortcut at the 512/class local gate.
+
+### Details
+The local diagnostic gate tested `present_trail_position_stats_pairset` with
+model-side trail normalization applied only to the trail block:
+
+- `trail_center`: subtract each sample-pair trail-block mean.
+- `trail_zscore`: subtract that mean and divide by trail-block standard
+  deviation.
+
+It used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict encrypted
+random-plaintext negatives, and compared full route against `maskedsource` and
+`constantsource` mismatch controls.
+
+Results:
+
+- trail_center full AUC = 0.973510742 seed0, 0.979187012 seed1
+- trail_center maskedsource AUC = 0.992431641 seed0, 0.991027832 seed1
+- trail_center constantsource AUC = 0.905258179 seed0, 0.946670532 seed1
+- trail_zscore full AUC = 0.987579346 seed0, 0.984100342 seed1
+- trail_zscore maskedsource AUC = 0.991653442 seed0, 0.990798950 seed1
+- trail_zscore constantsource AUC = 0.921203613 seed0, 0.948593140 seed1
+
+The desired pattern was full high with maskedsource/constantsource dropping.
+That did not happen. Wrong-source trail remains about as high as the true full
+route, and fixed-source trail remains far above the earlier prefix-only anchor
+around 0.60 AUC.
+
+### Suggested Action
+Do not remote-scale the current full beamstats8deep4 route with simple
+trail-stat normalization. Treat normalization as a diagnostic option only. The
+next local redesign should change the information path: split prefix/trail
+branches or gated auxiliary-trail input, with mismatch controls required to drop
+before any medium or remote run.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-trail-normalization-plan.md, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_trail_normalization_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, trail-position, normalization, mismatch-control, local-gate
+- See Also: LRN-20260709-006, LRN-20260709-005, LRN-20260709-004
+- Pattern-Key: innovation1.spn_present.aligned_trail_normalization_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-006] best_practice
 
 **Logged**: 2026-07-09T14:55:20+08:00

@@ -30,6 +30,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         metadata_bits: int = 0,
         active_conditioning: str = "none",
         trail_position_control: str = "none",
+        trail_normalization: str = "none",
     ) -> None:
         super().__init__()
         if active_conditioning not in {"none", "relative_stats", "p_layer_relative_stats"}:
@@ -47,6 +48,11 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             raise ValueError(
                 "PresentTrailPositionStats trail_position_control must be none, "
                 "prefix_only, trail_only, reverse_trail_positions, or permute_trail_positions"
+            )
+        if trail_normalization not in {"none", "trail_center", "trail_zscore"}:
+            raise ValueError(
+                "PresentTrailPositionStats trail_normalization must be none, "
+                "trail_center, or trail_zscore"
             )
         if metadata_bits < 0:
             raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
@@ -70,6 +76,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.metadata_bits = metadata_bits
         self.active_conditioning = active_conditioning
         self.trail_position_control = trail_position_control
+        self.trail_normalization = trail_normalization
         self.pair_bits = pair_bits
         self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
@@ -160,6 +167,7 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         if self.active_conditioning != "none":
             activity = self._active_relative_activity(activity, features)
         activity = self._trail_position_controlled_activity(activity)
+        activity = self._trail_normalized_activity(activity)
         word_activity = activity.mean(dim=-1)
         cell_activity = activity.mean(dim=2)
 
@@ -249,6 +257,18 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             trail = torch.flip(trail, dims=[2])
         elif self.trail_position_control == "permute_trail_positions":
             trail = trail.index_select(dim=2, index=self.trail_word_permutation.to(trail.device))
+        return torch.cat([prefix, trail], dim=2)
+
+    def _trail_normalized_activity(self, activity: torch.Tensor) -> torch.Tensor:
+        if self.trail_normalization == "none":
+            return activity
+        prefix = activity[:, :, : self.prefix_words]
+        trail = activity[:, :, self.prefix_words :]
+        center = trail.mean(dim=(2, 3), keepdim=True)
+        trail = trail - center
+        if self.trail_normalization == "trail_zscore":
+            scale = trail.std(dim=(2, 3), keepdim=True, unbiased=False).clamp_min(1e-6)
+            trail = trail / scale
         return torch.cat([prefix, trail], dim=2)
 
     def _active_relative_activity(

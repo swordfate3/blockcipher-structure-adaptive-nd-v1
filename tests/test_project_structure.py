@@ -14559,6 +14559,95 @@ def test_present_trail_position_rejects_unknown_position_control():
         )
 
 
+def test_present_trail_position_center_normalization_preserves_prefix_and_centers_trail():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_normalization": "trail_center",
+        },
+    )
+    activity = torch.zeros(2, 16, model.words_per_pair, model.cells_per_word)
+    activity[:, :, : model.prefix_words] = 0.25
+    activity[:, :, model.prefix_words :] = torch.linspace(
+        0.0,
+        1.0,
+        steps=model.trail_depth * model.trail_words_per_depth * model.cells_per_word,
+    ).reshape(1, 1, model.trail_depth * model.trail_words_per_depth, model.cells_per_word)
+
+    normalized = model._trail_normalized_activity(activity)
+    trail = normalized[:, :, model.prefix_words :]
+
+    assert torch.allclose(normalized[:, :, : model.prefix_words], activity[:, :, : model.prefix_words])
+    assert torch.allclose(trail.mean(dim=(2, 3)), torch.zeros(2, 16), atol=1e-6)
+
+
+def test_present_trail_position_zscore_normalization_scales_trail():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_normalization": "trail_zscore",
+        },
+    )
+    activity = torch.zeros(1, 16, model.words_per_pair, model.cells_per_word)
+    activity[:, :, model.prefix_words :] = torch.linspace(
+        0.0,
+        1.0,
+        steps=model.trail_depth * model.trail_words_per_depth * model.cells_per_word,
+    ).reshape(1, 1, model.trail_depth * model.trail_words_per_depth, model.cells_per_word)
+
+    normalized = model._trail_normalized_activity(activity)
+    trail = normalized[:, :, model.prefix_words :]
+
+    assert torch.allclose(trail.mean(dim=(2, 3)), torch.zeros(1, 16), atol=1e-6)
+    assert torch.allclose(trail.std(dim=(2, 3), unbiased=False), torch.ones(1, 16), atol=1e-6)
+
+
+def test_present_trail_position_rejects_unknown_trail_normalization():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+
+    with pytest.raises(ValueError, match="trail_normalization"):
+        build_model(
+            "present_trail_position_stats_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=16,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "trail_normalization": "batch_magic",
+            },
+        )
+
+
 def test_present_trail_value_mismatch_encodings_preserve_full_trail_shape():
     cipher = build_cipher("present80", 8, key=0)
     full_encoding = "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"
