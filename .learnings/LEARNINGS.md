@@ -1,3 +1,58 @@
+## [LRN-20260709-018] best_practice
+
+**Logged**: 2026-07-09T20:35:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 explicit true-minus-shuffled topology contrast improves raw-prefix
+graph scores but still fails the true-vs-shuffled gate at 512/class.
+
+### Details
+The local diagnostic gate added `topology_contrast_fusion =
+true_minus_shuffled` to `present_active_cell_graph_pairset`. The model builds
+true and shuffled persistent-edge summaries from the same hidden cell tokens,
+projects `[true_summary, shuffled_summary, true_summary - shuffled_summary,
+abs(delta)]`, averages the contrast embedding over the 16 pairs, and appends it
+to the final classifier.
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives, no DDT trail-value block,
+coordinate-only active metadata, persistent edge tokens, cross-pair edge
+consistency, and `topology_auxiliary_scale = 0.1`.
+
+Results:
+
+- true AUC = 0.587478638 seed0, 0.552612305 seed1
+- shuffled AUC = 0.526199341 seed0, 0.573921204 seed1
+- metadata-only AUC = 0.502716064 seed0, 0.550430298 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The contrast route clearly improves seed0 and lifts true seed1 compared
+with topology auxiliary alone, and it keeps true above metadata-only on both
+seeds. However, shuffled topology still beats true topology on seed1.
+
+### Suggested Action
+Do not scale topology contrast graph yet. It is a useful improvement over
+topology auxiliary alone, but it remains blocked by true-vs-shuffled
+instability. The next local diagnostic can test a small auxiliary-strength gate
+such as `topology_auxiliary_scale = 0.3`; if stronger topology supervision
+still fails, redesign the coordinate-alignment representation instead of adding
+samples.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-topology-contrast-graph-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_topology_contrast_graph_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, topology-contrast, active-conditioning, raw-prefix, local-gate
+- See Also: LRN-20260709-017, LRN-20260709-016, LRN-20260709-015
+- Pattern-Key: innovation1.spn_present.topology_contrast_graph_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-017] best_practice
 
 **Logged**: 2026-07-09T19:55:00+08:00

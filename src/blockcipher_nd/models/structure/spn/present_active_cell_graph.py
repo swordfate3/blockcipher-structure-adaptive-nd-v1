@@ -162,6 +162,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         cross_pair_consistency: str = "none",
         active_metadata_fusion: str = "direct",
         topology_auxiliary_scale: float = 0.0,
+        topology_contrast_fusion: str = "none",
     ) -> None:
         super().__init__()
         if graph_mode not in {"true", "shuffled", "metadata_only"}:
@@ -176,6 +177,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             raise ValueError("PresentActiveCellGraph active_metadata_fusion must be direct or coordinate_only")
         if topology_auxiliary_scale < 0.0:
             raise ValueError("PresentActiveCellGraph topology_auxiliary_scale must be non-negative")
+        if topology_contrast_fusion not in {"none", "true_minus_shuffled"}:
+            raise ValueError(
+                "PresentActiveCellGraph topology_contrast_fusion must be none or true_minus_shuffled"
+            )
         if metadata_bits != 16:
             raise ValueError("PresentActiveCellGraph requires 16 active-nibble metadata bits")
         if graph_depth < 1:
@@ -201,6 +206,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self.cross_pair_consistency = cross_pair_consistency
         self.active_metadata_fusion = active_metadata_fusion
         self.topology_auxiliary_scale = topology_auxiliary_scale
+        self.topology_contrast_fusion = topology_contrast_fusion
         self.structure = "SPN"
         self.pooling = pooling
 
@@ -260,6 +266,13 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             build_activation(activation),
             nn.Dropout(dropout),
             nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), 1),
+        )
+        self.topology_contrast_projection = nn.Sequential(
+            nn.Linear(self.token_dim * 4, max(self.token_dim, self.token_dim * token_mlp_ratio)),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(max(self.token_dim, self.token_dim * token_mlp_ratio), self.token_dim),
+            build_activation(activation),
         )
         self.register_buffer(
             "source_cells",
@@ -383,6 +396,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             classifier_input_bits += self.token_dim
         if self.cross_pair_consistency != "none":
             classifier_input_bits += self.token_dim
+        if self.topology_contrast_fusion != "none":
+            classifier_input_bits += self.token_dim
         self.classifier = nn.Sequential(
             build_norm(norm, classifier_input_bits),
             nn.Linear(classifier_input_bits, 256),
@@ -485,6 +500,29 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         )
         return loss * self.topology_auxiliary_scale
 
+    def _topology_contrast_embedding(
+        self,
+        hidden: torch.Tensor,
+        active_indices: torch.Tensor,
+    ) -> torch.Tensor:
+        true_summary = self._edge_tokens_from_buffers(
+            hidden=hidden,
+            active_indices=active_indices,
+            edge_sources=self.topology_auxiliary_true_sources,
+            edge_targets=self.topology_auxiliary_true_targets,
+            edge_role_ids=self.topology_auxiliary_true_role_ids,
+        ).mean(dim=1)
+        shuffled_summary = self._edge_tokens_from_buffers(
+            hidden=hidden,
+            active_indices=active_indices,
+            edge_sources=self.topology_auxiliary_shuffled_sources,
+            edge_targets=self.topology_auxiliary_shuffled_targets,
+            edge_role_ids=self.topology_auxiliary_shuffled_role_ids,
+        ).mean(dim=1)
+        delta = true_summary - shuffled_summary
+        contrast_input = torch.cat([true_summary, shuffled_summary, delta, delta.abs()], dim=1)
+        return self.topology_contrast_projection(contrast_input)
+
     def _persistent_edge_embedding(
         self,
         hidden: torch.Tensor,
@@ -504,7 +542,7 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         self,
         pair_features: torch.Tensor,
         active_metadata: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         hidden = self._cell_tokens(pair_features)
         active_indices = active_metadata.float().argmax(dim=1)
         metadata_embedding = self.active_metadata_projection(active_metadata.float())
@@ -558,7 +596,12 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
         if self.active_metadata_fusion == "direct":
             pair_parts.append(metadata_embedding)
         pair_embedding = torch.cat(pair_parts, dim=1)
-        return self.pair_projection(pair_embedding), consistency_edge_tokens
+        topology_contrast = (
+            self._topology_contrast_embedding(hidden, active_indices)
+            if self.topology_contrast_fusion == "true_minus_shuffled"
+            else hidden.new_zeros(hidden.shape[0], self.token_dim)
+        )
+        return self.pair_projection(pair_embedding), consistency_edge_tokens, topology_contrast
 
     def _cross_pair_consistency_embedding(self, edge_tokens: torch.Tensor) -> torch.Tensor:
         edge_mean = edge_tokens.mean(dim=1)
@@ -578,7 +621,10 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             self.pairs_per_sample,
             self.metadata_bits,
         ).reshape(features.shape[0] * self.pairs_per_sample, self.metadata_bits)
-        flat_pair_embeddings, flat_edge_tokens = self._encode_pairs(pair_features, pair_metadata)
+        flat_pair_embeddings, flat_edge_tokens, flat_topology_contrast = self._encode_pairs(
+            pair_features,
+            pair_metadata,
+        )
         pair_embeddings = flat_pair_embeddings.reshape(
             features.shape[0],
             self.pairs_per_sample,
@@ -590,6 +636,11 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             flat_edge_tokens.shape[1],
             self.token_dim,
         )
+        topology_contrast = flat_topology_contrast.reshape(
+            features.shape[0],
+            self.pairs_per_sample,
+            self.token_dim,
+        )
         attention_embedding, attention_weights = self.attention(pair_embeddings)
         self.last_attention_weights = attention_weights.detach()
         classifier_inputs = [attention_embedding]
@@ -597,6 +648,8 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
             classifier_inputs.append(self.active_metadata_projection(active_metadata))
         if self.cross_pair_consistency != "none":
             classifier_inputs.append(self._cross_pair_consistency_embedding(edge_tokens))
+        if self.topology_contrast_fusion != "none":
+            classifier_inputs.append(topology_contrast.mean(dim=1))
         return self.classifier(torch.cat(classifier_inputs, dim=1))
 
 
