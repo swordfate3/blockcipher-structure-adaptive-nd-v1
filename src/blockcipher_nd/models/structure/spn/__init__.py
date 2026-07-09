@@ -24,6 +24,10 @@ from blockcipher_nd.models.structure.spn.present_p_layer_mixer import (
     PresentPLayerMixerBlock,
     PresentPLayerMixerPairSetDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.present_active_cell_graph import (
+    PresentActiveCellGraphLayer,
+    PresentActiveCellGraphPairSetDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.present_inception_mcnd import (
     PresentInceptionMCNDBlock,
     PresentInceptionMCNDDistinguisher,
@@ -65,6 +69,8 @@ from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
 __all__ = [
     "PresentPLayerMixerBlock",
     "PresentPLayerMixerPairSetDistinguisher",
+    "PresentActiveCellGraphLayer",
+    "PresentActiveCellGraphPairSetDistinguisher",
     "PresentTrailMixerPairSetDistinguisher",
     "PresentPairSetGlobalStatsDistinguisher",
     "PresentPairSetGlobalStatsHybridDistinguisher",

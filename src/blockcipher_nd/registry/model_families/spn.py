@@ -14,6 +14,7 @@ from blockcipher_nd.models.structure import (
     PresentPairSetGlobalStatsHybridDistinguisher,
     PresentPairSetHistogramHybridDistinguisher,
     PresentPairSetStatsHybridDistinguisher,
+    PresentActiveCellGraphPairSetDistinguisher,
     PresentPLayerMixerPairSetDistinguisher,
     PresentNibbleDeltaOnlySpnOnlyDistinguisher,
     PresentNibbleInvPActiveAuxSpnOnlyDistinguisher,
@@ -549,6 +550,23 @@ def build_spn_model(
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
             global_hidden_bits=int_option(options, "global_hidden_bits"),
+        )
+    if name == "present_active_cell_graph_pairset":
+        return PresentActiveCellGraphPairSetDistinguisher(
+            input_bits=input_bits,
+            pair_bits=pair_bits or 320,
+            base_channels=hidden_bits,
+            token_dim=int_option(options, "token_dim"),
+            graph_depth=int_option(options, "graph_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            activation=str(options.get("activation", "gelu")),
+            norm=str(options.get("norm", "layernorm")),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            dropout=float(options.get("dropout", 0.0)),
+            top_k=int_option(options, "top_k", 4) or 4,
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
+            metadata_bits=int_option(options, "metadata_bits", 0) or 0,
+            graph_mode=str(options.get("graph_mode", "true")),
         )
     if name == "present_trail_position_stats_pairset":
         trail_depth = int_option(options, "trail_depth", 4)

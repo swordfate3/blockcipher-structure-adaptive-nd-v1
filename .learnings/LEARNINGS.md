@@ -1,3 +1,54 @@
+## [LRN-20260709-013] best_practice
+
+**Logged**: 2026-07-09T17:34:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 dynamic active cell graph remains unstable and fails the
+true-vs-control gate at 512/class.
+
+### Details
+The local diagnostic gate introduced `present_active_cell_graph_pairset`, a
+raw-prefix model that consumes no DDT trail-value block. It splits each PRESENT
+cell into a token, uses 16-bit active metadata to select the active source cell,
+and sends per-sample messages between the source cell and PRESENT P-layer target
+cells.
+
+The final run used tightened source-target messages plus an edge-local contrast
+embedding over source-target cell pairs.
+
+Results under aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives:
+
+- true topology AUC = 0.530868530 seed0, 0.461181641 seed1
+- shuffled topology AUC = 0.511169434 seed0, 0.486450195 seed1
+- metadata-only AUC = 0.509994507 seed0, 0.486816406 seed1
+
+The seed0 pattern is encouraging because true topology is about 0.02 AUC above
+both controls. However, seed1 reverses the ordering and falls below both
+controls, so the local gate does not justify scale-up.
+
+### Suggested Action
+Do not remote-scale the current dynamic active cell graph. Keep it as a
+diagnostic baseline. The next local architecture should change the
+representation more substantially, such as persistent edge tokens across all
+P-layer cell relations or a topology-control auxiliary objective, and must keep
+the same true/shuffled/metadata-only gate.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-dynamic-active-cell-graph-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_dynamic_active_cell_graph_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, dynamic-graph, active-conditioning, raw-prefix, topology-control, local-gate
+- See Also: LRN-20260709-012, LRN-20260709-011, LRN-20260709-010
+- Pattern-Key: innovation1.spn_present.dynamic_active_cell_graph_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-012] best_practice
 
 **Logged**: 2026-07-09T16:52:00+08:00

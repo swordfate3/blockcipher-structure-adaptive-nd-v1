@@ -16581,6 +16581,68 @@ def test_present_trail_position_stats_accepts_zero_trail_depth_for_raw_prefix_st
     assert torch.isfinite(logits).all()
 
 
+def test_present_active_cell_graph_modes_forward_and_change_targets():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+    common = {
+        "input_bits": 16 * pair_bits + 16,
+        "hidden_bits": 8,
+        "pair_bits": pair_bits,
+        "structure": "SPN",
+        "model_options": {
+            "token_dim": 16,
+            "graph_depth": 1,
+            "metadata_bits": 16,
+            "pooling": "topk_logsumexp",
+            "top_k": 2,
+        },
+    }
+    true_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{**common, "model_options": {**common["model_options"], "graph_mode": "true"}},
+    )
+    shuffled_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{**common, "model_options": {**common["model_options"], "graph_mode": "shuffled"}},
+    )
+    metadata_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{**common, "model_options": {**common["model_options"], "graph_mode": "metadata_only"}},
+    )
+    features = torch.zeros(2, 16 * pair_bits + 16)
+    features[:, -16] = 1
+
+    true_logits = true_model(features)
+    shuffled_logits = shuffled_model(features)
+    metadata_logits = metadata_model(features)
+
+    assert true_logits.shape == (2, 1)
+    assert shuffled_logits.shape == (2, 1)
+    assert metadata_logits.shape == (2, 1)
+    assert torch.isfinite(true_logits).all()
+    assert torch.isfinite(shuffled_logits).all()
+    assert torch.isfinite(metadata_logits).all()
+    assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
+    assert not metadata_model.target_masks.any()
+
+
+def test_present_active_cell_graph_rejects_missing_active_metadata():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+
+    with pytest.raises(ValueError, match="metadata"):
+        build_model(
+            "present_active_cell_graph_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=8,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "token_dim": 16,
+                "graph_depth": 1,
+                "metadata_bits": 0,
+            },
+        )
+
+
 def test_evidence_pooling_topk_logsumexp_casts_scatter_weights_under_autocast():
     from blockcipher_nd.models.common.components import EvidencePooling
 
