@@ -1,3 +1,58 @@
+## [LRN-20260709-025] best_practice
+
+**Logged**: 2026-07-09T23:58:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Active-relative PRESENT topology slots improve seed0 margins but fail
+true-vs-shuffled on seed1 at the pair4 2048/class local gate.
+
+### Details
+The first active-relative topology diagnostic kept the pair4 2048/class
+protocol and added `active_relative_summary = source_target_slots`. Per pair,
+the model gathers the active source token, four P-layer target cell tokens in
+active-relative slot order, and target-mean minus source delta, then projects
+those six slots into one extra pair embedding before pair-set pooling.
+
+Results:
+
+- true AUC = 0.501859188 seed0, 0.502976418 seed1
+- shuffled AUC = 0.475565910 seed0, 0.512726784 seed1
+- metadata-only AUC = 0.472901821 seed0, 0.498301506 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The route passes `true > metadata-only` on both seeds but fails
+true-vs-shuffled on seed1:
+
+- seed0 true-shuffled = +0.026293278, true-metadata = +0.028957367
+- seed1 true-shuffled = -0.009750366, true-metadata = +0.004674911
+
+Compared with raw-prefix pair4 2048/class, seed0 improved clearly
+(`true-shuffled` +0.004761219 -> +0.026293278), while seed1 reversed
+(+0.005915165 -> -0.009750366).
+
+### Suggested Action
+Do not remote-scale this active-relative branch. Keep the pre-pooling
+active-relative topology idea, but redesign the integration so shuffled slots
+are less likely to become a seed-specific shortcut. Candidate next steps are a
+lower-weight active-relative branch, an auxiliary-only active-relative pretext
+objective, or a true-minus-shuffled active-relative contrast embedding before
+classifier fusion.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-relative-topology-pair4-2048-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_relative_topology_pair4_2048_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, topology-contrast, active-relative, pair-count, active-conditioning, local-gate
+- See Also: LRN-20260709-024, LRN-20260709-023, LRN-20260709-022
+- Pattern-Key: innovation1.spn_present.active_relative_topology_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-024] best_practice
 
 **Logged**: 2026-07-09T23:45:00+08:00
