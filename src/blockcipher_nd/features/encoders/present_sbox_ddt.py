@@ -22,6 +22,7 @@ _PRESENT_SBOXDDT_TRAIL_ENCODING_PATTERN = re.compile(
     r"^present_(?P<scope>pair_xor|delta)_paligned"
     r"(?P<sinv>_sinv)?_sboxddt_"
     r"(?P<kind>beamstats|beam)(?P<beam_width>[1-9][0-9]*)deep(?P<depth>[1-9][0-9]*)"
+    r"(?P<source>_maskedsource|_constantsource)?"
     r"_cell_matrix_bits$"
 )
 
@@ -128,9 +129,12 @@ def parse_parameterized_present_sboxddt_encoding(feature_encoding: str) -> dict[
     scope = match.group("scope")
     include_sinv = match.group("sinv") is not None
     use_statistics = match.group("kind") == "beamstats"
+    source = match.group("source")
     if scope == "delta" and not include_sinv:
         return None
     if use_statistics and (scope != "delta" or not include_sinv):
+        return None
+    if source is not None and not (use_statistics and scope == "delta" and include_sinv):
         return None
     return {
         "include_pair": scope == "pair_xor",
@@ -138,6 +142,13 @@ def parse_parameterized_present_sboxddt_encoding(feature_encoding: str) -> dict[
         "use_statistics": use_statistics,
         "beam_width": int(match.group("beam_width")),
         "depth": int(match.group("depth")),
+        "trail_source": (
+            "masked"
+            if source == "_maskedsource"
+            else "constant"
+            if source == "_constantsource"
+            else "real"
+        ),
     }
 
 

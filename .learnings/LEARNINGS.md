@@ -1,3 +1,58 @@
+## [LRN-20260709-009] best_practice
+
+**Logged**: 2026-07-09T15:51:43+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 weak trail summaries `beamstats4deep2` and `beamstats2deep1` do not
+solve the aligned wrong-source/fixed-source mismatch gate.
+
+### Details
+The local diagnostic gate tested shallower/local parameterized S-box-DDT
+statistics under aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives:
+
+- `present_delta_paligned_sinv_sboxddt_beamstats4deep2_*`
+- `present_delta_paligned_sinv_sboxddt_beamstats2deep1_*`
+
+Each family compared full, `maskedsource`, and `constantsource` using the same
+`present_trail_position_stats_pairset` model with matching `trail_depth`.
+
+Results:
+
+- beamstats4deep2 full AUC = 0.959899902 seed0, 0.952911377 seed1
+- beamstats4deep2 maskedsource AUC = 0.959884644 seed0, 0.974182129 seed1
+- beamstats4deep2 constantsource AUC = 0.929473877 seed0, 0.934555054 seed1
+- beamstats2deep1 full AUC = 0.904388428 seed0, 0.901809692 seed1
+- beamstats2deep1 maskedsource AUC = 0.945175171 seed0, 0.916732788 seed1
+- beamstats2deep1 constantsource AUC = 0.909851074 seed0, 0.942443848 seed1
+
+The desired pattern was full high with wrong-source/fixed-source lower. Instead,
+wrong-source and fixed-source controls remain close to, or above, full. This
+means simply reducing beam width/depth under the same concatenated
+DDT-trail-value representation is not enough.
+
+### Suggested Action
+Do not remote-scale weak trail summaries in this representation. The next local
+route should move away from feeding DDT trail values as a dense input block.
+Prefer a native SPN cell/coordinate model over raw prefix signals, or add a
+control-aware objective that penalizes full and wrong-source trail embeddings
+being equally useful.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-weak-trail-summary-plan.md, src/blockcipher_nd/features/encoders/present_sbox_ddt.py, src/blockcipher_nd/features/encoders/present_matrix.py, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_weak_trail_summary_512_seed0_seed1.csv
+- Tags: innovation1, present, spn, trail-position, weak-trail, mismatch-control, local-gate
+- See Also: LRN-20260709-008, LRN-20260709-007, LRN-20260709-006
+- Pattern-Key: innovation1.spn_present.weak_trail_summary_mismatch_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-008] best_practice
 
 **Logged**: 2026-07-09T15:35:10+08:00

@@ -345,6 +345,7 @@ def parameterized_present_sboxddt_cell_matrix_bits(
     beam_width: int,
     depth: int,
     feature_encoding: str,
+    trail_source: str = "real",
 ) -> list[int]:
     difference = left ^ right
     aligned_difference = inverse_permutation_difference(difference, width, cipher)
@@ -355,6 +356,12 @@ def parameterized_present_sboxddt_cell_matrix_bits(
     if include_sinv:
         source_difference = present_structural_inverse_sbox_difference(left, right, width, cipher)
         prefix_words.append(source_difference)
+    if trail_source == "masked":
+        source_difference = source_difference ^ _repeated_present_nibble_word(0x1, width)
+    elif trail_source == "constant":
+        source_difference = 0x9 & ((1 << width) - 1)
+    elif trail_source != "real":
+        raise ValueError(f"unsupported PRESENT parameterized trail source: {trail_source}")
     if use_statistics:
         trail_words = present_sbox_ddt_beam_statistics_words(
             source_difference,
