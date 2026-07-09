@@ -568,6 +568,7 @@ def build_spn_model(
             metadata_bits=int_option(options, "metadata_bits", 0) or 0,
             graph_mode=str(options.get("graph_mode", "true")),
             edge_mode=str(options.get("edge_mode", "active_only")),
+            cross_pair_consistency=str(options.get("cross_pair_consistency", "none")),
         )
     if name == "present_trail_position_stats_pairset":
         trail_depth = int_option(options, "trail_depth", 4)

@@ -1,3 +1,53 @@
+## [LRN-20260709-015] best_practice
+
+**Logged**: 2026-07-09T18:45:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 cross-pair edge consistency is still unstable and fails the
+true-vs-control gate at 512/class.
+
+### Details
+The local diagnostic gate extended `present_active_cell_graph_pairset` with
+`cross_pair_consistency = edge_mean_absdev`. It preserved persistent P-layer
+edge tokens per pair, then compared the same edge across all 16 pairs in each
+sample using edge-wise mean, mean absolute deviation, and max response.
+
+All rows used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict
+encrypted random-plaintext negatives, with no DDT trail-value block.
+
+Results:
+
+- true AUC = 0.547439575 seed0, 0.461982727 seed1
+- shuffled AUC = 0.505828857 seed0, 0.485153198 seed1
+- metadata-only AUC = 0.507049561 seed0, 0.484283447 seed1
+
+The desired pattern was `true > shuffled` and `true > metadata-only` on both
+seeds. The pattern improved seed0 but reversed seed1, so the gate still fails.
+This complements the persistent edge-token gate, where seed1 looked better and
+seed0 reversed.
+
+### Suggested Action
+Do not scale cross-pair edge consistency. Treat it as a diagnostic baseline.
+The next local route should address active/metadata and topology coupling more
+directly, for example by removing final active-metadata injection while keeping
+active only as coordinate conditioning, or by adding a topology-control
+auxiliary objective over raw-prefix edge embeddings.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-cross-pair-edge-consistency-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_cross_pair_edge_consistency_512_seed0_seed1.csv, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py
+- Tags: innovation1, present, spn, cross-pair-consistency, active-conditioning, raw-prefix, topology-control, local-gate
+- See Also: LRN-20260709-014, LRN-20260709-013, LRN-20260709-012
+- Pattern-Key: innovation1.spn_present.cross_pair_edge_consistency_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-014] best_practice
 
 **Logged**: 2026-07-09T18:10:00+08:00

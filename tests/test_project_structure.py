@@ -16619,6 +16619,18 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
             },
         },
     )
+    consistency_model = build_model(
+        "present_active_cell_graph_pairset",
+        **{
+            **common,
+            "model_options": {
+                **common["model_options"],
+                "graph_mode": "true",
+                "edge_mode": "persistent",
+                "cross_pair_consistency": "edge_mean_absdev",
+            },
+        },
+    )
     features = torch.zeros(2, 16 * pair_bits + 16)
     features[:, -16] = 1
 
@@ -16626,20 +16638,24 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     shuffled_logits = shuffled_model(features)
     metadata_logits = metadata_model(features)
     persistent_logits = persistent_model(features)
+    consistency_logits = consistency_model(features)
 
     assert true_logits.shape == (2, 1)
     assert shuffled_logits.shape == (2, 1)
     assert metadata_logits.shape == (2, 1)
     assert persistent_logits.shape == (2, 1)
+    assert consistency_logits.shape == (2, 1)
     assert torch.isfinite(true_logits).all()
     assert torch.isfinite(shuffled_logits).all()
     assert torch.isfinite(metadata_logits).all()
     assert torch.isfinite(persistent_logits).all()
+    assert torch.isfinite(consistency_logits).all()
     assert not torch.equal(true_model.target_masks, shuffled_model.target_masks)
     assert not metadata_model.target_masks.any()
     assert persistent_model.persistent_edge_sources.shape == persistent_model.persistent_edge_targets.shape
     assert persistent_model.persistent_edge_role_ids.shape[1] == persistent_model.persistent_edge_sources.numel()
     assert persistent_model.edge_mode == "persistent"
+    assert consistency_model.cross_pair_consistency == "edge_mean_absdev"
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():
@@ -16656,6 +16672,26 @@ def test_present_active_cell_graph_rejects_missing_active_metadata():
                 "token_dim": 16,
                 "graph_depth": 1,
                 "metadata_bits": 0,
+            },
+        )
+
+
+def test_present_active_cell_graph_rejects_cross_pair_without_persistent_edges():
+    pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
+
+    with pytest.raises(ValueError, match="persistent"):
+        build_model(
+            "present_active_cell_graph_pairset",
+            input_bits=16 * pair_bits + 16,
+            hidden_bits=8,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "token_dim": 16,
+                "graph_depth": 1,
+                "metadata_bits": 16,
+                "edge_mode": "active_only",
+                "cross_pair_consistency": "edge_mean_absdev",
             },
         )
 
