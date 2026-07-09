@@ -565,6 +565,9 @@ def build_spn_model(
             active_conditioning=str(options.get("active_conditioning", "none")),
             trail_position_control=str(options.get("trail_position_control", "none")),
             trail_normalization=str(options.get("trail_normalization", "none")),
+            trail_fusion=str(options.get("trail_fusion", "concat")),
+            trail_gate=str(options.get("trail_gate", "vector")),
+            trail_auxiliary_scale=float(options.get("trail_auxiliary_scale", 0.25)),
         )
     if name == "present_p_layer_mixer_pairset":
         return PresentPLayerMixerPairSetDistinguisher(

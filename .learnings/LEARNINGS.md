@@ -1,3 +1,60 @@
+## [LRN-20260709-008] best_practice
+
+**Logged**: 2026-07-09T15:35:10+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 gated auxiliary trail fusion reduces fixed-source scaffold but does
+not solve wrong-source beamstats8deep4 mismatch at the 512/class local gate.
+
+### Details
+Two local diagnostic gates tested `present_trail_position_stats_pairset` with a
+split prefix/trail architecture:
+
+- vector gate: `trail_fusion = gated_auxiliary`, `trail_auxiliary_scale = 0.25`
+- scalar gate: same but `trail_gate = scalar`
+
+Both used aligned random16 PRESENT r8, 512/class, seed0+seed1, strict encrypted
+random-plaintext negatives, and compared full route against `maskedsource` and
+`constantsource` mismatch controls.
+
+Vector-gated result:
+
+- full AUC = 0.959564209 seed0, 0.958099365 seed1
+- maskedsource AUC = 0.899963379 seed0, 0.956344604 seed1
+- constantsource AUC = 0.737449646 seed0, 0.787750244 seed1
+
+Scalar-gated result:
+
+- full AUC = 0.896041870 seed0, 0.959915161 seed1
+- maskedsource AUC = 0.927520752 seed0, 0.977416992 seed1
+- constantsource AUC = 0.787994385 seed0, 0.757537842 seed1
+
+Compared with the earlier concatenated/full beamstats8deep4 controls, gated
+fusion meaningfully reduces the fixed-source scaffold. However, wrong-source
+`maskedsource` remains close to full under the vector gate and exceeds full
+under the scalar gate. This means fusion control alone is not enough.
+
+### Suggested Action
+Do not remote-scale gated auxiliary full beamstats8deep4. Keep the branch/gate
+code as a useful diagnostic architecture, but the next route should weaken or
+localize the trail feature family itself, using the same
+full/maskedsource/constantsource gate before any medium or remote run.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-gated-aux-trail-plan.md, docs/experiments/innovation1-present-r8-aligned-gated-scalar-aux-trail-plan.md, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py
+- Tags: innovation1, present, spn, trail-position, gated-auxiliary, mismatch-control, local-gate
+- See Also: LRN-20260709-007, LRN-20260709-006, LRN-20260709-005
+- Pattern-Key: innovation1.spn_present.gated_aux_trail_mismatch_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-007] best_practice
 
 **Logged**: 2026-07-09T15:12:41+08:00

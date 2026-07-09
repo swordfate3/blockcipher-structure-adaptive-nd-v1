@@ -14648,6 +14648,166 @@ def test_present_trail_position_rejects_unknown_trail_normalization():
         )
 
 
+def test_present_trail_position_gated_auxiliary_forward_shape():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_fusion": "gated_auxiliary",
+            "trail_auxiliary_scale": 0.25,
+        },
+    )
+
+    logits = model(torch.zeros(3, 16 * pair_bits))
+
+    assert logits.shape == (3, 1)
+    assert model.prefix_stats_feature_bits > 0
+    assert model.trail_stats_feature_bits > 0
+
+
+def test_present_trail_position_gated_auxiliary_scalar_gate_forward_shape():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_fusion": "gated_auxiliary",
+            "trail_gate": "scalar",
+            "trail_auxiliary_scale": 0.25,
+        },
+    )
+
+    logits = model(torch.zeros(3, 16 * pair_bits))
+    gate = model.trail_gate_network(torch.zeros(3, model.stats_hidden_bits))
+
+    assert logits.shape == (3, 1)
+    assert gate.shape == (3, 1)
+
+
+def test_present_trail_position_gated_auxiliary_zero_scale_ignores_trail_values():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+    model = build_model(
+        "present_trail_position_stats_pairset",
+        input_bits=16 * pair_bits,
+        hidden_bits=16,
+        pair_bits=pair_bits,
+        structure="SPN",
+        model_options={
+            "trail_depth": 4,
+            "trail_words_per_depth": 9,
+            "stats_hidden_bits": 16,
+            "trail_fusion": "gated_auxiliary",
+            "trail_auxiliary_scale": 0.0,
+        },
+    )
+    model.eval()
+    left = torch.zeros(2, 16 * pair_bits)
+    right = left.clone()
+    trail_start = model.prefix_words * 64
+    for pair_index in range(16):
+        pair_start = pair_index * pair_bits
+        right[:, pair_start + trail_start : pair_start + pair_bits] = 1.0
+
+    with torch.no_grad():
+        left_logits = model(left)
+        right_logits = model(right)
+
+    assert torch.allclose(left_logits, right_logits, atol=1e-6)
+
+
+def test_present_trail_position_rejects_unknown_trail_fusion():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+
+    with pytest.raises(ValueError, match="trail_fusion"):
+        build_model(
+            "present_trail_position_stats_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=16,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "trail_fusion": "full_override",
+            },
+        )
+
+
+def test_present_trail_position_rejects_unknown_trail_gate():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+
+    with pytest.raises(ValueError, match="trail_gate"):
+        build_model(
+            "present_trail_position_stats_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=16,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "trail_fusion": "gated_auxiliary",
+                "trail_gate": "per_pair",
+            },
+        )
+
+
+def test_present_trail_position_rejects_negative_trail_auxiliary_scale():
+    cipher = build_cipher("present80", 8, key=0)
+    pair_bits = pair_bits_for_encoding(
+        cipher.block_bits,
+        "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits",
+    )
+
+    with pytest.raises(ValueError, match="trail_auxiliary_scale"):
+        build_model(
+            "present_trail_position_stats_pairset",
+            input_bits=16 * pair_bits,
+            hidden_bits=16,
+            pair_bits=pair_bits,
+            structure="SPN",
+            model_options={
+                "trail_depth": 4,
+                "trail_words_per_depth": 9,
+                "trail_fusion": "gated_auxiliary",
+                "trail_auxiliary_scale": -0.1,
+            },
+        )
+
+
 def test_present_trail_value_mismatch_encodings_preserve_full_trail_shape():
     cipher = build_cipher("present80", 8, key=0)
     full_encoding = "present_delta_paligned_sinv_sboxddt_beamstats8deep4_cell_matrix_bits"

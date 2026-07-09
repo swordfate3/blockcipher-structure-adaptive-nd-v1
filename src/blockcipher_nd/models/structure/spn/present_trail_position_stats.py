@@ -31,6 +31,9 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         active_conditioning: str = "none",
         trail_position_control: str = "none",
         trail_normalization: str = "none",
+        trail_fusion: str = "concat",
+        trail_gate: str = "vector",
+        trail_auxiliary_scale: float = 0.25,
     ) -> None:
         super().__init__()
         if active_conditioning not in {"none", "relative_stats", "p_layer_relative_stats"}:
@@ -54,6 +57,14 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
                 "PresentTrailPositionStats trail_normalization must be none, "
                 "trail_center, or trail_zscore"
             )
+        if trail_fusion not in {"concat", "gated_auxiliary"}:
+            raise ValueError(
+                "PresentTrailPositionStats trail_fusion must be concat or gated_auxiliary"
+            )
+        if trail_gate not in {"vector", "scalar"}:
+            raise ValueError("PresentTrailPositionStats trail_gate must be vector or scalar")
+        if trail_auxiliary_scale < 0.0:
+            raise ValueError("PresentTrailPositionStats trail_auxiliary_scale must be non-negative")
         if metadata_bits < 0:
             raise ValueError("PresentTrailPositionStats metadata_bits must be non-negative")
         base_input_bits = input_bits - metadata_bits
@@ -77,6 +88,9 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         self.active_conditioning = active_conditioning
         self.trail_position_control = trail_position_control
         self.trail_normalization = trail_normalization
+        self.trail_fusion = trail_fusion
+        self.trail_gate = trail_gate
+        self.trail_auxiliary_scale = trail_auxiliary_scale
         self.pair_bits = pair_bits
         self.pairs_per_sample = base_input_bits // pair_bits
         self.structure = "SPN"
@@ -116,15 +130,53 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             trail_words_per_depth,
         ) + metadata_bits
         classifier_hidden = max(64, base_channels * 4)
-        self.classifier = nn.Sequential(
-            build_norm(norm, self.stats_feature_bits),
-            nn.Linear(self.stats_feature_bits, self.stats_hidden_bits),
-            build_activation(activation),
-            nn.Dropout(dropout),
-            nn.Linear(self.stats_hidden_bits, classifier_hidden),
-            build_activation(activation),
-            nn.Dropout(dropout),
-            nn.Linear(classifier_hidden, 1),
+        if trail_fusion == "concat":
+            self.classifier = nn.Sequential(
+                build_norm(norm, self.stats_feature_bits),
+                nn.Linear(self.stats_feature_bits, self.stats_hidden_bits),
+                build_activation(activation),
+                nn.Dropout(dropout),
+                nn.Linear(self.stats_hidden_bits, classifier_hidden),
+                build_activation(activation),
+                nn.Dropout(dropout),
+                nn.Linear(classifier_hidden, 1),
+            )
+        else:
+            self.prefix_stats_feature_bits = self.prefix_position_stats_feature_bits(
+                self.prefix_words,
+                self.cells_per_word,
+            ) + metadata_bits
+            self.trail_stats_feature_bits = self.trail_position_stats_feature_bits(
+                trail_depth,
+                trail_words_per_depth,
+                self.cells_per_word,
+            )
+            self.prefix_encoder = self._make_stats_encoder(self.prefix_stats_feature_bits)
+            self.trail_encoder = self._make_stats_encoder(self.trail_stats_feature_bits)
+            gate_output_bits = self.stats_hidden_bits if trail_gate == "vector" else 1
+            self.trail_gate_network = nn.Sequential(
+                build_norm(norm, self.stats_hidden_bits),
+                nn.Linear(self.stats_hidden_bits, self.stats_hidden_bits),
+                build_activation(activation),
+                nn.Linear(self.stats_hidden_bits, gate_output_bits),
+                nn.Sigmoid(),
+            )
+            self.classifier = nn.Sequential(
+                build_norm(norm, self.stats_hidden_bits),
+                nn.Linear(self.stats_hidden_bits, classifier_hidden),
+                build_activation(activation),
+                nn.Dropout(dropout),
+                nn.Linear(classifier_hidden, 1),
+            )
+
+    def _make_stats_encoder(self, input_bits: int) -> nn.Sequential:
+        return nn.Sequential(
+            build_norm(self.norm, input_bits),
+            nn.Linear(input_bits, self.stats_hidden_bits),
+            build_activation(self.activation),
+            nn.Dropout(self.dropout),
+            nn.Linear(self.stats_hidden_bits, self.stats_hidden_bits),
+            build_activation(self.activation),
         )
 
     def set_cipher_structure(self, structure: str) -> None:
@@ -152,7 +204,30 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
             + 16
         )
 
-    def _position_statistics(self, features: torch.Tensor) -> torch.Tensor:
+    @staticmethod
+    def prefix_position_stats_feature_bits(prefix_words: int, cells_per_word: int) -> int:
+        return (
+            prefix_words * cells_per_word * 2
+            + prefix_words * 4
+            + cells_per_word * 4
+            + 12
+        )
+
+    @staticmethod
+    def trail_position_stats_feature_bits(
+        trail_depth: int,
+        trail_words_per_depth: int,
+        cells_per_word: int,
+    ) -> int:
+        return (
+            trail_depth * trail_words_per_depth * cells_per_word * 3
+            + trail_depth * cells_per_word * 4
+            + trail_depth * trail_words_per_depth * 4
+            + 4
+            + trail_depth * 4
+        )
+
+    def _prepared_activity(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
             raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
         base_features = features[:, : self.base_input_bits]
@@ -167,7 +242,10 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         if self.active_conditioning != "none":
             activity = self._active_relative_activity(activity, features)
         activity = self._trail_position_controlled_activity(activity)
-        activity = self._trail_normalized_activity(activity)
+        return self._trail_normalized_activity(activity)
+
+    def _position_statistics(self, features: torch.Tensor) -> torch.Tensor:
+        activity = self._prepared_activity(features)
         word_activity = activity.mean(dim=-1)
         cell_activity = activity.mean(dim=2)
 
@@ -240,6 +318,127 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
                 prefix_mean.flatten(1),
                 prefix_std.flatten(1),
                 global_stats,
+            ],
+            dim=1,
+        )
+
+    def _auxiliary_position_statistics(self, features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        activity = self._prepared_activity(features)
+        prefix = activity[:, :, : self.prefix_words]
+        trail = activity[:, :, self.prefix_words :].reshape(
+            features.shape[0],
+            self.pairs_per_sample,
+            self.trail_depth,
+            self.trail_words_per_depth,
+            self.cells_per_word,
+        )
+        return self._prefix_statistics(prefix), self._trail_statistics(trail)
+
+    def _prefix_statistics(self, prefix: torch.Tensor) -> torch.Tensor:
+        word_activity = prefix.mean(dim=-1)
+        cell_activity = prefix.mean(dim=2)
+
+        word_cell_mean = prefix.mean(dim=1)
+        word_cell_std = prefix.std(dim=1, unbiased=False)
+
+        word_mean = word_activity.mean(dim=1)
+        word_std = word_activity.std(dim=1, unbiased=False)
+        word_first_last = word_activity[:, -1] - word_activity[:, 0]
+        word_span = word_activity.amax(dim=1) - word_activity.amin(dim=1)
+
+        cell_mean = cell_activity.mean(dim=1)
+        cell_std = cell_activity.std(dim=1, unbiased=False)
+        cell_first_last = cell_activity[:, -1] - cell_activity[:, 0]
+        cell_span = cell_activity.amax(dim=1) - cell_activity.amin(dim=1)
+
+        pair_density = prefix.mean(dim=(2, 3))
+        low_cells = prefix[..., :4].mean(dim=(2, 3))
+        mid_cells = prefix[..., 4:12].mean(dim=(2, 3))
+        high_cells = prefix[..., 12:].mean(dim=(2, 3))
+        even_odd = (
+            prefix[..., ::2].mean(dim=(2, 3))
+            - prefix[..., 1::2].mean(dim=(2, 3))
+        )
+        prefix_global = torch.stack(
+            [
+                pair_density.mean(dim=1),
+                pair_density.std(dim=1, unbiased=False),
+                pair_density[:, -1] - pair_density[:, 0],
+                pair_density.amax(dim=1) - pair_density.amin(dim=1),
+                low_cells.mean(dim=1),
+                mid_cells.mean(dim=1),
+                high_cells.mean(dim=1),
+                even_odd.mean(dim=1),
+                low_cells[:, -1] - low_cells[:, 0],
+                mid_cells[:, -1] - mid_cells[:, 0],
+                high_cells[:, -1] - high_cells[:, 0],
+                even_odd[:, -1] - even_odd[:, 0],
+            ],
+            dim=1,
+        )
+        return torch.cat(
+            [
+                word_cell_mean.flatten(1),
+                word_cell_std.flatten(1),
+                word_mean,
+                word_std,
+                word_first_last,
+                word_span,
+                cell_mean,
+                cell_std,
+                cell_first_last,
+                cell_span,
+                prefix_global,
+            ],
+            dim=1,
+        )
+
+    def _trail_statistics(self, trail: torch.Tensor) -> torch.Tensor:
+        depth_word_cell_mean = trail.mean(dim=1)
+        depth_word_cell_std = trail.std(dim=1, unbiased=False)
+        depth_word_cell_span = trail.amax(dim=1) - trail.amin(dim=1)
+
+        depth_cell_activity = trail.mean(dim=3)
+        depth_cell_mean = depth_cell_activity.mean(dim=1)
+        depth_cell_std = depth_cell_activity.std(dim=1, unbiased=False)
+        depth_cell_first_last = depth_cell_activity[:, -1] - depth_cell_activity[:, 0]
+        depth_cell_span = depth_cell_activity.amax(dim=1) - depth_cell_activity.amin(dim=1)
+
+        depth_word_activity = trail.mean(dim=4)
+        depth_word_mean = depth_word_activity.mean(dim=1)
+        depth_word_std = depth_word_activity.std(dim=1, unbiased=False)
+        depth_word_first_last = depth_word_activity[:, -1] - depth_word_activity[:, 0]
+        depth_word_span = depth_word_activity.amax(dim=1) - depth_word_activity.amin(dim=1)
+
+        pair_density = trail.mean(dim=(2, 3, 4))
+        depth_density = trail.mean(dim=(3, 4))
+        trail_global = torch.cat(
+            [
+                pair_density.mean(dim=1, keepdim=True),
+                pair_density.std(dim=1, unbiased=False, keepdim=True),
+                (pair_density[:, -1] - pair_density[:, 0]).unsqueeze(1),
+                (pair_density.amax(dim=1) - pair_density.amin(dim=1)).unsqueeze(1),
+                depth_density.mean(dim=1),
+                depth_density.std(dim=1, unbiased=False),
+                depth_density[:, -1] - depth_density[:, 0],
+                depth_density.amax(dim=1) - depth_density.amin(dim=1),
+            ],
+            dim=1,
+        )
+        return torch.cat(
+            [
+                depth_word_cell_mean.flatten(1),
+                depth_word_cell_std.flatten(1),
+                depth_word_cell_span.flatten(1),
+                depth_cell_mean.flatten(1),
+                depth_cell_std.flatten(1),
+                depth_cell_first_last.flatten(1),
+                depth_cell_span.flatten(1),
+                depth_word_mean.flatten(1),
+                depth_word_std.flatten(1),
+                depth_word_first_last.flatten(1),
+                depth_word_span.flatten(1),
+                trail_global,
             ],
             dim=1,
         )
@@ -327,6 +526,14 @@ class PresentTrailPositionStatsPairSetDistinguisher(nn.Module):
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if self.trail_fusion == "gated_auxiliary":
+            prefix_stats, trail_stats = self._auxiliary_position_statistics(features)
+            if self.metadata_bits:
+                prefix_stats = torch.cat([prefix_stats, features[:, -self.metadata_bits :].float()], dim=1)
+            prefix_embedding = self.prefix_encoder(prefix_stats)
+            trail_embedding = self.trail_encoder(trail_stats)
+            gated_trail = self.trail_auxiliary_scale * self.trail_gate_network(prefix_embedding) * trail_embedding
+            return self.classifier(prefix_embedding + gated_trail)
         stats = self._position_statistics(features)
         if self.metadata_bits:
             stats = torch.cat([stats, features[:, -self.metadata_bits :].float()], dim=1)
