@@ -1,3 +1,66 @@
+## [LRN-20260709-004] best_practice
+
+**Logged**: 2026-07-09T12:49:23+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 aligned active-difference full local gate supports the
+trail-position route diagnostically, but next evidence should attribute
+trail-position semantics before remote scale.
+
+### Details
+The PRESENT r8 aligned-active-difference full gate completed three local
+matrices:
+
+- Matrix A full single-active sweep, 256/class, seed0+seed1:
+  - seed0 min/mean/max AUC = 0.946472168 / 0.969291687 / 0.987121582
+  - seed1 min/mean/max AUC = 0.922180176 / 0.957317352 / 0.978576660
+  - All 16 fixed active nibbles stayed high on both seeds once the input
+    difference moved with the active coordinate.
+- Matrix B aligned random16, 512/class, seed0+seed1:
+  - unconditioned seed0 AUC = 0.958282471
+  - unconditioned seed1 AUC = 0.972396851
+  - p-layer-relative seed0 AUC = 0.755661011
+  - p-layer-relative seed1 AUC = 0.895446777
+  - Current p-layer-relative statistics still underperform unconditioned
+    trail-position statistics.
+- Matrix C aligned feature ablation, 256/class, seed0, using compatible
+  `present_pairset_global_stats`:
+  - ciphertext xor AUC = 0.000000000
+  - simple P-aligned and pair P-aligned features stayed near chance
+  - S-inverse/DDT/beam tiers stayed around 0.52-0.55
+  - full beamstats8deep4 feature reached only AUC = 0.609191895 under global
+    stats
+
+This means the old active0-only failure was mostly a protocol-alignment issue,
+not a fundamental active-coordinate limitation. It also means the 0.95+ local
+aligned-random16 score is not explained by weak ciphertext-xor or ordinary
+global-statistics features. The best current interpretation is that the
+combination of full SPN-aware feature layout plus the trail-position statistics
+model is carrying the signal.
+
+### Suggested Action
+Do not remote-scale this local gate as a formal claim yet. The next local
+evidence should separate architecture contribution from feature contribution
+with compatible trail-position variants and stricter controls, such as
+trail-compatible prefix ablations, trail-position permutation controls, and
+label/protocol controls that preserve aligned input generation while destroying
+trail-position semantics.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-aligned-active-difference-full-gate-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_full_single_active_256_seed0_seed1.csv, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_random16_512_seed0_seed1.csv, configs/experiment/innovation1/innovation1_spn_present_r8_aligned_feature_ablation_256_seed0.csv
+- Tags: innovation1, present, spn, active-nibble, trail-position, feature-ablation, local-gate
+- See Also: LRN-20260709-003, LRN-20260709-002, LRN-20260709-001
+- Pattern-Key: innovation1.spn_present.aligned_active_difference_full_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-003] best_practice
 
 **Logged**: 2026-07-09T11:48:13+08:00
