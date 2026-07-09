@@ -1,3 +1,52 @@
+## [LRN-20260709-002] best_practice
+
+**Logged**: 2026-07-09T10:51:06+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+PRESENT r8 active-nibble generalization must align the input difference with
+the sampled active nibble before interpreting random-active or heldout-active
+failures as architecture failures.
+
+### Details
+The PRESENT r8 single-active sweep at 256/class seed0 tested
+`present_trail_position_stats_pairset` with `active_conditioning =
+p_layer_relative_stats` for active nibbles `{0}` through `{15}`. Only active
+nibble 0 was high:
+
+- active 0 AUC = 0.949279785
+- active 1..15 AUC range = 0.475769043 to 0.547973633
+- mean over all active nibbles = 0.529594421
+
+Source inspection shows the likely protocol issue. The random-active integral
+sample structures sample `integral_active_nibble`, but the Zhang/Wang
+`present_zhang_wang2022_mcnd` input difference remains fixed at
+`0x0000000000000009`, i.e. low nibble 0. Thus the protocol moves the integral
+active coordinate while leaving the differential anchor at nibble 0. Previous
+active1/fixed-active high scores should be interpreted as "active nibble 0 plus
+low-nibble difference is learnable", not as evidence that any fixed active
+coordinate is equally learnable.
+
+### Suggested Action
+Before testing more active-conditioned architectures or remote scale, add an
+aligned-active-difference protocol: when active nibble `k` is sampled, use
+input difference `0x9 << (4*k)` for that row. Then rerun aligned single-active,
+aligned random-active, conditioned random-active, and heldout-active gates.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-single-active-sweep-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_single_active_sweep_256_seed0.csv, src/blockcipher_nd/data/differential/rows.py, src/blockcipher_nd/registry/difference_profiles.py
+- Tags: innovation1, present, spn, active-nibble, input-difference, protocol-audit
+- See Also: LRN-20260709-001, LRN-20260708-008, LRN-20260708-007
+- Pattern-Key: innovation1.spn_present.active_nibble_requires_aligned_difference
+- Recurrence-Count: 1
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-09
+
+---
+
 ## [LRN-20260709-001] best_practice
 
 **Logged**: 2026-07-09T00:08:48+08:00
