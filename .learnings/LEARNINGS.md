@@ -1,3 +1,60 @@
+## [LRN-20260710-002] correction
+
+**Logged**: 2026-07-10T11:41:57+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+E1 active-cell graph results were produced with a feature-layout/model-reshape
+contract mismatch, so they do not cleanly adjudicate PRESENT cell topology.
+
+### Details
+The E1 encoder `present_pair_xor_paligned_sinv_cell_matrix_bits` creates five
+64-bit semantic words, then `words_to_present_cell_matrix_bits` emits them in
+global bit-plane order. For five words and sixteen cells, encoded position
+`k` has semantic coordinates:
+
+```text
+bit_plane = k // 80
+word = (k % 80) // 16
+cell = k % 16
+```
+
+`PresentActiveCellGraphPairSetDistinguisher._cell_tokens`, however, directly
+reshapes the 320 encoded bits as `[5 words, 16 cells, 4 bits]` and permutes that
+tensor to build sixteen 20-bit cell tokens. That reshape assumes word-major,
+cell-major, bit-minor input, which is not the encoder's global bit-plane
+layout. Consequently, a graph token does not contain the five four-bit views
+for one PRESENT cell. For example, the model's token 0 begins with bit-plane
+0 from cells 0..3 of word 0, not all four bits of cell 0. Active source/target
+roles and P-layer edges are therefore applied to mixed feature positions.
+
+Existing active-cell graph tests verify tensor shapes, finite forwards, and
+different true/shuffled adjacency buffers, but do not verify semantic
+encoder-to-token cell alignment. The E1 AUC values remain valid measurements
+of the code that ran, but the route verdict must be qualified: they do not yet
+show that a correctly cell-aligned topology graph is fragile or exhausted.
+
+### Suggested Action
+Before E2 or any further topology-route verdict, add a semantic layout test
+using sentinel words, make the active-cell graph explicitly decode the
+bit-plane layout into `[batch, cell, word, bit]`, and rerun the smallest
+same-protocol E1 control matrix. Keep the current result as a diagnostic of the
+misaligned implementation, not a clean topology-architecture adjudication.
+
+### Metadata
+- Source: user_feedback_and_source_audit
+- Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/models/structure/spn/present_active_cell_graph.py, tests/test_project_structure.py, docs/experiments/innovation1-present-r8-active-relative-contrast-pair4-8192-plan.md
+- Tags: innovation1, present, spn, feature-layout, active-cell-graph, topology, experiment-validity
+- See Also: LRN-20260710-001, LRN-20260709-018, LRN-20260708-002
+- Pattern-Key: innovation1.spn_present.active_cell_graph_feature_layout_contract
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-001] correction
 
 **Logged**: 2026-07-10T10:15:00+08:00
