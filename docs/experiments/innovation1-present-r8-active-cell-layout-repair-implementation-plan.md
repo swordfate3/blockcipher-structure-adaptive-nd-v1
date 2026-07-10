@@ -336,3 +336,20 @@ verified, while preserving its historical warning.
 
 Run `git diff --check`, validate the result again, inspect the scoped diff,
 commit the documentation/learning updates, and push `main`.
+
+## Execution Record
+
+```text
+layout repair commit = feebe27
+semantic tests = 2 passed
+focused regressions = 6 passed
+runtime smoke = pass (3/3 rows)
+E1-R1 result validation = pass (6/6 rows)
+E1-R1 gate = fail
+E1-R2 = not permitted
+next adjudication = E2
+```
+
+All planned implementation and local experiment steps were executed inline.
+The unchecked boxes above preserve the original task specification; this
+execution record is the authoritative completion state.

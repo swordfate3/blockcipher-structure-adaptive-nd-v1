@@ -1,8 +1,67 @@
+## [LRN-20260710-004] best_practice
+
+**Logged**: 2026-07-10T12:16:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+The cell-aligned E1-R1 2048/class re-adjudication fails both the frozen margin
+gate and seed1 topology controls, so the active-cell topology branch stops and
+does not advance to 8192/class.
+
+### Details
+After commit `feebe27` corrected the global bit-plane to semantic-cell layout,
+the plan-aligned six-row matched-negative diagnostic produced:
+
+```text
+seed0 true          AUC=0.499474525
+seed0 shuffled      AUC=0.497209549
+seed0 metadata_only AUC=0.500332355
+
+seed1 true          AUC=0.496722221
+seed1 shuffled      AUC=0.522119045
+seed1 metadata_only AUC=0.520334244
+```
+
+Control deltas:
+
+```text
+seed0 true-shuffled = +0.002264977
+seed0 true-metadata = -0.000857830
+seed1 true-shuffled = -0.025396824
+seed1 true-metadata = -0.023612022
+```
+
+The frozen E1-R1 gate required true to beat both controls on both seeds and
+`true-shuffled >= +0.02` on both seeds. Seed0 misses the margin and loses to
+metadata-only; seed1 loses to both controls. Result-plan validation passed with
+six rows and no errors.
+
+### Suggested Action
+Do not create or run E1-R2 at 8192/class, and do not remote-scale this
+active-cell topology branch. Treat the result as a completed local
+matched-negative diagnostic, not a formal PRESENT r8 failure. Move the next
+Innovation 1 adjudication to E2 trail-position neural residual with its
+deterministic baseline and same-input control.
+
+### Metadata
+- Source: experiment_audit
+- Related Files: docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md, configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv, outputs/local_smoke/i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1/results.jsonl
+- Tags: innovation1, present, spn, active-cell, semantic-layout, topology-control, matched-negative, adjudication
+- See Also: LRN-20260710-002, LRN-20260709-029, LRN-20260709-026
+- Pattern-Key: innovation1.spn_present.cell_aligned_active_graph_readjudication
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-003] correction
 
 **Logged**: 2026-07-10T11:57:53+08:00
 **Priority**: high
-**Status**: pending
+**Status**: resolved
 **Area**: workflow
 
 ### Summary
@@ -40,13 +99,18 @@ material decision that was not covered by the approved plan.
 - First-Seen: 2026-07-10
 - Last-Seen: 2026-07-10
 
+### Resolution
+- **Resolved**: 2026-07-10T12:16:00+08:00
+- **Commit/PR**: this verdict commit
+- **Notes**: Continued from the approved plan through TDD repair, runtime smoke, the six-row E1-R1 experiment, frozen-gate adjudication, and result documentation without another conversational review stop.
+
 ---
 
 ## [LRN-20260710-002] correction
 
 **Logged**: 2026-07-10T11:41:57+08:00
 **Priority**: critical
-**Status**: pending
+**Status**: resolved
 **Area**: research
 
 ### Summary
@@ -96,6 +160,11 @@ misaligned implementation, not a clean topology-architecture adjudication.
 - Recurrence-Count: 1
 - First-Seen: 2026-07-10
 - Last-Seen: 2026-07-10
+
+### Resolution
+- **Resolved**: 2026-07-10T12:10:00+08:00
+- **Commit/PR**: feebe27
+- **Notes**: Added semantic encoder-to-cell and active-coordinate tests, corrected the model-side bit-plane layout conversion, and verified the focused active-cell regression set.
 
 ---
 

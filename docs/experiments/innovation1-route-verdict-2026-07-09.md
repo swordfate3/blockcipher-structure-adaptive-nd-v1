@@ -22,8 +22,8 @@ measurements, but its topology-route verdict is superseded.
 historical E1 status = completed implementation-misaligned diagnostic
 historical E1 topology verdict = superseded / not adjudicated
 remote_scale = no
-current_adjudication = E1-R1 active-cell layout repair 2048/class
-E2 = deferred until E1-R1 resolves
+repair_adjudication = E1-R1 completed at 2048/class
+current_adjudication = E2 trail-position neural residual with deterministic baseline
 ```
 
 Current matrices:
@@ -31,6 +31,23 @@ Current matrices:
 ```text
 configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_smoke_seed0.csv
 configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv
+```
+
+E1-R1 has now resolved the implementation block from source commit `feebe27`:
+
+| seed | true AUC | shuffled AUC | metadata-only AUC | true-shuffled | true-metadata |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.499474525 | 0.497209549 | 0.500332355 | +0.002264977 | -0.000857830 |
+| 1 | 0.496722221 | 0.522119045 | 0.520334244 | -0.025396824 | -0.023612022 |
+
+The frozen E1-R1 gate fails: seed0 misses the `+0.02` margin and loses to
+metadata-only; seed1 loses to both controls. Therefore:
+
+```text
+E1-R2 8192/class = not permitted
+active-cell topology branch = stopped under this matched-negative protocol
+remote_scale = no
+next_adjudication = E2 trail-position neural residual with deterministic baseline
 ```
 
 ## Why This Verdict Exists
@@ -74,7 +91,7 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | 16-pair raw topology aggregation | input reaches `16 * 320 + 16 = 5136` bits; control instability | stop | large input and aggregation did not solve topology-control failures |
 | pair-count sweep for raw-prefix topology contrast | pair4 control-clean at 512/class and 2048/class; pair2 fails seed0; pair8 fails seed0 | stop broad sweep | pair4 is the useful minimum for that representation; pair count is not the bottleneck |
 | direct active-relative slot summary | 2048/class improves seed0 but seed1 shuffled control exceeds true | stop | active-relative idea useful, direct fusion is not control-stable |
-| active-relative true-minus-shuffled slot contrast | 2048/class strong local margins; 4096/class still ordered but margins collapse | hold / adjudicate once | best architecture-like topology route, but fragile and not remote-ready |
+| active-relative true-minus-shuffled slot contrast | corrected E1-R1 at 2048/class: seed0 misses margin and metadata control; seed1 loses both controls | stop | cell-aligned matched-negative gate failed; no E1-R2 or remote scale |
 | r7 InvP-only SPN-only anchor | two-seed `1000000/class` positive with attribution controls noted in route recheck; `262144/class` attribution shows InvP-only strongest row | keep as supported anchor | strongest current PRESENT/SPN representation evidence, but it is representation evidence more than new topology architecture |
 | InvP deterministic aggregate statistics | SGP, global stats, and group-distribution audits held | stop | broad/grouped signals were too weak or unstable for handwritten statistics |
 | trail-position / beamstats position-aware representation | 512/class neural candidate strong vs same-input global-stat control; 2048 split deterministic baseline strong; 65k seed0 medium positive noted | keep with deterministic baseline | strongest non-neighbor r8 representation candidate, but deterministic controls must remain attached |
@@ -160,14 +177,14 @@ Verdict:
 ```text
 active-relative topology-architecture branch = verdict superseded by semantic-layout defect
 remote_scale = no
-next_adjudication = E1-R1 active-cell layout repair 2048/class
-E2 = deferred until E1-R1 resolves
+repair_adjudication = E1-R1 completed and failed frozen controls
+next_adjudication = E2 trail-position neural residual with deterministic baseline
 ```
 
 The numerical ordering is retained as historical diagnostic evidence, but it
 cannot decide the intended topology question because graph tokens were not
-semantically cell-aligned. Do not run 16k/32k/65k follow-ups. Repair the layout
-and apply the frozen E1-R1 gate before selecting E2 or any topology follow-up.
+semantically cell-aligned. Corrected E1-R1 subsequently failed its frozen
+controls, so do not run 16k/32k/65k topology follow-ups; proceed to E2.
 
 ### E2: Trail-Position Neural Residual With Deterministic Baseline
 

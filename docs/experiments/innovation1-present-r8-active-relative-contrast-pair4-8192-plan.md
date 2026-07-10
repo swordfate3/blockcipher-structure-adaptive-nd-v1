@@ -3,7 +3,7 @@
 ## Status
 
 status = completed historical implementation-misaligned diagnostic
-decision = topology verdict superseded; repair and re-adjudicate with E1-R1 before E2
+decision = topology verdict superseded; corrected E1-R1 stopped the branch; proceed to E2
 claim_scope = not formal PRESENT r8 evidence
 plan =
 
@@ -28,14 +28,28 @@ topology.
 ```text
 historical E1 topology verdict = superseded / not adjudicated
 remote_scale = no
-next_adjudication = E1-R1 active-cell layout repair at 2048/class
-E2 = deferred until E1-R1 resolves
+repair_adjudication = E1-R1 completed at 2048/class
+next_adjudication = E2 trail-position neural residual with deterministic baseline
 ```
 
 Repair and re-adjudication plan:
 
 ```text
 docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md
+```
+
+E1-R1 subsequently completed from corrected source commit `feebe27` at
+2048/class. It failed the frozen control gate:
+
+```text
+seed0 true-shuffled = +0.002264977
+seed0 true-metadata = -0.000857830
+seed1 true-shuffled = -0.025396824
+seed1 true-metadata = -0.023612022
+
+E1-R2 8192/class = not permitted
+active-cell topology branch = stopped
+next_adjudication = E2
 ```
 
 ## Verdict Context
@@ -219,8 +233,8 @@ Route verdict impact:
 
 ```text
 active-relative topology-architecture branch = implementation-blocked / verdict superseded
-next Innovation 1 adjudication = E1-R1 cell-aligned pair4 2048/class
-E2 trail-position neural residual = deferred until E1-R1 resolves
+corrected E1-R1 branch verdict = stopped under the matched-negative protocol
+next Innovation 1 adjudication = E2 trail-position neural residual with deterministic baseline
 ```
 
 ## Command

@@ -3,10 +3,11 @@
 ## Status
 
 ```text
-status = layout repair implemented and focused tests passed / local experiment not started
+status = completed local matched-negative diagnostic
 route = E1-R active-cell semantic-layout repair and re-adjudication
 claim_scope = local matched-negative integral diagnostic only
 remote_scale = no
+decision = E1-R1 failed frozen controls; stop active-cell topology branch; proceed to E2
 ```
 
 This plan supersedes the next-action portion of the completed E1 8192/class
@@ -16,13 +17,16 @@ run found that the active-cell graph consumed the encoder output under the
 wrong layout contract. E1 therefore did not cleanly adjudicate a
 PRESENT-cell-aligned topology architecture.
 
-Implementation and matrix readiness:
+Implementation and execution record:
 
 ```text
+source_commit = feebe27
 semantic layout tests = 2 passed
 focused active-cell/cell-matrix regressions = 6 passed
 smoke_plan = configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_smoke_seed0.csv
 e1_r1_plan = configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv
+smoke_validation = pass (3/3 rows; AUC not evidence)
+e1_r1_validation = pass (6/6 rows; errors=[])
 ```
 
 ## Decision Question
@@ -313,6 +317,68 @@ For E1-R1, result validation must require exactly six rows. The result report
 must include per-seed true, shuffled, and metadata-only AUC values; both control
 deltas; training versus validation samples per class; and the exact source
 commit.
+
+## Completed E1-R1 Result
+
+Run:
+
+```text
+run_id = i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1
+source_commit = feebe27
+training_samples_per_class = 2048
+validation_samples_per_class = 1024
+result_rows = 6
+validation_status = pass
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1/results.jsonl
+outputs/local_smoke/i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1/progress.jsonl
+outputs/local_smoke/i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1/curves.svg
+outputs/local_smoke/i1_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1/history.csv
+```
+
+Metrics use the restored best validation-AUC checkpoint:
+
+| route | seed | val_auc | val_accuracy | val_best_accuracy | selected_epoch | selected train_auc |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| true | 0 | 0.499474525 | 0.500000000 | 0.506835938 | 1 | 0.539797425 |
+| shuffled | 0 | 0.497209549 | 0.500000000 | 0.512695312 | 1 | 0.550136924 |
+| metadata-only | 0 | 0.500332355 | 0.500000000 | 0.510742188 | 2 | 0.557696939 |
+| true | 1 | 0.496722221 | 0.500000000 | 0.514160156 | 3 | 0.543770671 |
+| shuffled | 1 | 0.522119045 | 0.501464844 | 0.533203125 | 1 | 0.538851738 |
+| metadata-only | 1 | 0.520334244 | 0.500000000 | 0.523925781 | 3 | 0.548179030 |
+
+Control deltas:
+
+| seed | true - shuffled AUC | true - metadata-only AUC |
+| ---: | ---: | ---: |
+| 0 | +0.002264977 | -0.000857830 |
+| 1 | -0.025396824 | -0.023612022 |
+
+Frozen-gate evaluation:
+
+| condition | seed0 | seed1 |
+| --- | --- | --- |
+| true > shuffled | pass | fail |
+| true > metadata-only | fail | fail |
+| true - shuffled >= +0.02 | fail | fail |
+
+Decision:
+
+```text
+E1-R1 = fail
+E1-R2 8192/class = not permitted
+active-cell topology branch = stopped
+remote_scale = no
+next_adjudication = E2 trail-position neural residual with deterministic baseline
+```
+
+This is not a definitive failure of PRESENT/SPN neural distinguishers. It is a
+bounded local result showing that this corrected active-cell graph does not
+beat its controls under the current 4-pair matched-negative integral protocol.
 
 ## Documentation Updates
 
