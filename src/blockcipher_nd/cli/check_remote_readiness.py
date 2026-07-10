@@ -114,6 +114,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     train_consistency = _training_consistency(config, tasks)
     errors.extend(train_consistency["errors"])
     warnings.extend(train_consistency["warnings"])
+    autond_consistency = _autond_dbitnet_consistency(config, tasks)
+    errors.extend(autond_consistency["errors"])
+    warnings.extend(autond_consistency["warnings"])
     candidate_consistency = _candidate_trail_consistency(config, tasks, plan_is_json_matrix=plan_is_json_matrix)
     errors.extend(candidate_consistency["errors"])
     warnings.extend(candidate_consistency["warnings"])
@@ -154,6 +157,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     ]
     if max_samples_per_class >= 65_536:
         checked_invariants.append("medium_scale_dataset_cache")
+    if _is_autond_dbitnet_config(tasks):
+        checked_invariants.append("autond_dbitnet_protocol_lock")
     if _is_candidate_trail_config(config):
         checked_invariants.append("candidate_trail_protocol_lock")
     if _is_transition_spectrum_config(config):
@@ -222,6 +227,64 @@ def _training_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -
     if "batch_size" not in config or _int_value(config["batch_size"]) is None:
         errors.append("missing or invalid batch_size")
     return {"errors": errors, "warnings": warnings}
+
+
+def _autond_dbitnet_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    if not _is_autond_dbitnet_config(tasks):
+        return {"errors": errors, "warnings": []}
+
+    expected_task_values = {
+        "rounds": 9,
+        "pairs_per_sample": 1,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "independent_pairs",
+        "difference_profile": "present_autond_dbitnet2023_highround",
+        "loss": "mse",
+        "learning_rate": 0.001,
+        "optimizer": "adam",
+        "weight_decay": 0.0,
+        "lr_scheduler": "none",
+        "checkpoint_metric": "val_accuracy",
+        "restore_best_checkpoint": True,
+    }
+    for task in tasks:
+        for field, expected in expected_task_values.items():
+            if task.get(field) != expected:
+                errors.append(f"autond_dbitnet plan {field}={task.get(field)} expected={expected}")
+        if tuple(task.get("pretrain_round_sequence") or ()) != (5, 6, 7, 8):
+            errors.append(
+                "autond_dbitnet plan pretrain_round_sequence must be [5,6,7,8]"
+            )
+        if task.get("pretrain_rounds") is not None:
+            errors.append("autond_dbitnet plan must not also set scalar pretrain_rounds")
+
+    expected_config_values = {
+        "amsgrad": True,
+        "pairs_per_sample": 1,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "independent_pairs",
+        "pretrain_rounds": None,
+    }
+    for field, expected in expected_config_values.items():
+        if config.get(field) != expected:
+            errors.append(f"autond_dbitnet {field}={config.get(field)} expected={expected}")
+    if tuple(config.get("pretrain_round_sequence") or ()) != (5, 6, 7, 8):
+        errors.append("autond_dbitnet pretrain_round_sequence must be [5,6,7,8]")
+    planned_epochs = {task.get("pretrain_epochs") for task in tasks}
+    if len(planned_epochs) != 1 or config.get("pretrain_epochs") != next(iter(planned_epochs)):
+        errors.append(
+            "autond_dbitnet pretrain_epochs must match the single plan value"
+        )
+    return {"errors": errors, "warnings": []}
+
+
+def _is_autond_dbitnet_config(tasks: list[dict[str, Any]]) -> bool:
+    return bool(tasks) and all(task.get("model_key") == "autond_dbitnet2023" for task in tasks)
 
 
 def _load_plan_tasks(plan_path: Path) -> list[dict[str, Any]]:

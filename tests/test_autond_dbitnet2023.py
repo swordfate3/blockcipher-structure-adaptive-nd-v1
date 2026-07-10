@@ -7,11 +7,13 @@ import pytest
 import torch
 from torch import nn
 
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.engine.matrix_runner import parse_args
 from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.engine.pretraining import run_optional_pretraining
 from blockcipher_nd.engine.task_runner import run_task
 from blockcipher_nd.planning.matrix import build_tasks
+from blockcipher_nd.planning.next_action_readiness import launch_artifacts
 from blockcipher_nd.registry.model_factory import build_model
 
 
@@ -247,3 +249,39 @@ def test_curriculum_rejects_non_increasing_rounds(tmp_path: Path) -> None:
             index=1,
             total=1,
         )
+
+
+def test_autond_remote_package_locks_strict_medium_protocol(tmp_path: Path) -> None:
+    config_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    readiness = remote_readiness_report(config_path)
+    artifacts = launch_artifacts(config_path)
+    launcher = Path(artifacts["launcher"]).read_text(encoding="utf-8")
+    monitor = Path(artifacts["monitor"]).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass"
+    assert "autond_dbitnet_protocol_lock" in readiness["checked_invariants"]
+    assert readiness["expected_rows"] == 1
+    assert readiness["max_samples_per_class"] == 65536
+    assert artifacts["status"] == "pass"
+    assert config["device"] == "cuda:1"
+    assert config["amsgrad"] is True
+    assert config["pretrain_round_sequence"] == [5, 6, 7, 8]
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert "--amsgrad" in launcher
+    assert "--dataset-cache-root" in launcher
+    assert "cmd.exe /k" not in launcher
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
+    assert "C:\\Users" not in launcher
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor
+
+    config["amsgrad"] = False
+    invalid_config = tmp_path / "invalid_autond_remote.json"
+    invalid_config.write_text(json.dumps(config), encoding="utf-8")
+    invalid_readiness = remote_readiness_report(invalid_config)
+    assert invalid_readiness["status"] == "fail"
+    assert "autond_dbitnet amsgrad=False expected=True" in invalid_readiness["errors"]

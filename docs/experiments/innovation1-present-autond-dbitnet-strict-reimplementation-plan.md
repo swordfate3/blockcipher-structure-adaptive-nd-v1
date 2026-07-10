@@ -289,6 +289,25 @@ outputs/local_smoke/i1_present_autond_dbitnet_strict_smoke_seed0/history.csv
 outputs/local_cache/i1_present_autond_dbitnet_strict_smoke_seed0/
 ```
 
+## R1 Launch Package
+
+The medium diagnostic is packaged as:
+
+```text
+run_id       = i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710
+device       = cuda:1
+source       = pushed main commit recorded by the remote launcher
+remote root  = G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+cache root   = <remote root>\dataset_cache
+result sync  = local tmux monitor with SCP fallback retrieval
+```
+
+The remote readiness gate locks the strict single-pair protocol, AutoND
+difference, MSE/Adam/AMSGrad settings, `[5,6,7,8]` curriculum, one result row,
+and disk-backed cache. The local monitor requires the remote done marker and
+one result row before it validates, plots, and writes the R1 integrity/decision
+artifact.
+
 ## Decision Boundaries
 
 - This audit does not reopen DDT input exploration.
