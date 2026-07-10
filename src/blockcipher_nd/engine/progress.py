@@ -71,5 +71,6 @@ def task_progress_payload(task: dict[str, Any]) -> dict[str, Any]:
         "selected_bit_indices": task["selected_bit_indices"],
         "loss": task.get("loss", ""),
         "pretrain_rounds": task.get("pretrain_rounds"),
+        "pretrain_round_sequence": list(task.get("pretrain_round_sequence", ())),
         "pretrain_epochs": task.get("pretrain_epochs"),
     }

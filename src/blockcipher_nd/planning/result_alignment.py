@@ -36,6 +36,7 @@ PLAN_RESULT_FIELD_PAIRS = [
     ("early_stopping_patience", ("training", "early_stopping_patience")),
     ("early_stopping_min_delta", ("training", "early_stopping_min_delta")),
     ("pretrain_epochs", ("training", "pretraining", "epochs_ran")),
+    ("pretrain_round_sequence", ("training", "pretraining", "round_sequence")),
     ("model_options", ("training", "model_options")),
 ]
 
@@ -316,7 +317,11 @@ def _field_mismatches(
             if plan_field == "selected_bit_indices":
                 plan_value = _selected_indices_key(plan_row)
                 result_value = _selected_indices_key({"selected_bit_indices": result_value_raw})
-            elif plan_field in {"integral_active_nibbles", "validation_integral_active_nibbles"}:
+            elif plan_field in {
+                "integral_active_nibbles",
+                "validation_integral_active_nibbles",
+                "pretrain_round_sequence",
+            }:
                 plan_value = _int_tuple_key(plan_row.get(plan_field))
                 result_value = _int_tuple_key(result_value_raw)
             elif plan_field == "model_options":

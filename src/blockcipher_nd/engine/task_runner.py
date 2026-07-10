@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+import torch
+
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import (
     configure_structure_aware_model,
@@ -80,6 +82,7 @@ def run_task(
         },
     )
 
+    torch.manual_seed(int(task["seed"]))
     model = build_model(
         model_key,
         input_bits=train_dataset.features.shape[1],

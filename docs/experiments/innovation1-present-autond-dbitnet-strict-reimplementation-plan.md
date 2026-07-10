@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** implementation and readiness pending
+**Status:** R0 readiness passed; R1 remote medium diagnostic pending
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -229,6 +229,64 @@ R1 after retrieval:
 
 ```text
 outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_<gpu>_20260710/
+```
+
+## R0 Readiness Result
+
+The CPU smoke completed on 2026-07-10 with the planned five-stage execution:
+
+```text
+pretraining rounds = [5, 6, 7, 8]
+target round       = 9
+epochs per round   = 1
+samples_per_class  = 128
+result rows        = 1
+plan alignment     = pass
+```
+
+The persisted model and protocol integrity fields are:
+
+```text
+model_key         = autond_dbitnet2023
+input_bits        = 128
+dilations         = [63, 31, 15, 7, 3]
+output_width      = 9
+output_channels   = 96
+flattened_width   = 864
+dense L2          = 1e-5
+optimizer.amsgrad = true
+loss              = mse
+negative_mode     = encrypted_random_plaintexts
+pairs_per_sample  = 1
+```
+
+One-epoch readiness metrics were:
+
+```text
+r5 accuracy=0.4765625 AUC=0.511474609375
+r6 accuracy=0.5000000 AUC=0.463867187500
+r7 accuracy=0.4765625 AUC=0.442871093750
+r8 accuracy=0.5000000 AUC=0.494628906250
+r9 accuracy=0.5000000 AUC=0.507080078125
+```
+
+These tiny one-epoch scores are not research evidence and are not compared
+against the R1 gates. R0 only establishes that the architecture, dense-only L2,
+strict data protocol, disk-backed per-round caches, ordered curriculum,
+checkpoint restoration, progress events, JSONL result, validation, and plotting
+paths execute end to end. A second run reused all ten round/split caches.
+After seeding model construction from the task seed, two consecutive complete
+R0 runs produced the identical result SHA-256
+`c595634e58b80094e391648465ba654b5ee97733298c78dc20d2300b4aa378af`.
+
+R0 artifacts:
+
+```text
+outputs/local_smoke/i1_present_autond_dbitnet_strict_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_strict_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_strict_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_autond_dbitnet_strict_smoke_seed0/history.csv
+outputs/local_cache/i1_present_autond_dbitnet_strict_smoke_seed0/
 ```
 
 ## Decision Boundaries

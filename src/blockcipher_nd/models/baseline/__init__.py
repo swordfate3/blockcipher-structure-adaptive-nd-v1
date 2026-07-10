@@ -1,3 +1,6 @@
+from blockcipher_nd.models.baseline.autond_dbitnet2023 import (
+    AutoNDDBitNet2023Distinguisher,
+)
 from blockcipher_nd.models.baseline.cnn import CnnDistinguisher
 from blockcipher_nd.models.baseline.dbitnet import DBitNetDistinguisher
 from blockcipher_nd.models.baseline.gohr_speck import GohrSpeckDistinguisher
@@ -11,6 +14,7 @@ from blockcipher_nd.models.baseline.senet_resnext import SeResNeXtDistinguisher
 from blockcipher_nd.models.baseline.transformer_encoder import TransformerEncoderDistinguisher
 
 __all__ = [
+    "AutoNDDBitNet2023Distinguisher",
     "CnnDistinguisher",
     "DBitNetDistinguisher",
     "GohrSpeckDistinguisher",

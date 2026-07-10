@@ -3,6 +3,7 @@ from __future__ import annotations
 from torch import nn
 
 from blockcipher_nd.models.baseline import (
+    AutoNDDBitNet2023Distinguisher,
     CnnDistinguisher,
     DBitNetDistinguisher,
     GohrSpeckDistinguisher,
@@ -17,6 +18,8 @@ from blockcipher_nd.models.structure import AdaptiveDBitNetDistinguisher
 
 
 def build_baseline_model(name: str, input_bits: int, hidden_bits: int) -> nn.Module | None:
+    if name == "autond_dbitnet2023":
+        return AutoNDDBitNet2023Distinguisher(input_bits=input_bits)
     if name == "mlp":
         return MlpDistinguisher(input_bits=input_bits, hidden_bits=hidden_bits)
     if name == "cnn":

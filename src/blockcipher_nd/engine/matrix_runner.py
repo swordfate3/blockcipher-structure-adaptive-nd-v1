@@ -13,7 +13,7 @@ from blockcipher_nd.engine.progress import (
 )
 from blockcipher_nd.engine.task_runner import run_task
 from blockcipher_nd.features.registry import FEATURE_ENCODINGS, is_supported_feature_encoding
-from blockcipher_nd.planning.matrix import build_tasks
+from blockcipher_nd.planning.matrix import build_tasks, optional_int_tuple
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -118,6 +118,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         help="Optional curriculum pretraining round count before each target row.",
+    )
+    parser.add_argument(
+        "--pretrain-round-sequence",
+        type=lambda value: optional_int_tuple(
+            value,
+            field_name="pretrain_round_sequence",
+        ),
+        default=(),
+        help="Optional JSON round list for sequential curriculum pretraining.",
     )
     parser.add_argument(
         "--pretrain-epochs",

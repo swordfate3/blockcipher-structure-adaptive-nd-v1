@@ -6,6 +6,7 @@ from typing import Any
 from torch import nn
 
 from blockcipher_nd.models.baseline import (
+    AutoNDDBitNet2023Distinguisher,
     CnnDistinguisher,
     DBitNetDistinguisher,
     GohrSpeckDistinguisher,
@@ -53,6 +54,7 @@ from blockcipher_nd.models.structure import (
 ModelBuilder = Callable[..., nn.Module]
 
 MODEL_REGISTRY: dict[str, type[nn.Module]] = {
+    "autond_dbitnet2023": AutoNDDBitNet2023Distinguisher,
     "mlp": MlpDistinguisher,
     "cnn": CnnDistinguisher,
     "dbitnet_dilated_cnn": DBitNetDistinguisher,

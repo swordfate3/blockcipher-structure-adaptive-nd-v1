@@ -59,6 +59,7 @@ def build_tasks(args: argparse.Namespace) -> list[dict[str, Any]]:
                             "early_stopping_patience": args.early_stopping_patience,
                             "early_stopping_min_delta": args.early_stopping_min_delta,
                             "pretrain_rounds": args.pretrain_rounds,
+                            "pretrain_round_sequence": args.pretrain_round_sequence,
                             "pretrain_epochs": args.pretrain_epochs,
                             "model_options": {},
                             "train_key": None,
@@ -147,6 +148,10 @@ def plan_task(
         "early_stopping_patience": optional_int(row.get("early_stopping_patience")),
         "early_stopping_min_delta": optional_float(row.get("early_stopping_min_delta")),
         "pretrain_rounds": optional_int(row.get("pretrain_rounds")),
+        "pretrain_round_sequence": optional_int_tuple(
+            row.get("pretrain_round_sequence"),
+            field_name="pretrain_round_sequence",
+        ),
         "pretrain_epochs": optional_int(row.get("pretrain_epochs")),
         "model_options": optional_json(row.get("model_options")),
         "selected_bit_indices": optional_int_tuple(row.get("selected_bit_indices")),
@@ -200,7 +205,11 @@ def optional_json(value: str | None) -> dict[str, Any]:
     return parsed
 
 
-def optional_int_tuple(value: str | None) -> tuple[int, ...]:
+def optional_int_tuple(
+    value: str | None,
+    *,
+    field_name: str = "selected_bit_indices",
+) -> tuple[int, ...]:
     if value is None:
         return ()
     value = value.strip()
@@ -208,7 +217,7 @@ def optional_int_tuple(value: str | None) -> tuple[int, ...]:
         return ()
     parsed = json.loads(value)
     if not isinstance(parsed, list) or not all(isinstance(item, int) for item in parsed):
-        raise ValueError("selected_bit_indices must be a JSON list of integers")
+        raise ValueError(f"{field_name} must be a JSON list of integers")
     return tuple(parsed)
 
 

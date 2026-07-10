@@ -17,8 +17,19 @@ def configure_structure_aware_model(model: Any, cipher_key: str, rounds: int) ->
 
 
 def model_metadata(model: Any) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    for field in (
+        "dilations",
+        "output_width",
+        "output_channels",
+        "flattened_width",
+        "l2_coefficient",
+    ):
+        if hasattr(model, field):
+            value = getattr(model, field)
+            metadata[field] = list(value) if isinstance(value, tuple) else value
     if not hasattr(model, "gate_summary"):
-        return {}
+        return metadata
     summary = model.gate_summary()
     gate_weights = {
         key.removeprefix("gate_weight_"): value
@@ -26,6 +37,7 @@ def model_metadata(model: Any) -> dict[str, Any]:
         if key.startswith("gate_weight_")
     }
     return {
+        **metadata,
         "gate_mode": summary["gate_mode"],
         "expert_set": summary.get("expert_set", "legacy"),
         "adapter_mode": summary.get("adapter_mode", "none"),
