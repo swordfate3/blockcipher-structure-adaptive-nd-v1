@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R1A-C1 launcher started with local watcher active; R2 blocked
+**Status:** R0 and R1 completed; R1A-C1 completed, fallback-retrieved, and plan-aligned; R1A-C2 recommended; R2 blocked
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -568,7 +568,99 @@ as completed remotely or retrieved. The main thread must not SSH-poll it; the
 local monitor owns subsequent waiting, SCP fallback retrieval, validation,
 plotting, R1 delta generation, and final gate creation.
 
-R1A-C1 may advance to an R2 design review only if the strict, held-out-key result
+### R1A-C1 Retrieved Result
+
+The local watcher retrieved and postprocessed the completed run on 2026-07-10:
+
+```text
+run_id             = i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710
+source commit      = 96a8f4c4f9f69a2090fdbc3137c0071c03cc1e38
+remote run time    = 720.63 seconds (12 minutes 0.63 seconds)
+result rows        = 1 / 1
+plan alignment     = pass
+retrieval status   = fallback-retrieved from the G:\lxy run-owned directory
+watcher completion = postprocess_done at 2026-07-10T17:39:22+08:00
+claim scope        = 65536/class single-seed medium diagnostic only
+```
+
+Every integrity check passed, including the AutoND model geometry, strict
+negative definition, `[5,6,7,8]` curriculum, best-`val_loss` checkpoint for
+every stage, and `reset_each_stage` optimizer transition.
+
+| Round | R1 accuracy | C1 accuracy | Accuracy delta | R1 AUC | C1 AUC | AUC delta | C1 best epoch |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| r5 | 0.634368896 | 0.517059326 | -0.117309570 | 0.758460025 | 0.729835789 | -0.028624236 | 7 |
+| r6 | 0.576644897 | 0.562896729 | -0.013748169 | 0.603231360 | 0.585832156 | -0.017399204 | 2 |
+| r7 | 0.510253906 | 0.505065918 | -0.005187988 | 0.515467749 | 0.508800202 | -0.006667547 | 3 |
+| r8 | 0.501113892 | 0.498672485 | -0.002441406 | 0.499572861 | 0.497703894 | -0.001868967 | 3 |
+| r9 | 0.504653931 | 0.502273560 | -0.002380371 | 0.502980342 | 0.505101557 | +0.002121215 | 1 |
+
+C1 failed every frozen advancement gate:
+
+```text
+r5 required >= 0.75; observed 0.517059326
+r6 required >= 0.60; observed 0.562896729
+r7 required >= 0.52; observed 0.505065918
+r8 required >  0.505; observed 0.498672485
+
+decision     = stop_and_audit_lower_round_pipeline
+remote_scale = no
+R2           = blocked
+```
+
+Selecting best `val_loss` alone does not explain the R1 gap. It worsened both
+accuracy and AUC at r5-r8 relative to the same-budget R1 anchor. The small r9
+AUC increase remains near-chance diagnostic variation and does not compensate
+for the lower-round regression. This is not a route-ceiling claim because the
+run is still `65536/class` and single-seed.
+
+Retrieved artifacts:
+
+```text
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/results/
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/logs/
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710_validation.json
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710_gate.json
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710_curves.svg
+outputs/remote_results/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710_history.csv
+```
+
+### Recommended Next Step: R1A-C2 Optimizer Carry
+
+C2 is the final training-protocol attribution recommended before closing this
+strict baseline audit. Compare directly against C1 and change only:
+
+```text
+optimizer_state_transition = reset_each_stage -> carry_across_stages
+```
+
+Freeze the remaining protocol:
+
+```text
+checkpoint_metric  = val_loss
+samples_per_class  = 65536
+seed               = 0
+epochs_per_round   = 10
+round sequence     = [5,6,7,8] -> 9
+architecture       = autond_dbitnet2023
+input              = 128-bit C || C'
+negative_mode      = encrypted_random_plaintexts
+train/validation keys remain separate
+```
+
+Implementation must make optimizer ownership explicit, preserve Adam/AMSGrad
+slots across round stages, and record `carry_across_stages` in the result. Run
+a two-epoch local smoke first; launch one same-budget remote row only if model,
+optimizer, checkpoint, cache, and artifact integrity all pass. Reuse the same
+r5-r8 advancement gates.
+
+If C2 restores all gates, allow an R2 design review. If C2 does not restore the
+lower rounds, do not scale R2/R3: close the strict AutoND training-protocol
+audit, keep same-key/random-ciphertext variants as labeled benchmark diagnostics
+only, and return the experiment slot to a separately justified typed-SPN
+candidate. Do not reopen dense DDT or extend the held E1 graph route.
+
+R1A-C2 may advance to an R2 design review only if the strict, held-out-key result
 meets the frozen lower-round and r8 gates:
 
 ```text
