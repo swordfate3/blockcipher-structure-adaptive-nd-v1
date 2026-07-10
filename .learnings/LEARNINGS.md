@@ -8,7 +8,7 @@
 ### Summary
 E2 trail-position and same-input global-stat models repeat the PRESENT
 cell-matrix bit-plane layout mismatch, so existing semantic trail-position
-residual verdicts require a layout-corrected re-adjudication.
+residual verdicts require a typed DDT-layout re-adjudication distinct from E1.
 
 ### Details
 Source inspection found that
@@ -18,8 +18,23 @@ Source inspection found that
 [bit_plane, word, cell]
 ```
 
-For the `beamstats8deep4` route this is four bit planes over 39 words and 16
-PRESENT cells. Both
+For the `beamstats8deep4` route this is four bit planes over 39 words. The
+historical E2 input is a DDT-derived representation, not the five-word raw
+prefix used by E1. Its words are:
+
+```text
+3 prefix words
+4 depths * 9 DDT beam-statistics words
+```
+
+Within each nine-word depth block, the first six words are indexed by the 16
+PRESENT cells (`top`, `confidence`, `margin`, `disagreement`,
+`confidence_union`, and `margin_union`). The last three words encode eight
+beam-rank summaries (`score`, `cumulative_score`, and `active_count`) in
+nibble slots 0..7 with slots 8..15 padded to zero. They do not have a PRESENT
+cell axis.
+
+Both
 `PresentTrailPositionStatsPairSetDistinguisher._prepared_activity` and
 `present_global_pairset_statistics` instead directly reshape those bits as:
 
@@ -29,9 +44,18 @@ PRESENT cells. Both
 
 Consequently, the candidate's named prefix/trail/depth/word/cell statistics do
 not refer to the encoder's semantic words and cells. The same-input global
-control is also layout-misaligned. The train-selected deterministic
-position-statistics baseline calls the candidate's `_position_statistics`, so
-that baseline repeats the same semantic mismatch.
+control is also layout-misaligned. Even a model-side bit-plane transpose would
+only fix serialization: treating all nine DDT words as if their nibbles shared
+one PRESENT-cell coordinate would still mix cell-indexed and beam-indexed
+statistics. The train-selected deterministic position-statistics baseline
+calls the candidate's `_position_statistics`, so that baseline repeats both
+semantic mismatches.
+
+This must not be conflated with the latest E1 protocol. Historical E2 uses a
+fixed active nibble, all 16 nibble variants, 16 pairs, no active metadata, and
+DDT beamstats input. Corrected E1-R1 uses four variants/pairs, a per-sample
+random active nibble with aligned difference, 16-bit active metadata, five
+ciphertext-derived words, and a PRESENT active-cell graph.
 
 The completed 262144/class two-seed runs and frozen scores remain valid
 measurements of the implementation that ran:
@@ -51,18 +75,23 @@ sequential sample IDs. Exact-row alignment is therefore assumed through
 deterministic regeneration rather than explicitly proven by sample hashes.
 
 ### Suggested Action
-Before interpreting or scaling E2, add semantic sentinel tests for both models,
-decode each pair from global bit-plane order into `[word, cell, bit]`, and rerun
-the smallest same-protocol two-seed candidate/global/deterministic gate. Export
-or compute deterministic scores from the exact validation cache and bind them
-to content-derived sample IDs before calling the baseline exact-row aligned.
-Keep the benchmark fixed during layout repair; evaluate strict independent
-encrypted-random-plaintext negatives as a separate protocol control.
+Before interpreting or scaling E2, define an explicit typed schema for the DDT
+input: decode prefix and the six cell-indexed words as PRESENT-cell values, and
+decode the three summary words on a separate beam-rank axis. Add semantic
+sentinel tests for both types, then rerun the smallest same-protocol two-seed
+candidate/global/deterministic gate with prefix-only, cell-DDT, and beam-summary
+attribution. Include real-source versus masked/constant-source controls because
+historical aligned-protocol results showed wrong-source DDT features can remain
+as strong as the real source. Export or compute deterministic scores from the
+exact validation cache and bind them to content-derived sample IDs before
+calling the baseline exact-row aligned. Keep the historical E2 benchmark fixed
+during representation repair; evaluate strict independent encrypted-random-
+plaintext negatives as a separate protocol control.
 
 ### Metadata
 - Source: source_audit
 - Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py, src/blockcipher_nd/models/structure/spn/present_pairset_global_stats_hybrid.py, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, src/blockcipher_nd/cli/analyze_deterministic_score_residual.py, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md
-- Tags: innovation1, present, spn, trail-position, feature-layout, deterministic-baseline, sample-alignment, experiment-validity
+- Tags: innovation1, present, spn, trail-position, ddt-beamstats, typed-schema, feature-layout, deterministic-baseline, sample-alignment, experiment-validity
 - See Also: LRN-20260710-002, LRN-20260710-004, LRN-20260706-020
 - Pattern-Key: innovation1.spn_present.cell_matrix_feature_layout_contract
 - Recurrence-Count: 2
