@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0/R1/C1 completed; R1A-C2 local readiness and remote medium-diagnostic package verified, pending pushed-commit launch; paper-scale reproduction not yet run
+**Status:** R0/R1/C1 completed; R1A-C2 remote medium diagnostic running under local watcher; paper-scale reproduction not yet run
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -748,6 +748,27 @@ configs/remote/generated/monitor_i1_present_autond_dbitnet_r1a_c2_optcarry_65k_s
 The monitor requires optimizer continuity as a hard integrity gate, compares
 accuracy and AUC at r5-r9 directly against C1, and recommends a separately
 planned paper-scale phase rather than mechanical strict-medium scaling.
+
+Launch handoff on 2026-07-10:
+
+```text
+run_id              = i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710
+source commit       = 011369f6f2188ca0e343664afaf68d53e34e9fa4
+remote source       = clean run-owned clone, main aligned to source commit
+device              = cuda:1
+scheduled task      = i1_autond_r1a_c2_optcarry_65k_gpu1_20260710
+scheduled command   = cmd.exe /c <tracked launcher>
+bounded confirmation = task running; launch_env, Git, GPU/Torch, readiness,
+                       started.marker, progress, and train logs present
+local tmux monitor  = i1_autond_r1a_c2_optcarry_65k_seed0_gpu1_20260710
+monitor state       = active; completion/result retrieval pending
+claim scope         = 65536/class single-seed medium diagnostic only
+```
+
+The main thread must not SSH-poll this run. The local watcher owns subsequent
+waiting, fallback retrieval, validation, plotting, optimizer-continuity audit,
+and C2-versus-C1 gate generation. This launch is `running`, not completed or
+retrieved.
 
 If C2 improves the lower-round same-budget metrics, retain optimizer carry as
 the source-faithful implementation. If it does not improve them, discard it as
