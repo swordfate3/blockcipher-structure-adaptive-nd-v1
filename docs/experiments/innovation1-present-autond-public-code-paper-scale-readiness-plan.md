@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** tiny readiness passed; paper-scale remote package prepared; no paper-scale run launched
+**Status:** tiny readiness passed; paper-scale seed0 running remotely
 
 **Claim scope:** public-code mechanism reproduction readiness, not a completed
 paper-scale reproduction and not an Innovation 1 novelty result
@@ -197,8 +197,61 @@ configs/remote/generated/run_i1_present_autond_public_code_paperscale_seed0_gpu1
 configs/remote/generated/monitor_i1_present_autond_public_code_paperscale_seed0_gpu1_20260710.sh
 ```
 
-The package is prepared but not yet launched. It must be launched only from the
-pushed implementation commit after the final source/test/readiness audit.
+The package was launched only after the implementation and launcher-auth repair
+were pushed and the run-owned remote clone matched the pushed head.
+
+## Paper-Scale Remote Launch
+
+```text
+run_id       = i1_present_autond_public_code_paperscale_seed0_gpu1_20260710
+source       = 617ccc7239c1b29290e369e3b534de3c1948f480
+task         = i1_autond_public_code_paperscale_gpu1_20260710
+device       = cuda:1
+remote root  = G:\lxy\blockcipher-structure-adaptive-nd-runs\
+               i1_present_autond_public_code_paperscale_seed0_gpu1_20260710
+watcher      = tmux:i1_present_autond_public_code_paperscale_seed0_gpu1_20260710
+state        = running / dataset cache generation
+```
+
+The first scheduled attempt failed before readiness or training because the
+launcher did not set the dedicated GitHub SSH identity before `git fetch`.
+Commit `617ccc7` added the same explicit `GIT_SSH_COMMAND` used by the working
+AutoND remote launchers plus a regression assertion that the setting precedes
+`git fetch origin`. The run-owned clone was then fast-forwarded cleanly and the
+same task was restarted; the first failure marker is retained as
+`failed_attempt1.marker`.
+
+Bounded launch evidence after restart:
+
+```text
+remote git status   = clean main...origin/main
+remote git revision = 617ccc7239c1b29290e369e3b534de3c1948f480
+torch               = 2.5.1+cu118
+cuda available      = true
+device count        = 2
+device1             = NVIDIA RTX A6000
+started.marker      = present
+remote readiness    = pass, 10 invariants, errors=[], warnings=[]
+progress            = cache_mixed_label_chunk
+split               = target r9 train
+observed rows        = 491520 / 10000000 at bounded confirmation
+```
+
+The local tmux watcher performs 30-minute artifact synchronization and will
+validate the result row, render curves/history, and write the exact-split,
+optimizer-continuity, and five-test aggregation gate after completion. The run
+is not completed or plan-aligned result evidence until those artifacts pass.
+
+Next adjudication after retrieval:
+
+1. Require one result row, validation pass, five fresh 1M-row test metrics,
+   exact r5-r9 split sizes, and continuous carried optimizer steps.
+2. Compare final five-test mean accuracy with the public-code paper reference
+   `0.5092`; report the delta without converting proximity into a success gate.
+3. If protocol integrity passes, audit code/paper disagreement and seed
+   variance before deciding whether a seed1 paper-scale confirmation is worth
+   the budget. If integrity fails, repair and resume from disk cache rather
+   than interpreting any partial metric.
 
 ## Paper-Scale Plan Gate
 
