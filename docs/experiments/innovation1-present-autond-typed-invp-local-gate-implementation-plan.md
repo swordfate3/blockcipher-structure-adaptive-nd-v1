@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:executing-plans` to implement this plan task-by-task. Steps use
-> checkbox (`- [ ]`) syntax for tracking. Subagent execution is not selected
+> checkbox (`- [x]`) syntax for tracking. Subagent execution is not selected
 > because the active repository instructions do not authorize delegation.
 
 **Goal:** Build and execute the frozen four-row local gate that tests whether
@@ -46,7 +46,7 @@ record the decision in the experiment plan.
 - Create: `src/blockcipher_nd/planning/autond_typed_invp_gate.py`
 - Create: `tests/test_autond_typed_invp_gate.py`
 
-- [ ] **Step 1: Write the failing strong-support test**
+- [x] **Step 1: Write the failing strong-support test**
 
 Create a helper that emits one synthetic result row with the real result
 schema: target training metadata for r9, four curriculum stages for r5-r8, and
@@ -74,7 +74,7 @@ def test_typed_invp_gate_supports_candidate_above_all_controls(tmp_path: Path) -
     assert report["next_action"] == "run_identical_seed1_local_gate"
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run:
 
@@ -86,7 +86,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
 Expected: collection fails because
 `blockcipher_nd.planning.autond_typed_invp_gate` does not exist.
 
-- [ ] **Step 3: Implement result loading and protocol validation**
+- [x] **Step 3: Implement result loading and protocol validation**
 
 Implement these public constants and function:
 
@@ -141,11 +141,11 @@ continuous/increasing step numbers, three distinct final seeds, exact final
 row counts, both labels, and recomputed accuracy/AUC mean plus population
 standard deviation.
 
-- [ ] **Step 4: Run the strong-support test and verify GREEN**
+- [x] **Step 4: Run the strong-support test and verify GREEN**
 
 Run the command from Step 2. Expected: `1 passed`.
 
-- [ ] **Step 5: Add weak, stop, outlier, and invalid-protocol tests**
+- [x] **Step 5: Add weak, stop, outlier, and invalid-protocol tests**
 
 Add these assertions with the same helper:
 
@@ -203,7 +203,7 @@ def test_typed_invp_gate_rejects_broken_optimizer_continuity(tmp_path: Path) -> 
     assert any("optimizer_step_continuity" in error for error in report["errors"])
 ```
 
-- [ ] **Step 6: Run the complete gate test file**
+- [x] **Step 6: Run the complete gate test file**
 
 Run:
 
@@ -221,7 +221,7 @@ Expected: all gate tests pass.
 - Create: `scripts/gate-autond-typed-invp`
 - Modify: `tests/test_autond_typed_invp_gate.py`
 
-- [ ] **Step 1: Write the failing CLI test**
+- [x] **Step 1: Write the failing CLI test**
 
 ```python
 def test_typed_invp_gate_cli_writes_report(tmp_path: Path) -> None:
@@ -236,7 +236,7 @@ def test_typed_invp_gate_cli_writes_report(tmp_path: Path) -> None:
     assert report["decision"] == "strong_local_support"
 ```
 
-- [ ] **Step 2: Run the CLI test and verify RED**
+- [x] **Step 2: Run the CLI test and verify RED**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
@@ -245,7 +245,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
 
 Expected: import fails because the CLI module does not exist.
 
-- [ ] **Step 3: Implement the CLI and wrapper**
+- [x] **Step 3: Implement the CLI and wrapper**
 
 The CLI arguments are fixed to:
 
@@ -282,11 +282,11 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 4: Run the CLI test and verify GREEN**
+- [x] **Step 4: Run the CLI test and verify GREEN**
 
 Run the command from Step 2. Expected: `1 passed`.
 
-- [ ] **Step 5: Run focused lint and tests**
+- [x] **Step 5: Run focused lint and tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
@@ -300,7 +300,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
 
 Expected: Ruff passes and all focused tests pass.
 
-- [ ] **Step 6: Commit and push the gate implementation**
+- [x] **Step 6: Commit and push the gate implementation**
 
 ```bash
 git add \
@@ -320,7 +320,7 @@ git push origin main
   `configs/experiment/innovation1/innovation1_spn_present_autond_typed_invp_local_gate_seed0.csv`
 - Modify: `tests/test_autond_public_protocol.py`
 
-- [ ] **Step 1: Write the failing plan-lock test**
+- [x] **Step 1: Write the failing plan-lock test**
 
 Add a test that loads the CSV with:
 
@@ -358,11 +358,11 @@ assert all(task["checkpoint_metric"] == "val_loss" for task in tasks)
 assert all(task["optimizer_state_transition"] == "carry_across_stages" for task in tasks)
 ```
 
-- [ ] **Step 2: Run the plan test and verify RED**
+- [x] **Step 2: Run the plan test and verify RED**
 
 Expected: failure because the plan CSV does not exist.
 
-- [ ] **Step 3: Create the CSV**
+- [x] **Step 3: Create the CSV**
 
 Use the existing AutoND public-code CSV header. Create exactly four rows with
 the frozen fields above, `pairs_per_sample=1`,
@@ -372,7 +372,7 @@ the frozen fields above, `pairs_per_sample=1`,
 `{"spn_mixer_depth":2,"activation":"relu","norm":"layernorm"}` for the
 three typed rows.
 
-- [ ] **Step 4: Run plan and focused regression tests**
+- [x] **Step 4: Run plan and focused regression tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
@@ -384,7 +384,7 @@ git diff --check
 
 Expected: all focused tests pass and no whitespace errors.
 
-- [ ] **Step 5: Commit and push the plan**
+- [x] **Step 5: Commit and push the plan**
 
 ```bash
 git add \
@@ -403,7 +403,7 @@ git push origin main
 - Generate cache under:
   `outputs/local_cache/i1_present_autond_typed_invp_local_gate_seed0/`
 
-- [ ] **Step 1: Run the frozen four-row matrix**
+- [x] **Step 1: Run the frozen four-row matrix**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -444,7 +444,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 Expected: four result rows and no exception. This remains a local diagnostic
 even though each training split has `16384` total rows.
 
-- [ ] **Step 2: Validate plan alignment**
+- [x] **Step 2: Validate plan alignment**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
@@ -456,7 +456,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
 
 Expected: `status=pass`, `result_rows=4`, `errors=[]`.
 
-- [ ] **Step 3: Generate curves and history**
+- [x] **Step 3: Generate curves and history**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
@@ -468,7 +468,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
 
 Expected: SVG and CSV are non-empty.
 
-- [ ] **Step 4: Run the typed gate**
+- [x] **Step 4: Run the typed gate**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-autond-typed-invp \
@@ -480,7 +480,7 @@ Expected: protocol status passes and decision is exactly one of
 `strong_local_support`, `weak_or_fragile`, or
 `stop_public_typed_adapter`.
 
-- [ ] **Step 5: Audit within-matrix cache reuse**
+- [x] **Step 5: Audit within-matrix cache reuse**
 
 Parse `progress.jsonl` and require all 13 train/validation/final splits for the
 first row to be reused by each of the remaining three model rows:
@@ -502,7 +502,7 @@ If the observed reuse count is below 39, report the exact missing
 - Modify:
   `docs/experiments/innovation1-present-autond-typed-invp-local-gate-plan.md`
 
-- [ ] **Step 1: Run fresh focused verification**
+- [x] **Step 1: Run fresh focused verification**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
@@ -520,7 +520,7 @@ git diff --check
 
 Expected: all focused tests and Ruff pass; no whitespace errors.
 
-- [ ] **Step 2: Update the experiment plan from artifacts**
+- [x] **Step 2: Update the experiment plan from artifacts**
 
 Record:
 
@@ -538,7 +538,7 @@ one concrete next action selected from the frozen branches
 Do not describe the run as formal, paper-scale, strict-negative, or a novelty
 result.
 
-- [ ] **Step 3: Commit and push the completed result record**
+- [x] **Step 3: Commit and push the completed result record**
 
 ```bash
 git add docs/experiments/innovation1-present-autond-typed-invp-local-gate-plan.md
@@ -546,7 +546,7 @@ git commit -m "experiment: adjudicate AutoND typed InvP local gate"
 git push origin main
 ```
 
-- [ ] **Step 4: Continue only through the frozen branch**
+- [x] **Step 4: Continue only through the frozen branch**
 
 ```text
 strong_local_support -> plan and run identical seed1 local gate

@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** design frozen; implementation and run pending plan review
+**Status:** completed local adjudication; public-protocol typed adapter stopped
 
 **Claim scope:** local protocol and representation adjudication only; not
 paper-scale evidence, not strict-negative evidence, and not an Innovation 1
@@ -192,3 +192,124 @@ cross-protocol attribution.
   initialization, feature selection, or a gate for this local experiment.
 - Do not launch seed1 or remote scale before the four-row seed0 gate is
   complete, validated, documented, and committed.
+
+## Completed Seed0 Result
+
+The frozen four-row matrix completed locally on 2026-07-10:
+
+```text
+run_id = i1_present_autond_typed_invp_local_gate_seed0
+plan = configs/experiment/innovation1/
+       innovation1_spn_present_autond_typed_invp_local_gate_seed0.csv
+result rows = 4 / 4
+plan alignment = pass
+protocol gate = pass
+cache reuse = 39 / 39 expected row/split reuses
+decision = stop_public_typed_adapter
+```
+
+This used `16384` total random-label training rows per round, not
+`16384/class`.
+
+### Validation Metrics
+
+| Model | Validation accuracy | Validation AUC | Validation loss |
+| --- | ---: | ---: | ---: |
+| AutoND/DBitNet | `0.487060547` | `0.508207294` | `0.700847860` |
+| true InvP | `0.492431641` | `0.483496222` | `0.693868279` |
+| shuffled-P | `0.492431641` | `0.505664097` | `0.693529364` |
+| DeltaC-only | `0.493408203` | `0.499892329` | `0.693330362` |
+
+The gate uses the three fresh test sets rather than selecting the decision from
+this single validation split.
+
+### Fresh-Test Metrics
+
+| Model | Repeat AUCs (`50000`, `50001`, `50002`) | AUC mean | AUC population std | Accuracy mean | Accuracy population std |
+| --- | --- | ---: | ---: | ---: | ---: |
+| AutoND/DBitNet | `0.495960916`, `0.481904791`, `0.498142576` | `0.492002761` | `0.007195678` | `0.499837240` | `0.002654542` |
+| true InvP | `0.504013215`, `0.508275669`, `0.493646012` | `0.501978299` | `0.006143418` | `0.503987630` | `0.001915463` |
+| shuffled-P | `0.500146509`, `0.513593196`, `0.493303139` | `0.502347615` | `0.008428335` | `0.503987630` | `0.001915463` |
+| DeltaC-only | `0.498984686`, `0.521661052`, `0.498464585` | `0.506370108` | `0.010814415` | `0.504720052` | `0.001808766` |
+
+Candidate margins from the gate:
+
+```text
+InvP - AutoND      = +0.009975538 AUC
+InvP - shuffled-P  = -0.000369316 AUC
+InvP - DeltaC-only = -0.004391809 AUC
+InvP - best control = -0.004391809 AUC
+candidate above all controls on every repeat = false
+```
+
+### Protocol Integrity
+
+All four rows used identical cached data. Exact random-label counts at r5-r9
+were:
+
+| Round | Train + | Train - | Validation + | Validation - |
+| ---: | ---: | ---: | ---: | ---: |
+| r5 | `8201` | `8183` | `2085` | `2011` |
+| r6 | `8168` | `8216` | `2053` | `2043` |
+| r7 | `8058` | `8326` | `2076` | `2020` |
+| r8 | `8140` | `8244` | `2053` | `2043` |
+| r9 | `8200` | `8184` | `2017` | `2079` |
+
+Every model independently preserved the frozen optimizer sequence:
+
+```text
+r5 step   0 -> 192, reused=false
+r6 step 192 -> 384, reused=true
+r7 step 384 -> 576, reused=true
+r8 step 576 -> 768, reused=true
+r9 step 768 -> 960, reused=true
+```
+
+The first row created 13 train/validation/final-test cache splits. Each of the
+remaining three rows reused all 13, producing `39` reuse events with matching
+`(rounds, split, seed)` identities.
+
+### Artifacts
+
+```text
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/results.jsonl
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/progress.jsonl
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/validation.json
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/typed_gate.json
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/curves.svg
+outputs/local_smoke/i1_present_autond_typed_invp_local_gate_seed0/history.csv
+outputs/local_cache/i1_present_autond_typed_invp_local_gate_seed0/
+```
+
+## Result Verdict And Recommendation
+
+The true InvP row improves over AutoND at this small public-code budget, but it
+does not beat the two required typed controls. Shuffled-P is slightly higher,
+and DeltaC-only is the strongest row. Therefore the observed gain cannot be
+attributed to the true PRESENT inverse-permutation mapping.
+
+```text
+route = AutoND public-code typed InvP adapter
+status = stopped local diagnostic
+seed1 = no
+larger public-protocol run = no
+remote scale = no
+DDT redesign = no
+```
+
+This result does not invalidate the completed strict Zhang/Wang Case2
+`1000000/class` two-seed InvP evidence. It shows that the same typed adapter is
+not a control-clean improvement in the single-pair, random-ciphertext-negative
+AutoND public-code setting at this local budget.
+
+Recommended next action:
+
+1. Let the active paper-scale AutoND seed0 reproduction finish and adjudicate
+   its five fresh 1M-row tests against the public-code reference `0.5092`.
+2. Do not run seed1 or scale this local typed-adapter matrix.
+3. After the baseline audit, return to the literature-ranked strict-protocol
+   component-adaptation comparator: strongest strict InvP anchor versus a
+   same-input prior-art-shaped architecture and shuffled/Delta controls.
+4. Keep dense DDT, old E1 topology scaling, and public random-ciphertext adapter
+   redesign stopped unless a genuinely new source-attribution hypothesis is
+   approved.
