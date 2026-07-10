@@ -327,6 +327,14 @@ RUN_GATE_BLOCKED_GIT_FAILED
 - Remote script used a run-owned clean clone under `G:\lxy\blockcipher-structure-adaptive-nd-runs`.
 - The script correctly avoided the dirty historical clone, but HTTPS clone failed before the run directory existed.
 - No training started; GPU remained idle and no progress JSONL existed.
+- Latest recurrence: run
+  `i1_present_autond_public_code_paperscale_seed0_gpu1_20260710` was cloned
+  successfully with the dedicated SSH key, but its tracked launcher omitted
+  `GIT_SSH_COMMAND`. The Task Scheduler process therefore failed on
+  `git fetch origin main` with `Permission denied (publickey)` before
+  readiness or training.
+- A regression test now requires the dedicated key setup to appear before
+  `git fetch origin` in the paper-scale launcher.
 
 ### Suggested Fix
 For remote Windows scheduled experiment launchers, prefer the known remote GitHub SSH key and SSH repo URL:
@@ -341,13 +349,17 @@ Keep generated scripts under `G:\lxy`, and only use HTTPS clone as a fallback wh
 
 ### Metadata
 - Reproducible: unknown
-- Related Files: /tmp/run_innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.cmd, /home/fate/.agents/skills/remote-windows-gpu-conda-ssh/SKILL.md
-- See Also: ERR-20260624-003
+- Related Files: /tmp/run_innovation1_spn_present_nibble_paligned_mcnd_r7_1m_seed0_gpu1_20260626.cmd, configs/remote/generated/run_i1_present_autond_public_code_paperscale_seed0_gpu1_20260710.cmd, tests/test_autond_public_protocol.py, /home/fate/.agents/skills/remote-windows-gpu-conda-ssh/SKILL.md
+- See Also: ERR-20260624-003, ERR-20260705-001
+- Pattern-Key: remote.windows_scheduled_git_requires_explicit_ssh_identity
+- Recurrence-Count: 2
+- First-Seen: 2026-06-26
+- Last-Seen: 2026-07-10
 
 ### Resolution
 - **Resolved**: 2026-06-26T11:19:00+08:00
 - **Commit/PR**: pending
-- **Notes**: Launcher was patched to use SSH repo URL plus the remote dedicated GitHub key, then re-uploaded for relaunch.
+- **Notes**: Launchers must set the SSH repo URL and remote dedicated GitHub key before every clone/fetch/pull performed by Task Scheduler. The 2026-07-10 recurrence added a tracked regression test and repaired the paper-scale launcher.
 
 ---
 

@@ -377,6 +377,15 @@ def test_public_code_paperscale_remote_package_locks_protocol() -> None:
     assert "--dataset-label-mode random_labels_total" in launcher
     assert "--negative-mode random_ciphertext" in launcher
     assert "--key-rotation-interval 1" in launcher
+    assert (
+        "set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/"
+        "github_blockcipher_20260612_result_pusher_ed25519"
+    ) in launcher
+    assert (
+        "set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% "
+        "-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+    ) in launcher
+    assert launcher.index("set GIT_SSH_COMMAND=") < launcher.index("git fetch origin")
     assert "cmd.exe /k" not in launcher
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
     assert "C:\\Users" not in launcher

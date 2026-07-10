@@ -10,6 +10,8 @@ set RESULTS_DIR=%RUN_ROOT%\results
 set ARCHIVE_DIR=%RUN_ROOT%\results_archive\%RUN_ID%
 set DATASET_CACHE_ROOT=%RUN_ROOT%\dataset_cache
 set PYTHON_EXE=F:\Anaconda\envs\DWT\torch310\python.exe
+set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
+set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 
 if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
