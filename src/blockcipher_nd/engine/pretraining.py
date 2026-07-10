@@ -65,6 +65,7 @@ def run_optional_pretraining(
             **final_result.metadata,
             "round_sequence": list(round_sequence),
             "curriculum_stages": stages,
+            "optimizer_state_transition": "reset_each_stage",
         },
     )
 
@@ -195,6 +196,7 @@ def curriculum_stage_metadata(rounds: int, result: TrainingResult) -> dict[str, 
         "epochs_ran": result.metadata.get("epochs_ran"),
         "best_epoch": result.metadata.get("best_epoch"),
         "best_checkpoint_metric": result.metadata.get("best_checkpoint_metric"),
+        "checkpoint_metric": result.metadata.get("checkpoint_metric"),
         "selected_checkpoint": result.metadata.get("selected_checkpoint"),
         "stopped_epoch": result.metadata.get("stopped_epoch"),
         "seed": result.metadata.get("seed"),
@@ -215,4 +217,7 @@ def pretraining_metadata(result: TrainingResult | None) -> dict[str, Any]:
     if "round_sequence" in result.metadata:
         metadata["round_sequence"] = result.metadata["round_sequence"]
         metadata["curriculum_stages"] = result.metadata["curriculum_stages"]
+        metadata["optimizer_state_transition"] = result.metadata[
+            "optimizer_state_transition"
+        ]
     return metadata

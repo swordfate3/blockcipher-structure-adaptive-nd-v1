@@ -249,7 +249,6 @@ def _autond_dbitnet_consistency(
         "optimizer": "adam",
         "weight_decay": 0.0,
         "lr_scheduler": "none",
-        "checkpoint_metric": "val_accuracy",
         "restore_best_checkpoint": True,
     }
     for task in tasks:
@@ -262,6 +261,10 @@ def _autond_dbitnet_consistency(
             )
         if task.get("pretrain_rounds") is not None:
             errors.append("autond_dbitnet plan must not also set scalar pretrain_rounds")
+        if task.get("checkpoint_metric") not in {"val_accuracy", "val_loss"}:
+            errors.append(
+                "autond_dbitnet plan checkpoint_metric must be val_accuracy or val_loss"
+            )
 
     expected_config_values = {
         "amsgrad": True,

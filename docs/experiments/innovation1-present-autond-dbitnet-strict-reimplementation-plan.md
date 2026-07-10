@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R2 blocked pending audit
+**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R1A-C1 local readiness passed and remote package ready; R2 blocked
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -414,24 +414,68 @@ be interpreted as a test of r8 data scarcity. The next experiment slot should
 first determine whether a bounded reimplementation/protocol mismatch explains
 the weak curriculum transfer.
 
-The next research question is:
+The source-contract audit against public AutoND commit
+`8d66e0a43a9e6fbbb3624d68296c1b77aa2da779` found two concrete differences:
 
 ```text
-Can one identified AutoND protocol difference restore the lower-round R1 gates
+public checkpoint selection       = best val_loss
+R1 checkpoint selection           = best val_accuracy
+
+public optimizer transition       = one compiled Adam/AMSGrad object reused
+                                    across rounds; weights loaded from the prior
+                                    round's best-val_loss checkpoint
+R1 optimizer transition           = a new Adam/AMSGrad object per round stage
+```
+
+The public code does not recompile the model or instantiate a new optimizer in
+its round loop. Its `clear_session()` call does not explicitly replace the
+live model or optimizer objects. The current PyTorch trainer creates a new
+optimizer on each `train_binary_classifier` call, so its transition is
+explicitly recorded as `reset_each_stage`.
+
+R1A-C1 adjudicates checkpoint selection first because `val_loss` is directly
+specified by the public `ModelCheckpoint`, is already supported by the local
+trainer, and can be changed without modifying optimization dynamics. Optimizer
+carry is reserved for a later C2 only if C1 fails; C1 must not combine both
+differences.
+
+The R1A-C1 research question is:
+
+```text
+Can best-val_loss checkpoint transfer restore the lower-round R1 gates
 under the strict encrypted-random-plaintext benchmark, without changing the
 DBitNet architecture or increasing the dataset size?
 ```
 
-Execute R1A in this order:
+Frozen R1A-C1 plans:
 
-1. Complete a source-contract audit of checkpoint selection (`val_loss` in the
-   public code versus current `val_accuracy`) and optimizer-state handling at
-   each round transition. Add focused tests that make the selected behavior
-   explicit before any training run.
-2. Run a local CPU readiness smoke for the first concrete single-variable
-   correction found by that audit. Keep architecture, input difference,
-   negatives, keys, curriculum order, and all other training settings frozen.
-3. If the smoke and artifact gates pass, run one same-budget R1A diagnostic at
+```text
+local readiness:
+  plan              = configs/experiment/innovation1/innovation1_spn_present_autond_dbitnet_r1a_valloss_smoke_seed0.csv
+  samples_per_class = 128
+  epochs_per_round  = 2
+
+remote diagnostic:
+  plan              = configs/experiment/innovation1/innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0.csv
+  samples_per_class = 65536
+  seed              = 0
+  epochs_per_round  = 10
+```
+
+The only R1-to-R1A-C1 training-protocol change is:
+
+```text
+checkpoint_metric = val_accuracy -> val_loss
+```
+
+Execute R1A-C1 in this order:
+
+1. Run the local CPU readiness smoke. Require two epochs so best-val-loss
+   selection and restoration execute non-trivially; do not interpret its
+   accuracy as research evidence.
+2. Keep architecture, input difference, negatives, keys, curriculum order,
+   optimizer reset behavior, and all other training settings frozen.
+3. If the smoke and artifact gates pass, run one same-budget R1A-C1 diagnostic at
    `65536/class`, seed 0, and 10 epochs per round. Compare it to the completed
    R1 anchor; do not combine checkpoint, optimizer, key, or negative-generation
    changes in one row.
@@ -440,7 +484,73 @@ Execute R1A in this order:
    negatives only as an author-protocol ablation; they cannot replace strict
    encrypted-random-plaintext evidence.
 
-R1A may advance to an R2 design review only if one strict, held-out-key variant
+### R1A-C1 Local Readiness Result
+
+The two-epoch CPU smoke completed on 2026-07-10:
+
+```text
+samples_per_class          = 128
+round sequence             = [5,6,7,8] -> 9
+checkpoint_metric          = val_loss
+selected checkpoint        = best for every stage
+optimizer_state_transition = reset_each_stage
+result rows                = 1 / 1
+plan alignment             = pass
+plot/history generation    = pass
+```
+
+The tiny validation metrics are readiness diagnostics only:
+
+```text
+r5 accuracy=0.4609375 AUC=0.5625000
+r6 accuracy=0.5078125 AUC=0.5004883
+r7 accuracy=0.4765625 AUC=0.3823242
+r8 accuracy=0.5000000 AUC=0.6044922
+r9 accuracy=0.5000000 AUC=0.4899902
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/history.csv
+outputs/local_cache/i1_present_autond_dbitnet_r1a_valloss_smoke_seed0/
+```
+
+Recommendation after the readiness gate: proceed to the single R1A-C1 remote
+`65536/class`, seed-0 diagnostic on the idle `cuda:1`. Do not add optimizer
+carry, same-key validation, random-ciphertext negatives, another seed, or a
+larger scale to this run.
+
+### R1A-C1 Remote Package
+
+```text
+run_id       = i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710
+device       = cuda:1
+GPU gate     = 150 MiB / 49140 MiB, 0% utilization at bounded pre-launch check
+remote root  = G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+cache root   = <remote root>\dataset_cache
+result sync  = local tmux monitor with SCP fallback retrieval
+```
+
+Tracked launch artifacts:
+
+```text
+configs/remote/innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710.json
+configs/remote/generated/run_i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710.cmd
+configs/remote/generated/monitor_i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710.sh
+```
+
+The local readiness report passes all nine invariants, including the one-row
+plan, strict-negative protocol, medium-scale disk cache, and AutoND protocol
+lock. The monitor validates and plots the retrieved row, verifies `val_loss`
+for the target and all curriculum stages, verifies `reset_each_stage`, and
+writes per-round accuracy/AUC deltas versus the completed R1 anchor.
+
+R1A-C1 may advance to an R2 design review only if the strict, held-out-key result
 meets the frozen lower-round and r8 gates:
 
 ```text

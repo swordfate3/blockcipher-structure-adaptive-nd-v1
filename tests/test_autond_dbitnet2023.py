@@ -180,6 +180,9 @@ def test_curriculum_trains_stages_in_order_and_records_metadata(tmp_path: Path) 
             "4",
             "--pretrain-epochs",
             "1",
+            "--checkpoint-metric",
+            "val_loss",
+            "--restore-best-checkpoint",
             "--train-eval-interval",
             "0",
         ]
@@ -203,6 +206,11 @@ def test_curriculum_trains_stages_in_order_and_records_metadata(tmp_path: Path) 
     assert all(stage["epochs_ran"] == 1 for stage in result.metadata["curriculum_stages"])
     assert all("metrics" in stage for stage in result.metadata["curriculum_stages"])
     assert all("selected_checkpoint" in stage for stage in result.metadata["curriculum_stages"])
+    assert all(
+        stage["checkpoint_metric"] == "val_loss"
+        for stage in result.metadata["curriculum_stages"]
+    )
+    assert result.metadata["optimizer_state_transition"] == "reset_each_stage"
     progress_rows = [
         json.loads(line)
         for line in progress.read_text(encoding="utf-8").splitlines()
@@ -287,3 +295,127 @@ def test_autond_remote_package_locks_strict_medium_protocol(tmp_path: Path) -> N
     invalid_readiness = remote_readiness_report(invalid_config)
     assert invalid_readiness["status"] == "fail"
     assert "autond_dbitnet amsgrad=False expected=True" in invalid_readiness["errors"]
+
+
+def test_autond_readiness_allows_val_loss_checkpoint_ablation(tmp_path: Path) -> None:
+    base_plan = Path(
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_autond_dbitnet_strict_65k_seed0.csv"
+    )
+    plan = tmp_path / "autond_val_loss.csv"
+    plan.write_text(
+        base_plan.read_text(encoding="utf-8").replace("val_accuracy", "val_loss"),
+        encoding="utf-8",
+    )
+    base_config = Path(
+        "configs/remote/"
+        "innovation1_spn_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710.json"
+    )
+    config = json.loads(base_config.read_text(encoding="utf-8"))
+    config["plan"] = str(plan)
+    config["checkpoint_metric"] = "val_loss"
+    config_path = tmp_path / "autond_val_loss.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+
+    readiness = remote_readiness_report(config_path)
+
+    assert readiness["status"] == "pass", readiness["errors"]
+    assert "autond_dbitnet_protocol_lock" in readiness["checked_invariants"]
+
+
+@pytest.mark.parametrize(
+    ("plan_name", "samples_per_class", "pretrain_epochs"),
+    [
+        (
+            "innovation1_spn_present_autond_dbitnet_r1a_valloss_smoke_seed0.csv",
+            128,
+            2,
+        ),
+        (
+            "innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0.csv",
+            65536,
+            10,
+        ),
+    ],
+)
+def test_autond_r1a_plans_lock_val_loss_single_variable(
+    plan_name: str,
+    samples_per_class: int,
+    pretrain_epochs: int,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / plan_name
+    task = build_tasks(parse_args(["--plan", str(plan)]))[0]
+
+    assert task["model_key"] == "autond_dbitnet2023"
+    assert task["samples_per_class"] == samples_per_class
+    assert task["pretrain_round_sequence"] == (5, 6, 7, 8)
+    assert task["pretrain_epochs"] == pretrain_epochs
+    assert task["checkpoint_metric"] == "val_loss"
+    assert task["restore_best_checkpoint"] is True
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+    assert task["validation_key"] == 0x11111111111111111111
+
+    if samples_per_class == 65536:
+        anchor = build_tasks(
+            parse_args(
+                [
+                    "--plan",
+                    "configs/experiment/innovation1/"
+                    "innovation1_spn_present_autond_dbitnet_strict_65k_seed0.csv",
+                ]
+            )
+        )[0]
+        for field in (
+            "model_key",
+            "rounds",
+            "seed",
+            "samples_per_class",
+            "pairs_per_sample",
+            "feature_encoding",
+            "negative_mode",
+            "train_key",
+            "validation_key",
+            "key_rotation_interval",
+            "sample_structure",
+            "difference_profile",
+            "loss",
+            "learning_rate",
+            "optimizer",
+            "weight_decay",
+            "lr_scheduler",
+            "pretrain_round_sequence",
+            "pretrain_epochs",
+        ):
+            assert task[field] == anchor[field]
+        assert anchor["checkpoint_metric"] == "val_accuracy"
+
+
+def test_autond_r1a_remote_package_locks_checkpoint_ablation() -> None:
+    config_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    readiness = remote_readiness_report(config_path)
+    artifacts = launch_artifacts(config_path)
+    launcher = Path(artifacts["launcher"]).read_text(encoding="utf-8")
+    monitor = Path(artifacts["monitor"]).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass", readiness["errors"]
+    assert readiness["expected_rows"] == 1
+    assert readiness["max_samples_per_class"] == 65536
+    assert artifacts["status"] == "pass"
+    assert config["device"] == "cuda:1"
+    assert config["checkpoint_metric"] == "val_loss"
+    assert config["pretrain_round_sequence"] == [5, 6, 7, 8]
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert "--checkpoint-metric val_loss" in launcher
+    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert "--dataset-cache-root" in launcher
+    assert "cmd.exe /k" not in launcher
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
+    assert "C:\\Users" not in launcher
+    assert '"checkpoint_metric"' in monitor
+    assert '"optimizer_state_transition"' in monitor
+    assert "i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710" in monitor
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor
