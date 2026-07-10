@@ -415,3 +415,34 @@ def test_public_fields_do_not_add_warnings_to_strict_autond_readiness() -> None:
             "final_test_repeats",
         )
     )
+
+
+def test_typed_invp_local_gate_plan_locks_four_row_protocol() -> None:
+    plan = Path(
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_autond_typed_invp_local_gate_seed0.csv"
+    )
+
+    tasks = build_tasks(parse_args(["--plan", str(plan)]))
+
+    assert [task["model_key"] for task in tasks] == [
+        "autond_dbitnet2023",
+        "present_nibble_invp_only_spn_only",
+        "present_nibble_shuffled_paligned_spn_only",
+        "present_nibble_delta_only_spn_only",
+    ]
+    assert len(tasks) == 4
+    assert all(task["rounds"] == 9 for task in tasks)
+    assert all(task["seed"] == 0 for task in tasks)
+    assert all(task["samples_per_class"] == 8_192 for task in tasks)
+    assert all(task["train_samples_total"] == 16_384 for task in tasks)
+    assert all(task["validation_samples_total"] == 4_096 for task in tasks)
+    assert all(task["final_test_samples_total"] == 4_096 for task in tasks)
+    assert all(task["final_test_repeats"] == 3 for task in tasks)
+    assert all(task["dataset_label_mode"] == "random_labels_total" for task in tasks)
+    assert all(task["negative_mode"] == "random_ciphertext" for task in tasks)
+    assert all(task["key_rotation_interval"] == 1 for task in tasks)
+    assert all(task["pretrain_round_sequence"] == (5, 6, 7, 8) for task in tasks)
+    assert all(task["pretrain_epochs"] == 3 for task in tasks)
+    assert all(task["checkpoint_metric"] == "val_loss" for task in tasks)
+    assert all(task["optimizer_state_transition"] == "carry_across_stages" for task in tasks)
