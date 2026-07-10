@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0/R1/C1 completed; R1A-C2 remote medium diagnostic running under local watcher; paper-scale reproduction not yet run
+**Status:** R0/R1/C1/C2 completed; C2 fallback-retrieved and plan-aligned; strict-medium audit closed; paper-scale reproduction not yet run
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -765,10 +765,103 @@ monitor state       = active; completion/result retrieval pending
 claim scope         = 65536/class single-seed medium diagnostic only
 ```
 
-The main thread must not SSH-poll this run. The local watcher owns subsequent
-waiting, fallback retrieval, validation, plotting, optimizer-continuity audit,
-and C2-versus-C1 gate generation. This launch is `running`, not completed or
-retrieved.
+The main thread did not SSH-poll this run. The local watcher owned waiting,
+fallback retrieval, validation, plotting, optimizer-continuity audit, and
+C2-versus-C1 gate generation.
+
+### R1A-C2 Retrieved Result
+
+The local watcher completed fallback retrieval and postprocessing on
+2026-07-10:
+
+```text
+run_id             = i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710
+source commit      = 011369f6f2188ca0e343664afaf68d53e34e9fa4
+remote run time    = 716.23 seconds (11 minutes 56.23 seconds)
+result rows        = 1 / 1
+plan alignment     = pass
+retrieval status   = fallback-retrieved from the G:\lxy run-owned directory
+watcher completion = postprocess_done at 2026-07-10T18:59:37+08:00
+claim scope        = 65536/class single-seed medium diagnostic only
+```
+
+All protocol and artifact checks passed. The same Adam/AMSGrad state continued
+across every round transition:
+
+| Round | Reused | Step before | Step after | Best epoch |
+| --- | --- | ---: | ---: | ---: |
+| r5 | false | 0 | 270 | 10 |
+| r6 | true | 270 | 540 | 2 |
+| r7 | true | 540 | 810 | 3 |
+| r8 | true | 810 | 1080 | 3 |
+| r9 | true | 1080 | 1350 | 3 |
+
+C2 improved C1 at r5-r8, showing that optimizer reset was a material
+implementation mismatch. It did not restore the frozen strict advancement
+gates, and r9 remained at chance:
+
+| Round | C1 accuracy | C2 accuracy | Accuracy delta | C1 AUC | C2 AUC | AUC delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| r5 | 0.517059326 | 0.632873535 | +0.115814209 | 0.729835789 | 0.752458546 | +0.022622757 |
+| r6 | 0.562896729 | 0.576782227 | +0.013885498 | 0.585832156 | 0.605980476 | +0.020148321 |
+| r7 | 0.505065918 | 0.513198853 | +0.008132935 | 0.508800202 | 0.515732680 | +0.006932478 |
+| r8 | 0.498672485 | 0.501739502 | +0.003067017 | 0.497703894 | 0.500975817 | +0.003271923 |
+| r9 | 0.502273560 | 0.499191284 | -0.003082275 | 0.505101557 | 0.497282000 | -0.007819557 |
+
+Frozen gate outcome:
+
+```text
+r5 required >= 0.75;  observed 0.632873535 -> fail
+r6 required >= 0.60;  observed 0.576782227 -> fail
+r7 required >= 0.52;  observed 0.513198853 -> fail
+r8 required >  0.505; observed 0.501739502 -> fail
+protocol/artifact integrity                       -> pass
+
+decision = close_strict_medium_audit_lower_round_gate_failed
+```
+
+Retain optimizer carry in source-faithful AutoND implementations: it removes a
+real C1 protocol error and materially improves the lower-round trajectory.
+However, it does not create a usable strict r8/r9 distinguisher at this medium
+scale. This result neither validates nor refutes the paper because it is still
+single-seed `65536/class`, uses strict encrypted-random-plaintext negatives,
+and omits the paper-scale validation and final test protocol.
+
+Retrieved artifacts:
+
+```text
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/results/
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/logs/
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710_validation.json
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710_gate.json
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710_curves.svg
+outputs/remote_results/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710_history.csv
+```
+
+### Recommended Next Step: Paper-Scale Protocol Readiness
+
+Close the strict `65536/class` audit here. Do not mechanically launch a strict
+`262144/class` continuation. The next bounded implementation task is a
+public-code-aligned paper-scale readiness phase that adds, one protocol
+capability at a time:
+
+```text
+independent validation_samples_per_class = 500000
+public-code random-ciphertext negatives
+per-row random training and validation keys
+optimizer_state_transition = carry_across_stages
+checkpoint_metric = val_loss
+r9 curriculum budget = 40 epochs per round
+final evaluator = five fresh test sets of 1000000 total samples each
+```
+
+First run a tiny local end-to-end smoke proving sample counts, key sampling,
+negative construction, checkpoint/optimizer continuity, and five-test
+aggregation. Only after that readiness gate passes should a separate remote
+plan request `10^7` total training rows and `10^6` total validation rows per
+round. Keep a strict benchmark-transfer track separately labeled; do not mix
+its held-out fixed key and encrypted-random-plaintext negatives into the
+public-code reproduction.
 
 If C2 improves the lower-round same-budget metrics, retain optimizer carry as
 the source-faithful implementation. If it does not improve them, discard it as
