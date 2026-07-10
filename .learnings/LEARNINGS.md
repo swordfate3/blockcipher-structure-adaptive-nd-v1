@@ -1,3 +1,60 @@
+## [LRN-20260710-006] correction
+
+**Logged**: 2026-07-10T13:55:00+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not make typed-DDT redesign the default next experiment after the dense DDT
+trail-value branch has already failed its mismatch controls and been stopped.
+
+### Details
+The aligned DDT route completed a sequence of bounded controls before the route
+verdict was written:
+
+```text
+4d2edc7 trail-value mismatch gate
+5f9e06b trail normalization gate
+5132701 gated auxiliary trail gate
+52662d7 weak/shallow trail-summary mismatch gate
+```
+
+Across real, masked wrong-source, and constant-source inputs, wrong-source DDT
+features remained close to or above the real source. Reducing beam width/depth,
+normalizing the trail block, and gating it did not produce a clean
+sample-specific DDT signal. The recorded decision was to stop feeding dense DDT
+trail values and move to raw-prefix/native SPN-coordinate models.
+
+The later route verdict commit `63a5c0d` nevertheless retained E2 as a bounded
+final adjudication of the older fixed-active trail-position evidence. After
+source audit showed that executing E2 cleanly would require a typed DDT schema,
+new model branches, new attribution controls, and layout repair, E2 is no
+longer a simple adjudication of the frozen route. Treating that redesign as the
+automatic next action would reopen stopped exploration and contradict the
+project's route-verdict mode.
+
+### Suggested Action
+Do not run or implement another DDT experiment by default. Mark the E2-DDT
+exception as cancelled or superseded when the route verdict is next updated.
+With corrected E1-R1 failed and the DDT dense-input route stopped, close the
+current broad Innovation 1 search through evidence consolidation unless the
+user explicitly approves a genuinely new, literature- and control-justified
+non-DDT hypothesis. A typed DDT redesign is allowed only as an explicit route
+reopening, not as the inherited next step.
+
+### Metadata
+- Source: user_feedback, experiment_audit
+- Related Files: docs/experiments/innovation1-route-verdict-2026-07-09.md, docs/experiments/innovation1-present-r8-aligned-trail-value-mismatch-plan.md, docs/experiments/innovation1-present-r8-aligned-trail-normalization-plan.md, docs/experiments/innovation1-present-r8-aligned-gated-aux-trail-plan.md, docs/experiments/innovation1-present-r8-aligned-weak-trail-summary-plan.md
+- Tags: innovation1, route-verdict, ddt-beamstats, stopped-route, experiment-governance, adjudication
+- See Also: LRN-20260710-005, LRN-20260710-004, LRN-20260709-009, LRN-20260709-006
+- Pattern-Key: innovation1.workflow.do_not_reopen_stopped_route_as_default_redesign
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-005] correction
 
 **Logged**: 2026-07-10T13:10:00+08:00
@@ -75,18 +132,14 @@ sequential sample IDs. Exact-row alignment is therefore assumed through
 deterministic regeneration rather than explicitly proven by sample hashes.
 
 ### Suggested Action
-Before interpreting or scaling E2, define an explicit typed schema for the DDT
-input: decode prefix and the six cell-indexed words as PRESENT-cell values, and
-decode the three summary words on a separate beam-rank axis. Add semantic
-sentinel tests for both types, then rerun the smallest same-protocol two-seed
-candidate/global/deterministic gate with prefix-only, cell-DDT, and beam-summary
-attribution. Include real-source versus masked/constant-source controls because
-historical aligned-protocol results showed wrong-source DDT features can remain
-as strong as the real source. Export or compute deterministic scores from the
-exact validation cache and bind them to content-derived sample IDs before
-calling the baseline exact-row aligned. Keep the historical E2 benchmark fixed
-during representation repair; evaluate strict independent encrypted-random-
-plaintext negatives as a separate protocol control.
+Do not turn this audit into an automatic typed-DDT implementation task: the
+dense DDT branch was already stopped by completed mismatch gates. Preserve the
+layout/schema defect as a qualification on historical evidence. Only if the
+user explicitly reopens DDT with a new hypothesis should an experiment define
+an explicit typed schema, add semantic sentinel tests, use exact-row baselines,
+and require real-source to beat masked/constant-source controls. Otherwise,
+cancel the stale E2 exception and move to route closure or a separately
+justified non-DDT hypothesis.
 
 ### Metadata
 - Source: source_audit
