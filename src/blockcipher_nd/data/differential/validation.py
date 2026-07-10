@@ -5,6 +5,15 @@ from blockcipher_nd.features.pair_features import pair_bits_for_encoding
 
 
 def validate_differential_config(config: DifferentialDatasetConfig) -> None:
+    if config.samples_per_class < 1:
+        raise ValueError("samples_per_class must be at least 1")
+    if config.dataset_label_mode not in {"balanced_per_class", "random_labels_total"}:
+        raise ValueError(f"unsupported dataset_label_mode: {config.dataset_label_mode}")
+    if config.dataset_label_mode == "random_labels_total":
+        if config.samples_total is None or config.samples_total < 2:
+            raise ValueError("random_labels_total requires samples_total >= 2")
+    elif config.samples_total is not None:
+        raise ValueError("samples_total is only valid with random_labels_total")
     if config.pairs_per_sample < 1:
         raise ValueError("pairs_per_sample must be at least 1")
     if config.key_rotation_interval < 0:

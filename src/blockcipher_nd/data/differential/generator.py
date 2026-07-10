@@ -19,13 +19,26 @@ def make_differential_dataset(config: DifferentialDatasetConfig) -> Differential
     rows: list[list[int]] = []
     labels: list[int] = []
 
-    for row_index in range(config.samples_per_class):
-        rows.append(generate_positive_row(config, rng, block_bits, mask, row_index=row_index))
-        labels.append(1)
+    if config.dataset_label_mode == "random_labels_total":
+        sampled_labels = rng.integers(0, 2, size=int(config.samples_total), dtype=np.uint8)
+        for row_index, label in enumerate(sampled_labels):
+            if label == 1:
+                rows.append(
+                    generate_positive_row(config, rng, block_bits, mask, row_index=row_index)
+                )
+            else:
+                rows.append(generate_negative_row(config, rng, block_bits, row_index=row_index))
+            labels.append(int(label))
+    else:
+        for row_index in range(config.samples_per_class):
+            rows.append(
+                generate_positive_row(config, rng, block_bits, mask, row_index=row_index)
+            )
+            labels.append(1)
 
-    for row_index in range(config.samples_per_class):
-        rows.append(generate_negative_row(config, rng, block_bits, row_index=row_index))
-        labels.append(0)
+        for row_index in range(config.samples_per_class):
+            rows.append(generate_negative_row(config, rng, block_bits, row_index=row_index))
+            labels.append(0)
 
     features = np.array(rows, dtype=np.uint8)
     label_array = np.array(labels, dtype=np.uint8)
@@ -34,8 +47,13 @@ def make_differential_dataset(config: DifferentialDatasetConfig) -> Differential
         features = features[order]
         label_array = label_array[order]
 
+    metadata = {
+        **dataset_metadata(config),
+        "positive_rows": int(label_array.sum()),
+        "negative_rows": int(len(label_array) - label_array.sum()),
+    }
     return DifferentialDataset(
         features=features,
         labels=label_array,
-        metadata=dataset_metadata(config),
+        metadata=metadata,
     )

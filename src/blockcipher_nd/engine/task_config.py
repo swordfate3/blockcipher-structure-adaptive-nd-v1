@@ -15,12 +15,20 @@ def resolve_task_keys(task: dict[str, Any]) -> tuple[int | None, int | None]:
     return train_key, validation_key
 
 
+def validation_samples_per_class(task: dict[str, Any]) -> int:
+    total = task.get("validation_samples_total")
+    if total is not None:
+        return max(1, int(total) // 2)
+    return max(8, int(task["samples_per_class"]) // 2)
+
+
 def build_dataset_config(
     task: dict[str, Any],
     *,
     cipher,
     samples_per_class: int,
     seed: int,
+    samples_total: int | None = None,
     split: str = "train",
 ) -> DifferentialDatasetConfig:
     active_nibbles = task.get("integral_active_nibbles", ())
@@ -30,6 +38,8 @@ def build_dataset_config(
         cipher=cipher,
         input_difference=task["input_difference"],
         samples_per_class=samples_per_class,
+        samples_total=samples_total,
+        dataset_label_mode=str(task.get("dataset_label_mode") or "balanced_per_class"),
         seed=seed,
         feature_encoding=task["feature_encoding"],
         pairs_per_sample=task["pairs_per_sample"],

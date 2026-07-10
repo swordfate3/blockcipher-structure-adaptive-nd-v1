@@ -53,6 +53,8 @@ def dataset_cache_dir(
         "split": split,
         "seed": config.seed,
         "samples_per_class": config.samples_per_class,
+        "samples_total": config.samples_total,
+        "dataset_label_mode": config.dataset_label_mode,
         "pairs_per_sample": config.pairs_per_sample,
         "input_difference": config.input_difference,
         "feature_encoding": config.feature_encoding,

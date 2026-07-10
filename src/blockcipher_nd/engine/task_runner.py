@@ -6,18 +6,21 @@ from typing import Any
 import torch
 
 from blockcipher_nd.engine.datasets import make_task_dataset
+from blockcipher_nd.engine.final_evaluation import run_final_evaluation
 from blockcipher_nd.engine.modeling import (
     configure_structure_aware_model,
     infer_pair_bits,
     select_model_key,
 )
 from blockcipher_nd.engine.pretraining import (
+    dataset_size_metadata,
     resolve_optimizer_state_transition,
     run_optional_pretraining,
 )
 from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
 from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
+from blockcipher_nd.engine.task_config import validation_samples_per_class
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.training import OptimizerSession, train_binary_classifier
@@ -46,6 +49,7 @@ def run_task(
             task,
             cipher=train_cipher,
             samples_per_class=task["samples_per_class"],
+            samples_total=task.get("train_samples_total"),
             seed=task["seed"],
             split="train",
         ),
@@ -60,7 +64,8 @@ def run_task(
         build_dataset_config(
             task,
             cipher=validation_cipher,
-            samples_per_class=max(8, task["samples_per_class"] // 2),
+            samples_per_class=validation_samples_per_class(task),
+            samples_total=task.get("validation_samples_total"),
             seed=task["seed"] + 10_000,
             split="validation",
         ),
@@ -127,6 +132,16 @@ def run_task(
         optimizer_session=optimizer_session,
     )
     training_result.metadata["optimizer_state_transition"] = optimizer_state_transition
+    training_result.metadata.update(dataset_size_metadata(train_dataset, validation_dataset))
+    final_evaluation = run_final_evaluation(
+        model,
+        task,
+        args,
+        cipher=validation_cipher,
+        progress_path=progress_path,
+        index=index,
+        total=total,
+    )
     return build_task_result(
         task=task,
         args=args,
@@ -141,4 +156,5 @@ def run_task(
         validation_dataset=validation_dataset,
         training_result=training_result,
         pretrain_result=pretrain_result,
+        final_evaluation=final_evaluation,
     )

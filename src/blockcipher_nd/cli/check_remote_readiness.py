@@ -159,6 +159,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("medium_scale_dataset_cache")
     if _is_autond_dbitnet_config(tasks):
         checked_invariants.append("autond_dbitnet_protocol_lock")
+    if _is_autond_public_code_config(tasks):
+        checked_invariants.append("autond_public_code_paperscale_lock")
     if _is_candidate_trail_config(config):
         checked_invariants.append("candidate_trail_protocol_lock")
     if _is_transition_spectrum_config(config):
@@ -211,6 +213,16 @@ def _training_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -
         "early_stopping_patience",
         "early_stopping_min_delta",
     ]
+    if _is_autond_public_code_config(tasks):
+        comparable_fields.extend(
+            [
+                "dataset_label_mode",
+                "train_samples_total",
+                "validation_samples_total",
+                "final_test_samples_total",
+                "final_test_repeats",
+            ]
+        )
     for field in comparable_fields:
         if field not in config:
             warnings.append(f"remote config does not override {field}; runner default or plan value will apply")
@@ -238,11 +250,14 @@ def _autond_dbitnet_consistency(
     if not _is_autond_dbitnet_config(tasks):
         return {"errors": errors, "warnings": []}
 
+    public_code = _is_autond_public_code_config(tasks)
     expected_task_values = {
         "rounds": 9,
         "pairs_per_sample": 1,
         "feature_encoding": "ciphertext_pair_bits",
-        "negative_mode": "encrypted_random_plaintexts",
+        "negative_mode": "random_ciphertext"
+        if public_code
+        else "encrypted_random_plaintexts",
         "sample_structure": "independent_pairs",
         "difference_profile": "present_autond_dbitnet2023_highround",
         "loss": "mse",
@@ -252,6 +267,20 @@ def _autond_dbitnet_consistency(
         "lr_scheduler": "none",
         "restore_best_checkpoint": True,
     }
+    if public_code:
+        expected_task_values.update(
+            {
+                "dataset_label_mode": "random_labels_total",
+                "train_samples_total": 10_000_000,
+                "validation_samples_total": 1_000_000,
+                "final_test_samples_total": 1_000_000,
+                "final_test_repeats": 5,
+                "key_rotation_interval": 1,
+                "checkpoint_metric": "val_loss",
+                "optimizer_state_transition": "carry_across_stages",
+                "pretrain_epochs": 40,
+            }
+        )
     for task in tasks:
         for field, expected in expected_task_values.items():
             if task.get(field) != expected:
@@ -262,11 +291,14 @@ def _autond_dbitnet_consistency(
             )
         if task.get("pretrain_rounds") is not None:
             errors.append("autond_dbitnet plan must not also set scalar pretrain_rounds")
-        if task.get("checkpoint_metric") not in {"val_accuracy", "val_loss"}:
+        if not public_code and task.get("checkpoint_metric") not in {
+            "val_accuracy",
+            "val_loss",
+        }:
             errors.append(
                 "autond_dbitnet plan checkpoint_metric must be val_accuracy or val_loss"
             )
-        if task.get("optimizer_state_transition") not in {
+        if not public_code and task.get("optimizer_state_transition") not in {
             "reset_each_stage",
             "carry_across_stages",
         }:
@@ -278,10 +310,27 @@ def _autond_dbitnet_consistency(
     expected_config_values = {
         "amsgrad": True,
         "pairs_per_sample": 1,
-        "negative_mode": "encrypted_random_plaintexts",
+        "negative_mode": "random_ciphertext"
+        if public_code
+        else "encrypted_random_plaintexts",
         "sample_structure": "independent_pairs",
         "pretrain_rounds": None,
     }
+    if public_code:
+        expected_config_values.update(
+            {
+                "dataset_label_mode": "random_labels_total",
+                "train_samples_total": 10_000_000,
+                "validation_samples_total": 1_000_000,
+                "final_test_samples_total": 1_000_000,
+                "final_test_repeats": 5,
+                "key_rotation_interval": 1,
+                "checkpoint_metric": "val_loss",
+                "optimizer_state_transition": "carry_across_stages",
+                "pretrain_epochs": 40,
+                "epochs": 40,
+            }
+        )
     for field, expected in expected_config_values.items():
         if config.get(field) != expected:
             errors.append(f"autond_dbitnet {field}={config.get(field)} expected={expected}")
@@ -297,6 +346,12 @@ def _autond_dbitnet_consistency(
 
 def _is_autond_dbitnet_config(tasks: list[dict[str, Any]]) -> bool:
     return bool(tasks) and all(task.get("model_key") == "autond_dbitnet2023" for task in tasks)
+
+
+def _is_autond_public_code_config(tasks: list[dict[str, Any]]) -> bool:
+    return _is_autond_dbitnet_config(tasks) and all(
+        task.get("dataset_label_mode") == "random_labels_total" for task in tasks
+    )
 
 
 def _load_plan_tasks(plan_path: Path) -> list[dict[str, Any]]:

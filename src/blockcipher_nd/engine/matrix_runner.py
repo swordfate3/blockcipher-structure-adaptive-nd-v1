@@ -25,6 +25,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--rounds", type=int, nargs="+", default=[2])
     parser.add_argument("--seeds", type=int, nargs="+", default=[0])
     parser.add_argument("--samples-per-class", type=int, default=256)
+    parser.add_argument("--train-samples-total", type=int, default=None)
+    parser.add_argument("--validation-samples-total", type=int, default=None)
+    parser.add_argument("--final-test-samples-total", type=int, default=None)
+    parser.add_argument("--final-test-repeats", type=int, default=0)
+    parser.add_argument(
+        "--dataset-label-mode",
+        default="balanced_per_class",
+        choices=["balanced_per_class", "random_labels_total"],
+    )
     parser.add_argument("--pairs-per-sample", type=int, default=1)
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=64)

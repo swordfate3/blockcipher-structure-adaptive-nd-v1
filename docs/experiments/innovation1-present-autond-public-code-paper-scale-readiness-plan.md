@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** implementation planned; no paper-scale run launched
+**Status:** tiny readiness passed; paper-scale remote package prepared; no paper-scale run launched
 
 **Claim scope:** public-code mechanism reproduction readiness, not a completed
 paper-scale reproduction and not an Innovation 1 novelty result
@@ -135,6 +135,70 @@ final accuracy mean/std equals aggregation of the five raw metrics
 plan validation returns 1/1 rows and no mismatches
 disk cache metadata matches exact totals and is reusable
 ```
+
+## Tiny Smoke Result
+
+The CPU readiness smoke completed on 2026-07-10:
+
+```text
+run_id              = i1_present_autond_public_code_readiness_smoke_seed0
+result rows         = 1 / 1
+plan alignment      = pass
+dataset mode        = random_labels_total
+negative mode       = random_ciphertext
+key schedule        = per_row_random
+train rows          = 32 at r5-r9
+validation rows     = 16 at r5-r9
+final tests         = 5 repeats x 12 rows
+cache reuse events  = 15 / 15 expected splits
+claim scope         = protocol readiness only
+```
+
+Random-label counts and optimizer continuity:
+
+| Round | Train + | Train - | Validation + | Validation - | Step before | Step after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| r5 | 19 | 13 | 9 | 7 | 0 | 8 |
+| r6 | 16 | 16 | 9 | 7 | 8 | 16 |
+| r7 | 22 | 10 | 8 | 8 | 16 | 24 |
+| r8 | 16 | 16 | 7 | 9 | 24 | 32 |
+| r9 | 17 | 15 | 6 | 10 | 32 | 40 |
+
+The five fresh test datasets used seeds `50000..50004`; every dataset had
+exactly 12 rows and both labels. Their aggregate was:
+
+```text
+accuracy mean = 0.5333333333333333
+accuracy std  = 0.15456030825826172
+AUC mean      = 0.5862896825396825
+AUC std       = 0.15864097693093807
+```
+
+These values are tiny-sample noise and must not be compared with the paper.
+They only prove that the five-test evaluator records raw repeats and recomputes
+mean/population-standard-deviation correctly.
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_autond_public_code_readiness_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_autond_public_code_readiness_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_autond_public_code_readiness_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_autond_public_code_readiness_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_autond_public_code_readiness_smoke_seed0/history.csv
+outputs/local_cache/i1_present_autond_public_code_readiness_smoke_seed0/
+```
+
+Prepared paper-scale package:
+
+```text
+configs/remote/innovation1_spn_present_autond_public_code_paperscale_seed0_gpu1_20260710.json
+configs/remote/generated/run_i1_present_autond_public_code_paperscale_seed0_gpu1_20260710.cmd
+configs/remote/generated/monitor_i1_present_autond_public_code_paperscale_seed0_gpu1_20260710.sh
+```
+
+The package is prepared but not yet launched. It must be launched only from the
+pushed implementation commit after the final source/test/readiness audit.
 
 ## Paper-Scale Plan Gate
 

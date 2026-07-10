@@ -16,6 +16,8 @@ class DifferentialDatasetConfig:
     input_difference: int
     samples_per_class: int
     seed: int
+    samples_total: int | None = None
+    dataset_label_mode: str = "balanced_per_class"
     shuffle: bool = True
     feature_encoding: str = "ciphertext_pair_bits"
     pairs_per_sample: int = 1

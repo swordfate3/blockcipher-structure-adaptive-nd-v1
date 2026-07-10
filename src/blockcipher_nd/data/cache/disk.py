@@ -40,7 +40,7 @@ def make_chunked_differential_dataset(
     labels_path = cache_path / "labels.npy"
     metadata_path = cache_path / "metadata.json"
     expected_metadata = dataset_metadata(config)
-    total_rows = config.samples_per_class * 2
+    total_rows = int(expected_metadata["samples_total"])
     input_bits = (
         expected_metadata["pair_bits"] * config.pairs_per_sample
         + expected_metadata["row_metadata_bits"]
@@ -100,56 +100,79 @@ def make_chunked_differential_dataset(
     mask = (1 << block_bits) - 1
     rng = np.random.default_rng(config.seed)
 
-    row_index = 0
-    for start, count, chunk in _iter_generated_chunks(
-        config=config,
-        rng=rng,
-        input_bits=input_bits,
-        block_bits=block_bits,
-        mask=mask,
-        chunk_size=chunk_size,
-        workers=workers,
-        label=1,
-    ):
-        features[row_index : row_index + count] = chunk
-        labels[row_index : row_index + count] = 1
-        row_index += count
-        _emit_progress(
-            progress_callback,
-            "cache_positive_chunk",
-            context,
-            cache_path=cache_path,
-            rows_done=row_index,
-            class_rows_done=start + count,
-            class_total=config.samples_per_class,
-            total_rows=total_rows,
-            chunk_rows=count,
-        )
+    if config.dataset_label_mode == "random_labels_total":
+        sampled_labels = rng.integers(0, 2, size=total_rows, dtype=np.uint8)
+        labels[:] = sampled_labels
+        for start, count, chunk in _iter_mixed_label_chunks(
+            config=config,
+            labels=sampled_labels,
+            input_bits=input_bits,
+            block_bits=block_bits,
+            mask=mask,
+            chunk_size=chunk_size,
+            workers=workers,
+        ):
+            features[start : start + count] = chunk
+            _emit_progress(
+                progress_callback,
+                "cache_mixed_label_chunk",
+                context,
+                cache_path=cache_path,
+                rows_done=start + count,
+                total_rows=total_rows,
+                chunk_rows=count,
+            )
+    else:
+        row_index = 0
+        for start, count, chunk in _iter_generated_chunks(
+            config=config,
+            rng=rng,
+            input_bits=input_bits,
+            block_bits=block_bits,
+            mask=mask,
+            chunk_size=chunk_size,
+            workers=workers,
+            label=1,
+        ):
+            features[row_index : row_index + count] = chunk
+            labels[row_index : row_index + count] = 1
+            row_index += count
+            _emit_progress(
+                progress_callback,
+                "cache_positive_chunk",
+                context,
+                cache_path=cache_path,
+                rows_done=row_index,
+                class_rows_done=start + count,
+                class_total=config.samples_per_class,
+                total_rows=total_rows,
+                chunk_rows=count,
+            )
 
-    for start, count, chunk in _iter_generated_chunks(
-        config=config,
-        rng=rng,
-        input_bits=input_bits,
-        block_bits=block_bits,
-        mask=mask,
-        chunk_size=chunk_size,
-        workers=workers,
-        label=0,
-    ):
-        features[row_index : row_index + count] = chunk
-        labels[row_index : row_index + count] = 0
-        row_index += count
-        _emit_progress(
-            progress_callback,
-            "cache_negative_chunk",
-            context,
-            cache_path=cache_path,
-            rows_done=row_index,
-            class_rows_done=start + count,
-            class_total=config.samples_per_class,
-            total_rows=total_rows,
-            chunk_rows=count,
-        )
+        for start, count, chunk in _iter_generated_chunks(
+            config=config,
+            rng=rng,
+            input_bits=input_bits,
+            block_bits=block_bits,
+            mask=mask,
+            chunk_size=chunk_size,
+            workers=workers,
+            label=0,
+        ):
+            features[row_index : row_index + count] = chunk
+            labels[row_index : row_index + count] = 0
+            row_index += count
+            _emit_progress(
+                progress_callback,
+                "cache_negative_chunk",
+                context,
+                cache_path=cache_path,
+                rows_done=row_index,
+                class_rows_done=start + count,
+                class_total=config.samples_per_class,
+                total_rows=total_rows,
+                chunk_rows=count,
+            )
 
     _emit_progress(
         progress_callback,
@@ -162,6 +185,8 @@ def make_chunked_differential_dataset(
     labels.flush()
     metadata = {
         **expected_metadata,
+        "positive_rows": int(labels.sum()),
+        "negative_rows": int(total_rows - labels.sum()),
         "total_rows": total_rows,
         "input_bits": input_bits,
         "generation_chunk_size": chunk_size,
@@ -187,6 +212,82 @@ def make_chunked_differential_dataset(
         metadata=metadata,
         cache_dir=cache_path,
     )
+
+
+def _iter_mixed_label_chunks(
+    *,
+    config: DifferentialDatasetConfig,
+    labels: np.ndarray,
+    input_bits: int,
+    block_bits: int,
+    mask: int,
+    chunk_size: int,
+    workers: int,
+):
+    specs = [
+        (start, min(chunk_size, len(labels) - start))
+        for start in range(0, len(labels), chunk_size)
+    ]
+    if workers == 1:
+        for start, count in specs:
+            yield start, count, _generate_mixed_chunk_worker(
+                config,
+                input_bits,
+                block_bits,
+                mask,
+                start,
+                labels[start : start + count],
+            )
+        return
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [
+            executor.submit(
+                _generate_mixed_chunk_worker,
+                config,
+                input_bits,
+                block_bits,
+                mask,
+                start,
+                labels[start : start + count],
+            )
+            for start, count in specs
+        ]
+        for (start, count), future in zip(specs, futures):
+            yield start, count, future.result()
+
+
+def _generate_mixed_chunk_worker(
+    config: DifferentialDatasetConfig,
+    input_bits: int,
+    block_bits: int,
+    mask: int,
+    start: int,
+    labels: np.ndarray,
+) -> np.ndarray:
+    rng = np.random.default_rng(_chunk_seed(config.seed, start, 2))
+    chunk = np.empty((len(labels), input_bits), dtype=np.uint8)
+    for offset, label in enumerate(labels):
+        row_index = start + offset
+        if label == 1:
+            row = generate_positive_row(
+                config,
+                rng,
+                block_bits,
+                mask,
+                row_index=row_index,
+            )
+        else:
+            row = generate_negative_row(
+                config,
+                rng,
+                block_bits,
+                row_index=row_index,
+            )
+        if len(row) != input_bits:
+            raise ValueError(f"generated row has {len(row)} bits, expected {input_bits}")
+        chunk[offset] = row
+    return chunk
 
 
 def _iter_generated_chunks(

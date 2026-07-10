@@ -6,13 +6,20 @@ from blockcipher_nd.features.pair_features import pair_bits_for_encoding
 
 def dataset_metadata(config: DifferentialDatasetConfig) -> dict[str, int | str | bool | list[int]]:
     block_bits = config.cipher.block_bits
-    return {
+    total_rows = (
+        int(config.samples_total)
+        if config.dataset_label_mode == "random_labels_total"
+        else config.samples_per_class * 2
+    )
+    metadata: dict[str, int | str | bool | list[int]] = {
         "cipher": config.cipher.name,
         "structure": config.cipher.structure,
         "rounds": config.cipher.rounds,
         "block_bits": block_bits,
         "input_difference": config.input_difference,
         "samples_per_class": config.samples_per_class,
+        "samples_total": total_rows,
+        "dataset_label_mode": config.dataset_label_mode,
         "seed": config.seed,
         "shuffle": config.shuffle,
         "feature_encoding": config.feature_encoding,
@@ -28,6 +35,10 @@ def dataset_metadata(config: DifferentialDatasetConfig) -> dict[str, int | str |
         "base_pair_bits": pair_bits_for_encoding(block_bits, config.feature_encoding),
         "selected_bit_indices": list(config.selected_bit_indices),
     }
+    if config.dataset_label_mode == "balanced_per_class":
+        metadata["positive_rows"] = config.samples_per_class
+        metadata["negative_rows"] = config.samples_per_class
+    return metadata
 
 
 def effective_pair_bits(config: DifferentialDatasetConfig, block_bits: int) -> int:
@@ -52,5 +63,10 @@ def _key_schedule(config: DifferentialDatasetConfig) -> str:
     if config.sample_structure == "zhang_wang_case2_official_mcnd":
         return "per_pair_random"
     if config.key_rotation_interval > 0:
+        if (
+            config.dataset_label_mode == "random_labels_total"
+            and config.key_rotation_interval == 1
+        ):
+            return "per_row_random"
         return "rotating"
     return "fixed"

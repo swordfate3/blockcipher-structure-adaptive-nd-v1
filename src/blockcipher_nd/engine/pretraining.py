@@ -6,7 +6,12 @@ from typing import Any
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import configure_structure_aware_model
 from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
-from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
+from blockcipher_nd.engine.task_config import (
+    build_dataset_config,
+    build_training_config,
+    resolve_task_keys,
+    validation_samples_per_class,
+)
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.training import OptimizerSession, TrainingResult, train_binary_classifier
 
@@ -143,6 +148,7 @@ def run_pretraining_stage(
             pretrain_task,
             cipher=pretrain_cipher,
             samples_per_class=pretrain_task["samples_per_class"],
+            samples_total=pretrain_task.get("train_samples_total"),
             seed=pretrain_task["seed"] + 20_000 + stage_index,
         ),
         args,
@@ -156,7 +162,8 @@ def run_pretraining_stage(
         build_dataset_config(
             pretrain_task,
             cipher=pretrain_validation_cipher,
-            samples_per_class=max(8, pretrain_task["samples_per_class"] // 2),
+            samples_per_class=validation_samples_per_class(pretrain_task),
+            samples_total=pretrain_task.get("validation_samples_total"),
             seed=pretrain_task["seed"] + 30_000 + stage_index,
         ),
         args,
@@ -186,7 +193,7 @@ def run_pretraining_stage(
             **task_progress_payload(pretrain_task),
         },
     )
-    return train_binary_classifier(
+    result = train_binary_classifier(
         model,
         pretrain_dataset,
         pretrain_validation_dataset,
@@ -205,6 +212,20 @@ def run_pretraining_stage(
         ),
         optimizer_session=optimizer_session,
     )
+    result.metadata.update(dataset_size_metadata(pretrain_dataset, pretrain_validation_dataset))
+    return result
+
+
+def dataset_size_metadata(train_dataset, validation_dataset) -> dict[str, Any]:
+    return {
+        "train_rows": int(len(train_dataset.labels)),
+        "validation_rows": int(len(validation_dataset.labels)),
+        "train_positive_rows": int(train_dataset.metadata["positive_rows"]),
+        "train_negative_rows": int(train_dataset.metadata["negative_rows"]),
+        "validation_positive_rows": int(validation_dataset.metadata["positive_rows"]),
+        "validation_negative_rows": int(validation_dataset.metadata["negative_rows"]),
+        "dataset_label_mode": train_dataset.metadata["dataset_label_mode"],
+    }
 
 
 def curriculum_stage_metadata(rounds: int, result: TrainingResult) -> dict[str, Any]:
@@ -223,6 +244,13 @@ def curriculum_stage_metadata(rounds: int, result: TrainingResult) -> dict[str, 
         ),
         "optimizer_state_step_after": result.metadata.get("optimizer_state_step_after"),
         "optimizer_session_call": result.metadata.get("optimizer_session_call"),
+        "train_rows": result.metadata.get("train_rows"),
+        "validation_rows": result.metadata.get("validation_rows"),
+        "train_positive_rows": result.metadata.get("train_positive_rows"),
+        "train_negative_rows": result.metadata.get("train_negative_rows"),
+        "validation_positive_rows": result.metadata.get("validation_positive_rows"),
+        "validation_negative_rows": result.metadata.get("validation_negative_rows"),
+        "dataset_label_mode": result.metadata.get("dataset_label_mode"),
         "selected_checkpoint": result.metadata.get("selected_checkpoint"),
         "stopped_epoch": result.metadata.get("stopped_epoch"),
         "seed": result.metadata.get("seed"),
