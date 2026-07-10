@@ -51,6 +51,7 @@ def build_tasks(args: argparse.Namespace) -> list[dict[str, Any]]:
                             "loss": args.loss,
                             "learning_rate": args.learning_rate,
                             "optimizer": args.optimizer,
+                            "optimizer_state_transition": args.optimizer_state_transition,
                             "weight_decay": args.weight_decay,
                             "lr_scheduler": args.lr_scheduler,
                             "max_learning_rate": args.max_learning_rate,
@@ -140,6 +141,8 @@ def plan_task(
         "loss": row.get("loss") or "bce",
         "learning_rate": optional_float(row.get("learning_rate")),
         "optimizer": row.get("optimizer") or None,
+        "optimizer_state_transition": row.get("optimizer_state_transition")
+        or "reset_each_stage",
         "weight_decay": optional_float(row.get("weight_decay")),
         "lr_scheduler": row.get("lr_scheduler") or None,
         "max_learning_rate": optional_float(row.get("max_learning_rate")),

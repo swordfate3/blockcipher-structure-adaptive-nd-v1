@@ -8,7 +8,7 @@ from blockcipher_nd.engine.modeling import configure_structure_aware_model
 from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
 from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
 from blockcipher_nd.registry.cipher_factory import build_cipher
-from blockcipher_nd.training import TrainingResult, train_binary_classifier
+from blockcipher_nd.training import OptimizerSession, TrainingResult, train_binary_classifier
 
 
 def run_optional_pretraining(
@@ -20,6 +20,7 @@ def run_optional_pretraining(
     progress_path: str | None,
     index: int | None,
     total: int | None,
+    optimizer_session: OptimizerSession | None = None,
 ) -> TrainingResult | None:
     pretrain_epochs = int(
         task.get("pretrain_epochs")
@@ -29,6 +30,9 @@ def run_optional_pretraining(
     round_sequence = resolve_pretrain_round_sequence(task, args)
     if pretrain_epochs <= 0 or not round_sequence:
         return None
+    optimizer_state_transition = resolve_optimizer_state_transition(task, args)
+    if optimizer_state_transition == "carry_across_stages" and optimizer_session is None:
+        raise ValueError("carry_across_stages requires an optimizer session")
 
     stage_results: list[tuple[int, TrainingResult]] = []
     for stage_index, pretrain_rounds in enumerate(round_sequence):
@@ -50,6 +54,7 @@ def run_optional_pretraining(
             progress_path=progress_path,
             index=index,
             total=total,
+            optimizer_session=optimizer_session,
         )
         stage_results.append((pretrain_rounds, result))
 
@@ -65,7 +70,7 @@ def run_optional_pretraining(
             **final_result.metadata,
             "round_sequence": list(round_sequence),
             "curriculum_stages": stages,
-            "optimizer_state_transition": "reset_each_stage",
+            "optimizer_state_transition": optimizer_state_transition,
         },
     )
 
@@ -93,6 +98,19 @@ def resolve_pretrain_round_sequence(
     return sequence
 
 
+def resolve_optimizer_state_transition(
+    task: dict[str, Any],
+    args: argparse.Namespace,
+) -> str:
+    transition = str(
+        task.get("optimizer_state_transition")
+        or getattr(args, "optimizer_state_transition", "reset_each_stage")
+    )
+    if transition not in {"reset_each_stage", "carry_across_stages"}:
+        raise ValueError(f"unsupported optimizer_state_transition: {transition}")
+    return transition
+
+
 def run_pretraining_stage(
     model,
     pretrain_task: dict[str, Any],
@@ -106,6 +124,7 @@ def run_pretraining_stage(
     progress_path: str | None,
     index: int | None,
     total: int | None,
+    optimizer_session: OptimizerSession | None = None,
 ) -> TrainingResult:
     pretrain_rounds = int(pretrain_task["rounds"])
     pretrain_train_key, pretrain_validation_key = resolve_task_keys(pretrain_task)
@@ -184,6 +203,7 @@ def run_pretraining_stage(
             index=index,
             total=total,
         ),
+        optimizer_session=optimizer_session,
     )
 
 
@@ -197,6 +217,12 @@ def curriculum_stage_metadata(rounds: int, result: TrainingResult) -> dict[str, 
         "best_epoch": result.metadata.get("best_epoch"),
         "best_checkpoint_metric": result.metadata.get("best_checkpoint_metric"),
         "checkpoint_metric": result.metadata.get("checkpoint_metric"),
+        "optimizer_state_reused": result.metadata.get("optimizer_state_reused"),
+        "optimizer_state_step_before": result.metadata.get(
+            "optimizer_state_step_before"
+        ),
+        "optimizer_state_step_after": result.metadata.get("optimizer_state_step_after"),
+        "optimizer_session_call": result.metadata.get("optimizer_session_call"),
         "selected_checkpoint": result.metadata.get("selected_checkpoint"),
         "stopped_epoch": result.metadata.get("stopped_epoch"),
         "seed": result.metadata.get("seed"),

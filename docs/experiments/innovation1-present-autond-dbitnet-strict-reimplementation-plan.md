@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 and R1 completed; R1A-C1 completed, fallback-retrieved, and plan-aligned; R1A-C2 recommended; R2 blocked
+**Status:** R0/R1/C1 completed; R1A-C2 local readiness and remote medium-diagnostic package verified, pending pushed-commit launch; paper-scale reproduction not yet run
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -648,20 +648,126 @@ negative_mode      = encrypted_random_plaintexts
 train/validation keys remain separate
 ```
 
+Frozen C2 plans:
+
+```text
+local readiness:
+  plan              = configs/experiment/innovation1/innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0.csv
+  samples_per_class = 128
+  epochs_per_round  = 2
+
+remote diagnostic:
+  plan              = configs/experiment/innovation1/innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0.csv
+  samples_per_class = 65536
+  seed              = 0
+  epochs_per_round  = 10
+```
+
+The local smoke passes readiness only when:
+
+```text
+r5 optimizer reused          = false
+r5 optimizer step before     = 0
+r6-r9 optimizer reused       = true
+optimizer step before/after  = continuous and strictly increasing
+checkpoint metric            = val_loss for every stage
+result validation/artifacts  = pass
+```
+
 Implementation must make optimizer ownership explicit, preserve Adam/AMSGrad
 slots across round stages, and record `carry_across_stages` in the result. Run
 a two-epoch local smoke first; launch one same-budget remote row only if model,
 optimizer, checkpoint, cache, and artifact integrity all pass. Reuse the same
 r5-r8 advancement gates.
 
-If C2 restores all gates, allow an R2 design review. If C2 does not restore the
-lower rounds, do not scale R2/R3: close the strict AutoND training-protocol
-audit, keep same-key/random-ciphertext variants as labeled benchmark diagnostics
-only, and return the experiment slot to a separately justified typed-SPN
-candidate. Do not reopen dense DDT or extend the held E1 graph route.
+### R1A-C2 Local Readiness Result
 
-R1A-C2 may advance to an R2 design review only if the strict, held-out-key result
-meets the frozen lower-round and r8 gates:
+The two-epoch CPU smoke completed on 2026-07-10:
+
+```text
+run_id              = i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0
+samples_per_class   = 128
+epochs_per_round    = 2
+round sequence      = [5,6,7,8] -> 9
+result rows         = 1 / 1
+plan alignment      = pass
+checkpoint metric   = val_loss for r5-r9
+optimizer transition = carry_across_stages
+claim scope         = implementation readiness only
+```
+
+The optimizer audit proves that one Adam/AMSGrad instance and its step state
+continue across every curriculum transition:
+
+| Round | Session call | State reused | Step before | Step after |
+| --- | ---: | --- | ---: | ---: |
+| r5 | 1 | false | 0 | 8 |
+| r6 | 2 | true | 8 | 16 |
+| r7 | 3 | true | 16 | 24 |
+| r8 | 4 | true | 24 | 32 |
+| r9 | 5 | true | 32 | 40 |
+
+The smoke metrics are readiness noise, not research evidence:
+
+```text
+r5 AUC = 0.562500000
+r6 AUC = 0.498291016
+r7 AUC = 0.494628906
+r8 AUC = 0.557128906
+r9 AUC = 0.496582031
+```
+
+Local artifacts:
+
+```text
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/history.csv
+outputs/local_cache/i1_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0/
+```
+
+Recommendation: proceed to exactly one C2 `65536/class`, seed-0 remote medium
+diagnostic against C1. Do not call that run paper-scale and do not advance to
+`262144/class` or a purported reproduction from its result. After C2, freeze
+this strict-medium audit and write a separate public-code-aligned paper-scale
+plan with independently configurable validation size and final fresh-test
+evaluation.
+
+The GPU1 remote package passed all nine readiness invariants, including plan
+alignment, training-protocol consistency, AutoND protocol lock, and disk-backed
+medium-scale cache requirements:
+
+```text
+configs/remote/innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710.json
+configs/remote/generated/run_i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710.cmd
+configs/remote/generated/monitor_i1_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710.sh
+```
+
+The monitor requires optimizer continuity as a hard integrity gate, compares
+accuracy and AUC at r5-r9 directly against C1, and recommends a separately
+planned paper-scale phase rather than mechanical strict-medium scaling.
+
+If C2 improves the lower-round same-budget metrics, retain optimizer carry as
+the source-faithful implementation. If it does not improve them, discard it as
+a strict-medium improvement but retain it in any public-code reproduction,
+because the public code still reuses one compiled optimizer. In neither case
+may a `65536/class` result validate or refute the paper-scale claim.
+
+After C2, the paper-scale work must be planned as a separate phase rather than
+as R2/R3 mechanical scaling. It must represent `10^7` total training rows,
+`10^6` total validation rows, 40 epochs per round for the r9 claim, and five
+fresh `10^6`-sample evaluations. A public-code-aligned track must separately
+model random-ciphertext negatives and per-row keys; the current strict
+encrypted-random-plaintext, held-out-key track remains benchmark-transfer
+evidence. Do not merge those tracks or call either exact while paper text and
+public code disagree.
+
+Do not reopen dense DDT or extend the held E1 graph route while completing this
+baseline audit.
+
+The strict C2 diagnostic retains these interpretation gates:
 
 ```text
 r5 accuracy >= 0.75

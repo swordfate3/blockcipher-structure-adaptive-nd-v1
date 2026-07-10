@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+import blockcipher_nd.training.trainer as trainer
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.training.metrics import (
     best_threshold_accuracy_and_threshold,
@@ -115,3 +116,56 @@ def test_train_binary_classifier_writes_selected_checkpoint(tmp_path) -> None:
     assert set(payload) == {"state_dict", "history", "final_metrics", "metadata"}
     assert payload["metadata"]["checkpoint_output"] == str(checkpoint_path)
     assert set(payload["state_dict"]) == set(model.state_dict())
+
+
+def test_train_binary_classifier_reuses_optimizer_session_state() -> None:
+    dataset = DifferentialDataset(
+        features=np.array(
+            [
+                [0, 0],
+                [0, 1],
+                [1, 0],
+                [1, 1],
+            ],
+            dtype=np.uint8,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.uint8),
+        metadata={"feature_encoding": "test"},
+    )
+    model = torch.nn.Linear(2, 1)
+    session = trainer.OptimizerSession()
+    config = TrainingConfig(
+        epochs=1,
+        batch_size=2,
+        optimizer="adam",
+        amsgrad=True,
+        device="cpu",
+    )
+
+    first = train_binary_classifier(
+        model,
+        dataset,
+        dataset,
+        config,
+        optimizer_session=session,
+    )
+    optimizer_id = id(session.optimizer)
+    second = train_binary_classifier(
+        model,
+        dataset,
+        dataset,
+        config,
+        optimizer_session=session,
+    )
+
+    assert id(session.optimizer) == optimizer_id
+    assert first.metadata["optimizer_state_reused"] is False
+    assert first.metadata["optimizer_state_step_before"] == 0
+    assert first.metadata["optimizer_state_step_after"] > 0
+    assert second.metadata["optimizer_state_reused"] is True
+    assert second.metadata["optimizer_state_step_before"] == first.metadata[
+        "optimizer_state_step_after"
+    ]
+    assert second.metadata["optimizer_state_step_after"] > second.metadata[
+        "optimizer_state_step_before"
+    ]

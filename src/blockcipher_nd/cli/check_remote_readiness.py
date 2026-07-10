@@ -200,6 +200,7 @@ def _training_consistency(config: dict[str, Any], tasks: list[dict[str, Any]]) -
         "loss",
         "learning_rate",
         "optimizer",
+        "optimizer_state_transition",
         "weight_decay",
         "lr_scheduler",
         "max_learning_rate",
@@ -264,6 +265,14 @@ def _autond_dbitnet_consistency(
         if task.get("checkpoint_metric") not in {"val_accuracy", "val_loss"}:
             errors.append(
                 "autond_dbitnet plan checkpoint_metric must be val_accuracy or val_loss"
+            )
+        if task.get("optimizer_state_transition") not in {
+            "reset_each_stage",
+            "carry_across_stages",
+        }:
+            errors.append(
+                "autond_dbitnet plan optimizer_state_transition must be "
+                "reset_each_stage or carry_across_stages"
             )
 
     expected_config_values = {

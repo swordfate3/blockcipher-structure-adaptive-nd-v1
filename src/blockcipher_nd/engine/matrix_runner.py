@@ -46,6 +46,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Enable AMSGrad in Adam/AdamW.",
     )
+    parser.add_argument(
+        "--optimizer-state-transition",
+        default="reset_each_stage",
+        choices=["reset_each_stage", "carry_across_stages"],
+        help="Whether curriculum stages share one optimizer state.",
+    )
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument(
         "--loss",

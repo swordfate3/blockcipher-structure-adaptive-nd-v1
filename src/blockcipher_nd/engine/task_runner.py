@@ -11,13 +11,16 @@ from blockcipher_nd.engine.modeling import (
     infer_pair_bits,
     select_model_key,
 )
-from blockcipher_nd.engine.pretraining import run_optional_pretraining
+from blockcipher_nd.engine.pretraining import (
+    resolve_optimizer_state_transition,
+    run_optional_pretraining,
+)
 from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
 from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.registry.model_factory import build_model
-from blockcipher_nd.training import train_binary_classifier
+from blockcipher_nd.training import OptimizerSession, train_binary_classifier
 
 
 def run_task(
@@ -92,6 +95,12 @@ def run_task(
         model_options=task.get("model_options"),
     )
     configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
+    optimizer_state_transition = resolve_optimizer_state_transition(task, args)
+    optimizer_session = (
+        OptimizerSession()
+        if optimizer_state_transition == "carry_across_stages"
+        else None
+    )
     pretrain_result = run_optional_pretraining(
         model,
         task,
@@ -100,6 +109,7 @@ def run_task(
         progress_path=progress_path,
         index=index,
         total=total,
+        optimizer_session=optimizer_session,
     )
     configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
     training_result = train_binary_classifier(
@@ -114,7 +124,9 @@ def run_task(
             index=index,
             total=total,
         ),
+        optimizer_session=optimizer_session,
     )
+    training_result.metadata["optimizer_state_transition"] = optimizer_state_transition
     return build_task_result(
         task=task,
         args=args,

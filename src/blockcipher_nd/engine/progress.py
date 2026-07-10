@@ -70,6 +70,9 @@ def task_progress_payload(task: dict[str, Any]) -> dict[str, Any]:
         "integral_active_nibble": task["integral_active_nibble"],
         "selected_bit_indices": task["selected_bit_indices"],
         "loss": task.get("loss", ""),
+        "optimizer_state_transition": task.get(
+            "optimizer_state_transition", "reset_each_stage"
+        ),
         "pretrain_rounds": task.get("pretrain_rounds"),
         "pretrain_round_sequence": list(task.get("pretrain_round_sequence", ())),
         "pretrain_epochs": task.get("pretrain_epochs"),

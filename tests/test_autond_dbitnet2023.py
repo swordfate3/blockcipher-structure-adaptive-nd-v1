@@ -19,7 +19,8 @@ from blockcipher_nd.registry.model_factory import build_model
 
 PLAN_HEADER = (
     "cipher,structure,network,model_key,architecture_rank,score,rounds,seed,"
-    "samples_per_class,pretrain_rounds,pretrain_round_sequence\n"
+    "samples_per_class,pretrain_rounds,pretrain_round_sequence,"
+    "optimizer_state_transition\n"
 )
 
 
@@ -30,13 +31,14 @@ def write_plan(
     samples_per_class: int = 2,
     pretrain_rounds: str = "",
     pretrain_round_sequence: str = "",
+    optimizer_state_transition: str = "reset_each_stage",
 ) -> None:
     path.write_text(
         PLAN_HEADER
         + (
             "PRESENT-80,SPN,AutoND-DBitNet-2023,autond_dbitnet2023,1,100,"
             f"{rounds},0,{samples_per_class},{pretrain_rounds},"
-            f'"{pretrain_round_sequence}"\n'
+            f'"{pretrain_round_sequence}",{optimizer_state_transition}\n'
         ),
         encoding="utf-8",
     )
@@ -113,6 +115,14 @@ def test_cli_parses_pretrain_round_sequence() -> None:
     args = parse_args(["--pretrain-round-sequence", "[5,6,7,8]"])
 
     assert args.pretrain_round_sequence == (5, 6, 7, 8)
+
+
+def test_cli_parses_optimizer_state_transition() -> None:
+    args = parse_args(
+        ["--optimizer-state-transition", "carry_across_stages"]
+    )
+
+    assert args.optimizer_state_transition == "carry_across_stages"
 
 
 def test_task_seed_controls_model_initialization(tmp_path: Path) -> None:
@@ -221,6 +231,51 @@ def test_curriculum_trains_stages_in_order_and_records_metadata(tmp_path: Path) 
         for row in progress_rows
         if row["event"] == "pretrain_cache_ready"
     ] == [5, 6]
+
+
+def test_curriculum_carries_optimizer_state_into_target_round(tmp_path: Path) -> None:
+    plan = tmp_path / "curriculum-carry.csv"
+    write_plan(
+        plan,
+        pretrain_round_sequence="[5,6]",
+        optimizer_state_transition="carry_across_stages",
+    )
+    args = parse_args(
+        [
+            "--plan",
+            str(plan),
+            "--device",
+            "cpu",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--pretrain-epochs",
+            "1",
+            "--checkpoint-metric",
+            "val_loss",
+            "--restore-best-checkpoint",
+            "--train-eval-interval",
+            "0",
+        ]
+    )
+    task = build_tasks(args)[0]
+
+    row = run_task(task, args)
+
+    pretraining = row["training"]["pretraining"]
+    stages = pretraining["curriculum_stages"]
+    assert task["optimizer_state_transition"] == "carry_across_stages"
+    assert pretraining["optimizer_state_transition"] == "carry_across_stages"
+    assert [stage["optimizer_state_reused"] for stage in stages] == [False, True]
+    assert stages[1]["optimizer_state_step_before"] == stages[0][
+        "optimizer_state_step_after"
+    ]
+    assert row["training"]["optimizer_state_transition"] == "carry_across_stages"
+    assert row["training"]["optimizer_state_reused"] is True
+    assert row["training"]["optimizer_state_step_before"] == stages[-1][
+        "optimizer_state_step_after"
+    ]
 
 
 def test_curriculum_rejects_sequence_containing_target_round(tmp_path: Path) -> None:
@@ -419,3 +474,103 @@ def test_autond_r1a_remote_package_locks_checkpoint_ablation() -> None:
     assert '"optimizer_state_transition"' in monitor
     assert "i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710" in monitor
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor
+
+
+def test_autond_c2_remote_package_locks_optimizer_carry() -> None:
+    config_path = Path(
+        "configs/remote/"
+        "innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0_gpu1_20260710.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    readiness = remote_readiness_report(config_path)
+    artifacts = launch_artifacts(config_path)
+    launcher = Path(artifacts["launcher"]).read_text(encoding="utf-8")
+    monitor = Path(artifacts["monitor"]).read_text(encoding="utf-8")
+
+    assert readiness["status"] == "pass", readiness["errors"]
+    assert readiness["expected_rows"] == 1
+    assert readiness["max_samples_per_class"] == 65536
+    assert artifacts["status"] == "pass"
+    assert config["device"] == "cuda:1"
+    assert config["checkpoint_metric"] == "val_loss"
+    assert config["optimizer_state_transition"] == "carry_across_stages"
+    assert config["pretrain_round_sequence"] == [5, 6, 7, 8]
+    assert config["negative_mode"] == "encrypted_random_plaintexts"
+    assert "--checkpoint-metric val_loss" in launcher
+    assert "--optimizer-state-transition carry_across_stages" in launcher
+    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert "--dataset-cache-root" in launcher
+    assert "cmd.exe /k" not in launcher
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
+    assert "C:\\Users" not in launcher
+    assert '"optimizer_step_continuity"' in monitor
+    assert '"optimizer_state_reused"' in monitor
+    assert '"accuracy_delta_vs_c1"' in monitor
+    assert "i1_present_autond_dbitnet_r1a_valloss_65k_seed0_gpu1_20260710" in monitor
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor
+
+
+@pytest.mark.parametrize(
+    ("plan_name", "samples_per_class", "pretrain_epochs"),
+    [
+        (
+            "innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_smoke_seed0.csv",
+            128,
+            2,
+        ),
+        (
+            "innovation1_spn_present_autond_dbitnet_r1a_c2_optcarry_65k_seed0.csv",
+            65536,
+            10,
+        ),
+    ],
+)
+def test_autond_c2_plans_change_only_optimizer_transition(
+    plan_name: str,
+    samples_per_class: int,
+    pretrain_epochs: int,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / plan_name
+    task = build_tasks(parse_args(["--plan", str(plan)]))[0]
+
+    assert task["samples_per_class"] == samples_per_class
+    assert task["pretrain_epochs"] == pretrain_epochs
+    assert task["checkpoint_metric"] == "val_loss"
+    assert task["optimizer_state_transition"] == "carry_across_stages"
+    assert task["negative_mode"] == "encrypted_random_plaintexts"
+
+    if samples_per_class == 65536:
+        c1 = build_tasks(
+            parse_args(
+                [
+                    "--plan",
+                    "configs/experiment/innovation1/"
+                    "innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0.csv",
+                ]
+            )
+        )[0]
+        for field in (
+            "model_key",
+            "rounds",
+            "seed",
+            "samples_per_class",
+            "pairs_per_sample",
+            "feature_encoding",
+            "negative_mode",
+            "train_key",
+            "validation_key",
+            "key_rotation_interval",
+            "sample_structure",
+            "difference_profile",
+            "loss",
+            "learning_rate",
+            "optimizer",
+            "weight_decay",
+            "lr_scheduler",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "pretrain_round_sequence",
+            "pretrain_epochs",
+        ):
+            assert task[field] == c1[field]
+        assert c1["optimizer_state_transition"] == "reset_each_stage"

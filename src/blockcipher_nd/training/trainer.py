@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,17 +21,30 @@ from blockcipher_nd.training.optim import (
 from blockcipher_nd.training.types import ProgressCallback, TrainingConfig, TrainingResult
 
 
+@dataclass
+class OptimizerSession:
+    optimizer: torch.optim.Optimizer | None = None
+    config_signature: tuple[Any, ...] | None = None
+    training_calls: int = 0
+
+
 def train_binary_classifier(
     model: nn.Module,
     train_dataset: DifferentialDataset,
     validation_dataset: DifferentialDataset,
     config: TrainingConfig,
     progress_callback: ProgressCallback | None = None,
+    optimizer_session: OptimizerSession | None = None,
 ) -> TrainingResult:
     torch.manual_seed(config.seed)
     selected_device = select_device(config.device)
     model = model.to(selected_device)
-    optimizer = make_optimizer(model, config)
+    optimizer, optimizer_state_reused, optimizer_session_call = resolve_optimizer(
+        model,
+        config,
+        optimizer_session,
+    )
+    optimizer_state_step_before = optimizer_state_step(optimizer)
     scheduler = make_scheduler(optimizer, config, len(train_dataset.labels))
     loss_fn = make_loss(config.loss)
     train_loader = make_loader(
@@ -218,6 +232,10 @@ def train_binary_classifier(
         "validation_dataset_storage": "disk" if isinstance(validation_dataset, DiskDifferentialDataset) else "memory",
         "learning_rate": config.learning_rate,
         "optimizer": config.optimizer,
+        "optimizer_state_reused": optimizer_state_reused,
+        "optimizer_state_step_before": optimizer_state_step_before,
+        "optimizer_state_step_after": optimizer_state_step(optimizer),
+        "optimizer_session_call": optimizer_session_call,
         "amsgrad": config.amsgrad,
         "weight_decay": config.weight_decay,
         "lr_scheduler": config.lr_scheduler,
@@ -260,6 +278,57 @@ def train_binary_classifier(
         calibrated_accuracy=final_metrics["calibrated_accuracy"],
     )
     return TrainingResult(history=history, final_metrics=final_metrics, metadata=metadata)
+
+
+def resolve_optimizer(
+    model: nn.Module,
+    config: TrainingConfig,
+    session: OptimizerSession | None,
+) -> tuple[torch.optim.Optimizer, bool, int]:
+    if session is None:
+        return make_optimizer(model, config), False, 1
+
+    signature = optimizer_config_signature(config)
+    reused = session.optimizer is not None
+    if session.optimizer is None:
+        session.optimizer = make_optimizer(model, config)
+        session.config_signature = signature
+    else:
+        if session.config_signature != signature:
+            raise ValueError("optimizer session configuration changed between stages")
+        optimizer_parameter_ids = {
+            id(parameter)
+            for group in session.optimizer.param_groups
+            for parameter in group["params"]
+        }
+        if optimizer_parameter_ids != {id(parameter) for parameter in model.parameters()}:
+            raise ValueError("optimizer session parameters do not match the model")
+        if config.lr_scheduler != "none":
+            raise ValueError("optimizer state carry currently requires lr_scheduler=none")
+    session.training_calls += 1
+    return session.optimizer, reused, session.training_calls
+
+
+def optimizer_config_signature(config: TrainingConfig) -> tuple[Any, ...]:
+    return (
+        config.optimizer,
+        config.learning_rate,
+        config.amsgrad,
+        config.weight_decay,
+        config.lr_scheduler,
+        config.max_learning_rate,
+    )
+
+
+def optimizer_state_step(optimizer: torch.optim.Optimizer) -> int:
+    steps: list[int] = []
+    for state in optimizer.state.values():
+        step = state.get("step")
+        if isinstance(step, torch.Tensor):
+            step = step.item()
+        if step is not None:
+            steps.append(int(step))
+    return max(steps, default=0)
 
 
 def write_checkpoint_if_requested(
