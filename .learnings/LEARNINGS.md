@@ -1,3 +1,69 @@
+## [LRN-20260710-009] correction
+
+**Logged**: 2026-07-10T18:18:10+08:00
+**Priority**: critical
+**Status**: promoted
+**Area**: docs
+**Promoted**: AGENTS.md
+
+### Summary
+Do not describe the `65536/class` AutoND diagnostics as paper-scale runs; report
+the paper/public-code train, validation, evaluation, epoch, data, and key
+budgets explicitly.
+
+### Details
+The user expected the completed AutoND/DBitNet experiment to use the paper's
+sample size. It did not. R1 and R1A-C1 used:
+
+```text
+training   = 65536/class = 131072 total rows per round
+validation = 32768/class = 65536 total rows per round
+epochs     = 10 per round
+```
+
+The locked public AutoND code instead defines per round:
+
+```text
+NUM_SAMPLES     = 10^7 total training rows
+NUM_VAL_SAMPLES = 10^6 total validation rows
+```
+
+Because its labels are random rather than exactly balanced, these totals are
+approximately `5000000/class` and `500000/class`. The completed project run was
+therefore about 76.3 times smaller in training rows and 15.3 times smaller in
+validation rows. Table 6 also separates two budgets: PRESENT r8 accuracy
+`0.5546` is in the 10-epoch column, while PRESENT r9 accuracy `0.5092` is in the
+40-epoch column. The final paper accuracy is the mean of five fresh test sets,
+each with `10^6` samples; the project diagnostic used one smaller validation
+set and did not perform that final evaluation protocol.
+
+Sample count is not the only mismatch. The project deliberately uses strict
+encrypted-random-plaintext negatives, fixed training key, and a separate fixed
+validation key. The public code replaces negative ciphertext bits with random
+bits and samples a key per row. Thus even a `5000000/class` project run would
+still be a strict benchmark transfer unless those data/key differences were
+separately aligned and labeled.
+
+### Suggested Action
+Before reporting or launching an AutoND experiment, state total training rows,
+equivalent or exact rows per class, validation rows, final evaluation budget,
+epochs per round, negative definition, and key sampling. Reserve
+"paper-scale" for `10^7` total training rows per round with the corresponding
+validation/evaluation budget, and reserve "exact reproduction" for an aligned
+data/key protocol. Keep `65536/class` results labeled medium diagnostics.
+
+### Metadata
+- Source: user_feedback, paper_source_audit
+- Related Files: AGENTS.md, docs/experiments/innovation1-present-autond-dbitnet-strict-reimplementation-plan.md, configs/experiment/innovation1/innovation1_spn_present_autond_dbitnet_r1a_valloss_65k_seed0.csv, papers/innovation_one/text/2023_cipher_agnostic_neural_training_pipeline.txt
+- Tags: autond, dbitnet, present, paper-scale, sample-count, epochs, reproduction, reporting
+- See Also: LRN-20260710-007, LRN-20260710-008
+- Pattern-Key: innovation1.autond.reporting.paper_scale_exactness
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-008] correction
 
 **Logged**: 2026-07-10T17:04:50+08:00
