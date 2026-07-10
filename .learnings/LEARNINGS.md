@@ -1,3 +1,63 @@
+## [LRN-20260710-007] knowledge_gap
+
+**Logged**: 2026-07-10T13:34:32+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+Innovation 1 novelty reviews must include recent SPN input/network co-design
+work; InvP, S-box feature construction, state-matrix inputs, and broad joint
+adaptation are prior art rather than standalone novelty claims.
+
+### Details
+The 2026-07-10 literature re-audit found that the existing SPN blueprint
+underweighted several directly colliding methods:
+
+```text
+Zhu et al. 2025 BCS:
+  ASMCP/ASMOD S-box input/output features + improved U-Net
+
+Liu et al. 2026 SPN framework:
+  inverse-operation previous-round state format + Conv2D
+
+Lu et al. 2025 enhanced ND:
+  nonlinear-component/linear-diffusion input selection + skip/ECA + multi-pair
+
+Ge and Wang 2026 ePrint 2026/535:
+  invertible-SPN feature enhancement + related-key sample enhancement
+
+Nguyen et al. 2026 ePrint 2026/748:
+  multi-pair gains explained primarily through variance reduction
+```
+
+The local updated survey already classified BCS as a PRESENT `12-1-A-R` U-Net
+route, but earlier project research summaries did not incorporate that collision
+into route selection. Targeted IACR/arXiv/Crossref searches did not find a
+direct S-box/P-layer graph neural distinguisher, but absence of a detected paper
+does not justify scaling the current graph route after its own controls failed.
+
+### Suggested Action
+Before describing or implementing a new SPN method, build a prior-art collision
+matrix covering task taxonomy, input construction, pair count, key setting,
+network, and attribution controls. Treat InvP-only as a supported project anchor,
+not an invention claim. Frame the remaining gap around cipher-spec-generated
+typed adaptation, same-input/shuffled-structure attribution, and cross-SPN
+transfer. Keep corrected E1 and dense DDT stopped unless a genuinely different
+hypothesis passes a new literature and control review.
+
+### Metadata
+- Source: user_feedback, literature_reaudit
+- Related Files: docs/research/innovation1-spn-literature-reaudit-20260710.md, docs/research/spn_structured_nn_research_plan.md, docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, papers/innovation_one/text/2024_sok_neural_differential_cryptanalysis.txt
+- Tags: innovation1, literature, novelty, spn, present, invp, bcs, input-network-codesign, attribution
+- See Also: LRN-20260710-006, LRN-20260710-005, LRN-20260710-004
+- Pattern-Key: innovation1.literature.spn_joint_adaptation_novelty_collision
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-006] correction
 
 **Logged**: 2026-07-10T13:55:00+08:00

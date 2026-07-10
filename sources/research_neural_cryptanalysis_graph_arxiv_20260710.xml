@@ -1,0 +1,649 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/lcCGA1j9azdjkHmaRXwUqUf3iWg</id>
+  <title>arXiv Query: search_query=(all:"neural cryptanalysis" OR all:"differential neural") AND (all:graph OR all:topology OR all:"message passing")&amp;id_list=&amp;start=0&amp;max_results=50</title>
+  <updated>2026-07-10T05:27:34Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=(all:%22neural+cryptanalysis%22+OR+all:%22differential+neural%22)+AND+(all:graph+OR+(all:topology+OR+all:%22message+passing%22))&amp;start=0&amp;max_results=50&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>50</opensearch:itemsPerPage>
+  <opensearch:totalResults>23</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2602.15353v2</id>
+    <title>NeuroSymActive: Differentiable Neural-Symbolic Reasoning with Active Exploration for Knowledge Graph Question Answering</title>
+    <updated>2026-04-22T08:50:15Z</updated>
+    <link href="https://arxiv.org/abs/2602.15353v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2602.15353v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Large pretrained language models and neural reasoning systems have advanced many natural language tasks, yet they remain challenged by knowledge-intensive queries that require precise, structured multi-hop inference. Knowledge graphs provide a compact symbolic substrate for factual grounding, but integrating graph structure with neural models is nontrivial: naively embedding graph facts into prompts leads to inefficiency and fragility, while purely symbolic or search-heavy approaches can be costly in retrievals and lack gradient-based refinement. We introduce NeuroSymActive, a modular framework that combines a differentiable neural-symbolic reasoning layer with an active, value-guided exploration controller for Knowledge Graph Question Answering. The method couples soft-unification style symbolic modules with a neural path evaluator and a Monte-Carlo style exploration policy that prioritizes high-value path expansions. Empirical results on standard KGQA benchmarks show that NeuroSymActive attains strong answer accuracy while reducing the number of expensive graph lookups and model calls compared to common retrieval-augmented baselines.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-02-17T04:47:29Z</published>
+    <arxiv:comment>26 pages, 7 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Rong Fu</name>
+    </author>
+    <author>
+      <name>Yang Li</name>
+    </author>
+    <author>
+      <name>Zeyu Zhang</name>
+    </author>
+    <author>
+      <name>Jiekai Wu</name>
+    </author>
+    <author>
+      <name>Yaohua Liu</name>
+    </author>
+    <author>
+      <name>Shuaishuai Cao</name>
+    </author>
+    <author>
+      <name>Yangchen Zeng</name>
+    </author>
+    <author>
+      <name>Yuhang Zhang</name>
+    </author>
+    <author>
+      <name>Xiaojing Du</name>
+    </author>
+    <author>
+      <name>Simon Fong</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2009.01272v4</id>
+    <title>Understanding the wiring evolution in differentiable neural architecture search</title>
+    <updated>2021-02-25T05:44:52Z</updated>
+    <link href="https://arxiv.org/abs/2009.01272v4" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2009.01272v4" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Controversy exists on whether differentiable neural architecture search methods discover wiring topology effectively. To understand how wiring topology evolves, we study the underlying mechanism of several existing differentiable NAS frameworks. Our investigation is motivated by three observed searching patterns of differentiable NAS: 1) they search by growing instead of pruning; 2) wider networks are more preferred than deeper ones; 3) no edges are selected in bi-level optimization. To anatomize these phenomena, we propose a unified view on searching algorithms of existing frameworks, transferring the global optimization to local cost minimization. Based on this reformulation, we conduct empirical and theoretical analyses, revealing implicit inductive biases in the cost's assignment mechanism and evolution dynamics that cause the observed phenomena. These biases indicate strong discrimination towards certain topologies. To this end, we pose questions that future differentiable methods for neural wiring discovery need to confront, hoping to evoke a discussion and rethinking on how much bias has been enforced implicitly in existing NAS methods.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-09-02T18:08:34Z</published>
+    <arxiv:comment>AISTATS 2021</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Sirui Xie</name>
+    </author>
+    <author>
+      <name>Shoukang Hu</name>
+    </author>
+    <author>
+      <name>Xinjiang Wang</name>
+    </author>
+    <author>
+      <name>Chunxiao Liu</name>
+    </author>
+    <author>
+      <name>Jianping Shi</name>
+    </author>
+    <author>
+      <name>Xunying Liu</name>
+    </author>
+    <author>
+      <name>Dahua Lin</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2101.11342v1</id>
+    <title>Towards Improving the Consistency, Efficiency, and Flexibility of Differentiable Neural Architecture Search</title>
+    <updated>2021-01-27T12:16:47Z</updated>
+    <link href="https://arxiv.org/abs/2101.11342v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2101.11342v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Most differentiable neural architecture search methods construct a super-net for search and derive a target-net as its sub-graph for evaluation. There exists a significant gap between the architectures in search and evaluation. As a result, current methods suffer from an inconsistent, inefficient, and inflexible search process. In this paper, we introduce EnTranNAS that is composed of Engine-cells and Transit-cells. The Engine-cell is differentiable for architecture search, while the Transit-cell only transits a sub-graph by architecture derivation. Consequently, the gap between the architectures in search and evaluation is significantly reduced. Our method also spares much memory and computation cost, which speeds up the search process. A feature sharing strategy is introduced for more balanced optimization and more efficient search. Furthermore, we develop an architecture derivation method to replace the traditional one that is based on a hand-crafted rule. Our method enables differentiable sparsification, and keeps the derived architecture equivalent to that of Engine-cell, which further improves the consistency between search and evaluation. Besides, it supports the search for topology where a node can be connected to prior nodes with any number of connections, so that the searched architectures could be more flexible. For experiments on CIFAR-10, our search on the standard space requires only 0.06 GPU-day. We further have an error rate of 2.22% with 0.07 GPU-day for the search on an extended space. We can also directly perform the search on ImageNet with topology learnable and achieve a top-1 error rate of 23.8% in 2.1 GPU-day.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2021-01-27T12:16:47Z</published>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Yibo Yang</name>
+    </author>
+    <author>
+      <name>Shan You</name>
+    </author>
+    <author>
+      <name>Hongyang Li</name>
+    </author>
+    <author>
+      <name>Fei Wang</name>
+    </author>
+    <author>
+      <name>Chen Qian</name>
+    </author>
+    <author>
+      <name>Zhouchen Lin</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2504.20080v1</id>
+    <title>DNAD: Differentiable Neural Architecture Distillation</title>
+    <updated>2025-04-25T08:49:31Z</updated>
+    <link href="https://arxiv.org/abs/2504.20080v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2504.20080v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>To meet the demand for designing efficient neural networks with appropriate trade-offs between model performance (e.g., classification accuracy) and computational complexity, the differentiable neural architecture distillation (DNAD) algorithm is developed based on two cores, namely search by deleting and search by imitating. Primarily, to derive neural architectures in a space where cells of the same type no longer share the same topology, the super-network progressive shrinking (SNPS) algorithm is developed based on the framework of differentiable architecture search (DARTS), i.e., search by deleting. Unlike conventional DARTS-based approaches which yield neural architectures with simple structures and derive only one architecture during the search procedure, SNPS is able to derive a Pareto-optimal set of architectures with flexible structures by forcing the dynamic super-network shrink from a dense structure to a sparse one progressively. Furthermore, since knowledge distillation (KD) has shown great effectiveness to train a compact network with the assistance of an over-parameterized model, we integrate SNPS with KD to formulate the DNAD algorithm, i.e., search by imitating. By minimizing behavioral differences between the super-network and teacher network, the over-fitting of one-level DARTS is avoided and well-performed neural architectures are derived. Experiments on CIFAR-10 and ImageNet classification tasks demonstrate that both SNPS and DNAD are able to derive a set of architectures which achieve similar or lower error rates with fewer parameters and FLOPs. Particularly, DNAD achieves the top-1 error rate of 23.7% on ImageNet classification with a model of 6.0M parameters and 598M FLOPs, which outperforms most DARTS-based methods.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-04-25T08:49:31Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Xuan Rao</name>
+    </author>
+    <author>
+      <name>Bo Zhao</name>
+    </author>
+    <author>
+      <name>Derong Liu</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2206.02059v3</id>
+    <title>Empowering GNNs via Edge-Aware Weisfeiler-Leman Algorithm</title>
+    <updated>2024-01-23T08:06:35Z</updated>
+    <link href="https://arxiv.org/abs/2206.02059v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2206.02059v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Message passing graph neural networks (GNNs) are known to have their expressiveness upper-bounded by 1-dimensional Weisfeiler-Leman (1-WL) algorithm. To achieve more powerful GNNs, existing attempts either require ad hoc features, or involve operations that incur high time and space complexities. In this work, we propose a general and provably powerful GNN framework that preserves the scalability of the message passing scheme. In particular, we first propose to empower 1-WL for graph isomorphism test by considering edges among neighbors, giving rise to NC-1-WL. The expressiveness of NC-1-WL is shown to be strictly above 1-WL and below 3-WL theoretically. Further, we propose the NC-GNN framework as a differentiable neural version of NC-1-WL. Our simple implementation of NC-GNN is provably as powerful as NC-1-WL. Experiments demonstrate that our NC-GNN performs effectively and efficiently on various benchmarks.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2022-06-04T21:37:59Z</published>
+    <arxiv:comment>Accepted to Transactions on Machine Learning Research (TMLR)</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Meng Liu</name>
+    </author>
+    <author>
+      <name>Haiyang Yu</name>
+    </author>
+    <author>
+      <name>Shuiwang Ji</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2212.05124v2</id>
+    <title>Multi-view Graph Convolutional Networks with Differentiable Node Selection</title>
+    <updated>2023-08-13T07:18:29Z</updated>
+    <link href="https://arxiv.org/abs/2212.05124v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2212.05124v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Multi-view data containing complementary and consensus information can facilitate representation learning by exploiting the intact integration of multi-view features. Because most objects in real world often have underlying connections, organizing multi-view data as heterogeneous graphs is beneficial to extracting latent information among different objects. Due to the powerful capability to gather information of neighborhood nodes, in this paper, we apply Graph Convolutional Network (GCN) to cope with heterogeneous-graph data originating from multi-view data, which is still under-explored in the field of GCN. In order to improve the quality of network topology and alleviate the interference of noises yielded by graph fusion, some methods undertake sorting operations before the graph convolution procedure. These GCN-based methods generally sort and select the most confident neighborhood nodes for each vertex, such as picking the top-k nodes according to pre-defined confidence values. Nonetheless, this is problematic due to the non-differentiable sorting operators and inflexible graph embedding learning, which may result in blocked gradient computations and undesired performance. To cope with these issues, we propose a joint framework dubbed Multi-view Graph Convolutional Network with Differentiable Node Selection (MGCN-DNS), which is constituted of an adaptive graph fusion layer, a graph learning module and a differentiable node selection schema. MGCN-DNS accepts multi-channel graph-structural data as inputs and aims to learn more robust graph fusion through a differentiable neural network. The effectiveness of the proposed method is verified by rigorous comparisons with considerable state-of-the-art approaches in terms of multi-view semi-supervised classification tasks.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2022-12-09T21:48:36Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <arxiv:journal_ref>ACM Transactions on Knowledge Discovery from Data 18, 1, Article 6 (January 2024), 21 pages</arxiv:journal_ref>
+    <author>
+      <name>Zhaoliang Chen</name>
+    </author>
+    <author>
+      <name>Lele Fu</name>
+    </author>
+    <author>
+      <name>Shunxin Xiao</name>
+    </author>
+    <author>
+      <name>Shiping Wang</name>
+    </author>
+    <author>
+      <name>Claudia Plant</name>
+    </author>
+    <author>
+      <name>Wenzhong Guo</name>
+    </author>
+    <arxiv:doi>10.1145/3608954</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1145/3608954" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2103.15954v1</id>
+    <title>DiNTS: Differentiable Neural Network Topology Search for 3D Medical Image Segmentation</title>
+    <updated>2021-03-29T21:02:42Z</updated>
+    <link href="https://arxiv.org/abs/2103.15954v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2103.15954v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Recently, neural architecture search (NAS) has been applied to automatically search high-performance networks for medical image segmentation. The NAS search space usually contains a network topology level (controlling connections among cells with different spatial scales) and a cell level (operations within each cell). Existing methods either require long searching time for large-scale 3D image datasets, or are limited to pre-defined topologies (such as U-shaped or single-path). In this work, we focus on three important aspects of NAS in 3D medical image segmentation: flexible multi-path network topology, high search efficiency, and budgeted GPU memory usage. A novel differentiable search framework is proposed to support fast gradient-based search within a highly flexible network topology search space. The discretization of the searched optimal continuous model in differentiable scheme may produce a sub-optimal final discrete model (discretization gap). Therefore, we propose a topology loss to alleviate this problem. In addition, the GPU memory usage for the searched 3D model is limited with budget constraints during search. Our Differentiable Network Topology Search scheme (DiNTS) is evaluated on the Medical Segmentation Decathlon (MSD) challenge, which contains ten challenging segmentation tasks. Our method achieves the state-of-the-art performance and the top ranking on the MSD challenge leaderboard.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2021-03-29T21:02:42Z</published>
+    <arxiv:comment>CVPR2021 oral</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Yufan He</name>
+    </author>
+    <author>
+      <name>Dong Yang</name>
+    </author>
+    <author>
+      <name>Holger Roth</name>
+    </author>
+    <author>
+      <name>Can Zhao</name>
+    </author>
+    <author>
+      <name>Daguang Xu</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2011.10804v3</id>
+    <title>BARS: Joint Search of Cell Topology and Layout for Accurate and Efficient Binary ARchitectures</title>
+    <updated>2021-03-27T05:54:26Z</updated>
+    <link href="https://arxiv.org/abs/2011.10804v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2011.10804v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Binary Neural Networks (BNNs) have received significant attention due to their promising efficiency. Currently, most BNN studies directly adopt widely-used CNN architectures, which can be suboptimal for BNNs. This paper proposes a novel Binary ARchitecture Search (BARS) flow to discover superior binary architecture in a large design space. Specifically, we analyze the information bottlenecks that are related to both the topology and layout architecture design choices. And we propose to automatically search for the optimal information flow. To achieve that, we design a two-level (Macro &amp; Micro) search space tailored for BNNs and apply a differentiable neural architecture search (NAS) to explore this search space efficiently. The macro-level search space includes width and depth decisions, which is required for better balancing the model performance and complexity. We also design the micro-level search space to strengthen the information flow for BNN. %A notable challenge of BNN architecture search lies in that binary operations exacerbate the "collapse" problem of differentiable NAS, for which we incorporate various search and derive strategies to stabilize the search process. On CIFAR-10, BARS achieves 1.5% higher accuracy with 2/3 binary operations and 1/10 floating-point operations comparing with existing BNN NAS studies. On ImageNet, with similar resource consumption, BARS-discovered architecture achieves a 6% accuracy gain than hand-crafted binary ResNet-18 architectures and outperforms other binary architectures while fully binarizing the architecture backbone.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-11-21T14:38:44Z</published>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Tianchen Zhao</name>
+    </author>
+    <author>
+      <name>Xuefei Ning</name>
+    </author>
+    <author>
+      <name>Xiangsheng Shi</name>
+    </author>
+    <author>
+      <name>Songyi Yang</name>
+    </author>
+    <author>
+      <name>Shuang Liang</name>
+    </author>
+    <author>
+      <name>Peng Lei</name>
+    </author>
+    <author>
+      <name>Jianfei Chen</name>
+    </author>
+    <author>
+      <name>Huazhong Yang</name>
+    </author>
+    <author>
+      <name>Yu Wang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2502.07746v2</id>
+    <title>HiPoNet: A Multi-View Simplicial Complex Network for High Dimensional Point-Cloud and Single-Cell Data</title>
+    <updated>2025-05-26T21:37:22Z</updated>
+    <link href="https://arxiv.org/abs/2502.07746v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2502.07746v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>In this paper, we propose HiPoNet, an end-to-end differentiable neural network for regression, classification, and representation learning on high-dimensional point clouds. Our work is motivated by single-cell data which can have very high-dimensionality --exceeding the capabilities of existing methods for point clouds which are mostly tailored for 3D data. Moreover, modern single-cell and spatial experiments now yield entire cohorts of datasets (i.e., one data set for every patient), necessitating models that can process large, high-dimensional point-clouds at scale. Most current approaches build a single nearest-neighbor graph, discarding important geometric and topological information. In contrast, HiPoNet models the point-cloud as a set of higher-order simplicial complexes, with each particular complex being created using a reweighting of features. This method thus generates multiple constructs corresponding to different views of high-dimensional data, which in biology offers the possibility of disentangling distinct cellular processes. It then employs simplicial wavelet transforms to extract multiscale features, capturing both local and global topology from each view. We show that geometric and topological information is preserved in this framework both theoretically and empirically. We showcase the utility of HiPoNet on point-cloud level tasks, involving classification and regression of entire point-clouds in data cohorts. Experimentally, we find that HiPoNet outperforms other point-cloud and graph-based models on single-cell data. We also apply HiPoNet to spatial transcriptomics datasets using spatial coordinates as one of the views. Overall, HiPoNet offers a robust and scalable solution for high-dimensional data analysis.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.AT" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-02-11T18:13:29Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Siddharth Viswanath</name>
+    </author>
+    <author>
+      <name>Hiren Madhu</name>
+    </author>
+    <author>
+      <name>Dhananjay Bhaskar</name>
+    </author>
+    <author>
+      <name>Jake Kovalic</name>
+    </author>
+    <author>
+      <name>David R Johnson</name>
+    </author>
+    <author>
+      <name>Christopher Tape</name>
+    </author>
+    <author>
+      <name>Ian Adelstein</name>
+    </author>
+    <author>
+      <name>Rex Ying</name>
+    </author>
+    <author>
+      <name>Michael Perlmutter</name>
+    </author>
+    <author>
+      <name>Smita Krishnaswamy</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2009.06342v2</id>
+    <title>Reservoir Memory Machines as Neural Computers</title>
+    <updated>2021-07-19T08:57:42Z</updated>
+    <link href="https://arxiv.org/abs/2009.06342v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2009.06342v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Differentiable neural computers extend artificial neural networks with an explicit memory without interference, thus enabling the model to perform classic computation tasks such as graph traversal. However, such models are difficult to train, requiring long training times and large datasets. In this work, we achieve some of the computational capabilities of differentiable neural computers with a model that can be trained very efficiently, namely an echo state network with an explicit memory without interference. This extension enables echo state networks to recognize all regular languages, including those that contractive echo state networks provably can not recognize. Further, we demonstrate experimentally that our model performs comparably to its fully-trained deep version on several typical benchmark tasks for differentiable neural computers.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-09-14T12:01:30Z</published>
+    <arxiv:comment>In print at the special issue 'New Frontiers in Extremely Efficient Reservoir Computing' of IEEE TNNLS</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <arxiv:journal_ref>IEEE Transactions on Neural Networks and Learning Systems 33 (2022) 2575-2585</arxiv:journal_ref>
+    <author>
+      <name>Benjamin Paaßen</name>
+    </author>
+    <author>
+      <name>Alexander Schulz</name>
+    </author>
+    <author>
+      <name>Terrence C. Stewart</name>
+    </author>
+    <author>
+      <name>Barbara Hammer</name>
+    </author>
+    <arxiv:doi>10.1109/TNNLS.2021.3094139</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1109/TNNLS.2021.3094139" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2011.14525v1</id>
+    <title>Inter-layer Transition in Neural Architecture Search</title>
+    <updated>2020-11-30T03:33:52Z</updated>
+    <link href="https://arxiv.org/abs/2011.14525v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2011.14525v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Differential Neural Architecture Search (NAS) methods represent the network architecture as a repetitive proxy directed acyclic graph (DAG) and optimize the network weights and architecture weights alternatively in a differential manner. However, existing methods model the architecture weights on each edge (i.e., a layer in the network) as statistically independent variables, ignoring the dependency between edges in DAG induced by their directed topological connections. In this paper, we make the first attempt to investigate such dependency by proposing a novel Inter-layer Transition NAS method. It casts the architecture optimization into a sequential decision process where the dependency between the architecture weights of connected edges is explicitly modeled. Specifically, edges are divided into inner and outer groups according to whether or not their predecessor edges are in the same cell. While the architecture weights of outer edges are optimized independently, those of inner edges are derived sequentially based on the architecture weights of their predecessor edges and the learnable transition matrices in an attentive probability transition manner. Experiments on five benchmarks confirm the value of modeling inter-layer dependency and demonstrate the proposed method outperforms state-of-the-art methods.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-11-30T03:33:52Z</published>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Benteng Ma</name>
+    </author>
+    <author>
+      <name>Jing Zhang</name>
+    </author>
+    <author>
+      <name>Yong Xia</name>
+    </author>
+    <author>
+      <name>Dacheng Tao</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.09256v1</id>
+    <title>Improving Generalization by Permutation Routing Across Model Copies</title>
+    <updated>2026-05-10T01:50:49Z</updated>
+    <link href="https://arxiv.org/abs/2605.09256v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.09256v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce a use of the \(M\)-cover (or \(M\)-layer) transform for machine learning. The method replicates a model \(M\) times, but instead of coupling the copies through parameter averaging or an explicit attractive force, as in replicated SGD or Elastic SGD, it rewires the contexts in which local learning messages are computed. Each local loss is evaluated on a routed model whose parameters are drawn from different copies according to permutations sampled from a structured mixing kernel \(Q\). Training then uses the original local update rule, while the resulting learning messages are redistributed across the copies through these routed computational paths. Thus \(Q\) defines a topology for message transport and controls the long-loop structure of the lifted factor graph. We formulate this construction for perceptrons, committee machines, and multilayer perceptrons, showing that the same principle applies from discrete models to differentiable neural networks. The resulting framework provides a mechanism for improving generalization through structured message sharing rather than replica collapse or parameter-space coupling.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-10T01:50:49Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Shuhei Kashiwamura</name>
+    </author>
+    <author>
+      <name>Timothee Leleu</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1806.08047v2</id>
+    <title>Flexible Neural Representation for Physics Prediction</title>
+    <updated>2018-10-27T05:28:48Z</updated>
+    <link href="https://arxiv.org/abs/1806.08047v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1806.08047v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Humans have a remarkable capacity to understand the physical dynamics of objects in their environment, flexibly capturing complex structures and interactions at multiple levels of detail. Inspired by this ability, we propose a hierarchical particle-based object representation that covers a wide variety of types of three-dimensional objects, including both arbitrary rigid geometrical shapes and deformable materials. We then describe the Hierarchical Relation Network (HRN), an end-to-end differentiable neural network based on hierarchical graph convolution, that learns to predict physical dynamics in this representation. Compared to other neural network baselines, the HRN accurately handles complex collisions and nonrigid deformations, generating plausible dynamics predictions at long time scales in novel settings, and scaling to large scene configurations. These results demonstrate an architecture with the potential to form the basis of next-generation physics predictors for use in computer vision, robotics, and quantitative cognitive science.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2018-06-21T02:19:50Z</published>
+    <arxiv:comment>23 pages, 20 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Damian Mrowca</name>
+    </author>
+    <author>
+      <name>Chengxu Zhuang</name>
+    </author>
+    <author>
+      <name>Elias Wang</name>
+    </author>
+    <author>
+      <name>Nick Haber</name>
+    </author>
+    <author>
+      <name>Li Fei-Fei</name>
+    </author>
+    <author>
+      <name>Joshua B. Tenenbaum</name>
+    </author>
+    <author>
+      <name>Daniel L. K. Yamins</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2011.09300v2</id>
+    <title>Stretchable Cells Help DARTS Search Better</title>
+    <updated>2022-04-18T13:43:38Z</updated>
+    <link href="https://arxiv.org/abs/2011.09300v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2011.09300v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Differentiable neural architecture search (DARTS) has gained much success in discovering flexible and diverse cell types. To reduce the evaluation gap, the supernet is expected to have identical layers with the target network. However, even for this consistent search, the searched cells often suffer from poor performance, especially for the supernet with fewer layers, as current DARTS methods are prone to wide and shallow cells, and this topology collapse induces sub-optimal searched cells. In this paper, we alleviate this issue by endowing the cells with explicit stretchability, so the search can be directly implemented on our stretchable cells for both operation type and topology simultaneously. Concretely, we introduce a set of topological variables and a combinatorial probabilistic distribution to explicitly model the target topology. With more diverse and complex topologies, our method adapts well for various layer numbers. Extensive experiments on CIFAR-10 and ImageNet show that our stretchable cells obtain better performance with fewer layers and parameters. For example, our method can improve DARTS by 0.28\% accuracy on CIFAR-10 dataset with 45\% parameters reduced or 2.9\% with similar FLOPs on ImageNet dataset.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-11-18T14:15:51Z</published>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Tao Huang</name>
+    </author>
+    <author>
+      <name>Shan You</name>
+    </author>
+    <author>
+      <name>Yibo Yang</name>
+    </author>
+    <author>
+      <name>Zhuozhuo Tu</name>
+    </author>
+    <author>
+      <name>Fei Wang</name>
+    </author>
+    <author>
+      <name>Chen Qian</name>
+    </author>
+    <author>
+      <name>Changshui Zhang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2512.08360v1</id>
+    <title>Conditional Morphogenesis: Emergent Generation of Structural Digits via Neural Cellular Automata</title>
+    <updated>2025-12-09T08:36:54Z</updated>
+    <link href="https://arxiv.org/abs/2512.08360v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2512.08360v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Biological systems exhibit remarkable morphogenetic plasticity, where a single genome can encode various specialized cellular structures triggered by local chemical signals. In the domain of Deep Learning, Differentiable Neural Cellular Automata (NCA) have emerged as a paradigm to mimic this self-organization. However, existing NCA research has predominantly focused on continuous texture synthesis or single-target object recovery, leaving the challenge of class-conditional structural generation largely unexplored. In this work, we propose a novel Conditional Neural Cellular Automata (c-NCA) architecture capable of growing distinct topological structures - specifically MNIST digits - from a single generic seed, guided solely by a spatially broadcasted class vector. Unlike traditional generative models (e.g., GANs, VAEs) that rely on global reception fields, our model enforces strict locality and translation equivariance. We demonstrate that by injecting a one-hot condition into the cellular perception field, a single set of local rules can learn to break symmetry and self-assemble into ten distinct geometric attractors. Experimental results show that our c-NCA achieves stable convergence, correctly forming digit topologies from a single pixel, and exhibits robustness characteristic of biological systems. This work bridges the gap between texture-based NCAs and structural pattern formation, offering a lightweight, biologically plausible alternative for conditional generation.</summary>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-12-09T08:36:54Z</published>
+    <arxiv:comment>13 pages, 5 figures. Code available at: https://github.com/alisakour/Conditional-NCA-Digits</arxiv:comment>
+    <arxiv:primary_category term="cs.NE"/>
+    <author>
+      <name>Ali Sakour</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2201.12792v2</id>
+    <title>SelfRecon: Self Reconstruction Your Digital Avatar from Monocular Video</title>
+    <updated>2022-04-05T13:47:11Z</updated>
+    <link href="https://arxiv.org/abs/2201.12792v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2201.12792v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We propose SelfRecon, a clothed human body reconstruction method that combines implicit and explicit representations to recover space-time coherent geometries from a monocular self-rotating human video. Explicit methods require a predefined template mesh for a given sequence, while the template is hard to acquire for a specific subject. Meanwhile, the fixed topology limits the reconstruction accuracy and clothing types. Implicit representation supports arbitrary topology and can represent high-fidelity geometry shapes due to its continuous nature. However, it is difficult to integrate multi-frame information to produce a consistent registration sequence for downstream applications. We propose to combine the advantages of both representations. We utilize differential mask loss of the explicit mesh to obtain the coherent overall shape, while the details on the implicit surface are refined with the differentiable neural rendering. Meanwhile, the explicit mesh is updated periodically to adjust its topology changes, and a consistency loss is designed to match both representations. Compared with existing methods, SelfRecon can produce high-fidelity surfaces for arbitrary clothed humans with self-supervised optimization. Extensive experimental results demonstrate its effectiveness on real captured monocular videos. The source code is available at https://github.com/jby1993/SelfReconCode.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.GR" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2022-01-30T11:49:29Z</published>
+    <arxiv:comment>CVPR 2022, Oral. Project page: https://jby1993.github.io/SelfRecon/</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Boyi Jiang</name>
+    </author>
+    <author>
+      <name>Yang Hong</name>
+    </author>
+    <author>
+      <name>Hujun Bao</name>
+    </author>
+    <author>
+      <name>Juyong Zhang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2505.10120v1</id>
+    <title>All You Need Is Synthetic Task Augmentation</title>
+    <updated>2025-05-15T09:46:27Z</updated>
+    <link href="https://arxiv.org/abs/2505.10120v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2505.10120v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Injecting rule-based models like Random Forests into differentiable neural network frameworks remains an open challenge in machine learning. Recent advancements have demonstrated that pretrained models can generate efficient molecular embeddings. However, these approaches often require extensive pretraining and additional techniques, such as incorporating posterior probabilities, to boost performance. In our study, we propose a novel strategy that jointly trains a single Graph Transformer neural network on both sparse multitask molecular property experimental targets and synthetic targets derived from XGBoost models trained on Osmordred molecular descriptors. These synthetic tasks serve as independent auxiliary tasks. Our results show consistent and significant performance improvement across all 19 molecular property prediction tasks. For 16 out of 19 targets, the multitask Graph Transformer outperforms the XGBoost single-task learner. This demonstrates that synthetic task augmentation is an effective method for enhancing neural model performance in multitask molecular property prediction without the need for feature injection or pretraining.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-05-15T09:46:27Z</published>
+    <arxiv:comment>14 pages, 3 Figures, 6 tables</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Guillaume Godin</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2407.13420v2</id>
+    <title>Exploring End-to-end Differentiable Neural Charged Particle Tracking -- A Loss Landscape Perspective</title>
+    <updated>2025-10-29T11:02:41Z</updated>
+    <link href="https://arxiv.org/abs/2407.13420v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2407.13420v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Measurement and analysis of high energetic particles for scientific, medical or industrial applications is a complex procedure, requiring the design of sophisticated detector and data processing systems. The development of adaptive and differentiable software pipelines using a combination of conventional and machine learning algorithms is therefore getting ever more important to optimize and operate the system efficiently while maintaining end-to-end (E2E) differentiability. We propose for the application of charged particle tracking an E2E differentiable decision-focused learning scheme using graph neural networks with combinatorial components solving a linear assignment problem for each detector layer. We demonstrate empirically that including differentiable variations of discrete assignment operations allows for efficient network optimization, working better or on par with approaches that lack E2E differentiability. In additional studies, we dive deeper into the optimization process and provide further insights from a loss landscape perspective. We demonstrate that while both methods converge into similar performing, globally well-connected regions, they suffer under substantial predictive instability across initialization and optimization methods, which can have unpredictable consequences on the performance of downstream tasks such as image reconstruction. We also point out a dependency between the interpolation factor of the gradient estimator and the prediction stability of the model, suggesting the choice of sufficiently small values. Given the strong global connectivity of learned solutions and the excellent training performance, we argue that E2E differentiability provides, besides the general availability of gradient information, an important tool for robust particle tracking to mitigate prediction instabilities by favoring solutions that perform well on downstream tasks.</summary>
+    <category term="physics.comp-ph" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2024-07-18T11:42:58Z</published>
+    <arxiv:comment>Published in Transactions on Machine Learning Research (TMLR), 2025</arxiv:comment>
+    <arxiv:primary_category term="physics.comp-ph"/>
+    <author>
+      <name>Tobias Kortus</name>
+      <arxiv:affiliation>for the Bergen pCT Collaboration</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Ralf Keidel</name>
+      <arxiv:affiliation>for the Bergen pCT Collaboration</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Nicolas R. Gauger</name>
+      <arxiv:affiliation>for the Bergen pCT Collaboration</arxiv:affiliation>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2406.02187v1</id>
+    <title>DNCs Require More Planning Steps</title>
+    <updated>2024-06-04T10:31:03Z</updated>
+    <link href="https://arxiv.org/abs/2406.02187v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2406.02187v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Many recent works use machine learning models to solve various complex algorithmic problems. However, these models attempt to reach a solution without considering the problem's required computational complexity, which can be detrimental to their ability to solve it correctly. In this work we investigate the effect of computational time and memory on generalization of implicit algorithmic solvers. To do so, we focus on the Differentiable Neural Computer (DNC), a general problem solver that also lets us reason directly about its usage of time and memory. In this work, we argue that the number of planning steps the model is allowed to take, which we call "planning budget", is a constraint that can cause the model to generalize poorly and hurt its ability to fully utilize its external memory. We evaluate our method on Graph Shortest Path, Convex Hull, Graph MinCut and Associative Recall, and show how the planning budget can drastically change the behavior of the learned algorithm, in terms of learned time complexity, training time, stability and generalization to inputs larger than those seen during training.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2024-06-04T10:31:03Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Yara Shamshoum</name>
+    </author>
+    <author>
+      <name>Nitzan Hodos</name>
+    </author>
+    <author>
+      <name>Yuval Sieradzki</name>
+    </author>
+    <author>
+      <name>Assaf Schuster</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2602.17700v1</id>
+    <title>MIDAS: Mosaic Input-Specific Differentiable Architecture Search</title>
+    <updated>2026-02-06T23:16:41Z</updated>
+    <link href="https://arxiv.org/abs/2602.17700v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2602.17700v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Differentiable Neural Architecture Search (NAS) provides efficient, gradient-based methods for automatically designing neural networks, yet its adoption remains limited in practice. We present MIDAS, a novel approach that modernizes DARTS by replacing static architecture parameters with dynamic, input-specific parameters computed via self-attention. To improve robustness, MIDAS (i) localizes the architecture selection by computing it separately for each spatial patch of the activation map, and (ii) introduces a parameter-free, topology-aware search space that models node connectivity and simplifies selecting the two incoming edges per node. We evaluate MIDAS on the DARTS, NAS-Bench-201, and RDARTS search spaces. In DARTS, it reaches 97.42% top-1 on CIFAR-10 and 83.38% on CIFAR-100. In NAS-Bench-201, it consistently finds globally optimal architectures. In RDARTS, it sets the state of the art on two of four search spaces on CIFAR-10. We further analyze why MIDAS works, showing that patchwise attention improves discrimination among candidate operations, and the resulting input-specific parameter distributions are class-aware and predominantly unimodal, providing reliable guidance for decoding.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-02-06T23:16:41Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Konstanty Subbotko</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2109.02429v2</id>
+    <title>Learning Neural Causal Models with Active Interventions</title>
+    <updated>2022-03-05T14:28:55Z</updated>
+    <link href="https://arxiv.org/abs/2109.02429v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2109.02429v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Discovering causal structures from data is a challenging inference problem of fundamental importance in all areas of science. The appealing properties of neural networks have recently led to a surge of interest in differentiable neural network-based methods for learning causal structures from data. So far, differentiable causal discovery has focused on static datasets of observational or fixed interventional origin. In this work, we introduce an active intervention targeting (AIT) method which enables a quick identification of the underlying causal structure of the data-generating process. Our method significantly reduces the required number of interactions compared with random intervention targeting and is applicable for both discrete and continuous optimization formulations of learning the underlying directed acyclic graph (DAG) from data. We examine the proposed method across multiple frameworks in a wide range of settings and demonstrate superior performance on multiple benchmarks from simulated to real-world data.</summary>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2021-09-06T13:10:37Z</published>
+    <arxiv:primary_category term="stat.ML"/>
+    <author>
+      <name>Nino Scherrer</name>
+    </author>
+    <author>
+      <name>Olexa Bilaniuk</name>
+    </author>
+    <author>
+      <name>Yashas Annadani</name>
+    </author>
+    <author>
+      <name>Anirudh Goyal</name>
+    </author>
+    <author>
+      <name>Patrick Schwab</name>
+    </author>
+    <author>
+      <name>Bernhard Schölkopf</name>
+    </author>
+    <author>
+      <name>Michael C. Mozer</name>
+    </author>
+    <author>
+      <name>Yoshua Bengio</name>
+    </author>
+    <author>
+      <name>Stefan Bauer</name>
+    </author>
+    <author>
+      <name>Nan Rosemary Ke</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1911.06993v2</id>
+    <title>Automatic Design of CNNs via Differentiable Neural Architecture Search for PolSAR Image Classification</title>
+    <updated>2019-11-19T11:13:32Z</updated>
+    <link href="https://arxiv.org/abs/1911.06993v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1911.06993v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Convolutional neural networks (CNNs) have shown good performance in polarimetric synthetic aperture radar (PolSAR) image classification due to the automation of feature engineering. Excellent hand-crafted architectures of CNNs incorporated the wisdom of human experts, which is an important reason for CNN's success. However, the design of the architectures is a difficult problem, which needs a lot of professional knowledge as well as computational resources. Moreover, the architecture designed by hand might be suboptimal, because it is only one of thousands of unobserved but objective existed paths. Considering that the success of deep learning is largely due to its automation of the feature engineering process, how to design automatic architecture searching methods to replace the hand-crafted ones is an interesting topic. In this paper, we explore the application of neural architecture search (NAS) in PolSAR area for the first time. Different from the utilization of existing NAS methods, we propose a differentiable architecture search (DAS) method which is customized for PolSAR classification. The proposed DAS is equipped with a PolSAR tailored search space and an improved one-shot search strategy. By DAS, the weights parameters and architecture parameters (corresponds to the hyperparameters but not the topologies) can be optimized by stochastic gradient descent method during the training. The optimized architecture parameters should be transformed into corresponding CNN architecture and re-train to achieve high-precision PolSAR classification. In addition, complex-valued DAS is developed to take into account the characteristics of PolSAR images so as to further improve the performance. Experiments on three PolSAR benchmark datasets show that the CNNs obtained by searching have better classification performance than the hand-crafted ones.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2019-11-16T08:33:33Z</published>
+    <arxiv:primary_category term="cs.CV"/>
+    <arxiv:journal_ref>IEEE Transactions on Geoscience and Remote Sensing, Volume 58, Issue 9, September 2020, Pages 6362-6375</arxiv:journal_ref>
+    <author>
+      <name>Hongwei Dong</name>
+    </author>
+    <author>
+      <name>Siyu Zhang</name>
+    </author>
+    <author>
+      <name>Bin Zou</name>
+    </author>
+    <author>
+      <name>Lamei Zhang</name>
+    </author>
+    <arxiv:doi>10.1109/TGRS.2020.2976694</arxiv:doi>
+    <link rel="related" href="https://doi.org/10.1109/TGRS.2020.2976694" title="doi"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2505.16487v3</id>
+    <title>Generative Prior-Guided Neural Interface Reconstruction for 3D Electrical Impedance Tomography</title>
+    <updated>2026-04-22T16:12:01Z</updated>
+    <link href="https://arxiv.org/abs/2505.16487v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2505.16487v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Reconstructing complex 3D interfaces from indirect measurements remains a grand challenge in scientific computing, particularly for ill-posed inverse problems like Electrical Impedance Tomography (EIT). Traditional shape optimization struggles with topological changes and regularization tuning, while emerging deep learning approaches often compromise physical fidelity or require prohibitive amounts of paired training data. We present a transformative ``solver-in-the-loop'' framework that bridges this divide by coupling a pre-trained 3D generative prior with a rigorous boundary integral equation (BIE) solver. Unlike Physics-Informed Neural Networks (PINNs) that treat physics as soft constraints, our architecture enforces the governing elliptic PDE as a hard constraint at every optimization step, ensuring strict physical consistency. Simultaneously, we navigate a compact latent manifold of plausible geometries learned by a differentiable neural shape representation, effectively regularizing the ill-posed problem through data-driven priors rather than heuristic smoothing. By propagating adjoint shape derivatives directly through the neural decoder, we achieve fast, stable convergence with dramatically reduced degrees of freedom. Extensive experiments on 3D high-contrast EIT demonstrate that this principled hybrid approach yields superior geometric accuracy and data efficiency which is difficult to achieve using traditional methods, establishing a robust new paradigm for physics-constrained geometric discovery.</summary>
+    <category term="math.NA" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2025-05-22T10:13:19Z</published>
+    <arxiv:primary_category term="math.NA"/>
+    <author>
+      <name>Haibo Liu</name>
+    </author>
+    <author>
+      <name>Junqing Chen</name>
+    </author>
+    <author>
+      <name>Guang Lin</name>
+    </author>
+  </entry>
+</feed>

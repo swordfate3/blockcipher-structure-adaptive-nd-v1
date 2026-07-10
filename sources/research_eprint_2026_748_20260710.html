@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/css/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Related-Key Multi-Pair Neural Distinguishers: Analysis and Applications to Lightweight Block Ciphers</title>
+    <link rel="stylesheet" href="/css/eprint.css?v=10">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon-180x180.png" />
+    <meta name="tdm-reservation" content="1">
+
+<style>
+  a.toggle-open:after {
+  content:' -';
+  font-weight: 800;
+  }
+  a.toggle-closed:after {
+  content: " ›";
+  font-weight: 800;
+  }
+  .paper-abstract {
+     white-space: pre-wrap;
+  }
+  #metadata dt {
+    margin-top: 1rem;
+  }
+  #metadata dt + dd { /* gap between dt and first dd */
+    margin-top: .75rem;
+  }
+  #metadata dd {
+    margin-left: 2rem;
+  }
+  #metadata dd.keywords {
+    padding-bottom: .5rem;
+  }
+  span.authorName {
+    margin-top: .5rem;
+    font-style: italic;
+  }
+</style>
+
+<script>
+MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEnvironments: false
+    },
+    loader: {
+        load: [
+            "ui/safe",
+            "ui/lazy",
+        ],
+    },
+    options: {
+        safeOptions: {
+        allow: {
+            URLs: "none",
+            classes: "safe",
+            cssIDs: "safe",
+            styles: "safe",
+        },
+        },
+    }
+    };
+</script>
+
+<script id="MathJax-script" async src="/js/mathjax/tex-chtml.js"></script>
+
+
+  <meta name="citation_title" content="Related-Key Multi-Pair Neural Distinguishers: Analysis and Applications to Lightweight Block Ciphers">
+
+  <meta name="citation_author" content="Thanh-Phong Nguyen">
+
+  <meta name="citation_author" content="Nguyen Tan Cam">
+
+  <meta name="citation_author" content="Van-Than Huynh">
+
+  <meta name="citation_author" content="Hieu-Minh Nguyen">
+
+  <meta name="citation_journal_title" content="Cryptology ePrint Archive">
+  <meta name="citation_publication_date" content="2026">
+
+  <meta name="citation_pdf_url" content="https://eprint.iacr.org/2026/748.pdf">
+
+
+
+
+  <meta property="og:image" content="https://eprint.iacr.org/img/iacrlogo.png"/>
+  <meta property="og:image:alt" content="IACR logo"/>
+  <meta property="og:url" content="https://eprint.iacr.org/2026/748">
+  <meta property="og:site_name" content="IACR Cryptology ePrint Archive" />
+  <meta property="og:type" content="article" />
+
+  <meta property="og:title" content="Related-Key Multi-Pair Neural Distinguishers: Analysis and Applications to Lightweight Block Ciphers" />
+  <meta property="og:description" content="Neural differential cryptanalysis has recently been extended to related-key and multi-pair settings, enabling neural distinguishers to aggregate weak statistical biases across multiple ciphertext pairs. However, the statistical origin of the exploited signal remains insufficiently understood. In this work, we present a signal-centric analysis of related-key, multi-pair neural distinguishers across four block ciphers: PRESENT-80, SIMECK-32/64, LEA-128, and HIGHT.
+
+We characterize ciphertext distributions using model-independent geometric metrics derived from Principal Component Analysis (PCA) embeddings and silhouette scores, and relate these data-level measurements to neural distinguishing performance under varying levels of aggregation. Across all evaluated ciphers, multi-pair aggregation amplifies weak ciphertext-level statistical biases through variance reduction, thereby extending distinguishability beyond the single-pair setting.
+
+However, this effect is inherently limited by the progressive decay of ciphertext-level signal as the number of rounds increases, leading to well-defined difficulty boundaries where both geometric separability and neural performance collapse. In low-signal regimes, aggregation enables measurable, albeit limited, accuracy, indicating the presence of residual statistical structure. Generalization experiments further show that neural distinguishers fail to maintain predictive capability beyond the empirical boundary, with performance rapidly converging to the random baseline.
+
+These findings suggest that neural distinguishing performance is fundamentally constrained by the underlying ciphertext-level signal rather than model capacity. Overall, this study provides a unified interpretation of the capabilities and limitations of multi-pair neural cryptanalysis." />
+  <meta property="article:section" content="ATTACKS" />
+
+  <meta property="article:modified_time" content="2026-05-26T05:02:27+00:00" />
+  <meta property="article:published_time" content="2026-04-16T00:29:31+00:00" />
+
+
+
+      <meta property="article:tag" content="neural cryptanalysis" />
+
+      <meta property="article:tag" content="differential cryptanalysis" />
+
+      <meta property="article:tag" content="related-key attacks" />
+
+      <meta property="article:tag" content="multi-pair aggregation" />
+
+      <meta property="article:tag" content="block ciphers" />
+
+
+
+  </head>
+
+  <body>
+    <noscript>
+      <h1 class="text-center">What a lovely hat</h1>
+      <h4 class="text-center">Is it made out of <a href="https://iacr.org/tinfoil.html">tin foil</a>?</h4>
+    </noscript>
+    <div class="fixed-top" id="topNavbar">
+      <nav class="navbar navbar-custom navbar-expand-lg">
+        <div class="container px-0 justify-content-between justify-content-lg-evenly">
+          <div class="order-0 align-items-center d-flex">
+            <button class="navbar-toggler btnNoOutline" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false">
+              <span class="icon-bar top-bar"></span>
+              <span class="icon-bar middle-bar"></span>
+              <span class="icon-bar bottom-bar"></span>
+            </button>
+            <a class="d-none me-5 d-lg-inline" href="https://iacr.org/"><img class="iacrlogo" src="/img/iacrlogo_small.png" alt="IACR Logo" style="max-width:6rem;"></a>
+          </div>
+          <a class="ePrintname order-1" href="/">
+            <span class="longNavName">Cryptology ePrint Archive</span>
+          </a>
+          <div class="collapse navbar-collapse order-3" id="navbarContent">
+            <ul class="navbar-nav me-auto ms-2 mb-2 mb-lg-0 justify-content-end w-100">
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Papers
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="navbarDropdown">
+                  <span class="text-dark mx-3" style="white-space:nowrap;">Updates from the last:</span>
+                  <li><a class="dropdown-item ps-custom" href="/days/7">7 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/31">31 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/183">6 months</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/365">365 days</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/byyear">Listing by year</a></li>
+                  <li><a class="dropdown-item" href="/complete">All papers</a></li>
+                  <li><a class="dropdown-item" href="/complete/compact">Compact view</a></li>
+                  <li><a class="dropdown-item" href="https://www.iacr.org/news/subscribe">Subscribe</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/citation.html">How to cite</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/rss">Harvesting metadata</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="submissionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="submissionsDropdown">
+                  <li><a class="dropdown-item" href="/submit">Submit a paper</a></li>
+                  <li><a class="dropdown-item" href="/revise">Revise or withdraw a paper</a></li>
+                  <li><a class="dropdown-item" href="/operations.html">Acceptance and publishing conditions</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  About
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="aboutDropdown">
+                  <li><a class="dropdown-item" href="/about.html">Goals and history</a></li>
+                  <li><a class="dropdown-item" href="/news.html">News</a></li>
+                  <li><a class="dropdown-item" href="/stats">Statistics</a></li>
+                  <li><a class="dropdown-item" href="/contact.html">Contact</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="dropdown ps-md-2 text-right order-2 order-lg-last">
+            <button class="btn btnNoOutline" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/search.svg" class="searchIcon" alt="Search Button"/>
+            </button>
+            <div id="searchDd" class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="dropdownMenuButton1">
+              <form action="/search" method="GET">
+                <div class="input-group">
+                  <input id="searchbox" name="q" type="search" class="form-control" autocomplete="off">
+                  <button class="btn btn-secondary border input-group-append ml-2">
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div class="ms-2 p-1 d-none"><a href="/search">Advanced search</a></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <main id="eprintContent" class="container px-3 py-4 p-md-4">
+
+<div class="row mt-4">
+  <div class="col-md-7 col-lg-8 pe-md-5">
+
+    <h4>Paper 2026/748</h4>
+    <h3 class="mb-3"><a href="/2026/748.pdf">Related-Key Multi-Pair Neural Distinguishers: Analysis and Applications to Lightweight Block Ciphers</a></h3>
+
+
+
+    <div class="author"><span class="authorName">Thanh-Phong Nguyen</span><a class="ms-1" target="_blank" href="https://orcid.org/0009-0005-7729-8313"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, University of Information Technology, Ho Chi Minh City, Vietnam</span><span class="affiliation">, Vietnam National University, Ho Chi Minh City, Vietnam</span></div>
+
+
+    <div class="author"><span class="authorName">Nguyen Tan Cam</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0002-3909-7650"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, University of Information Technology, Ho Chi Minh City, Vietnam</span><span class="affiliation">, Vietnam National University, Ho Chi Minh City, Vietnam</span></div>
+
+
+    <div class="author"><span class="authorName">Van-Than Huynh</span><a class="ms-1" target="_blank" href="https://orcid.org/0009-0003-6806-0341"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a></div>
+
+
+    <div class="author"><span class="authorName">Hieu-Minh Nguyen</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0003-2214-3005"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Academy of Cryptography Techniques</span></div>
+
+
+    <h5 class="mt-3">Abstract</h5>
+    <p style="white-space: pre-wrap;">Neural differential cryptanalysis has recently been extended to related-key and multi-pair settings, enabling neural distinguishers to aggregate weak statistical biases across multiple ciphertext pairs. However, the statistical origin of the exploited signal remains insufficiently understood. In this work, we present a signal-centric analysis of related-key, multi-pair neural distinguishers across four block ciphers: PRESENT-80, SIMECK-32/64, LEA-128, and HIGHT.
+
+We characterize ciphertext distributions using model-independent geometric metrics derived from Principal Component Analysis (PCA) embeddings and silhouette scores, and relate these data-level measurements to neural distinguishing performance under varying levels of aggregation. Across all evaluated ciphers, multi-pair aggregation amplifies weak ciphertext-level statistical biases through variance reduction, thereby extending distinguishability beyond the single-pair setting.
+
+However, this effect is inherently limited by the progressive decay of ciphertext-level signal as the number of rounds increases, leading to well-defined difficulty boundaries where both geometric separability and neural performance collapse. In low-signal regimes, aggregation enables measurable, albeit limited, accuracy, indicating the presence of residual statistical structure. Generalization experiments further show that neural distinguishers fail to maintain predictive capability beyond the empirical boundary, with performance rapidly converging to the random baseline.
+
+These findings suggest that neural distinguishing performance is fundamentally constrained by the underlying ciphertext-level signal rather than model capacity. Overall, this study provides a unified interpretation of the capabilities and limitations of multi-pair neural cryptanalysis.</p>
+
+    <p><strong>Note:</strong> This paper presents a signal-centric study of neural differential cryptanalysis in the related-key multi-pair setting. We investigate the statistical structure of ciphertext distributions across four lightweight block ciphers (PRESENT-80, SIMECK-32/64, LEA-128, and HIGHT), and relate model-independent geometric metrics to neural distinguishing performance.
+
+Our analysis shows that multi-pair aggregation amplifies weak statistical bias through variance reduction, extending distinguishability beyond the single-pair regime. However, this effect is fundamentally limited by the intrinsic decay of ciphertext-level signal as round depth increases, leading to clear distinguishability boundaries across all evaluated ciphers.
+
+The results provide a unified interpretation of neural distinguishers as data-driven statistical tests, highlighting both the capabilities and limitations of multi-pair neural cryptanalysis.</p>
+
+  </div>
+  <div id="metadata" class="col-md-5 col-lg-4 ps-md-5 mt-4 mt-md-0">
+    <h5>Metadata</h5>
+    <dl>
+      <dt>
+        Available format(s)
+      </dt>
+      <dd>
+
+
+        <a class="btn btn-sm btn-outline-dark"
+           href="/2026/748.pdf">
+          <img class="icon" src="/img/file-pdf.svg">PDF</a>
+
+
+
+      </dd>
+
+      <dt>Category</dt>
+        <dd><a rel="nofollow" href="/search?category=ATTACKS"><small class="badge category category-ATTACKS">Attacks and cryptanalysis</small></a></dd>
+
+      <dt>Publication info</dt>
+      <dd>Preprint. </dd>
+
+
+      <dt>Keywords</dt>
+      <dd class="keywords"><a rel="nofollow" href="/search?q=neural%20cryptanalysis" class="me-2 badge bg-secondary keyword">neural cryptanalysis</a><a rel="nofollow" href="/search?q=differential%20cryptanalysis" class="me-2 badge bg-secondary keyword">differential cryptanalysis</a><a rel="nofollow" href="/search?q=related-key%20attacks" class="me-2 badge bg-secondary keyword">related-key attacks</a><a rel="nofollow" href="/search?q=multi-pair%20aggregation" class="me-2 badge bg-secondary keyword">multi-pair aggregation</a><a rel="nofollow" href="/search?q=block%20ciphers" class="me-2 badge bg-secondary keyword">block ciphers</a></dd>
+
+      <dt>Contact author(s)</dt>
+      <dd><span class="font-monospace">
+        phongnt ncs<span class="obfuscate"> &#64; </span>grad uit edu vn<br>camnt<span class="obfuscate"> &#64; </span>uit edu vn<br>hthan401<span class="obfuscate"> &#64; </span>gmail com<br>hieuminh<span class="obfuscate"> &#64; </span>actvn edu vn
+        </span>
+      </dd>
+      <dt>History</dt>
+
+
+      <dd>2026-05-26: revised</dd>
+
+
+
+      <dd>2026-04-16: received</dd>
+
+
+
+      <dd><a rel="nofollow noindex" href="/archive/versions/2026/748">See all versions</a></dd>
+
+      <dt>Short URL</dt>
+      <dd><a rel="nofollow" href="https://ia.cr/2026/748">https://ia.cr/2026/748</a></dd>
+      <dt>License</dt>
+      <dd><a rel="license" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+        <img class="licenseImg" src="/img/license/CC_BY.svg" alt="Creative Commons Attribution" title="Creative Commons Attribution"><br>
+        <small>CC BY</small>
+        </a>
+      </dd>
+    </dl>
+  </div>
+  </div>
+
+
+  <p class="mt-4"><strong>BibTeX</strong> <button id="bibcopy" class="ms-2 btn btn-sm btn-outline-dark"
+ aria-label="Copy to clipboard"
+                                     onclick="copyBibtex()">
+    <img src="/img/copy-outline.svg" class="icon">Copy to clipboard</button></p>
+  <pre id="bibtex">
+@misc{cryptoeprint:2026/748,
+      author = {Thanh-Phong Nguyen and Nguyen Tan Cam and Van-Than Huynh and Hieu-Minh Nguyen},
+      title = {Related-Key Multi-Pair Neural Distinguishers: Analysis and Applications to Lightweight Block Ciphers},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2026/748},
+      year = {2026},
+      url = {https://eprint.iacr.org/2026/748}
+}
+</pre>
+
+
+<script>
+ var bibcopy;
+ function triggerTooltip() {
+   console.log('setting tooltip');
+ }
+ window.onload = triggerTooltip;
+ function copyBibtex() {
+   let range = document.createRange();
+   range.selectNode(document.getElementById('bibtex'));
+   window.getSelection().removeAllRanges();
+   window.getSelection().addRange(range);
+   document.execCommand('copy');
+   window.getSelection().removeAllRanges();
+   let bibcopy = document.getElementById('bibcopy');
+   let copyTooltip = new bootstrap.Tooltip(bibcopy, {trigger: 'manual',
+                                                     title: 'Copied!'});
+   copyTooltip.show();
+   setTimeout(function() {
+     copyTooltip.dispose();
+   }, 2000);
+ }
+</script>
+
+</main>
+<div class="container-fluid mt-auto" id="eprintFooter">
+  <a href="https://iacr.org/">
+    <img id="iacrlogo" src="/img/iacrlogo_small.png" class="img-fluid d-block mx-auto" alt="IACR Logo">
+  </a>
+  <div class="colorDiv"></div>
+  <div class="alert alert-success w-75 mx-auto">
+    Note: In order to protect the privacy of readers, eprint.iacr.org
+    does not use cookies or embedded third party content.
+  </div>
+</div>
+<script src="/css/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+   var topNavbar = document.getElementById('topNavbar');
+   if (topNavbar) {
+     document.addEventListener('scroll', function(e) {
+       if (window.scrollY > 100) {
+         topNavbar.classList.add('scrolled');
+       } else {
+         topNavbar.classList.remove('scrolled');
+       }
+     })
+   }
+  </script>
+
+
+</body>
+</html>
