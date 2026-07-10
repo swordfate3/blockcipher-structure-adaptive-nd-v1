@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 readiness passed; R1 remote medium diagnostic pending
+**Status:** R0 readiness passed; R1 launched with local monitor active
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -307,6 +307,21 @@ difference, MSE/Adam/AMSGrad settings, `[5,6,7,8]` curriculum, one result row,
 and disk-backed cache. The local monitor requires the remote done marker and
 one result row before it validates, plots, and writes the R1 integrity/decision
 artifact.
+
+Launch handoff on 2026-07-10:
+
+```text
+source commit       = 9491e47c72e977ebc4c465061d95cc030339db88
+remote source       = run-owned clean clone, main aligned to source commit
+scheduled command   = cmd.exe /c <tracked launcher>
+bounded confirmation = launch_env log present
+local tmux monitor  = i1_autond_dbitnet_65k_seed0_gpu1_20260710
+monitor state       = running; completion/result retrieval pending
+```
+
+The bounded confirmation did not yet observe a `started.marker`, so this record
+does not promote the run to completed remotely or retrieved. The monitor owns
+subsequent waiting and fallback retrieval.
 
 ## Decision Boundaries
 
