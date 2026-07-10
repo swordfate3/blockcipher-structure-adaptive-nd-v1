@@ -10,6 +10,29 @@ This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
 formal evidence, and does not authorize remote scale-up by itself.
 
+## 2026-07-10 E1 Implementation Correction
+
+Source inspection after E1 completion found an encoder/model layout contract
+mismatch in `present_active_cell_graph_pairset`. The global bit-plane feature
+vector was reshaped as word-major cell groups, so graph nodes did not represent
+individual PRESENT cells. E1's recorded AUC values remain historical
+measurements, but its topology-route verdict is superseded.
+
+```text
+historical E1 status = completed implementation-misaligned diagnostic
+historical E1 topology verdict = superseded / not adjudicated
+remote_scale = no
+current_adjudication = E1-R1 active-cell layout repair 2048/class
+E2 = deferred until E1-R1 resolves
+```
+
+Current matrices:
+
+```text
+configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_smoke_seed0.csv
+configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv
+```
+
 ## Why This Verdict Exists
 
 Innovation 1 has accumulated enough experiments that adding another small
@@ -135,15 +158,16 @@ Control deltas:
 Verdict:
 
 ```text
-active-relative topology-architecture branch = held / redesign-before-scale
+active-relative topology-architecture branch = verdict superseded by semantic-layout defect
 remote_scale = no
-next_adjudication = E2 trail-position neural residual with deterministic baseline
+next_adjudication = E1-R1 active-cell layout repair 2048/class
+E2 = deferred until E1-R1 resolves
 ```
 
-The route remains control-clean, but it did not reopen true-vs-shuffled margins
-on both seeds. Seed1 improved over the 4096/class near-tie, while seed0 stayed
-near-tied. Do not run 16k/32k/65k follow-ups for this branch without a new
-representation hypothesis.
+The numerical ordering is retained as historical diagnostic evidence, but it
+cannot decide the intended topology question because graph tokens were not
+semantically cell-aligned. Do not run 16k/32k/65k follow-ups. Repair the layout
+and apply the frozen E1-R1 gate before selecting E2 or any topology follow-up.
 
 ### E2: Trail-Position Neural Residual With Deterministic Baseline
 

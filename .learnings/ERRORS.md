@@ -1,3 +1,55 @@
+## [ERR-20260710-001] full_pytest_matplotlib_state_and_json_alignment_baseline
+
+**Logged**: 2026-07-10T12:05:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: tests
+
+### Summary
+The full pytest suite has 29 order-dependent Matplotlib 3.11 failures plus one
+independent JSON route-name alignment failure, while the E1-R focused tests and
+standalone plotting test pass.
+
+### Error
+
+```text
+full suite: 30 failed, 620 passed
+Matplotlib failures:
+AttributeError: 'Figure' object has no attribute 'items'
+  matplotlib/cbook.py normalize_kwargs(kwargs, self)
+
+independent alignment failure:
+test_json_plan_alignment_maps_route_specific_short_model_names
+expected status=pass, observed status=fail
+```
+
+### Context
+
+- Command: `MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q`
+- Matplotlib version: `3.11.0`; backend: `agg`.
+- The earliest plotting failure passes when run alone, so the Matplotlib
+  failure depends on full-suite process/global class state rather than the
+  E1-R active-cell repair or standalone plot generation.
+- The JSON plan-alignment test still fails when run alone and is unrelated to
+  the active-cell model, CSV matrices, or result validation path in E1-R.
+- E1-R semantic, active-coordinate, matrix-protocol, and focused graph tests
+  pass (`6 passed`).
+
+### Suggested Fix
+
+Handle these in separate test-infrastructure work. Reproduce the Matplotlib
+class-state mutation with the smallest preceding test subset before changing
+plot code or dependency constraints. Diagnose the JSON alignment report's
+actual errors separately. Do not mix either fix into the E1-R single-variable
+layout repair.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/evaluation/plots.py, src/blockcipher_nd/planning/result_alignment.py, tests/test_pairset_aggregation_postprocess.py, tests/test_project_structure.py
+- See Also: ERR-20260624-002, LRN-20260710-003
+
+---
+
 ## [ERR-20260621-001] rg_windows_path_regex
 
 **Logged**: 2026-06-21T20:55:00+08:00

@@ -1,3 +1,47 @@
+## [LRN-20260710-003] correction
+
+**Logged**: 2026-07-10T11:57:53+08:00
+**Priority**: high
+**Status**: pending
+**Area**: workflow
+
+### Summary
+After the user approves an experiment design and says to proceed, execute the
+approved implementation and experiment through its local verdict instead of
+adding another conversational review gate.
+
+### Details
+The E1-R repair and re-adjudication design had already been presented and
+approved. After writing and committing the formal experiment specification,
+the agent stopped again to request review of the written file. The user
+corrected this explicitly: `推进` meant to perform the corresponding repair,
+tests, smoke, and planned E1-R1 experiment, not merely prepare documentation.
+
+Repository requirements to write plans, commit changes, and preserve evidence
+do not imply repeatedly asking for approval after the user has already
+authorized the bounded design. Unless a new choice would materially change
+scope, external impact, or experimental interpretation, continue through the
+normal implementation, verification, local experiment, result documentation,
+commit, and push workflow.
+
+### Suggested Action
+Treat explicit `推进`, `继续推进`, or equivalent authorization after a reviewed
+design as approval for the complete in-scope local workflow. Keep the user
+updated during execution, but stop only for a genuine blocker or a new
+material decision that was not covered by the approved plan.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md, AGENTS.md
+- Tags: workflow, autonomy, experiment-execution, approval, user-intent
+- See Also: LRN-20260710-002, LRN-20260710-001
+- Pattern-Key: workflow.approved_experiment_proceed_means_execute_to_verdict
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-002] correction
 
 **Logged**: 2026-07-10T11:41:57+08:00

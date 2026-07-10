@@ -3,7 +3,7 @@
 ## Status
 
 ```text
-status = approved design / implementation not started
+status = layout repair implemented and focused tests passed / local experiment not started
 route = E1-R active-cell semantic-layout repair and re-adjudication
 claim_scope = local matched-negative integral diagnostic only
 remote_scale = no
@@ -15,6 +15,15 @@ remain valid measurements of commit `8c75600`, but source inspection after the
 run found that the active-cell graph consumed the encoder output under the
 wrong layout contract. E1 therefore did not cleanly adjudicate a
 PRESENT-cell-aligned topology architecture.
+
+Implementation and matrix readiness:
+
+```text
+semantic layout tests = 2 passed
+focused active-cell/cell-matrix regressions = 6 passed
+smoke_plan = configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_smoke_seed0.csv
+e1_r1_plan = configs/experiment/innovation1/innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv
+```
 
 ## Decision Question
 

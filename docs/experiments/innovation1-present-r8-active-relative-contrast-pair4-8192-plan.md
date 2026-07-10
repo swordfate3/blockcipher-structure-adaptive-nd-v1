@@ -2,8 +2,8 @@
 
 ## Status
 
-status = completed local adjudication diagnostic
-decision = control-clean but still fragile; do not remote-scale; proceed to E2 if continuing Innovation 1
+status = completed historical implementation-misaligned diagnostic
+decision = topology verdict superseded; repair and re-adjudicate with E1-R1 before E2
 claim_scope = not formal PRESENT r8 evidence
 plan =
 
@@ -15,6 +15,28 @@ artifacts =
 - outputs/local_smoke/i1_present_r8_active_relative_contrast_pair4_8192_seed0_seed1/progress.jsonl
 - outputs/local_smoke/i1_present_r8_active_relative_contrast_pair4_8192_seed0_seed1/curves.svg
 - outputs/local_smoke/i1_present_r8_active_relative_contrast_pair4_8192_seed0_seed1/history.csv
+
+## 2026-07-10 Semantic-Layout Correction
+
+Post-run source inspection found that the cell-matrix encoder emits global
+bit-plane order while the active-cell graph reshaped the 320 pair bits as
+word-major cell groups. The model's graph tokens therefore mixed semantic
+PRESENT cells. The six AUC values below remain valid historical measurements
+of commit `8c75600`, but they do not cleanly adjudicate true PRESENT-cell
+topology.
+
+```text
+historical E1 topology verdict = superseded / not adjudicated
+remote_scale = no
+next_adjudication = E1-R1 active-cell layout repair at 2048/class
+E2 = deferred until E1-R1 resolves
+```
+
+Repair and re-adjudication plan:
+
+```text
+docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md
+```
 
 ## Verdict Context
 
@@ -196,8 +218,9 @@ remote run from this evidence.
 Route verdict impact:
 
 ```text
-active-relative topology-architecture branch = held / redesign-before-scale
-next Innovation 1 adjudication = E2 trail-position neural residual with deterministic baseline
+active-relative topology-architecture branch = implementation-blocked / verdict superseded
+next Innovation 1 adjudication = E1-R1 cell-aligned pair4 2048/class
+E2 trail-position neural residual = deferred until E1-R1 resolves
 ```
 
 ## Command

@@ -16581,6 +16581,72 @@ def test_present_trail_position_stats_accepts_zero_trail_depth_for_raw_prefix_st
     assert torch.isfinite(logits).all()
 
 
+def test_present_active_cell_graph_decodes_global_bitplanes_into_semantic_cells():
+    from blockcipher_nd.features.encoders.bitwise import int_to_bits
+    from blockcipher_nd.features.encoders.present_matrix import words_to_present_cell_matrix_bits
+
+    words = [
+        0x0123456789ABCDEF,
+        0xFEDCBA9876543210,
+        0x13579BDF02468ACE,
+        0x89ABCDEF01234567,
+        0x55AA33CC0FF09669,
+    ]
+    encoded = torch.tensor(
+        [words_to_present_cell_matrix_bits(words, 64, "sentinel")],
+        dtype=torch.float32,
+    )
+    model = build_model(
+        "present_active_cell_graph_pairset",
+        input_bits=336,
+        hidden_bits=8,
+        pair_bits=320,
+        structure="SPN",
+        model_options={"token_dim": 16, "metadata_bits": 16},
+    )
+    expected = torch.tensor(
+        [
+            [
+                bit
+                for word in words
+                for bit in int_to_bits(word, 64)[cell * 4 : cell * 4 + 4]
+            ]
+            for cell in range(16)
+        ],
+        dtype=torch.float32,
+    ).unsqueeze(0)
+
+    observed = model._cell_features(encoded)
+
+    assert observed.shape == (1, 16, 20)
+    assert torch.equal(observed, expected)
+
+
+def test_present_active_cell_graph_source_coordinate_selects_active_semantic_nibble():
+    from blockcipher_nd.features.encoders.present_matrix import words_to_present_cell_matrix_bits
+
+    model = build_model(
+        "present_active_cell_graph_pairset",
+        input_bits=336,
+        hidden_bits=8,
+        pair_bits=320,
+        structure="SPN",
+        model_options={"token_dim": 16, "metadata_bits": 16},
+    )
+    for active_nibble in range(16):
+        words = [0xF << (4 * active_nibble), 0, 0, 0, 0]
+        encoded = torch.tensor(
+            [words_to_present_cell_matrix_bits(words, 64, "active_sentinel")],
+            dtype=torch.float32,
+        )
+        cells = model._cell_features(encoded)
+        source_cell = int(model.source_cells[active_nibble])
+
+        assert source_cell == 15 - active_nibble
+        assert torch.equal(cells[0, source_cell, :4], torch.ones(4))
+        assert cells.sum().item() == 4.0
+
+
 def test_present_active_cell_graph_modes_forward_and_change_targets():
     pair_bits = pair_bits_for_encoding(64, "present_pair_xor_paligned_sinv_cell_matrix_bits")
     common = {
@@ -16758,6 +16824,43 @@ def test_present_active_cell_graph_modes_forward_and_change_targets():
     assert active_relative_contrast_model.classifier[1].in_features == (
         contrast_model.classifier[1].in_features + active_relative_contrast_model.token_dim
     )
+
+
+def test_present_active_cell_layout_repair_plans_preserve_the_readjudication_protocol():
+    smoke_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_active_cell_layout_repair_smoke_seed0.csv"
+    )
+    readjudication_plan = (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_present_r8_active_cell_layout_repair_pair4_2048_seed0_seed1.csv"
+    )
+
+    smoke_tasks = build_tasks(parse_args(["--plan", smoke_plan]))
+    readjudication_tasks = build_tasks(parse_args(["--plan", readjudication_plan]))
+
+    assert len(smoke_tasks) == 3
+    assert {task["samples_per_class"] for task in smoke_tasks} == {64}
+    assert {task["seed"] for task in smoke_tasks} == {0}
+    assert len(readjudication_tasks) == 6
+    assert {task["samples_per_class"] for task in readjudication_tasks} == {2048}
+    assert {task["seed"] for task in readjudication_tasks} == {0, 1}
+    assert {task["model_options"]["graph_mode"] for task in readjudication_tasks} == {
+        "true",
+        "shuffled",
+        "metadata_only",
+    }
+    assert all(task["pairs_per_sample"] == 4 for task in readjudication_tasks)
+    assert all(
+        task["feature_encoding"] == "present_pair_xor_paligned_sinv_cell_matrix_bits"
+        for task in readjudication_tasks
+    )
+    assert all(
+        task["sample_structure"]
+        == "plaintext_integral_nibble_aligned_difference_matched_negative_random_active_metadata"
+        for task in readjudication_tasks
+    )
+    assert all("MATCHED-NEGATIVE" in task["matching_evidence"] for task in readjudication_tasks)
 
 
 def test_present_active_cell_graph_rejects_missing_active_metadata():

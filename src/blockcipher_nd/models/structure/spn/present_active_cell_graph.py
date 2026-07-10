@@ -480,19 +480,21 @@ class PresentActiveCellGraphPairSetDistinguisher(nn.Module):
     def set_structure_features(self, features: torch.Tensor) -> None:
         return None
 
-    def _cell_tokens(self, pair_features: torch.Tensor) -> torch.Tensor:
-        words = pair_features.reshape(
+    def _cell_features(self, pair_features: torch.Tensor) -> torch.Tensor:
+        planes = pair_features.reshape(
             pair_features.shape[0],
+            4,
             self.words_per_pair,
             self.cells_per_word,
-            4,
         )
-        cells = words.permute(0, 2, 1, 3).reshape(
+        return planes.permute(0, 3, 2, 1).reshape(
             pair_features.shape[0],
             self.cells_per_word,
             self.cell_feature_bits,
         )
-        return self.cell_encoder(cells) + self.cell_embedding
+
+    def _cell_tokens(self, pair_features: torch.Tensor) -> torch.Tensor:
+        return self.cell_encoder(self._cell_features(pair_features)) + self.cell_embedding
 
     def _persistent_edge_tokens(
         self,
