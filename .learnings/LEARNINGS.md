@@ -1,3 +1,50 @@
+## [LRN-20260710-008] correction
+
+**Logged**: 2026-07-10T17:04:50+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: docs
+**Promoted**: AGENTS.md
+
+### Summary
+Every completed experiment must end with an evidence-backed recommendation and
+a concrete next-step plan, not only metrics, status, or a route verdict.
+
+### Details
+The existing documentation workflow required a `next action` field, but it did
+not require the experiment report or final user-facing summary to explain and
+operationalize that action. This allowed completed experiments to be reported
+without answering the practical research question: what should be done next,
+why is it the best use of the next experiment slot, and what should explicitly
+not be continued?
+
+For every completed meaningful experiment, the report must derive a
+recommendation from the observed gate and required controls. The accompanying
+plan must identify the next research question, same-budget anchor and controls,
+the one variable being changed, planned scale/seeds/epochs, readiness and stop
+gates, and whether execution is local or remote. It must also name routes or
+mechanical scale-ups that the evidence does not support. When the evidence only
+supports an audit, specify the exact mismatch to test and the decision that the
+audit will unlock instead of saying only "continue investigating."
+
+### Suggested Action
+Require both experiment documents and final user-facing result reports to
+contain an evidence-backed recommended next action and an executable next-step
+plan. Apply the rule immediately to the completed AutoND/DBitNet R1 result by
+blocking R2 and defining a bounded, single-variable lower-round protocol audit.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/innovation1-present-autond-dbitnet-strict-reimplementation-plan.md
+- Tags: experiments, reporting, recommendation, next-step-plan, evidence-gates
+- See Also: LRN-20260627-001, LRN-20260626-001, LRN-20260628-003
+- Pattern-Key: research.experiment_completion.actionable_next_plan
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-007] knowledge_gap
 
 **Logged**: 2026-07-10T13:34:32+08:00

@@ -406,6 +406,57 @@ outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/
 outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710_history.csv
 ```
 
+## Recommended Next Step: R1A Protocol Attribution Audit
+
+Do not launch R2 at `262144/class`. R1 missed not only the r8 advancement gate
+but also every r5-r7 lower-round sanity gate, so additional samples cannot yet
+be interpreted as a test of r8 data scarcity. The next experiment slot should
+first determine whether a bounded reimplementation/protocol mismatch explains
+the weak curriculum transfer.
+
+The next research question is:
+
+```text
+Can one identified AutoND protocol difference restore the lower-round R1 gates
+under the strict encrypted-random-plaintext benchmark, without changing the
+DBitNet architecture or increasing the dataset size?
+```
+
+Execute R1A in this order:
+
+1. Complete a source-contract audit of checkpoint selection (`val_loss` in the
+   public code versus current `val_accuracy`) and optimizer-state handling at
+   each round transition. Add focused tests that make the selected behavior
+   explicit before any training run.
+2. Run a local CPU readiness smoke for the first concrete single-variable
+   correction found by that audit. Keep architecture, input difference,
+   negatives, keys, curriculum order, and all other training settings frozen.
+3. If the smoke and artifact gates pass, run one same-budget R1A diagnostic at
+   `65536/class`, seed 0, and 10 epochs per round. Compare it to the completed
+   R1 anchor; do not combine checkpoint, optimizer, key, or negative-generation
+   changes in one row.
+4. Use same-key validation only as a separately labeled generalization control
+   if the strict held-out-key result remains weak. Use public random-ciphertext
+   negatives only as an author-protocol ablation; they cannot replace strict
+   encrypted-random-plaintext evidence.
+
+R1A may advance to an R2 design review only if one strict, held-out-key variant
+meets the frozen lower-round and r8 gates:
+
+```text
+r5 accuracy >= 0.75
+r6 accuracy >= 0.60
+r7 accuracy >= 0.52
+r8 accuracy > 0.505
+all protocol/artifact integrity checks = pass
+```
+
+If no audited single-variable variant restores those gates, close this strict
+baseline reimplementation as an unresolved protocol/scale mismatch and return
+to selecting a separately justified typed-SPN candidate. Do not respond by
+mechanically increasing to R2/R3, reopening dense DDT inputs, or extending the
+held E1 graph route.
+
 ## Decision Boundaries
 
 - This audit does not reopen DDT input exploration.
