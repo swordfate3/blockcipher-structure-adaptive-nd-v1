@@ -29,6 +29,14 @@ Ge and Wang 2026 ePrint 2026/535:
 
 Nguyen et al. 2026 ePrint 2026/748:
   multi-pair gains explained primarily through variance reduction
+
+Su, Ren, and Chen 2025 ePrint 2025/537:
+  multi-difference/multi-ciphertext related-key PRESENT framework
+  + structure-filtered differences + DRSN + dataset clustering analysis
+
+Bellini et al. AutoND/DBitNet:
+  direct standard single-key/single-pair PRESENT r9 baseline
+  + encrypted-random-plaintext negatives + substantial published scale
 ```
 
 The local updated survey already classified BCS as a PRESENT `12-1-A-R` U-Net
@@ -46,13 +54,19 @@ typed adaptation, same-input/shuffled-structure attribution, and cross-SPN
 transfer. Keep corrected E1 and dense DDT stopped unless a genuinely different
 hypothesis passes a new literature and control review.
 
+The network expansion also showed that a paper can already be present in the
+corpus but still be underweighted in route selection. AutoND/DBitNet must be
+treated as a direct PRESENT comparator rather than only as background for
+generic difference search. Keep its reported accuracy separate from the
+project's AUC when comparing results.
+
 ### Metadata
-- Source: user_feedback, literature_reaudit
+- Source: user_feedback, literature_reaudit, network_search_expansion
 - Related Files: docs/research/innovation1-spn-literature-reaudit-20260710.md, docs/research/spn_structured_nn_research_plan.md, docs/research/innovation1-spn-adaptation-literature-refresh-20260705.md, papers/innovation_one/text/2024_sok_neural_differential_cryptanalysis.txt
-- Tags: innovation1, literature, novelty, spn, present, invp, bcs, input-network-codesign, attribution
+- Tags: innovation1, literature, novelty, spn, present, invp, bcs, autond, dbitnet, related-key, input-network-codesign, attribution
 - See Also: LRN-20260710-006, LRN-20260710-005, LRN-20260710-004
 - Pattern-Key: innovation1.literature.spn_joint_adaptation_novelty_collision
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-10
 - Last-Seen: 2026-07-10
 
