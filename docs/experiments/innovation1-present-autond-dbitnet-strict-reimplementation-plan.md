@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R1A-C1 local readiness passed and remote package ready; R2 blocked
+**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R1A-C1 launcher started with local watcher active; R2 blocked
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -549,6 +549,24 @@ plan, strict-negative protocol, medium-scale disk cache, and AutoND protocol
 lock. The monitor validates and plots the retrieved row, verifies `val_loss`
 for the target and all curriculum stages, verifies `reset_each_stage`, and
 writes per-round accuracy/AUC deltas versus the completed R1 anchor.
+
+Launch handoff on 2026-07-10:
+
+```text
+source commit        = 96a8f4c4f9f69a2090fdbc3137c0071c03cc1e38
+remote source        = run-owned clean clone, main aligned to source commit
+scheduled task       = i1_autond_r1a_valloss_65k_gpu1_20260710
+scheduled command    = cmd.exe /c <tracked launcher>
+bounded confirmation = launch_env, Git, GPU/Torch, and readiness logs present
+started.marker       = not yet observed at the single bounded check
+local tmux monitor   = i1_autond_r1a_valloss_65k_seed0_gpu1_20260710
+monitor state        = active; completion/result retrieval pending
+```
+
+The launch is therefore recorded as launcher-started and watcher-managed, not
+as completed remotely or retrieved. The main thread must not SSH-poll it; the
+local monitor owns subsequent waiting, SCP fallback retrieval, validation,
+plotting, R1 delta generation, and final gate creation.
 
 R1A-C1 may advance to an R2 design review only if the strict, held-out-key result
 meets the frozen lower-round and r8 gates:
