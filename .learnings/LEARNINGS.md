@@ -1,3 +1,44 @@
+## [LRN-20260710-001] correction
+
+**Logged**: 2026-07-10T10:15:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Report the latest completed experiment from commit/artifact chronology, not
+from the route named as the next adjudication.
+
+### Details
+The latest completed Innovation 1 experiment at commit `8c75600` is E1
+active-relative contrast pair4 at `8192/class`. Its validation AUC values are
+near chance (`true` seed0 `0.503246903`, seed1 `0.517796367`). The older
+trail-position route has much higher AUC under a different 16-pair,
+fixed-active-nibble, beamstats protocol, but it is the next route to adjudicate,
+not the latest completed experiment.
+
+The E1 result rows also distinguish training and validation scale:
+`samples_per_class = 8192` for training and
+`validation.samples_per_class = 4096` for validation.
+
+### Suggested Action
+For "latest experiment" status questions, first identify the newest completed
+commit/run and read its result artifact. Report next-route evidence separately,
+and always label both training and validation `samples_per_class` when they
+differ.
+
+### Metadata
+- Source: user_feedback
+- Related Files: outputs/local_smoke/i1_present_r8_active_relative_contrast_pair4_8192_seed0_seed1/results.jsonl, docs/experiments/innovation1-present-r8-active-relative-contrast-pair4-8192-plan.md, docs/experiments/innovation1-route-verdict-2026-07-09.md
+- Tags: innovation1, latest-status, chronology, auc, train-validation-scale, reporting
+- See Also: LRN-20260709-029, LRN-20260709-028, LRN-20260625-002
+- Pattern-Key: reporting.latest_experiment_from_completed_artifact_chronology
+- Recurrence-Count: 1
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260709-029] best_practice
 
 **Logged**: 2026-07-09T22:54:29+08:00

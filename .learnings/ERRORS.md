@@ -226,6 +226,9 @@ For GitHub-pushed formal or medium remote runs, do not assume a historical remot
 Rejected("This action was rejected due to unacceptable risk.
 Reason: Pushing 48 local commits to an external GitHub remote is a high-risk outbound transfer of workspace data, and the visible transcript does not show clear explicit user approval for this exact external push.
 The agent must not attempt to achieve the same outcome via workaround, indirect execution, or policy circumvention. Proceed only with a materially safer alternative, or if the user explicitly approves the action after being informed of the risk. Otherwise, stop and request user input.")
+
+Latest recurrence after commit 8c75600:
+Model "codex-auto-review" is not supported by any configured account in this group
 ```
 
 ### Context
@@ -233,6 +236,8 @@ The agent must not attempt to achieve the same outcome via workaround, indirect 
 - Purpose: publish already committed Innovation 1 experiment, gate, documentation, and remote-launch assets so `scripts/check-launch-source` can pass before a compliant remote run.
 - Local gate state before push attempt: `main...origin/main [ahead 48]`, dirty `false`, errors `unpushed_commits`.
 - Remote launch affected: `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`.
+- Latest recurrence: push of local head `8c75600` after the E1 8192/class
+  adjudication; branch state `main...origin/main [ahead 1]`.
 
 ### Suggested Fix
 Do not work around this by dirty overlay, alternate push commands, or SSH remote launch from unpublished code. Either obtain explicit user approval for the exact external push of 48 commits to `origin/main`, or continue with local diagnostics/watchers until a safer publication path exists.
@@ -241,6 +246,10 @@ Do not work around this by dirty overlay, alternate push commands, or SSH remote
 - Reproducible: yes
 - Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, scripts/check-launch-source
 - See Also: ERR-20260622-001, ERR-20260624-003, ERR-20260705-001, LRN-20260706-022
+- Pattern-Key: infra.git_push.external_reviewer_unavailable_or_rejected
+- Recurrence-Count: 2
+- First-Seen: 2026-07-06
+- Last-Seen: 2026-07-09
 
 ---
 
