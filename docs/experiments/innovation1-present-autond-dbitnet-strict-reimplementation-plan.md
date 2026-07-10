@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 
-**Status:** R0 readiness passed; R1 launched with local monitor active
+**Status:** R0 passed; R1 completed, fallback-retrieved, and plan-aligned; R2 blocked pending audit
 
 **Claim scope:** published-baseline audit, not an Innovation 1 novelty result
 
@@ -322,6 +322,89 @@ monitor state       = running; completion/result retrieval pending
 The bounded confirmation did not yet observe a `started.marker`, so this record
 does not promote the run to completed remotely or retrieved. The monitor owns
 subsequent waiting and fallback retrieval.
+
+## R1 Retrieved Result
+
+The local monitor fallback-retrieved the completed run on 2026-07-10 and
+finished validation, plotting, and gate generation:
+
+```text
+run_id             = i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710
+source commit      = 9491e47c72e977ebc4c465061d95cc030339db88
+remote run time    = 665.94 seconds (11 minutes 6 seconds)
+local postprocess  = completed about 13 minutes 48 seconds after first sync
+result rows        = 1 / 1
+plan alignment     = pass
+retrieval status   = fallback-retrieved from the G:\lxy run-owned directory
+claim scope        = 65536/class single-seed medium diagnostic only
+```
+
+Protocol integrity passed:
+
+```text
+model_key          = autond_dbitnet2023
+input_bits         = 128
+dilations          = [63,31,15,7,3]
+amsgrad            = true
+negative_mode      = encrypted_random_plaintexts
+pairs_per_sample   = 1
+round_sequence     = [5,6,7,8]
+train storage      = disk
+validation storage = disk
+```
+
+Restored-best-checkpoint validation metrics were:
+
+| Round | Accuracy | AUC | Best epoch |
+| --- | ---: | ---: | ---: |
+| r5 | 0.634368896 | 0.758460025 | 10 |
+| r6 | 0.576644897 | 0.603231360 | 3 |
+| r7 | 0.510253906 | 0.515467749 | 3 |
+| r8 | 0.501113892 | 0.499572861 | 1 |
+| r9 | 0.504653931 | 0.502980342 | 6 |
+
+R1 did not pass the planned lower-round sanity or r8 advancement gates:
+
+```text
+r5 required >= 0.75; observed 0.634368896
+r6 required >= 0.60; observed 0.576644897
+r7 required >= 0.52; observed 0.510253906
+r8 required >  0.505; observed 0.501113892
+```
+
+The adjudication is:
+
+```text
+decision = stop_and_audit_lower_round_pipeline
+remote_scale = no
+R2 262144/class = blocked
+```
+
+This is not a ceiling claim: `65536/class` is about 76 times smaller per class
+than the public AutoND `10^7`-row training set, uses strict encrypted-random-
+plaintext negatives, and has one seed. Before any larger run, audit the remaining
+reimplementation differences, particularly checkpoint selection (`val_accuracy`
+versus the public code's `val_loss` checkpoint), optimizer-state handling across
+rounds, held-out validation key, and public random-ciphertext behavior as an
+explicitly labeled ablation only.
+
+The remote launcher calculated and enforced the one-row condition, but its
+archived `result_gate.txt` lost the displayed numeric values because adjacent
+Windows redirection parsed the trailing `1` as a file descriptor. Independent
+local plan validation passed with `result_rows=1`, `expected_rows=1`, and no
+errors. The tracked launcher has been corrected to put spaces before `>`/`>>`;
+this logging defect does not change the retrieved metrics.
+
+Retrieved artifacts:
+
+```text
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/results/
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/logs/
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710_validation.json
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710_gate.json
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710_curves.svg
+outputs/remote_results/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710/i1_present_autond_dbitnet_strict_65k_seed0_gpu1_20260710_history.csv
+```
 
 ## Decision Boundaries
 

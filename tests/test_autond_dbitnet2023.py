@@ -274,6 +274,8 @@ def test_autond_remote_package_locks_strict_medium_protocol(tmp_path: Path) -> N
     assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
     assert "--amsgrad" in launcher
     assert "--dataset-cache-root" in launcher
+    assert "echo result_lines=%RESULT_LINES% >" in launcher
+    assert "echo expected_rows=1 >>" in launcher
     assert "cmd.exe /k" not in launcher
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
     assert "C:\\Users" not in launcher

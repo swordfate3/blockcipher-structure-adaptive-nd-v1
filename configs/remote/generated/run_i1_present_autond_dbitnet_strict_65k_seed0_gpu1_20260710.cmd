@@ -77,8 +77,8 @@ if errorlevel 1 goto failed
 
 set RESULT_LINES=0
 for /f "tokens=3" %%L in ('find /c /v "" "%RESULTS_DIR%\%RUN_ID%.jsonl"') do set RESULT_LINES=%%L
-echo result_lines=%RESULT_LINES%>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
-echo expected_rows=1>>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
+echo result_lines=%RESULT_LINES% > "%LOG_DIR%\%RUN_ID%_result_gate.txt"
+echo expected_rows=1 >> "%LOG_DIR%\%RUN_ID%_result_gate.txt"
 if not "%RESULT_LINES%"=="1" goto failed
 
 "%PYTHON_EXE%" scripts\validate-results ^
