@@ -1,3 +1,76 @@
+## [LRN-20260710-005] correction
+
+**Logged**: 2026-07-10T13:10:00+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+E2 trail-position and same-input global-stat models repeat the PRESENT
+cell-matrix bit-plane layout mismatch, so existing semantic trail-position
+residual verdicts require a layout-corrected re-adjudication.
+
+### Details
+Source inspection found that
+`words_to_present_cell_matrix_bits` emits each encoded pair as:
+
+```text
+[bit_plane, word, cell]
+```
+
+For the `beamstats8deep4` route this is four bit planes over 39 words and 16
+PRESENT cells. Both
+`PresentTrailPositionStatsPairSetDistinguisher._prepared_activity` and
+`present_global_pairset_statistics` instead directly reshape those bits as:
+
+```text
+[word, cell, bit]
+```
+
+Consequently, the candidate's named prefix/trail/depth/word/cell statistics do
+not refer to the encoder's semantic words and cells. The same-input global
+control is also layout-misaligned. The train-selected deterministic
+position-statistics baseline calls the candidate's `_position_statistics`, so
+that baseline repeats the same semantic mismatch.
+
+The completed 262144/class two-seed runs and frozen scores remain valid
+measurements of the implementation that ran:
+
+```text
+seed0 candidate AUC = 0.9999999995343387
+seed0 global AUC    = 0.9993830765306484
+seed1 candidate AUC = 0.9999999979045242
+seed1 global AUC    = 0.9994310575129930
+```
+
+They do not, however, cleanly adjudicate a semantic trail-position neural
+residual. The frozen-score deterministic residual tool also regenerates a raw
+validation dataset from metadata and checks label equality, but it does not
+compare a content-derived row identity against the neural score artifact's
+sequential sample IDs. Exact-row alignment is therefore assumed through
+deterministic regeneration rather than explicitly proven by sample hashes.
+
+### Suggested Action
+Before interpreting or scaling E2, add semantic sentinel tests for both models,
+decode each pair from global bit-plane order into `[word, cell, bit]`, and rerun
+the smallest same-protocol two-seed candidate/global/deterministic gate. Export
+or compute deterministic scores from the exact validation cache and bind them
+to content-derived sample IDs before calling the baseline exact-row aligned.
+Keep the benchmark fixed during layout repair; evaluate strict independent
+encrypted-random-plaintext negatives as a separate protocol control.
+
+### Metadata
+- Source: source_audit
+- Related Files: src/blockcipher_nd/features/encoders/present_matrix.py, src/blockcipher_nd/models/structure/spn/present_trail_position_stats.py, src/blockcipher_nd/models/structure/spn/present_pairset_global_stats_hybrid.py, src/blockcipher_nd/tasks/innovation1/spn_feature_audit.py, src/blockcipher_nd/cli/analyze_deterministic_score_residual.py, docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md
+- Tags: innovation1, present, spn, trail-position, feature-layout, deterministic-baseline, sample-alignment, experiment-validity
+- See Also: LRN-20260710-002, LRN-20260710-004, LRN-20260706-020
+- Pattern-Key: innovation1.spn_present.cell_matrix_feature_layout_contract
+- Recurrence-Count: 2
+- First-Seen: 2026-07-10
+- Last-Seen: 2026-07-10
+
+---
+
 ## [LRN-20260710-004] best_practice
 
 **Logged**: 2026-07-10T12:16:00+08:00
