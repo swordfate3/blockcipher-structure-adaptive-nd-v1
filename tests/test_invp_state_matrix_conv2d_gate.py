@@ -403,6 +403,90 @@ def test_cli_writes_protocol_valid_promote_seed1_report(tmp_path: Path) -> None:
     assert report["decision"] == "promote_seed1"
 
 
+def test_cli_returns_zero_for_protocol_valid_stop_decision(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "gate.json"
+    _write(results, {ANCHOR: 0.61, CANDIDATE: 0.60, SHUFFLED: 0.59, DELTA: 0.58})
+
+    exit_code = main(["--results", str(results), "--output", str(output)])
+
+    assert exit_code == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["decision"] == "stop_conv2d_route"
+
+
+def test_cli_returns_one_for_invalid_protocol(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "gate.json"
+    _write_rows(results, [_row(ANCHOR, 0.60)])
+
+    exit_code = main(["--results", str(results), "--output", str(output)])
+
+    assert exit_code == 1
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+
+
+def test_cli_forwards_repeated_results_and_multiple_expected_seeds(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    output = tmp_path / "gate.json"
+    _write(seed0, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.606, DELTA: 0.605})
+    _write(
+        seed1,
+        {ANCHOR: 0.60, CANDIDATE: 0.607, SHUFFLED: 0.604, DELTA: 0.603},
+        seed=1,
+    )
+
+    exit_code = main(
+        [
+            "--results",
+            str(seed0),
+            "--results",
+            str(seed1),
+            "--expected-seeds",
+            "0,1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["expected_seeds"] == [0, 1]
+    assert report["decision"] == "promote_medium_65536"
+
+
+@pytest.mark.parametrize("expected_seeds", ["0,", ",0", ""])
+def test_cli_rejects_empty_expected_seed_tokens_with_argparse_usage(
+    tmp_path: Path,
+    expected_seeds: str,
+) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(
+            [
+                "--results",
+                str(tmp_path / "results.jsonl"),
+                "--expected-seeds",
+                expected_seeds,
+                "--output",
+                str(tmp_path / "gate.json"),
+            ]
+        )
+
+    assert exc_info.value.code == 2
+
+
 @pytest.mark.parametrize(
     ("filename", "samples_per_class", "evidence"),
     [
@@ -443,6 +527,11 @@ def test_invp_state_matrix_conv2d_plans_build_frozen_protocol_tasks(
         assert task["rounds"] == 7
         assert task["seed"] == 0
         assert task["samples_per_class"] == samples_per_class
+        assert task["train_samples_total"] == 2 * samples_per_class
+        assert task["validation_samples_total"] == samples_per_class
+        assert task["final_test_samples_total"] is None
+        assert task["final_test_repeats"] == 0
+        assert task["dataset_label_mode"] == "balanced_per_class"
         assert task["pairs_per_sample"] == 16
         assert task["feature_encoding"] == "ciphertext_pair_bits"
         assert task["negative_mode"] == "encrypted_random_plaintexts"
@@ -455,6 +544,7 @@ def test_invp_state_matrix_conv2d_plans_build_frozen_protocol_tasks(
         assert task["loss"] == "mse"
         assert task["learning_rate"] == 0.0001
         assert task["optimizer"] == "adam"
+        assert task["optimizer_state_transition"] == "reset_each_stage"
         assert task["weight_decay"] == 0.00001
         assert task["lr_scheduler"] == "official_cyclic"
         assert task["max_learning_rate"] == 0.002
