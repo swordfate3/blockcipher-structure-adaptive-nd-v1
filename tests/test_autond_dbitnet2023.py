@@ -71,6 +71,8 @@ def test_autond_dbitnet2023_exposes_auditable_model_geometry() -> None:
     model = build_model("autond_dbitnet2023", input_bits=128, hidden_bits=7)
 
     assert model_metadata(model) == {
+        "parameter_count": 387777,
+        "trainable_parameter_count": 387777,
         "dilations": [63, 31, 15, 7, 3],
         "output_width": 9,
         "output_channels": 96,

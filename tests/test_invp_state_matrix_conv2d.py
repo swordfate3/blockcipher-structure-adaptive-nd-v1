@@ -1,6 +1,10 @@
 import pytest
 import torch
+from torch import nn
 
+import blockcipher_nd.models.structure as structure_models
+import blockcipher_nd.models.structure.spn as spn_models
+from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
     present_inverse_p_indices,
@@ -11,6 +15,7 @@ from blockcipher_nd.models.structure.spn.present_invp_state_matrix_conv2d import
     PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
     PresentNibbleStateMatrixConv2DSpnOnlyDistinguisher,
 )
+from blockcipher_nd.registry.model_factory import build_model
 
 
 INPUT_BITS = 16 * 128
@@ -228,3 +233,68 @@ def test_state_matrix_view_rejects_invalid_feature_shape():
 
     with pytest.raises(ValueError, match=f"expected {INPUT_BITS} input bits"):
         model.state_matrix_view(torch.zeros(2, INPUT_BITS - 1))
+
+
+def test_state_matrix_conv2d_variants_are_publicly_importable():
+    classes = (
+        PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher,
+        PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
+        PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
+    )
+
+    for model_class in classes:
+        assert getattr(spn_models, model_class.__name__) is model_class
+        assert getattr(structure_models, model_class.__name__) is model_class
+
+
+def test_model_factory_builds_state_matrix_conv2d_variants_with_equal_capacity():
+    model_keys = (
+        "present_nibble_invp_state_matrix_conv2d_spn_only",
+        "present_nibble_shuffled_p_state_matrix_conv2d_spn_only",
+        "present_nibble_delta_state_matrix_conv2d_spn_only",
+    )
+    expected_classes = (
+        PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher,
+        PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
+        PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
+    )
+    models = [
+        build_model(
+            model_key,
+            input_bits=INPUT_BITS,
+            hidden_bits=32,
+            pair_bits=128,
+            structure="SPN",
+            model_options={
+                "conv_depth": 3,
+                "kernel_size": 3,
+                "activation": "relu",
+                "norm": "batchnorm2d",
+                "dropout": 0.0,
+            },
+        )
+        for model_key in model_keys
+    ]
+    mapping_modes = []
+    for model in models:
+        if torch.equal(model.mapping_indices, present_inverse_p_indices("true")):
+            mapping_modes.append("true")
+        elif torch.equal(model.mapping_indices, present_inverse_p_indices("shuffled")):
+            mapping_modes.append("shuffled")
+        elif torch.equal(model.mapping_indices, torch.arange(64)):
+            mapping_modes.append("delta")
+
+    assert tuple(type(model) for model in models) == expected_classes
+    assert mapping_modes == ["true", "shuffled", "delta"]
+    parameter_counts = [sum(parameter.numel() for parameter in model.parameters()) for model in models]
+    assert parameter_counts[0] == parameter_counts[1] == parameter_counts[2]
+
+
+def test_model_metadata_records_total_and_trainable_parameter_counts():
+    model = nn.Sequential(nn.Linear(4, 3), nn.Linear(3, 1))
+    model[1].weight.requires_grad_(False)
+
+    metadata = model_metadata(model)
+
+    assert metadata["parameter_count"] == 19
+    assert metadata["trainable_parameter_count"] == 16

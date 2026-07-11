@@ -9,6 +9,7 @@ from blockcipher_nd.models.structure import (
     PresentInceptionMCNDPairStackMatrixDistinguisher,
     PresentMatrixTrailHybridPairSetDistinguisher,
     PresentNibbleDDTGraphDistinguisher,
+    PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
     PresentNibbleNoDDTGraphDistinguisher,
     PresentPairSetGlobalStatsDistinguisher,
     PresentPairSetGlobalStatsHybridDistinguisher,
@@ -24,6 +25,7 @@ from blockcipher_nd.models.structure import (
     PresentNibbleInvPPairConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPPairMixerConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
+    PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher,
     PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher,
     PresentNibbleInvPShuffledSboxPriorGateDistinguisher,
     PresentNibbleInvPSboxPriorGateDistinguisher,
@@ -34,6 +36,7 @@ from blockcipher_nd.models.structure import (
     PresentNibbleShuffledDDTGraphDistinguisher,
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
     PresentNibbleShuffledPAlignedSpnOnlyDistinguisher,
+    PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
     PresentNibbleShuffledTransitionResidualDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
@@ -116,6 +119,28 @@ def build_spn_model(
             token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    state_matrix_conv2d_models = {
+        "present_nibble_invp_state_matrix_conv2d_spn_only": (
+            PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher
+        ),
+        "present_nibble_shuffled_p_state_matrix_conv2d_spn_only": (
+            PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher
+        ),
+        "present_nibble_delta_state_matrix_conv2d_spn_only": (
+            PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher
+        ),
+    }
+    if name in state_matrix_conv2d_models:
+        return state_matrix_conv2d_models[name](
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            conv_depth=int_option(options, "conv_depth", 3) or 3,
+            kernel_size=int_option(options, "kernel_size", 3) or 3,
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "batchnorm2d")),
             dropout=float(options.get("dropout", 0.0)),
         )
     if name == "present_nibble_invp_active_aux_spn_only":

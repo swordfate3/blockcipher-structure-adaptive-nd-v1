@@ -61,6 +61,11 @@ from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
     PresentNibbleShuffledTransitionResidualDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.present_invp_state_matrix_conv2d import (
+    PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
+    PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher,
+    PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
@@ -87,12 +92,14 @@ __all__ = [
     "PresentZhangWangKerasMCNDDistinguisher",
     "PresentNibbleDDTGraphDistinguisher",
     "PresentNibbleDeltaOnlySpnOnlyDistinguisher",
+    "PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher",
     "PresentNibbleInvPActiveAuxSpnOnlyDistinguisher",
     "PresentNibbleInvPNoDDTGateDistinguisher",
     "PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher",
     "PresentNibbleInvPPairConsistencySpnOnlyDistinguisher",
     "PresentNibbleInvPPairMixerConsistencySpnOnlyDistinguisher",
     "PresentNibbleInvPOnlySpnOnlyDistinguisher",
+    "PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher",
     "PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher",
     "PresentNibbleInvPShuffledSboxPriorGateDistinguisher",
     "PresentNibbleInvPSboxPriorGateDistinguisher",
@@ -104,6 +111,7 @@ __all__ = [
     "PresentNibblePAlignedTransitionResidualDistinguisher",
     "PresentNibbleShuffledDDTGraphDistinguisher",
     "PresentNibbleShuffledPAlignedSpnOnlyDistinguisher",
+    "PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher",
     "PresentNibbleShuffledPAlignedGatedMCNDDistinguisher",
     "PresentNibbleShuffledTransitionResidualDistinguisher",
     "SpnCellPairSetDBitNetDistinguisher",

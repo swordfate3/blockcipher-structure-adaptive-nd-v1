@@ -17,7 +17,12 @@ def configure_structure_aware_model(model: Any, cipher_key: str, rounds: int) ->
 
 
 def model_metadata(model: Any) -> dict[str, Any]:
-    metadata: dict[str, Any] = {}
+    metadata: dict[str, Any] = {
+        "parameter_count": int(sum(parameter.numel() for parameter in model.parameters())),
+        "trainable_parameter_count": int(
+            sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+        ),
+    }
     for field in (
         "dilations",
         "output_width",
