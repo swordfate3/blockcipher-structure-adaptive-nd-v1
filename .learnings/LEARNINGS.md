@@ -64,6 +64,56 @@ data/key protocol. Keep `65536/class` results labeled medium diagnostics.
 
 ---
 
+## [LRN-20260711-001] correction
+
+**Logged**: 2026-07-11T18:14:12+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+Effective data protocol must be validated from generated dataset metadata, not
+inferred from configured key fields.
+
+### Details
+The `zhang_wang_case2_official_mcnd` generator intentionally follows the
+official reproduction protocol by sampling an independent random PRESENT key
+for every basic pair. Its effective key schedule is therefore
+`per_pair_random`, even when a plan contains `train_key=0`,
+`validation_key=0x11111111111111111111`, and `key_rotation_interval=0`.
+
+The first completed InvP state-matrix Conv2D R0 readiness report incorrectly
+described those configured fields as fixed effective encryption keys. Cache
+metadata already recorded `key_schedule=per_pair_random`, but result rows did
+not propagate that field and the route-specific gate did not validate it. The
+configured key values are inert deterministic plan/cache placeholder identity
+for this sample structure; they do not control the actual pair encryption
+schedule.
+
+### Suggested Action
+For every experiment protocol audit, inspect generated train and validation
+dataset metadata for effective behavior such as `key_schedule`. Serialize that
+metadata into result artifacts and gate it explicitly. Never infer effective
+key behavior solely from top-level plan fields when a sample structure owns its
+key-generation policy.
+
+### Metadata
+- Source: user_feedback, specification_review, r0_artifact_audit
+- Related Files: src/blockcipher_nd/engine/results.py, src/blockcipher_nd/planning/invp_state_matrix_conv2d_gate.py, tests/test_invp_state_matrix_conv2d_gate.py, docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md, docs/experiments/innovation1-present-invp-state-matrix-conv2d-implementation-plan.md
+- Tags: innovation1, protocol, key-schedule, dataset-metadata, present, official-mcnd, reporting
+- See Also: LRN-20260710-009
+- Pattern-Key: innovation1.protocol.effective_key_schedule_from_dataset_metadata
+- Recurrence-Count: 1
+- First-Seen: 2026-07-11
+- Last-Seen: 2026-07-11
+
+### Resolution
+- **Resolved**: 2026-07-11T18:14:12+08:00
+- **Commit/PR**: 1023ced
+- **Notes**: Result rows now serialize effective train/validation schedules, the InvP Conv2D gate requires `per_pair_random` for both splits, and R0 was regenerated from an empty cache with matching result and cache metadata.
+
+---
+
 ## [LRN-20260710-008] correction
 
 **Logged**: 2026-07-10T17:04:50+08:00

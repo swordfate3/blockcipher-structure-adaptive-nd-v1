@@ -57,9 +57,11 @@ pairs per sample           = 16
 feature encoding           = ciphertext_pair_bits
 negative mode              = encrypted_random_plaintexts
 sample structure           = zhang_wang_case2_official_mcnd
-train key                  = 0x00000000000000000000
-validation key             = 0x11111111111111111111
-key rotation interval      = 0
+configured train key       = 0x00000000000000000000 (inert placeholder)
+configured validation key  = 0x11111111111111111111 (inert placeholder)
+configured rotation        = 0 (inert placeholder)
+effective key schedule     = per_pair_random
+effective key scope        = independent random PRESENT key per basic pair
 loss                       = mse
 optimizer                  = adam
 learning rate              = 0.0001
@@ -73,8 +75,11 @@ early stopping min delta   = 0.0001
 primary metric             = validation AUC
 ```
 
-Validation labels, validation keys, negative construction, metric computation,
-checkpoint selection, and plan-alignment logic must not change.
+Validation labels, effective key schedule, negative construction, metric
+computation, checkpoint selection, and plan-alignment logic must not change.
+For this sample structure, effective key behavior must be verified from the
+generated train/validation dataset metadata, not inferred from configured key
+fields.
 
 ## Input Semantics
 
@@ -298,7 +303,19 @@ the budgets: `samples_per_class=64` still creates 128 balanced training rows and
 the standard half-size validation rule still creates 64 balanced validation
 rows. The focused regression suite passed `38/38` after the repair.
 
-The repaired plan then completed with this exact command:
+The first completed R0 artifacts then exposed a protocol-reporting mismatch
+during specification review. The document incorrectly described the configured
+train and validation key fields as fixed effective encryption keys, while
+`zhang_wang_case2_official_mcnd` intentionally uses an independent random
+PRESENT key for every basic pair. Those earlier artifacts were invalid for the
+documented protocol-identity claim because result rows did not serialize the
+effective dataset schedule. They remain useful only as the evidence that
+revealed the mismatch; they have been deleted and replaced by the clean rerun
+below. Commit `1023ced` added train/validation `key_schedule` result metadata
+and made the attribution gate require `per_pair_random` for both splits.
+
+The corrected implementation then completed a clean-cache rerun with this exact
+command:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -317,8 +334,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 Observed protocol was PRESENT-80 r7, seed 0, `64/class`, 128 total balanced
 training rows, 64 total balanced validation rows, one epoch, batch size 32,
 hidden bits 32, 16 pairs/sample, strict encrypted-random-plaintext negatives,
-fixed train key `0x00000000000000000000`, fixed validation key
-`0x11111111111111111111`, and CPU execution. The exact ordered model keys were:
+effective `per_pair_random` scheduling with an independent random PRESENT key
+for every basic pair, and CPU execution. The configured train key
+`0x00000000000000000000`, validation key `0x11111111111111111111`, and rotation
+interval `0` remained inert deterministic plan/cache placeholders rather than
+effective encryption keys. The exact ordered model keys were:
 
 ```text
 present_nibble_invp_only_spn_only
@@ -343,8 +363,10 @@ not interpreted as architecture quality or research evidence.
 
 Plan validation passed with `status=pass`, `plan_rows=4`, `result_rows=4`, and
 `errors=[]`. Progress contained four `row_done` events and ended with exactly
-one `run_done` event. Cache generation created exactly one train identity and
-one validation identity:
+one `run_done` event. The corrected attribution gate also returned
+`status=pass` and `errors=[]` when run with the R0 scale parameters. Its
+metric-derived decision is not interpreted at readiness scale. Cache generation
+created exactly one train identity and one validation identity:
 
 ```text
 outputs/local_cache/i1_present_invp_state_matrix_conv2d_smoke_seed0/present80/r7/train/seed-0_b10ab47bffcc5873
@@ -355,7 +377,10 @@ The first row created the train cache with 128 rows and the validation cache
 with 64 rows. Rows 2-4 each reused both exact paths, producing six
 `cache_reuse` events. The metadata matched across model rows on cipher, rounds,
 seed/split, difference, feature encoding, 16-pair structure, strict negative
-definition, keys, label mode, and row budget.
+definition, label mode, row budget, and effective schedule. All four result
+rows serialized `training.key_schedule=per_pair_random` and
+`validation.key_schedule=per_pair_random`; both cache metadata files also
+reported `key_schedule=per_pair_random`.
 
 The anchor has `128673` total/trainable parameters. Each of the true-InvP,
 shuffled-P, and DeltaC-only Conv2D rows has exactly `130881` total/trainable
@@ -366,11 +391,12 @@ R0 artifacts:
 
 | Artifact | Size |
 | --- | ---: |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl` | 16002 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/progress.jsonl` | 82408 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl` | 16282 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/progress.jsonl` | 82406 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/validation.json` | 3750 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/curves.svg` | 55086 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/history.csv` | 1372 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 1156 bytes |
 
 `claim_scope=implementation readiness only; metrics not interpreted`.
 
@@ -380,8 +406,9 @@ rows, 10 epochs, and the same-budget token-mixer anchor plus shuffled-P and
 DeltaC-only controls. Change only the evidence scale from R0 to R1. Require
 4/4 plan alignment, finite metrics, one train cache plus one validation cache
 reused across all rows, equal Conv2D parameter counts, and the existing R1
-promotion/stop gates. Do not launch remote scale, add models, change the
-benchmark, or interpret R0 metrics.
+promotion/stop gates. R1 must also require `per_pair_random` in both serialized
+result sections and both cache metadata files. Do not launch remote scale, add
+models, change the benchmark, or interpret R0 metrics.
 
 ## Artifacts And Adjudication
 
