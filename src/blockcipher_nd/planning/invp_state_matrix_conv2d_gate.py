@@ -270,7 +270,7 @@ def _is_expected_model(value: Any, expected: set[str]) -> bool:
 
 
 def _is_positive_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+    return type(value) is int and value > 0 and _is_finite_number(value)
 
 
 def _rows_by_seed_and_role(

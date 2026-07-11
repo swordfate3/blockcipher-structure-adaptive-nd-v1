@@ -317,6 +317,39 @@ def test_gate_fails_closed_for_oversized_json_integer_metric(tmp_path: Path) -> 
     assert any("metrics.auc" in error for error in report["errors"])
 
 
+@pytest.mark.parametrize(
+    ("model_scope", "count_field"),
+    [
+        ("conv2d", "parameter_count"),
+        ("conv2d", "trainable_parameter_count"),
+        ("anchor", "parameter_count"),
+        ("anchor", "trainable_parameter_count"),
+    ],
+)
+def test_gate_fails_closed_for_oversized_parameter_counts(
+    tmp_path: Path,
+    model_scope: str,
+    count_field: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    affected_rows = rows[1:] if model_scope == "conv2d" else rows[:1]
+    for row in affected_rows:
+        row[count_field] = 10**400
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(count_field in error for error in report["errors"])
+
+
 def test_gate_rejects_duplicate_and_missing_model_rows(tmp_path: Path) -> None:
     results = tmp_path / "results.jsonl"
     rows = [
