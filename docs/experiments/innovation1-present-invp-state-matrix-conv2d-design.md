@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-11
 
-**Status:** design approved in chat; written specification awaiting user review
+**Status:** written specification reviewed and approved; implementation plan written, execution not started
 
 **Claim scope:** controlled architecture-attribution experiment under the
 strict PRESENT-80 r7 Zhang/Wang Case2 protocol; not a completed experiment,
@@ -367,6 +367,12 @@ GPU scheduling exception is documented.
 
 ## Approved Next Step
 
-After the user reviews this written specification, invoke the implementation-
-planning workflow. The implementation plan must name exact files, tests,
-commands, CSVs, result-gate code, and commit boundaries before source edits.
+The reviewed implementation plan is:
+
+```text
+docs/experiments/
+innovation1-present-invp-state-matrix-conv2d-implementation-plan.md
+```
+
+Select an approved execution mode, then follow that plan task by task. Source
+edits, R0 readiness, and R1 adjudication have not started at this status point.
