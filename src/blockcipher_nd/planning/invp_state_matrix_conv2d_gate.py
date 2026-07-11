@@ -153,6 +153,7 @@ def _protocol_errors(
         "difference_member": 0,
     }
     exact_training_fields = {
+        "key_schedule": "per_pair_random",
         "input_bits": 2048,
         "pair_bits": 128,
         "train_rows": 2 * samples_per_class,
@@ -200,6 +201,13 @@ def _protocol_errors(
             validation,
             "samples_per_class",
             samples_per_class // 2,
+            f"{label} validation",
+            errors,
+        )
+        _check_exact(
+            validation,
+            "key_schedule",
+            "per_pair_random",
             f"{label} validation",
             errors,
         )

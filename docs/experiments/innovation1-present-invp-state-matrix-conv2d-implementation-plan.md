@@ -712,6 +712,7 @@ def _row(model: str, auc: float, *, seed: int = 0, parameter_count: int = 1000) 
             "loss": 0.68,
         },
         "training": {
+            "key_schedule": "per_pair_random",
             "input_bits": 2048,
             "pair_bits": 128,
             "train_rows": 16384,
@@ -732,6 +733,7 @@ def _row(model: str, auc: float, *, seed: int = 0, parameter_count: int = 1000) 
             "model_options": options,
         },
         "validation": {
+            "key_schedule": "per_pair_random",
             "samples_per_class": 4096,
             "negative_mode": "encrypted_random_plaintexts",
             "sample_structure": "zhang_wang_case2_official_mcnd",
@@ -907,6 +909,15 @@ row for every `MODEL_ROLES` value and these exact fields:
 }
 ```
 
+The configured `train_key`, `validation_key`, and `key_rotation_interval`
+fields above are deterministic plan/cache placeholder identity only for
+`zhang_wang_case2_official_mcnd`; they are not the effective encryption key
+schedule. Require generated result metadata to report
+`training.key_schedule=per_pair_random` and
+`validation.key_schedule=per_pair_random`, proving that both datasets use an
+independent random PRESENT key for every basic pair. A mismatch in either field
+must produce `invalid_protocol` with a field-specific error.
+
 Require training `input_bits=2048`, `pair_bits=128`,
 `train_rows=2*samples_per_class`,
 `validation_rows=samples_per_class`, `epochs=epochs`, `loss=mse`,
@@ -1079,6 +1090,13 @@ Use `samples_per_class=64` in the smoke CSV and `8192` in R1. Evidence strings
 must explicitly say `SMOKE readiness only` or `8192/class local diagnostic;
 not formal, paper-scale, or breakthrough evidence`.
 
+The CSV `train_key=0`, `validation_key=0x11111111111111111111`, and
+`key_rotation_interval=0` values are inert deterministic placeholders under
+`zhang_wang_case2_official_mcnd`. Do not infer effective fixed-key encryption
+from the matrix contract. Effective key behavior is validated only from the
+generated train and validation dataset metadata, both of which must serialize
+`key_schedule=per_pair_random`.
+
 - [ ] **Step 5: Run focused tests and CSV plan alignment parser**
 
 ```bash
@@ -1151,6 +1169,13 @@ parameter counts, positive gradients already covered by tests, and four finite
 metric rows. If the cache event count differs because the runner emits an
 additional readiness event, compare exact cache paths and require one unique
 train path plus one unique validation path.
+
+Also require every result row to serialize
+`training.key_schedule=per_pair_random` and
+`validation.key_schedule=per_pair_random`, and require both cache metadata
+files to report the same effective schedule. The configured top-level key
+fields remain placeholder identity and must not be described as fixed
+encryption keys.
 
 - [ ] **Step 5: Record R0 readiness in the design document**
 

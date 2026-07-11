@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import json
+from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
 import pytest
+from torch import nn
 
+from blockcipher_nd.data.differential import DifferentialDataset
+from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
     gate_invp_state_matrix_conv2d,
 )
+from blockcipher_nd.training import TrainingResult
 
 
 ANCHOR = "present_nibble_invp_only_spn_only"
@@ -60,6 +67,7 @@ def _row(
             "loss": 0.68,
         },
         "training": {
+            "key_schedule": "per_pair_random",
             "input_bits": 2048,
             "pair_bits": 128,
             "train_rows": 16384,
@@ -80,11 +88,80 @@ def _row(
             "model_options": options,
         },
         "validation": {
+            "key_schedule": "per_pair_random",
             "samples_per_class": 4096,
             "negative_mode": "encrypted_random_plaintexts",
             "sample_structure": "zhang_wang_case2_official_mcnd",
         },
     }
+
+
+def test_build_task_result_propagates_effective_dataset_key_schedules() -> None:
+    dataset_metadata = {
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "pairs_per_sample": 16,
+        "samples_per_class": 1,
+        "samples_total": 2,
+        "positive_rows": 1,
+        "negative_rows": 1,
+        "dataset_label_mode": "balanced_per_class",
+        "key_rotation_interval": 0,
+        "key_schedule": "per_pair_random",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "integral_active_nibbles": [],
+    }
+    train_dataset = DifferentialDataset(
+        features=np.zeros((2, 4), dtype=np.uint8),
+        labels=np.array([0, 1], dtype=np.uint8),
+        metadata={**dataset_metadata, "key_schedule": "per_pair_random"},
+    )
+    validation_dataset = DifferentialDataset(
+        features=np.zeros((2, 4), dtype=np.uint8),
+        labels=np.array([0, 1], dtype=np.uint8),
+        metadata={**dataset_metadata, "key_schedule": "per_pair_random"},
+    )
+    task = {
+        "cipher_key": "present80",
+        "model_key": ANCHOR,
+        "architecture": "test-anchor",
+        "rounds": 7,
+        "seed": 0,
+        "input_difference": 9,
+        "samples_per_class": 1,
+        "pairs_per_sample": 16,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "key_rotation_interval": 0,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "integral_active_nibble": 0,
+        "selected_bit_indices": (),
+    }
+
+    result = build_task_result(
+        task=task,
+        args=Namespace(
+            dataset_cache_root=None,
+            dataset_cache_chunk_size=64,
+            dataset_cache_workers=1,
+        ),
+        train_cipher=SimpleNamespace(name="PRESENT-80", structure="SPN", rounds=7),
+        validation_cipher=SimpleNamespace(name="PRESENT-80", structure="SPN", rounds=7),
+        train_key=0,
+        validation_key=int("11" * 10, 16),
+        model=nn.Linear(4, 1),
+        model_key=ANCHOR,
+        pair_bits=128,
+        train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        training_result=TrainingResult(history=[], final_metrics={}, metadata={}),
+        pretrain_result=None,
+        final_evaluation=None,
+    )
+
+    assert result["training"]["key_schedule"] == "per_pair_random"
+    assert result["validation"]["key_schedule"] == "per_pair_random"
 
 
 def _write(
@@ -222,6 +299,36 @@ def test_gate_rejects_trainable_count_cache_and_nonfinite_metric(tmp_path: Path)
     assert any("conv2d_trainable_parameter_count_mismatch" in error for error in report["errors"])
     assert any("dataset_cache_root" in error for error in report["errors"])
     assert any("metrics.loss" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(
+    ("result_section", "invalid_schedule", "error_field"),
+    [
+        ("training", "fixed", "training key_schedule"),
+        ("validation", "fixed", "validation key_schedule"),
+    ],
+)
+def test_gate_rejects_effective_key_schedule_mismatch(
+    tmp_path: Path,
+    result_section: str,
+    invalid_schedule: str,
+    error_field: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1][result_section]["key_schedule"] = invalid_schedule
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(error_field in error for error in report["errors"])
 
 
 @pytest.mark.parametrize(
@@ -535,6 +642,7 @@ def test_invp_state_matrix_conv2d_plans_build_frozen_protocol_tasks(
         assert task["pairs_per_sample"] == 16
         assert task["feature_encoding"] == "ciphertext_pair_bits"
         assert task["negative_mode"] == "encrypted_random_plaintexts"
+        # official_mcnd ignores these configured keys; generated metadata carries the schedule.
         assert task["train_key"] == 0
         assert task["validation_key"] == int("11" * 10, 16)
         assert task["key_rotation_interval"] == 0
