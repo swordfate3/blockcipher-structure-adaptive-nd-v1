@@ -55,14 +55,10 @@ def gate_invp_state_matrix_conv2d(
         return _invalid_protocol(errors)
 
     by_seed = _rows_by_seed_and_role(rows)
-    seed_reports = {
-        str(seed): _seed_report(by_seed[seed])
-        for seed in expected_seeds
-    }
+    seed_reports = {str(seed): _seed_report(by_seed[seed]) for seed in expected_seeds}
     first_seed_rows = by_seed[expected_seeds[0]]
     counts = {
-        role: int(first_seed_rows[role]["parameter_count"])
-        for role in MODEL_ROLES
+        role: int(first_seed_rows[role]["parameter_count"]) for role in MODEL_ROLES
     }
     parameter_counts = {
         **counts,
@@ -153,7 +149,9 @@ def _load_rows(paths: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
             try:
                 row = json.loads(line)
             except json.JSONDecodeError as exc:
-                errors.append(f"results_path={path} line={line_number} invalid_json={exc.msg}")
+                errors.append(
+                    f"results_path={path} line={line_number} invalid_json={exc.msg}"
+                )
                 continue
             if not isinstance(row, dict):
                 errors.append(f"results_path={path} line={line_number} row_not_object")
@@ -170,8 +168,12 @@ def _protocol_errors(
     epochs: int,
 ) -> list[str]:
     errors: list[str] = []
-    if len(expected_seeds) not in {1, 2} or len(set(expected_seeds)) != len(expected_seeds):
-        errors.append(f"expected_seeds={expected_seeds} must_contain_one_or_two_unique_seeds")
+    if len(expected_seeds) not in {1, 2} or len(set(expected_seeds)) != len(
+        expected_seeds
+    ):
+        errors.append(
+            f"expected_seeds={expected_seeds} must_contain_one_or_two_unique_seeds"
+        )
 
     expected_models = set(MODEL_ROLES.values())
     model_to_role = {model: role for role, model in MODEL_ROLES.items()}
@@ -193,7 +195,9 @@ def _protocol_errors(
         for role in MODEL_ROLES:
             role_rows = grouped.get((seed, role), [])
             if len(role_rows) != 1:
-                errors.append(f"seed={seed} role={role} rows={len(role_rows)} expected_rows=1")
+                errors.append(
+                    f"seed={seed} role={role} rows={len(role_rows)} expected_rows=1"
+                )
 
     exact_row_fields = {
         "rounds": 7,
@@ -273,23 +277,41 @@ def _protocol_errors(
         metrics = row.get("metrics")
         if not isinstance(metrics, dict):
             errors.append(f"{label} metrics expected_mapping actual={metrics!r}")
+            metrics = {}
         else:
             for metric in ("auc", "accuracy", "calibrated_accuracy", "loss"):
                 if not _is_finite_number(metrics.get(metric)):
-                    errors.append(f"{label} metrics.{metric} must_be_finite actual={metrics.get(metric)!r}")
+                    errors.append(
+                        f"{label} metrics.{metric} must_be_finite actual={metrics.get(metric)!r}"
+                    )
+        errors.extend(
+            _checkpoint_history_errors(
+                row,
+                training=training,
+                metrics=metrics,
+                configured_epochs=epochs,
+                label=label,
+            )
+        )
 
         for field in ("parameter_count", "trainable_parameter_count"):
             value = row.get(field)
             if not _is_positive_integer(value):
-                errors.append(f"{label} {field} must_be_positive_integer actual={value!r}")
+                errors.append(
+                    f"{label} {field} must_be_positive_integer actual={value!r}"
+                )
             elif model_is_expected and model != MODEL_ROLES["anchor"]:
                 conv_counts[field].add(value)
 
     for seed, roots in cache_roots.items():
-        if len(roots) != len(MODEL_ROLES) or any(
-            not isinstance(root, str) or not root.strip() for root in roots
-        ) or len(set(roots)) != 1:
-            errors.append(f"seed={seed} dataset_cache_root must_be_identical_and_non_empty actual={roots!r}")
+        if (
+            len(roots) != len(MODEL_ROLES)
+            or any(not isinstance(root, str) or not root.strip() for root in roots)
+            or len(set(roots)) != 1
+        ):
+            errors.append(
+                f"seed={seed} dataset_cache_root must_be_identical_and_non_empty actual={roots!r}"
+            )
 
     if len(conv_counts["parameter_count"]) != 1:
         errors.append(
@@ -301,6 +323,109 @@ def _protocol_errors(
             "conv2d_trainable_parameter_count_mismatch "
             f"values={sorted(conv_counts['trainable_parameter_count'])}"
         )
+    return errors
+
+
+def _checkpoint_history_errors(
+    row: dict[str, Any],
+    *,
+    training: dict[str, Any],
+    metrics: dict[str, Any],
+    configured_epochs: int,
+    label: str,
+) -> list[str]:
+    errors: list[str] = []
+    history = row.get("history")
+    if not isinstance(history, list) or not history:
+        return [f"{label} history expected_nonempty_list actual={history!r}"]
+
+    epochs_ran = training.get("epochs_ran")
+    if type(epochs_ran) is not int or not 1 <= epochs_ran <= configured_epochs:
+        errors.append(
+            f"{label} training epochs_ran must_be_exact_positive_int_at_most="
+            f"{configured_epochs} actual={epochs_ran!r}"
+        )
+    if type(epochs_ran) is int and len(history) != epochs_ran:
+        errors.append(
+            f"{label} history length={len(history)} must_equal_epochs_ran={epochs_ran}"
+        )
+
+    best_epoch = training.get("best_epoch")
+    if (
+        type(best_epoch) is not int
+        or type(epochs_ran) is not int
+        or not 1 <= best_epoch <= epochs_ran
+    ):
+        errors.append(
+            f"{label} training best_epoch must_be_exact_positive_int_at_most_epochs_ran "
+            f"actual={best_epoch!r} epochs_ran={epochs_ran!r}"
+        )
+
+    required_history_metrics = (
+        "learning_rate",
+        "train_auc",
+        "train_accuracy",
+        "train_loss",
+        "train_eval_loss",
+        "val_auc",
+        "val_accuracy",
+        "val_calibrated_accuracy",
+        "val_loss",
+    )
+    valid_history_items = True
+    for expected_epoch, item in enumerate(history, start=1):
+        item_label = f"{label} history[{expected_epoch - 1}]"
+        if not isinstance(item, dict):
+            errors.append(f"{item_label} expected_mapping actual={item!r}")
+            valid_history_items = False
+            continue
+        epoch = item.get("epoch")
+        if not _is_finite_number(epoch) or epoch != expected_epoch:
+            errors.append(
+                f"{item_label} epoch expected_sequential={expected_epoch} actual={epoch!r}"
+            )
+            valid_history_items = False
+        for metric in required_history_metrics:
+            if not _is_finite_number(item.get(metric)):
+                errors.append(
+                    f"{item_label} {metric} must_be_finite actual={item.get(metric)!r}"
+                )
+                valid_history_items = False
+
+    best_checkpoint_metric = training.get("best_checkpoint_metric")
+    if not _is_finite_number(best_checkpoint_metric):
+        errors.append(
+            f"{label} training best_checkpoint_metric must_be_finite "
+            f"actual={best_checkpoint_metric!r}"
+        )
+
+    if (
+        valid_history_items
+        and type(best_epoch) is int
+        and 1 <= best_epoch <= len(history)
+    ):
+        best_history = history[best_epoch - 1]
+        comparisons = (
+            (
+                "training.best_checkpoint_metric",
+                best_checkpoint_metric,
+                best_history["val_auc"],
+            ),
+            ("metrics.auc", metrics.get("auc"), best_history["val_auc"]),
+            ("metrics.accuracy", metrics.get("accuracy"), best_history["val_accuracy"]),
+            (
+                "metrics.calibrated_accuracy",
+                metrics.get("calibrated_accuracy"),
+                best_history["val_calibrated_accuracy"],
+            ),
+            ("metrics.loss", metrics.get("loss"), best_history["val_loss"]),
+        )
+        for field, actual, expected in comparisons:
+            if not _tightly_equal_finite(actual, expected):
+                errors.append(
+                    f"{label} {field} must_match_best_epoch_history "
+                    f"expected={expected!r} actual={actual!r}"
+                )
     return errors
 
 
@@ -323,6 +448,14 @@ def _is_finite_number(value: Any) -> bool:
         return math.isfinite(value)
     except (OverflowError, TypeError, ValueError):
         return False
+
+
+def _tightly_equal_finite(left: Any, right: Any) -> bool:
+    return (
+        _is_finite_number(left)
+        and _is_finite_number(right)
+        and math.isclose(left, right, rel_tol=1e-12, abs_tol=1e-12)
+    )
 
 
 def _is_expected_seed(value: Any, expected: set[int]) -> bool:
@@ -350,18 +483,14 @@ def _rows_by_seed_and_role(
 
 
 def _seed_report(rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    aucs = {
-        role: float(row["metrics"]["auc"])
-        for role, row in rows.items()
-    }
+    aucs = {role: float(row["metrics"]["auc"]) for role, row in rows.items()}
     return {
         "aucs": aucs,
         "architecture_margin": aucs["candidate"] - aucs["anchor"],
         "topology_margin": aucs["candidate"] - aucs["shuffled_p"],
         "representation_margin": aucs["candidate"] - aucs["delta_only"],
-        "candidate_above_all": aucs["candidate"] > max(
-            aucs["anchor"], aucs["shuffled_p"], aucs["delta_only"]
-        ),
+        "candidate_above_all": aucs["candidate"]
+        > max(aucs["anchor"], aucs["shuffled_p"], aucs["delta_only"]),
     }
 
 
@@ -378,9 +507,15 @@ def _decision(
     if any(report["architecture_margin"] <= 0.0 for report in reports):
         return "stop_conv2d_route", "keep_token_mixer_anchor_and_do_not_scale_conv2d"
     if any(report["topology_margin"] <= 0.0 for report in reports):
-        return "stop_generic_locality", "do_not_scale_generic_locality_without_true_p_topology"
+        return (
+            "stop_generic_locality",
+            "do_not_scale_generic_locality_without_true_p_topology",
+        )
     if any(report["representation_margin"] <= 0.0 for report in reports):
-        return "stop_invp_attribution", "do_not_scale_without_invp_representation_attribution"
+        return (
+            "stop_invp_attribution",
+            "do_not_scale_without_invp_representation_attribution",
+        )
 
     if len(reports) == 1:
         report = reports[0]
@@ -389,7 +524,10 @@ def _decision(
             and report["representation_margin"] >= seed0_representation_margin
         ):
             return "promote_seed1", "run_identical_seed1_local_gate"
-        return "weak_or_fragile_no_scale", "do_not_scale_run_bounded_local_variance_check"
+        return (
+            "weak_or_fragile_no_scale",
+            "do_not_scale_run_bounded_local_variance_check",
+        )
 
     mean_architecture_margin = sum(
         report["architecture_margin"] for report in reports
@@ -404,5 +542,11 @@ def _decision(
         and minimum_topology_margin >= joint_control_margin
         and minimum_representation_margin >= joint_control_margin
     ):
-        return "promote_medium_65536", "run_65536_per_class_two_seed_medium_confirmation"
-    return "unstable_no_remote_scale", "do_not_launch_remote_scale_inspect_two_seed_variance"
+        return (
+            "promote_medium_65536",
+            "run_65536_per_class_two_seed_medium_confirmation",
+        )
+    return (
+        "unstable_no_remote_scale",
+        "do_not_launch_remote_scale_inspect_two_seed_variance",
+    )

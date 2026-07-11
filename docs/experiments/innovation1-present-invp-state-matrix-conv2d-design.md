@@ -532,14 +532,212 @@ health is therefore recorded as unavailable, not inferred; no remote AutoND
 state was touched and this does not affect the complete local R1 artifacts.
 
 Recommended next action: retain `present_nibble_invp_only_spn_only` as the
-strongest same-protocol architecture anchor and stop the state-matrix Conv2D
-route. Do not run Conv2D seed1, R2, remote training, or a mechanical `65536` or
-`262144/class` scale-up. The next method-level experiment slot should require a
-new literature- and control-justified SPN-aware architecture or representation
-hypothesis, use the retained token mixer as its same-budget anchor, change only
-that one hypothesis, preserve the strict r7/16-pair/negative/key-schedule
-protocol, and first pass an `8192/class`, seed0 local diagnostic with topology
-and representation controls before any second seed or remote work.
+strongest same-protocol architecture anchor, stop the state-matrix Conv2D
+replacement route, and execute the separately gated [H1 topology-residual
+adapter plan](#h1-invp-token-mixer-topology-residual-adapter) below. H1 is
+planned and has not been implemented or run.
+
+## H1: InvP Token-Mixer Topology-Residual Adapter
+
+**Status:** planned; implementation, R0, and H1 seed0 training have not started
+
+### Research Question And Hypothesis
+
+The completed R1 result creates a specific residual-fusion hypothesis. The
+true-InvP Conv2D candidate beat shuffled-P by `+0.189985901117` AUC and
+DeltaC-only by `+0.169678151608`, but lost to the token-mixer anchor by
+`-0.005025476217`. This suggests that topology-local processing may be
+complementary when added as a small residual adapter to the strong true-InvP
+token mixer, even though it is weaker when it replaces that mixer.
+
+H1 changes one variable only: the presence and mapping identity of one
+lightweight local residual adapter. The token-mixer backbone, classifier, raw
+input, dataset, validation, optimizer, scheduler, checkpoint policy, and
+training budget remain fixed.
+
+### Frozen Matrix
+
+| Row | Role | Model key | Adapter view |
+| --- | --- | --- | --- |
+| 1 | same-budget anchor | `present_nibble_invp_only_spn_only` | none |
+| 2 | H1 candidate | `present_nibble_invp_topology_residual_spn_only` | true PRESENT InvP |
+| 3 | topology control | `present_nibble_shuffled_p_topology_residual_spn_only` | deterministic shuffled P |
+| 4 | representation control | `present_nibble_delta_topology_residual_spn_only` | raw DeltaC identity |
+
+The anchor retains exactly these options:
+
+```json
+{"spn_mixer_depth":2,"activation":"relu","norm":"layernorm"}
+```
+
+All three hybrid rows use the identical true-InvP token-mixer backbone and
+classifier. Only the adapter view changes between true InvP, the existing
+deterministic shuffled-P mapping, and raw DeltaC. The three hybrids must have
+exactly equal total and trainable parameter counts.
+
+### Frozen Hybrid Architecture
+
+The token encoder is exactly the anchor architecture: `base_channels=32`,
+128-dimensional pair embedding, mixer depth 2, and token MLP ratio 2. In
+parallel, the local adapter receives `[batch, pair, 4, 16]`, applies a
+16-channel `1x1` stem, exactly one `3x3` residual Conv2D block, spatial mean and
+max pooling, and a linear projection to 128 dimensions.
+
+Pair fusion is:
+
+```text
+token_pair_embedding + alpha * local_pair_embedding
+```
+
+`alpha` is one learned scalar initialized to `0.1`. The fused pair embeddings
+reuse the anchor's mean/max aggregation and unchanged classifier input and
+shape. Activation is ReLU, token normalization is LayerNorm, local
+normalization is BatchNorm2D, and dropout is zero. Construction must instantiate
+the common backbone and classifier before the adapter so the same seed preserves
+comparable common initialization.
+
+Exact hybrid options:
+
+```json
+{"spn_mixer_depth":2,"token_mlp_ratio":2,"local_channels":16,"local_depth":1,"local_kernel_size":3,"local_residual_scale_init":0.1,"activation":"relu","norm":"layernorm","local_norm":"batchnorm2d","dropout":0.0}
+```
+
+### Frozen Protocol
+
+All four rows retain the strict PRESENT-80 r7 Zhang/Wang Case2 `m=16`
+protocol:
+
+```text
+feature encoding          = ciphertext_pair_bits
+negative mode             = encrypted_random_plaintexts
+sample structure          = zhang_wang_case2_official_mcnd
+effective key schedule    = per_pair_random for train and validation
+loss                      = mse
+optimizer                 = adam
+learning rate             = 0.0001
+weight decay              = 0.00001
+learning-rate scheduler   = official_cyclic
+max learning rate         = 0.002
+checkpoint metric         = val_auc
+restore best checkpoint   = true
+early stopping patience   = 8
+early stopping min delta  = 0.0001
+```
+
+Labels, input difference, pair count, validation construction, negative
+definition, metric computation, and effective key sampling must not change.
+Both serialized result sections and both cache metadata files must report
+`key_schedule=per_pair_random`.
+
+### R0 Readiness
+
+```text
+run id             = i1_present_invp_topology_residual_smoke_seed0
+planned config     = configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv
+samples_per_class  = 64
+validation         = 32/class, 64 total rows
+seed               = 0
+epochs             = 1
+batch size         = 32
+device             = cpu
+rows               = 4
+```
+
+Planned output/cache paths:
+
+```text
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/history.csv
+outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/readiness_gate.json
+outputs/local_cache/i1_present_invp_topology_residual_smoke_seed0/
+```
+
+R0 is a neutral implementation gate only. It must prove exact tensor semantics,
+common initialization order, equal hybrid capacities, finite forward/backward,
+complete sequential histories, best-checkpoint consistency, exact 4/4 plan
+alignment, one train plus one validation disk cache reused across all rows, and
+`decision=implementation_ready` with `research_decision_applied=false`. R0
+metrics must not be interpreted.
+
+### H1 Seed0 Local Diagnostic
+
+```text
+run id             = i1_present_invp_topology_residual_8192_seed0
+planned config     = configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv
+samples_per_class  = 8192
+training total     = 16384 rows
+validation         = 4096/class, 8192 total rows
+seed               = 0
+epochs             = 10
+batch size         = 256
+device             = cpu/local
+rows               = 4
+```
+
+Planned output/cache paths:
+
+```text
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/progress.jsonl
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/validation.json
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/curves.svg
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/history.csv
+outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/topology_residual_gate.json
+outputs/local_cache/i1_present_invp_topology_residual_8192_seed0/
+```
+
+The runner must use disk-backed cache generation, chunk progress, progress
+JSONL, and exact train/validation cache reuse. This `8192/class` stage is a
+local diagnostic only, not formal training, paper-scale evidence, or a
+breakthrough claim.
+
+For each seed define:
+
+```text
+architecture_margin   = AUC(true residual) - AUC(token-mixer anchor)
+topology_margin       = AUC(true residual) - AUC(shuffled-P residual)
+representation_margin = AUC(true residual) - AUC(DeltaC residual)
+```
+
+Apply these seed0 decisions in order:
+
+| Observation | Decision and action |
+| --- | --- |
+| protocol, history, count, cache, or schedule invariant fails | `invalid_protocol`; repair and rerun the same matrix without interpreting metrics |
+| candidate AUC `<=` anchor | `stop_topology_residual`; retain anchor |
+| candidate AUC `<=` shuffled control | `stop_true_topology_attribution`; no seed1 or scale |
+| candidate AUC `<=` Delta control | `stop_invp_adapter_attribution`; no seed1 or scale |
+| candidate is above all, but any margin is `< +0.003` | `weak_or_fragile_no_scale`; inspect histories once, no remote |
+| architecture, topology, and representation margins are all `>= +0.003` | `promote_seed1`; run only the identical local seed1 matrix |
+
+Seed0 plus seed1 may advance to `65536/class` only if the candidate is above all
+comparators on each seed, minimum architecture margin is at least `+0.001`, and
+minimum topology and representation margins are each at least `+0.002`.
+Otherwise the route does not scale. `65536/class` remains a medium diagnostic;
+there is no remote or formal claim before later evidence gates and no formal
+claim without completed, retrieved, plan-aligned `>=1000000/class` multi-seed
+evidence.
+
+### Forbidden H1 Continuations
+
+- Do not run pure Conv2D seed1, R2, `65536/class`, or `262144/class`.
+- Do not reopen DDT/beam-stat inputs or E1 graph scaling.
+- Do not use a score ensemble as raw single-sample method evidence.
+- Do not change data, labels, negatives, keys, validation, or another benchmark
+  variable alongside the adapter.
+- Do not add another architecture or representation to the frozen four-row
+  attribution matrix.
+
+### Claim Boundary
+
+Local/global fusion is established prior art and is not a novelty claim. The
+remaining possible method claim is a cipher-spec-generated topology adapter
+with same-input, capacity-matched shuffled-P and DeltaC attribution. That claim
+is available only if the frozen gates pass at the required later evidence
+scale. Until then H1 is a planned, controlled diagnostic hypothesis.
 
 ## Artifacts And Adjudication
 
@@ -636,5 +834,6 @@ innovation1-present-invp-state-matrix-conv2d-implementation-plan.md
 
 The implementation plan, R0 readiness gate, and R1 seed0 adjudication are
 complete. The applied R1 decision is `stop_conv2d_route`: do not run seed1 or
-remote/medium Conv2D scale, and retain the token-mixer anchor for any future
-single-variable, literature-justified SPN architecture hypothesis.
+remote/medium pure-Conv2D scale, and retain the token-mixer anchor. The exact
+next experiment is the [planned H1 token-mixer topology-residual adapter](#h1-invp-token-mixer-topology-residual-adapter),
+not another pure Conv2D run. H1 has not been implemented or trained.

@@ -46,6 +46,21 @@ def _row(
             "dropout": 0.0,
         }
     )
+    history = [
+        {
+            "epoch": epoch,
+            "learning_rate": 0.002 - (epoch - 1) * (0.0019 / max(epochs - 1, 1)),
+            "train_auc": auc + 0.01,
+            "train_accuracy": 0.62,
+            "train_loss": 0.24,
+            "train_eval_loss": 0.66,
+            "val_auc": auc,
+            "val_accuracy": 0.6,
+            "val_calibrated_accuracy": 0.61,
+            "val_loss": 0.68,
+        }
+        for epoch in range(1, epochs + 1)
+    ]
     return {
         "selected_model": model,
         "rounds": 7,
@@ -68,6 +83,7 @@ def _row(
             "calibrated_accuracy": 0.61,
             "loss": 0.68,
         },
+        "history": history,
         "training": {
             "key_schedule": "per_pair_random",
             "input_bits": 2048,
@@ -75,6 +91,9 @@ def _row(
             "train_rows": 2 * samples_per_class,
             "validation_rows": samples_per_class,
             "epochs": epochs,
+            "epochs_ran": epochs,
+            "best_epoch": epochs,
+            "best_checkpoint_metric": auc,
             "checkpoint_metric": "val_auc",
             "selected_checkpoint": "best",
             "restore_best_checkpoint": True,
@@ -96,6 +115,85 @@ def _row(
             "sample_structure": "zhang_wang_case2_official_mcnd",
         },
     }
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    [
+        "missing_history",
+        "empty_history",
+        "history_not_list",
+        "history_item_not_mapping",
+        "history_shorter_than_epochs_ran",
+        "epochs_ran_not_exact_int",
+        "epochs_ran_nonpositive",
+        "epochs_ran_exceeds_configured",
+        "best_epoch_not_exact_int",
+        "best_epoch_exceeds_epochs_ran",
+        "history_epoch_not_sequential",
+        "history_metric_missing",
+        "history_metric_nonfinite",
+        "best_checkpoint_metric_nonfinite",
+        "best_checkpoint_metric_mismatch",
+        "final_metric_mismatch",
+    ],
+)
+def test_gate_rejects_malformed_or_inconsistent_checkpoint_history(
+    tmp_path: Path,
+    malformation: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    row = rows[1]
+
+    if malformation == "missing_history":
+        del row["history"]
+    elif malformation == "empty_history":
+        row["history"] = []
+    elif malformation == "history_not_list":
+        row["history"] = {}
+    elif malformation == "history_item_not_mapping":
+        row["history"][0] = []
+    elif malformation == "history_shorter_than_epochs_ran":
+        row["history"].pop()
+    elif malformation == "epochs_ran_not_exact_int":
+        row["training"]["epochs_ran"] = 10.0
+    elif malformation == "epochs_ran_nonpositive":
+        row["training"]["epochs_ran"] = 0
+    elif malformation == "epochs_ran_exceeds_configured":
+        row["training"]["epochs_ran"] = 11
+    elif malformation == "best_epoch_not_exact_int":
+        row["training"]["best_epoch"] = True
+    elif malformation == "best_epoch_exceeds_epochs_ran":
+        row["training"]["best_epoch"] = 11
+    elif malformation == "history_epoch_not_sequential":
+        row["history"][4]["epoch"] = 4
+    elif malformation == "history_metric_missing":
+        del row["history"][4]["val_auc"]
+    elif malformation == "history_metric_nonfinite":
+        row["history"][4]["learning_rate"] = float("nan")
+    elif malformation == "best_checkpoint_metric_nonfinite":
+        row["training"]["best_checkpoint_metric"] = float("inf")
+    elif malformation == "best_checkpoint_metric_mismatch":
+        row["training"]["best_checkpoint_metric"] = 0.62
+    elif malformation == "final_metric_mismatch":
+        row["metrics"]["calibrated_accuracy"] = 0.62
+    else:  # pragma: no cover - parametrization is exhaustive.
+        raise AssertionError(f"unknown malformation={malformation}")
+
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert report["errors"]
 
 
 def test_build_task_result_propagates_effective_dataset_key_schedules() -> None:
@@ -233,7 +331,10 @@ def test_gate_readiness_only_returns_neutral_r0_outcome(tmp_path: Path) -> None:
     assert report["status"] == "pass"
     assert report["decision"] == "implementation_ready"
     assert report["next_action"] == "run_frozen_r1_seed0_local_diagnostic"
-    assert report["claim_scope"] == "implementation readiness only; metrics not interpreted"
+    assert (
+        report["claim_scope"]
+        == "implementation readiness only; metrics not interpreted"
+    )
     assert report["research_decision_applied"] is False
     assert report["errors"] == []
 
@@ -253,7 +354,10 @@ def test_gate_readiness_only_rejects_r1_identity(tmp_path: Path) -> None:
     assert report["status"] == "fail"
     assert report["decision"] == "invalid_protocol"
     assert report["next_action"] == "repair_protocol_and_rerun_same_matrix"
-    assert any("readiness_only requires frozen R0 identity" in error for error in report["errors"])
+    assert any(
+        "readiness_only requires frozen R0 identity" in error
+        for error in report["errors"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -297,7 +401,9 @@ def test_gate_stops_when_candidate_loses_to_anchor(tmp_path: Path) -> None:
     assert report["next_action"] == "keep_token_mixer_anchor_and_do_not_scale_conv2d"
 
 
-def test_gate_stops_generic_locality_when_shuffled_p_beats_candidate(tmp_path: Path) -> None:
+def test_gate_stops_generic_locality_when_shuffled_p_beats_candidate(
+    tmp_path: Path,
+) -> None:
     results = tmp_path / "results.jsonl"
     _write(results, {ANCHOR: 0.59, CANDIDATE: 0.61, SHUFFLED: 0.6105, DELTA: 0.60})
 
@@ -327,8 +433,12 @@ def test_gate_keeps_submargin_seed0_local(tmp_path: Path) -> None:
 def test_gate_promotes_two_seeds_passing_joint_gates(tmp_path: Path) -> None:
     seed0 = tmp_path / "seed0.jsonl"
     seed1 = tmp_path / "seed1.jsonl"
-    _write(seed0, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.606, DELTA: 0.605}, seed=0)
-    _write(seed1, {ANCHOR: 0.60, CANDIDATE: 0.607, SHUFFLED: 0.604, DELTA: 0.603}, seed=1)
+    _write(
+        seed0, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.606, DELTA: 0.605}, seed=0
+    )
+    _write(
+        seed1, {ANCHOR: 0.60, CANDIDATE: 0.607, SHUFFLED: 0.604, DELTA: 0.603}, seed=1
+    )
 
     report = gate_invp_state_matrix_conv2d([seed0, seed1], expected_seeds=(0, 1))
 
@@ -339,8 +449,12 @@ def test_gate_promotes_two_seeds_passing_joint_gates(tmp_path: Path) -> None:
 def test_gate_marks_two_seed_control_submargin_unstable(tmp_path: Path) -> None:
     seed0 = tmp_path / "seed0.jsonl"
     seed1 = tmp_path / "seed1.jsonl"
-    _write(seed0, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.606, DELTA: 0.605}, seed=0)
-    _write(seed1, {ANCHOR: 0.60, CANDIDATE: 0.607, SHUFFLED: 0.6055, DELTA: 0.604}, seed=1)
+    _write(
+        seed0, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.606, DELTA: 0.605}, seed=0
+    )
+    _write(
+        seed1, {ANCHOR: 0.60, CANDIDATE: 0.607, SHUFFLED: 0.6055, DELTA: 0.604}, seed=1
+    )
 
     report = gate_invp_state_matrix_conv2d([seed0, seed1], expected_seeds=(0, 1))
 
@@ -368,7 +482,9 @@ def test_gate_rejects_parameter_and_protocol_mismatch(tmp_path: Path) -> None:
     assert report["claim_scope"] == "invalid strict-protocol architecture evidence"
 
 
-def test_gate_rejects_trainable_count_cache_and_nonfinite_metric(tmp_path: Path) -> None:
+def test_gate_rejects_trainable_count_cache_and_nonfinite_metric(
+    tmp_path: Path,
+) -> None:
     results = tmp_path / "results.jsonl"
     rows = [
         _row(ANCHOR, 0.60),
@@ -384,7 +500,10 @@ def test_gate_rejects_trainable_count_cache_and_nonfinite_metric(tmp_path: Path)
     report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
 
     assert report["status"] == "fail"
-    assert any("conv2d_trainable_parameter_count_mismatch" in error for error in report["errors"])
+    assert any(
+        "conv2d_trainable_parameter_count_mismatch" in error
+        for error in report["errors"]
+    )
     assert any("dataset_cache_root" in error for error in report["errors"])
     assert any("metrics.loss" in error for error in report["errors"])
 
@@ -583,7 +702,9 @@ def test_gate_rejects_duplicate_and_missing_model_rows(tmp_path: Path) -> None:
 
     assert report["status"] == "fail"
     assert any("candidate" in error and "rows=2" in error for error in report["errors"])
-    assert any("delta_only" in error and "rows=0" in error for error in report["errors"])
+    assert any(
+        "delta_only" in error and "rows=0" in error for error in report["errors"]
+    )
 
 
 def test_gate_rejects_protocol_values_with_wrong_json_types(tmp_path: Path) -> None:
@@ -652,7 +773,10 @@ def test_cli_readiness_only_writes_neutral_r0_report(tmp_path: Path) -> None:
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["decision"] == "implementation_ready"
     assert report["next_action"] == "run_frozen_r1_seed0_local_diagnostic"
-    assert report["claim_scope"] == "implementation readiness only; metrics not interpreted"
+    assert (
+        report["claim_scope"]
+        == "implementation readiness only; metrics not interpreted"
+    )
     assert report["research_decision_applied"] is False
 
 
@@ -686,7 +810,9 @@ def test_cli_returns_one_for_invalid_protocol(tmp_path: Path) -> None:
     assert report["decision"] == "invalid_protocol"
 
 
-def test_cli_forwards_repeated_results_and_multiple_expected_seeds(tmp_path: Path) -> None:
+def test_cli_forwards_repeated_results_and_multiple_expected_seeds(
+    tmp_path: Path,
+) -> None:
     from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
 
     seed0 = tmp_path / "seed0.jsonl"
