@@ -33,7 +33,8 @@ def gate_invp_state_matrix_conv2d(
     if expected_seed_errors:
         return _invalid_protocol(expected_seed_errors)
 
-    rows, load_errors = _load_rows(results_paths)
+    result_runs, load_errors = _load_result_runs(results_paths)
+    rows = [row for _, run_rows in result_runs for row in run_rows]
     progress_runs, progress_load_errors = _load_progress_runs(progress_paths)
     readiness_errors = []
     if readiness_only and (
@@ -57,6 +58,7 @@ def gate_invp_state_matrix_conv2d(
         ),
     ]
     cache_evidence, cache_errors = _cache_evidence(
+        result_runs,
         progress_runs,
         expected_seeds=expected_seeds,
         samples_per_class=samples_per_class,
@@ -162,8 +164,16 @@ def _invalid_protocol(errors: list[str]) -> dict[str, Any]:
     }
 
 
-def _load_rows(paths: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
-    return _load_jsonl_rows(paths, path_label="results_path")
+def _load_result_runs(
+    paths: list[Path],
+) -> tuple[list[tuple[Path, list[dict[str, Any]]]], list[str]]:
+    runs: list[tuple[Path, list[dict[str, Any]]]] = []
+    errors: list[str] = []
+    for path in paths:
+        rows, path_errors = _load_jsonl_rows([path], path_label="results_path")
+        runs.append((path, rows))
+        errors.extend(path_errors)
+    return runs, errors
 
 
 def _load_jsonl_rows(
@@ -209,17 +219,49 @@ def _load_progress_runs(
 
 
 def _cache_evidence(
+    result_runs: list[tuple[Path, list[dict[str, Any]]]],
     progress_runs: list[tuple[Path, list[dict[str, Any]]]],
     *,
     expected_seeds: tuple[int, ...],
     samples_per_class: int,
 ) -> tuple[dict[str, Any], list[str]]:
     errors: list[str] = []
-    runs_by_seed: dict[int, list[tuple[Path, list[dict[str, Any]]]]] = {
-        seed: [] for seed in expected_seeds
-    }
+    evidence: dict[str, Any] = {}
+    if len(result_runs) != len(progress_runs) or not result_runs:
+        return evidence, [
+            "result_progress_path_count must_be_equal_and_nonzero "
+            f"results={len(result_runs)} progress={len(progress_runs)}"
+        ]
+
     expected_seed_set = set(expected_seeds)
-    for path, rows in progress_runs:
+    expected_models = set(MODEL_ROLES.values())
+    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
+    for pair_index, ((result_path, result_rows), (progress_path, rows)) in enumerate(
+        zip(result_runs, progress_runs, strict=True)
+    ):
+        pair_label = f"pair={pair_index} results_path={result_path} progress_path={progress_path}"
+        result_seed_values = [row.get("seed") for row in result_rows]
+        result_seeds = {seed for seed in result_seed_values if type(seed) is int}
+        result_models = [row.get("selected_model") for row in result_rows]
+        exact_string_models = [model for model in result_models if type(model) is str]
+        result_seed_valid = (
+            len(result_rows) == len(MODEL_ROLES)
+            and all(type(seed) is int for seed in result_seed_values)
+            and len(result_seeds) == 1
+            and result_seeds <= expected_seed_set
+            and len(result_models) == len(MODEL_ROLES)
+            and len(exact_string_models) == len(MODEL_ROLES)
+            and set(exact_string_models) == expected_models
+            and all(result_models.count(model) == 1 for model in expected_models)
+        )
+        if not result_seed_valid:
+            errors.append(
+                f"{pair_label} expected_exact_four_model_rows_with_one_seed "
+                f"rows={len(result_rows)} seeds={sorted(result_seeds)} models={result_models!r}"
+            )
+            continue
+        seed = next(iter(result_seeds))
+
         terminal = [
             row for row in rows if row.get("event") in {"cache_done", "cache_reuse"}
         ]
@@ -228,28 +270,36 @@ def _cache_evidence(
             for row in terminal
             if _is_expected_seed(row.get("seed"), expected_seed_set)
         }
-        if len(seeds) != 1:
+        if seeds != {seed}:
             errors.append(
-                f"progress_path={path} cache_evidence expected_one_seed actual={sorted(seeds)}"
+                f"{pair_label} paired_terminal_seed expected={seed} actual={sorted(seeds)}"
             )
-            continue
-        seed = next(iter(seeds))
-        runs_by_seed[seed].append((path, rows))
 
-    evidence: dict[str, Any] = {}
-    expected_models = set(MODEL_ROLES.values())
-    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
-    for seed in expected_seeds:
-        runs = runs_by_seed[seed]
-        if len(runs) != 1:
-            errors.append(
-                f"seed={seed} cache_evidence progress_runs={len(runs)} expected=1"
-            )
-            continue
-        progress_path, rows = runs[0]
         run_done = [row for row in rows if row.get("event") == "run_done"]
         if len(run_done) != 1:
             errors.append(f"seed={seed} run_done count={len(run_done)} expected=1")
+
+        normalized_result_path = _normalized_path(result_path)
+        normalized_cache_root: Path | None = None
+        cache_roots = [
+            row.get("training", {}).get("dataset_cache_root")
+            if isinstance(row.get("training"), dict)
+            else None
+            for row in result_rows
+        ]
+        if (
+            len(cache_roots) != len(MODEL_ROLES)
+            or any(
+                not isinstance(root, str) or not root.strip() for root in cache_roots
+            )
+            or len(set(cache_roots)) != 1
+        ):
+            errors.append(
+                f"{pair_label} dataset_cache_root must_be_identical_and_non_empty "
+                f"actual={cache_roots!r}"
+            )
+        else:
+            normalized_cache_root = _normalized_path(Path(cache_roots[0]))
 
         grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
         events: list[dict[str, Any]] = []
@@ -292,6 +342,16 @@ def _cache_evidence(
                 errors.append(
                     f"{label} cache_path must_be_nonempty actual={cache_path!r}"
                 )
+                normalized_cache_path = None
+            else:
+                normalized_cache_path = _normalized_path(Path(cache_path))
+                if normalized_cache_root is not None and not _is_under(
+                    normalized_cache_path, normalized_cache_root
+                ):
+                    errors.append(
+                        f"{label} cache_path outside_cache_root "
+                        f"path={normalized_cache_path} cache_root={normalized_cache_root}"
+                    )
             for field, expected in exact_fields.items():
                 _check_exact(row, field, expected, label, errors)
             expected_rows = (
@@ -307,7 +367,10 @@ def _cache_evidence(
                         "model": model,
                         "split": split,
                         "event": row.get("event"),
-                        "cache_path": cache_path,
+                        "cache_path": str(normalized_cache_path)
+                        if normalized_cache_path is not None
+                        else None,
+                        "original_cache_path": cache_path,
                     }
                 )
 
@@ -329,10 +392,11 @@ def _cache_evidence(
 
         split_paths = {
             split: {
-                row.get("cache_path")
+                str(_normalized_path(Path(row["cache_path"])))
                 for role in MODEL_ROLES
                 for row in grouped.get((role, split), [])
-                if isinstance(row.get("cache_path"), str) and row.get("cache_path")
+                if isinstance(row.get("cache_path"), str)
+                and row.get("cache_path", "").strip()
             }
             for split in ("train", "validation")
         }
@@ -362,10 +426,19 @@ def _cache_evidence(
             errors.append(
                 f"seed={seed} run_done output must_be_nonempty actual={result_output!r}"
             )
+        elif _normalized_path(Path(result_output)) != normalized_result_path:
+            errors.append(
+                f"seed={seed} run_done output must_match_paired_result "
+                f"expected={normalized_result_path} "
+                f"actual={_normalized_path(Path(result_output))}"
+            )
         evidence[str(seed)] = {
             "progress_path": str(progress_path),
-            "result_root": str(Path(result_output).parent)
-            if isinstance(result_output, str)
+            "normalized_progress_path": str(_normalized_path(progress_path)),
+            "result_path": str(normalized_result_path),
+            "result_root": str(normalized_result_path.parent),
+            "cache_root": str(normalized_cache_root)
+            if normalized_cache_root is not None
             else None,
             "train_path": train_path,
             "validation_path": validation_path,
@@ -376,10 +449,24 @@ def _cache_evidence(
             "run_done_count": len(run_done),
             "verified": True,
         }
+    observed_seeds = {
+        int(seed) for seed in evidence if seed.isdigit() or seed.startswith("-")
+    }
+    for seed in expected_seeds:
+        if seed not in observed_seeds:
+            errors.append(f"seed={seed} cache_evidence paired_runs=0 expected=1")
     if errors:
         for item in evidence.values():
             item["verified"] = False
     return evidence, errors
+
+
+def _normalized_path(path: Path) -> Path:
+    return path.expanduser().resolve(strict=False)
+
+
+def _is_under(path: Path, root: Path) -> bool:
+    return path == root or root in path.parents
 
 
 def _protocol_errors(

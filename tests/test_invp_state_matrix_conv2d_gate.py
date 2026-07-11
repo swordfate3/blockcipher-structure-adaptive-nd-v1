@@ -468,12 +468,18 @@ def _write(
 
 
 def _write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+    first = rows[0] if rows else {}
+    seed = first.get("seed") if type(first.get("seed")) is int else 0
+    default_cache_root = f"outputs/local_cache/seed{seed}"
+    roots = [row.get("training", {}).get("dataset_cache_root") for row in rows]
+    cache_root = path.parent / f"cache-seed{seed}"
+    if roots and all(root == default_cache_root for root in roots):
+        for row in rows:
+            row["training"]["dataset_cache_root"] = str(cache_root)
     path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8",
     )
-    first = rows[0] if rows else {}
-    seed = first.get("seed") if type(first.get("seed")) is int else 0
     samples_per_class = (
         first.get("samples_per_class")
         if type(first.get("samples_per_class")) is int
@@ -491,6 +497,13 @@ def _progress_path(results_path: Path) -> Path:
     return results_path.with_name(f"{results_path.stem}.progress.jsonl")
 
 
+def _write_rows_only(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
 def _write_progress(
     path: Path,
     *,
@@ -498,9 +511,10 @@ def _write_progress(
     seed: int,
     samples_per_class: int,
 ) -> None:
+    cache_root = result_path.parent / f"cache-seed{seed}"
     cache_paths = {
-        "train": str(path.parent / f"cache-seed{seed}" / "train"),
-        "validation": str(path.parent / f"cache-seed{seed}" / "validation"),
+        "train": str(cache_root / "train"),
+        "validation": str(cache_root / "validation"),
     }
     rows: list[dict[str, Any]] = []
     for role, model in (
@@ -707,7 +721,111 @@ def test_gate_rejects_empty_progress_collection(tmp_path: Path) -> None:
 
     assert report["status"] == "fail"
     assert report["decision"] == "invalid_protocol"
-    assert any("progress_runs=0" in error for error in report["errors"])
+    assert any("result_progress_path_count" in error for error in report["errors"])
+
+
+def test_gate_rejects_run_done_output_unrelated_to_supplied_result(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress = _progress_path(results)
+    rows = [
+        json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()
+    ]
+    rows[-1]["output"] = str(tmp_path / "unrelated" / "results.jsonl")
+    _write_rows_only(progress, rows)
+
+    report = _gate_invp_state_matrix_conv2d(
+        [results], progress_paths=[progress], expected_seeds=(0,)
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert any("run_done output" in error for error in report["errors"])
+
+
+def test_gate_rejects_self_consistent_cache_paths_outside_result_cache_root(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress = _progress_path(results)
+    rows = [
+        json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()
+    ]
+    unrelated_root = tmp_path / "unrelated-cache"
+    for row in rows:
+        if row.get("event") in {"cache_done", "cache_reuse"}:
+            row["cache_path"] = str(unrelated_root / row["split"])
+    _write_rows_only(progress, rows)
+
+    report = _gate_invp_state_matrix_conv2d(
+        [results], progress_paths=[progress], expected_seeds=(0,)
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert any("cache_root" in error for error in report["errors"])
+
+
+def test_gate_rejects_swapped_result_progress_pair_order(tmp_path: Path) -> None:
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    aucs = {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604}
+    _write(seed0, aucs, seed=0)
+    _write(seed1, aucs, seed=1)
+
+    report = _gate_invp_state_matrix_conv2d(
+        [seed0, seed1],
+        progress_paths=[_progress_path(seed1), _progress_path(seed0)],
+        expected_seeds=(0, 1),
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert any("paired" in error and "seed" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(("result_count", "progress_count"), [(1, 0), (1, 2)])
+def test_gate_rejects_unequal_result_progress_path_counts(
+    tmp_path: Path,
+    result_count: int,
+    progress_count: int,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress_paths = [_progress_path(results)] * progress_count
+
+    report = _gate_invp_state_matrix_conv2d(
+        [results] * result_count,
+        progress_paths=progress_paths,
+        expected_seeds=(0,),
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert any("path_count" in error for error in report["errors"])
+
+
+def test_gate_accepts_equivalent_normalized_relative_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    Path("runs").mkdir()
+    results = Path("runs/results.jsonl")
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+
+    report = _gate_invp_state_matrix_conv2d(
+        [Path("runs/../runs/results.jsonl")],
+        progress_paths=[Path("./runs/results.progress.jsonl")],
+        expected_seeds=(0,),
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    evidence = report["cache_evidence"]["0"]
+    assert evidence["result_path"] == str(results.resolve())
+    assert evidence["result_root"] == str(results.resolve().parent)
+    assert evidence["cache_root"] == str(Path("runs/cache-seed0").resolve())
 
 
 @pytest.mark.parametrize(
