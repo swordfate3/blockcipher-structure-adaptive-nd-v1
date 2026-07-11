@@ -50,6 +50,54 @@ layout repair.
 
 ---
 
+## [ERR-20260711-001] full_pytest_python310_fstring_collection
+
+**Logged**: 2026-07-11T20:44:40+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Full pytest collection was blocked on Python 3.10 by a backslash inside an
+f-string expression in the residual-focus remote-package path helper.
+
+### Error
+
+```text
+File "src/blockcipher_nd/cli/plan_residual_focus_remote_package.py", line 290
+  return f"{prefix}\\{suffix.replace('/', '\\')}"
+                                               ^
+SyntaxError: f-string expression part cannot include a backslash
+```
+
+### Context
+
+- Command: `MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q`
+- Environment: Python 3.10 in the project `uv` environment.
+- The failing source was unchanged between base `44a0d36` and experiment HEAD
+  `5be1607`; the experiment branch exposed the existing compatibility defect
+  during its required full-suite verification.
+- Collection stopped before the authoritative 30 known runtime failures could
+  be compared.
+
+### Suggested Fix
+
+Compute `suffix.replace("/", "\\")` in a local variable before the f-string,
+then interpolate that variable. This preserves the exact Windows path result
+without placing a backslash in the f-string expression.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/plan_residual_focus_remote_package.py, tests/test_residual_focus_remote_package.py
+- See Also: ERR-20260710-001
+
+### Resolution
+- **Resolved**: 2026-07-11T20:44:40+08:00
+- **Commit/PR**: cc12fb9
+- **Notes**: Moved slash normalization into `normalized_suffix`; Python 3.10 compilation passed and `tests/test_residual_focus_remote_package.py` passed 5/5.
+
+---
+
 ## [ERR-20260621-001] rg_windows_path_regex
 
 **Logged**: 2026-06-21T20:55:00+08:00
