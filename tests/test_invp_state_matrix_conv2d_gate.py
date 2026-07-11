@@ -6,6 +6,8 @@ from typing import Any
 
 import pytest
 
+from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
+from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
     gate_invp_state_matrix_conv2d,
 )
@@ -384,3 +386,81 @@ def test_gate_rejects_protocol_values_with_wrong_json_types(tmp_path: Path) -> N
     assert report["status"] == "fail"
     assert any("seed" in error for error in report["errors"])
     assert any("restore_best_checkpoint" in error for error in report["errors"])
+
+
+def test_cli_writes_protocol_valid_promote_seed1_report(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "nested" / "gate.json"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+
+    exit_code = main(["--results", str(results), "--output", str(output)])
+
+    assert exit_code == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["decision"] == "promote_seed1"
+
+
+@pytest.mark.parametrize(
+    ("filename", "samples_per_class", "evidence"),
+    [
+        (
+            "innovation1_spn_present_invp_state_matrix_conv2d_smoke_seed0.csv",
+            64,
+            "SMOKE readiness only",
+        ),
+        (
+            "innovation1_spn_present_invp_state_matrix_conv2d_8192_seed0.csv",
+            8192,
+            "8192/class local diagnostic; not formal, paper-scale, or breakthrough evidence",
+        ),
+    ],
+)
+def test_invp_state_matrix_conv2d_plans_build_frozen_protocol_tasks(
+    filename: str,
+    samples_per_class: int,
+    evidence: str,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / filename
+
+    args = parse_matrix_args(["--plan", str(plan), "--epochs", "10"])
+    tasks = build_tasks(args)
+
+    assert args.epochs == 10
+    assert [task["model_key"] for task in tasks] == [ANCHOR, CANDIDATE, SHUFFLED, DELTA]
+    assert len(tasks) == 4
+    anchor_options = {"spn_mixer_depth": 2, "activation": "relu", "norm": "layernorm"}
+    conv_options = {
+        "conv_depth": 3,
+        "kernel_size": 3,
+        "activation": "relu",
+        "norm": "batchnorm2d",
+        "dropout": 0.0,
+    }
+    for index, task in enumerate(tasks):
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == samples_per_class
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        assert task["train_key"] == 0
+        assert task["validation_key"] == int("11" * 10, 16)
+        assert task["key_rotation_interval"] == 0
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["difference_member"] == 0
+        assert task["loss"] == "mse"
+        assert task["learning_rate"] == 0.0001
+        assert task["optimizer"] == "adam"
+        assert task["weight_decay"] == 0.00001
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert task["early_stopping_patience"] == 8
+        assert task["early_stopping_min_delta"] == 0.0001
+        assert task["model_options"] == (anchor_options if index == 0 else conv_options)
+        assert task["matching_evidence"] == evidence
