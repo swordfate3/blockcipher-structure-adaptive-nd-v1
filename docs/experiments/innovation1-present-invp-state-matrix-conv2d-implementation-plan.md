@@ -1,12 +1,12 @@
 # PRESENT InvP State-Matrix Conv2D Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Completed steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build, validate, and adjudicate a strict-protocol PRESENT-80 r7 state-matrix Conv2D candidate against the existing InvP token-mixer anchor and matched shuffled-P/DeltaC-only controls.
 
 **Architecture:** Keep the existing raw `16 x 128` ciphertext-pair dataset and construct a `[batch, pair, 4 bit planes, 16 cells]` view inside the model. Share one residual Conv2D implementation across true-InvP, shuffled-P, and DeltaC-only subclasses, retain mean/max pair aggregation, and use a dedicated result gate to enforce protocol identity, parameter-count equality, and the approved architecture/topology/representation margins.
 
-**Tech Stack:** Python 3.13, PyTorch, NumPy-backed disk dataset cache, project CSV matrix runner, JSONL result validation, pytest, Ruff, Git.
+**Tech Stack:** Python 3.10.16, PyTorch, NumPy-backed disk dataset cache, project CSV matrix runner, JSONL result validation, pytest, Ruff, Git.
 
 **Design reference:** `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`
 
@@ -94,7 +94,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run ...
 - Modify: `src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py:832-918`
 - Test: `tests/test_invp_state_matrix_conv2d.py`
 
-- [ ] **Step 1: Write failing mapping-helper tests**
+- [x] **Step 1: Write failing mapping-helper tests**
 
 Create `tests/test_invp_state_matrix_conv2d.py` with the first tests:
 
@@ -141,7 +141,7 @@ def test_existing_invp_anchor_uses_shared_true_mapping() -> None:
     assert model.spn_encoder.inverse_p_indices.tolist() == present_inverse_p_indices("true").tolist()
 ```
 
-- [ ] **Step 2: Run the mapping tests and confirm the missing symbol failure**
+- [x] **Step 2: Run the mapping tests and confirm the missing symbol failure**
 
 Run:
 
@@ -151,7 +151,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: collection fails because `present_inverse_p_indices` is not exported.
 
-- [ ] **Step 3: Add the shared helper and route the anchor through it**
+- [x] **Step 3: Add the shared helper and route the anchor through it**
 
 Add immediately above `_present_inverse_p_index`:
 
@@ -181,7 +181,7 @@ Add `"present_inverse_p_indices"` to the module `__all__`. Do not change the
 other historical encoders in this task; the approved candidate and current
 InvP anchor are the only consumers requiring shared identity.
 
-- [ ] **Step 4: Run the focused tests**
+- [x] **Step 4: Run the focused tests**
 
 Run:
 
@@ -191,7 +191,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: `3 passed`.
 
-- [ ] **Step 5: Commit the mapping helper**
+- [x] **Step 5: Commit the mapping helper**
 
 ```bash
 git add src/blockcipher_nd/models/structure/spn/present_nibble_paligned_mcnd.py tests/test_invp_state_matrix_conv2d.py
@@ -204,7 +204,7 @@ git commit -m "refactor: share PRESENT inverse mapping indices"
 - Create: `src/blockcipher_nd/models/structure/spn/present_invp_state_matrix_conv2d.py`
 - Modify: `tests/test_invp_state_matrix_conv2d.py`
 
-- [ ] **Step 1: Add failing layout and model tests**
+- [x] **Step 1: Add failing layout and model tests**
 
 Append:
 
@@ -310,7 +310,7 @@ def test_state_matrix_model_validates_shape_and_options() -> None:
             raise AssertionError(f"expected failure for {kwargs}")
 ```
 
-- [ ] **Step 2: Run tests and confirm the module is missing**
+- [x] **Step 2: Run tests and confirm the module is missing**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py -q
@@ -319,7 +319,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 Expected: collection fails with `ModuleNotFoundError` for
 `present_invp_state_matrix_conv2d`.
 
-- [ ] **Step 3: Implement the complete candidate module**
+- [x] **Step 3: Implement the complete candidate module**
 
 Create the module with this implementation:
 
@@ -494,7 +494,7 @@ __all__ = [
 ]
 ```
 
-- [ ] **Step 4: Run model tests**
+- [x] **Step 4: Run model tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py -q
@@ -502,7 +502,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit the model**
+- [x] **Step 5: Commit the model**
 
 ```bash
 git add src/blockcipher_nd/models/structure/spn/present_invp_state_matrix_conv2d.py tests/test_invp_state_matrix_conv2d.py
@@ -518,7 +518,7 @@ git commit -m "feat: add PRESENT InvP state-matrix Conv2D"
 - Modify: `src/blockcipher_nd/engine/modeling.py:19-43`
 - Modify: `tests/test_invp_state_matrix_conv2d.py`
 
-- [ ] **Step 1: Add failing factory and metadata tests**
+- [x] **Step 1: Add failing factory and metadata tests**
 
 Append:
 
@@ -566,7 +566,7 @@ def test_model_metadata_records_exact_parameter_counts() -> None:
     assert metadata["trainable_parameter_count"] == 16
 ```
 
-- [ ] **Step 2: Run tests and confirm unsupported model failures**
+- [x] **Step 2: Run tests and confirm unsupported model failures**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py -q
@@ -575,7 +575,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 Expected: factory construction fails with `unsupported model`, and metadata
 assertions fail because count fields do not exist.
 
-- [ ] **Step 3: Export and register the model classes**
+- [x] **Step 3: Export and register the model classes**
 
 In both `structure/spn/__init__.py` and `structure/__init__.py`, import and add
 to `__all__`:
@@ -620,7 +620,7 @@ if name in {
     ...
 ```
 
-- [ ] **Step 4: Add exact counts to result metadata**
+- [x] **Step 4: Add exact counts to result metadata**
 
 Initialize `metadata` in `model_metadata` as:
 
@@ -635,7 +635,7 @@ metadata: dict[str, Any] = {
 
 This is additive metadata only; do not alter metrics or training behavior.
 
-- [ ] **Step 5: Run focused and existing model-factory tests**
+- [x] **Step 5: Run focused and existing model-factory tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py tests/test_autond_dbitnet2023.py -q
@@ -643,7 +643,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: pass.
 
-- [ ] **Step 6: Commit integration and metadata**
+- [x] **Step 6: Commit integration and metadata**
 
 ```bash
 git add src/blockcipher_nd/models/structure/spn/__init__.py src/blockcipher_nd/models/structure/__init__.py src/blockcipher_nd/registry/model_families/spn.py src/blockcipher_nd/engine/modeling.py tests/test_invp_state_matrix_conv2d.py
@@ -656,7 +656,7 @@ git commit -m "feat: register InvP state-matrix Conv2D models"
 - Create: `src/blockcipher_nd/planning/invp_state_matrix_conv2d_gate.py`
 - Create: `tests/test_invp_state_matrix_conv2d_gate.py`
 
-- [ ] **Step 1: Write failing gate tests with exact result fixtures**
+- [x] **Step 1: Write failing gate tests with exact result fixtures**
 
 Create a fixture builder that emits the real result shape:
 
@@ -803,7 +803,7 @@ def test_gate_rejects_parameter_or_protocol_mismatch(tmp_path: Path) -> None:
     assert any("negative_mode" in error for error in report["errors"])
 ```
 
-- [ ] **Step 2: Run tests and confirm the gate module is missing**
+- [x] **Step 2: Run tests and confirm the gate module is missing**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gate.py -q
@@ -811,7 +811,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gat
 
 Expected: collection fails with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement the gate module**
+- [x] **Step 3: Implement the gate module**
 
 Implement these public constants and function:
 
@@ -827,6 +827,7 @@ MODEL_ROLES = {
 def gate_invp_state_matrix_conv2d(
     results_paths: list[Path],
     *,
+    progress_paths: list[Path],
     expected_seeds: tuple[int, ...] = (0,),
     samples_per_class: int = 8192,
     epochs: int = 10,
@@ -888,6 +889,11 @@ def gate_invp_state_matrix_conv2d(
         ),
     }
 ```
+
+Execution note: the initial TDD snippets above show the pre-hardening result
+fixture calls. The completed public API requires `progress_paths` and validates
+terminal cache/create/reuse plus `run_done` evidence; focused tests supply a
+synthetic progress fixture for every otherwise-valid result fixture.
 
 Implement `_protocol_errors` to require, for every expected seed, exactly one
 row for every `MODEL_ROLES` value and these exact fields:
@@ -965,7 +971,7 @@ two seeds and joint gates pass-> promote_medium_65536
 two seeds but any gate fails  -> unstable_no_remote_scale
 ```
 
-- [ ] **Step 4: Run gate tests**
+- [x] **Step 4: Run gate tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gate.py -q
@@ -973,7 +979,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gat
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit the gate**
+- [x] **Step 5: Commit the gate**
 
 ```bash
 git add src/blockcipher_nd/planning/invp_state_matrix_conv2d_gate.py tests/test_invp_state_matrix_conv2d_gate.py
@@ -989,7 +995,7 @@ git commit -m "feat: gate InvP state-matrix Conv2D evidence"
 - Create: `configs/experiment/innovation1/innovation1_spn_present_invp_state_matrix_conv2d_8192_seed0.csv`
 - Modify: `tests/test_invp_state_matrix_conv2d_gate.py`
 
-- [ ] **Step 1: Add failing CLI and matrix-contract tests**
+- [x] **Step 1: Add failing CLI and matrix-contract tests**
 
 Append tests that call the CLI `main` and parse both plans through the real
 matrix-runner path, `parse_args` plus `build_tasks`:
@@ -1002,9 +1008,14 @@ def test_state_matrix_gate_cli_writes_json(tmp_path: Path) -> None:
     from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
 
     results = tmp_path / "results.jsonl"
+    progress = tmp_path / "progress.jsonl"
     output = tmp_path / "gate.json"
     _write(results, {ANCHOR: 0.60, TRUE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
-    status = main(["--results", str(results), "--output", str(output)])
+    status = main([
+        "--results", str(results),
+        "--progress", str(progress),
+        "--output", str(output),
+    ])
     assert status == 0
     assert json.loads(output.read_text())["decision"] == "promote_seed1"
 
@@ -1033,7 +1044,7 @@ def test_frozen_state_matrix_plans_have_exact_protocol() -> None:
         assert all(row["restore_best_checkpoint"] is True for row in rows)
 ```
 
-- [ ] **Step 2: Run tests and confirm missing CLI/plans**
+- [x] **Step 2: Run tests and confirm missing CLI/plans**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gate.py -q
@@ -1041,17 +1052,19 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gat
 
 Expected: failures for the missing CLI and CSV files.
 
-- [ ] **Step 3: Implement the CLI and script**
+- [x] **Step 3: Implement the CLI and script**
 
-The CLI must accept repeated `--results`, comma-separated `--expected-seeds`,
-`--samples-per-class`, `--epochs`, `--readiness-only`, and `--output`, call the
-gate, write sorted indented JSON, and return `0` for protocol-valid reports even
-when the research decision is stop; return `1` only for `status=fail`.
+The CLI must accept repeated `--results`, repeated required `--progress`,
+comma-separated `--expected-seeds`, `--samples-per-class`, `--epochs`,
+`--readiness-only`, and `--output`, call the gate, write sorted indented JSON,
+and return `0` for protocol-valid reports even when the research decision is
+stop; return `1` only for `status=fail`.
 
 Use this parser contract:
 
 ```python
 parser.add_argument("--results", action="append", required=True, type=Path)
+parser.add_argument("--progress", action="append", required=True, type=Path)
 parser.add_argument("--expected-seeds", default="0")
 parser.add_argument("--samples-per-class", type=int, default=8192)
 parser.add_argument("--epochs", type=int, default=10)
@@ -1081,7 +1094,7 @@ Create the script using the same thin wrapper pattern as
 chmod +x scripts/gate-invp-state-matrix-conv2d
 ```
 
-- [ ] **Step 4: Create both exact four-row CSVs**
+- [x] **Step 4: Create both exact four-row CSVs**
 
 Use the standard Innovation 1 header. Every row freezes the protocol in the
 design. Anchor options are:
@@ -1107,7 +1120,7 @@ from the matrix contract. Effective key behavior is validated only from the
 generated train and validation dataset metadata, both of which must serialize
 `key_schedule=per_pair_random`.
 
-- [ ] **Step 5: Run focused tests and CSV plan alignment parser**
+- [x] **Step 5: Run focused tests and CSV plan alignment parser**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py tests/test_invp_state_matrix_conv2d_gate.py -q
@@ -1115,7 +1128,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: pass.
 
-- [ ] **Step 6: Commit CLI and plans**
+- [x] **Step 6: Commit CLI and plans**
 
 ```bash
 git add src/blockcipher_nd/cli/gate_invp_state_matrix_conv2d.py scripts/gate-invp-state-matrix-conv2d configs/experiment/innovation1/innovation1_spn_present_invp_state_matrix_conv2d_smoke_seed0.csv configs/experiment/innovation1/innovation1_spn_present_invp_state_matrix_conv2d_8192_seed0.csv tests/test_invp_state_matrix_conv2d_gate.py
@@ -1129,7 +1142,7 @@ git commit -m "experiment: plan InvP state-matrix Conv2D gate"
 - Generated ignored cache: `outputs/local_cache/i1_present_invp_state_matrix_conv2d_smoke_seed0/`
 - Modify after success: `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`
 
-- [ ] **Step 1: Run the four-row CPU readiness matrix**
+- [x] **Step 1: Run the four-row CPU readiness matrix**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -1147,7 +1160,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 
 Expected: four completed rows and `run_done`; metric values are ignored.
 
-- [ ] **Step 2: Validate result-plan alignment**
+- [x] **Step 2: Validate result-plan alignment**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
@@ -1159,7 +1172,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
 
 Expected: `status=pass`, `result_rows=4`, `errors=[]`.
 
-- [ ] **Step 3: Render history and curves**
+- [x] **Step 3: Render history and curves**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
@@ -1171,7 +1184,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
 
 Expected: non-empty SVG and CSV.
 
-- [ ] **Step 4: Audit cache reuse and parameter metadata**
+- [x] **Step 4: Audit cache reuse and parameter metadata**
 
 Use a structured Python check to require 8 cache events (train/validation for
 four rows), at least 6 reuse events after the first row, three equal Conv2D
@@ -1193,6 +1206,7 @@ metric-derived research verdict:
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-state-matrix-conv2d \
   --results outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl \
+  --progress outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/progress.jsonl \
   --expected-seeds 0 \
   --samples-per-class 64 \
   --epochs 1 \
@@ -1204,18 +1218,18 @@ Require `status=pass`, `decision=implementation_ready`, `errors=[]`,
 `research_decision_applied=false`, the exact readiness claim scope, and the
 frozen R1 seed0 local next action. Do not use normal decision mode for R0.
 
-- [ ] **Step 5: Record R0 readiness in the design document**
+- [x] **Step 5: Record R0 readiness in the design document**
 
 Add a dated R0 section containing run id, command, four model keys, validation
 status, cache identity, parameter counts/ratio, artifacts, and
 `claim_scope=implementation readiness only; metrics not interpreted`.
 
-- [ ] **Step 6: Commit and push R0 evidence documentation**
+- [x] **Step 6: Commit and push R0 evidence documentation**
 
 ```bash
 git add docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md
 git commit -m "experiment: validate InvP state-matrix Conv2D readiness"
-git push origin main
+git push origin experiment/invp-state-matrix-conv2d
 ```
 
 ### Task 7: Run And Adjudicate R1 Seed0
@@ -1225,12 +1239,12 @@ git push origin main
 - Generated ignored cache: `outputs/local_cache/i1_present_invp_state_matrix_conv2d_8192_seed0/`
 - Modify after completion: `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`
 
-- [ ] **Step 1: Confirm the active AutoND watcher remains independent**
+- [x] **Step 1: Confirm the active AutoND watcher remains independent**
 
 Read only the local monitor health/artifacts. Do not SSH-poll. R1 is CPU-local
 and must not modify or stop the paper-scale task.
 
-- [ ] **Step 2: Run the exact four-row R1 matrix**
+- [x] **Step 2: Run the exact four-row R1 matrix**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -1248,7 +1262,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 
 Expected: four completed rows. Do not interpret partial rows.
 
-- [ ] **Step 3: Validate and plot R1**
+- [x] **Step 3: Validate and plot R1**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
@@ -1268,11 +1282,12 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
 
 Expected: validation passes and artifacts are non-empty.
 
-- [ ] **Step 4: Run the strict seed0 gate**
+- [x] **Step 4: Run the strict seed0 gate**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-state-matrix-conv2d \
   --results outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/results.jsonl \
+  --progress outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/progress.jsonl \
   --expected-seeds 0 \
   --samples-per-class 8192 \
   --epochs 10 \
@@ -1282,7 +1297,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-state-matrix-conv2d \
 Expected: `status=pass` for a protocol-valid run. Research decision may be
 `promote_seed1`, `weak_or_fragile_no_scale`, or one of the stop branches.
 
-- [ ] **Step 5: Update the design document with the complete R1 result**
+- [x] **Step 5: Update the design document with the complete R1 result**
 
 Record all four AUC/accuracy/loss values, three candidate margins, parameter
 counts, cache identity, validation status, gate decision, claim scope, artifact
@@ -1304,12 +1319,12 @@ invalid_protocol:
   repair the exact invariant and rerun the same R1 matrix without interpreting metrics
 ```
 
-- [ ] **Step 6: Commit and push the R1 adjudication**
+- [x] **Step 6: Commit and push the R1 adjudication**
 
 ```bash
 git add docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md
 git commit -m "experiment: adjudicate InvP state-matrix Conv2D seed0"
-git push origin main
+git push origin experiment/invp-state-matrix-conv2d
 ```
 
 ### Task 8: Final Verification And Handoff
@@ -1317,7 +1332,7 @@ git push origin main
 **Files:**
 - All task-scoped source, tests, configs, scripts, and experiment docs
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py tests/test_invp_state_matrix_conv2d_gate.py tests/test_autond_dbitnet2023.py -q
@@ -1325,7 +1340,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d.py 
 
 Expected: pass.
 
-- [ ] **Step 2: Run Ruff on changed Python files**
+- [x] **Step 2: Run Ruff on changed Python files**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
@@ -1343,28 +1358,30 @@ UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
 
 Expected: pass.
 
-- [ ] **Step 3: Run the full registered suite and compare with baseline**
+- [x] **Step 3: Run the full registered suite and compare with baseline**
 
 ```bash
 MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q
 ```
 
-Expected current environment baseline: 30 pre-existing failures (29
+Recorded current environment baseline: `30 failed, 753 passed` (29
 Matplotlib 3.11 global-state failures plus one JSON route-alignment failure),
 with every new test passing. Any additional failure is a regression and must be
 fixed before completion.
 
-- [ ] **Step 4: Check repository diffs and status**
+- [x] **Step 4: Check repository diffs and status**
 
 ```bash
 git diff --check
 git status --short --branch
 ```
 
-Expected: no uncommitted task changes after the final adjudication commit; main
-matches `origin/main` after the normal push.
+Expected: no uncommitted task changes after the final adjudication commit;
+`experiment/invp-state-matrix-conv2d` matches its origin branch after the
+normal push. This implementation was intentionally executed on the isolated
+experiment branch rather than directly on `main`.
 
-- [ ] **Step 5: Report the actual evidence state**
+- [x] **Step 5: Report the actual evidence state**
 
 The final report must state:
 
@@ -1385,3 +1402,32 @@ Do not call the goal complete after R0 or a single `8192/class` seed. The
 Innovation 1 objective remains active until the approved evidence ladder yields
 a defensible method result or a documented negative result with the next
 literature-ranked hypothesis adjudicated.
+
+## Completion Record (2026-07-11)
+
+- Execution branch: `experiment/invp-state-matrix-conv2d` (isolated branch,
+  pushed to the matching origin branch; not executed directly on `main`).
+- Strict evidence verification source head: `253524c` (`fix: enforce complete
+  InvP gate evidence`).
+- Runtime: Python `3.10.16`.
+- Focused verification: `221 passed` across the strict gate, Conv2D model,
+  AutoND implementation/public protocol, and dataset-cache worker tests;
+  additionally `4 passed, 447 deselected` for selected cache/progress
+  project-structure tests.
+- Ruff: format and check passed for the changed gate, CLI, and focused test
+  files. `git diff --check` passed.
+- Registered-suite environment baseline: exactly `30 failed, 753 passed` (29
+  known Matplotlib 3.11 global-state failures plus one known JSON
+  route-alignment failure); no new feature failure was introduced.
+- R0 replay: existing `64/class`, one-epoch artifacts validated with mandatory
+  progress evidence; `decision=implementation_ready`, metrics not interpreted,
+  expanded gate size `22548` bytes.
+- R1 replay: existing `8192/class`, ten-epoch artifacts validated with mandatory
+  progress evidence; `decision=stop_conv2d_route`,
+  `next_action=keep_token_mixer_anchor_and_do_not_scale_conv2d`, expanded gate
+  size `22976` bytes.
+- R1 stopped actions: do not run seed1, `65536/class`, `262144/class`, or remote
+  scale for the state-matrix Conv2D replacement route.
+- H1 topology-residual adapter: planned only. It has not been implemented,
+  trained, or run. No conditional seed1 or H1 work is represented as executed
+  by the completed Task 1-8 checkboxes above.

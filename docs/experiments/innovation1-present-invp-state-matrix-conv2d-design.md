@@ -405,9 +405,16 @@ R0 artifacts:
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/validation.json` | 3750 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/curves.svg` | 55086 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/history.csv` | 1372 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 1127 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 22548 bytes |
 
 `claim_scope=implementation readiness only; metrics not interpreted`.
+
+The regenerated readiness gate now contains machine-verifiable
+`protocol_evidence`, `semantic_checks`, `cache_evidence`,
+`promotion_conditions`, and `stopped_actions`. It records all four exact model
+roles and options, full frozen result identities, checkpoint/history status,
+the tested state-matrix semantic contract, two cache creates plus six control
+reuses across the exact train/validation paths, and one terminal `run_done`.
 
 Recommended next action: proceed to the already frozen R1 seed0 local
 architecture-attribution diagnostic with `8192/class`, four identical ordered
@@ -524,7 +531,17 @@ R1 artifacts:
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/validation.json` | 3766 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/curves.svg` | 76704 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/history.csv` | 13803 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/state_matrix_conv2d_gate.json` | 1248 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/state_matrix_conv2d_gate.json` | 22976 bytes |
+
+The regenerated R1 gate uses the same expanded evidence schema as R0. Its
+`cache_evidence.0.verified=true` report records 2 creates, 6 reuses, 8 exact
+role/split terminal events, distinct train/validation identities, and one
+`run_done`. `protocol_evidence.rows` contains all four frozen model/options,
+result/training/validation identities, parameter counts, and replay-validated
+checkpoint/history status. `semantic_checks` records the frozen/tested
+`[batch, pair, 4, 16]` state-matrix contract without claiming runtime tensor
+equality. The stopped-action list explicitly blocks seed1, `65536/class`,
+`262144/class`, and remote scaling under `decision=stop_conv2d_route`.
 
 The independent local AutoND watcher-health snapshot was attempted once without
 SSH, but local tmux socket access was denied by the execution sandbox. Its
