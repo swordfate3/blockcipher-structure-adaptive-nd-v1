@@ -527,8 +527,8 @@ def test_invp_state_matrix_conv2d_plans_build_frozen_protocol_tasks(
         assert task["rounds"] == 7
         assert task["seed"] == 0
         assert task["samples_per_class"] == samples_per_class
-        assert task["train_samples_total"] == 2 * samples_per_class
-        assert task["validation_samples_total"] == samples_per_class
+        assert task["train_samples_total"] is None
+        assert task["validation_samples_total"] is None
         assert task["final_test_samples_total"] is None
         assert task["final_test_repeats"] == 0
         assert task["dataset_label_mode"] == "balanced_per_class"
