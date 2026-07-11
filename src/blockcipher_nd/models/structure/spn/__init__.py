@@ -1,6 +1,12 @@
-from blockcipher_nd.models.structure.spn.cell_pairset import SpnCellPairSetDBitNetDistinguisher
-from blockcipher_nd.models.structure.spn.nibble_conv_pairset import SpnNibbleConvPairSetDistinguisher
-from blockcipher_nd.models.structure.spn.present_trail_mixer import PresentTrailMixerPairSetDistinguisher
+from blockcipher_nd.models.structure.spn.cell_pairset import (
+    SpnCellPairSetDBitNetDistinguisher,
+)
+from blockcipher_nd.models.structure.spn.nibble_conv_pairset import (
+    SpnNibbleConvPairSetDistinguisher,
+)
+from blockcipher_nd.models.structure.spn.present_trail_mixer import (
+    PresentTrailMixerPairSetDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.present_matrix_trail_hybrid import (
     PresentMatrixTrailHybridPairSetDistinguisher,
 )

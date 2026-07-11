@@ -56,7 +56,9 @@ def test_invp_anchor_uses_shared_true_inverse_p_indices():
         base_channels=32,
     )
 
-    assert torch.equal(model.spn_encoder.inverse_p_indices, present_inverse_p_indices("true"))
+    assert torch.equal(
+        model.spn_encoder.inverse_p_indices, present_inverse_p_indices("true")
+    )
 
 
 def test_true_state_matrix_view_matches_existing_invp_anchor():
@@ -66,7 +68,9 @@ def test_true_state_matrix_view_matches_existing_invp_anchor():
     )
     anchor = PresentNibbleInvPOnlySpnOnlyDistinguisher(input_bits=INPUT_BITS)
 
-    expected = anchor.spn_encoder.present_nibble_paligned_view(features).reshape(3, 16, 4, 16)
+    expected = anchor.spn_encoder.present_nibble_paligned_view(features).reshape(
+        3, 16, 4, 16
+    )
 
     assert torch.equal(candidate.state_matrix_view(features), expected)
 
@@ -97,8 +101,12 @@ def test_shuffled_state_matrix_view_is_deterministic_and_differs_from_true():
     )
     true = PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher(input_bits=INPUT_BITS)
 
-    assert torch.equal(first.state_matrix_view(features), second.state_matrix_view(features))
-    assert not torch.equal(first.state_matrix_view(features), true.state_matrix_view(features))
+    assert torch.equal(
+        first.state_matrix_view(features), second.state_matrix_view(features)
+    )
+    assert not torch.equal(
+        first.state_matrix_view(features), true.state_matrix_view(features)
+    )
 
 
 def test_shuffled_state_matrix_mapping_identity_is_locked():
@@ -181,11 +189,15 @@ def test_shuffled_state_matrix_mapping_identity_is_locked():
 def test_state_matrix_conv2d_variants_have_equal_parameter_counts():
     variants = [
         PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher(input_bits=INPUT_BITS),
-        PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher(input_bits=INPUT_BITS),
+        PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher(
+            input_bits=INPUT_BITS
+        ),
         PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher(input_bits=INPUT_BITS),
     ]
 
-    counts = [sum(parameter.numel() for parameter in model.parameters()) for model in variants]
+    counts = [
+        sum(parameter.numel() for parameter in model.parameters()) for model in variants
+    ]
 
     assert counts[0] == counts[1] == counts[2]
 
@@ -229,7 +241,9 @@ def test_state_matrix_conv2d_rejects_invalid_configuration(kwargs, message):
 
 
 def test_state_matrix_view_rejects_invalid_feature_shape():
-    model = PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher(input_bits=INPUT_BITS)
+    model = PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher(
+        input_bits=INPUT_BITS
+    )
 
     with pytest.raises(ValueError, match=f"expected {INPUT_BITS} input bits"):
         model.state_matrix_view(torch.zeros(2, INPUT_BITS - 1))
@@ -286,7 +300,9 @@ def test_model_factory_builds_state_matrix_conv2d_variants_with_equal_capacity()
 
     assert tuple(type(model) for model in models) == expected_classes
     assert mapping_modes == ["true", "shuffled", "delta"]
-    parameter_counts = [sum(parameter.numel() for parameter in model.parameters()) for model in models]
+    parameter_counts = [
+        sum(parameter.numel() for parameter in model.parameters()) for model in models
+    ]
     assert parameter_counts[0] == parameter_counts[1] == parameter_counts[2]
 
 

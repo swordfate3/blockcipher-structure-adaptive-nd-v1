@@ -116,7 +116,9 @@ class PresentNibbleStateMatrixConv2DSpnOnlyDistinguisher(nn.Module):
 
     def state_matrix_view(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
-            raise ValueError(f"expected {self.input_bits} input bits, got {tuple(features.shape)}")
+            raise ValueError(
+                f"expected {self.input_bits} input bits, got {tuple(features.shape)}"
+            )
         raw_pairs = features.reshape(features.shape[0], self.pairs_per_sample, 2, 64)
         difference = (raw_pairs[:, :, 0, :] - raw_pairs[:, :, 1, :]).abs()
         mapped_difference = difference.index_select(dim=2, index=self.mapping_indices)

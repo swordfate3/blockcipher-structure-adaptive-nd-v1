@@ -65,8 +65,12 @@ def build_task_result(
         "training": {
             **training_result.metadata,
             "dataset_cache_root": args.dataset_cache_root,
-            "dataset_cache_chunk_size": args.dataset_cache_chunk_size if args.dataset_cache_root else None,
-            "dataset_cache_workers": args.dataset_cache_workers if args.dataset_cache_root else None,
+            "dataset_cache_chunk_size": args.dataset_cache_chunk_size
+            if args.dataset_cache_root
+            else None,
+            "dataset_cache_workers": args.dataset_cache_workers
+            if args.dataset_cache_root
+            else None,
             "input_bits": int(train_dataset.features.shape[1]),
             "feature_encoding": task["feature_encoding"],
             "pairs_per_sample": task["pairs_per_sample"],
@@ -101,10 +105,16 @@ def build_task_result(
             "negative_rows": validation_dataset.metadata["negative_rows"],
             "dataset_label_mode": validation_dataset.metadata["dataset_label_mode"],
             "key_schedule": validation_dataset.metadata["key_schedule"],
-            "key_rotation_interval": validation_dataset.metadata["key_rotation_interval"],
+            "key_rotation_interval": validation_dataset.metadata[
+                "key_rotation_interval"
+            ],
             "sample_structure": validation_dataset.metadata["sample_structure"],
-            "integral_active_nibble": validation_dataset.metadata["integral_active_nibble"],
-            "integral_active_nibbles": validation_dataset.metadata["integral_active_nibbles"],
+            "integral_active_nibble": validation_dataset.metadata[
+                "integral_active_nibble"
+            ],
+            "integral_active_nibbles": validation_dataset.metadata[
+                "integral_active_nibbles"
+            ],
         },
     }
     if final_evaluation is not None:

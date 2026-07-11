@@ -94,7 +94,9 @@ def test_autond_dbitnet2023_regularizes_only_dense_kernels() -> None:
     model(torch.zeros(2, 128))
     assert model.last_auxiliary_loss.item() == pytest.approx(0.0)
 
-    first_dense = next(layer for layer in model.classifier if isinstance(layer, nn.Linear))
+    first_dense = next(
+        layer for layer in model.classifier if isinstance(layer, nn.Linear)
+    )
     with torch.no_grad():
         first_dense.weight.fill_(1.0)
     model(torch.zeros(2, 128))
@@ -120,9 +122,7 @@ def test_cli_parses_pretrain_round_sequence() -> None:
 
 
 def test_cli_parses_optimizer_state_transition() -> None:
-    args = parse_args(
-        ["--optimizer-state-transition", "carry_across_stages"]
-    )
+    args = parse_args(["--optimizer-state-transition", "carry_across_stages"])
 
     assert args.optimizer_state_transition == "carry_across_stages"
 
@@ -215,9 +215,13 @@ def test_curriculum_trains_stages_in_order_and_records_metadata(tmp_path: Path) 
     assert result is not None
     assert result.metadata["round_sequence"] == [5, 6]
     assert [stage["rounds"] for stage in result.metadata["curriculum_stages"]] == [5, 6]
-    assert all(stage["epochs_ran"] == 1 for stage in result.metadata["curriculum_stages"])
+    assert all(
+        stage["epochs_ran"] == 1 for stage in result.metadata["curriculum_stages"]
+    )
     assert all("metrics" in stage for stage in result.metadata["curriculum_stages"])
-    assert all("selected_checkpoint" in stage for stage in result.metadata["curriculum_stages"])
+    assert all(
+        "selected_checkpoint" in stage for stage in result.metadata["curriculum_stages"]
+    )
     assert all(
         stage["checkpoint_metric"] == "val_loss"
         for stage in result.metadata["curriculum_stages"]
@@ -270,14 +274,16 @@ def test_curriculum_carries_optimizer_state_into_target_round(tmp_path: Path) ->
     assert task["optimizer_state_transition"] == "carry_across_stages"
     assert pretraining["optimizer_state_transition"] == "carry_across_stages"
     assert [stage["optimizer_state_reused"] for stage in stages] == [False, True]
-    assert stages[1]["optimizer_state_step_before"] == stages[0][
-        "optimizer_state_step_after"
-    ]
+    assert (
+        stages[1]["optimizer_state_step_before"]
+        == stages[0]["optimizer_state_step_after"]
+    )
     assert row["training"]["optimizer_state_transition"] == "carry_across_stages"
     assert row["training"]["optimizer_state_reused"] is True
-    assert row["training"]["optimizer_state_step_before"] == stages[-1][
-        "optimizer_state_step_after"
-    ]
+    assert (
+        row["training"]["optimizer_state_step_before"]
+        == stages[-1]["optimizer_state_step_after"]
+    )
 
 
 def test_curriculum_rejects_sequence_containing_target_round(tmp_path: Path) -> None:
@@ -336,7 +342,7 @@ def test_autond_remote_package_locks_strict_medium_protocol(tmp_path: Path) -> N
     assert config["amsgrad"] is True
     assert config["pretrain_round_sequence"] == [5, 6, 7, 8]
     assert config["negative_mode"] == "encrypted_random_plaintexts"
-    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert '--pretrain-round-sequence "[5,6,7,8]"' in launcher
     assert "--amsgrad" in launcher
     assert "--dataset-cache-root" in launcher
     assert "echo result_lines=%RESULT_LINES% >" in launcher
@@ -467,7 +473,7 @@ def test_autond_r1a_remote_package_locks_checkpoint_ablation() -> None:
     assert config["pretrain_round_sequence"] == [5, 6, 7, 8]
     assert config["negative_mode"] == "encrypted_random_plaintexts"
     assert "--checkpoint-metric val_loss" in launcher
-    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert '--pretrain-round-sequence "[5,6,7,8]"' in launcher
     assert "--dataset-cache-root" in launcher
     assert "cmd.exe /k" not in launcher
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
@@ -500,7 +506,7 @@ def test_autond_c2_remote_package_locks_optimizer_carry() -> None:
     assert config["negative_mode"] == "encrypted_random_plaintexts"
     assert "--checkpoint-metric val_loss" in launcher
     assert "--optimizer-state-transition carry_across_stages" in launcher
-    assert "--pretrain-round-sequence \"[5,6,7,8]\"" in launcher
+    assert '--pretrain-round-sequence "[5,6,7,8]"' in launcher
     assert "--dataset-cache-root" in launcher
     assert "cmd.exe /k" not in launcher
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher

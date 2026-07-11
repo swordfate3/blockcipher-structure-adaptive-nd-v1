@@ -67,7 +67,9 @@ def build_spn_model(
             blocks=int_option(options, "blocks", 5) or 5,
             activation=str(options.get("activation", "relu")),
             dropout=float(options.get("dropout", 0.0)),
-            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 2, 4)
+            ),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
         )
     if name == "present_nibble_paligned_mcnd":
@@ -82,7 +84,9 @@ def build_spn_model(
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
-            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 2, 4)
+            ),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
         )
     if name == "present_nibble_paligned_spn_only":
@@ -249,7 +253,9 @@ def build_spn_model(
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
-            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 2, 4)
+            ),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
             gate_scale=float(options.get("gate_scale", 0.25)),
         )
@@ -265,7 +271,9 @@ def build_spn_model(
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
-            initial_kernel_sizes=int_tuple_option(options, "initial_kernel_sizes", (1, 2, 4)),
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 2, 4)
+            ),
             residual_kernel_size=int_option(options, "residual_kernel_size", 3) or 3,
             gate_scale=float(options.get("gate_scale", 0.25)),
         )
@@ -290,7 +298,8 @@ def build_spn_model(
             pair_bits=pair_bits or 128,
             base_channels=hidden_bits,
             transition_token_dim=int_option(options, "transition_token_dim"),
-            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2) or 2,
+            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2)
+            or 2,
             token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
@@ -305,7 +314,8 @@ def build_spn_model(
             pair_bits=pair_bits or 128,
             base_channels=hidden_bits,
             transition_token_dim=int_option(options, "transition_token_dim"),
-            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2) or 2,
+            transition_mixer_depth=int_option(options, "transition_mixer_depth", 2)
+            or 2,
             token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "layernorm")),
@@ -447,7 +457,9 @@ def build_spn_model(
             dropout=float(options.get("dropout", 0.0)),
             kernel_sizes=tuple(
                 matrix_kernel_size_option(item)
-                for item in options.get("kernel_sizes", [[1, 1], [1, 2], [2, 4], [4, 4]])
+                for item in options.get(
+                    "kernel_sizes", [[1, 1], [1, 2], [2, 4], [4, 4]]
+                )
             ),
             cell_bits=int_option(options, "cell_bits", 4) or 4,
         )
@@ -595,10 +607,16 @@ def build_spn_model(
             edge_mode=str(options.get("edge_mode", "active_only")),
             cross_pair_consistency=str(options.get("cross_pair_consistency", "none")),
             active_metadata_fusion=str(options.get("active_metadata_fusion", "direct")),
-            topology_auxiliary_scale=float(options.get("topology_auxiliary_scale", 0.0)),
-            topology_contrast_fusion=str(options.get("topology_contrast_fusion", "none")),
+            topology_auxiliary_scale=float(
+                options.get("topology_auxiliary_scale", 0.0)
+            ),
+            topology_contrast_fusion=str(
+                options.get("topology_contrast_fusion", "none")
+            ),
             active_relative_summary=str(options.get("active_relative_summary", "none")),
-            active_relative_contrast_fusion=str(options.get("active_relative_contrast_fusion", "none")),
+            active_relative_contrast_fusion=str(
+                options.get("active_relative_contrast_fusion", "none")
+            ),
         )
     if name == "present_trail_position_stats_pairset":
         trail_depth = int_option(options, "trail_depth", 4)
@@ -608,7 +626,9 @@ def build_spn_model(
             pair_bits=pair_bits or 2496,
             base_channels=hidden_bits,
             trail_depth=4 if trail_depth is None else trail_depth,
-            trail_words_per_depth=9 if trail_words_per_depth is None else trail_words_per_depth,
+            trail_words_per_depth=9
+            if trail_words_per_depth is None
+            else trail_words_per_depth,
             activation=str(options.get("activation", "gelu")),
             norm=str(options.get("norm", "layernorm")),
             dropout=float(options.get("dropout", 0.0)),
