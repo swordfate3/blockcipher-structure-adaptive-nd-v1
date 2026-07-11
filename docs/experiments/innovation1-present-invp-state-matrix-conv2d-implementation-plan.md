@@ -1364,7 +1364,7 @@ Expected: pass.
 MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q
 ```
 
-Recorded current environment baseline: `30 failed, 753 passed` (29
+Recorded current environment baseline: `30 failed, 852 passed` (29
 Matplotlib 3.11 global-state failures plus one JSON route-alignment failure),
 with every new test passing. Any additional failure is a regression and must be
 fixed before completion.
@@ -1409,6 +1409,8 @@ literature-ranked hypothesis adjudicated.
   pushed to the matching origin branch; not executed directly on `main`).
 - Strict evidence verification source head: `080f5ad` (`fix: bind InvP
   progress to result evidence`).
+- Final verification head: `c2ea066` (`docs: refresh bound InvP gate
+  artifacts`).
 - Runtime: Python `3.10.16`.
 - Focused verification: `233 passed` across the strict gate, Conv2D model,
   AutoND implementation/public protocol, and dataset-cache worker tests;
@@ -1416,7 +1418,7 @@ literature-ranked hypothesis adjudicated.
   project-structure tests.
 - Ruff: format and check passed for the changed gate, CLI, and focused test
   files. `git diff --check` passed.
-- Registered-suite environment baseline: exactly `30 failed, 753 passed` (29
+- Registered-suite environment baseline: exactly `30 failed, 852 passed` (29
   known Matplotlib 3.11 global-state failures plus one known JSON
   route-alignment failure); no new feature failure was introduced.
 - R0 replay: existing `64/class`, one-epoch artifacts validated with mandatory
