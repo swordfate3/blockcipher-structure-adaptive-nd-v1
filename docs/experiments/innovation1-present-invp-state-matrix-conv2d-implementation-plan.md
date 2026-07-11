@@ -1407,10 +1407,10 @@ literature-ranked hypothesis adjudicated.
 
 - Execution branch: `experiment/invp-state-matrix-conv2d` (isolated branch,
   pushed to the matching origin branch; not executed directly on `main`).
-- Strict evidence verification source head: `253524c` (`fix: enforce complete
-  InvP gate evidence`).
+- Strict evidence verification source head: `080f5ad` (`fix: bind InvP
+  progress to result evidence`).
 - Runtime: Python `3.10.16`.
-- Focused verification: `221 passed` across the strict gate, Conv2D model,
+- Focused verification: `233 passed` across the strict gate, Conv2D model,
   AutoND implementation/public protocol, and dataset-cache worker tests;
   additionally `4 passed, 447 deselected` for selected cache/progress
   project-structure tests.
@@ -1420,12 +1420,14 @@ literature-ranked hypothesis adjudicated.
   known Matplotlib 3.11 global-state failures plus one known JSON
   route-alignment failure); no new feature failure was introduced.
 - R0 replay: existing `64/class`, one-epoch artifacts validated with mandatory
-  progress evidence; `decision=implementation_ready`, metrics not interpreted,
-  expanded gate size `22548` bytes.
+  progress evidence bound by ordered result/progress pair, exact seed,
+  normalized result path, and result-declared cache root;
+  `decision=implementation_ready`, metrics not interpreted, expanded gate size
+  `25561` bytes.
 - R1 replay: existing `8192/class`, ten-epoch artifacts validated with mandatory
-  progress evidence; `decision=stop_conv2d_route`,
+  bound progress/cache provenance; `decision=stop_conv2d_route`,
   `next_action=keep_token_mixer_anchor_and_do_not_scale_conv2d`, expanded gate
-  size `22976` bytes.
+  size `25978` bytes.
 - R1 stopped actions: do not run seed1, `65536/class`, `262144/class`, or remote
   scale for the state-matrix Conv2D replacement route.
 - H1 topology-residual adapter: planned only. It has not been implemented,

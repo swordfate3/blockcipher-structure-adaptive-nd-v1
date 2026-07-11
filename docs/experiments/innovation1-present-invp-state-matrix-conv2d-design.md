@@ -405,7 +405,7 @@ R0 artifacts:
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/validation.json` | 3750 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/curves.svg` | 55086 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/history.csv` | 1372 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 22548 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 25561 bytes |
 
 `claim_scope=implementation readiness only; metrics not interpreted`.
 
@@ -415,6 +415,11 @@ The regenerated readiness gate now contains machine-verifiable
 roles and options, full frozen result identities, checkpoint/history status,
 the tested state-matrix semantic contract, two cache creates plus six control
 reuses across the exact train/validation paths, and one terminal `run_done`.
+The cache evidence is now paired with the supplied result file by argument
+order and exact seed. It reports the normalized supplied result path/root and
+result-declared cache root, requires normalized `run_done.output` to identify
+that result exactly, and requires every normalized terminal cache path to stay
+under that cache root.
 
 Recommended next action: proceed to the already frozen R1 seed0 local
 architecture-attribution diagnostic with `8192/class`, four identical ordered
@@ -531,14 +536,17 @@ R1 artifacts:
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/validation.json` | 3766 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/curves.svg` | 76704 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/history.csv` | 13803 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/state_matrix_conv2d_gate.json` | 22976 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/state_matrix_conv2d_gate.json` | 25978 bytes |
 
 The regenerated R1 gate uses the same expanded evidence schema as R0. Its
 `cache_evidence.0.verified=true` report records 2 creates, 6 reuses, 8 exact
 role/split terminal events, distinct train/validation identities, and one
-`run_done`. `protocol_evidence.rows` contains all four frozen model/options,
-result/training/validation identities, parameter counts, and replay-validated
-checkpoint/history status. `semantic_checks` records the frozen/tested
+`run_done`. It also binds the ordered result/progress pair by exact seed,
+matches normalized `run_done.output` to the supplied result path, and reports
+trusted normalized result/cache provenance while rejecting cache paths outside
+the result-declared root. `protocol_evidence.rows` contains all four frozen
+model/options, result/training/validation identities, parameter counts, and
+replay-validated checkpoint/history status. `semantic_checks` records the frozen/tested
 `[batch, pair, 4, 16]` state-matrix contract without claiming runtime tensor
 equality. The stopped-action list explicitly blocks seed1, `65536/class`,
 `262144/class`, and remote scaling under `decision=stop_conv2d_route`.
