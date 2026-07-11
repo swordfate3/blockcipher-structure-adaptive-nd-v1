@@ -2,15 +2,16 @@
 
 **Date:** 2026-07-11
 
-**Status:** implementation complete; R0 local readiness passed; R1 seed0 local diagnostic approved but not started
+**Status:** implementation complete; R0 local readiness passed; R1 seed0
+local diagnostic completed; Conv2D route stopped and token-mixer anchor retained
 
-**Claim scope:** controlled architecture-attribution experiment under the
-strict PRESENT-80 r7 Zhang/Wang Case2 protocol; not a completed experiment,
-paper-scale result, formal result, or novelty claim
+**Claim scope:** completed `8192/class` controlled architecture-attribution
+diagnostic under the strict PRESENT-80 r7 Zhang/Wang Case2 protocol; not
+formal training, paper-scale evidence, a breakthrough, or a novelty claim
 
 ## Decision
 
-Advance one bounded, non-DDT architecture hypothesis:
+The bounded, non-DDT architecture hypothesis was:
 
 > Given the same `InvP(DeltaC)` representation that already has two-seed
 > `1000000/class` support, does a small state-matrix Conv2D encoder exploit the
@@ -20,6 +21,10 @@ Advance one bounded, non-DDT architecture hypothesis:
 This experiment does not resume the stopped E1 graph branch, dense DDT trail
 inputs, S-box-prior branch, or public random-ciphertext typed adapter. It does
 not change the benchmark to match the running AutoND public-code reproduction.
+
+R1 seed0 has now adjudicated the hypothesis: true-InvP Conv2D preserved the
+representation/topology signal but lost to the same-budget token-mixer anchor.
+The Conv2D route is stopped; the token-mixer anchor is retained.
 
 ## Evidence Basis
 
@@ -414,6 +419,128 @@ promotion/stop gates. R1 must also require `per_pair_random` in both serialized
 result sections and both cache metadata files. Do not launch remote scale, add
 models, change the benchmark, or interpret R0 metrics.
 
+## R1 Seed0 Local Diagnostic Evidence (2026-07-11)
+
+Run id:
+
+```text
+i1_present_invp_state_matrix_conv2d_8192_seed0
+```
+
+The clean worktree at source commit `30f0c882c7f8714afc6be8373aadbed5be03a9f8`
+ran the frozen four-row plan with this exact command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_state_matrix_conv2d_8192_seed0.csv \
+  --epochs 10 \
+  --batch-size 256 \
+  --hidden-bits 32 \
+  --device cpu \
+  --dataset-cache-root outputs/local_cache/i1_present_invp_state_matrix_conv2d_8192_seed0 \
+  --dataset-cache-chunk-size 512 \
+  --dataset-cache-workers 4 \
+  --progress-output outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/progress.jsonl \
+  --output outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/results.jsonl
+```
+
+The observed protocol was PRESENT-80 r7, seed 0, `8192/class`, 16384 total
+balanced training rows, 8192 total balanced validation rows (`4096/class`), 10
+epochs, batch size 256, hidden bits 32, 16 pairs/sample, strict
+encrypted-random-plaintext negatives, Zhang/Wang Case2 official MCND sample
+structure, and CPU execution. Each basic pair used an independent random
+PRESENT key: all four result rows record
+`training.key_schedule=per_pair_random` and
+`validation.key_schedule=per_pair_random`, and both cache metadata files record
+the same effective schedule. The configured train/validation key fields and
+rotation interval remained inert plan/cache identity placeholders.
+
+Plan validation passed exactly (`status=pass`, `plan_rows=4`,
+`result_rows=4`, `errors=[]`) in this ordered matrix:
+
+```text
+present_nibble_invp_only_spn_only
+present_nibble_invp_state_matrix_conv2d_spn_only
+present_nibble_shuffled_p_state_matrix_conv2d_spn_only
+present_nibble_delta_state_matrix_conv2d_spn_only
+```
+
+All primary result metrics are finite. The reported metrics are from the
+restored best `val_auc` checkpoint:
+
+| Model role | Validation AUC | Accuracy | Calibrated accuracy | Loss | Best epoch | Epochs ran |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| token-mixer anchor | `0.750535935163` | `0.686035156250` | `0.686889648438` | `0.589239429682` | 10 | 10 |
+| true-InvP Conv2D | `0.745510458946` | `0.672729492188` | `0.682739257812` | `0.602004538290` | 10 | 10 |
+| shuffled-P Conv2D | `0.555524557829` | `0.505737304688` | `0.541015625000` | `0.712105254643` | 7 | 10 |
+| DeltaC-only Conv2D | `0.575832307339` | `0.539794921875` | `0.558715820312` | `0.690229361877` | 8 | 10 |
+
+Every row contains a complete 10-epoch history, uses
+`lr_scheduler=official_cyclic` (`0.002` at epoch 1 to `0.0001` at epoch 10),
+records `selected_checkpoint=best`, and restored a best checkpoint. All rows
+use `optimizer_state_transition=reset_each_stage` and the same validation
+budget and metric computation.
+
+The seed0 margins are:
+
+```text
+architecture_margin   = 0.745510458946 - 0.750535935163 = -0.005025476217
+topology_margin       = 0.745510458946 - 0.555524557829 = +0.189985901117
+representation_margin = 0.745510458946 - 0.575832307339 = +0.169678151608
+```
+
+The true-InvP mapping therefore carries a large signal relative to the
+shuffled-P and DeltaC-only Conv2D controls, but the Conv2D encoder does not
+improve on the same-budget token mixer. The strict normal research gate passed
+with `research_decision_applied=true`, `candidate_above_all=false`,
+`decision=stop_conv2d_route`, and
+`next_action=keep_token_mixer_anchor_and_do_not_scale_conv2d`. This is an
+architecture-route stop under the frozen diagnostic gate, not a definitive
+PRESENT model ceiling or a formal failure claim.
+
+The anchor has `128673` total/trainable parameters. Each Conv2D row has exactly
+`130881` total/trainable parameters, so the candidate/anchor capacity ratio is
+`1.0171597771x`. The first row created exactly two parameter-matched disk cache
+identities:
+
+```text
+outputs/local_cache/i1_present_invp_state_matrix_conv2d_8192_seed0/present80/r7/train/seed-0_d0cb1e57a50c7744
+outputs/local_cache/i1_present_invp_state_matrix_conv2d_8192_seed0/present80/r7/validation/seed-10000_5b4686c47133da9b
+```
+
+The remaining three rows reused both identities, producing six `cache_reuse`
+events. Train metadata records 8192 positive plus 8192 negative rows; validation
+metadata records 4096 plus 4096. Both identities contain `features.npy`,
+`labels.npy`, and metadata with strict negatives, 16 pairs/sample, r7, the
+expected split seed, and `key_schedule=per_pair_random`. Progress contains four
+`row_done` events and one terminal `run_done` event.
+
+R1 artifacts:
+
+| Artifact | Size |
+| --- | ---: |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/results.jsonl` | 33475 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/progress.jsonl` | 807818 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/validation.json` | 3766 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/curves.svg` | 76704 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/history.csv` | 13803 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_8192_seed0/state_matrix_conv2d_gate.json` | 1248 bytes |
+
+The independent local AutoND watcher-health snapshot was attempted once without
+SSH, but local tmux socket access was denied by the execution sandbox. Its
+health is therefore recorded as unavailable, not inferred; no remote AutoND
+state was touched and this does not affect the complete local R1 artifacts.
+
+Recommended next action: retain `present_nibble_invp_only_spn_only` as the
+strongest same-protocol architecture anchor and stop the state-matrix Conv2D
+route. Do not run Conv2D seed1, R2, remote training, or a mechanical `65536` or
+`262144/class` scale-up. The next method-level experiment slot should require a
+new literature- and control-justified SPN-aware architecture or representation
+hypothesis, use the retained token mixer as its same-budget anchor, change only
+that one hypothesis, preserve the strict r7/16-pair/negative/key-schedule
+protocol, and first pass an `8192/class`, seed0 local diagnostic with topology
+and representation controls before any second seed or remote work.
+
 ## Artifacts And Adjudication
 
 Every non-smoke stage produces:
@@ -498,7 +625,7 @@ proceed after implementation approval, but no new remote Conv2D task launches
 until the active paper-scale task is retrieved and adjudicated or an explicit
 GPU scheduling exception is documented.
 
-## Approved Next Step
+## Completed Decision
 
 The reviewed implementation plan is:
 
@@ -507,5 +634,7 @@ docs/experiments/
 innovation1-present-invp-state-matrix-conv2d-implementation-plan.md
 ```
 
-Select an approved execution mode, then follow that plan task by task. Source
-edits, R0 readiness, and R1 adjudication have not started at this status point.
+The implementation plan, R0 readiness gate, and R1 seed0 adjudication are
+complete. The applied R1 decision is `stop_conv2d_route`: do not run seed1 or
+remote/medium Conv2D scale, and retain the token-mixer anchor for any future
+single-variable, literature-justified SPN architecture hypothesis.
