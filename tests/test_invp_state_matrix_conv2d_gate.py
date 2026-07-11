@@ -15,7 +15,7 @@ from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
-    gate_invp_state_matrix_conv2d,
+    gate_invp_state_matrix_conv2d as _gate_invp_state_matrix_conv2d,
 )
 from blockcipher_nd.training import TrainingResult
 
@@ -61,11 +61,22 @@ def _row(
         }
         for epoch in range(1, epochs + 1)
     ]
+    is_r0 = samples_per_class == 64 and epochs == 1
     return {
+        "cipher": "PRESENT-80",
+        "cipher_key": "present80",
+        "structure": "SPN",
+        "model": model,
         "selected_model": model,
         "rounds": 7,
         "seed": seed,
+        "dataset_label_mode": "balanced_per_class",
+        "input_difference": 9,
         "samples_per_class": samples_per_class,
+        "train_samples_total": None,
+        "validation_samples_total": None,
+        "final_test_samples_total": None,
+        "final_test_repeats": 0,
         "pairs_per_sample": 16,
         "feature_encoding": "ciphertext_pair_bits",
         "negative_mode": "encrypted_random_plaintexts",
@@ -75,6 +86,9 @@ def _row(
         "sample_structure": "zhang_wang_case2_official_mcnd",
         "difference_profile": "present_zhang_wang2022_mcnd",
         "difference_member": 0,
+        "integral_active_nibble": 0,
+        "integral_active_nibbles": [],
+        "validation_integral_active_nibbles": [],
         "parameter_count": 900 if model == ANCHOR else parameter_count,
         "trainable_parameter_count": 900 if model == ANCHOR else parameter_count,
         "metrics": {
@@ -85,11 +99,39 @@ def _row(
         },
         "history": history,
         "training": {
+            "amsgrad": False,
+            "batch_size": 32 if is_r0 else 256,
             "key_schedule": "per_pair_random",
+            "dataset_cache_chunk_size": 64 if is_r0 else 512,
+            "dataset_cache_workers": 1 if is_r0 else 4,
+            "dataset_label_mode": "balanced_per_class",
+            "device": "cpu",
+            "feature_encoding": "ciphertext_pair_bits",
             "input_bits": 2048,
+            "integral_active_nibble": 0,
+            "integral_active_nibbles": [],
+            "validation_integral_active_nibbles": [],
             "pair_bits": 128,
+            "pairs_per_sample": 16,
+            "key_rotation_interval": 0,
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "selected_bit_indices": [],
+            "samples_total": 2 * samples_per_class,
+            "positive_rows": samples_per_class,
+            "negative_rows": samples_per_class,
             "train_rows": 2 * samples_per_class,
+            "train_positive_rows": samples_per_class,
+            "train_negative_rows": samples_per_class,
             "validation_rows": samples_per_class,
+            "validation_positive_rows": samples_per_class // 2,
+            "validation_negative_rows": samples_per_class // 2,
+            "train_dataset_storage": "disk",
+            "validation_dataset_storage": "disk",
+            "optimizer_state_transition": "reset_each_stage",
+            "optimizer_state_reused": False,
+            "optimizer_state_step_before": 0,
+            "optimizer_session_call": 1,
+            "train_eval_interval": 1,
             "epochs": epochs,
             "epochs_ran": epochs,
             "best_epoch": epochs,
@@ -110,10 +152,22 @@ def _row(
             "model_options": options,
         },
         "validation": {
+            "cipher": "PRESENT-80",
+            "structure": "SPN",
+            "rounds": 7,
             "key_schedule": "per_pair_random",
+            "feature_encoding": "ciphertext_pair_bits",
+            "pairs_per_sample": 16,
             "samples_per_class": samples_per_class // 2,
+            "samples_total": samples_per_class,
+            "positive_rows": samples_per_class // 2,
+            "negative_rows": samples_per_class // 2,
+            "dataset_label_mode": "balanced_per_class",
             "negative_mode": "encrypted_random_plaintexts",
+            "key_rotation_interval": 0,
             "sample_structure": "zhang_wang_case2_official_mcnd",
+            "integral_active_nibble": 0,
+            "integral_active_nibbles": [],
         },
     }
 
@@ -418,6 +472,391 @@ def _write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8",
     )
+    first = rows[0] if rows else {}
+    seed = first.get("seed") if type(first.get("seed")) is int else 0
+    samples_per_class = (
+        first.get("samples_per_class")
+        if type(first.get("samples_per_class")) is int
+        else 8192
+    )
+    _write_progress(
+        _progress_path(path),
+        result_path=path,
+        seed=seed,
+        samples_per_class=samples_per_class,
+    )
+
+
+def _progress_path(results_path: Path) -> Path:
+    return results_path.with_name(f"{results_path.stem}.progress.jsonl")
+
+
+def _write_progress(
+    path: Path,
+    *,
+    result_path: Path,
+    seed: int,
+    samples_per_class: int,
+) -> None:
+    cache_paths = {
+        "train": str(path.parent / f"cache-seed{seed}" / "train"),
+        "validation": str(path.parent / f"cache-seed{seed}" / "validation"),
+    }
+    rows: list[dict[str, Any]] = []
+    for role, model in (
+        ("anchor", ANCHOR),
+        ("candidate", CANDIDATE),
+        ("shuffled_p", SHUFFLED),
+        ("delta_only", DELTA),
+    ):
+        for split in ("train", "validation"):
+            rows.append(
+                {
+                    "event": "cache_done" if role == "anchor" else "cache_reuse",
+                    "model": model,
+                    "seed": seed,
+                    "split": split,
+                    "cache_path": cache_paths[split],
+                    "cipher_key": "present80",
+                    "rounds": 7,
+                    "dataset_label_mode": "balanced_per_class",
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "pairs_per_sample": 16,
+                    "key_rotation_interval": 0,
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "difference_profile": "present_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "input_bits": 2048,
+                    "optimizer_state_transition": "reset_each_stage",
+                    "loss": "mse",
+                    "samples_per_class": samples_per_class,
+                    "total_rows": (
+                        2 * samples_per_class if split == "train" else samples_per_class
+                    ),
+                }
+            )
+    rows.append(
+        {
+            "event": "run_done",
+            "output": str(result_path),
+            "total": 4,
+        }
+    )
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+
+def gate_invp_state_matrix_conv2d(
+    results_paths: list[Path],
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return _gate_invp_state_matrix_conv2d(
+        results_paths,
+        progress_paths=[_progress_path(path) for path in results_paths],
+        **kwargs,
+    )
+
+
+def test_gate_requires_progress_paths_keyword(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+
+    with pytest.raises(TypeError):
+        _gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+
+@pytest.mark.parametrize("payload", [b"\xff", b"{bad\n", b"[]\n"])
+def test_gate_fails_closed_for_malformed_progress(
+    tmp_path: Path,
+    payload: bytes,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress = _progress_path(results)
+    progress.write_bytes(payload)
+
+    report = _gate_invp_state_matrix_conv2d(
+        [results],
+        progress_paths=[progress],
+        expected_seeds=(0,),
+    )
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any("progress_path" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing_terminal",
+        "duplicate_terminal",
+        "wrong_cache_path",
+        "aliased_split_paths",
+        "wrong_protocol",
+        "control_not_reuse",
+        "missing_run_done",
+        "duplicate_run_done",
+    ],
+)
+def test_gate_rejects_incomplete_or_inconsistent_cache_evidence(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress = _progress_path(results)
+    rows = [
+        json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()
+    ]
+    if mutation == "missing_terminal":
+        rows.pop(2)
+    elif mutation == "duplicate_terminal":
+        rows.insert(3, dict(rows[2]))
+    elif mutation == "wrong_cache_path":
+        rows[2]["cache_path"] = "other/cache"
+    elif mutation == "aliased_split_paths":
+        train_path = rows[0]["cache_path"]
+        for row in rows:
+            if row.get("split") == "validation":
+                row["cache_path"] = train_path
+    elif mutation == "wrong_protocol":
+        rows[2]["negative_mode"] = "random_ciphertext"
+    elif mutation == "control_not_reuse":
+        rows[2]["event"] = "cache_done"
+    elif mutation == "missing_run_done":
+        rows.pop()
+    elif mutation == "duplicate_run_done":
+        rows.append(dict(rows[-1]))
+    progress.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(
+        "cache_evidence" in error or "run_done" in error for error in report["errors"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("model", []),
+        ("seed", {}),
+        ("split", "test"),
+        ("cache_path", ""),
+        ("cipher_key", "present"),
+        ("rounds", 7.0),
+        ("dataset_label_mode", "random_labels_total"),
+        ("feature_encoding", "raw_bits"),
+        ("negative_mode", "random_ciphertext"),
+        ("pairs_per_sample", 16.0),
+        ("key_rotation_interval", False),
+        ("sample_structure", "independent_pairs"),
+        ("difference_profile", "other"),
+        ("difference_member", False),
+        ("input_bits", 2048.0),
+        ("optimizer_state_transition", "carry_across_stages"),
+        ("loss", "bce"),
+        ("samples_per_class", 0),
+        ("total_rows", 0),
+    ],
+)
+def test_gate_rejects_each_frozen_terminal_progress_field(
+    tmp_path: Path,
+    field: str,
+    invalid_value: Any,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+    progress = _progress_path(results)
+    rows = [
+        json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()
+    ]
+    rows[0][field] = invalid_value
+    progress.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(
+        field in error or "cache_evidence" in error for error in report["errors"]
+    )
+
+
+def test_gate_rejects_empty_progress_collection(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+
+    report = _gate_invp_state_matrix_conv2d(
+        [results],
+        progress_paths=[],
+        expected_seeds=(0,),
+    )
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any("progress_runs=0" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "invalid_value"),
+    [
+        ("top", "cipher", "PRESENT"),
+        ("top", "cipher_key", "present"),
+        ("top", "structure", "ARX"),
+        ("top", "model", CANDIDATE),
+        ("top", "dataset_label_mode", "random_labels_total"),
+        ("top", "input_difference", 9.0),
+        ("top", "train_samples_total", 0),
+        ("top", "validation_samples_total", 0),
+        ("top", "final_test_samples_total", 0),
+        ("top", "final_test_repeats", False),
+        ("top", "integral_active_nibble", False),
+        ("top", "integral_active_nibbles", [0]),
+        ("top", "validation_integral_active_nibbles", [0]),
+        ("training", "dataset_label_mode", "random_labels_total"),
+        ("training", "validation_integral_active_nibbles", [0]),
+        ("training", "optimizer_state_transition", "carry_across_stages"),
+        ("training", "samples_total", 0),
+        ("training", "positive_rows", 0),
+        ("training", "negative_rows", 0),
+        ("training", "train_positive_rows", 0),
+        ("training", "train_negative_rows", 0),
+        ("training", "validation_positive_rows", 0),
+        ("training", "validation_negative_rows", 0),
+        ("training", "feature_encoding", "raw_bits"),
+        ("training", "pairs_per_sample", 16.0),
+        ("training", "key_rotation_interval", False),
+        ("training", "sample_structure", "independent_pairs"),
+        ("training", "selected_bit_indices", [0]),
+        ("training", "train_dataset_storage", "memory"),
+        ("training", "validation_dataset_storage", "memory"),
+        ("training", "optimizer_state_reused", 0),
+        ("training", "optimizer_state_step_before", False),
+        ("training", "optimizer_session_call", True),
+        ("training", "amsgrad", 0),
+        ("training", "train_eval_interval", True),
+        ("training", "batch_size", 255),
+        ("training", "dataset_cache_chunk_size", 511),
+        ("training", "dataset_cache_workers", 3),
+        ("training", "device", "cuda"),
+        ("validation", "cipher", "PRESENT"),
+        ("validation", "structure", "ARX"),
+        ("validation", "rounds", 7.0),
+        ("validation", "feature_encoding", "raw_bits"),
+        ("validation", "negative_mode", "random_ciphertext"),
+        ("validation", "pairs_per_sample", 16.0),
+        ("validation", "samples_total", 0),
+        ("validation", "positive_rows", 0),
+        ("validation", "negative_rows", 0),
+        ("validation", "dataset_label_mode", "random_labels_total"),
+        ("validation", "key_rotation_interval", False),
+        ("validation", "sample_structure", "independent_pairs"),
+        ("validation", "key_schedule", "fixed"),
+        ("validation", "integral_active_nibble", False),
+        ("validation", "integral_active_nibbles", [0]),
+    ],
+)
+def test_gate_rejects_each_newly_frozen_result_field(
+    tmp_path: Path,
+    section: str,
+    field: str,
+    invalid_value: Any,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(model, auc)
+        for model, auc in (
+            (ANCHOR, 0.60),
+            (CANDIDATE, 0.61),
+            (SHUFFLED, 0.605),
+            (DELTA, 0.604),
+        )
+    ]
+    target = rows[0] if section == "top" else rows[0][section]
+    target[field] = invalid_value
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(field in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(
+    ("model", "invalid_options"),
+    [
+        (ANCHOR, {"spn_mixer_depth": 2.0, "activation": "relu", "norm": "layernorm"}),
+        (
+            CANDIDATE,
+            {
+                "conv_depth": 3,
+                "kernel_size": 3,
+                "activation": "relu",
+                "norm": "batchnorm2d",
+                "dropout": False,
+            },
+        ),
+        (
+            SHUFFLED,
+            {
+                "conv_depth": 3,
+                "kernel_size": 3,
+                "activation": "relu",
+                "norm": "batchnorm2d",
+                "dropout": 0.0,
+                "extra": 1,
+            },
+        ),
+        (
+            DELTA,
+            {
+                "conv_depth": 3,
+                "kernel_size": 3,
+                "activation": "relu",
+                "norm": "batchnorm2d",
+            },
+        ),
+    ],
+)
+def test_gate_rejects_nonexact_role_model_options(
+    tmp_path: Path,
+    model: str,
+    invalid_options: dict[str, Any],
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(key, auc)
+        for key, auc in (
+            (ANCHOR, 0.60),
+            (CANDIDATE, 0.61),
+            (SHUFFLED, 0.605),
+            (DELTA, 0.604),
+        )
+    ]
+    next(row for row in rows if row["model"] == model)["training"]["model_options"] = (
+        invalid_options
+    )
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any("model_options" in error for error in report["errors"])
 
 
 def test_gate_promotes_clear_seed0_result(tmp_path: Path) -> None:
@@ -437,6 +876,37 @@ def test_gate_promotes_clear_seed0_result(tmp_path: Path) -> None:
         "not formal, paper-scale, or breakthrough evidence"
     )
     assert report["research_decision_applied"] is True
+    assert len(report["protocol_evidence"]["rows"]) == 4
+    candidate_evidence = next(
+        row for row in report["protocol_evidence"]["rows"] if row["role"] == "candidate"
+    )
+    assert candidate_evidence["model_options"]["conv_depth"] == 3
+    assert candidate_evidence["checkpoint_history_status"] == "pass"
+    assert report["semantic_checks"] == {
+        "raw_input_bits": 2048,
+        "pair_bits": 128,
+        "pairs_per_sample": 16,
+        "state_matrix_axes": ["bit_plane", "cell"],
+        "state_matrix_shape": ["batch", "pair", 4, 16],
+        "role_mapping_identities": {
+            "candidate": "true_inv_p",
+            "shuffled_p": "deterministic_shuffled_p",
+            "delta_only": "raw_delta",
+        },
+        "evidence_kind": "frozen/tested semantic contract; not runtime tensor equality",
+        "status": "pass",
+    }
+    assert report["cache_evidence"]["0"]["verified"] is True
+    assert report["cache_evidence"]["0"]["create_count"] == 2
+    assert report["cache_evidence"]["0"]["reuse_count"] == 6
+    assert report["cache_evidence"]["0"]["run_done_count"] == 1
+    assert report["promotion_conditions"]["candidate_above_anchor_required"] is True
+    assert report["promotion_conditions"]["seed0_topology_margin"] == 0.003
+    assert {item["action"] for item in report["stopped_actions"]} == {
+        "65536_per_class",
+        "262144_per_class",
+        "remote_scale",
+    }
 
 
 def test_gate_readiness_only_returns_neutral_r0_outcome(tmp_path: Path) -> None:
@@ -465,6 +935,10 @@ def test_gate_readiness_only_returns_neutral_r0_outcome(tmp_path: Path) -> None:
     )
     assert report["research_decision_applied"] is False
     assert report["errors"] == []
+    assert {item["action"] for item in report["stopped_actions"]} == {
+        "interpret_smoke_metrics",
+        "remote_scale",
+    }
 
 
 def test_gate_readiness_only_rejects_r1_identity(tmp_path: Path) -> None:
@@ -861,12 +1335,37 @@ def test_cli_writes_protocol_valid_promote_seed1_report(tmp_path: Path) -> None:
     output = tmp_path / "nested" / "gate.json"
     _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
 
-    exit_code = main(["--results", str(results), "--output", str(output)])
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
 
     assert exit_code == 0
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["status"] == "pass"
     assert report["decision"] == "promote_seed1"
+
+
+def test_cli_requires_progress_argument(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(
+            [
+                "--results",
+                str(tmp_path / "results.jsonl"),
+                "--output",
+                str(tmp_path / "gate.json"),
+            ]
+        )
+
+    assert exc_info.value.code == 2
 
 
 def test_cli_readiness_only_writes_neutral_r0_report(tmp_path: Path) -> None:
@@ -885,6 +1384,8 @@ def test_cli_readiness_only_writes_neutral_r0_report(tmp_path: Path) -> None:
         [
             "--results",
             str(results),
+            "--progress",
+            str(_progress_path(results)),
             "--expected-seeds",
             "0",
             "--samples-per-class",
@@ -915,7 +1416,16 @@ def test_cli_returns_zero_for_protocol_valid_stop_decision(tmp_path: Path) -> No
     output = tmp_path / "gate.json"
     _write(results, {ANCHOR: 0.61, CANDIDATE: 0.60, SHUFFLED: 0.59, DELTA: 0.58})
 
-    exit_code = main(["--results", str(results), "--output", str(output)])
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
 
     assert exit_code == 0
     report = json.loads(output.read_text(encoding="utf-8"))
@@ -930,7 +1440,16 @@ def test_cli_returns_one_for_invalid_protocol(tmp_path: Path) -> None:
     output = tmp_path / "gate.json"
     _write_rows(results, [_row(ANCHOR, 0.60)])
 
-    exit_code = main(["--results", str(results), "--output", str(output)])
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
 
     assert exit_code == 1
     report = json.loads(output.read_text(encoding="utf-8"))
@@ -959,6 +1478,10 @@ def test_cli_forwards_repeated_results_and_multiple_expected_seeds(
             str(seed0),
             "--results",
             str(seed1),
+            "--progress",
+            str(_progress_path(seed0)),
+            "--progress",
+            str(_progress_path(seed1)),
             "--expected-seeds",
             "0,1",
             "--output",
@@ -984,6 +1507,8 @@ def test_cli_rejects_empty_expected_seed_tokens_with_argparse_usage(
             [
                 "--results",
                 str(tmp_path / "results.jsonl"),
+                "--progress",
+                str(tmp_path / "progress.jsonl"),
                 "--expected-seeds",
                 expected_seeds,
                 "--output",
@@ -992,6 +1517,35 @@ def test_cli_rejects_empty_expected_seed_tokens_with_argparse_usage(
         )
 
     assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("run_name", "samples_per_class", "epochs", "readiness_only"),
+    [
+        ("i1_present_invp_state_matrix_conv2d_smoke_seed0", 64, 1, True),
+        ("i1_present_invp_state_matrix_conv2d_8192_seed0", 8192, 10, False),
+    ],
+)
+def test_saved_r0_r1_results_and_progress_pass_strict_gate(
+    run_name: str,
+    samples_per_class: int,
+    epochs: int,
+    readiness_only: bool,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    run_root = root / "outputs" / "local_smoke" / run_name
+
+    report = _gate_invp_state_matrix_conv2d(
+        [run_root / "results.jsonl"],
+        progress_paths=[run_root / "progress.jsonl"],
+        expected_seeds=(0,),
+        samples_per_class=samples_per_class,
+        epochs=epochs,
+        readiness_only=readiness_only,
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["cache_evidence"]["0"]["verified"] is True
 
 
 @pytest.mark.parametrize(

@@ -23,6 +23,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Gate the strict PRESENT r7 InvP state-matrix Conv2D experiment."
     )
     parser.add_argument("--results", action="append", required=True, type=Path)
+    parser.add_argument("--progress", action="append", required=True, type=Path)
     parser.add_argument("--expected-seeds", type=expected_seeds_arg, default="0")
     parser.add_argument("--samples-per-class", type=int, default=8192)
     parser.add_argument("--epochs", type=int, default=10)
@@ -35,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report = gate_invp_state_matrix_conv2d(
         args.results,
+        progress_paths=args.progress,
         expected_seeds=args.expected_seeds,
         samples_per_class=args.samples_per_class,
         epochs=args.epochs,

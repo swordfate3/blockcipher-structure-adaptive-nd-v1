@@ -19,6 +19,7 @@ MODEL_ROLES = {
 def gate_invp_state_matrix_conv2d(
     results_paths: list[Path],
     *,
+    progress_paths: list[Path],
     expected_seeds: tuple[int, ...] = (0,),
     samples_per_class: int = 8192,
     epochs: int = 10,
@@ -33,6 +34,7 @@ def gate_invp_state_matrix_conv2d(
         return _invalid_protocol(expected_seed_errors)
 
     rows, load_errors = _load_rows(results_paths)
+    progress_runs, progress_load_errors = _load_progress_runs(progress_paths)
     readiness_errors = []
     if readiness_only and (
         expected_seeds != (0,) or samples_per_class != 64 or epochs != 1
@@ -45,6 +47,7 @@ def gate_invp_state_matrix_conv2d(
         )
     errors = [
         *load_errors,
+        *progress_load_errors,
         *readiness_errors,
         *_protocol_errors(
             rows,
@@ -53,6 +56,12 @@ def gate_invp_state_matrix_conv2d(
             epochs=epochs,
         ),
     ]
+    cache_evidence, cache_errors = _cache_evidence(
+        progress_runs,
+        expected_seeds=expected_seeds,
+        samples_per_class=samples_per_class,
+    )
+    errors.extend(cache_errors)
     if errors:
         return _invalid_protocol(errors)
 
@@ -66,6 +75,19 @@ def gate_invp_state_matrix_conv2d(
         **counts,
         "candidate_to_anchor_ratio": counts["candidate"] / counts["anchor"],
     }
+    common_evidence = {
+        "protocol_evidence": _protocol_evidence(by_seed, expected_seeds),
+        "semantic_checks": _semantic_checks(),
+        "cache_evidence": cache_evidence,
+        "promotion_conditions": _promotion_conditions(
+            expected_seeds=expected_seeds,
+            samples_per_class=samples_per_class,
+            seed0_topology_margin=seed0_topology_margin,
+            seed0_representation_margin=seed0_representation_margin,
+            joint_architecture_margin=joint_architecture_margin,
+            joint_control_margin=joint_control_margin,
+        ),
+    }
     if readiness_only:
         return {
             "status": "pass",
@@ -76,6 +98,8 @@ def gate_invp_state_matrix_conv2d(
             "models": MODEL_ROLES,
             "seeds": seed_reports,
             "parameter_counts": parameter_counts,
+            **common_evidence,
+            "stopped_actions": _stopped_actions("implementation_ready"),
             "next_action": "run_frozen_r1_seed0_local_diagnostic",
             "claim_scope": "implementation readiness only; metrics not interpreted",
             "research_decision_applied": False,
@@ -98,6 +122,8 @@ def gate_invp_state_matrix_conv2d(
         "models": MODEL_ROLES,
         "seeds": seed_reports,
         "parameter_counts": parameter_counts,
+        **common_evidence,
+        "stopped_actions": _stopped_actions(decision),
         "next_action": next_action,
         "claim_scope": (
             f"{samples_per_class}/class strict PRESENT r7 architecture-attribution diagnostic; "
@@ -137,13 +163,21 @@ def _invalid_protocol(errors: list[str]) -> dict[str, Any]:
 
 
 def _load_rows(paths: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
+    return _load_jsonl_rows(paths, path_label="results_path")
+
+
+def _load_jsonl_rows(
+    paths: list[Path],
+    *,
+    path_label: str,
+) -> tuple[list[dict[str, Any]], list[str]]:
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
     for path in paths:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
         except (OSError, UnicodeDecodeError) as exc:
-            errors.append(f"results_path={path} read_error={exc}")
+            errors.append(f"{path_label}={path} read_error={exc}")
             continue
         for line_number, line in enumerate(lines, start=1):
             if not line.strip():
@@ -152,14 +186,200 @@ def _load_rows(paths: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
                 row = json.loads(line)
             except json.JSONDecodeError as exc:
                 errors.append(
-                    f"results_path={path} line={line_number} invalid_json={exc.msg}"
+                    f"{path_label}={path} line={line_number} invalid_json={exc.msg}"
                 )
                 continue
             if not isinstance(row, dict):
-                errors.append(f"results_path={path} line={line_number} row_not_object")
+                errors.append(f"{path_label}={path} line={line_number} row_not_object")
                 continue
             rows.append(row)
     return rows, errors
+
+
+def _load_progress_runs(
+    paths: list[Path],
+) -> tuple[list[tuple[Path, list[dict[str, Any]]]], list[str]]:
+    runs: list[tuple[Path, list[dict[str, Any]]]] = []
+    errors: list[str] = []
+    for path in paths:
+        rows, path_errors = _load_jsonl_rows([path], path_label="progress_path")
+        runs.append((path, rows))
+        errors.extend(path_errors)
+    return runs, errors
+
+
+def _cache_evidence(
+    progress_runs: list[tuple[Path, list[dict[str, Any]]]],
+    *,
+    expected_seeds: tuple[int, ...],
+    samples_per_class: int,
+) -> tuple[dict[str, Any], list[str]]:
+    errors: list[str] = []
+    runs_by_seed: dict[int, list[tuple[Path, list[dict[str, Any]]]]] = {
+        seed: [] for seed in expected_seeds
+    }
+    expected_seed_set = set(expected_seeds)
+    for path, rows in progress_runs:
+        terminal = [
+            row for row in rows if row.get("event") in {"cache_done", "cache_reuse"}
+        ]
+        seeds = {
+            row["seed"]
+            for row in terminal
+            if _is_expected_seed(row.get("seed"), expected_seed_set)
+        }
+        if len(seeds) != 1:
+            errors.append(
+                f"progress_path={path} cache_evidence expected_one_seed actual={sorted(seeds)}"
+            )
+            continue
+        seed = next(iter(seeds))
+        runs_by_seed[seed].append((path, rows))
+
+    evidence: dict[str, Any] = {}
+    expected_models = set(MODEL_ROLES.values())
+    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
+    for seed in expected_seeds:
+        runs = runs_by_seed[seed]
+        if len(runs) != 1:
+            errors.append(
+                f"seed={seed} cache_evidence progress_runs={len(runs)} expected=1"
+            )
+            continue
+        progress_path, rows = runs[0]
+        run_done = [row for row in rows if row.get("event") == "run_done"]
+        if len(run_done) != 1:
+            errors.append(f"seed={seed} run_done count={len(run_done)} expected=1")
+
+        grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        events: list[dict[str, Any]] = []
+        terminal = [
+            row for row in rows if row.get("event") in {"cache_done", "cache_reuse"}
+        ]
+        exact_fields = {
+            "cipher_key": "present80",
+            "rounds": 7,
+            "dataset_label_mode": "balanced_per_class",
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "pairs_per_sample": 16,
+            "key_rotation_interval": 0,
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "difference_profile": "present_zhang_wang2022_mcnd",
+            "difference_member": 0,
+            "input_bits": 2048,
+            "optimizer_state_transition": "reset_each_stage",
+            "loss": "mse",
+            "samples_per_class": samples_per_class,
+        }
+        for index, row in enumerate(terminal):
+            label = f"seed={seed} cache_evidence[{index}]"
+            model = row.get("model")
+            split = row.get("split")
+            model_valid = _is_expected_model(model, expected_models)
+            seed_valid = type(row.get("seed")) is int and row.get("seed") == seed
+            split_valid = type(split) is str and split in {"train", "validation"}
+            if not model_valid:
+                errors.append(f"{label} model unexpected={model!r}")
+            if not seed_valid:
+                errors.append(
+                    f"{label} seed expected={seed} actual={row.get('seed')!r}"
+                )
+            if not split_valid:
+                errors.append(f"{label} split unexpected={split!r}")
+            cache_path = row.get("cache_path")
+            if not isinstance(cache_path, str) or not cache_path.strip():
+                errors.append(
+                    f"{label} cache_path must_be_nonempty actual={cache_path!r}"
+                )
+            for field, expected in exact_fields.items():
+                _check_exact(row, field, expected, label, errors)
+            expected_rows = (
+                2 * samples_per_class if split == "train" else samples_per_class
+            )
+            _check_exact(row, "total_rows", expected_rows, label, errors)
+            if model_valid and split_valid and seed_valid:
+                role = model_to_role[model]
+                grouped.setdefault((role, split), []).append(row)
+                events.append(
+                    {
+                        "role": role,
+                        "model": model,
+                        "split": split,
+                        "event": row.get("event"),
+                        "cache_path": cache_path,
+                    }
+                )
+
+        for role in MODEL_ROLES:
+            for split in ("train", "validation"):
+                role_events = grouped.get((role, split), [])
+                if len(role_events) != 1:
+                    errors.append(
+                        f"seed={seed} cache_evidence role={role} split={split} "
+                        f"terminal_count={len(role_events)} expected=1"
+                    )
+                    continue
+                event = role_events[0]["event"]
+                if role != "anchor" and event != "cache_reuse":
+                    errors.append(
+                        f"seed={seed} cache_evidence role={role} split={split} "
+                        f"event={event!r} expected='cache_reuse'"
+                    )
+
+        split_paths = {
+            split: {
+                row.get("cache_path")
+                for role in MODEL_ROLES
+                for row in grouped.get((role, split), [])
+                if isinstance(row.get("cache_path"), str) and row.get("cache_path")
+            }
+            for split in ("train", "validation")
+        }
+        for split, paths in split_paths.items():
+            if len(paths) != 1:
+                errors.append(
+                    f"seed={seed} cache_evidence split={split} unique_paths={sorted(paths)} expected=1"
+                )
+        control_reuse_count = sum(
+            1
+            for event in events
+            if event["role"] != "anchor" and event["event"] == "cache_reuse"
+        )
+        if control_reuse_count != 6:
+            errors.append(
+                f"seed={seed} cache_evidence control_reuse_count={control_reuse_count} expected=6"
+            )
+        train_path = next(iter(split_paths["train"]), None)
+        validation_path = next(iter(split_paths["validation"]), None)
+        if train_path is not None and train_path == validation_path:
+            errors.append(
+                f"seed={seed} cache_evidence train_and_validation_paths_must_differ "
+                f"actual={train_path!r}"
+            )
+        result_output = run_done[0].get("output") if len(run_done) == 1 else None
+        if not isinstance(result_output, str) or not result_output.strip():
+            errors.append(
+                f"seed={seed} run_done output must_be_nonempty actual={result_output!r}"
+            )
+        evidence[str(seed)] = {
+            "progress_path": str(progress_path),
+            "result_root": str(Path(result_output).parent)
+            if isinstance(result_output, str)
+            else None,
+            "train_path": train_path,
+            "validation_path": validation_path,
+            "create_count": sum(event["event"] == "cache_done" for event in events),
+            "reuse_count": sum(event["event"] == "cache_reuse" for event in events),
+            "control_reuse_count": control_reuse_count,
+            "events": events,
+            "run_done_count": len(run_done),
+            "verified": True,
+        }
+    if errors:
+        for item in evidence.values():
+            item["verified"] = False
+    return evidence, errors
 
 
 def _protocol_errors(
@@ -202,8 +422,17 @@ def _protocol_errors(
                 )
 
     exact_row_fields = {
+        "cipher": "PRESENT-80",
+        "cipher_key": "present80",
+        "structure": "SPN",
         "rounds": 7,
+        "dataset_label_mode": "balanced_per_class",
+        "input_difference": 9,
         "samples_per_class": samples_per_class,
+        "train_samples_total": None,
+        "validation_samples_total": None,
+        "final_test_samples_total": None,
+        "final_test_repeats": 0,
         "pairs_per_sample": 16,
         "feature_encoding": "ciphertext_pair_bits",
         "negative_mode": "encrypted_random_plaintexts",
@@ -213,13 +442,45 @@ def _protocol_errors(
         "sample_structure": "zhang_wang_case2_official_mcnd",
         "difference_profile": "present_zhang_wang2022_mcnd",
         "difference_member": 0,
+        "integral_active_nibble": 0,
+        "integral_active_nibbles": [],
+        "validation_integral_active_nibbles": [],
     }
+    is_r0 = samples_per_class == 64 and epochs == 1
     exact_training_fields = {
+        "amsgrad": False,
+        "batch_size": 32 if is_r0 else 256,
+        "dataset_cache_chunk_size": 64 if is_r0 else 512,
+        "dataset_cache_workers": 1 if is_r0 else 4,
+        "dataset_label_mode": "balanced_per_class",
+        "device": "cpu",
+        "feature_encoding": "ciphertext_pair_bits",
         "key_schedule": "per_pair_random",
         "input_bits": 2048,
+        "integral_active_nibble": 0,
+        "integral_active_nibbles": [],
+        "validation_integral_active_nibbles": [],
         "pair_bits": 128,
+        "pairs_per_sample": 16,
+        "key_rotation_interval": 0,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "selected_bit_indices": [],
+        "samples_total": 2 * samples_per_class,
+        "positive_rows": samples_per_class,
+        "negative_rows": samples_per_class,
         "train_rows": 2 * samples_per_class,
+        "train_positive_rows": samples_per_class,
+        "train_negative_rows": samples_per_class,
         "validation_rows": samples_per_class,
+        "validation_positive_rows": samples_per_class // 2,
+        "validation_negative_rows": samples_per_class // 2,
+        "train_dataset_storage": "disk",
+        "validation_dataset_storage": "disk",
+        "optimizer_state_transition": "reset_each_stage",
+        "optimizer_state_reused": False,
+        "optimizer_state_step_before": 0,
+        "optimizer_session_call": 1,
+        "train_eval_interval": 1,
         "epochs": epochs,
         "loss": "mse",
         "optimizer": "adam",
@@ -232,6 +493,24 @@ def _protocol_errors(
         "selected_checkpoint": "best",
         "early_stopping_patience": 8,
         "early_stopping_min_delta": 0.0001,
+    }
+    exact_validation_fields = {
+        "cipher": "PRESENT-80",
+        "structure": "SPN",
+        "rounds": 7,
+        "feature_encoding": "ciphertext_pair_bits",
+        "negative_mode": "encrypted_random_plaintexts",
+        "pairs_per_sample": 16,
+        "samples_per_class": samples_per_class // 2,
+        "samples_total": samples_per_class,
+        "positive_rows": samples_per_class // 2,
+        "negative_rows": samples_per_class // 2,
+        "dataset_label_mode": "balanced_per_class",
+        "key_rotation_interval": 0,
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "key_schedule": "per_pair_random",
+        "integral_active_nibble": 0,
+        "integral_active_nibbles": [],
     }
     cache_roots: dict[int, list[Any]] = {seed: [] for seed in expected_seeds}
     conv_counts: dict[str, set[int]] = {
@@ -247,6 +526,7 @@ def _protocol_errors(
         label = f"row={index} seed={seed} model={model}"
         for field, expected in exact_row_fields.items():
             _check_exact(row, field, expected, label, errors)
+        _check_exact(row, "model", model, label, errors)
 
         training = row.get("training")
         if not isinstance(training, dict):
@@ -254,25 +534,31 @@ def _protocol_errors(
             training = {}
         for field, expected in exact_training_fields.items():
             _check_exact(training, field, expected, f"{label} training", errors)
+        expected_options = (
+            {"spn_mixer_depth": 2, "activation": "relu", "norm": "layernorm"}
+            if model == MODEL_ROLES["anchor"]
+            else {
+                "conv_depth": 3,
+                "kernel_size": 3,
+                "activation": "relu",
+                "norm": "batchnorm2d",
+                "dropout": 0.0,
+            }
+        )
+        _check_exact(
+            training,
+            "model_options",
+            expected_options,
+            f"{label} training",
+            errors,
+        )
 
         validation = row.get("validation")
         if not isinstance(validation, dict):
             errors.append(f"{label} validation expected_mapping actual={validation!r}")
             validation = {}
-        _check_exact(
-            validation,
-            "samples_per_class",
-            samples_per_class // 2,
-            f"{label} validation",
-            errors,
-        )
-        _check_exact(
-            validation,
-            "key_schedule",
-            "per_pair_random",
-            f"{label} validation",
-            errors,
-        )
+        for field, expected in exact_validation_fields.items():
+            _check_exact(validation, field, expected, f"{label} validation", errors)
 
         if seed_is_expected:
             cache_roots[int(seed)].append(training.get("dataset_cache_root"))
@@ -505,8 +791,22 @@ def _check_exact(
     errors: list[str],
 ) -> None:
     actual = mapping.get(field)
-    if type(actual) is not type(expected) or actual != expected:
+    if not _exact_equal(actual, expected):
         errors.append(f"{label} {field} expected={expected!r} actual={actual!r}")
+
+
+def _exact_equal(actual: Any, expected: Any) -> bool:
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return actual.keys() == expected.keys() and all(
+            _exact_equal(actual[key], expected[key]) for key in expected
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            _exact_equal(left, right) for left, right in zip(actual, expected)
+        )
+    return actual == expected
 
 
 def _is_finite_number(value: Any) -> bool:
@@ -560,6 +860,186 @@ def _seed_report(rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "candidate_above_all": aucs["candidate"]
         > max(aucs["anchor"], aucs["shuffled_p"], aucs["delta_only"]),
     }
+
+
+def _protocol_evidence(
+    by_seed: dict[int, dict[str, dict[str, Any]]],
+    expected_seeds: tuple[int, ...],
+) -> dict[str, Any]:
+    top_fields = (
+        "cipher",
+        "cipher_key",
+        "structure",
+        "model",
+        "selected_model",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "input_difference",
+        "train_samples_total",
+        "validation_samples_total",
+        "final_test_samples_total",
+        "final_test_repeats",
+        "negative_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "train_key",
+        "validation_key",
+        "key_rotation_interval",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "integral_active_nibble",
+        "integral_active_nibbles",
+        "validation_integral_active_nibbles",
+    )
+    training_fields = (
+        "amsgrad",
+        "batch_size",
+        "dataset_cache_chunk_size",
+        "dataset_cache_workers",
+        "dataset_label_mode",
+        "device",
+        "feature_encoding",
+        "key_schedule",
+        "input_bits",
+        "integral_active_nibble",
+        "integral_active_nibbles",
+        "validation_integral_active_nibbles",
+        "pair_bits",
+        "pairs_per_sample",
+        "key_rotation_interval",
+        "sample_structure",
+        "selected_bit_indices",
+        "samples_total",
+        "positive_rows",
+        "negative_rows",
+        "train_rows",
+        "train_positive_rows",
+        "train_negative_rows",
+        "validation_rows",
+        "validation_positive_rows",
+        "validation_negative_rows",
+        "train_dataset_storage",
+        "validation_dataset_storage",
+        "epochs",
+        "dataset_cache_root",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "lr_scheduler",
+        "max_learning_rate",
+        "checkpoint_metric",
+        "selected_checkpoint",
+        "restore_best_checkpoint",
+        "early_stopping_patience",
+        "early_stopping_min_delta",
+        "optimizer_state_transition",
+        "optimizer_state_reused",
+        "optimizer_state_step_before",
+        "optimizer_session_call",
+        "train_eval_interval",
+    )
+    validation_fields = (
+        "cipher",
+        "structure",
+        "rounds",
+        "feature_encoding",
+        "negative_mode",
+        "pairs_per_sample",
+        "samples_per_class",
+        "samples_total",
+        "positive_rows",
+        "negative_rows",
+        "dataset_label_mode",
+        "key_rotation_interval",
+        "sample_structure",
+        "key_schedule",
+        "integral_active_nibble",
+        "integral_active_nibbles",
+    )
+    rows: list[dict[str, Any]] = []
+    for seed in expected_seeds:
+        for role in MODEL_ROLES:
+            row = by_seed[seed][role]
+            training = row["training"]
+            validation = row["validation"]
+            rows.append(
+                {
+                    "seed": seed,
+                    "role": role,
+                    "model": row["selected_model"],
+                    "model_options": training["model_options"],
+                    "top_level": {field: row[field] for field in top_fields},
+                    "training": {field: training[field] for field in training_fields},
+                    "validation": {
+                        field: validation[field] for field in validation_fields
+                    },
+                    "parameter_count": row["parameter_count"],
+                    "trainable_parameter_count": row["trainable_parameter_count"],
+                    "checkpoint_history_status": "pass",
+                    "epochs_ran": training["epochs_ran"],
+                    "best_epoch": training["best_epoch"],
+                    "history_rows": len(row["history"]),
+                }
+            )
+    return {"rows": rows, "status": "pass"}
+
+
+def _semantic_checks() -> dict[str, Any]:
+    return {
+        "raw_input_bits": 2048,
+        "pair_bits": 128,
+        "pairs_per_sample": 16,
+        "state_matrix_axes": ["bit_plane", "cell"],
+        "state_matrix_shape": ["batch", "pair", 4, 16],
+        "role_mapping_identities": {
+            "candidate": "true_inv_p",
+            "shuffled_p": "deterministic_shuffled_p",
+            "delta_only": "raw_delta",
+        },
+        "evidence_kind": "frozen/tested semantic contract; not runtime tensor equality",
+        "status": "pass",
+    }
+
+
+def _promotion_conditions(
+    *,
+    expected_seeds: tuple[int, ...],
+    samples_per_class: int,
+    seed0_topology_margin: float,
+    seed0_representation_margin: float,
+    joint_architecture_margin: float,
+    joint_control_margin: float,
+) -> dict[str, Any]:
+    return {
+        "candidate_above_anchor_required": True,
+        "candidate_above_all_controls_required": True,
+        "seed0_topology_margin": seed0_topology_margin,
+        "seed0_representation_margin": seed0_representation_margin,
+        "joint_architecture_margin": joint_architecture_margin,
+        "joint_control_margin": joint_control_margin,
+        "expected_seeds": list(expected_seeds),
+        "samples_per_class": samples_per_class,
+        "scale_identity": f"{samples_per_class}/class",
+    }
+
+
+def _stopped_actions(decision: str) -> list[dict[str, str]]:
+    if decision == "implementation_ready":
+        actions = ("interpret_smoke_metrics", "remote_scale")
+    elif decision == "promote_seed1":
+        actions = ("65536_per_class", "262144_per_class", "remote_scale")
+    elif decision == "promote_medium_65536":
+        actions = ("262144_per_class", "remote_scale")
+    else:
+        actions = ("seed1", "65536_per_class", "262144_per_class", "remote_scale")
+    return [
+        {"action": action, "reason": f"stopped_by_decision:{decision}"}
+        for action in actions
+    ]
 
 
 def _decision(
