@@ -256,6 +256,67 @@ def test_gate_rejects_non_numeric_json_metric_types(
     assert any(f"metrics.{metric}" in error for error in report["errors"])
 
 
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "error_field"),
+    [
+        ("selected_model", [], "unexpected_selected_model"),
+        ("selected_model", {}, "unexpected_selected_model"),
+        ("seed", [], "unexpected_seed"),
+        ("seed", {}, "unexpected_seed"),
+    ],
+)
+def test_gate_fails_closed_for_unhashable_row_identity_fields(
+    tmp_path: Path,
+    field: str,
+    invalid_value: list[object] | dict[str, object],
+    error_field: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1][field] = invalid_value
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(error_field in error for error in report["errors"])
+
+
+def test_gate_fails_closed_for_invalid_utf8_results(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    results.write_bytes(b"\xff\xfe\x80")
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any("read_error" in error for error in report["errors"])
+
+
+def test_gate_fails_closed_for_oversized_json_integer_metric(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1]["metrics"]["auc"] = 10**400
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any("metrics.auc" in error for error in report["errors"])
+
+
 def test_gate_rejects_duplicate_and_missing_model_rows(tmp_path: Path) -> None:
     results = tmp_path / "results.jsonl"
     rows = [

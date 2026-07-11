@@ -88,7 +88,7 @@ def _load_rows(paths: list[Path]) -> tuple[list[dict[str, Any]], list[str]]:
     for path in paths:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:
             errors.append(f"results_path={path} read_error={exc}")
             continue
         for line_number, line in enumerate(lines, start=1):
@@ -124,16 +124,13 @@ def _protocol_errors(
     for index, row in enumerate(rows):
         seed = row.get("seed")
         model = row.get("selected_model")
-        seed_is_expected = (
-            isinstance(seed, int)
-            and not isinstance(seed, bool)
-            and seed in expected_seed_set
-        )
+        seed_is_expected = _is_expected_seed(seed, expected_seed_set)
+        model_is_expected = _is_expected_model(model, expected_models)
         if not seed_is_expected:
             errors.append(f"row={index} unexpected_seed={seed}")
-        if model not in expected_models:
+        if not model_is_expected:
             errors.append(f"row={index} unexpected_selected_model={model}")
-        if seed_is_expected and model in expected_models:
+        if seed_is_expected and model_is_expected:
             grouped.setdefault((int(seed), model_to_role[str(model)]), []).append(row)
 
     for seed in expected_seeds:
@@ -182,6 +179,8 @@ def _protocol_errors(
     for index, row in enumerate(rows):
         model = row.get("selected_model")
         seed = row.get("seed")
+        seed_is_expected = _is_expected_seed(seed, expected_seed_set)
+        model_is_expected = _is_expected_model(model, expected_models)
         label = f"row={index} seed={seed} model={model}"
         for field, expected in exact_row_fields.items():
             _check_exact(row, field, expected, label, errors)
@@ -205,7 +204,7 @@ def _protocol_errors(
             errors,
         )
 
-        if seed in expected_seed_set:
+        if seed_is_expected:
             cache_roots[int(seed)].append(training.get("dataset_cache_root"))
         metrics = row.get("metrics")
         if not isinstance(metrics, dict):
@@ -219,7 +218,7 @@ def _protocol_errors(
             value = row.get(field)
             if not _is_positive_integer(value):
                 errors.append(f"{label} {field} must_be_positive_integer actual={value!r}")
-            elif model in expected_models - {MODEL_ROLES["anchor"]}:
+            elif model_is_expected and model != MODEL_ROLES["anchor"]:
                 conv_counts[field].add(value)
 
     for seed, roots in cache_roots.items():
@@ -256,7 +255,18 @@ def _check_exact(
 def _is_finite_number(value: Any) -> bool:
     if type(value) not in {int, float}:
         return False
-    return math.isfinite(value)
+    try:
+        return math.isfinite(value)
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
+def _is_expected_seed(value: Any, expected: set[int]) -> bool:
+    return type(value) is int and value in expected
+
+
+def _is_expected_model(value: Any, expected: set[str]) -> bool:
+    return isinstance(value, str) and value in expected
 
 
 def _is_positive_integer(value: Any) -> bool:
