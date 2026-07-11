@@ -290,6 +290,42 @@ def test_model_factory_builds_state_matrix_conv2d_variants_with_equal_capacity()
     assert parameter_counts[0] == parameter_counts[1] == parameter_counts[2]
 
 
+def test_model_factory_preserves_valid_nondefault_state_matrix_conv2d_options():
+    model = build_model(
+        "present_nibble_invp_state_matrix_conv2d_spn_only",
+        input_bits=INPUT_BITS,
+        hidden_bits=32,
+        pair_bits=128,
+        structure="SPN",
+        model_options={"conv_depth": 2, "kernel_size": 5},
+    )
+
+    assert len(model.residual_blocks) == 2
+    assert model.residual_blocks[0].conv1.kernel_size == (5, 5)
+
+
+@pytest.mark.parametrize(
+    ("model_options", "message"),
+    [
+        ({"conv_depth": 0}, "conv_depth must be >= 1"),
+        ({"kernel_size": 0}, "kernel_size must be a positive odd integer"),
+        ({"kernel_size": 2}, "kernel_size must be a positive odd integer"),
+    ],
+)
+def test_model_factory_preserves_invalid_state_matrix_conv2d_options_for_validation(
+    model_options, message
+):
+    with pytest.raises(ValueError, match=message):
+        build_model(
+            "present_nibble_invp_state_matrix_conv2d_spn_only",
+            input_bits=INPUT_BITS,
+            hidden_bits=32,
+            pair_bits=128,
+            structure="SPN",
+            model_options=model_options,
+        )
+
+
 def test_model_metadata_records_total_and_trainable_parameter_counts():
     model = nn.Sequential(nn.Linear(4, 3), nn.Linear(3, 1))
     model[1].weight.requires_grad_(False)
