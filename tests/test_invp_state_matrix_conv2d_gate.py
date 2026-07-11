@@ -50,11 +50,11 @@ def _row(
         {
             "epoch": epoch,
             "learning_rate": 0.002 - (epoch - 1) * (0.0019 / max(epochs - 1, 1)),
-            "train_auc": auc + 0.01,
+            "train_auc": auc + 0.01 - 0.001 * (epochs - epoch),
             "train_accuracy": 0.62,
             "train_loss": 0.24,
             "train_eval_loss": 0.66,
-            "val_auc": auc,
+            "val_auc": auc - 0.001 * (epochs - epoch),
             "val_accuracy": 0.6,
             "val_calibrated_accuracy": 0.61,
             "val_loss": 0.68,
@@ -94,6 +94,7 @@ def _row(
             "epochs_ran": epochs,
             "best_epoch": epochs,
             "best_checkpoint_metric": auc,
+            "stopped_epoch": 0,
             "checkpoint_metric": "val_auc",
             "selected_checkpoint": "best",
             "restore_best_checkpoint": True,
@@ -115,6 +116,133 @@ def _row(
             "sample_structure": "zhang_wang_case2_official_mcnd",
         },
     }
+
+
+def _select_history_epoch(row: dict[str, Any], epoch: int) -> None:
+    selected = row["history"][epoch - 1]
+    row["training"]["best_epoch"] = epoch
+    row["training"]["best_checkpoint_metric"] = selected["val_auc"]
+    row["metrics"].update(
+        {
+            "auc": selected["val_auc"],
+            "accuracy": selected["val_accuracy"],
+            "calibrated_accuracy": selected["val_calibrated_accuracy"],
+            "loss": selected["val_loss"],
+        }
+    )
+
+
+def test_gate_rejects_internally_consistent_truncated_r1_history(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    for row in rows:
+        row["history"] = row["history"][:2]
+        row["training"]["epochs_ran"] = 2
+        row["training"]["stopped_epoch"] = 0
+        _select_history_epoch(row, 2)
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["decision"] == "invalid_protocol"
+    assert any(
+        "partial" in error or "configured_epochs" in error for error in report["errors"]
+    )
+
+
+def test_gate_rejects_fake_early_stop_before_patience(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    for row in rows:
+        row["history"] = row["history"][:2]
+        row["training"]["epochs_ran"] = 2
+        row["training"]["stopped_epoch"] = 2
+        _select_history_epoch(row, 2)
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["decision"] == "invalid_protocol"
+    assert any("stopped_epoch" in error for error in report["errors"])
+
+
+def test_gate_accepts_exact_patience_eight_early_stop(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    for row in rows:
+        best_auc = row["history"][0]["val_auc"]
+        row["history"] = row["history"][:9]
+        for item in row["history"]:
+            item["val_auc"] = best_auc
+        row["training"]["epochs_ran"] = 9
+        row["training"]["stopped_epoch"] = 9
+        _select_history_epoch(row, 1)
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "pass"
+    assert report["research_decision_applied"] is True
+
+
+def test_gate_rejects_reported_best_epoch_for_sub_min_delta_gain(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    row = rows[1]
+    first_auc = row["history"][0]["val_auc"]
+    row["history"][1]["val_auc"] = first_auc + 0.00005
+    for index, item in enumerate(row["history"][2:], start=2):
+        item["val_auc"] = first_auc + 0.001 * index
+    _select_history_epoch(row, 2)
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["decision"] == "invalid_protocol"
+    assert any(
+        "best_epoch" in error or "checkpoint" in error for error in report["errors"]
+    )
+
+
+def test_gate_rejects_nonzero_stopped_epoch_for_full_history(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1]["training"]["stopped_epoch"] = 10
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["decision"] == "invalid_protocol"
+    assert any("stopped_epoch" in error for error in report["errors"])
 
 
 @pytest.mark.parametrize(

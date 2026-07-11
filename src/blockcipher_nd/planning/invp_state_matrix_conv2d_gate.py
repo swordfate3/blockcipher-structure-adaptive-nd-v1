@@ -5,6 +5,8 @@ import math
 from pathlib import Path
 from typing import Any
 
+from blockcipher_nd.training.trainer import is_checkpoint_improved
+
 
 MODEL_ROLES = {
     "anchor": "present_nibble_invp_only_spn_only",
@@ -399,18 +401,84 @@ def _checkpoint_history_errors(
             f"actual={best_checkpoint_metric!r}"
         )
 
+    stopped_epoch = training.get("stopped_epoch")
+    if type(stopped_epoch) is not int or stopped_epoch < 0:
+        errors.append(
+            f"{label} training stopped_epoch must_be_exact_nonnegative_int "
+            f"actual={stopped_epoch!r}"
+        )
+
+    patience = training.get("early_stopping_patience")
+    min_delta = training.get("early_stopping_min_delta")
     if (
         valid_history_items
-        and type(best_epoch) is int
-        and 1 <= best_epoch <= len(history)
+        and type(patience) is int
+        and patience >= 0
+        and _is_finite_number(min_delta)
     ):
-        best_history = history[best_epoch - 1]
+        replayed_best: float | None = None
+        replayed_best_epoch = 0
+        epochs_without_improvement = 0
+        replayed_stopped_epoch = 0
+        for epoch, item in enumerate(history, start=1):
+            current = item["val_auc"]
+            if is_checkpoint_improved(
+                current=current,
+                best=replayed_best,
+                metric="val_auc",
+                min_delta=min_delta,
+            ):
+                replayed_best = current
+                replayed_best_epoch = epoch
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+            if patience > 0 and epochs_without_improvement >= patience:
+                replayed_stopped_epoch = epoch
+                break
+
+        if replayed_stopped_epoch:
+            if len(history) != replayed_stopped_epoch:
+                errors.append(
+                    f"{label} history contains_epochs_after_early_stop "
+                    f"expected_length={replayed_stopped_epoch} actual={len(history)}"
+                )
+            if epochs_ran != replayed_stopped_epoch:
+                errors.append(
+                    f"{label} training epochs_ran must_match_replayed_early_stop "
+                    f"expected={replayed_stopped_epoch} actual={epochs_ran!r}"
+                )
+            if stopped_epoch != replayed_stopped_epoch:
+                errors.append(
+                    f"{label} training stopped_epoch must_match_replay "
+                    f"expected={replayed_stopped_epoch} actual={stopped_epoch!r}"
+                )
+        else:
+            if len(history) != configured_epochs or epochs_ran != configured_epochs:
+                errors.append(
+                    f"{label} partial_history_without_early_stop "
+                    f"configured_epochs={configured_epochs} history_length={len(history)} "
+                    f"epochs_ran={epochs_ran!r}"
+                )
+            if stopped_epoch != 0:
+                errors.append(
+                    f"{label} training stopped_epoch expected=0_without_replayed_stop "
+                    f"actual={stopped_epoch!r}"
+                )
+
+        if best_epoch != replayed_best_epoch:
+            errors.append(
+                f"{label} training best_epoch must_match_checkpoint_replay "
+                f"expected={replayed_best_epoch} actual={best_epoch!r}"
+            )
+        if not _tightly_equal_finite(best_checkpoint_metric, replayed_best):
+            errors.append(
+                f"{label} training best_checkpoint_metric must_match_checkpoint_replay "
+                f"expected={replayed_best!r} actual={best_checkpoint_metric!r}"
+            )
+
+        best_history = history[replayed_best_epoch - 1]
         comparisons = (
-            (
-                "training.best_checkpoint_metric",
-                best_checkpoint_metric,
-                best_history["val_auc"],
-            ),
             ("metrics.auc", metrics.get("auc"), best_history["val_auc"]),
             ("metrics.accuracy", metrics.get("accuracy"), best_history["val_accuracy"]),
             (
