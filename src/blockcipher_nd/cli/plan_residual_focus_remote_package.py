@@ -8,10 +8,16 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_ACTION_PLAN = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json")
-DEFAULT_SOURCE_GATE = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.json")
+DEFAULT_ACTION_PLAN = Path(
+    "outputs/local_audits/i1_present_r8_residual_focus_262k_action_plan.json"
+)
+DEFAULT_SOURCE_GATE = Path(
+    "outputs/local_audits/i1_present_r8_residual_focus_262k_source_gate.json"
+)
 DEFAULT_OUTPUT_DIR = Path("configs/remote/generated")
-DEFAULT_OUTPUT = Path("outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json")
+DEFAULT_OUTPUT = Path(
+    "outputs/local_audits/i1_present_r8_residual_focus_262k_remote_package.json"
+)
 DEFAULT_RUN_ID = "i1_present_r8_residual_focus_262k"
 REMOTE_RUNS_ROOT = "G:\\lxy\\blockcipher-structure-adaptive-nd-runs"
 REMOTE_RUNS_ROOT_SCP = "G:/lxy/blockcipher-structure-adaptive-nd-runs"
@@ -44,18 +50,32 @@ def plan_residual_focus_remote_package(
     launcher = output_dir / f"run_{run_id}_20260707.cmd"
     monitor = output_dir / f"monitor_{run_id}_20260707.sh"
     launch_wrapper = output_dir / f"launch_{run_id}_20260707.sh"
-    local_artifact_root = str(plan.get("artifact_root", "outputs/local_audits/i1_present_r8_residual_focus_262k"))
+    local_artifact_root = str(
+        plan.get(
+            "artifact_root", "outputs/local_audits/i1_present_r8_residual_focus_262k"
+        )
+    )
     planned_outputs = _planned_outputs(plan)
     commands = [str(command) for command in plan.get("commands", [])]
     control_commands = [str(command) for command in plan.get("control_commands", [])]
-    source_selection_commands = [str(command) for command in plan.get("source_selection_commands", [])]
-    source_selection_summary_command = str(plan.get("source_selection_summary_command", ""))
-    source_selected_commands = [str(command) for command in plan.get("source_selected_commands", [])]
+    source_selection_commands = [
+        str(command) for command in plan.get("source_selection_commands", [])
+    ]
+    source_selection_summary_command = str(
+        plan.get("source_selection_summary_command", "")
+    )
+    source_selected_commands = [
+        str(command) for command in plan.get("source_selected_commands", [])
+    ]
     all_commands = [
         *commands,
         *control_commands,
         *source_selection_commands,
-        *([source_selection_summary_command] if source_selection_summary_command else []),
+        *(
+            [source_selection_summary_command]
+            if source_selection_summary_command
+            else []
+        ),
         *source_selected_commands,
     ]
     windows_commands = [
@@ -82,7 +102,9 @@ def plan_residual_focus_remote_package(
         blockers.append("medium_cache_workers_not_configured")
     if _contains_unsafe_command(windows_commands):
         blockers.append("unsafe_generated_command")
-    launcher.write_text(_launcher_text(windows_commands, run_id=run_id), encoding="utf-8")
+    launcher.write_text(
+        _launcher_text(windows_commands, run_id=run_id), encoding="utf-8"
+    )
     monitor.write_text(
         _monitor_text(
             run_id=run_id,
@@ -107,7 +129,9 @@ def plan_residual_focus_remote_package(
     launch_wrapper.chmod(0o755)
     return {
         "status": "pass" if launch_allowed else "pending",
-        "decision": "residual_focus_remote_package_ready" if launch_allowed else "residual_focus_remote_package_blocked",
+        "decision": "residual_focus_remote_package_ready"
+        if launch_allowed
+        else "residual_focus_remote_package_blocked",
         "run_id": run_id,
         "action_plan": str(action_plan),
         "source_gate": str(source_gate),
@@ -164,12 +188,16 @@ def _command_option_paths(
     for command in commands:
         tokens = shlex.split(command)
         for index, token in enumerate(tokens[:-1]):
-            if token in option_names and tokens[index + 1].startswith(local_artifact_root):
+            if token in option_names and tokens[index + 1].startswith(
+                local_artifact_root
+            ):
                 paths.append(tokens[index + 1])
     return sorted(set(paths))
 
 
-def _has_medium_cache_command_without_workers(plan: dict[str, Any], commands: list[str]) -> bool:
+def _has_medium_cache_command_without_workers(
+    plan: dict[str, Any], commands: list[str]
+) -> bool:
     if not _is_medium_or_larger_plan(plan):
         return False
     for command in commands:
@@ -192,7 +220,11 @@ def _is_medium_or_larger_plan(plan: dict[str, Any]) -> bool:
     expected_score_rows = plan.get("expected_score_rows")
     if isinstance(expected_score_rows, int) and expected_score_rows >= 65_536:
         return True
-    if isinstance(expected_score_rows, str) and expected_score_rows.isdigit() and int(expected_score_rows) >= 65_536:
+    if (
+        isinstance(expected_score_rows, str)
+        and expected_score_rows.isdigit()
+        and int(expected_score_rows) >= 65_536
+    ):
         return True
     text = " ".join(
         str(value)
@@ -257,10 +289,17 @@ def _is_large_intermediate_artifact(path: str) -> bool:
 
 def _windows_command_from_action(command: str, *, local_artifact_root: str) -> str:
     tokens = shlex.split(command)
-    if len(tokens) >= 3 and tokens[0].startswith("UV_CACHE_DIR=") and tokens[1:3] == ["uv", "run"]:
+    if (
+        len(tokens) >= 3
+        and tokens[0].startswith("UV_CACHE_DIR=")
+        and tokens[1:3] == ["uv", "run"]
+    ):
         tokens = ["%PYTHON_EXE%"] + tokens[3:]
     else:
-        tokens = [_translate_path_token(token, local_artifact_root=local_artifact_root) for token in tokens]
+        tokens = [
+            _translate_path_token(token, local_artifact_root=local_artifact_root)
+            for token in tokens
+        ]
         return subprocess.list2cmdline(tokens)
     translated = [tokens[0]] + [
         _translate_path_token(token, local_artifact_root=local_artifact_root)
@@ -287,11 +326,15 @@ def _translate_path_token(token: str, *, local_artifact_root: str) -> str:
 def _join_windows(prefix: str, suffix: str) -> str:
     if not suffix:
         return prefix
-    return f"{prefix}\\{suffix.replace('/', '\\')}"
+    normalized_suffix = suffix.replace("/", "\\")
+    return f"{prefix}\\{normalized_suffix}"
 
 
 def _contains_unsafe_command(commands: list[str]) -> bool:
-    return any("cmd.exe /k" in command.lower() or " ssh " in f" {command.lower()} " for command in commands)
+    return any(
+        "cmd.exe /k" in command.lower() or " ssh " in f" {command.lower()} "
+        for command in commands
+    )
 
 
 def _launcher_text(commands: list[str], *, run_id: str) -> str:
@@ -310,47 +353,47 @@ def _launcher_text(commands: list[str], *, run_id: str) -> str:
         "set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519",
         "set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
         "",
-        "if not exist \"%RUN_ROOT%\" mkdir \"%RUN_ROOT%\"",
-        "if not exist \"%LOG_DIR%\" mkdir \"%LOG_DIR%\"",
-        "if not exist \"%ARTIFACT_ROOT%\" mkdir \"%ARTIFACT_ROOT%\"",
-        "echo run_id=%RUN_ID%>\"%LOG_DIR%\\%RUN_ID%_launch_env.txt\"",
-        "echo source_root=%SOURCE_ROOT%>>\"%LOG_DIR%\\%RUN_ID%_launch_env.txt\"",
-        "echo artifact_root=%ARTIFACT_ROOT%>>\"%LOG_DIR%\\%RUN_ID%_launch_env.txt\"",
+        'if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"',
+        'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"',
+        'if not exist "%ARTIFACT_ROOT%" mkdir "%ARTIFACT_ROOT%"',
+        'echo run_id=%RUN_ID%>"%LOG_DIR%\\%RUN_ID%_launch_env.txt"',
+        'echo source_root=%SOURCE_ROOT%>>"%LOG_DIR%\\%RUN_ID%_launch_env.txt"',
+        'echo artifact_root=%ARTIFACT_ROOT%>>"%LOG_DIR%\\%RUN_ID%_launch_env.txt"',
         "",
-        "if exist \"%SOURCE_ROOT%\\.git\" (",
-        "  cd /d \"%SOURCE_ROOT%\" || goto failed",
-        "  git status --short --branch > \"%LOG_DIR%\\%RUN_ID%_git_status_before_run.txt\" 2>&1",
-        "  git fetch origin %BRANCH% > \"%LOG_DIR%\\%RUN_ID%_git_fetch_stdout.txt\" 2> \"%LOG_DIR%\\%RUN_ID%_git_fetch_stderr.txt\" || goto failed",
-        "  git checkout %BRANCH% > \"%LOG_DIR%\\%RUN_ID%_git_checkout_stdout.txt\" 2> \"%LOG_DIR%\\%RUN_ID%_git_checkout_stderr.txt\" || goto failed",
-        "  git pull --ff-only origin %BRANCH% >> \"%LOG_DIR%\\%RUN_ID%_git_fetch_stdout.txt\" 2>> \"%LOG_DIR%\\%RUN_ID%_git_fetch_stderr.txt\" || goto failed",
+        'if exist "%SOURCE_ROOT%\\.git" (',
+        '  cd /d "%SOURCE_ROOT%" || goto failed',
+        '  git status --short --branch > "%LOG_DIR%\\%RUN_ID%_git_status_before_run.txt" 2>&1',
+        '  git fetch origin %BRANCH% > "%LOG_DIR%\\%RUN_ID%_git_fetch_stdout.txt" 2> "%LOG_DIR%\\%RUN_ID%_git_fetch_stderr.txt" || goto failed',
+        '  git checkout %BRANCH% > "%LOG_DIR%\\%RUN_ID%_git_checkout_stdout.txt" 2> "%LOG_DIR%\\%RUN_ID%_git_checkout_stderr.txt" || goto failed',
+        '  git pull --ff-only origin %BRANCH% >> "%LOG_DIR%\\%RUN_ID%_git_fetch_stdout.txt" 2>> "%LOG_DIR%\\%RUN_ID%_git_fetch_stderr.txt" || goto failed',
         ") else (",
-        "  if exist \"%SOURCE_ROOT%\" rmdir /s /q \"%SOURCE_ROOT%\"",
-        "  git clone --branch %BRANCH% \"%REPO_URL%\" \"%SOURCE_ROOT%\" > \"%LOG_DIR%\\%RUN_ID%_git_clone_stdout.txt\" 2> \"%LOG_DIR%\\%RUN_ID%_git_clone_stderr.txt\" || goto failed",
-        "  cd /d \"%SOURCE_ROOT%\" || goto failed",
+        '  if exist "%SOURCE_ROOT%" rmdir /s /q "%SOURCE_ROOT%"',
+        '  git clone --branch %BRANCH% "%REPO_URL%" "%SOURCE_ROOT%" > "%LOG_DIR%\\%RUN_ID%_git_clone_stdout.txt" 2> "%LOG_DIR%\\%RUN_ID%_git_clone_stderr.txt" || goto failed',
+        '  cd /d "%SOURCE_ROOT%" || goto failed',
         ")",
         "",
-        "git rev-parse HEAD > \"%LOG_DIR%\\%RUN_ID%_git_revision.txt\" 2>&1",
+        'git rev-parse HEAD > "%LOG_DIR%\\%RUN_ID%_git_revision.txt" 2>&1',
         "set PYTHONPATH=%SOURCE_ROOT%\\src;%PYTHONPATH%",
-        "echo pythonpath=%PYTHONPATH%>>\"%LOG_DIR%\\%RUN_ID%_launch_env.txt\"",
-        "echo started>\"%LOG_DIR%\\%RUN_ID%_started.marker\"",
+        'echo pythonpath=%PYTHONPATH%>>"%LOG_DIR%\\%RUN_ID%_launch_env.txt"',
+        'echo started>"%LOG_DIR%\\%RUN_ID%_started.marker"',
         "",
     ]
     for index, command in enumerate(commands):
         lines.extend(
             [
-                f"echo command_{index}>\"%LOG_DIR%\\%RUN_ID%_command_{index}.marker\"",
-                f"{command} > \"%LOG_DIR%\\%RUN_ID%_command_{index}_stdout.txt\" 2> \"%LOG_DIR%\\%RUN_ID%_command_{index}_stderr.txt\"",
+                f'echo command_{index}>"%LOG_DIR%\\%RUN_ID%_command_{index}.marker"',
+                f'{command} > "%LOG_DIR%\\%RUN_ID%_command_{index}_stdout.txt" 2> "%LOG_DIR%\\%RUN_ID%_command_{index}_stderr.txt"',
                 "if errorlevel 1 goto failed",
                 "",
             ]
         )
     lines.extend(
         [
-            "echo done>\"%LOG_DIR%\\%RUN_ID%_done.marker\"",
+            'echo done>"%LOG_DIR%\\%RUN_ID%_done.marker"',
             "exit /b 0",
             "",
             ":failed",
-            "echo failed>\"%LOG_DIR%\\%RUN_ID%_failed.marker\"",
+            'echo failed>"%LOG_DIR%\\%RUN_ID%_failed.marker"',
             "exit /b 1",
             "",
         ]
@@ -366,17 +409,16 @@ def _monitor_text(
     progress_outputs: list[str],
     final_sync_outputs: list[str],
 ) -> str:
-    expected_checks = "\n".join(
-        _missing_check_line(path)
-        for path in planned_outputs
-    )
+    expected_checks = "\n".join(_missing_check_line(path) for path in planned_outputs)
     if not expected_checks:
         expected_checks = "  missing=0"
     immediate_sync_pairs = _sync_pair_lines(
         [*progress_outputs, *_file_like_outputs(planned_outputs)],
         local_artifact_root=local_artifact_root,
     )
-    final_sync_pairs = _sync_pair_lines(final_sync_outputs, local_artifact_root=local_artifact_root)
+    final_sync_pairs = _sync_pair_lines(
+        final_sync_outputs, local_artifact_root=local_artifact_root
+    )
     return f"""#!/usr/bin/env bash
 set -u
 
@@ -457,7 +499,7 @@ done
 
 def _missing_check_line(path: str) -> str:
     test_operator = "-f" if _is_file_like_output(path) else "-d"
-    return f"  [[ {test_operator} \"{path}\" ]] || missing=$((missing + 1))"
+    return f'  [[ {test_operator} "{path}" ]] || missing=$((missing + 1))'
 
 
 def _file_like_outputs(paths: list[str]) -> list[str]:
@@ -479,12 +521,16 @@ def _sync_pair_lines(paths: list[str], *, local_artifact_root: str) -> str:
     return "\n".join(lines)
 
 
-def _launch_wrapper_text(*, package_report: Path, launcher: Path, monitor: Path, run_id: str) -> str:
+def _launch_wrapper_text(
+    *, package_report: Path, launcher: Path, monitor: Path, run_id: str
+) -> str:
     launcher_name = launcher.name
     monitor_session = f"monitor_{run_id}_20260707"
     remote_run_root = f"{REMOTE_RUNS_ROOT}\\{run_id}"
     remote_source_root = f"{remote_run_root}\\source"
-    remote_cmd = f"{remote_run_root}\\source\\configs\\remote\\generated\\{launcher_name}"
+    remote_cmd = (
+        f"{remote_run_root}\\source\\configs\\remote\\generated\\{launcher_name}"
+    )
     local_monitor_dir = f"outputs/remote_results/{run_id}/monitor"
     return f"""#!/usr/bin/env bash
 set -euo pipefail
@@ -544,7 +590,9 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps(report, sort_keys=True))
     return 0
 
