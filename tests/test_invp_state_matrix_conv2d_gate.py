@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
     gate_invp_state_matrix_conv2d,
 )
@@ -218,6 +220,40 @@ def test_gate_rejects_trainable_count_cache_and_nonfinite_metric(tmp_path: Path)
     assert any("conv2d_trainable_parameter_count_mismatch" in error for error in report["errors"])
     assert any("dataset_cache_root" in error for error in report["errors"])
     assert any("metrics.loss" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize(
+    ("metric", "invalid_value"),
+    [
+        ("auc", "0.61"),
+        ("accuracy", "0.60"),
+        ("calibrated_accuracy", "0.61"),
+        ("loss", "0.68"),
+        ("auc", True),
+        ("accuracy", False),
+        ("calibrated_accuracy", True),
+        ("loss", False),
+    ],
+)
+def test_gate_rejects_non_numeric_json_metric_types(
+    tmp_path: Path,
+    metric: str,
+    invalid_value: str | bool,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1]["metrics"][metric] = invalid_value
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert any(f"metrics.{metric}" in error for error in report["errors"])
 
 
 def test_gate_rejects_duplicate_and_missing_model_rows(tmp_path: Path) -> None:

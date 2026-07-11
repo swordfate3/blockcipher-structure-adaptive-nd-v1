@@ -254,12 +254,9 @@ def _check_exact(
 
 
 def _is_finite_number(value: Any) -> bool:
-    if isinstance(value, bool):
+    if type(value) not in {int, float}:
         return False
-    try:
-        return math.isfinite(float(value))
-    except (TypeError, ValueError):
-        return False
+    return math.isfinite(value)
 
 
 def _is_positive_integer(value: Any) -> bool:
