@@ -26,6 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-seeds", type=expected_seeds_arg, default="0")
     parser.add_argument("--samples-per-class", type=int, default=8192)
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--readiness-only", action="store_true")
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
 
@@ -37,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_seeds=args.expected_seeds,
         samples_per_class=args.samples_per_class,
         epochs=args.epochs,
+        readiness_only=args.readiness_only,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

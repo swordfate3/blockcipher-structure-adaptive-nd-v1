@@ -364,8 +364,12 @@ not interpreted as architecture quality or research evidence.
 Plan validation passed with `status=pass`, `plan_rows=4`, `result_rows=4`, and
 `errors=[]`. Progress contained four `row_done` events and ended with exactly
 one `run_done` event. The corrected attribution gate also returned
-`status=pass` and `errors=[]` when run with the R0 scale parameters. Its
-metric-derived decision is not interpreted at readiness scale. Cache generation
+`status=pass` and `errors=[]` in explicit readiness-only mode. Its neutral
+machine outcome is `decision=implementation_ready`,
+`research_decision_applied=false`,
+`next_action=run_frozen_r1_seed0_local_diagnostic`, and
+`claim_scope=implementation readiness only; metrics not interpreted`. No
+stop/promote research decision was applied to R0 metrics. Cache generation
 created exactly one train identity and one validation identity:
 
 ```text
@@ -396,7 +400,7 @@ R0 artifacts:
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/validation.json` | 3750 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/curves.svg` | 55086 bytes |
 | `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/history.csv` | 1372 bytes |
-| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 1156 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json` | 1127 bytes |
 
 `claim_scope=implementation readiness only; metrics not interpreted`.
 

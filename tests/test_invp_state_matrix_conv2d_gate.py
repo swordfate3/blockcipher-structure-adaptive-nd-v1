@@ -32,6 +32,8 @@ def _row(
     *,
     seed: int = 0,
     parameter_count: int = 1000,
+    samples_per_class: int = 8192,
+    epochs: int = 10,
 ) -> dict[str, Any]:
     options = (
         {"spn_mixer_depth": 2, "activation": "relu", "norm": "layernorm"}
@@ -48,7 +50,7 @@ def _row(
         "selected_model": model,
         "rounds": 7,
         "seed": seed,
-        "samples_per_class": 8192,
+        "samples_per_class": samples_per_class,
         "pairs_per_sample": 16,
         "feature_encoding": "ciphertext_pair_bits",
         "negative_mode": "encrypted_random_plaintexts",
@@ -70,9 +72,9 @@ def _row(
             "key_schedule": "per_pair_random",
             "input_bits": 2048,
             "pair_bits": 128,
-            "train_rows": 16384,
-            "validation_rows": 8192,
-            "epochs": 10,
+            "train_rows": 2 * samples_per_class,
+            "validation_rows": samples_per_class,
+            "epochs": epochs,
             "checkpoint_metric": "val_auc",
             "selected_checkpoint": "best",
             "restore_best_checkpoint": True,
@@ -89,7 +91,7 @@ def _row(
         },
         "validation": {
             "key_schedule": "per_pair_random",
-            "samples_per_class": 4096,
+            "samples_per_class": samples_per_class // 2,
             "negative_mode": "encrypted_random_plaintexts",
             "sample_structure": "zhang_wang_case2_official_mcnd",
         },
@@ -169,8 +171,19 @@ def _write(
     aucs: dict[str, float],
     *,
     seed: int = 0,
+    samples_per_class: int = 8192,
+    epochs: int = 10,
 ) -> None:
-    rows = [_row(model, auc, seed=seed) for model, auc in aucs.items()]
+    rows = [
+        _row(
+            model,
+            auc,
+            seed=seed,
+            samples_per_class=samples_per_class,
+            epochs=epochs,
+        )
+        for model, auc in aucs.items()
+    ]
     _write_rows(path, rows)
 
 
@@ -197,6 +210,50 @@ def test_gate_promotes_clear_seed0_result(tmp_path: Path) -> None:
         "8192/class strict PRESENT r7 architecture-attribution diagnostic; "
         "not formal, paper-scale, or breakthrough evidence"
     )
+    assert report["research_decision_applied"] is True
+
+
+def test_gate_readiness_only_returns_neutral_r0_outcome(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(
+        results,
+        {ANCHOR: 0.61, CANDIDATE: 0.50, SHUFFLED: 0.49, DELTA: 0.48},
+        samples_per_class=64,
+        epochs=1,
+    )
+
+    report = gate_invp_state_matrix_conv2d(
+        [results],
+        expected_seeds=(0,),
+        samples_per_class=64,
+        epochs=1,
+        readiness_only=True,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "implementation_ready"
+    assert report["next_action"] == "run_frozen_r1_seed0_local_diagnostic"
+    assert report["claim_scope"] == "implementation readiness only; metrics not interpreted"
+    assert report["research_decision_applied"] is False
+    assert report["errors"] == []
+
+
+def test_gate_readiness_only_rejects_r1_identity(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(results, {ANCHOR: 0.60, CANDIDATE: 0.61, SHUFFLED: 0.605, DELTA: 0.604})
+
+    report = gate_invp_state_matrix_conv2d(
+        [results],
+        expected_seeds=(0,),
+        samples_per_class=8192,
+        epochs=10,
+        readiness_only=True,
+    )
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert report["next_action"] == "repair_protocol_and_rerun_same_matrix"
+    assert any("readiness_only requires frozen R0 identity" in error for error in report["errors"])
 
 
 def test_gate_stops_when_candidate_loses_to_anchor(tmp_path: Path) -> None:
@@ -508,6 +565,42 @@ def test_cli_writes_protocol_valid_promote_seed1_report(tmp_path: Path) -> None:
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["status"] == "pass"
     assert report["decision"] == "promote_seed1"
+
+
+def test_cli_readiness_only_writes_neutral_r0_report(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_state_matrix_conv2d import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "readiness.json"
+    _write(
+        results,
+        {ANCHOR: 0.61, CANDIDATE: 0.50, SHUFFLED: 0.49, DELTA: 0.48},
+        samples_per_class=64,
+        epochs=1,
+    )
+
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--expected-seeds",
+            "0",
+            "--samples-per-class",
+            "64",
+            "--epochs",
+            "1",
+            "--readiness-only",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["decision"] == "implementation_ready"
+    assert report["next_action"] == "run_frozen_r1_seed0_local_diagnostic"
+    assert report["claim_scope"] == "implementation readiness only; metrics not interpreted"
+    assert report["research_decision_applied"] is False
 
 
 def test_cli_returns_zero_for_protocol_valid_stop_decision(tmp_path: Path) -> None:

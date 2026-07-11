@@ -20,14 +20,26 @@ def gate_invp_state_matrix_conv2d(
     expected_seeds: tuple[int, ...] = (0,),
     samples_per_class: int = 8192,
     epochs: int = 10,
+    readiness_only: bool = False,
     seed0_topology_margin: float = 0.003,
     seed0_representation_margin: float = 0.003,
     joint_architecture_margin: float = 0.001,
     joint_control_margin: float = 0.002,
 ) -> dict[str, Any]:
     rows, load_errors = _load_rows(results_paths)
+    readiness_errors = []
+    if readiness_only and (
+        expected_seeds != (0,) or samples_per_class != 64 or epochs != 1
+    ):
+        readiness_errors.append(
+            "readiness_only requires frozen R0 identity "
+            f"expected_seeds=(0,) samples_per_class=64 epochs=1 "
+            f"actual_expected_seeds={expected_seeds!r} "
+            f"actual_samples_per_class={samples_per_class!r} actual_epochs={epochs!r}"
+        )
     errors = [
         *load_errors,
+        *readiness_errors,
         *_protocol_errors(
             rows,
             expected_seeds=expected_seeds,
@@ -42,6 +54,7 @@ def gate_invp_state_matrix_conv2d(
             "errors": errors,
             "next_action": "repair_protocol_and_rerun_same_matrix",
             "claim_scope": "invalid strict-protocol architecture evidence",
+            "research_decision_applied": False,
         }
 
     by_seed = _rows_by_seed_and_role(rows)
@@ -49,6 +62,30 @@ def gate_invp_state_matrix_conv2d(
         str(seed): _seed_report(by_seed[seed])
         for seed in expected_seeds
     }
+    first_seed_rows = by_seed[expected_seeds[0]]
+    counts = {
+        role: int(first_seed_rows[role]["parameter_count"])
+        for role in MODEL_ROLES
+    }
+    parameter_counts = {
+        **counts,
+        "candidate_to_anchor_ratio": counts["candidate"] / counts["anchor"],
+    }
+    if readiness_only:
+        return {
+            "status": "pass",
+            "decision": "implementation_ready",
+            "errors": [],
+            "expected_seeds": list(expected_seeds),
+            "samples_per_class": samples_per_class,
+            "models": MODEL_ROLES,
+            "seeds": seed_reports,
+            "parameter_counts": parameter_counts,
+            "next_action": "run_frozen_r1_seed0_local_diagnostic",
+            "claim_scope": "implementation readiness only; metrics not interpreted",
+            "research_decision_applied": False,
+        }
+
     decision, next_action = _decision(
         seed_reports,
         expected_seeds=expected_seeds,
@@ -57,11 +94,6 @@ def gate_invp_state_matrix_conv2d(
         joint_architecture_margin=joint_architecture_margin,
         joint_control_margin=joint_control_margin,
     )
-    first_seed_rows = by_seed[expected_seeds[0]]
-    counts = {
-        role: int(first_seed_rows[role]["parameter_count"])
-        for role in MODEL_ROLES
-    }
     return {
         "status": "pass",
         "decision": decision,
@@ -70,15 +102,13 @@ def gate_invp_state_matrix_conv2d(
         "samples_per_class": samples_per_class,
         "models": MODEL_ROLES,
         "seeds": seed_reports,
-        "parameter_counts": {
-            **counts,
-            "candidate_to_anchor_ratio": counts["candidate"] / counts["anchor"],
-        },
+        "parameter_counts": parameter_counts,
         "next_action": next_action,
         "claim_scope": (
             f"{samples_per_class}/class strict PRESENT r7 architecture-attribution diagnostic; "
             "not formal, paper-scale, or breakthrough evidence"
         ),
+        "research_decision_applied": True,
     }
 
 

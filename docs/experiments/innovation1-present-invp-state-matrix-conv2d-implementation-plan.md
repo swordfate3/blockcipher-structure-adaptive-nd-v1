@@ -1044,9 +1044,9 @@ Expected: failures for the missing CLI and CSV files.
 - [ ] **Step 3: Implement the CLI and script**
 
 The CLI must accept repeated `--results`, comma-separated `--expected-seeds`,
-`--samples-per-class`, `--epochs`, and `--output`, call the gate, write sorted
-indented JSON, and return `0` for protocol-valid reports even when the research
-decision is stop; return `1` only for `status=fail`.
+`--samples-per-class`, `--epochs`, `--readiness-only`, and `--output`, call the
+gate, write sorted indented JSON, and return `0` for protocol-valid reports even
+when the research decision is stop; return `1` only for `status=fail`.
 
 Use this parser contract:
 
@@ -1055,8 +1055,18 @@ parser.add_argument("--results", action="append", required=True, type=Path)
 parser.add_argument("--expected-seeds", default="0")
 parser.add_argument("--samples-per-class", type=int, default=8192)
 parser.add_argument("--epochs", type=int, default=10)
+parser.add_argument("--readiness-only", action="store_true")
 parser.add_argument("--output", required=True, type=Path)
 ```
+
+Forward `readiness_only` to the public gate. It is valid only for the frozen R0
+identity `expected_seeds=(0,)`, `samples_per_class=64`, and `epochs=1`; any
+other identity must fail closed as `invalid_protocol`. A valid readiness report
+must return `decision=implementation_ready`,
+`next_action=run_frozen_r1_seed0_local_diagnostic`,
+`claim_scope=implementation readiness only; metrics not interpreted`, and
+`research_decision_applied=false`. Normal R1/R2 calls omit the flag and retain
+the metric-derived research decision branches.
 
 Parse seeds with:
 
@@ -1176,6 +1186,23 @@ Also require every result row to serialize
 files to report the same effective schedule. The configured top-level key
 fields remain placeholder identity and must not be described as fixed
 encryption keys.
+
+Generate the R0 machine-readable readiness artifact without applying a
+metric-derived research verdict:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-state-matrix-conv2d \
+  --results outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl \
+  --expected-seeds 0 \
+  --samples-per-class 64 \
+  --epochs 1 \
+  --readiness-only \
+  --output outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/readiness_gate.json
+```
+
+Require `status=pass`, `decision=implementation_ready`, `errors=[]`,
+`research_decision_applied=false`, the exact readiness claim scope, and the
+frozen R1 seed0 local next action. Do not use normal decision mode for R0.
 
 - [ ] **Step 5: Record R0 readiness in the design document**
 
