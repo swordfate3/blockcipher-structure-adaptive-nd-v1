@@ -256,6 +256,37 @@ def test_gate_readiness_only_rejects_r1_identity(tmp_path: Path) -> None:
     assert any("readiness_only requires frozen R0 identity" in error for error in report["errors"])
 
 
+@pytest.mark.parametrize(
+    "expected_seeds",
+    [(False,), (0.0,), (), (0, 0)],
+)
+def test_gate_readiness_only_rejects_malformed_expected_seed_identity(
+    tmp_path: Path,
+    expected_seeds: tuple[object, ...],
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write(
+        results,
+        {ANCHOR: 0.61, CANDIDATE: 0.50, SHUFFLED: 0.49, DELTA: 0.48},
+        samples_per_class=64,
+        epochs=1,
+    )
+
+    report = gate_invp_state_matrix_conv2d(
+        [results],
+        expected_seeds=expected_seeds,  # type: ignore[arg-type]
+        samples_per_class=64,
+        epochs=1,
+        readiness_only=True,
+    )
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert report["next_action"] == "repair_protocol_and_rerun_same_matrix"
+    assert report["claim_scope"] == "invalid strict-protocol architecture evidence"
+    assert any("expected_seeds" in error for error in report["errors"])
+
+
 def test_gate_stops_when_candidate_loses_to_anchor(tmp_path: Path) -> None:
     results = tmp_path / "results.jsonl"
     _write(results, {ANCHOR: 0.61, CANDIDATE: 0.60, SHUFFLED: 0.59, DELTA: 0.58})
@@ -452,6 +483,28 @@ def test_gate_fails_closed_for_unhashable_row_identity_fields(
     assert report["status"] == "fail"
     assert report["decision"] == "invalid_protocol"
     assert any(error_field in error for error in report["errors"])
+
+
+@pytest.mark.parametrize("invalid_seed", [False, 0.0])
+def test_gate_rejects_non_integer_row_seed_aliases(
+    tmp_path: Path,
+    invalid_seed: bool | float,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    rows = [
+        _row(ANCHOR, 0.60),
+        _row(CANDIDATE, 0.61),
+        _row(SHUFFLED, 0.605),
+        _row(DELTA, 0.604),
+    ]
+    rows[1]["seed"] = invalid_seed
+    _write_rows(results, rows)
+
+    report = gate_invp_state_matrix_conv2d([results], expected_seeds=(0,))
+
+    assert report["status"] == "fail"
+    assert report["decision"] == "invalid_protocol"
+    assert any(f"unexpected_seed={invalid_seed}" in error for error in report["errors"])
 
 
 def test_gate_fails_closed_for_invalid_utf8_results(tmp_path: Path) -> None:

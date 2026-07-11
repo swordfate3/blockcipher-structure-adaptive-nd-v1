@@ -26,6 +26,10 @@ def gate_invp_state_matrix_conv2d(
     joint_architecture_margin: float = 0.001,
     joint_control_margin: float = 0.002,
 ) -> dict[str, Any]:
+    expected_seed_errors = _expected_seed_errors(expected_seeds)
+    if expected_seed_errors:
+        return _invalid_protocol(expected_seed_errors)
+
     rows, load_errors = _load_rows(results_paths)
     readiness_errors = []
     if readiness_only and (
@@ -48,14 +52,7 @@ def gate_invp_state_matrix_conv2d(
         ),
     ]
     if errors:
-        return {
-            "status": "fail",
-            "decision": "invalid_protocol",
-            "errors": errors,
-            "next_action": "repair_protocol_and_rerun_same_matrix",
-            "claim_scope": "invalid strict-protocol architecture evidence",
-            "research_decision_applied": False,
-        }
+        return _invalid_protocol(errors)
 
     by_seed = _rows_by_seed_and_role(rows)
     seed_reports = {
@@ -109,6 +106,35 @@ def gate_invp_state_matrix_conv2d(
             "not formal, paper-scale, or breakthrough evidence"
         ),
         "research_decision_applied": True,
+    }
+
+
+def _expected_seed_errors(expected_seeds: Any) -> list[str]:
+    if type(expected_seeds) is not tuple:
+        return [f"expected_seeds must_be_tuple actual={expected_seeds!r}"]
+    if not expected_seeds:
+        return ["expected_seeds must_be_nonempty_tuple actual=()"]
+
+    errors = [
+        f"expected_seeds index={index} must_be_exact_int actual={value!r}"
+        for index, value in enumerate(expected_seeds)
+        if type(value) is not int
+    ]
+    if errors:
+        return errors
+    if len(set(expected_seeds)) != len(expected_seeds):
+        return [f"expected_seeds must_be_unique actual={expected_seeds!r}"]
+    return []
+
+
+def _invalid_protocol(errors: list[str]) -> dict[str, Any]:
+    return {
+        "status": "fail",
+        "decision": "invalid_protocol",
+        "errors": errors,
+        "next_action": "repair_protocol_and_rerun_same_matrix",
+        "claim_scope": "invalid strict-protocol architecture evidence",
+        "research_decision_applied": False,
     }
 
 
