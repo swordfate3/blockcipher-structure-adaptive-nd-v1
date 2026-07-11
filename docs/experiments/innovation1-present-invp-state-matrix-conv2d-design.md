@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-11
 
-**Status:** written specification reviewed and approved; implementation plan written, execution not started
+**Status:** implementation complete; R0 local readiness passed; R1 seed0 local diagnostic approved but not started
 
 **Claim scope:** controlled architecture-attribution experiment under the
 strict PRESENT-80 r7 Zhang/Wang Case2 protocol; not a completed experiment,
@@ -280,6 +280,108 @@ Interpretation branches:
 The numeric margins are promotion thresholds, not scientific effect-size laws.
 Reports must include raw per-seed AUCs, all three deltas, accuracy, loss, epoch
 histories, and uncertainty language.
+
+## R0 Local Readiness Evidence (2026-07-11)
+
+Run id:
+
+```text
+i1_present_invp_state_matrix_conv2d_smoke_seed0
+```
+
+The first exact launch exposed a frozen-plan readiness defect before any row
+completed: `balanced_per_class` rows redundantly set `train_samples_total` and
+`validation_samples_total`, while the dataset validator reserves those fields
+for `random_labels_total`. Commit `f45bbc6` blanked those fields in both the R0
+and R1 matrices and updated the focused plan-contract test. This did not change
+the budgets: `samples_per_class=64` still creates 128 balanced training rows and
+the standard half-size validation rule still creates 64 balanced validation
+rows. The focused regression suite passed `38/38` after the repair.
+
+The repaired plan then completed with this exact command:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_present_invp_state_matrix_conv2d_smoke_seed0.csv \
+  --epochs 1 \
+  --batch-size 32 \
+  --hidden-bits 32 \
+  --device cpu \
+  --dataset-cache-root outputs/local_cache/i1_present_invp_state_matrix_conv2d_smoke_seed0 \
+  --dataset-cache-chunk-size 64 \
+  --dataset-cache-workers 1 \
+  --progress-output outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/progress.jsonl \
+  --output outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl
+```
+
+Observed protocol was PRESENT-80 r7, seed 0, `64/class`, 128 total balanced
+training rows, 64 total balanced validation rows, one epoch, batch size 32,
+hidden bits 32, 16 pairs/sample, strict encrypted-random-plaintext negatives,
+fixed train key `0x00000000000000000000`, fixed validation key
+`0x11111111111111111111`, and CPU execution. The exact ordered model keys were:
+
+```text
+present_nibble_invp_only_spn_only
+present_nibble_invp_state_matrix_conv2d_spn_only
+present_nibble_shuffled_p_state_matrix_conv2d_spn_only
+present_nibble_delta_state_matrix_conv2d_spn_only
+```
+
+All four rows completed one finite forward/backward training epoch and emitted
+finite result metrics. For reproducibility, the un-interpreted smoke values
+were:
+
+| Model key | Validation AUC | Accuracy | Loss |
+| --- | ---: | ---: | ---: |
+| `present_nibble_invp_only_spn_only` | `0.5771484375` | `0.5` | `0.7021275758743286` |
+| `present_nibble_invp_state_matrix_conv2d_spn_only` | `0.498046875` | `0.5` | `0.7061755955219269` |
+| `present_nibble_shuffled_p_state_matrix_conv2d_spn_only` | `0.4228515625` | `0.5` | `0.7033177614212036` |
+| `present_nibble_delta_state_matrix_conv2d_spn_only` | `0.3828125` | `0.5` | `0.7206352800130844` |
+
+These metric values are recorded only as finite serialization evidence and are
+not interpreted as architecture quality or research evidence.
+
+Plan validation passed with `status=pass`, `plan_rows=4`, `result_rows=4`, and
+`errors=[]`. Progress contained four `row_done` events and ended with exactly
+one `run_done` event. Cache generation created exactly one train identity and
+one validation identity:
+
+```text
+outputs/local_cache/i1_present_invp_state_matrix_conv2d_smoke_seed0/present80/r7/train/seed-0_b10ab47bffcc5873
+outputs/local_cache/i1_present_invp_state_matrix_conv2d_smoke_seed0/present80/r7/validation/seed-10000_88856f69c830db86
+```
+
+The first row created the train cache with 128 rows and the validation cache
+with 64 rows. Rows 2-4 each reused both exact paths, producing six
+`cache_reuse` events. The metadata matched across model rows on cipher, rounds,
+seed/split, difference, feature encoding, 16-pair structure, strict negative
+definition, keys, label mode, and row budget.
+
+The anchor has `128673` total/trainable parameters. Each of the true-InvP,
+shuffled-P, and DeltaC-only Conv2D rows has exactly `130881` total/trainable
+parameters. All counts are positive and the candidate/anchor capacity ratio is
+`130881 / 128673 = 1.0171597771` (approximately `1.01716x`).
+
+R0 artifacts:
+
+| Artifact | Size |
+| --- | ---: |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/results.jsonl` | 16002 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/progress.jsonl` | 82408 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/validation.json` | 3750 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/curves.svg` | 55086 bytes |
+| `outputs/local_smoke/i1_present_invp_state_matrix_conv2d_smoke_seed0/history.csv` | 1372 bytes |
+
+`claim_scope=implementation readiness only; metrics not interpreted`.
+
+Recommended next action: proceed to the already frozen R1 seed0 local
+architecture-attribution diagnostic with `8192/class`, four identical ordered
+rows, 10 epochs, and the same-budget token-mixer anchor plus shuffled-P and
+DeltaC-only controls. Change only the evidence scale from R0 to R1. Require
+4/4 plan alignment, finite metrics, one train cache plus one validation cache
+reused across all rows, equal Conv2D parameter counts, and the existing R1
+promotion/stop gates. Do not launch remote scale, add models, change the
+benchmark, or interpret R0 metrics.
 
 ## Artifacts And Adjudication
 
