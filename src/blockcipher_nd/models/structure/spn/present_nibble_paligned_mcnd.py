@@ -890,12 +890,9 @@ class _PresentNibblePAlignedSpnEncoder(nn.Module):
             nn.Dropout(dropout),
         )
 
-        if p_alignment == "true":
-            inverse_p = [_present_inverse_p_index(index) for index in range(64)]
-        else:
-            generator = torch.Generator().manual_seed(20260627)
-            inverse_p = torch.randperm(64, generator=generator).tolist()
-        self.register_buffer("inverse_p_indices", torch.tensor(inverse_p, dtype=torch.long), persistent=False)
+        self.register_buffer(
+            "inverse_p_indices", present_inverse_p_indices(p_alignment), persistent=False
+        )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim != 2 or features.shape[1] != self.input_bits:
@@ -1377,6 +1374,17 @@ def _present_nibble_values(nibbles: torch.Tensor) -> torch.Tensor:
     return torch.sum(nibbles * weights, dim=-1).long()
 
 
+def present_inverse_p_indices(p_alignment: str) -> torch.Tensor:
+    if p_alignment == "true":
+        indices = [_present_inverse_p_index(index) for index in range(64)]
+    elif p_alignment == "shuffled":
+        generator = torch.Generator().manual_seed(20260627)
+        indices = torch.randperm(64, generator=generator).tolist()
+    else:
+        raise ValueError(f"unsupported p_alignment: {p_alignment}")
+    return torch.tensor(indices, dtype=torch.long)
+
+
 def _present_inverse_p_index(target_bit_index: int) -> int:
     source_lsb_index = _present_inverse_p_lsb_index(63 - target_bit_index)
     return 63 - source_lsb_index
@@ -1409,4 +1417,5 @@ __all__ = [
     "PresentNibbleShuffledDDTGraphDistinguisher",
     "PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher",
     "PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher",
+    "present_inverse_p_indices",
 ]
