@@ -10,6 +10,7 @@ from blockcipher_nd.models.structure import (
     PresentMatrixTrailHybridPairSetDistinguisher,
     PresentNibbleDDTGraphDistinguisher,
     PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
+    PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleNoDDTGraphDistinguisher,
     PresentPairSetGlobalStatsDistinguisher,
     PresentPairSetGlobalStatsHybridDistinguisher,
@@ -26,6 +27,7 @@ from blockcipher_nd.models.structure import (
     PresentNibbleInvPPairMixerConsistencySpnOnlyDistinguisher,
     PresentNibbleInvPOnlySpnOnlyDistinguisher,
     PresentNibbleInvPStateMatrixConv2DSpnOnlyDistinguisher,
+    PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleInvPShuffledPLayerGraphSpnOnlyDistinguisher,
     PresentNibbleInvPShuffledSboxPriorGateDistinguisher,
     PresentNibbleInvPSboxPriorGateDistinguisher,
@@ -37,6 +39,7 @@ from blockcipher_nd.models.structure import (
     PresentNibbleShuffledPAlignedGatedMCNDDistinguisher,
     PresentNibbleShuffledPAlignedSpnOnlyDistinguisher,
     PresentNibbleShuffledPStateMatrixConv2DSpnOnlyDistinguisher,
+    PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleShuffledTransitionResidualDistinguisher,
     PresentTrailPositionStatsPairSetDistinguisher,
     PresentTrailMixerPairSetDistinguisher,
@@ -145,6 +148,36 @@ def build_spn_model(
             kernel_size=int_option(options, "kernel_size", 3),
             activation=str(options.get("activation", "relu")),
             norm=str(options.get("norm", "batchnorm2d")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    topology_residual_models = {
+        "present_nibble_invp_topology_residual_spn_only": (
+            PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher
+        ),
+        "present_nibble_shuffled_p_topology_residual_spn_only": (
+            PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher
+        ),
+        "present_nibble_delta_topology_residual_spn_only": (
+            PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher
+        ),
+    }
+    if name in topology_residual_models:
+        return topology_residual_models[name](
+            input_bits=input_bits,
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            spn_token_dim=int_option(options, "spn_token_dim"),
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            local_channels=int_option(options, "local_channels", 16),
+            local_depth=int_option(options, "local_depth", 1),
+            local_kernel_size=int_option(options, "local_kernel_size", 3),
+            local_residual_scale_init=float(
+                options.get("local_residual_scale_init", 0.1)
+            ),
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            local_norm=str(options.get("local_norm", "batchnorm2d")),
             dropout=float(options.get("dropout", 0.0)),
         )
     if name == "present_nibble_invp_active_aux_spn_only":

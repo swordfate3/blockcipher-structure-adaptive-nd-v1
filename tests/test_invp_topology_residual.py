@@ -12,16 +12,184 @@ from blockcipher_nd.models.structure.spn.present_invp_topology_residual import (
     PresentNibbleTopologyResidualSpnOnlyDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+    PresentNibbleInvPOnlySpnOnlyDistinguisher,
     present_inverse_p_indices,
 )
+from blockcipher_nd.registry.model_factory import build_model
 
 
 INPUT_BITS = 16 * 128
+TOPOLOGY_RESIDUAL_MODELS = (
+    (
+        "present_nibble_invp_topology_residual_spn_only",
+        PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher,
+        "true",
+    ),
+    (
+        "present_nibble_shuffled_p_topology_residual_spn_only",
+        PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher,
+        "shuffled",
+    ),
+    (
+        "present_nibble_delta_topology_residual_spn_only",
+        PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher,
+        "delta",
+    ),
+)
 
 
 def _raw_features(batch: int = 2) -> torch.Tensor:
     generator = torch.Generator().manual_seed(20260712)
     return torch.randint(0, 2, (batch, INPUT_BITS), generator=generator).float()
+
+
+def _assert_state_dicts_equal(left: nn.Module, right: nn.Module) -> None:
+    left_state = left.state_dict()
+    right_state = right.state_dict()
+    assert left_state.keys() == right_state.keys()
+    for key in left_state:
+        torch.testing.assert_close(left_state[key], right_state[key], rtol=0, atol=0)
+
+
+def _build_registered_topology_residual(
+    model_key: str,
+    *,
+    model_options: dict[str, object] | None = None,
+    hidden_bits: int = 32,
+) -> PresentNibbleTopologyResidualSpnOnlyDistinguisher:
+    model = build_model(
+        model_key,
+        input_bits=INPUT_BITS,
+        hidden_bits=hidden_bits,
+        pair_bits=128,
+        structure="SPN",
+        model_options=model_options,
+    )
+    assert isinstance(model, PresentNibbleTopologyResidualSpnOnlyDistinguisher)
+    return model
+
+
+@pytest.mark.parametrize(
+    ("model_key", "model_class", "mapping_mode"), TOPOLOGY_RESIDUAL_MODELS
+)
+def test_topology_residual_registry_builds_exact_class_and_forwards_options(
+    model_key: str,
+    model_class: type[PresentNibbleTopologyResidualSpnOnlyDistinguisher],
+    mapping_mode: str,
+) -> None:
+    options = {
+        "spn_token_dim": 24,
+        "spn_mixer_depth": 3,
+        "token_mlp_ratio": 3,
+        "local_channels": 10,
+        "local_depth": 1,
+        "local_kernel_size": 5,
+        "local_residual_scale_init": 0.25,
+        "activation": "gelu",
+        "norm": "layernorm",
+        "local_norm": "batchnorm2d",
+        "dropout": 0.2,
+    }
+
+    model = _build_registered_topology_residual(
+        model_key, model_options=options, hidden_bits=12
+    )
+
+    assert type(model) is model_class
+    assert model.mapping_mode == mapping_mode
+    assert model.pair_bits == 128
+    assert model.spn_encoder.spn_token_dim == 24
+    assert model.spn_encoder.embedding_bits == 48
+    assert len(model.spn_encoder.spn_mixers) == 3
+    assert model.spn_encoder.spn_mixers[0].channel_mixer[0].out_features == 72
+    assert model.local_stem[0].out_channels == 10
+    assert model.local_blocks[0].conv1.kernel_size == (5, 5)
+    assert isinstance(model.local_stem[1], nn.BatchNorm2d)
+    assert model.local_blocks[0].dropout.p == 0.2
+    assert model.classifier[3].p == 0.2
+    torch.testing.assert_close(model.alpha.detach(), torch.tensor(0.25))
+
+
+def test_registered_topology_residual_variants_have_equal_capacity_and_adapters() -> (
+    None
+):
+    options = {
+        "spn_mixer_depth": 2,
+        "token_mlp_ratio": 2,
+        "local_channels": 16,
+        "local_depth": 1,
+        "local_kernel_size": 3,
+        "local_residual_scale_init": 0.1,
+        "activation": "relu",
+        "norm": "layernorm",
+        "local_norm": "batchnorm2d",
+        "dropout": 0.0,
+    }
+    models = [
+        _build_registered_topology_residual(model_key, model_options=options)
+        for model_key, _, _ in TOPOLOGY_RESIDUAL_MODELS
+    ]
+
+    total_counts = [
+        sum(parameter.numel() for parameter in model.parameters()) for model in models
+    ]
+    trainable_counts = [
+        sum(
+            parameter.numel()
+            for parameter in model.parameters()
+            if parameter.requires_grad
+        )
+        for model in models
+    ]
+    adapter_counts = [
+        sum(
+            parameter.numel()
+            for module in (model.local_stem, model.local_blocks, model.local_projection)
+            for parameter in module.parameters()
+        )
+        + model.alpha.numel()
+        for model in models
+    ]
+
+    assert len(set(total_counts)) == 1
+    assert len(set(trainable_counts)) == 1
+    assert len(set(adapter_counts)) == 1
+    assert [model.mapping_mode for model in models] == ["true", "shuffled", "delta"]
+    assert torch.equal(models[0].mapping_indices, present_inverse_p_indices("true"))
+    assert torch.equal(models[1].mapping_indices, present_inverse_p_indices("shuffled"))
+    assert torch.equal(models[2].mapping_indices, torch.arange(64))
+
+
+def test_registered_topology_residual_variants_share_common_initialization() -> None:
+    models = []
+    for model_key, _, _ in TOPOLOGY_RESIDUAL_MODELS:
+        torch.manual_seed(20260712)
+        models.append(_build_registered_topology_residual(model_key))
+
+    for model in models[1:]:
+        _assert_state_dicts_equal(models[0].spn_encoder, model.spn_encoder)
+        _assert_state_dicts_equal(models[0].classifier, model.classifier)
+
+
+def test_registered_topology_residual_matches_anchor_common_initialization() -> None:
+    torch.manual_seed(20260712)
+    anchor = PresentNibbleInvPOnlySpnOnlyDistinguisher(
+        input_bits=INPUT_BITS,
+        pair_bits=128,
+        base_channels=32,
+        spn_mixer_depth=2,
+        token_mlp_ratio=2,
+        activation="relu",
+        norm="layernorm",
+        dropout=0.0,
+    )
+    torch.manual_seed(20260712)
+    candidate = _build_registered_topology_residual(
+        "present_nibble_invp_topology_residual_spn_only"
+    )
+
+    _assert_state_dicts_equal(anchor.spn_encoder, candidate.spn_encoder)
+    _assert_state_dicts_equal(anchor.classifier, candidate.classifier)
 
 
 @pytest.mark.parametrize("mapping_mode", ["true", "shuffled", "delta"])
