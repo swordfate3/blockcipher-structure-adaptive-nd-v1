@@ -57,7 +57,7 @@ breakthrough claim.
 - Create `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv` and `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv`: frozen R0 and seed0 matrices.
 - Modify `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`: record R0 readiness and H1 seed0 result only after artifacts exist and pass the strict gate.
 
-## Completion Record Through Task 7 Branch Verification (2026-07-12)
+## Completion Record Through Task 7 Integration (2026-07-12)
 
 - Task 1 completed through `d5e0188`, with review fixes `256b8a8` and
   `fc49565`; tensor semantics, architecture constraints, finite
@@ -125,11 +125,17 @@ breakthrough claim.
   were re-audited. No H1 seed1, `65536/class`, `262144/class`, remote artifact,
   or launch config exists. The final decision remains
   `weak_or_fragile_no_scale`, with
-  `inspect_histories_once_and_do_not_scale`; this branch is ready for
-  whole-feature review, not integrated into `main`, and supports only an
+  `inspect_histories_once_and_do_not_scale`; this evidence supports only an
   `8192/class` single-seed local architecture-attribution diagnostic claim.
+- Whole-feature review at `7952e15` found no Critical, Important, or Minor
+  issues and returned `READY FOR INTEGRATION: YES`. The feature branch was
+  fast-forward merged into `main`; the ignored R0/H1 result and cache trees
+  were copied into the main workspace, and both strict gate reports were
+  regenerated there so normalized provenance points at the main workspace.
+  Merged-main focused verification passed `432/432`, both gate commands exited
+  zero, and the final H1 decision remained `weak_or_fragile_no_scale`.
 
-Task 7 branch verification is complete. Main integration remains pending.
+Task 7 verification and main integration are complete.
 
 ### Task 1: Shared Topology-Residual Model
 
@@ -642,7 +648,7 @@ protocol, typed options, cache/progress provenance, exact seed0 gate, artifact
 completeness, and claim boundary. Fix every material finding and rerun its
 covering verification.
 
-- [ ] **Step 4: Push the complete branch and integrate only verified work**
+- [x] **Step 4: Push the complete branch and integrate only verified work**
 
 ```bash
 git status --short --branch
@@ -653,10 +659,12 @@ After review approval, fast-forward merge to `main`, rerun focused verification
 on merged main, and push `main`. Do not use scp or a dirty remote overlay if push
 is rejected.
 
-The complete feature branch is pushed through `31187fe` and synchronized with
-`origin/experiment/invp-topology-residual`. This step remains unchecked because
-fast-forward integration into `main`, merged-main verification, and the `main`
-push have not been performed.
+The complete feature branch was pushed through `7952e15`, approved by the
+whole-feature review, and fast-forward integrated into `main`. Merged-main
+focused verification passed `432/432`; R0 and H1 gate replay passed after
+rebinding ignored artifact provenance to the main workspace. The remaining
+external action is the normal `main` push performed with this documentation
+update.
 
 - [x] **Step 5: Follow the gate, not preference**
 
