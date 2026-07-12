@@ -164,11 +164,11 @@ def build_spn_model(
     if name in topology_residual_models:
         return topology_residual_models[name](
             input_bits=input_bits,
-            pair_bits=pair_bits or 128,
+            pair_bits=128 if pair_bits is None else pair_bits,
             base_channels=hidden_bits,
             spn_token_dim=int_option(options, "spn_token_dim"),
-            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2) or 2,
-            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2) or 2,
+            spn_mixer_depth=int_option(options, "spn_mixer_depth", 2),
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2),
             local_channels=int_option(options, "local_channels", 16),
             local_depth=int_option(options, "local_depth", 1),
             local_kernel_size=int_option(options, "local_kernel_size", 3),

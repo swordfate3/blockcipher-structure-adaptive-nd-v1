@@ -56,17 +56,50 @@ def _build_registered_topology_residual(
     *,
     model_options: dict[str, object] | None = None,
     hidden_bits: int = 32,
+    pair_bits: int | None = 128,
 ) -> PresentNibbleTopologyResidualSpnOnlyDistinguisher:
     model = build_model(
         model_key,
         input_bits=INPUT_BITS,
         hidden_bits=hidden_bits,
-        pair_bits=128,
+        pair_bits=pair_bits,
         structure="SPN",
         model_options=model_options,
     )
     assert isinstance(model, PresentNibbleTopologyResidualSpnOnlyDistinguisher)
     return model
+
+
+@pytest.mark.parametrize("model_key", [row[0] for row in TOPOLOGY_RESIDUAL_MODELS])
+def test_topology_residual_registry_defaults_missing_pair_bits_to_128(
+    model_key: str,
+) -> None:
+    model = _build_registered_topology_residual(model_key, pair_bits=None)
+
+    assert model.pair_bits == 128
+
+
+@pytest.mark.parametrize("model_key", [row[0] for row in TOPOLOGY_RESIDUAL_MODELS])
+@pytest.mark.parametrize(
+    ("pair_bits", "model_options", "message"),
+    [
+        (0, None, "expects raw 128-bit ciphertext pairs"),
+        (128, {"spn_mixer_depth": 0}, "spn_mixer_depth must be >= 1"),
+        (128, {"token_mlp_ratio": 0}, "token_mlp_ratio must be >= 1"),
+    ],
+)
+def test_topology_residual_registry_preserves_explicit_invalid_options(
+    model_key: str,
+    pair_bits: int,
+    model_options: dict[str, object] | None,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _build_registered_topology_residual(
+            model_key,
+            pair_bits=pair_bits,
+            model_options=model_options,
+        )
 
 
 @pytest.mark.parametrize(
