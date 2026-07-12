@@ -17908,3 +17908,21 @@ def _decode_present_cell_matrix_words(encoded: list[int], *, word_count: int, wi
             value = (value << 1) | bit
         words.append(value)
     return words
+
+
+def test_h1_task4_cli_wrapper_and_matrices_exist_and_wrapper_is_executable():
+    paths = [
+        Path("src/blockcipher_nd/cli/gate_invp_topology_residual.py"),
+        Path("scripts/gate-invp-topology-residual"),
+        Path(
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_invp_topology_residual_smoke_seed0.csv"
+        ),
+        Path(
+            "configs/experiment/innovation1/"
+            "innovation1_spn_present_invp_topology_residual_8192_seed0.csv"
+        ),
+    ]
+
+    assert all(path.is_file() for path in paths)
+    assert paths[1].stat().st_mode & 0o111

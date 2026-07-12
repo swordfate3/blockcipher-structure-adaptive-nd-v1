@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import csv
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -8,11 +10,13 @@ from typing import Any
 import pytest
 
 import test_invp_state_matrix_conv2d_gate as conv_fixtures
+from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
 from blockcipher_nd.planning.four_role_attribution_gate import (
     FourRoleGateSpec,
     FourRoleProtocolSpec,
     evaluate_four_role_attribution,
 )
+from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
     _CONV2D_GATE_SPEC,
     gate_invp_state_matrix_conv2d,
@@ -24,6 +28,7 @@ from blockcipher_nd.planning.invp_topology_residual_gate import (
 from blockcipher_nd.planning.present_case2_attribution_protocol import (
     PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
 )
+from blockcipher_nd.registry.model_factory import build_model
 
 
 H1_ROLES = {
@@ -1076,3 +1081,281 @@ def test_conv2d_saved_r0_r1_replay_keeps_key_schema_and_decisions() -> None:
 
 def test_h1_public_roles_constant_is_exact() -> None:
     assert TOPOLOGY_RESIDUAL_MODEL_ROLES == H1_ROLES
+
+
+@pytest.mark.parametrize("value", ["0,bad", "0,", ",0", ""])
+def test_h1_cli_rejects_invalid_expected_seeds(value: str) -> None:
+    from blockcipher_nd.cli.gate_invp_topology_residual import expected_seeds_arg
+
+    with pytest.raises(argparse.ArgumentTypeError):
+        expected_seeds_arg(value)
+
+
+def test_h1_cli_writes_sorted_newline_json_and_compact_stdout(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from blockcipher_nd.cli.gate_invp_topology_residual import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "nested" / "gate.json"
+    _write_h1_run(
+        results,
+        {"anchor": 0.60, "candidate": 0.61, "shuffled_p": 0.59, "delta_only": 0.58},
+    )
+
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    output_text = output.read_text(encoding="utf-8")
+    report = json.loads(output_text)
+    assert output_text.endswith("\n")
+    assert output_text == json.dumps(report, indent=2, sort_keys=True) + "\n"
+    assert capsys.readouterr().out == json.dumps(report, sort_keys=True) + "\n"
+    assert report["decision"] == "promote_seed1"
+
+
+def test_h1_cli_returns_one_for_invalid_protocol(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_topology_residual import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "gate.json"
+    _write_h1_run(
+        results,
+        {"anchor": 0.60, "candidate": 0.61, "shuffled_p": 0.59, "delta_only": 0.58},
+    )
+    rows = _read_jsonl(results)
+    _write_jsonl(results, rows[:-1])
+
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    assert (
+        json.loads(output.read_text(encoding="utf-8"))["decision"] == "invalid_protocol"
+    )
+
+
+def test_h1_cli_readiness_is_neutral(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_topology_residual import main
+
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "readiness.json"
+    _write_h1_run(
+        results,
+        {"anchor": 0.90, "candidate": 0.10, "shuffled_p": 0.20, "delta_only": 0.30},
+        samples_per_class=64,
+        epochs=1,
+    )
+
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--samples-per-class",
+            "64",
+            "--epochs",
+            "1",
+            "--readiness-only",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert report["decision"] == "implementation_ready"
+    assert report["research_decision_applied"] is False
+    assert report["next_action"] == "run_frozen_h1_seed0_local_diagnostic"
+
+
+def test_h1_cli_forwards_multiple_result_progress_pairs(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_invp_topology_residual import main
+
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    output = tmp_path / "gate.json"
+    aucs = {"anchor": 0.60, "candidate": 0.61, "shuffled_p": 0.605, "delta_only": 0.604}
+    _write_h1_run(seed0, aucs, seed=0)
+    _write_h1_run(seed1, aucs, seed=1)
+
+    exit_code = main(
+        [
+            "--results",
+            str(seed0),
+            "--results",
+            str(seed1),
+            "--progress",
+            str(_progress_path(seed0)),
+            "--progress",
+            str(_progress_path(seed1)),
+            "--expected-seeds",
+            "0,1",
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert report["expected_seeds"] == [0, 1]
+    assert report["decision"] == "promote_medium_65536"
+
+
+@pytest.mark.parametrize(
+    (
+        "filename",
+        "family",
+        "samples_per_class",
+        "epochs",
+        "batch_size",
+        "cache_chunk_size",
+        "cache_workers",
+        "evidence_prefix",
+    ),
+    [
+        (
+            "innovation1_spn_present_invp_topology_residual_smoke_seed0.csv",
+            "present_invp_topology_residual_smoke",
+            64,
+            1,
+            32,
+            64,
+            1,
+            "SMOKE readiness only",
+        ),
+        (
+            "innovation1_spn_present_invp_topology_residual_8192_seed0.csv",
+            "present_invp_topology_residual_8192",
+            8192,
+            10,
+            256,
+            512,
+            4,
+            "8192/class local diagnostic",
+        ),
+    ],
+)
+def test_h1_matrices_build_exact_tasks_models_and_runtime_profile(
+    filename: str,
+    family: str,
+    samples_per_class: int,
+    epochs: int,
+    batch_size: int,
+    cache_chunk_size: int,
+    cache_workers: int,
+    evidence_prefix: str,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / filename
+    cache_root = Path("outputs/local_cache") / family
+    args = parse_matrix_args(
+        [
+            "--plan",
+            str(plan),
+            "--epochs",
+            str(epochs),
+            "--batch-size",
+            str(batch_size),
+            "--device",
+            "cpu",
+            "--dataset-cache-root",
+            str(cache_root),
+            "--dataset-cache-chunk-size",
+            str(cache_chunk_size),
+            "--dataset-cache-workers",
+            str(cache_workers),
+        ]
+    )
+    tasks = build_tasks(args)
+    with plan.open(newline="", encoding="utf-8") as handle:
+        raw_rows = list(csv.DictReader(handle))
+
+    assert len(tasks) == len(raw_rows) == 4
+    assert [task["model_key"] for task in tasks] == list(H1_ROLES.values())
+    assert [int(row["architecture_rank"]) for row in raw_rows] == [0, 1, 2, 3]
+    assert {row["family"] for row in raw_rows} == {family}
+    assert all("TopologyResidual" in row["network"] for row in raw_rows)
+    assert args.epochs == epochs
+    assert args.batch_size == batch_size
+    assert args.device == "cpu"
+    assert Path(args.dataset_cache_root) == cache_root
+    assert args.dataset_cache_chunk_size == cache_chunk_size
+    assert args.dataset_cache_workers == cache_workers
+    expected_profile = (
+        PRESENT_CASE2_ATTRIBUTION_PROTOCOL.readiness_training_fields
+        if samples_per_class == 64
+        else PRESENT_CASE2_ATTRIBUTION_PROTOCOL.standard_training_fields
+    )
+    assert expected_profile == {
+        "batch_size": batch_size,
+        "dataset_cache_chunk_size": cache_chunk_size,
+        "dataset_cache_workers": cache_workers,
+    }
+
+    anchor_options = {"spn_mixer_depth": 2, "activation": "relu", "norm": "layernorm"}
+    for index, (task, raw_row) in enumerate(zip(tasks, raw_rows, strict=True)):
+        assert task["rounds"] == 7
+        assert task["seed"] == 0
+        assert task["samples_per_class"] == samples_per_class
+        assert task["train_samples_total"] is None
+        assert task["validation_samples_total"] is None
+        assert task["final_test_samples_total"] is None
+        assert task["final_test_repeats"] == 0
+        assert task["dataset_label_mode"] == "balanced_per_class"
+        assert task["pairs_per_sample"] == 16
+        assert task["feature_encoding"] == "ciphertext_pair_bits"
+        assert task["negative_mode"] == "encrypted_random_plaintexts"
+        # These are cache identity placeholders. Effective per_pair_random is gated from
+        # generated dataset metadata after the run.
+        assert task["train_key"] == 0
+        assert task["validation_key"] == int("11" * 10, 16)
+        assert task["key_rotation_interval"] == 0
+        assert task["sample_structure"] == "zhang_wang_case2_official_mcnd"
+        assert task["difference_profile"] == "present_zhang_wang2022_mcnd"
+        assert task["difference_member"] == 0
+        assert task["loss"] == "mse"
+        assert task["learning_rate"] == 0.0001
+        assert task["optimizer"] == "adam"
+        assert task["optimizer_state_transition"] == "reset_each_stage"
+        assert task["weight_decay"] == 0.00001
+        assert task["lr_scheduler"] == "official_cyclic"
+        assert task["max_learning_rate"] == 0.002
+        assert task["checkpoint_metric"] == "val_auc"
+        assert task["restore_best_checkpoint"] is True
+        assert task["early_stopping_patience"] == 8
+        assert task["early_stopping_min_delta"] == 0.0001
+        assert task["pretrain_rounds"] is None
+        assert task["pretrain_round_sequence"] == ()
+        assert task["pretrain_epochs"] == 0
+        assert task["model_options"] == (
+            anchor_options if index == 0 else HYBRID_OPTIONS
+        )
+        assert raw_row["evidence"].startswith(evidence_prefix)
+        assert "effective per_pair_random" in raw_row["evidence"]
+        model = build_model(
+            task["model_key"],
+            input_bits=2048,
+            hidden_bits=32,
+            pair_bits=128,
+            structure="SPN",
+            model_options=task["model_options"],
+        )
+        assert model is not None
