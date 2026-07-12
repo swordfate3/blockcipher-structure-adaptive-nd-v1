@@ -40,6 +40,8 @@ class PresentNibbleTopologyResidualSpnOnlyDistinguisher(nn.Module):
             )
         if input_bits % pair_bits != 0:
             raise ValueError("input_bits must be a multiple of pair_bits")
+        if base_channels <= 0:
+            raise ValueError("base_channels must be positive")
         if local_channels <= 0:
             raise ValueError("local_channels must be positive")
         if local_depth != 1:
@@ -169,7 +171,7 @@ class PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher(
     PresentNibbleTopologyResidualSpnOnlyDistinguisher
 ):
     def __init__(self, *args, **kwargs) -> None:
-        kwargs["mapping_mode"] = "true"
+        _set_fixed_mapping(kwargs, "true")
         super().__init__(*args, **kwargs)
 
 
@@ -177,7 +179,7 @@ class PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher(
     PresentNibbleTopologyResidualSpnOnlyDistinguisher
 ):
     def __init__(self, *args, **kwargs) -> None:
-        kwargs["mapping_mode"] = "shuffled"
+        _set_fixed_mapping(kwargs, "shuffled")
         super().__init__(*args, **kwargs)
 
 
@@ -185,8 +187,18 @@ class PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher(
     PresentNibbleTopologyResidualSpnOnlyDistinguisher
 ):
     def __init__(self, *args, **kwargs) -> None:
-        kwargs["mapping_mode"] = "delta"
+        _set_fixed_mapping(kwargs, "delta")
         super().__init__(*args, **kwargs)
+
+
+def _set_fixed_mapping(kwargs: dict, fixed_mapping: str) -> None:
+    requested_mapping = kwargs.get("mapping_mode", fixed_mapping)
+    if requested_mapping != fixed_mapping:
+        raise ValueError(
+            f"fixed mapping {fixed_mapping!r} received conflicting value "
+            f"{requested_mapping!r}"
+        )
+    kwargs["mapping_mode"] = fixed_mapping
 
 
 __all__ = [

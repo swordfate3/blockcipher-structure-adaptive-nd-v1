@@ -119,11 +119,11 @@ def test_topology_residual_has_exact_frozen_architecture() -> None:
         (PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher, "delta"),
     ],
 )
-def test_fixed_topology_residual_subclasses_force_mapping(
+def test_fixed_topology_residual_subclasses_default_to_fixed_mapping(
     model_class: type[PresentNibbleTopologyResidualSpnOnlyDistinguisher],
     mapping_mode: str,
 ) -> None:
-    model = model_class(input_bits=INPUT_BITS, mapping_mode="other")
+    model = model_class(input_bits=INPUT_BITS)
     expected = (
         torch.arange(64)
         if mapping_mode == "delta"
@@ -135,10 +135,53 @@ def test_fixed_topology_residual_subclasses_force_mapping(
 
 
 @pytest.mark.parametrize(
+    ("model_class", "mapping_mode"),
+    [
+        (PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher, "true"),
+        (PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher, "shuffled"),
+        (PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher, "delta"),
+    ],
+)
+def test_fixed_topology_residual_subclasses_accept_matching_mapping(
+    model_class: type[PresentNibbleTopologyResidualSpnOnlyDistinguisher],
+    mapping_mode: str,
+) -> None:
+    model = model_class(input_bits=INPUT_BITS, mapping_mode=mapping_mode)
+
+    assert model.mapping_mode == mapping_mode
+
+
+@pytest.mark.parametrize(
+    ("model_class", "fixed_mapping", "conflicting_mapping"),
+    [
+        (PresentNibbleInvPTopologyResidualSpnOnlyDistinguisher, "true", "delta"),
+        (
+            PresentNibbleShuffledPTopologyResidualSpnOnlyDistinguisher,
+            "shuffled",
+            "true",
+        ),
+        (PresentNibbleDeltaTopologyResidualSpnOnlyDistinguisher, "delta", "shuffled"),
+    ],
+)
+def test_fixed_topology_residual_subclasses_reject_conflicting_mapping(
+    model_class: type[PresentNibbleTopologyResidualSpnOnlyDistinguisher],
+    fixed_mapping: str,
+    conflicting_mapping: str,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match=f"fixed mapping.*{fixed_mapping}.*conflicting.*{conflicting_mapping}",
+    ):
+        model_class(input_bits=INPUT_BITS, mapping_mode=conflicting_mapping)
+
+
+@pytest.mark.parametrize(
     ("kwargs", "message"),
     [
         ({"pair_bits": 64}, "expects raw 128-bit ciphertext pairs"),
         ({"input_bits": INPUT_BITS - 1}, "input_bits must be a multiple"),
+        ({"base_channels": 0}, "base_channels must be positive"),
+        ({"base_channels": -1}, "base_channels must be positive"),
         ({"local_channels": 0}, "local_channels must be positive"),
         ({"local_depth": 0}, "local_depth must equal 1"),
         ({"local_depth": 2}, "local_depth must equal 1"),
