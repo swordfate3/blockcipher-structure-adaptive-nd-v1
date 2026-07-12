@@ -478,6 +478,10 @@ def _compact_label(item: dict[str, Any]) -> str:
     aliases = {
         "present_zhang_wang_keras_mcnd": "Zhang-Wang MCND",
         "present_nibble_paligned_mcnd": "I1 nibble-P MCND",
+        "present_nibble_invp_only_spn_only": "InvP token mixer",
+        "present_nibble_invp_topology_residual_spn_only": "true InvP residual",
+        "present_nibble_shuffled_p_topology_residual_spn_only": "shuffled P residual",
+        "present_nibble_delta_topology_residual_spn_only": "Delta-only residual",
     }
     if model in aliases:
         return aliases[model]

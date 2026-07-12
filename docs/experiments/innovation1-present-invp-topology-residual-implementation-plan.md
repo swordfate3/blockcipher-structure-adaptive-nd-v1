@@ -80,8 +80,12 @@ breakthrough claim.
   validation, artifact/cache/progress provenance, histories/checkpoints, and the
   strict gate all passed. The gate returned `weak_or_fragile_no_scale`, stopped
   seed1 and all larger/remote scale, and allowed only the completed one-time
-  history inspection. The documentation commit is recorded by the commit
-  containing this completion record.
+  history inspection. Documentation was committed and pushed at `ebc4274`.
+  Task 6 quality review then found that generic plot-label compaction collapsed
+  the three hybrid roles to one visible label. A focused real-SVG regression and
+  four exact aliases repaired the artifact without changing results or gates;
+  both R0 and seed0 plots were regenerated and XML/visible-label checked. The
+  repair commit is the commit containing this note.
 
 Task 7 remains pending and is intentionally unchecked.
 
