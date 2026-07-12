@@ -222,6 +222,62 @@ def test_protocol_spec_rejects_invalid_runtime_profile_counts(
 
 
 @pytest.mark.parametrize(
+    "profile_field", ["readiness_training_fields", "standard_training_fields"]
+)
+@pytest.mark.parametrize(
+    "missing_field",
+    ["batch_size", "dataset_cache_chunk_size", "dataset_cache_workers"],
+)
+def test_protocol_spec_requires_every_runtime_profile_count(
+    profile_field: str, missing_field: str
+) -> None:
+    profile = dict(getattr(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, profile_field))
+    del profile[missing_field]
+
+    with pytest.raises(ValueError, match=rf"{profile_field}.*{missing_field}"):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, **{profile_field: profile})
+
+
+@pytest.mark.parametrize(
+    "profile_field", ["readiness_training_fields", "standard_training_fields"]
+)
+@pytest.mark.parametrize("profile", [None, [], 3])
+def test_protocol_spec_requires_runtime_profiles_to_be_mappings(
+    profile_field: str, profile: Any
+) -> None:
+    with pytest.raises(TypeError, match=profile_field):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, **{profile_field: profile})
+
+
+@pytest.mark.parametrize(
+    "profile_field", ["readiness_training_fields", "standard_training_fields"]
+)
+def test_protocol_spec_blocks_omitted_count_artifact_bypass(
+    profile_field: str,
+) -> None:
+    profile = {
+        "future_runtime_exact_field": "allowed",
+    }
+
+    with pytest.raises(ValueError, match=rf"{profile_field}.*missing_required_fields"):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, **{profile_field: profile})
+
+
+def test_protocol_spec_allows_additional_runtime_exact_fields() -> None:
+    profile = {
+        **dict(PRESENT_CASE2_ATTRIBUTION_PROTOCOL.standard_training_fields),
+        "future_runtime_exact_field": "allowed",
+    }
+
+    protocol = replace(
+        PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+        standard_training_fields=profile,
+    )
+
+    assert protocol.standard_training_fields["future_runtime_exact_field"] == "allowed"
+
+
+@pytest.mark.parametrize(
     ("seed_layout", "error_type"),
     [((), ValueError), ((True,), TypeError), ((0, 0), ValueError)],
 )

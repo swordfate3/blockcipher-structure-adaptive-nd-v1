@@ -53,6 +53,13 @@ def _require_exact_int_at_least(field: str, value: Any, minimum: int) -> None:
         raise ValueError(f"{field} must_be_at_least_{minimum} actual={value!r}")
 
 
+_RUNTIME_PROFILE_COUNT_FIELDS = (
+    "batch_size",
+    "dataset_cache_chunk_size",
+    "dataset_cache_workers",
+)
+
+
 @dataclass(frozen=True)
 class FourRoleProtocolSpec:
     claim_prefix: str
@@ -72,6 +79,20 @@ class FourRoleProtocolSpec:
     class_count: int
 
     def __post_init__(self) -> None:
+        for profile_name in (
+            "readiness_training_fields",
+            "standard_training_fields",
+        ):
+            profile = getattr(self, profile_name)
+            if not isinstance(profile, Mapping):
+                raise TypeError(f"{profile_name} must_be_mapping actual={profile!r}")
+            missing_fields = [
+                field for field in _RUNTIME_PROFILE_COUNT_FIELDS if field not in profile
+            ]
+            if missing_fields:
+                raise ValueError(
+                    f"{profile_name} missing_required_fields={missing_fields!r}"
+                )
         _require_exact_int_at_least("class_count", self.class_count, 2)
         _require_exact_int_at_least(
             "readiness_samples_per_class", self.readiness_samples_per_class, 1
@@ -110,15 +131,10 @@ class FourRoleProtocolSpec:
             "standard_training_fields",
         ):
             profile = getattr(self, profile_name)
-            for field in (
-                "batch_size",
-                "dataset_cache_chunk_size",
-                "dataset_cache_workers",
-            ):
-                if field in profile:
-                    _require_exact_int_at_least(
-                        f"{profile_name}.{field}", profile[field], 1
-                    )
+            for field in _RUNTIME_PROFILE_COUNT_FIELDS:
+                _require_exact_int_at_least(
+                    f"{profile_name}.{field}", profile[field], 1
+                )
 
 
 @dataclass(frozen=True)
