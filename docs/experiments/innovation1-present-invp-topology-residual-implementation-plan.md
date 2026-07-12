@@ -57,7 +57,7 @@ breakthrough claim.
 - Create `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv` and `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv`: frozen R0 and seed0 matrices.
 - Modify `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`: record R0 readiness and H1 seed0 result only after artifacts exist and pass the strict gate.
 
-## Completion Record Through Task 6 (2026-07-12)
+## Completion Record Through Task 7 Branch Verification (2026-07-12)
 
 - Task 1 completed through `d5e0188`, with review fixes `256b8a8` and
   `fc49565`; tensor semantics, architecture constraints, finite
@@ -100,8 +100,36 @@ breakthrough claim.
   accuracy/AUC/loss panels passed; the minimum vertical text gap was `25.933`
   pixels in each panel. The joint-allocation repair is the commit containing
   this note.
+- Task 7 branch verification ran from clean, synchronized head `31187fe` against
+  base `5ee69ca`. The exact H1/legacy Conv2D/new project-structure/plot focused
+  set passed `433/433`. A broader run including all of
+  `tests/test_project_structure.py` produced `872 passed, 12 failed`; all 12
+  failures were pre-existing unrelated postprocess/JSON-alignment nodes, while
+  no H1 or Conv2D node failed. The identical 12-node selection reproduced
+  `12/12` failures from an independently extracted `5ee69ca` base tree. Ruff
+  passed for every Python file changed in `5ee69ca..31187fe`; after excluding
+  the two known legacy-large formatter-drift files, the other 12 changed files
+  passed `ruff format --check`. All 10 changed source files passed `py_compile`,
+  and `git diff --check 5ee69ca..31187fe` passed.
+- The full suite produced `1085 passed, 37 failed`. Thirty-four failures have
+  the authoritative Matplotlib 3.11 global-class-state signature: the prior 29
+  known failures plus the five new plotting tests reached after the same state
+  corruption. One failure is the authoritative independent JSON short-name
+  alignment baseline. The remaining two failures came from nested `uv run`
+  commands inheriting the read-only `UV_PROJECT_ENVIRONMENT`; both passed
+  independently (`2/2`) when that inherited environment override was removed.
+  Therefore no H1, legacy Conv2D, or plotting behavior regression was found.
+- Independent R0 and H1 validation/gate replays to `/tmp` all passed and were
+  byte-identical to the four saved reports. Cache shapes, metadata, reuse,
+  progress terminals, result/history rows, and SVG XML/labels/dimensions/bboxes
+  were re-audited. No H1 seed1, `65536/class`, `262144/class`, remote artifact,
+  or launch config exists. The final decision remains
+  `weak_or_fragile_no_scale`, with
+  `inspect_histories_once_and_do_not_scale`; this branch is ready for
+  whole-feature review, not integrated into `main`, and supports only an
+  `8192/class` single-seed local architecture-attribution diagnostic claim.
 
-Task 7 remains pending and is intentionally unchecked.
+Task 7 branch verification is complete. Main integration remains pending.
 
 ### Task 1: Shared Topology-Residual Model
 
@@ -586,7 +614,7 @@ git commit -m "experiment: adjudicate topology residual seed0"
 **Files:**
 - Verify all task-scoped source, tests, configs, scripts, and documentation.
 
-- [ ] **Step 1: Run focused verification**
+- [x] **Step 1: Run focused verification**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_topology_residual.py tests/test_invp_topology_residual_gate.py tests/test_invp_state_matrix_conv2d.py tests/test_invp_state_matrix_conv2d_gate.py tests/test_project_structure.py -q
@@ -596,7 +624,7 @@ git diff --check
 
 Expected: focused tests and Ruff pass, and no whitespace errors.
 
-- [ ] **Step 2: Run the full suite and classify only evidence-backed baseline failures**
+- [x] **Step 2: Run the full suite and classify only evidence-backed baseline failures**
 
 ```bash
 MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q
@@ -606,7 +634,7 @@ Expected baseline as of plan creation: 30 known failures (29 Matplotlib 3.11
 global-state failures and one JSON route-alignment failure), with no H1 or
 Conv2D regression. Any different/new failure must be diagnosed before merge.
 
-- [ ] **Step 3: Perform whole-feature spec and quality review**
+- [x] **Step 3: Perform whole-feature spec and quality review**
 
 Review the final diff against every frozen H1 requirement: single changed
 hypothesis, common initialization, identical hybrid capacities, strict data
@@ -625,7 +653,12 @@ After review approval, fast-forward merge to `main`, rerun focused verification
 on merged main, and push `main`. Do not use scp or a dirty remote overlay if push
 is rejected.
 
-- [ ] **Step 5: Follow the gate, not preference**
+The complete feature branch is pushed through `31187fe` and synchronized with
+`origin/experiment/invp-topology-residual`. This step remains unchecked because
+fast-forward integration into `main`, merged-main verification, and the `main`
+push have not been performed.
+
+- [x] **Step 5: Follow the gate, not preference**
 
 If seed0 says `promote_seed1`, create the identical seed1 local matrix and
 repeat the same strict workflow. For every other valid decision, stop H1 and
