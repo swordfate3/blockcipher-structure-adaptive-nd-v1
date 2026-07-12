@@ -46,6 +46,13 @@ def _thaw_spec_value(value: Any) -> Any:
     return value
 
 
+def _require_exact_int_at_least(field: str, value: Any, minimum: int) -> None:
+    if type(value) is not int:
+        raise TypeError(f"{field} must_be_exact_int actual={value!r}")
+    if value < minimum:
+        raise ValueError(f"{field} must_be_at_least_{minimum} actual={value!r}")
+
+
 @dataclass(frozen=True)
 class FourRoleProtocolSpec:
     claim_prefix: str
@@ -65,6 +72,17 @@ class FourRoleProtocolSpec:
     class_count: int
 
     def __post_init__(self) -> None:
+        _require_exact_int_at_least("class_count", self.class_count, 2)
+        _require_exact_int_at_least(
+            "readiness_samples_per_class", self.readiness_samples_per_class, 1
+        )
+        if self.readiness_samples_per_class % self.class_count != 0:
+            raise ValueError(
+                "readiness_samples_per_class must_be_divisible_by_class_count "
+                f"samples={self.readiness_samples_per_class!r} "
+                f"class_count={self.class_count!r}"
+            )
+        _require_exact_int_at_least("readiness_epochs", self.readiness_epochs, 1)
         for field in (
             "row_static_fields",
             "training_static_fields",
@@ -75,6 +93,32 @@ class FourRoleProtocolSpec:
             "readiness_seed_layout",
         ):
             object.__setattr__(self, field, _freeze_spec_value(getattr(self, field)))
+        if not self.readiness_seed_layout:
+            raise ValueError("readiness_seed_layout must_be_nonempty")
+        for index, seed in enumerate(self.readiness_seed_layout):
+            if type(seed) is not int:
+                raise TypeError(
+                    "readiness_seed_layout "
+                    f"index={index} must_be_exact_int actual={seed!r}"
+                )
+        if len(set(self.readiness_seed_layout)) != len(self.readiness_seed_layout):
+            raise ValueError(
+                f"readiness_seed_layout must_be_unique actual={self.readiness_seed_layout!r}"
+            )
+        for profile_name in (
+            "readiness_training_fields",
+            "standard_training_fields",
+        ):
+            profile = getattr(self, profile_name)
+            for field in (
+                "batch_size",
+                "dataset_cache_chunk_size",
+                "dataset_cache_workers",
+            ):
+                if field in profile:
+                    _require_exact_int_at_least(
+                        f"{profile_name}.{field}", profile[field], 1
+                    )
 
 
 @dataclass(frozen=True)
@@ -101,6 +145,12 @@ class FourRoleGateSpec:
             "allowed_seed_layouts",
         ):
             object.__setattr__(self, field, _freeze_spec_value(getattr(self, field)))
+        if self.protocol.readiness_seed_layout not in self.allowed_seed_layouts:
+            raise ValueError(
+                "protocol readiness_seed_layout must_be_in allowed_seed_layouts "
+                f"readiness_seed_layout={self.protocol.readiness_seed_layout!r} "
+                f"allowed_seed_layouts={self.allowed_seed_layouts!r}"
+            )
 
 
 def evaluate_four_role_attribution(
@@ -118,18 +168,25 @@ def evaluate_four_role_attribution(
     joint_control_margin: float,
     spec: FourRoleGateSpec,
 ) -> dict[str, Any]:
-    threshold_errors = _threshold_errors(
-        seed0_architecture_margin=seed0_architecture_margin,
-        seed0_topology_margin=seed0_topology_margin,
-        seed0_representation_margin=seed0_representation_margin,
-        joint_architecture_margin=joint_architecture_margin,
-        joint_control_margin=joint_control_margin,
-        allow_none_seed0_architecture_margin=(
-            spec.allow_none_seed0_architecture_margin
+    argument_errors = [
+        *_threshold_errors(
+            seed0_architecture_margin=seed0_architecture_margin,
+            seed0_topology_margin=seed0_topology_margin,
+            seed0_representation_margin=seed0_representation_margin,
+            joint_architecture_margin=joint_architecture_margin,
+            joint_control_margin=joint_control_margin,
+            allow_none_seed0_architecture_margin=(
+                spec.allow_none_seed0_architecture_margin
+            ),
         ),
-    )
-    if threshold_errors:
-        return _invalid_protocol(threshold_errors, protocol=spec.protocol)
+        *_runtime_argument_errors(
+            samples_per_class=samples_per_class,
+            epochs=epochs,
+            protocol=spec.protocol,
+        ),
+    ]
+    if argument_errors:
+        return _invalid_protocol(argument_errors, protocol=spec.protocol)
 
     expected_seed_errors = _expected_seed_errors(expected_seeds, spec=spec)
     if expected_seed_errors:
@@ -272,6 +329,28 @@ def _threshold_errors(
             continue
         if type(value) not in {int, float} or not math.isfinite(value) or value < 0:
             errors.append(f"{field} must_be_finite_nonnegative_number actual={value!r}")
+    return errors
+
+
+def _runtime_argument_errors(
+    *,
+    samples_per_class: Any,
+    epochs: Any,
+    protocol: FourRoleProtocolSpec,
+) -> list[str]:
+    errors: list[str] = []
+    if type(samples_per_class) is not int or samples_per_class <= 0:
+        errors.append(
+            f"samples_per_class must_be_exact_positive_int actual={samples_per_class!r}"
+        )
+    elif samples_per_class % protocol.class_count != 0:
+        errors.append(
+            "samples_per_class must_be_divisible_by_class_count "
+            f"samples_per_class={samples_per_class!r} "
+            f"class_count={protocol.class_count!r}"
+        )
+    if type(epochs) is not int or epochs <= 0:
+        errors.append(f"epochs must_be_exact_positive_int actual={epochs!r}")
     return errors
 
 

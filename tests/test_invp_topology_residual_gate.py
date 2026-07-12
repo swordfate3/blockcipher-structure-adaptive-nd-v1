@@ -160,6 +160,86 @@ def test_protocol_spec_recursively_freezes_and_report_thaws(tmp_path: Path) -> N
 
 
 @pytest.mark.parametrize(
+    ("class_count", "error_type"),
+    [
+        (0, ValueError),
+        (-1, ValueError),
+        (True, TypeError),
+        (1, ValueError),
+        (2.5, TypeError),
+    ],
+)
+def test_protocol_spec_rejects_invalid_class_count(
+    class_count: Any, error_type: type[Exception]
+) -> None:
+    with pytest.raises(error_type, match="class_count"):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, class_count=class_count)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error_type"),
+    [
+        ("readiness_samples_per_class", 0, ValueError),
+        ("readiness_samples_per_class", -1, ValueError),
+        ("readiness_samples_per_class", 63, ValueError),
+        ("readiness_samples_per_class", True, TypeError),
+        ("readiness_epochs", 0, ValueError),
+        ("readiness_epochs", -1, ValueError),
+        ("readiness_epochs", True, TypeError),
+        ("readiness_epochs", 1.5, TypeError),
+    ],
+)
+def test_protocol_spec_rejects_invalid_readiness_counts(
+    field: str, value: Any, error_type: type[Exception]
+) -> None:
+    with pytest.raises(error_type, match=field):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, **{field: value})
+
+
+@pytest.mark.parametrize(
+    "profile_field", ["readiness_training_fields", "standard_training_fields"]
+)
+@pytest.mark.parametrize(
+    "runtime_field",
+    ["batch_size", "dataset_cache_chunk_size", "dataset_cache_workers"],
+)
+@pytest.mark.parametrize(
+    ("value", "error_type"),
+    [(0, ValueError), (-1, ValueError), (True, TypeError), (1.5, TypeError)],
+)
+def test_protocol_spec_rejects_invalid_runtime_profile_counts(
+    profile_field: str,
+    runtime_field: str,
+    value: Any,
+    error_type: type[Exception],
+) -> None:
+    profile = {
+        **dict(getattr(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, profile_field)),
+        runtime_field: value,
+    }
+    with pytest.raises(error_type, match=runtime_field):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, **{profile_field: profile})
+
+
+@pytest.mark.parametrize(
+    ("seed_layout", "error_type"),
+    [((), ValueError), ((True,), TypeError), ((0, 0), ValueError)],
+)
+def test_protocol_spec_rejects_invalid_readiness_seed_layout(
+    seed_layout: tuple[Any, ...], error_type: type[Exception]
+) -> None:
+    with pytest.raises(error_type, match="readiness_seed_layout"):
+        replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, readiness_seed_layout=seed_layout)
+
+
+def test_gate_spec_requires_readiness_seed_layout_to_be_allowed() -> None:
+    protocol = replace(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, readiness_seed_layout=(1,))
+
+    with pytest.raises(ValueError, match="allowed_seed_layouts"):
+        replace(_CONV2D_GATE_SPEC, protocol=protocol)
+
+
+@pytest.mark.parametrize(
     ("protocol_field", "artifact_section", "exact_field"),
     [
         ("row_static_fields", "top", "cipher"),
@@ -328,6 +408,16 @@ INVALID_PUBLIC_THRESHOLDS = [
     for field in fields
     for value_name, value in INVALID_THRESHOLD_CASES
 ]
+INVALID_RUNTIME_ARGUMENTS = [
+    ("samples_per_class", 0),
+    ("samples_per_class", -2),
+    ("samples_per_class", 63),
+    ("samples_per_class", True),
+    ("epochs", 0),
+    ("epochs", -1),
+    ("epochs", True),
+    ("epochs", 1.5),
+]
 
 
 @pytest.mark.parametrize(
@@ -340,6 +430,29 @@ def test_public_gates_reject_invalid_thresholds_before_artifact_reads(
     gate: Any,
     field: str,
     value_name: str,
+    value: Any,
+) -> None:
+    report = gate(
+        [tmp_path / "missing-results.jsonl"],
+        progress_paths=[tmp_path / "missing-progress.jsonl"],
+        **{field: value},
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert any(field in error for error in report["errors"])
+    assert not any("read_error" in error for error in report["errors"])
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize(
+    "gate", [gate_invp_state_matrix_conv2d, gate_invp_topology_residual]
+)
+@pytest.mark.parametrize(("field", "value"), INVALID_RUNTIME_ARGUMENTS)
+def test_public_gates_reject_invalid_runtime_counts_before_artifact_reads(
+    tmp_path: Path,
+    gate: Any,
+    field: str,
     value: Any,
 ) -> None:
     report = gate(
