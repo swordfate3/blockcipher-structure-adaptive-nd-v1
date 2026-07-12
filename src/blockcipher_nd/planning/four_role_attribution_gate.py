@@ -47,7 +47,39 @@ def _thaw_spec_value(value: Any) -> Any:
 
 
 @dataclass(frozen=True)
+class FourRoleProtocolSpec:
+    claim_prefix: str
+    readiness_identity_label: str
+    invalid_claim_scope: str
+    readiness_claim_scope: str
+    research_claim_suffix: str
+    row_static_fields: Mapping[str, Any]
+    training_static_fields: Mapping[str, Any]
+    validation_static_fields: Mapping[str, Any]
+    cache_terminal_static_fields: Mapping[str, Any]
+    readiness_training_fields: Mapping[str, Any]
+    standard_training_fields: Mapping[str, Any]
+    readiness_seed_layout: tuple[int, ...]
+    readiness_samples_per_class: int
+    readiness_epochs: int
+    class_count: int
+
+    def __post_init__(self) -> None:
+        for field in (
+            "row_static_fields",
+            "training_static_fields",
+            "validation_static_fields",
+            "cache_terminal_static_fields",
+            "readiness_training_fields",
+            "standard_training_fields",
+            "readiness_seed_layout",
+        ):
+            object.__setattr__(self, field, _freeze_spec_value(getattr(self, field)))
+
+
+@dataclass(frozen=True)
 class FourRoleGateSpec:
+    protocol: FourRoleProtocolSpec
     model_roles: Mapping[str, str]
     anchor_options: Mapping[str, Any]
     hybrid_options: Mapping[str, Any]
@@ -97,22 +129,26 @@ def evaluate_four_role_attribution(
         ),
     )
     if threshold_errors:
-        return _invalid_protocol(threshold_errors)
+        return _invalid_protocol(threshold_errors, protocol=spec.protocol)
 
     expected_seed_errors = _expected_seed_errors(expected_seeds, spec=spec)
     if expected_seed_errors:
-        return _invalid_protocol(expected_seed_errors)
+        return _invalid_protocol(expected_seed_errors, protocol=spec.protocol)
 
     result_runs, load_errors = _load_result_runs(results_paths)
     rows = [row for _, run_rows in result_runs for row in run_rows]
     progress_runs, progress_load_errors = _load_progress_runs(progress_paths)
     readiness_errors = []
     if readiness_only and (
-        expected_seeds != (0,) or samples_per_class != 64 or epochs != 1
+        expected_seeds != spec.protocol.readiness_seed_layout
+        or samples_per_class != spec.protocol.readiness_samples_per_class
+        or epochs != spec.protocol.readiness_epochs
     ):
         readiness_errors.append(
-            "readiness_only requires frozen R0 identity "
-            f"expected_seeds=(0,) samples_per_class=64 epochs=1 "
+            f"readiness_only requires frozen {spec.protocol.readiness_identity_label} identity "
+            f"expected_seeds={spec.protocol.readiness_seed_layout!r} "
+            f"samples_per_class={spec.protocol.readiness_samples_per_class} "
+            f"epochs={spec.protocol.readiness_epochs} "
             f"actual_expected_seeds={expected_seeds!r} "
             f"actual_samples_per_class={samples_per_class!r} actual_epochs={epochs!r}"
         )
@@ -137,7 +173,7 @@ def evaluate_four_role_attribution(
     )
     errors.extend(cache_errors)
     if errors:
-        return _invalid_protocol(errors)
+        return _invalid_protocol(errors, protocol=spec.protocol)
 
     by_seed = _rows_by_seed_and_role(rows, spec=spec)
     seed_reports = {str(seed): _seed_report(by_seed[seed]) for seed in expected_seeds}
@@ -151,6 +187,7 @@ def evaluate_four_role_attribution(
     }
     common_evidence = {
         "protocol_evidence": _protocol_evidence(by_seed, expected_seeds, spec=spec),
+        "protocol_contract": _protocol_contract(spec.protocol),
         "semantic_checks": _thaw_spec_value(spec.semantic_checks),
         "cache_evidence": cache_evidence,
         "promotion_conditions": _promotion_conditions(
@@ -176,7 +213,7 @@ def evaluate_four_role_attribution(
             **common_evidence,
             "stopped_actions": spec.stopped_actions("implementation_ready"),
             "next_action": spec.readiness_next_action,
-            "claim_scope": "implementation readiness only; metrics not interpreted",
+            "claim_scope": spec.protocol.readiness_claim_scope,
             "research_decision_applied": False,
         }
 
@@ -202,8 +239,8 @@ def evaluate_four_role_attribution(
         "stopped_actions": spec.stopped_actions(decision),
         "next_action": next_action,
         "claim_scope": (
-            f"{samples_per_class}/class strict PRESENT r7 {spec.claim_label}; "
-            "not formal, paper-scale, or breakthrough evidence"
+            f"{samples_per_class}/class {spec.protocol.claim_prefix} "
+            f"{spec.claim_label}; {spec.protocol.research_claim_suffix}"
         ),
         "research_decision_applied": True,
     }
@@ -261,13 +298,15 @@ def _expected_seed_errors(expected_seeds: Any, *, spec: FourRoleGateSpec) -> lis
     return []
 
 
-def _invalid_protocol(errors: list[str]) -> dict[str, Any]:
+def _invalid_protocol(
+    errors: list[str], *, protocol: FourRoleProtocolSpec
+) -> dict[str, Any]:
     return {
         "status": "fail",
         "decision": "invalid_protocol",
         "errors": errors,
         "next_action": "repair_protocol_and_rerun_same_matrix",
-        "claim_scope": "invalid strict-protocol architecture evidence",
+        "claim_scope": protocol.invalid_claim_scope,
         "research_decision_applied": False,
     }
 
@@ -416,19 +455,7 @@ def _cache_evidence(
             row for row in rows if row.get("event") in {"cache_done", "cache_reuse"}
         ]
         exact_fields = {
-            "cipher_key": "present80",
-            "rounds": 7,
-            "dataset_label_mode": "balanced_per_class",
-            "feature_encoding": "ciphertext_pair_bits",
-            "negative_mode": "encrypted_random_plaintexts",
-            "pairs_per_sample": 16,
-            "key_rotation_interval": 0,
-            "sample_structure": "zhang_wang_case2_official_mcnd",
-            "difference_profile": "present_zhang_wang2022_mcnd",
-            "difference_member": 0,
-            "input_bits": 2048,
-            "optimizer_state_transition": "reset_each_stage",
-            "loss": "mse",
+            **_thaw_spec_value(spec.protocol.cache_terminal_static_fields),
             "samples_per_class": samples_per_class,
         }
         for index, row in enumerate(terminal):
@@ -464,7 +491,9 @@ def _cache_evidence(
             for field, expected in exact_fields.items():
                 _check_exact(row, field, expected, label, errors)
             expected_rows = (
-                2 * samples_per_class if split == "train" else samples_per_class
+                spec.protocol.class_count * samples_per_class
+                if split == "train"
+                else samples_per_class
             )
             _check_exact(row, "total_rows", expected_rows, label, errors)
             if model_valid and split_valid and seed_valid:
@@ -621,95 +650,39 @@ def _protocol_errors(
                 )
 
     exact_row_fields = {
-        "cipher": "PRESENT-80",
-        "cipher_key": "present80",
-        "structure": "SPN",
-        "rounds": 7,
-        "dataset_label_mode": "balanced_per_class",
-        "input_difference": 9,
+        **_thaw_spec_value(spec.protocol.row_static_fields),
         "samples_per_class": samples_per_class,
-        "train_samples_total": None,
-        "validation_samples_total": None,
-        "final_test_samples_total": None,
-        "final_test_repeats": 0,
-        "pairs_per_sample": 16,
-        "feature_encoding": "ciphertext_pair_bits",
-        "negative_mode": "encrypted_random_plaintexts",
-        "train_key": 0,
-        "validation_key": int("11" * 10, 16),
-        "key_rotation_interval": 0,
-        "sample_structure": "zhang_wang_case2_official_mcnd",
-        "difference_profile": "present_zhang_wang2022_mcnd",
-        "difference_member": 0,
-        "integral_active_nibble": 0,
-        "integral_active_nibbles": [],
-        "validation_integral_active_nibbles": [],
     }
-    is_r0 = samples_per_class == 64 and epochs == 1
+    is_readiness_profile = (
+        samples_per_class == spec.protocol.readiness_samples_per_class
+        and epochs == spec.protocol.readiness_epochs
+    )
+    runtime_training_fields = (
+        spec.protocol.readiness_training_fields
+        if is_readiness_profile
+        else spec.protocol.standard_training_fields
+    )
+    validation_class_rows = samples_per_class // spec.protocol.class_count
     exact_training_fields = {
-        "amsgrad": False,
-        "batch_size": 32 if is_r0 else 256,
-        "dataset_cache_chunk_size": 64 if is_r0 else 512,
-        "dataset_cache_workers": 1 if is_r0 else 4,
-        "dataset_label_mode": "balanced_per_class",
-        "device": "cpu",
-        "feature_encoding": "ciphertext_pair_bits",
-        "key_schedule": "per_pair_random",
-        "input_bits": 2048,
-        "integral_active_nibble": 0,
-        "integral_active_nibbles": [],
-        "validation_integral_active_nibbles": [],
-        "pair_bits": 128,
-        "pairs_per_sample": 16,
-        "key_rotation_interval": 0,
-        "sample_structure": "zhang_wang_case2_official_mcnd",
-        "selected_bit_indices": [],
-        "samples_total": 2 * samples_per_class,
+        **_thaw_spec_value(spec.protocol.training_static_fields),
+        **_thaw_spec_value(runtime_training_fields),
+        "samples_total": spec.protocol.class_count * samples_per_class,
         "positive_rows": samples_per_class,
-        "negative_rows": samples_per_class,
-        "train_rows": 2 * samples_per_class,
+        "negative_rows": (spec.protocol.class_count - 1) * samples_per_class,
+        "train_rows": spec.protocol.class_count * samples_per_class,
         "train_positive_rows": samples_per_class,
-        "train_negative_rows": samples_per_class,
+        "train_negative_rows": (spec.protocol.class_count - 1) * samples_per_class,
         "validation_rows": samples_per_class,
-        "validation_positive_rows": samples_per_class // 2,
-        "validation_negative_rows": samples_per_class // 2,
-        "train_dataset_storage": "disk",
-        "validation_dataset_storage": "disk",
-        "optimizer_state_transition": "reset_each_stage",
-        "optimizer_state_reused": False,
-        "optimizer_state_step_before": 0,
-        "optimizer_session_call": 1,
-        "train_eval_interval": 1,
+        "validation_positive_rows": validation_class_rows,
+        "validation_negative_rows": samples_per_class - validation_class_rows,
         "epochs": epochs,
-        "loss": "mse",
-        "optimizer": "adam",
-        "learning_rate": 0.0001,
-        "weight_decay": 0.00001,
-        "lr_scheduler": "official_cyclic",
-        "max_learning_rate": 0.002,
-        "checkpoint_metric": "val_auc",
-        "restore_best_checkpoint": True,
-        "selected_checkpoint": "best",
-        "early_stopping_patience": 8,
-        "early_stopping_min_delta": 0.0001,
     }
     exact_validation_fields = {
-        "cipher": "PRESENT-80",
-        "structure": "SPN",
-        "rounds": 7,
-        "feature_encoding": "ciphertext_pair_bits",
-        "negative_mode": "encrypted_random_plaintexts",
-        "pairs_per_sample": 16,
-        "samples_per_class": samples_per_class // 2,
+        **_thaw_spec_value(spec.protocol.validation_static_fields),
+        "samples_per_class": validation_class_rows,
         "samples_total": samples_per_class,
-        "positive_rows": samples_per_class // 2,
-        "negative_rows": samples_per_class // 2,
-        "dataset_label_mode": "balanced_per_class",
-        "key_rotation_interval": 0,
-        "sample_structure": "zhang_wang_case2_official_mcnd",
-        "key_schedule": "per_pair_random",
-        "integral_active_nibble": 0,
-        "integral_active_nibbles": [],
+        "positive_rows": validation_class_rows,
+        "negative_rows": samples_per_class - validation_class_rows,
     }
     cache_roots: dict[int, list[Any]] = {seed: [] for seed in expected_seeds}
     capacity_counts: dict[str, set[int]] = {
@@ -1185,6 +1158,30 @@ def _protocol_evidence(
     return {"rows": rows, "status": "pass"}
 
 
+def _protocol_contract(protocol: FourRoleProtocolSpec) -> dict[str, Any]:
+    return {
+        "claim_prefix": protocol.claim_prefix,
+        "readiness_identity_label": protocol.readiness_identity_label,
+        "invalid_claim_scope": protocol.invalid_claim_scope,
+        "readiness_claim_scope": protocol.readiness_claim_scope,
+        "research_claim_suffix": protocol.research_claim_suffix,
+        "row_static_fields": _thaw_spec_value(protocol.row_static_fields),
+        "training_static_fields": _thaw_spec_value(protocol.training_static_fields),
+        "validation_static_fields": _thaw_spec_value(protocol.validation_static_fields),
+        "cache_terminal_static_fields": _thaw_spec_value(
+            protocol.cache_terminal_static_fields
+        ),
+        "readiness_training_fields": _thaw_spec_value(
+            protocol.readiness_training_fields
+        ),
+        "standard_training_fields": _thaw_spec_value(protocol.standard_training_fields),
+        "readiness_seed_layout": list(protocol.readiness_seed_layout),
+        "readiness_samples_per_class": protocol.readiness_samples_per_class,
+        "readiness_epochs": protocol.readiness_epochs,
+        "class_count": protocol.class_count,
+    }
+
+
 def _promotion_conditions(
     *,
     expected_seeds: tuple[int, ...],
@@ -1214,5 +1211,6 @@ def _promotion_conditions(
 __all__ = [
     "DecisionCallback",
     "FourRoleGateSpec",
+    "FourRoleProtocolSpec",
     "evaluate_four_role_attribution",
 ]

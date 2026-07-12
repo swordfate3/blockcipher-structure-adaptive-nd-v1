@@ -7,6 +7,9 @@ from blockcipher_nd.planning.four_role_attribution_gate import (
     FourRoleGateSpec,
     evaluate_four_role_attribution,
 )
+from blockcipher_nd.planning.present_case2_attribution_protocol import (
+    PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+)
 
 
 MODEL_ROLES = {
@@ -138,6 +141,7 @@ def _decision(
 
 
 _CONV2D_GATE_SPEC = FourRoleGateSpec(
+    protocol=PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
     model_roles=MODEL_ROLES,
     anchor_options={
         "spn_mixer_depth": 2,

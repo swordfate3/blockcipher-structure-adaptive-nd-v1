@@ -1,19 +1,28 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 import test_invp_state_matrix_conv2d_gate as conv_fixtures
-from blockcipher_nd.planning.four_role_attribution_gate import FourRoleGateSpec
+from blockcipher_nd.planning.four_role_attribution_gate import (
+    FourRoleGateSpec,
+    FourRoleProtocolSpec,
+    evaluate_four_role_attribution,
+)
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
+    _CONV2D_GATE_SPEC,
     gate_invp_state_matrix_conv2d,
 )
 from blockcipher_nd.planning.invp_topology_residual_gate import (
     TOPOLOGY_RESIDUAL_MODEL_ROLES,
     gate_invp_topology_residual,
+)
+from blockcipher_nd.planning.present_case2_attribution_protocol import (
+    PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
 )
 
 
@@ -60,6 +69,7 @@ def test_four_role_gate_spec_recursively_copies_and_freezes_inputs() -> None:
         "shape": [4, 16],
     }
     spec = FourRoleGateSpec(
+        protocol=PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
         model_roles=roles,
         anchor_options=anchor_options,
         hybrid_options=hybrid_options,
@@ -91,6 +101,166 @@ def test_four_role_gate_spec_recursively_copies_and_freezes_inputs() -> None:
         spec.semantic_checks["backbone"]["roles"][0] = "mutated"
 
 
+def _evaluate_conv_with_protocol(
+    results_path: Path,
+    protocol: FourRoleProtocolSpec,
+    *,
+    samples_per_class: int = 8192,
+    epochs: int = 10,
+) -> dict[str, Any]:
+    return evaluate_four_role_attribution(
+        [results_path],
+        progress_paths=[conv_fixtures._progress_path(results_path)],
+        expected_seeds=(0,),
+        samples_per_class=samples_per_class,
+        epochs=epochs,
+        readiness_only=False,
+        seed0_architecture_margin=None,
+        seed0_topology_margin=0.003,
+        seed0_representation_margin=0.003,
+        joint_architecture_margin=0.001,
+        joint_control_margin=0.002,
+        spec=replace(_CONV2D_GATE_SPEC, protocol=protocol),
+    )
+
+
+def test_protocol_spec_recursively_freezes_and_report_thaws(tmp_path: Path) -> None:
+    mutable_active_nibbles: list[int] = []
+    row_fields = {
+        **dict(PRESENT_CASE2_ATTRIBUTION_PROTOCOL.row_static_fields),
+        "integral_active_nibbles": mutable_active_nibbles,
+    }
+    protocol = replace(
+        PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+        row_static_fields=row_fields,
+    )
+    mutable_active_nibbles.append(7)
+
+    results = tmp_path / "results.jsonl"
+    conv_fixtures._write(
+        results,
+        {
+            conv_fixtures.ANCHOR: 0.60,
+            conv_fixtures.CANDIDATE: 0.61,
+            conv_fixtures.SHUFFLED: 0.59,
+            conv_fixtures.DELTA: 0.58,
+        },
+    )
+    report = _evaluate_conv_with_protocol(results, protocol)
+
+    assert protocol.row_static_fields["integral_active_nibbles"] == ()
+    with pytest.raises(TypeError):
+        protocol.row_static_fields["cipher"] = "mutated"
+    assert report["status"] == "pass", report["errors"]
+    assert (
+        report["protocol_contract"]["row_static_fields"]["integral_active_nibbles"]
+        == []
+    )
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize(
+    ("protocol_field", "artifact_section", "exact_field"),
+    [
+        ("row_static_fields", "top", "cipher"),
+        ("training_static_fields", "training", "device"),
+        ("validation_static_fields", "validation", "structure"),
+        ("cache_terminal_static_fields", "cache", "cipher_key"),
+    ],
+)
+def test_exact_protocol_comparison_is_driven_by_injected_spec(
+    tmp_path: Path,
+    protocol_field: str,
+    artifact_section: str,
+    exact_field: str,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    conv_fixtures._write(
+        results,
+        {
+            conv_fixtures.ANCHOR: 0.60,
+            conv_fixtures.CANDIDATE: 0.61,
+            conv_fixtures.SHUFFLED: 0.59,
+            conv_fixtures.DELTA: 0.58,
+        },
+    )
+    changed_value = f"injected-{artifact_section}-contract"
+    changed_fields = {
+        **dict(getattr(PRESENT_CASE2_ATTRIBUTION_PROTOCOL, protocol_field)),
+        exact_field: changed_value,
+    }
+    protocol = replace(
+        PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+        **{protocol_field: changed_fields},
+    )
+
+    unmatched = _evaluate_conv_with_protocol(results, protocol)
+    assert unmatched["decision"] == "invalid_protocol"
+    assert any(exact_field in error for error in unmatched["errors"])
+
+    if artifact_section == "cache":
+        progress_path = conv_fixtures._progress_path(results)
+        progress_rows = _read_jsonl(progress_path)
+        for row in progress_rows:
+            if row.get("event") in {"cache_done", "cache_reuse"}:
+                row[exact_field] = changed_value
+        _write_jsonl(progress_path, progress_rows)
+    else:
+        result_rows = _read_jsonl(results)
+        for row in result_rows:
+            target = row if artifact_section == "top" else row[artifact_section]
+            target[exact_field] = changed_value
+        _write_jsonl(results, result_rows)
+
+    matched = _evaluate_conv_with_protocol(results, protocol)
+    assert matched["status"] == "pass", matched["errors"]
+
+
+def test_readiness_runtime_profile_is_driven_by_injected_spec(tmp_path: Path) -> None:
+    results = tmp_path / "readiness-results.jsonl"
+    conv_fixtures._write(
+        results,
+        {
+            conv_fixtures.ANCHOR: 0.60,
+            conv_fixtures.CANDIDATE: 0.61,
+            conv_fixtures.SHUFFLED: 0.59,
+            conv_fixtures.DELTA: 0.58,
+        },
+        samples_per_class=64,
+        epochs=1,
+    )
+    changed_fields = {
+        **dict(PRESENT_CASE2_ATTRIBUTION_PROTOCOL.readiness_training_fields),
+        "batch_size": 33,
+    }
+    protocol = replace(
+        PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+        readiness_training_fields=changed_fields,
+    )
+
+    unmatched = _evaluate_conv_with_protocol(
+        results,
+        protocol,
+        samples_per_class=64,
+        epochs=1,
+    )
+    assert unmatched["decision"] == "invalid_protocol"
+    assert any("batch_size" in error for error in unmatched["errors"])
+
+    result_rows = _read_jsonl(results)
+    for row in result_rows:
+        row["training"]["batch_size"] = 33
+    _write_jsonl(results, result_rows)
+
+    matched = _evaluate_conv_with_protocol(
+        results,
+        protocol,
+        samples_per_class=64,
+        epochs=1,
+    )
+    assert matched["status"] == "pass", matched["errors"]
+
+
 def test_shared_gate_core_is_domain_neutral() -> None:
     root = Path(__file__).resolve().parents[1]
     source = (
@@ -102,6 +272,23 @@ def test_shared_gate_core_is_domain_neutral() -> None:
     assert "present_nibble_" not in source
     assert "stop_conv2d_route" not in source
     assert "stop_topology_residual" not in source
+    for token in (
+        "PRESENT",
+        "present80",
+        "zhang_wang",
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "per_pair_random",
+    ):
+        assert token not in source
+    assert '"input_bits": 2048' not in source
+    assert '"pair_bits": 128' not in source
+    assert '"pairs_per_sample": 16' not in source
+    assert '"rounds": 7' not in source
+    assert '"input_difference": 9' not in source
+    assert '"train_key": 0' not in source
+    assert '"validation_key":' not in source
+    assert '"difference_profile":' not in source
 
 
 INVALID_THRESHOLD_CASES = [

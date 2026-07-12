@@ -7,6 +7,9 @@ from blockcipher_nd.planning.four_role_attribution_gate import (
     FourRoleGateSpec,
     evaluate_four_role_attribution,
 )
+from blockcipher_nd.planning.present_case2_attribution_protocol import (
+    PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
+)
 
 
 TOPOLOGY_RESIDUAL_MODEL_ROLES = {
@@ -129,6 +132,7 @@ def _stopped_actions(decision: str) -> list[dict[str, str]]:
 
 
 _TOPOLOGY_RESIDUAL_GATE_SPEC = FourRoleGateSpec(
+    protocol=PRESENT_CASE2_ATTRIBUTION_PROTOCOL,
     model_roles=TOPOLOGY_RESIDUAL_MODEL_ROLES,
     anchor_options={
         "spn_mixer_depth": 2,
