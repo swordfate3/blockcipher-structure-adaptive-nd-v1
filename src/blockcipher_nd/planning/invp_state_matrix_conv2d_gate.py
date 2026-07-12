@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Mapping
 
 from blockcipher_nd.training.trainer import is_checkpoint_improved
 
@@ -14,6 +15,19 @@ MODEL_ROLES = {
     "shuffled_p": "present_nibble_shuffled_p_state_matrix_conv2d_spn_only",
     "delta_only": "present_nibble_delta_state_matrix_conv2d_spn_only",
 }
+
+
+@dataclass(frozen=True)
+class FourRoleGateSpec:
+    model_roles: Mapping[str, str]
+    anchor_options: Mapping[str, Any]
+    hybrid_options: Mapping[str, Any]
+    capacity_label: str
+    semantic_checks: Mapping[str, Any]
+    readiness_next_action: str
+    claim_label: str
+    decide: Callable[..., tuple[str, str]]
+    stopped_actions: Callable[[str], list[dict[str, str]]]
 
 
 def gate_invp_state_matrix_conv2d(
@@ -28,6 +42,37 @@ def gate_invp_state_matrix_conv2d(
     seed0_representation_margin: float = 0.003,
     joint_architecture_margin: float = 0.001,
     joint_control_margin: float = 0.002,
+) -> dict[str, Any]:
+    return _gate_four_role_attribution(
+        results_paths,
+        progress_paths=progress_paths,
+        expected_seeds=expected_seeds,
+        samples_per_class=samples_per_class,
+        epochs=epochs,
+        readiness_only=readiness_only,
+        seed0_architecture_margin=None,
+        seed0_topology_margin=seed0_topology_margin,
+        seed0_representation_margin=seed0_representation_margin,
+        joint_architecture_margin=joint_architecture_margin,
+        joint_control_margin=joint_control_margin,
+        spec=_CONV2D_GATE_SPEC,
+    )
+
+
+def _gate_four_role_attribution(
+    results_paths: list[Path],
+    *,
+    progress_paths: list[Path],
+    expected_seeds: tuple[int, ...],
+    samples_per_class: int,
+    epochs: int,
+    readiness_only: bool,
+    seed0_architecture_margin: float | None,
+    seed0_topology_margin: float,
+    seed0_representation_margin: float,
+    joint_architecture_margin: float,
+    joint_control_margin: float,
+    spec: FourRoleGateSpec,
 ) -> dict[str, Any]:
     expected_seed_errors = _expected_seed_errors(expected_seeds)
     if expected_seed_errors:
@@ -55,6 +100,7 @@ def gate_invp_state_matrix_conv2d(
             expected_seeds=expected_seeds,
             samples_per_class=samples_per_class,
             epochs=epochs,
+            spec=spec,
         ),
     ]
     cache_evidence, cache_errors = _cache_evidence(
@@ -62,28 +108,30 @@ def gate_invp_state_matrix_conv2d(
         progress_runs,
         expected_seeds=expected_seeds,
         samples_per_class=samples_per_class,
+        spec=spec,
     )
     errors.extend(cache_errors)
     if errors:
         return _invalid_protocol(errors)
 
-    by_seed = _rows_by_seed_and_role(rows)
+    by_seed = _rows_by_seed_and_role(rows, spec=spec)
     seed_reports = {str(seed): _seed_report(by_seed[seed]) for seed in expected_seeds}
     first_seed_rows = by_seed[expected_seeds[0]]
     counts = {
-        role: int(first_seed_rows[role]["parameter_count"]) for role in MODEL_ROLES
+        role: int(first_seed_rows[role]["parameter_count"]) for role in spec.model_roles
     }
     parameter_counts = {
         **counts,
         "candidate_to_anchor_ratio": counts["candidate"] / counts["anchor"],
     }
     common_evidence = {
-        "protocol_evidence": _protocol_evidence(by_seed, expected_seeds),
-        "semantic_checks": _semantic_checks(),
+        "protocol_evidence": _protocol_evidence(by_seed, expected_seeds, spec=spec),
+        "semantic_checks": dict(spec.semantic_checks),
         "cache_evidence": cache_evidence,
         "promotion_conditions": _promotion_conditions(
             expected_seeds=expected_seeds,
             samples_per_class=samples_per_class,
+            seed0_architecture_margin=seed0_architecture_margin,
             seed0_topology_margin=seed0_topology_margin,
             seed0_representation_margin=seed0_representation_margin,
             joint_architecture_margin=joint_architecture_margin,
@@ -97,19 +145,20 @@ def gate_invp_state_matrix_conv2d(
             "errors": [],
             "expected_seeds": list(expected_seeds),
             "samples_per_class": samples_per_class,
-            "models": MODEL_ROLES,
+            "models": dict(spec.model_roles),
             "seeds": seed_reports,
             "parameter_counts": parameter_counts,
             **common_evidence,
-            "stopped_actions": _stopped_actions("implementation_ready"),
-            "next_action": "run_frozen_r1_seed0_local_diagnostic",
+            "stopped_actions": spec.stopped_actions("implementation_ready"),
+            "next_action": spec.readiness_next_action,
             "claim_scope": "implementation readiness only; metrics not interpreted",
             "research_decision_applied": False,
         }
 
-    decision, next_action = _decision(
+    decision, next_action = spec.decide(
         seed_reports,
         expected_seeds=expected_seeds,
+        seed0_architecture_margin=seed0_architecture_margin,
         seed0_topology_margin=seed0_topology_margin,
         seed0_representation_margin=seed0_representation_margin,
         joint_architecture_margin=joint_architecture_margin,
@@ -121,14 +170,14 @@ def gate_invp_state_matrix_conv2d(
         "errors": [],
         "expected_seeds": list(expected_seeds),
         "samples_per_class": samples_per_class,
-        "models": MODEL_ROLES,
+        "models": dict(spec.model_roles),
         "seeds": seed_reports,
         "parameter_counts": parameter_counts,
         **common_evidence,
-        "stopped_actions": _stopped_actions(decision),
+        "stopped_actions": spec.stopped_actions(decision),
         "next_action": next_action,
         "claim_scope": (
-            f"{samples_per_class}/class strict PRESENT r7 architecture-attribution diagnostic; "
+            f"{samples_per_class}/class strict PRESENT r7 {spec.claim_label}; "
             "not formal, paper-scale, or breakthrough evidence"
         ),
         "research_decision_applied": True,
@@ -224,6 +273,7 @@ def _cache_evidence(
     *,
     expected_seeds: tuple[int, ...],
     samples_per_class: int,
+    spec: FourRoleGateSpec,
 ) -> tuple[dict[str, Any], list[str]]:
     errors: list[str] = []
     evidence: dict[str, Any] = {}
@@ -234,8 +284,8 @@ def _cache_evidence(
         ]
 
     expected_seed_set = set(expected_seeds)
-    expected_models = set(MODEL_ROLES.values())
-    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
+    expected_models = set(spec.model_roles.values())
+    model_to_role = {model: role for role, model in spec.model_roles.items()}
     for pair_index, ((result_path, result_rows), (progress_path, rows)) in enumerate(
         zip(result_runs, progress_runs, strict=True)
     ):
@@ -245,12 +295,12 @@ def _cache_evidence(
         result_models = [row.get("selected_model") for row in result_rows]
         exact_string_models = [model for model in result_models if type(model) is str]
         result_seed_valid = (
-            len(result_rows) == len(MODEL_ROLES)
+            len(result_rows) == len(spec.model_roles)
             and all(type(seed) is int for seed in result_seed_values)
             and len(result_seeds) == 1
             and result_seeds <= expected_seed_set
-            and len(result_models) == len(MODEL_ROLES)
-            and len(exact_string_models) == len(MODEL_ROLES)
+            and len(result_models) == len(spec.model_roles)
+            and len(exact_string_models) == len(spec.model_roles)
             and set(exact_string_models) == expected_models
             and all(result_models.count(model) == 1 for model in expected_models)
         )
@@ -288,7 +338,7 @@ def _cache_evidence(
             for row in result_rows
         ]
         if (
-            len(cache_roots) != len(MODEL_ROLES)
+            len(cache_roots) != len(spec.model_roles)
             or any(
                 not isinstance(root, str) or not root.strip() for root in cache_roots
             )
@@ -374,7 +424,7 @@ def _cache_evidence(
                     }
                 )
 
-        for role in MODEL_ROLES:
+        for role in spec.model_roles:
             for split in ("train", "validation"):
                 role_events = grouped.get((role, split), [])
                 if len(role_events) != 1:
@@ -393,7 +443,7 @@ def _cache_evidence(
         split_paths = {
             split: {
                 str(_normalized_path(Path(row["cache_path"])))
-                for role in MODEL_ROLES
+                for role in spec.model_roles
                 for row in grouped.get((role, split), [])
                 if isinstance(row.get("cache_path"), str)
                 and row.get("cache_path", "").strip()
@@ -410,6 +460,16 @@ def _cache_evidence(
             for event in events
             if event["role"] != "anchor" and event["event"] == "cache_reuse"
         )
+        create_count = sum(event["event"] == "cache_done" for event in events)
+        reuse_count = sum(event["event"] == "cache_reuse" for event in events)
+        if create_count != 2:
+            errors.append(
+                f"seed={seed} cache_evidence create_count={create_count} expected=2"
+            )
+        if reuse_count != 6:
+            errors.append(
+                f"seed={seed} cache_evidence reuse_count={reuse_count} expected=6"
+            )
         if control_reuse_count != 6:
             errors.append(
                 f"seed={seed} cache_evidence control_reuse_count={control_reuse_count} expected=6"
@@ -442,8 +502,8 @@ def _cache_evidence(
             else None,
             "train_path": train_path,
             "validation_path": validation_path,
-            "create_count": sum(event["event"] == "cache_done" for event in events),
-            "reuse_count": sum(event["event"] == "cache_reuse" for event in events),
+            "create_count": create_count,
+            "reuse_count": reuse_count,
             "control_reuse_count": control_reuse_count,
             "events": events,
             "run_done_count": len(run_done),
@@ -475,6 +535,7 @@ def _protocol_errors(
     expected_seeds: tuple[int, ...],
     samples_per_class: int,
     epochs: int,
+    spec: FourRoleGateSpec,
 ) -> list[str]:
     errors: list[str] = []
     if len(expected_seeds) not in {1, 2} or len(set(expected_seeds)) != len(
@@ -484,8 +545,8 @@ def _protocol_errors(
             f"expected_seeds={expected_seeds} must_contain_one_or_two_unique_seeds"
         )
 
-    expected_models = set(MODEL_ROLES.values())
-    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
+    expected_models = set(spec.model_roles.values())
+    model_to_role = {model: role for role, model in spec.model_roles.items()}
     expected_seed_set = set(expected_seeds)
     grouped: dict[tuple[int, str], list[dict[str, Any]]] = {}
     for index, row in enumerate(rows):
@@ -501,7 +562,7 @@ def _protocol_errors(
             grouped.setdefault((int(seed), model_to_role[str(model)]), []).append(row)
 
     for seed in expected_seeds:
-        for role in MODEL_ROLES:
+        for role in spec.model_roles:
             role_rows = grouped.get((seed, role), [])
             if len(role_rows) != 1:
                 errors.append(
@@ -622,15 +683,9 @@ def _protocol_errors(
         for field, expected in exact_training_fields.items():
             _check_exact(training, field, expected, f"{label} training", errors)
         expected_options = (
-            {"spn_mixer_depth": 2, "activation": "relu", "norm": "layernorm"}
-            if model == MODEL_ROLES["anchor"]
-            else {
-                "conv_depth": 3,
-                "kernel_size": 3,
-                "activation": "relu",
-                "norm": "batchnorm2d",
-                "dropout": 0.0,
-            }
+            spec.anchor_options
+            if model == spec.model_roles["anchor"]
+            else spec.hybrid_options
         )
         _check_exact(
             training,
@@ -675,12 +730,12 @@ def _protocol_errors(
                 errors.append(
                     f"{label} {field} must_be_positive_integer actual={value!r}"
                 )
-            elif model_is_expected and model != MODEL_ROLES["anchor"]:
+            elif model_is_expected and model != spec.model_roles["anchor"]:
                 conv_counts[field].add(value)
 
     for seed, roots in cache_roots.items():
         if (
-            len(roots) != len(MODEL_ROLES)
+            len(roots) != len(spec.model_roles)
             or any(not isinstance(root, str) or not root.strip() for root in roots)
             or len(set(roots)) != 1
         ):
@@ -690,12 +745,12 @@ def _protocol_errors(
 
     if len(conv_counts["parameter_count"]) != 1:
         errors.append(
-            "conv2d_parameter_count_mismatch "
+            f"{spec.capacity_label}_parameter_count_mismatch "
             f"values={sorted(conv_counts['parameter_count'])}"
         )
     if len(conv_counts["trainable_parameter_count"]) != 1:
         errors.append(
-            "conv2d_trainable_parameter_count_mismatch "
+            f"{spec.capacity_label}_trainable_parameter_count_mismatch "
             f"values={sorted(conv_counts['trainable_parameter_count'])}"
         )
     return errors
@@ -927,8 +982,10 @@ def _is_positive_integer(value: Any) -> bool:
 
 def _rows_by_seed_and_role(
     rows: list[dict[str, Any]],
+    *,
+    spec: FourRoleGateSpec,
 ) -> dict[int, dict[str, dict[str, Any]]]:
-    model_to_role = {model: role for role, model in MODEL_ROLES.items()}
+    model_to_role = {model: role for role, model in spec.model_roles.items()}
     by_seed: dict[int, dict[str, dict[str, Any]]] = {}
     for row in rows:
         seed = int(row["seed"])
@@ -952,6 +1009,8 @@ def _seed_report(rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
 def _protocol_evidence(
     by_seed: dict[int, dict[str, dict[str, Any]]],
     expected_seeds: tuple[int, ...],
+    *,
+    spec: FourRoleGateSpec,
 ) -> dict[str, Any]:
     top_fields = (
         "cipher",
@@ -1049,7 +1108,7 @@ def _protocol_evidence(
     )
     rows: list[dict[str, Any]] = []
     for seed in expected_seeds:
-        for role in MODEL_ROLES:
+        for role in spec.model_roles:
             row = by_seed[seed][role]
             training = row["training"]
             validation = row["validation"]
@@ -1096,12 +1155,13 @@ def _promotion_conditions(
     *,
     expected_seeds: tuple[int, ...],
     samples_per_class: int,
+    seed0_architecture_margin: float | None,
     seed0_topology_margin: float,
     seed0_representation_margin: float,
     joint_architecture_margin: float,
     joint_control_margin: float,
 ) -> dict[str, Any]:
-    return {
+    conditions = {
         "candidate_above_anchor_required": True,
         "candidate_above_all_controls_required": True,
         "seed0_topology_margin": seed0_topology_margin,
@@ -1112,6 +1172,9 @@ def _promotion_conditions(
         "samples_per_class": samples_per_class,
         "scale_identity": f"{samples_per_class}/class",
     }
+    if seed0_architecture_margin is not None:
+        conditions["seed0_architecture_margin"] = seed0_architecture_margin
+    return conditions
 
 
 def _stopped_actions(decision: str) -> list[dict[str, str]]:
@@ -1133,6 +1196,7 @@ def _decision(
     seed_reports: dict[str, dict[str, Any]],
     *,
     expected_seeds: tuple[int, ...],
+    seed0_architecture_margin: float | None,
     seed0_topology_margin: float,
     seed0_representation_margin: float,
     joint_architecture_margin: float,
@@ -1185,3 +1249,26 @@ def _decision(
         "unstable_no_remote_scale",
         "do_not_launch_remote_scale_inspect_two_seed_variance",
     )
+
+
+_CONV2D_GATE_SPEC = FourRoleGateSpec(
+    model_roles=MODEL_ROLES,
+    anchor_options={
+        "spn_mixer_depth": 2,
+        "activation": "relu",
+        "norm": "layernorm",
+    },
+    hybrid_options={
+        "conv_depth": 3,
+        "kernel_size": 3,
+        "activation": "relu",
+        "norm": "batchnorm2d",
+        "dropout": 0.0,
+    },
+    capacity_label="conv2d",
+    semantic_checks=_semantic_checks(),
+    readiness_next_action="run_frozen_r1_seed0_local_diagnostic",
+    claim_label="architecture-attribution diagnostic",
+    decide=_decision,
+    stopped_actions=_stopped_actions,
+)
