@@ -8,6 +8,7 @@ import pytest
 
 import test_invp_state_matrix_conv2d_gate as conv_fixtures
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
+    FourRoleGateSpec,
     gate_invp_state_matrix_conv2d,
 )
 from blockcipher_nd.planning.invp_topology_residual_gate import (
@@ -40,6 +41,53 @@ HYBRID_OPTIONS = {
     "local_norm": "batchnorm2d",
     "dropout": 0.0,
 }
+
+
+def _unused_decision(*args: Any, **kwargs: Any) -> tuple[str, str]:
+    return "unused", "unused"
+
+
+def _unused_stopped_actions(decision: str) -> list[dict[str, str]]:
+    return []
+
+
+def test_four_role_gate_spec_recursively_copies_and_freezes_inputs() -> None:
+    roles = {"anchor": "a", "candidate": "b"}
+    anchor_options = {"nested": {"values": [1, 2]}}
+    hybrid_options = {"layers": [3, {"width": 4}]}
+    semantic_checks = {
+        "backbone": {"roles": ["candidate", "control"]},
+        "shape": [4, 16],
+    }
+    spec = FourRoleGateSpec(
+        model_roles=roles,
+        anchor_options=anchor_options,
+        hybrid_options=hybrid_options,
+        capacity_label="test",
+        semantic_checks=semantic_checks,
+        readiness_next_action="next",
+        claim_label="claim",
+        decide=_unused_decision,
+        stopped_actions=_unused_stopped_actions,
+    )
+
+    roles["anchor"] = "changed"
+    anchor_options["nested"]["values"].append(9)
+    hybrid_options["layers"][1]["width"] = 99
+    semantic_checks["backbone"]["roles"].append("changed")
+    semantic_checks["shape"][0] = 99
+
+    assert spec.model_roles["anchor"] == "a"
+    assert spec.anchor_options["nested"]["values"] == (1, 2)
+    assert spec.hybrid_options["layers"] == (3, {"width": 4})
+    assert spec.semantic_checks["backbone"]["roles"] == ("candidate", "control")
+    assert spec.semantic_checks["shape"] == (4, 16)
+    with pytest.raises(TypeError):
+        spec.model_roles["anchor"] = "mutated"
+    with pytest.raises(TypeError):
+        spec.anchor_options["nested"]["other"] = 1
+    with pytest.raises(TypeError):
+        spec.semantic_checks["backbone"]["roles"][0] = "mutated"
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -312,6 +360,8 @@ def test_h1_report_records_frozen_semantics_and_equal_hybrid_capacity(
     }
     assert all(row["model_options"] == HYBRID_OPTIONS for row in evidence_rows[1:])
     semantic = report["semantic_checks"]
+    assert isinstance(report["models"], dict)
+    assert isinstance(semantic, dict)
     assert semantic["common_token_backbone"] == {
         "view_mode": "inv_p",
         "p_alignment": "true",
@@ -327,6 +377,38 @@ def test_h1_report_records_frozen_semantics_and_equal_hybrid_capacity(
     assert semantic["negative_mode"] == "encrypted_random_plaintexts"
     assert semantic["effective_key_schedule"] == "per_pair_random"
     assert "not runtime tensor equality" in semantic["evidence_kind"]
+    assert isinstance(semantic["common_token_backbone"]["roles"], list)
+    assert json.loads(json.dumps(report))["semantic_checks"] == semantic
+
+
+@pytest.mark.parametrize(
+    ("anchor_reuse_count", "create_count", "reuse_count"),
+    [(0, 2, 6), (1, 1, 7), (2, 0, 8)],
+)
+def test_h1_anchor_terminal_cache_reuse_is_valid(
+    tmp_path: Path,
+    anchor_reuse_count: int,
+    create_count: int,
+    reuse_count: int,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    _write_h1_run(
+        results,
+        {"anchor": 0.60, "candidate": 0.61, "shuffled_p": 0.59, "delta_only": 0.58},
+    )
+    progress_path = _progress_path(results)
+    progress = _read_jsonl(progress_path)
+    for index in range(anchor_reuse_count):
+        progress[index]["event"] = "cache_reuse"
+    _write_jsonl(progress_path, progress)
+
+    report = _gate([results], expected_seeds=(0,))
+
+    assert report["status"] == "pass", report["errors"]
+    cache = report["cache_evidence"]["0"]
+    assert cache["create_count"] == create_count
+    assert cache["reuse_count"] == reuse_count
+    assert cache["control_reuse_count"] == 6
 
 
 @pytest.mark.parametrize(
@@ -340,7 +422,9 @@ def test_h1_report_records_frozen_semantics_and_equal_hybrid_capacity(
         ("training_schedule", "key_schedule"),
         ("validation_schedule", "key_schedule"),
         ("cache", "cache_root"),
-        ("anchor_not_create", "create_count"),
+        ("control_not_reuse", "control_reuse_count"),
+        ("missing_terminal", "terminal_count"),
+        ("duplicate_terminal", "terminal_count"),
         ("progress_role", "model unexpected"),
         ("run_done", "run_done"),
     ],
@@ -375,8 +459,12 @@ def test_h1_strict_protocol_mutations_fail_closed(
         rows[1]["validation"]["key_schedule"] = "fixed"
     elif mutation == "cache":
         progress[0]["cache_path"] = str(tmp_path / "unrelated" / "train")
-    elif mutation == "anchor_not_create":
-        progress[0]["event"] = "cache_reuse"
+    elif mutation == "control_not_reuse":
+        progress[2]["event"] = "cache_done"
+    elif mutation == "missing_terminal":
+        progress.pop(2)
+    elif mutation == "duplicate_terminal":
+        progress.insert(3, dict(progress[2]))
     elif mutation == "progress_role":
         progress[2]["model"] = conv_fixtures.CANDIDATE
     elif mutation == "run_done":
