@@ -57,7 +57,7 @@ breakthrough claim.
 - Create `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv` and `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv`: frozen R0 and seed0 matrices.
 - Modify `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`: record R0 readiness and H1 seed0 result only after artifacts exist and pass the strict gate.
 
-## Completion Record Through Task 5 (2026-07-12)
+## Completion Record Through Task 6 (2026-07-12)
 
 - Task 1 completed through `d5e0188`, with review fixes `256b8a8` and
   `fc49565`; tensor semantics, architecture constraints, finite
@@ -74,10 +74,16 @@ breakthrough claim.
 - Task 5 R0 executed from clean pushed head `07c25be` and an absent run-owned
   cache. Training completed in `3.528s`; exact four-row validation, plot/history
   generation, cache/progress audit, and the neutral strict readiness gate all
-  passed. The documentation commit is recorded by the commit containing this
-  completion record.
+  passed. Documentation was committed and pushed at `eac0165`.
+- Task 6 seed0 executed from clean pushed head `eac0165` and an absent run-owned
+  cache. The exact four-row CPU diagnostic completed in `21m26.629s`; plan
+  validation, artifact/cache/progress provenance, histories/checkpoints, and the
+  strict gate all passed. The gate returned `weak_or_fragile_no_scale`, stopped
+  seed1 and all larger/remote scale, and allowed only the completed one-time
+  history inspection. The documentation commit is recorded by the commit
+  containing this completion record.
 
-Tasks 6 and 7 remain pending and are intentionally unchecked.
+Task 7 remains pending and is intentionally unchecked.
 
 ### Task 1: Shared Topology-Residual Model
 
@@ -509,7 +515,7 @@ git commit -m "experiment: record topology residual readiness"
 - Generate ignored artifacts: `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/`
 - Generate ignored cache: `outputs/local_cache/i1_present_invp_topology_residual_8192_seed0/`
 
-- [ ] **Step 1: Run the exact seed0 matrix from an empty run-owned cache**
+- [x] **Step 1: Run the exact seed0 matrix from an empty run-owned cache**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -528,14 +534,14 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 Expected: four complete local CPU rows, 10 epochs unless the frozen early-stop
 policy fires, durable progress, and exact disk-cache reuse.
 
-- [ ] **Step 2: Generate validation and plotting artifacts**
+- [x] **Step 2: Generate validation and plotting artifacts**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results --plan configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv --results outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl --expected-rows 4 --output outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/validation.json
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results --results outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl --output outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/curves.svg --history-csv outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/history.csv --title i1_present_invp_topology_residual_8192_seed0
 ```
 
-- [ ] **Step 3: Run the strict H1 seed0 gate**
+- [x] **Step 3: Run the strict H1 seed0 gate**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-topology-residual --results outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl --progress outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/progress.jsonl --expected-seeds 0 --samples-per-class 8192 --epochs 10 --output outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/topology_residual_gate.json
@@ -545,7 +551,7 @@ Expected: protocol pass and exactly one frozen decision. If protocol fails,
 repair and rerun without interpreting metrics. Run seed1 only when the gate says
 `promote_seed1`; never launch remote directly from seed0.
 
-- [ ] **Step 4: Document the evidence-backed decision and next plan**
+- [x] **Step 4: Document the evidence-backed decision and next plan**
 
 Record exact AUCs, three margins, histories/checkpoints, protocol/cache evidence,
 decision, stopped actions, claim scope, and recommended next action. Explicitly

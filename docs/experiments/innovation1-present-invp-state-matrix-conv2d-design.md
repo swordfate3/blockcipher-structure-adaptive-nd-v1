@@ -560,13 +560,13 @@ Recommended next action: retain `present_nibble_invp_only_spn_only` as the
 strongest same-protocol architecture anchor, stop the state-matrix Conv2D
 replacement route, and execute the separately gated [H1 topology-residual
 adapter plan](#h1-invp-token-mixer-topology-residual-adapter) below. The H1
-implementation and neutral R0 readiness gate are complete; the H1 seed0 local
-diagnostic has not started.
+implementation, neutral R0 readiness gate, and seed0 local diagnostic are
+complete. The applied decision is `weak_or_fragile_no_scale`.
 
 ## H1: InvP Token-Mixer Topology-Residual Adapter
 
-**Status:** implementation complete; R0 local readiness passed; H1 seed0 local
-diagnostic not started
+**Status:** implementation and R0 complete; H1 seed0 local diagnostic completed
+with `weak_or_fragile_no_scale`; seed1 and scale stopped
 
 ### Research Question And Hypothesis
 
@@ -736,10 +736,10 @@ All seven planned nonempty artifacts were verified:
 `validation.json` reports `status=pass`, four aligned rows, and no errors. The
 strict readiness gate reports `status=pass`, `decision=implementation_ready`,
 `research_decision_applied=false`, `errors=[]`, and
-`claim_scope=implementation readiness only; metrics not interpreted`. The
-evidence-backed next action is the frozen H1 seed0 `8192/class` local diagnostic
-with the same four roles and protocol. R0 does not support a research, formal,
-paper-scale, breakthrough, or remote-scale claim.
+`claim_scope=implementation readiness only; metrics not interpreted`. The R0
+next action was the frozen H1 seed0 `8192/class` local diagnostic with the same
+four roles and protocol; that diagnostic is recorded below. R0 does not support
+a research, formal, paper-scale, breakthrough, or remote-scale claim.
 
 ### H1 Seed0 Local Diagnostic
 
@@ -792,6 +792,90 @@ Apply these seed0 decisions in order:
 | candidate is above all, but any margin is `< +0.003` | `weak_or_fragile_no_scale`; inspect histories once, no remote |
 | architecture, topology, and representation margins are all `>= +0.003` | `promote_seed1`; run only the identical local seed1 matrix |
 
+#### Completed H1 Seed0 Evidence (2026-07-12)
+
+Run `i1_present_invp_topology_residual_8192_seed0` completed locally from the
+pushed documentation head `eac0165` and an initially absent run-owned cache. The
+exact four-row CPU command completed in `21m26.629s` wall time. It used
+`8192/class` training (`16384` total rows), `4096/class` validation (`8192`
+total rows), seed 0, 16 pairs/sample, 10 epochs, batch size 256, cache chunk size
+512, four cache workers, and the frozen strict PRESENT-80 r7 Case2 protocol.
+
+The configured `train_key=0` and
+`validation_key=0x11111111111111111111` fields are deterministic plan/cache
+identity placeholders, not the effective encryption-key schedule. Both
+training and validation result metadata and both generated cache metadata files
+report `key_schedule=per_pair_random`. The negative definition remained
+`encrypted_random_plaintexts`; labels, difference, validation construction,
+loss, optimizer, scheduler, and checkpoint policy remained frozen.
+
+Exact selected-checkpoint metrics were:
+
+| Role | AUC | Accuracy | Calibrated accuracy | Loss | Best epoch |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| anchor | 0.748013406992 | 0.684814453125 | 0.685913085938 | 0.591529816389 | 10 |
+| true-InvP candidate | 0.750361144543 | 0.679809570312 | 0.684082031250 | 0.589891217649 | 10 |
+| shuffled-P control | 0.748298436403 | 0.685058593750 | 0.685668945312 | 0.592072105035 | 10 |
+| DeltaC-only control | 0.750339478254 | 0.682128906250 | 0.683959960938 | 0.589324245229 | 10 |
+
+The frozen seed0 margins were:
+
+```text
+architecture_margin   = +0.002347737551
+topology_margin       = +0.002062708139
+representation_margin = +0.000021666288
+```
+
+The candidate was above all three comparators, but every margin was below the
+required `+0.003` seed0 threshold. In particular, the candidate and DeltaC-only
+control were effectively tied at this diagnostic scale. The strict gate
+therefore returned:
+
+```text
+status                    = pass
+decision                  = weak_or_fragile_no_scale
+errors                    = []
+research_decision_applied = true
+next_action               = inspect_histories_once_and_do_not_scale
+claim_scope               = 8192/class strict PRESENT r7 topology-residual
+                            architecture-attribution diagnostic; not formal,
+                            paper-scale, or breakthrough evidence
+```
+
+The single permitted history inspection found complete finite 10-epoch
+histories for all four rows, with best epoch 10 for every row and no early stop.
+It does not override the frozen margin gate.
+
+Independent cache/progress verification found one fresh train cache with
+`16384 x 2048` features and 16384 labels, one fresh validation cache with
+`8192 x 2048` features and 8192 labels, two `cache_done` events, six control
+`cache_reuse` events, exactly one terminal event per role/split, and one
+`run_done`. The anchor retained `128673` total/trainable parameters; all three
+hybrids had exactly `137666` total and `137666` trainable parameters.
+
+All seven planned artifacts were nonempty and independently checked:
+
+| Artifact | Size |
+| --- | ---: |
+| `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv` | 3981 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl` | 34181 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/progress.jsonl` | 815056 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/validation.json` | 4570 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/curves.svg` | 76049 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/history.csv` | 13663 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/topology_residual_gate.json` | 30820 bytes |
+
+`validation.json` reports four aligned rows with `status=pass` and no errors.
+The evidence-backed recommendation is to stop this H1 route after the completed
+one-time history inspection. Do not run seed1, `65536/class`, `262144/class`,
+remote scale, or a mechanical scale-up. Resolving the near-zero
+candidate-versus-Delta margin would require a genuinely new, separately planned
+single-variable hypothesis rather than more budget on the same route.
+
+This is a single-seed `8192/class` local diagnostic. It is not formal training,
+paper-scale evidence, a breakthrough result, or evidence for a ceiling on
+SPN/PRESENT distinguishers generally.
+
 Seed0 plus seed1 may advance to `65536/class` only if the candidate is above all
 comparators on each seed, minimum architecture margin is at least `+0.001`, and
 minimum topology and representation margins are each at least `+0.002`.
@@ -816,8 +900,9 @@ Local/global fusion is established prior art and is not a novelty claim. The
 remaining possible method claim is a cipher-spec-generated topology adapter
 with same-input, capacity-matched shuffled-P and DeltaC attribution. That claim
 is available only if the frozen gates pass at the required later evidence
-scale. H1 is now an implemented, R0-ready controlled diagnostic hypothesis;
-its seed0 research gate has not yet been run.
+scale. H1 is an implemented and locally adjudicated controlled diagnostic
+hypothesis. Its seed0 gate returned `weak_or_fragile_no_scale`, so the current
+route stops without seed1 or larger scale.
 
 ## Artifacts And Adjudication
 
@@ -916,5 +1001,5 @@ The implementation plan, R0 readiness gate, and R1 seed0 adjudication are
 complete. The applied R1 decision is `stop_conv2d_route`: do not run seed1 or
 remote/medium pure-Conv2D scale, and retain the token-mixer anchor. The exact
 next experiment is the [planned H1 token-mixer topology-residual adapter](#h1-invp-token-mixer-topology-residual-adapter),
-not another pure Conv2D run. H1 implementation and neutral R0 readiness are
-complete, but H1 seed0 diagnostic training has not started.
+not another pure Conv2D run. H1 implementation, neutral R0 readiness, and seed0
+adjudication are complete; the route stops at `weak_or_fragile_no_scale`.
