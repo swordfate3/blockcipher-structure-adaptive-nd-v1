@@ -559,12 +559,14 @@ state was touched and this does not affect the complete local R1 artifacts.
 Recommended next action: retain `present_nibble_invp_only_spn_only` as the
 strongest same-protocol architecture anchor, stop the state-matrix Conv2D
 replacement route, and execute the separately gated [H1 topology-residual
-adapter plan](#h1-invp-token-mixer-topology-residual-adapter) below. H1 is
-planned and has not been implemented or run.
+adapter plan](#h1-invp-token-mixer-topology-residual-adapter) below. The H1
+implementation and neutral R0 readiness gate are complete; the H1 seed0 local
+diagnostic has not started.
 
 ## H1: InvP Token-Mixer Topology-Residual Adapter
 
-**Status:** planned; implementation, R0, and H1 seed0 training have not started
+**Status:** implementation complete; R0 local readiness passed; H1 seed0 local
+diagnostic not started
 
 ### Research Question And Hypothesis
 
@@ -687,6 +689,58 @@ alignment, one train plus one validation disk cache reused across all rows, and
 `decision=implementation_ready` with `research_decision_applied=false`. R0
 metrics must not be interpreted.
 
+#### Completed R0 Evidence (2026-07-12)
+
+Run `i1_present_invp_topology_residual_smoke_seed0` completed locally from the
+pushed implementation head `07c25be` in `3.528s` wall time. It used the exact
+frozen PRESENT-80 r7 Case2 protocol: `64/class` training (`128` total rows),
+`32/class` validation (`64` total rows), seed 0, 16 pairs/sample, one epoch,
+batch size 32, CPU, encrypted-random-plaintext negatives, MSE/Adam, the official
+cyclic schedule, and best-`val_auc` checkpoint selection.
+
+The serialized `train_key=0` and
+`validation_key=0x11111111111111111111` values are deterministic plan/cache
+identity placeholders for this sample structure; they do not describe the
+effective encryption-key schedule. Both train and validation result metadata,
+and both generated cache metadata files, independently report the effective
+schedule as `per_pair_random`.
+
+The exact result order was anchor, true-InvP candidate, shuffled-P control, and
+DeltaC-only control, all at seed 0. The anchor has `128673` total/trainable
+parameters. Each of the three hybrids has exactly `137666` total and `137666`
+trainable parameters. All result metrics, one-epoch histories, selected
+checkpoints, and checkpoint-replay fields were finite and passed the strict
+history validator. These smoke metrics were not interpreted or compared.
+
+Fresh run-owned cache/progress evidence was:
+
+```text
+train cache       = 128 x 2048 features, 128 labels, cache_done
+validation cache  = 64 x 2048 features, 64 labels, cache_done
+control reuse     = 6 cache_reuse events
+terminal coverage = one event per role/split plus one run_done
+```
+
+All seven planned nonempty artifacts were verified:
+
+| Artifact | Size |
+| --- | ---: |
+| `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv` | 3757 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/results.jsonl` | 16952 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/progress.jsonl` | 82420 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/validation.json` | 4554 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/curves.svg` | 55772 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/history.csv` | 1353 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/readiness_gate.json` | 30351 bytes |
+
+`validation.json` reports `status=pass`, four aligned rows, and no errors. The
+strict readiness gate reports `status=pass`, `decision=implementation_ready`,
+`research_decision_applied=false`, `errors=[]`, and
+`claim_scope=implementation readiness only; metrics not interpreted`. The
+evidence-backed next action is the frozen H1 seed0 `8192/class` local diagnostic
+with the same four roles and protocol. R0 does not support a research, formal,
+paper-scale, breakthrough, or remote-scale claim.
+
 ### H1 Seed0 Local Diagnostic
 
 ```text
@@ -762,7 +816,8 @@ Local/global fusion is established prior art and is not a novelty claim. The
 remaining possible method claim is a cipher-spec-generated topology adapter
 with same-input, capacity-matched shuffled-P and DeltaC attribution. That claim
 is available only if the frozen gates pass at the required later evidence
-scale. Until then H1 is a planned, controlled diagnostic hypothesis.
+scale. H1 is now an implemented, R0-ready controlled diagnostic hypothesis;
+its seed0 research gate has not yet been run.
 
 ## Artifacts And Adjudication
 
@@ -861,4 +916,5 @@ The implementation plan, R0 readiness gate, and R1 seed0 adjudication are
 complete. The applied R1 decision is `stop_conv2d_route`: do not run seed1 or
 remote/medium pure-Conv2D scale, and retain the token-mixer anchor. The exact
 next experiment is the [planned H1 token-mixer topology-residual adapter](#h1-invp-token-mixer-topology-residual-adapter),
-not another pure Conv2D run. H1 has not been implemented or trained.
+not another pure Conv2D run. H1 implementation and neutral R0 readiness are
+complete, but H1 seed0 diagnostic training has not started.

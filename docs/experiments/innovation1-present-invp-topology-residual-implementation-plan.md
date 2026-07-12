@@ -57,13 +57,35 @@ breakthrough claim.
 - Create `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv` and `configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv`: frozen R0 and seed0 matrices.
 - Modify `docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md`: record R0 readiness and H1 seed0 result only after artifacts exist and pass the strict gate.
 
+## Completion Record Through Task 5 (2026-07-12)
+
+- Task 1 completed through `d5e0188`, with review fixes `256b8a8` and
+  `fc49565`; tensor semantics, architecture constraints, finite
+  forward/backward, and invalid-option/input-width tests passed.
+- Task 2 completed through `5e4bc7d`, with review fix `c7681ba`; registry,
+  equal-capacity, common-initialization, and export tests passed.
+- Task 3 completed through `a9dc729`, `c3565ca`, `73624c4`, `0fff7cf`,
+  `5717de3`, and final reviewed head `7c03a31`; both strict gate suites,
+  protocol injection/count boundaries, JSON serialization, and preserved
+  Conv2D artifact replay passed. Final review result: `QUALITY APPROVED`.
+- Task 4 completed at `07c25be`; strict TDD recorded 11 expected RED failures,
+  then 405 focused gate/model/CLI/matrix tests passed. Ruff and diff checks were
+  clean, and the commit was pushed.
+- Task 5 R0 executed from clean pushed head `07c25be` and an absent run-owned
+  cache. Training completed in `3.528s`; exact four-row validation, plot/history
+  generation, cache/progress audit, and the neutral strict readiness gate all
+  passed. The documentation commit is recorded by the commit containing this
+  completion record.
+
+Tasks 6 and 7 remain pending and are intentionally unchecked.
+
 ### Task 1: Shared Topology-Residual Model
 
 **Files:**
 - Create: `tests/test_invp_topology_residual.py`
 - Create: `src/blockcipher_nd/models/structure/spn/present_invp_topology_residual.py`
 
-- [ ] **Step 1: Write failing tensor-semantics and architecture tests**
+- [x] **Step 1: Write failing tensor-semantics and architecture tests**
 
 Create tests that instantiate the base hybrid with `input_bits=2048`, assert
 `local_state_matrix_view()` returns `[batch, 16, 4, 16]`, and independently
@@ -92,7 +114,7 @@ def test_topology_residual_state_matrix_has_exact_mapping(mapping_mode: str):
     torch.testing.assert_close(model.local_state_matrix_view(features), expected)
 ```
 
-- [ ] **Step 2: Run the model test and verify RED**
+- [x] **Step 2: Run the model test and verify RED**
 
 Run:
 
@@ -104,7 +126,7 @@ Expected: collection fails because
 `blockcipher_nd.models.structure.spn.present_invp_topology_residual` does not
 exist.
 
-- [ ] **Step 3: Implement the minimal shared model**
+- [x] **Step 3: Implement the minimal shared model**
 
 Use the existing `_PresentNibblePAlignedSpnEncoder` as the common true-InvP
 token backbone and `PresentStateMatrixResidualBlock` for the local block. In
@@ -181,11 +203,11 @@ Add mapping subclasses that force `mapping_mode` to `true`, `shuffled`, and
 `delta`; reject attempts to override it rather than silently accepting two
 conflicting sources of truth.
 
-- [ ] **Step 4: Run the model tests and verify GREEN**
+- [x] **Step 4: Run the model tests and verify GREEN**
 
 Run the Task 1 command. Expected: all tests pass with finite forward/backward.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add tests/test_invp_topology_residual.py src/blockcipher_nd/models/structure/spn/present_invp_topology_residual.py
@@ -201,7 +223,7 @@ git commit -m "feat: add InvP topology residual adapter"
 - Modify: `tests/test_invp_topology_residual.py`
 - Modify: `tests/test_project_structure.py`
 
-- [ ] **Step 1: Add failing registry/capacity/initialization tests**
+- [x] **Step 1: Add failing registry/capacity/initialization tests**
 
 Assert all three exact model keys build through `build_spn_model`; all use the
 frozen option dictionary; all three hybrids have identical total/trainable
@@ -222,7 +244,7 @@ def test_hybrid_roles_have_equal_capacity_and_common_initialization():
         torch.testing.assert_close(tensor, models[2].spn_encoder.state_dict()[name])
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_topology_residual.py tests/test_project_structure.py -q
@@ -230,7 +252,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_topology_residual.py te
 
 Expected: registry/export assertions fail for the three new keys.
 
-- [ ] **Step 3: Export and register exactly three hybrid keys**
+- [x] **Step 3: Export and register exactly three hybrid keys**
 
 Add the classes to both structure `__init__.py` files. In
 `registry/model_families/spn.py`, add one mapping of model keys to classes and
@@ -247,11 +269,11 @@ topology_residual_models = {
 Use `hidden_bits` as `base_channels` and the existing typed option helpers.
 Do not modify the benchmark builder, data generation, labels, or metrics.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run the Task 2 test command. Expected: all focused tests pass.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```bash
 git add src/blockcipher_nd/models/structure/spn/__init__.py src/blockcipher_nd/models/structure/__init__.py src/blockcipher_nd/registry/model_families/spn.py tests/test_invp_topology_residual.py tests/test_project_structure.py
@@ -266,7 +288,7 @@ git commit -m "feat: register topology residual models"
 - Create: `src/blockcipher_nd/planning/invp_topology_residual_gate.py`
 - Create: `tests/test_invp_topology_residual_gate.py`
 
-- [ ] **Step 1: Add regression and H1 decision tests before refactoring**
+- [x] **Step 1: Add regression and H1 decision tests before refactoring**
 
 First serialize the current Conv2D R0 and R1 gate reports from the preserved
 artifacts in `outputs/local_smoke/` and assert the refactored public function
@@ -286,7 +308,7 @@ all three margins >= .003                -> promote_seed1
 Also test that readiness returns `implementation_ready`, does not interpret
 metrics, and sets `research_decision_applied=false`.
 
-- [ ] **Step 2: Run gate tests and verify RED for H1**
+- [x] **Step 2: Run gate tests and verify RED for H1**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gate.py tests/test_invp_topology_residual_gate.py -q
@@ -294,7 +316,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_state_matrix_conv2d_gat
 
 Expected: existing Conv2D tests pass and H1 import fails.
 
-- [ ] **Step 3: Parameterize the existing strict validator minimally**
+- [x] **Step 3: Parameterize the existing strict validator minimally**
 
 Add a frozen private specification carrying role keys, exact model options,
 capacity label, semantic evidence, decision callback, stopped-action callback,
@@ -325,7 +347,7 @@ complete history replay, best checkpoint, result/progress path pairing,
 control reuses, terminal `run_done`, exact seeds, equal role capacities, and
 effective `per_pair_random` schedules.
 
-- [ ] **Step 4: Implement the H1 wrapper and exact three-margin policy**
+- [x] **Step 4: Implement the H1 wrapper and exact three-margin policy**
 
 In `invp_topology_residual_gate.py`, define the frozen H1 spec and call the
 generic core. The H1 seed0 decision must require the architecture margin as
@@ -347,12 +369,12 @@ For two seeds, require candidate above all on each seed, minimum architecture
 margin `>=0.001`, and minimum topology and representation margins `>=0.002`
 before `promote_medium_65536`. Use minima, not mean architecture margin.
 
-- [ ] **Step 5: Run both gate suites and verify GREEN**
+- [x] **Step 5: Run both gate suites and verify GREEN**
 
 Run the Task 3 command. Expected: all existing Conv2D and new H1 gate tests
 pass, including preserved artifact replay.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```bash
 git add src/blockcipher_nd/planning/invp_state_matrix_conv2d_gate.py src/blockcipher_nd/planning/invp_topology_residual_gate.py tests/test_invp_state_matrix_conv2d_gate.py tests/test_invp_topology_residual_gate.py
@@ -369,7 +391,7 @@ git commit -m "refactor: share strict four-role attribution gate"
 - Modify: `tests/test_invp_topology_residual_gate.py`
 - Modify: `tests/test_project_structure.py`
 
-- [ ] **Step 1: Add failing CLI and exact-plan tests**
+- [x] **Step 1: Add failing CLI and exact-plan tests**
 
 Assert the CLI requires matching `--results` and `--progress`, parses exact
 integer seeds, writes sorted JSON plus newline, exits 0 only for gate pass, and
@@ -379,7 +401,7 @@ exactly four tasks, exact role order, exact options, strict negatives,
 disk-backed cache root, R0 `64/class, 1 epoch, batch 32`, and H1
 `8192/class, 10 epochs, batch 256`.
 
-- [ ] **Step 2: Run CLI/plan tests and verify RED**
+- [x] **Step 2: Run CLI/plan tests and verify RED**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_topology_residual_gate.py tests/test_project_structure.py -q
@@ -387,7 +409,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_invp_topology_residual_gate.
 
 Expected: missing CLI/script/config assertions fail.
 
-- [ ] **Step 3: Add thin CLI and executable wrapper**
+- [x] **Step 3: Add thin CLI and executable wrapper**
 
 Mirror the argument surface of `gate_invp_state_matrix_conv2d.py`, but call
 `gate_invp_topology_residual`. Keep experiment logic out of the script.
@@ -403,7 +425,7 @@ report = gate_invp_topology_residual(
 )
 ```
 
-- [ ] **Step 4: Create the two exact four-row CSV matrices**
+- [x] **Step 4: Create the two exact four-row CSV matrices**
 
 Clone only the protocol columns from the approved Conv2D matrices. Replace the
 three candidate/control model keys, architecture labels, model options,
@@ -411,12 +433,12 @@ run/output/cache identifiers, and evidence text. Do not alter data, labels,
 negative definition, cipher, round, difference, pair count, key placeholders,
 validation construction, optimizer, scheduler, checkpoint selection, or metric.
 
-- [ ] **Step 5: Run CLI/plan tests and verify GREEN**
+- [x] **Step 5: Run CLI/plan tests and verify GREEN**
 
 Run the Task 4 test command. Expected: tests pass; the planner-backed tests
 load each CSV into exactly four valid tasks with the frozen runtime parameters.
 
-- [ ] **Step 6: Commit Task 4**
+- [x] **Step 6: Commit Task 4**
 
 ```bash
 git add src/blockcipher_nd/cli/gate_invp_topology_residual.py scripts/gate-invp-topology-residual configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_8192_seed0.csv tests/test_invp_topology_residual_gate.py tests/test_project_structure.py
@@ -430,7 +452,7 @@ git commit -m "experiment: add topology residual H1 matrices"
 - Generate ignored artifacts: `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/`
 - Generate ignored cache: `outputs/local_cache/i1_present_invp_topology_residual_smoke_seed0/`
 
-- [ ] **Step 1: Run the exact R0 matrix from an empty run-owned cache**
+- [x] **Step 1: Run the exact R0 matrix from an empty run-owned cache**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
@@ -449,7 +471,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
 Expected: four rows complete, one train and one validation cache are created,
 then reused by all controls; metrics are not interpreted.
 
-- [ ] **Step 2: Generate evaluation artifacts and validate row alignment**
+- [x] **Step 2: Generate evaluation artifacts and validate row alignment**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results --plan configs/experiment/innovation1/innovation1_spn_present_invp_topology_residual_smoke_seed0.csv --results outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/results.jsonl --expected-rows 4 --output outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/validation.json
@@ -458,7 +480,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results --results outputs/
 
 Expected: `status=pass`, four aligned rows, SVG and history CSV exist.
 
-- [ ] **Step 3: Run the strict readiness gate**
+- [x] **Step 3: Run the strict readiness gate**
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-invp-topology-residual --results outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/results.jsonl --progress outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/progress.jsonl --expected-seeds 0 --samples-per-class 64 --epochs 1 --readiness-only --output outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/readiness_gate.json
@@ -468,7 +490,7 @@ Expected: `status=pass`, `decision=implementation_ready`,
 `research_decision_applied=false`. Any failure means repair and rerun the same
 R0; do not interpret AUC.
 
-- [ ] **Step 4: Record only verified R0 evidence and commit**
+- [x] **Step 4: Record only verified R0 evidence and commit**
 
 Update the design status and add run id, artifact paths, readiness decision,
 capacity equality, cache/progress evidence, claim boundary, and next action
