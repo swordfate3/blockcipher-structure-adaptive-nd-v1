@@ -38,6 +38,8 @@ class PresentNibbleTopologyResidualSpnOnlyDistinguisher(nn.Module):
             raise ValueError(
                 "PresentNibbleTopologyResidual expects raw 128-bit ciphertext pairs"
             )
+        if input_bits <= 0:
+            raise ValueError("input_bits must be positive")
         if input_bits % pair_bits != 0:
             raise ValueError("input_bits must be a multiple of pair_bits")
         if base_channels <= 0:

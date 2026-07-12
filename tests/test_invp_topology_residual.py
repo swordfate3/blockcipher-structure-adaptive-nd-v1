@@ -179,6 +179,8 @@ def test_fixed_topology_residual_subclasses_reject_conflicting_mapping(
     ("kwargs", "message"),
     [
         ({"pair_bits": 64}, "expects raw 128-bit ciphertext pairs"),
+        ({"input_bits": 0}, "input_bits must be positive"),
+        ({"input_bits": -128}, "input_bits must be positive"),
         ({"input_bits": INPUT_BITS - 1}, "input_bits must be a multiple"),
         ({"base_channels": 0}, "base_channels must be positive"),
         ({"base_channels": -1}, "base_channels must be positive"),
