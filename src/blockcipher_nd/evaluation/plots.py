@@ -316,7 +316,7 @@ def _label_validation_endpoint(
         return
     axis.text(
         epochs[-1] + 0.12,
-        _endpoint_label_y(item, values[-1]),
+        _endpoint_label_y(axis, item, values[-1]),
         _compact_label(item),
         color=color,
         fontsize=8.1,
@@ -333,11 +333,13 @@ def _label_validation_endpoint(
     )
 
 
-def _endpoint_label_y(item: dict[str, Any], value: float) -> float:
-    offset = (int(item.get("run_index", 1)) - 1) * 0.018
+def _endpoint_label_y(axis, item: dict[str, Any], value: float) -> float:
+    lower, upper = axis.get_ylim()
+    span = max(upper - lower, 1e-12)
+    offset = (int(item.get("run_index", 1)) - 1) * span * 0.035
     if item["metric"] == "loss":
         offset *= -1
-    return value + offset
+    return min(max(value + offset, lower + span * 0.04), upper - span * 0.04)
 
 
 def _render_style_legend(fig) -> None:

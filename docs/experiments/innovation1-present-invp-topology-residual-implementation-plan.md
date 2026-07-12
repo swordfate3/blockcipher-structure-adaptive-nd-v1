@@ -85,7 +85,13 @@ breakthrough claim.
   the three hybrid roles to one visible label. A focused real-SVG regression and
   four exact aliases repaired the artifact without changing results or gates;
   both R0 and seed0 plots were regenerated and XML/visible-label checked. The
-  repair commit is the commit containing this note.
+  first repair was committed at `633e2f8`. Follow-up review found that endpoint
+  labels used a fixed absolute y-offset, which pushed single-epoch loss labels
+  outside narrow axes and inflated the SVG bounding box. A second real-render
+  regression now bounds plot aspect ratio; endpoint offsets use axis span,
+  reverse for loss, and clamp inside the axis while labels remain visible. Both
+  plots were regenerated and XML/dimensions checked. The geometry repair commit
+  is the commit containing this note.
 
 Task 7 remains pending and is intentionally unchecked.
 
