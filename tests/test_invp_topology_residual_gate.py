@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 
 import test_invp_state_matrix_conv2d_gate as conv_fixtures
+from blockcipher_nd.planning.four_role_attribution_gate import FourRoleGateSpec
 from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
-    FourRoleGateSpec,
     gate_invp_state_matrix_conv2d,
 )
 from blockcipher_nd.planning.invp_topology_residual_gate import (
@@ -65,6 +65,7 @@ def test_four_role_gate_spec_recursively_copies_and_freezes_inputs() -> None:
         hybrid_options=hybrid_options,
         capacity_label="test",
         semantic_checks=semantic_checks,
+        allowed_seed_layouts=((0,), (0, 1)),
         readiness_next_action="next",
         claim_label="claim",
         decide=_unused_decision,
@@ -88,6 +89,108 @@ def test_four_role_gate_spec_recursively_copies_and_freezes_inputs() -> None:
         spec.anchor_options["nested"]["other"] = 1
     with pytest.raises(TypeError):
         spec.semantic_checks["backbone"]["roles"][0] = "mutated"
+
+
+def test_shared_gate_core_is_domain_neutral() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root / "src/blockcipher_nd/planning/four_role_attribution_gate.py"
+    ).read_text(encoding="utf-8")
+
+    assert "state_matrix_conv2d" not in source
+    assert "topology_residual" not in source
+    assert "present_nibble_" not in source
+    assert "stop_conv2d_route" not in source
+    assert "stop_topology_residual" not in source
+
+
+INVALID_THRESHOLD_CASES = [
+    ("nan", float("nan")),
+    ("positive_inf", float("inf")),
+    ("negative_inf", float("-inf")),
+    ("negative", -1),
+    ("bool", True),
+    ("string", "bad"),
+]
+PUBLIC_THRESHOLD_FIELDS = [
+    (
+        "conv2d",
+        gate_invp_state_matrix_conv2d,
+        (
+            "seed0_topology_margin",
+            "seed0_representation_margin",
+            "joint_architecture_margin",
+            "joint_control_margin",
+        ),
+    ),
+    (
+        "topology_residual",
+        gate_invp_topology_residual,
+        (
+            "seed0_architecture_margin",
+            "seed0_topology_margin",
+            "seed0_representation_margin",
+            "joint_architecture_margin",
+            "joint_control_margin",
+        ),
+    ),
+]
+INVALID_PUBLIC_THRESHOLDS = [
+    (gate_name, gate, field, value_name, value)
+    for gate_name, gate, fields in PUBLIC_THRESHOLD_FIELDS
+    for field in fields
+    for value_name, value in INVALID_THRESHOLD_CASES
+]
+
+
+@pytest.mark.parametrize(
+    ("gate_name", "gate", "field", "value_name", "value"),
+    INVALID_PUBLIC_THRESHOLDS,
+)
+def test_public_gates_reject_invalid_thresholds_before_artifact_reads(
+    tmp_path: Path,
+    gate_name: str,
+    gate: Any,
+    field: str,
+    value_name: str,
+    value: Any,
+) -> None:
+    report = gate(
+        [tmp_path / "missing-results.jsonl"],
+        progress_paths=[tmp_path / "missing-progress.jsonl"],
+        **{field: value},
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert any(field in error for error in report["errors"])
+    assert not any("read_error" in error for error in report["errors"])
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize(
+    "expected_seeds",
+    [(1,), (1, 0), (-1,), (0, 2)],
+)
+@pytest.mark.parametrize(
+    "gate",
+    [gate_invp_state_matrix_conv2d, gate_invp_topology_residual],
+)
+def test_public_gates_reject_nonfrozen_seed_layout_before_artifact_reads(
+    tmp_path: Path,
+    gate: Any,
+    expected_seeds: tuple[int, ...],
+) -> None:
+    report = gate(
+        [tmp_path / "missing-results.jsonl"],
+        progress_paths=[tmp_path / "missing-progress.jsonl"],
+        expected_seeds=expected_seeds,
+    )
+
+    assert report["decision"] == "invalid_protocol"
+    assert report["research_decision_applied"] is False
+    assert any("allowed_seed_layouts" in error for error in report["errors"])
+    assert not any("read_error" in error for error in report["errors"])
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -148,6 +251,47 @@ def _gate(
         progress_paths=[_progress_path(path) for path in results_paths],
         **kwargs,
     )
+
+
+def test_public_gates_accept_zero_thresholds(tmp_path: Path) -> None:
+    h1_results = tmp_path / "h1-results.jsonl"
+    _write_h1_run(
+        h1_results,
+        {"anchor": 0.60, "candidate": 0.61, "shuffled_p": 0.59, "delta_only": 0.58},
+    )
+    h1_report = gate_invp_topology_residual(
+        [h1_results],
+        progress_paths=[_progress_path(h1_results)],
+        seed0_architecture_margin=0,
+        seed0_topology_margin=0,
+        seed0_representation_margin=0,
+        joint_architecture_margin=0,
+        joint_control_margin=0,
+    )
+
+    conv_results = tmp_path / "conv-results.jsonl"
+    conv_fixtures._write(
+        conv_results,
+        {
+            conv_fixtures.ANCHOR: 0.60,
+            conv_fixtures.CANDIDATE: 0.61,
+            conv_fixtures.SHUFFLED: 0.59,
+            conv_fixtures.DELTA: 0.58,
+        },
+    )
+    conv_report = gate_invp_state_matrix_conv2d(
+        [conv_results],
+        progress_paths=[conv_fixtures._progress_path(conv_results)],
+        seed0_topology_margin=0,
+        seed0_representation_margin=0,
+        joint_architecture_margin=0,
+        joint_control_margin=0,
+    )
+
+    assert h1_report["status"] == "pass", h1_report["errors"]
+    assert conv_report["status"] == "pass", conv_report["errors"]
+    json.dumps(h1_report, allow_nan=False)
+    json.dumps(conv_report, allow_nan=False)
 
 
 @pytest.mark.parametrize(

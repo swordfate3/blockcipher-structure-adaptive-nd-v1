@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from blockcipher_nd.planning.invp_state_matrix_conv2d_gate import (
+from blockcipher_nd.planning.four_role_attribution_gate import (
     FourRoleGateSpec,
-    _gate_four_role_attribution,
+    evaluate_four_role_attribution,
 )
 
 
@@ -31,7 +31,7 @@ def gate_invp_topology_residual(
     joint_architecture_margin: float = 0.001,
     joint_control_margin: float = 0.002,
 ) -> dict[str, Any]:
-    return _gate_four_role_attribution(
+    return evaluate_four_role_attribution(
         results_paths,
         progress_paths=progress_paths,
         expected_seeds=expected_seeds,
@@ -173,6 +173,7 @@ _TOPOLOGY_RESIDUAL_GATE_SPEC = FourRoleGateSpec(
         ),
         "status": "pass",
     },
+    allowed_seed_layouts=((0,), (0, 1)),
     readiness_next_action="run_frozen_h1_seed0_local_diagnostic",
     claim_label="topology-residual architecture-attribution diagnostic",
     decide=_decide_topology_residual,
