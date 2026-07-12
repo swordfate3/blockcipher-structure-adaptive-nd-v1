@@ -91,7 +91,15 @@ breakthrough claim.
   regression now bounds plot aspect ratio; endpoint offsets use axis span,
   reverse for loss, and clamp inside the axis while labels remain visible. Both
   plots were regenerated and XML/dimensions checked. The geometry repair commit
-  is the commit containing this note.
+  was `ef931fd`. A third renderer-level review then showed that independent
+  per-run offsets could still leave endpoint text bounding boxes overlapping.
+  Validation endpoints are now allocated jointly by final value and stable run
+  index across the 12%-88% axis interior, with thin connectors back to the real
+  endpoints. Both plots were regenerated without changing results or gates.
+  XML parsing, all four visible role labels, bounded aspect ratios, and all real
+  accuracy/AUC/loss panels passed; the minimum vertical text gap was `25.933`
+  pixels in each panel. The joint-allocation repair is the commit containing
+  this note.
 
 Task 7 remains pending and is intentionally unchecked.
 

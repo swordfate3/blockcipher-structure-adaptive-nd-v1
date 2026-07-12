@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import json
+from itertools import combinations
 from pathlib import Path
 from xml.etree import ElementTree
 
-from blockcipher_nd.evaluation.plots import plot_jsonl_training_curves
+import pytest
+from matplotlib import pyplot as plt
+
+from blockcipher_nd.evaluation.plots import (
+    plot_jsonl_training_curves,
+    render_metric_panel,
+)
 
 
 MODEL_KEYS = (
@@ -25,6 +32,46 @@ def _visible_svg_text(root: ElementTree.Element) -> str:
     return " ".join(
         element.text or "" for element in root.iter() if element.tag.endswith("text")
     )
+
+
+@pytest.mark.parametrize(
+    ("metric", "values"),
+    [
+        ("accuracy", (0.500, 0.501, 0.502, 0.503)),
+        ("auc", (0.501, 0.502, 0.503, 0.504)),
+        ("loss", (0.690, 0.691, 0.692, 0.693)),
+    ],
+)
+def test_metric_panel_endpoint_label_bboxes_do_not_overlap(
+    metric: str,
+    values: tuple[float, ...],
+) -> None:
+    fig, axis = plt.subplots(figsize=(8.4, 2.4))
+    series = [
+        {
+            "metric": metric,
+            "split": "val",
+            "label": model_key,
+            "run_index": index,
+            "model": model_key,
+            "points": [(1.0, value)],
+        }
+        for index, (model_key, value) in enumerate(
+            zip(MODEL_KEYS, values, strict=True),
+            start=1,
+        )
+    ]
+
+    render_metric_panel(axis, metric, series)
+    fig.canvas.draw()
+
+    renderer = fig.canvas.get_renderer()
+    labels = [text for text in axis.texts if text.get_text() in VISIBLE_LABELS]
+    assert len(labels) == 4
+    boxes = [label.get_window_extent(renderer) for label in labels]
+    for left, right in combinations(boxes, 2):
+        assert not left.overlaps(right)
+    plt.close(fig)
 
 
 def test_topology_residual_plot_uses_distinct_visible_role_labels(

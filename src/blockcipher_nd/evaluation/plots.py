@@ -229,6 +229,7 @@ def render_metric_panel(
     axis.grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
     axis.grid(False, axis="x")
     _format_y_axis(axis, metric, min_value, max_value)
+    endpoint_targets = _validation_endpoint_targets(axis, series)
     for item in series:
         epochs = [point[0] for point in item["points"]]
         values = [point[1] for point in item["points"]]
@@ -249,7 +250,14 @@ def render_metric_panel(
             dash_capstyle="round",
         )
         _annotate_validation_best(axis, metric, item, epochs, values, _series_color(item))
-        _label_validation_endpoint(axis, item, epochs, values, color)
+        _label_validation_endpoint(
+            axis,
+            item,
+            epochs,
+            values,
+            color,
+            endpoint_targets.get(int(item.get("run_index", 1))),
+        )
     axis.set_xlim(max(0.0, min_epoch - 0.25), max_epoch + 1.05)
     axis.margins(y=0.08)
 
@@ -311,13 +319,27 @@ def _label_validation_endpoint(
     epochs: list[float],
     values: list[float],
     color: str,
+    target_y: float | None,
 ) -> None:
-    if item["split"] != "val" or not values:
+    if item["split"] != "val" or not values or target_y is None:
         return
-    axis.text(
-        epochs[-1] + 0.12,
-        _endpoint_label_y(axis, item, values[-1]),
+    label_position = (epochs[-1] + 0.12, target_y)
+    axis.annotate(
+        "",
+        xy=(epochs[-1], values[-1]),
+        xytext=label_position,
+        textcoords="data",
+        clip_on=False,
+        arrowprops={
+            "arrowstyle": "-",
+            "color": color,
+            "linewidth": 0.8,
+            "alpha": 0.65,
+        },
+    )
+    axis.annotate(
         _compact_label(item),
+        xy=label_position,
         color=color,
         fontsize=8.1,
         fontweight="bold",
@@ -333,13 +355,44 @@ def _label_validation_endpoint(
     )
 
 
-def _endpoint_label_y(axis, item: dict[str, Any], value: float) -> float:
+def _validation_endpoint_targets(
+    axis,
+    series: list[dict[str, Any]],
+) -> dict[int, float]:
+    endpoints = [
+        item
+        for item in series
+        if item["split"] == "val" and item["points"]
+    ]
+    ordered = sorted(
+        endpoints,
+        key=lambda item: (
+            item["points"][-1][1],
+            int(item.get("run_index", 1)),
+        ),
+    )
+    if not ordered:
+        return {}
+
     lower, upper = axis.get_ylim()
     span = max(upper - lower, 1e-12)
-    offset = (int(item.get("run_index", 1)) - 1) * span * 0.035
-    if item["metric"] == "loss":
-        offset *= -1
-    return min(max(value + offset, lower + span * 0.04), upper - span * 0.04)
+    interior_lower = lower + span * 0.12
+    interior_upper = upper - span * 0.12
+    if len(ordered) == 1:
+        item = ordered[0]
+        value = item["points"][-1][1]
+        return {
+            int(item.get("run_index", 1)): min(
+                max(value, interior_lower),
+                interior_upper,
+            )
+        }
+
+    step = (interior_upper - interior_lower) / (len(ordered) - 1)
+    return {
+        int(item.get("run_index", 1)): interior_lower + rank * step
+        for rank, item in enumerate(ordered)
+    }
 
 
 def _render_style_legend(fig) -> None:

@@ -729,7 +729,7 @@ All seven planned nonempty artifacts were verified:
 | `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/results.jsonl` | 16952 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/progress.jsonl` | 82420 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/validation.json` | 4554 bytes |
-| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/curves.svg` | 55619 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/curves.svg` | 58119 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/history.csv` | 1353 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_smoke_seed0/readiness_gate.json` | 30351 bytes |
 
@@ -861,7 +861,7 @@ All seven planned artifacts were nonempty and independently checked:
 | `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/results.jsonl` | 34181 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/progress.jsonl` | 815056 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/validation.json` | 4570 bytes |
-| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/curves.svg` | 75938 bytes |
+| `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/curves.svg` | 78478 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/history.csv` | 13663 bytes |
 | `outputs/local_smoke/i1_present_invp_topology_residual_8192_seed0/topology_residual_gate.json` | 30820 bytes |
 
