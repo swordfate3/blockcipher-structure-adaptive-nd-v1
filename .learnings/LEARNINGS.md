@@ -64,6 +64,62 @@ data/key protocol. Keep `65536/class` results labeled medium diagnostics.
 
 ---
 
+## [LRN-20260712-001] correction
+
+**Logged**: 2026-07-12T20:30:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+For PRESENT, a Liu-style three-channel previous-round input must follow Case 3:
+`(C, C', InvP(DeltaC))`, not `(InvP(C), InvP(C'), InvP(DeltaC))`.
+
+### Details
+After the H1 topology-residual gate returned a near-zero candidate-versus-Delta
+margin, the first proposed H2 sketch incorrectly applied the inverse P-layer to
+both individual ciphertexts as well as their difference. Liu et al.'s SPN
+framework distinguishes three cases by the position and coverage of round-key
+addition. PRESENT ends with full-state key addition, so it belongs to Case 3.
+With an unknown key, individual ciphertext states cannot be recovered to the
+pre-key previous-round state. Only the ciphertext difference cancels the XOR
+key and can be safely mapped through the inverse permutation.
+
+The paper's Case 3 tensor is therefore:
+
+```text
+channel 0 = C
+channel 1 = C'
+channel 2 = InvP(C xor C')
+shape     = 3 x 4 x 16 for a 64-bit PRESENT state
+```
+
+This distinction is especially important for the current Zhang/Wang official
+MCND generator because its effective key schedule is `per_pair_random`. Applying
+`InvP` to each ciphertext separately would retain a different unknown key mask
+for every basic pair and would not be a faithful previous-round-state input.
+
+### Suggested Action
+If the proposed H2 is approved, freeze the true local adapter input as
+`(C, C', InvP(DeltaC))`. Use `(C, C', shuffled-P(DeltaC))` and
+`(C, C', DeltaC)` as topology and representation controls while keeping the
+token-mixer backbone and benchmark fixed. Treat the three-channel format and
+Conv2D as Liu prior art; any novelty claim must come from the residual fusion,
+cipher-spec generation, and matched attribution controls rather than the input
+format alone.
+
+### Metadata
+- Source: paper_source_audit, self_correction
+- Related Files: papers/innovation_one/text/2026_liu_spn_iot_friendly_neural_distinguisher_framework.txt, docs/research/innovation1-spn-literature-reaudit-20260710.md, docs/experiments/innovation1-present-invp-state-matrix-conv2d-design.md
+- Tags: innovation1, present, spn, liu, case3, previous-round-state, invp, key-schedule
+- See Also: LRN-20260711-001, LRN-20260710-007
+- Pattern-Key: innovation1.present.liu_case3_three_channel_semantics
+- Recurrence-Count: 1
+- First-Seen: 2026-07-12
+- Last-Seen: 2026-07-12
+
+---
+
 ## [LRN-20260711-001] correction
 
 **Logged**: 2026-07-11T18:14:12+08:00
