@@ -14,6 +14,9 @@ from blockcipher_nd.models.structure import (
     PresentNibbleCase3InvPTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleCase3RawTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleCase3ShuffledPTopologyResidualSpnOnlyDistinguisher,
+    PresentInvPDBitNet2023Distinguisher,
+    PresentRawDeltaDBitNet2023Distinguisher,
+    PresentShuffledPDBitNet2023Distinguisher,
     PresentNibbleNoDDTGraphDistinguisher,
     PresentPairSetGlobalStatsDistinguisher,
     PresentPairSetGlobalStatsHybridDistinguisher,
@@ -212,6 +215,16 @@ def build_spn_model(
             norm=str(options.get("norm", "layernorm")),
             local_norm=str(options.get("local_norm", "batchnorm2d")),
             dropout=float(options.get("dropout", 0.0)),
+        )
+    same_input_dbitnet_models = {
+        "present_invp_dbitnet2023": PresentInvPDBitNet2023Distinguisher,
+        "present_shuffled_p_dbitnet2023": PresentShuffledPDBitNet2023Distinguisher,
+        "present_raw_delta_dbitnet2023": PresentRawDeltaDBitNet2023Distinguisher,
+    }
+    if name in same_input_dbitnet_models:
+        return same_input_dbitnet_models[name](
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
         )
     if name == "present_nibble_invp_active_aux_spn_only":
         return PresentNibbleInvPActiveAuxSpnOnlyDistinguisher(

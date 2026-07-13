@@ -83,6 +83,12 @@ from blockcipher_nd.models.structure.spn.present_case3_topology_residual import 
     PresentNibbleCase3ShuffledPTopologyResidualSpnOnlyDistinguisher,
     PresentNibbleCase3TopologyResidualSpnOnlyDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.present_same_input_dbitnet import (
+    PresentInvPDBitNet2023Distinguisher,
+    PresentMappedDeltaDBitNet2023Distinguisher,
+    PresentRawDeltaDBitNet2023Distinguisher,
+    PresentShuffledPDBitNet2023Distinguisher,
+)
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
@@ -115,6 +121,10 @@ __all__ = [
     "PresentNibbleCase3RawTopologyResidualSpnOnlyDistinguisher",
     "PresentNibbleCase3ShuffledPTopologyResidualSpnOnlyDistinguisher",
     "PresentNibbleCase3TopologyResidualSpnOnlyDistinguisher",
+    "PresentInvPDBitNet2023Distinguisher",
+    "PresentMappedDeltaDBitNet2023Distinguisher",
+    "PresentRawDeltaDBitNet2023Distinguisher",
+    "PresentShuffledPDBitNet2023Distinguisher",
     "PresentNibbleInvPActiveAuxSpnOnlyDistinguisher",
     "PresentNibbleInvPNoDDTGateDistinguisher",
     "PresentNibbleInvPPLayerGraphSpnOnlyDistinguisher",
