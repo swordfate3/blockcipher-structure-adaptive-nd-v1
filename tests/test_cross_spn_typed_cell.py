@@ -1,0 +1,298 @@
+from __future__ import annotations
+
+import pytest
+import torch
+from torch import nn
+
+from blockcipher_nd.ciphers.spn.gift import Gift64
+from blockcipher_nd.features.encoders.bitwise import int_to_bits
+from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
+    CrossSpnTypedCellPairSetDistinguisher,
+    GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueDistinguisher,
+    PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellShuffledDistinguisher,
+    PresentCrossSpnTypedCellTrueDistinguisher,
+    cipher_inverse_permutation_indices,
+)
+from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
+    present_inverse_p_indices,
+)
+from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
+    SpnTokenMixerPairSetDistinguisher,
+)
+from blockcipher_nd.registry.model_factory import build_model
+
+
+def _apply_indices(value: int, indices: torch.Tensor) -> list[int]:
+    bits = torch.tensor(int_to_bits(value, 64), dtype=torch.long)
+    return bits.index_select(0, indices).tolist()
+
+
+def test_cross_spn_mapping_indices_are_permutations() -> None:
+    for cipher_key in ("present80", "gift64"):
+        for mapping_mode in ("true", "shuffled", "raw"):
+            indices = cipher_inverse_permutation_indices(cipher_key, mapping_mode)
+
+            assert indices.dtype == torch.long
+            assert sorted(indices.tolist()) == list(range(64))
+
+
+def test_cross_spn_present_true_mapping_matches_existing_adapter() -> None:
+    torch.testing.assert_close(
+        cipher_inverse_permutation_indices("present80", "true"),
+        present_inverse_p_indices("true"),
+    )
+
+
+def test_cross_spn_gift_true_mapping_matches_cipher_implementation() -> None:
+    value = 0xD35A81C709E246BF
+    indices = cipher_inverse_permutation_indices("gift64", "true")
+
+    actual = _apply_indices(value, indices)
+    expected = int_to_bits(Gift64.inverse_permutation_layer(value), 64)
+
+    assert actual == expected
+
+
+def test_cross_spn_shuffled_mapping_is_shared_across_ciphers() -> None:
+    assert torch.equal(
+        cipher_inverse_permutation_indices("present80", "shuffled"),
+        cipher_inverse_permutation_indices("gift64", "shuffled"),
+    )
+
+
+TYPED_VARIANTS: tuple[type[nn.Module], ...] = (
+    PresentCrossSpnTypedCellTrueDistinguisher,
+    PresentCrossSpnTypedCellShuffledDistinguisher,
+    PresentCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellTrueDistinguisher,
+    GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellRawDistinguisher,
+)
+
+
+def _raw_features(batch: int = 2, pairs_per_sample: int = 4) -> torch.Tensor:
+    generator = torch.Generator().manual_seed(20260713)
+    return torch.randint(
+        0,
+        2,
+        (batch, pairs_per_sample * 128),
+        generator=generator,
+    ).float()
+
+
+@pytest.mark.parametrize("mapping_mode", ["true", "shuffled", "raw"])
+def test_cross_spn_typed_cell_view_has_exact_current_and_previous_cells(
+    mapping_mode: str,
+) -> None:
+    model = CrossSpnTypedCellPairSetDistinguisher(
+        input_bits=4 * 128,
+        cipher_key="gift64",
+        mapping_mode=mapping_mode,
+        base_channels=8,
+    )
+    features = _raw_features()
+    pairs = features.reshape(2, 4, 2, 64)
+    difference = (pairs[:, :, 0] - pairs[:, :, 1]).abs()
+    expected_current = difference.reshape(2, 4, 16, 4)
+    expected_previous = difference.index_select(
+        2, model.mapping_indices
+    ).reshape(2, 4, 16, 4)
+
+    current, previous = model.typed_cell_view(features)
+
+    assert current.shape == previous.shape == (2, 4, 16, 4)
+    torch.testing.assert_close(current, expected_current)
+    torch.testing.assert_close(previous, expected_previous)
+
+
+def test_cross_spn_typed_variants_have_identical_trainable_state() -> None:
+    models: list[nn.Module] = []
+    for model_class in TYPED_VARIANTS:
+        torch.manual_seed(20260713)
+        models.append(model_class(input_bits=4 * 128, base_channels=8))
+
+    assert len({sum(parameter.numel() for parameter in model.parameters()) for model in models}) == 1
+    assert (
+        len(
+            {
+                sum(
+                    parameter.numel()
+                    for parameter in model.parameters()
+                    if parameter.requires_grad
+                )
+                for model in models
+            }
+        )
+        == 1
+    )
+    reference = models[0].state_dict()
+    assert "mapping_indices" not in reference
+    for model in models[1:]:
+        assert model.state_dict().keys() == reference.keys()
+        for key, value in reference.items():
+            torch.testing.assert_close(value, model.state_dict()[key], rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("model_class", TYPED_VARIANTS)
+def test_cross_spn_typed_variants_have_finite_forward_and_backward(
+    model_class: type[nn.Module],
+) -> None:
+    model = model_class(input_bits=4 * 128, base_channels=8)
+
+    logits = model(_raw_features())
+    logits.mean().backward()
+
+    assert logits.shape == (2, 1)
+    assert torch.isfinite(logits).all()
+    gradients = [
+        parameter.grad
+        for parameter in model.parameters()
+        if parameter.requires_grad and parameter.grad is not None
+    ]
+    assert gradients
+    assert all(torch.isfinite(gradient).all() for gradient in gradients)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"pair_bits": 64}, "raw 128-bit ciphertext pairs"),
+        ({"input_bits": 129}, "multiple of pair_bits"),
+        ({"mixer_depth": 0}, "mixer_depth must be >= 1"),
+        ({"pooling": "unsupported"}, "unsupported pooling"),
+    ],
+)
+def test_cross_spn_typed_model_rejects_invalid_configuration(
+    kwargs: dict[str, object],
+    message: str,
+) -> None:
+    options: dict[str, object] = {
+        "input_bits": 4 * 128,
+        "cipher_key": "present80",
+        "mapping_mode": "true",
+        **kwargs,
+    }
+    with pytest.raises(ValueError, match=message):
+        CrossSpnTypedCellPairSetDistinguisher(**options)
+
+
+def test_cross_spn_typed_model_rejects_wrong_runtime_width() -> None:
+    model = PresentCrossSpnTypedCellTrueDistinguisher(input_bits=4 * 128)
+
+    with pytest.raises(ValueError, match="expected 512 input bits"):
+        model.typed_cell_view(torch.zeros(2, 511))
+
+
+def test_gift_raw_anchor_is_logit_equivalent_to_historical_aligned_input() -> None:
+    options = {
+        "input_bits": 4 * 128,
+        "base_channels": 8,
+        "mixer_depth": 1,
+        "activation": "relu",
+        "norm": "layernorm",
+        "pooling": "topk_logsumexp",
+        "top_k": 2,
+        "lse_temperature": 1.0,
+    }
+    wrapper = GiftAlignedTokenMixerRawInputDistinguisher(**options)
+    external = SpnTokenMixerPairSetDistinguisher(
+        input_bits=4 * 256,
+        pair_bits=256,
+        base_channels=8,
+        mixer_depth=1,
+        activation="relu",
+        norm="layernorm",
+        pooling="topk_logsumexp",
+        top_k=2,
+        lse_temperature=1.0,
+    )
+    external.load_state_dict(wrapper.delegate.state_dict(), strict=True)
+    features = _raw_features()
+
+    actual = wrapper(features)
+    expected = external(wrapper.aligned_view(features))
+
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+def test_gift_raw_anchor_builds_exact_historical_word_order() -> None:
+    wrapper = GiftAlignedTokenMixerRawInputDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+    features = _raw_features()
+    pairs = features.reshape(2, 4, 2, 64)
+    difference = (pairs[:, :, 0] - pairs[:, :, 1]).abs()
+    mapped = difference.index_select(2, wrapper.mapping_indices)
+    expected = torch.cat(
+        [pairs[:, :, 0], pairs[:, :, 1], difference, mapped], dim=2
+    ).reshape(2, 4 * 256)
+
+    actual = wrapper.aligned_view(features)
+
+    torch.testing.assert_close(actual, expected)
+    assert "mapping_indices" not in wrapper.state_dict()
+
+
+def test_gift_raw_anchor_rejects_wrong_runtime_width() -> None:
+    wrapper = GiftAlignedTokenMixerRawInputDistinguisher(input_bits=4 * 128)
+
+    with pytest.raises(ValueError, match="expected 512 input bits"):
+        wrapper.aligned_view(torch.zeros(2, 511))
+
+
+REGISTERED_MODELS: tuple[tuple[str, type[nn.Module]], ...] = (
+    (
+        "present_cross_spn_typed_cell_true",
+        PresentCrossSpnTypedCellTrueDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_shuffled",
+        PresentCrossSpnTypedCellShuffledDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_raw",
+        PresentCrossSpnTypedCellRawDistinguisher,
+    ),
+    ("gift_cross_spn_typed_cell_true", GiftCrossSpnTypedCellTrueDistinguisher),
+    (
+        "gift_cross_spn_typed_cell_shuffled",
+        GiftCrossSpnTypedCellShuffledDistinguisher,
+    ),
+    ("gift_cross_spn_typed_cell_raw", GiftCrossSpnTypedCellRawDistinguisher),
+    (
+        "gift_cross_spn_aligned_token_mixer_raw_anchor",
+        GiftAlignedTokenMixerRawInputDistinguisher,
+    ),
+)
+
+
+@pytest.mark.parametrize(("model_key", "expected_type"), REGISTERED_MODELS)
+def test_cross_spn_models_build_through_public_registry(
+    model_key: str,
+    expected_type: type[nn.Module],
+) -> None:
+    model = build_model(
+        model_key,
+        input_bits=4 * 128,
+        hidden_bits=8,
+        pair_bits=128,
+        structure="SPN",
+        model_options={
+            "mixer_depth": 1,
+            "token_mlp_ratio": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "dropout": 0.0,
+        },
+    )
+
+    assert isinstance(model, expected_type)
+    if isinstance(model, CrossSpnTypedCellPairSetDistinguisher):
+        assert len(model.mixer_blocks) == 1
+    else:
+        assert len(model.delegate.mixer_blocks) == 1

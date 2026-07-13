@@ -3,10 +3,17 @@ from __future__ import annotations
 from torch import nn
 
 from blockcipher_nd.models.structure import (
+    GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueDistinguisher,
     PresentInceptionMCNDDistinguisher,
     PresentInceptionMCNDGlobalMatrixDistinguisher,
     PresentInceptionMCNDMatrixDistinguisher,
     PresentInceptionMCNDPairStackMatrixDistinguisher,
+    PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellShuffledDistinguisher,
+    PresentCrossSpnTypedCellTrueDistinguisher,
     PresentMatrixTrailHybridPairSetDistinguisher,
     PresentNibbleDDTGraphDistinguisher,
     PresentNibbleDeltaStateMatrixConv2DSpnOnlyDistinguisher,
@@ -68,6 +75,42 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    cross_spn_typed_models = {
+        "present_cross_spn_typed_cell_true": PresentCrossSpnTypedCellTrueDistinguisher,
+        "present_cross_spn_typed_cell_shuffled": PresentCrossSpnTypedCellShuffledDistinguisher,
+        "present_cross_spn_typed_cell_raw": PresentCrossSpnTypedCellRawDistinguisher,
+        "gift_cross_spn_typed_cell_true": GiftCrossSpnTypedCellTrueDistinguisher,
+        "gift_cross_spn_typed_cell_shuffled": GiftCrossSpnTypedCellShuffledDistinguisher,
+        "gift_cross_spn_typed_cell_raw": GiftCrossSpnTypedCellRawDistinguisher,
+    }
+    if name in cross_spn_typed_models:
+        return cross_spn_typed_models[name](
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
+            base_channels=hidden_bits,
+            token_dim=int_option(options, "token_dim"),
+            mixer_depth=int_option(options, "mixer_depth", 2),
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2),
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            pooling=str(options.get("pooling", "attention_mean_max")),
+            dropout=float(options.get("dropout", 0.0)),
+        )
+    if name == "gift_cross_spn_aligned_token_mixer_raw_anchor":
+        return GiftAlignedTokenMixerRawInputDistinguisher(
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
+            base_channels=hidden_bits,
+            token_dim=int_option(options, "token_dim"),
+            mixer_depth=int_option(options, "mixer_depth", 1),
+            token_mlp_ratio=int_option(options, "token_mlp_ratio", 2),
+            activation=str(options.get("activation", "relu")),
+            norm=str(options.get("norm", "layernorm")),
+            pooling=str(options.get("pooling", "topk_logsumexp")),
+            dropout=float(options.get("dropout", 0.0)),
+            top_k=int_option(options, "top_k", 2),
+            lse_temperature=float(options.get("lse_temperature", 1.0)),
+        )
     if name == "present_zhang_wang_keras_mcnd":
         return PresentZhangWangKerasMCNDDistinguisher(
             input_bits=input_bits,

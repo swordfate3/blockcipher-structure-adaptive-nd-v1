@@ -1,6 +1,17 @@
 from blockcipher_nd.models.structure.spn.cell_pairset import (
     SpnCellPairSetDBitNetDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
+    CrossSpnTypedCellPairSetDistinguisher,
+    GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueDistinguisher,
+    PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellShuffledDistinguisher,
+    PresentCrossSpnTypedCellTrueDistinguisher,
+    cipher_inverse_permutation_indices,
+)
 from blockcipher_nd.models.structure.spn.nibble_conv_pairset import (
     SpnNibbleConvPairSetDistinguisher,
 )
@@ -95,6 +106,14 @@ from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
 )
 
 __all__ = [
+    "CrossSpnTypedCellPairSetDistinguisher",
+    "GiftAlignedTokenMixerRawInputDistinguisher",
+    "GiftCrossSpnTypedCellRawDistinguisher",
+    "GiftCrossSpnTypedCellShuffledDistinguisher",
+    "GiftCrossSpnTypedCellTrueDistinguisher",
+    "PresentCrossSpnTypedCellRawDistinguisher",
+    "PresentCrossSpnTypedCellShuffledDistinguisher",
+    "PresentCrossSpnTypedCellTrueDistinguisher",
     "PresentPLayerMixerBlock",
     "PresentPLayerMixerPairSetDistinguisher",
     "PresentActiveCellGraphLayer",
@@ -152,4 +171,5 @@ __all__ = [
     "SpnNibbleConvPairSetDistinguisher",
     "SpnTokenMixerBlock",
     "SpnTokenMixerPairSetDistinguisher",
+    "cipher_inverse_permutation_indices",
 ]

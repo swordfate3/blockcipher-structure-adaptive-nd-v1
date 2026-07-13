@@ -16,11 +16,19 @@ from blockcipher_nd.models.structure.arx import (
 )
 from blockcipher_nd.models.structure.moe import StructureAwareMoEDistinguisher
 from blockcipher_nd.models.structure.spn import (
+    CrossSpnTypedCellPairSetDistinguisher,
+    GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueDistinguisher,
     PresentInceptionMCNDDistinguisher,
     PresentInceptionMCNDGlobalMatrixDistinguisher,
     PresentInceptionMCNDMatrixDistinguisher,
     PresentInceptionMCNDPairStackMatrixDistinguisher,
     PresentMatrixTrailHybridPairSetDistinguisher,
+    PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellShuffledDistinguisher,
+    PresentCrossSpnTypedCellTrueDistinguisher,
     PresentPairSetGlobalStatsDistinguisher,
     PresentPairSetGlobalStatsHybridDistinguisher,
     PresentPairSetHistogramHybridDistinguisher,
@@ -72,11 +80,19 @@ from blockcipher_nd.models.structure.spn import (
 )
 
 __all__ = [
+    "CrossSpnTypedCellPairSetDistinguisher",
+    "GiftAlignedTokenMixerRawInputDistinguisher",
+    "GiftCrossSpnTypedCellRawDistinguisher",
+    "GiftCrossSpnTypedCellShuffledDistinguisher",
+    "GiftCrossSpnTypedCellTrueDistinguisher",
     "PresentInceptionMCNDDistinguisher",
     "PresentInceptionMCNDGlobalMatrixDistinguisher",
     "PresentInceptionMCNDMatrixDistinguisher",
     "PresentInceptionMCNDPairStackMatrixDistinguisher",
     "PresentMatrixTrailHybridPairSetDistinguisher",
+    "PresentCrossSpnTypedCellRawDistinguisher",
+    "PresentCrossSpnTypedCellShuffledDistinguisher",
+    "PresentCrossSpnTypedCellTrueDistinguisher",
     "PresentPairSetGlobalStatsDistinguisher",
     "PresentPairSetGlobalStatsHybridDistinguisher",
     "PresentPairSetHistogramHybridDistinguisher",
