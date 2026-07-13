@@ -108,6 +108,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--initialization-manifest",
+        default=None,
+        help=(
+            "Optional JSON manifest for fail-closed per-model checkpoint "
+            "initialization before training."
+        ),
+    )
+    parser.add_argument(
         "--early-stopping-patience",
         type=int,
         default=0,

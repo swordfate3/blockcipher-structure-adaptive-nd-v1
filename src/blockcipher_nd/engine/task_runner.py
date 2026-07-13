@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from typing import Any
 
 import torch
 
+from blockcipher_nd.engine.checkpoint_initialization import (
+    initialize_model_from_manifest,
+)
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.final_evaluation import run_final_evaluation
 from blockcipher_nd.engine.modeling import (
@@ -99,6 +103,34 @@ def run_task(
         structure=train_cipher.structure,
         model_options=task.get("model_options"),
     )
+    initialization: dict[str, Any] | None = None
+    initialization_manifest = getattr(args, "initialization_manifest", None)
+    if initialization_manifest:
+        initialization = initialize_model_from_manifest(
+            model,
+            target_model=model_key,
+            target_mapping=str(getattr(model, "mapping_mode", "aligned")),
+            manifest_path=Path(initialization_manifest),
+        )
+        write_progress(
+            progress_path,
+            "initialization_ready",
+            {
+                "index": index,
+                "total": total,
+                "kind": initialization["kind"],
+                "source_model": initialization.get("source_model"),
+                "source_checkpoint_sha256": initialization.get(
+                    "source_checkpoint_sha256"
+                ),
+                "strict_state_dict_load": initialization[
+                    "strict_state_dict_load"
+                ],
+                "target_model": model_key,
+                "target_mapping": initialization["target_mapping"],
+                **task_progress_payload(task),
+            },
+        )
     configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
     optimizer_state_transition = resolve_optimizer_state_transition(task, args)
     optimizer_session = (
@@ -142,7 +174,7 @@ def run_task(
         index=index,
         total=total,
     )
-    return build_task_result(
+    row = build_task_result(
         task=task,
         args=args,
         train_cipher=train_cipher,
@@ -158,3 +190,6 @@ def run_task(
         pretrain_result=pretrain_result,
         final_evaluation=final_evaluation,
     )
+    if initialization is not None:
+        row["initialization"] = initialization
+    return row

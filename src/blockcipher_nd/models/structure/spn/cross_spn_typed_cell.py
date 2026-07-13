@@ -284,6 +284,24 @@ class GiftCrossSpnTypedCellRawDistinguisher(
         super().__init__(*args, **kwargs)
 
 
+class GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher(
+    GiftCrossSpnTypedCellTrueDistinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher(
+    GiftCrossSpnTypedCellTrueDistinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher(
+    GiftCrossSpnTypedCellShuffledDistinguisher
+):
+    pass
+
+
 class GiftAlignedTokenMixerRawInputDistinguisher(nn.Module):
     def __init__(
         self,
@@ -359,7 +377,10 @@ __all__ = [
     "CrossSpnTypedCellPairSetDistinguisher",
     "GiftAlignedTokenMixerRawInputDistinguisher",
     "GiftCrossSpnTypedCellRawDistinguisher",
+    "GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellShuffledDistinguisher",
+    "GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher",
+    "GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellTrueDistinguisher",
     "PresentCrossSpnTypedCellRawDistinguisher",
     "PresentCrossSpnTypedCellShuffledDistinguisher",

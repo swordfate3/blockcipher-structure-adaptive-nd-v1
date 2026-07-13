@@ -5,7 +5,10 @@ from torch import nn
 from blockcipher_nd.models.structure import (
     GiftAlignedTokenMixerRawInputDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
+    GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher,
+    GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellTrueDistinguisher,
     PresentInceptionMCNDDistinguisher,
     PresentInceptionMCNDGlobalMatrixDistinguisher,
@@ -82,6 +85,9 @@ def build_spn_model(
         "gift_cross_spn_typed_cell_true": GiftCrossSpnTypedCellTrueDistinguisher,
         "gift_cross_spn_typed_cell_shuffled": GiftCrossSpnTypedCellShuffledDistinguisher,
         "gift_cross_spn_typed_cell_raw": GiftCrossSpnTypedCellRawDistinguisher,
+        "gift_cross_spn_typed_cell_true_from_present_true": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
+        "gift_cross_spn_typed_cell_true_from_present_shuffled": GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher,
+        "gift_cross_spn_typed_cell_shuffled_from_present_true": GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
     }
     if name in cross_spn_typed_models:
         return cross_spn_typed_models[name](
