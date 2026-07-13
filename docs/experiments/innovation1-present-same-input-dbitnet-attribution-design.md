@@ -1,6 +1,6 @@
 # PRESENT Same-Input DBitNet Attribution Design
 
-**Status:** approved / implementation pending  
+**Status:** R0 readiness passed / R1 seed0 authorized
 **Date:** 2026-07-13  
 **Experiment label:** E3-R1  
 
@@ -158,6 +158,59 @@ Run the identical `8192/class` seed1 matrix only when R1 returns
 `promote_seed1`. No `65536/class`, `262144/class`, remote GPU, or formal run is
 authorized by a one-seed result.
 
+## Completed R0 Readiness Evidence
+
+Run `i1_present_same_input_dbitnet_smoke_seed0` completed locally on
+2026-07-13. It used `64/class` training, `32/class` validation, 16 pairs per
+sample, seed0, one epoch, CPU, strict encrypted-random-plaintext negatives, and
+effective `per_pair_random` keys verified from train/validation result and
+cache metadata.
+
+The exact four-row plan aligned with all four result rows. The strict readiness
+gate returned:
+
+```text
+status                    = pass
+decision                  = implementation_ready
+research_decision_applied = false
+errors                    = []
+next_action               = run_frozen_e3_r1_seed0_local_diagnostic
+```
+
+One train cache and one validation cache were created, then reused for all
+three DBitNet rows:
+
+```text
+create_count        = 2
+reuse_count         = 6
+control_reuse_count = 6
+```
+
+The true-InvP, shuffled-P, and raw-Delta DBitNet rows each had `797633` total
+and trainable parameters. The unchanged Token-Mixer anchor had `128673`.
+Readiness therefore verifies equal capacity among the three DBitNet attribution
+roles without requiring artificial parameter matching to a different published
+architecture.
+
+All four rows completed one epoch and restored epoch 1. The generated SVG
+parsed as XML and contained four distinct visible model labels. R0 AUCs are
+deliberately not interpreted.
+
+Verified artifacts:
+
+```text
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/history.csv
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_same_input_dbitnet_smoke_seed0/readiness_gate.json
+outputs/local_cache/i1_present_same_input_dbitnet_smoke_seed0/
+```
+
+This readiness evidence authorizes only the frozen local R1 seed0 diagnostic.
+It does not authorize seed1, remote execution, or a larger sample budget.
+
 ## Strict Gate
 
 Let AUCs come from restored best-`val_auc` checkpoints. R1 promotes seed1 only
@@ -216,4 +269,3 @@ If E3-R1 fails, the next method decision is not another PRESENT-only network
 variant. The project must either test cipher-spec-generated typed operators
 across more than one SPN under strict attribution controls or consolidate the
 current evidence as a controlled structural-representation methodology result.
-
