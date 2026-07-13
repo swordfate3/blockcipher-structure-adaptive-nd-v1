@@ -1268,6 +1268,53 @@ formal PRESENT r8 result, does not claim a breakthrough, does not replace the
 262144/class trail-position postprocess gate, and does not provide formal
 SPN/PRESENT evidence.
 
+## 2026-07-13 Retry1 Failure Audit And Closure
+
+A bounded remote read-only audit was performed after the local monitor became
+stale. It inspected only the project-owned run under `G:\lxy`; it did not
+modify files, restart the command, or launch another experiment.
+
+Authoritative remote state:
+
+```text
+run_id = i1_present_r8_residual_focus_262k_retry1
+active experiment process = no
+done.marker = false
+failed.marker = true
+latest command marker = command_4
+planned residual-focus gate outputs = 18
+completed residual-focus gate outputs = 0
+```
+
+The remote command 4 traceback is:
+
+```text
+RuntimeError: Error(s) in loading state_dict for
+PresentTrailPositionStatsPairSetDistinguisher:
+  classifier.4.weight checkpoint [64, 64] vs model [128, 64]
+  classifier.4.bias checkpoint [64] vs model [128]
+  classifier.7.weight checkpoint [1, 64] vs model [1, 128]
+```
+
+The run failed while preparing train scores and never reached the planned
+residual expert fits or their controls. The old local watcher stopped syncing
+before retrieving the failed marker, which is why historical local status
+files continued to say `running`.
+
+Decision:
+
+```text
+status = failed_incomplete_remote_diagnostic
+result_claim = none
+repair_or_relaunch = no
+DDT_or_trail_route_reopened = no
+next_action = proceed_to_no_DDT_same_input_DBitNet_attribution_gate
+```
+
+This failure is not evidence for or against the residual-focus hypothesis. It
+closes only the historical retry execution. The partial cache and progress
+files remain audit artifacts, not completed medium evidence.
+
 ## 2026-07-08 Follow-Up Bounded Check
 
 A second bounded local check refreshed the watcher-synced status without SSH
