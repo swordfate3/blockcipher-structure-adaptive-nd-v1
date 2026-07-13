@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 from pathlib import Path
 from typing import Any
@@ -6,6 +7,8 @@ from typing import Any
 import pytest
 
 import test_invp_topology_residual_gate as h1_fixtures
+from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
+from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.present_case3_topology_residual_gate import (
     CASE3_MODEL_ROLES,
     gate_present_case3_topology_residual,
@@ -267,3 +270,81 @@ def test_case3_cli_rejects_invalid_expected_seeds(value: str) -> None:
 
     with pytest.raises(argparse.ArgumentTypeError):
         expected_seeds_arg(value)
+
+
+@pytest.mark.parametrize(
+    ("filename", "family", "samples_per_class", "epochs", "batch_size"),
+    [
+        (
+            "innovation1_spn_present_case3_topology_residual_smoke_seed0.csv",
+            "present_case3_topology_residual_smoke",
+            64,
+            1,
+            32,
+        ),
+        (
+            "innovation1_spn_present_case3_topology_residual_8192_seed0.csv",
+            "present_case3_topology_residual_8192",
+            8192,
+            10,
+            256,
+        ),
+    ],
+)
+def test_case3_matrices_build_exact_frozen_tasks(
+    filename: str,
+    family: str,
+    samples_per_class: int,
+    epochs: int,
+    batch_size: int,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / filename
+    args = parse_matrix_args(
+        [
+            "--plan",
+            str(plan),
+            "--epochs",
+            str(epochs),
+            "--batch-size",
+            str(batch_size),
+            "--device",
+            "cpu",
+            "--dataset-cache-root",
+            str(Path("outputs/local_cache") / family),
+            "--dataset-cache-chunk-size",
+            "64" if samples_per_class == 64 else "512",
+            "--dataset-cache-workers",
+            "1" if samples_per_class == 64 else "4",
+        ]
+    )
+    tasks = build_tasks(args)
+    with plan.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert len(tasks) == len(rows) == 4
+    assert [task["model_key"] for task in tasks] == list(CASE3_ROLES.values())
+    assert [int(row["architecture_rank"]) for row in rows] == [0, 1, 2, 3]
+    assert {row["family"] for row in rows} == {family}
+    assert {task["samples_per_class"] for task in tasks} == {samples_per_class}
+    assert {task["seed"] for task in tasks} == {0}
+    assert {task["rounds"] for task in tasks} == {7}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["feature_encoding"] for task in tasks} == {
+        "ciphertext_pair_bits"
+    }
+    assert {task["negative_mode"] for task in tasks} == {
+        "encrypted_random_plaintexts"
+    }
+    assert {task["sample_structure"] for task in tasks} == {
+        "zhang_wang_case2_official_mcnd"
+    }
+    assert {task["difference_profile"] for task in tasks} == {
+        "present_zhang_wang2022_mcnd"
+    }
+    assert {task["loss"] for task in tasks} == {"mse"}
+    assert {task["optimizer"] for task in tasks} == {"adam"}
+    assert {task["checkpoint_metric"] for task in tasks} == {"val_auc"}
+    assert all(task["restore_best_checkpoint"] for task in tasks)
+    assert all("effective per_pair_random" in row["evidence"] for row in rows)
+    assert args.epochs == epochs
+    assert args.batch_size == batch_size

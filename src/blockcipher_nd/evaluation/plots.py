@@ -537,6 +537,9 @@ def _compact_label(item: dict[str, Any]) -> str:
         "present_nibble_invp_topology_residual_spn_only": "true InvP residual",
         "present_nibble_shuffled_p_topology_residual_spn_only": "shuffled P residual",
         "present_nibble_delta_topology_residual_spn_only": "Delta-only residual",
+        "present_nibble_case3_invp_topology_residual_spn_only": "Case3 true InvP",
+        "present_nibble_case3_shuffled_p_topology_residual_spn_only": "Case3 shuffled P",
+        "present_nibble_case3_raw_topology_residual_spn_only": "Case3 raw triple",
     }
     if model in aliases:
         return aliases[model]

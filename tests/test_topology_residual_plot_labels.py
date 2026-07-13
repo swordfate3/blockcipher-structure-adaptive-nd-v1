@@ -26,6 +26,18 @@ VISIBLE_LABELS = (
     "shuffled P residual",
     "Delta-only residual",
 )
+CASE3_MODEL_KEYS = (
+    "present_nibble_invp_only_spn_only",
+    "present_nibble_case3_invp_topology_residual_spn_only",
+    "present_nibble_case3_shuffled_p_topology_residual_spn_only",
+    "present_nibble_case3_raw_topology_residual_spn_only",
+)
+CASE3_VISIBLE_LABELS = (
+    "InvP token mixer",
+    "Case3 true InvP",
+    "Case3 shuffled P",
+    "Case3 raw triple",
+)
 
 
 def _visible_svg_text(root: ElementTree.Element) -> str:
@@ -110,6 +122,40 @@ def test_topology_residual_plot_uses_distinct_visible_role_labels(
     for label in VISIBLE_LABELS:
         assert label in visible_text
     assert "topology residual spn only" not in visible_text
+
+
+def test_case3_plot_uses_distinct_visible_role_labels(tmp_path: Path) -> None:
+    results = tmp_path / "case3-results.jsonl"
+    output = tmp_path / "case3-curves.svg"
+    rows = [
+        {
+            "cipher": "PRESENT-80",
+            "model": model_key,
+            "selected_model": model_key,
+            "rounds": 7,
+            "seed": 0,
+            "history": [
+                {
+                    "epoch": 1,
+                    "train_auc": 0.60 + index * 0.01,
+                    "val_auc": 0.61 + index * 0.01,
+                }
+            ],
+        }
+        for index, model_key in enumerate(CASE3_MODEL_KEYS)
+    ]
+    results.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    report = plot_jsonl_training_curves(results, output, metrics=("auc",))
+
+    assert report["rows"] == 4
+    root = ElementTree.parse(output).getroot()
+    visible_text = _visible_svg_text(root)
+    for label in CASE3_VISIBLE_LABELS:
+        assert label in visible_text
 
 
 def test_r0_like_endpoint_labels_keep_svg_aspect_ratio_bounded(tmp_path: Path) -> None:
