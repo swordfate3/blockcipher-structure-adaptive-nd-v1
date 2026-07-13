@@ -24,6 +24,7 @@ def build_task_result(
     training_result: TrainingResult,
     pretrain_result: TrainingResult | None,
     final_evaluation: dict[str, Any] | None,
+    initialization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = {
         "cipher": train_cipher.name,
@@ -119,4 +120,6 @@ def build_task_result(
     }
     if final_evaluation is not None:
         result["final_evaluation"] = final_evaluation
+    if initialization is not None:
+        result["initialization"] = initialization
     return result

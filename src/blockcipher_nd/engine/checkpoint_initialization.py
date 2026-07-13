@@ -8,6 +8,63 @@ from typing import Any
 import torch
 from torch import nn
 
+from blockcipher_nd.engine.modeling import configure_structure_aware_model
+from blockcipher_nd.engine.progress import task_progress_payload, write_progress
+from blockcipher_nd.registry.model_factory import build_model
+
+
+def build_initialized_task_model(
+    *,
+    task: dict[str, Any],
+    args: Any,
+    model_key: str,
+    input_bits: int,
+    pair_bits: int | None,
+    structure: str,
+    progress_path: str | None,
+    index: int | None,
+    total: int | None,
+) -> tuple[nn.Module, dict[str, Any] | None]:
+    torch.manual_seed(int(task["seed"]))
+    model = build_model(
+        model_key,
+        input_bits=input_bits,
+        hidden_bits=args.hidden_bits,
+        pair_bits=pair_bits,
+        structure=structure,
+        model_options=task.get("model_options"),
+    )
+    initialization: dict[str, Any] | None = None
+    initialization_manifest = getattr(args, "initialization_manifest", None)
+    if initialization_manifest:
+        initialization = initialize_model_from_manifest(
+            model,
+            target_model=model_key,
+            target_mapping=str(getattr(model, "mapping_mode", "aligned")),
+            manifest_path=Path(initialization_manifest),
+        )
+        write_progress(
+            progress_path,
+            "initialization_ready",
+            {
+                "index": index,
+                "total": total,
+                "kind": initialization["kind"],
+                "source_model": initialization.get("source_model"),
+                "source_checkpoint_sha256": initialization.get(
+                    "source_checkpoint_sha256"
+                ),
+                "strict_state_dict_load": initialization[
+                    "strict_state_dict_load"
+                ],
+                "target_model": model_key,
+                "target_mapping": initialization["target_mapping"],
+                **task_progress_payload(task),
+            },
+        )
+    configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
+    return model, initialization
+
 
 def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -237,6 +294,7 @@ def _required_int(entry: dict[str, Any], field: str) -> int:
 
 
 __all__ = [
+    "build_initialized_task_model",
     "file_sha256",
     "initialize_model_from_manifest",
     "state_dict_sha256",

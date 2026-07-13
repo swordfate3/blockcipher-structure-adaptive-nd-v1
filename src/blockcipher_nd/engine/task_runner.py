@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 from typing import Any
 
-import torch
-
-from blockcipher_nd.engine.checkpoint_initialization import (
-    initialize_model_from_manifest,
-)
+from blockcipher_nd.engine.checkpoint_initialization import build_initialized_task_model
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.final_evaluation import run_final_evaluation
 from blockcipher_nd.engine.modeling import (
@@ -26,7 +21,6 @@ from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
 from blockcipher_nd.engine.task_config import validation_samples_per_class
 from blockcipher_nd.registry.cipher_factory import build_cipher
-from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.training import OptimizerSession, train_binary_classifier
 
 
@@ -94,44 +88,17 @@ def run_task(
         },
     )
 
-    torch.manual_seed(int(task["seed"]))
-    model = build_model(
-        model_key,
+    model, initialization = build_initialized_task_model(
+        task=task,
+        args=args,
+        model_key=model_key,
         input_bits=train_dataset.features.shape[1],
-        hidden_bits=args.hidden_bits,
         pair_bits=pair_bits,
         structure=train_cipher.structure,
-        model_options=task.get("model_options"),
+        progress_path=progress_path,
+        index=index,
+        total=total,
     )
-    initialization: dict[str, Any] | None = None
-    initialization_manifest = getattr(args, "initialization_manifest", None)
-    if initialization_manifest:
-        initialization = initialize_model_from_manifest(
-            model,
-            target_model=model_key,
-            target_mapping=str(getattr(model, "mapping_mode", "aligned")),
-            manifest_path=Path(initialization_manifest),
-        )
-        write_progress(
-            progress_path,
-            "initialization_ready",
-            {
-                "index": index,
-                "total": total,
-                "kind": initialization["kind"],
-                "source_model": initialization.get("source_model"),
-                "source_checkpoint_sha256": initialization.get(
-                    "source_checkpoint_sha256"
-                ),
-                "strict_state_dict_load": initialization[
-                    "strict_state_dict_load"
-                ],
-                "target_model": model_key,
-                "target_mapping": initialization["target_mapping"],
-                **task_progress_payload(task),
-            },
-        )
-    configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
     optimizer_state_transition = resolve_optimizer_state_transition(task, args)
     optimizer_session = (
         OptimizerSession()
@@ -174,7 +141,7 @@ def run_task(
         index=index,
         total=total,
     )
-    row = build_task_result(
+    return build_task_result(
         task=task,
         args=args,
         train_cipher=train_cipher,
@@ -189,7 +156,5 @@ def run_task(
         training_result=training_result,
         pretrain_result=pretrain_result,
         final_evaluation=final_evaluation,
+        initialization=initialization,
     )
-    if initialization is not None:
-        row["initialization"] = initialization
-    return row
