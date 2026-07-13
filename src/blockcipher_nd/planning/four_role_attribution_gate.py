@@ -151,6 +151,7 @@ class FourRoleGateSpec:
     decide: DecisionCallback
     stopped_actions: StoppedActionsCallback
     allow_none_seed0_architecture_margin: bool = False
+    representation_role: str = "delta_only"
 
     def __post_init__(self) -> None:
         for field in (
@@ -249,7 +250,9 @@ def evaluate_four_role_attribution(
         return _invalid_protocol(errors, protocol=spec.protocol)
 
     by_seed = _rows_by_seed_and_role(rows, spec=spec)
-    seed_reports = {str(seed): _seed_report(by_seed[seed]) for seed in expected_seeds}
+    seed_reports = {
+        str(seed): _seed_report(by_seed[seed], spec=spec) for seed in expected_seeds
+    }
     first_seed_rows = by_seed[expected_seeds[0]]
     counts = {
         role: int(first_seed_rows[role]["parameter_count"]) for role in spec.model_roles
@@ -1113,15 +1116,18 @@ def _rows_by_seed_and_role(
     return by_seed
 
 
-def _seed_report(rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _seed_report(
+    rows: dict[str, dict[str, Any]], *, spec: FourRoleGateSpec
+) -> dict[str, Any]:
     aucs = {role: float(row["metrics"]["auc"]) for role, row in rows.items()}
+    representation_role = spec.representation_role
     return {
         "aucs": aucs,
         "architecture_margin": aucs["candidate"] - aucs["anchor"],
         "topology_margin": aucs["candidate"] - aucs["shuffled_p"],
-        "representation_margin": aucs["candidate"] - aucs["delta_only"],
+        "representation_margin": aucs["candidate"] - aucs[representation_role],
         "candidate_above_all": aucs["candidate"]
-        > max(aucs["anchor"], aucs["shuffled_p"], aucs["delta_only"]),
+        > max(aucs["anchor"], aucs["shuffled_p"], aucs[representation_role]),
     }
 
 
