@@ -46,6 +46,17 @@ The gate uses the existing `PRESENT_CASE2_ATTRIBUTION_PROTOCOL`, but its semanti
 contract names Liu Case 3 and its representation role is `raw_triple`. The
 three seed0 margins are all `0.003`.
 
+## Execution Record
+
+- Tasks 1-4 completed through pushed feature head `05a5793`. Focused H2 and
+  inherited H1/Conv2D verification passed `456` tests with three saved-artifact
+  replays deselected because linked worktrees do not contain ignored historical
+  output trees. Ruff and cumulative diff checks passed.
+- Task 6 R0 completed locally on 2026-07-13. Plan validation, cache/progress
+  reuse, four complete histories/checkpoints, SVG labels, and the strict neutral
+  gate all passed. The decision was `implementation_ready`; R0 metrics were not
+  interpreted. Task 7 R1 is authorized.
+
 ## File Map
 
 - Create `src/blockcipher_nd/models/structure/spn/present_case3_topology_residual.py`: exact three-channel tensor construction and shared hybrid.

@@ -1,6 +1,6 @@
 # PRESENT Case 3 Three-Channel Topology-Residual Design
 
-**Status:** approved hypothesis; implementation not yet started  
+**Status:** R0 implementation readiness passed; R1 seed0 authorized
 **Date:** 2026-07-13  
 **Experiment label:** H2  
 
@@ -16,6 +16,46 @@ difference channel to three Case 3 channels.
 H2 starts with a local CPU readiness run and then a local `8192/class`, seed0
 diagnostic. Seed1 is authorized only if the candidate clears all three frozen
 `+0.003` AUC margins. No remote or larger run is authorized by this design.
+
+## Completed R0 Readiness Evidence
+
+Run `i1_present_case3_topology_residual_smoke_seed0` completed locally on
+2026-07-13 from pushed feature head `05a5793`. It used `64/class` training,
+`32/class` validation, 16 pairs/sample, one epoch, seed0, CPU, strict encrypted
+random plaintext negatives, and effective `per_pair_random` keys verified from
+the generated cache and result metadata.
+
+The exact four-row plan aligned with all four result rows. The strict readiness
+gate returned:
+
+```text
+status                    = pass
+decision                  = implementation_ready
+research_decision_applied = false
+errors                    = []
+next_action               = run_frozen_h2_seed0_local_diagnostic
+```
+
+One train cache and one validation cache were created, then reused for all
+three hybrid rows (`create_count=2`, `reuse_count=6`,
+`control_reuse_count=6`). The three H2 hybrids each had `137698` total and
+trainable parameters; the unchanged anchor had `128673`. The generated SVG
+parsed successfully and visibly contained all four distinct role labels.
+
+Verified artifacts:
+
+```text
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/results.jsonl
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/progress.jsonl
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/validation.json
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/history.csv
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/curves.svg
+outputs/local_smoke/i1_present_case3_topology_residual_smoke_seed0/readiness_gate.json
+outputs/local_cache/i1_present_case3_topology_residual_smoke_seed0/
+```
+
+R0 metrics are intentionally not interpreted. This evidence authorizes only
+the frozen local `8192/class`, seed0 R1 diagnostic.
 
 ## Research Question
 
@@ -279,4 +319,3 @@ Implementation may proceed only if it satisfies all of the following:
    is reported.
 7. No H2 seed1 or larger/remote run starts unless the preceding gate explicitly
    returns `promote_seed1`.
-
