@@ -18,7 +18,7 @@ four-role gate infrastructure.
 **Tech Stack:** Python 3.10, PyTorch, pytest, CSV experiment matrices, JSONL
 result/progress artifacts, repository evaluation CLIs.
 
-**Status:** Tasks 1-7 and Task 8 verification completed; commit/push pending.
+**Status:** Completed and pushed to `origin/main` through commit `a127546`.
 
 ---
 
@@ -153,6 +153,6 @@ MPLCONFIGDIR=/tmp/matplotlib-cache UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q
 - [x] Run Ruff on changed Python files, `git diff --check`, exact plan/result
   validation, SVG parsing, and strict gate replay.
 - [x] Inspect the scoped diff and ensure no unrelated files are staged.
-- [ ] Commit the implementation/result documentation and push `main` using the
+- [x] Commit the implementation/result documentation and push `main` using the
   configured remote. Report any platform rejection exactly; do not use a dirty
   overlay or alternate transfer path.
