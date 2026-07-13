@@ -524,6 +524,12 @@ the agent stopped again to request review of the written file. The user
 corrected this explicitly: `推进` meant to perform the corresponding repair,
 tests, smoke, and planned E1-R1 experiment, not merely prepare documentation.
 
+The same pattern recurred for H2 on 2026-07-13. The user had approved and asked
+to launch the bounded Case 3 experiment, but the agent stopped after committing
+the written design to request a second approval. The user clarified that these
+repeated in-scope approval gates are unnecessary and that the agent should
+continue autonomously.
+
 Repository requirements to write plans, commit changes, and preserve evidence
 do not imply repeatedly asking for approval after the user has already
 authorized the bounded design. Unless a new choice would materially change
@@ -539,13 +545,13 @@ material decision that was not covered by the approved plan.
 
 ### Metadata
 - Source: user_feedback
-- Related Files: docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md, AGENTS.md
+- Related Files: docs/experiments/innovation1-present-r8-active-cell-layout-repair-readjudication-plan.md, docs/experiments/innovation1-present-case3-three-channel-topology-residual-design.md, AGENTS.md
 - Tags: workflow, autonomy, experiment-execution, approval, user-intent
 - See Also: LRN-20260710-002, LRN-20260710-001
 - Pattern-Key: workflow.approved_experiment_proceed_means_execute_to_verdict
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-10
-- Last-Seen: 2026-07-10
+- Last-Seen: 2026-07-13
 
 ### Resolution
 - **Resolved**: 2026-07-10T12:16:00+08:00
