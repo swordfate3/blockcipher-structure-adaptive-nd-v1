@@ -412,9 +412,10 @@ including rigorous negative results where apparent gains do not transfer.
 
 ## Immediate Next Action
 
-E4-R0 and E4-R1 were implemented and completed on 2026-07-13. The remaining
-authorized action is now the separately planned E4-R2 checkpoint-transfer
-gate; do not repeat R1 or scale its sample count.
+E4-R0, E4-R1, and E4-R2 seed0 were implemented and completed on 2026-07-13.
+R2 seed0 passed every frozen transfer margin. The only authorized next
+training action is an identical local target-seed1 repeat at `8192/class`;
+do not increase sample count or launch remotely from the seed0 result.
 
 ## 2026-07-13 E4-R0/R1 Execution Record
 
@@ -536,11 +537,12 @@ complete histories/checkpoints, disk-cache creation and six control reuse
 events per cipher, effective key schedules, equal typed capacities, and
 cross-cipher state geometry.
 
-### Executable next action
+### Historical R2 seed0 action (completed)
 
-The next research question is whether PRESENT pretraining transfers useful
-typed structural weights to GIFT beyond GIFT scratch and both source/target
-mapping controls. Freeze a separate E4-R2 implementation plan before running:
+The completed seed0 research question was whether PRESENT pretraining
+transfers useful typed structural weights to GIFT beyond GIFT scratch and both
+source/target mapping controls. Freeze a separate E4-R2 implementation plan
+before running:
 
 1. Same-budget target anchor: completed GIFT aligned wrapper and typed scratch
    rows under the exact R1 GIFT cache and 10-epoch budget.
@@ -569,3 +571,127 @@ The original implementation sequence was:
 5. local R1 only after R0 passes;
 6. implement the R2 transfer runner only if the PRESENT source gate authorizes
    it.
+
+## 2026-07-13 E4-R2 Seed0 Execution Record
+
+### Implementation readiness and provenance
+
+```text
+implementation commit = cc8fff3
+orchestration fix     = 6f3a904
+R0 status             = pass
+R0 decision           = implementation_ready
+R0 protocol           = 64/class, seed0, 1 epoch, CPU
+typed parameter count = 187426
+focused tests          = 21 passed
+full test suite        = 1260 passed, 14 warnings
+ruff / diff check      = pass / pass
+```
+
+The readiness gate did not interpret its tiny-run AUC values. It verified the
+five target roles, strict state-dict loading, source result/checkpoint
+identity, equal typed capacity, shared target cache, and the frozen source
+checkpoint hashes:
+
+```text
+PRESENT true source SHA-256:
+  eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1
+PRESENT shuffled source SHA-256:
+  fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22
+```
+
+### Frozen target protocol
+
+```text
+cipher/rounds       = GIFT-64 r6
+sample structure    = independent pairs
+train/validation    = 8192/class / 4096/class
+pairs/sample        = 4
+target seed         = 0
+target key schedule = fixed split keys
+negative mode       = encrypted_random_plaintexts
+epochs/device       = 10 / CPU
+loss/optimizer      = MSE / Adam
+learning rate       = 0.0001
+weight decay        = 0.00001
+checkpoint          = restored best val_auc
+dataset cache       = outputs/local_cache/i1_gift64_cross_spn_typed_cell_r1_seed0
+```
+
+All five rows reused the exact R1 GIFT target train/validation cache. The only
+experimental variable was checkpoint initialization and target mapping role.
+
+### Results and gate
+
+| Role | Validation AUC | Accuracy | Best epoch |
+| --- | ---: | ---: | ---: |
+| GIFT aligned anchor | `0.506567180157` | `0.500610351562` | 9 |
+| GIFT typed scratch | `0.551968932152` | `0.535766601562` | 6 |
+| PRESENT true to GIFT true | `0.569627493620` | `0.541015625000` | 10 |
+| PRESENT shuffled to GIFT true | `0.544660240412` | `0.533325195312` | 6 |
+| PRESENT true to GIFT shuffled | `0.508949667215` | `0.498901367188` | 3 |
+
+```text
+true_to_true absolute AUC = 0.569627493620  pass >= 0.52
+true_to_true - anchor     = +0.063060313463 pass >= +0.003
+true_to_true - scratch    = +0.017658561468 pass >= +0.005
+true - source-shuffled    = +0.024967253208 pass >= +0.003
+true - target-shuffled    = +0.060677826405 pass >= +0.003
+
+status      = pass
+decision    = promote_e4_transfer_seed1
+next_action = freeze_identical_e4_r2_seed1_repeat
+```
+
+The source-shuffled control also exceeded target scratch, so generic
+pretraining may contribute. It does not explain the full candidate gain:
+true-source transfer remains `+0.024967253208` AUC above source-shuffled under
+the same GIFT-true target mapping, and the target-shuffled control separately
+loses by `+0.060677826405`. At this seed and budget, both learned source
+topology and correct target topology are therefore attributable contributors.
+
+This is a single-seed local `8192/class` diagnostic. It is not formal
+training, paper-scale evidence, a SOTA result, or a breakthrough claim.
+
+### Validation and artifacts
+
+```text
+plan:
+  configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed0.csv
+source manifest:
+  configs/experiment/innovation1/innovation1_spn_cross_spn_typed_transfer_seed0_sources.json
+artifacts:
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/results.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/progress.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/validation.json
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/history.csv
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/curves.svg
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/gate.json
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/checkpoints/
+```
+
+The result validator returned five plan-aligned rows with no missing,
+duplicate, unexpected, or mismatched keys. The SVG parsed successfully and
+the history CSV contains 50 epoch rows. The strict gate returned no errors.
+
+### Executable next action
+
+The next research question is whether the attributed transfer margin repeats
+under an independent target seed. Freeze one E4-R2 seed1 repeat as follows:
+
+1. Same-budget anchor and controls: the same five roles, architectures,
+   optimizer, source checkpoints, and 10-epoch target budget.
+2. One variable: change only the GIFT target seed from 0 to 1 and use a new
+   parameter-matched disk cache; keep both PRESENT source SHA-256 values fixed.
+3. Scale and path: local CPU, `8192/class` train, `4096/class` validation,
+   four pairs/sample, with five restored-best checkpoints and full progress.
+4. Readiness gate: validate the seed1 CSV, strict source loads, shared target
+   cache, complete histories/checkpoints, and SVG/CSV artifacts before
+   interpreting metrics.
+5. Advance gate: apply the identical absolute and four-margin thresholds to
+   seed1, then freeze a joint two-seed adjudication. If seed1 fails any
+   attribution control, stop transfer scale and retain R2 seed0 as provisional
+   single-seed evidence only.
+6. Explicitly stopped until the two-seed gate passes: `65536/class`,
+   `262144/class`, formal-scale training, remote GPU, DDT/trail reopening, and
+   architecture changes.
