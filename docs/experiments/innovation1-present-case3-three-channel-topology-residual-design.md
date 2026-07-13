@@ -1,6 +1,6 @@
 # PRESENT Case 3 Three-Channel Topology-Residual Design
 
-**Status:** R0 implementation readiness passed; R1 seed0 authorized
+**Status:** R1 seed0 completed; H2 rejected and closed before seed1/scale
 **Date:** 2026-07-13  
 **Experiment label:** H2  
 
@@ -56,6 +56,73 @@ outputs/local_cache/i1_present_case3_topology_residual_smoke_seed0/
 
 R0 metrics are intentionally not interpreted. This evidence authorizes only
 the frozen local `8192/class`, seed0 R1 diagnostic.
+
+## Completed R1 Seed0 Adjudication
+
+Run `i1_present_case3_topology_residual_8192_seed0` completed locally on
+2026-07-13 from pushed H2 code. It used PRESENT-80 r7, `8192/class` training,
+`4096/class` validation, 16 pairs/sample, seed0, 10 epochs, CPU, strict
+encrypted-random-plaintext negatives, and effective `per_pair_random` keys.
+
+Best-checkpoint validation AUCs were:
+
+| Role | AUC |
+| --- | ---: |
+| InvP Token-Mixer anchor | `0.750535935163` |
+| Case 3 true-InvP candidate | `0.746721357107` |
+| Case 3 shuffled-P control | `0.749705582857` |
+| Case 3 raw-triple control | `0.752139568329` |
+
+The frozen margins were:
+
+```text
+candidate - anchor      = -0.003814578056
+candidate - shuffled-P  = -0.002984225750
+candidate - raw-triple  = -0.005418211222
+```
+
+The strict gate returned:
+
+```text
+status      = pass
+decision    = reject_h2
+errors      = []
+next_action = stop_h2_and_keep_token_mixer_anchor
+```
+
+All four rows completed 10 epochs and selected epoch 10. The candidate's final
+train AUC was `0.779015079141`, so its lower validation AUC is not explained by
+an interrupted run or failure to optimize relative to the controls. The one-time
+history inspection therefore does not reopen H2.
+
+Plan validation passed with four exact rows. The gate verified one created
+train cache and one created validation cache followed by six reuse events,
+complete histories/checkpoints, `per_pair_random` metadata, and no protocol
+errors. The SVG parsed and contained all four distinct visible labels.
+
+Verified artifacts:
+
+```text
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/results.jsonl
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/progress.jsonl
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/validation.json
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/history.csv
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/curves.svg
+outputs/local_smoke/i1_present_case3_topology_residual_8192_seed0/case3_gate.json
+outputs/local_cache/i1_present_case3_topology_residual_8192_seed0/
+```
+
+H2 does not authorize seed1, `65536/class`, `262144/class`, remote GPU, or a
+formal-scale run. This is a one-seed `8192/class` local diagnostic rejection of
+this specific fixed Case 3 topology-residual adapter, not a PRESENT model or
+feature ceiling.
+
+The recommended next research action is to retain the InvP Token-Mixer anchor
+and design a qualitatively different SPN-aware interaction mechanism. Do not
+promote the raw-triple row: its `+0.001603633165` margin over the anchor is below
+the frozen `+0.003` architecture gate and lacks true-topology attribution. A
+next method should first define same-budget controls that separate generic
+three-channel capacity from actual cipher-structure use before any scale-up.
 
 ## Research Question
 

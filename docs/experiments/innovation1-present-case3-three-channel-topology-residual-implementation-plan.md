@@ -56,6 +56,12 @@ three seed0 margins are all `0.003`.
   reuse, four complete histories/checkpoints, SVG labels, and the strict neutral
   gate all passed. The decision was `implementation_ready`; R0 metrics were not
   interpreted. Task 7 R1 is authorized.
+- Task 7 R1 completed locally on 2026-07-13. All four rows ran 10 epochs against
+  one shared `8192/class` train cache and one shared `4096/class` validation
+  cache. Validation, SVG/history generation, and the strict gate passed. The
+  candidate AUC was `0.746721357107`, below the anchor (`0.750535935163`),
+  shuffled-P (`0.749705582857`), and raw-triple (`0.752139568329`) controls. The
+  decision is `reject_h2`; seed1 and all larger or remote H2 runs are stopped.
 
 ## File Map
 
