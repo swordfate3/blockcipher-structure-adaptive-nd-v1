@@ -412,7 +412,155 @@ including rigorous negative results where apparent gains do not transfer.
 
 ## Immediate Next Action
 
-Implement only E4-R0 and E4-R1 first:
+E4-R0 and E4-R1 were implemented and completed on 2026-07-13. The remaining
+authorized action is now the separately planned E4-R2 checkpoint-transfer
+gate; do not repeat R1 or scale its sample count.
+
+## 2026-07-13 E4-R0/R1 Execution Record
+
+### Implementation and readiness
+
+```text
+implementation commit = 3a54f75
+R0 status             = pass
+R0 decision           = implementation_ready
+typed parameter count = 187426 for all PRESENT/GIFT true/shuffled/raw aliases
+focused tests          = 40 passed
+project/focused tests  = 492 passed, 8 warnings
+```
+
+R0 ran both four-role matrices at `64/class` training and `32/class`
+validation, seed0, one epoch, CPU. Both matrices passed exact result/plan
+alignment, finite history/checkpoint checks, SVG parsing, and neutral gate
+replay. A second execution reused the parameter-matched train and validation
+caches for all rows. R0 AUC values were not interpreted.
+
+### E4-R1 frozen protocol
+
+```text
+PRESENT source:
+  cipher/rounds       = PRESENT-80 r7
+  sample structure    = Zhang/Wang Case2 official MCND
+  train/validation    = 8192/class / 4096/class
+  pairs/sample        = 16
+  effective keys      = per_pair_random
+
+GIFT target scratch:
+  cipher/rounds       = GIFT-64 r6
+  sample structure    = independent pairs
+  train/validation    = 8192/class / 4096/class
+  pairs/sample        = 4
+  effective keys      = fixed split keys
+
+shared:
+  seed/epochs/device  = seed0 / 10 / CPU
+  negative mode       = encrypted_random_plaintexts
+  loss/optimizer      = MSE / Adam
+  learning rate       = 0.0001
+  weight decay        = 0.00001
+  checkpoint          = restored best val_auc
+```
+
+This is a local single-seed `8192/class` diagnostic, not formal training,
+paper-scale evidence, a ceiling result, or a breakthrough claim.
+
+### E4-R1 results
+
+PRESENT source:
+
+| Role | Validation AUC | Accuracy | Best epoch | Final train AUC |
+| --- | ---: | ---: | ---: | ---: |
+| InvP-only Token-Mixer anchor | `0.745933175087` | `0.670043945312` | 10 | `0.769022487104` |
+| typed true InvP | `0.743810147047` | `0.662353515625` | 10 | `0.770136669278` |
+| typed shuffled mapping | `0.575898259878` | `0.545043945312` | 9 | `0.659925296903` |
+| typed raw identity | `0.586375117302` | `0.553955078125` | 10 | `0.633669070899` |
+
+```text
+typed true absolute AUC = 0.743810147047
+true - anchor           = -0.002123028040  >= -0.010 gate
+true - shuffled         = +0.167911887169  >= +0.003 gate
+true - raw              = +0.157435029745  >= +0.003 gate
+```
+
+GIFT scratch:
+
+| Role | Validation AUC | Accuracy | Best epoch | Final train AUC |
+| --- | ---: | ---: | ---: | ---: |
+| historical aligned Token-Mixer anchor | `0.506567180157` | `0.500610351562` | 9 | `0.576292179525` |
+| typed true InvP | `0.551968932152` | `0.535766601562` | 6 | `0.640496343374` |
+| typed shuffled mapping | `0.500088214874` | `0.499877929688` | 1 | `0.642125204206` |
+| typed raw identity | `0.501148313284` | `0.500732421875` | 3 | `0.587141521275` |
+
+```text
+true - anchor   = +0.045401751995
+true - shuffled = +0.051880717278
+true - raw      = +0.050820618868
+```
+
+The GIFT scratch result was not required to authorize transfer, but its strong
+same-input control separation is additional diagnostic evidence that the
+generated typed mapping is learning cipher-specific structural signal rather
+than generic capacity alone.
+
+### Validation and artifacts
+
+```text
+PRESENT plan:
+  configs/experiment/innovation1/innovation1_spn_present_cross_spn_typed_cell_8192_seed0.csv
+PRESENT artifacts:
+  outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0/results.jsonl
+  outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0/progress.jsonl
+  outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0/history.csv
+  outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0/curves.svg
+  outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0/checkpoints/
+
+GIFT plan:
+  configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_typed_cell_8192_seed0.csv
+GIFT artifacts:
+  outputs/local_smoke/i1_gift64_cross_spn_typed_cell_r1_seed0/results.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_cell_r1_seed0/progress.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_cell_r1_seed0/history.csv
+  outputs/local_smoke/i1_gift64_cross_spn_typed_cell_r1_seed0/curves.svg
+  outputs/local_smoke/i1_gift64_cross_spn_typed_cell_r1_seed0/checkpoints/
+
+joint gate:
+  outputs/local_smoke/i1_cross_spn_typed_cell_r1_seed0/gate.json
+  status   = pass
+  decision = promote_e4_r2
+  errors   = []
+```
+
+Both result validators returned `status=pass`, four expected rows, no missing
+or duplicate keys, and no field mismatches. The strict joint gate verified
+complete histories/checkpoints, disk-cache creation and six control reuse
+events per cipher, effective key schedules, equal typed capacities, and
+cross-cipher state geometry.
+
+### Executable next action
+
+The next research question is whether PRESENT pretraining transfers useful
+typed structural weights to GIFT beyond GIFT scratch and both source/target
+mapping controls. Freeze a separate E4-R2 implementation plan before running:
+
+1. Same-budget target anchor: completed GIFT aligned wrapper and typed scratch
+   rows under the exact R1 GIFT cache and 10-epoch budget.
+2. Required controls: PRESENT-shuffled to GIFT-true and PRESENT-true to
+   GIFT-shuffled, in addition to PRESENT-true to GIFT-true.
+3. One variable: full strict source checkpoint initialization and mapping role;
+   do not change GIFT data, optimizer, target epochs, or checkpoint selection.
+4. Readiness: prove checkpoint SHA-256 provenance, strict full state-dict load,
+   identical target initial logits for a reloaded source checkpoint, and
+   parameter-matched cache reuse before R2 interpretation.
+5. R2 scale: local seed0, `8192/class` train, `4096/class` validation,
+   10 target epochs, CPU. Apply the already frozen five-margin transfer gate.
+6. Advance only if all five R2 margins pass; otherwise classify the exact
+   failed attribution control and stop transfer scale.
+
+Explicitly stopped now: PRESENT/GIFT R1 repeats, PRESENT seed1 fragility,
+`65536/class`, `262144/class`, remote GPU, DDT/trail reopening, and ad hoc R2
+training without checkpoint provenance.
+
+The original implementation sequence was:
 
 1. generic cipher-spec mapping generator;
 2. one shared typed-cell operator with six fixed mapping aliases;

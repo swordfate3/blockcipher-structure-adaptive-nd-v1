@@ -2,10 +2,10 @@
 
 ## Status
 
-status = route verdict / execution mode switch
-decision = E1/H2/E3-R1 closed; freeze PRESENT-only architecture variants
+status = E4-R1 completed / E4-R2 transfer authorized
+decision = shared typed operator passed source and scratch attribution gates
 claim_scope = project planning and evidence triage only
-next_adjudication = E4 shared typed operators with explicit cross-SPN transfer
+next_adjudication = E4-R2 explicit PRESENT-to-GIFT checkpoint transfer
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -101,6 +101,7 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | topology-aware / DDT graph / candidate trail neighbors | weak or stopped in prior route recheck | hold as controls only | useful for comparison, not next main experiment |
 | H2 Case 3 topology residual | seed0 `8192/class`: candidate `0.746721`, anchor `0.750536`, shuffled `0.749706`, raw triple `0.752140` | stop this adapter | candidate loses all three same-input comparators; seed1 and scale stopped |
 | E3-R1 mapped-delta DBitNet | seed0 `8192/class`: candidate `0.516823`, Token-Mixer anchor `0.750536`; DBitNet final train AUC approaches `1.0` | stop this architecture gate | severe train/validation generalization gap and `-0.233713` AUC versus anchor; seed1 and scale stopped |
+| E4-R1 shared typed cell operator | PRESENT true `0.743810` vs anchor `0.745933`, shuffled `0.575898`, raw `0.586375`; GIFT true `0.551969` vs anchor `0.506567`, shuffled `0.500088`, raw `0.501148` | promote local E4-R2 transfer gate | source is anchor-noninferior and clears both attribution controls; GIFT scratch independently clears all controls |
 
 ## 2026-07-13 H2 And E3-R1 Completion Update
 
@@ -161,6 +162,58 @@ E4 = cipher-spec-generated typed adapter
      + cross-cipher transfer test
 remote_scale = no until a local same-budget transfer gate passes
 ```
+
+## 2026-07-13 E4-R1 Completion Update
+
+E4-R0 and E4-R1 completed locally from implementation commit `3a54f75`.
+R0 passed implementation readiness with identical `187426`-parameter typed
+state across PRESENT/GIFT true, shuffled, and raw variants. R1 then used
+`8192/class` training, `4096/class` validation, seed0, 10 epochs, strict
+encrypted-random-plaintext negatives, and restored best-`val_auc` checkpoints.
+
+PRESENT source gate:
+
+```text
+anchor AUC       = 0.745933175087
+typed true AUC   = 0.743810147047
+typed shuffled   = 0.575898259878
+typed raw        = 0.586375117302
+
+true - anchor    = -0.002123028040  pass >= -0.010
+true - shuffled  = +0.167911887169  pass >= +0.003
+true - raw       = +0.157435029745  pass >= +0.003
+```
+
+GIFT scratch diagnostic:
+
+```text
+aligned anchor   = 0.506567180157
+typed true       = 0.551968932152
+typed shuffled   = 0.500088214874
+typed raw        = 0.501148313284
+
+true - anchor    = +0.045401751995
+true - shuffled  = +0.051880717278
+true - raw       = +0.050820618868
+```
+
+Both plan validators and the strict joint gate passed with complete histories,
+checkpoints, effective key metadata, disk-cache creation/reuse, and no errors.
+The joint decision is:
+
+```text
+decision = promote_e4_r2
+next_action = freeze_and_implement_e4_r2_checkpoint_transfer
+remote_scale = no
+```
+
+This is a strong controlled local diagnostic, not formal, paper-scale, or
+breakthrough evidence. The next slot changes only checkpoint initialization
+and mapping role on the same GIFT target cache/budget. It must compare GIFT
+anchor, GIFT typed scratch, PRESENT-true to GIFT-true,
+PRESENT-shuffled to GIFT-true, and PRESENT-true to GIFT-shuffled. Do not run
+PRESENT seed1, repeat R1, increase samples, or launch remotely before that
+five-role transfer gate is adjudicated.
 
 ## Current Interpretation
 
