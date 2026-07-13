@@ -1,6 +1,6 @@
 # PRESENT Same-Input DBitNet Attribution Design
 
-**Status:** R0 readiness passed / R1 seed0 authorized
+**Status:** R1 seed0 completed; E3-R1 rejected and closed before seed1/scale
 **Date:** 2026-07-13  
 **Experiment label:** E3-R1  
 
@@ -210,6 +210,94 @@ outputs/local_cache/i1_present_same_input_dbitnet_smoke_seed0/
 
 This readiness evidence authorizes only the frozen local R1 seed0 diagnostic.
 It does not authorize seed1, remote execution, or a larger sample budget.
+
+## Completed R1 Seed0 Adjudication
+
+Run `i1_present_same_input_dbitnet_8192_seed0` completed locally on
+2026-07-13. It used the frozen PRESENT-80 r7 Zhang/Wang Case2 protocol with
+`8192/class` training, `4096/class` validation, 16 pairs/sample, seed0, 10
+epochs, CPU, strict encrypted-random-plaintext negatives, and effective
+`per_pair_random` keys verified from result and cache metadata.
+
+Best-checkpoint validation AUCs were:
+
+| Role | AUC |
+| --- | ---: |
+| InvP Token-Mixer anchor | `0.7505359351634979` |
+| true-InvP DBitNet candidate | `0.5168226957321167` |
+| shuffled-P DBitNet control | `0.5097089111804962` |
+| raw-Delta DBitNet control | `0.5138811767101288` |
+
+The frozen margins were:
+
+```text
+candidate - anchor     = -0.23371323943138123
+candidate - shuffled-P = +0.007113784551620483
+candidate - raw-Delta  = +0.002941519021987915
+```
+
+The strict gate returned:
+
+```text
+status      = pass
+decision    = reject_e3_r1
+errors      = []
+next_action = stop_dbitnet_component_gate_and_keep_token_mixer_anchor
+```
+
+The gate passed every protocol, cache, capacity, history, checkpoint, and
+semantic check. One train cache and one validation cache were created and then
+reused six times across the remaining rows. The three DBitNet roles each had
+`797633` total/trainable parameters and differed only in their fixed mapping.
+
+This is an architecture/generalization rejection, not an interrupted-training
+failure. All rows completed 10 epochs and restored their best `val_auc`
+checkpoint. The Token-Mixer selected epoch 10 and finished with train AUC
+`0.7773294225335121` and validation AUC `0.7505359351634979`. In contrast, the
+three DBitNet roles nearly memorized the training set while remaining near
+random on validation:
+
+| Role | Best epoch | Final train AUC | Best validation AUC |
+| --- | ---: | ---: | ---: |
+| true-InvP DBitNet | 2 | `0.9998856782913208` | `0.5168226957321167` |
+| shuffled-P DBitNet | 3 | `1.0` | `0.5097089111804962` |
+| raw-Delta DBitNet | 7 | `0.9998063743114471` | `0.5138811767101288` |
+
+True InvP is above both DBitNet mapping controls, but its raw-Delta margin
+misses the required `+0.003` threshold and it loses to the Token-Mixer anchor
+by about `0.234` AUC. Additional epochs cannot address this observed
+generalization failure, and this one-seed `8192/class` diagnostic does not
+establish a DBitNet or PRESENT ceiling.
+
+Verified artifacts:
+
+```text
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/results.jsonl
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/progress.jsonl
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/validation.json
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/history.csv
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/curves.svg
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/e3_r1_gate.json
+outputs/local_smoke/i1_present_same_input_dbitnet_8192_seed0/checkpoints/
+outputs/local_cache/i1_present_same_input_dbitnet_8192_seed0/
+```
+
+Stopped actions:
+
+```text
+seed1            = stopped
+65536/class      = stopped
+262144/class     = stopped
+remote scale     = stopped
+```
+
+The next method step is not another PRESENT-only architecture variant. Audit
+of the existing three-seed GIFT-64 aligned-input diagnostic shows that a
+GIFT-only rerun is also unjustified. The remaining bounded research direction
+is a cipher-spec-generated typed adapter with shared operators and an explicit
+PRESENT-to-GIFT transfer/attribution gate, or consolidation of Innovation 1 as
+a controlled structural-representation methodology result if that design
+cannot define a genuinely shared hypothesis.
 
 ## Strict Gate
 

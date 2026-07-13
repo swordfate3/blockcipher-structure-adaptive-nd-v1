@@ -5305,6 +5305,31 @@ def _write_ddt_graph_result(
     calibrated_accuracy: float = 0.711,
     loss: float = 0.55,
 ) -> None:
+    model_options = {
+        "present_nibble_invp_only_spn_only": {
+            "spn_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+        },
+        "present_nibble_paligned_transition_residual": {
+            "transition_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 4,
+            "lse_temperature": 1.0,
+        },
+    }.get(
+        model,
+        {
+            "ddt_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 4,
+            "lse_temperature": 1.0,
+        },
+    )
     row = {
         "cipher": "PRESENT-80",
         "structure": "SPN",
@@ -5323,6 +5348,7 @@ def _write_ddt_graph_result(
         "difference_member": 0,
         "model": model,
         "selected_model": model,
+        "model_options": model_options,
         "metrics": {
             "auc": auc,
             "accuracy": accuracy,
@@ -5591,12 +5617,29 @@ def _write_topology_aware_result(
     calibrated_accuracy: float = 0.712,
     accuracy: float = 0.71,
 ) -> None:
+    model_options = (
+        {
+            "spn_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+        }
+        if model == "present_nibble_invp_only_spn_only"
+        else {
+            "graph_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 4,
+            "lse_temperature": 1.0,
+        }
+    )
     with path.open("a", encoding="utf-8") as handle:
         handle.write(
             json.dumps(
                 {
                     "model": model,
                     "selected_model": model,
+                    "model_options": model_options,
                     "cipher": "PRESENT-80",
                     "structure": "SPN",
                     "rounds": 7,
@@ -10129,7 +10172,7 @@ def _write_transition_spectrum_result(
     auc: float,
     calibrated: float = 0.72,
     *,
-    alignment_fields: dict[str, int] | None = None,
+    alignment_fields: dict[str, object] | None = None,
 ) -> None:
     row = {
         "model": model,
@@ -11172,6 +11215,22 @@ def _write_r9_weak_probe_result(path: Path, model: str, auc: float) -> None:
     rows = []
     if path.exists():
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    model_options = {
+        "present_zhang_wang_keras_mcnd": {"blocks": 5, "activation": "relu"},
+        "present_nibble_invp_only_spn_only": {
+            "spn_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+        },
+        "present_nibble_invp_pair_consistency_spn_only": {
+            "spn_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 4,
+            "lse_temperature": 1.0,
+        },
+    }[model]
     rows.append(
         {
             "cipher": "PRESENT-80",
@@ -11182,12 +11241,14 @@ def _write_r9_weak_probe_result(path: Path, model: str, auc: float) -> None:
             "pairs_per_sample": 16,
             "model": model,
             "selected_model": model,
+            "model_options": model_options,
             "feature_encoding": "ciphertext_pair_bits",
             "negative_mode": "encrypted_random_plaintexts",
             "sample_structure": "zhang_wang_case2_official_mcnd",
             "difference_profile": "present_zhang_wang2022_mcnd",
             "difference_member": 0,
             "key_rotation_interval": 0,
+            "integral_active_nibble": 0,
             "metrics": {
                 "auc": auc,
                 "accuracy": 0.5 + (auc - 0.5) / 2,
@@ -11203,6 +11264,17 @@ def _write_r8_pairset_1m_result(path: Path, model: str, auc: float) -> None:
     rows = []
     if path.exists():
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    model_options = {
+        "present_zhang_wang_keras_mcnd": {"blocks": 5, "activation": "relu"},
+        "present_nibble_invp_pair_consistency_spn_only": {
+            "spn_mixer_depth": 2,
+            "activation": "relu",
+            "norm": "layernorm",
+            "pooling": "topk_logsumexp",
+            "top_k": 4,
+            "lse_temperature": 1.0,
+        },
+    }[model]
     rows.append(
         {
             "cipher": "PRESENT-80",
@@ -11213,12 +11285,14 @@ def _write_r8_pairset_1m_result(path: Path, model: str, auc: float) -> None:
             "pairs_per_sample": 16,
             "model": model,
             "selected_model": model,
+            "model_options": model_options,
             "feature_encoding": "ciphertext_pair_bits",
             "negative_mode": "encrypted_random_plaintexts",
             "sample_structure": "zhang_wang_case2_official_mcnd",
             "difference_profile": "present_zhang_wang2022_mcnd",
             "difference_member": 0,
             "key_rotation_interval": 0,
+            "integral_active_nibble": 0,
             "metrics": {
                 "auc": auc,
                 "accuracy": 0.5 + (auc - 0.5) / 2,
@@ -12675,7 +12749,14 @@ def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
         transition_results,
         "bit_transition_spectrum_linear",
         0.5,
-        alignment_fields={"rounds": 7, "seed": 0, "samples_per_class": 2},
+        alignment_fields={
+            "rounds": 7,
+            "seed": 0,
+            "samples_per_class": 2,
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "key_rotation_interval": 0,
+        },
     )
 
     transition = validate_result_plan_alignment(transition_plan, transition_results, expected_rows=1)
@@ -12708,7 +12789,14 @@ def test_json_plan_alignment_maps_route_specific_short_model_names(tmp_path):
         trail_results,
         "trail_family_consistency_false_family",
         0.5,
-        alignment_fields={"rounds": 7, "seed": 0, "samples_per_class": 2},
+        alignment_fields={
+            "rounds": 7,
+            "seed": 0,
+            "samples_per_class": 2,
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "key_rotation_interval": 0,
+        },
     )
 
     trail = validate_result_plan_alignment(trail_plan, trail_results, expected_rows=1)

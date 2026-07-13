@@ -3,8 +3,9 @@
 ## Status
 
 status = route verdict / execution mode switch
-decision = stop broad exploration; allow only bounded adjudication experiments
+decision = E1/H2/E3-R1 closed; freeze PRESENT-only architecture variants
 claim_scope = project planning and evidence triage only
+next_adjudication = E4 shared typed operators with explicit cross-SPN transfer
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -98,6 +99,68 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | near-neighbor diverse ensembles | small improvement below gate; no confirmed low-correlation non-neighbor expert yet | hold | ensemble is not the bottleneck until a controllable non-neighbor expert exists |
 | r8/r9 difference screens and curriculum probes | r9 difference screen and curriculum stopped or near random | stop | completed gates do not justify more difference/curriculum variants |
 | topology-aware / DDT graph / candidate trail neighbors | weak or stopped in prior route recheck | hold as controls only | useful for comparison, not next main experiment |
+| H2 Case 3 topology residual | seed0 `8192/class`: candidate `0.746721`, anchor `0.750536`, shuffled `0.749706`, raw triple `0.752140` | stop this adapter | candidate loses all three same-input comparators; seed1 and scale stopped |
+| E3-R1 mapped-delta DBitNet | seed0 `8192/class`: candidate `0.516823`, Token-Mixer anchor `0.750536`; DBitNet final train AUC approaches `1.0` | stop this architecture gate | severe train/validation generalization gap and `-0.233713` AUC versus anchor; seed1 and scale stopped |
+
+## 2026-07-13 H2 And E3-R1 Completion Update
+
+H2 and E3-R1 completed as local seed0 `8192/class` diagnostics. Both used the
+same strict PRESENT-80 r7 Zhang/Wang Case2 dataset, 16 pairs/sample, encrypted
+random plaintext negatives, effective `per_pair_random` keys, 10 epochs, and
+best-`val_auc` checkpoint restoration. These are controlled diagnostic results,
+not formal training or model-ceiling evidence.
+
+H2 tested a Liu Case 3 three-channel residual adapter:
+
+```text
+candidate - anchor     = -0.003814578056 AUC
+candidate - shuffled-P = -0.002984225750 AUC
+candidate - raw-triple = -0.005418211222 AUC
+decision               = reject_h2
+```
+
+E3-R1 then replaced that local adapter with the published AutoND/DBitNet-2023
+learner over exactly the same mapped 16-pair differences:
+
+| Role | AUC |
+| --- | ---: |
+| Token-Mixer anchor | `0.7505359351634979` |
+| true-InvP DBitNet | `0.5168226957321167` |
+| shuffled-P DBitNet | `0.5097089111804962` |
+| raw-Delta DBitNet | `0.5138811767101288` |
+
+```text
+candidate - anchor     = -0.23371323943138123 AUC
+candidate - shuffled-P = +0.007113784551620483 AUC
+candidate - raw-Delta  = +0.002941519021987915 AUC
+decision               = reject_e3_r1
+```
+
+All three DBitNet rows reached final train AUC between `0.999806` and `1.0`
+while their best validation AUCs stayed between `0.509709` and `0.516823`.
+Therefore the result is not caused by insufficient epochs or a failed run; at
+this diagnostic budget the flattened DBitNet learner memorizes the training
+set and generalizes far worse than the Token-Mixer anchor.
+
+Both gates explicitly stop seed1, `65536/class`, `262144/class`, and remote
+scale. They do not prove that every DBitNet or PRESENT architecture fails.
+They do prove that another PRESENT-only fixed-adapter or flattened-DBitNet slot
+is not the next justified experiment.
+
+The existing GIFT-64 aligned-input route was separately audited at
+`8192/class`, three seeds. Its aligned row had the best mean AUC (`0.505356`)
+but only about `+0.0018` over the XOR control and lost that control on seed1.
+That exact GIFT-only route remains held and must not be mechanically rerun.
+
+Current bounded next action:
+
+```text
+E4 = cipher-spec-generated typed adapter
+     + shared operators across PRESENT and GIFT
+     + explicit within-cipher true/shuffled/raw attribution
+     + cross-cipher transfer test
+remote_scale = no until a local same-budget transfer gate passes
+```
 
 ## Current Interpretation
 
@@ -116,7 +179,12 @@ signal. The evidence says it does. The harder question is whether the project
 can turn that signal into a controlled neural distinguisher contribution rather
 than a deterministic feature/protocol artifact.
 
-## Allowed Next Experiments
+## Historical Adjudication Program
+
+The E1-E3 program below records the experiments that were authorized by the
+2026-07-09 verdict. The 2026-07-13 completion update above supersedes it for
+new execution: do not repeat or scale these rows. Only the bounded E4 design is
+currently eligible for a new readiness plan.
 
 Only the following experiments are allowed before the next verdict update.
 They are decision experiments, not exploration experiments.
@@ -305,8 +373,11 @@ next_action = <one concrete action or stop>
 
 ## Decision
 
-Innovation 1 remains methodologically viable, but broad search is over. The
-project should now run only adjudication experiments that can stop, hold, or
-focus a route. The default next action is E1 if the goal is to adjudicate the
-current topology-architecture branch, or E2 if the goal is to maximize the
-chance of a usable SPN-aware representation contribution.
+Innovation 1 remains methodologically viable, but broad search and the
+PRESENT-only architecture sequence are closed. E1, H2, and E3-R1 have already
+served their stop/hold function. The next justified research slot is an E4
+design that tests one shared typed operator hypothesis across PRESENT and GIFT
+with same-input attribution and cross-cipher transfer. If E4 cannot define or
+pass that local gate, consolidate the contribution as a controlled
+structural-representation methodology result instead of adding more network
+variants.
