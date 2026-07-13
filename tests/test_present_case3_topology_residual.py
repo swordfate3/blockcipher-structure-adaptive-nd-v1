@@ -288,4 +288,3 @@ def test_case3_registry_preserves_invalid_options(
             pair_bits=pair_bits,
             model_options=model_options,
         )
-
