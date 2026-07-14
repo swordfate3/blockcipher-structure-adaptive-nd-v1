@@ -332,3 +332,13 @@ plans, gates, configs, tests, and generated remote assets; then launch both
 target seeds from that exact pushed commit and hand monitoring/retrieval to the
 local tmux watcher. Do not run `65536/class` locally and do not mechanically
 advance to `262144/class`.
+
+The post-pass protocol is predeclared, but inactive, in:
+
+```text
+docs/experiments/innovation1-cross-spn-formal-multisource-multitarget-r6-conditional-plan.md
+```
+
+That document does not authorize an E4-R6 config or launch. It activates only
+after both E4-R5 target seeds and the local joint gate pass from verified,
+retrieved archives.
