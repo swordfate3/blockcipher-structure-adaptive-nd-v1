@@ -319,6 +319,8 @@ def test_cross_spn_transfer_r3_remote_assets_are_fail_closed() -> None:
     assert launcher.count("schtasks /Run") == 2
     assert "set SOURCE_COMMIT=%~1" in launcher
     assert 'git checkout --detach "%EXPECTED_COMMIT%"' in launcher
+    assert 'if /I not "%ACTUAL_COMMIT%"=="%EXPECTED_COMMIT%" exit /b 1' in launcher
+    assert "findstr /x" not in launcher
     assert "source_expected_commit.txt" in launcher
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
 

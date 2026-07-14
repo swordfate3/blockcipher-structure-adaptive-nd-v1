@@ -48,7 +48,8 @@ if exist "%SOURCE_ROOT%\.git" (
 cd /d "%SOURCE_ROOT%" || exit /b 1
 git checkout --detach "%EXPECTED_COMMIT%" || exit /b 1
 for /f "delims=" %%S in ('git status --porcelain') do exit /b 1
+for /f "delims=" %%H in ('git rev-parse HEAD') do set ACTUAL_COMMIT=%%H
+if /I not "%ACTUAL_COMMIT%"=="%EXPECTED_COMMIT%" exit /b 1
 git rev-parse HEAD > "%RUN_ROOT%\source_expected_commit.txt" || exit /b 1
 git rev-parse HEAD > "%RUN_ROOT%\source_revision_before_schedule.txt" || exit /b 1
-findstr /x /c:"%EXPECTED_COMMIT%" "%RUN_ROOT%\source_expected_commit.txt" > nul || exit /b 1
 exit /b 0
