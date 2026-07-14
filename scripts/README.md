@@ -6,6 +6,15 @@ Scripts are thin human-facing entrypoints that call package CLI modules under
 Do not put training loops, dataset generation, feature extraction, cache logic,
 or result validation implementations here.
 
+Use `scripts/index-results` after a meaningful local result, retrieved remote
+result, or completed re-adjudication. It writes `outputs/00_RECENT_RESULTS.md`
+and `outputs/00_RECENT_RESULTS.json`, ordered by completion evidence with `001`
+as the newest item. The Markdown index links directly to curves, gates,
+validation reports, JSONL results, history CSVs, and progress logs. It does not
+rename run directories, so existing config, documentation, and gate paths stay
+valid. Re-rendering an old SVG does not move that experiment to the top because
+sorting prefers gate, validation, and result timestamps.
+
 Use `scripts/gate-invp-result` after a retrieved InvP-only 1M JSONL result to
 write a deterministic seed1-vs-DDT branch report.
 

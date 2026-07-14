@@ -4230,6 +4230,7 @@ def test_scripts_are_thin_package_entrypoints():
         Path("scripts/summarize-spn-evidence"),
         Path("scripts/watch-high-round"),
         Path("scripts/plot-results"),
+        Path("scripts/index-results"),
         Path("scripts/evaluate-zhang-wang-checkpoint"),
     ]
 
