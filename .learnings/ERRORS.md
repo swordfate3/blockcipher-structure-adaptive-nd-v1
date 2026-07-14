@@ -950,12 +950,15 @@ python GPU processes = absent
   Scheduler.
 - The launcher correctly created both tasks with `cmd.exe /c`, but default task
   constraints prevented immediate execution despite exit code 0.
+- Retrying with `schtasks /Run /I` still left both tasks Ready. The query showed
+  that they were configured to run only in an interactive user session, while
+  the SSH launch had no usable interactive desktop token.
 
 ### Suggested Fix
-Use `schtasks /Run /I /TN <task>` so the explicit launch ignores scheduling
-constraints, then require a bounded post-launch check for run logs, exact
-started markers, and Python GPU processes. Never treat the `/Run` exit code or
-its success text alone as proof of execution.
+Create unattended experiment tasks with `/RU SYSTEM /RL HIGHEST`, then invoke
+them with `schtasks /Run /I /TN <task>`. Require a bounded post-launch check for
+run logs, exact started markers, and Python GPU processes. Never treat the
+`/Run` exit code or its success text alone as proof of execution.
 
 ### Metadata
 - Reproducible: yes

@@ -316,6 +316,8 @@ def test_cross_spn_transfer_r3_remote_assets_are_fail_closed() -> None:
 
     assert launcher.count("cmd.exe /c") == 2
     assert "cmd.exe /k" not in launcher.lower()
+    assert launcher.count("/RU SYSTEM") == 2
+    assert launcher.count("/RL HIGHEST") == 2
     assert launcher.count("schtasks /Run /I") == 2
     assert "set SOURCE_COMMIT=%~1" in launcher
     assert 'git checkout --detach "%EXPECTED_COMMIT%"' in launcher

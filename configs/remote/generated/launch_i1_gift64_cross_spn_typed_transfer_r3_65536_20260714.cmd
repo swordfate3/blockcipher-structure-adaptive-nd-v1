@@ -22,8 +22,8 @@ call :prepare_source %SEED1_ID% %SOURCE_COMMIT% || exit /b 1
 set CMD0=%RUNS_ROOT%\%SEED0_ID%\source\configs\remote\generated\run_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.cmd
 set CMD1=%RUNS_ROOT%\%SEED1_ID%\source\configs\remote\generated\run_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.cmd
 
-schtasks /Create /TN "%TASK0%" /SC ONCE /ST 23:59 /TR "cmd.exe /c %CMD0% 0 0" /F > "%LAUNCH_LOG_DIR%\%SEED0_ID%_schedule_create.txt" 2>&1 || exit /b 1
-schtasks /Create /TN "%TASK1%" /SC ONCE /ST 23:59 /TR "cmd.exe /c %CMD1% 1 1" /F > "%LAUNCH_LOG_DIR%\%SEED1_ID%_schedule_create.txt" 2>&1 || exit /b 1
+schtasks /Create /TN "%TASK0%" /SC ONCE /ST 23:59 /RU SYSTEM /RL HIGHEST /TR "cmd.exe /c %CMD0% 0 0" /F > "%LAUNCH_LOG_DIR%\%SEED0_ID%_schedule_create.txt" 2>&1 || exit /b 1
+schtasks /Create /TN "%TASK1%" /SC ONCE /ST 23:59 /RU SYSTEM /RL HIGHEST /TR "cmd.exe /c %CMD1% 1 1" /F > "%LAUNCH_LOG_DIR%\%SEED1_ID%_schedule_create.txt" 2>&1 || exit /b 1
 schtasks /Run /I /TN "%TASK0%" > "%LAUNCH_LOG_DIR%\%SEED0_ID%_schedule_run.txt" 2>&1 || exit /b 1
 schtasks /Run /I /TN "%TASK1%" > "%LAUNCH_LOG_DIR%\%SEED1_ID%_schedule_run.txt" 2>&1 || exit /b 1
 schtasks /Query /TN "%TASK0%" /V /FO LIST > "%LAUNCH_LOG_DIR%\%SEED0_ID%_schedule_query.txt" 2>&1
