@@ -42,6 +42,107 @@ unchanged.
 
 ---
 
+## [LRN-20260715-004] best_practice
+
+**Logged**: 2026-07-15T08:05:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+Freeze Innovation 1 around robust typed-topology attribution; successful source-side objective shaping is not evidence of transfer utility.
+
+### Details
+The final E4-E6 synthesis preserved scale boundaries and compared only frozen,
+plan-aligned gates. At remote medium scale, the cipher-spec-generated typed SPN
+representation passed source-topology and target-topology attribution in all
+four E4 cells, while scratch efficiency passed only two. At the matched local
+E5/E6 objective scale, all four candidate transfers beat scratch with positive
+paired intervals, but no candidate beat the ordinary off-transfer anchor under
+the complete gate. Only one of four candidate-placebo comparisons passed.
+
+E5 and E6 both changed their intended source behavior: E5 learned topology
+identity and E6 created a large true-versus-shuffled functional loss gap. Their
+failure to improve target adaptation means source-side proxy success must not
+be promoted as a cross-SPN result.
+
+### Suggested Action
+Treat the shared typed operator and its controlled topology attribution as the
+Innovation 1 result. Report conditional scratch efficiency and failed source
+objectives as limitations. Stop E7 and scale rescue; require a genuinely new
+literature-backed method hypothesis before reopening training.
+
+### Metadata
+- Source: experiment_synthesis
+- Related Files: docs/experiments/innovation1-cross-spn-e4-e6-source-objective-synthesis.md, outputs/local_diagnostic/i1_cross_spn_e4_e6_source_objective_synthesis_20260715/gate.json
+- Tags: innovation1, final-synthesis, typed-topology, cross-spn, source-objective, evidence-boundary
+- See Also: LRN-20260715-003, LRN-20260715-002, LRN-20260715-001
+- Pattern-Key: innovation1.cross_spn.freeze_typed_topology_result
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+- **Resolved**: 2026-07-15T08:05:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Reproducible E4-E6 synthesis passed with separate medium/local evidence scales.
+
+---
+
+## [LRN-20260715-003] experiment_result
+
+**Logged**: 2026-07-15T07:50:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+E6-R0 learned a strong source true-versus-shuffled functional loss gap but did not improve cross-SPN target adaptation.
+
+### Details
+E6 replaced E5's topology-identity BCE with a label-preserving margin on the
+actual PRESENT cryptanalytic loss. The candidate reached a final mean
+true-versus-shuffled functional gap of `+0.078486` while preserving source AUC
+near the off anchor (`0.743394` versus `0.743810`). This confirmed that the new
+objective changed the intended source behavior.
+
+On GIFT target seeds2 and 3 at `8192/class` and exactly one epoch, the candidate
+beat scratch by `+0.032647` and `+0.043314`, both with positive paired 95% CIs.
+However, it was slightly below off-transfer and the same-compute placebo on
+both seeds. Neither candidate-minus-off interval excluded zero. The joint gate
+therefore returned `e6_r0_functional_margin_rejected` with `errors=[]`.
+
+The recurring distinction is now stronger:
+
+- the shared typed SPN representation supports useful ordinary transfer;
+- explicit topology-identity and functional-margin source objectives do not
+  improve that transfer under controlled local gates;
+- a source topology signal, even when successfully optimized, is not itself a
+  transfer-utility objective.
+
+### Suggested Action
+Stop the E5/E6 source-objective branch, source seed1 confirmation, and all
+mechanical scaling. Synthesize E4/E5/E6 without new training and freeze the
+Innovation 1 contribution as robust typed-topology attribution plus controlled
+limitations, not as source-objective or scratch-efficiency superiority.
+
+### Metadata
+- Source: experiment_result
+- Related Files: docs/experiments/innovation1-cross-spn-e6-functional-topology-margin-source-objective-plan.md, outputs/local_diagnostic/i1_cross_spn_e6_target_8192_source_seed0/gate.json
+- Tags: innovation1, e6, cross-spn, functional-margin, source-objective, paired-bootstrap
+- See Also: LRN-20260715-002, LRN-20260715-001
+- Pattern-Key: innovation1.cross_spn.source_topology_signal_not_transfer_objective
+- Recurrence-Count: 2
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+- **Resolved**: 2026-07-15T07:50:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Both target seeds failed off and placebo gates; source seed1 and remote scale were stopped.
+
+---
+
 ## [LRN-20260715-002] experiment_result
 
 **Logged**: 2026-07-15T07:10:00+08:00

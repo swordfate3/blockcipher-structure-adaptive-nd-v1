@@ -550,6 +550,115 @@ outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/
 docs/experiments/innovation1-cross-spn-e5-topology-counterfactual-source-objective-plan.md
 ```
 
+## 2026-07-15 E6-R0 Functional-Margin Completion Update
+
+E6-R0 replaced E5's easy topology-identity head with the actual cryptanalytic
+classification loss. During PRESENT source training it enforced a fixed margin
+between the true cipher-spec topology and two deterministic shuffled views,
+with a shuffled-versus-shuffled same-compute placebo.
+
+The source candidate learned a large functional loss gap without E5's source-
+AUC collapse:
+
+```text
+off source AUC                    = 0.743810147047
+E6 candidate source AUC           = 0.743393987417
+E6 placebo source AUC             = 0.742673695087
+candidate final functional gap    = +0.078486087499
+placebo final functional gap      = +0.003765127854
+```
+
+The frozen GIFT target gate then used target seeds2 and 3 at `8192/class`,
+exactly one epoch, and 10,000 paired bootstrap replicates:
+
+```text
+seed2 candidate - off       = -0.000049799681
+95% CI                      = [-0.001978165656, +0.001898437738]
+seed2 candidate - placebo   = -0.001125156879
+seed2 candidate - scratch   = +0.032647281885
+
+seed3 candidate - off       = -0.000197380781
+95% CI                      = [-0.002259635925, +0.001862239838]
+seed3 candidate - placebo   = -0.000802248716
+seed3 candidate - scratch   = +0.043314278126
+```
+
+```text
+decision    = e6_r0_functional_margin_rejected
+keep        = E4 shared typed SPN representation and ordinary transfer anchor
+discard     = E6 functional-margin source objective
+remote      = no
+stop        = source seed1, 65536/class, 262144/class, 1000000/class,
+              margin/scale tuning, extra target epochs
+claim scope = local 8192/class diagnostic; not medium, formal, paper-scale,
+              SOTA, or breakthrough evidence
+```
+
+E6 establishes a useful negative boundary: making true topology functionally
+better than shuffled topology on the source loss is not sufficient to improve
+cross-SPN one-epoch adaptation. As in E5, transfer itself remains clearly
+better than scratch; the new source objective adds no value.
+
+The next action is a no-new-training E4/E5/E6 synthesis. Do not create E7 or
+launch a medium experiment. Freeze the final Innovation 1 claim around robust
+cipher-spec typed-topology attribution, conditional transfer efficiency, and
+the controlled failure of two explicit source-objective interventions.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e6_functional_margin_8192_seed0/
+outputs/local_diagnostic/i1_cross_spn_e6_target_8192_source_seed0/
+docs/experiments/innovation1-cross-spn-e6-functional-topology-margin-source-objective-plan.md
+```
+
+## 2026-07-15 Final E4-E6 Source-Objective Synthesis
+
+The final no-new-training synthesis consumed the frozen E4 medium synthesis and
+the E5/E6 local paired gates. It first proved that E5 and E6 used exactly equal
+scratch and off-transfer AUCs on target seeds2 and 3, then kept their objective
+comparisons separate from the larger E4 cells.
+
+```text
+status   = pass, errors=[]
+decision = typed_topology_representation_retained_source_objectives_rejected
+
+E4 source topology complete gate = 4/4
+E4 target topology complete gate = 4/4
+E4 scratch-efficiency gate       = 2/4
+
+E5/E6 complete objective gate    = 0/4
+candidate-vs-off gate            = 0/4
+candidate-vs-placebo gate        = 1/4
+candidate-vs-scratch gate        = 4/4
+```
+
+This closes the current Innovation 1 experiment branch:
+
+```text
+keep = cipher-spec-generated shared typed SPN representation
+keep = robust source- and target-topology attribution at remote medium scale
+keep = ordinary cross-SPN transfer signal versus scratch at local objective scale
+hold = source-seed0 conditional one-epoch scratch efficiency
+stop = source-seed-robust scratch-efficiency claim
+stop = E5 topology-identity BCE objective
+stop = E6 functional topology-margin objective
+stop = E7, source-objective rescue, and mechanical scale
+```
+
+The result is controlled medium/local evidence, not formal, paper-scale, SOTA,
+breakthrough, persistent superiority, or lower end-to-end compute evidence. The
+next work is paper-ready method and limitations reporting, not another training
+run. Any future experiment must reopen research with a genuinely new ranked
+hypothesis and adjudication plan.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e4_e6_source_objective_synthesis_20260715/
+docs/experiments/innovation1-cross-spn-e4-e6-source-objective-synthesis.md
+```
+
 ## Current Interpretation
 
 Innovation 1 still has a viable method-level story, but the center of gravity

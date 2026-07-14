@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** Phase 0 source and target readiness passed / Phase 1A authorized locally
+**Status:** completed / E6-R0 rejected by the frozen two-target-seed gate
 
 ## Research Question
 
@@ -325,3 +325,80 @@ outputs/local_diagnostic/i1_cross_spn_e6_functional_margin_8192_seed0/
 
 This source result authorizes only the two predeclared local GIFT target cells.
 It does not authorize source seed1 or any `65536/class` experiment.
+
+## Phase 1A Target Completion
+
+Both target cells completed at GIFT-64 r6, `8192/class`, `4096/class`
+validation, 4 pairs/sample, and exactly one target epoch. Every role had
+196,003 parameters, target auxiliary loss was zero, checkpoint loads were
+strict, and the four validation score artifacts within each seed had identical
+labels and sample IDs.
+
+| Target seed | Scratch AUC | Off AUC | Candidate AUC | Placebo AUC |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | `0.531851321459` | `0.564548403025` | `0.564498603344` | `0.565623760223` |
+| 3 | `0.539322316647` | `0.582833975554` | `0.582636594772` | `0.583438843489` |
+
+The 10,000-replicate label-stratified paired bootstrap gate produced:
+
+| Target seed | Candidate - off | 95% CI | Candidate - placebo | 95% CI | Candidate - scratch | 95% CI |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | `-0.000049799681` | `[-0.001978165656, +0.001898437738]` | `-0.001125156879` | `[-0.003453562409, +0.001162195951]` | `+0.032647281885` | `[+0.017801249027, +0.047012680024]` |
+| 3 | `-0.000197380781` | `[-0.002259635925, +0.001862239838]` | `-0.000802248716` | `[-0.003121675551, +0.001497677714]` | `+0.043314278126` | `[+0.029751022905, +0.056556243449]` |
+
+The candidate beats scratch on both seeds, confirming that ordinary source
+transfer remains useful. It does not beat off-transfer or the same-compute
+placebo on either seed. A large source functional gap therefore does not imply
+better one-epoch cross-SPN adaptation.
+
+```text
+status      = pass, errors=[]
+decision    = e6_r0_functional_margin_rejected
+gate_pass   = false
+next_action = stop_e6_r0_no_source_seed1_or_remote_scale
+```
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e6_target_8192_source_seed0/
+  gate.json
+  summary.csv
+  curves.svg
+  target_seed2/{results.jsonl,history.csv,curves.svg,gate.json,paired_scores.csv.gz,scores/}
+  target_seed3/{results.jsonl,history.csv,curves.svg,gate.json,paired_scores.csv.gz,scores/}
+```
+
+## Final Verdict
+
+```text
+discard = functional true-topology-vs-shuffled source margin objective
+keep    = E4 shared typed SPN representation and ordinary off-transfer anchor
+stop    = source seed1 confirmation
+stop    = 65536/class remote medium expansion
+stop    = 262144/class and 1000000/class expansion
+stop    = functional margin/scale tuning and extra target epochs
+scope   = local 8192/class diagnostic with one source seed and two target seeds;
+          not medium, formal, paper-scale, SOTA, or breakthrough evidence
+```
+
+## Evidence-Backed Next Action
+
+Do not create E7 or another source-objective network. Run one no-new-training
+E4/E5/E6 synthesis over the verified paired gates:
+
+```text
+question            = which Innovation 1 effects survive all source objectives?
+same-budget anchor  = target seeds2/3, 8192/class, exactly one epoch
+required controls   = scratch, off-transfer, objective-specific placebo
+one analysis axis   = off, E5 topology-identity BCE, E6 functional margin
+new training        = none
+advance decision    = freeze paper-ready method/limitations claim
+stop                = no E5/E6 rescue tuning, no source seed1, no remote scale,
+                      no additional architecture/source-objective sweep
+```
+
+Combine that two-seed objective table with the already verified E4 four-cell
+medium topology-attribution synthesis. The supported Innovation 1 result is
+expected to be a controlled representation claim, not a new source-objective
+or source-seed-robust scratch-efficiency claim.
