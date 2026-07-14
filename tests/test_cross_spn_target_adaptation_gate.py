@@ -307,6 +307,9 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     assert "scripts/gate-cross-spn-target-adaptation-joint" in monitor
     assert "scripts/index-results" in monitor
     assert "sleep 300" in monitor
+    assert monitor.index("seed2_ready=false") < monitor.index("seed2_failed")
+    assert '[[ "${seed2_ready}" != true ]]' in monitor
+    assert '[[ "${seed3_ready}" != true ]]' in monitor
 
     assert "DisableDelayedExpansion" in recovery
     assert "scripts\\gate-cross-spn-target-adaptation-joint" in recovery

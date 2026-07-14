@@ -94,15 +94,6 @@ while true; do
   sync_logs "${SEED2_ID}"
   sync_logs "${SEED3_ID}"
 
-  if compgen -G "${MONITOR_ROOT}/${SEED2_ID}/logs/*failed.marker" > /dev/null; then
-    echo "$(timestamp) seed2_failed" >> "${MONITOR_ROOT}/monitor.log"
-    exit 1
-  fi
-  if compgen -G "${MONITOR_ROOT}/${SEED3_ID}/logs/*failed.marker" > /dev/null; then
-    echo "$(timestamp) seed3_failed" >> "${MONITOR_ROOT}/monitor.log"
-    exit 1
-  fi
-
   seed2_ready=false
   seed3_ready=false
   if compgen -G "${MONITOR_ROOT}/${SEED2_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
@@ -110,6 +101,15 @@ while true; do
   fi
   if compgen -G "${MONITOR_ROOT}/${SEED3_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
     seed3_ready=true
+  fi
+
+  if [[ "${seed2_ready}" != true ]] && compgen -G "${MONITOR_ROOT}/${SEED2_ID}/logs/*failed.marker" > /dev/null; then
+    echo "$(timestamp) seed2_failed" >> "${MONITOR_ROOT}/monitor.log"
+    exit 1
+  fi
+  if [[ "${seed3_ready}" != true ]] && compgen -G "${MONITOR_ROOT}/${SEED3_ID}/logs/*failed.marker" > /dev/null; then
+    echo "$(timestamp) seed3_failed" >> "${MONITOR_ROOT}/monitor.log"
+    exit 1
   fi
 
   if [[ "${seed2_ready}" == true && "${seed3_ready}" == true ]]; then
