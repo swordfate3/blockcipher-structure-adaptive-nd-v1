@@ -179,6 +179,7 @@ def _find_artifacts(outputs_root: Path, run_root: Path) -> dict[str, str]:
                 path.suffix == ".jsonl"
                 and path.name != "progress.jsonl"
                 and (path.name == "results.jsonl" or path.parent.name == "results")
+                and path.stat().st_size > 0
             ),
             ("results.jsonl",),
         ),

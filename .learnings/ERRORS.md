@@ -414,8 +414,8 @@ Keep generated scripts under `G:\lxy`, and only use HTTPS clone as a fallback wh
 ## [ERR-20260627-001] remote_plot_missing_matplotlib
 
 **Logged**: 2026-06-27T11:35:00+08:00
-**Priority**: medium
-**Status**: pending
+**Priority**: high
+**Status**: resolved
 **Area**: infra
 
 ### Summary
@@ -432,14 +432,31 @@ ModuleNotFoundError: No module named 'matplotlib'
 - Plot command failed inside `scripts/plot-results` when importing `blockcipher_nd.evaluation.plots`.
 - The repository depends on `matplotlib>=3.8`, but the remote `F:\Anaconda\envs\DWT\torch310` environment did not have it available during the scheduled task.
 - Workaround used: retrieve JSONL/logs and regenerate `curves.svg` plus `history.csv` locally with `uv run python scripts/plot-results`.
+- Recurrence: both E4-R3 GIFT-64 `65536/class` seed runs completed training
+  and validation on 2026-07-15, then failed before gate/archive at the same
+  Matplotlib import. Raw fallback retrieval and local postprocessing recovered
+  the evidence without retraining.
 
 ### Suggested Fix
 Before relying on remote plot generation, verify the remote environment has Matplotlib installed or add a launcher preflight that records missing optional plotting dependencies. Keep local post-retrieval plot regeneration as a safe fallback when training results are valid but remote plotting fails.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: scripts/plot-results, src/blockcipher_nd/evaluation/plots.py, outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/logs/
+- Related Files: scripts/plot-results, src/blockcipher_nd/evaluation/plots.py, configs/remote/generated/run_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.cmd, outputs/remote_results/i1_spn_present_mcnd_r7_1m_seed0_gpu1_retry1_20260626/logs/
 - See Also: LRN-20260624-001, ERR-20260626-001
+- Pattern-Key: remote.postprocess.optional_plot_must_not_block_archive
+- Recurrence-Count: 2
+- First-Seen: 2026-06-27
+- Last-Seen: 2026-07-15
+
+### Resolution
+- **Resolved**: 2026-07-15T01:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: The E4 remote runner now validates and gates before plotting. A
+  missing or invalid plot writes `plot_deferred.marker`; history/SVG are
+  optional archive files, while results, validation, gate, progress, and
+  provenance remain fail-closed requirements. The local retrieval workflow
+  regenerates deferred visualization artifacts.
 
 ---
 

@@ -127,6 +127,22 @@ def test_result_index_supports_remote_nested_result_artifacts(tmp_path: Path) ->
     )
 
 
+def test_result_index_ignores_empty_result_jsonl(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = outputs / "local_diagnostic" / "stopped_run"
+    run_root.mkdir(parents=True)
+    (run_root / "results.jsonl").write_text("", encoding="utf-8")
+    (run_root / "progress.jsonl").write_text("{}\n", encoding="utf-8")
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries == []
+
+
 def test_result_index_supports_r3_local_diagnostic_chinese_names(
     tmp_path: Path,
 ) -> None:

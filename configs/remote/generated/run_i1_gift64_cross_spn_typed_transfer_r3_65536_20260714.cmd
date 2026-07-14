@@ -67,14 +67,6 @@ if errorlevel 1 goto failed
   > "%LOG_DIR%\%RUN_ID%_validation_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_validation_stderr.txt"
 if errorlevel 1 goto failed
 
-"%PY%" scripts\plot-results ^
-  --results "%RESULTS_DIR%\results.jsonl" ^
-  --output "%RESULTS_DIR%\curves.svg" ^
-  --history-csv "%RESULTS_DIR%\history.csv" ^
-  --title "%RUN_ID%" ^
-  > "%LOG_DIR%\%RUN_ID%_plot_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_plot_stderr.txt"
-if errorlevel 1 goto failed
-
 "%PY%" scripts\gate-cross-spn-typed-transfer ^
   --results "%RESULTS_DIR%\results.jsonl" ^
   --progress "%LOG_DIR%\progress.jsonl" ^
@@ -86,19 +78,30 @@ if errorlevel 1 goto failed
   > "%LOG_DIR%\%RUN_ID%_gate_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_gate_stderr.txt"
 if errorlevel 1 goto failed
 
-"%PY%" -c "import xml.etree.ElementTree as ET; ET.parse(r'%RESULTS_DIR%\curves.svg'); print('svg_parse=pass')" > "%LOG_DIR%\%RUN_ID%_svg_parse.txt" 2> "%LOG_DIR%\%RUN_ID%_svg_parse_stderr.txt" || goto failed
-
 set RESULT_LINES=0
 for /f "tokens=3" %%L in ('find /c /v "" "%RESULTS_DIR%\results.jsonl"') do set RESULT_LINES=%%L
 echo result_lines=%RESULT_LINES%>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
 echo expected_rows=5>>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
 if not "%RESULT_LINES%"=="5" goto incomplete_results
 
+"%PY%" scripts\plot-results ^
+  --results "%RESULTS_DIR%\results.jsonl" ^
+  --output "%RESULTS_DIR%\curves.svg" ^
+  --history-csv "%RESULTS_DIR%\history.csv" ^
+  --title "%RUN_ID%" ^
+  > "%LOG_DIR%\%RUN_ID%_plot_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_plot_stderr.txt"
+if errorlevel 1 goto plot_deferred
+"%PY%" -c "import xml.etree.ElementTree as ET; ET.parse(r'%RESULTS_DIR%\curves.svg'); print('svg_parse=pass')" > "%LOG_DIR%\%RUN_ID%_svg_parse.txt" 2> "%LOG_DIR%\%RUN_ID%_svg_parse_stderr.txt" || goto plot_deferred
+goto plot_done
+
+:plot_deferred
+echo plot_deferred_to_local>"%LOG_DIR%\%RUN_ID%_plot_deferred.marker"
+if exist "%RESULTS_DIR%\curves.svg" del /Q "%RESULTS_DIR%\curves.svg"
+
+:plot_done
 if not exist "%ARCHIVE_DIR%" mkdir "%ARCHIVE_DIR%"
 copy /Y "%RESULTS_DIR%\results.jsonl" "%ARCHIVE_DIR%\results.jsonl" > nul || goto failed
 copy /Y "%RESULTS_DIR%\validation.json" "%ARCHIVE_DIR%\validation.json" > nul || goto failed
-copy /Y "%RESULTS_DIR%\history.csv" "%ARCHIVE_DIR%\history.csv" > nul || goto failed
-copy /Y "%RESULTS_DIR%\curves.svg" "%ARCHIVE_DIR%\curves.svg" > nul || goto failed
 copy /Y "%RESULTS_DIR%\gate.json" "%ARCHIVE_DIR%\gate.json" > nul || goto failed
 copy /Y "%LOG_DIR%\progress.jsonl" "%ARCHIVE_DIR%\progress.jsonl" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%ARCHIVE_DIR%\git_revision.txt" > nul || goto failed
@@ -109,6 +112,15 @@ copy /Y "%LOG_DIR%\%RUN_ID%_result_gate.txt" "%ARCHIVE_DIR%\result_gate.txt" > n
 copy /Y "%REMOTE_CONFIG%" "%ARCHIVE_DIR%\remote_config.json" > nul || goto failed
 copy /Y "%PLAN%" "%ARCHIVE_DIR%\plan.csv" > nul || goto failed
 copy /Y "%SOURCE_MANIFEST%" "%ARCHIVE_DIR%\source_manifest.json" > nul || goto failed
+if exist "%RESULTS_DIR%\history.csv" (
+  copy /Y "%RESULTS_DIR%\history.csv" "%ARCHIVE_DIR%\history.csv" > nul || goto failed
+)
+if exist "%RESULTS_DIR%\curves.svg" (
+  copy /Y "%RESULTS_DIR%\curves.svg" "%ARCHIVE_DIR%\curves.svg" > nul || goto failed
+)
+if exist "%LOG_DIR%\%RUN_ID%_plot_deferred.marker" (
+  copy /Y "%LOG_DIR%\%RUN_ID%_plot_deferred.marker" "%ARCHIVE_DIR%\plot_deferred.marker" > nul || goto failed
+)
 
 git config user.name "remote-experiment"
 git config user.email "remote-experiment@local.invalid"

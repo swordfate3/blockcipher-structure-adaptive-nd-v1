@@ -307,6 +307,14 @@ def test_cross_spn_transfer_r3_remote_assets_are_fail_closed() -> None:
     assert "--dataset-cache-root" in run_script
     assert "--progress-output" in run_script
     assert "--experiment-stage e4_r3" in run_script
+    assert run_script.index("scripts\\gate-cross-spn-typed-transfer") < (
+        run_script.index("scripts\\plot-results")
+    )
+    assert "goto plot_deferred" in run_script
+    assert "plot_deferred_to_local" in run_script
+    assert 'if exist "%RESULTS_DIR%\\history.csv" (' in run_script
+    assert 'if exist "%RESULTS_DIR%\\curves.svg" (' in run_script
+    assert "plot_deferred.marker" in run_script
     assert "git add \"results_archive\\%RUN_ID%\"" in run_script
     assert "git add ." not in run_script
     assert "mkdir \"%JOINT_LOCK%\" > nul 2>&1 || exit /b 0" in run_script
