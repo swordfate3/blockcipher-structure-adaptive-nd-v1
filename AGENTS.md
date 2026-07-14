@@ -7,6 +7,7 @@
 - Do not call the AutoND/DBitNet `65536/class` diagnostics paper-scale. The locked public code uses `10^7` total training rows and `10^6` total validation rows per round, approximately `5000000/class` and `500000/class`; Table 6 reports PRESENT r8 `0.5546` for 10 epochs/round and r9 `0.5092` for 40 epochs/round, followed by five fresh `10^6`-sample evaluations. AutoND reports must state train/validation/evaluation totals, per-class terminology, epochs, negative definition, and key sampling, and must distinguish architecture/protocol diagnostics from paper-scale or exact reproduction.
 - Before claiming a SPN/PRESENT model or feature route has hit its ceiling, require completed, retrieved, plan-aligned scale evidence. A reasonable ladder is `65536/class -> 262144/class`; formal claims should use at least `1000000/class` and multiple seeds.
 - ARX/SPECK has had completed `>=100000/class` results; SPN/PRESENT had not, as of the 2026-06-21 audit. Keep those evidence levels separate in progress reports.
+- Innovation 1 SPN/PRESENT/GIFT non-smoke runs at `65536/class` or above are medium-or-larger experiments and must run on the remote GPU workstation, not local CPU/GPU. Local execution is limited to sub-medium smoke/readiness/diagnostic gates. If local CUDA is unavailable, do not substitute a long local CPU run; prepare and launch the pushed commit through the remote workflow instead.
 
 ## Memory And Handoff Hygiene
 

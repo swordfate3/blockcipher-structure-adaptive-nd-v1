@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import copy
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from blockcipher_nd.planning.cross_spn_typed_transfer_gate import (
     gate_cross_spn_typed_transfer_joint,
 )
 from blockcipher_nd.registry.model_factory import build_model
+from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 
 
 ROLES = {
@@ -111,6 +113,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
         "epochs",
         "batch_size",
         "seed",
+        "device",
     ),
     [
         (
@@ -120,6 +123,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             1,
             32,
             0,
+            "cpu",
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_smoke_seed1.csv",
@@ -128,6 +132,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             1,
             32,
             1,
+            "cpu",
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed0.csv",
@@ -136,6 +141,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             10,
             256,
             0,
+            "cpu",
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed1.csv",
@@ -144,6 +150,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             10,
             256,
             1,
+            "cpu",
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed0.csv",
@@ -152,6 +159,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             10,
             256,
             0,
+            "cuda",
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed1.csv",
@@ -160,6 +168,7 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             10,
             256,
             1,
+            "cuda",
         ),
     ],
 )
@@ -170,6 +179,7 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
     epochs: int,
     batch_size: int,
     seed: int,
+    device: str,
 ) -> None:
     plan = Path("configs/experiment/innovation1") / filename
     args = parse_matrix_args(
@@ -183,7 +193,7 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
             "--hidden-bits",
             "32",
             "--device",
-            "cpu",
+            device,
             "--initialization-manifest",
             str(MANIFEST),
         ]
@@ -218,6 +228,7 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
     assert all(task["restore_best_checkpoint"] for task in tasks)
     assert args.epochs == epochs
     assert args.batch_size == batch_size
+    assert args.device == device
 
 
 def test_cross_spn_transfer_r3_matrices_differ_only_by_target_seed() -> None:
@@ -245,6 +256,100 @@ def test_cross_spn_transfer_r3_matrices_differ_only_by_target_seed() -> None:
             seed0.pop(field)
             seed1.pop(field)
         assert seed0 == seed1
+
+
+@pytest.mark.parametrize(
+    ("seed", "gpu"),
+    [(0, 0), (1, 1)],
+)
+def test_cross_spn_transfer_r3_remote_configs_pass_readiness(
+    seed: int,
+    gpu: int,
+) -> None:
+    config = Path(
+        "configs/remote/"
+        "innovation1_gift64_cross_spn_typed_transfer_r3_65536_"
+        f"seed{seed}_gpu{gpu}_20260714.json"
+    )
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    report = remote_readiness_report(config)
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["expected_rows"] == report["plan_rows"] == 5
+    assert report["max_samples_per_class"] == 65536
+    assert payload["device"] == "cuda"
+    assert payload["physical_gpu"] == gpu
+    assert payload["dataset_cache"] is True
+    assert payload["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+    )
+
+
+def test_cross_spn_transfer_r3_remote_assets_are_fail_closed() -> None:
+    run_script = Path(
+        "configs/remote/generated/"
+        "run_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.cmd"
+    ).read_text(encoding="utf-8")
+    launcher = Path(
+        "configs/remote/generated/"
+        "launch_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.cmd"
+    ).read_text(encoding="utf-8")
+    monitor = Path(
+        "configs/remote/generated/"
+        "monitor_i1_gift64_cross_spn_typed_transfer_r3_65536_20260714.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%" in run_script
+    assert "source_expected_commit.txt" in run_script
+    assert "goto source_revision_mismatch" in run_script
+    assert "--device cuda" in run_script
+    assert "--initialization-manifest" in run_script
+    assert "--dataset-cache-root" in run_script
+    assert "--progress-output" in run_script
+    assert "--experiment-stage e4_r3" in run_script
+    assert "git add \"results_archive\\%RUN_ID%\"" in run_script
+    assert "git add ." not in run_script
+    assert "mkdir \"%JOINT_LOCK%\" > nul 2>&1 || exit /b 0" in run_script
+    assert "rmdir \"%JOINT_LOCK%\"" in run_script
+    assert "cmd.exe /k" not in run_script.lower()
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run_script
+
+    assert launcher.count("cmd.exe /c") == 2
+    assert "cmd.exe /k" not in launcher.lower()
+    assert launcher.count("schtasks /Run") == 2
+    assert "set SOURCE_COMMIT=%~1" in launcher
+    assert 'git checkout --detach "%EXPECTED_COMMIT%"' in launcher
+    assert "source_expected_commit.txt" in launcher
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launcher
+
+    assert "outputs/remote_results_incomplete" in monitor
+    assert "retrieved_from_verified_result_branch.marker" in monitor
+    assert "scripts/index-results" in monitor
+    assert "results_archive/${run_id}" in monitor
+
+
+def test_cross_spn_transfer_source_assets_match_manifest_hashes() -> None:
+    source_root = Path(
+        "outputs/local_smoke/i1_present_cross_spn_typed_cell_r1_seed0"
+    )
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    targets = manifest["targets"]
+    expected = {
+        "gift_cross_spn_typed_cell_true_from_present_true": (
+            source_root
+            / "checkpoints/row0002_present_cross_spn_typed_cell_true_seed0.pt"
+        ),
+        "gift_cross_spn_typed_cell_true_from_present_shuffled": (
+            source_root
+            / "checkpoints/row0003_present_cross_spn_typed_cell_shuffled_seed0.pt"
+        ),
+    }
+
+    assert (source_root / "results.jsonl").is_file()
+    for target, checkpoint in expected.items():
+        assert checkpoint.is_file()
+        digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+        assert digest == targets[target]["source_checkpoint_sha256"]
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -336,6 +441,7 @@ def _write_transfer_run(
     samples_per_class: int = 8192,
     epochs: int = 10,
     seed: int = 0,
+    device: str = "cpu",
 ) -> None:
     base = results.with_name("base.jsonl")
     r1_fixtures._write_cross_run(
@@ -365,6 +471,7 @@ def _write_transfer_run(
         row = copy.deepcopy(templates[role])
         row["model"] = row["selected_model"] = model
         row["seed"] = seed
+        row["training"]["device"] = device
         row["initialization"] = _initialization(role)
         row["parameter_count"] = 219970 if role == "gift_anchor" else 187426
         row["trainable_parameter_count"] = row["parameter_count"]
@@ -684,7 +791,12 @@ def test_cross_spn_transfer_r3_accepts_only_frozen_medium_budget(
         "shuffled_to_true": 0.550,
         "true_to_shuffled": 0.545,
     }
-    _write_transfer_run(results, aucs, samples_per_class=65536)
+    _write_transfer_run(
+        results,
+        aucs,
+        samples_per_class=65536,
+        device="cuda",
+    )
 
     report = _gate(
         results,
@@ -717,8 +829,20 @@ def test_cross_spn_transfer_r3_joint_confirms_two_medium_seeds(
         "shuffled_to_true": 0.550,
         "true_to_shuffled": 0.545,
     }
-    _write_transfer_run(seed0, aucs, samples_per_class=65536, seed=0)
-    _write_transfer_run(seed1, aucs, samples_per_class=65536, seed=1)
+    _write_transfer_run(
+        seed0,
+        aucs,
+        samples_per_class=65536,
+        seed=0,
+        device="cuda",
+    )
+    _write_transfer_run(
+        seed1,
+        aucs,
+        samples_per_class=65536,
+        seed=1,
+        device="cuda",
+    )
 
     report = gate_cross_spn_typed_transfer_joint(
         [seed0, seed1],
@@ -752,12 +876,19 @@ def test_cross_spn_transfer_r3_joint_stops_after_margin_miss(
         "true_to_shuffled": 0.545,
     }
     seed1_margin_miss = {**passing, "gift_typed_scratch": 0.557}
-    _write_transfer_run(seed0, passing, samples_per_class=65536, seed=0)
+    _write_transfer_run(
+        seed0,
+        passing,
+        samples_per_class=65536,
+        seed=0,
+        device="cuda",
+    )
     _write_transfer_run(
         seed1,
         seed1_margin_miss,
         samples_per_class=65536,
         seed=1,
+        device="cuda",
     )
 
     report = gate_cross_spn_typed_transfer_joint(
@@ -826,6 +957,7 @@ def test_cross_spn_transfer_gate_cli_forwards_r3_stage(tmp_path: Path) -> None:
         },
         samples_per_class=65536,
         seed=1,
+        device="cuda",
     )
 
     assert main(

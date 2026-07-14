@@ -81,6 +81,11 @@ def gate_cross_spn_typed_transfer(
             expected_seed=expected_seeds[0],
             samples_per_class=samples_per_class,
             epochs=epochs,
+            expected_device=(
+                "cuda"
+                if experiment_stage == "e4_r3" and not readiness_only
+                else "cpu"
+            ),
         ),
         *_progress_errors(
             progress,
@@ -215,6 +220,7 @@ def _result_errors(
     expected_seed: int,
     samples_per_class: int,
     epochs: int,
+    expected_device: str,
 ) -> list[str]:
     errors: list[str] = []
     if len(rows) != 5:
@@ -264,7 +270,7 @@ def _result_errors(
         }
         exact_training = {
             **runtime,
-            "device": "cpu",
+            "device": expected_device,
             "key_schedule": "fixed",
             "input_bits": 512,
             "pair_bits": 128,

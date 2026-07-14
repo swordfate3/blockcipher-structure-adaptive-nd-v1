@@ -4972,6 +4972,14 @@ After a new training experiment smoke test passes, automatically continue to the
 ### Details
 The user corrected the experiment workflow after the SPN-only attribution smoke test. For this project, when the user asks to "推进" a new training experiment and a smoke matrix is part of the setup, the smoke is only a gate. If smoke passes and code/config/docs have been verified, committed, and pushed, the agent should proceed to launch the planned medium/formal remote run using the pushed GitHub commit and the established tmux monitor/retrieval workflow.
 
+The rule recurred on 2026-07-14 when E4-R3 `65536/class` was mistakenly
+started on local CPU after readiness. The user clarified that this budget is
+already a medium experiment and cannot run locally. The local seed0/seed1
+sessions were stopped before any result row or gate was produced. For
+Innovation 1 SPN/PRESENT/GIFT, `65536/class` and above must use the remote GPU
+workflow; local CPU/GPU is only for sub-medium smoke/readiness/diagnostic
+gates. Local CUDA unavailability is not a reason to substitute local CPU.
+
 Correct behavior:
 
 - Treat local smoke as a readiness gate, not the final deliverable, unless the user explicitly asks for smoke/local verification only.
@@ -4990,9 +4998,9 @@ Promote this to `AGENTS.md` under research execution or remote workflow. Future 
 - Tags: experiments, smoke, remote-training, tmux-monitor, workflow, innovation1
 - See Also: LRN-20260622-001, LRN-20260627-001
 - Pattern-Key: workflow.training.smoke_then_remote_launch
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-06-28
-- Last-Seen: 2026-06-28
+- Last-Seen: 2026-07-14
 - Promoted: AGENTS.md
 
 ---

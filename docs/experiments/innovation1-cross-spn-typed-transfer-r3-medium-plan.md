@@ -1,6 +1,6 @@
 # Innovation 1 E4-R3 Cross-SPN Typed Transfer Medium Diagnostic Plan
 
-**Status:** two-seed readiness passed; medium execution authorized
+**Status:** two-seed readiness passed; local medium attempt aborted; remote GPU preparation required
 **Date:** 2026-07-14
 **Experiment label:** E4-R3
 
@@ -8,7 +8,7 @@
 
 Does the attributable PRESENT-80 to GIFT-64 typed-cell checkpoint-transfer
 advantage observed on both E4-R2 target seeds survive an eight-times larger,
-otherwise identical local data budget?
+otherwise identical remote-GPU data budget?
 
 E4-R3 changes one experimental variable only:
 
@@ -30,7 +30,10 @@ This is a medium diagnostic, not formal training or paper-scale evidence.
 | 1 | `0.575072139502` | `+0.023235499859` | `+0.011130839586` | `+0.015329629183` | `+0.057054758072` |
 
 The E4-R2 joint decision was `two_seed_transfer_signal_confirmed`. It
-authorizes this plan only; it does not authorize remote or formal claims.
+authorizes this E4-R3 medium diagnostic only. The user corrected the execution
+policy on 2026-07-14: `65536/class` is already a medium experiment and must run
+on the remote GPU workstation, not local CPU/GPU. This does not authorize a
+formal claim or a larger scale.
 
 ## Frozen Protocol
 
@@ -58,14 +61,15 @@ LR scheduler                   = none
 checkpoint metric              = validation AUC
 checkpoint selection           = restored best checkpoint
 train evaluation interval      = 1
-device                         = local CPU
+device                         = remote CUDA, one seed per A6000
 dataset cache chunk/workers    = 512 / 4
 ```
 
-Local CUDA was checked before freezing the execution path. The workstation has
-an RTX 5080, but the active project PyTorch environment reports
-`torch.cuda.is_available() == False`; E4-R3 therefore uses CPU without changing
-the environment or stopping the user's GPU processes.
+Remote execution uses the verified `torch310` environment at
+`F:\Anaconda\envs\DWT\torch310\python.exe`. Seed0 runs on remote GPU0 and
+seed1 on remote GPU1 as independent processes. Local CUDA availability is
+irrelevant to the medium execution decision and must not trigger a local CPU
+substitution.
 
 ## Same-Budget Roles And Controls
 
@@ -147,16 +151,20 @@ configs:
   configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed0.csv
   configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed1.csv
 
-caches:
-  outputs/local_cache/i1_gift64_cross_spn_typed_transfer_r3_65536_seed0
-  outputs/local_cache/i1_gift64_cross_spn_typed_transfer_r3_65536_seed1
+remote run roots:
+  G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0
+  G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed1
 
-result roots:
-  outputs/local_diagnostic/i1_gift64_cross_spn_typed_transfer_r3_65536_seed0
-  outputs/local_diagnostic/i1_gift64_cross_spn_typed_transfer_r3_65536_seed1
+remote caches:
+  <seed0 run root>\cache
+  <seed1 run root>\cache
 
-joint gate:
-  outputs/local_diagnostic/i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1/gate.json
+retrieved result roots:
+  outputs/remote_results/i1_gift64_cross_spn_typed_transfer_r3_65536_seed0
+  outputs/remote_results/i1_gift64_cross_spn_typed_transfer_r3_65536_seed1
+
+retrieved joint gate:
+  outputs/remote_results/i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1/gate.json
 ```
 
 Each result root must contain `results.jsonl`, `progress.jsonl`,
@@ -174,18 +182,26 @@ checkpoints. After readiness and after each completed seed/joint gate, refresh
    E4-R3 readiness roots. Require strict source provenance, complete five-role
    outputs, cache generation/reuse, and `implementation_ready` without
    interpreting AUC.
-4. Commit and push the plan, configs, gate, CLI and tests before medium runs.
-5. Run seed0 and seed1 at `65536/class` locally on CPU with separate caches.
-6. Validate results, render readable Chinese SVGs, export history CSVs, parse
-   SVG XML, and apply per-seed then joint gates.
-7. Refresh the numbered result index, update the E4 design and route verdict,
+4. Package the two frozen PRESENT source checkpoints/results as small tracked
+   provenance assets so a clean remote clone can reproduce strict loading.
+5. Commit and push the plan, configs, gate, CLI, source assets, remote launch
+   scripts, monitors, and tests before medium execution.
+6. Verify the remote `torch310` CUDA environment, clean run-owned clones, exact
+   pushed revision, `cmd.exe /c`, and all paths under `G:\lxy`.
+   Pass the pushed commit SHA explicitly to the launcher; both run-owned clones
+   must detached-checkout and re-verify that exact SHA before training.
+7. Run seed0 on A6000 GPU0 and seed1 on A6000 GPU1 with independent caches.
+8. Let local tmux monitors retrieve verified result archives, then validate,
+   render/read the Chinese SVGs, and apply the frozen joint gate.
+9. Refresh the numbered result index, update the E4 design and route verdict,
    commit/push the adjudication, and report the evidence-backed next action.
 
 ## Explicitly Stopped
 
 Do not perform any of the following during E4-R3:
 
-- remote launch or remote dirty overlay;
+- local `65536/class` training or local CPU/GPU substitution;
+- remote dirty overlay or launch from an unpublished commit;
 - `262144/class` or `1000000/class` mechanical scale-up;
 - DDT, trail, beamstats, E1, H2, or flattened DBitNet reopening;
 - source checkpoint replacement or additional PRESENT pretraining;
@@ -226,7 +242,27 @@ result index at completion:
   002 = seed1 readiness
 ```
 
-Readiness authorizes the two planned local `65536/class` runs after the plan,
-configs, gate, CLI, plotting/index labels, and tests are committed and pushed.
-It does not authorize metric interpretation, remote launch, `262144/class`, or
-formal claims.
+Readiness authorizes the two planned remote `65536/class` runs after the plan,
+configs, gate, CLI, source checkpoint package, remote assets, and tests are
+committed and pushed. It does not authorize metric interpretation,
+`262144/class`, or formal claims.
+
+## 2026-07-14 Local Medium Attempt Correction
+
+The first E4-R3 execution plan incorrectly treated a local CPU run as an
+acceptable fallback because the local PyTorch environment reported
+`cuda=False`. Two local sessions were started and stopped after the user
+corrected the scale policy.
+
+```text
+seed0 stopped = first model, epoch 5, no completed result row
+seed1 stopped = first model, epoch 5, no completed result row
+results bytes = 0 for both seeds
+gate          = absent for both seeds
+joint gate    = absent
+index status  = not indexed as completed evidence
+```
+
+The partial caches and progress logs are execution diagnostics only. They are
+not E4-R3 evidence and must not be resumed or interpreted. The corrected action
+is to launch both seeds remotely from a clean clone of the pushed commit.
