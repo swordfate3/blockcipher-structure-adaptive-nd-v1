@@ -1,0 +1,21 @@
+{
+  "checked_invariants": [
+    "plan_exists",
+    "expected_rows_matches_plan",
+    "run_id_task_archive_alignment",
+    "github_ssh_repo",
+    "cmd_exe_c_only_policy",
+    "g_lxy_artifact_policy",
+    "training_protocol_matches_plan",
+    "medium_scale_dataset_cache"
+  ],
+  "config": "configs\\remote\\innovation1_gift64_cross_spn_typed_transfer_r3_65536_seed1_gpu1_20260714.json",
+  "errors": [],
+  "expected_rows": 5,
+  "max_samples_per_class": 65536,
+  "plan": "configs\\experiment\\innovation1\\innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed1.csv",
+  "plan_rows": 5,
+  "run_id": "i1_gift64_cross_spn_typed_transfer_r3_65536_seed1",
+  "status": "pass",
+  "warnings": []
+}

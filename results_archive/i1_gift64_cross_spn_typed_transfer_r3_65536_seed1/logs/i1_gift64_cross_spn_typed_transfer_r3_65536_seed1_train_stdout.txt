@@ -1,0 +1,6 @@
+[1/5] GIFT-64 r=6 model=gift_cross_spn_aligned_token_mixer_raw_anchor seed=1 pairs=4
+[2/5] GIFT-64 r=6 model=gift_cross_spn_typed_cell_true seed=1 pairs=4
+[3/5] GIFT-64 r=6 model=gift_cross_spn_typed_cell_true_from_present_true seed=1 pairs=4
+[4/5] GIFT-64 r=6 model=gift_cross_spn_typed_cell_true_from_present_shuffled seed=1 pairs=4
+[5/5] GIFT-64 r=6 model=gift_cross_spn_typed_cell_shuffled_from_present_true seed=1 pairs=4
+wrote 5 rows to G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed1\results\results.jsonl
