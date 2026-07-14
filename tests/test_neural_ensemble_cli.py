@@ -236,6 +236,7 @@ def test_export_checkpoint_scores_writes_artifact(tmp_path):
     assert labels.shape == probabilities.shape == logits.shape
     assert labels.shape[0] == 16
     assert metadata["model_key"] == "mlp"
+    assert len(metadata["checkpoint_sha256"]) == 64
     assert metadata["negative_mode"] == "encrypted_random_plaintexts"
     assert metadata["expert_family"] == "raw_mcnd"
     assert metadata["candidate_status"] == "weak_positive"

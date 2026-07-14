@@ -186,3 +186,19 @@ def test_result_index_supports_r3_local_diagnostic_chinese_names(
     assert entries[0]["scope"] == "local_diagnostic"
     assert "跨 SPN 中等规模迁移，目标 seed 1" in entries[0]["display_name"]
     assert entries[0]["decision_display"] == "中等规模迁移信号保持"
+
+
+def test_result_index_supports_r4_readiness_chinese_name(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_gift64_cross_spn_target_adaptation_r4_readiness_seed2"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {"status": "pass", "decision": "implementation_ready"},
+    )
+
+    entries = build_result_index(outputs, roots=("local_smoke",), limit=10)
+
+    assert len(entries) == 1
+    assert "E4-R4" in entries[0]["display_name"]
+    assert "目标 seed 2" in entries[0]["display_name"]

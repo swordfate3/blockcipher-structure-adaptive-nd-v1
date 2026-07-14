@@ -1,6 +1,6 @@
 # Innovation 1 E4-R4 Cross-SPN Target-Adaptation Confirmation Plan
 
-**Status:** design frozen; implementation/readiness required before remote launch
+**Status:** design and local readiness passed; remote launch pending pushed implementation commit
 **Date:** 2026-07-15
 **Experiment label:** E4-R4
 
@@ -170,3 +170,50 @@ PRESENT source-pretraining cost must be reported separately.
   samples;
 - claims of formal evidence, SOTA, breakthrough, or end-to-end compute savings;
 - reopening DDT, trail, E1, H2, or flattened DBitNet routes.
+
+## 2026-07-15 Implementation And Readiness Record
+
+The E4-R4 four-role gate, paired score export, deterministic label-stratified
+bootstrap, compressed long-form score CSV, seed2/seed3 plans, fail-closed
+remote readiness checks, Windows runners, and tmux retrieval monitor are
+implemented.
+
+Both target seeds completed a `64/class`, exactly-one-epoch CPU readiness run:
+
+```text
+seed2 status/decision = pass / implementation_ready
+seed3 status/decision = pass / implementation_ready
+result rows           = 4 per seed
+history rows          = 4 per seed
+checkpoints           = 4 restored-best files per seed
+score artifacts       = 4 aligned artifacts per seed
+score rows            = 64 per role
+paired CSV rows       = 256 per seed plus header
+typed parameters      = 187426 for all roles
+plan validation       = pass, errors=[] for both seeds
+remote dry-run        = pass, errors=[], warnings=[] for both configs
+```
+
+The gate verified exact source checkpoint SHA-256 provenance, one generated
+and three reused train/validation cache events, matching target checkpoint
+SHA-256 values in score metadata, identical sample IDs and labels across all
+four roles, and score AUC equality with the restored-best result rows. The
+readiness AUC values are intentionally not interpreted.
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_gift64_cross_spn_target_adaptation_r4_readiness_seed2/
+outputs/local_smoke/i1_gift64_cross_spn_target_adaptation_r4_readiness_seed3/
+result index 001/002 = seed3/seed2 readiness
+```
+
+The exact 65,536-row paired-bootstrap implementation was benchmarked locally:
+100 replicates took approximately `0.97s`, so the frozen 10,000-replicate
+remote gate is expected to require roughly 1.5-2 minutes of CPU postprocessing
+after score export. This is not a training-time estimate.
+
+Readiness authorizes only the planned remote medium runs after this
+implementation, configs, source assets, and remote scripts are committed and
+pushed. Seed2 must run on A6000 GPU0 and seed3 on A6000 GPU1 from the exact
+pushed commit. Local `65536/class` execution remains prohibited.

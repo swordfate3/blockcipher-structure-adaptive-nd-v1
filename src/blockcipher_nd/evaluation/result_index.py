@@ -34,6 +34,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "e4_r4_two_seed_target_adaptation_efficiency_confirmed": "双 seed 目标适配效率已确认",
+    "e4_r4_two_seed_target_adaptation_signal_unstable": "双 seed 目标适配信号不稳定",
+    "e4_r4_two_seed_target_adaptation_rejected": "双 seed 目标适配假设未通过",
+    "e4_r4_target_adaptation_efficiency_confirmed": "目标适配效率已确认",
+    "e4_r4_target_adaptation_signal_unstable": "目标适配信号不稳定",
+    "e4_r4_target_adaptation_rejected": "目标适配假设未通过",
     "e4_r3_two_seed_medium_signal_confirmed": "双 seed 中等规模迁移信号已确认",
     "e4_r3_two_seed_medium_signal_unstable": "双 seed 中等规模迁移信号不稳定",
     "e4_r3_seed_signal_preserved": "中等规模迁移信号保持",
@@ -260,6 +266,28 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == (
+        "i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3"
+    ):
+        return "创新1 E4-R4：PRESENT → GIFT-64 双 seed 目标适配效率联合裁决"
+    r4_medium = re.fullmatch(
+        r"i1_gift64_cross_spn_target_adaptation_r4_65536_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r4_medium:
+        return (
+            "创新1 E4-R4：PRESENT → GIFT-64 一轮目标适配效率，"
+            f"目标 seed {r4_medium.group('seed')}"
+        )
+    r4_readiness = re.fullmatch(
+        r"i1_gift64_cross_spn_target_adaptation_r4_readiness_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r4_readiness:
+        return (
+            "创新1 E4-R4：跨 SPN 一轮目标适配实验就绪检查，"
+            f"目标 seed {r4_readiness.group('seed')}"
+        )
     if run_id == (
         "i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1"
     ):

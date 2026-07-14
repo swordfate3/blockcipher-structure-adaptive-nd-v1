@@ -145,6 +145,9 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
     trail_position_score_consistency = _trail_position_score_artifact_consistency(config, tasks)
     errors.extend(trail_position_score_consistency["errors"])
     warnings.extend(trail_position_score_consistency["warnings"])
+    e4_r4_consistency = _e4_r4_target_adaptation_consistency(config, tasks)
+    errors.extend(e4_r4_consistency["errors"])
+    warnings.extend(e4_r4_consistency["warnings"])
 
     checked_invariants = [
         "plan_exists",
@@ -177,6 +180,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("neural_ensemble_score_artifact_lock")
     if _is_trail_position_score_artifact_config(config):
         checked_invariants.append("trail_position_score_artifact_lock")
+    if _is_e4_r4_target_adaptation_config(config):
+        checked_invariants.append("e4_r4_target_adaptation_protocol_lock")
 
     return {
         "status": "pass" if not errors else "fail",
@@ -829,6 +834,73 @@ def _trail_position_score_artifact_consistency(
     return {"errors": errors, "warnings": warnings}
 
 
+def _e4_r4_target_adaptation_consistency(
+    config: dict[str, Any],
+    tasks: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _is_e4_r4_target_adaptation_config(config):
+        return {"errors": errors, "warnings": warnings}
+
+    expected_models = {
+        "gift_cross_spn_typed_cell_true",
+        "gift_cross_spn_typed_cell_true_from_present_true",
+        "gift_cross_spn_typed_cell_true_from_present_shuffled",
+        "gift_cross_spn_typed_cell_shuffled_from_present_true",
+    }
+    if len(tasks) != 4 or {str(task.get("model_key")) for task in tasks} != expected_models:
+        errors.append("E4-R4 plan must contain the exact four target-adaptation roles")
+    seeds = {task.get("seed") for task in tasks}
+    if len(seeds) != 1 or not seeds.issubset({2, 3}):
+        errors.append(f"E4-R4 plan target seed must be exactly 2 or 3 actual={seeds}")
+    for task in tasks:
+        expected = {
+            "rounds": 6,
+            "samples_per_class": 65536,
+            "pairs_per_sample": 4,
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "independent_pairs",
+            "difference_profile": "gift64_shen2024_spn_screen",
+            "difference_member": 0,
+        }
+        for field, expected_value in expected.items():
+            if task.get(field) != expected_value:
+                errors.append(
+                    f"E4-R4 {task.get('model_key')} {field}={task.get(field)!r} "
+                    f"expected={expected_value!r}"
+                )
+    if config.get("epochs") != 1:
+        errors.append("E4-R4 epochs must equal exactly 1")
+    if config.get("score_export_after_training") is not True:
+        errors.append("E4-R4 score_export_after_training must be true")
+    if config.get("bootstrap_replicates") != 10000:
+        errors.append("E4-R4 bootstrap_replicates must equal 10000")
+    if config.get("bootstrap_seed") != 20260715:
+        errors.append("E4-R4 bootstrap_seed must equal 20260715")
+    for field in (
+        "checkpoint_output_dir",
+        "score_artifacts_root",
+        "paired_scores_output",
+        "progress_output",
+    ):
+        value = _str_value(config.get(field))
+        if not value.startswith(REMOTE_ROOT):
+            errors.append(f"E4-R4 {field} must stay under {REMOTE_ROOT}: {value}")
+    seed = next(iter(seeds), None)
+    expected_gpu = {2: 0, 3: 1}.get(seed)
+    if config.get("physical_gpu") != expected_gpu:
+        errors.append(
+            f"E4-R4 target seed {seed} physical_gpu={config.get('physical_gpu')} "
+            f"expected={expected_gpu}"
+        )
+    manifest = _local_plan_path(config.get("initialization_manifest"))
+    if manifest is None or not manifest.is_file():
+        errors.append(f"E4-R4 initialization manifest missing: {manifest}")
+    return {"errors": errors, "warnings": warnings}
+
+
 def _require_remote_path(config: dict[str, Any], field: str, errors: list[str]) -> None:
     value = _str_value(config.get(field))
     if not value:
@@ -1003,6 +1075,14 @@ def _is_trail_position_score_artifact_config(config: dict[str, Any]) -> bool:
         ]
     ).lower()
     return "trail_position" in haystack and "beamstats" in haystack
+
+
+def _is_e4_r4_target_adaptation_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in ("run_id", "task_name", "plan", "claim_scope", "launch_policy")
+    ).lower()
+    return "cross_spn_target_adaptation_r4" in haystack or "e4-r4" in haystack
 
 
 def _local_plan_path(value: Any) -> Path | None:
