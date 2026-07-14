@@ -71,6 +71,7 @@ def gate_cross_spn_typed_transfer(
         *progress_errors,
         *_result_errors(
             rows,
+            expected_seed=expected_seeds[0],
             samples_per_class=samples_per_class,
             epochs=epochs,
         ),
@@ -78,6 +79,7 @@ def gate_cross_spn_typed_transfer(
             progress,
             rows=rows,
             result_path=results_paths[0],
+            expected_seed=expected_seeds[0],
             samples_per_class=samples_per_class,
         ),
     ]
@@ -115,22 +117,26 @@ def gate_cross_spn_typed_transfer(
             "status": "pass",
             "decision": "implementation_ready",
             "errors": [],
-            "expected_seeds": [0],
+            "expected_seeds": list(expected_seeds),
             "samples_per_class": samples_per_class,
             "epochs": epochs,
             **evidence,
             "research_decision_applied": False,
             "claim_scope": "E4-R2 readiness only; metrics not interpreted",
-            "next_action": "run_frozen_e4_r2_seed0_local_diagnostic",
+            "next_action": (
+                "run_frozen_e4_r2_seed0_local_diagnostic"
+                if expected_seeds == (0,)
+                else "run_frozen_e4_r2_seed1_local_diagnostic"
+            ),
             "stopped_actions": _stopped_actions("implementation_ready"),
         }
 
-    decision, next_action = _decision(aucs, margins)
+    decision, next_action = _decision(aucs, margins, expected_seed=expected_seeds[0])
     return {
         "status": "pass",
         "decision": decision,
         "errors": [],
-        "expected_seeds": [0],
+        "expected_seeds": list(expected_seeds),
         "samples_per_class": samples_per_class,
         "epochs": epochs,
         **evidence,
@@ -152,8 +158,11 @@ def _argument_errors(
     readiness_only: bool,
 ) -> list[str]:
     errors: list[str] = []
-    if expected_seeds != (0,):
-        errors.append(f"expected_seeds must equal frozen (0,) actual={expected_seeds!r}")
+    if expected_seeds not in {(0,), (1,)}:
+        errors.append(
+            "expected_seeds must equal one frozen target seed "
+            f"actual={expected_seeds!r}"
+        )
     if type(samples_per_class) is not int or samples_per_class <= 0:
         errors.append(
             f"samples_per_class must be a positive integer actual={samples_per_class!r}"
@@ -176,6 +185,7 @@ def _argument_errors(
 def _result_errors(
     rows: list[dict[str, Any]],
     *,
+    expected_seed: int,
     samples_per_class: int,
     epochs: int,
 ) -> list[str]:
@@ -204,7 +214,7 @@ def _result_errors(
             "cipher_key": "gift64",
             "structure": "SPN",
             "rounds": 6,
-            "seed": 0,
+            "seed": expected_seed,
             "samples_per_class": samples_per_class,
             "pairs_per_sample": 4,
             "feature_encoding": "ciphertext_pair_bits",
@@ -374,6 +384,7 @@ def _progress_errors(
     *,
     rows: list[dict[str, Any]],
     result_path: Path,
+    expected_seed: int,
     samples_per_class: int,
 ) -> list[str]:
     errors: list[str] = []
@@ -387,6 +398,13 @@ def _progress_errors(
         if len(model_init) != 1:
             errors.append(
                 f"progress initialization_ready model={model} count={len(model_init)} expected=1"
+            )
+        else:
+            _check_fields(
+                model_init[0],
+                {"seed": expected_seed},
+                f"progress initialization_ready model={model}",
+                errors,
             )
         for split in ("train", "validation"):
             events = [
@@ -411,6 +429,7 @@ def _progress_errors(
                     "difference_profile": "gift64_shen2024_spn_screen",
                     "difference_member": 0,
                     "input_bits": 512,
+                    "seed": expected_seed,
                     "samples_per_class": samples_per_class,
                     "total_rows": expected_rows,
                 },
@@ -449,6 +468,8 @@ def _progress_errors(
 def _decision(
     aucs: dict[str, float],
     margins: dict[str, float],
+    *,
+    expected_seed: int,
 ) -> tuple[str, str]:
     if margins["source_topology_margin"] <= 0.0:
         return (
@@ -469,13 +490,91 @@ def _decision(
         and margins["source_topology_margin"] >= 0.003
         and margins["target_topology_margin"] >= 0.003
     ):
-        return "promote_e4_transfer_seed1", "freeze_identical_e4_r2_seed1_repeat"
+        if expected_seed == 0:
+            return "promote_e4_transfer_seed1", "freeze_identical_e4_r2_seed1_repeat"
+        return "promote_e4_transfer_joint_gate", "run_frozen_e4_r2_joint_gate"
     return "weak_transfer_no_scale", "stop_e4_transfer_scale_after_seed0_margin_miss"
 
 
+def gate_cross_spn_typed_transfer_joint(
+    results_paths: list[Path],
+    *,
+    progress_paths: list[Path],
+    samples_per_class: int = 8192,
+    epochs: int = 10,
+) -> dict[str, Any]:
+    if len(results_paths) != 2 or len(progress_paths) != 2:
+        return _invalid(
+            [
+                "E4-R2 joint gate requires seed0 and seed1 result/progress paths "
+                f"results={len(results_paths)} progress={len(progress_paths)}"
+            ]
+        )
+    per_seed = {
+        str(seed): gate_cross_spn_typed_transfer(
+            [results_paths[seed]],
+            progress_paths=[progress_paths[seed]],
+            expected_seeds=(seed,),
+            samples_per_class=samples_per_class,
+            epochs=epochs,
+        )
+        for seed in (0, 1)
+    }
+    invalid = [
+        f"seed={seed} invalid: {error}"
+        for seed, report in per_seed.items()
+        if report["status"] != "pass"
+        for error in report["errors"]
+    ]
+    if invalid:
+        report = _invalid(invalid)
+        report["expected_seeds"] = [0, 1]
+        report["per_seed"] = per_seed
+        return report
+    if (
+        per_seed["0"]["decision"] == "promote_e4_transfer_seed1"
+        and per_seed["1"]["decision"] == "promote_e4_transfer_joint_gate"
+    ):
+        return {
+            "status": "pass",
+            "decision": "two_seed_transfer_signal_confirmed",
+            "errors": [],
+            "expected_seeds": [0, 1],
+            "per_seed": per_seed,
+            "research_decision_applied": True,
+            "claim_scope": (
+                "two-seed E4-R2 local transfer diagnostic; not formal, "
+                "paper-scale, remote, or breakthrough evidence"
+            ),
+            "next_action": "design_e4_r3_same_protocol_medium_diagnostic",
+            "stopped_actions": _stopped_actions(
+                "two_seed_transfer_signal_confirmed"
+            ),
+        }
+    return {
+        "status": "pass",
+        "decision": "two_seed_transfer_unstable_no_scale",
+        "errors": [],
+        "expected_seeds": [0, 1],
+        "per_seed": per_seed,
+        "research_decision_applied": True,
+        "claim_scope": (
+            "two-seed E4-R2 local transfer diagnostic; controls did not "
+            "replicate across both seeds"
+        ),
+        "next_action": "stop_e4_transfer_scale_after_two_seed_variance",
+        "stopped_actions": _stopped_actions("two_seed_transfer_unstable_no_scale"),
+    }
+
+
 def _stopped_actions(decision: str) -> list[dict[str, str]]:
-    if decision == "promote_e4_transfer_seed1":
+    if decision in {
+        "promote_e4_transfer_seed1",
+        "promote_e4_transfer_joint_gate",
+    }:
         actions = ("remote_scale", "sample_scale", "formal_claim")
+    elif decision == "two_seed_transfer_signal_confirmed":
+        actions = ("remote_scale", "formal_claim")
     else:
         actions = ("seed1", "remote_scale", "sample_scale", "formal_claim")
     return [
@@ -538,4 +637,8 @@ def _invalid(errors: list[str]) -> dict[str, Any]:
     }
 
 
-__all__ = ["TRANSFER_MODEL_ROLES", "gate_cross_spn_typed_transfer"]
+__all__ = [
+    "TRANSFER_MODEL_ROLES",
+    "gate_cross_spn_typed_transfer",
+    "gate_cross_spn_typed_transfer_joint",
+]

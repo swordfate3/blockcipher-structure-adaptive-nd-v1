@@ -17,6 +17,7 @@ from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.cross_spn_typed_transfer_gate import (
     TRANSFER_MODEL_ROLES,
     gate_cross_spn_typed_transfer,
+    gate_cross_spn_typed_transfer_joint,
 )
 from blockcipher_nd.registry.model_factory import build_model
 
@@ -103,7 +104,14 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
 
 
 @pytest.mark.parametrize(
-    ("filename", "family", "samples_per_class", "epochs", "batch_size"),
+    (
+        "filename",
+        "family",
+        "samples_per_class",
+        "epochs",
+        "batch_size",
+        "seed",
+    ),
     [
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_smoke_seed0.csv",
@@ -111,6 +119,15 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             64,
             1,
             32,
+            0,
+        ),
+        (
+            "innovation1_spn_gift64_cross_spn_typed_transfer_smoke_seed1.csv",
+            "gift64_cross_spn_typed_transfer_smoke_seed1",
+            64,
+            1,
+            32,
+            1,
         ),
         (
             "innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed0.csv",
@@ -118,6 +135,15 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             8192,
             10,
             256,
+            0,
+        ),
+        (
+            "innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed1.csv",
+            "gift64_cross_spn_typed_transfer_8192_seed1",
+            8192,
+            10,
+            256,
+            1,
         ),
     ],
 )
@@ -127,6 +153,7 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
     samples_per_class: int,
     epochs: int,
     batch_size: int,
+    seed: int,
 ) -> None:
     plan = Path("configs/experiment/innovation1") / filename
     args = parse_matrix_args(
@@ -155,7 +182,7 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
     assert {row["family"] for row in rows} == {family}
     assert {task["cipher_key"] for task in tasks} == {"gift64"}
     assert {task["rounds"] for task in tasks} == {6}
-    assert {task["seed"] for task in tasks} == {0}
+    assert {task["seed"] for task in tasks} == {seed}
     assert {task["samples_per_class"] for task in tasks} == {samples_per_class}
     assert {task["pairs_per_sample"] for task in tasks} == {4}
     assert {task["feature_encoding"] for task in tasks} == {"ciphertext_pair_bits"}
@@ -265,6 +292,7 @@ def _write_transfer_run(
     *,
     samples_per_class: int = 8192,
     epochs: int = 10,
+    seed: int = 0,
 ) -> None:
     base = results.with_name("base.jsonl")
     r1_fixtures._write_cross_run(
@@ -293,6 +321,7 @@ def _write_transfer_run(
     for role, model in ROLES.items():
         row = copy.deepcopy(templates[role])
         row["model"] = row["selected_model"] = model
+        row["seed"] = seed
         row["initialization"] = _initialization(role)
         row["parameter_count"] = 219970 if role == "gift_anchor" else 187426
         row["trainable_parameter_count"] = row["parameter_count"]
@@ -318,7 +347,7 @@ def _write_transfer_run(
                 "strict_state_dict_load": initialization["strict_state_dict_load"],
                 "target_model": model,
                 "target_mapping": initialization["target_mapping"],
-                "seed": 0,
+                "seed": seed,
             }
         )
         for split in ("train", "validation"):
@@ -326,7 +355,7 @@ def _write_transfer_run(
                 {
                     "event": "cache_done" if role == "gift_anchor" else "cache_reuse",
                     "model": model,
-                    "seed": 0,
+                    "seed": seed,
                     "split": split,
                     "cache_path": str(Path(cache_root) / split),
                     "cipher_key": "gift64",
@@ -522,3 +551,153 @@ def test_cross_spn_transfer_gate_cli_writes_json(
     assert report["decision"] == "promote_e4_transfer_seed1"
     assert output.read_text(encoding="utf-8").endswith("\n")
     assert capsys.readouterr().out == json.dumps(report, sort_keys=True) + "\n"
+
+
+def test_cross_spn_transfer_seed1_promotes_only_joint_gate(tmp_path: Path) -> None:
+    results = tmp_path / "seed1.jsonl"
+    _write_transfer_run(
+        results,
+        {
+            "gift_anchor": 0.500,
+            "gift_typed_scratch": 0.540,
+            "true_to_true": 0.560,
+            "shuffled_to_true": 0.550,
+            "true_to_shuffled": 0.545,
+        },
+        seed=1,
+    )
+
+    report = _gate(results, expected_seeds=(1,))
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "promote_e4_transfer_joint_gate"
+    assert report["next_action"] == "run_frozen_e4_r2_joint_gate"
+    assert report["expected_seeds"] == [1]
+
+
+def test_cross_spn_transfer_joint_confirms_two_passing_seeds(tmp_path: Path) -> None:
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    aucs = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    _write_transfer_run(seed0, aucs, seed=0)
+    _write_transfer_run(seed1, aucs, seed=1)
+
+    report = gate_cross_spn_typed_transfer_joint(
+        [seed0, seed1],
+        progress_paths=[_progress_path(seed0), _progress_path(seed1)],
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "two_seed_transfer_signal_confirmed"
+    assert report["next_action"] == "design_e4_r3_same_protocol_medium_diagnostic"
+    assert report["expected_seeds"] == [0, 1]
+
+
+def test_cross_spn_transfer_joint_stops_after_seed1_control_failure(
+    tmp_path: Path,
+) -> None:
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    passing = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    seed1_failure = {**passing, "shuffled_to_true": 0.561}
+    _write_transfer_run(seed0, passing, seed=0)
+    _write_transfer_run(seed1, seed1_failure, seed=1)
+
+    report = gate_cross_spn_typed_transfer_joint(
+        [seed0, seed1],
+        progress_paths=[_progress_path(seed0), _progress_path(seed1)],
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "two_seed_transfer_unstable_no_scale"
+    assert report["next_action"] == "stop_e4_transfer_scale_after_two_seed_variance"
+    assert {item["action"] for item in report["stopped_actions"]} >= {
+        "remote_scale",
+        "sample_scale",
+        "formal_claim",
+    }
+
+
+def test_cross_spn_transfer_gate_cli_forwards_seed1(
+    tmp_path: Path,
+) -> None:
+    from blockcipher_nd.cli.gate_cross_spn_typed_transfer import main
+
+    results = tmp_path / "seed1.jsonl"
+    output = tmp_path / "seed1-gate.json"
+    _write_transfer_run(
+        results,
+        {
+            "gift_anchor": 0.500,
+            "gift_typed_scratch": 0.540,
+            "true_to_true": 0.560,
+            "shuffled_to_true": 0.550,
+            "true_to_shuffled": 0.545,
+        },
+        seed=1,
+    )
+
+    assert main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--expected-seed",
+            "1",
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["decision"] == (
+        "promote_e4_transfer_joint_gate"
+    )
+
+
+def test_cross_spn_transfer_joint_cli_writes_two_seed_report(
+    tmp_path: Path,
+) -> None:
+    from blockcipher_nd.cli.gate_cross_spn_typed_transfer_joint import main
+
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    output = tmp_path / "joint-gate.json"
+    aucs = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    _write_transfer_run(seed0, aucs, seed=0)
+    _write_transfer_run(seed1, aucs, seed=1)
+
+    assert main(
+        [
+            "--seed0-results",
+            str(seed0),
+            "--seed0-progress",
+            str(_progress_path(seed0)),
+            "--seed1-results",
+            str(seed1),
+            "--seed1-progress",
+            str(_progress_path(seed1)),
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["decision"] == "two_seed_transfer_signal_confirmed"
+    assert output.read_text(encoding="utf-8").endswith("\n")
