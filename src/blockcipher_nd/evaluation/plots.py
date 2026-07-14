@@ -604,6 +604,26 @@ def _display_title(title: str) -> str:
         return "创新1 E6-R0：源端功能性拓扑边际目标（就绪检查）"
     if stem == "i1_cross_spn_e6_target_readiness":
         return "创新1 E6-R0：PRESENT → GIFT-64 严格迁移（就绪检查）"
+    e6_source = re.fullmatch(
+        r"i1_cross_spn_e6_functional_margin_8192_seed(?P<seed>\d+)",
+        stem,
+    )
+    if e6_source:
+        return (
+            "创新1 E6-R0：PRESENT 源端功能性拓扑边际 "
+            f"（本地诊断，源 seed {e6_source.group('seed')}）"
+        )
+    e6_target = re.fullmatch(
+        r"i1_cross_spn_e6_target_8192_source_seed(?P<source_seed>\d+)_"
+        r"target_seed(?P<target_seed>\d+)",
+        stem,
+    )
+    if e6_target:
+        return (
+            "创新1 E6-R0：PRESENT → GIFT-64 功能边际迁移门控 "
+            f"（源 seed {e6_target.group('source_seed')}，"
+            f"目标 seed {e6_target.group('target_seed')}）"
+        )
     cleaned = stem.replace("_", " ").replace("-", " ")
     cleaned = " ".join(
         part

@@ -139,6 +139,88 @@ def gate_e6_target_readiness(
     }
 
 
+def gate_e6_source_diagnostic(
+    plan_path: Path,
+    results_path: Path,
+    anchor_results_path: Path,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    rows, errors = _read_jsonl(results_path)
+    anchor_rows, anchor_errors = _read_jsonl(anchor_results_path)
+    errors.extend(anchor_errors)
+    alignment = validate_result_plan_alignment(
+        plan_path,
+        results_path,
+        expected_rows=2,
+    )
+    errors.extend(alignment["errors"])
+    by_model = {row.get("selected_model"): row for row in rows}
+    expected_new = {
+        E6_SOURCE_MODELS["candidate"],
+        E6_SOURCE_MODELS["placebo"],
+    }
+    if set(by_model) != expected_new:
+        errors.append("source diagnostic models do not match E6 candidate/placebo")
+    anchor_by_model = {row.get("selected_model"): row for row in anchor_rows}
+    anchor = anchor_by_model.get("present_cross_spn_typed_cell_e5_off")
+    if anchor is None:
+        errors.append("E5 off source anchor is missing")
+
+    combined: dict[str, dict[str, Any]] = {}
+    if anchor is not None:
+        combined["off"] = anchor
+        errors.extend(_source_diagnostic_row_errors("off", anchor, functional=False))
+    for role in ("candidate", "placebo"):
+        row = by_model.get(E6_SOURCE_MODELS[role])
+        if row is None:
+            continue
+        combined[role] = row
+        errors.extend(_source_diagnostic_row_errors(role, row, functional=True))
+
+    state_keys: dict[str, set[str]] = {}
+    for role, row in combined.items():
+        checkpoint = (row.get("training") or {}).get("checkpoint_output")
+        if not isinstance(checkpoint, str) or not Path(checkpoint).is_file():
+            errors.append(f"source diagnostic role={role} checkpoint is missing")
+            continue
+        payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+        state_dict = payload.get("state_dict") if isinstance(payload, dict) else None
+        if not isinstance(state_dict, dict):
+            errors.append(f"source diagnostic role={role} state_dict is missing")
+            continue
+        state_keys[role] = set(state_dict)
+    if len(state_keys) == 3 and len({tuple(sorted(keys)) for keys in state_keys.values()}) != 1:
+        errors.append("source diagnostic checkpoint state keys differ")
+    if errors:
+        return _invalid(errors, alignment), None
+
+    manifest = build_e6_diagnostic_manifest(
+        combined,
+        results_path=results_path,
+        anchor_results_path=anchor_results_path,
+    )
+    aucs = {
+        role: float(row["metrics"]["auc"])
+        for role, row in combined.items()
+    }
+    report = {
+        "status": "pass",
+        "decision": "proceed_to_e6_target_adaptation_gate",
+        "errors": [],
+        "alignment": alignment,
+        "parameter_count": 196003,
+        "checkpoint_state_keys": len(next(iter(state_keys.values()))),
+        "source_aucs": aucs,
+        "source_deltas": {
+            "candidate_minus_off": aucs["candidate"] - aucs["off"],
+            "candidate_minus_placebo": aucs["candidate"] - aucs["placebo"],
+        },
+        "source_auc_is_decision_gate": False,
+        "claim_scope": "local 8192/class source diagnostic; target gate required",
+        "next_action": "run_e6_target_seed2_and_seed3_exactly_one_epoch",
+    }
+    return report, manifest
+
+
 def build_e6_readiness_manifest(
     source_rows: dict[Any, dict[str, Any]],
     results_path: Path,
@@ -164,6 +246,54 @@ def build_e6_readiness_manifest(
             "source_seed": 0,
             "source_samples_per_class": 64,
             "source_epochs": 3,
+            "source_mapping": "true",
+            "target_mapping": "true",
+        }
+    return {"version": 1, "targets": targets}
+
+
+def build_e6_diagnostic_manifest(
+    source_rows: dict[str, dict[str, Any]],
+    *,
+    results_path: Path,
+    anchor_results_path: Path,
+) -> dict[str, Any]:
+    target_sources = {
+        "off": (
+            E6_TARGET_MODELS["off"],
+            "present_cross_spn_typed_cell_e5_off",
+            anchor_results_path,
+        ),
+        "candidate": (
+            E6_TARGET_MODELS["candidate"],
+            E6_SOURCE_MODELS["candidate"],
+            results_path,
+        ),
+        "placebo": (
+            E6_TARGET_MODELS["placebo"],
+            E6_SOURCE_MODELS["placebo"],
+            results_path,
+        ),
+    }
+    targets: dict[str, dict[str, Any]] = {
+        E6_TARGET_MODELS["scratch"]: {
+            "kind": "scratch",
+            "target_mapping": "true",
+        }
+    }
+    for role, (target_model, source_model, source_results) in target_sources.items():
+        checkpoint = Path(source_rows[role]["training"]["checkpoint_output"])
+        targets[target_model] = {
+            "kind": "checkpoint",
+            "source_checkpoint": str(checkpoint),
+            "source_checkpoint_sha256": file_sha256(checkpoint),
+            "source_results": str(source_results),
+            "source_model": source_model,
+            "source_cipher": "PRESENT-80",
+            "source_rounds": 7,
+            "source_seed": 0,
+            "source_samples_per_class": 8192,
+            "source_epochs": 10,
             "source_mapping": "true",
             "target_mapping": "true",
         }
@@ -219,6 +349,48 @@ def _target_row_errors(role: str, row: dict[str, Any]) -> list[str]:
             errors.append(f"target role={role} source model mismatch")
         if initialization.get("state_dict_key_count") != 59:
             errors.append(f"target role={role} state key count mismatch")
+    return errors
+
+
+def _source_diagnostic_row_errors(
+    role: str,
+    row: dict[str, Any],
+    *,
+    functional: bool,
+) -> list[str]:
+    errors: list[str] = []
+    expected = {
+        "cipher": "PRESENT-80",
+        "rounds": 7,
+        "seed": 0,
+        "samples_per_class": 8192,
+        "pairs_per_sample": 16,
+        "negative_mode": "encrypted_random_plaintexts",
+        "sample_structure": "zhang_wang_case2_official_mcnd",
+        "parameter_count": 196003,
+    }
+    for field, value in expected.items():
+        if row.get(field) != value:
+            errors.append(
+                f"source diagnostic role={role} {field} expected={value!r} actual={row.get(field)!r}"
+            )
+    training = row.get("training")
+    if not isinstance(training, dict):
+        errors.append(f"source diagnostic role={role} training metadata missing")
+    elif training.get("epochs") != 10 or training.get("selected_checkpoint") != "best":
+        errors.append(f"source diagnostic role={role} must restore best of 10 epochs")
+    history = row.get("history", [])
+    auxiliary = [float(item.get("train_auxiliary_loss", 0.0)) for item in history]
+    if functional:
+        if not auxiliary or not all(math.isfinite(value) and value > 0.0 for value in auxiliary):
+            errors.append(f"source diagnostic role={role} auxiliary loss invalid")
+        if not all(
+            math.isfinite(float(item.get("train_functional_loss_gap", math.nan)))
+            for item in history
+        ):
+            errors.append(f"source diagnostic role={role} functional loss gap invalid")
+    elif any(value != 0.0 for value in auxiliary):
+        errors.append("source diagnostic off anchor auxiliary loss must be zero")
     return errors
 
 
@@ -306,6 +478,8 @@ __all__ = [
     "E6_SOURCE_MODELS",
     "E6_TARGET_MODELS",
     "build_e6_readiness_manifest",
+    "build_e6_diagnostic_manifest",
+    "gate_e6_source_diagnostic",
     "gate_e6_source_readiness",
     "gate_e6_target_readiness",
 ]

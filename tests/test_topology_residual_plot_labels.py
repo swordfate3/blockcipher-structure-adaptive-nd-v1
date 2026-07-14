@@ -49,6 +49,12 @@ def test_e6_plot_titles_and_roles_are_explained_in_chinese() -> None:
     assert "PRESENT → GIFT-64 严格迁移" in _display_title(
         "i1_cross_spn_e6_target_readiness"
     )
+    assert "本地诊断，源 seed 0" in _display_title(
+        "i1_cross_spn_e6_functional_margin_8192_seed0"
+    )
+    assert "源 seed 0，目标 seed 3" in _display_title(
+        "i1_cross_spn_e6_target_8192_source_seed0_target_seed3"
+    )
     assert _compact_label(
         {"model": "present_cross_spn_typed_cell_e6_functional_margin"}
     ) == "候选：真拓扑功能边际"

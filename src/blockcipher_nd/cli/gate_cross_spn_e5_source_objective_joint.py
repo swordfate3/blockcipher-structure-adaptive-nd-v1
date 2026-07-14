@@ -93,7 +93,20 @@ def write_joint_summary_csv(report: dict[str, Any], path: Path) -> None:
                 )
 
 
-def render_joint_gate_svg(report: dict[str, Any], path: Path) -> None:
+def render_joint_gate_svg(
+    report: dict[str, Any],
+    path: Path,
+    *,
+    title: str = "创新1 E5-R0：源拓扑反事实辅助目标的迁移门控",
+    subtitle: str = (
+        "PRESENT-80 r7 源 seed 0 → GIFT-64 r6｜训练 8,192/类｜"
+        "目标只训练 1 轮｜误差线为配对 bootstrap 95% CI"
+    ),
+    verdict: str = (
+        "裁决：两颗 seed 均未超过关闭辅助损失的迁移基线；拒绝 E5-R0，"
+        "不运行 source seed 1 或 65,536/class 远程扩展。"
+    ),
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     roles = (
         ("off_transfer", "候选 - 关闭辅助损失的迁移基线"),
@@ -120,7 +133,7 @@ def render_joint_gate_svg(report: dict[str, Any], path: Path) -> None:
         fig, axes = plt.subplots(3, 1, figsize=(12.6, 9.4), sharex=True)
         fig.subplots_adjust(left=0.12, right=0.96, top=0.80, bottom=0.12, hspace=0.55)
         fig.suptitle(
-            "创新1 E5-R0：源拓扑反事实辅助目标的迁移门控",
+            title,
             x=0.075,
             y=0.965,
             ha="left",
@@ -130,8 +143,7 @@ def render_joint_gate_svg(report: dict[str, Any], path: Path) -> None:
         fig.text(
             0.075,
             0.915,
-            "PRESENT-80 r7 源 seed 0 → GIFT-64 r6｜训练 8,192/类｜"
-            "目标只训练 1 轮｜误差线为配对 bootstrap 95% CI",
+            subtitle,
             ha="left",
             color="#526070",
             fontsize=9.8,
@@ -210,8 +222,7 @@ def render_joint_gate_svg(report: dict[str, Any], path: Path) -> None:
         fig.text(
             0.075,
             0.035,
-            "裁决：两颗 seed 均未超过关闭辅助损失的迁移基线；拒绝 E5-R0，"
-            "不运行 source seed 1 或 65,536/class 远程扩展。",
+            verdict,
             ha="left",
             fontsize=9.6,
             color="#334155",

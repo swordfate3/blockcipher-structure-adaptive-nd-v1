@@ -282,3 +282,46 @@ outputs/local_smoke/i1_cross_spn_e6_target_readiness/
 
 Phase 0 authorizes only the planned local `8192/class` diagnostic. It does not
 authorize a local or remote `65536/class` run.
+
+## Phase 1A Source Seed0 Completion
+
+The two new source rows completed at `8192/class`, `4096/class` validation,
+16 pairs/sample, and 10 epochs. The frozen E5 off checkpoint supplies the
+unchanged source anchor:
+
+```text
+off AUC                         = 0.743810147047
+functional-margin candidate AUC = 0.743393987417
+shuffled-placebo AUC            = 0.742673695087
+candidate - off                 = -0.000416159630
+candidate - placebo             = +0.000720292330
+candidate final functional gap  = +0.078486087499
+placebo final functional gap    = +0.003765127854
+```
+
+The candidate learned a much larger true-versus-shuffled functional loss gap
+without the large source-AUC degradation observed in E5. Source AUC remains a
+recorded diagnostic, not the E6 decision gate.
+
+```text
+status      = pass, errors=[]
+decision    = proceed_to_e6_target_adaptation_gate
+state keys  = 59 across off, candidate, and placebo checkpoints
+next action = run target seeds2 and 3 at 8192/class, exactly one epoch
+```
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e6_functional_margin_8192_seed0/
+  results.jsonl
+  history.csv
+  curves.svg
+  progress.jsonl
+  gate.json
+  initialization_manifest.json
+  checkpoints/
+```
+
+This source result authorizes only the two predeclared local GIFT target cells.
+It does not authorize source seed1 or any `65536/class` experiment.

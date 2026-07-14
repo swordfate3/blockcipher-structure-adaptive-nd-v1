@@ -8,6 +8,7 @@ from blockcipher_nd.engine.checkpoint_initialization import file_sha256
 from blockcipher_nd.planning.cross_spn_e6_readiness import (
     E6_SOURCE_MODELS,
     E6_TARGET_MODELS,
+    build_e6_diagnostic_manifest,
     build_e6_readiness_manifest,
 )
 
@@ -39,3 +40,28 @@ def test_e6_readiness_manifest_pins_all_source_checkpoints(tmp_path: Path) -> No
         assert target["source_checkpoint_sha256"] == file_sha256(checkpoint)
         assert target["source_samples_per_class"] == 64
         assert target["source_epochs"] == 3
+
+
+def test_e6_diagnostic_manifest_reuses_only_the_frozen_off_source(
+    tmp_path: Path,
+) -> None:
+    source_rows = {}
+    for index, role in enumerate(("off", "candidate", "placebo"), start=1):
+        checkpoint = tmp_path / f"diagnostic-{role}.pt"
+        torch.save({"state_dict": {"weight": torch.tensor([float(index)])}}, checkpoint)
+        source_rows[role] = {"training": {"checkpoint_output": str(checkpoint)}}
+
+    manifest = build_e6_diagnostic_manifest(
+        source_rows,
+        results_path=tmp_path / "e6-results.jsonl",
+        anchor_results_path=tmp_path / "e5-results.jsonl",
+    )
+
+    off = manifest["targets"][E6_TARGET_MODELS["off"]]
+    candidate = manifest["targets"][E6_TARGET_MODELS["candidate"]]
+    assert off["source_model"] == "present_cross_spn_typed_cell_e5_off"
+    assert off["source_results"].endswith("e5-results.jsonl")
+    assert candidate["source_model"] == E6_SOURCE_MODELS["candidate"]
+    assert candidate["source_results"].endswith("e6-results.jsonl")
+    assert candidate["source_samples_per_class"] == 8192
+    assert candidate["source_epochs"] == 10
