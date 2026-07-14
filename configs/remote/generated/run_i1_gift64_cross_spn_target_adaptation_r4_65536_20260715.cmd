@@ -95,8 +95,8 @@ if errorlevel 1 goto failed
 
 set RESULT_LINES=0
 for /f "tokens=3" %%L in ('find /c /v "" "%RESULTS_DIR%\results.jsonl"') do set RESULT_LINES=%%L
-echo result_lines=%RESULT_LINES%>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
-echo expected_rows=4>>"%LOG_DIR%\%RUN_ID%_result_gate.txt"
+echo result_lines=%RESULT_LINES% > "%LOG_DIR%\%RUN_ID%_result_gate.txt"
+echo expected_rows=4 >> "%LOG_DIR%\%RUN_ID%_result_gate.txt"
 if not "%RESULT_LINES%"=="4" goto incomplete_results
 
 "%PY%" scripts\plot-results ^
@@ -139,7 +139,7 @@ if exist "%RESULTS_DIR%\curves.svg" (
 if exist "%LOG_DIR%\%RUN_ID%_plot_deferred.marker" (
   copy /Y "%LOG_DIR%\%RUN_ID%_plot_deferred.marker" "%ARCHIVE_DIR%\plot_deferred.marker" > nul || goto failed
 )
-"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%ARCHIVE_DIR%'); files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" || goto failed
+"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%ARCHIVE_DIR%'); files=sorted(p for p in root.rglob('*') if p.is_file() and not p.name == 'SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" || goto failed
 
 git config user.name "remote-experiment"
 git config user.email "remote-experiment@local.invalid"
@@ -208,7 +208,7 @@ copy /Y "%SEED2_ROOT%\results\gate.json" "%JOINT_ARCHIVE%\seed2_gate.json" > nul
 copy /Y "%SEED3_ROOT%\results\gate.json" "%JOINT_ARCHIVE%\seed3_gate.json" > nul || exit /b 1
 copy /Y "%SEED2_ROOT%\results\results.jsonl" "%JOINT_ARCHIVE%\seed2_results.jsonl" > nul || exit /b 1
 copy /Y "%SEED3_ROOT%\results\results.jsonl" "%JOINT_ARCHIVE%\seed3_results.jsonl" > nul || exit /b 1
-"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%JOINT_ARCHIVE%'); files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" || exit /b 1
+"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%JOINT_ARCHIVE%'); files=sorted(p for p in root.rglob('*') if p.is_file() and not p.name == 'SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" || exit /b 1
 git add "results_archive\%JOINT_ID%" || exit /b 1
 git commit -m "results: %JOINT_ID% remote joint gate" > "%JOINT_ROOT%\joint_branch_commit.txt" 2>&1 || exit /b 1
 git push origin HEAD:refs/heads/results/%JOINT_ID% > "%JOINT_ROOT%\joint_branch_push.txt" 2>&1 || exit /b 1
