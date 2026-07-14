@@ -2,10 +2,10 @@
 
 ## Status
 
-status = E4-R2 completed / two-seed transfer signal confirmed
-decision = true-to-true transfer passed all attribution margins on target seeds 0 and 1
-claim_scope = two-seed 8192/class local diagnostic only
-next_adjudication = freeze E4-R3 same-protocol 65536/class medium diagnostic
+status = E4-R3 completed / valid remote medium evidence, final transfer margin unstable
+decision = stop mechanical scale; retain shared typed representation and test post-hoc early-adaptation hypothesis on new seeds
+claim_scope = two-seed 65536/class remote medium diagnostic, fallback-retrieved and locally re-adjudicated; not formal or paper-scale
+next_adjudication = E4-R4 exactly-one-epoch target-adaptation confirmation on target seeds 2 and 3
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -103,6 +103,7 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | E3-R1 mapped-delta DBitNet | seed0 `8192/class`: candidate `0.516823`, Token-Mixer anchor `0.750536`; DBitNet final train AUC approaches `1.0` | stop this architecture gate | severe train/validation generalization gap and `-0.233713` AUC versus anchor; seed1 and scale stopped |
 | E4-R1 shared typed cell operator | PRESENT true `0.743810` vs anchor `0.745933`, shuffled `0.575898`, raw `0.586375`; GIFT true `0.551969` vs anchor `0.506567`, shuffled `0.500088`, raw `0.501148` | promote local E4-R2 transfer gate | source is anchor-noninferior and clears both attribution controls; GIFT scratch independently clears all controls |
 | E4-R2 explicit typed checkpoint transfer | two target seeds at `8192/class`: true-to-true `0.569627`/`0.575072`; all anchor, scratch, source-shuffled, and target-shuffled margins pass | two-seed local transfer signal confirmed | correct PRESENT source topology and correct GIFT target topology contribute beyond scratch and shuffled controls; medium diagnostic plan only |
+| E4-R3 remote typed checkpoint transfer | two target seeds at `65536/class`: typed true beats old anchor by `+0.009316`/`+0.008430` and target-shuffled by `+0.081234`/`+0.076678`, but final true-scratch is only `+0.000248`/`+0.001840` | final transfer margin unstable; stop mechanical scale | shared typed representation and target topology remain positive medium evidence, but a persistent 10-epoch transfer advantage is not confirmed |
 
 ## 2026-07-13 H2 And E3-R1 Completion Update
 
@@ -307,8 +308,51 @@ joint = outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_joint_seed0_se
 Claim boundary: this is repeatable two-seed local `8192/class` diagnostic
 evidence, not formal training, paper-scale evidence, remote evidence, SOTA, or
 a breakthrough. It authorizes only a separately frozen E4-R3 same-protocol
-local medium diagnostic at `65536/class`; it does not authorize mechanical
-`262144/class` scaling, remote GPU, or reopening DDT/trail/E1/H2.
+remote medium diagnostic at `65536/class` after readiness; it does not
+authorize mechanical `262144/class` scaling, formal claims, or reopening
+DDT/trail/E1/H2.
+
+## 2026-07-15 E4-R3 Remote Medium Completion Update
+
+Both GIFT-64 r6 target seeds completed remotely from exact pushed commit
+`9aa31ddc8f48312ecf3e1d9ea3973a0c4b00542a`, one seed per A6000. Each used
+`65536/class` training, `32768/class` validation, four independent pairs,
+strict encrypted-random-plaintext negatives, 10 epochs, five same-budget
+roles, disk-backed cache generation/reuse, and restored-best checkpoints.
+
+Remote validation completed with five plan-aligned rows per seed. The runners
+then failed only at Matplotlib plotting, so the evidence was raw-fallback
+retrieved, validated and re-adjudicated locally, archived with hashes on three
+post-hoc verified result branches, and retrieved into `outputs/remote_results`.
+That provenance is preserved; this is not represented as an original remote
+runner archive.
+
+```text
+seed0 true-to-true AUC = 0.588565108832
+seed1 true-to-true AUC = 0.586938600987
+
+true - typed scratch   = +0.000248298515 / +0.001839549281
+true - source shuffled = +0.001391120255 / +0.002584639471
+true - target shuffled = +0.081234200392 / +0.076677635778
+
+status      = pass
+decision    = e4_r3_two_seed_medium_signal_unstable
+next_action = stop_mechanical_scale_and_audit_seed_variance
+```
+
+The typed operator itself remains positive versus the old same-input GIFT
+anchor on both seeds, and target topology remains strongly attributed. What
+failed is the stronger claim that PRESENT checkpoint transfer retains a large
+advantage after 10 target epochs at the medium budget.
+
+Epoch 1 shows a repeatable but post-hoc pattern: true transfer beats scratch by
+about `+0.0056` AUC and source-shuffled transfer by about `+0.010` on both
+seeds. The next bounded experiment is E4-R4: new target seeds 2/3, exactly one
+target epoch, the same `65536/class` target budget and controls, paired
+validation-score export, stratified paired-bootstrap confidence intervals,
+and separate accounting of source-pretraining cost. Do not run
+`262144/class`, formal scale, DDT/trail/E1/H2, or another 10-epoch transfer
+repeat.
 
 ## Current Interpretation
 

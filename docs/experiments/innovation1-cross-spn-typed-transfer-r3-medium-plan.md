@@ -1,6 +1,6 @@
 # Innovation 1 E4-R3 Cross-SPN Typed Transfer Medium Diagnostic Plan
 
-**Status:** remote GPU medium execution running from pushed commit `9aa31dd`
+**Status:** completed remote medium diagnostic; fallback-retrieved, locally re-adjudicated, and archived on post-hoc verified result branches
 **Date:** 2026-07-14
 **Experiment label:** E4-R3
 
@@ -288,3 +288,82 @@ index status  = not indexed as completed evidence
 The partial caches and progress logs are execution diagnostics only. They are
 not E4-R3 evidence and must not be resumed or interpreted. The corrected action
 is to launch both seeds remotely from a clean clone of the pushed commit.
+
+## 2026-07-15 Completion And Adjudication
+
+Both remote A6000 runs completed all five training rows, 50 epoch-history
+records, restored-best checkpoints, disk-cache generation/reuse, and remote
+plan validation. The original runners then failed at optional plotting because
+the remote `torch310` environment lacked Matplotlib. This was a postprocessing
+failure, not a training failure.
+
+The raw run artifacts were retrieved from the approved `G:\lxy` run roots,
+validated again locally, rendered into Chinese SVG/history artifacts, and
+passed through the corrected frozen E4-R3 gates. Relocatable, hashed post-hoc
+result archives were then pushed and retrieved from these branches:
+
+```text
+seed0 branch = results/i1_gift64_cross_spn_typed_transfer_r3_65536_seed0
+seed0 commit = ecb883b
+seed1 branch = results/i1_gift64_cross_spn_typed_transfer_r3_65536_seed1
+seed1 commit = be74a83
+joint branch = results/i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1
+joint commit = 87f582e
+```
+
+These branches were constructed from fallback-retrieved evidence after the
+remote plotting failure; they were not pushed by the original remote runner.
+Each archive preserves that provenance boundary, the unchanged raw remote
+progress/results, local validation/re-adjudication copies, source/config
+manifests, GPU/Torch/Git evidence, and `SHA256SUMS`. Checkpoints remain in the
+local retrieved result roots and are intentionally excluded from Git.
+
+### Final restored-best AUC
+
+| Target seed | Anchor | Scratch | True-to-true | Source-shuffled | Target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.579249573871` | `0.588316810317` | `0.588565108832` | `0.587173988577` | `0.507330908440` |
+| 1 | `0.578508460429` | `0.585099051706` | `0.586938600987` | `0.584353961516` | `0.510260965209` |
+
+| Target seed | vs anchor | vs scratch | vs source-shuffled | vs target-shuffled |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | `+0.009315534960` | `+0.000248298515` | `+0.001391120255` | `+0.081234200392` |
+| 1 | `+0.008430140559` | `+0.001839549281` | `+0.002584639471` | `+0.076677635778` |
+
+Both seeds preserve positive ordering versus scratch and source-shuffled, and
+both show a large target-topology effect. However, neither seed reaches the
+frozen `+0.005` scratch margin or `+0.003` source-topology margin. Therefore:
+
+```text
+status      = pass  # evidence/protocol validity, not hypothesis success
+decision    = e4_r3_two_seed_medium_signal_unstable
+next_action = stop_mechanical_scale_and_audit_seed_variance
+```
+
+Mechanical `262144/class` and formal-scale expansion are stopped.
+
+### Post-hoc early-adaptation observation
+
+The complete histories show a different, narrower signal at epoch 1:
+
+| Target seed | True-to-true minus scratch | True-source minus source-shuffled |
+| ---: | ---: | ---: |
+| 0 | `+0.005607747007` | `+0.009936478920` |
+| 1 | `+0.005658070557` | `+0.010892953258` |
+
+This suggests PRESENT pretraining may accelerate early GIFT adaptation while
+its final best-AUC advantage decays as scratch training catches up. Because
+this hypothesis was discovered after inspecting E4-R3 histories, it is not a
+confirmed contribution and cannot reuse seeds 0/1 as confirmation evidence.
+
+### Executable next action
+
+Run E4-R4 as a new-seed, exactly-one-epoch target-adaptation confirmation at
+the same `65536/class` target budget. Change target seeds to 2 and 3 and remove
+only the irrelevant old architecture anchor; retain typed scratch,
+true-to-true, source-shuffled-to-true, and true-to-target-shuffled controls.
+Export paired validation scores and require stratified paired-bootstrap AUC
+difference intervals. Report PRESENT source-pretraining cost separately and
+limit any positive claim to conditional target-adaptation efficiency, not
+end-to-end training cost. Do not launch until the E4-R4 plan, score export,
+bootstrap gate, cache readiness, and remote assets pass local smoke.

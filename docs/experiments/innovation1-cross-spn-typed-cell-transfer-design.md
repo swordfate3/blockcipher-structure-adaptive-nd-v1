@@ -1,6 +1,6 @@
 # Innovation 1 Cross-SPN Typed Cell Transfer Design
 
-**Status:** E4-R2 two-seed transfer signal confirmed; E4-R3 medium diagnostic design required
+**Status:** E4-R3 completed; shared typed representation remains positive, final transfer margin unstable, E4-R4 early-adaptation confirmation planned
 **Date:** 2026-07-13
 **Experiment label:** E4
 
@@ -797,9 +797,51 @@ single-seed and joint gates both returned `status=pass` with empty error lists.
 
 Freeze E4-R3 before execution. Its single research question is whether the
 attributable PRESENT-to-GIFT transfer advantage survives a larger, otherwise
-identical local budget. Use GIFT-64 r6, target seeds 0 and 1, the same five
+identical remote budget. Use GIFT-64 r6, target seeds 0 and 1, the same five
 roles and source hashes, `65536/class` training, `32768/class` validation,
 four independent pairs/sample, strict negatives, 10 epochs, restored-best
 `val_auc`, and separate disk-backed caches. Freeze exact per-seed margins and
-cache-reuse/readiness gates in the E4-R3 plan before launching. Do not advance
-to `262144/class`, remote GPU, or formal scale from the E4-R2 result alone.
+cache-reuse/readiness gates in the E4-R3 plan before launching on one remote
+A6000 per seed. Do not advance to `262144/class` or formal scale from the
+E4-R2 result alone.
+
+## 2026-07-15 E4-R3 Remote Medium Adjudication
+
+E4-R3 completed remotely at `65536/class` training and `32768/class`
+validation for target seeds 0 and 1. Both runs used strict encrypted-random-
+plaintext negatives, four independent pairs/sample, 10 epochs, the frozen
+PRESENT source hashes, identical typed capacity, separate disk caches, and
+restored-best validation-AUC checkpoints.
+
+The final true-to-true transfer AUCs were `0.588565108832` and
+`0.586938600987`. The generated typed operator still beat the old GIFT anchor
+by `+0.009315534960` and `+0.008430140559`, while correct GIFT target topology
+beat target-shuffled transfer by `+0.081234200392` and `+0.076677635778`.
+Those are positive medium-scale representation and target-topology results.
+
+The final transfer-specific margins did not survive the frozen gate:
+
+```text
+true - scratch:
+  seed0 = +0.000248298515
+  seed1 = +0.001839549281
+
+true source - shuffled source:
+  seed0 = +0.001391120255
+  seed1 = +0.002584639471
+
+required = +0.005 / +0.003 respectively
+decision = e4_r3_two_seed_medium_signal_unstable
+```
+
+Therefore E4 does not currently support a persistent 10-epoch checkpoint-
+transfer advantage or mechanical `262144/class` scaling. It does support the
+method-level result that a cipher-spec-generated shared typed SPN operator and
+same-input true/shuffled/raw attribution remain meaningful at medium scale.
+
+Epoch-1 histories show true-to-true minus scratch margins of
+`+0.005607747007` and `+0.005658070557`, and true-source minus shuffled-source
+margins of `+0.009936478920` and `+0.010892953258`. This is a post-hoc early-
+adaptation observation, not confirmation evidence. E4-R4 must use new target
+seeds 2/3, exactly one target epoch, paired score export, and predeclared
+bootstrap gates before any adaptation-efficiency claim.

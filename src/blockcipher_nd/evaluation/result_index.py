@@ -16,6 +16,14 @@ DEFAULT_RESULT_ROOTS = (
     "remote_results_incomplete",
 )
 
+_SCOPE_PRIORITY = {
+    "remote_results": 0,
+    "remote_results_incomplete": 1,
+    "local_diagnostic": 2,
+    "local_smoke": 3,
+    "smoke": 4,
+}
+
 ARTIFACT_LABELS = {
     "curves": "曲线",
     "gate": "门控",
@@ -64,6 +72,13 @@ def build_result_index(
             entry = _index_run(outputs_root, scope, run_root)
             if entry is not None:
                 entries.append(entry)
+    deduplicated: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        run_id = str(entry["run_id"])
+        current = deduplicated.get(run_id)
+        if current is None or _scope_priority(entry) < _scope_priority(current):
+            deduplicated[run_id] = entry
+    entries = list(deduplicated.values())
     entries.sort(
         key=lambda entry: (
             -float(entry["completed_timestamp"]),
@@ -76,6 +91,14 @@ def build_result_index(
         entry["rank"] = rank
         entry["rank_label"] = f"{rank:03d}"
     return ranked
+
+
+def _scope_priority(entry: dict[str, Any]) -> tuple[int, float]:
+    scope = str(entry["scope"])
+    return (
+        _SCOPE_PRIORITY.get(scope, len(_SCOPE_PRIORITY)),
+        -float(entry["completed_timestamp"]),
+    )
 
 
 def write_result_index(

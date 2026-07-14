@@ -143,6 +143,28 @@ def test_result_index_ignores_empty_result_jsonl(tmp_path: Path) -> None:
     assert entries == []
 
 
+def test_result_index_prefers_verified_remote_copy_for_same_run_id(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "same_remote_run"
+    _write_json(
+        outputs / "remote_results_incomplete" / run_id / "gate.json",
+        {"status": "pass", "decision": "fallback"},
+    )
+    _write_json(
+        outputs / "remote_results" / run_id / "gate.json",
+        {"status": "pass", "decision": "verified"},
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert len(entries) == 1
+    assert entries[0]["run_id"] == run_id
+    assert entries[0]["scope"] == "remote_results"
+    assert entries[0]["decision"] == "verified"
+
+
 def test_result_index_supports_r3_local_diagnostic_chinese_names(
     tmp_path: Path,
 ) -> None:
