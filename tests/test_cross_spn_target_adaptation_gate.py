@@ -110,8 +110,18 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
                     "validation_samples_per_class": 32,
                     "dataset_cache_enabled": True,
                     "dataset_cache_root": row["training"]["dataset_cache_root"],
+                    "train_key": row["train_key"],
+                    "validation_key": row["validation_key"],
+                    "model_options": row["training"]["model_options"],
                     "checkpoint_path": str(checkpoint),
                     "checkpoint_sha256": f"{len(role):064x}",
+                    "checkpoint_metadata": {
+                        "checkpoint_output": str(checkpoint),
+                        "seed": 2,
+                        "epochs": 1,
+                        "selected_checkpoint": "best",
+                        "restore_best_checkpoint": True,
+                    },
                 },
             ),
         )
@@ -370,6 +380,32 @@ def test_e4_r4_readiness_rejects_misaligned_sample_ids(tmp_path: Path) -> None:
 
     assert report["status"] == "fail"
     assert "score sample_ids differ for role=shuffled_to_true" in report["errors"]
+
+
+def test_e4_r4_readiness_rejects_score_cache_mismatch(tmp_path: Path) -> None:
+    fixture = _write_adaptation_fixture(tmp_path)
+    path = fixture["scores"]["true_to_true"] / "models.json"
+    metadata = json.loads(path.read_text(encoding="utf-8"))
+    metadata["dataset_cache_root"] = "/different/cache"
+    path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    report = gate_cross_spn_target_adaptation(
+        plan_path=fixture["plan"],
+        results_path=fixture["results"],
+        progress_path=fixture["progress"],
+        score_artifact_paths=fixture["scores"],
+        expected_seed=2,
+        samples_per_class=64,
+        epochs=1,
+        readiness_only=True,
+        bootstrap_replicates=64,
+    )
+
+    assert report["status"] == "fail"
+    assert any(
+        "score metadata role=true_to_true field=dataset_cache_root" in error
+        for error in report["errors"]
+    )
 
 
 def _seed_report(seed: int, decision: str) -> dict[str, Any]:

@@ -781,9 +781,37 @@ def _load_and_validate_score_artifacts(
             errors.append(f"score role={role} checkpoint_sha256 must be 64 characters")
         row = by_model.get(model)
         if row is not None:
+            training = row.get("training", {})
+            _check_fields(
+                metadata,
+                {
+                    "dataset_cache_root": training.get("dataset_cache_root"),
+                    "train_key": row.get("train_key"),
+                    "validation_key": row.get("validation_key"),
+                    "model_options": training.get("model_options"),
+                },
+                f"score metadata role={role}",
+                errors,
+            )
             checkpoint_output = row.get("training", {}).get("checkpoint_output")
             if str(metadata.get("checkpoint_path")) != str(checkpoint_output):
                 errors.append(f"score role={role} checkpoint path does not match result row")
+            checkpoint_metadata = metadata.get("checkpoint_metadata")
+            if not isinstance(checkpoint_metadata, dict):
+                errors.append(f"score role={role} checkpoint_metadata must be an object")
+            else:
+                _check_fields(
+                    checkpoint_metadata,
+                    {
+                        "checkpoint_output": checkpoint_output,
+                        "seed": expected_seed,
+                        "epochs": 1,
+                        "selected_checkpoint": "best",
+                        "restore_best_checkpoint": True,
+                    },
+                    f"score checkpoint metadata role={role}",
+                    errors,
+                )
             score_auc = binary_auc(artifact.labels, artifact.probabilities)
             result_auc = row.get("metrics", {}).get("auc")
             if not _finite(result_auc) or abs(score_auc - float(result_auc)) > 1e-6:
