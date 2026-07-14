@@ -12,6 +12,7 @@ import numpy as np
 
 import test_cross_spn_typed_transfer_gate as transfer_fixtures
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+from blockcipher_nd.cli.localize_progress_output import localize_progress_output
 from blockcipher_nd.evaluation.neural_ensemble import (
     EnsembleScoreArtifact,
     write_score_artifact,
@@ -293,6 +294,10 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     assert "outputs/remote_results" in monitor
     assert "retrieved_from_verified_result_branch.marker" in monitor
     assert "scripts/plot-results" in monitor
+    assert "scripts/localize-progress-output" in monitor
+    assert "gate.local.json" in monitor
+    assert "paired_scores.local.csv.gz" in monitor
+    assert "scripts/gate-cross-spn-target-adaptation-joint" in monitor
     assert "scripts/index-results" in monitor
     assert "sleep 300" in monitor
 
@@ -405,6 +410,37 @@ def test_e4_r4_readiness_rejects_score_cache_mismatch(tmp_path: Path) -> None:
     assert any(
         "score metadata role=true_to_true field=dataset_cache_root" in error
         for error in report["errors"]
+    )
+
+
+def test_localized_progress_preserves_remote_output_and_retargets_results(
+    tmp_path: Path,
+) -> None:
+    progress = tmp_path / "remote_progress.jsonl"
+    results = tmp_path / "retrieved" / "results.jsonl"
+    output = tmp_path / "retrieved" / "progress.local-readjudication.jsonl"
+    progress.write_text(
+        json.dumps({"event": "row_done", "index": 1})
+        + "\n"
+        + json.dumps(
+            {
+                "event": "run_done",
+                "output": "G:\\lxy\\runs\\example\\results\\results.jsonl",
+                "total": 4,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = localize_progress_output(progress, results, output)
+
+    rows = _read_jsonl(output)
+    run_done = rows[-1]
+    assert report["status"] == "pass"
+    assert run_done["output"] == str(results)
+    assert run_done["remote_output"] == (
+        "G:\\lxy\\runs\\example\\results\\results.jsonl"
     )
 
 

@@ -44,6 +44,42 @@ retrieve_verified_seed() {
   fi
 }
 
+readjudicate_seed() {
+  local run_id="$1"
+  local seed="$2"
+  local root="outputs/remote_results/${run_id}"
+  UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
+    --plan "${root}/plan.csv" \
+    --results "${root}/results.jsonl" \
+    --expected-rows 4 \
+    --output "${root}/validation.local.json" \
+    >> "${MONITOR_ROOT}/readjudication.log" \
+    2>> "${MONITOR_ROOT}/readjudication_stderr.log" || return 1
+  UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/localize-progress-output \
+    --progress "${root}/progress.jsonl" \
+    --results "${root}/results.jsonl" \
+    --output "${root}/progress.local-readjudication.jsonl" \
+    >> "${MONITOR_ROOT}/readjudication.log" \
+    2>> "${MONITOR_ROOT}/readjudication_stderr.log" || return 1
+  UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-cross-spn-target-adaptation \
+    --plan "${root}/plan.csv" \
+    --results "${root}/results.jsonl" \
+    --progress "${root}/progress.local-readjudication.jsonl" \
+    --typed-scratch-scores "${root}/scores/typed_scratch" \
+    --true-to-true-scores "${root}/scores/true_to_true" \
+    --shuffled-to-true-scores "${root}/scores/shuffled_to_true" \
+    --true-to-shuffled-scores "${root}/scores/true_to_shuffled" \
+    --expected-seed "${seed}" \
+    --samples-per-class 65536 \
+    --epochs 1 \
+    --bootstrap-replicates 10000 \
+    --bootstrap-seed 20260715 \
+    --paired-scores-output "${root}/paired_scores.local.csv.gz" \
+    --output "${root}/gate.local.json" \
+    >> "${MONITOR_ROOT}/readjudication.log" \
+    2>> "${MONITOR_ROOT}/readjudication_stderr.log" || return 1
+}
+
 retrieve_verified_joint() {
   local destination="outputs/remote_results"
   mkdir -p "${destination}"
@@ -84,6 +120,14 @@ while true; do
       retrieve_verified_seed "${SEED2_ID}" || exit 2
       retrieve_verified_seed "${SEED3_ID}" || exit 2
       retrieve_verified_joint || exit 2
+      readjudicate_seed "${SEED2_ID}" 2 || exit 4
+      readjudicate_seed "${SEED3_ID}" 3 || exit 4
+      UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-cross-spn-target-adaptation-joint \
+        --seed2-gate "outputs/remote_results/${SEED2_ID}/gate.local.json" \
+        --seed3-gate "outputs/remote_results/${SEED3_ID}/gate.local.json" \
+        --output "outputs/remote_results/${JOINT_ID}/gate.local.json" \
+        >> "${MONITOR_ROOT}/readjudication.log" \
+        2>> "${MONITOR_ROOT}/readjudication_stderr.log" || exit 4
       UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
         >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || exit 3
       echo "$(timestamp) verified_results_retrieved_and_indexed" >> "${MONITOR_ROOT}/monitor.log"
