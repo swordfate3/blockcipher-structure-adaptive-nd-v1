@@ -1,3 +1,48 @@
+## [LRN-20260714-001] correction
+
+**Logged**: 2026-07-14T16:30:53+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: config
+**Promoted**: AGENTS.md
+
+### Summary
+Disable all `superpowers:*` skills by default for this project and require an
+explicit current-turn user request to enable a specific one.
+
+### Details
+After reviewing which project workflows came from Superpowers, the user asked
+to disable the related skills by default. The project must therefore not infer
+permission to invoke `superpowers:writing-plans`,
+`superpowers:executing-plans`, `superpowers:test-driven-development`,
+`superpowers:subagent-driven-development`, or any other `superpowers:*` skill
+from a generic request to proceed, an approved experiment design, or a legacy
+plan that labels the skill as required.
+
+The correct default is to use `blockcipher-auto-research`, Karpathy-style
+implementation discipline, and native planning/testing/debugging/verification
+capabilities. A Superpowers skill becomes available only when the user names
+that specific skill in the current request. Existing references in historical
+plans remain historical evidence and do not need a mechanical rewrite.
+
+### Suggested Action
+Keep the opt-in rule in `AGENTS.md`. Before invoking any `superpowers:*` skill,
+verify that the current user request explicitly names it. Do not treat prior
+turns, historical plan headers, or general authorization to continue as
+activation.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/, docs/superpowers/plans/
+- Tags: workflow, skills, superpowers, opt-in, project-policy
+- See Also: LRN-20260625-001, LRN-20260625-002
+- Pattern-Key: workflow.skills.superpowers_explicit_opt_in
+- Recurrence-Count: 1
+- First-Seen: 2026-07-14
+- Last-Seen: 2026-07-14
+
+---
+
 ## [LRN-20260710-009] correction
 
 **Logged**: 2026-07-10T18:18:10+08:00

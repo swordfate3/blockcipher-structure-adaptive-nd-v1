@@ -21,6 +21,13 @@
   - Promote concise prevention rules to `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, or OpenClaw workspace files only when the pattern is broadly useful; for recurring patterns prefer the current threshold of `Recurrence-Count >= 3`, at least two distinct tasks, and a 30-day window.
   - If a learning becomes a reusable, tested, non-obvious workflow, consider extracting it into a skill and marking the entry `promoted_to_skill`.
 
+## Skill Activation Policy
+
+- All `superpowers:*` skills are disabled by default in this repository. Do not invoke them automatically, including when a current or historical plan labels one as a required sub-skill.
+- A `superpowers:*` skill may be used only when the user explicitly names that specific skill in the current request. General approval such as `推进`, `继续`, or approval of an experiment design does not enable it.
+- Continue planning, TDD, debugging, execution, and verification with the project-local workflow and native agent capabilities when Superpowers is not explicitly enabled.
+- Preserve historical Superpowers references as execution history; do not rewrite old plans mechanically. Do not add new active plan requirements for Superpowers unless the user explicitly requests that workflow.
+
 ## Research Execution Style
 
 - Default project work should combine `skills/blockcipher-auto-research/SKILL.md` with the Karpathy-style coding discipline from `karpathy-guidelines`: use `blockcipher-auto-research` for the experiment loop and evidence gates, and use Karpathy-style restraint for implementation.
