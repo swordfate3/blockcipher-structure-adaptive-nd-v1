@@ -51,7 +51,12 @@ def _score_arrays() -> tuple[np.ndarray, dict[str, np.ndarray]]:
     return labels, {role: values.astype(np.float32) for role, values in scores.items()}
 
 
-def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
+def _write_adaptation_fixture(
+    tmp_path: Path,
+    *,
+    target_seed: int = 2,
+    experiment_stage: str = "e4_r4",
+) -> dict[str, Any]:
     results = tmp_path / "results.jsonl"
     progress = tmp_path / "progress.jsonl"
     labels, scores = _score_arrays()
@@ -67,7 +72,7 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
         },
         samples_per_class=64,
         epochs=1,
-        seed=2,
+        seed=target_seed,
         device="cpu",
     )
     source_progress = results.with_name(f"{results.stem}.progress.jsonl")
@@ -78,6 +83,19 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
         if row["selected_model"] in expected_models
     ]
     by_model = {row["selected_model"]: row for row in result_rows}
+    if experiment_stage == "e4_r5":
+        true_sha = "b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5"
+        shuffled_sha = "b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645"
+        for row in result_rows:
+            initialization = row.get("initialization", {})
+            if initialization.get("kind") != "checkpoint":
+                continue
+            initialization["source_seed"] = 1
+            initialization["source_checkpoint_sha256"] = (
+                shuffled_sha
+                if initialization.get("source_mapping") == "shuffled"
+                else true_sha
+            )
     score_paths: dict[str, Path] = {}
     for role, model in ADAPTATION_MODEL_ROLES.items():
         checkpoint = tmp_path / "checkpoints" / f"{role}.pt"
@@ -97,7 +115,7 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
                     "cipher": "GIFT-64",
                     "cipher_key": "gift64",
                     "rounds": 6,
-                    "seed": 2,
+                    "seed": target_seed,
                     "samples_per_class": 64,
                     "pairs_per_sample": 4,
                     "feature_encoding": "ciphertext_pair_bits",
@@ -118,7 +136,7 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
                     "checkpoint_sha256": f"{len(role):064x}",
                     "checkpoint_metadata": {
                         "checkpoint_output": str(checkpoint),
-                        "seed": 2,
+                        "seed": target_seed,
                         "epochs": 1,
                         "selected_checkpoint": "best",
                         "restore_best_checkpoint": True,
@@ -142,6 +160,13 @@ def _write_adaptation_fixture(tmp_path: Path) -> dict[str, Any]:
             row["total"] = 4
         if "total" in row and row.get("event") == "initialization_ready":
             row["total"] = 4
+        if experiment_stage == "e4_r5" and row.get("event") == "initialization_ready":
+            initialization = by_model.get(row.get("model"), {}).get(
+                "initialization", {}
+            )
+            for field in ("source_seed", "source_checkpoint_sha256"):
+                if field in initialization:
+                    row[field] = initialization[field]
         progress_rows.append(row)
     _write_jsonl(progress, progress_rows)
 
@@ -237,6 +262,31 @@ def test_e4_r4_plans_build_exact_four_role_new_seed_matrices() -> None:
         assert {task["pairs_per_sample"] for task in tasks} == {4}
 
 
+def test_e4_r5_plans_build_exact_four_role_source_seed_matrices() -> None:
+    root = Path("configs/experiment/innovation1")
+    cases = (
+        ("innovation1_spn_gift64_cross_spn_target_adaptation_smoke_seed4.csv", 4, 64),
+        ("innovation1_spn_gift64_cross_spn_target_adaptation_smoke_seed5.csv", 5, 64),
+        ("innovation1_spn_gift64_cross_spn_target_adaptation_65536_seed4.csv", 4, 65536),
+        ("innovation1_spn_gift64_cross_spn_target_adaptation_65536_seed5.csv", 5, 65536),
+    )
+
+    for name, seed, samples_per_class in cases:
+        tasks = _build_plan(root / name)
+        assert len(tasks) == 4
+        assert [task["model_key"] for task in tasks] == list(
+            ADAPTATION_MODEL_ROLES.values()
+        )
+        assert {task["seed"] for task in tasks} == {seed}
+        assert {task["samples_per_class"] for task in tasks} == {
+            samples_per_class
+        }
+        assert {task["negative_mode"] for task in tasks} == {
+            "encrypted_random_plaintexts"
+        }
+        assert {task["pairs_per_sample"] for task in tasks} == {4}
+
+
 def test_e4_r4_remote_configs_pass_fail_closed_readiness() -> None:
     root = Path("configs/remote")
     for name in (
@@ -246,6 +296,55 @@ def test_e4_r4_remote_configs_pass_fail_closed_readiness() -> None:
         report = remote_readiness_report(root / name)
         assert report["status"] == "pass", report["errors"]
         assert "e4_r4_target_adaptation_protocol_lock" in report["checked_invariants"]
+
+
+def test_e4_r5_remote_configs_pass_fail_closed_readiness() -> None:
+    root = Path("configs/remote")
+    for name in (
+        "innovation1_gift64_cross_spn_source_seed_r5_65536_seed4_gpu0_20260715.json",
+        "innovation1_gift64_cross_spn_source_seed_r5_65536_seed5_gpu1_20260715.json",
+    ):
+        report = remote_readiness_report(root / name)
+        assert report["status"] == "pass", report["errors"]
+        assert report["warnings"] == []
+        assert "medium_scale_dataset_cache" in report["checked_invariants"]
+        assert "e4_r5_source_seed_protocol_lock" in report["checked_invariants"]
+
+
+def test_e4_r5_remote_assets_lock_source_seed_stage_and_unattended_launch() -> None:
+    generated = Path("configs/remote/generated")
+    run_script = (
+        generated
+        / "run_i1_gift64_cross_spn_source_seed_r5_65536_20260715.cmd"
+    ).read_text(encoding="utf-8")
+    launcher = (
+        generated
+        / "launch_i1_gift64_cross_spn_source_seed_r5_65536_20260715.cmd"
+    ).read_text(encoding="utf-8")
+    monitor = (
+        generated
+        / "monitor_i1_gift64_cross_spn_source_seed_r5_65536_20260715.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "row0002_present_cross_spn_typed_cell_true_seed1.pt" in run_script
+    assert "row0003_present_cross_spn_typed_cell_shuffled_seed1.pt" in run_script
+    assert "typed_cell_true_seed0.pt" not in run_script
+    assert "typed_cell_shuffled_seed0.pt" not in run_script
+    assert "--experiment-stage e4_r5" in run_script
+    assert "--experiment-stage e4_r5" in monitor
+    assert 'readjudicate_seed "${SEED4_ID}" 4' in monitor
+    assert 'readjudicate_seed "${SEED5_ID}" 5' in monitor
+    assert "scripts/gate-cross-spn-source-seed-robustness-joint" in monitor
+    assert "scripts\\gate-cross-spn-source-seed-robustness-joint" in run_script
+    assert "--seed4-gate" in run_script and "--seed5-gate" in run_script
+    assert "--seed4-gate" in monitor and "--seed5-gate" in monitor
+    assert "git add ." not in run_script
+    assert "cmd.exe /k" not in run_script.lower()
+    assert "cmd.exe /k" not in launcher.lower()
+    assert launcher.count("cmd.exe /c") == 2
+    assert "/RU SYSTEM /RL HIGHEST" in launcher
+    assert r"G:\lxy\blockcipher-structure-adaptive-nd-runs" in run_script
+    assert r"G:\lxy\blockcipher-structure-adaptive-nd-runs" in launcher
 
 
 def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> None:
@@ -394,6 +493,57 @@ def test_e4_r4_readiness_validates_paired_scores_and_writes_csv(tmp_path: Path) 
     }
 
 
+def test_e4_r5_readiness_accepts_frozen_source_seed1_provenance(
+    tmp_path: Path,
+) -> None:
+    fixture = _write_adaptation_fixture(
+        tmp_path,
+        target_seed=4,
+        experiment_stage="e4_r5",
+    )
+
+    report = gate_cross_spn_target_adaptation(
+        plan_path=fixture["plan"],
+        results_path=fixture["results"],
+        progress_path=fixture["progress"],
+        score_artifact_paths=fixture["scores"],
+        expected_seed=4,
+        samples_per_class=64,
+        epochs=1,
+        experiment_stage="e4_r5",
+        readiness_only=True,
+        bootstrap_replicates=64,
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "implementation_ready"
+    assert report["experiment_stage"] == "e4_r5"
+    assert report["source_pretraining_cost"]["seed"] == 1
+
+
+def test_e4_r5_gate_rejects_r5_target_with_r4_stage(tmp_path: Path) -> None:
+    fixture = _write_adaptation_fixture(
+        tmp_path,
+        target_seed=4,
+        experiment_stage="e4_r5",
+    )
+
+    report = gate_cross_spn_target_adaptation(
+        plan_path=fixture["plan"],
+        results_path=fixture["results"],
+        progress_path=fixture["progress"],
+        score_artifact_paths=fixture["scores"],
+        expected_seed=4,
+        samples_per_class=64,
+        epochs=1,
+        readiness_only=True,
+        bootstrap_replicates=64,
+    )
+
+    assert report["status"] == "fail"
+    assert any("E4_R4 expected_seed" in error for error in report["errors"])
+
+
 def test_e4_r4_readiness_rejects_misaligned_sample_ids(tmp_path: Path) -> None:
     fixture = _write_adaptation_fixture(tmp_path)
     path = fixture["scores"]["shuffled_to_true"] / "sample_ids.npy"
@@ -474,7 +624,12 @@ def test_localized_progress_preserves_remote_output_and_retargets_results(
     )
 
 
-def _seed_report(seed: int, decision: str) -> dict[str, Any]:
+def _seed_report(
+    seed: int,
+    decision: str,
+    *,
+    experiment_stage: str = "e4_r4",
+) -> dict[str, Any]:
     return {
         "status": "pass",
         "decision": decision,
@@ -482,7 +637,7 @@ def _seed_report(seed: int, decision: str) -> dict[str, Any]:
         "expected_seed": seed,
         "samples_per_class": 65536,
         "epochs": 1,
-        "experiment_stage": "e4_r4",
+        "experiment_stage": experiment_stage,
         "research_decision_applied": True,
     }
 
@@ -505,3 +660,55 @@ def test_e4_r4_joint_gate_requires_both_new_seeds_to_confirm() -> None:
         ]
     )
     assert unstable["decision"] == "e4_r4_two_seed_target_adaptation_signal_unstable"
+
+
+def test_e4_r5_joint_gate_requires_target_seeds_four_and_five() -> None:
+    confirmed = "e4_r5_target_adaptation_efficiency_confirmed"
+    report = gate_cross_spn_target_adaptation_joint(
+        [
+            _seed_report(4, confirmed, experiment_stage="e4_r5"),
+            _seed_report(5, confirmed, experiment_stage="e4_r5"),
+        ],
+        expected_seeds=(4, 5),
+        experiment_stage="e4_r5",
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "e4_r5_source_seed_robustness_confirmed"
+    assert report["next_action"] == (
+        "freeze_1000000_class_multisource_multitarget_protocol"
+    )
+
+    unstable = gate_cross_spn_target_adaptation_joint(
+        [
+            _seed_report(4, confirmed, experiment_stage="e4_r5"),
+            _seed_report(
+                5,
+                "e4_r5_target_adaptation_rejected",
+                experiment_stage="e4_r5",
+            ),
+        ],
+        expected_seeds=(4, 5),
+        experiment_stage="e4_r5",
+    )
+    assert unstable["decision"] == "e4_r5_source_seed_signal_unstable"
+    assert unstable["next_action"] == (
+        "stop_formal_scale_retain_conditional_e4_r4_result"
+    )
+
+    rejected = gate_cross_spn_target_adaptation_joint(
+        [
+            _seed_report(
+                seed,
+                "e4_r5_target_adaptation_rejected",
+                experiment_stage="e4_r5",
+            )
+            for seed in (4, 5)
+        ],
+        expected_seeds=(4, 5),
+        experiment_stage="e4_r5",
+    )
+    assert rejected["decision"] == "e4_r5_source_seed_dependence_detected"
+    assert rejected["next_action"] == (
+        "stop_cross_spn_transfer_scale_keep_typed_representation_only"
+    )

@@ -182,6 +182,8 @@ def remote_readiness_report(config_path: Path) -> dict[str, Any]:
         checked_invariants.append("trail_position_score_artifact_lock")
     if _is_e4_r4_target_adaptation_config(config):
         checked_invariants.append("e4_r4_target_adaptation_protocol_lock")
+    if _is_e4_r5_source_seed_config(config):
+        checked_invariants.append("e4_r5_source_seed_protocol_lock")
 
     return {
         "status": "pass" if not errors else "fail",
@@ -840,8 +842,13 @@ def _e4_r4_target_adaptation_consistency(
 ) -> dict[str, list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
-    if not _is_e4_r4_target_adaptation_config(config):
+    is_r4 = _is_e4_r4_target_adaptation_config(config)
+    is_r5 = _is_e4_r5_source_seed_config(config)
+    if not is_r4 and not is_r5:
         return {"errors": errors, "warnings": warnings}
+    label = "E4-R4" if is_r4 else "E4-R5"
+    expected_seeds = {2, 3} if is_r4 else {4, 5}
+    gpu_by_seed = {2: 0, 3: 1} if is_r4 else {4: 0, 5: 1}
 
     expected_models = {
         "gift_cross_spn_typed_cell_true",
@@ -850,10 +857,13 @@ def _e4_r4_target_adaptation_consistency(
         "gift_cross_spn_typed_cell_shuffled_from_present_true",
     }
     if len(tasks) != 4 or {str(task.get("model_key")) for task in tasks} != expected_models:
-        errors.append("E4-R4 plan must contain the exact four target-adaptation roles")
+        errors.append(f"{label} plan must contain the exact four target-adaptation roles")
     seeds = {task.get("seed") for task in tasks}
-    if len(seeds) != 1 or not seeds.issubset({2, 3}):
-        errors.append(f"E4-R4 plan target seed must be exactly 2 or 3 actual={seeds}")
+    if len(seeds) != 1 or not seeds.issubset(expected_seeds):
+        errors.append(
+            f"{label} plan target seed must be one of "
+            f"{sorted(expected_seeds)} actual={seeds}"
+        )
     for task in tasks:
         expected = {
             "rounds": 6,
@@ -868,17 +878,17 @@ def _e4_r4_target_adaptation_consistency(
         for field, expected_value in expected.items():
             if task.get(field) != expected_value:
                 errors.append(
-                    f"E4-R4 {task.get('model_key')} {field}={task.get(field)!r} "
+                    f"{label} {task.get('model_key')} {field}={task.get(field)!r} "
                     f"expected={expected_value!r}"
                 )
     if config.get("epochs") != 1:
-        errors.append("E4-R4 epochs must equal exactly 1")
+        errors.append(f"{label} epochs must equal exactly 1")
     if config.get("score_export_after_training") is not True:
-        errors.append("E4-R4 score_export_after_training must be true")
+        errors.append(f"{label} score_export_after_training must be true")
     if config.get("bootstrap_replicates") != 10000:
-        errors.append("E4-R4 bootstrap_replicates must equal 10000")
+        errors.append(f"{label} bootstrap_replicates must equal 10000")
     if config.get("bootstrap_seed") != 20260715:
-        errors.append("E4-R4 bootstrap_seed must equal 20260715")
+        errors.append(f"{label} bootstrap_seed must equal 20260715")
     for field in (
         "checkpoint_output_dir",
         "score_artifacts_root",
@@ -887,17 +897,19 @@ def _e4_r4_target_adaptation_consistency(
     ):
         value = _str_value(config.get(field))
         if not value.startswith(REMOTE_ROOT):
-            errors.append(f"E4-R4 {field} must stay under {REMOTE_ROOT}: {value}")
+            errors.append(f"{label} {field} must stay under {REMOTE_ROOT}: {value}")
     seed = next(iter(seeds), None)
-    expected_gpu = {2: 0, 3: 1}.get(seed)
+    expected_gpu = gpu_by_seed.get(seed)
     if config.get("physical_gpu") != expected_gpu:
         errors.append(
-            f"E4-R4 target seed {seed} physical_gpu={config.get('physical_gpu')} "
+            f"{label} target seed {seed} physical_gpu={config.get('physical_gpu')} "
             f"expected={expected_gpu}"
         )
     manifest = _local_plan_path(config.get("initialization_manifest"))
     if manifest is None or not manifest.is_file():
-        errors.append(f"E4-R4 initialization manifest missing: {manifest}")
+        errors.append(f"{label} initialization manifest missing: {manifest}")
+    elif is_r5 and manifest.name != "innovation1_spn_cross_spn_typed_transfer_seed1_sources.json":
+        errors.append(f"E4-R5 must use the frozen source-seed1 manifest: {manifest}")
     return {"errors": errors, "warnings": warnings}
 
 
@@ -1083,6 +1095,14 @@ def _is_e4_r4_target_adaptation_config(config: dict[str, Any]) -> bool:
         for field in ("run_id", "task_name", "plan", "claim_scope", "launch_policy")
     ).lower()
     return "cross_spn_target_adaptation_r4" in haystack or "e4-r4" in haystack
+
+
+def _is_e4_r5_source_seed_config(config: dict[str, Any]) -> bool:
+    haystack = " ".join(
+        _str_value(config.get(field))
+        for field in ("run_id", "task_name", "plan", "claim_scope", "launch_policy")
+    ).lower()
+    return "cross_spn_source_seed_r5" in haystack or "e4-r5" in haystack
 
 
 def _local_plan_path(value: Any) -> Path | None:

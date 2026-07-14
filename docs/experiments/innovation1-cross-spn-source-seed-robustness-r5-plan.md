@@ -1,6 +1,6 @@
 # Innovation 1 E4-R5 Cross-SPN Source-Seed Robustness Plan
 
-**Status:** Phase A readiness passed; source-seed1 `8192/class` local gate authorized
+**Status:** Phase A passed; Phase B seed4/seed5 readiness passed and remote medium launch authorized after push
 **Date:** 2026-07-15
 **Experiment label:** E4-R5
 
@@ -230,3 +230,105 @@ outputs/local_smoke/i1_present_cross_spn_source_seed_r5_readiness_seed1/
 Readiness metrics are not interpreted. This authorizes only the frozen local
 Phase A `8192/class`, 10-epoch source-seed1 run after the implementation and
 plan are committed and pushed. It does not authorize remote Phase B yet.
+
+## 2026-07-15 Phase A Completion Record
+
+The frozen local source-seed1 run completed at `8192/class` training and
+`4096/class` validation with 16 pairs/sample and 10 epochs:
+
+| Role | Restored-best AUC |
+| --- | ---: |
+| InvP-only anchor | `0.761801242828` |
+| typed true | `0.755739122629` |
+| typed shuffled | `0.580704301596` |
+| typed raw | `0.608457535505` |
+
+```text
+true - anchor    = -0.006062120199  pass >= -0.010
+true - shuffled  = +0.175034821033  pass >= +0.003
+true - raw       = +0.147281587124  pass >= +0.003
+true absolute    =  0.755739122629  pass >=  0.650
+
+status           = pass
+decision         = e4_r5_source_seed_gate_pass
+next_action      = freeze_source_seed1_hashes_and_prepare_target_seed4_seed5
+```
+
+All four rows are plan-aligned, all checkpoints and 40 history rows are
+complete, typed roles have identical `187426` parameters, and the Case2 cache
+shows two creates plus six parameter-matched reuses.
+
+Frozen source checkpoints:
+
+```text
+true checkpoint:
+  outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/checkpoints/row0002_present_cross_spn_typed_cell_true_seed1.pt
+  SHA-256 = b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5
+
+shuffled checkpoint:
+  outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/checkpoints/row0003_present_cross_spn_typed_cell_shuffled_seed1.pt
+  SHA-256 = b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/
+```
+
+This passes only the source gate. Phase B still requires seed4/seed5 target
+plans, strict source-manifest loading, score-pair readiness, remote configs,
+and a passing local `64/class` implementation check before launch.
+
+## 2026-07-15 Phase B Readiness Record
+
+The seed4 and seed5 target plans, source-seed1 initialization manifest,
+per-seed E4-R5 gate, joint source-seed robustness gate, remote configs,
+runner, launcher, and retrieval monitor are implemented. Both local
+`64/class`, exactly-one-epoch readiness runs passed:
+
+```text
+target seeds                    = 4, 5
+result rows                     = 4/seed
+restored checkpoints            = 4/seed
+score artifacts                 = 4/seed
+aligned validation scores       = 64/role/seed
+paired score export             = pass
+plan validation                 = pass, errors=[]
+cache behavior                  = 1 create + 3 reuse per split/seed
+source checkpoint seed          = 1
+source true SHA-256             = b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5
+source shuffled SHA-256         = b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645
+seed4 gate                      = pass / implementation_ready
+seed5 gate                      = pass / implementation_ready
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_gift64_cross_spn_source_seed_r5_readiness_seed4/
+outputs/local_smoke/i1_gift64_cross_spn_source_seed_r5_readiness_seed5/
+```
+
+The two remote configs independently pass fail-closed readiness with
+`errors=[]`, `warnings=[]`, and both
+`medium_scale_dataset_cache` and `e4_r5_source_seed_protocol_lock`.
+The runner and monitor explicitly pass `--experiment-stage e4_r5`; source
+asset checks use seed1 filenames; local strengthened re-adjudication uses
+target seeds 4 and 5. The launcher uses run-owned clean source clones,
+`cmd.exe /c`, SYSTEM/highest scheduled tasks, GPU0/GPU1, and only
+`G:\\lxy` project paths.
+
+Readiness AUC values are not interpreted. This readiness authorizes only the
+frozen remote Phase B medium diagnostic:
+
+```text
+seed4 = 65536/class train, 32768/class validation, GPU0, exactly 1 epoch
+seed5 = 65536/class train, 32768/class validation, GPU1, exactly 1 epoch
+```
+
+Next action: commit and push the exact source checkpoints, results provenance,
+plans, gates, configs, tests, and generated remote assets; then launch both
+target seeds from that exact pushed commit and hand monitoring/retrieval to the
+local tmux watcher. Do not run `65536/class` locally and do not mechanically
+advance to `262144/class`.

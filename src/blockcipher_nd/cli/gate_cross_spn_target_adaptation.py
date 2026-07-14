@@ -11,7 +11,7 @@ from blockcipher_nd.planning.cross_spn_target_adaptation_gate import (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Gate one E4-R4 cross-SPN target-adaptation seed."
+        description="Gate one E4-R4 or E4-R5 cross-SPN target-adaptation seed."
     )
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--results", required=True, type=Path)
@@ -20,7 +20,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--true-to-true-scores", required=True, type=Path)
     parser.add_argument("--shuffled-to-true-scores", required=True, type=Path)
     parser.add_argument("--true-to-shuffled-scores", required=True, type=Path)
-    parser.add_argument("--expected-seed", required=True, choices=(2, 3), type=int)
+    parser.add_argument("--expected-seed", required=True, choices=(2, 3, 4, 5), type=int)
+    parser.add_argument(
+        "--experiment-stage", choices=("e4_r4", "e4_r5"), default="e4_r4"
+    )
     parser.add_argument("--samples-per-class", type=int, default=65536)
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--bootstrap-replicates", type=int, default=10000)
@@ -46,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_seed=args.expected_seed,
         samples_per_class=args.samples_per_class,
         epochs=args.epochs,
+        experiment_stage=args.experiment_stage,
         readiness_only=args.readiness_only,
         bootstrap_replicates=args.bootstrap_replicates,
         bootstrap_seed=args.bootstrap_seed,

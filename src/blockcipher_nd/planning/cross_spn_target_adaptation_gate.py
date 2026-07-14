@@ -31,6 +31,22 @@ ADAPTATION_MODEL_ROLES = {
 
 _TRUE_SOURCE_SHA = "eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1"
 _SHUFFLED_SOURCE_SHA = "fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22"
+_R5_TRUE_SOURCE_SHA = "b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5"
+_R5_SHUFFLED_SOURCE_SHA = "b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645"
+_SOURCE_PROTOCOLS = {
+    "e4_r4": {
+        "target_seeds": {2, 3},
+        "source_seed": 0,
+        "true_sha": _TRUE_SOURCE_SHA,
+        "shuffled_sha": _SHUFFLED_SOURCE_SHA,
+    },
+    "e4_r5": {
+        "target_seeds": {4, 5},
+        "source_seed": 1,
+        "true_sha": _R5_TRUE_SOURCE_SHA,
+        "shuffled_sha": _R5_SHUFFLED_SOURCE_SHA,
+    },
+}
 _TYPED_OPTIONS = {
     "mixer_depth": 2,
     "token_mlp_ratio": 2,
@@ -57,6 +73,7 @@ def gate_cross_spn_target_adaptation(
     expected_seed: int,
     samples_per_class: int = 65536,
     epochs: int = 1,
+    experiment_stage: str = "e4_r4",
     readiness_only: bool = False,
     bootstrap_replicates: int = _BOOTSTRAP_REPLICATES,
     bootstrap_seed: int = _BOOTSTRAP_SEED,
@@ -64,6 +81,7 @@ def gate_cross_spn_target_adaptation(
 ) -> dict[str, Any]:
     argument_errors = _argument_errors(
         expected_seed=expected_seed,
+        experiment_stage=experiment_stage,
         samples_per_class=samples_per_class,
         epochs=epochs,
         readiness_only=readiness_only,
@@ -89,6 +107,7 @@ def gate_cross_spn_target_adaptation(
             samples_per_class=samples_per_class,
             epochs=epochs,
             expected_device="cpu" if readiness_only else "cuda",
+            source_protocol=_SOURCE_PROTOCOLS.get(experiment_stage),
         )
     )
     errors.extend(
@@ -135,8 +154,8 @@ def gate_cross_spn_target_adaptation(
         "margins": margins,
         "models": ADAPTATION_MODEL_ROLES,
         "source_checkpoint_sha256": {
-            "true": _TRUE_SOURCE_SHA,
-            "shuffled": _SHUFFLED_SOURCE_SHA,
+            "true": _SOURCE_PROTOCOLS[experiment_stage]["true_sha"],
+            "shuffled": _SOURCE_PROTOCOLS[experiment_stage]["shuffled_sha"],
         },
         "target_checkpoint_sha256": {
             role: str(artifact.metadata["checkpoint_sha256"])
@@ -151,7 +170,7 @@ def gate_cross_spn_target_adaptation(
         "source_pretraining_cost": {
             "cipher": "PRESENT-80",
             "rounds": 7,
-            "seed": 0,
+            "seed": _SOURCE_PROTOCOLS[experiment_stage]["source_seed"],
             "samples_per_class": 8192,
             "epochs": 10,
             "accounting": "reported separately; excluded from target epoch budget",
@@ -165,12 +184,12 @@ def gate_cross_spn_target_adaptation(
             "expected_seed": expected_seed,
             "samples_per_class": samples_per_class,
             "epochs": epochs,
-            "experiment_stage": "e4_r4",
+            "experiment_stage": experiment_stage,
             **evidence,
             "bootstrap": None,
             "research_decision_applied": False,
-            "claim_scope": "E4-R4 readiness only; AUC values are not interpreted",
-            "next_action": f"run_frozen_e4_r4_seed{expected_seed}_remote_medium",
+            "claim_scope": f"{experiment_stage.upper()} readiness only; AUC values are not interpreted",
+            "next_action": f"run_frozen_{experiment_stage}_seed{expected_seed}_remote_medium",
             "stopped_actions": _stopped_actions("implementation_ready"),
         }
 
@@ -189,13 +208,17 @@ def gate_cross_spn_target_adaptation(
     )
     controls_positive = all(value > 0.0 for value in margins.values())
     if margins_pass and core_ci_lower > 0.0:
-        decision = "e4_r4_target_adaptation_efficiency_confirmed"
-        next_action = "design_formal_multiseed_adaptation_protocol"
+        decision = f"{experiment_stage}_target_adaptation_efficiency_confirmed"
+        next_action = (
+            "design_formal_multiseed_adaptation_protocol"
+            if experiment_stage == "e4_r4"
+            else "run_e4_r5_joint_source_seed_robustness_gate"
+        )
     elif controls_positive:
-        decision = "e4_r4_target_adaptation_signal_unstable"
+        decision = f"{experiment_stage}_target_adaptation_signal_unstable"
         next_action = "stop_transfer_branch_keep_typed_representation_result"
     else:
-        decision = "e4_r4_target_adaptation_rejected"
+        decision = f"{experiment_stage}_target_adaptation_rejected"
         next_action = "stop_transfer_branch_keep_typed_representation_result"
     return {
         "status": "pass",
@@ -204,7 +227,7 @@ def gate_cross_spn_target_adaptation(
         "expected_seed": expected_seed,
         "samples_per_class": samples_per_class,
         "epochs": epochs,
-        "experiment_stage": "e4_r4",
+        "experiment_stage": experiment_stage,
         **evidence,
         "bootstrap": bootstrap,
         "thresholds": {
@@ -213,7 +236,7 @@ def gate_cross_spn_target_adaptation(
         },
         "research_decision_applied": True,
         "claim_scope": (
-            "single-seed E4-R4 65536/class remote medium target-adaptation "
+            f"single-seed {experiment_stage.upper()} 65536/class remote medium target-adaptation "
             "diagnostic; conditional target-training efficiency only; source "
             "pretraining cost reported separately; not formal, paper-scale, SOTA, "
             "breakthrough, or end-to-end compute evidence"
@@ -225,6 +248,9 @@ def gate_cross_spn_target_adaptation(
 
 def gate_cross_spn_target_adaptation_joint(
     seed_reports: list[dict[str, Any]],
+    *,
+    expected_seeds: tuple[int, int] = (2, 3),
+    experiment_stage: str = "e4_r4",
 ) -> dict[str, Any]:
     errors: list[str] = []
     if len(seed_reports) != 2:
@@ -238,39 +264,62 @@ def gate_cross_spn_target_adaptation_joint(
         by_seed[seed] = report
         if report.get("status") != "pass" or report.get("errors") != []:
             errors.append(f"seed={seed} report is not valid pass evidence")
-        if report.get("experiment_stage") != "e4_r4":
-            errors.append(f"seed={seed} experiment_stage must equal e4_r4")
+        if report.get("experiment_stage") != experiment_stage:
+            errors.append(
+                f"seed={seed} experiment_stage must equal {experiment_stage}"
+            )
         if report.get("samples_per_class") != 65536 or report.get("epochs") != 1:
             errors.append(f"seed={seed} budget must equal 65536/class and 1 epoch")
         if report.get("research_decision_applied") is not True:
             errors.append(f"seed={seed} research decision was not applied")
-    if set(by_seed) != {2, 3}:
-        errors.append(f"joint gate requires target seeds [2, 3] actual={sorted(by_seed)}")
+    if set(by_seed) != set(expected_seeds):
+        errors.append(
+            f"joint gate requires target seeds {list(expected_seeds)} "
+            f"actual={sorted(by_seed)}"
+        )
     if errors:
-        return _invalid(errors, claim_scope="invalid E4-R4 joint evidence")
+        return _invalid(
+            errors,
+            claim_scope=f"invalid {experiment_stage.upper()} joint evidence",
+        )
 
     decisions = {report["decision"] for report in seed_reports}
-    if decisions == {"e4_r4_target_adaptation_efficiency_confirmed"}:
-        decision = "e4_r4_two_seed_target_adaptation_efficiency_confirmed"
+    confirmed = f"{experiment_stage}_target_adaptation_efficiency_confirmed"
+    rejected = f"{experiment_stage}_target_adaptation_rejected"
+    confirmed_count = sum(report["decision"] == confirmed for report in seed_reports)
+    if experiment_stage == "e4_r5" and confirmed_count == 2:
+        decision = "e4_r5_source_seed_robustness_confirmed"
+        next_action = "freeze_1000000_class_multisource_multitarget_protocol"
+    elif experiment_stage == "e4_r5" and confirmed_count == 1:
+        decision = "e4_r5_source_seed_signal_unstable"
+        next_action = "stop_formal_scale_retain_conditional_e4_r4_result"
+    elif experiment_stage == "e4_r5" and decisions == {rejected}:
+        decision = "e4_r5_source_seed_dependence_detected"
+        next_action = "stop_cross_spn_transfer_scale_keep_typed_representation_only"
+    elif experiment_stage == "e4_r5":
+        decision = "e4_r5_source_seed_signal_unstable"
+        next_action = "stop_formal_scale_retain_conditional_e4_r4_result"
+    elif decisions == {confirmed}:
+        decision = f"{experiment_stage}_two_seed_target_adaptation_efficiency_confirmed"
         next_action = "design_formal_multiseed_adaptation_protocol"
-    elif "e4_r4_target_adaptation_rejected" in decisions:
-        decision = "e4_r4_two_seed_target_adaptation_rejected"
+    elif rejected in decisions:
+        decision = f"{experiment_stage}_two_seed_target_adaptation_rejected"
         next_action = "stop_transfer_branch_keep_typed_representation_result"
     else:
-        decision = "e4_r4_two_seed_target_adaptation_signal_unstable"
+        decision = f"{experiment_stage}_two_seed_target_adaptation_signal_unstable"
         next_action = "stop_transfer_branch_keep_typed_representation_result"
     return {
         "status": "pass",
         "decision": decision,
         "errors": [],
-        "expected_seeds": [2, 3],
+        "expected_seeds": list(expected_seeds),
         "samples_per_class": 65536,
         "epochs": 1,
-        "experiment_stage": "e4_r4",
-        "per_seed": {str(seed): by_seed[seed] for seed in (2, 3)},
+        "experiment_stage": experiment_stage,
+        "per_seed": {str(seed): by_seed[seed] for seed in expected_seeds},
         "research_decision_applied": True,
         "claim_scope": (
-            "two-seed E4-R4 65536/class remote medium target-adaptation "
+            f"two-seed {experiment_stage.upper()} 65536/class remote medium target-adaptation "
             "diagnostic; conditional target-training efficiency only; not formal, "
             "paper-scale, SOTA, breakthrough, or end-to-end compute evidence"
         ),
@@ -431,6 +480,7 @@ def write_paired_score_csv_gz(
 def _argument_errors(
     *,
     expected_seed: Any,
+    experiment_stage: Any,
     samples_per_class: Any,
     epochs: Any,
     readiness_only: bool,
@@ -439,12 +489,19 @@ def _argument_errors(
     score_artifact_paths: dict[str, Path],
 ) -> list[str]:
     errors: list[str] = []
-    if expected_seed not in {2, 3}:
-        errors.append(f"E4-R4 expected_seed must be 2 or 3 actual={expected_seed!r}")
+    source_protocol = _SOURCE_PROTOCOLS.get(experiment_stage)
+    if source_protocol is None:
+        errors.append(f"experiment_stage must be one of {sorted(_SOURCE_PROTOCOLS)}")
+    elif expected_seed not in source_protocol["target_seeds"]:
+        errors.append(
+            f"{experiment_stage.upper()} expected_seed must be one of "
+            f"{sorted(source_protocol['target_seeds'])} actual={expected_seed!r}"
+        )
     expected_scale = 64 if readiness_only else 65536
+    stage_label = str(experiment_stage).upper()
     if samples_per_class != expected_scale or epochs != 1:
         errors.append(
-            f"E4-R4 budget must be {expected_scale}/class and 1 epoch "
+            f"{stage_label} budget must be {expected_scale}/class and 1 epoch "
             f"actual={samples_per_class}/class epochs={epochs}"
         )
     if set(score_artifact_paths) != set(ADAPTATION_MODEL_ROLES):
@@ -456,12 +513,15 @@ def _argument_errors(
         errors.append("bootstrap_replicates must be a positive integer")
     elif not readiness_only and bootstrap_replicates != _BOOTSTRAP_REPLICATES:
         errors.append(
-            f"E4-R4 confirmation requires {_BOOTSTRAP_REPLICATES} bootstrap replicates"
+            f"{stage_label} confirmation requires "
+            f"{_BOOTSTRAP_REPLICATES} bootstrap replicates"
         )
     if type(bootstrap_seed) is not int or bootstrap_seed < 0:
         errors.append("bootstrap_seed must be a nonnegative integer")
     elif not readiness_only and bootstrap_seed != _BOOTSTRAP_SEED:
-        errors.append(f"E4-R4 confirmation requires bootstrap seed {_BOOTSTRAP_SEED}")
+        errors.append(
+            f"{stage_label} confirmation requires bootstrap seed {_BOOTSTRAP_SEED}"
+        )
     return errors
 
 
@@ -472,6 +532,7 @@ def _result_errors(
     samples_per_class: int,
     epochs: int,
     expected_device: str,
+    source_protocol: dict[str, Any] | None,
 ) -> list[str]:
     errors: list[str] = []
     if len(rows) != 4:
@@ -570,25 +631,36 @@ def _result_errors(
             "typed capacity must equal 187426 for all roles "
             f"total={parameter_counts} trainable={trainable_counts}"
         )
-    errors.extend(_initialization_errors(by_model))
+    if source_protocol is None:
+        errors.append("source protocol must be valid")
+    else:
+        errors.extend(_initialization_errors(by_model, source_protocol))
     return errors
 
 
-def _initialization_errors(by_model: dict[str, dict[str, Any]]) -> list[str]:
+def _initialization_errors(
+    by_model: dict[str, dict[str, Any]],
+    source_protocol: dict[str, Any],
+) -> list[str]:
     expected = {
         "typed_scratch": ("scratch", "true", None, None),
-        "true_to_true": ("checkpoint", "true", "true", _TRUE_SOURCE_SHA),
+        "true_to_true": (
+            "checkpoint",
+            "true",
+            "true",
+            source_protocol["true_sha"],
+        ),
         "shuffled_to_true": (
             "checkpoint",
             "true",
             "shuffled",
-            _SHUFFLED_SOURCE_SHA,
+            source_protocol["shuffled_sha"],
         ),
         "true_to_shuffled": (
             "checkpoint",
             "shuffled",
             "true",
-            _TRUE_SOURCE_SHA,
+            source_protocol["true_sha"],
         ),
     }
     errors: list[str] = []
@@ -620,7 +692,7 @@ def _initialization_errors(by_model: dict[str, dict[str, Any]]) -> list[str]:
                 {
                     "source_cipher": "PRESENT-80",
                     "source_rounds": 7,
-                    "source_seed": 0,
+                    "source_seed": source_protocol["source_seed"],
                     "source_samples_per_class": 8192,
                     "source_epochs": 10,
                     "source_mapping": source_mapping,
