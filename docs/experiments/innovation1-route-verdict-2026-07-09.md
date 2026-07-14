@@ -2,10 +2,10 @@
 
 ## Status
 
-status = E4-R2 seed0 completed / identical local seed1 repeat authorized
-decision = true-to-true transfer passed all seed0 attribution margins
-claim_scope = single-seed 8192/class local diagnostic only
-next_adjudication = E4-R2 identical target-seed1 transfer repeat
+status = E4-R2 completed / two-seed transfer signal confirmed
+decision = true-to-true transfer passed all attribution margins on target seeds 0 and 1
+claim_scope = two-seed 8192/class local diagnostic only
+next_adjudication = freeze E4-R3 same-protocol 65536/class medium diagnostic
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -102,7 +102,7 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | H2 Case 3 topology residual | seed0 `8192/class`: candidate `0.746721`, anchor `0.750536`, shuffled `0.749706`, raw triple `0.752140` | stop this adapter | candidate loses all three same-input comparators; seed1 and scale stopped |
 | E3-R1 mapped-delta DBitNet | seed0 `8192/class`: candidate `0.516823`, Token-Mixer anchor `0.750536`; DBitNet final train AUC approaches `1.0` | stop this architecture gate | severe train/validation generalization gap and `-0.233713` AUC versus anchor; seed1 and scale stopped |
 | E4-R1 shared typed cell operator | PRESENT true `0.743810` vs anchor `0.745933`, shuffled `0.575898`, raw `0.586375`; GIFT true `0.551969` vs anchor `0.506567`, shuffled `0.500088`, raw `0.501148` | promote local E4-R2 transfer gate | source is anchor-noninferior and clears both attribution controls; GIFT scratch independently clears all controls |
-| E4-R2 explicit typed checkpoint transfer | seed0 `8192/class`: true-to-true `0.569627` vs anchor `0.506567`, scratch `0.551969`, source-shuffled `0.544660`, target-shuffled `0.508950` | promote identical local seed1 repeat only | all frozen absolute, anchor, scratch, source-topology, and target-topology margins pass; single seed is not scale evidence |
+| E4-R2 explicit typed checkpoint transfer | two target seeds at `8192/class`: true-to-true `0.569627`/`0.575072`; all anchor, scratch, source-shuffled, and target-shuffled margins pass | two-seed local transfer signal confirmed | correct PRESENT source topology and correct GIFT target topology contribute beyond scratch and shuffled controls; medium diagnostic plan only |
 
 ## 2026-07-13 H2 And E3-R1 Completion Update
 
@@ -263,9 +263,52 @@ an identical local target-seed1 repeat: same five roles, source checkpoints
 and SHA-256 values, data definition, budget, optimizer, epochs, and thresholds;
 change only target seed/cache. If seed1 passes, freeze a separate two-seed
 joint gate before deciding any larger diagnostic. If seed1 fails, stop transfer
-scale and retain seed0 only as provisional evidence. DDT/trail reopening,
-architecture changes, `65536/class`, `262144/class`, and remote GPU remain
-stopped now.
+scale and retain seed0 only as provisional evidence. That seed0-only action is
+now superseded by the completed two-seed gate below.
+
+## 2026-07-14 E4-R2 Two-Seed Completion Update
+
+Seed1 repeated the exact five-role local GIFT-64 r6 transfer protocol at
+`8192/class` training and `4096/class` validation, changing only the target
+seed and its disk-backed cache:
+
+| Target seed | Anchor | Scratch | True-to-true | Source-shuffled | Target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.506567180157` | `0.551968932152` | `0.569627493620` | `0.544660240412` | `0.508949667215` |
+| 1 | `0.551836639643` | `0.563941299915` | `0.575072139502` | `0.559742510319` | `0.518017381430` |
+
+| Target seed | vs anchor | vs scratch | vs source-shuffled | vs target-shuffled |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | `+0.063060313463` | `+0.017658561468` | `+0.024967253208` | `+0.060677826405` |
+| 1 | `+0.023235499859` | `+0.011130839586` | `+0.015329629183` | `+0.057054758072` |
+
+Both seeds passed the absolute `0.52` AUC threshold and all four frozen
+attribution margins. Both used the same PRESENT source checkpoints:
+
+```text
+true SHA-256     = eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1
+shuffled SHA-256 = fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22
+
+status      = pass
+decision    = two_seed_transfer_signal_confirmed
+next_action = design_e4_r3_same_protocol_medium_diagnostic
+```
+
+The plan validators returned five aligned rows per seed with no errors. Both
+SVGs parsed, each history CSV contains 50 epoch rows, both single-seed gates
+passed, and the joint gate has an empty error list:
+
+```text
+seed0 = outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed0/
+seed1 = outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/
+joint = outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_joint_seed0_seed1/gate.json
+```
+
+Claim boundary: this is repeatable two-seed local `8192/class` diagnostic
+evidence, not formal training, paper-scale evidence, remote evidence, SOTA, or
+a breakthrough. It authorizes only a separately frozen E4-R3 same-protocol
+local medium diagnostic at `65536/class`; it does not authorize mechanical
+`262144/class` scaling, remote GPU, or reopening DDT/trail/E1/H2.
 
 ## Current Interpretation
 

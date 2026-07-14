@@ -1,6 +1,6 @@
 # Innovation 1 Cross-SPN Typed Cell Transfer Design
 
-**Status:** design frozen under the user's standing autonomous-execution approval
+**Status:** E4-R2 two-seed transfer signal confirmed; E4-R3 medium diagnostic design required
 **Date:** 2026-07-13
 **Experiment label:** E4
 
@@ -695,3 +695,111 @@ under an independent target seed. Freeze one E4-R2 seed1 repeat as follows:
 6. Explicitly stopped until the two-seed gate passes: `65536/class`,
    `262144/class`, formal-scale training, remote GPU, DDT/trail reopening, and
    architecture changes.
+
+## 2026-07-14 E4-R2 Seed1 And Joint Adjudication
+
+### Frozen seed1 protocol
+
+Seed1 changed only the GIFT target seed and its parameter-matched disk cache.
+The five roles, source checkpoints, architecture, data definition, optimizer,
+loss, target epochs, validation policy, and gate thresholds remained identical
+to seed0:
+
+```text
+cipher/rounds       = GIFT-64 r6
+train/validation    = 8192/class / 4096/class
+train/validation    = 16384 total / 8192 total
+pairs/sample        = 4 independent pairs
+target seed         = 1
+negative mode       = encrypted_random_plaintexts
+epochs/device       = 10 / CPU
+loss/optimizer      = MSE / Adam
+checkpoint          = restored best val_auc
+typed parameters    = 187426
+dataset cache       = outputs/local_cache/i1_gift64_cross_spn_typed_cell_r1_seed1
+```
+
+The frozen source checkpoint identities remained:
+
+```text
+PRESENT true source SHA-256:
+  eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1
+PRESENT shuffled source SHA-256:
+  fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22
+```
+
+### Seed1 results
+
+| Role | Validation AUC | Accuracy | Calibrated accuracy | Best epoch |
+| --- | ---: | ---: | ---: | ---: |
+| GIFT aligned anchor | `0.551836639643` | `0.535888671875` | `0.541259765625` | 9 |
+| GIFT typed scratch | `0.563941299915` | `0.542114257812` | `0.546630859375` | 10 |
+| PRESENT true to GIFT true | `0.575072139502` | `0.551513671875` | `0.557128906250` | 7 |
+| PRESENT shuffled to GIFT true | `0.559742510319` | `0.539428710938` | `0.540649414062` | 7 |
+| PRESENT true to GIFT shuffled | `0.518017381430` | `0.509399414062` | `0.516601562500` | 10 |
+
+```text
+true_to_true absolute AUC = 0.575072139502  pass >= 0.52
+true_to_true - anchor     = +0.023235499859 pass >= +0.003
+true_to_true - scratch    = +0.011130839586 pass >= +0.005
+true - source-shuffled    = +0.015329629183 pass >= +0.003
+true - target-shuffled    = +0.057054758072 pass >= +0.003
+
+status      = pass
+decision    = promote_e4_transfer_joint_gate
+next_action = run_frozen_e4_r2_joint_gate
+```
+
+### Joint two-seed gate
+
+| Target seed | True-to-true AUC | vs anchor | vs scratch | vs source-shuffled | vs target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.569627493620` | `+0.063060313463` | `+0.017658561468` | `+0.024967253208` | `+0.060677826405` |
+| 1 | `0.575072139502` | `+0.023235499859` | `+0.011130839586` | `+0.015329629183` | `+0.057054758072` |
+
+Both target seeds pass the same absolute threshold and all four attribution
+margins. The evidence supports a repeatable local transfer signal in which the
+correct PRESENT source topology and correct GIFT target topology both matter
+beyond scratch and shuffled controls.
+
+```text
+status      = pass
+decision    = two_seed_transfer_signal_confirmed
+next_action = design_e4_r3_same_protocol_medium_diagnostic
+```
+
+This remains a two-seed local `8192/class` diagnostic. It is not formal
+training, paper-scale evidence, remote evidence, SOTA, or a breakthrough.
+Remote launch, formal claims, DDT/trail/E1/H2 reopening, and unplanned
+architecture changes remain stopped.
+
+### Validation and artifacts
+
+```text
+plan:
+  configs/experiment/innovation1/innovation1_spn_gift64_cross_spn_typed_transfer_8192_seed1.csv
+seed1 artifacts:
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/results.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/progress.jsonl
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/validation.json
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/history.csv
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/curves.svg
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_seed1/gate.json
+joint gate:
+  outputs/local_smoke/i1_gift64_cross_spn_typed_transfer_r2_joint_seed0_seed1/gate.json
+```
+
+The seed1 result validator returned five plan-aligned rows with no errors. The
+SVG parsed successfully, the history CSV contains 50 epoch rows, and the
+single-seed and joint gates both returned `status=pass` with empty error lists.
+
+### Executable next action
+
+Freeze E4-R3 before execution. Its single research question is whether the
+attributable PRESENT-to-GIFT transfer advantage survives a larger, otherwise
+identical local budget. Use GIFT-64 r6, target seeds 0 and 1, the same five
+roles and source hashes, `65536/class` training, `32768/class` validation,
+four independent pairs/sample, strict negatives, 10 epochs, restored-best
+`val_auc`, and separate disk-backed caches. Freeze exact per-seed margins and
+cache-reuse/readiness gates in the E4-R3 plan before launching. Do not advance
+to `262144/class`, remote GPU, or formal scale from the E4-R2 result alone.
