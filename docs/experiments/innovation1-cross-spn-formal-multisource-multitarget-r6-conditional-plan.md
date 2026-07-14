@@ -272,17 +272,20 @@ or archive-integrity error:
 ## Required Implementation Before Any Launch
 
 The current repository is not yet ready for this formal protocol. The
-following are launch blockers, not optional improvements:
+following are launch blockers, not optional improvements. Status was last
+audited on 2026-07-15; completed infrastructure does not activate E4-R6:
 
 1. Add a row-level initialization role so one seven-row plan can select source
    seed2/seed3 true/shuffled checkpoints without architecture aliases or
    duplicate scratch training.
-2. Add `final_test_key` parsing, dataset construction, cache identity,
-   progress metadata, result metadata, and fail-closed tests. Current
-   `final_evaluation` reuses the validation cipher/key.
-3. Extend frozen score export from train/validation to explicit
-   `final_test_1..5` splits with exact seeds, final-test key, disk-cache
-   reuse, and aligned sample IDs.
+2. **Implemented and locally verified, activation still blocked:**
+   `final_test_key` parsing, separate dataset cipher construction, cache
+   identity, progress/result metadata, validation-key fallback, and
+   fail-closed result-alignment tests.
+3. **Implemented and locally verified, activation still blocked:** frozen
+   score export supports explicit `final_test_1..N` splits with deterministic
+   fresh seeds, final-test key, exact row accounting, disk-cache reuse, and
+   aligned sample IDs. Out-of-range repeats fail closed.
 4. Implement a seven-role, two-source, two-target gate using fresh-test scores
    and the frozen decision table.
 5. Add `64/class` readiness plans that prove all source identities, cache

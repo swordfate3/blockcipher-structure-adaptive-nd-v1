@@ -16,6 +16,7 @@ def run_final_evaluation(
     args: argparse.Namespace,
     *,
     cipher,
+    final_test_key: int | None,
     progress_path: str | None,
     index: int | None,
     total: int | None,
@@ -38,7 +39,11 @@ def run_final_evaluation(
                 task,
                 cipher=cipher,
                 samples_per_class=max(1, int(samples_total) // 2),
-                samples_total=int(samples_total),
+                samples_total=(
+                    int(samples_total)
+                    if task.get("dataset_label_mode") == "random_labels_total"
+                    else None
+                ),
                 seed=seed,
                 split=split,
             ),
@@ -58,6 +63,7 @@ def run_final_evaluation(
                 "repeat": repeat_index + 1,
                 "repeats": repeats,
                 "seed": seed,
+                "final_test_key": final_test_key,
                 "samples_total": int(len(dataset.labels)),
                 **task_progress_payload(task),
             },
@@ -72,6 +78,7 @@ def run_final_evaluation(
             {
                 "repeat": repeat_index + 1,
                 "seed": seed,
+                "final_test_key": final_test_key,
                 "samples_total": int(len(dataset.labels)),
                 "positive_rows": int(dataset.metadata["positive_rows"]),
                 "negative_rows": int(dataset.metadata["negative_rows"]),
@@ -94,6 +101,7 @@ def run_final_evaluation(
     return {
         "repeats": repeats,
         "samples_total_per_repeat": int(samples_total),
+        "final_test_key": final_test_key,
         "seeds": seeds,
         "metrics_by_repeat": repeat_metrics,
         "accuracy_mean": mean(accuracies),

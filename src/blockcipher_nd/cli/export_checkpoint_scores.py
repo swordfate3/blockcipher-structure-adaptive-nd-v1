@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,7 +16,11 @@ from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import configure_structure_aware_model, infer_pair_bits
 from blockcipher_nd.engine.progress import task_progress_payload, write_progress
-from blockcipher_nd.engine.task_config import build_dataset_config, resolve_task_keys
+from blockcipher_nd.engine.task_config import (
+    build_dataset_config,
+    resolve_final_test_key,
+    resolve_task_keys,
+)
 from blockcipher_nd.evaluation.neural_ensemble import (
     EnsembleScoreArtifact,
     write_score_artifact,
@@ -33,7 +38,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkpoint", required=True, type=Path)
     parser.add_argument("--eval-plan", required=True, type=Path)
     parser.add_argument("--eval-row-index", type=int, default=0)
-    parser.add_argument("--split", choices=["train", "validation"], default="validation")
+    parser.add_argument(
+        "--split",
+        default="validation",
+        help="Evaluation split: train, validation, or final_test_<1-based repeat>.",
+    )
     parser.add_argument("--samples-per-class", type=int, default=None)
     parser.add_argument("--model-key", required=True)
     parser.add_argument("--hidden-bits", type=int, required=True)
@@ -84,7 +93,13 @@ def main(argv: list[str] | None = None) -> int:
             task,
             cipher=cipher,
             samples_per_class=int(split_config["samples_per_class"]),
+            samples_total=(
+                split_config["samples_total"]
+                if task.get("dataset_label_mode") == "random_labels_total"
+                else None
+            ),
             seed=int(split_config["seed"]),
+            split=args.split,
         ),
         args,
         task,
@@ -99,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         "dataset_cache_enabled": bool(args.dataset_cache_root),
         "score_split": args.split,
         "score_rows": int(eval_dataset.features.shape[0]),
+        "score_key": split_config["cipher_key"],
+        "score_seed": int(split_config["seed"]),
         "input_bits": int(eval_dataset.features.shape[1]),
         **task_progress_payload(task),
     }
@@ -129,6 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         cipher_name=cipher.name,
         score_split=args.split,
         score_samples_per_class=int(split_config["samples_per_class"]),
+        score_config=split_config,
         model_options=model_options,
     )
     artifact = EnsembleScoreArtifact(
@@ -146,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
         "samples_per_class": int(task["samples_per_class"]),
         "score_split": args.split,
         "score_samples_per_class": int(split_config["samples_per_class"]),
+        "score_samples_total": int(len(eval_dataset.labels)),
         "model_key": args.model_key,
         "checkpoint": str(args.checkpoint),
         "claim_scope": "per-sample score artifact for frozen neural ensemble evaluation",
@@ -154,6 +173,13 @@ def main(argv: list[str] | None = None) -> int:
         summary["validation_samples_per_class"] = int(split_config["samples_per_class"])
     if args.split == "train":
         summary["train_samples_per_class"] = int(split_config["samples_per_class"])
+    if args.split.startswith("final_test_"):
+        summary["final_test_repeat"] = int(split_config["repeat"])
+        summary["final_test_key"] = split_config["cipher_key"]
+        summary["final_test_seed"] = int(split_config["seed"])
+        summary["final_test_samples_per_class"] = int(
+            split_config["samples_per_class"]
+        )
     (args.output_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -183,22 +209,61 @@ def eval_task_from_plan(args: argparse.Namespace) -> dict[str, Any]:
 def validation_samples_per_class(task: dict[str, Any], override: int | None) -> int:
     if override is not None:
         return int(override)
+    if task.get("validation_samples_total") is not None:
+        return max(1, int(task["validation_samples_total"]) // 2)
     return max(8, int(task["samples_per_class"]) // 2)
 
 
 def score_split_config(task: dict[str, Any], split: str, override: int | None) -> dict[str, Any]:
     train_key, validation_key = resolve_task_keys(task)
     if split == "train":
+        samples_per_class = int(override or task["samples_per_class"])
         return {
             "cipher_key": train_key,
             "seed": int(task["seed"]),
-            "samples_per_class": int(override or task["samples_per_class"]),
+            "samples_per_class": samples_per_class,
+            "samples_total": (
+                2 * samples_per_class
+                if override is not None
+                else task.get("train_samples_total")
+            ),
         }
     if split == "validation":
+        samples_per_class = validation_samples_per_class(task, override)
         return {
             "cipher_key": validation_key,
             "seed": int(task["seed"]) + 10_000,
-            "samples_per_class": validation_samples_per_class(task, override),
+            "samples_per_class": samples_per_class,
+            "samples_total": (
+                2 * samples_per_class
+                if override is not None
+                else task.get("validation_samples_total")
+            ),
+        }
+    match = re.fullmatch(r"final_test_([1-9][0-9]*)", split)
+    if match is not None:
+        repeat = int(match.group(1))
+        repeats = int(task.get("final_test_repeats") or 0)
+        samples_total = task.get("final_test_samples_total")
+        if repeat > repeats:
+            raise ValueError(
+                f"final-test repeat {repeat} exceeds configured repeats={repeats}"
+            )
+        if samples_total is None or int(samples_total) < 2:
+            raise ValueError(
+                "final-test score export requires final_test_samples_total >= 2"
+            )
+        samples_per_class = (
+            int(override) if override is not None else max(1, int(samples_total) // 2)
+        )
+        return {
+            "cipher_key": resolve_final_test_key(task),
+            "seed": int(task["seed"]) + 50_000 + repeat - 1,
+            "samples_per_class": samples_per_class,
+            "samples_total": (
+                2 * samples_per_class if override is not None else int(samples_total)
+            ),
+            "repeat": repeat,
         }
     raise ValueError(f"unsupported score split: {split}")
 
@@ -260,8 +325,10 @@ def score_metadata(
     cipher_name: str,
     score_split: str,
     score_samples_per_class: int,
+    score_config: dict[str, Any],
     model_options: dict[str, Any],
 ) -> dict[str, Any]:
+    train_key, validation_key = resolve_task_keys(task)
     metadata = {
         "cipher": cipher_name,
         "cipher_key": task["cipher_key"],
@@ -274,8 +341,9 @@ def score_metadata(
         "sample_structure": task["sample_structure"],
         "difference_profile": task.get("difference_profile", ""),
         "difference_member": task.get("difference_member", ""),
-        "train_key": task.get("train_key"),
-        "validation_key": task.get("validation_key"),
+        "train_key": train_key,
+        "validation_key": validation_key,
+        "final_test_key": resolve_final_test_key(task),
         "checkpoint_metric": task.get("checkpoint_metric"),
         "restore_best_checkpoint": task.get("restore_best_checkpoint"),
         "model_key": args.model_key,
@@ -287,6 +355,10 @@ def score_metadata(
         "git_commit": current_git_commit(),
         "score_split": score_split,
         "score_samples_per_class": int(score_samples_per_class),
+        "score_samples_total": score_config.get("samples_total")
+        or 2 * int(score_samples_per_class),
+        "score_key": score_config["cipher_key"],
+        "score_seed": int(score_config["seed"]),
         "dataset_cache_enabled": bool(args.dataset_cache_root),
         "dataset_cache_root": str(args.dataset_cache_root) if args.dataset_cache_root else None,
         "dataset_cache_chunk_size": int(args.dataset_cache_chunk_size)
@@ -299,6 +371,9 @@ def score_metadata(
         metadata["validation_samples_per_class"] = int(score_samples_per_class)
     if score_split == "train":
         metadata["train_samples_per_class"] = int(score_samples_per_class)
+    if score_split.startswith("final_test_"):
+        metadata["final_test_repeat"] = int(score_config["repeat"])
+        metadata["final_test_samples_per_class"] = int(score_samples_per_class)
     if args.expert_family:
         metadata["expert_family"] = str(args.expert_family)
         metadata["candidate_status"] = str(args.candidate_status)

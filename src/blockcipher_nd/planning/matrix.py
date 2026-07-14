@@ -70,6 +70,7 @@ def build_tasks(args: argparse.Namespace) -> list[dict[str, Any]]:
                             "model_options": {},
                             "train_key": None,
                             "validation_key": None,
+                            "final_test_key": None,
                             **difference_metadata(
                                 cipher_key,
                                 args.difference_profile,
@@ -170,6 +171,7 @@ def plan_task(
         "selected_bit_indices": optional_int_tuple(row.get("selected_bit_indices")),
         "train_key": optional_int(row.get("train_key")),
         "validation_key": optional_int(row.get("validation_key")),
+        "final_test_key": optional_int(row.get("final_test_key")),
     }
     task.update(
         difference_metadata(

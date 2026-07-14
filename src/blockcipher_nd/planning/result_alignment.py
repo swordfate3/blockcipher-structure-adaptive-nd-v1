@@ -18,6 +18,7 @@ PLAN_RESULT_FIELD_PAIRS = [
     ("negative_mode", "negative_mode"),
     ("train_key", "train_key"),
     ("validation_key", "validation_key"),
+    ("final_test_key", "final_test_key"),
     ("pairs_per_sample", "pairs_per_sample"),
     ("sample_structure", "sample_structure"),
     ("integral_active_nibble", "integral_active_nibble"),
@@ -154,6 +155,7 @@ def _json_plan_row(row: dict[str, Any]) -> dict[str, str]:
         "key_rotation_interval": str(row.get("key_rotation_interval", "")),
         "difference_profile": str(row.get("difference_profile", "")),
         "difference_member": str(row.get("difference_member", "")),
+        "final_test_key": str(row.get("final_test_key", "")),
     }
 
 
@@ -312,7 +314,27 @@ def _field_mismatches(
             if plan_field not in plan_row:
                 continue
             result_value_raw = _nested_get(result_row, result_field)
+            if (
+                plan_field == "final_test_key"
+                and _normalize_value(plan_row[plan_field]) != ""
+                and result_value_raw is None
+            ):
+                mismatches.append(
+                    {
+                        "key": key,
+                        "plan_field": plan_field,
+                        "result_field": _field_label(result_field),
+                        "plan_value": _normalize_value(plan_row[plan_field]),
+                        "result_value": "<missing>",
+                    }
+                )
+                continue
             if result_value_raw is None:
+                continue
+            if (
+                plan_field == "final_test_key"
+                and _normalize_value(plan_row[plan_field]) == ""
+            ):
                 continue
             if plan_field == "selected_bit_indices":
                 plan_value = _selected_indices_key(plan_row)

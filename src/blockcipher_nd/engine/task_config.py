@@ -15,6 +15,13 @@ def resolve_task_keys(task: dict[str, Any]) -> tuple[int | None, int | None]:
     return train_key, validation_key
 
 
+def resolve_final_test_key(task: dict[str, Any]) -> int | None:
+    final_test_key = task.get("final_test_key")
+    if final_test_key is not None:
+        return final_test_key
+    return resolve_task_keys(task)[1]
+
+
 def validation_samples_per_class(task: dict[str, Any]) -> int:
     total = task.get("validation_samples_total")
     if total is not None:
@@ -32,7 +39,9 @@ def build_dataset_config(
     split: str = "train",
 ) -> DifferentialDatasetConfig:
     active_nibbles = task.get("integral_active_nibbles", ())
-    if split == "validation" and task.get("validation_integral_active_nibbles"):
+    if (
+        split == "validation" or split.startswith("final_test_")
+    ) and task.get("validation_integral_active_nibbles"):
         active_nibbles = task["validation_integral_active_nibbles"]
     return DifferentialDatasetConfig(
         cipher=cipher,

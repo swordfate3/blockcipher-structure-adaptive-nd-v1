@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from blockcipher_nd.cli.analyze_trail_position_scores import main as analyze_trail_position_scores_main
 from blockcipher_nd.cli.analyze_reliability_residual_buckets import (
@@ -61,6 +62,7 @@ from blockcipher_nd.cli.summarize_compressed_span_route import (
 from blockcipher_nd.cli.summarize_stacked_route import main as summarize_stacked_route_main
 from blockcipher_nd.cli.summarize_stacked_selection import main as summarize_stacked_selection_main
 from blockcipher_nd.cli.export_checkpoint_scores import main as export_scores_main
+from blockcipher_nd.cli.export_checkpoint_scores import score_split_config
 from blockcipher_nd.cli.export_bit_sensitivity_features import (
     main as export_bit_sensitivity_features_main,
 )
@@ -89,8 +91,8 @@ def write_tiny_speck_plan(path: Path) -> Path:
     path.write_text(
         "\n".join(
             [
-                "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,samples_per_class,pairs_per_sample,feature_encoding,negative_mode,train_key,validation_key,key_rotation_interval,sample_structure,integral_active_nibble,difference_profile,difference_member,loss,learning_rate,optimizer,weight_decay,lr_scheduler,max_learning_rate,checkpoint_metric,restore_best_checkpoint,early_stopping_patience,early_stopping_min_delta,model_options,evidence,literature",
-                'SPECK32/64,ARX,Tiny-Speck-MLP,mlp,tiny,0,1,1,0,8,1,ciphertext_pair_bits,encrypted_random_plaintexts,0x1918111009080100,0x1918111009080101,0,independent_pairs,0,,,bce,0.001,adam,0,none,,val_auc,true,0,0.0,"{}","SMOKE only for neural ensemble checkpoint scoring","test"',
+                "cipher,structure,network,model_key,family,architecture_rank,score,rounds,seed,samples_per_class,pairs_per_sample,feature_encoding,negative_mode,train_key,validation_key,final_test_key,final_test_samples_total,final_test_repeats,key_rotation_interval,sample_structure,integral_active_nibble,difference_profile,difference_member,loss,learning_rate,optimizer,weight_decay,lr_scheduler,max_learning_rate,checkpoint_metric,restore_best_checkpoint,early_stopping_patience,early_stopping_min_delta,model_options,evidence,literature",
+                'SPECK32/64,ARX,Tiny-Speck-MLP,mlp,tiny,0,1,1,0,8,1,ciphertext_pair_bits,encrypted_random_plaintexts,0x1918111009080100,0x1918111009080101,0x1918111009080102,12,2,0,independent_pairs,0,,,bce,0.001,adam,0,none,,val_auc,true,0,0.0,"{}","SMOKE only for neural ensemble checkpoint scoring","test"',
             ]
         )
         + "\n",
@@ -331,6 +333,118 @@ def test_export_checkpoint_scores_train_split_aligns_with_feature_export(tmp_pat
     assert metadata["score_split"] == "train"
     assert metadata["score_samples_per_class"] == 4
     assert metadata["train_samples_per_class"] == 4
+
+
+def test_export_checkpoint_scores_final_test_split_uses_fresh_key_seed_and_rows(
+    tmp_path,
+) -> None:
+    checkpoint = tmp_path / "model.pt"
+    train_output = tmp_path / "train.jsonl"
+    train_main(
+        [
+            "--ciphers",
+            "speck32",
+            "--models",
+            "mlp",
+            "--rounds",
+            "1",
+            "--seeds",
+            "0",
+            "--samples-per-class",
+            "8",
+            "--pairs-per-sample",
+            "1",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "4",
+            "--hidden-bits",
+            "8",
+            "--device",
+            "cpu",
+            "--checkpoint-output",
+            str(checkpoint),
+            "--output",
+            str(train_output),
+        ]
+    )
+    plan = write_tiny_speck_plan(tmp_path / "eval_plan.csv")
+    artifact_dir = tmp_path / "final_test_2_artifact"
+    cache_root = tmp_path / "dataset_cache"
+
+    status = export_scores_main(
+        [
+            "--checkpoint",
+            str(checkpoint),
+            "--eval-plan",
+            str(plan),
+            "--eval-row-index",
+            "0",
+            "--split",
+            "final_test_2",
+            "--model-key",
+            "mlp",
+            "--hidden-bits",
+            "8",
+            "--batch-size",
+            "4",
+            "--device",
+            "cpu",
+            "--dataset-cache-root",
+            str(cache_root),
+            "--dataset-cache-chunk-size",
+            "4",
+            "--output-dir",
+            str(artifact_dir),
+        ]
+    )
+
+    assert status == 0
+    assert np.load(artifact_dir / "labels.npy").shape == (12,)
+    metadata = json.loads(
+        (artifact_dir / "models.json").read_text(encoding="utf-8")
+    )
+    assert metadata["score_split"] == "final_test_2"
+    assert metadata["score_seed"] == 50_001
+    assert metadata["score_key"] == 0x1918111009080102
+    assert metadata["final_test_key"] == 0x1918111009080102
+    assert metadata["final_test_repeat"] == 2
+    assert metadata["final_test_samples_per_class"] == 6
+    assert metadata["score_samples_total"] == 12
+    assert list(cache_root.glob("**/final_test_2/**/features.npy"))
+
+
+def test_final_test_score_split_falls_back_to_validation_key() -> None:
+    task = {
+        "seed": 7,
+        "samples_per_class": 8,
+        "validation_key": 123,
+        "final_test_samples_total": 20,
+        "final_test_repeats": 2,
+    }
+
+    split = score_split_config(task, "final_test_1", None)
+
+    assert split == {
+        "cipher_key": 123,
+        "seed": 50_007,
+        "samples_per_class": 10,
+        "samples_total": 20,
+        "repeat": 1,
+    }
+
+
+def test_final_test_score_split_rejects_repeat_beyond_plan() -> None:
+    task = {
+        "seed": 7,
+        "samples_per_class": 8,
+        "validation_key": 123,
+        "final_test_samples_total": 20,
+        "final_test_repeats": 2,
+    }
+
+    with pytest.raises(ValueError, match="exceeds configured repeats=2"):
+        score_split_config(task, "final_test_3", None)
 
 
 def test_export_checkpoint_scores_can_use_dataset_cache_and_progress(tmp_path):

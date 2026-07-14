@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from blockcipher_nd.engine.task_config import resolve_final_test_key, resolve_task_keys
+
 
 def reset_progress(path: str | None) -> None:
     if not path:
@@ -53,6 +55,7 @@ def progress_callback(
 
 
 def task_progress_payload(task: dict[str, Any]) -> dict[str, Any]:
+    train_key, validation_key = resolve_task_keys(task)
     return {
         "cipher_key": task["cipher_key"],
         "model": task["model_key"],
@@ -64,6 +67,9 @@ def task_progress_payload(task: dict[str, Any]) -> dict[str, Any]:
         "validation_samples_total": task.get("validation_samples_total"),
         "final_test_samples_total": task.get("final_test_samples_total"),
         "final_test_repeats": task.get("final_test_repeats", 0),
+        "train_key": train_key,
+        "validation_key": validation_key,
+        "final_test_key": resolve_final_test_key(task),
         "dataset_label_mode": task.get("dataset_label_mode", "balanced_per_class"),
         "pairs_per_sample": task["pairs_per_sample"],
         "feature_encoding": task["feature_encoding"],

@@ -11,6 +11,8 @@ from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.engine.matrix_runner import parse_args
+from blockcipher_nd.engine.datasets import dataset_key_for_split
+from blockcipher_nd.engine.progress import task_progress_payload
 from blockcipher_nd.engine.task_runner import run_task
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.next_action_readiness import launch_artifacts
@@ -71,6 +73,7 @@ def write_public_plan(
         "validation_samples_total": validation_samples_total,
         "final_test_samples_total": final_test_samples_total,
         "final_test_repeats": final_test_repeats,
+        "final_test_key": "0x22222222222222222222",
     }
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(row))
@@ -170,7 +173,34 @@ def test_cli_and_plan_parse_public_code_split_sizes(tmp_path) -> None:
     assert task["validation_samples_total"] == 10
     assert task["final_test_samples_total"] == 12
     assert task["final_test_repeats"] == 5
+    assert task["final_test_key"] == 0x22222222222222222222
     assert task["dataset_label_mode"] == "random_labels_total"
+
+
+def test_final_test_key_fallback_is_consistent_in_progress_and_cache(tmp_path) -> None:
+    plan = tmp_path / "public.csv"
+    write_public_plan(plan)
+    task = build_tasks(parse_args(["--plan", str(plan)]))[0]
+    task["train_key"] = 101
+    task["validation_key"] = 202
+    task["final_test_key"] = None
+
+    progress = task_progress_payload(task)
+
+    assert progress["train_key"] == 101
+    assert progress["validation_key"] == 202
+    assert progress["final_test_key"] == 202
+    assert dataset_key_for_split(task, "train") == 101
+    assert dataset_key_for_split(task, "validation") == 202
+    assert dataset_key_for_split(task, "final_test_1") == 202
+
+    task["validation_key"] = None
+
+    progress = task_progress_payload(task)
+    assert progress["validation_key"] == 101
+    assert progress["final_test_key"] == 101
+    assert dataset_key_for_split(task, "validation") == 101
+    assert dataset_key_for_split(task, "final_test_1") == 101
 
 
 def test_public_code_task_uses_exact_splits_and_five_fresh_tests(tmp_path) -> None:
@@ -208,10 +238,16 @@ def test_public_code_task_uses_exact_splits_and_five_fresh_tests(tmp_path) -> No
     assert stage["train_rows"] == 12
     assert stage["validation_rows"] == 10
     final = row["final_evaluation"]
+    assert row["validation_key"] != row["final_test_key"]
+    assert row["final_test_key"] == 0x22222222222222222222
+    assert final["final_test_key"] == 0x22222222222222222222
     assert final["repeats"] == 5
     assert final["samples_total_per_repeat"] == 12
     assert final["seeds"] == [50_000, 50_001, 50_002, 50_003, 50_004]
     assert [item["samples_total"] for item in final["metrics_by_repeat"]] == [12] * 5
+    assert {
+        item["final_test_key"] for item in final["metrics_by_repeat"]
+    } == {0x22222222222222222222}
     accuracies = [item["accuracy"] for item in final["metrics_by_repeat"]]
     aucs = [item["auc"] for item in final["metrics_by_repeat"]]
     assert final["accuracy_mean"] == pytest.approx(float(np.mean(accuracies)))

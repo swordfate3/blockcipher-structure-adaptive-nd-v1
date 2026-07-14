@@ -17173,6 +17173,96 @@ def test_result_plan_alignment_is_planning_api(tmp_path):
     assert report["result_rows"] == 1
 
 
+@pytest.mark.parametrize(
+    ("result_final_test_key", "expected_status"),
+    [
+        ("0x1918111009080102", "pass"),
+        ("0x1918111009080103", "fail"),
+        (None, "fail"),
+    ],
+)
+def test_result_plan_alignment_enforces_explicit_final_test_key(
+    tmp_path,
+    result_final_test_key,
+    expected_status,
+):
+    plan_path = tmp_path / "plan.csv"
+    result_path = tmp_path / "results.jsonl"
+    plan_row = {
+        "cipher": "speck32",
+        "model": "mlp",
+        "rounds": "1",
+        "seed": "0",
+        "samples_per_class": "8",
+        "pairs_per_sample": "1",
+        "final_test_key": "0x1918111009080102",
+    }
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
+        writer.writeheader()
+        writer.writerow(plan_row)
+    result_row = {
+        "cipher": "speck32",
+        "model": "mlp",
+        "rounds": 1,
+        "seed": 0,
+        "samples_per_class": 8,
+        "pairs_per_sample": 1,
+    }
+    if result_final_test_key is not None:
+        result_row["final_test_key"] = result_final_test_key
+    result_path.write_text(
+        json.dumps(result_row, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == expected_status
+    if expected_status == "fail":
+        assert report["field_mismatches"][0]["plan_field"] == "final_test_key"
+
+
+def test_result_plan_alignment_allows_implicit_final_test_key_fallback(tmp_path):
+    plan_path = tmp_path / "plan.csv"
+    result_path = tmp_path / "results.jsonl"
+    plan_row = {
+        "cipher": "speck32",
+        "model": "mlp",
+        "rounds": "1",
+        "seed": "0",
+        "samples_per_class": "8",
+        "pairs_per_sample": "1",
+        "validation_key": "0x1918111009080101",
+        "final_test_key": "",
+    }
+    with plan_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(plan_row))
+        writer.writeheader()
+        writer.writerow(plan_row)
+    result_path.write_text(
+        json.dumps(
+            {
+                "cipher": "speck32",
+                "model": "mlp",
+                "rounds": 1,
+                "seed": 0,
+                "samples_per_class": 8,
+                "pairs_per_sample": 1,
+                "validation_key": "0x1918111009080101",
+                "final_test_key": "0x1918111009080101",
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = validate_result_plan_alignment(plan_path, result_path)
+
+    assert report["status"] == "pass"
+
+
 def test_result_plan_alignment_distinguishes_selected_bit_projection_rows(tmp_path):
     plan_path = tmp_path / "projection_plan.csv"
     result_path = tmp_path / "projection_results.jsonl"

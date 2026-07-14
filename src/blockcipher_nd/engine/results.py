@@ -5,6 +5,7 @@ from typing import Any
 
 from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.engine.pretraining import pretraining_metadata
+from blockcipher_nd.engine.task_config import resolve_final_test_key
 from blockcipher_nd.training import TrainingResult
 
 
@@ -26,6 +27,7 @@ def build_task_result(
     final_evaluation: dict[str, Any] | None,
     initialization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    final_test_key = resolve_final_test_key(task)
     result = {
         "cipher": train_cipher.name,
         "cipher_key": task["cipher_key"],
@@ -41,6 +43,7 @@ def build_task_result(
         "seed": task["seed"],
         "train_key": train_key,
         "validation_key": validation_key,
+        "final_test_key": final_test_key,
         "input_difference": task["input_difference"],
         "difference_profile": task.get("difference_profile", ""),
         "difference_member": task.get("difference_member", ""),

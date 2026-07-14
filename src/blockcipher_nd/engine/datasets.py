@@ -10,6 +10,7 @@ from blockcipher_nd.data.cache import make_chunked_differential_dataset
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.engine.progress import progress_callback
+from blockcipher_nd.engine.task_config import resolve_final_test_key, resolve_task_keys
 
 
 def make_task_dataset(
@@ -64,9 +65,18 @@ def dataset_cache_dir(
         "integral_active_nibble": config.integral_active_nibble,
         "integral_active_nibbles": config.integral_active_nibbles,
         "selected_bit_indices": config.selected_bit_indices,
-        "key": task.get("train_key") if split in {"train", "pretrain_train"} else task.get("validation_key"),
+        "key": dataset_key_for_split(task, split),
     }
     digest = hashlib.sha256(
         json.dumps(cache_identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()[:16]
     return root / task["cipher_key"] / f"r{task['rounds']}" / split / f"seed-{config.seed}_{digest}"
+
+
+def dataset_key_for_split(task: dict[str, Any], split: str) -> Any:
+    train_key, validation_key = resolve_task_keys(task)
+    if split in {"train", "pretrain_train"}:
+        return train_key
+    if split.startswith("final_test_"):
+        return resolve_final_test_key(task)
+    return validation_key

@@ -18,7 +18,12 @@ from blockcipher_nd.engine.pretraining import (
 )
 from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
 from blockcipher_nd.engine.results import build_task_result
-from blockcipher_nd.engine.task_config import build_dataset_config, build_training_config, resolve_task_keys
+from blockcipher_nd.engine.task_config import (
+    build_dataset_config,
+    build_training_config,
+    resolve_final_test_key,
+    resolve_task_keys,
+)
 from blockcipher_nd.engine.task_config import validation_samples_per_class
 from blockcipher_nd.registry.cipher_factory import build_cipher
 from blockcipher_nd.training import OptimizerSession, train_binary_classifier
@@ -33,8 +38,14 @@ def run_task(
     total: int | None = None,
 ) -> dict[str, Any]:
     train_key, validation_key = resolve_task_keys(task)
+    final_test_key = resolve_final_test_key(task)
     train_cipher = build_cipher(task["cipher_key"], task["rounds"], key=train_key)
     validation_cipher = build_cipher(task["cipher_key"], task["rounds"], key=validation_key)
+    final_test_cipher = build_cipher(
+        task["cipher_key"],
+        task["rounds"],
+        key=final_test_key,
+    )
     model_key = select_model_key(
         task["model_key"],
         train_cipher.structure,
@@ -136,7 +147,8 @@ def run_task(
         model,
         task,
         args,
-        cipher=validation_cipher,
+        cipher=final_test_cipher,
+        final_test_key=final_test_key,
         progress_path=progress_path,
         index=index,
         total=total,
