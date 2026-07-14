@@ -4,6 +4,10 @@ from torch import nn
 
 from blockcipher_nd.models.structure import (
     GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellE5FromPresentOffDistinguisher,
+    GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher,
+    GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
+    GiftCrossSpnTypedCellE5ScratchDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
@@ -15,6 +19,9 @@ from blockcipher_nd.models.structure import (
     PresentInceptionMCNDMatrixDistinguisher,
     PresentInceptionMCNDPairStackMatrixDistinguisher,
     PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellE5OffDistinguisher,
+    PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+    PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
     PresentCrossSpnTypedCellShuffledDistinguisher,
     PresentCrossSpnTypedCellTrueDistinguisher,
     PresentMatrixTrailHybridPairSetDistinguisher,
@@ -88,6 +95,13 @@ def build_spn_model(
         "gift_cross_spn_typed_cell_true_from_present_true": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
         "gift_cross_spn_typed_cell_true_from_present_shuffled": GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher,
         "gift_cross_spn_typed_cell_shuffled_from_present_true": GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
+        "present_cross_spn_typed_cell_e5_off": PresentCrossSpnTypedCellE5OffDistinguisher,
+        "present_cross_spn_typed_cell_e5_true_shuffled": PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+        "present_cross_spn_typed_cell_e5_shuffled_placebo": PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+        "gift_cross_spn_typed_cell_e5_scratch": GiftCrossSpnTypedCellE5ScratchDistinguisher,
+        "gift_cross_spn_typed_cell_e5_from_present_off": GiftCrossSpnTypedCellE5FromPresentOffDistinguisher,
+        "gift_cross_spn_typed_cell_e5_from_present_true_shuffled": GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
+        "gift_cross_spn_typed_cell_e5_from_present_shuffled_placebo": GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher,
     }
     if name in cross_spn_typed_models:
         return cross_spn_typed_models[name](
@@ -101,6 +115,9 @@ def build_spn_model(
             norm=str(options.get("norm", "layernorm")),
             pooling=str(options.get("pooling", "attention_mean_max")),
             dropout=float(options.get("dropout", 0.0)),
+            topology_auxiliary_scale=float(
+                options.get("topology_auxiliary_scale", 0.1)
+            ),
         )
     if name == "gift_cross_spn_aligned_token_mixer_raw_anchor":
         return GiftAlignedTokenMixerRawInputDistinguisher(

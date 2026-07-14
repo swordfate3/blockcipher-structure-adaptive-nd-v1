@@ -9,10 +9,14 @@ from blockcipher_nd.features.encoders.bitwise import int_to_bits
 from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     CrossSpnTypedCellPairSetDistinguisher,
     GiftAlignedTokenMixerRawInputDistinguisher,
+    GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
     GiftCrossSpnTypedCellTrueDistinguisher,
     PresentCrossSpnTypedCellRawDistinguisher,
+    PresentCrossSpnTypedCellE5OffDistinguisher,
+    PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+    PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
     PresentCrossSpnTypedCellShuffledDistinguisher,
     PresentCrossSpnTypedCellTrueDistinguisher,
     cipher_inverse_permutation_indices,
@@ -135,6 +139,109 @@ def test_cross_spn_typed_variants_have_identical_trainable_state() -> None:
         assert model.state_dict().keys() == reference.keys()
         for key, value in reference.items():
             torch.testing.assert_close(value, model.state_dict()[key], rtol=0, atol=0)
+
+
+E5_SOURCE_VARIANTS: tuple[type[nn.Module], ...] = (
+    PresentCrossSpnTypedCellE5OffDistinguisher,
+    PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+    PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+)
+
+
+def test_cross_spn_e5_source_variants_have_identical_state() -> None:
+    models: list[nn.Module] = []
+    for model_class in E5_SOURCE_VARIANTS:
+        torch.manual_seed(20260715)
+        models.append(model_class(input_bits=4 * 128, base_channels=8))
+
+    reference = models[0].state_dict()
+    assert any(key.startswith("topology_auxiliary_head") for key in reference)
+    for model in models[1:]:
+        assert model.state_dict().keys() == reference.keys()
+        for key, value in reference.items():
+            torch.testing.assert_close(value, model.state_dict()[key], rtol=0, atol=0)
+
+
+def test_cross_spn_e5_does_not_change_legacy_state_dict() -> None:
+    legacy = PresentCrossSpnTypedCellTrueDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+
+    assert not any(
+        key.startswith("topology_auxiliary_head") for key in legacy.state_dict()
+    )
+
+
+@pytest.mark.parametrize(
+    "model_class",
+    (
+        PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+        PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+    ),
+)
+def test_cross_spn_e5_auxiliary_loss_is_finite_and_backpropagates(
+    model_class: type[nn.Module],
+) -> None:
+    model = model_class(input_bits=4 * 128, base_channels=8)
+    model.train()
+
+    logits = model(_raw_features())
+    assert model.last_auxiliary_loss is not None
+    loss = logits.mean() + model.last_auxiliary_loss
+    loss.backward()
+
+    assert torch.isfinite(model.last_auxiliary_loss)
+    gradients = [
+        parameter.grad
+        for parameter in model.topology_auxiliary_head.parameters()
+        if parameter.grad is not None
+    ]
+    assert gradients
+    assert all(torch.isfinite(gradient).all() for gradient in gradients)
+
+
+def test_cross_spn_e5_off_disables_loss_but_preserves_transfer_state() -> None:
+    source = PresentCrossSpnTypedCellE5OffDistinguisher(
+        input_bits=16 * 128,
+        base_channels=8,
+    )
+    target = GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+
+    source(_raw_features(pairs_per_sample=16))
+    assert source.last_auxiliary_loss is None
+    target.load_state_dict(source.state_dict(), strict=True)
+
+
+def test_cross_spn_e5_counterfactual_mappings_are_distinct() -> None:
+    candidate = PresentCrossSpnTypedCellE5TrueShuffledDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+    placebo = PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+
+    torch.testing.assert_close(
+        candidate.topology_auxiliary_positive_indices,
+        candidate.mapping_indices,
+    )
+    assert not torch.equal(
+        candidate.topology_auxiliary_positive_indices,
+        candidate.topology_auxiliary_negative_indices,
+    )
+    assert not torch.equal(
+        placebo.topology_auxiliary_positive_indices,
+        placebo.topology_auxiliary_negative_indices,
+    )
+    assert not torch.equal(
+        placebo.topology_auxiliary_positive_indices,
+        candidate.topology_auxiliary_positive_indices,
+    )
 
 
 @pytest.mark.parametrize("model_class", TYPED_VARIANTS)
@@ -267,6 +374,22 @@ REGISTERED_MODELS: tuple[tuple[str, type[nn.Module]], ...] = (
     (
         "gift_cross_spn_aligned_token_mixer_raw_anchor",
         GiftAlignedTokenMixerRawInputDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_e5_off",
+        PresentCrossSpnTypedCellE5OffDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_e5_true_shuffled",
+        PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_e5_shuffled_placebo",
+        PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
+    ),
+    (
+        "gift_cross_spn_typed_cell_e5_from_present_true_shuffled",
+        GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
     ),
 )
 

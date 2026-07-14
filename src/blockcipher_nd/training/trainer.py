@@ -84,6 +84,7 @@ def train_binary_classifier(
         )
         model.train()
         total_loss = 0.0
+        total_auxiliary_loss = 0.0
         total_seen = 0
         for step, (features, labels) in enumerate(train_loader, start=1):
             features = features.to(selected_device)
@@ -94,6 +95,7 @@ def train_binary_classifier(
             auxiliary_loss = getattr(model, "last_auxiliary_loss", None)
             if auxiliary_loss is not None:
                 loss = loss + auxiliary_loss
+                total_auxiliary_loss += float(auxiliary_loss.detach().cpu()) * len(labels)
             loss.backward()
             optimizer.step()
             if scheduler is not None and not isinstance(scheduler, OfficialEpochCyclicLR):
@@ -111,6 +113,7 @@ def train_binary_classifier(
                     train_rows_seen=total_seen,
                     train_rows=int(len(train_dataset.labels)),
                     train_loss=total_loss / max(1, total_seen),
+                    train_auxiliary_loss=total_auxiliary_loss / max(1, total_seen),
                     learning_rate=current_learning_rate(optimizer),
                 )
 
@@ -141,6 +144,7 @@ def train_binary_classifier(
             {
                 "epoch": float(epoch),
                 "train_loss": total_loss / max(1, total_seen),
+                "train_auxiliary_loss": total_auxiliary_loss / max(1, total_seen),
                 "train_eval_loss": train_metrics["loss"],
                 "train_accuracy": train_metrics["accuracy"],
                 "train_auc": train_metrics["auc"],
@@ -180,6 +184,7 @@ def train_binary_classifier(
             epoch=epoch,
             epochs=config.epochs,
             train_loss=history[-1]["train_loss"],
+            train_auxiliary_loss=history[-1]["train_auxiliary_loss"],
             train_eval_loss=history[-1]["train_eval_loss"],
             train_accuracy=history[-1]["train_accuracy"],
             train_auc=history[-1]["train_auc"],

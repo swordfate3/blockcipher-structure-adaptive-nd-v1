@@ -60,6 +60,21 @@ class CountingLinear(torch.nn.Module):
         return self.linear(features)
 
 
+class AuxiliaryLinear(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = torch.nn.Linear(2, 1)
+        self.auxiliary_weight = torch.nn.Parameter(torch.tensor(0.5))
+        self.last_auxiliary_loss: torch.Tensor | None = None
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if self.training:
+            self.last_auxiliary_loss = self.auxiliary_weight.square()
+        else:
+            self.last_auxiliary_loss = None
+        return self.linear(features)
+
+
 def test_evaluate_binary_classifier_uses_one_forward_pass_per_batch() -> None:
     dataset = DifferentialDataset(
         features=np.array(
@@ -116,6 +131,27 @@ def test_train_binary_classifier_writes_selected_checkpoint(tmp_path) -> None:
     assert set(payload) == {"state_dict", "history", "final_metrics", "metadata"}
     assert payload["metadata"]["checkpoint_output"] == str(checkpoint_path)
     assert set(payload["state_dict"]) == set(model.state_dict())
+    assert result.history[0]["train_auxiliary_loss"] == 0.0
+
+
+def test_train_binary_classifier_records_auxiliary_loss() -> None:
+    dataset = DifferentialDataset(
+        features=np.array(
+            [[0, 0], [0, 1], [1, 0], [1, 1]],
+            dtype=np.uint8,
+        ),
+        labels=np.array([0, 0, 1, 1], dtype=np.uint8),
+        metadata={"feature_encoding": "test"},
+    )
+
+    result = train_binary_classifier(
+        AuxiliaryLinear(),
+        dataset,
+        dataset,
+        TrainingConfig(epochs=1, batch_size=2, device="cpu"),
+    )
+
+    assert result.history[0]["train_auxiliary_loss"] > 0.0
 
 
 def test_train_binary_classifier_reuses_optimizer_session_state() -> None:
