@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from itertools import combinations
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -9,6 +8,7 @@ import pytest
 from matplotlib import pyplot as plt
 
 from blockcipher_nd.evaluation.plots import (
+    _plot_rc_params,
     plot_jsonl_training_curves,
     render_metric_panel,
 )
@@ -54,11 +54,10 @@ def _visible_svg_text(root: ElementTree.Element) -> str:
         ("loss", (0.690, 0.691, 0.692, 0.693)),
     ],
 )
-def test_metric_panel_endpoint_label_bboxes_do_not_overlap(
+def test_metric_panel_uses_tight_range_and_distinct_validation_markers(
     metric: str,
     values: tuple[float, ...],
 ) -> None:
-    fig, axis = plt.subplots(figsize=(8.4, 2.4))
     series = [
         {
             "metric": metric,
@@ -74,15 +73,19 @@ def test_metric_panel_endpoint_label_bboxes_do_not_overlap(
         )
     ]
 
-    render_metric_panel(axis, metric, series)
-    fig.canvas.draw()
+    with plt.rc_context(_plot_rc_params()):
+        fig, axis = plt.subplots(figsize=(8.4, 2.4))
+        render_metric_panel(axis, metric, series)
+        fig.canvas.draw()
 
-    renderer = fig.canvas.get_renderer()
-    labels = [text for text in axis.texts if text.get_text() in VISIBLE_LABELS]
-    assert len(labels) == 4
-    boxes = [label.get_window_extent(renderer) for label in labels]
-    for left, right in combinations(boxes, 2):
-        assert not left.overlaps(right)
+        lower, upper = axis.get_ylim()
+        assert upper - lower < (0.15 if metric in {"accuracy", "auc"} else 0.02)
+        validation_lines = [
+            line for line in axis.lines if line.get_label().endswith("validation")
+        ]
+        assert len(validation_lines) == 4
+        assert len({line.get_marker() for line in validation_lines}) == 4
+        assert not [text for text in axis.texts if text.get_text() in VISIBLE_LABELS]
     plt.close(fig)
 
 
@@ -201,3 +204,104 @@ def test_r0_like_endpoint_labels_keep_svg_aspect_ratio_bounded(tmp_path: Path) -
     visible_text = _visible_svg_text(root)
     for label in VISIBLE_LABELS:
         assert label in visible_text
+
+
+def test_cross_spn_transfer_plot_explains_title_protocol_and_all_roles_in_chinese(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "curves.svg"
+    models = (
+        "gift_cross_spn_aligned_token_mixer_raw_anchor",
+        "gift_cross_spn_typed_cell_true",
+        "gift_cross_spn_typed_cell_true_from_present_true",
+        "gift_cross_spn_typed_cell_true_from_present_shuffled",
+        "gift_cross_spn_typed_cell_shuffled_from_present_true",
+    )
+    visible_labels = (
+        "GIFT 原始输入基线",
+        "GIFT 结构网络（从零训练）",
+        "PRESENT 真结构 → GIFT 真结构",
+        "PRESENT 打乱结构 → GIFT 真结构",
+        "PRESENT 真结构 → GIFT 打乱结构",
+    )
+    rows = []
+    for index, model in enumerate(models):
+        rows.append(
+            {
+                "cipher": "GIFT-64",
+                "model": model,
+                "selected_model": model,
+                "rounds": 6,
+                "seed": 1,
+                "samples_per_class": 8192,
+                "pairs_per_sample": 4,
+                "validation": {"samples_per_class": 4096},
+                "history": [
+                    {
+                        "epoch": epoch,
+                        "train_accuracy": 0.52 + index * 0.005 + epoch * 0.001,
+                        "train_auc": 0.53 + index * 0.006 + epoch * 0.001,
+                        "train_eval_loss": 0.69 - index * 0.001,
+                        "val_accuracy": 0.51 + index * 0.004 + epoch * 0.001,
+                        "val_auc": 0.52 + index * 0.005 + epoch * 0.001,
+                        "val_loss": 0.692 - index * 0.001,
+                    }
+                    for epoch in (1, 2)
+                ],
+            }
+        )
+    results.write_text(
+        "".join(
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows
+        ),
+        encoding="utf-8",
+    )
+
+    plot_jsonl_training_curves(
+        results,
+        output,
+        title="i1_gift64_cross_spn_typed_transfer_r2_seed1",
+    )
+
+    root = ElementTree.parse(output).getroot()
+    visible_text = _visible_svg_text(root)
+    assert "创新1：PRESENT → GIFT-64 跨 SPN 结构迁移" in visible_text
+    assert "E4-R2，目标 seed 1" in visible_text
+    assert "训练 8,192/类" in visible_text
+    assert "验证 4,096/类" in visible_text
+    assert "每样本 4 对" in visible_text
+    assert "验证集结果汇总" in visible_text
+    for label in visible_labels:
+        assert label in visible_text
+    assert "i1 gift64 cross spn typed transfer r2 seed1" not in visible_text
+    for model in models:
+        assert model not in visible_text
+
+
+def test_plot_without_history_uses_generic_subtitle(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "curves.svg"
+    results.write_text(
+        json.dumps(
+            {
+                "cipher": "PRESENT-80",
+                "model": "present_nibble_invp_only_spn_only",
+                "rounds": 8,
+                "seed": 0,
+                "metrics": {"auc": 0.51},
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = plot_jsonl_training_curves(results, output, title="history_free_result")
+
+    assert report["rows"] == 1
+    assert report["series"] == 0
+    root = ElementTree.parse(output).getroot()
+    visible_text = _visible_svg_text(root)
+    assert "0 个模型/对照" in visible_text
+    assert "验证集重点显示" in visible_text

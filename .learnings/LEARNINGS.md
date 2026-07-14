@@ -4596,7 +4596,7 @@ Promote this rule to `AGENTS.md` under Remote Windows GPU Rules / Verification. 
 
 **Logged**: 2026-06-24T16:03:00+08:00
 **Priority**: high
-**Status**: pending
+**Status**: resolved
 **Area**: docs
 
 ### Summary
@@ -4612,18 +4612,36 @@ Correct plotting expectations:
 - Light grid lines should align with tick labels so the reader can estimate values.
 - Axis labels such as `epoch`, `accuracy`, `auc`, and `loss` should be visible.
 - Train and validation curves should remain visually distinct and annotated.
+- Titles, subtitles, legends, and panel headings must have dedicated layout
+  space and must not overlap.
+- Near-chance or tightly grouped curves need a data-driven y-axis range and
+  distinct per-model markers instead of a fixed broad scale that hides small
+  but decision-relevant differences.
+- Experiment run IDs and internal model registry names must be translated into
+  human-readable titles and role labels. Summary tables must include every
+  compared row rather than silently truncating the matrix.
 
 ### Suggested Action
-Keep visualization tests that assert generated SVG contains readable axis labels and intermediate tick values. When adding new plots, inspect the rendered artifact or its SVG text for axes, tick labels, and grid lines before calling the visualization complete.
+Keep visualization tests that assert generated SVG contains readable axes,
+human-readable titles and role labels, complete comparison rows, tight metric
+ranges, and distinct model markers. Render the SVG to pixels and inspect it for
+text collisions before calling the visualization complete.
 
 ### Metadata
 - Source: user_feedback
 - Related Files: src/blockcipher_nd/evaluation/plots.py, scripts/plot-results, tests/test_project_structure.py
 - Tags: visualization, svg, training-curves, docs, result-reporting
 - Pattern-Key: visualization.training_curves.require_readable_axes
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-06-24
-- Last-Seen: 2026-06-24
+- Last-Seen: 2026-07-14
+
+### Resolution
+- **Resolved**: 2026-07-14T16:58:00+08:00
+- **Commit/PR**: included with the training-curve readability change
+- **Notes**: Added Chinese E4 transfer titles/roles, data-driven metric ranges,
+  per-model markers, non-overlapping header layout, and complete five-row
+  summaries; regenerated current seed0/seed1 plots after visual inspection.
 
 ---
 
