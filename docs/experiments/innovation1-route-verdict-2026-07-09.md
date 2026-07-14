@@ -5,7 +5,7 @@
 status = E4-R5 completed / independent source-seed robustness not confirmed
 decision = stop E4 formal scale; retain shared typed representation and conditional E4-R4 result
 claim_scope = four GIFT target seeds across two un-crossed PRESENT source-seed strata at 65536/class; medium diagnostic, not formal or paper-scale
-next_adjudication = no-new-training E4 result synthesis; no E4-R6 activation
+next_adjudication = rank transfer-aware source objectives; no E4-R6 or new training before evidence review
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -448,6 +448,40 @@ end-to-end compute evidence.
 The next action is a local, no-new-training E4-R4/R5 synthesis using the four
 verified paired gate artifacts. Do not run E4-R6, `262144/class`,
 `1000000/class`, extra target epochs/seeds, or a rescue architecture sweep.
+
+## 2026-07-15 E4 Final Reproducible Synthesis
+
+The no-new-training synthesis now passes from the four verified paired gates
+and emits JSONL, CSV, JSON gate/summary, and a Chinese confidence-interval SVG.
+
+```text
+decision                         = e4_typed_topology_attribution_robust_scratch_efficiency_conditional
+scratch complete gate            = 2/4 cells
+source-topology complete gate    = 4/4 cells
+target-topology complete gate    = 4/4 cells
+minimum source-topology margin   = +0.009724145755
+minimum target-topology margin   = +0.069083069451
+pooled CI                        = intentionally not reported
+```
+
+The source-seed0 and source-seed1 descriptive scratch means are respectively
+`+0.008948423667` and `+0.002004237380`. Source seed1 nevertheless has the
+higher PRESENT source-validation AUC (`0.755739` versus `0.743810`). Two
+source checkpoints cannot establish a relationship, but the direction is
+enough to define the next research question: source-only validation AUC may be
+misaligned with cross-cipher adaptation utility.
+
+Before any E5 implementation, rank transfer-aware source objectives and
+checkpoint-selection criteria against the frozen E4 same-budget anchor and
+current literature. No new training is authorized by this descriptive
+mismatch alone.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e4_final_synthesis_20260715/
+docs/experiments/innovation1-cross-spn-e4-final-synthesis.md
+```
 
 ## Current Interpretation
 

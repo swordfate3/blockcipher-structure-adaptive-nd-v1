@@ -202,3 +202,51 @@ def test_result_index_supports_r4_readiness_chinese_name(tmp_path: Path) -> None
     assert len(entries) == 1
     assert "E4-R4" in entries[0]["display_name"]
     assert "目标 seed 2" in entries[0]["display_name"]
+
+
+def test_result_index_supports_e4_final_synthesis_chinese_labels(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_cross_spn_e4_final_synthesis_20260715"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "e4_typed_topology_attribution_robust_"
+                "scratch_efficiency_conditional"
+            ),
+        },
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新1 E4：跨 SPN 类型拓扑四个目标 cell 最终证据综合"
+    )
+    assert entries[0]["decision_display"] == (
+        "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
+    )
+
+
+def test_result_index_supports_e4_r5_remote_chinese_labels(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_gift64_cross_spn_source_seed_r5_65536_joint_seed4_seed5"
+    run_root = outputs / "remote_results" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {"status": "pass", "decision": "e4_r5_source_seed_signal_unstable"},
+    )
+
+    entries = build_result_index(outputs, roots=("remote_results",), limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 E4-R5：独立 PRESENT source-seed 稳健性联合裁决"
+    )
+    assert entries[0]["decision_display"] == (
+        "独立 source-seed 稳健性未确认，停止正式扩展"
+    )

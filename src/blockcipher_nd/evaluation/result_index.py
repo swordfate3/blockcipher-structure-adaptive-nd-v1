@@ -34,6 +34,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
+        "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
+    ),
+    "e4_r5_source_seed_signal_unstable": "独立 source-seed 稳健性未确认，停止正式扩展",
+    "e4_r5_target_adaptation_signal_unstable": "单 seed 目标适配信号不稳定",
+    "e4_r5_source_seed_gate_pass": "独立 PRESENT source checkpoint 门控通过",
     "e4_r4_two_seed_target_adaptation_efficiency_confirmed": "双 seed 目标适配效率已确认",
     "e4_r4_two_seed_target_adaptation_signal_unstable": "双 seed 目标适配信号不稳定",
     "e4_r4_two_seed_target_adaptation_rejected": "双 seed 目标适配假设未通过",
@@ -266,6 +272,30 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == "i1_cross_spn_e4_final_synthesis_20260715":
+        return "创新1 E4：跨 SPN 类型拓扑四个目标 cell 最终证据综合"
+    if run_id == "i1_gift64_cross_spn_source_seed_r5_65536_joint_seed4_seed5":
+        return "创新1 E4-R5：独立 PRESENT source-seed 稳健性联合裁决"
+    r5_medium = re.fullmatch(
+        r"i1_gift64_cross_spn_source_seed_r5_65536_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r5_medium:
+        return (
+            "创新1 E4-R5：独立 source checkpoint 的一轮 GIFT-64 适配，"
+            f"目标 seed {r5_medium.group('seed')}"
+        )
+    r5_readiness = re.fullmatch(
+        r"i1_gift64_cross_spn_source_seed_r5_readiness_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r5_readiness:
+        return (
+            "创新1 E4-R5：独立 source checkpoint 目标适配就绪检查，"
+            f"目标 seed {r5_readiness.group('seed')}"
+        )
+    if run_id == "i1_present_cross_spn_source_seed_r5_8192_seed1":
+        return "创新1 E4-R5 Phase A：独立 PRESENT source seed1 门控"
     if run_id == (
         "i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3"
     ):
