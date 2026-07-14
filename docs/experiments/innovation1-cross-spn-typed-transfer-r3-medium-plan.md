@@ -1,6 +1,6 @@
 # Innovation 1 E4-R3 Cross-SPN Typed Transfer Medium Diagnostic Plan
 
-**Status:** two-seed readiness passed; local medium attempt aborted; remote GPU preparation required
+**Status:** remote GPU medium execution running from pushed commit `9aa31dd`
 **Date:** 2026-07-14
 **Experiment label:** E4-R3
 
@@ -246,6 +246,28 @@ Readiness authorizes the two planned remote `65536/class` runs after the plan,
 configs, gate, CLI, source checkpoint package, remote assets, and tests are
 committed and pushed. It does not authorize metric interpretation,
 `262144/class`, or formal claims.
+
+## 2026-07-15 Remote Launch Record
+
+The two medium diagnostics are running from exact pushed commit
+`9aa31ddc8f48312ecf3e1d9ea3973a0c4b00542a`:
+
+```text
+seed0 task = I1_E4_R3_GIFT64_SEED0_GPU0, remote A6000 GPU0
+seed1 task = I1_E4_R3_GIFT64_SEED1_GPU1, remote A6000 GPU1
+task mode  = Windows Task Scheduler, cmd.exe /c, SYSTEM, highest privileges
+source     = detached clean run-owned clone at exact pushed commit
+startup    = both exact started markers present
+readiness  = both readiness reports present and passing
+progress   = both disk-backed cache progress JSONLs advancing
+monitor    = local tmux session i1_e4_r3_remote_monitor
+```
+
+Current evidence state is `running`, not completed remotely, retrieved, or
+plan-aligned result evidence. No AUC row or gate exists yet, so this launch is
+not added to the completed-result index. The tmux monitor will sparsely sync
+logs, retrieve both verified result archives and the joint gate, and refresh
+the index after completion. The main thread must not SSH-poll the run.
 
 ## 2026-07-14 Local Medium Attempt Correction
 
