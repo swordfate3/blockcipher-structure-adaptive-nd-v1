@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 DEFAULT_RESULT_ROOTS = (
     "local_smoke",
+    "smoke",
     "remote_results",
     "remote_results_incomplete",
 )

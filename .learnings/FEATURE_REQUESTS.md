@@ -24,10 +24,11 @@ Scan only result-bearing roots, rank run directories by gate, validation, then
 result completion timestamps, and generate both a human-readable Markdown
 index and a structured JSON index. Include Chinese experiment descriptions,
 status/decision summaries, and direct artifact links. Refresh the index after
-every meaningful completed result or re-adjudication.
+every completed result-producing run or re-adjudication, whether local or
+retrieved from a remote worker.
 
 ### Metadata
-- Frequency: first_time
+- Frequency: recurring
 - Related Features: training curve SVG, result gates, result retrieval
 - Pattern-Key: outputs.navigation.recency_sorted_result_index
 
@@ -36,6 +37,8 @@ every meaningful completed result or re-adjudication.
 - **Commit/PR**: included with the recent-result index implementation
 - **Notes**: Added `scripts/index-results`, Markdown/JSON outputs, deterministic
   completion-evidence sorting, E4 Chinese labels, tests, and project workflow
-  rules.
+  rules. The scope was subsequently strengthened to require same-turn refresh
+  for every completed local or retrieved remote result, including smoke,
+  readiness, fallback-incomplete retrieval, and re-adjudication outputs.
 
 ---

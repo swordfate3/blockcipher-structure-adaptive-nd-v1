@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from blockcipher_nd.evaluation.result_index import (
+    DEFAULT_RESULT_ROOTS,
     build_result_index,
     write_result_index,
 )
@@ -20,6 +21,15 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 def _set_mtime(path: Path, timestamp: float) -> None:
     os.utime(path, (timestamp, timestamp))
+
+
+def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
+    assert DEFAULT_RESULT_ROOTS == (
+        "local_smoke",
+        "smoke",
+        "remote_results",
+        "remote_results_incomplete",
+    )
 
 
 def test_result_index_orders_by_decision_artifact_not_regenerated_plot(

@@ -1,3 +1,47 @@
+## [LRN-20260714-002] correction
+
+**Logged**: 2026-07-14T20:44:17+08:00
+**Priority**: high
+**Status**: promoted
+**Area**: config
+**Promoted**: AGENTS.md
+
+### Summary
+Refresh the numbered recent-result index for every completed local or retrieved
+remote result, not only experiments judged meaningful.
+
+### Details
+The first index workflow required refresh after a "meaningful" result. The user
+clarified that this qualifier is too narrow: every completed result-producing
+run must update the index, regardless of whether it is local or remote. The
+rule covers local smoke, readiness, diagnostic, and formal outputs; verified
+remote retrieval; fallback-retrieved incomplete remote outputs; and completed
+re-adjudication gates.
+
+Remote work that is only planned or still running must not appear as a
+completed result. It enters the index after its result, validation, or gate
+artifact has been retrieved locally. Cache directories and launch-only assets
+are not result entries. The refresh must happen in the same turn before the
+result is reported; a failed refresh is incomplete result handling.
+
+### Suggested Action
+After writing or retrieving any result-bearing artifact, run
+`scripts/index-results`, verify that the new entry and links exist, and include
+its numbered entry in the final report. Keep original evidence directory names
+unchanged.
+
+### Metadata
+- Source: user_feedback
+- Related Files: AGENTS.md, skills/blockcipher-auto-research/SKILL.md, scripts/index-results, outputs/00_RECENT_RESULTS.md
+- Tags: outputs, result-index, local-results, remote-results, workflow
+- See Also: FEAT-20260714-001
+- Pattern-Key: outputs.index.refresh_every_completed_result
+- Recurrence-Count: 1
+- First-Seen: 2026-07-14
+- Last-Seen: 2026-07-14
+
+---
+
 ## [LRN-20260714-001] correction
 
 **Logged**: 2026-07-14T16:30:53+08:00

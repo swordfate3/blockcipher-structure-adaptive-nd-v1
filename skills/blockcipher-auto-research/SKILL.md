@@ -47,7 +47,7 @@ Follow this loop for local research work:
 5. Generate or update plot artifacts from JSONL when useful.
 6. Compare against the baseline using the same metric and evidence scale.
 7. Keep the change only if it improves the metric, simplifies code without harming quality, or fixes correctness/reproducibility.
-8. Refresh the recency-sorted result index with `scripts/index-results` after a meaningful result or re-adjudication. `outputs/00_RECENT_RESULTS.md` keeps `001` as the newest completed result without renaming evidence directories.
+8. Refresh the recency-sorted result index with `scripts/index-results` after every completed result-producing run: local smoke/readiness/diagnostic/formal, retrieved verified remote, fallback-retrieved incomplete remote, or re-adjudication. Do this in the same turn before reporting; planned/running remote work is not indexed as completed until local result evidence exists. `outputs/00_RECENT_RESULTS.md` keeps `001` as the newest completed result without renaming evidence directories.
 9. Run relevant tests.
 10. Commit scoped source/doc/test/config changes and push when a remote exists.
 
@@ -145,7 +145,7 @@ For each experiment or research change, report:
 - Hypothesis tested.
 - Exact command or plan used.
 - Output artifact paths.
-- The numbered entry in `outputs/00_RECENT_RESULTS.md` for a meaningful completed result.
+- The numbered entry in `outputs/00_RECENT_RESULTS.md` for every completed result-producing run.
 - Baseline metric versus new metric.
 - Status: keep, discard, crash, or diagnostic only.
 - Verification command and result.
