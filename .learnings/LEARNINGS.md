@@ -42,6 +42,64 @@ unchanged.
 
 ---
 
+## [LRN-20260715-001] best_practice
+
+**Logged**: 2026-07-15T04:02:10+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+Formal-scale neural-distinguisher evidence should use an independent final-test
+key and aligned per-sample fresh-evaluation scores, not checkpoint-selection
+validation metrics alone.
+
+### Details
+The conditional E4-R6 cross-SPN protocol audit found that the repository's
+generic `final_evaluation` path can generate fresh datasets and aggregate
+metrics, but it constructs them with the validation cipher/key. The frozen
+score exporter also supports only train and validation splits. Therefore a
+`1000000/class` training run could still accidentally use validation-key
+metrics as its final evidence and could not compute paired candidate/control
+confidence intervals on truly fresh evaluation rows.
+
+For a formal-scale controlled comparison, keep three roles separate:
+
+```text
+training split     = optimizer updates
+validation split   = checkpoint selection and restoration
+final-test splits  = final claim metrics only, with a distinct key and fresh seeds
+```
+
+All candidate and control models must reuse the exact same final-test cache
+within each repeat and export labels, probabilities, logits, and sample IDs.
+Validation AUC remains useful for checkpoint selection but is not sufficient
+as the final formal metric.
+
+### Suggested Action
+Before activating any formal-scale Innovation 1 plan that makes a paired
+candidate/control claim:
+
+1. Add and validate an explicit `final_test_key` distinct from train and
+   validation keys.
+2. Export aligned per-sample scores for every frozen final-test repeat.
+3. Apply the predeclared paired gate to fresh-test scores.
+4. Record validation and final-test metrics separately in results and reports.
+5. Treat missing key separation or missing fresh scores as an invalid protocol,
+   not as a negative research result.
+
+### Metadata
+- Source: experiment_protocol_audit
+- Related Files: docs/experiments/innovation1-cross-spn-formal-multisource-multitarget-r6-conditional-plan.md, src/blockcipher_nd/engine/final_evaluation.py, src/blockcipher_nd/cli/export_checkpoint_scores.py
+- Tags: innovation1, formal-evidence, final-evaluation, key-separation, paired-scores
+- See Also: LRN-20260710-009
+- Pattern-Key: innovation1.formal_evidence.independent_fresh_evaluation
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+---
+
 ## [LRN-20260714-001] correction
 
 **Logged**: 2026-07-14T16:30:53+08:00
