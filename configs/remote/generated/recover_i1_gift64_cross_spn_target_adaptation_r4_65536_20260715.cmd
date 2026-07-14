@@ -32,6 +32,7 @@ if not exist "%ARCHIVE_DIR%\validation.json" exit /b 1
 if not exist "%ARCHIVE_DIR%\paired_scores.csv.gz" exit /b 1
 if not exist "%ARCHIVE_DIR%\scores" exit /b 1
 
+echo * -text>"%ARCHIVE_DIR%\.gitattributes"
 echo %RECOVERY_COMMIT% > "%ARCHIVE_DIR%\recovery_commit.txt"
 "%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%ARCHIVE_DIR%'); files=sorted(p for p in root.rglob('*') if p.is_file() and not p.name == 'SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" > "%LOG_DIR%\%RUN_ID%_recovery_hash_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_recovery_hash_stderr.txt" || exit /b 1
 
@@ -72,6 +73,7 @@ copy /Y "%SEED2_ROOT%\results\gate.json" "%JOINT_ARCHIVE%\seed2_gate.json" > nul
 copy /Y "%SEED3_ROOT%\results\gate.json" "%JOINT_ARCHIVE%\seed3_gate.json" > nul || exit /b 1
 copy /Y "%SEED2_ROOT%\results\results.jsonl" "%JOINT_ARCHIVE%\seed2_results.jsonl" > nul || exit /b 1
 copy /Y "%SEED3_ROOT%\results\results.jsonl" "%JOINT_ARCHIVE%\seed3_results.jsonl" > nul || exit /b 1
+echo * -text>"%JOINT_ARCHIVE%\.gitattributes"
 echo %RECOVERY_COMMIT% > "%JOINT_ARCHIVE%\recovery_commit.txt"
 "%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%JOINT_ARCHIVE%'); files=sorted(p for p in root.rglob('*') if p.is_file() and not p.name == 'SHA256SUMS'); lines=[]; [(lines.append(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix())) for p in files]; (root/'SHA256SUMS').write_text('\n'.join(lines)+'\n', encoding='utf-8')" > "%JOINT_ROOT%\joint_recovery_hash_stdout.txt" 2> "%JOINT_ROOT%\joint_recovery_hash_stderr.txt" || exit /b 1
 

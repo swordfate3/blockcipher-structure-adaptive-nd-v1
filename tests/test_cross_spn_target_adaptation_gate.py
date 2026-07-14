@@ -266,6 +266,10 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
         generated
         / "recover_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd"
     ).read_text(encoding="utf-8")
+    hash_repair = (
+        generated
+        / "repair_i1_gift64_cross_spn_target_adaptation_r4_65536_hashes_20260715.cmd"
+    ).read_text(encoding="utf-8")
 
     assert "--epochs 1" in run_script
     assert run_script.count("call :export_score") == 4
@@ -280,6 +284,7 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     )
     assert "plot_deferred_to_local" in run_script
     assert "SHA256SUMS" in run_script
+    assert run_script.count('echo * -text>"%') == 2
     assert "p.name!='SHA256SUMS'" not in run_script
     assert "not p.name == 'SHA256SUMS'" in run_script
     assert 'echo expected_rows=4 >> "%LOG_DIR%' in run_script
@@ -319,6 +324,12 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     assert "recovery_commit.txt" in recovery
     assert 'git checkout results/%SEED2_ID%' in recovery
     assert "cmd.exe /k" not in recovery.lower()
+
+    assert "DisableDelayedExpansion" in hash_repair
+    assert 'echo * -text>"%ARCHIVE_DIR%\\.gitattributes"' in hash_repair
+    assert "hash_repair_commit.txt" in hash_repair
+    assert "git add ." not in hash_repair
+    assert "cmd.exe /k" not in hash_repair.lower()
 
 
 def test_paired_stratified_bootstrap_is_deterministic_and_directional() -> None:
