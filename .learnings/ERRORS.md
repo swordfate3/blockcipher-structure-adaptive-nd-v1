@@ -50,6 +50,61 @@ layout repair.
 
 ---
 
+## [ERR-20260715-001] e4_r4_windows_postprocess_recovery
+
+**Logged**: 2026-07-15T03:10:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+E4-R4 training and paired gates passed on both remote GPUs, but Windows batch
+postprocessing failed while hashing archives; two subsequent monitor-state
+assumptions also blocked verified retrieval.
+
+### Error
+```text
+seed2/seed3 gate.json = status pass
+seed2/seed3 failed.marker = failed
+SHA256SUMS = missing
+
+root cause 1: EnableDelayedExpansion consumed `!` in Python `!=`
+root cause 2: scp retained stale local failed.marker after remote recovery
+root cause 3: joint-branch checkout hid the seed2 archive from worktree retrieval
+root cause 4: Windows Git EOL conversion changed two files after archive hashing
+```
+
+### Context
+- Run IDs: `i1_gift64_cross_spn_target_adaptation_r4_65536_seed2` and
+  `i1_gift64_cross_spn_target_adaptation_r4_65536_seed3`.
+- Training, validation, checkpoint writing, score export, and 10,000-replicate
+  gates were complete before the first failure.
+- Recovery reused those exact artifacts and did not retrain.
+
+### Suggested Fix
+Avoid `!` inside batch files with delayed expansion, make pushed/done markers
+override stale failure markers, restore the seed result branch after publishing
+a joint branch, and place `* -text` in result archives before hashing/staging.
+Test these invariants in the remote-asset regression test.
+
+### Metadata
+- Reproducible: yes
+- Related Files: configs/remote/generated/run_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, configs/remote/generated/monitor_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.sh, configs/remote/generated/recover_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, tests/test_cross_spn_target_adaptation_gate.py
+- See Also: ERR-20260714-001, ERR-20260714-002
+- Pattern-Key: remote.windows_result_archive_state_machine
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+- **Resolved**: 2026-07-15T03:10:00+08:00
+- **Commit/PR**: 455db9b, b71d290, 5d1e129, 5b72484
+- **Notes**: Recovered and pushed all three result branches without retraining,
+  completed local strengthened re-adjudication, and verified every final
+  `SHA256SUMS` entry.
+
+---
+
 ## [ERR-20260711-001] full_pytest_python310_fstring_collection
 
 **Logged**: 2026-07-11T20:44:40+08:00

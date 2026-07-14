@@ -1,0 +1,232 @@
+# Innovation 1 E4-R5 Cross-SPN Source-Seed Robustness Plan
+
+**Status:** Phase A readiness passed; source-seed1 `8192/class` local gate authorized
+**Date:** 2026-07-15
+**Experiment label:** E4-R5
+
+## Research Question
+
+Does the E4-R4 one-epoch PRESENT-to-GIFT target-adaptation advantage survive
+when the PRESENT true/shuffled source checkpoints are independently retrained
+with source seed1, rather than reusing the source-seed0 checkpoints that were
+used to discover and confirm E4-R2 through E4-R4?
+
+E4-R4 varied two fresh GIFT target seeds and passed paired confidence gates,
+but its source checkpoint remained fixed. E4-R5 audits that exact remaining
+variance axis before any paper-scale target run.
+
+## Same-Budget Anchor And One Variable
+
+The same-budget anchor is E4-R4:
+
+```text
+source               = PRESENT-80 r7, 8192/class, 10 epochs
+target               = GIFT-64 r6, 65536/class, exactly 1 epoch
+target validation    = 32768/class
+pairs/sample         = 4 independent GIFT pairs
+target roles         = scratch, true->true, shuffled->true, true->shuffled
+paired bootstrap     = 10000 label-stratified replicates
+```
+
+The hypothesis variable is:
+
+```text
+PRESENT source checkpoint seed = 0 -> 1
+```
+
+Fresh GIFT target seeds 4 and 5 are independent replication units, not a
+second method change. Architecture, source/target sample budgets, mappings,
+strict negative definition, keys, optimizer, target epochs, validation cache,
+checkpoint selection, score pairing, and thresholds remain frozen.
+
+## Phase A: Independent PRESENT Source Gate
+
+Train the exact E4-R1 four-role PRESENT matrix with seed1:
+
+| Role | Model | Purpose |
+| --- | --- | --- |
+| anchor | `present_nibble_invp_only_spn_only` | strongest same-input PRESENT reference |
+| typed true | `present_cross_spn_typed_cell_true` | new transferable source candidate |
+| typed shuffled | `present_cross_spn_typed_cell_shuffled` | source-topology control |
+| typed raw | `present_cross_spn_typed_cell_raw` | typed-capacity/mapping control |
+
+Frozen source protocol:
+
+```text
+cipher/rounds                   = PRESENT-80 r7
+source seed                     = 1
+train                           = 8192/class = 16384 total rows
+validation                      = 4096/class = 8192 total rows
+sample structure                = Zhang/Wang Case2 official MCND
+pairs/sample                    = 16
+effective key policy            = per_pair_random
+negative                        = encrypted random plaintexts
+epochs                          = 10
+batch size                      = 256
+hidden bits                     = 32
+loss/optimizer                  = MSE / Adam
+learning rate / weight decay    = 0.0001 / 0.00001
+checkpoint                      = restored best validation AUC
+device                          = local CPU
+disk cache                      = required and parameter matched
+```
+
+The source gate is identical to E4-R1:
+
+```text
+typed_true AUC                  >= 0.65
+typed_true - anchor             >= -0.010
+typed_true - typed_shuffled     >= +0.003
+typed_true - typed_raw          >= +0.003
+```
+
+Phase A must also verify four equal-capacity typed state geometries where
+applicable, complete histories, restored checkpoints, strict key metadata,
+one generated then reused train/validation cache, and exact plan alignment.
+
+If Phase A fails any mandatory margin, E4-R5 stops. Do not compensate by
+changing source epochs, architecture, source data, or checkpoint metric.
+
+## Phase B: Fresh-Target Source-Seed Gate
+
+Phase B is authorized only after Phase A passes and its true/shuffled source
+checkpoint paths and SHA-256 values are frozen in a new initialization
+manifest.
+
+Run one target seed per remote A6000:
+
+```text
+cipher/rounds                   = GIFT-64 r6
+target seeds                    = 4, 5
+train                           = 65536/class = 131072 total rows/seed
+validation                      = 32768/class = 65536 total rows/seed
+pairs/sample                    = 4 independent pairs
+input                           = 512 raw ciphertext-pair bits
+negative                        = encrypted random plaintexts
+train/validation keys           = fixed split keys, unchanged from E4-R4
+target epochs                   = exactly 1
+batch size                      = 256
+hidden bits                     = 32
+loss/optimizer                  = MSE / Adam
+learning rate / weight decay    = 0.0001 / 0.00001
+checkpoint                      = restored best validation AUC
+devices                         = seed4 GPU0, seed5 GPU1
+disk cache                      = required under each G:\lxy run root
+```
+
+Four target roles per seed:
+
+| Role | Initialization | Target mapping |
+| --- | --- | --- |
+| typed scratch | scratch | true GIFT |
+| true to true | PRESENT seed1 true | true GIFT |
+| shuffled to true | PRESENT seed1 shuffled | true GIFT |
+| true to shuffled | PRESENT seed1 true | shuffled GIFT |
+
+Every role must export one score per row on the exact shared validation cache.
+The gate verifies identical sample IDs and labels, checkpoint SHA-256 metadata,
+score AUC equality with restored-best results, and one common target cache.
+
+## Frozen Target Gate
+
+For each target seed, run the same deterministic 10,000-replicate paired,
+label-stratified bootstrap with bootstrap seed `20260715`.
+
+Both target seeds must satisfy:
+
+```text
+true_to_true - typed_scratch    >= +0.004
+true_to_true - shuffled_to_true >= +0.005
+true_to_true - true_to_shuffled >= +0.003
+paired 95% CI lower bound for true_to_true - typed_scratch > 0
+```
+
+The source- and target-topology paired intervals must also be reported.
+
+Decision table:
+
+```text
+Phase A passes and target seeds 4/5 both pass:
+  decision    = e4_r5_source_seed_robustness_confirmed
+  next_action = freeze_1000000_class_multisource_multitarget_protocol
+
+Phase A passes but exactly one target seed passes:
+  decision    = e4_r5_source_seed_signal_unstable
+  next_action = stop_formal_scale_retain_conditional_e4_r4_result
+
+Phase A fails or either source/target control reverses on both target seeds:
+  decision    = e4_r5_source_seed_dependence_detected
+  next_action = stop_cross_spn_transfer_scale_keep_typed_representation_only
+
+Any provenance, cache, score-pairing, or result-alignment error:
+  decision    = invalid_e4_r5_protocol
+  next_action = repair_protocol_without_interpreting_auc
+```
+
+## Execution Path
+
+1. Create a seed1 PRESENT source CSV by changing only the E4-R1 seed and
+   evidence labels.
+2. Run a `64/class`, one-epoch source readiness check, then the local
+   `8192/class`, 10-epoch Phase A gate.
+3. If Phase A passes, freeze source checkpoint hashes in a seed1 initialization
+   manifest and add strict-load/provenance tests.
+4. Create target seed4/seed5 plans plus `64/class`, one-epoch CPU readiness
+   runs. Readiness AUC is not interpreted.
+5. Commit and push all source, config, test, plan, runner, and monitor changes.
+6. Launch target seed4 on remote GPU0 and seed5 on GPU1 from that exact pushed
+   commit using `cmd.exe /c` and run-owned clean sources under `G:\lxy`.
+7. Use the local tmux monitor for retrieval, local strengthened gates, plots,
+   and numbered result indexing.
+8. Update this plan, the E4 design, and the route verdict before reporting the
+   completed result.
+
+## Advance And Stop Boundaries
+
+- Local Phase A is an `8192/class` diagnostic, not formal training.
+- Phase B is a `65536/class` remote medium diagnostic, not formal evidence.
+- Do not run Phase B if the independent source gate fails.
+- Do not run local `65536/class` target training.
+- Do not run `262144/class`; it does not resolve source-seed variance or meet
+  the project's formal scale.
+- Do not launch `1000000/class` until E4-R5 is fully retrieved, locally
+  re-adjudicated, and both source and target seed gates pass.
+- Do not add epochs, source ensembles, multi-task objectives, cipher IDs, DDT,
+  trails, S-box tables, or new negative definitions.
+- Do not claim lower total compute; source pretraining cost remains separate.
+- Do not reopen E1, H2, flattened DBitNet, or stopped deterministic trail
+  branches.
+
+## Claim Boundary
+
+A positive E4-R5 result would show that conditional one-epoch cross-SPN target
+adaptation survives one independent PRESENT source retraining and two fresh
+GIFT targets. It would justify a paper-scale protocol design, not itself prove
+formal evidence, SOTA, breakthrough, persistent final-AUC superiority, or
+end-to-end compute savings.
+
+## 2026-07-15 Phase A Readiness Record
+
+The seed1 source-only gate, CLI, two frozen CSV matrices, and regression tests
+are implemented. The `64/class`, one-epoch CPU readiness run completed:
+
+```text
+result rows           = 4
+history rows          = 4
+restored checkpoints  = 4
+typed parameters      = 187426 for true/shuffled/raw
+cache events          = 2 create + 6 parameter-matched reuse
+effective key policy  = per_pair_random
+plan validation       = pass, errors=[]
+source readiness gate = pass / implementation_ready
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_present_cross_spn_source_seed_r5_readiness_seed1/
+```
+
+Readiness metrics are not interpreted. This authorizes only the frozen local
+Phase A `8192/class`, 10-epoch source-seed1 run after the implementation and
+plan are committed and pushed. It does not authorize remote Phase B yet.

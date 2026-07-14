@@ -2,10 +2,10 @@
 
 ## Status
 
-status = E4-R3 completed / valid remote medium evidence, final transfer margin unstable
-decision = stop mechanical scale; retain shared typed representation and test post-hoc early-adaptation hypothesis on new seeds
-claim_scope = two-seed 65536/class remote medium diagnostic, fallback-retrieved and locally re-adjudicated; not formal or paper-scale
-next_adjudication = E4-R4 exactly-one-epoch target-adaptation confirmation on target seeds 2 and 3
+status = E4-R4 completed / two-seed conditional target-adaptation efficiency confirmed
+decision = retain shared typed representation; audit independent source-checkpoint seed before formal scale
+claim_scope = two-seed 65536/class remote medium diagnostic with paired confidence intervals; not formal or paper-scale
+next_adjudication = E4-R5 independent PRESENT source-seed robustness under the frozen one-epoch GIFT target gate
 
 This document changes Innovation 1 from exploration mode to adjudication mode.
 It does not claim a PRESENT breakthrough, does not reinterpret diagnostics as
@@ -104,6 +104,7 @@ The verdict uses the project SPN/PRESENT evidence rules:
 | E4-R1 shared typed cell operator | PRESENT true `0.743810` vs anchor `0.745933`, shuffled `0.575898`, raw `0.586375`; GIFT true `0.551969` vs anchor `0.506567`, shuffled `0.500088`, raw `0.501148` | promote local E4-R2 transfer gate | source is anchor-noninferior and clears both attribution controls; GIFT scratch independently clears all controls |
 | E4-R2 explicit typed checkpoint transfer | two target seeds at `8192/class`: true-to-true `0.569627`/`0.575072`; all anchor, scratch, source-shuffled, and target-shuffled margins pass | two-seed local transfer signal confirmed | correct PRESENT source topology and correct GIFT target topology contribute beyond scratch and shuffled controls; medium diagnostic plan only |
 | E4-R3 remote typed checkpoint transfer | two target seeds at `65536/class`: typed true beats old anchor by `+0.009316`/`+0.008430` and target-shuffled by `+0.081234`/`+0.076678`, but final true-scratch is only `+0.000248`/`+0.001840` | final transfer margin unstable; stop mechanical scale | shared typed representation and target topology remain positive medium evidence, but a persistent 10-epoch transfer advantage is not confirmed |
+| E4-R4 one-epoch target adaptation | new target seeds 2/3 at `65536/class`: true-scratch `+0.011248`/`+0.006649`, paired CI lower `+0.008470`/`+0.003761`; source and target topology margins also pass | two-seed conditional target-adaptation efficiency confirmed | predeclared early-adaptation hypothesis passes; source seed remains fixed, so audit source-checkpoint variance before formal scale |
 
 ## 2026-07-13 H2 And E3-R1 Completion Update
 
@@ -353,6 +354,53 @@ validation-score export, stratified paired-bootstrap confidence intervals,
 and separate accounting of source-pretraining cost. Do not run
 `262144/class`, formal scale, DDT/trail/E1/H2, or another 10-epoch transfer
 repeat.
+
+## 2026-07-15 E4-R4 Remote Medium Completion Update
+
+E4-R4 completed on new GIFT-64 r6 target seeds 2 and 3 from exact source
+commit `a3e0e9d`. Each seed used `65536/class` training, `32768/class`
+validation, four independent ciphertext pairs/sample, strict encrypted-random-
+plaintext negatives, exactly one target epoch, four equal-capacity typed roles,
+and one shared disk-backed validation cache.
+
+```text
+seed2 true AUC                    = 0.579260635655
+seed2 true - scratch             = +0.011247730348
+seed2 paired 95% CI              = [+0.008470458165, +0.014073612948]
+seed2 true - source shuffled     = +0.012428269722
+seed2 true - target shuffled     = +0.077061415184
+
+seed3 true AUC                    = 0.583190341946
+seed3 true - scratch             = +0.006649116985
+seed3 paired 95% CI              = [+0.003760749672, +0.009526491968]
+seed3 true - source shuffled     = +0.009724145755
+seed3 true - target shuffled     = +0.081193963531
+```
+
+Both seeds pass the predeclared `+0.004` scratch, `+0.005` source-topology,
+and `+0.003` target-topology margins, and both scratch CI lower bounds are
+strictly positive. Remote gates and independent local 10,000-replicate paired
+bootstrap gates agree with empty error lists:
+
+```text
+status      = pass
+decision    = e4_r4_two_seed_target_adaptation_efficiency_confirmed
+next_action = audit independent source seed, then design formal protocol
+```
+
+This is the first repeatable controlled Innovation 1 result that attributes
+faster cross-SPN target adaptation to both correct source and target topology.
+It remains conditional on one frozen PRESENT source seed and one target epoch.
+It is not persistent 10-epoch superiority, lower end-to-end compute, formal
+evidence, SOTA, or a breakthrough.
+
+The next bounded experiment is E4-R5: regenerate PRESENT true/shuffled source
+checkpoints on an independent source seed under the same source budget, then
+run the same four-role one-epoch GIFT gate on fresh target seeds at
+`65536/class`. Only if both new target seeds pass the E4-R4 margins and paired
+CIs may the project freeze a `1000000/class` multi-source/multi-target plan.
+Do not run an intermediate `262144/class`, add epochs, or reopen DDT/trail/E1/
+H2/flattened DBitNet.
 
 ## Current Interpretation
 

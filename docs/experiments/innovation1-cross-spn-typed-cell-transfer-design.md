@@ -1,7 +1,7 @@
 # Innovation 1 Cross-SPN Typed Cell Transfer Design
 
-**Status:** E4-R3 completed; shared typed representation remains positive, final transfer margin unstable, E4-R4 early-adaptation confirmation planned
-**Date:** 2026-07-13
+**Status:** E4-R4 completed; two-seed conditional target-adaptation efficiency confirmed at remote medium scale
+**Date:** 2026-07-15
 **Experiment label:** E4
 
 ## Decision Summary
@@ -845,3 +845,47 @@ margins of `+0.009936478920` and `+0.010892953258`. This is a post-hoc early-
 adaptation observation, not confirmation evidence. E4-R4 must use new target
 seeds 2/3, exactly one target epoch, paired score export, and predeclared
 bootstrap gates before any adaptation-efficiency claim.
+
+## 2026-07-15 E4-R4 Two-Seed Target-Adaptation Confirmation
+
+E4-R4 converted the E4-R3 post-hoc epoch-1 observation into a predeclared
+confirmation. It changed target seeds from 0/1 to 2/3 and target training from
+10 epochs to exactly one; architecture, source checkpoints, data definition,
+strict negatives, four pairs/sample, target sample budget, validation budget,
+optimizer, and topology controls stayed frozen.
+
+```text
+target train      = 65536/class = 131072 total rows per seed
+target validation = 32768/class = 65536 total rows per seed
+target epochs     = exactly 1
+source cost       = PRESENT-80 r7 seed0, 8192/class, 10 epochs, separate
+bootstrap         = 10000 paired label-stratified replicates
+```
+
+| Seed | True AUC | True - scratch | Scratch CI | True - source-shuffled | True - target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | `0.579260635655` | `+0.011247730348` | `[+0.008470458165, +0.014073612948]` | `+0.012428269722` | `+0.077061415184` |
+| 3 | `0.583190341946` | `+0.006649116985` | `[+0.003760749672, +0.009526491968]` | `+0.009724145755` | `+0.081193963531` |
+
+Both independent target seeds pass every frozen margin and have a strictly
+positive paired-CI lower bound versus typed scratch. Correct source topology
+and correct target topology are therefore both attributable at exactly one
+target epoch:
+
+```text
+decision = e4_r4_two_seed_target_adaptation_efficiency_confirmed
+```
+
+The strongest justified Innovation 1 statement is now narrower and clearer:
+the cipher-spec-generated shared typed-cell operator supports repeatable
+PRESENT-to-GIFT conditional early adaptation under same-input topology
+controls. E4-R3 still rules out claiming a persistent advantage after 10
+target epochs at this budget.
+
+The next uncertainty is source-checkpoint variance. E4-R4 uses two independent
+target seeds but one frozen PRESENT source seed. E4-R5 must therefore change
+only the PRESENT source checkpoint seed, regenerate true and shuffled source
+checkpoints under the same source protocol, and repeat the frozen one-epoch
+target gate on fresh target seeds. This audit, not `262144/class` mechanical
+scaling, determines whether a `1000000/class` multi-source/multi-target plan is
+scientifically justified.

@@ -1,6 +1,6 @@
 # Innovation 1 E4-R4 Cross-SPN Target-Adaptation Confirmation Plan
 
-**Status:** remote seed2/seed3 medium diagnostics running from pushed commit `a3e0e9d`
+**Status:** completed; two-seed remote medium target-adaptation efficiency confirmed
 **Date:** 2026-07-15
 **Experiment label:** E4-R4
 
@@ -257,3 +257,81 @@ retrieves result archives and checkpoints, regenerates deferred plots locally,
 and refreshes the numbered result index. Current status is `running`, not
 completed remotely, retrieved, plan-aligned final evidence, or a positive
 adaptation result. The main thread must not SSH-poll this run.
+
+## 2026-07-15 Remote Completion And Adjudication
+
+Both target seeds completed from exact source commit
+`a3e0e9decb8c41d13ccfb4ef534ecace0da84cac`. Each run produced four
+restored-best checkpoints, four aligned 65,536-row score artifacts, a
+compressed paired-score table, a passing result validation, and a deterministic
+10,000-replicate paired label-stratified bootstrap gate.
+
+| Target seed | Scratch AUC | True to true AUC | Shuffled to true AUC | True to shuffled AUC |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | `0.568012905307` | `0.579260635655` | `0.566832365934` | `0.502199220471` |
+| 3 | `0.576541224960` | `0.583190341946` | `0.573466196191` | `0.501996378414` |
+
+| Target seed | True - scratch | Paired 95% CI | True - source-shuffled | True - target-shuffled |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | `+0.011247730348` | `[+0.008470458165, +0.014073612948]` | `+0.012428269722` | `+0.077061415184` |
+| 3 | `+0.006649116985` | `[+0.003760749672, +0.009526491968]` | `+0.009724145755` | `+0.081193963531` |
+
+Both seeds exceed every frozen point-margin threshold, and both core paired-CI
+lower bounds are strictly positive. The local strengthened re-adjudication
+reproduced the remote AUCs, margins, confidence intervals, and decisions:
+
+```text
+status      = pass
+decision    = e4_r4_two_seed_target_adaptation_efficiency_confirmed
+next_action = design_formal_multiseed_adaptation_protocol
+```
+
+The remote runner initially failed after the valid gates while generating
+archive hashes because Windows delayed expansion consumed `!` in a Python
+`!=` expression. Recovery commit `455db9b` published the already complete
+artifacts without retraining; follow-up commits `b71d290`, `5d1e129`, and
+`5b72484` hardened stale-marker handling, result-worktree restoration, and
+cross-platform archive byte preservation. Final verified result branches are:
+
+```text
+seed2 = results/i1_gift64_cross_spn_target_adaptation_r4_65536_seed2
+        768cf0eb9ee363946ae508726a61097298e54f9b
+seed3 = results/i1_gift64_cross_spn_target_adaptation_r4_65536_seed3
+        bb290ea5a26e996419df96254b5ab3cba81a69f9
+joint = results/i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3
+        83092201eacee028d09e6e1f85e2f56083409871
+```
+
+Local artifacts:
+
+```text
+outputs/remote_results/i1_gift64_cross_spn_target_adaptation_r4_65536_seed2/
+outputs/remote_results/i1_gift64_cross_spn_target_adaptation_r4_65536_seed3/
+outputs/remote_results/i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3/
+result index 001/002/003 = joint/seed3/seed2
+```
+
+Both per-seed result files contain four plan-aligned rows, both remote and
+local validations pass with empty error lists, every per-seed archive contains
+four checkpoints and four score directories, and all three `SHA256SUMS`
+manifests verify completely.
+
+### Claim Boundary And Next Action
+
+This confirms a repeatable, attributable **conditional target-adaptation
+efficiency** effect: given the frozen PRESENT source checkpoints, correct
+PRESENT topology initialization improves GIFT-64 AUC after exactly one target
+epoch beyond scratch, source-shuffled, and target-shuffled controls. It remains
+a two-seed `65536/class` remote medium diagnostic. It is not formal,
+paper-scale, SOTA, breakthrough, persistent 10-epoch superiority, or lower
+end-to-end compute evidence. PRESENT source pretraining remains separately
+accounted as seed0, r7, `8192/class`, 10 epochs.
+
+Before a `1000000/class` multi-seed protocol, E4-R5 must test the exact open
+variance axis: retrain the frozen PRESENT true/shuffled source pair on an
+independent source seed, then repeat the one-epoch GIFT target gate on fresh
+target seeds at the same `65536/class` budget. This changes source checkpoint
+seed only while retaining the four target roles and all E4-R4 controls. A pass
+unlocks a separately frozen paper-scale protocol; a miss stops the broad
+transfer claim and retains E4-R4 as conditional-on-source-seed evidence. Do
+not run `262144/class`, add target epochs, or reopen DDT/trail/E1/H2.
