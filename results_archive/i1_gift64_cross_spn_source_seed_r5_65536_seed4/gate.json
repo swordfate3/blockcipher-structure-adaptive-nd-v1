@@ -1,0 +1,281 @@
+{
+  "alignment": {
+    "duplicate_plan_keys": [],
+    "duplicate_result_keys": [],
+    "errors": [],
+    "expected_rows": 4,
+    "field_mismatches": [],
+    "missing_result_keys": [],
+    "optional_key_fields": [
+      "difference_profile",
+      "difference_member"
+    ],
+    "plan_keys": [
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true_from_present_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true_from_present_shuffled",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_shuffled_from_present_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ]
+    ],
+    "plan_rows": 4,
+    "result_keys": [
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true_from_present_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_true_from_present_shuffled",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ],
+      [
+        6,
+        4,
+        "gift_cross_spn_typed_cell_shuffled_from_present_true",
+        65536,
+        4,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"activation\":\"relu\",\"dropout\":0.0,\"mixer_depth\":2,\"norm\":\"layernorm\",\"pooling\":\"attention_mean_max\",\"token_mlp_ratio\":2}",
+        "gift64_shen2024_spn_screen",
+        "0"
+      ]
+    ],
+    "result_rows": 4,
+    "status": "pass",
+    "unexpected_result_keys": []
+  },
+  "aucs": {
+    "shuffled_to_true": 0.5608055866323411,
+    "true_to_shuffled": 0.5070668631233275,
+    "true_to_true": 0.5761499325744808,
+    "typed_scratch": 0.5759762679226696
+  },
+  "bootstrap": {
+    "comparisons": {
+      "shuffled_to_true": {
+        "bootstrap_mean_difference": 0.01534133729133755,
+        "bootstrap_std_difference": 0.0015591014917862775,
+        "candidate_auc": 0.5761499325744808,
+        "candidate_role": "true_to_true",
+        "ci_lower": 0.012282655900344252,
+        "ci_upper": 0.01845348053611815,
+        "control_auc": 0.5608055866323411,
+        "control_role": "shuffled_to_true",
+        "point_difference": 0.015344345942139626
+      },
+      "true_to_shuffled": {
+        "bootstrap_mean_difference": 0.06906835136204027,
+        "bootstrap_std_difference": 0.0030862563097111893,
+        "candidate_auc": 0.5761499325744808,
+        "candidate_role": "true_to_true",
+        "ci_lower": 0.06315210463944823,
+        "ci_upper": 0.07507379122544079,
+        "control_auc": 0.5070668631233275,
+        "control_role": "true_to_shuffled",
+        "point_difference": 0.06908306945115328
+      },
+      "typed_scratch": {
+        "bootstrap_mean_difference": 0.0001976708258036524,
+        "bootstrap_std_difference": 0.00126314265120559,
+        "candidate_auc": 0.5761499325744808,
+        "candidate_role": "true_to_true",
+        "ci_lower": -0.002284564741421491,
+        "ci_upper": 0.002628424204885958,
+        "control_auc": 0.5759762679226696,
+        "control_role": "typed_scratch",
+        "point_difference": 0.0001736646518111229
+      }
+    },
+    "confidence": 0.95,
+    "method": "paired label-stratified fixed-size nonparametric bootstrap",
+    "negative_rows": 32768,
+    "positive_rows": 32768,
+    "replicates": 10000,
+    "seed": 20260715
+  },
+  "claim_scope": "single-seed E4_R5 65536/class remote medium target-adaptation diagnostic; conditional target-training efficiency only; source pretraining cost reported separately; not formal, paper-scale, SOTA, breakthrough, or end-to-end compute evidence",
+  "decision": "e4_r5_target_adaptation_signal_unstable",
+  "epochs": 1,
+  "errors": [],
+  "expected_seed": 4,
+  "experiment_stage": "e4_r5",
+  "margins": {
+    "scratch_margin": 0.0001736646518111229,
+    "source_topology_margin": 0.015344345942139626,
+    "target_topology_margin": 0.06908306945115328
+  },
+  "models": {
+    "shuffled_to_true": "gift_cross_spn_typed_cell_true_from_present_shuffled",
+    "true_to_shuffled": "gift_cross_spn_typed_cell_shuffled_from_present_true",
+    "true_to_true": "gift_cross_spn_typed_cell_true_from_present_true",
+    "typed_scratch": "gift_cross_spn_typed_cell_true"
+  },
+  "next_action": "stop_transfer_branch_keep_typed_representation_result",
+  "paired_scores_output": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_gift64_cross_spn_source_seed_r5_65536_seed4\\results\\paired_scores.csv.gz",
+  "research_decision_applied": true,
+  "samples_per_class": 65536,
+  "score_pairing": "same validation cache, identical sample_ids and labels",
+  "score_rows": 65536,
+  "source_checkpoint_sha256": {
+    "shuffled": "b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645",
+    "true": "b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5"
+  },
+  "source_pretraining_cost": {
+    "accounting": "reported separately; excluded from target epoch budget",
+    "cipher": "PRESENT-80",
+    "epochs": 10,
+    "rounds": 7,
+    "samples_per_class": 8192,
+    "seed": 1
+  },
+  "status": "pass",
+  "stopped_actions": [
+    {
+      "action": "sample_scale",
+      "reason": "stopped_by_decision:e4_r5_target_adaptation_signal_unstable"
+    },
+    {
+      "action": "formal_claim",
+      "reason": "stopped_by_decision:e4_r5_target_adaptation_signal_unstable"
+    },
+    {
+      "action": "sota_claim",
+      "reason": "stopped_by_decision:e4_r5_target_adaptation_signal_unstable"
+    },
+    {
+      "action": "breakthrough_claim",
+      "reason": "stopped_by_decision:e4_r5_target_adaptation_signal_unstable"
+    }
+  ],
+  "target_checkpoint_sha256": {
+    "shuffled_to_true": "549d91e177aaa1da339d5bb336f6cd6c3b4f04664ca2e89ebafc95edf9a6713b",
+    "true_to_shuffled": "4b51fef290f4429a018cd5aee0edd8f3c11cc5d1a7a7cf4e00c15347d0ddaf0a",
+    "true_to_true": "974814bdca577f17a67e5b39795e5093b4de5b19842f23f26797f8d82624b6ce",
+    "typed_scratch": "5e0f4dfb5609d3c7045d6d897e06e9f54d0e3f20180cc3b7e5fdec58bf101919"
+  },
+  "thresholds": {
+    "core_scratch_ci_lower_strictly_greater_than": 0.0,
+    "scratch_margin": 0.004,
+    "source_topology_margin": 0.005,
+    "target_topology_margin": 0.003
+  }
+}

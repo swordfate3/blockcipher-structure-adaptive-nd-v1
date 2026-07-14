@@ -1,0 +1,12 @@
+{
+  "checkpoint": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_gift64_cross_spn_source_seed_r5_65536_seed4\\checkpoints\\row0003_gift_cross_spn_typed_cell_true_from_present_shuffled_seed4.pt",
+  "claim_scope": "per-sample score artifact for frozen neural ensemble evaluation",
+  "model_key": "gift_cross_spn_typed_cell_true_from_present_shuffled",
+  "output_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_gift64_cross_spn_source_seed_r5_65536_seed4\\scores\\shuffled_to_true",
+  "rows": 65536,
+  "samples_per_class": 65536,
+  "score_samples_per_class": 32768,
+  "score_split": "validation",
+  "status": "pass",
+  "validation_samples_per_class": 32768
+}

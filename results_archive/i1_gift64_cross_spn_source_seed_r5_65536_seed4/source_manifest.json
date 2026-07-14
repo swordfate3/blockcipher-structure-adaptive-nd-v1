@@ -1,0 +1,51 @@
+{
+  "targets": {
+    "gift_cross_spn_typed_cell_shuffled_from_present_true": {
+      "kind": "checkpoint",
+      "source_checkpoint": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/checkpoints/row0002_present_cross_spn_typed_cell_true_seed1.pt",
+      "source_checkpoint_sha256": "b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5",
+      "source_cipher": "PRESENT-80",
+      "source_epochs": 10,
+      "source_mapping": "true",
+      "source_model": "present_cross_spn_typed_cell_true",
+      "source_results": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/results.jsonl",
+      "source_rounds": 7,
+      "source_samples_per_class": 8192,
+      "source_seed": 1,
+      "target_mapping": "shuffled"
+    },
+    "gift_cross_spn_typed_cell_true": {
+      "kind": "scratch",
+      "target_mapping": "true"
+    },
+    "gift_cross_spn_typed_cell_true_from_present_shuffled": {
+      "kind": "checkpoint",
+      "source_checkpoint": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/checkpoints/row0003_present_cross_spn_typed_cell_shuffled_seed1.pt",
+      "source_checkpoint_sha256": "b22e4a7b34aabc090ca75385389d46a0c866dc5114c3626ec5c233cd4b7c2645",
+      "source_cipher": "PRESENT-80",
+      "source_epochs": 10,
+      "source_mapping": "shuffled",
+      "source_model": "present_cross_spn_typed_cell_shuffled",
+      "source_results": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/results.jsonl",
+      "source_rounds": 7,
+      "source_samples_per_class": 8192,
+      "source_seed": 1,
+      "target_mapping": "true"
+    },
+    "gift_cross_spn_typed_cell_true_from_present_true": {
+      "kind": "checkpoint",
+      "source_checkpoint": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/checkpoints/row0002_present_cross_spn_typed_cell_true_seed1.pt",
+      "source_checkpoint_sha256": "b6eed1f624e5a86d34d444a5f18e5e320447bbb44f2004b059642357543c55b5",
+      "source_cipher": "PRESENT-80",
+      "source_epochs": 10,
+      "source_mapping": "true",
+      "source_model": "present_cross_spn_typed_cell_true",
+      "source_results": "outputs/local_smoke/i1_present_cross_spn_source_seed_r5_8192_seed1/results.jsonl",
+      "source_rounds": 7,
+      "source_samples_per_class": 8192,
+      "source_seed": 1,
+      "target_mapping": "true"
+    }
+  },
+  "version": 1
+}
