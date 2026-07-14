@@ -1,0 +1,5 @@
+torch 2.5.1+cu118
+cuda 11.8
+available True
+visible_count 1
+device0 NVIDIA RTX A6000
