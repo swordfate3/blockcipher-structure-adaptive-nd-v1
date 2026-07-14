@@ -817,6 +817,10 @@ def test_cross_spn_transfer_r3_accepts_only_frozen_medium_budget(
     assert report["decision"] == "e4_r3_seed_signal_preserved"
     assert report["next_action"] == "run_e4_r3_joint_gate"
     assert report["experiment_stage"] == "e4_r3"
+    assert report["claim_scope"] == (
+        "65536/class E4-R3 remote medium transfer diagnostic; "
+        "not formal, paper-scale, SOTA, or breakthrough evidence"
+    )
     assert wrong_budget["status"] == "fail"
     assert any("65536/class" in error for error in wrong_budget["errors"])
 
@@ -859,6 +863,10 @@ def test_cross_spn_transfer_r3_joint_confirms_two_medium_seeds(
     assert report["decision"] == "e4_r3_two_seed_medium_signal_confirmed"
     assert report["next_action"] == (
         "design_e4_r4_262144_class_diagnostic_with_remote_readiness"
+    )
+    assert report["claim_scope"] == (
+        "two-seed E4-R3 65536/class remote medium diagnostic; "
+        "not formal, paper-scale, SOTA, or breakthrough evidence"
     )
     assert {item["action"] for item in report["stopped_actions"]} == {
         "remote_launch",
@@ -906,6 +914,10 @@ def test_cross_spn_transfer_r3_joint_stops_after_margin_miss(
     assert report["decision"] == "e4_r3_two_seed_medium_signal_unstable"
     assert report["next_action"] == (
         "stop_mechanical_scale_and_audit_seed_variance"
+    )
+    assert report["claim_scope"] == (
+        "two-seed E4-R3 65536/class remote medium diagnostic; "
+        "controls did not replicate across both seeds"
     )
 
 

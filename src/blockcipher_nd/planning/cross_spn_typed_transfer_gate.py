@@ -162,8 +162,15 @@ def gate_cross_spn_typed_transfer(
         **evidence,
         "research_decision_applied": True,
         "claim_scope": (
-            f"{samples_per_class}/class {experiment_stage.upper()} local transfer diagnostic; "
-            "not formal, paper-scale, remote, or breakthrough evidence"
+            (
+                f"{samples_per_class}/class E4-R3 remote medium transfer diagnostic; "
+                "not formal, paper-scale, SOTA, or breakthrough evidence"
+            )
+            if experiment_stage == "e4_r3"
+            else (
+                f"{samples_per_class}/class E4-R2 local transfer diagnostic; "
+                "not formal, paper-scale, remote, or breakthrough evidence"
+            )
         ),
         "next_action": next_action,
         "stopped_actions": _stopped_actions(decision),
@@ -613,8 +620,8 @@ def gate_cross_spn_typed_transfer_joint(
                 "per_seed": per_seed,
                 "research_decision_applied": True,
                 "claim_scope": (
-                    "two-seed E4-R3 65536/class local medium diagnostic; "
-                    "not formal, paper-scale, remote, or breakthrough evidence"
+                    "two-seed E4-R3 65536/class remote medium diagnostic; "
+                    "not formal, paper-scale, SOTA, or breakthrough evidence"
                 ),
                 "next_action": (
                     "design_e4_r4_262144_class_diagnostic_with_remote_readiness"
@@ -631,7 +638,7 @@ def gate_cross_spn_typed_transfer_joint(
             "per_seed": per_seed,
             "research_decision_applied": True,
             "claim_scope": (
-                "two-seed E4-R3 65536/class local medium diagnostic; "
+                "two-seed E4-R3 65536/class remote medium diagnostic; "
                 "controls did not replicate across both seeds"
             ),
             "next_action": "stop_mechanical_scale_and_audit_seed_variance",
