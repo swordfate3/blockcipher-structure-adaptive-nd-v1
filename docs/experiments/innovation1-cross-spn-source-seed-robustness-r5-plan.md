@@ -1,6 +1,6 @@
 # Innovation 1 E4-R5 Cross-SPN Source-Seed Robustness Plan
 
-**Status:** Phase A passed; Phase B seed4/seed5 readiness passed and remote medium launch authorized after push
+**Status:** completed / independent source-seed robustness not confirmed / E4-R6 stopped
 **Date:** 2026-07-15
 **Experiment label:** E4-R5
 
@@ -342,3 +342,85 @@ docs/experiments/innovation1-cross-spn-formal-multisource-multitarget-r6-conditi
 That document does not authorize an E4-R6 config or launch. It activates only
 after both E4-R5 target seeds and the local joint gate pass from verified,
 retrieved archives.
+
+## 2026-07-15 Phase B Completion Record
+
+Both remote target runs completed from exact pushed source commit
+`b7bb5edb026dd2096acc34ed06172ee4fcffaf76`. The watcher retrieved verified
+seed4, seed5, and joint result archives, performed strengthened local
+re-adjudication, and refreshed the numbered result index. All `40 + 40 + 6`
+archive entries pass SHA-256 verification after treating the Windows CRLF
+manifest as text input; no artifact hash differs.
+
+Frozen target protocol:
+
+```text
+target                         = GIFT-64 r6
+train                          = 65536/class = 131072 total rows/seed
+validation                     = 32768/class = 65536 total rows/seed
+target epochs                  = exactly 1
+target seeds                   = 4, 5
+source                         = PRESENT-80 r7 seed1 checkpoints
+negative                       = encrypted random plaintexts
+paired bootstrap               = 10000 label-stratified replicates
+score rows                     = 65536/role/seed, IDs and labels aligned
+```
+
+| Target seed | True AUC | Scratch AUC | True - scratch | Scratch 95% CI | True - source-shuffled | True - target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 | `0.576149932574` | `0.575976267923` | `+0.000173664652` | `[-0.002284564741, +0.002628424205]` | `+0.015344345942` | `+0.069083069451` |
+| 5 | `0.573475843295` | `0.569641033188` | `+0.003834810108` | `[+0.001243890217, +0.006373106083]` | `+0.013115312438` | `+0.070617836900` |
+
+Both target seeds preserve strong positive source- and target-topology
+attribution. What does not survive is the stronger scratch-efficiency gate:
+seed4 is statistically indistinguishable from scratch, while seed5 has a
+positive paired interval but misses the predeclared `+0.004` point threshold
+by `0.000165189892`.
+
+```text
+seed4 decision = e4_r5_target_adaptation_signal_unstable
+seed5 decision = e4_r5_target_adaptation_signal_unstable
+joint decision = e4_r5_source_seed_signal_unstable
+joint status   = pass, errors=[]
+next_action    = stop_formal_scale_retain_conditional_e4_r4_result
+```
+
+The gate execution status `pass` means protocol, pairing, provenance, and
+alignment checks succeeded; it does not mean the research hypothesis passed.
+Because source seed and target seeds are not fully crossed, this result must
+not be overstated as a causal source-seed failure. It does prove that the
+E4-R4 scratch advantage did not generalize under the independently retrained
+source plus fresh-target confirmation required by the frozen decision table.
+
+Verified artifacts:
+
+```text
+outputs/remote_results/i1_gift64_cross_spn_source_seed_r5_65536_seed4/
+outputs/remote_results/i1_gift64_cross_spn_source_seed_r5_65536_seed5/
+outputs/remote_results/i1_gift64_cross_spn_source_seed_r5_65536_joint_seed4_seed5/
+outputs/00_RECENT_RESULTS.md entry 001
+```
+
+### Evidence-backed next action
+
+Stop E4-R6 and all mechanical transfer scaling. Consolidate E4-R4/R5 as a
+no-new-training cross-source heterogeneity synthesis:
+
+```text
+research question = which typed-operator effects survive across the two
+                    independently trained PRESENT source checkpoints?
+same-budget anchor = E4-R4 and E4-R5 paired gate artifacts
+one comparison axis = source checkpoint seed stratum, with target-seed
+                      confounding stated explicitly
+data/scale         = existing GIFT target seeds 2..5 at 65536/class
+epochs             = existing exactly-one-epoch checkpoints; no retraining
+local path         = verified gate JSON and paired-score summaries only
+retain             = source/target topology attribution and conditional E4-R4
+stop               = 262144/class, 1000000/class, extra seeds/epochs, E4-R6,
+                     DDT/trail/E1/H2/flattened-DBitNet reopening
+```
+
+This synthesis cannot authorize another training run. A future transfer
+experiment would require a new source-objective hypothesis, literature and
+same-budget ranking, and a fresh local gate; merely crossing or adding seeds
+to rescue the failed claim is not justified.

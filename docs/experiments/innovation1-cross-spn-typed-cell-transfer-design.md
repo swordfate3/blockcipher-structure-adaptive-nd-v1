@@ -889,3 +889,40 @@ checkpoints under the same source protocol, and repeat the frozen one-epoch
 target gate on fresh target seeds. This audit, not `262144/class` mechanical
 scaling, determines whether a `1000000/class` multi-source/multi-target plan is
 scientifically justified.
+
+## 2026-07-15 E4-R5 Independent Source-Seed Adjudication
+
+E4-R5 completed the predeclared source-seed robustness audit. It independently
+trained the PRESENT source with seed1, froze its true/shuffled checkpoints,
+and repeated the one-epoch GIFT target gate on fresh target seeds 4 and 5 at
+the same `65536/class` medium budget.
+
+| Source seed | Target seed | True - scratch | Scratch 95% CI | True - source-shuffled | True - target-shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 2 | `+0.011247730348` | `[+0.008470458165, +0.014073612948]` | `+0.012428269722` | `+0.077061415184` |
+| 0 | 3 | `+0.006649116985` | `[+0.003760749672, +0.009526491968]` | `+0.009724145755` | `+0.081193963531` |
+| 1 | 4 | `+0.000173664652` | `[-0.002284564741, +0.002628424205]` | `+0.015344345942` | `+0.069083069451` |
+| 1 | 5 | `+0.003834810108` | `[+0.001243890217, +0.006373106083]` | `+0.013115312438` | `+0.070617836900` |
+
+The correct typed source and target topologies beat their shuffled controls
+on all four target seeds across both independently trained source checkpoints.
+That is the robust method-level E4 result. The stronger claim that the true
+source initialization consistently improves over same-capacity scratch after
+one target epoch is conditional on the source/target draw: both source-seed0
+cells pass, while neither source-seed1 cell passes the frozen point-and-CI
+gate.
+
+```text
+decision = e4_r5_source_seed_signal_unstable
+E4-R6    = stopped before activation
+retain   = typed SPN representation and topology attribution
+qualify  = E4-R4 conditional one-epoch target-adaptation efficiency
+reject   = source-seed-robust scratch-efficiency or formal-scale claim
+```
+
+Source checkpoint and target-seed strata are not fully crossed, so the table
+does not identify a causal source-seed effect. It is nevertheless the exact
+independent confirmation the frozen E4-R5 gate required, and its failure
+precludes `262144/class` or `1000000/class` rescue scaling. The executable next
+action is local result synthesis from these verified artifacts, with no new
+training budget, extra epochs, DDT/trail branch, or architecture sweep.

@@ -72,6 +72,8 @@ root cause 1: EnableDelayedExpansion consumed `!` in Python `!=`
 root cause 2: scp retained stale local failed.marker after remote recovery
 root cause 3: joint-branch checkout hid the seed2 archive from worktree retrieval
 root cause 4: Windows Git EOL conversion changed two files after archive hashing
+root cause 5: Windows CRLF in SHA256SUMS makes Linux sha256sum -c treat CR as
+              part of each filename even when artifact hashes are intact
 ```
 
 ### Context
@@ -85,23 +87,27 @@ root cause 4: Windows Git EOL conversion changed two files after archive hashing
 Avoid `!` inside batch files with delayed expansion, make pushed/done markers
 override stale failure markers, restore the seed result branch after publishing
 a joint branch, and place `* -text` in result archives before hashing/staging.
-Test these invariants in the remote-asset regression test.
+Test these invariants in the remote-asset regression test. For a retrieved
+Windows manifest, normalize only the manifest input stream before Linux
+verification (`sed 's/\r$//' SHA256SUMS | sha256sum -c -`); do not rewrite the
+archived payload files.
 
 ### Metadata
 - Reproducible: yes
 - Related Files: configs/remote/generated/run_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, configs/remote/generated/monitor_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.sh, configs/remote/generated/recover_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, tests/test_cross_spn_target_adaptation_gate.py
 - See Also: ERR-20260714-001, ERR-20260714-002
 - Pattern-Key: remote.windows_result_archive_state_machine
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-15
 - Last-Seen: 2026-07-15
 
 ### Resolution
 - **Resolved**: 2026-07-15T03:10:00+08:00
 - **Commit/PR**: 455db9b, b71d290, 5d1e129, 5b72484
-- **Notes**: Recovered and pushed all three result branches without retraining,
-  completed local strengthened re-adjudication, and verified every final
-  `SHA256SUMS` entry.
+- **Notes**: Recovered and pushed all three E4-R4 result branches without
+  retraining. E4-R5 later reproduced the CRLF manifest-parser issue; streaming
+  CR removal verified all `40 + 40 + 6` archive entries without modifying the
+  archives.
 
 ---
 

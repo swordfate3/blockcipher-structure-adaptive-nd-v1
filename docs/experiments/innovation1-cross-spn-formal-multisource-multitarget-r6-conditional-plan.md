@@ -2,8 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** conditional protocol only / no config / no launch / waiting for
-completed, retrieved, locally re-adjudicated E4-R5 evidence
+**Status:** stopped by completed E4-R5 joint gate / no config / no launch
 
 **Claim scope:** held-out multi-source, multi-target confirmation design at
 `1000000/class` target training scale; passing the scale alone does not
@@ -30,6 +29,19 @@ experiment/design/verdict docs      = updated and pushed
 If any item is missing, invalid, or fails, do not create E4-R6 CSVs, remote
 configs, launchers, or tasks. Retain E4-R4 as conditional-on-source evidence
 and follow the E4-R5 stop decision.
+
+The completed E4-R5 evidence activates that stop branch:
+
+```text
+seed4 local decision = e4_r5_target_adaptation_signal_unstable
+seed5 local decision = e4_r5_target_adaptation_signal_unstable
+joint local decision = e4_r5_source_seed_signal_unstable
+joint next action     = stop_formal_scale_retain_conditional_e4_r4_result
+```
+
+Therefore this document is retained as a predeclared counterfactual protocol
+record. Its activation trigger failed; unfinished implementation items are no
+longer a work queue.
 
 ## Research Question
 
@@ -336,10 +348,12 @@ PRESENT r8/r9 or AutoND reproduction claims
 ## Current Next Action
 
 ```text
-wait for E4-R5 watcher-managed retrieval
-then:
-  if E4-R5 joint pass -> activate Phase A implementation/readiness
-  otherwise           -> keep this document conditional and stop E4-R6
+E4-R5 verified retrieval = complete
+E4-R5 joint decision      = e4_r5_source_seed_signal_unstable
+E4-R6                     = stopped / never activated
+next                      = consolidate the conditional E4-R4 result and
+                            robust typed-topology attribution without new
+                            transfer training
 ```
 
 References:
