@@ -1,6 +1,6 @@
 # Innovation 1 E4-R4 Cross-SPN Target-Adaptation Confirmation Plan
 
-**Status:** design and local readiness passed; remote launch pending pushed implementation commit
+**Status:** remote seed2/seed3 medium diagnostics running from pushed commit `a3e0e9d`
 **Date:** 2026-07-15
 **Experiment label:** E4-R4
 
@@ -217,3 +217,43 @@ Readiness authorizes only the planned remote medium runs after this
 implementation, configs, source assets, and remote scripts are committed and
 pushed. Seed2 must run on A6000 GPU0 and seed3 on A6000 GPU1 from the exact
 pushed commit. Local `65536/class` execution remains prohibited.
+
+## 2026-07-15 Remote Launch Record
+
+The implementation was committed and pushed as:
+
+```text
+a3e0e9decb8c41d13ccfb4ef534ecace0da84cac
+```
+
+The remote launch gate passed:
+
+```text
+SSH                         = pass
+remote torch                = 2.5.1+cu118
+torch CUDA available        = true
+remote GPU count            = 2 x NVIDIA RTX A6000
+run-owned source seed2      = clean detached exact a3e0e9d
+run-owned source seed3      = clean detached exact a3e0e9d
+seed2 task/GPU              = I1_E4_R4_GIFT64_SEED2_GPU0 / A6000 GPU0
+seed3 task/GPU              = I1_E4_R4_GIFT64_SEED3_GPU1 / A6000 GPU1
+task mode                   = SYSTEM, highest privileges, cmd.exe /c
+started markers             = present for both seeds
+remote readiness files      = present for both seeds
+disk-cache progress JSONL   = present for both seeds
+Windows task result 267009  = running
+```
+
+All source, scripts, caches, checkpoints, scores, logs, and result paths are
+under `G:\lxy`. The local monitor is:
+
+```text
+tmux session = i1_e4_r4_remote_monitor
+script       = configs/remote/generated/monitor_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.sh
+```
+
+The monitor waits for both verified result branches and the joint branch,
+retrieves result archives and checkpoints, regenerates deferred plots locally,
+and refreshes the numbered result index. Current status is `running`, not
+completed remotely, retrieved, plan-aligned final evidence, or a positive
+adaptation result. The main thread must not SSH-poll this run.
