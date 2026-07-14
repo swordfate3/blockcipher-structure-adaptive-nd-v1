@@ -73,6 +73,7 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         dropout: float = 0.0,
         topology_auxiliary_mode: str = "none",
         topology_auxiliary_scale: float = 0.1,
+        topology_functional_margin: float = 0.01,
     ) -> None:
         super().__init__()
         if pair_bits != 128:
@@ -90,6 +91,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             "off",
             "true_vs_shuffled",
             "shuffled_vs_shuffled",
+            "functional_true_vs_shuffled",
+            "functional_shuffled_vs_shuffled",
         }:
             raise ValueError(
                 "unsupported topology_auxiliary_mode: "
@@ -97,6 +100,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             )
         if topology_auxiliary_scale < 0.0:
             raise ValueError("topology_auxiliary_scale must be non-negative")
+        if topology_functional_margin < 0.0:
+            raise ValueError("topology_functional_margin must be non-negative")
 
         self.input_bits = input_bits
         self.pair_bits = pair_bits
@@ -108,6 +113,7 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         self.embedding_bits = max(32, base_channels * 4)
         self.topology_auxiliary_mode = topology_auxiliary_mode
         self.topology_auxiliary_scale = topology_auxiliary_scale
+        self.topology_functional_margin = topology_functional_margin
         self.register_buffer(
             "mapping_indices",
             cipher_inverse_permutation_indices(cipher_key, mapping_mode),
@@ -183,6 +189,21 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             second_shuffled_indices = shuffled_permutation_indices(
                 _SECOND_SHUFFLED_MAPPING_SEED
             )
+            self.register_buffer(
+                "topology_true_indices",
+                true_indices,
+                persistent=False,
+            )
+            self.register_buffer(
+                "topology_shuffled_a_indices",
+                shuffled_indices,
+                persistent=False,
+            )
+            self.register_buffer(
+                "topology_shuffled_b_indices",
+                second_shuffled_indices,
+                persistent=False,
+            )
             if topology_auxiliary_mode == "true_vs_shuffled":
                 positive_indices = true_indices
                 negative_indices = shuffled_indices
@@ -204,6 +225,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             )
         self.last_attention_weights: torch.Tensor | None = None
         self.last_auxiliary_loss: torch.Tensor | None = None
+        self.last_auxiliary_metrics: dict[str, torch.Tensor] = {}
+        self._last_functional_logits: tuple[torch.Tensor, torch.Tensor] | None = None
 
     def set_cipher_structure(self, structure: str) -> None:
         return None
@@ -291,17 +314,15 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         )
         return loss * self.topology_auxiliary_scale
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
-        pair_embeddings = self.encode_pairs(features)
-        self.last_auxiliary_loss = (
-            self.topology_auxiliary_loss(features)
-            if self.training
-            and self.topology_auxiliary_mode
-            in {"true_vs_shuffled", "shuffled_vs_shuffled"}
-            else None
-        )
+    def classify_pair_embeddings(
+        self,
+        pair_embeddings: torch.Tensor,
+        *,
+        record_attention: bool = True,
+    ) -> torch.Tensor:
         attention_embedding, attention_weights = self.attention(pair_embeddings)
-        self.last_attention_weights = attention_weights.detach()
+        if record_attention:
+            self.last_attention_weights = attention_weights.detach()
         if self.pooling == "attention":
             pooled = attention_embedding
         else:
@@ -314,6 +335,104 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
                     [attention_embedding, mean_embedding, max_embedding], dim=1
                 )
         return self.classifier(pooled)
+
+    def logits_with_mapping(
+        self,
+        features: torch.Tensor,
+        mapping_indices: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.classify_pair_embeddings(
+            self.encode_pairs_with_mapping(features, mapping_indices),
+            record_attention=False,
+        )
+
+    def compute_auxiliary_loss(
+        self,
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor | None:
+        if self.topology_auxiliary_mode not in {
+            "functional_true_vs_shuffled",
+            "functional_shuffled_vs_shuffled",
+        }:
+            return self.last_auxiliary_loss
+        if self._last_functional_logits is None:
+            raise RuntimeError("functional topology logits are unavailable")
+        shuffled_a_logits, shuffled_b_logits = self._last_functional_logits
+        shuffled_a_loss = self._per_sample_classification_loss(
+            shuffled_a_logits.squeeze(1), labels, loss_name
+        )
+        shuffled_b_loss = self._per_sample_classification_loss(
+            shuffled_b_logits.squeeze(1), labels, loss_name
+        )
+        if self.topology_auxiliary_mode == "functional_true_vs_shuffled":
+            preferred_loss = self._per_sample_classification_loss(
+                logits,
+                labels,
+                loss_name,
+            )
+            comparison_loss = 0.5 * (shuffled_a_loss + shuffled_b_loss)
+        else:
+            preferred_loss = shuffled_a_loss
+            comparison_loss = shuffled_b_loss
+        margin_values = F.relu(
+            self.topology_functional_margin
+            + preferred_loss
+            - comparison_loss
+        )
+        auxiliary_loss = self.topology_auxiliary_scale * margin_values.mean()
+        self.last_auxiliary_loss = auxiliary_loss
+        self.last_auxiliary_metrics = {
+            "functional_preferred_loss": preferred_loss.detach().mean(),
+            "functional_comparison_loss": comparison_loss.detach().mean(),
+            "functional_loss_gap": (
+                comparison_loss.detach().mean() - preferred_loss.detach().mean()
+            ),
+            "functional_margin_loss": margin_values.detach().mean(),
+            "functional_violation_rate": (margin_values.detach() > 0.0)
+            .float()
+            .mean(),
+        }
+        return auxiliary_loss
+
+    @staticmethod
+    def _per_sample_classification_loss(
+        logits: torch.Tensor,
+        labels: torch.Tensor,
+        loss_name: str,
+    ) -> torch.Tensor:
+        if loss_name == "mse":
+            return F.mse_loss(torch.sigmoid(logits), labels, reduction="none")
+        if loss_name == "bce":
+            return F.binary_cross_entropy_with_logits(
+                logits,
+                labels,
+                reduction="none",
+            )
+        raise ValueError(f"unsupported loss: {loss_name}")
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        pair_embeddings = self.encode_pairs(features)
+        logits = self.classify_pair_embeddings(pair_embeddings)
+        self.last_auxiliary_metrics = {}
+        self._last_functional_logits = None
+        self.last_auxiliary_loss = (
+            self.topology_auxiliary_loss(features)
+            if self.training
+            and self.topology_auxiliary_mode
+            in {"true_vs_shuffled", "shuffled_vs_shuffled"}
+            else None
+        )
+        if self.training and self.topology_auxiliary_mode in {
+            "functional_true_vs_shuffled",
+            "functional_shuffled_vs_shuffled",
+        }:
+            self._last_functional_logits = (
+                self.logits_with_mapping(features, self.topology_shuffled_a_indices),
+                self.logits_with_mapping(features, self.topology_shuffled_b_indices),
+            )
+        return logits
 
 
 def _set_fixed_adapter(
@@ -402,6 +521,39 @@ class PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher(
         super().__init__(*args, **kwargs)
 
 
+class PresentCrossSpnTypedCellE6OffDistinguisher(
+    CrossSpnTypedCellPairSetDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        _set_fixed_adapter(kwargs, cipher_key="present80", mapping_mode="true")
+        _set_fixed_topology_auxiliary_mode(kwargs, "off")
+        super().__init__(*args, **kwargs)
+
+
+class PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher(
+    CrossSpnTypedCellPairSetDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        _set_fixed_adapter(kwargs, cipher_key="present80", mapping_mode="true")
+        _set_fixed_topology_auxiliary_mode(
+            kwargs,
+            "functional_true_vs_shuffled",
+        )
+        super().__init__(*args, **kwargs)
+
+
+class PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher(
+    CrossSpnTypedCellPairSetDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        _set_fixed_adapter(kwargs, cipher_key="present80", mapping_mode="true")
+        _set_fixed_topology_auxiliary_mode(
+            kwargs,
+            "functional_shuffled_vs_shuffled",
+        )
+        super().__init__(*args, **kwargs)
+
+
 class GiftCrossSpnTypedCellTrueDistinguisher(
     CrossSpnTypedCellPairSetDistinguisher
 ):
@@ -473,6 +625,39 @@ class GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher(
 
 class GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher(
     GiftCrossSpnTypedCellE5Distinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellE6Distinguisher(
+    CrossSpnTypedCellPairSetDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        _set_fixed_adapter(kwargs, cipher_key="gift64", mapping_mode="true")
+        _set_fixed_topology_auxiliary_mode(kwargs, "off")
+        super().__init__(*args, **kwargs)
+
+
+class GiftCrossSpnTypedCellE6ScratchDistinguisher(
+    GiftCrossSpnTypedCellE6Distinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellE6FromPresentOffDistinguisher(
+    GiftCrossSpnTypedCellE6Distinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher(
+    GiftCrossSpnTypedCellE6Distinguisher
+):
+    pass
+
+
+class GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher(
+    GiftCrossSpnTypedCellE6Distinguisher
 ):
     pass
 
@@ -556,6 +741,11 @@ __all__ = [
     "GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher",
     "GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher",
     "GiftCrossSpnTypedCellE5ScratchDistinguisher",
+    "GiftCrossSpnTypedCellE6Distinguisher",
+    "GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher",
+    "GiftCrossSpnTypedCellE6FromPresentOffDistinguisher",
+    "GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher",
+    "GiftCrossSpnTypedCellE6ScratchDistinguisher",
     "GiftCrossSpnTypedCellRawDistinguisher",
     "GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellShuffledDistinguisher",
@@ -566,6 +756,9 @@ __all__ = [
     "PresentCrossSpnTypedCellE5OffDistinguisher",
     "PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher",
     "PresentCrossSpnTypedCellE5TrueShuffledDistinguisher",
+    "PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher",
+    "PresentCrossSpnTypedCellE6OffDistinguisher",
+    "PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher",
     "PresentCrossSpnTypedCellShuffledDistinguisher",
     "PresentCrossSpnTypedCellTrueDistinguisher",
     "cipher_inverse_permutation_indices",

@@ -66,12 +66,17 @@ class AuxiliaryLinear(torch.nn.Module):
         self.linear = torch.nn.Linear(2, 1)
         self.auxiliary_weight = torch.nn.Parameter(torch.tensor(0.5))
         self.last_auxiliary_loss: torch.Tensor | None = None
+        self.last_auxiliary_metrics: dict[str, torch.Tensor] = {}
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         if self.training:
             self.last_auxiliary_loss = self.auxiliary_weight.square()
+            self.last_auxiliary_metrics = {
+                "functional_loss_gap": self.auxiliary_weight.detach()
+            }
         else:
             self.last_auxiliary_loss = None
+            self.last_auxiliary_metrics = {}
         return self.linear(features)
 
 
@@ -152,6 +157,11 @@ def test_train_binary_classifier_records_auxiliary_loss() -> None:
     )
 
     assert result.history[0]["train_auxiliary_loss"] > 0.0
+    assert np.isclose(
+        result.history[0]["train_functional_loss_gap"],
+        0.5,
+        atol=0.001,
+    )
 
 
 def test_train_binary_classifier_reuses_optimizer_session_state() -> None:

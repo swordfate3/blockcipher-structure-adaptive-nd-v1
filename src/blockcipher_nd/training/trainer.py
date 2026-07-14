@@ -85,6 +85,7 @@ def train_binary_classifier(
         model.train()
         total_loss = 0.0
         total_auxiliary_loss = 0.0
+        total_auxiliary_metrics: dict[str, float] = {}
         total_seen = 0
         for step, (features, labels) in enumerate(train_loader, start=1):
             features = features.to(selected_device)
@@ -92,10 +93,20 @@ def train_binary_classifier(
             optimizer.zero_grad(set_to_none=True)
             logits = model(features).squeeze(1)
             loss = compute_loss(loss_fn, logits, labels, config.loss)
-            auxiliary_loss = getattr(model, "last_auxiliary_loss", None)
+            auxiliary_loss_builder = getattr(model, "compute_auxiliary_loss", None)
+            auxiliary_loss = (
+                auxiliary_loss_builder(logits, labels, config.loss)
+                if callable(auxiliary_loss_builder)
+                else getattr(model, "last_auxiliary_loss", None)
+            )
             if auxiliary_loss is not None:
                 loss = loss + auxiliary_loss
                 total_auxiliary_loss += float(auxiliary_loss.detach().cpu()) * len(labels)
+            for name, value in getattr(model, "last_auxiliary_metrics", {}).items():
+                total_auxiliary_metrics[name] = total_auxiliary_metrics.get(
+                    name,
+                    0.0,
+                ) + float(value.detach().cpu()) * len(labels)
             loss.backward()
             optimizer.step()
             if scheduler is not None and not isinstance(scheduler, OfficialEpochCyclicLR):
@@ -140,8 +151,7 @@ def train_binary_classifier(
             if should_evaluate_train(epoch, config.train_eval_interval)
             else skipped_train_metrics()
         )
-        history.append(
-            {
+        history_row = {
                 "epoch": float(epoch),
                 "train_loss": total_loss / max(1, total_seen),
                 "train_auxiliary_loss": total_auxiliary_loss / max(1, total_seen),
@@ -157,7 +167,13 @@ def train_binary_classifier(
                 "val_calibrated_accuracy": validation_metrics["calibrated_accuracy"],
                 "learning_rate": current_learning_rate(optimizer),
             }
+        history_row.update(
+            {
+                f"train_{name}": value / max(1, total_seen)
+                for name, value in total_auxiliary_metrics.items()
+            }
         )
+        history.append(history_row)
         current_metric_value = history[-1][config.checkpoint_metric]
         if is_checkpoint_improved(
             current=current_metric_value,

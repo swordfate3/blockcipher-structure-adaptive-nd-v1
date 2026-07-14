@@ -10,6 +10,7 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     CrossSpnTypedCellPairSetDistinguisher,
     GiftAlignedTokenMixerRawInputDistinguisher,
     GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
+    GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
     GiftCrossSpnTypedCellTrueDistinguisher,
@@ -17,6 +18,9 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     PresentCrossSpnTypedCellE5OffDistinguisher,
     PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
     PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+    PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+    PresentCrossSpnTypedCellE6OffDistinguisher,
+    PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
     PresentCrossSpnTypedCellShuffledDistinguisher,
     PresentCrossSpnTypedCellTrueDistinguisher,
     cipher_inverse_permutation_indices,
@@ -244,6 +248,90 @@ def test_cross_spn_e5_counterfactual_mappings_are_distinct() -> None:
     )
 
 
+E6_SOURCE_VARIANTS: tuple[type[nn.Module], ...] = (
+    PresentCrossSpnTypedCellE6OffDistinguisher,
+    PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+    PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
+)
+
+
+def test_cross_spn_e6_source_variants_preserve_e5_transfer_state() -> None:
+    torch.manual_seed(20260715)
+    reference = PresentCrossSpnTypedCellE5OffDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+    for model_class in E6_SOURCE_VARIANTS:
+        torch.manual_seed(20260715)
+        model = model_class(input_bits=4 * 128, base_channels=8)
+        assert model.state_dict().keys() == reference.state_dict().keys()
+        for key, value in reference.state_dict().items():
+            torch.testing.assert_close(value, model.state_dict()[key], rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(
+    "model_class",
+    (
+        PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+        PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
+    ),
+)
+def test_cross_spn_e6_functional_margin_is_finite_and_backpropagates(
+    model_class: type[nn.Module],
+) -> None:
+    model = model_class(input_bits=4 * 128, base_channels=8)
+    model.train()
+    labels = torch.tensor([0.0, 1.0])
+
+    logits = model(_raw_features()).squeeze(1)
+    auxiliary_loss = model.compute_auxiliary_loss(logits, labels, "mse")
+
+    assert auxiliary_loss is not None
+    assert torch.isfinite(auxiliary_loss)
+    assert model._last_functional_logits is not None
+    assert len(model._last_functional_logits) == 2
+    assert set(model.last_auxiliary_metrics) == {
+        "functional_preferred_loss",
+        "functional_comparison_loss",
+        "functional_loss_gap",
+        "functional_margin_loss",
+        "functional_violation_rate",
+    }
+    (logits.mean() + auxiliary_loss).backward()
+    gradients = [
+        parameter.grad
+        for name, parameter in model.named_parameters()
+        if not name.startswith("topology_auxiliary_head")
+        and parameter.grad is not None
+    ]
+    assert gradients
+    assert all(torch.isfinite(gradient).all() for gradient in gradients)
+
+
+def test_cross_spn_e6_target_disables_margin_and_strictly_loads_source() -> None:
+    source = PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher(
+        input_bits=16 * 128,
+        base_channels=8,
+    )
+    target = GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+    )
+
+    target.load_state_dict(source.state_dict(), strict=True)
+    target.train()
+    logits = target(_raw_features()).squeeze(1)
+    auxiliary_loss = target.compute_auxiliary_loss(
+        logits,
+        torch.tensor([0.0, 1.0]),
+        "mse",
+    )
+
+    assert auxiliary_loss is None
+    assert target._last_functional_logits is None
+    assert target.last_auxiliary_metrics == {}
+
+
 @pytest.mark.parametrize("model_class", TYPED_VARIANTS)
 def test_cross_spn_typed_variants_have_finite_forward_and_backward(
     model_class: type[nn.Module],
@@ -390,6 +478,18 @@ REGISTERED_MODELS: tuple[tuple[str, type[nn.Module]], ...] = (
     (
         "gift_cross_spn_typed_cell_e5_from_present_true_shuffled",
         GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_e6_functional_margin",
+        PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+    ),
+    (
+        "present_cross_spn_typed_cell_e6_shuffled_placebo",
+        PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
+    ),
+    (
+        "gift_cross_spn_typed_cell_e6_from_present_functional_margin",
+        GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
     ),
 )
 

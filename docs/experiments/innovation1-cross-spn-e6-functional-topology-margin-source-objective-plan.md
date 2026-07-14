@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** frozen before implementation and training
+**Status:** Phase 0 source and target readiness passed / Phase 1A authorized locally
 
 ## Research Question
 
@@ -29,11 +29,13 @@ scratch       = gift_cross_spn_typed_cell_e5_scratch
 parameters    = 196003 for every source and target role
 ```
 
-The existing E5 source-off checkpoint, target scratch scores, off-transfer
-scores, target caches, labels, and sample IDs may be reused only when strict
-state-dict, architecture, plan, checkpoint hash, seed, and sample-ID checks
-pass. Reuse avoids retraining unchanged anchors and does not change their
-metrics.
+The existing E5 source-off checkpoint is reused only when strict state-dict,
+architecture, checkpoint hash, seed, and source-protocol checks pass. The
+target scratch, off, candidate, and placebo rows are rerun together in each new
+E6 target plan. This preserves one plan-aligned result matrix and one paired
+score provenance chain; the current matrix runner cannot safely splice old and
+new target rows into a single plan-aligned run. All four target rows still
+reuse one new train cache and one new validation cache per target seed.
 
 ## One Changed Variable
 
@@ -148,7 +150,7 @@ train                  = 8192/class
 validation             = 4096/class
 source seed            = 0
 new rows               = candidate, shuffled-placebo
-frozen reused row      = E5 off
+frozen reused source   = E5 off checkpoint/result as the source anchor
 epochs                 = 10
 execution              = local CPU or local CUDA
 ```
@@ -163,8 +165,8 @@ shuffle identities. Source AUC alone cannot pass or fail E6.
 train                  = 8192/class
 validation             = 4096/class
 target seeds           = 2, 3
-new rows/seed          = candidate-transfer, placebo-transfer
-reused rows/seed       = E5 scratch, E5 off-transfer
+rows/seed              = scratch, off-transfer, candidate-transfer,
+                         placebo-transfer; all rerun in one E6 target plan
 epochs                 = exactly 1
 execution              = local CPU or local CUDA
 ```
@@ -245,3 +247,38 @@ readiness tests. Run Phase 0 locally. If and only if readiness passes, continue
 automatically to the two-row `8192/class` source diagnostic and the two target
 seed gates using the reusable E5 anchors. Do not prepare or launch a remote run
 until the complete local gate passes.
+
+## Phase 0 Completion
+
+Both local CPU readiness gates passed without interpreting smoke metrics:
+
+```text
+source rows                    = 3/3 plan-aligned
+source parameter count         = 196003 for every role
+source checkpoint state keys   = 59 and identical
+off auxiliary loss             = 0
+candidate auxiliary loss       = finite, positive
+candidate functional loss gap  = +0.000730 -> +0.003772
+placebo auxiliary loss         = finite, positive
+
+target rows                    = 4/4 plan-aligned
+strict checkpoint loads        = 3/3
+target auxiliary loss max      = 0
+cache create/reuse              = 2/6
+```
+
+```text
+source decision = e6_source_functional_margin_readiness_pass
+target decision = e6_target_readiness_pass
+next action     = run E6 local 8192/class source and two-target-seed gate
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_cross_spn_e6_functional_margin_readiness/
+outputs/local_smoke/i1_cross_spn_e6_target_readiness/
+```
+
+Phase 0 authorizes only the planned local `8192/class` diagnostic. It does not
+authorize a local or remote `65536/class` run.

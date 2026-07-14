@@ -600,6 +600,10 @@ def _display_title(title: str) -> str:
             f"（源 seed {e5_target.group('source_seed')}，"
             f"目标 seed {e5_target.group('target_seed')}）"
         )
+    if stem == "i1_cross_spn_e6_functional_margin_readiness":
+        return "创新1 E6-R0：源端功能性拓扑边际目标（就绪检查）"
+    if stem == "i1_cross_spn_e6_target_readiness":
+        return "创新1 E6-R0：PRESENT → GIFT-64 严格迁移（就绪检查）"
     cleaned = stem.replace("_", " ").replace("-", " ")
     cleaned = " ".join(
         part
@@ -668,6 +672,13 @@ def _compact_label(item: dict[str, Any]) -> str:
         "gift_cross_spn_typed_cell_e5_from_present_off": "迁移基线：源辅助损失关闭",
         "gift_cross_spn_typed_cell_e5_from_present_true_shuffled": "候选迁移：源真拓扑 vs 打乱拓扑",
         "gift_cross_spn_typed_cell_e5_from_present_shuffled_placebo": "安慰剂迁移：源打乱 vs 打乱",
+        "present_cross_spn_typed_cell_e6_off": "源分类基线（功能边际关闭）",
+        "present_cross_spn_typed_cell_e6_functional_margin": "候选：真拓扑功能边际",
+        "present_cross_spn_typed_cell_e6_shuffled_placebo": "安慰剂：打乱拓扑功能边际",
+        "gift_cross_spn_typed_cell_e6_scratch": "GIFT 从零训练",
+        "gift_cross_spn_typed_cell_e6_from_present_off": "迁移基线：源功能边际关闭",
+        "gift_cross_spn_typed_cell_e6_from_present_functional_margin": "候选迁移：源真拓扑功能边际",
+        "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo": "安慰剂迁移：源打乱功能边际",
     }
     if model in aliases:
         return aliases[model]

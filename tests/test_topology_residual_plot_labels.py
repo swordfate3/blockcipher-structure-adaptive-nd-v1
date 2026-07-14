@@ -8,6 +8,8 @@ import pytest
 from matplotlib import pyplot as plt
 
 from blockcipher_nd.evaluation.plots import (
+    _compact_label,
+    _display_title,
     _plot_rc_params,
     plot_jsonl_training_curves,
     render_metric_panel,
@@ -38,6 +40,25 @@ CASE3_VISIBLE_LABELS = (
     "Case3 shuffled P",
     "Case3 raw triple",
 )
+
+
+def test_e6_plot_titles_and_roles_are_explained_in_chinese() -> None:
+    assert "源端功能性拓扑边际目标" in _display_title(
+        "i1_cross_spn_e6_functional_margin_readiness"
+    )
+    assert "PRESENT → GIFT-64 严格迁移" in _display_title(
+        "i1_cross_spn_e6_target_readiness"
+    )
+    assert _compact_label(
+        {"model": "present_cross_spn_typed_cell_e6_functional_margin"}
+    ) == "候选：真拓扑功能边际"
+    assert _compact_label(
+        {
+            "model": (
+                "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo"
+            )
+        }
+    ) == "安慰剂迁移：源打乱功能边际"
 
 
 def _visible_svg_text(root: ElementTree.Element) -> str:

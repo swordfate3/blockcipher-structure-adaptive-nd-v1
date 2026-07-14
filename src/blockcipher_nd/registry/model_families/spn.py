@@ -8,6 +8,10 @@ from blockcipher_nd.models.structure import (
     GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher,
     GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
     GiftCrossSpnTypedCellE5ScratchDistinguisher,
+    GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
+    GiftCrossSpnTypedCellE6FromPresentOffDistinguisher,
+    GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher,
+    GiftCrossSpnTypedCellE6ScratchDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
@@ -22,6 +26,9 @@ from blockcipher_nd.models.structure import (
     PresentCrossSpnTypedCellE5OffDistinguisher,
     PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher,
     PresentCrossSpnTypedCellE5TrueShuffledDistinguisher,
+    PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+    PresentCrossSpnTypedCellE6OffDistinguisher,
+    PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
     PresentCrossSpnTypedCellShuffledDistinguisher,
     PresentCrossSpnTypedCellTrueDistinguisher,
     PresentMatrixTrailHybridPairSetDistinguisher,
@@ -102,6 +109,13 @@ def build_spn_model(
         "gift_cross_spn_typed_cell_e5_from_present_off": GiftCrossSpnTypedCellE5FromPresentOffDistinguisher,
         "gift_cross_spn_typed_cell_e5_from_present_true_shuffled": GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
         "gift_cross_spn_typed_cell_e5_from_present_shuffled_placebo": GiftCrossSpnTypedCellE5FromPresentShuffledPlaceboDistinguisher,
+        "present_cross_spn_typed_cell_e6_off": PresentCrossSpnTypedCellE6OffDistinguisher,
+        "present_cross_spn_typed_cell_e6_functional_margin": PresentCrossSpnTypedCellE6FunctionalMarginDistinguisher,
+        "present_cross_spn_typed_cell_e6_shuffled_placebo": PresentCrossSpnTypedCellE6ShuffledPlaceboDistinguisher,
+        "gift_cross_spn_typed_cell_e6_scratch": GiftCrossSpnTypedCellE6ScratchDistinguisher,
+        "gift_cross_spn_typed_cell_e6_from_present_off": GiftCrossSpnTypedCellE6FromPresentOffDistinguisher,
+        "gift_cross_spn_typed_cell_e6_from_present_functional_margin": GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
+        "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo": GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher,
     }
     if name in cross_spn_typed_models:
         return cross_spn_typed_models[name](
@@ -117,6 +131,9 @@ def build_spn_model(
             dropout=float(options.get("dropout", 0.0)),
             topology_auxiliary_scale=float(
                 options.get("topology_auxiliary_scale", 0.1)
+            ),
+            topology_functional_margin=float(
+                options.get("topology_functional_margin", 0.01)
             ),
         )
     if name == "gift_cross_spn_aligned_token_mixer_raw_anchor":
