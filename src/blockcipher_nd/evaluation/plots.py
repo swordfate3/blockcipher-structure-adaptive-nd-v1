@@ -544,6 +544,24 @@ def _display_title(title: str) -> str:
             "创新1：PRESENT → GIFT-64 跨 SPN 结构迁移 "
             f"（E4-R2，目标 seed {transfer_match.group('seed')}）"
         )
+    r3_readiness = re.fullmatch(
+        r"i1_gift64_cross_spn_typed_transfer_r3_readiness_seed(?P<seed>\d+)",
+        stem,
+    )
+    if r3_readiness:
+        return (
+            "创新1：PRESENT → GIFT-64 跨 SPN 结构迁移 "
+            f"（E4-R3 就绪检查，目标 seed {r3_readiness.group('seed')}）"
+        )
+    r3_medium = re.fullmatch(
+        r"i1_gift64_cross_spn_typed_transfer_r3_65536_seed(?P<seed>\d+)",
+        stem,
+    )
+    if r3_medium:
+        return (
+            "创新1：PRESENT → GIFT-64 跨 SPN 结构迁移 "
+            f"（E4-R3 中等规模，目标 seed {r3_medium.group('seed')}）"
+        )
     cleaned = stem.replace("_", " ").replace("-", " ")
     cleaned = " ".join(
         part

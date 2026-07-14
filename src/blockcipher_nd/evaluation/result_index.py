@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 DEFAULT_RESULT_ROOTS = (
     "local_smoke",
+    "local_diagnostic",
     "smoke",
     "remote_results",
     "remote_results_incomplete",
@@ -25,6 +26,10 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "e4_r3_two_seed_medium_signal_confirmed": "双 seed 中等规模迁移信号已确认",
+    "e4_r3_two_seed_medium_signal_unstable": "双 seed 中等规模迁移信号不稳定",
+    "e4_r3_seed_signal_preserved": "中等规模迁移信号保持",
+    "e4_r3_seed_margin_miss": "中等规模迁移差值未过门槛",
     "two_seed_transfer_signal_confirmed": "双 seed 迁移信号已确认",
     "promote_e4_r2": "进入 E4-R2 检查点迁移实验",
     "promote_e4_transfer_joint_gate": "进入双 seed 联合门控",
@@ -231,6 +236,28 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == (
+        "i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1"
+    ):
+        return "创新1 E4-R3：PRESENT → GIFT-64 跨 SPN 双 seed 中等规模联合裁决"
+    r3_medium = re.fullmatch(
+        r"i1_gift64_cross_spn_typed_transfer_r3_65536_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r3_medium:
+        return (
+            "创新1 E4-R3：PRESENT → GIFT-64 跨 SPN 中等规模迁移，"
+            f"目标 seed {r3_medium.group('seed')}"
+        )
+    r3_readiness = re.fullmatch(
+        r"i1_gift64_cross_spn_typed_transfer_r3_readiness_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if r3_readiness:
+        return (
+            "创新1 E4-R3：跨 SPN 中等规模实验就绪检查，"
+            f"目标 seed {r3_readiness.group('seed')}"
+        )
     if run_id == "i1_gift64_cross_spn_typed_transfer_r2_joint_seed0_seed1":
         return "创新1 E4-R2：PRESENT → GIFT-64 跨 SPN 双 seed 联合裁决"
     transfer = re.fullmatch(

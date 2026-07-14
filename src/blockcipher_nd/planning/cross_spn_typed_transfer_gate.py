@@ -38,6 +38,10 @@ _ANCHOR_OPTIONS = {
 }
 _TRUE_SOURCE_SHA = "eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1"
 _SHUFFLED_SOURCE_SHA = "fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22"
+_EXPERIMENT_BUDGETS = {
+    "e4_r2": (8192, 10),
+    "e4_r3": (65536, 10),
+}
 
 
 def gate_cross_spn_typed_transfer(
@@ -48,21 +52,24 @@ def gate_cross_spn_typed_transfer(
     samples_per_class: int = 8192,
     epochs: int = 10,
     readiness_only: bool = False,
+    experiment_stage: str = "e4_r2",
 ) -> dict[str, Any]:
     argument_errors = _argument_errors(
         expected_seeds=expected_seeds,
         samples_per_class=samples_per_class,
         epochs=epochs,
         readiness_only=readiness_only,
+        experiment_stage=experiment_stage,
     )
     if argument_errors:
-        return _invalid(argument_errors)
+        return _invalid(argument_errors, experiment_stage=experiment_stage)
     if len(results_paths) != 1 or len(progress_paths) != 1:
         return _invalid(
             [
-                "E4-R2 requires exactly one result/progress run "
+                f"{experiment_stage.upper()} requires exactly one result/progress run "
                 f"results={len(results_paths)} progress={len(progress_paths)}"
-            ]
+            ],
+            experiment_stage=experiment_stage,
         )
     rows, result_errors = _read_jsonl(results_paths[0], "results")
     progress, progress_errors = _read_jsonl(progress_paths[0], "progress")
@@ -84,7 +91,7 @@ def gate_cross_spn_typed_transfer(
         ),
     ]
     if errors:
-        return _invalid(errors)
+        return _invalid(errors, experiment_stage=experiment_stage)
 
     by_role = {
         role: next(
@@ -120,18 +127,25 @@ def gate_cross_spn_typed_transfer(
             "expected_seeds": list(expected_seeds),
             "samples_per_class": samples_per_class,
             "epochs": epochs,
+            "experiment_stage": experiment_stage,
             **evidence,
             "research_decision_applied": False,
-            "claim_scope": "E4-R2 readiness only; metrics not interpreted",
+            "claim_scope": (
+                f"{experiment_stage.upper()} readiness only; metrics not interpreted"
+            ),
             "next_action": (
-                "run_frozen_e4_r2_seed0_local_diagnostic"
-                if expected_seeds == (0,)
-                else "run_frozen_e4_r2_seed1_local_diagnostic"
+                f"run_frozen_{experiment_stage}_seed"
+                f"{expected_seeds[0]}_local_diagnostic"
             ),
             "stopped_actions": _stopped_actions("implementation_ready"),
         }
 
-    decision, next_action = _decision(aucs, margins, expected_seed=expected_seeds[0])
+    decision, next_action = _decision(
+        aucs,
+        margins,
+        expected_seed=expected_seeds[0],
+        experiment_stage=experiment_stage,
+    )
     return {
         "status": "pass",
         "decision": decision,
@@ -139,10 +153,11 @@ def gate_cross_spn_typed_transfer(
         "expected_seeds": list(expected_seeds),
         "samples_per_class": samples_per_class,
         "epochs": epochs,
+        "experiment_stage": experiment_stage,
         **evidence,
         "research_decision_applied": True,
         "claim_scope": (
-            f"{samples_per_class}/class E4-R2 local transfer diagnostic; "
+            f"{samples_per_class}/class {experiment_stage.upper()} local transfer diagnostic; "
             "not formal, paper-scale, remote, or breakthrough evidence"
         ),
         "next_action": next_action,
@@ -156,8 +171,14 @@ def _argument_errors(
     samples_per_class: Any,
     epochs: Any,
     readiness_only: bool,
+    experiment_stage: Any,
 ) -> list[str]:
     errors: list[str] = []
+    if experiment_stage not in _EXPERIMENT_BUDGETS:
+        errors.append(
+            "experiment_stage must be one of "
+            f"{sorted(_EXPERIMENT_BUDGETS)} actual={experiment_stage!r}"
+        )
     if expected_seeds not in {(0,), (1,)}:
         errors.append(
             "expected_seeds must equal one frozen target seed "
@@ -174,9 +195,15 @@ def _argument_errors(
             "readiness_only requires 64/class and 1 epoch "
             f"actual={samples_per_class}/class epochs={epochs}"
         )
-    if not readiness_only and (samples_per_class != 8192 or epochs != 10):
+    expected_budget = _EXPERIMENT_BUDGETS.get(experiment_stage)
+    if (
+        not readiness_only
+        and expected_budget is not None
+        and (samples_per_class, epochs) != expected_budget
+    ):
         errors.append(
-            "E4-R2 requires 8192/class and 10 epochs "
+            f"{experiment_stage.upper()} requires "
+            f"{expected_budget[0]}/class and {expected_budget[1]} epochs "
             f"actual={samples_per_class}/class epochs={epochs}"
         )
     return errors
@@ -470,7 +497,30 @@ def _decision(
     margins: dict[str, float],
     *,
     expected_seed: int,
+    experiment_stage: str,
 ) -> tuple[str, str]:
+    if experiment_stage == "e4_r3":
+        if margins["source_topology_margin"] <= 0.0:
+            return (
+                "e4_r3_source_topology_not_attributed",
+                "stop_mechanical_scale_and_audit_source_topology",
+            )
+        if margins["target_topology_margin"] <= 0.0:
+            return (
+                "e4_r3_target_topology_not_attributed",
+                "stop_mechanical_scale_and_audit_target_topology",
+            )
+        if margins["anchor_margin"] <= 0.0 or margins["scratch_margin"] <= 0.0:
+            return (
+                "e4_r3_transfer_rejected",
+                "stop_mechanical_scale_keep_within_cipher_evidence",
+            )
+        if _passes_transfer_thresholds(aucs, margins):
+            return "e4_r3_seed_signal_preserved", "run_e4_r3_joint_gate"
+        return (
+            "e4_r3_seed_margin_miss",
+            "stop_mechanical_scale_and_audit_seed_variance",
+        )
     if margins["source_topology_margin"] <= 0.0:
         return (
             "generic_pretraining_not_typed_transfer",
@@ -483,17 +533,24 @@ def _decision(
         )
     if margins["anchor_margin"] <= 0.0 or margins["scratch_margin"] <= 0.0:
         return "reject_e4_transfer", "stop_e4_transfer_keep_within_cipher_evidence"
-    if (
+    if _passes_transfer_thresholds(aucs, margins):
+        if expected_seed == 0:
+            return "promote_e4_transfer_seed1", "freeze_identical_e4_r2_seed1_repeat"
+        return "promote_e4_transfer_joint_gate", "run_frozen_e4_r2_joint_gate"
+    return "weak_transfer_no_scale", "stop_e4_transfer_scale_after_seed0_margin_miss"
+
+
+def _passes_transfer_thresholds(
+    aucs: dict[str, float],
+    margins: dict[str, float],
+) -> bool:
+    return (
         aucs["true_to_true"] >= 0.52
         and margins["anchor_margin"] >= 0.003
         and margins["scratch_margin"] >= 0.005
         and margins["source_topology_margin"] >= 0.003
         and margins["target_topology_margin"] >= 0.003
-    ):
-        if expected_seed == 0:
-            return "promote_e4_transfer_seed1", "freeze_identical_e4_r2_seed1_repeat"
-        return "promote_e4_transfer_joint_gate", "run_frozen_e4_r2_joint_gate"
-    return "weak_transfer_no_scale", "stop_e4_transfer_scale_after_seed0_margin_miss"
+    )
 
 
 def gate_cross_spn_typed_transfer_joint(
@@ -502,13 +559,16 @@ def gate_cross_spn_typed_transfer_joint(
     progress_paths: list[Path],
     samples_per_class: int = 8192,
     epochs: int = 10,
+    experiment_stage: str = "e4_r2",
 ) -> dict[str, Any]:
     if len(results_paths) != 2 or len(progress_paths) != 2:
         return _invalid(
             [
-                "E4-R2 joint gate requires seed0 and seed1 result/progress paths "
+                f"{experiment_stage.upper()} joint gate requires seed0 and seed1 "
+                "result/progress paths "
                 f"results={len(results_paths)} progress={len(progress_paths)}"
-            ]
+            ],
+            experiment_stage=experiment_stage,
         )
     per_seed = {
         str(seed): gate_cross_spn_typed_transfer(
@@ -517,6 +577,7 @@ def gate_cross_spn_typed_transfer_joint(
             expected_seeds=(seed,),
             samples_per_class=samples_per_class,
             epochs=epochs,
+            experiment_stage=experiment_stage,
         )
         for seed in (0, 1)
     }
@@ -527,10 +588,49 @@ def gate_cross_spn_typed_transfer_joint(
         for error in report["errors"]
     ]
     if invalid:
-        report = _invalid(invalid)
+        report = _invalid(invalid, experiment_stage=experiment_stage)
         report["expected_seeds"] = [0, 1]
         report["per_seed"] = per_seed
         return report
+    if experiment_stage == "e4_r3":
+        if all(
+            report["decision"] == "e4_r3_seed_signal_preserved"
+            for report in per_seed.values()
+        ):
+            decision = "e4_r3_two_seed_medium_signal_confirmed"
+            return {
+                "status": "pass",
+                "decision": decision,
+                "errors": [],
+                "expected_seeds": [0, 1],
+                "experiment_stage": experiment_stage,
+                "per_seed": per_seed,
+                "research_decision_applied": True,
+                "claim_scope": (
+                    "two-seed E4-R3 65536/class local medium diagnostic; "
+                    "not formal, paper-scale, remote, or breakthrough evidence"
+                ),
+                "next_action": (
+                    "design_e4_r4_262144_class_diagnostic_with_remote_readiness"
+                ),
+                "stopped_actions": _stopped_actions(decision),
+            }
+        decision = "e4_r3_two_seed_medium_signal_unstable"
+        return {
+            "status": "pass",
+            "decision": decision,
+            "errors": [],
+            "expected_seeds": [0, 1],
+            "experiment_stage": experiment_stage,
+            "per_seed": per_seed,
+            "research_decision_applied": True,
+            "claim_scope": (
+                "two-seed E4-R3 65536/class local medium diagnostic; "
+                "controls did not replicate across both seeds"
+            ),
+            "next_action": "stop_mechanical_scale_and_audit_seed_variance",
+            "stopped_actions": _stopped_actions(decision),
+        }
     if (
         per_seed["0"]["decision"] == "promote_e4_transfer_seed1"
         and per_seed["1"]["decision"] == "promote_e4_transfer_joint_gate"
@@ -540,6 +640,7 @@ def gate_cross_spn_typed_transfer_joint(
             "decision": "two_seed_transfer_signal_confirmed",
             "errors": [],
             "expected_seeds": [0, 1],
+            "experiment_stage": experiment_stage,
             "per_seed": per_seed,
             "research_decision_applied": True,
             "claim_scope": (
@@ -556,6 +657,7 @@ def gate_cross_spn_typed_transfer_joint(
         "decision": "two_seed_transfer_unstable_no_scale",
         "errors": [],
         "expected_seeds": [0, 1],
+        "experiment_stage": experiment_stage,
         "per_seed": per_seed,
         "research_decision_applied": True,
         "claim_scope": (
@@ -575,6 +677,10 @@ def _stopped_actions(decision: str) -> list[dict[str, str]]:
         actions = ("remote_scale", "sample_scale", "formal_claim")
     elif decision == "two_seed_transfer_signal_confirmed":
         actions = ("remote_scale", "formal_claim")
+    elif decision == "e4_r3_two_seed_medium_signal_confirmed":
+        actions = ("remote_launch", "sample_scale", "formal_claim")
+    elif decision == "e4_r3_seed_signal_preserved":
+        actions = ("remote_launch", "sample_scale", "formal_claim")
     else:
         actions = ("seed1", "remote_scale", "sample_scale", "formal_claim")
     return [
@@ -625,14 +731,23 @@ def _finite(value: Any) -> bool:
     return type(value) in {int, float} and math.isfinite(value)
 
 
-def _invalid(errors: list[str]) -> dict[str, Any]:
+def _invalid(
+    errors: list[str],
+    *,
+    experiment_stage: str = "e4_r2",
+) -> dict[str, Any]:
     return {
         "status": "fail",
         "decision": "invalid_e4_protocol",
         "errors": errors,
         "research_decision_applied": False,
-        "claim_scope": "invalid E4-R2 transfer evidence",
-        "next_action": "repair_e4_r2_protocol_and_replay_same_matrix",
+        "experiment_stage": experiment_stage,
+        "claim_scope": f"invalid {experiment_stage.upper()} transfer evidence",
+        "next_action": (
+            "repair_e4_r3_evidence_before_interpretation"
+            if experiment_stage == "e4_r3"
+            else "repair_e4_r2_protocol_and_replay_same_matrix"
+        ),
         "stopped_actions": _stopped_actions("invalid_e4_protocol"),
     }
 

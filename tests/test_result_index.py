@@ -26,6 +26,7 @@ def _set_mtime(path: Path, timestamp: float) -> None:
 def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
     assert DEFAULT_RESULT_ROOTS == (
         "local_smoke",
+        "local_diagnostic",
         "smoke",
         "remote_results",
         "remote_results_incomplete",
@@ -124,3 +125,26 @@ def test_result_index_supports_remote_nested_result_artifacts(tmp_path: Path) ->
     assert entries[0]["artifacts"]["curves"] == (
         f"remote_results/{run_id}/plots/{run_id}_curves.svg"
     )
+
+
+def test_result_index_supports_r3_local_diagnostic_chinese_names(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_gift64_cross_spn_typed_transfer_r3_65536_seed1"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {"status": "pass", "decision": "e4_r3_seed_signal_preserved"},
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["scope"] == "local_diagnostic"
+    assert "跨 SPN 中等规模迁移，目标 seed 1" in entries[0]["display_name"]
+    assert entries[0]["decision_display"] == "中等规模迁移信号保持"

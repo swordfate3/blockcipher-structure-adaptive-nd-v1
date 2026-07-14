@@ -278,6 +278,24 @@ def test_cross_spn_transfer_plot_explains_title_protocol_and_all_roles_in_chines
     for model in models:
         assert model not in visible_text
 
+    plot_jsonl_training_curves(
+        results,
+        output,
+        title="i1_gift64_cross_spn_typed_transfer_r3_readiness_seed1",
+    )
+    readiness_text = _visible_svg_text(ElementTree.parse(output).getroot())
+    assert "E4-R3 就绪检查，目标 seed 1" in readiness_text
+    assert "i1 gift64 cross spn typed transfer" not in readiness_text
+
+    plot_jsonl_training_curves(
+        results,
+        output,
+        title="i1_gift64_cross_spn_typed_transfer_r3_65536_seed1",
+    )
+    medium_text = _visible_svg_text(ElementTree.parse(output).getroot())
+    assert "E4-R3 中等规模，目标 seed 1" in medium_text
+    assert "i1 gift64 cross spn typed transfer" not in medium_text
+
 
 def test_plot_without_history_uses_generic_subtitle(tmp_path: Path) -> None:
     results = tmp_path / "results.jsonl"

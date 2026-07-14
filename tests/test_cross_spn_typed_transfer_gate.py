@@ -145,6 +145,22 @@ def test_cross_spn_transfer_manifest_strictly_loads_real_source_checkpoints(
             256,
             1,
         ),
+        (
+            "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed0.csv",
+            "gift64_cross_spn_typed_transfer_65536_seed0",
+            65536,
+            10,
+            256,
+            0,
+        ),
+        (
+            "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed1.csv",
+            "gift64_cross_spn_typed_transfer_65536_seed1",
+            65536,
+            10,
+            256,
+            1,
+        ),
     ],
 )
 def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
@@ -202,6 +218,33 @@ def test_cross_spn_transfer_matrices_build_exact_frozen_tasks(
     assert all(task["restore_best_checkpoint"] for task in tasks)
     assert args.epochs == epochs
     assert args.batch_size == batch_size
+
+
+def test_cross_spn_transfer_r3_matrices_differ_only_by_target_seed() -> None:
+    plan_root = Path("configs/experiment/innovation1")
+    seed0_plan = (
+        plan_root
+        / "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed0.csv"
+    )
+    seed1_plan = (
+        plan_root
+        / "innovation1_spn_gift64_cross_spn_typed_transfer_65536_seed1.csv"
+    )
+    with seed0_plan.open(newline="", encoding="utf-8") as handle:
+        seed0_rows = list(csv.DictReader(handle))
+    with seed1_plan.open(newline="", encoding="utf-8") as handle:
+        seed1_rows = list(csv.DictReader(handle))
+
+    assert len(seed0_rows) == len(seed1_rows) == 5
+    for seed0, seed1 in zip(seed0_rows, seed1_rows, strict=True):
+        assert seed0["seed"] == "0"
+        assert seed1["seed"] == "1"
+        assert seed0["family"].endswith("seed0")
+        assert seed1["family"].endswith("seed1")
+        for field in ("network", "family", "seed", "evidence"):
+            seed0.pop(field)
+            seed1.pop(field)
+        assert seed0 == seed1
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -630,6 +673,107 @@ def test_cross_spn_transfer_joint_stops_after_seed1_control_failure(
     }
 
 
+def test_cross_spn_transfer_r3_accepts_only_frozen_medium_budget(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "seed0.jsonl"
+    aucs = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    _write_transfer_run(results, aucs, samples_per_class=65536)
+
+    report = _gate(
+        results,
+        samples_per_class=65536,
+        experiment_stage="e4_r3",
+    )
+    wrong_budget = _gate(
+        results,
+        samples_per_class=8192,
+        experiment_stage="e4_r3",
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "e4_r3_seed_signal_preserved"
+    assert report["next_action"] == "run_e4_r3_joint_gate"
+    assert report["experiment_stage"] == "e4_r3"
+    assert wrong_budget["status"] == "fail"
+    assert any("65536/class" in error for error in wrong_budget["errors"])
+
+
+def test_cross_spn_transfer_r3_joint_confirms_two_medium_seeds(
+    tmp_path: Path,
+) -> None:
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    aucs = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    _write_transfer_run(seed0, aucs, samples_per_class=65536, seed=0)
+    _write_transfer_run(seed1, aucs, samples_per_class=65536, seed=1)
+
+    report = gate_cross_spn_typed_transfer_joint(
+        [seed0, seed1],
+        progress_paths=[_progress_path(seed0), _progress_path(seed1)],
+        samples_per_class=65536,
+        experiment_stage="e4_r3",
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "e4_r3_two_seed_medium_signal_confirmed"
+    assert report["next_action"] == (
+        "design_e4_r4_262144_class_diagnostic_with_remote_readiness"
+    )
+    assert {item["action"] for item in report["stopped_actions"]} == {
+        "remote_launch",
+        "sample_scale",
+        "formal_claim",
+    }
+
+
+def test_cross_spn_transfer_r3_joint_stops_after_margin_miss(
+    tmp_path: Path,
+) -> None:
+    seed0 = tmp_path / "seed0.jsonl"
+    seed1 = tmp_path / "seed1.jsonl"
+    passing = {
+        "gift_anchor": 0.500,
+        "gift_typed_scratch": 0.540,
+        "true_to_true": 0.560,
+        "shuffled_to_true": 0.550,
+        "true_to_shuffled": 0.545,
+    }
+    seed1_margin_miss = {**passing, "gift_typed_scratch": 0.557}
+    _write_transfer_run(seed0, passing, samples_per_class=65536, seed=0)
+    _write_transfer_run(
+        seed1,
+        seed1_margin_miss,
+        samples_per_class=65536,
+        seed=1,
+    )
+
+    report = gate_cross_spn_typed_transfer_joint(
+        [seed0, seed1],
+        progress_paths=[_progress_path(seed0), _progress_path(seed1)],
+        samples_per_class=65536,
+        experiment_stage="e4_r3",
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "e4_r3_two_seed_medium_signal_unstable"
+    assert report["next_action"] == (
+        "stop_mechanical_scale_and_audit_seed_variance"
+    )
+
+
 def test_cross_spn_transfer_gate_cli_forwards_seed1(
     tmp_path: Path,
 ) -> None:
@@ -664,6 +808,45 @@ def test_cross_spn_transfer_gate_cli_forwards_seed1(
     assert json.loads(output.read_text(encoding="utf-8"))["decision"] == (
         "promote_e4_transfer_joint_gate"
     )
+
+
+def test_cross_spn_transfer_gate_cli_forwards_r3_stage(tmp_path: Path) -> None:
+    from blockcipher_nd.cli.gate_cross_spn_typed_transfer import main
+
+    results = tmp_path / "seed1.jsonl"
+    output = tmp_path / "seed1-r3-gate.json"
+    _write_transfer_run(
+        results,
+        {
+            "gift_anchor": 0.500,
+            "gift_typed_scratch": 0.540,
+            "true_to_true": 0.560,
+            "shuffled_to_true": 0.550,
+            "true_to_shuffled": 0.545,
+        },
+        samples_per_class=65536,
+        seed=1,
+    )
+
+    assert main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--expected-seed",
+            "1",
+            "--samples-per-class",
+            "65536",
+            "--experiment-stage",
+            "e4_r3",
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["decision"] == "e4_r3_seed_signal_preserved"
+    assert report["experiment_stage"] == "e4_r3"
 
 
 def test_cross_spn_transfer_joint_cli_writes_two_seed_report(
