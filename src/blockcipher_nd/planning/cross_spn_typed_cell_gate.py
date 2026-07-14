@@ -237,6 +237,54 @@ def _decide_gift_scratch(
     return "gift_scratch_recorded", "defer_to_present_source_gate"
 
 
+def _decide_present_source_seed_robustness(
+    seed_reports: dict[str, dict[str, Any]],
+    *,
+    expected_seeds: tuple[int, ...],
+    **_: Any,
+) -> tuple[str, str]:
+    report = seed_reports[str(expected_seeds[0])]
+    observed = {
+        "absolute_auc": report["aucs"]["candidate"],
+        "architecture_margin": report["architecture_margin"],
+        "topology_margin": report["topology_margin"],
+        "representation_margin": report["representation_margin"],
+    }
+    thresholds = {
+        "absolute_auc": 0.65,
+        "architecture_margin": -0.01,
+        "topology_margin": 0.003,
+        "representation_margin": 0.003,
+    }
+    if all(observed[name] >= threshold for name, threshold in thresholds.items()):
+        return (
+            "e4_r5_source_seed_gate_pass",
+            "freeze_source_seed1_hashes_and_prepare_target_seed4_seed5",
+        )
+    return (
+        "e4_r5_source_seed_gate_fail",
+        "stop_formal_scale_retain_conditional_e4_r4_result",
+    )
+
+
+def _source_seed_stopped_actions(decision: str) -> list[dict[str, str]]:
+    if decision == "implementation_ready":
+        actions = ("interpret_readiness_metrics", "remote_target_launch")
+    elif decision == "e4_r5_source_seed_gate_pass":
+        actions = ("local_65536_per_class", "262144_per_class", "formal_scale")
+    else:
+        actions = (
+            "remote_target_launch",
+            "sample_scale",
+            "formal_scale",
+            "cross_spn_transfer_claim",
+        )
+    return [
+        {"action": action, "reason": f"stopped_by_decision:{decision}"}
+        for action in actions
+    ]
+
+
 def _stopped_actions(decision: str) -> list[dict[str, str]]:
     if decision == "implementation_ready":
         actions = ("interpret_r0_metrics", "remote_scale", "e4_r2")
@@ -300,6 +348,25 @@ _GIFT_GATE_SPEC = FourRoleGateSpec(
     decide=_decide_gift_scratch,
     stopped_actions=_stopped_actions,
     representation_role="raw_delta",
+)
+
+_E4_R5_PRESENT_PROTOCOL = replace(
+    _PRESENT_E4_PROTOCOL,
+    claim_prefix="strict PRESENT r7 E4-R5 independent source seed",
+    readiness_identity_label="E4-R5 source readiness",
+    readiness_claim_scope="E4-R5 source-seed1 readiness only; metrics not interpreted",
+    research_claim_suffix="local source-seed diagnostic only; not formal, paper-scale, remote, or breakthrough evidence",
+    readiness_seed_layout=(1,),
+)
+
+_E4_R5_PRESENT_GATE_SPEC = replace(
+    _PRESENT_GATE_SPEC,
+    protocol=_E4_R5_PRESENT_PROTOCOL,
+    allowed_seed_layouts=((1,),),
+    readiness_next_action="run_e4_r5_source_seed1_8192_gate",
+    claim_label="E4-R5 independent source-seed attribution diagnostic",
+    decide=_decide_present_source_seed_robustness,
+    stopped_actions=_source_seed_stopped_actions,
 )
 
 
@@ -412,8 +479,40 @@ def gate_cross_spn_typed_cell(
     }
 
 
+def gate_cross_spn_present_source_seed(
+    results_paths: list[Path],
+    *,
+    progress_paths: list[Path],
+    expected_seed: int = 1,
+    samples_per_class: int = 8192,
+    epochs: int = 10,
+    readiness_only: bool = False,
+) -> dict[str, Any]:
+    report = _evaluate(
+        results_paths,
+        progress_paths,
+        expected_seeds=(expected_seed,),
+        samples_per_class=samples_per_class,
+        epochs=epochs,
+        readiness_only=readiness_only,
+        spec=_E4_R5_PRESENT_GATE_SPEC,
+    )
+    if report["status"] != "pass":
+        return report
+    report["experiment_stage"] = "e4_r5_source_seed"
+    report["research_question"] = "independent PRESENT source checkpoint seed"
+    report["claim_scope"] = (
+        "E4-R5 source-seed1 readiness only; metrics not interpreted"
+        if readiness_only
+        else f"{samples_per_class}/class independent PRESENT source-seed diagnostic; "
+        "not formal, paper-scale, remote, target-adaptation, or breakthrough evidence"
+    )
+    return report
+
+
 __all__ = [
     "GIFT_CROSS_SPN_MODEL_ROLES",
     "PRESENT_CROSS_SPN_MODEL_ROLES",
+    "gate_cross_spn_present_source_seed",
     "gate_cross_spn_typed_cell",
 ]

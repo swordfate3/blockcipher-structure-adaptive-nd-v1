@@ -12,6 +12,7 @@ from blockcipher_nd.engine.matrix_runner import parse_args as parse_matrix_args
 from blockcipher_nd.planning.cross_spn_typed_cell_gate import (
     GIFT_CROSS_SPN_MODEL_ROLES,
     PRESENT_CROSS_SPN_MODEL_ROLES,
+    gate_cross_spn_present_source_seed,
     gate_cross_spn_typed_cell,
 )
 from blockcipher_nd.planning.matrix import build_tasks
@@ -191,6 +192,73 @@ def test_cross_spn_matrices_build_exact_frozen_tasks(
     assert args.train_eval_interval == 1
 
 
+@pytest.mark.parametrize(
+    ("filename", "family", "samples_per_class", "epochs", "batch_size"),
+    [
+        (
+            "innovation1_spn_present_cross_spn_typed_cell_source_seed1_readiness.csv",
+            "present_cross_spn_typed_cell_source_seed1_readiness",
+            64,
+            1,
+            32,
+        ),
+        (
+            "innovation1_spn_present_cross_spn_typed_cell_8192_source_seed1.csv",
+            "present_cross_spn_typed_cell_8192_source_seed1",
+            8192,
+            10,
+            256,
+        ),
+    ],
+)
+def test_e4_r5_source_seed1_matrices_change_only_source_seed(
+    filename: str,
+    family: str,
+    samples_per_class: int,
+    epochs: int,
+    batch_size: int,
+) -> None:
+    plan = Path("configs/experiment/innovation1") / filename
+    args = parse_matrix_args(
+        [
+            "--plan",
+            str(plan),
+            "--epochs",
+            str(epochs),
+            "--batch-size",
+            str(batch_size),
+            "--hidden-bits",
+            "32",
+            "--device",
+            "cpu",
+            "--dataset-cache-root",
+            str(Path("outputs/local_cache") / family),
+            "--dataset-cache-chunk-size",
+            "64" if samples_per_class == 64 else "512",
+            "--dataset-cache-workers",
+            "1" if samples_per_class == 64 else "4",
+            "--train-eval-interval",
+            "1",
+        ]
+    )
+    tasks = build_tasks(args)
+    with plan.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert len(tasks) == len(rows) == 4
+    assert [task["model_key"] for task in tasks] == list(PRESENT_ROLES.values())
+    assert {row["family"] for row in rows} == {family}
+    assert {task["seed"] for task in tasks} == {1}
+    assert {task["samples_per_class"] for task in tasks} == {samples_per_class}
+    assert {task["rounds"] for task in tasks} == {7}
+    assert {task["pairs_per_sample"] for task in tasks} == {16}
+    assert {task["sample_structure"] for task in tasks} == {
+        "zhang_wang_case2_official_mcnd"
+    }
+    assert args.epochs == epochs
+    assert args.batch_size == batch_size
+
+
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
@@ -211,6 +279,7 @@ def _write_cross_run(
     aucs: dict[str, float],
     *,
     cipher_key: str,
+    seed: int = 0,
     samples_per_class: int = 8192,
     epochs: int = 10,
 ) -> None:
@@ -223,6 +292,7 @@ def _write_cross_run(
             "shuffled_p": aucs["shuffled_p"],
             "delta_only": aucs["raw_delta"],
         },
+        seed=seed,
         samples_per_class=samples_per_class,
         epochs=epochs,
     )
@@ -463,5 +533,96 @@ def test_cross_spn_gate_cli_writes_json(
     report = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0
     assert report["decision"] == "promote_e4_r2"
+    assert output.read_text(encoding="utf-8").endswith("\n")
+    assert capsys.readouterr().out == json.dumps(report, sort_keys=True) + "\n"
+
+
+def test_e4_r5_source_seed_readiness_is_neutral(tmp_path: Path) -> None:
+    results = tmp_path / "source-seed1-readiness.jsonl"
+    _write_cross_run(
+        results,
+        {"anchor": 0.9, "candidate": 0.1, "shuffled_p": 0.2, "raw_delta": 0.3},
+        cipher_key="present80",
+        seed=1,
+        samples_per_class=64,
+        epochs=1,
+    )
+
+    report = gate_cross_spn_present_source_seed(
+        [results],
+        progress_paths=[_progress_path(results)],
+        expected_seed=1,
+        samples_per_class=64,
+        epochs=1,
+        readiness_only=True,
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "implementation_ready"
+    assert report["research_decision_applied"] is False
+    assert "metrics not interpreted" in report["claim_scope"]
+
+
+@pytest.mark.parametrize(
+    ("aucs", "decision"),
+    [
+        (
+            {"anchor": 0.660, "candidate": 0.670, "shuffled_p": 0.660, "raw_delta": 0.660},
+            "e4_r5_source_seed_gate_pass",
+        ),
+        (
+            {"anchor": 0.660, "candidate": 0.649, "shuffled_p": 0.640, "raw_delta": 0.630},
+            "e4_r5_source_seed_gate_fail",
+        ),
+    ],
+)
+def test_e4_r5_source_seed_gate_applies_frozen_r1_thresholds(
+    tmp_path: Path,
+    aucs: dict[str, float],
+    decision: str,
+) -> None:
+    results = tmp_path / "source-seed1.jsonl"
+    _write_cross_run(results, aucs, cipher_key="present80", seed=1)
+
+    report = gate_cross_spn_present_source_seed(
+        [results],
+        progress_paths=[_progress_path(results)],
+    )
+
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == decision
+    assert report["expected_seeds"] == [1]
+    assert report["research_decision_applied"] is True
+
+
+def test_e4_r5_source_seed_gate_cli_writes_json(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from blockcipher_nd.cli.gate_cross_spn_present_source_seed import main
+
+    results = tmp_path / "source-seed1.jsonl"
+    output = tmp_path / "nested" / "gate.json"
+    _write_cross_run(
+        results,
+        {"anchor": 0.660, "candidate": 0.670, "shuffled_p": 0.660, "raw_delta": 0.660},
+        cipher_key="present80",
+        seed=1,
+    )
+
+    exit_code = main(
+        [
+            "--results",
+            str(results),
+            "--progress",
+            str(_progress_path(results)),
+            "--output",
+            str(output),
+        ]
+    )
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert report["decision"] == "e4_r5_source_seed_gate_pass"
     assert output.read_text(encoding="utf-8").endswith("\n")
     assert capsys.readouterr().out == json.dumps(report, sort_keys=True) + "\n"
