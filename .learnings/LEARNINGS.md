@@ -42,6 +42,65 @@ unchanged.
 
 ---
 
+## [LRN-20260715-002] experiment_result
+
+**Logged**: 2026-07-15T07:10:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+E5-R0 rejected the easy topology-identity auxiliary source objective while retaining the ordinary E4 cross-SPN transfer signal.
+
+### Details
+The E5-R0 source candidate added a frozen true-versus-shuffled topology BCE to
+the shared typed SPN source model. Its auxiliary loss fell from about `0.069`
+to `0.0028`, but source AUC fell from the off anchor's `0.743810147047` to
+`0.729563534260`. The required target gate used one fixed PRESENT source seed,
+GIFT target seeds2 and 3, `8192/class`, exactly one target epoch, paired sample
+IDs, and 10,000 label-stratified bootstrap replicates.
+
+The candidate beat scratch on both target seeds, but it did not beat the
+auxiliary-off transfer anchor on either seed. On seed3 it also failed the
+shuffled-versus-shuffled placebo. The joint decision is
+`e5_r0_source_objective_rejected` with `errors=[]`.
+
+This separates two claims:
+
+- ordinary cross-SPN transfer from the shared typed representation remains
+  useful at this local budget;
+- predicting topology identity with an easy auxiliary head does not improve
+  transfer and must not be rescued by more samples, epochs, seeds, or auxiliary
+  scale tuning.
+
+The off role also had the highest source AUC and highest target AUC on both E5
+target seeds. This does not validate source AUC as a general transferability
+proxy, but it weakens the immediate case for a label-aware checkpoint-selection
+audit.
+
+### Suggested Action
+Keep E4's typed-topology representation result. Stop E5 source seed1 and all
+remote/mechanical E5 scaling. If source-objective research continues, change
+the mechanism to a label-preserving functional topology-margin loss with a
+same-compute shuffled placebo and the same paired target gate.
+
+### Metadata
+- Source: experiment_result
+- Related Files: docs/experiments/innovation1-cross-spn-e5-topology-counterfactual-source-objective-plan.md, outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/gate.json
+- Tags: innovation1, e5, cross-spn, transfer, source-objective, paired-bootstrap
+- See Also: LRN-20260715-001, LRN-20260714-001
+- Pattern-Key: innovation1.cross_spn.easy_topology_auxiliary_rejected
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+- **Resolved**: 2026-07-15T07:10:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Frozen E5 per-seed and joint gates completed; source seed1 and remote scale were stopped.
+
+---
+
 ## [LRN-20260715-001] best_practice
 
 **Logged**: 2026-07-15T04:02:10+08:00

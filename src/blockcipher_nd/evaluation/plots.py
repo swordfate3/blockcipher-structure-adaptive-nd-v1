@@ -580,6 +580,26 @@ def _display_title(title: str) -> str:
             "创新1：PRESENT → GIFT-64 目标适配效率 "
             f"（E4-R4 中等规模，目标 seed {r4_medium.group('seed')}）"
         )
+    e5_source = re.fullmatch(
+        r"i1_cross_spn_e5_source_objective_8192_seed(?P<seed>\d+)",
+        stem,
+    )
+    if e5_source:
+        return (
+            "创新1 E5-R0：PRESENT 源端拓扑反事实辅助目标 "
+            f"（本地诊断，源 seed {e5_source.group('seed')}）"
+        )
+    e5_target = re.fullmatch(
+        r"i1_cross_spn_e5_target_8192_source_seed(?P<source_seed>\d+)_"
+        r"target_seed(?P<target_seed>\d+)",
+        stem,
+    )
+    if e5_target:
+        return (
+            "创新1 E5-R0：PRESENT → GIFT-64 一轮迁移门控 "
+            f"（源 seed {e5_target.group('source_seed')}，"
+            f"目标 seed {e5_target.group('target_seed')}）"
+        )
     cleaned = stem.replace("_", " ").replace("-", " ")
     cleaned = " ".join(
         part
@@ -641,6 +661,13 @@ def _compact_label(item: dict[str, Any]) -> str:
         "gift_cross_spn_typed_cell_true_from_present_true": "PRESENT 真结构 → GIFT 真结构",
         "gift_cross_spn_typed_cell_true_from_present_shuffled": "PRESENT 打乱结构 → GIFT 真结构",
         "gift_cross_spn_typed_cell_shuffled_from_present_true": "PRESENT 真结构 → GIFT 打乱结构",
+        "present_cross_spn_typed_cell_e5_off": "源分类基线（辅助损失关闭）",
+        "present_cross_spn_typed_cell_e5_true_shuffled": "候选：真拓扑 vs 打乱拓扑",
+        "present_cross_spn_typed_cell_e5_shuffled_placebo": "安慰剂：打乱拓扑 vs 打乱拓扑",
+        "gift_cross_spn_typed_cell_e5_scratch": "GIFT 从零训练",
+        "gift_cross_spn_typed_cell_e5_from_present_off": "迁移基线：源辅助损失关闭",
+        "gift_cross_spn_typed_cell_e5_from_present_true_shuffled": "候选迁移：源真拓扑 vs 打乱拓扑",
+        "gift_cross_spn_typed_cell_e5_from_present_shuffled_placebo": "安慰剂迁移：源打乱 vs 打乱",
     }
     if model in aliases:
         return aliases[model]

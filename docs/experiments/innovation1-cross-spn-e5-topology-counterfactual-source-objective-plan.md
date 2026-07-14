@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** frozen before implementation and training
+**Status:** completed / E5-R0 rejected by the frozen two-target-seed gate
 
 ## Research Question
 
@@ -216,8 +216,128 @@ outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed1/
 Each completed result-producing run must refresh
 `outputs/00_RECENT_RESULTS.md` before reporting.
 
+## Completed Evidence
+
+### Phase 0 readiness
+
+Both readiness matrices passed before the diagnostic run:
+
+```text
+source readiness rows       = 3/3 plan-aligned
+target readiness rows       = 4/4 plan-aligned
+parameter count             = 196003 for every role
+strict transfer loads       = 3/3
+off auxiliary loss          = 0
+candidate/placebo aux loss  = finite and positive
+target auxiliary loss       = 0
+target cache create/reuse   = 2/6
+```
+
+Artifacts:
+
+```text
+outputs/local_smoke/i1_cross_spn_e5_source_objective_readiness/
+outputs/local_smoke/i1_cross_spn_e5_target_readiness/
+```
+
+### Source seed0 diagnostic
+
+The three source roles completed the frozen PRESENT-80 r7 protocol at
+`8192/class`, `4096/class` validation, 16 pairs/sample, and 10 epochs:
+
+| Source role | Validation AUC | Candidate delta | Auxiliary loss first -> final |
+| --- | ---: | ---: | ---: |
+| off | `0.743810147047` | `-` | `0 -> 0` |
+| true-vs-shuffled candidate | `0.729563534260` | `-0.014246612787` vs off | `0.069015298272 -> 0.002792217792` |
+| shuffled-vs-shuffled placebo | `0.734507858753` | `-0.004944324493` candidate vs placebo | `0.068998692790 -> 0.003047403119` |
+
+The auxiliary task was learned quickly, but the candidate source AUC was lower
+than both controls. Source AUC alone was not used to stop the run because the
+predeclared hypothesis concerned target adaptation.
+
+### Target seed2 and seed3 gates
+
+Each target role used `8192/class` GIFT-64 r6 training, `4096/class`
+validation, 4 pairs/sample, and exactly one target epoch. All four roles within
+a target seed shared paired labels and sample IDs. The intervals below use
+10,000 label-stratified paired bootstrap replicates.
+
+| Target seed | Scratch AUC | Off AUC | Candidate AUC | Placebo AUC |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | `0.531851321459` | `0.564548403025` | `0.564159154892` | `0.551355123520` |
+| 3 | `0.539322316647` | `0.582833975554` | `0.569158434868` | `0.570697873831` |
+
+| Target seed | Candidate - off | 95% CI | Candidate - placebo | 95% CI | Candidate - scratch | 95% CI |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | `-0.000389248133` | `[-0.007461518794, +0.006784310192]` | `+0.012804031372` | `[+0.004685210437, +0.020708804578]` | `+0.032307833433` | `[+0.017682593316, +0.046767933667]` |
+| 3 | `-0.013675540686` | `[-0.020925288647, -0.006522831321]` | `-0.001539438963` | `[-0.009335436672, +0.006125137210]` | `+0.029836118221` | `[+0.016395074874, +0.042713388801]` |
+
+The candidate beats scratch on both target seeds, showing that transfer itself
+remains useful at this local budget. It does not beat the stronger off-transfer
+anchor on either seed, and it fails the placebo control on seed3. Therefore the
+new source objective, not transfer in general, is rejected.
+
+```text
+status      = pass, errors=[]
+decision    = e5_r0_source_objective_rejected
+gate_pass   = false
+next_action = stop_e5_r0_no_source_seed1_or_remote_scale
+```
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e5_source_objective_8192_seed0/
+outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/
+  gate.json
+  summary.csv
+  curves.svg
+  target_seed2/{results.jsonl,history.csv,curves.svg,gate.json,paired_scores.csv.gz}
+  target_seed3/{results.jsonl,history.csv,curves.svg,gate.json,paired_scores.csv.gz}
+```
+
+## Verdict And Claim Scope
+
+```text
+discard = binary true-vs-shuffled topology auxiliary source objective
+keep    = E4 shared typed SPN representation and ordinary source transfer anchor
+stop    = source seed1 confirmation
+stop    = 65536/class remote medium expansion
+stop    = 262144/class and 1000000/class expansion
+stop    = auxiliary-scale tuning and extra target epochs
+scope   = local 8192/class diagnostic with one source seed and two target seeds;
+          not medium, formal, paper-scale, SOTA, or breakthrough evidence
+```
+
+The E4 descriptive source-AUC mismatch is not strengthened here. Across the
+three E5 source roles, the off role has the highest source AUC and also the
+highest target AUC on both target seeds. Three source roles are too few to
+validate a transferability estimator, but this ordering removes the immediate
+justification for spending the next slot on a label-aware checkpoint proxy.
+
 ## Recommended Next Action
 
-Implement only the auxiliary mode and its narrow tests, then execute Phase 0.
-If readiness passes, continue automatically to the local `8192/class` Phase 1
-source and target gates. Do not run `65536/class` locally under any condition.
+Design E6-R0 as a new source objective rather than an E5 rescue. The research
+question is whether the actual cryptanalytic classification loss can enforce a
+functional margin in favor of the cipher-spec true topology over a paired
+shuffled topology, avoiding E5's easy topology-identity head.
+
+```text
+same-budget anchor     = E5 off-transfer source seed0 and target seed2/3 scores
+required controls      = shuffled-vs-shuffled functional-margin placebo,
+                         GIFT scratch, auxiliary-off transfer
+one changed variable   = source functional topology-margin objective
+source scale           = 8192/class, seed0, 10 epochs, local
+target scale           = 8192/class, target seeds2/3, exactly 1 epoch, local
+advance gate           = candidate >= +0.004 AUC over off, placebo, and scratch
+                         with paired 95% CI lower > 0 on both target seeds
+conditional next step  = source seed1 local confirmation; only then may a
+                         65536/class remote medium plan be prepared
+stop                   = no E5 weight tuning, no extra target epochs, no local
+                         65536/class run, no 262144/1000000 mechanical scaling
+```
+
+E6-R0 must receive its own frozen plan and readiness gate before code or
+training. If a label-preserving functional counterfactual cannot be defined
+without changing the benchmark, keep E4 as the final controlled Innovation 1
+result instead of adding another architecture sweep.

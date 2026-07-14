@@ -483,6 +483,73 @@ outputs/local_diagnostic/i1_cross_spn_e4_final_synthesis_20260715/
 docs/experiments/innovation1-cross-spn-e4-final-synthesis.md
 ```
 
+## 2026-07-15 E5-R0 Source-Objective Completion Update
+
+E5-R0 tested whether an explicit true-versus-shuffled topology auxiliary head
+during PRESENT source training improves exactly-one-epoch GIFT adaptation.
+Every source role had the same 196,003 parameters, main classifier, data,
+optimizer, restored-best checkpoint rule, and frozen auxiliary scale. The
+candidate was compared against both an auxiliary-off anchor and an equal-
+capacity shuffled-versus-shuffled placebo.
+
+The source seed0 `8192/class` diagnostic produced:
+
+```text
+off source AUC                         = 0.743810147047
+true-vs-shuffled candidate source AUC  = 0.729563534260
+shuffled placebo source AUC            = 0.734507858753
+candidate - off                        = -0.014246612787
+candidate - placebo                    = -0.004944324493
+```
+
+The target gate held the same source checkpoints fixed and crossed them onto
+GIFT target seeds2 and 3 at `8192/class`, `4096/class` validation, and exactly
+one target epoch:
+
+```text
+target seed2 candidate - off      = -0.000389248133
+95% CI                            = [-0.007461518794, +0.006784310192]
+target seed2 candidate - placebo  = +0.012804031372
+target seed2 candidate - scratch  = +0.032307833433
+
+target seed3 candidate - off      = -0.013675540686
+95% CI                            = [-0.020925288647, -0.006522831321]
+target seed3 candidate - placebo  = -0.001539438963
+target seed3 candidate - scratch  = +0.029836118221
+```
+
+Both candidate transfers beat scratch, so the ordinary E4 transfer signal is
+still present. The new objective fails the stronger question: it does not beat
+the auxiliary-off anchor on either seed and fails the placebo control on
+seed3. The paired score provenance, 10,000-replicate bootstrap, and plan
+alignment all pass with empty error lists.
+
+```text
+decision    = e5_r0_source_objective_rejected
+keep        = E4 shared typed SPN representation and ordinary transfer anchor
+discard     = binary topology-identity auxiliary source objective
+remote      = no
+stop        = source seed1, 65536/class, 262144/class, 1000000/class,
+              auxiliary-scale tuning, extra target epochs
+claim scope = local 8192/class diagnostic; not medium, formal, paper-scale,
+              SOTA, or breakthrough evidence
+```
+
+The next bounded hypothesis is E6-R0: use the actual cryptanalytic label loss
+to enforce a functional true-topology-versus-shuffled-topology source margin,
+with an equal-compute shuffled-versus-shuffled placebo. This is a new objective,
+not an E5 parameter rescue. It must first pass local readiness and the same
+two-target-seed `8192/class` paired gate. `65536/class` remains remote-only and
+is forbidden unless the entire local E6 gate passes.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_cross_spn_e5_source_objective_8192_seed0/
+outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/
+docs/experiments/innovation1-cross-spn-e5-topology-counterfactual-source-objective-plan.md
+```
+
 ## Current Interpretation
 
 Innovation 1 still has a viable method-level story, but the center of gravity

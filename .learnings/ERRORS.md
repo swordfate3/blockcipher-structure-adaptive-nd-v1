@@ -50,6 +50,80 @@ layout repair.
 
 ---
 
+## [ERR-20260715-002] local_torch_cuda_driver_mismatch
+
+**Logged**: 2026-07-15T07:10:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+The local host exposes an RTX 5080 through `nvidia-smi`, but project PyTorch cannot initialize CUDA.
+
+### Error
+```text
+RuntimeError: Found no NVIDIA driver on your system
+```
+
+### Context
+- Local E5 `8192/class` diagnostics were eligible for local execution but had
+  to use CPU because PyTorch CUDA initialization failed.
+- `nvidia-smi` can see the RTX 5080, so device visibility and the PyTorch CUDA
+  runtime/driver view disagree.
+- This is not permission to run `65536/class` or larger jobs on local CPU.
+  Innovation 1 SPN/PRESENT/GIFT `65536/class` and above remain remote-only.
+
+### Suggested Fix
+Audit the local PyTorch CUDA build, NVIDIA driver/library visibility inside the
+project environment, and `LD_LIBRARY_PATH` before relying on local CUDA. Until
+verified, use CPU only for sub-medium smoke/readiness/diagnostics and use the
+remote `lxy-a6000` workflow for eligible medium experiments.
+
+### Metadata
+- Reproducible: yes
+- Related Files: AGENTS.md, pyproject.toml
+- See Also: LRN-20260628-001
+
+---
+
+## [ERR-20260715-003] jq_not_installed_in_local_environment
+
+**Logged**: 2026-07-15T07:10:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+An E5 JSON summary command failed because the local environment does not provide `jq`.
+
+### Error
+```text
+/bin/bash: line 1: jq: command not found
+```
+
+### Context
+- Operation: extract compact fields from E5 source and target gate JSON files.
+- The experiment artifacts were valid; only the optional shell summarizer was
+  unavailable.
+- The same fields were read successfully with `UV_CACHE_DIR=/tmp/uv-cache uv
+  run python`.
+
+### Suggested Fix
+Use the project Python environment for JSON summaries unless `command -v jq`
+has confirmed availability.
+
+### Metadata
+- Reproducible: yes
+- Related Files: outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/gate.json
+- See Also: ERR-20260706-001
+
+### Resolution
+- **Resolved**: 2026-07-15T07:10:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Re-ran the summaries through `uv run python`; all required values were extracted.
+
+---
+
 ## [ERR-20260715-001] e4_r4_windows_postprocess_recovery
 
 **Logged**: 2026-07-15T03:10:00+08:00

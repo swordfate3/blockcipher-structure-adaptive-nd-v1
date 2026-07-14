@@ -316,6 +316,65 @@ def test_cross_spn_transfer_plot_explains_title_protocol_and_all_roles_in_chines
     assert "i1 gift64 cross spn target adaptation" not in r4_medium_text
 
 
+def test_e5_plot_explains_source_objective_roles_in_chinese(tmp_path: Path) -> None:
+    results = tmp_path / "results.jsonl"
+    output = tmp_path / "curves.svg"
+    models = (
+        "gift_cross_spn_typed_cell_e5_scratch",
+        "gift_cross_spn_typed_cell_e5_from_present_off",
+        "gift_cross_spn_typed_cell_e5_from_present_true_shuffled",
+        "gift_cross_spn_typed_cell_e5_from_present_shuffled_placebo",
+    )
+    labels = (
+        "GIFT 从零训练",
+        "迁移基线：源辅助损失关闭",
+        "候选迁移：源真拓扑 vs 打乱拓扑",
+        "安慰剂迁移：源打乱 vs 打乱",
+    )
+    rows = [
+        {
+            "cipher": "GIFT-64",
+            "model": model,
+            "selected_model": model,
+            "rounds": 6,
+            "seed": 3,
+            "samples_per_class": 8192,
+            "pairs_per_sample": 4,
+            "validation": {"samples_per_class": 4096},
+            "history": [
+                {
+                    "epoch": 1,
+                    "train_accuracy": 0.52 + index * 0.01,
+                    "train_auc": 0.53 + index * 0.01,
+                    "train_eval_loss": 0.69 - index * 0.001,
+                    "val_accuracy": 0.51 + index * 0.01,
+                    "val_auc": 0.52 + index * 0.01,
+                    "val_loss": 0.692 - index * 0.001,
+                }
+            ],
+        }
+        for index, model in enumerate(models)
+    ]
+    results.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    plot_jsonl_training_curves(
+        results,
+        output,
+        title="i1_cross_spn_e5_target_8192_source_seed0_target_seed3",
+    )
+
+    visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
+    assert "创新1 E5-R0：PRESENT → GIFT-64 一轮迁移门控" in visible_text
+    assert "源 seed 0，目标 seed 3" in visible_text
+    for label in labels:
+        assert label in visible_text
+    for model in models:
+        assert model not in visible_text
+
+
 def test_plot_without_history_uses_generic_subtitle(tmp_path: Path) -> None:
     results = tmp_path / "results.jsonl"
     output = tmp_path / "curves.svg"

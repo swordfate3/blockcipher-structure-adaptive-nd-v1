@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** literature and local-evidence audit complete / E5-R0 selected
+**Status:** E5-R0 completed and rejected / source-objective ranking closed
 
 ## Decision Question
 
@@ -135,8 +135,20 @@ may influence source checkpoint selection.
 
 ## Recommended Next Action
 
-Implement the minimal shared-encoder auxiliary objective and execute the
-predeclared E5-R0 local readiness and diagnostic gates. Do not launch
-`65536/class` until the local target-adaptation cells beat the auxiliary-off
-anchor and shuffled-placebo control under paired score gates. If the local gate
-fails, discard the objective rather than increasing samples or epochs.
+E5-R0 completed and was rejected on both target seeds. The candidate did not
+beat the auxiliary-off transfer anchor on either seed, and seed3 also failed
+the shuffled-placebo control. Do not launch `65536/class`, train source seed1,
+tune the auxiliary scale, or add target epochs.
+
+The off role had both the highest PRESENT source AUC and the highest GIFT target
+AUC on target seeds2 and 3. This small crossed result does not validate source
+AUC as a universal transfer proxy, but it weakens the immediate motivation for
+the held label-aware E5-A1 checkpoint audit. Keep E5-A1 held rather than using
+GIFT labels to select source checkpoints.
+
+The next admissible hypothesis must replace the easy topology-identity
+auxiliary task with a label-preserving functional question: can the same
+cryptanalytic classification loss make the true cipher-spec topology perform
+better than a paired shuffled topology during source training? Rank and freeze
+that E6-R0 objective against the existing E5 off anchor and a same-compute
+shuffled-vs-shuffled placebo before implementation.
