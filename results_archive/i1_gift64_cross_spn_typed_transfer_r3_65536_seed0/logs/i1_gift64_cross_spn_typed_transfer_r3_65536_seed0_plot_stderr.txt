@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0\source\scripts\plot-results", line 8, in <module>
+    from blockcipher_nd.cli.plot_results import main
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0\source\src\blockcipher_nd\cli\plot_results.py", line 3, in <module>
+    from blockcipher_nd.evaluation.plot_results import main
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0\source\src\blockcipher_nd\evaluation\plot_results.py", line 7, in <module>
+    from blockcipher_nd.evaluation.plots import DEFAULT_METRICS, plot_jsonl_training_curves, write_history_csv
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0\source\src\blockcipher_nd\evaluation\plots.py", line 17, in <module>
+    import matplotlib
+ModuleNotFoundError: No module named 'matplotlib'

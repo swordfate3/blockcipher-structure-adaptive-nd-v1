@@ -1,0 +1,58 @@
+{
+  "aucs": {
+    "gift_anchor": 0.5792495738714933,
+    "gift_typed_scratch": 0.5883168103173375,
+    "shuffled_to_true": 0.5871739885769784,
+    "true_to_shuffled": 0.5073309084400535,
+    "true_to_true": 0.5885651088319719
+  },
+  "cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_gift64_cross_spn_typed_transfer_r3_65536_seed0\\cache",
+  "claim_scope": "65536/class E4-R3 remote medium transfer diagnostic; not formal, paper-scale, SOTA, or breakthrough evidence",
+  "decision": "e4_r3_seed_margin_miss",
+  "epochs": 10,
+  "errors": [],
+  "expected_seeds": [
+    0
+  ],
+  "experiment_stage": "e4_r3",
+  "margins": {
+    "anchor_margin": 0.009315534960478544,
+    "scratch_margin": 0.0002482985146343708,
+    "source_topology_margin": 0.0013911202549934387,
+    "target_topology_margin": 0.08123420039191842
+  },
+  "models": {
+    "gift_anchor": "gift_cross_spn_aligned_token_mixer_raw_anchor",
+    "gift_typed_scratch": "gift_cross_spn_typed_cell_true",
+    "shuffled_to_true": "gift_cross_spn_typed_cell_true_from_present_shuffled",
+    "true_to_shuffled": "gift_cross_spn_typed_cell_shuffled_from_present_true",
+    "true_to_true": "gift_cross_spn_typed_cell_true_from_present_true"
+  },
+  "next_action": "stop_mechanical_scale_and_audit_seed_variance",
+  "research_decision_applied": true,
+  "samples_per_class": 65536,
+  "source_checkpoint_sha256": {
+    "shuffled": "fff2e23d55c0daa3c8b3a346d2a3e5b66a3bbf2848e7f59d8aae87f7118e7c22",
+    "true": "eae5ef9175fea3abeff7a78bc1608ac1922200dc341e7872c793eaba880a71c1"
+  },
+  "status": "pass",
+  "stopped_actions": [
+    {
+      "action": "seed1",
+      "reason": "stopped_by_decision:e4_r3_seed_margin_miss"
+    },
+    {
+      "action": "remote_scale",
+      "reason": "stopped_by_decision:e4_r3_seed_margin_miss"
+    },
+    {
+      "action": "sample_scale",
+      "reason": "stopped_by_decision:e4_r3_seed_margin_miss"
+    },
+    {
+      "action": "formal_claim",
+      "reason": "stopped_by_decision:e4_r3_seed_margin_miss"
+    }
+  ],
+  "typed_parameter_count": 187426
+}
