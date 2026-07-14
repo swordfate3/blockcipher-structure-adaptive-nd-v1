@@ -4998,9 +4998,9 @@ Promote this to `AGENTS.md` under research execution or remote workflow. Future 
 - Tags: experiments, smoke, remote-training, tmux-monitor, workflow, innovation1
 - See Also: LRN-20260622-001, LRN-20260627-001
 - Pattern-Key: workflow.training.smoke_then_remote_launch
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-06-28
-- Last-Seen: 2026-07-14
+- Last-Seen: 2026-07-15
 - Promoted: AGENTS.md
 
 ---
