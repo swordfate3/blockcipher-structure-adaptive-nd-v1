@@ -216,6 +216,7 @@ git rev-parse HEAD > "%JOINT_ROOT%\joint_branch_revision.txt" 2>&1 || exit /b 1
 xcopy /E /I /Y "%JOINT_ARCHIVE%" "%JOINT_ROOT%\results_archive\%JOINT_ID%" > nul || exit /b 1
 echo pushed>"%JOINT_ROOT%\result_branch_pushed.marker"
 echo done>"%JOINT_ROOT%\joint_done.marker"
+git checkout results/%RUN_ID% > "%JOINT_ROOT%\joint_source_restore.txt" 2>&1 || exit /b 1
 rmdir "%JOINT_LOCK%"
 exit /b 0
 

@@ -283,6 +283,7 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     assert "p.name!='SHA256SUMS'" not in run_script
     assert "not p.name == 'SHA256SUMS'" in run_script
     assert 'echo expected_rows=4 >> "%LOG_DIR%' in run_script
+    assert 'git checkout results/%RUN_ID%' in run_script
     assert "git add \"results_archive\\%RUN_ID%\"" in run_script
     assert "git add ." not in run_script
     assert "cmd.exe /k" not in run_script.lower()
@@ -316,6 +317,7 @@ def test_e4_r4_remote_assets_lock_scoring_bootstrap_and_unattended_launch() -> N
     assert recovery.count("git add \"results_archive\\%RUN_ID%\"") == 1
     assert "git add ." not in recovery
     assert "recovery_commit.txt" in recovery
+    assert 'git checkout results/%SEED2_ID%' in recovery
     assert "cmd.exe /k" not in recovery.lower()
 
 
