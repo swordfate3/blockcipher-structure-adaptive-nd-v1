@@ -306,3 +306,61 @@ def test_result_index_supports_innovation2_calibration_chinese_labels(
     assert entries[0]["decision_display"] == (
         "标签稳定但校准仍不足，下一步仅加入 P-layer 可达性特征"
     )
+
+
+def test_result_index_supports_innovation2_ranking_chinese_labels(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_integral_parity_ranking_utility_seed0"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation2_integral_ranking_utility_advance_independent_confirmation"
+            ),
+        },
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2 E2：PRESENT 5轮积分输出平衡候选排序与 top-16 效用审判"
+    )
+    assert entries[0]["decision_display"] == (
+        "排序与 top-16 筛选效用过门，进入独立 seed1 确认"
+    )
+
+
+def test_result_index_supports_innovation2_joint_ranking_labels(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_integral_parity_ranking_utility_joint_seed0_seed1"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_integral_ranking_utility_two_seed_confirmed",
+        },
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2 E3：PRESENT 5轮积分输出候选排序双 seed 联合裁决"
+    )
+    assert entries[0]["decision_display"] == (
+        "双 seed 排序与 top-16 效用确认，进入几何组合留出"
+    )

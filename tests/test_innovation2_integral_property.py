@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -7,6 +8,12 @@ import numpy as np
 
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.run_innovation2_integral_property import main
+from blockcipher_nd.cli.evaluate_innovation2_integral_ranking import (
+    main as ranking_main,
+)
+from blockcipher_nd.cli.summarize_innovation2_integral_ranking import (
+    main as ranking_summary_main,
+)
 from blockcipher_nd.tasks.innovation2.integral_property_calibration import (
     IntegralCalibrationConfig,
     adjudicate_calibration,
@@ -21,6 +28,11 @@ from blockcipher_nd.tasks.innovation2.integral_property_prediction import (
     build_integral_split,
     integral_mask_parity,
     summarize_splits,
+)
+from blockcipher_nd.tasks.innovation2.integral_property_ranking import (
+    adjudicate_joint_integral_ranking,
+    evaluate_integral_ranking,
+    spearman_correlation,
 )
 
 
@@ -334,3 +346,223 @@ def test_cli_writes_complete_calibration_smoke_artifacts(tmp_path: Path) -> None
     assert summary["key_splits_disjoint"] is True
     assert summary["stability_structures_match_test"] is True
     assert len(prediction_lines) == 1 + 3 * (16 * (8 + 8 + 8 + 16))
+
+
+def test_spearman_correlation_uses_average_ranks_for_ties() -> None:
+    values = [0.1, 0.1, 0.4, 0.8]
+
+    assert spearman_correlation(values, values) == 1.0
+    assert spearman_correlation(values, list(reversed(values))) < -0.80
+
+
+def test_integral_ranking_gate_requires_attributed_top16_utility() -> None:
+    source_rows = _ranking_source_rows()
+    source_gate = _ranking_source_gate()
+
+    result = evaluate_integral_ranking(
+        run_id="i2-ranking-test",
+        source_rows=source_rows,
+        source_gate=source_gate,
+    )
+
+    gate = result["gate"]
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation2_integral_ranking_utility_advance_independent_confirmation"
+    )
+    assert gate["training_performed"] is False
+    assert all(gate["checks"].values())
+    assert len(result["rows"]) == 3
+    assert len(result["ranking_rows"]) == 128
+    assert sum(
+        row["candidate_selected_top16"] for row in result["ranking_rows"]
+    ) == 16
+
+
+def test_integral_ranking_preserves_source_seed_and_confirmation_decision() -> None:
+    result = evaluate_integral_ranking(
+        run_id="i2-ranking-seed1-test",
+        source_rows=_ranking_source_rows(),
+        source_gate=_ranking_source_gate(seed=1),
+    )
+
+    assert {row["seed"] for row in result["rows"]} == {1}
+    assert result["gate"]["decision"] == (
+        "innovation2_integral_ranking_utility_independent_confirmation_passed"
+    )
+
+
+def test_joint_integral_ranking_requires_seed0_and_seed1_passes() -> None:
+    seed0 = evaluate_integral_ranking(
+        run_id="ranking-seed0",
+        source_rows=_ranking_source_rows(),
+        source_gate=_ranking_source_gate(seed=0),
+    )["gate"]
+    seed1 = evaluate_integral_ranking(
+        run_id="ranking-seed1",
+        source_rows=_ranking_source_rows(),
+        source_gate=_ranking_source_gate(seed=1),
+    )["gate"]
+    seed0["run_id"] = "i2_ranking_seed0"
+    seed1["run_id"] = "i2_ranking_seed1"
+
+    result = adjudicate_joint_integral_ranking(
+        run_id="i2-ranking-joint-test",
+        source_gates=[seed1, seed0],
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["decision"] == (
+        "innovation2_integral_ranking_utility_two_seed_confirmed"
+    )
+    assert result["gate"]["checks"] == {
+        "exact_seed0_seed1_pair": True,
+        "frozen_thresholds_match": True,
+        "both_seed_gates_pass": True,
+    }
+    assert [row["seed"] for row in result["rows"]] == [0, 1]
+
+
+def test_integral_ranking_cli_writes_read_only_e2_artifacts(tmp_path: Path) -> None:
+    source_root = tmp_path / "source"
+    output_root = tmp_path / "output"
+    source_root.mkdir()
+    source_rows = _ranking_source_rows()
+    with (source_root / "structure_rates.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(source_rows[0]))
+        writer.writeheader()
+        writer.writerows(source_rows)
+    (source_root / "gate.json").write_text(
+        json.dumps(_ranking_source_gate()),
+        encoding="utf-8",
+    )
+
+    status = ranking_main(
+        [
+            "--run-id",
+            "i2-ranking-cli-test",
+            "--source-root",
+            str(source_root),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    for name in (
+        "results.jsonl",
+        "ranking.csv",
+        "gate.json",
+        "curves.svg",
+        "progress.jsonl",
+    ):
+        assert (output_root / name).is_file()
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    progress = [
+        json.loads(line)
+        for line in (output_root / "progress.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    svg = (output_root / "curves.svg").read_text(encoding="utf-8")
+    assert gate["training_performed"] is False
+    assert [item["event"] for item in progress] == ["run_start", "run_done"]
+    assert "积分输出平衡候选排序审判" in svg
+    assert "top-16" in svg
+    assert "训练轮次" not in svg
+
+
+def test_joint_integral_ranking_cli_writes_complete_artifacts(
+    tmp_path: Path,
+) -> None:
+    gate_paths: list[Path] = []
+    for seed in (0, 1):
+        source_gate = _ranking_source_gate(seed=seed)
+        gate = evaluate_integral_ranking(
+            run_id=f"i2-ranking-seed{seed}",
+            source_rows=_ranking_source_rows(),
+            source_gate=source_gate,
+        )["gate"]
+        gate["run_id"] = f"i2_ranking_seed{seed}"
+        gate_path = tmp_path / f"seed{seed}-gate.json"
+        gate_path.write_text(json.dumps(gate), encoding="utf-8")
+        gate_paths.append(gate_path)
+    output_root = tmp_path / "joint"
+
+    status = ranking_summary_main(
+        [
+            "--run-id",
+            "i2-ranking-joint-cli-test",
+            "--source-gates",
+            str(gate_paths[0]),
+            str(gate_paths[1]),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    for name in (
+        "results.jsonl",
+        "seed_metrics.csv",
+        "gate.json",
+        "curves.svg",
+        "progress.jsonl",
+    ):
+        assert (output_root / name).is_file()
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    svg = (output_root / "curves.svg").read_text(encoding="utf-8")
+    assert gate["status"] == "pass"
+    assert gate["training_performed"] is False
+    assert "双 seed 联合裁决" in svg
+
+
+def _ranking_source_gate(seed: int = 0) -> dict[str, object]:
+    return {
+        "status": "hold",
+        "decision": "innovation2_integral_rate_target_unstable",
+        "run_id": f"i2_present_r5_integral_parity_calibration_seed{seed}",
+    }
+
+
+def _ranking_source_rows() -> list[dict[str, str]]:
+    structure_count = 128
+    observed = np.linspace(0.0, 1.0, structure_count)
+    candidate = observed.copy()
+    linear = observed[::-1].copy()
+    control_selection_order: list[int] = []
+    for index in range(8):
+        control_selection_order.extend((index, structure_count - 1 - index))
+    control_selection_order.extend(
+        index
+        for index in range(structure_count)
+        if index not in set(control_selection_order)
+    )
+    control = np.empty(structure_count, dtype=np.float64)
+    for rank, index in enumerate(control_selection_order):
+        control[index] = rank / float(structure_count - 1)
+
+    rows: list[dict[str, str]] = []
+    for index in range(structure_count):
+        rows.append(
+            {
+                "structure_id": f"test-{index:06d}",
+                "signature": f"a{index % 16:02d}-o{(index // 2) % 16:02d}",
+                "active_nibble": str(index % 16),
+                "output_nibble": str((index // 2) % 16),
+                "output_mask": f"{1 + index % 15:04b}",
+                "observed_q1_rate_256key": str(observed[index]),
+                "linear_same_input_calibrated_predicted_q1_rate": str(
+                    linear[index]
+                ),
+                "structure_mlp_calibrated_predicted_q1_rate": str(
+                    candidate[index]
+                ),
+                "structure_mlp_shuffled_labels_calibrated_predicted_q1_rate": str(
+                    control[index]
+                ),
+            }
+        )
+    return rows

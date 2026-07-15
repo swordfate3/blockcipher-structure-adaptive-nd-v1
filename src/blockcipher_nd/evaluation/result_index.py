@@ -66,6 +66,27 @@ DECISION_LABELS = {
     "innovation2_integral_calibration_insufficient": (
         "标签稳定但校准仍不足，下一步仅加入 P-layer 可达性特征"
     ),
+    "innovation2_integral_ranking_utility_advance_independent_confirmation": (
+        "排序与 top-16 筛选效用过门，进入独立 seed1 确认"
+    ),
+    "innovation2_integral_ranking_utility_independent_confirmation_passed": (
+        "独立 seed1 排序与 top-16 效用通过，进入双 seed 联合裁决"
+    ),
+    "innovation2_integral_ranking_utility_two_seed_confirmed": (
+        "双 seed 排序与 top-16 效用确认，进入几何组合留出"
+    ),
+    "innovation2_integral_ranking_utility_two_seed_not_confirmed": (
+        "双 seed 排序效用未确认，停止几何留出与扩规模"
+    ),
+    "innovation2_integral_ranking_control_not_attributed": (
+        "打乱控制也有 top-16 优势，当前筛选效用不可归因"
+    ),
+    "innovation2_integral_ranking_explanatory_only": (
+        "只有排序相关性过门，保留为解释性证据"
+    ),
+    "innovation2_integral_ranking_redesign_representation": (
+        "当前结构表示无稳定排序效用，先加入 P-layer 可达性特征"
+    ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
     ),
@@ -312,6 +333,28 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E1：PRESENT 5轮积分平衡概率独立校准 Smoke"
     if run_id == "i2_present_r5_integral_parity_calibration_seed0":
         return "创新2 E1：PRESENT 5轮积分平衡概率校准与标签稳定性诊断"
+    if run_id == "i2_present_r5_integral_parity_ranking_utility_seed0":
+        return "创新2 E2：PRESENT 5轮积分输出平衡候选排序与 top-16 效用审判"
+    if run_id == "i2_present_r5_integral_parity_ranking_utility_joint_seed0_seed1":
+        return "创新2 E3：PRESENT 5轮积分输出候选排序双 seed 联合裁决"
+    ranking_seed = re.fullmatch(
+        r"i2_present_r5_integral_parity_ranking_utility_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if ranking_seed:
+        return (
+            "创新2 E3：PRESENT 5轮积分输出平衡候选排序独立确认，"
+            f"seed {ranking_seed.group('seed')}"
+        )
+    calibration_seed = re.fullmatch(
+        r"i2_present_r5_integral_parity_calibration_seed(?P<seed>\d+)",
+        run_id,
+    )
+    if calibration_seed:
+        return (
+            "创新2 E3：PRESENT 5轮积分平衡概率与标签稳定性独立诊断，"
+            f"seed {calibration_seed.group('seed')}"
+        )
     if run_id == "i1_cross_spn_e4_final_synthesis_20260715":
         return "创新1 E4：跨 SPN 类型拓扑四个目标 cell 最终证据综合"
     if run_id == "i1_gift64_cross_spn_source_seed_r5_65536_joint_seed4_seed5":
