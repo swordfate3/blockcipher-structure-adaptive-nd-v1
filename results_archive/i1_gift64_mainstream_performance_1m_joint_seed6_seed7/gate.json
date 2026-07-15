@@ -1,0 +1,12 @@
+{
+  "claim_scope": "two-target-seed GIFT-64 r6 1000000/class large-scale same-protocol architecture comparison; not exact paper-protocol or SOTA evidence",
+  "decision": "two_seed_large_scale_mainstream_superiority_candidate",
+  "errors": [],
+  "next_action": "run_paired_interval_gate_then_freeze_exact_sun_protocol_plan",
+  "research_decision_applied": true,
+  "seed_decisions": {
+    "6": "large_scale_mainstream_superiority_candidate",
+    "7": "large_scale_mainstream_superiority_candidate"
+  },
+  "status": "pass"
+}
