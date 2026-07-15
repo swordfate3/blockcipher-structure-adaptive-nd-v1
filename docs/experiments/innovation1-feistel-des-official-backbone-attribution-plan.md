@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** readiness passed; 2048/class attribution ready to launch
+**Status:** 2048/class attribution completed; topology attributed but absolute-signal gate failed
 
 ## Research Question
 
@@ -105,6 +105,41 @@ true - raw       >= -0.002 AUC
 true             >= 0.55 AUC
 ```
 
+The six-row attribution run completed on 2026-07-15 and passed plan alignment:
+
+```text
+result rows       = 6/6
+validation errors = []
+
+seed0 fresh AUC:
+  true            = 0.524183512
+  shuffled        = 0.512380679
+  official raw    = 0.500323693
+  true-shuffled   = +0.011802832
+  true-raw        = +0.023859819
+
+seed1 fresh AUC:
+  true            = 0.527223508
+  shuffled        = 0.508161743
+  official raw    = 0.502251625
+  true-shuffled   = +0.019061764
+  true-raw        = +0.024971883
+```
+
+Gate outcome:
+
+```text
+topology_attributed = true
+baseline_competitive = true
+signal_present = false
+decision = feistel_des6_official_attribution_not_ready
+next_action = stop_scale_and_keep_des5_calibration_only
+```
+
+Artifacts are under
+`outputs/local_diagnostic/i1_feistel_des_r6_official_backbone_attribution_2048_seed0_seed1/`
+and are entry `001` in `outputs/00_RECENT_RESULTS.md` at adjudication time.
+
 ## Decisions
 
 Complete pass:
@@ -139,7 +174,26 @@ next action = stop scale and retain only the DES-r5 mechanism calibration
 
 ## Evidence-Backed Next Action
 
-Run readiness locally, then continue automatically to the six-row local gate
-only if readiness is plan-aligned. Generate JSONL, progress, validation, Chinese
-SVG, history CSV, strict gate, and recent-result index. Use the complete
-two-seed gate to decide whether a medium remote diagnostic is justified.
+Do not launch DES-r6 remotely and do not mechanically rerun it at `8192/class`.
+The correct branch mapping beat both controls on both seeds, but fresh AUC
+remained only `0.5242/0.5272`, below the frozen `0.55` signal gate.
+
+The next independent Feistel experiment should move the same attribution
+question to DES-r5, where the official-layout calibration already reached
+fresh AUC `0.9684/0.9642`. Freeze a new lean matrix with only:
+
+```text
+rounds             = 5
+samples_per_class  = 2048
+seeds              = 0, 1
+models             = true branch / equal-capacity shuffled / official raw
+epochs             = 10
+fresh tests        = 3 x 2048/class
+all data semantics = unchanged
+```
+
+If true branch beats shuffled and is at least competitive with official raw on
+both seeds, retain it as the first strong Feistel structure-attribution cell.
+Otherwise retain the public raw layout and reject the explicit branch channels.
+This DES-r5 question requires its own frozen plan and gate; it does not reopen
+the failed DES-r6 scale decision.
