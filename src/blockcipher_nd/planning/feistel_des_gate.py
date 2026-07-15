@@ -19,6 +19,10 @@ OFFICIAL_ATTRIBUTION_ROLES = {
     "typed_shuffled": "des_feistel_official_backbone_shuffled",
     "paper_inception": "des_zhang_wang_official_layout",
 }
+OFFICIAL_RAW_ATTRIBUTION_ROLES = {
+    "typed_true": "des_zhang_wang_official_layout",
+    "typed_shuffled": "des_zhang_wang_official_layout_shuffled",
+}
 
 
 def feistel_des_decision(
@@ -427,12 +431,18 @@ def gate_feistel_des_official_attribution(
     topology_margin: float = 0.005,
     competitiveness_tolerance: float = 0.002,
     minimum_signal_auc: float | None = None,
+    raw_mapping_only: bool = False,
 ) -> dict[str, Any]:
     if expected_rounds not in {5, 6}:
         raise ValueError("official DES attribution supports rounds 5 or 6")
     if minimum_signal_auc is None:
         minimum_signal_auc = 0.90 if expected_rounds == 5 else 0.55
-    expected_rows = len(OFFICIAL_ATTRIBUTION_ROLES) * len(expected_seeds)
+    model_roles = (
+        OFFICIAL_RAW_ATTRIBUTION_ROLES
+        if raw_mapping_only
+        else OFFICIAL_ATTRIBUTION_ROLES
+    )
+    expected_rows = len(model_roles) * len(expected_seeds)
     alignment = validate_result_plan_alignment(
         plan_path, results_path, expected_rows=expected_rows
     )
@@ -447,9 +457,7 @@ def gate_feistel_des_official_attribution(
         rows = []
         errors.append(f"cannot read result rows: {exc}")
 
-    role_by_model = {
-        model: role for role, model in OFFICIAL_ATTRIBUTION_ROLES.items()
-    }
+    role_by_model = {model: role for role, model in model_roles.items()}
     rows_by_seed: dict[int, dict[str, dict[str, Any]]] = {
         seed: {} for seed in expected_seeds
     }
@@ -470,7 +478,7 @@ def gate_feistel_des_official_attribution(
     scores_by_seed: dict[int, dict[str, float]] = {}
     parameter_counts: dict[int, dict[str, dict[str, int]]] = {}
     for seed, rows_by_role in rows_by_seed.items():
-        missing = set(OFFICIAL_ATTRIBUTION_ROLES) - set(rows_by_role)
+        missing = set(model_roles) - set(rows_by_role)
         if missing:
             errors.append(f"seed{seed} missing roles: {sorted(missing)}")
             continue
@@ -562,16 +570,22 @@ def gate_feistel_des_official_attribution(
         "samples_per_class": expected_samples_per_class,
         "seeds": list(expected_seeds),
         "epochs": expected_epochs,
-        "models": OFFICIAL_ATTRIBUTION_ROLES,
+        "models": model_roles,
         "parameter_counts": parameter_counts,
         "scores_by_seed": scores_by_seed,
     }
     if expected_samples_per_class < 2048:
         return {
             **common,
-            "decision": "feistel_des_official_attribution_readiness_passed",
+            "decision": (
+                "feistel_des_official_raw_mapping_readiness_passed"
+                if raw_mapping_only
+                else "feistel_des_official_attribution_readiness_passed"
+            ),
             "next_action": (
-                f"run_des{expected_rounds}_official_backbone_attribution_2048"
+                f"run_des{expected_rounds}_official_raw_mapping_attribution_2048"
+                if raw_mapping_only
+                else f"run_des{expected_rounds}_official_backbone_attribution_2048"
             ),
             "research_decision_applied": False,
             "claim_scope": "readiness only; metrics are not attribution evidence",
@@ -581,20 +595,58 @@ def gate_feistel_des_official_attribution(
         seed: scores["typed_true"] - scores["typed_shuffled"]
         for seed, scores in scores_by_seed.items()
     }
-    baseline_margins = {
-        seed: scores["typed_true"] - scores["paper_inception"]
-        for seed, scores in scores_by_seed.items()
-    }
     topology_attributed = all(
         margin >= topology_margin for margin in topology_margins.values()
-    )
-    baseline_competitive = all(
-        margin >= -competitiveness_tolerance
-        for margin in baseline_margins.values()
     )
     signal_present = all(
         scores["typed_true"] >= minimum_signal_auc
         for scores in scores_by_seed.values()
+    )
+    if raw_mapping_only:
+        if topology_attributed and signal_present:
+            decision = (
+                f"feistel_des{expected_rounds}_official_raw_mapping_attributed"
+            )
+            next_action = "retain_des_mapping_cell_and_design_sm4_recurrence_gate"
+        elif signal_present:
+            decision = (
+                f"feistel_des{expected_rounds}_official_raw_mapping_not_attributed"
+            )
+            next_action = "retain_official_des_baseline_without_mapping_claim"
+        else:
+            decision = (
+                f"feistel_des{expected_rounds}_official_raw_mapping_not_ready"
+            )
+            next_action = "retain_calibration_only_and_stop_mapping_route"
+        return {
+            **common,
+            "decision": decision,
+            "next_action": next_action,
+            "research_decision_applied": True,
+            "topology_margins": topology_margins,
+            "gates": {
+                "topology_attributed": topology_attributed,
+                "signal_present": signal_present,
+            },
+            "minimum_signal_auc": minimum_signal_auc,
+            "claim_scope": (
+                f"local DES-r{expected_rounds} official raw mapping attribution "
+                "diagnostic; not paper-scale or a cross-Feistel architecture rule"
+            ),
+            "stopped_actions": [
+                "des_r6_remote_scale",
+                "mechanical_des5_scale",
+                "cross_feistel_generalization_claim",
+            ],
+        }
+
+    baseline_margins = {
+        seed: scores["typed_true"] - scores["paper_inception"]
+        for seed, scores in scores_by_seed.items()
+    }
+    baseline_competitive = all(
+        margin >= -competitiveness_tolerance
+        for margin in baseline_margins.values()
     )
     if topology_attributed and baseline_competitive and signal_present:
         decision = (
@@ -651,6 +703,7 @@ def gate_feistel_des_official_attribution(
 __all__ = [
     "MODEL_ROLES",
     "OFFICIAL_ATTRIBUTION_ROLES",
+    "OFFICIAL_RAW_ATTRIBUTION_ROLES",
     "OFFICIAL_CALIBRATION_MODEL",
     "feistel_des_decision",
     "gate_feistel_des_official_calibration",

@@ -24,6 +24,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--official-calibration", action="store_true")
     mode.add_argument("--official-attribution", action="store_true")
+    mode.add_argument("--official-raw-attribution", action="store_true")
     parser.add_argument("--expected-rounds", type=int, default=6)
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
@@ -33,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.official_calibration:
         gate = gate_feistel_des_official_calibration
-    elif args.official_attribution:
+    elif args.official_attribution or args.official_raw_attribution:
         gate = gate_feistel_des_official_attribution
     else:
         gate = gate_feistel_des_results
@@ -45,8 +46,9 @@ def main(argv: list[str] | None = None) -> int:
         expected_epochs=args.epochs,
         expected_final_repeats=args.final_repeats,
     )
-    if args.official_attribution:
+    if args.official_attribution or args.official_raw_attribution:
         gate_kwargs["expected_rounds"] = args.expected_rounds
+        gate_kwargs["raw_mapping_only"] = args.official_raw_attribution
     report = gate(**gate_kwargs)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

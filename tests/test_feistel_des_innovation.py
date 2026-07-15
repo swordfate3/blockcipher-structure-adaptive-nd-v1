@@ -130,10 +130,22 @@ def test_official_des_layout_matches_public_code_and_preserves_control_capacity(
         structure="Feistel-like",
         model_options={},
     )
+    raw_shuffled = build_model(
+        "des_zhang_wang_official_layout_shuffled",
+        input_bits=features.shape[1],
+        hidden_bits=32,
+        pair_bits=128,
+        structure="Feistel-like",
+        model_options={},
+    )
     assert sum(parameter.numel() for parameter in true.parameters()) == sum(
         parameter.numel() for parameter in shuffled.parameters()
     )
     assert not torch.equal(true.mapping_indices, shuffled.mapping_indices)
+    assert sum(parameter.numel() for parameter in official.parameters()) == sum(
+        parameter.numel() for parameter in raw_shuffled.parameters()
+    )
+    assert not torch.equal(official.mapping_indices, raw_shuffled.mapping_indices)
     for model in (true, shuffled):
         logits = model(features)
         assert logits.shape == (2, 1)
@@ -381,7 +393,9 @@ def _official_attribution_rows(
     for seed, scores in role_scores.items():
         for model, auc in scores.items():
             parameter_count = (
-                649793 if model == "des_zhang_wang_official_layout" else 651201
+                649793
+                if model.startswith("des_zhang_wang_official_layout")
+                else 651201
             )
             rows.append(
                 {
@@ -553,3 +567,75 @@ def test_des5_official_attribution_plan_and_strong_signal_gate(tmp_path: Path) -
     )
     assert failed["status"] == "pass"
     assert failed["decision"] == "feistel_des5_signal_without_topology_attribution"
+
+
+def test_des5_official_raw_mapping_plan_and_gate(tmp_path: Path) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_des_r5_official_raw_mapping_attribution_2048_seed0_seed1.csv"
+    tasks = tasks_from_plan(
+        plan,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    assert len(tasks) == 4
+    assert {task["rounds"] for task in tasks} == {5}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["model_key"] for task in tasks} == {
+        "des_zhang_wang_official_layout",
+        "des_zhang_wang_official_layout_shuffled",
+    }
+    assert all(task["samples_per_class"] == 2048 for task in tasks)
+    assert all(task["pairs_per_sample"] == 16 for task in tasks)
+    assert all(
+        task["negative_mode"] == "encrypted_random_plaintexts" for task in tasks
+    )
+
+    role_scores = {
+        0: {
+            "des_zhang_wang_official_layout": 0.970,
+            "des_zhang_wang_official_layout_shuffled": 0.950,
+        },
+        1: {
+            "des_zhang_wang_official_layout": 0.960,
+            "des_zhang_wang_official_layout_shuffled": 0.940,
+        },
+    }
+    rows = _official_attribution_rows(rounds=5, role_scores=role_scores)
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    passed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+        expected_rounds=5,
+        raw_mapping_only=True,
+    )
+    assert passed["status"] == "pass", passed["errors"]
+    assert passed["decision"] == "feistel_des5_official_raw_mapping_attributed"
+    assert passed["gates"] == {
+        "topology_attributed": True,
+        "signal_present": True,
+    }
+
+    rows[3]["final_evaluation"]["auc_mean"] = 0.958
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    failed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+        expected_rounds=5,
+        raw_mapping_only=True,
+    )
+    assert failed["status"] == "pass"
+    assert failed["decision"] == "feistel_des5_official_raw_mapping_not_attributed"

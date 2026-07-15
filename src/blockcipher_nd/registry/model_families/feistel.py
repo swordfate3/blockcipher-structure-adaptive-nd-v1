@@ -54,6 +54,7 @@ def build_feistel_model(
         )
     if name in {
         "des_zhang_wang_official_layout",
+        "des_zhang_wang_official_layout_shuffled",
         "des_feistel_official_backbone_true",
         "des_feistel_official_backbone_shuffled",
     }:
@@ -61,7 +62,11 @@ def build_feistel_model(
             input_bits=input_bits,
             mapping_mode=(
                 "shuffled"
-                if name == "des_feistel_official_backbone_shuffled"
+                if name
+                in {
+                    "des_feistel_official_backbone_shuffled",
+                    "des_zhang_wang_official_layout_shuffled",
+                }
                 else "true"
             ),
             pair_bits=pair_bits or 128,
@@ -71,7 +76,10 @@ def build_feistel_model(
                 options, "initial_kernel_sizes", (1, 4, 6)
             ),
             include_branch_interactions=name
-            != "des_zhang_wang_official_layout",
+            not in {
+                "des_zhang_wang_official_layout",
+                "des_zhang_wang_official_layout_shuffled",
+            },
         )
     return None
 
