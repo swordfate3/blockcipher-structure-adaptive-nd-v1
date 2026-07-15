@@ -9,6 +9,19 @@ multiple-pair differential-neural baseline. SIMON/SIMECK and SM4 remain
 follow-up generalization ciphers because their AND-RX and generalized/unbalanced
 round functions introduce additional mechanism changes.
 
+The completed DES-r5 official-raw mapping gate now retains the first strong
+local Feistel representation cell:
+
+```text
+canonical fresh AUC = 0.968407075 seed0, 0.964183966 seed1
+shuffled fresh AUC  = 0.922529936 seed0, 0.920331796 seed1
+mapping margin      = +0.045877139 seed0, +0.043852170 seed1
+decision            = feistel_des5_official_raw_mapping_attributed
+```
+
+This advances the route to SM4 recurrence design but does not establish a
+cross-Feistel rule or authorize DES scale-up.
+
 ## Primary Anchor
 
 Liu Zhang and Zilong Wang, *Improving Differential-Neural Distinguisher Model

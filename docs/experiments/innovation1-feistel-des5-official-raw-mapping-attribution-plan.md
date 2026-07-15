@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** readiness passed; 2048/class attribution ready
+**Status:** 2048/class completed; canonical DES mapping attributed
 
 ## Research Question
 
@@ -109,10 +109,44 @@ Any plan, capacity, key, cache, or alignment failure invalidates the run.
 - no SM4 launch until this gate is completed;
 - no cross-Feistel claim from a DES-only result.
 
+## Completed Result
+
+The four-row run completed on 2026-07-15 with `4/4` aligned rows, identical
+capacity, and no validation errors:
+
+| Seed | Canonical raw | Shuffled raw | Canonical - shuffled |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.968407075 | 0.922529936 | +0.045877139 |
+| 1 | 0.964183966 | 0.920331796 | +0.043852170 |
+
+The strict gate returned:
+
+```text
+signal_present       = true
+topology_attributed  = true
+decision             = feistel_des5_official_raw_mapping_attributed
+next_action          = retain_des_mapping_cell_and_design_sm4_recurrence_gate
+```
+
+Both models have `649793` parameters. The canonical model exactly reproduced
+the prior calibration AUC on both seeds, while shuffled mapping lost more than
+`0.0438` AUC on each seed. This retains the canonical DES state layout as the
+first strong local Feistel representation-attribution cell. It does not show
+paper-scale performance or establish a rule for generalized Feistel ciphers.
+
+Artifacts are under
+`outputs/local_diagnostic/i1_feistel_des_r5_official_raw_mapping_attribution_2048_seed0_seed1/`
+and the completed result is entry `001` in `outputs/00_RECENT_RESULTS.md`.
+
 ## Evidence-Backed Next Action
 
-Run readiness locally. If it passes, run the four-row `2048/class` matrix as a
-unique writer and generate results, progress, validation, Chinese SVG, history,
-strict gate, and the numbered result index. The resulting two-seed mapping
-margin decides whether DES supplies a retained structure-attribution cell or
-only a strong architecture baseline.
+Retain the DES cell and move to a separate SM4 mechanism gate. Do not reuse the
+DES two-half mapping: SM4 updates four ordered 32-bit words through
+`X[i+4] = X[i] xor T(X[i+1] xor X[i+2] xor X[i+3] xor rk[i])`.
+
+The next frozen plan should compare a four-word recurrence-aware candidate,
+an exactly equal-capacity shuffled-word/bit control, and a Yu/Wu/Zhang-family
+Conv-ResNet baseline on the same SM4-r5 single-pair task. Start with local
+readiness and a small two-seed attribution gate before any large run. Keep the
+2023 paper's `1,000,000` total train / `100,000` total test / 25 epoch result as
+an external scale reference, not the first implementation budget.
