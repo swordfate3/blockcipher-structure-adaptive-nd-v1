@@ -31,6 +31,10 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     PresentCrossSpnTypedCellTrueDistinguisher,
     cipher_inverse_permutation_indices,
 )
+from blockcipher_nd.models.structure.spn.gift_pairset_baselines import (
+    Gift64GohrStyleResNetPairSetDistinguisher,
+    Gift64SunStyleLstmPairSetDistinguisher,
+)
 from blockcipher_nd.models.structure.spn.nibble_conv_pairset import (
     SpnNibbleConvPairSetDistinguisher,
 )
@@ -143,6 +147,8 @@ __all__ = [
     "GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher",
     "GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellTrueDistinguisher",
+    "Gift64GohrStyleResNetPairSetDistinguisher",
+    "Gift64SunStyleLstmPairSetDistinguisher",
     "PresentCrossSpnTypedCellRawDistinguisher",
     "PresentCrossSpnTypedCellE5OffDistinguisher",
     "PresentCrossSpnTypedCellE5ShuffledPlaceboDistinguisher",

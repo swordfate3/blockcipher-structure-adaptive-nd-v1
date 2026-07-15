@@ -18,6 +18,8 @@ from blockcipher_nd.models.structure import (
     GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher,
     GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellTrueDistinguisher,
+    Gift64GohrStyleResNetPairSetDistinguisher,
+    Gift64SunStyleLstmPairSetDistinguisher,
     PresentInceptionMCNDDistinguisher,
     PresentInceptionMCNDGlobalMatrixDistinguisher,
     PresentInceptionMCNDMatrixDistinguisher,
@@ -100,6 +102,8 @@ def build_spn_model(
         "gift_cross_spn_typed_cell_shuffled": GiftCrossSpnTypedCellShuffledDistinguisher,
         "gift_cross_spn_typed_cell_raw": GiftCrossSpnTypedCellRawDistinguisher,
         "gift_cross_spn_typed_cell_true_from_present_true": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
+        "gift_cross_spn_typed_cell_true_from_present_true_s0": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
+        "gift_cross_spn_typed_cell_true_from_present_true_s1": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
         "gift_cross_spn_typed_cell_true_from_present_shuffled": GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher,
         "gift_cross_spn_typed_cell_shuffled_from_present_true": GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
         "present_cross_spn_typed_cell_e5_off": PresentCrossSpnTypedCellE5OffDistinguisher,
@@ -135,6 +139,21 @@ def build_spn_model(
             topology_functional_margin=float(
                 options.get("topology_functional_margin", 0.01)
             ),
+        )
+    if name == "gift64_sun_style_lstm_pairset":
+        return Gift64SunStyleLstmPairSetDistinguisher(
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
+            hidden_bits=int_option(options, "lstm_hidden_bits", 128) or 128,
+            classifier_bits=int_option(options, "classifier_bits", 128) or 128,
+        )
+    if name == "gift64_gohr_style_resnet_pairset":
+        return Gift64GohrStyleResNetPairSetDistinguisher(
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
+            channels=int_option(options, "resnet_channels", 64) or 64,
+            blocks=int_option(options, "resnet_blocks", 7) or 7,
+            classifier_bits=int_option(options, "classifier_bits", 128) or 128,
         )
     if name == "gift_cross_spn_aligned_token_mixer_raw_anchor":
         return GiftAlignedTokenMixerRawInputDistinguisher(

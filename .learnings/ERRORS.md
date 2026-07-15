@@ -50,6 +50,51 @@ layout repair.
 
 ---
 
+## [ERR-20260715-003] balanced_validation_total_forwarded_as_random_total
+
+**Logged**: 2026-07-15T10:05:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+A balanced large-scale plan failed before training because the generic dataset
+builder forwarded `validation_samples_total` into the random-label-only
+`samples_total` field.
+
+### Error
+
+```text
+ValueError: samples_total is only valid with random_labels_total
+```
+
+### Context
+
+- The GIFT-64 performance readiness plan used `balanced_per_class` and
+  `validation_samples_total=128`, which correctly means `64/class`.
+- `validation_samples_per_class()` converted the total correctly, but
+  `task_runner` also forwarded the original total to `build_dataset_config`.
+- The same issue would have blocked a balanced `1000000/class` remote plan
+  with an explicit total validation size.
+
+### Suggested Fix
+
+Keep `samples_total` only when `dataset_label_mode=random_labels_total` at the
+central `build_dataset_config` boundary. Balanced plans should retain the
+derived `samples_per_class` and pass `samples_total=None` to the generator.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/engine/task_config.py, tests/test_gift64_pairset_baselines.py, configs/experiment/innovation1/innovation1_spn_gift64_mainstream_performance_readiness_seed6.csv
+- See Also: LRN-20260715-001
+
+### Resolution
+- **Resolved**: 2026-07-15T10:08:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Central label-mode guard added; 20 focused protocol tests and the five-row readiness run passed.
+
+---
+
 ## [ERR-20260715-002] local_torch_cuda_driver_mismatch
 
 **Logged**: 2026-07-15T07:10:00+08:00

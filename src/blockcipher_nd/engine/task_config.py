@@ -39,6 +39,9 @@ def build_dataset_config(
     split: str = "train",
 ) -> DifferentialDatasetConfig:
     active_nibbles = task.get("integral_active_nibbles", ())
+    dataset_label_mode = str(
+        task.get("dataset_label_mode") or "balanced_per_class"
+    )
     if (
         split == "validation" or split.startswith("final_test_")
     ) and task.get("validation_integral_active_nibbles"):
@@ -47,8 +50,10 @@ def build_dataset_config(
         cipher=cipher,
         input_difference=task["input_difference"],
         samples_per_class=samples_per_class,
-        samples_total=samples_total,
-        dataset_label_mode=str(task.get("dataset_label_mode") or "balanced_per_class"),
+        samples_total=(
+            samples_total if dataset_label_mode == "random_labels_total" else None
+        ),
+        dataset_label_mode=dataset_label_mode,
         seed=seed,
         feature_encoding=task["feature_encoding"],
         pairs_per_sample=task["pairs_per_sample"],
