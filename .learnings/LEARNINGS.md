@@ -42,6 +42,67 @@ unchanged.
 
 ---
 
+## [LRN-20260715-005] correction
+
+**Logged**: 2026-07-15T09:20:00+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+Do not present controlled topology attribution as a completed Innovation 1
+performance result without large-scale, same-protocol mainstream baselines.
+
+### Details
+The E4-E6 synthesis establishes that the real cipher-spec topology is useful
+relative to shuffled-topology controls. It does not establish competitive
+neural-distinguisher accuracy. The largest E4 target runs used GIFT-64 r6 at
+`65536/class`, exactly one target epoch, and compared typed transfer against
+the same typed architecture from scratch plus source- and target-shuffled
+controls. They did not train a mainstream LSTM, ResNet, AutoND/DBitNet, or
+other literature architecture on the same target cache and budget.
+
+The external GIFT-64 r6 reference currently held by the project reports
+accuracy `0.5754` from about `17M` training and `4M` validation samples, but it
+uses a different `3-2-CT-R` task. E4 is approximately an `8-1-CT-R` task, so
+its validation AUC and accuracy cannot be used as a direct paper comparison.
+The four E4 candidate validation AUCs (`0.5735` to `0.5832`) are therefore
+representation/transfer diagnostics, not evidence of mainstream superiority.
+
+This correction creates two independent claim gates:
+
+```text
+attribution gate  = candidate beats matched shuffled/capacity controls
+performance gate  = candidate beats strong mainstream methods on identical
+                    data, scale, epochs/compute, and fresh evaluation
+```
+
+Passing the first gate does not imply passing the second. Large-scale results
+from other PRESENT representations also cannot be used to fill the missing
+E4 typed cross-SPN performance gate.
+
+### Suggested Action
+Report the current E4-E6 outcome as a controlled method/attribution result
+only. Before claiming Innovation 1 has a competitive accuracy result, freeze a
+new literature-backed benchmark plan with: (1) an exact published-protocol
+comparison where feasible, (2) a same-protocol mainstream architecture
+matrix, (3) at least `1000000/class` multi-seed project-scale evidence, (4)
+fresh held-out final evaluation, and (5) separate one-epoch adaptation and
+full-training accuracy/compute comparisons. Do not mechanically scale the
+failed E5/E6 source objectives or reuse unrelated 1M PRESENT rows as proof.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/experiments/innovation1-cross-spn-e4-e6-source-objective-synthesis.md, docs/experiments/innovation1-cross-spn-formal-multisource-multitarget-r6-conditional-plan.md, sources/research_gift64_neural_comparison_20260714.md
+- Tags: innovation1, claim-scope, attribution, mainstream-baseline, formal-scale, gift64
+- See Also: LRN-20260715-004, LRN-20260715-001, LRN-20260621-001
+- Pattern-Key: innovation1.attribution_is_not_mainstream_performance
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+---
+
 ## [LRN-20260715-004] best_practice
 
 **Logged**: 2026-07-15T08:05:00+08:00
