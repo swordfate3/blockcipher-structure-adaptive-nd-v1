@@ -122,6 +122,12 @@ def training_curve_series(
                             "rounds": row.get("rounds", ""),
                             "seed": row.get("seed", ""),
                             "samples_per_class": row.get("samples_per_class", ""),
+                            "train_structures": row.get("train_structures", ""),
+                            "train_keys_per_structure": row.get(
+                                "train_keys_per_structure",
+                                "",
+                            ),
+                            "integral_set_size": row.get("integral_set_size", ""),
                             "validation_samples_per_class": row.get(
                                 "validation", {}
                             ).get(
@@ -645,14 +651,26 @@ def _plot_subtitle(series: list[dict[str, Any]]) -> str:
     protocol_parts = []
     if context.get("cipher") and context.get("rounds") != "":
         protocol_parts.append(f"{context['cipher']} {context['rounds']} 轮")
-    if context.get("samples_per_class") not in (None, ""):
-        protocol_parts.append(f"训练 {int(context['samples_per_class']):,}/类")
-    if context.get("validation_samples_per_class") not in (None, ""):
-        protocol_parts.append(
-            f"验证 {int(context['validation_samples_per_class']):,}/类"
-        )
-    if context.get("pairs_per_sample") not in (None, ""):
-        protocol_parts.append(f"每样本 {int(context['pairs_per_sample'])} 对")
+    if context.get("train_structures") not in (None, ""):
+        structure_text = f"训练 {int(context['train_structures']):,} 个结构"
+        if context.get("train_keys_per_structure") not in (None, ""):
+            structure_text += (
+                f" × {int(context['train_keys_per_structure']):,} 把密钥"
+            )
+        protocol_parts.append(structure_text)
+        if context.get("integral_set_size") not in (None, ""):
+            protocol_parts.append(
+                f"每个积分集合 {int(context['integral_set_size'])} 个明文"
+            )
+    else:
+        if context.get("samples_per_class") not in (None, ""):
+            protocol_parts.append(f"训练 {int(context['samples_per_class']):,}/类")
+        if context.get("validation_samples_per_class") not in (None, ""):
+            protocol_parts.append(
+                f"验证 {int(context['validation_samples_per_class']):,}/类"
+            )
+        if context.get("pairs_per_sample") not in (None, ""):
+            protocol_parts.append(f"每样本 {int(context['pairs_per_sample'])} 对")
     protocol_parts.append(f"{len(rows)} 个模型/对照")
     protocol_parts.append(f"验证集重点显示：{metric_names}")
     return "｜".join(protocol_parts)
@@ -671,6 +689,9 @@ def _series_marker(item: dict[str, Any]) -> str:
 def _compact_label(item: dict[str, Any]) -> str:
     model = str(item.get("model") or item.get("label") or "")
     aliases = {
+        "linear_same_input": "同输入线性基线",
+        "structure_mlp": "结构交互 MLP",
+        "structure_mlp_shuffled_labels": "训练标签打乱 MLP 控制",
         "present_zhang_wang_keras_mcnd": "Zhang-Wang MCND",
         "present_nibble_paligned_mcnd": "I1 nibble-P MCND",
         "present_nibble_invp_only_spn_only": "InvP token mixer",

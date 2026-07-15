@@ -250,3 +250,31 @@ def test_result_index_supports_e4_r5_remote_chinese_labels(tmp_path: Path) -> No
     assert entries[0]["decision_display"] == (
         "独立 source-seed 稳健性未确认，停止正式扩展"
     )
+
+
+def test_result_index_supports_innovation2_integral_property_chinese_labels(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_structure_integral_parity_feasibility_seed0"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_integral_property_redesign_before_scale",
+        },
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2 E0：PRESENT 5轮结构条件积分平衡概率可行性诊断"
+    )
+    assert entries[0]["decision_display"] == (
+        "结构排序有信号但概率误差未过门，校准后再扩展"
+    )
