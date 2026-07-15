@@ -61,6 +61,24 @@ class _ResidualBlock(nn.Module):
         return self.activation(features + self.layers(features))
 
 
+class _OfficialResidualBlock(nn.Module):
+    """Residual block matching the public Zhang/Wang DES implementation."""
+
+    def __init__(self, channels: int, kernel_size: int) -> None:
+        super().__init__()
+        self.layers = nn.Sequential(
+            _SameLengthConv1d(channels, channels, kernel_size),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            _SameLengthConv1d(channels, channels, kernel_size),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return features + self.layers(features)
+
+
 class DesFeistelBranchInceptionPairSetDistinguisher(nn.Module):
     """DES pair-set model with explicit Feistel branch roles and interactions."""
 
@@ -206,6 +224,109 @@ class DesZhangWangInceptionPairSetDistinguisher(
             include_branch_interactions=False,
             **kwargs,
         )
+
+
+class DesZhangWangOfficialLayoutDistinguisher(nn.Module):
+    """PyTorch port of the public Zhang/Wang DES Inception-ResNet layout."""
+
+    def __init__(
+        self,
+        input_bits: int,
+        *,
+        mapping_mode: str = "true",
+        pair_bits: int = 128,
+        base_channels: int = 32,
+        blocks: int = 5,
+        initial_kernel_sizes: tuple[int, ...] = (1, 4, 6),
+        include_branch_interactions: bool = False,
+    ) -> None:
+        super().__init__()
+        if pair_bits != 128:
+            raise ValueError("official DES layout requires 128 bits per pair")
+        if input_bits <= 0 or input_bits % pair_bits != 0:
+            raise ValueError("input_bits must be a positive multiple of 128")
+        if blocks < 1:
+            raise ValueError("blocks must be >= 1")
+        if not initial_kernel_sizes:
+            raise ValueError("initial_kernel_sizes must not be empty")
+
+        self.input_bits = input_bits
+        self.pair_bits = pair_bits
+        self.pairs_per_sample = input_bits // pair_bits
+        self.mapping_mode = mapping_mode
+        self.include_branch_interactions = include_branch_interactions
+        self.register_buffer(
+            "mapping_indices",
+            des_canonical_bit_indices(mapping_mode),
+            persistent=False,
+        )
+
+        input_channels = 8 if include_branch_interactions else 4
+        self.initial_branches = nn.ModuleList(
+            [
+                _SameLengthConv1d(input_channels, base_channels, kernel_size)
+                for kernel_size in initial_kernel_sizes
+            ]
+        )
+        channels = base_channels * len(initial_kernel_sizes)
+        self.initial_norm = nn.BatchNorm1d(channels)
+        self.residual_blocks = nn.Sequential(
+            *(
+                _OfficialResidualBlock(channels, 3 + 2 * block_index)
+                for block_index in range(blocks)
+            )
+        )
+        self.classifier = nn.Linear(channels, 1)
+
+    def set_cipher_structure(self, structure: str) -> None:
+        return None
+
+    def set_structure_features(self, features: torch.Tensor) -> None:
+        return None
+
+    def canonical_pairs(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.input_bits:
+            raise ValueError(
+                f"expected {self.input_bits} input bits, got {tuple(features.shape)}"
+            )
+        pairs = features.float().reshape(
+            features.shape[0], self.pairs_per_sample, 2, 64
+        )
+        return pairs.index_select(3, self.mapping_indices.to(features.device)).reshape(
+            features.shape[0], self.pairs_per_sample, 2, 2, 32
+        )
+
+    def branch_channels(self, features: torch.Tensor) -> torch.Tensor:
+        pairs = self.canonical_pairs(features)
+        first_left = pairs[:, :, 0, 0]
+        first_right = pairs[:, :, 0, 1]
+        second_left = pairs[:, :, 1, 0]
+        second_right = pairs[:, :, 1, 1]
+        channels = [first_left, first_right, second_left, second_right]
+        if self.include_branch_interactions:
+            channels.extend(
+                [
+                    (first_left - second_left).abs(),
+                    (first_right - second_right).abs(),
+                    (first_left - first_right).abs(),
+                    (second_left - second_right).abs(),
+                ]
+            )
+        return torch.stack(channels, dim=2)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        channels = self.branch_channels(features)
+        batch = features.shape[0]
+        hidden = channels.reshape(
+            batch * self.pairs_per_sample, channels.shape[2], 32
+        )
+        hidden = torch.cat(
+            [branch(hidden) for branch in self.initial_branches], dim=1
+        )
+        hidden = torch.relu(self.initial_norm(hidden))
+        hidden = self.residual_blocks(hidden)
+        hidden = hidden.reshape(batch, self.pairs_per_sample, hidden.shape[1], 32)
+        return self.classifier(hidden.mean(dim=(1, 3)))
 
 
 class DesLstmPairSetDistinguisher(nn.Module):

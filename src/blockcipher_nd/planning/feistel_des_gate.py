@@ -13,6 +13,7 @@ MODEL_ROLES = {
     "paper_inception": "des_zhang_wang_inception_pairset",
     "lstm": "des_lstm_pairset",
 }
+OFFICIAL_CALIBRATION_MODEL = "des_zhang_wang_official_layout"
 
 
 def feistel_des_decision(
@@ -248,8 +249,171 @@ def gate_feistel_des_results(
     }
 
 
+def gate_feistel_des_official_calibration(
+    *,
+    plan_path: Path,
+    results_path: Path,
+    expected_samples_per_class: int,
+    expected_seeds: tuple[int, ...],
+    expected_epochs: int,
+    expected_final_repeats: int,
+    minimum_auc: float = 0.60,
+) -> dict[str, Any]:
+    expected_rows = len(expected_seeds)
+    alignment = validate_result_plan_alignment(
+        plan_path, results_path, expected_rows=expected_rows
+    )
+    errors = list(alignment["errors"])
+    try:
+        rows = [
+            json.loads(line)
+            for line in results_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except (OSError, json.JSONDecodeError) as exc:
+        rows = []
+        errors.append(f"cannot read result rows: {exc}")
+
+    rows_by_seed: dict[int, dict[str, Any]] = {}
+    scores_by_seed: dict[int, float] = {}
+    parameter_counts: dict[int, dict[str, int]] = {}
+    for row in rows:
+        seed = row.get("seed")
+        if seed not in expected_seeds:
+            errors.append(f"unexpected seed: {seed}")
+            continue
+        if seed in rows_by_seed:
+            errors.append(f"duplicate seed row: {seed}")
+            continue
+        rows_by_seed[int(seed)] = row
+
+    for seed in expected_seeds:
+        row = rows_by_seed.get(seed)
+        if row is None:
+            errors.append(f"missing seed row: {seed}")
+            continue
+        expected_fields = {
+            "cipher_key": "des",
+            "model": OFFICIAL_CALIBRATION_MODEL,
+            "rounds": 5,
+            "samples_per_class": expected_samples_per_class,
+            "pairs_per_sample": 16,
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "zhang_wang_case2_official_mcnd",
+            "difference_profile": "des_zhang_wang2022_mcnd",
+            "final_test_repeats": expected_final_repeats,
+        }
+        for field, expected in expected_fields.items():
+            if row.get(field) != expected:
+                errors.append(
+                    f"seed{seed} {field}={row.get(field)!r} expected={expected!r}"
+                )
+        history = row.get("history")
+        if not isinstance(history, list) or len(history) != expected_epochs:
+            errors.append(f"seed{seed} history must contain {expected_epochs} epochs")
+        for split in ("training", "validation"):
+            metadata = row.get(split)
+            if not isinstance(metadata, dict):
+                errors.append(f"seed{seed} missing {split} metadata")
+            elif metadata.get("key_schedule") != "per_pair_random":
+                errors.append(
+                    f"seed{seed} {split} key_schedule="
+                    f"{metadata.get('key_schedule')!r} expected='per_pair_random'"
+                )
+        final = row.get("final_evaluation")
+        if not isinstance(final, dict):
+            errors.append(f"seed{seed} missing final_evaluation")
+        else:
+            auc = final.get("auc_mean")
+            if not isinstance(auc, (int, float)):
+                errors.append(f"seed{seed} missing final auc_mean")
+            else:
+                scores_by_seed[seed] = float(auc)
+            metrics_by_repeat = final.get("metrics_by_repeat")
+            if final.get("repeats") != expected_final_repeats:
+                errors.append(
+                    f"seed{seed} final repeats={final.get('repeats')!r} "
+                    f"expected={expected_final_repeats}"
+                )
+            if not isinstance(metrics_by_repeat, list) or len(
+                metrics_by_repeat
+            ) != expected_final_repeats:
+                errors.append(
+                    f"seed{seed} final metrics_by_repeat must contain "
+                    f"{expected_final_repeats} rows"
+                )
+        parameter_counts[seed] = {}
+        for count_field in ("parameter_count", "trainable_parameter_count"):
+            count = row.get(count_field)
+            if not isinstance(count, int):
+                errors.append(f"seed{seed} missing {count_field}")
+            else:
+                parameter_counts[seed][count_field] = count
+
+    if len({tuple(counts.values()) for counts in parameter_counts.values()}) > 1:
+        errors.append(f"official calibration capacity mismatch: {parameter_counts}")
+    if errors:
+        return {
+            "status": "fail",
+            "decision": "invalid_feistel_des_official_calibration",
+            "errors": errors,
+            "alignment": alignment,
+            "research_decision_applied": False,
+        }
+    common = {
+        "status": "pass",
+        "errors": [],
+        "alignment": alignment,
+        "samples_per_class": expected_samples_per_class,
+        "seeds": list(expected_seeds),
+        "epochs": expected_epochs,
+        "model": OFFICIAL_CALIBRATION_MODEL,
+        "parameter_counts": parameter_counts,
+        "scores_by_seed": scores_by_seed,
+    }
+    if expected_samples_per_class < 2048:
+        return {
+            **common,
+            "decision": "feistel_des_official_calibration_readiness_passed",
+            "next_action": "run_des5_official_layout_2048_two_seed_calibration",
+            "research_decision_applied": False,
+            "claim_scope": "readiness only; calibration metrics are not evidence",
+        }
+    calibration_passed = all(
+        score >= minimum_auc for score in scores_by_seed.values()
+    )
+    return {
+        **common,
+        "decision": (
+            "feistel_des5_official_calibration_passed"
+            if calibration_passed
+            else "feistel_des5_official_calibration_inconclusive"
+        ),
+        "next_action": (
+            "run_des6_official_backbone_attribution_2048"
+            if calibration_passed
+            else "run_at_most_des5_official_layout_8192_local_calibration"
+        ),
+        "research_decision_applied": True,
+        "minimum_auc": minimum_auc,
+        "gates": {"calibration_signal_present": calibration_passed},
+        "claim_scope": (
+            "local DES-r5 official-layout mechanism calibration; not paper-scale "
+            "accuracy reproduction or Feistel topology attribution"
+        ),
+        "stopped_actions": [
+            "des_r6_remote_scale",
+            "des_r7_staged_training",
+            "cross_feistel_generalization",
+        ],
+    }
+
+
 __all__ = [
     "MODEL_ROLES",
+    "OFFICIAL_CALIBRATION_MODEL",
     "feistel_des_decision",
+    "gate_feistel_des_official_calibration",
     "gate_feistel_des_results",
 ]

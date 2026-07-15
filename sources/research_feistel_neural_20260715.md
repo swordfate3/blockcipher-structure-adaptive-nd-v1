@@ -67,6 +67,69 @@ published 2023 Zhang/Wang version and later SIMON/SIMECK or differential-linear
 work, but no newer same-task DES multiple-pair neural architecture benchmark
 that displaces Zhang/Wang as the first anchor.
 
+## Official DES Code Audit
+
+The public Google Drive folder linked by the paper was audited directly on
+2026-07-15. The DES folder is `10o3vCJ9zs6gqdJh10T4o1lz46uJ5-sPb` and exposes
+the following primary files:
+
+| File | Drive file id | SHA-256 |
+| --- | --- | --- |
+| `deep_net_des.py` | `1ddRjxLRPDmtSfeKB1zhhXIwzpxZWV4lZ` | `c23f808d0f2f814f6963afd64c945acf0cd29ef93ac832589796814d84b5526e` |
+| `des.py` | `1O0I3DhuBqHpEAhYVKjlIGkPJ7K-va8Ol` | `4e610e8ab99cbdedf806c5b1678a5d12724018bbf47bd5f89ac859c4ba4f2b14` |
+| `eval.py` | `1CEC2il5C7i8gZJrcqh_JB924G8cMkWGC` | `4698f21ca56f711efa65bd80d0cc8c38cd6556c19d128a21a103b88a9c53f586` |
+
+The audit resolves the two protocol ambiguities relevant to this project:
+
+1. `make_target_diff_samples` generates a fresh 64-bit random DES key for every
+   basic pair. `make_dataset_with_group_size` then reshapes independent raw pairs
+   into groups of `m`; the pairs in one grouped row do not share a key.
+2. For a negative raw pair, the second plaintext is independently random and
+   both plaintexts are encrypted under the same per-pair key. This agrees with
+   `encrypted_random_plaintexts`; random ciphertext is not the paper protocol.
+
+The exact official network data path is:
+
+```text
+flat 128*m bits
+  -> reshape (m, 4, 32) as C0L, C0R, C1L, C1R
+  -> permute to (m, 32, 4)
+  -> Conv1D kernels (1, 4, 6), 32 filters each, along 32 bit positions
+  -> five residual blocks with kernels (3, 5, 7, 9, 11)
+  -> global average pooling across pair and bit-position axes
+  -> one sigmoid output
+```
+
+TensorFlow treats the `m` axis as an extended batch dimension for `Conv1D`, so
+each pair is encoded with shared weights before `GlobalAveragePooling2D`
+aggregates the whole pair set. The official training function supports arbitrary
+`group_size`, although the checked-in `__main__` example launches only `m=2`.
+
+There is also a source/text discrepancy that must remain visible: the paper DES
+section says the L2 penalty is `8e-4`, while the public training function calls
+`make_resnet(..., reg_param=1e-5)`. A paper-text reproduction and an
+official-code reproduction therefore require separate labels.
+
+## Paper-To-Code Map And Remaining Gaps
+
+| Paper mechanism | Current project implementation | Evidence level / gap |
+| --- | --- | --- |
+| DES internal difference `(0x40080000,0x04000000)` | external profile `0x0000801000004000` followed by repository DES IP | unit-tested equivalent mapping |
+| independent random key per basic pair | `zhang_wang_case2_official_mcnd` | cache metadata and generator tests verify `per_pair_random` |
+| encrypted random-plaintext negatives | common differential dataset generator | same semantic negative class |
+| input `(m,32,4)` and kernels `(1,4,6)` | canonical DES pair tensor and one-dimensional Inception branches | mechanism-aligned |
+| five residual blocks `(3,5,7,9,11)` | current R1 paper-family row uses only three blocks `(3,5,7)` | not exact; controlled adaptation |
+| global average pooling plus sigmoid | current R1 uses per-pair mean/max, pair-set mean/max, and an MLP head | not exact; aggregation/head changed |
+| `10^7` grouped train and `10^6` grouped test rows | R1 uses `2048/class` train and three `2048/class` fresh tests | local diagnostic only, not paper scale |
+| Table 2 DES-r6 `m=16` accuracy `0.7603` | project reports AUC and accuracy separately | no direct metric subtraction until an exact-protocol accuracy reproduction exists |
+
+If the current R1 matrix has no signal, the first redesign should repair this
+baseline gap rather than increase sample count mechanically: port the official
+five-block/global-average backbone, then compare a branch-interaction candidate
+and an equal-capacity shuffled control on that same backbone and budget. This
+tests whether the weak result came from the adapted aggregation/head before any
+remote scale exception is considered.
+
 ## Project Adaptation Boundary
 
 The repository's `Des` implementation includes fixed IP/FP permutations, while

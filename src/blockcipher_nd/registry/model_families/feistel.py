@@ -5,6 +5,7 @@ from torch import nn
 from blockcipher_nd.models.structure import (
     DesFeistelBranchInceptionPairSetDistinguisher,
     DesLstmPairSetDistinguisher,
+    DesZhangWangOfficialLayoutDistinguisher,
     DesZhangWangInceptionPairSetDistinguisher,
 )
 from blockcipher_nd.registry.model_options import int_option, int_tuple_option
@@ -50,6 +51,27 @@ def build_feistel_model(
             pair_bits=pair_bits or 128,
             hidden_bits=int_option(options, "lstm_hidden_bits", 128) or 128,
             classifier_bits=int_option(options, "classifier_bits", 128) or 128,
+        )
+    if name in {
+        "des_zhang_wang_official_layout",
+        "des_feistel_official_backbone_true",
+        "des_feistel_official_backbone_shuffled",
+    }:
+        return DesZhangWangOfficialLayoutDistinguisher(
+            input_bits=input_bits,
+            mapping_mode=(
+                "shuffled"
+                if name == "des_feistel_official_backbone_shuffled"
+                else "true"
+            ),
+            pair_bits=pair_bits or 128,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            initial_kernel_sizes=int_tuple_option(
+                options, "initial_kernel_sizes", (1, 4, 6)
+            ),
+            include_branch_interactions=name
+            != "des_zhang_wang_official_layout",
         )
     return None
 

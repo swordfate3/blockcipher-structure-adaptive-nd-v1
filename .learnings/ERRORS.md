@@ -1,3 +1,57 @@
+## [ERR-20260715-006] tmux_prefix_match_made_watcher_wait_on_itself
+
+**Logged**: 2026-07-15T15:18:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+A local result watcher used a non-exact tmux target and matched its own longer
+session name after the training session exited.
+
+### Error
+
+```text
+tmux has-session -t i1_feistel_des_r6_local_2048
+matched i1_feistel_des_r6_local_2048_postprocess by prefix
+```
+
+### Context
+
+- The eight DES result rows and `run_done` event were already complete.
+- The watcher remained healthy but never advanced to validation, plotting,
+  gating, or indexing because its own session satisfied the prefix match.
+- No training was repeated and no result file was modified during diagnosis.
+
+### Suggested Fix
+
+Use tmux exact-target syntax for watcher ownership checks:
+
+```text
+tmux has-session -t "=$session_name"
+```
+
+Name a watcher so its session cannot be confused with the training session,
+and test the stopped-training/running-watcher state before handoff.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: /tmp/i1_feistel_des_r6_local_2048_postprocess.sh
+- See Also: ERR-20260715-005
+- Pattern-Key: remote_monitor.tmux_target_must_be_exact
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+
+- **Resolved**: 2026-07-15T15:18:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Watcher restarted with `-t =name`; validation, SVG/CSV, gate, and index completed.
+
+---
+
 ## [ERR-20260715-005] duplicate_local_training_polluted_shared_output
 
 **Logged**: 2026-07-15T14:50:00+08:00

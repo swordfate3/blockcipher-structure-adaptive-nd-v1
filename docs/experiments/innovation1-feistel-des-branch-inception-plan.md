@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** implementation and readiness passed; R1 clean rerun required; no remote launch yet
+**Status:** R1 completed and rejected; no remote launch
 
 ## Research Question
 
@@ -143,3 +143,74 @@ retain the same architecture roles and test whether branch semantics transfer
 to SIMON64 under a standard-key strict-negative protocol. If R1 fails, use its
 true/shuffled/paper/LSTM ordering to redesign one branch mechanism locally and
 do not increase the sample count.
+
+## R1 Completed Result
+
+The clean single-writer rerun completed on 2026-07-15. All eight planned rows,
+ten-epoch histories, and three fresh-test repeats passed plan alignment and the
+strict DES result gate.
+
+```text
+result index = outputs/00_RECENT_RESULTS.md entry 001
+results      = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/results.jsonl
+progress     = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/progress.jsonl
+validation   = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/validation.json
+curves       = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/curves.svg
+history      = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/history.csv
+gate         = outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1/gate.json
+```
+
+Mean fresh-test AUC:
+
+| seed | typed true | typed shuffled | paper-family adaptation | LSTM |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.499540726 | 0.499815742 | 0.494093537 | 0.505429626 |
+| 1 | 0.496986469 | 0.511284153 | 0.498417497 | 0.502533913 |
+
+Gate deltas:
+
+```text
+seed0 true - shuffled       = -0.000275016
+seed1 true - shuffled       = -0.014297684
+seed0 true - strongest LSTM = -0.005888899
+seed1 true - strongest LSTM = -0.005547444
+```
+
+The gate returned:
+
+```text
+status                      = pass
+decision                    = feistel_branch_candidate_not_ready
+topology_attributed         = false
+mainstream_competitive      = false
+signal_present              = false
+next_action                 = stop_scale_and_redesign_locally
+research_decision_applied   = true
+errors                      = []
+```
+
+This is a valid negative local diagnostic: the candidate did not learn a
+repeatable DES-r6 signal and was worse than the shuffled control on seed1. It
+does not show that Feistel-aware neural distinguishers are impossible or that
+DES has no paper-scale signal. The Zhang/Wang reference trains roughly
+`5,000,000/class`, while R1 used only `2048/class`, and the R1 paper-family row
+was an adapted three-block mean/max model rather than the public five-block
+global-average implementation.
+
+## Executable Next Action
+
+Do not launch DES-r6 `65536/class`, DES-r7 staged training, SIMON, or SM4 from
+this result. The next question is narrower:
+
+```text
+Can the verified public five-block/global-average DES layout learn the easier
+DES-r5 task at the same 2048/class local budget?
+```
+
+Use the same input difference, strict negative definition, independent
+per-pair random keys, `m=16`, seeds 0 and 1, ten epochs, and three fresh tests.
+Change only the network layout to the audited official backbone. Require both
+seeds to exceed a frozen DES-r5 calibration threshold before returning to
+DES-r6. If the calibration fails, inspect the exact training/code discrepancy
+and run at most a planned local `8192/class` calibration; do not use DES-r6
+remote scale as a data-scarcity rescue.

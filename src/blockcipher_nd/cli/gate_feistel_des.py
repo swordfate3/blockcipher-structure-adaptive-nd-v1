@@ -4,7 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
-from blockcipher_nd.planning.feistel_des_gate import gate_feistel_des_results
+from blockcipher_nd.planning.feistel_des_gate import (
+    gate_feistel_des_official_calibration,
+    gate_feistel_des_results,
+)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -17,13 +20,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seeds", nargs="+", required=True, type=int)
     parser.add_argument("--epochs", required=True, type=int)
     parser.add_argument("--final-repeats", required=True, type=int)
+    parser.add_argument("--official-calibration", action="store_true")
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    report = gate_feistel_des_results(
+    gate = (
+        gate_feistel_des_official_calibration
+        if args.official_calibration
+        else gate_feistel_des_results
+    )
+    report = gate(
         plan_path=args.plan,
         results_path=args.results,
         expected_samples_per_class=args.samples_per_class,

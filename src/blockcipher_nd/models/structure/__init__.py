@@ -17,6 +17,7 @@ from blockcipher_nd.models.structure.arx import (
 from blockcipher_nd.models.structure.feistel import (
     DesFeistelBranchInceptionPairSetDistinguisher,
     DesLstmPairSetDistinguisher,
+    DesZhangWangOfficialLayoutDistinguisher,
     DesZhangWangInceptionPairSetDistinguisher,
 )
 from blockcipher_nd.models.structure.moe import StructureAwareMoEDistinguisher
@@ -197,6 +198,7 @@ __all__ = [
     "ArxWordMixerPairSetDistinguisher",
     "DesFeistelBranchInceptionPairSetDistinguisher",
     "DesLstmPairSetDistinguisher",
+    "DesZhangWangOfficialLayoutDistinguisher",
     "DesZhangWangInceptionPairSetDistinguisher",
     "PairwiseAdaptiveDBitNetDistinguisher",
     "SpnCellPairSetDBitNetDistinguisher",
