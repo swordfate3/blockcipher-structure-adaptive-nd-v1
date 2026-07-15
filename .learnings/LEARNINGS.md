@@ -42,6 +42,45 @@ unchanged.
 
 ---
 
+## [LRN-20260715-006] correction
+
+**Logged**: 2026-07-15T14:00:00+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+Treat the thesis as three distinct contributions, not as an SPN-AUC optimization project.
+
+### Details
+The original proposal defines: (1) a reproducible mapping from block-cipher
+structure to neural-distinguisher architecture preference across ARX, SPN, and
+Feistel; (2) iterative intermediate-round-state to next-round-state neural
+output-prediction attacks and their critical-round curves; and (3) an
+end-to-end automated detection platform. Current Innovation 1 SPN work is
+evidence for only the first contribution. In particular, controlled topology
+attribution and a GIFT mainstream-performance benchmark cannot establish the
+output-prediction or platform contributions, nor a cross-structure mapping.
+
+### Suggested Action
+When reporting or scheduling experiments, identify the thesis contribution and
+claim level explicitly. After a structure-specific benchmark, turn its result
+into a comparable cross-structure matrix/selection rule; plan output prediction
+as a separate `state_r -> state_(r+1)` task; and treat current runner/artifact
+automation as platform groundwork until a unified task/UI/reporting flow exists.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/24032307046_廖锡粤_开题附件.pdf, docs/research/opening-proposal-innovation-alignment-2026-07-15.md
+- Tags: thesis-scope, innovation1, output-prediction, platform, claim-scope
+- See Also: LRN-20260715-005, LRN-20260715-004
+- Pattern-Key: thesis.three_contributions_not_single_spn_auc
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+---
+
 ## [LRN-20260715-005] correction
 
 **Logged**: 2026-07-15T09:20:00+08:00
