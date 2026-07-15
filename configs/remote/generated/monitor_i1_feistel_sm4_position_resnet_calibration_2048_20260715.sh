@@ -21,6 +21,23 @@ sync_logs() {
     >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
 }
 
+retrieve_archive() {
+  local staging
+  staging=$(mktemp -d /tmp/sm4-position-retrieval.XXXXXX) || return 1
+  if ! scp -r "${REMOTE}:${REMOTE_ROOT}/source/results_archive/${RUN_ID}" \
+    "${staging}/" >> "${MONITOR_ROOT}/scp.log" \
+    2>> "${MONITOR_ROOT}/scp_stderr.log"; then
+    rm -rf "${staging}"
+    return 1
+  fi
+  mkdir -p "${DESTINATION}"
+  if ! cp -a "${staging}/${RUN_ID}/." "${DESTINATION}/"; then
+    rm -rf "${staging}"
+    return 1
+  fi
+  rm -rf "${staging}"
+}
+
 while true; do
   echo "$(timestamp) sync" >> "${MONITOR_ROOT}/monitor.log"
   sync_logs
@@ -31,13 +48,10 @@ while true; do
   fi
 
   if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
-    mkdir -p "${DESTINATION}"
-    scp -r "${REMOTE}:${REMOTE_ROOT}/source/results_archive/${RUN_ID}/." \
-      "${DESTINATION}/" >> "${MONITOR_ROOT}/scp.log" \
-      2>> "${MONITOR_ROOT}/scp_stderr.log" || exit 2
+    retrieve_archive || exit 2
     (
       cd "${DESTINATION}" || exit 1
-      sha256sum -c SHA256SUMS
+      sha256sum -c <(sed 's/\r$//' SHA256SUMS)
     ) >> "${MONITOR_ROOT}/hash.log" 2>> "${MONITOR_ROOT}/hash_stderr.log" || exit 2
     touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \

@@ -459,3 +459,31 @@ def test_sm4_position_calibration_retains_cross_key_anchor(tmp_path: Path) -> No
     assert report["status"] == "pass", report["errors"]
     assert report["decision"] == "feistel_sm4_position_anchor_retained_cross_key"
     assert report["signal"] == {"fixed": True, "rotating": True}
+
+
+def test_sm4_position_remote_assets_use_safe_retrieval() -> None:
+    run_script = (
+        ROOT
+        / "configs/remote/generated/"
+        "run_i1_feistel_sm4_position_resnet_calibration_2048_20260715.cmd"
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        ROOT
+        / "configs/remote/generated/"
+        "launch_i1_feistel_sm4_position_resnet_calibration_2048_20260715.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_script = (
+        ROOT
+        / "configs/remote/generated/"
+        "monitor_i1_feistel_sm4_position_resnet_calibration_2048_20260715.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "scripts\\train" in run_script
+    assert "cmd.exe /k" not in run_script
+    assert "cmd.exe /c" in launch_script
+    assert "cmd.exe /k" not in launch_script
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launch_script
+    assert "mktemp -d /tmp/sm4-position-retrieval" in monitor_script
+    assert "cp -a" in monitor_script
+    assert "results_archive/${RUN_ID}/." not in monitor_script
+    assert "sed 's/\\r$//' SHA256SUMS" in monitor_script

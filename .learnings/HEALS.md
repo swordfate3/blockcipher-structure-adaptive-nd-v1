@@ -62,7 +62,9 @@ Commit `0833289` retrieves each complete archive directory into a unique `/tmp`
 staging directory, then copies its contents locally with `cp -a`. This retains
 hidden files such as `.gitattributes`. Seed6, seed7, and joint archives were
 retrieved; normalized-manifest SHA-256 verification passed for every archived
-file, and both primary score packs matched their recorded hashes.
+file, and both primary score packs matched their recorded hashes. The same
+unsafe suffix was then found during the pre-launch audit of the independent SM4
+position-calibration watcher and was repaired before that run launched.
 
 ### Prevention
 
@@ -72,8 +74,8 @@ then expose the destination as retrieved evidence.
 
 ### Metadata
 
-- Related Files: configs/remote/generated/monitor_i1_gift64_mainstream_performance_1m_20260715.sh, tests/test_cross_spn_mainstream_performance_gate.py
+- Related Files: configs/remote/generated/monitor_i1_gift64_mainstream_performance_1m_20260715.sh, configs/remote/generated/monitor_i1_feistel_sm4_position_resnet_calibration_2048_20260715.sh, tests/test_cross_spn_mainstream_performance_gate.py, tests/test_feistel_sm4_innovation.py
 - Pattern-Key: remote.scp.modern_directory_retrieval
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-15
 - Last-Seen: 2026-07-15
