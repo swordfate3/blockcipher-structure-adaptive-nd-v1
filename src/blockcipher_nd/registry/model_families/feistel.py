@@ -7,6 +7,7 @@ from blockcipher_nd.models.structure import (
     DesLstmPairSetDistinguisher,
     DesZhangWangOfficialLayoutDistinguisher,
     DesZhangWangInceptionPairSetDistinguisher,
+    Sm4WordRecurrenceDistinguisher,
 )
 from blockcipher_nd.registry.model_options import int_option, int_tuple_option
 
@@ -80,6 +81,21 @@ def build_feistel_model(
                 "des_zhang_wang_official_layout",
                 "des_zhang_wang_official_layout_shuffled",
             },
+        )
+    if name in {"sm4_word_recurrence_true", "sm4_word_recurrence_shuffled"}:
+        return Sm4WordRecurrenceDistinguisher(
+            input_bits=input_bits,
+            mapping_mode=(
+                "shuffled" if name == "sm4_word_recurrence_shuffled" else "true"
+            ),
+            pair_bits=pair_bits or 256,
+            base_channels=hidden_bits,
+            blocks=int_option(options, "blocks", 3) or 3,
+            classifier_bits=int_option(options, "classifier_bits", 64) or 64,
+            dropout=float(options.get("dropout", 0.5)),
+            rotation_offsets=int_tuple_option(
+                options, "rotation_offsets", (2, 10, 18, 24)
+            ),
         )
     return None
 
