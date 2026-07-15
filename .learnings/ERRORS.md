@@ -620,6 +620,11 @@ The agent must not attempt to achieve the same outcome via workaround, indirect 
 
 Latest recurrence after commit 8c75600:
 Model "codex-auto-review" is not supported by any configured account in this group
+
+Latest recurrence after commit 48cced7:
+Rejected because the environment forbids escalated-permission requests under
+`approval policy: never`, after the ordinary push failed with
+`Couldn't connect to server`.
 ```
 
 ### Context
@@ -629,18 +634,23 @@ Model "codex-auto-review" is not supported by any configured account in this gro
 - Remote launch affected: `i1_present_r8_trail_position_beamstats_65k_seed0_gpu0_20260706`.
 - Latest recurrence: push of local head `8c75600` after the E1 8192/class
   adjudication; branch state `main...origin/main [ahead 1]`.
+- 2026-07-16 recurrence: push of `48cced7` containing the verified SIMECK
+  curriculum implementation, two-seed local evidence, and the frozen
+  `65536/class` remote package. Ordinary network access failed; the escalated
+  request was rejected. The remote run
+  `i1_feistel_simeck_curriculum_65k_seed0` was correctly not launched.
 
 ### Suggested Fix
 Do not work around this by dirty overlay, alternate push commands, or SSH remote launch from unpublished code. Either obtain explicit user approval for the exact external push of 48 commits to `origin/main`, or continue with local diagnostics/watchers until a safer publication path exists.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, scripts/check-launch-source
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/experiments/innovation1-feistel-simeck-curriculum-65k-scale-plan.md, scripts/check-launch-source
 - See Also: ERR-20260622-001, ERR-20260624-003, ERR-20260705-001, LRN-20260706-022
 - Pattern-Key: infra.git_push.external_reviewer_unavailable_or_rejected
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-06
-- Last-Seen: 2026-07-09
+- Last-Seen: 2026-07-16
 
 ---
 
