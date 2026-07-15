@@ -39,6 +39,20 @@ def literature_difference_profiles() -> dict[str, DifferenceProfile]:
             source="Gohr 2019 SPECK32/64 neural distinguisher",
             note="Input difference 0x0040/0000 for Gohr N5-N8 distinguishers.",
         ),
+        "des_zhang_wang2022_mcnd": DifferenceProfile(
+            name="des_zhang_wang2022_mcnd",
+            cipher="des",
+            kind="fixed",
+            differences=(0x0000801000004000,),
+            word_difference=("0x40080000", "0x04000000"),
+            source="Zhang/Wang 2022 DES Inception-MCND differential-neural distinguisher",
+            note=(
+                "External plaintext difference equivalent to internal DES round-state "
+                "difference (0x40080000,0x04000000) after the implementation's IP; "
+                "the paper omits fixed IP/FP permutations."
+            ),
+            pairs_per_sample=16,
+        ),
         "present_wang_jain2021": DifferenceProfile(
             name="present_wang_jain2021",
             cipher="present80",

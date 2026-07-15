@@ -4,6 +4,7 @@ from torch import nn
 
 from blockcipher_nd.registry.model_families.arx import build_arx_model
 from blockcipher_nd.registry.model_families.baseline import build_baseline_model
+from blockcipher_nd.registry.model_families.feistel import build_feistel_model
 from blockcipher_nd.registry.model_families.moe import build_moe_model
 from blockcipher_nd.registry.model_families.pairset import build_pairset_model
 from blockcipher_nd.registry.model_families.spn import build_spn_model
@@ -23,6 +24,7 @@ def build_model(
         lambda: build_pairset_model(name, input_bits, hidden_bits, pair_bits, structure),
         lambda: build_arx_model(name, input_bits, hidden_bits, pair_bits, structure, options),
         lambda: build_spn_model(name, input_bits, hidden_bits, pair_bits, options),
+        lambda: build_feistel_model(name, input_bits, hidden_bits, pair_bits, options),
         lambda: build_moe_model(name, input_bits, hidden_bits, pair_bits, options),
     )
     for build in builders:

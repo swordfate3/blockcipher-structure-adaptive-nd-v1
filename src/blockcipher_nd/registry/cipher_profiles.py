@@ -77,5 +77,21 @@ class CipherProfile:
             ),
         )
 
+    @staticmethod
+    def des() -> "CipherProfile":
+        return CipherProfile(
+            name="DES",
+            structure="Feistel-like",
+            block_bits=64,
+            key_bits=64,
+            traits=(
+                "balanced_feistel",
+                "left_right_branch_exchange",
+                "sbox_layer",
+                "expansion_permutation",
+                "round_recurrence",
+            ),
+        )
+
 
 __all__ = ["CipherProfile"]

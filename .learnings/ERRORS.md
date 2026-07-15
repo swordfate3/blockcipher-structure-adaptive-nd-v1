@@ -1,3 +1,60 @@
+## [ERR-20260715-005] duplicate_local_training_polluted_shared_output
+
+**Logged**: 2026-07-15T14:50:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Two DES R1 training processes used different batch sizes while appending to the
+same progress and result paths, so the partial 2048/class output is invalid.
+
+### Error
+
+```text
+progress.jsonl interleaved steps_per_epoch=16 and steps_per_epoch=64
+results.jsonl remained empty while both Python training processes ran
+```
+
+### Context
+
+- Run ID: `i1_feistel_des_r6_branch_inception_2048_seed0_seed1`.
+- Two asynchronous tool sessions appeared to complete while their sandboxed
+  child processes continued on the host.
+- Both jobs reused the same plan, cache root, progress path, and result path,
+  but used batch sizes 256 and 64.
+- The partial output is not research evidence and must not be indexed.
+- Exact host process trees were stopped without touching the active GIFT
+  remote-result watcher.
+
+### Suggested Fix
+
+Give each meaningful local matrix one unique tmux session and one owning
+command. Before launch, verify that no process or tmux session already names
+the plan or output path. After an interrupted or ambiguous launch, inspect the
+host process tree before retrying. Never launch a second writer into an
+existing result directory; move the invalid output aside and restart with a
+fresh progress/result path. Reuse a cache only after its metadata, array
+shapes, dtypes, and label counts pass validation.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: docs/experiments/innovation1-feistel-des-branch-inception-plan.md, outputs/local_diagnostic/i1_feistel_des_r6_branch_inception_2048_seed0_seed1
+- See Also: ERR-20260715-001
+- Pattern-Key: experiments.single_writer_per_output_directory
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+
+- **Resolved**: 2026-07-15T14:50:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Both duplicate process trees were stopped; clean single-session rerun required.
+
+---
+
 ## [ERR-20260710-001] full_pytest_matplotlib_state_and_json_alignment_baseline
 
 **Logged**: 2026-07-10T12:05:00+08:00

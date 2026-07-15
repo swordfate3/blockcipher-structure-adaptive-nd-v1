@@ -272,6 +272,7 @@ def cipher_key_from_name(cipher_name: str) -> str:
         "SPECK32/64": "speck32",
         "PRESENT-80": "present80",
         "GIFT-64": "gift64",
+        "DES": "des",
         "SM4": "sm4",
     }
     try:
