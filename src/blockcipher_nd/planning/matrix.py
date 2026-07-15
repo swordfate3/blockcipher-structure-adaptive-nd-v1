@@ -64,6 +64,7 @@ def build_tasks(args: argparse.Namespace) -> list[dict[str, Any]]:
                             "restore_best_checkpoint": args.restore_best_checkpoint,
                             "early_stopping_patience": args.early_stopping_patience,
                             "early_stopping_min_delta": args.early_stopping_min_delta,
+                            "target_epochs": args.epochs,
                             "pretrain_rounds": args.pretrain_rounds,
                             "pretrain_round_sequence": args.pretrain_round_sequence,
                             "pretrain_epochs": args.pretrain_epochs,
@@ -145,7 +146,9 @@ def plan_task(
         "integral_active_nibble": optional_int(row.get("integral_active_nibble"))
         if row.get("integral_active_nibble") not in {None, ""}
         else integral_active_nibble,
-        "integral_active_nibbles": optional_int_tuple(row.get("integral_active_nibbles")),
+        "integral_active_nibbles": optional_int_tuple(
+            row.get("integral_active_nibbles")
+        ),
         "validation_integral_active_nibbles": optional_int_tuple(
             row.get("validation_integral_active_nibbles")
         ),
@@ -161,6 +164,7 @@ def plan_task(
         "restore_best_checkpoint": optional_bool(row.get("restore_best_checkpoint")),
         "early_stopping_patience": optional_int(row.get("early_stopping_patience")),
         "early_stopping_min_delta": optional_float(row.get("early_stopping_min_delta")),
+        "target_epochs": optional_int(row.get("target_epochs")),
         "pretrain_rounds": optional_int(row.get("pretrain_rounds")),
         "pretrain_round_sequence": optional_int_tuple(
             row.get("pretrain_round_sequence"),
@@ -231,7 +235,9 @@ def optional_int_tuple(
     if not value:
         return ()
     parsed = json.loads(value)
-    if not isinstance(parsed, list) or not all(isinstance(item, int) for item in parsed):
+    if not isinstance(parsed, list) or not all(
+        isinstance(item, int) for item in parsed
+    ):
         raise ValueError(f"{field_name} must be a JSON list of integers")
     return tuple(parsed)
 

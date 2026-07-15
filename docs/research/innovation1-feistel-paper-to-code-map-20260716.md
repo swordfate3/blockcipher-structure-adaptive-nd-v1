@@ -119,3 +119,21 @@ cipher-correct previous-round relation with the shared pair-pool encoder for
 the demonstrated easier-round cells, reject the pair-axis Lu layout at this
 small budget, and do not promote either architecture to r12/r15 or remote scale
 without an equal-compute low-to-high curriculum attribution result.
+
+## Curriculum Attribution Update
+
+The equal-total-epoch experiment compared `5` easier-round plus `5` target-
+round epochs against `10` target-only epochs, with a branch-shuffled curriculum
+control. Corrected `8192/class` fresh-test AUC was:
+
+| Cipher/seed | curriculum true | shuffled | target scratch | Verdict |
+|---|---:|---:|---:|---|
+| SIMON r11->r12 seed0 | `0.534241` | `0.498030` | `0.505086` | control margins pass; absolute `0.55` gate misses |
+| SIMECK r14->r15 seed0 | `0.696613` | `0.503924` | `0.511122` | all gates pass |
+| SIMECK r14->r15 seed1 | `0.701582` | `0.504952` | `0.593734` | independent confirmation passes |
+
+The updated structure-adaptive rule is therefore SIMECK-conditional: retain
+the cipher-correct relation curriculum for SIMECK64/128 r15, but do not extend
+the conclusion to SIMON. A single `65536/class` SIMECK medium-scale probe is
+authorized to test scale preservation. This remains far below the paper's
+`2e7/2e6`, 120-epoch, five-run protocol and is not a reproduction claim.

@@ -46,9 +46,7 @@ DECISION_LABELS = {
     "feistel_balanced_signal_without_relation_attribution": (
         "存在区分信号但无法归因于真实轮关系，停止扩规模"
     ),
-    "feistel_balanced_relation_not_ready": (
-        "轮关系候选未就绪，先做更低轮公式校准"
-    ),
+    "feistel_balanced_relation_not_ready": ("轮关系候选未就绪，先做更低轮公式校准"),
     "feistel_balanced_easier_round_calibrated": (
         "低一轮公式与网络已校准，下一步贴近 Lu SE-ResNet 高轮协议"
     ),
@@ -64,15 +62,11 @@ DECISION_LABELS = {
     "feistel_lu_layout_two_cipher_calibrated": (
         "Lu-SE 布局两种密码均校准，进入高一轮同布局比较"
     ),
-    "feistel_lu_layout_cipher_conditional": (
-        "Lu-SE 布局仅一种密码通过，保留条件路线"
-    ),
+    "feistel_lu_layout_cipher_conditional": ("Lu-SE 布局仅一种密码通过，保留条件路线"),
     "feistel_lu_layout_signal_without_architecture_gain": (
         "Lu-SE 布局有信号但未优于旧锚点，停止布局扩展"
     ),
-    "feistel_lu_layout_not_calibrated": (
-        "Lu-SE 布局未校准，先量化数据规模缺口"
-    ),
+    "feistel_lu_layout_not_calibrated": ("Lu-SE 布局未校准，先量化数据规模缺口"),
     "feistel_relation_scale_slope_two_cipher_pass": (
         "两种密码均有正数据斜率，进入独立 seed1 同规模确认"
     ),
@@ -103,8 +97,37 @@ DECISION_LABELS = {
     "feistel_target_round_signal_without_scale_slope": (
         "论文目标轮有信号但规模增益不足，保留低轮证据"
     ),
-    "feistel_target_round_8192_not_ready": (
-        "论文目标轮 8192/类未就绪，停止远程扩规模"
+    "feistel_target_round_8192_not_ready": ("论文目标轮 8192/类未就绪，停止远程扩规模"),
+    "feistel_curriculum_readiness_passed": (
+        "同总轮次课程训练机制就绪，进入 8192/类本地诊断"
+    ),
+    "feistel_curriculum_two_cipher_pass": (
+        "两种密码均通过课程迁移门，进入独立 seed1 确认"
+    ),
+    "feistel_curriculum_cipher_conditional": ("课程迁移仅一种密码通过，只确认条件路线"),
+    "feistel_curriculum_without_scratch_gain": (
+        "课程模型有信号但未胜同轮次从零训练，停止课程路线"
+    ),
+    "feistel_curriculum_without_relation_attribution": (
+        "课程信号无法归因于真实轮关系，保留目标轮对照"
+    ),
+    "feistel_curriculum_target_signal_not_ready": (
+        "课程训练未恢复目标轮信号，转表示或差分重设计"
+    ),
+    "feistel_curriculum_seed1_confirmation_pass": (
+        "SIMECK 独立 seed1 课程迁移通过，进入双 seed 综合"
+    ),
+    "feistel_curriculum_seed1_confirmation_failed": (
+        "SIMECK 独立 seed1 未确认，停止课程路线"
+    ),
+    "feistel_simeck_curriculum_65k_scale_pass": (
+        "SIMECK 65536/类课程信号与规模保持通过，进入同规模 seed1"
+    ),
+    "feistel_simeck_curriculum_65k_scale_regressed": (
+        "SIMECK 课程控制过门但规模性能回退，保留本地双 seed 证据"
+    ),
+    "feistel_simeck_curriculum_65k_not_ready": (
+        "SIMECK 65536/类课程规模门未通过，停止远程扩展"
     ),
     "innovation2_integral_property_implementation_ready": (
         "创新2积分性质预测实现就绪，可进入本地诊断"
@@ -411,6 +434,14 @@ def display_name_for_run(run_id: str) -> str:
         return "创新1 Feistel：SIMON/SIMECK 轮关系 8192/类独立 seed1 确认"
     if run_id == "i1_feistel_round_relation_target_round_8192_seed0":
         return "创新1 Feistel：SIMON r12 / SIMECK r15 论文目标轮 8192/类探针"
+    if run_id == "i1_feistel_low_to_target_curriculum_readiness_seed0":
+        return "创新1 Feistel：低轮到目标轮同总轮次课程训练就绪检查"
+    if run_id == "i1_feistel_low_to_target_curriculum_8192_seed0":
+        return "创新1 Feistel：SIMON/SIMECK 低轮到目标轮课程迁移 8192/类裁决"
+    if run_id == "i1_feistel_low_to_target_curriculum_8192_seed1_simeck":
+        return "创新1 Feistel：SIMECK 低轮到目标轮课程迁移 seed1 确认"
+    if run_id == "i1_feistel_simeck_curriculum_65k_seed0":
+        return "创新1 Feistel：SIMECK 低轮到目标轮课程迁移 65536/类规模裁决"
     if run_id == "i2_present_r5_structure_integral_parity_smoke_seed0":
         return "创新2 E0：PRESENT 5轮结构条件积分平衡概率预测 Smoke"
     if run_id == "i2_present_r5_structure_integral_parity_feasibility_seed0":
@@ -465,9 +496,7 @@ def display_name_for_run(run_id: str) -> str:
         )
     if run_id == "i1_present_cross_spn_source_seed_r5_8192_seed1":
         return "创新1 E4-R5 Phase A：独立 PRESENT source seed1 门控"
-    if run_id == (
-        "i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3"
-    ):
+    if run_id == ("i1_gift64_cross_spn_target_adaptation_r4_65536_joint_seed2_seed3"):
         return "创新1 E4-R4：PRESENT → GIFT-64 双 seed 目标适配效率联合裁决"
     r4_medium = re.fullmatch(
         r"i1_gift64_cross_spn_target_adaptation_r4_65536_seed(?P<seed>\d+)",
@@ -487,9 +516,7 @@ def display_name_for_run(run_id: str) -> str:
             "创新1 E4-R4：跨 SPN 一轮目标适配实验就绪检查，"
             f"目标 seed {r4_readiness.group('seed')}"
         )
-    if run_id == (
-        "i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1"
-    ):
+    if run_id == ("i1_gift64_cross_spn_typed_transfer_r3_65536_joint_seed0_seed1"):
         return "创新1 E4-R3：PRESENT → GIFT-64 跨 SPN 双 seed 中等规模联合裁决"
     r3_medium = re.fullmatch(
         r"i1_gift64_cross_spn_typed_transfer_r3_65536_seed(?P<seed>\d+)",

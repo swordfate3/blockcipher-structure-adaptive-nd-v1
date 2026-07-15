@@ -16,13 +16,18 @@ from blockcipher_nd.engine.pretraining import (
     resolve_optimizer_state_transition,
     run_optional_pretraining,
 )
-from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
+from blockcipher_nd.engine.progress import (
+    progress_callback,
+    task_progress_payload,
+    write_progress,
+)
 from blockcipher_nd.engine.results import build_task_result
 from blockcipher_nd.engine.task_config import (
     build_dataset_config,
     build_training_config,
     resolve_final_test_key,
     resolve_task_keys,
+    target_epochs,
 )
 from blockcipher_nd.engine.task_config import validation_samples_per_class
 from blockcipher_nd.registry.cipher_factory import build_cipher
@@ -40,7 +45,9 @@ def run_task(
     train_key, validation_key = resolve_task_keys(task)
     final_test_key = resolve_final_test_key(task)
     train_cipher = build_cipher(task["cipher_key"], task["rounds"], key=train_key)
-    validation_cipher = build_cipher(task["cipher_key"], task["rounds"], key=validation_key)
+    validation_cipher = build_cipher(
+        task["cipher_key"], task["rounds"], key=validation_key
+    )
     final_test_cipher = build_cipher(
         task["cipher_key"],
         task["rounds"],
@@ -131,7 +138,12 @@ def run_task(
         model,
         train_dataset,
         validation_dataset,
-        build_training_config(task, args, epochs=args.epochs, seed=task["seed"]),
+        build_training_config(
+            task,
+            args,
+            epochs=target_epochs(task, args),
+            seed=task["seed"],
+        ),
         progress_callback=progress_callback(
             progress_path,
             "training",
@@ -142,7 +154,9 @@ def run_task(
         optimizer_session=optimizer_session,
     )
     training_result.metadata["optimizer_state_transition"] = optimizer_state_transition
-    training_result.metadata.update(dataset_size_metadata(train_dataset, validation_dataset))
+    training_result.metadata.update(
+        dataset_size_metadata(train_dataset, validation_dataset)
+    )
     final_evaluation = run_final_evaluation(
         model,
         task,

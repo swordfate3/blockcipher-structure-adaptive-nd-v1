@@ -5,7 +5,11 @@ from typing import Any
 
 from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.modeling import configure_structure_aware_model
-from blockcipher_nd.engine.progress import progress_callback, task_progress_payload, write_progress
+from blockcipher_nd.engine.progress import (
+    progress_callback,
+    task_progress_payload,
+    write_progress,
+)
 from blockcipher_nd.engine.task_config import (
     build_dataset_config,
     build_training_config,
@@ -13,7 +17,11 @@ from blockcipher_nd.engine.task_config import (
     validation_samples_per_class,
 )
 from blockcipher_nd.registry.cipher_factory import build_cipher
-from blockcipher_nd.training import OptimizerSession, TrainingResult, train_binary_classifier
+from blockcipher_nd.training import (
+    OptimizerSession,
+    TrainingResult,
+    train_binary_classifier,
+)
 
 
 def run_optional_pretraining(
@@ -36,7 +44,10 @@ def run_optional_pretraining(
     if pretrain_epochs <= 0 or not round_sequence:
         return None
     optimizer_state_transition = resolve_optimizer_state_transition(task, args)
-    if optimizer_state_transition == "carry_across_stages" and optimizer_session is None:
+    if (
+        optimizer_state_transition == "carry_across_stages"
+        and optimizer_session is None
+    ):
         raise ValueError("carry_across_stages requires an optimizer session")
 
     stage_results: list[tuple[int, TrainingResult]] = []
@@ -65,8 +76,7 @@ def run_optional_pretraining(
 
     final_result = stage_results[-1][1]
     stages = [
-        curriculum_stage_metadata(rounds, result)
-        for rounds, result in stage_results
+        curriculum_stage_metadata(rounds, result) for rounds, result in stage_results
     ]
     return TrainingResult(
         history=final_result.history,
@@ -91,13 +101,17 @@ def resolve_pretrain_round_sequence(
     if scalar is None:
         scalar = args.pretrain_rounds
     if sequence and scalar is not None:
-        raise ValueError("use either pretrain_round_sequence or pretrain_rounds, not both")
+        raise ValueError(
+            "use either pretrain_round_sequence or pretrain_rounds, not both"
+        )
     if not sequence and scalar is not None:
         sequence = (int(scalar),)
     if not sequence:
         return ()
     if any(rounds <= 0 or rounds >= int(task["rounds"]) for rounds in sequence):
-        raise ValueError("pretrain_round_sequence rounds must be lower than target rounds")
+        raise ValueError(
+            "pretrain_round_sequence rounds must be lower than target rounds"
+        )
     if any(current >= following for current, following in zip(sequence, sequence[1:])):
         raise ValueError("pretrain_round_sequence must be strictly increasing")
     return sequence
@@ -175,7 +189,9 @@ def run_pretraining_stage(
     )
     expected_input_bits = int(pretrain_dataset.features.shape[1])
     if pair_bits is not None and expected_input_bits % pair_bits != 0:
-        raise ValueError("pretraining feature width is incompatible with target pair_bits")
+        raise ValueError(
+            "pretraining feature width is incompatible with target pair_bits"
+        )
     write_progress(
         progress_path,
         "pretrain_cache_ready",
@@ -212,7 +228,9 @@ def run_pretraining_stage(
         ),
         optimizer_session=optimizer_session,
     )
-    result.metadata.update(dataset_size_metadata(pretrain_dataset, pretrain_validation_dataset))
+    result.metadata.update(
+        dataset_size_metadata(pretrain_dataset, pretrain_validation_dataset)
+    )
     return result
 
 
@@ -225,6 +243,15 @@ def dataset_size_metadata(train_dataset, validation_dataset) -> dict[str, Any]:
         "validation_positive_rows": int(validation_dataset.metadata["positive_rows"]),
         "validation_negative_rows": int(validation_dataset.metadata["negative_rows"]),
         "dataset_label_mode": train_dataset.metadata["dataset_label_mode"],
+        "negative_mode": train_dataset.metadata["negative_mode"],
+        "pairs_per_sample": int(train_dataset.metadata["pairs_per_sample"]),
+        "key_rotation_interval": int(train_dataset.metadata["key_rotation_interval"]),
+        "train_key_rotation_row_indexing": train_dataset.metadata.get(
+            "key_rotation_row_indexing"
+        ),
+        "validation_key_rotation_row_indexing": validation_dataset.metadata.get(
+            "key_rotation_row_indexing"
+        ),
     }
 
 
@@ -251,6 +278,15 @@ def curriculum_stage_metadata(rounds: int, result: TrainingResult) -> dict[str, 
         "validation_positive_rows": result.metadata.get("validation_positive_rows"),
         "validation_negative_rows": result.metadata.get("validation_negative_rows"),
         "dataset_label_mode": result.metadata.get("dataset_label_mode"),
+        "negative_mode": result.metadata.get("negative_mode"),
+        "pairs_per_sample": result.metadata.get("pairs_per_sample"),
+        "key_rotation_interval": result.metadata.get("key_rotation_interval"),
+        "train_key_rotation_row_indexing": result.metadata.get(
+            "train_key_rotation_row_indexing"
+        ),
+        "validation_key_rotation_row_indexing": result.metadata.get(
+            "validation_key_rotation_row_indexing"
+        ),
         "selected_checkpoint": result.metadata.get("selected_checkpoint"),
         "stopped_epoch": result.metadata.get("stopped_epoch"),
         "seed": result.metadata.get("seed"),

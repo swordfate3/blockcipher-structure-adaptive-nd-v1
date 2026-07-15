@@ -26,6 +26,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--scale-probe", action="store_true")
     mode.add_argument("--scale-confirmation", action="store_true")
     mode.add_argument("--target-round-probe", action="store_true")
+    mode.add_argument("--curriculum-readiness", action="store_true")
+    mode.add_argument("--curriculum", action="store_true")
+    mode.add_argument("--curriculum-confirmation", action="store_true")
+    mode.add_argument("--curriculum-scale-probe", action="store_true")
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
 
@@ -45,6 +49,10 @@ def main(argv: list[str] | None = None) -> int:
         scale_probe=args.scale_probe,
         scale_confirmation=args.scale_confirmation,
         target_round_probe=args.target_round_probe,
+        curriculum_readiness=args.curriculum_readiness,
+        curriculum=args.curriculum,
+        curriculum_confirmation=args.curriculum_confirmation,
+        curriculum_scale_probe=args.curriculum_scale_probe,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

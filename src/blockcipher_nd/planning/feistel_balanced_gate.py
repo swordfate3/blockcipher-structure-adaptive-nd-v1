@@ -91,6 +91,33 @@ HIGH_ROUND_ANCHOR_AUC = {
     "simeck64": 0.49672653277715045,
 }
 
+CURRICULUM_PROTOCOLS = {
+    "simon64": {
+        **CIPHER_PROTOCOLS["simon64"],
+        "pretrain_rounds": 11,
+        "models": {
+            "curriculum_true": "simon_lu_round_relation_true",
+            "curriculum_shuffled": "simon_lu_round_relation_shuffled",
+            "scratch_true": "simon_lu_round_relation_target_scratch",
+        },
+    },
+    "simeck64": {
+        **CIPHER_PROTOCOLS["simeck64"],
+        "pretrain_rounds": 14,
+        "models": {
+            "curriculum_true": "simeck_lu_round_relation_true",
+            "curriculum_shuffled": "simeck_lu_round_relation_shuffled",
+            "scratch_true": "simeck_lu_round_relation_target_scratch",
+        },
+    },
+}
+
+CURRICULUM_CONFIRMATION_PROTOCOLS = {
+    "simeck64": CURRICULUM_PROTOCOLS["simeck64"],
+}
+
+SIMECK_CURRICULUM_LOCAL_SEED0_AUC = 0.696612915645043
+
 
 def feistel_balanced_relation_decision(
     scores_by_cipher: dict[str, dict[int, dict[str, float]]],
@@ -358,6 +385,122 @@ def feistel_target_round_scale_probe_decision(
     return report
 
 
+def feistel_low_to_target_curriculum_decision(
+    scores_by_cipher: dict[str, dict[int, dict[str, float]]],
+    *,
+    minimum_signal_auc: float = 0.55,
+    relation_margin: float = 0.02,
+    scratch_gain_margin: float = 0.01,
+) -> dict[str, Any]:
+    relation_margins: dict[str, dict[int, float]] = {}
+    scratch_gains: dict[str, dict[int, float]] = {}
+    cipher_gates: dict[str, dict[str, bool]] = {}
+    passing_ciphers: list[str] = []
+    for cipher_key, scores_by_seed in scores_by_cipher.items():
+        relation_margins[cipher_key] = {
+            seed: scores["curriculum_true"] - scores["curriculum_shuffled"]
+            for seed, scores in scores_by_seed.items()
+        }
+        scratch_gains[cipher_key] = {
+            seed: scores["curriculum_true"] - scores["scratch_true"]
+            for seed, scores in scores_by_seed.items()
+        }
+        gates = {
+            "signal_present": all(
+                scores["curriculum_true"] >= minimum_signal_auc
+                for scores in scores_by_seed.values()
+            ),
+            "relation_attributed": all(
+                margin >= relation_margin
+                for margin in relation_margins[cipher_key].values()
+            ),
+            "scratch_improved": all(
+                margin >= scratch_gain_margin
+                for margin in scratch_gains[cipher_key].values()
+            ),
+        }
+        gates["passed"] = all(gates.values())
+        cipher_gates[cipher_key] = gates
+        if gates["passed"]:
+            passing_ciphers.append(cipher_key)
+
+    if len(passing_ciphers) == len(scores_by_cipher):
+        decision = "feistel_curriculum_two_cipher_pass"
+        next_action = "run_same_equal_epoch_curriculum_matrix_with_seed1"
+    elif len(passing_ciphers) == 1:
+        decision = "feistel_curriculum_cipher_conditional"
+        next_action = "confirm_only_passing_curriculum_cipher_with_seed1"
+    elif any(gates["signal_present"] for gates in cipher_gates.values()):
+        if all(gates["relation_attributed"] for gates in cipher_gates.values()):
+            decision = "feistel_curriculum_without_scratch_gain"
+            next_action = "retain_simpler_target_scratch_and_stop_curriculum"
+        else:
+            decision = "feistel_curriculum_without_relation_attribution"
+            next_action = "reject_curriculum_cause_and_retain_target_only_evidence"
+    else:
+        decision = "feistel_curriculum_target_signal_not_ready"
+        next_action = "stop_transfer_route_and_redesign_representation_or_difference"
+
+    return {
+        "decision": decision,
+        "next_action": next_action,
+        "scores_by_cipher": scores_by_cipher,
+        "relation_margins": relation_margins,
+        "scratch_gains": scratch_gains,
+        "cipher_gates": cipher_gates,
+        "passing_ciphers": passing_ciphers,
+        "thresholds": {
+            "minimum_signal_auc": minimum_signal_auc,
+            "relation_margin": relation_margin,
+            "scratch_gain_margin": scratch_gain_margin,
+        },
+    }
+
+
+def feistel_curriculum_confirmation_decision(
+    scores_by_cipher: dict[str, dict[int, dict[str, float]]],
+) -> dict[str, Any]:
+    report = feistel_low_to_target_curriculum_decision(scores_by_cipher)
+    if report["passing_ciphers"] == ["simeck64"]:
+        report["decision"] = "feistel_curriculum_seed1_confirmation_pass"
+        report["next_action"] = "synthesize_two_seed_simeck_curriculum_evidence"
+    else:
+        report["decision"] = "feistel_curriculum_seed1_confirmation_failed"
+        report["next_action"] = "stop_curriculum_route_without_rescue_sweep"
+    return report
+
+
+def feistel_curriculum_scale_probe_decision(
+    scores_by_cipher: dict[str, dict[int, dict[str, float]]],
+) -> dict[str, Any]:
+    report = feistel_low_to_target_curriculum_decision(
+        scores_by_cipher,
+        minimum_signal_auc=0.65,
+        relation_margin=0.10,
+        scratch_gain_margin=0.05,
+    )
+    candidate_auc = scores_by_cipher["simeck64"][0]["curriculum_true"]
+    scale_delta = candidate_auc - SIMECK_CURRICULUM_LOCAL_SEED0_AUC
+    scale_preserved = scale_delta >= -0.02
+    report["scale_anchor_auc"] = SIMECK_CURRICULUM_LOCAL_SEED0_AUC
+    report["scale_delta"] = scale_delta
+    report["scale_preserved"] = scale_preserved
+    report["thresholds"]["minimum_scale_delta"] = -0.02
+    base_passed = report["passing_ciphers"] == ["simeck64"]
+    report["cipher_gates"]["simeck64"]["scale_preserved"] = scale_preserved
+    report["cipher_gates"]["simeck64"]["passed"] = base_passed and scale_preserved
+    if base_passed and scale_preserved:
+        report["decision"] = "feistel_simeck_curriculum_65k_scale_pass"
+        report["next_action"] = "run_same_65k_curriculum_matrix_with_seed1"
+    elif base_passed:
+        report["decision"] = "feistel_simeck_curriculum_65k_scale_regressed"
+        report["next_action"] = "hold_scale_and_retain_local_two_seed_evidence"
+    else:
+        report["decision"] = "feistel_simeck_curriculum_65k_not_ready"
+        report["next_action"] = "stop_medium_scale_without_rescue_sweep"
+    return report
+
+
 def feistel_relation_scale_confirmation_decision(
     scores_by_cipher: dict[str, dict[int, dict[str, float]]],
     *,
@@ -427,6 +570,10 @@ def gate_feistel_balanced_results(
     scale_probe: bool = False,
     scale_confirmation: bool = False,
     target_round_probe: bool = False,
+    curriculum_readiness: bool = False,
+    curriculum: bool = False,
+    curriculum_confirmation: bool = False,
+    curriculum_scale_probe: bool = False,
 ) -> dict[str, Any]:
     if (
         sum(
@@ -437,12 +584,20 @@ def gate_feistel_balanced_results(
                 scale_probe,
                 scale_confirmation,
                 target_round_probe,
+                curriculum_readiness,
+                curriculum,
+                curriculum_confirmation,
+                curriculum_scale_probe,
             )
         )
         > 1
     ):
         raise ValueError("gate modes are mutually exclusive")
-    if target_round_probe:
+    if curriculum_confirmation or curriculum_scale_probe:
+        protocols = CURRICULUM_CONFIRMATION_PROTOCOLS
+    elif curriculum_readiness or curriculum:
+        protocols = CURRICULUM_PROTOCOLS
+    elif target_round_probe:
         protocols = HIGH_ROUND_SCALE_PROTOCOLS
     elif scale_confirmation:
         protocols = SCALE_PROBE_PROTOCOLS
@@ -511,28 +666,64 @@ def gate_feistel_balanced_results(
             scores_by_cipher[cipher_key][seed] = {}
             parameter_counts[cipher_key][seed] = {}
             for role, row in role_rows.items():
+                plan_row = plan_by_identity.get(
+                    (str(row.get("cipher")), str(row.get("model")), seed)
+                )
+                row_expected_epochs = expected_epochs
+                if (
+                    curriculum_readiness
+                    or curriculum
+                    or curriculum_confirmation
+                    or curriculum_scale_probe
+                ):
+                    row_expected_epochs = (
+                        expected_epochs
+                        if role == "scratch_true"
+                        else expected_epochs // 2
+                    )
                 _validate_protocol_row(
                     row,
                     protocol=protocol,
                     expected_samples_per_class=expected_samples_per_class,
-                    expected_epochs=expected_epochs,
+                    expected_epochs=row_expected_epochs,
                     expected_final_repeats=expected_final_repeats,
-                    plan_row=plan_by_identity.get(
-                        (str(row.get("cipher")), str(row.get("model")), seed)
-                    ),
+                    plan_row=plan_row,
                     errors=errors,
                 )
+                if (
+                    curriculum_readiness
+                    or curriculum
+                    or curriculum_confirmation
+                    or curriculum_scale_probe
+                ):
+                    _validate_curriculum_schedule(
+                        row,
+                        role=role,
+                        protocol=protocol,
+                        expected_total_epochs=expected_epochs,
+                        plan_row=plan_row,
+                        errors=errors,
+                    )
                 auc = _fresh_auc(row, errors, cipher_key, seed, role)
                 if auc is not None:
                     scores_by_cipher[cipher_key][seed][role] = auc
                 parameter_counts[cipher_key][seed][role] = int(
                     row.get("parameter_count") or -1
                 )
-            if parameter_counts[cipher_key][seed].get("candidate") != parameter_counts[
-                cipher_key
-            ][seed].get("shuffled"):
+            capacity_roles = (
+                ("curriculum_true", "curriculum_shuffled", "scratch_true")
+                if curriculum_readiness
+                or curriculum
+                or curriculum_confirmation
+                or curriculum_scale_probe
+                else ("candidate", "shuffled")
+            )
+            role_counts = {
+                parameter_counts[cipher_key][seed].get(role) for role in capacity_roles
+            }
+            if len(role_counts) != 1:
                 errors.append(
-                    f"{cipher_key} seed{seed} candidate/shuffled parameter_count mismatch"
+                    f"{cipher_key} seed{seed} {capacity_roles} parameter_count mismatch"
                 )
 
     if errors:
@@ -545,6 +736,24 @@ def gate_feistel_balanced_results(
             "errors": errors,
             "parameter_counts": parameter_counts,
             "claim_scope": "invalid artifacts; no research interpretation allowed",
+        }
+
+    if curriculum_readiness:
+        return {
+            "status": "pass",
+            "decision": "feistel_curriculum_readiness_passed",
+            "next_action": "run_frozen_8192_class_equal_epoch_curriculum_diagnostic",
+            "research_decision_applied": False,
+            "alignment": alignment,
+            "errors": [],
+            "scores_by_cipher": scores_by_cipher,
+            "parameter_counts": parameter_counts,
+            "claim_scope": "curriculum mechanics readiness only; AUC is not research evidence",
+            "stopped_actions": [
+                "remote_launch",
+                "paper_scale_claim",
+                "readiness_auc_interpretation",
+            ],
         }
 
     if readiness:
@@ -565,7 +774,13 @@ def gate_feistel_balanced_results(
             ],
         }
 
-    if target_round_probe:
+    if curriculum_scale_probe:
+        decision = feistel_curriculum_scale_probe_decision(scores_by_cipher)
+    elif curriculum_confirmation:
+        decision = feistel_curriculum_confirmation_decision(scores_by_cipher)
+    elif curriculum:
+        decision = feistel_low_to_target_curriculum_decision(scores_by_cipher)
+    elif target_round_probe:
         decision = feistel_target_round_scale_probe_decision(scores_by_cipher)
     elif scale_confirmation:
         decision = feistel_relation_scale_confirmation_decision(scores_by_cipher)
@@ -585,28 +800,46 @@ def gate_feistel_balanced_results(
         "errors": [],
         "parameter_counts": parameter_counts,
         "claim_scope": (
-            "single-seed local SIMON64-r12/SIMECK64-r15 8192/class "
-            "target-round signal and scale probe; not formal or paper-scale evidence"
-            if target_round_probe
+            "single-seed SIMECK64 r14-to-r15 equal-total-epoch curriculum "
+            "65536/class medium scale diagnostic; far below paper scale and not "
+            "formal or SOTA evidence"
+            if curriculum_scale_probe
             else (
-                "independent seed1 local SIMON64-r11/SIMECK64-r14 8192/class "
-                "signal and relation-attribution confirmation; not a second "
-                "within-seed scale slope or paper-scale evidence"
-                if scale_confirmation
+                "independent seed1 local SIMECK64 r14-to-r15 equal-total-epoch "
+                "curriculum confirmation at 8192/class; not a two-cipher, formal, "
+                "or paper-scale claim"
+                if curriculum_confirmation
                 else (
-                    "single-seed local SIMON64-r11/SIMECK64-r14 8192/class "
-                    "data-scarcity probe; not formal or paper-scale evidence"
-                    if scale_probe
+                    "single-seed local SIMON64 r11-to-r12 and SIMECK64 r14-to-r15 "
+                    "equal-total-epoch curriculum diagnostic at 8192/class; not formal "
+                    "or paper-scale evidence"
+                    if curriculum
                     else (
-                        "single-seed local SIMON64-r11/SIMECK64-r14 Lu-layout repair "
-                        "calibration; not an exact or paper-scale reproduction"
-                        if layout_repair
+                        "single-seed local SIMON64-r12/SIMECK64-r15 8192/class "
+                        "target-round signal and scale probe; not formal or paper-scale evidence"
+                        if target_round_probe
                         else (
-                            "single-seed local SIMON64-r11/SIMECK64-r14 easier-round "
-                            "implementation calibration; not formal or paper-scale evidence"
-                            if calibration
-                            else "single-seed local SIMON64-r12/SIMECK64-r15 architecture and "
-                            "relation-attribution diagnostic; not formal or paper-scale evidence"
+                            "independent seed1 local SIMON64-r11/SIMECK64-r14 8192/class "
+                            "signal and relation-attribution confirmation; not a second "
+                            "within-seed scale slope or paper-scale evidence"
+                            if scale_confirmation
+                            else (
+                                "single-seed local SIMON64-r11/SIMECK64-r14 8192/class "
+                                "data-scarcity probe; not formal or paper-scale evidence"
+                                if scale_probe
+                                else (
+                                    "single-seed local SIMON64-r11/SIMECK64-r14 Lu-layout repair "
+                                    "calibration; not an exact or paper-scale reproduction"
+                                    if layout_repair
+                                    else (
+                                        "single-seed local SIMON64-r11/SIMECK64-r14 easier-round "
+                                        "implementation calibration; not formal or paper-scale evidence"
+                                        if calibration
+                                        else "single-seed local SIMON64-r12/SIMECK64-r15 architecture and "
+                                        "relation-attribution diagnostic; not formal or paper-scale evidence"
+                                    )
+                                )
+                            )
                         )
                     )
                 )
@@ -619,6 +852,131 @@ def gate_feistel_balanced_results(
             "cross_feistel_generalization_claim",
         ],
     }
+
+
+def _validate_curriculum_schedule(
+    row: dict[str, Any],
+    *,
+    role: str,
+    protocol: dict[str, Any],
+    expected_total_epochs: int,
+    plan_row: dict[str, str] | None,
+    errors: list[str],
+) -> None:
+    identity = f"{row.get('cipher_key')} seed{row.get('seed')} {row.get('model')}"
+    if expected_total_epochs <= 0 or expected_total_epochs % 2:
+        errors.append(
+            f"{identity} curriculum expected_total_epochs must be positive and even"
+        )
+        return
+    if plan_row is None:
+        return
+
+    expected_pretrain_epochs = (
+        0 if role == "scratch_true" else expected_total_epochs // 2
+    )
+    expected_target_epochs = (
+        expected_total_epochs if role == "scratch_true" else expected_total_epochs // 2
+    )
+    plan_target_epochs = _optional_int(plan_row.get("target_epochs"))
+    plan_pretrain_epochs = _optional_int(plan_row.get("pretrain_epochs")) or 0
+    plan_pretrain_rounds = _optional_int(plan_row.get("pretrain_rounds"))
+    if plan_target_epochs != expected_target_epochs:
+        errors.append(
+            f"{identity} plan target_epochs={plan_target_epochs!r} "
+            f"expected={expected_target_epochs}"
+        )
+    if plan_pretrain_epochs != expected_pretrain_epochs:
+        errors.append(
+            f"{identity} plan pretrain_epochs={plan_pretrain_epochs!r} "
+            f"expected={expected_pretrain_epochs}"
+        )
+    if row.get("target_epochs") != expected_target_epochs:
+        errors.append(
+            f"{identity} target_epochs={row.get('target_epochs')!r} "
+            f"expected={expected_target_epochs}"
+        )
+
+    training = row.get("training")
+    if not isinstance(training, dict):
+        return
+    pretraining = training.get("pretraining")
+    if not isinstance(pretraining, dict):
+        errors.append(f"{identity} missing training.pretraining metadata")
+        return
+
+    if role == "scratch_true":
+        if plan_pretrain_rounds is not None:
+            errors.append(
+                f"{identity} scratch plan pretrain_rounds={plan_pretrain_rounds!r} expected=None"
+            )
+        if pretraining.get("enabled") is not False:
+            errors.append(
+                f"{identity} scratch pretraining.enabled={pretraining.get('enabled')!r} "
+                "expected=False"
+            )
+        observed_total = int(training.get("epochs_ran") or 0)
+    else:
+        expected_pretrain_rounds = int(protocol["pretrain_rounds"])
+        if plan_pretrain_rounds != expected_pretrain_rounds:
+            errors.append(
+                f"{identity} plan pretrain_rounds={plan_pretrain_rounds!r} "
+                f"expected={expected_pretrain_rounds}"
+            )
+        if pretraining.get("enabled") is not True:
+            errors.append(
+                f"{identity} pretraining.enabled={pretraining.get('enabled')!r} "
+                "expected=True"
+            )
+        if pretraining.get("round_sequence") != [expected_pretrain_rounds]:
+            errors.append(
+                f"{identity} pretraining.round_sequence="
+                f"{pretraining.get('round_sequence')!r} "
+                f"expected={[expected_pretrain_rounds]!r}"
+            )
+        if pretraining.get("optimizer_state_transition") != "reset_each_stage":
+            errors.append(
+                f"{identity} pretraining.optimizer_state_transition="
+                f"{pretraining.get('optimizer_state_transition')!r} "
+                "expected='reset_each_stage'"
+            )
+        stages = pretraining.get("curriculum_stages")
+        if not isinstance(stages, list) or len(stages) != 1:
+            errors.append(f"{identity} expected exactly one curriculum stage")
+            return
+        stage = stages[0]
+        stage_expected = {
+            "rounds": expected_pretrain_rounds,
+            "epochs": expected_pretrain_epochs,
+            "epochs_ran": expected_pretrain_epochs,
+            "train_rows": int(row["samples_per_class"]) * 2,
+            "negative_mode": "encrypted_random_plaintexts",
+            "pairs_per_sample": 8,
+            "key_rotation_interval": 1,
+            "train_key_rotation_row_indexing": "global_dataset_row",
+            "validation_key_rotation_row_indexing": "global_dataset_row",
+        }
+        for field, expected_value in stage_expected.items():
+            if stage.get(field) != expected_value:
+                errors.append(
+                    f"{identity} pretraining stage {field}={stage.get(field)!r} "
+                    f"expected={expected_value!r}"
+                )
+        observed_total = int(training.get("epochs_ran") or 0) + int(
+            stage.get("epochs_ran") or 0
+        )
+
+    if training.get("optimizer_state_transition") != "reset_each_stage":
+        errors.append(
+            f"{identity} training.optimizer_state_transition="
+            f"{training.get('optimizer_state_transition')!r} "
+            "expected='reset_each_stage'"
+        )
+    if observed_total != expected_total_epochs:
+        errors.append(
+            f"{identity} observed total epochs={observed_total} "
+            f"expected={expected_total_epochs}"
+        )
 
 
 def _read_plan_rows(path: Path, errors: list[str]) -> list[dict[str, str]]:
@@ -780,13 +1138,19 @@ def _optional_int(value: str | None) -> int | None:
 __all__ = [
     "CALIBRATION_PROTOCOLS",
     "CIPHER_PROTOCOLS",
+    "CURRICULUM_PROTOCOLS",
+    "CURRICULUM_CONFIRMATION_PROTOCOLS",
     "LU_LAYOUT_PROTOCOLS",
     "HIGH_ROUND_ANCHOR_AUC",
     "HIGH_ROUND_SCALE_PROTOCOLS",
     "SCALE_PROBE_ANCHOR_AUC",
     "SCALE_PROBE_PROTOCOLS",
+    "SIMECK_CURRICULUM_LOCAL_SEED0_AUC",
     "feistel_balanced_calibration_decision",
     "feistel_lu_layout_decision",
+    "feistel_curriculum_confirmation_decision",
+    "feistel_curriculum_scale_probe_decision",
+    "feistel_low_to_target_curriculum_decision",
     "feistel_relation_scale_probe_decision",
     "feistel_relation_scale_confirmation_decision",
     "feistel_target_round_scale_probe_decision",

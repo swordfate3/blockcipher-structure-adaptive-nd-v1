@@ -663,9 +663,7 @@ def _plot_subtitle(series: list[dict[str, Any]]) -> str:
     if context.get("train_structures") not in (None, ""):
         structure_text = f"训练 {int(context['train_structures']):,} 个结构"
         if context.get("train_keys_per_structure") not in (None, ""):
-            structure_text += (
-                f" × {int(context['train_keys_per_structure']):,} 把密钥"
-            )
+            structure_text += f" × {int(context['train_keys_per_structure']):,} 把密钥"
         protocol_parts.append(structure_text)
         if context.get("integral_set_size") not in (None, ""):
             protocol_parts.append(
@@ -730,8 +728,10 @@ def _compact_label(item: dict[str, Any]) -> str:
         "gift_cross_spn_typed_cell_e6_from_present_functional_margin": "候选迁移：源真拓扑功能边际",
         "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo": "安慰剂迁移：源打乱功能边际",
         "simon_lu_round_relation_true": "SIMON 真实轮关系",
+        "simon_lu_round_relation_target_scratch": "SIMON 目标轮等轮次从零训练",
         "simon_lu_round_relation_shuffled": "SIMON 左右错位控制",
         "simeck_lu_round_relation_true": "SIMECK 真实轮关系",
+        "simeck_lu_round_relation_target_scratch": "SIMECK 目标轮等轮次从零训练",
         "simeck_lu_round_relation_shuffled": "SIMECK 左右错位控制",
         "simon_lu_senet_layout_true": "SIMON Lu-SE布局真实关系",
         "simon_lu_senet_layout_shuffled": "SIMON Lu-SE布局错位控制",

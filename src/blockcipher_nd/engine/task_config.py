@@ -29,6 +29,14 @@ def validation_samples_per_class(task: dict[str, Any]) -> int:
     return max(8, int(task["samples_per_class"]) // 2)
 
 
+def target_epochs(task: dict[str, Any], args: argparse.Namespace) -> int:
+    epochs = task.get("target_epochs")
+    resolved = int(epochs if epochs is not None else args.epochs)
+    if resolved <= 0:
+        raise ValueError("target_epochs must be positive")
+    return resolved
+
+
 def build_dataset_config(
     task: dict[str, Any],
     *,
@@ -39,12 +47,10 @@ def build_dataset_config(
     split: str = "train",
 ) -> DifferentialDatasetConfig:
     active_nibbles = task.get("integral_active_nibbles", ())
-    dataset_label_mode = str(
-        task.get("dataset_label_mode") or "balanced_per_class"
-    )
-    if (
-        split == "validation" or split.startswith("final_test_")
-    ) and task.get("validation_integral_active_nibbles"):
+    dataset_label_mode = str(task.get("dataset_label_mode") or "balanced_per_class")
+    if (split == "validation" or split.startswith("final_test_")) and task.get(
+        "validation_integral_active_nibbles"
+    ):
         active_nibbles = task["validation_integral_active_nibbles"]
     return DifferentialDatasetConfig(
         cipher=cipher,
@@ -79,7 +85,11 @@ def build_training_config(
         learning_rate=float(task.get("learning_rate") or args.learning_rate),
         optimizer=str(task.get("optimizer") or args.optimizer),
         amsgrad=args.amsgrad,
-        weight_decay=float(task.get("weight_decay") if task.get("weight_decay") is not None else args.weight_decay),
+        weight_decay=float(
+            task.get("weight_decay")
+            if task.get("weight_decay") is not None
+            else args.weight_decay
+        ),
         lr_scheduler=str(task.get("lr_scheduler") or args.lr_scheduler),
         max_learning_rate=task.get("max_learning_rate")
         if task.get("max_learning_rate") is not None

@@ -16,7 +16,9 @@ def reset_progress(path: str | None) -> None:
     progress_path.write_text("", encoding="utf-8")
 
 
-def write_progress(path: str | None, event: str, payload: dict[str, Any] | None = None) -> None:
+def write_progress(
+    path: str | None, event: str, payload: dict[str, Any] | None = None
+) -> None:
     if not path:
         return
     progress_path = Path(path)
@@ -84,6 +86,7 @@ def task_progress_payload(task: dict[str, Any]) -> dict[str, Any]:
         "optimizer_state_transition": task.get(
             "optimizer_state_transition", "reset_each_stage"
         ),
+        "target_epochs": task.get("target_epochs"),
         "pretrain_rounds": task.get("pretrain_rounds"),
         "pretrain_round_sequence": list(task.get("pretrain_round_sequence", ())),
         "pretrain_epochs": task.get("pretrain_epochs"),

@@ -22,7 +22,10 @@ from blockcipher_nd.models.structure.feistel import (
 from blockcipher_nd.planning.feistel_balanced_gate import (
     feistel_balanced_calibration_decision,
     feistel_balanced_relation_decision,
+    feistel_curriculum_confirmation_decision,
+    feistel_curriculum_scale_probe_decision,
     feistel_lu_layout_decision,
+    feistel_low_to_target_curriculum_decision,
     feistel_relation_scale_probe_decision,
     feistel_relation_scale_confirmation_decision,
     feistel_target_round_scale_probe_decision,
@@ -64,6 +67,18 @@ SCALE_CONFIRMATION_PLAN = (
 TARGET_ROUND_PLAN = (
     ROOT
     / "configs/experiment/innovation1/innovation1_feistel_round_relation_target_round_8192_seed0.csv"
+)
+CURRICULUM_READINESS_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_feistel_low_to_target_curriculum_readiness_seed0.csv"
+)
+CURRICULUM_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_feistel_low_to_target_curriculum_8192_seed0.csv"
+)
+CURRICULUM_CONFIRMATION_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_feistel_low_to_target_curriculum_8192_seed1_simeck.csv"
 )
 
 
@@ -223,8 +238,10 @@ def test_balanced_relation_registry_models_forward_and_backpropagate() -> None:
     features = torch.randint(0, 2, (2, 8 * 128), dtype=torch.float32)
     for model_key in (
         "simon_lu_round_relation_true",
+        "simon_lu_round_relation_target_scratch",
         "simon_lu_round_relation_shuffled",
         "simeck_lu_round_relation_true",
+        "simeck_lu_round_relation_target_scratch",
         "simeck_lu_round_relation_shuffled",
         "simon_lu_senet_layout_true",
         "simon_lu_senet_layout_shuffled",
@@ -344,6 +361,45 @@ def test_balanced_relation_plans_are_frozen_six_row_same_protocol_matrices() -> 
         ("simon64", 12),
         ("simeck64", 15),
     }
+    readiness_curriculum = tasks_from_plan(
+        CURRICULUM_READINESS_PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    assert len(readiness_curriculum) == 6
+    assert {
+        (task["target_epochs"], task["pretrain_epochs"])
+        for task in readiness_curriculum
+    } == {(1, 1), (2, 0)}
+    assert {
+        task["pretrain_rounds"]
+        for task in readiness_curriculum
+        if task["pretrain_epochs"]
+    } == {11, 14}
+    diagnostic_curriculum = tasks_from_plan(
+        CURRICULUM_PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    assert len(diagnostic_curriculum) == 6
+    assert {
+        (task["target_epochs"], task["pretrain_epochs"])
+        for task in diagnostic_curriculum
+    } == {(5, 5), (10, 0)}
+    confirmation_curriculum = tasks_from_plan(
+        CURRICULUM_CONFIRMATION_PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    assert len(confirmation_curriculum) == 3
+    assert {task["cipher_key"] for task in confirmation_curriculum} == {"simeck64"}
+    assert {task["seed"] for task in confirmation_curriculum} == {1}
 
 
 def test_balanced_relation_decision_covers_pass_conditional_and_no_attribution() -> (
@@ -415,6 +471,53 @@ def test_balanced_relation_decision_covers_pass_conditional_and_no_attribution()
         }
     )
     assert target_round["decision"] == "feistel_target_round_8192_two_cipher_pass"
+
+    curriculum = feistel_low_to_target_curriculum_decision(
+        {
+            "simon64": {
+                0: {
+                    "curriculum_true": 0.58,
+                    "curriculum_shuffled": 0.51,
+                    "scratch_true": 0.53,
+                }
+            },
+            "simeck64": {
+                0: {
+                    "curriculum_true": 0.62,
+                    "curriculum_shuffled": 0.50,
+                    "scratch_true": 0.58,
+                }
+            },
+        }
+    )
+    assert curriculum["decision"] == "feistel_curriculum_two_cipher_pass"
+
+    confirmation = feistel_curriculum_confirmation_decision(
+        {
+            "simeck64": {
+                1: {
+                    "curriculum_true": 0.67,
+                    "curriculum_shuffled": 0.50,
+                    "scratch_true": 0.52,
+                }
+            }
+        }
+    )
+    assert confirmation["decision"] == "feistel_curriculum_seed1_confirmation_pass"
+
+    scale = feistel_curriculum_scale_probe_decision(
+        {
+            "simeck64": {
+                0: {
+                    "curriculum_true": 0.72,
+                    "curriculum_shuffled": 0.50,
+                    "scratch_true": 0.60,
+                }
+            }
+        }
+    )
+    assert scale["decision"] == "feistel_simeck_curriculum_65k_scale_pass"
+    assert scale["scale_preserved"] is True
 
 
 def _synthetic_readiness_rows() -> list[dict[str, object]]:
@@ -534,3 +637,147 @@ def test_readiness_gate_passes_complete_rows_and_rejects_capacity_mismatch(
     assert invalid["status"] == "fail"
     assert invalid["decision"] == "invalid_feistel_balanced_protocol"
     assert any("parameter_count mismatch" in error for error in invalid["errors"])
+
+
+def _synthetic_curriculum_readiness_rows() -> list[dict[str, object]]:
+    tasks = tasks_from_plan(
+        CURRICULUM_READINESS_PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    names = {"simon64": "SIMON64/128", "simeck64": "Simeck64/128"}
+    rows = []
+    for task in tasks:
+        target_epochs = int(task["target_epochs"])
+        pretrain_epochs = int(task["pretrain_epochs"] or 0)
+        if pretrain_epochs:
+            pretraining = {
+                "enabled": True,
+                "epochs_ran": pretrain_epochs,
+                "round_sequence": [task["pretrain_rounds"]],
+                "optimizer_state_transition": "reset_each_stage",
+                "curriculum_stages": [
+                    {
+                        "rounds": task["pretrain_rounds"],
+                        "epochs": pretrain_epochs,
+                        "epochs_ran": pretrain_epochs,
+                        "train_rows": 128,
+                        "negative_mode": "encrypted_random_plaintexts",
+                        "pairs_per_sample": 8,
+                        "key_rotation_interval": 1,
+                        "train_key_rotation_row_indexing": "global_dataset_row",
+                        "validation_key_rotation_row_indexing": "global_dataset_row",
+                    }
+                ],
+            }
+        else:
+            pretraining = {"enabled": False}
+        rows.append(
+            {
+                "cipher": names[task["cipher_key"]],
+                "cipher_key": task["cipher_key"],
+                "structure": "Feistel-like",
+                "model": task["model_key"],
+                "rounds": task["rounds"],
+                "seed": task["seed"],
+                "samples_per_class": task["samples_per_class"],
+                "train_samples_total": task["train_samples_total"],
+                "validation_samples_total": task["validation_samples_total"],
+                "final_test_samples_total": task["final_test_samples_total"],
+                "final_test_repeats": task["final_test_repeats"],
+                "target_epochs": target_epochs,
+                "feature_encoding": task["feature_encoding"],
+                "negative_mode": task["negative_mode"],
+                "train_key": task["train_key"],
+                "validation_key": task["validation_key"],
+                "final_test_key": task["final_test_key"],
+                "pairs_per_sample": task["pairs_per_sample"],
+                "sample_structure": task["sample_structure"],
+                "integral_active_nibble": task["integral_active_nibble"],
+                "integral_active_nibbles": [],
+                "validation_integral_active_nibbles": [],
+                "key_rotation_interval": task["key_rotation_interval"],
+                "difference_profile": task["difference_profile"],
+                "difference_member": task["difference_member"],
+                "selected_bit_indices": [],
+                "history": [{} for _ in range(target_epochs)],
+                "training": {
+                    "loss": task["loss"],
+                    "learning_rate": task["learning_rate"],
+                    "optimizer": task["optimizer"],
+                    "weight_decay": task["weight_decay"],
+                    "checkpoint_metric": task["checkpoint_metric"],
+                    "restore_best_checkpoint": task["restore_best_checkpoint"],
+                    "early_stopping_patience": task["early_stopping_patience"],
+                    "early_stopping_min_delta": task["early_stopping_min_delta"],
+                    "selected_bit_indices": [],
+                    "model_options": task["model_options"],
+                    "pretraining": pretraining,
+                    "optimizer_state_transition": "reset_each_stage",
+                    "epochs": target_epochs,
+                    "epochs_ran": target_epochs,
+                    "samples_total": 128,
+                    "key_rotation_interval": 1,
+                    "pairs_per_sample": 8,
+                    "sample_structure": "independent_pairs",
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "key_rotation_row_indexing": "global_dataset_row",
+                },
+                "validation": {
+                    "samples_total": 128,
+                    "key_rotation_row_indexing": "global_dataset_row",
+                },
+                "final_evaluation": {
+                    "auc_mean": 0.6,
+                    "repeats": 1,
+                    "samples_total_per_repeat": 128,
+                    "metrics_by_repeat": [{"auc": 0.6}],
+                },
+                "parameter_count": 100,
+                "trainable_parameter_count": 100,
+            }
+        )
+    return rows
+
+
+def test_curriculum_readiness_gate_enforces_equal_epochs_and_key_indexing(
+    tmp_path: Path,
+) -> None:
+    rows = _synthetic_curriculum_readiness_rows()
+    results = tmp_path / "curriculum.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    report = gate_feistel_balanced_results(
+        plan_path=CURRICULUM_READINESS_PLAN,
+        results_path=results,
+        expected_samples_per_class=64,
+        expected_seeds=(0,),
+        expected_epochs=2,
+        expected_final_repeats=1,
+        curriculum_readiness=True,
+    )
+    assert report["status"] == "pass"
+    assert report["decision"] == "feistel_curriculum_readiness_passed"
+
+    rows[0]["training"]["pretraining"]["curriculum_stages"][0][
+        "train_key_rotation_row_indexing"
+    ] = None
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    invalid = gate_feistel_balanced_results(
+        plan_path=CURRICULUM_READINESS_PLAN,
+        results_path=results,
+        expected_samples_per_class=64,
+        expected_seeds=(0,),
+        expected_epochs=2,
+        expected_final_repeats=1,
+        curriculum_readiness=True,
+    )
+    assert invalid["status"] == "fail"
+    assert any(
+        "train_key_rotation_row_indexing" in error for error in invalid["errors"]
+    )

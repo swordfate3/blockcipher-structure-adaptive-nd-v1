@@ -53,6 +53,7 @@ def build_task_result(
         "validation_samples_total": task.get("validation_samples_total"),
         "final_test_samples_total": task.get("final_test_samples_total"),
         "final_test_repeats": task.get("final_test_repeats", 0),
+        "target_epochs": training_result.metadata["epochs"],
         "dataset_label_mode": task.get("dataset_label_mode", "balanced_per_class"),
         "pairs_per_sample": task["pairs_per_sample"],
         "feature_encoding": task["feature_encoding"],

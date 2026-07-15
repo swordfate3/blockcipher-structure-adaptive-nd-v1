@@ -34,8 +34,10 @@ def build_feistel_model(
     }
     balanced_round_relation = {
         "simon_lu_round_relation_true": ("simon", "true"),
+        "simon_lu_round_relation_target_scratch": ("simon", "true"),
         "simon_lu_round_relation_shuffled": ("simon", "shuffled"),
         "simeck_lu_round_relation_true": ("simeck", "true"),
+        "simeck_lu_round_relation_target_scratch": ("simeck", "true"),
         "simeck_lu_round_relation_shuffled": ("simeck", "shuffled"),
     }
     balanced_lu_senet = {

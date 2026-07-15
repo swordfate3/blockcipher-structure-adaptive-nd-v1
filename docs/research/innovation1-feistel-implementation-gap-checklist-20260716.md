@@ -55,8 +55,12 @@
       independent seed1 for both SIMON and SIMECK.
 - [x] Test the paper target rounds r12/r15 at `8192/class` and stop remote scale
       after both miss the frozen signal/attribution/scale-gain gates.
-- [ ] Add an equal-total-epoch low-to-high curriculum versus scratch runner and
-      plan before another target-round training experiment.
+- [x] Add an equal-total-epoch low-to-high curriculum versus scratch runner,
+      fail-closed plan alignment, and corrected pretraining-cache provenance.
+- [x] Confirm SIMECK r14-to-r15 curriculum signal and true-vs-shuffled/scratch
+      attribution at `8192/class` on independent seeds 0 and 1.
+- [ ] Run the frozen SIMECK-only `65536/class` remote medium probe from a pushed
+      commit with disk-backed cache and automatic verified retrieval.
 
 ## Explicitly Not Implemented In This Cell
 

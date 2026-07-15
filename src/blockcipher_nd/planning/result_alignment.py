@@ -36,6 +36,7 @@ PLAN_RESULT_FIELD_PAIRS = [
     ("restore_best_checkpoint", ("training", "restore_best_checkpoint")),
     ("early_stopping_patience", ("training", "early_stopping_patience")),
     ("early_stopping_min_delta", ("training", "early_stopping_min_delta")),
+    ("target_epochs", "target_epochs"),
     ("pretrain_epochs", ("training", "pretraining", "epochs_ran")),
     ("pretrain_round_sequence", ("training", "pretraining", "round_sequence")),
     ("model_options", ("training", "model_options")),
@@ -49,7 +50,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--plan", required=True, help="Plan CSV path.")
     parser.add_argument("--results", required=True, help="Result JSONL path.")
     parser.add_argument("--expected-rows", type=int, default=None)
-    parser.add_argument("--output", default=None, help="Optional JSON validation report path.")
+    parser.add_argument(
+        "--output", default=None, help="Optional JSON validation report path."
+    )
     return parser.parse_args(argv)
 
 
@@ -71,13 +74,23 @@ def validate_result_plan_alignment(
         errors.append(f"result_rows={len(result_rows)} expected_rows={expected_rows}")
 
     optional_key_fields = _optional_alignment_key_fields(plan_rows, result_rows)
-    plan_keys = [_alignment_key(row, optional_key_fields=optional_key_fields) for row in plan_rows]
-    result_keys = [_alignment_key(row, optional_key_fields=optional_key_fields) for row in result_rows]
+    plan_keys = [
+        _alignment_key(row, optional_key_fields=optional_key_fields)
+        for row in plan_rows
+    ]
+    result_keys = [
+        _alignment_key(row, optional_key_fields=optional_key_fields)
+        for row in result_rows
+    ]
     plan_counter = Counter(plan_keys)
     result_counter = Counter(result_keys)
 
-    duplicate_plan_keys = sorted(key for key, count in plan_counter.items() if count > 1)
-    duplicate_result_keys = sorted(key for key, count in result_counter.items() if count > 1)
+    duplicate_plan_keys = sorted(
+        key for key, count in plan_counter.items() if count > 1
+    )
+    duplicate_result_keys = sorted(
+        key for key, count in result_counter.items() if count > 1
+    )
     missing_result_keys = sorted((plan_counter - result_counter).elements())
     unexpected_result_keys = sorted((result_counter - plan_counter).elements())
 
@@ -93,7 +106,8 @@ def validate_result_plan_alignment(
     plan_by_key = {
         _alignment_key(row, optional_key_fields=optional_key_fields): row
         for row in plan_rows
-        if plan_counter[_alignment_key(row, optional_key_fields=optional_key_fields)] == 1
+        if plan_counter[_alignment_key(row, optional_key_fields=optional_key_fields)]
+        == 1
     }
     field_mismatches = _field_mismatches(
         plan_by_key,
@@ -133,7 +147,9 @@ def _load_plan_rows(path: Path) -> list[dict[str, str]]:
             raise ValueError(f"JSON matrix plan common must be an object: {path}")
         if not isinstance(rows, list) or not rows:
             raise ValueError(f"JSON matrix plan rows must be a non-empty list: {path}")
-        return [_json_plan_row({**common, **row}) for row in rows if isinstance(row, dict)]
+        return [
+            _json_plan_row({**common, **row}) for row in rows if isinstance(row, dict)
+        ]
     with path.open("r", encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
 
@@ -338,13 +354,22 @@ def _field_mismatches(
                 continue
             if plan_field == "selected_bit_indices":
                 plan_value = _selected_indices_key(plan_row)
-                result_value = _selected_indices_key({"selected_bit_indices": result_value_raw})
+                result_value = _selected_indices_key(
+                    {"selected_bit_indices": result_value_raw}
+                )
             elif plan_field in {
                 "integral_active_nibbles",
                 "validation_integral_active_nibbles",
                 "pretrain_round_sequence",
             }:
-                plan_value = _int_tuple_key(plan_row.get(plan_field))
+                plan_raw = plan_row.get(plan_field)
+                if (
+                    plan_field == "pretrain_round_sequence"
+                    and not str(plan_raw or "").strip()
+                    and str(plan_row.get("pretrain_rounds") or "").strip()
+                ):
+                    plan_raw = [int(plan_row["pretrain_rounds"])]
+                plan_value = _int_tuple_key(plan_raw)
                 result_value = _int_tuple_key(result_value_raw)
             elif plan_field == "model_options":
                 plan_value = _json_object_key(plan_row.get(plan_field))
@@ -368,7 +393,10 @@ def _field_mismatches(
                 for field in ("model", "selected_model")
                 if field in result_row
             }
-            if model_values and _normalize_value(plan_row["model_key"]) not in model_values:
+            if (
+                model_values
+                and _normalize_value(plan_row["model_key"]) not in model_values
+            ):
                 mismatches.append(
                     {
                         "key": key,
