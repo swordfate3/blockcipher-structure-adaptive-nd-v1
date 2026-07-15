@@ -151,6 +151,10 @@ def test_large_scale_remote_assets_pass_readiness_and_path_policy() -> None:
     assert "scripts/index-results" in monitor_script
     assert "recovery_started.marker" in monitor_script
     assert "recovery_failed.marker" in monitor_script
+    assert "mktemp -d /tmp/gift64-mainstream-retrieval" in monitor_script
+    assert "cp -a" in monitor_script
+    assert "results_archive/${run_id}/." not in monitor_script
+    assert "results_archive/${JOINT_ID}/." not in monitor_script
     assert "gate-cross-spn-mainstream-performance" in recovery_script
     assert "gate-cross-spn-mainstream-performance-joint" in recovery_script
     assert "recovery_commit.txt" in recovery_script

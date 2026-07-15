@@ -23,13 +23,31 @@ sync_logs() {
     >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
 }
 
+retrieve_archive() {
+  local remote_path="$1"
+  local archive_name="$2"
+  local destination="$3"
+  local staging
+  staging=$(mktemp -d /tmp/gift64-mainstream-retrieval.XXXXXX) || return 1
+  if ! scp -r "${REMOTE}:${remote_path}" "${staging}/" \
+    >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log"; then
+    rm -rf "${staging}"
+    return 1
+  fi
+  mkdir -p "${destination}"
+  if ! cp -a "${staging}/${archive_name}/." "${destination}/"; then
+    rm -rf "${staging}"
+    return 1
+  fi
+  rm -rf "${staging}"
+}
+
 retrieve_seed() {
   local run_id="$1"
   local destination="outputs/remote_results/${run_id}"
-  mkdir -p "${destination}"
-  scp -r "${REMOTE}:${RUNS_ROOT}/${run_id}/source/results_archive/${run_id}/." \
-    "${destination}/" >> "${MONITOR_ROOT}/scp.log" \
-    2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  retrieve_archive \
+    "${RUNS_ROOT}/${run_id}/source/results_archive/${run_id}" \
+    "${run_id}" "${destination}" || return 1
   scp "${REMOTE}:${RUNS_ROOT}/${run_id}/results/primary_scores.npz" \
     "${destination}/" >> "${MONITOR_ROOT}/scp.log" \
     2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
@@ -48,10 +66,9 @@ retrieve_seed() {
 
 retrieve_joint() {
   local destination="outputs/remote_results/${JOINT_ID}"
-  mkdir -p "${destination}"
-  scp -r "${REMOTE}:${RUNS_ROOT}/${JOINT_ID}/results_archive/${JOINT_ID}/." \
-    "${destination}/" >> "${MONITOR_ROOT}/scp.log" \
-    2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  retrieve_archive \
+    "${RUNS_ROOT}/${JOINT_ID}/results_archive/${JOINT_ID}" \
+    "${JOINT_ID}" "${destination}" || return 1
   touch "${destination}/retrieved_from_verified_result_branch.marker"
 }
 
