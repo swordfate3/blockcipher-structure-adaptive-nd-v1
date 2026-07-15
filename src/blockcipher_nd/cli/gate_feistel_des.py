@@ -24,6 +24,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--official-calibration", action="store_true")
     mode.add_argument("--official-attribution", action="store_true")
+    parser.add_argument("--expected-rounds", type=int, default=6)
     parser.add_argument("--output", required=True, type=Path)
     return parser.parse_args(argv)
 
@@ -36,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         gate = gate_feistel_des_official_attribution
     else:
         gate = gate_feistel_des_results
-    report = gate(
+    gate_kwargs = dict(
         plan_path=args.plan,
         results_path=args.results,
         expected_samples_per_class=args.samples_per_class,
@@ -44,6 +45,9 @@ def main(argv: list[str] | None = None) -> int:
         expected_epochs=args.epochs,
         expected_final_repeats=args.final_repeats,
     )
+    if args.official_attribution:
+        gate_kwargs["expected_rounds"] = args.expected_rounds
+    report = gate(**gate_kwargs)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"

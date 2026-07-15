@@ -374,32 +374,22 @@ def test_official_calibration_gate_requires_both_des5_seeds(tmp_path: Path) -> N
     assert failed["decision"] == "feistel_des5_official_calibration_inconclusive"
 
 
-def test_official_attribution_gate_requires_true_mapping_on_both_seeds(
-    tmp_path: Path,
-) -> None:
-    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_des_r6_official_backbone_attribution_2048_seed0_seed1.csv"
-    role_scores = {
-        0: {
-            "des_feistel_official_backbone_true": 0.62,
-            "des_feistel_official_backbone_shuffled": 0.61,
-            "des_zhang_wang_official_layout": 0.621,
-        },
-        1: {
-            "des_feistel_official_backbone_true": 0.61,
-            "des_feistel_official_backbone_shuffled": 0.60,
-            "des_zhang_wang_official_layout": 0.611,
-        },
-    }
-    rows = []
+def _official_attribution_rows(
+    *, rounds: int, role_scores: dict[int, dict[str, float]]
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
     for seed, scores in role_scores.items():
         for model, auc in scores.items():
+            parameter_count = (
+                649793 if model == "des_zhang_wang_official_layout" else 651201
+            )
             rows.append(
                 {
                     "cipher": "DES",
                     "cipher_key": "des",
                     "structure": "Feistel-like",
                     "model": model,
-                    "rounds": 6,
+                    "rounds": rounds,
                     "seed": seed,
                     "samples_per_class": 2048,
                     "pairs_per_sample": 16,
@@ -438,18 +428,30 @@ def test_official_attribution_gate_requires_true_mapping_on_both_seeds(
                         "repeats": 3,
                         "metrics_by_repeat": [{}, {}, {}],
                     },
-                    "parameter_count": (
-                        649793
-                        if model == "des_zhang_wang_official_layout"
-                        else 651201
-                    ),
-                    "trainable_parameter_count": (
-                        649793
-                        if model == "des_zhang_wang_official_layout"
-                        else 651201
-                    ),
+                    "parameter_count": parameter_count,
+                    "trainable_parameter_count": parameter_count,
                 }
             )
+    return rows
+
+
+def test_official_attribution_gate_requires_true_mapping_on_both_seeds(
+    tmp_path: Path,
+) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_des_r6_official_backbone_attribution_2048_seed0_seed1.csv"
+    role_scores = {
+        0: {
+            "des_feistel_official_backbone_true": 0.62,
+            "des_feistel_official_backbone_shuffled": 0.61,
+            "des_zhang_wang_official_layout": 0.621,
+        },
+        1: {
+            "des_feistel_official_backbone_true": 0.61,
+            "des_feistel_official_backbone_shuffled": 0.60,
+            "des_zhang_wang_official_layout": 0.611,
+        },
+    }
+    rows = _official_attribution_rows(rounds=6, role_scores=role_scores)
     results = tmp_path / "results.jsonl"
     results.write_text(
         "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
@@ -479,3 +481,75 @@ def test_official_attribution_gate_requires_true_mapping_on_both_seeds(
     )
     assert failed["status"] == "pass"
     assert failed["decision"] == "feistel_des6_signal_without_topology_attribution"
+
+
+def test_des5_official_attribution_plan_and_strong_signal_gate(tmp_path: Path) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_des_r5_official_backbone_attribution_2048_seed0_seed1.csv"
+    tasks = tasks_from_plan(
+        plan,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    assert len(tasks) == 6
+    assert {task["rounds"] for task in tasks} == {5}
+    assert {task["seed"] for task in tasks} == {0, 1}
+    assert {task["model_key"] for task in tasks} == set(
+        {
+            "des_feistel_official_backbone_true",
+            "des_feistel_official_backbone_shuffled",
+            "des_zhang_wang_official_layout",
+        }
+    )
+    assert all(task["samples_per_class"] == 2048 for task in tasks)
+    assert all(task["pairs_per_sample"] == 16 for task in tasks)
+    assert all(
+        task["negative_mode"] == "encrypted_random_plaintexts" for task in tasks
+    )
+
+    role_scores = {
+        0: {
+            "des_feistel_official_backbone_true": 0.970,
+            "des_feistel_official_backbone_shuffled": 0.950,
+            "des_zhang_wang_official_layout": 0.971,
+        },
+        1: {
+            "des_feistel_official_backbone_true": 0.960,
+            "des_feistel_official_backbone_shuffled": 0.940,
+            "des_zhang_wang_official_layout": 0.961,
+        },
+    }
+    rows = _official_attribution_rows(rounds=5, role_scores=role_scores)
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    passed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+        expected_rounds=5,
+    )
+    assert passed["status"] == "pass", passed["errors"]
+    assert passed["decision"] == "feistel_des5_official_branch_attribution_passed"
+    assert passed["minimum_signal_auc"] == 0.90
+
+    rows[3]["final_evaluation"]["auc_mean"] = 0.93
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    failed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+        expected_rounds=5,
+    )
+    assert failed["status"] == "pass"
+    assert failed["decision"] == "feistel_des5_signal_without_topology_attribution"

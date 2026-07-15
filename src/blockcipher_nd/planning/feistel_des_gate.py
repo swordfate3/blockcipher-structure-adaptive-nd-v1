@@ -423,10 +423,15 @@ def gate_feistel_des_official_attribution(
     expected_seeds: tuple[int, ...],
     expected_epochs: int,
     expected_final_repeats: int,
+    expected_rounds: int = 6,
     topology_margin: float = 0.005,
     competitiveness_tolerance: float = 0.002,
-    minimum_signal_auc: float = 0.55,
+    minimum_signal_auc: float | None = None,
 ) -> dict[str, Any]:
+    if expected_rounds not in {5, 6}:
+        raise ValueError("official DES attribution supports rounds 5 or 6")
+    if minimum_signal_auc is None:
+        minimum_signal_auc = 0.90 if expected_rounds == 5 else 0.55
     expected_rows = len(OFFICIAL_ATTRIBUTION_ROLES) * len(expected_seeds)
     alignment = validate_result_plan_alignment(
         plan_path, results_path, expected_rows=expected_rows
@@ -474,7 +479,7 @@ def gate_feistel_des_official_attribution(
         for role, row in rows_by_role.items():
             expected_fields = {
                 "cipher_key": "des",
-                "rounds": 6,
+                "rounds": expected_rounds,
                 "samples_per_class": expected_samples_per_class,
                 "pairs_per_sample": 16,
                 "feature_encoding": "ciphertext_pair_bits",
@@ -565,7 +570,9 @@ def gate_feistel_des_official_attribution(
         return {
             **common,
             "decision": "feistel_des_official_attribution_readiness_passed",
-            "next_action": "run_des6_official_backbone_attribution_2048",
+            "next_action": (
+                f"run_des{expected_rounds}_official_backbone_attribution_2048"
+            ),
             "research_decision_applied": False,
             "claim_scope": "readiness only; metrics are not attribution evidence",
         }
@@ -590,14 +597,31 @@ def gate_feistel_des_official_attribution(
         for scores in scores_by_seed.values()
     )
     if topology_attributed and baseline_competitive and signal_present:
-        decision = "feistel_des6_official_branch_attribution_passed"
-        next_action = "prepare_des6_65536_class_two_seed_remote_diagnostic"
+        decision = (
+            f"feistel_des{expected_rounds}_official_branch_attribution_passed"
+        )
+        next_action = (
+            "retain_des5_strong_attribution_cell_and_design_sm4_generalization_gate"
+            if expected_rounds == 5
+            else "prepare_des6_65536_class_two_seed_remote_diagnostic"
+        )
     elif signal_present and not topology_attributed:
-        decision = "feistel_des6_signal_without_topology_attribution"
+        decision = (
+            f"feistel_des{expected_rounds}_signal_without_topology_attribution"
+        )
         next_action = "retain_official_baseline_and_redesign_branch_interactions"
+    elif signal_present and topology_attributed and not baseline_competitive:
+        decision = (
+            f"feistel_des{expected_rounds}_topology_attributed_but_not_competitive"
+        )
+        next_action = "reject_extra_branch_channels_and_retain_official_baseline"
     else:
-        decision = "feistel_des6_official_attribution_not_ready"
-        next_action = "stop_scale_and_keep_des5_calibration_only"
+        decision = f"feistel_des{expected_rounds}_official_attribution_not_ready"
+        next_action = (
+            "reject_des5_explicit_branch_candidate_and_retain_official_baseline"
+            if expected_rounds == 5
+            else "stop_scale_and_keep_des5_calibration_only"
+        )
     return {
         **common,
         "decision": decision,
@@ -610,8 +634,10 @@ def gate_feistel_des_official_attribution(
             "baseline_competitive": baseline_competitive,
             "signal_present": signal_present,
         },
+        "minimum_signal_auc": minimum_signal_auc,
         "claim_scope": (
-            "local DES-r6 official-backbone structure attribution diagnostic; "
+            f"local DES-r{expected_rounds} official-backbone structure "
+            "attribution diagnostic; "
             "not paper-scale or a cross-Feistel architecture rule"
         ),
         "stopped_actions": [
