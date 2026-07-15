@@ -1,3 +1,66 @@
+## [LRN-20260715-007] experiment_result
+
+**Logged**: 2026-07-15T21:00:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+GIFT-64 typed-SPN architecture superiority passed a two-seed paired same-protocol gate, while PRESENT-initialization transfer value did not.
+
+### Details
+
+At GIFT-64 r6, `1000000/class`, four independent pairs, ten epochs, two target
+seeds, distinct train/validation/final-test keys, and five fresh one-million-row
+evaluations, the typed architecture reached mean AUC about `0.604-0.608`.
+Parameter-matched Sun-style LSTM and Gohr-style ResNet adaptations reached only
+about `0.501-0.509` on the identical caches and budget.
+
+The primary fresh-repeat paired bootstrap used all one million aligned rows and
+2,000 label-stratified replicates per candidate. All four typed-transfer versus
+ResNet intervals had lower bounds above `+0.097` AUC, so the joint decision is
+`two_seed_paired_mainstream_superiority_supported`.
+
+The interpretation must remain split. PRESENT initialization did not beat the
+same typed architecture from scratch under the two-seed `+0.002` gate: seed6
+source0 was slightly worse than scratch and source1 improved by less than
+`0.001`; only seed7 passed. Thus the evidence supports task-matched architecture,
+not robust cross-SPN initialization value.
+
+The mainstream family rows are adaptations to the project's four-pair task and
+are near chance, while Sun et al.'s external result uses a different `3-2-CT-R`
+protocol and much larger published totals. The paired same-protocol result is
+therefore not an exact-paper or SOTA result.
+
+### Suggested Action
+
+Freeze an exact Sun-protocol audit and reproduction plan before any GIFT
+performance claim. Resolve data construction, ciphertext organization, key
+sampling, loss/schedule, train/validation totals, and evaluation protocol; use
+an exact LSTM anchor and typed scratch at the same budget. Do not tune the
+observed family adaptations, revive E5/E6, or mechanically scale the current
+four-pair task. Continue Feistel/SM4 calibration independently.
+
+### Metadata
+
+- Source: verified remote experiment and paired re-adjudication
+- Related Files: docs/experiments/innovation1-gift64-mainstream-performance-1m-plan.md, outputs/local_diagnostic/i1_gift64_mainstream_performance_1m_paired_adjudication_20260715/gate.json
+- Tags: innovation1, gift64, mainstream-baseline, paired-bootstrap, architecture, transfer-boundary
+- See Also: LRN-20260715-005, LRN-20260715-004, LRN-20260715-001
+- Pattern-Key: innovation1.gift64.typed_architecture_not_transfer_initialization
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+### Resolution
+
+- **Resolved**: 2026-07-15T21:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Verified branches, archives, primary score hashes, local validation, and paired gate all passed.
+
+---
+
 ## [LRN-20260714-002] correction
 
 **Logged**: 2026-07-14T20:44:17+08:00

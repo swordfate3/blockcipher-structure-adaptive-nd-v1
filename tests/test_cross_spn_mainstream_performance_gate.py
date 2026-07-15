@@ -3,13 +3,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
+
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
 from blockcipher_nd.planning.matrix import build_tasks
 from blockcipher_nd.planning.cross_spn_mainstream_performance_gate import (
     joint_mainstream_performance_gate,
+    paired_mainstream_performance_interval_gate,
     performance_decision,
 )
+from blockcipher_nd.training.metrics import binary_auc
 
 
 def _metrics(
@@ -170,7 +174,68 @@ def test_mainstream_gate_entrypoints_bootstrap_the_source_tree() -> None:
     for path in (
         Path("scripts/gate-cross-spn-mainstream-performance"),
         Path("scripts/gate-cross-spn-mainstream-performance-joint"),
+        Path("scripts/gate-cross-spn-mainstream-performance-paired"),
     ):
         text = path.read_text(encoding="utf-8")
         assert 'Path(__file__).resolve().parents[1] / "src"' in text
         assert "sys.path.insert(0," in text
+
+
+def test_paired_interval_gate_supports_two_seed_superiority(tmp_path: Path) -> None:
+    rng = np.random.default_rng(47)
+    labels = np.tile(np.array([0.0, 1.0], dtype=np.float32), 1_000)
+    sample_ids = np.arange(len(labels), dtype=np.int64)
+    payloads = {}
+    for seed in (6, 7):
+        mainstream = rng.normal(0.0, 1.0, len(labels))
+        scratch = labels + rng.normal(0.0, 0.8, len(labels))
+        source0 = labels + rng.normal(0.0, 0.45, len(labels))
+        source1 = labels + rng.normal(0.0, 0.45, len(labels))
+        payloads[seed] = {
+            "typed_scratch": scratch,
+            "typed_source0": source0,
+            "typed_source1": source1,
+            "lstm": mainstream,
+            "resnet": mainstream + rng.normal(0.0, 0.01, len(labels)),
+        }
+
+    gate_paths = {}
+    score_paths = {}
+    for seed, scores in payloads.items():
+        gate_paths[seed] = tmp_path / f"seed{seed}_gate.json"
+        score_paths[seed] = tmp_path / f"seed{seed}_scores.npz"
+        gate_paths[seed].write_text(
+            json.dumps(
+                {
+                    "status": "pass",
+                    "errors": [],
+                    "expected_seed": seed,
+                    "decision": "large_scale_mainstream_superiority_candidate",
+                    "strongest_mainstream_role": "resnet",
+                    "score_rows": len(labels),
+                    "primary_fresh_test_aucs": {
+                        role: binary_auc(labels, values)
+                        for role, values in scores.items()
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        np.savez_compressed(
+            score_paths[seed],
+            labels=labels,
+            sample_ids=sample_ids,
+            **{f"{role}_probabilities": values for role, values in scores.items()},
+        )
+
+    report = paired_mainstream_performance_interval_gate(
+        seed_gate_paths=gate_paths,
+        primary_score_paths=score_paths,
+        replicates=80,
+        chunk_size=8,
+        expected_score_rows=len(labels),
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == "two_seed_paired_mainstream_superiority_supported"
+    assert report["gates"]["two_seed_paired_mainstream_superiority"] is True

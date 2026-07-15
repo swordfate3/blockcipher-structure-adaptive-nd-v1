@@ -7,6 +7,9 @@ from typing import Any
 import numpy as np
 
 from blockcipher_nd.evaluation.neural_ensemble import load_score_artifact
+from blockcipher_nd.planning.cross_spn_target_adaptation_gate import (
+    paired_stratified_bootstrap_auc_differences,
+)
 from blockcipher_nd.planning.result_alignment import validate_result_plan_alignment
 from blockcipher_nd.training.metrics import binary_auc
 
@@ -283,6 +286,214 @@ def joint_mainstream_performance_gate(seed_gates: list[dict[str, Any]]) -> dict[
             "two-target-seed GIFT-64 r6 1000000/class large-scale same-protocol "
             "architecture comparison; not exact paper-protocol or SOTA evidence"
         ),
+    }
+
+
+def paired_mainstream_performance_interval_gate(
+    *,
+    seed_gate_paths: dict[int, Path],
+    primary_score_paths: dict[int, Path],
+    replicates: int = 2_000,
+    chunk_size: int = 4,
+    expected_score_rows: int = 1_000_000,
+) -> dict[str, Any]:
+    errors: list[str] = []
+    if set(seed_gate_paths) != {6, 7}:
+        errors.append("seed gate paths must contain seeds 6 and 7")
+    if set(primary_score_paths) != {6, 7}:
+        errors.append("primary score paths must contain seeds 6 and 7")
+    if type(replicates) is not int or replicates < 1:
+        errors.append("replicates must be a positive integer")
+    if type(chunk_size) is not int or chunk_size < 1:
+        errors.append("chunk_size must be a positive integer")
+    if type(expected_score_rows) is not int or expected_score_rows < 2:
+        errors.append("expected_score_rows must be an integer of at least two")
+    if errors:
+        return _invalid_paired_report(errors)
+
+    per_seed: dict[str, Any] = {}
+    for seed in (6, 7):
+        seed_errors: list[str] = []
+        gate = _read_json(seed_gate_paths[seed], seed_errors)
+        if gate.get("status") != "pass" or gate.get("errors") != []:
+            seed_errors.append(f"seed{seed} point-estimate gate must pass")
+        if gate.get("expected_seed") != seed:
+            seed_errors.append(f"seed{seed} point-estimate gate seed mismatch")
+        if gate.get("score_rows") != expected_score_rows:
+            seed_errors.append(f"seed{seed} point-estimate gate score rows mismatch")
+        if gate.get("decision") != "large_scale_mainstream_superiority_candidate":
+            seed_errors.append(f"seed{seed} is not a superiority candidate")
+        strongest_role = gate.get("strongest_mainstream_role")
+        if strongest_role not in {"lstm", "resnet"}:
+            seed_errors.append(f"seed{seed} strongest mainstream role is invalid")
+
+        arrays = _read_primary_score_pack(primary_score_paths[seed], seed_errors)
+        labels = arrays.get("labels")
+        sample_ids = arrays.get("sample_ids")
+        scores = arrays.get("scores")
+        if isinstance(labels, np.ndarray):
+            if labels.shape != (expected_score_rows,):
+                seed_errors.append(
+                    f"seed{seed} score rows must equal {expected_score_rows}"
+                )
+            if set(np.unique(labels)) != {0.0, 1.0}:
+                seed_errors.append(f"seed{seed} labels must be binary")
+            positive_rows = int(np.count_nonzero(labels == 1.0))
+            negative_rows = int(np.count_nonzero(labels == 0.0))
+            if positive_rows != expected_score_rows // 2 or negative_rows != (
+                expected_score_rows // 2
+            ):
+                seed_errors.append(f"seed{seed} score labels must be balanced")
+        if isinstance(sample_ids, np.ndarray):
+            if sample_ids.shape != (expected_score_rows,):
+                seed_errors.append(
+                    f"seed{seed} sample_ids must contain {expected_score_rows} rows"
+                )
+            elif len(np.unique(sample_ids)) != expected_score_rows:
+                seed_errors.append(f"seed{seed} sample_ids must be unique")
+        if isinstance(scores, dict):
+            expected_aucs = gate.get("primary_fresh_test_aucs")
+            if not isinstance(expected_aucs, dict):
+                seed_errors.append(f"seed{seed} gate is missing primary AUCs")
+            elif isinstance(labels, np.ndarray):
+                for role, values in scores.items():
+                    observed = binary_auc(labels, values)
+                    expected = expected_aucs.get(role)
+                    if not isinstance(expected, (int, float)) or not np.isclose(
+                        observed,
+                        float(expected),
+                        rtol=0.0,
+                        atol=1e-12,
+                    ):
+                        seed_errors.append(f"seed{seed} {role} primary AUC mismatch")
+
+        if seed_errors:
+            errors.extend(seed_errors)
+            continue
+        assert isinstance(labels, np.ndarray)
+        assert isinstance(scores, dict)
+        assert isinstance(strongest_role, str)
+        comparisons: dict[str, Any] = {}
+        for candidate_index, candidate_role in enumerate(
+            ("typed_source0", "typed_source1")
+        ):
+            comparisons[candidate_role] = paired_stratified_bootstrap_auc_differences(
+                labels,
+                scores,
+                candidate_role=candidate_role,
+                control_roles=(strongest_role, "typed_scratch"),
+                replicates=replicates,
+                seed=seed * 100 + candidate_index,
+                chunk_size=chunk_size,
+            )
+        mainstream_supported = all(
+            report["comparisons"][strongest_role]["point_difference"] >= 0.002
+            and report["comparisons"][strongest_role]["ci_lower"] > 0.0
+            for report in comparisons.values()
+        )
+        persistent_transfer_supported = all(
+            report["comparisons"]["typed_scratch"]["point_difference"] >= 0.002
+            and report["comparisons"]["typed_scratch"]["ci_lower"] > 0.0
+            for report in comparisons.values()
+        )
+        per_seed[str(seed)] = {
+            "strongest_mainstream_role": strongest_role,
+            "comparisons": comparisons,
+            "gates": {
+                "paired_mainstream_superiority": mainstream_supported,
+                "paired_persistent_transfer": persistent_transfer_supported,
+            },
+        }
+
+    if errors:
+        return _invalid_paired_report(errors)
+    mainstream_supported = all(
+        seed_report["gates"]["paired_mainstream_superiority"]
+        for seed_report in per_seed.values()
+    )
+    persistent_transfer_supported = all(
+        seed_report["gates"]["paired_persistent_transfer"]
+        for seed_report in per_seed.values()
+    )
+    if mainstream_supported:
+        decision = "two_seed_paired_mainstream_superiority_supported"
+        next_action = "freeze_exact_sun_protocol_reproduction_before_performance_claim"
+    else:
+        decision = "two_seed_paired_mainstream_superiority_not_supported"
+        next_action = "stop_performance_lead_claim_retain_topology_attribution"
+    return {
+        "status": "pass",
+        "decision": decision,
+        "errors": [],
+        "replicates": replicates,
+        "confidence": 0.95,
+        "score_split": "final_test_1",
+        "score_rows_per_seed": expected_score_rows,
+        "per_seed": per_seed,
+        "gates": {
+            "two_seed_paired_mainstream_superiority": mainstream_supported,
+            "two_seed_paired_persistent_transfer": persistent_transfer_supported,
+        },
+        "research_decision_applied": True,
+        "next_action": next_action,
+        "claim_scope": (
+            "paired 95% bootstrap adjudication on the primary fresh-test repeat of "
+            "the two-seed GIFT-64 r6 1000000/class same-protocol benchmark; not "
+            "an exact Sun-protocol reproduction, SOTA claim, or breakthrough"
+        ),
+        "stopped_actions": [
+            "e5_e6_scale_rescue",
+            "posthoc_model_sweep",
+            "mechanical_5000000_per_class_scale",
+        ],
+    }
+
+
+def _read_primary_score_pack(path: Path, errors: list[str]) -> dict[str, Any]:
+    required_roles = tuple(MODEL_ROLES)
+    try:
+        with np.load(path, allow_pickle=False) as payload:
+            required = {"labels", "sample_ids"} | {
+                f"{role}_probabilities" for role in required_roles
+            }
+            missing = sorted(required - set(payload.files))
+            if missing:
+                errors.append(f"primary score pack is missing keys: {missing}")
+                return {}
+            labels = np.asarray(payload["labels"], dtype=np.float32)
+            sample_ids = np.asarray(payload["sample_ids"])
+            scores = {
+                role: np.asarray(payload[f"{role}_probabilities"], dtype=np.float64)
+                for role in required_roles
+            }
+    except (OSError, ValueError) as exc:
+        errors.append(f"cannot load primary score pack {path}: {exc}")
+        return {}
+    if any(values.shape != labels.shape for values in scores.values()):
+        errors.append("primary score arrays must align with labels")
+    if any(not np.isfinite(values).all() for values in scores.values()):
+        errors.append("primary score arrays must be finite")
+    return {"labels": labels, "sample_ids": sample_ids, "scores": scores}
+
+
+def _read_json(path: Path, errors: list[str]) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"cannot read JSON {path}: {exc}")
+        return {}
+    if not isinstance(value, dict):
+        errors.append(f"JSON payload must be an object: {path}")
+        return {}
+    return value
+
+
+def _invalid_paired_report(errors: list[str]) -> dict[str, Any]:
+    return {
+        "status": "fail",
+        "decision": "invalid_paired_mainstream_performance_protocol",
+        "errors": errors,
+        "research_decision_applied": False,
     }
 
 

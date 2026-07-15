@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** remote seed6/seed7 launched / watcher-managed running
+**Status:** paired same-protocol superiority supported / exact Sun protocol required
 
 ## Research Question
 
@@ -208,3 +208,123 @@ is evidence that both scheduled tasks entered their run scripts, not a claim
 that dataset generation or training has completed. The watcher owns subsequent
 waiting, failure detection, result-branch retrieval, local validation, plotting,
 and result-index refresh.
+
+## Retrieved Point-Estimate Result
+
+Both five-role runs completed training, validation, five fresh evaluations,
+and primary-score export. The original postprocess stopped before gate/archive
+because the two new gate wrappers did not add the repository `src/` directory
+to `sys.path`. Recovery commit `e7767da334bfb1170426f481d571fb646800b8cb`
+fixed the wrappers and reused the existing training and score artifacts; it did
+not retrain any model.
+
+The verified result branches, archive manifests, primary-score hashes, local
+plan validation, and joint re-gate all pass. Retrieved artifacts are:
+
+```text
+outputs/remote_results/i1_gift64_mainstream_performance_1m_seed6/
+outputs/remote_results/i1_gift64_mainstream_performance_1m_seed7/
+outputs/remote_results/i1_gift64_mainstream_performance_1m_joint_seed6_seed7/
+```
+
+Five-repeat fresh-test mean AUC:
+
+| Seed | typed scratch | typed source0 | typed source1 | LSTM | ResNet |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 6 | 0.607390687 | 0.606691943 | 0.608146784 | 0.501004371 | 0.508496527 |
+| 7 | 0.603907512 | 0.607843768 | 0.608444463 | 0.501324336 | 0.508620035 |
+
+Both per-seed point-estimate gates returned
+`large_scale_mainstream_superiority_candidate`; the joint point-estimate gate
+returned `two_seed_large_scale_mainstream_superiority_candidate`. This supports
+advancing to the predeclared paired interval gate. It does not yet establish an
+exact-paper or SOTA claim. In particular, the near-chance literature-family
+baselines make an exact Sun-protocol reproduction the required next benchmark,
+not an optional follow-up.
+
+## Paired Interval Adjudication Plan
+
+The paired gate changes no model, data, checkpoint, or score. It uses the
+retrieved `final_test_1` score pack for each target seed:
+
+```text
+rows per seed          = 1000000, balanced labels
+pairing                = identical labels and sample IDs across all five roles
+method                 = label-stratified paired nonparametric AUC bootstrap
+replicates             = 2000
+confidence             = 95% percentile interval
+bootstrap seeds        = 600/601 for target seed6; 700/701 for target seed7
+primary comparisons    = typed source0/source1 versus strongest mainstream role
+secondary comparisons  = typed source0/source1 versus typed scratch
+```
+
+The mainstream-superiority interval gate passes only when, for both typed
+source initializations and both target seeds, the primary point difference is
+at least `+0.002` AUC and the paired interval lower bound is above zero. The
+persistent-transfer gate is reported separately with the same rule against
+typed scratch. Failure of the transfer gate does not erase a same-protocol
+architecture-family result.
+
+If the two-seed paired mainstream gate passes, freeze an exact Sun-protocol
+reproduction plan before making a performance claim. Do not tune the observed
+LSTM/ResNet rows, add post-hoc models, revive E5/E6, or scale mechanically to
+`5000000/class`. If the paired mainstream gate fails, stop the performance-lead
+claim and retain only the controlled typed-topology attribution result.
+
+## Paired Interval Result
+
+The frozen gate completed with `2000` bootstrap replicates for each candidate,
+`500000` positive and `500000` negative rows per target seed, and no protocol
+errors:
+
+```text
+decision = two_seed_paired_mainstream_superiority_supported
+two_seed_paired_mainstream_superiority = true
+two_seed_paired_persistent_transfer = false
+```
+
+Primary typed-minus-ResNet AUC differences and paired 95% intervals:
+
+| Seed | Candidate | Difference | 95% interval |
+| ---: | --- | ---: | --- |
+| 6 | typed source0 | +0.098598397 | [+0.097068817, +0.100148554] |
+| 6 | typed source1 | +0.099933440 | [+0.098420240, +0.101542670] |
+| 7 | typed source0 | +0.098594425 | [+0.097112965, +0.100132282] |
+| 7 | typed source1 | +0.099137939 | [+0.097666580, +0.100685791] |
+
+The same paired analysis rejects a two-seed transfer-initialization claim.
+Against typed scratch, seed6 source0 is `-0.000656711` with interval
+`[-0.001043742, -0.000268453]`; seed6 source1 is only `+0.000678333` with
+interval `[+0.000310588, +0.001037446]`, below the frozen `+0.002` gate. Both
+source initializations pass on seed7, so the transfer value is target-seed
+conditional rather than robust.
+
+Artifact:
+
+```text
+outputs/local_diagnostic/
+  i1_gift64_mainstream_performance_1m_paired_adjudication_20260715/gate.json
+```
+
+## Final Recommendation
+
+Retain this result as strong same-protocol evidence that the typed SPN
+architecture is better matched to this four-pair GIFT-64 task than the two
+parameter-matched literature-family adaptations. Do not describe it as an
+exact-paper, SOTA, or general transfer result. The paired result strengthens
+the architecture comparison but explicitly weakens the PRESENT-initialization
+claim.
+
+The next GIFT action is an audit, not another scale-up. Resolve the mismatch
+between this project's four independent-pair task and Sun et al.'s reported
+`3-2-CT-R` protocol: exact sample construction, ciphertext organization, key
+sampling, loss, optimizer schedule, train total near `17M`, validation total
+near `4M`, and evaluation split. That audit must freeze a lean same-budget
+matrix led by an exact Sun-style LSTM anchor and a typed-scratch candidate;
+transfer initialization is secondary because its two-seed gate failed. Only a
+plan-aligned exact-protocol result can unlock a GIFT performance claim.
+
+Do not tune the current near-chance LSTM/ResNet rows after observing them, add
+more architecture families, revive E5/E6, or mechanically increase the current
+four-pair benchmark. Feistel/SM4 calibration may proceed independently while
+the exact GIFT protocol audit is prepared.
