@@ -1,0 +1,223 @@
+{
+  "alignment": {
+    "duplicate_plan_keys": [],
+    "duplicate_result_keys": [],
+    "errors": [],
+    "expected_rows": 4,
+    "field_mismatches": [],
+    "missing_result_keys": [],
+    "optional_key_fields": [
+      "difference_profile",
+      "difference_member"
+    ],
+    "plan_keys": [
+      [
+        5,
+        0,
+        "sm4_yu2023_position_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"blocks\":5,\"classifier_bits\":64,\"dropout\":0.5}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "multiscale_dense_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "sm4_yu2023_position_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "1",
+        "[]",
+        "{\"blocks\":5,\"classifier_bits\":64,\"dropout\":0.5}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "multiscale_dense_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "1",
+        "[]",
+        "{}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ]
+    ],
+    "plan_rows": 4,
+    "result_keys": [
+      [
+        5,
+        0,
+        "sm4_yu2023_position_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{\"blocks\":5,\"classifier_bits\":64,\"dropout\":0.5}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "multiscale_dense_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "0",
+        "[]",
+        "{}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "sm4_yu2023_position_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "1",
+        "[]",
+        "{\"blocks\":5,\"classifier_bits\":64,\"dropout\":0.5}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ],
+      [
+        5,
+        0,
+        "multiscale_dense_resnet",
+        2048,
+        1,
+        "ciphertext_pair_bits",
+        "encrypted_random_plaintexts",
+        "independent_pairs",
+        "0",
+        "[]",
+        "[]",
+        "1",
+        "[]",
+        "{}",
+        "sm4_yu2023_conv_resnet",
+        "0"
+      ]
+    ],
+    "result_rows": 4,
+    "status": "pass",
+    "unexpected_result_keys": []
+  },
+  "claim_scope": "local SM4-r5 position-preserving paper-family calibration; not an exact paper reproduction or recurrence attribution result",
+  "decision": "feistel_sm4_position_anchor_not_calibrated",
+  "epochs": 10,
+  "errors": [],
+  "improved": {
+    "fixed": false,
+    "rotating": false
+  },
+  "margins": {
+    "fixed": -0.0010278622309366492,
+    "rotating": 0.0023118257522583008
+  },
+  "next_action": "run_position_baseline_8192_data_scarcity_diagnostic",
+  "parameter_counts": {
+    "fixed_global_pool": {
+      "parameter_count": 59809,
+      "trainable_parameter_count": 59809
+    },
+    "fixed_position": {
+      "parameter_count": 297921,
+      "trainable_parameter_count": 297921
+    },
+    "rotating_global_pool": {
+      "parameter_count": 59809,
+      "trainable_parameter_count": 59809
+    },
+    "rotating_position": {
+      "parameter_count": 297921,
+      "trainable_parameter_count": 297921
+    }
+  },
+  "research_decision_applied": true,
+  "samples_per_class": 2048,
+  "scores": {
+    "fixed_global_pool": 0.49683090051015216,
+    "fixed_position": 0.4958030382792155,
+    "rotating_global_pool": 0.4918869336446126,
+    "rotating_position": 0.4941987593968709
+  },
+  "seeds": [
+    0
+  ],
+  "signal": {
+    "fixed": false,
+    "rotating": false
+  },
+  "status": "pass",
+  "stopped_actions": [
+    "recurrence_candidate_change",
+    "remote_scale",
+    "random_ciphertext_negative",
+    "cross_feistel_claim"
+  ],
+  "thresholds": {
+    "improvement_margin": 0.01,
+    "minimum_signal_auc": 0.55
+  }
+}
