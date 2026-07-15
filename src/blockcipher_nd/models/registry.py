@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from torch import nn
 
@@ -15,6 +14,7 @@ from blockcipher_nd.models.baseline import (
     MultiScaleDenseResNetDistinguisher,
     ResNetBitSliceDistinguisher,
     SeResNeXtDistinguisher,
+    Sm4Yu2023PositionResNetDistinguisher,
     TransformerEncoderDistinguisher,
 )
 from blockcipher_nd.models.structure import (
@@ -64,6 +64,7 @@ MODEL_REGISTRY: dict[str, type[nn.Module]] = {
     "resnet_bitslice": ResNetBitSliceDistinguisher,
     "senet_resnext": SeResNeXtDistinguisher,
     "multiscale_dense_resnet": MultiScaleDenseResNetDistinguisher,
+    "sm4_yu2023_position_resnet": Sm4Yu2023PositionResNetDistinguisher,
     "adaptive_dbitnet": AdaptiveDBitNetDistinguisher,
     "adaptive_dbitnet_pairwise": PairwiseAdaptiveDBitNetDistinguisher,
     "structure_adaptive_pairset_dbitnet": StructureAdaptivePairSetDBitNetDistinguisher,

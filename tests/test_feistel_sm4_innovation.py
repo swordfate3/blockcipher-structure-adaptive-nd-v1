@@ -11,7 +11,9 @@ from blockcipher_nd.models.structure.feistel import (
     Sm4WordRecurrenceDistinguisher,
     sm4_state_mapping_indices,
 )
+from blockcipher_nd.models.baseline import Sm4Yu2023PositionResNetDistinguisher
 from blockcipher_nd.planning.feistel_sm4_gate import (
+    gate_feistel_sm4_position_calibration,
     gate_feistel_sm4_protocol_audit,
     gate_feistel_sm4_results,
 )
@@ -26,6 +28,7 @@ MODEL_OPTIONS = {
     "dropout": 0.5,
     "rotation_offsets": [2, 10, 18, 24],
 }
+POSITION_OPTIONS = {"blocks": 5, "classifier_bits": 64, "dropout": 0.5}
 
 
 def test_sm4_full_round_standard_vector() -> None:
@@ -111,6 +114,7 @@ def test_sm4_registry_models_forward_and_backpropagate() -> None:
         "sm4_word_recurrence_true",
         "sm4_word_recurrence_shuffled",
         "multiscale_dense_resnet",
+        "sm4_yu2023_position_resnet",
     ):
         model = build_model(
             model_key,
@@ -118,7 +122,9 @@ def test_sm4_registry_models_forward_and_backpropagate() -> None:
             hidden_bits=8,
             pair_bits=256,
             structure="Feistel-like",
-            model_options=MODEL_OPTIONS if model_key.startswith("sm4_") else {},
+            model_options=(
+                MODEL_OPTIONS if model_key.startswith("sm4_word_recurrence") else {}
+            ),
         )
         logits = model(features)
         assert logits.shape == (2, 1)
@@ -128,6 +134,21 @@ def test_sm4_registry_models_forward_and_backpropagate() -> None:
             parameter.grad is not None and torch.isfinite(parameter.grad).all()
             for parameter in model.parameters()
         )
+
+
+def test_sm4_yu2023_position_resnet_preserves_all_bit_positions() -> None:
+    model = Sm4Yu2023PositionResNetDistinguisher(
+        input_bits=256,
+        channels=8,
+        blocks=2,
+        classifier_bits=16,
+        dropout=0.5,
+    )
+    features = torch.randint(0, 2, (2, 256), dtype=torch.float32)
+    hidden = model.position_features(features)
+    assert hidden.shape == (2, 8, 128)
+    assert model.flattened_width == 8 * 128
+    assert model(features).shape == (2, 1)
 
 
 def test_sm4_local_plan_is_frozen_two_seed_matrix() -> None:
@@ -354,3 +375,87 @@ def test_sm4_protocol_audit_identifies_fixed_key_dependency(tmp_path: Path) -> N
         "r5_fixed": True,
         "r5_rotating": False,
     }
+
+
+def test_sm4_position_calibration_retains_cross_key_anchor(tmp_path: Path) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_sm4_position_resnet_calibration_2048_seed0.csv"
+    fixed_key = 0x0123456789ABCDEFFEDCBA9876543210
+    scores = {
+        ("sm4_yu2023_position_resnet", 0): 0.80,
+        ("multiscale_dense_resnet", 0): 0.51,
+        ("sm4_yu2023_position_resnet", 1): 0.75,
+        ("multiscale_dense_resnet", 1): 0.50,
+    }
+    rows = []
+    for (model, rotation), auc in scores.items():
+        key = fixed_key if rotation == 0 else None
+        schedule = "fixed" if rotation == 0 else "rotating"
+        options = POSITION_OPTIONS if model.startswith("sm4_") else {}
+        count = 300000 if model.startswith("sm4_") else 59809
+        rows.append(
+            {
+                "cipher": "SM4",
+                "cipher_key": "sm4",
+                "structure": "Feistel-like",
+                "model": model,
+                "rounds": 5,
+                "seed": 0,
+                "samples_per_class": 2048,
+                "train_samples_total": None,
+                "validation_samples_total": 2048,
+                "final_test_samples_total": 4096,
+                "final_test_repeats": 3,
+                "dataset_label_mode": "balanced_per_class",
+                "pairs_per_sample": 1,
+                "feature_encoding": "ciphertext_pair_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "train_key": key,
+                "validation_key": key,
+                "final_test_key": key,
+                "key_rotation_interval": rotation,
+                "sample_structure": "independent_pairs",
+                "integral_active_nibble": 0,
+                "integral_active_nibbles": [],
+                "validation_integral_active_nibbles": [],
+                "difference_profile": "sm4_yu2023_conv_resnet",
+                "difference_member": 0,
+                "history": [{} for _ in range(10)],
+                "training": {
+                    "loss": "mse",
+                    "learning_rate": 0.0001,
+                    "optimizer": "adam",
+                    "weight_decay": 0.0,
+                    "checkpoint_metric": "val_auc",
+                    "restore_best_checkpoint": True,
+                    "early_stopping_patience": 0,
+                    "early_stopping_min_delta": 0.0,
+                    "key_schedule": schedule,
+                    "selected_bit_indices": [],
+                    "model_options": options,
+                    "pretraining": {"epochs_ran": 0, "round_sequence": []},
+                },
+                "validation": {"key_schedule": schedule},
+                "final_evaluation": {
+                    "auc_mean": auc,
+                    "repeats": 3,
+                    "metrics_by_repeat": [{}, {}, {}],
+                },
+                "parameter_count": count,
+                "trainable_parameter_count": count,
+            }
+        )
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    report = gate_feistel_sm4_position_calibration(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0,),
+        expected_epochs=10,
+        expected_final_repeats=3,
+    )
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "feistel_sm4_position_anchor_retained_cross_key"
+    assert report["signal"] == {"fixed": True, "rotating": True}

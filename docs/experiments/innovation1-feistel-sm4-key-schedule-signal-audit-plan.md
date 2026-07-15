@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** frozen before training
+**Status:** completed; r3 calibrated, r5 baseline/scale gap identified
 
 ## Research Question
 
@@ -110,3 +110,40 @@ Run the four-row seed0 matrix locally, validate all rows, generate curves and a
 protocol gate, refresh the result index, and use the gate's exact branch to
 freeze the next experiment. Do not infer the cause from the failed r5 matrix
 alone.
+
+## Completed Result
+
+The four-row audit completed on 2026-07-15 with exact plan alignment, identical
+`59809`-parameter models, and no validation errors:
+
+| Rounds | Fixed-key fresh AUC | Rotating-key fresh AUC |
+| ---: | ---: | ---: |
+| 3 | 0.999994040 | 0.999999523 |
+| 5 | 0.497069558 | 0.491743843 |
+
+The gate returned:
+
+```text
+r3_fixed signal      = true
+r3_rotating signal   = true
+r5_fixed signal      = false
+r5_rotating signal   = false
+decision              = feistel_sm4_r5_scale_or_paper_architecture_gap
+next_action           = port_closer_yu2023_baseline_before_candidate_scale
+```
+
+This rules out a broken SM4 primitive, difference, negative generator, and
+low-round cross-key pipeline: the same implementation is almost perfectly
+learnable at r3 under both key schedules. It also rules out fixed-key dependence
+as the immediate explanation for the failed r5 cell. The unresolved difference
+is now r5 data scale and/or the existing baseline's global pooling, which omits
+the paper-described flattened two-layer 64-unit classifier.
+
+Artifacts are under
+`outputs/local_diagnostic/i1_feistel_sm4_key_schedule_signal_audit_2048_seed0/`
+and the result is entry `001` in `outputs/00_RECENT_RESULTS.md`.
+
+The next frozen experiment is
+`docs/experiments/innovation1-feistel-sm4-position-preserving-paper-family-calibration-plan.md`.
+It ports the closest defensible paper-family baseline before any candidate
+tuning or scale increase.

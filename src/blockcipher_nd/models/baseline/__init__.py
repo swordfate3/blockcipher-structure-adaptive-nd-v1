@@ -11,6 +11,9 @@ from blockcipher_nd.models.baseline.multiscale_dense_resnet import (
 )
 from blockcipher_nd.models.baseline.resnet_bitslice import ResNetBitSliceDistinguisher
 from blockcipher_nd.models.baseline.senet_resnext import SeResNeXtDistinguisher
+from blockcipher_nd.models.baseline.sm4_yu2023 import (
+    Sm4Yu2023PositionResNetDistinguisher,
+)
 from blockcipher_nd.models.baseline.transformer_encoder import TransformerEncoderDistinguisher
 
 __all__ = [
@@ -23,5 +26,6 @@ __all__ = [
     "MultiScaleDenseResNetDistinguisher",
     "ResNetBitSliceDistinguisher",
     "SeResNeXtDistinguisher",
+    "Sm4Yu2023PositionResNetDistinguisher",
     "TransformerEncoderDistinguisher",
 ]

@@ -18,6 +18,10 @@ PROTOCOL_AUDIT_ROLES = {
     "r5_fixed": (5, 0),
     "r5_rotating": (5, 1),
 }
+POSITION_MODEL_ROLES = {
+    "position": "sm4_yu2023_position_resnet",
+    "global_pool": "multiscale_dense_resnet",
+}
 
 
 def gate_feistel_sm4_results(
@@ -399,9 +403,231 @@ def gate_feistel_sm4_protocol_audit(
     }
 
 
+def gate_feistel_sm4_position_calibration(
+    *,
+    plan_path: Path,
+    results_path: Path,
+    expected_samples_per_class: int,
+    expected_seeds: tuple[int, ...],
+    expected_epochs: int,
+    expected_final_repeats: int,
+    minimum_signal_auc: float = 0.55,
+    improvement_margin: float = 0.01,
+) -> dict[str, Any]:
+    if expected_seeds != (0,):
+        raise ValueError("SM4 position calibration is frozen to seed0")
+    readiness = expected_samples_per_class < 2048
+    expected_rows = 2 if readiness else 4
+    alignment = validate_result_plan_alignment(
+        plan_path, results_path, expected_rows=expected_rows
+    )
+    errors = list(alignment["errors"])
+    try:
+        rows = [
+            json.loads(line)
+            for line in results_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except (OSError, json.JSONDecodeError) as exc:
+        rows = []
+        errors.append(f"cannot read result rows: {exc}")
+
+    rows_by_role: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if readiness:
+            role = f"r{row.get('rounds')}_position"
+        else:
+            model_role = next(
+                (
+                    role
+                    for role, model in POSITION_MODEL_ROLES.items()
+                    if model == row.get("model")
+                ),
+                None,
+            )
+            schedule = "fixed" if row.get("key_rotation_interval") == 0 else "rotating"
+            role = f"{schedule}_{model_role}" if model_role is not None else ""
+        if role in rows_by_role:
+            errors.append(f"duplicate position calibration role: {role}")
+            continue
+        rows_by_role[role] = row
+
+    expected_roles = (
+        {"r3_position", "r5_position"}
+        if readiness
+        else {
+            "fixed_position",
+            "fixed_global_pool",
+            "rotating_position",
+            "rotating_global_pool",
+        }
+    )
+    missing = expected_roles - set(rows_by_role)
+    unexpected = set(rows_by_role) - expected_roles
+    if missing:
+        errors.append(f"missing position roles: {sorted(missing)}")
+    if unexpected:
+        errors.append(f"unexpected position roles: {sorted(unexpected)}")
+
+    scores: dict[str, float] = {}
+    parameter_counts: dict[str, dict[str, int]] = {}
+    for role, row in rows_by_role.items():
+        if role not in expected_roles:
+            continue
+        expected_fields = {
+            "cipher_key": "sm4",
+            "seed": 0,
+            "samples_per_class": expected_samples_per_class,
+            "pairs_per_sample": 1,
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "independent_pairs",
+            "difference_profile": "sm4_yu2023_conv_resnet",
+            "difference_member": 0,
+            "final_test_repeats": expected_final_repeats,
+        }
+        if not readiness:
+            expected_fields["rounds"] = 5
+        for field, expected in expected_fields.items():
+            if row.get(field) != expected:
+                errors.append(
+                    f"{role} {field}={row.get(field)!r} expected={expected!r}"
+                )
+        expected_schedule = "rotating" if role.startswith("rotating") else "fixed"
+        for split in ("training", "validation"):
+            metadata = row.get(split)
+            if not isinstance(metadata, dict):
+                errors.append(f"{role} missing {split} metadata")
+            elif metadata.get("key_schedule") != expected_schedule:
+                errors.append(
+                    f"{role} {split} key_schedule="
+                    f"{metadata.get('key_schedule')!r} expected={expected_schedule!r}"
+                )
+        history = row.get("history")
+        if not isinstance(history, list) or len(history) != expected_epochs:
+            errors.append(f"{role} history must contain {expected_epochs} epochs")
+        final = row.get("final_evaluation")
+        if not isinstance(final, dict):
+            errors.append(f"{role} missing final_evaluation")
+        else:
+            auc = final.get("auc_mean")
+            if not isinstance(auc, (int, float)):
+                errors.append(f"{role} missing final auc_mean")
+            else:
+                scores[role] = float(auc)
+            metrics = final.get("metrics_by_repeat")
+            if final.get("repeats") != expected_final_repeats:
+                errors.append(
+                    f"{role} final repeats={final.get('repeats')!r} "
+                    f"expected={expected_final_repeats}"
+                )
+            if not isinstance(metrics, list) or len(metrics) != expected_final_repeats:
+                errors.append(
+                    f"{role} final metrics_by_repeat must contain "
+                    f"{expected_final_repeats} rows"
+                )
+        parameter_counts[role] = {}
+        for field in ("parameter_count", "trainable_parameter_count"):
+            count = row.get(field)
+            if not isinstance(count, int):
+                errors.append(f"{role} missing {field}")
+            else:
+                parameter_counts[role][field] = count
+
+    if readiness and len({tuple(value.values()) for value in parameter_counts.values()}) > 1:
+        errors.append(f"readiness model capacity mismatch: {parameter_counts}")
+    if not readiness:
+        for model_role in POSITION_MODEL_ROLES:
+            fixed = parameter_counts.get(f"fixed_{model_role}")
+            rotating = parameter_counts.get(f"rotating_{model_role}")
+            if fixed is not None and rotating is not None and fixed != rotating:
+                errors.append(
+                    f"{model_role} capacity changed across key protocols: "
+                    f"fixed={fixed} rotating={rotating}"
+                )
+    if errors:
+        return {
+            "status": "fail",
+            "decision": "invalid_feistel_sm4_position_calibration",
+            "errors": errors,
+            "alignment": alignment,
+            "research_decision_applied": False,
+        }
+
+    common = {
+        "status": "pass",
+        "errors": [],
+        "alignment": alignment,
+        "samples_per_class": expected_samples_per_class,
+        "seeds": list(expected_seeds),
+        "epochs": expected_epochs,
+        "scores": scores,
+        "parameter_counts": parameter_counts,
+    }
+    if readiness:
+        return {
+            **common,
+            "decision": "feistel_sm4_position_resnet_readiness_passed",
+            "next_action": "run_sm4_position_resnet_calibration_2048",
+            "research_decision_applied": False,
+            "claim_scope": "readiness only; metrics are not calibration evidence",
+        }
+
+    margins = {
+        schedule: scores[f"{schedule}_position"]
+        - scores[f"{schedule}_global_pool"]
+        for schedule in ("fixed", "rotating")
+    }
+    signal = {
+        schedule: scores[f"{schedule}_position"] >= minimum_signal_auc
+        for schedule in ("fixed", "rotating")
+    }
+    improved = {
+        schedule: margins[schedule] >= improvement_margin
+        for schedule in ("fixed", "rotating")
+    }
+    if signal["rotating"] and improved["rotating"]:
+        decision = "feistel_sm4_position_anchor_retained_cross_key"
+        next_action = "redesign_recurrence_candidate_on_position_backbone"
+    elif signal["fixed"] and improved["fixed"]:
+        decision = "feistel_sm4_position_anchor_retained_fixed_key_only"
+        next_action = "audit_position_anchor_cross_key_before_attribution_claim"
+    elif any(signal.values()):
+        decision = "feistel_sm4_signal_without_position_advantage"
+        next_action = "retain_strongest_baseline_without_position_claim"
+    else:
+        decision = "feistel_sm4_position_anchor_not_calibrated"
+        next_action = "run_position_baseline_8192_data_scarcity_diagnostic"
+    return {
+        **common,
+        "decision": decision,
+        "next_action": next_action,
+        "research_decision_applied": True,
+        "margins": margins,
+        "signal": signal,
+        "improved": improved,
+        "thresholds": {
+            "minimum_signal_auc": minimum_signal_auc,
+            "improvement_margin": improvement_margin,
+        },
+        "claim_scope": (
+            "local SM4-r5 position-preserving paper-family calibration; not "
+            "an exact paper reproduction or recurrence attribution result"
+        ),
+        "stopped_actions": [
+            "recurrence_candidate_change",
+            "remote_scale",
+            "random_ciphertext_negative",
+            "cross_feistel_claim",
+        ],
+    }
+
+
 __all__ = [
     "MODEL_ROLES",
+    "POSITION_MODEL_ROLES",
     "PROTOCOL_AUDIT_ROLES",
     "gate_feistel_sm4_protocol_audit",
+    "gate_feistel_sm4_position_calibration",
     "gate_feistel_sm4_results",
 ]

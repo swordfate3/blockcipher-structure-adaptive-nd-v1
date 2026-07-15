@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from torch import nn
 
+from blockcipher_nd.models.baseline import Sm4Yu2023PositionResNetDistinguisher
 from blockcipher_nd.models.structure import (
     DesFeistelBranchInceptionPairSetDistinguisher,
     DesLstmPairSetDistinguisher,
@@ -96,6 +97,14 @@ def build_feistel_model(
             rotation_offsets=int_tuple_option(
                 options, "rotation_offsets", (2, 10, 18, 24)
             ),
+        )
+    if name == "sm4_yu2023_position_resnet":
+        return Sm4Yu2023PositionResNetDistinguisher(
+            input_bits=input_bits,
+            channels=hidden_bits,
+            blocks=int_option(options, "blocks", 5) or 5,
+            classifier_bits=int_option(options, "classifier_bits", 64) or 64,
+            dropout=float(options.get("dropout", 0.5)),
         )
     return None
 
