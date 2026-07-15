@@ -1,3 +1,56 @@
+## [LRN-20260715-009] correction
+
+**Logged**: 2026-07-15T22:56:01+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+
+XORing the four bits of one output nibble is single-sample output-mask parity prediction, not integral-balance prediction.
+
+### Details
+
+The user clarified the proposed Innovation 2 target precisely. For one sample
+with a four-bit output `y`, the proposed binary target is:
+
+```text
+t(y) = y0 xor y1 xor y2 xor y3 = <1111, y>
+```
+
+This is a fixed nonzero linear output mask. It changes a four-bit exact-output
+prediction task into a binary parity-classification task. It must not be called
+an integral prediction unless the experiment additionally defines a structured
+input multiset `S` and XOR-sums the masked output across all `x in S`.
+
+The exact Kimura-style task variant was not found in the current literature
+search, but the methodological core has close prior art in neural linear
+cryptanalysis. Hou et al. train a network around plaintext/ciphertext XOR
+expressions and use the learned binary distributions for DES key recovery.
+Therefore, a fixed `1111` parity target is at most a task simplification or
+ablation by itself, not yet a defensible independent innovation claim.
+
+### Suggested Action
+
+Use `single-sample output parity prediction` or `linear output-mask prediction`
+in plans and reports. If the route is developed, compare all 15 nonzero nibble
+masks against LAT/Walsh or classical linear baselines, test unseen keys, and
+require a cryptanalytic use such as discovering new approximations or reducing
+key-recovery data before treating it as an innovation candidate.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: docs/research/innovation2-output-prediction-literature-index.md, papers/innovation_two/text/2021_kimura_output_prediction_block_ciphers.txt, papers/innovation_one/text/2020_hou_linear_attack_des_deep_learning.txt
+- Tags: innovation2, output-prediction, parity, linear-mask, integral, terminology
+- See Also: LRN-20260715-008
+- Pattern-Key: innovation2.single_sample_output_parity_not_integral
+- Recurrence-Count: 1
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-15
+
+---
+
 ## [LRN-20260715-007] experiment_result
 
 **Logged**: 2026-07-15T21:00:00+08:00
