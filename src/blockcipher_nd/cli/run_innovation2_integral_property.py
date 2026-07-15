@@ -11,6 +11,10 @@ from blockcipher_nd.evaluation.plots import (
     plot_jsonl_training_curves,
     write_history_csv,
 )
+from blockcipher_nd.tasks.innovation2.integral_property_calibration import (
+    IntegralCalibrationConfig,
+    run_integral_calibration_experiment,
+)
 from blockcipher_nd.tasks.innovation2.integral_property_prediction import (
     IntegralExperimentConfig,
     run_integral_property_experiment,
@@ -29,9 +33,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--train-structures", type=int, required=True)
     parser.add_argument("--validation-structures", type=int, required=True)
     parser.add_argument("--test-structures", type=int, required=True)
+    parser.add_argument("--calibration-structures", type=int)
     parser.add_argument("--train-keys", type=int, required=True)
     parser.add_argument("--validation-keys", type=int, required=True)
     parser.add_argument("--test-keys", type=int, required=True)
+    parser.add_argument("--calibration-keys", type=int)
+    parser.add_argument("--stability-test-keys", type=int)
     parser.add_argument("--epochs", type=int, required=True)
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -42,7 +49,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="cpu")
     parser.add_argument(
         "--gate-mode",
-        choices=("smoke", "diagnostic"),
+        choices=("smoke", "diagnostic", "calibration-smoke", "calibration"),
         default="diagnostic",
     )
     return parser.parse_args(argv)
@@ -64,29 +71,73 @@ def main(argv: list[str] | None = None) -> int:
         with progress_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
-    config = IntegralExperimentConfig(
-        run_id=args.run_id,
-        train_structures=args.train_structures,
-        validation_structures=args.validation_structures,
-        test_structures=args.test_structures,
-        train_keys=args.train_keys,
-        validation_keys=args.validation_keys,
-        test_keys=args.test_keys,
-        epochs=args.epochs,
-        seed=args.seed,
-        rounds=args.rounds,
-        batch_size=args.batch_size,
-        hidden_bits=args.hidden_bits,
-        learning_rate=args.learning_rate,
-        weight_decay=args.weight_decay,
-        device=args.device,
-        gate_mode=args.gate_mode,
-    )
+    calibration_mode = args.gate_mode.startswith("calibration")
+    if calibration_mode:
+        missing = [
+            name
+            for name in (
+                "calibration_structures",
+                "calibration_keys",
+                "stability_test_keys",
+            )
+            if getattr(args, name) is None
+        ]
+        if missing:
+            raise ValueError(
+                "calibration modes require "
+                + ", ".join(f"--{name.replace('_', '-')}" for name in missing)
+            )
+        config = IntegralCalibrationConfig(
+            run_id=args.run_id,
+            train_structures=args.train_structures,
+            validation_structures=args.validation_structures,
+            calibration_structures=args.calibration_structures,
+            test_structures=args.test_structures,
+            train_keys=args.train_keys,
+            validation_keys=args.validation_keys,
+            calibration_keys=args.calibration_keys,
+            test_keys=args.test_keys,
+            stability_test_keys=args.stability_test_keys,
+            epochs=args.epochs,
+            seed=args.seed,
+            rounds=args.rounds,
+            batch_size=args.batch_size,
+            hidden_bits=args.hidden_bits,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            device=args.device,
+            gate_mode=args.gate_mode,
+        )
+    else:
+        config = IntegralExperimentConfig(
+            run_id=args.run_id,
+            train_structures=args.train_structures,
+            validation_structures=args.validation_structures,
+            test_structures=args.test_structures,
+            train_keys=args.train_keys,
+            validation_keys=args.validation_keys,
+            test_keys=args.test_keys,
+            epochs=args.epochs,
+            seed=args.seed,
+            rounds=args.rounds,
+            batch_size=args.batch_size,
+            hidden_bits=args.hidden_bits,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            device=args.device,
+            gate_mode=args.gate_mode,
+        )
     progress_callback("run_start", {"run_id": args.run_id, "gate_mode": args.gate_mode})
-    result = run_integral_property_experiment(
-        config,
-        progress_callback=progress_callback,
-    )
+    if calibration_mode:
+        result = run_integral_calibration_experiment(
+            config,
+            progress_callback=progress_callback,
+        )
+    else:
+        result = run_integral_property_experiment(
+            config,
+            progress_callback=progress_callback,
+        )
     results_path = output_root / "results.jsonl"
     results_path.write_text(
         "".join(
@@ -101,13 +152,15 @@ def main(argv: list[str] | None = None) -> int:
         output_root / "structure_rates.csv",
         result["structure_rate_rows"],
     )
+    if calibration_mode:
+        _write_csv_rows(
+            output_root / "observation_predictions.csv",
+            result["observation_prediction_rows"],
+        )
     plot_jsonl_training_curves(
         results_path,
         output_root / "curves.svg",
-        title=(
-            "创新2：PRESENT 5轮结构条件积分平衡概率预测"
-            f"（{args.gate_mode}，seed {args.seed}）"
-        ),
+        title=_plot_title(args.gate_mode, args.seed),
     )
     write_history_csv(results_path, output_root / "history.csv")
     progress_callback(
@@ -139,12 +192,28 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _write_structure_rates(path: Path, rows: list[dict[str, Any]]) -> None:
+    _write_csv_rows(path, rows)
+
+
+def _write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
-        raise ValueError("structure rate output requires at least one row")
+        raise ValueError(f"CSV output requires at least one row: {path}")
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _plot_title(gate_mode: str, seed: int) -> str:
+    if gate_mode.startswith("calibration"):
+        return (
+            "创新2 E1：PRESENT 5轮积分平衡概率独立校准与标签稳定性"
+            f"（{gate_mode}，seed {seed}）"
+        )
+    return (
+        "创新2：PRESENT 5轮结构条件积分平衡概率预测"
+        f"（{gate_mode}，seed {seed}）"
+    )
 
 
 if __name__ == "__main__":

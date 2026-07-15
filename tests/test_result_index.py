@@ -278,3 +278,31 @@ def test_result_index_supports_innovation2_integral_property_chinese_labels(
     assert entries[0]["decision_display"] == (
         "结构排序有信号但概率误差未过门，校准后再扩展"
     )
+
+
+def test_result_index_supports_innovation2_calibration_chinese_labels(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_integral_parity_calibration_seed0"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_integral_calibration_insufficient",
+        },
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2 E1：PRESENT 5轮积分平衡概率校准与标签稳定性诊断"
+    )
+    assert entries[0]["decision_display"] == (
+        "标签稳定但校准仍不足，下一步仅加入 P-layer 可达性特征"
+    )

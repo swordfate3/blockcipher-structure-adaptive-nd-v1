@@ -48,6 +48,24 @@ DECISION_LABELS = {
     "innovation2_integral_property_redesign_before_scale": (
         "结构排序有信号但概率误差未过门，校准后再扩展"
     ),
+    "innovation2_integral_calibration_implementation_ready": (
+        "创新2 E1 校准与标签稳定性实现就绪，可进入本地诊断"
+    ),
+    "innovation2_integral_calibration_smoke_invalid": (
+        "创新2 E1 Smoke 无效，先修校准协议"
+    ),
+    "innovation2_integral_calibration_invalid_control": (
+        "创新2 E1 控制无效，审计拆分与校准"
+    ),
+    "innovation2_integral_calibration_advance_seed1_geometry": (
+        "校准概率门控通过，进入 seed1 与几何组合留出"
+    ),
+    "innovation2_integral_rate_target_unstable": (
+        "32-key 概率标签不稳定，改用区间或排序目标"
+    ),
+    "innovation2_integral_calibration_insufficient": (
+        "标签稳定但校准仍不足，下一步仅加入 P-layer 可达性特征"
+    ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
     ),
@@ -290,6 +308,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E0：PRESENT 5轮结构条件积分平衡概率预测 Smoke"
     if run_id == "i2_present_r5_structure_integral_parity_feasibility_seed0":
         return "创新2 E0：PRESENT 5轮结构条件积分平衡概率可行性诊断"
+    if run_id == "i2_present_r5_integral_parity_calibration_smoke_seed0":
+        return "创新2 E1：PRESENT 5轮积分平衡概率独立校准 Smoke"
+    if run_id == "i2_present_r5_integral_parity_calibration_seed0":
+        return "创新2 E1：PRESENT 5轮积分平衡概率校准与标签稳定性诊断"
     if run_id == "i1_cross_spn_e4_final_synthesis_20260715":
         return "创新1 E4：跨 SPN 类型拓扑四个目标 cell 最终证据综合"
     if run_id == "i1_gift64_cross_spn_source_seed_r5_65536_joint_seed4_seed5":

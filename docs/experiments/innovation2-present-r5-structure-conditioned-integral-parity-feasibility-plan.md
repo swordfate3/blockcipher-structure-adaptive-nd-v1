@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** Smoke 通过 / 本地诊断完成 / held，校准后再扩展
+**状态：** E0/E1 本地诊断完成 / held，转不确定性感知排序审判
 
 **Run ID：** `i2_present_r5_structure_integral_parity_feasibility_seed0`
 
@@ -275,3 +275,146 @@ outputs/local_diagnostic/i2_present_r5_structure_integral_parity_feasibility_see
 
 本结果的声明范围仅为 PRESENT r5 本地结构条件、密钥省略的积分 parity
 概率诊断；不是确定性积分证明，不是正式输出预测结果，也不是论文规模。
+
+## E1 冻结执行矩阵（2026-07-16）
+
+E1 使用独立 Run ID，不覆盖 E0 产物：
+
+```text
+readiness run_id  = i2_present_r5_integral_parity_calibration_smoke_seed0
+diagnostic run_id = i2_present_r5_integral_parity_calibration_seed0
+```
+
+正式本地诊断冻结为：
+
+| Split | 结构数 | 每结构密钥数 | 用途 |
+|---|---:|---:|---|
+| train | 512 | 16 | 与 E0 相同的模型拟合 |
+| validation | 128 | 32 | 只选 checkpoint |
+| calibration | 128 | 32 | 只拟合单调 affine logit 的斜率和偏置 |
+| test | 128 | 32 | 与 E0 相同的独立测试观测与 AUC |
+| stability | 与 test 相同 128 个 | 256 把全新密钥 | 只重估结构真实 `q=1` 概率 |
+
+三模型仍为 `linear_same_input`、`structure_mlp` 和
+`structure_mlp_shuffled_labels`；训练规模、20 epochs、batch 256、Adam、
+学习率和权重衰减全部与 E0 相同。校准映射为：
+
+```text
+z_cal = a * logit(p_raw) + b, a > 0
+p_cal = sigmoid(z_cal)
+```
+
+`a>0` 保证校准不改变排序，因此不能靠后处理制造 AUC 提升。validation、
+calibration、test 和 stability 的 observation logits/概率写入独立 CSV；
+32-key 与 256-key 结构率及各模型 raw/calibrated 预测写入结构率 CSV。
+
+Readiness smoke 只检查 split 所有权、密钥互斥、test/stability 结构一致、
+有限校准参数和产物完整，不作性能结论。通过后直接运行本地 E1：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/run-innovation2-integral-property \
+  --run-id i2_present_r5_integral_parity_calibration_seed0 \
+  --train-structures 512 --validation-structures 128 --test-structures 128 \
+  --train-keys 16 --validation-keys 32 --test-keys 32 \
+  --calibration-structures 128 --calibration-keys 32 \
+  --stability-test-keys 256 \
+  --epochs 20 --seed 0 --device cpu --gate-mode calibration \
+  --output-root outputs/local_diagnostic/i2_present_r5_integral_parity_calibration_seed0
+```
+
+E1 advance gate 保持此前预注册数值，并明确全部在 256-key 稳定率上评价：
+
+```text
+calibrated MLP 256-key structure-rate MAE       <= 0.09
+calibrated linear MAE - calibrated MLP MAE      >= +0.015
+raw MLP test AUC - raw linear test AUC          >= +0.02
+32-key vs 256-key observed structure-rate MAE    <= 0.05
+```
+
+全过才进入 seed1 与几何组合留出。若标签稳定但校准后 MLP 仍不过门，
+下一步只增加 PRESENT P-layer reachability 特征并保持本矩阵；若标签不
+稳定，则停止点概率回归，改为区间或排序目标。不得直接增加训练结构、
+epochs、seed 或远程 GPU。
+
+## E1 完成结果
+
+Readiness smoke 与冻结的本地 E1 均已完成：
+
+```text
+readiness = i2_present_r5_integral_parity_calibration_smoke_seed0
+diagnostic = i2_present_r5_integral_parity_calibration_seed0
+train / validation / calibration / test rows = 8192 / 4096 / 4096 / 4096
+stability rows = 128 structures x 256 fresh keys = 32768
+epochs / seed / device = 20 / 0 / cpu
+```
+
+数据所有权检查全部通过：train、validation、calibration、test 的结构
+互斥，五组密钥互斥，stability 精确复用 test 的 128 个结构但使用 256
+把全新密钥。三模型的校准斜率均为正且指标有限。
+
+| 模型 | Test AUC | 校准前 256-key MAE | 校准后 256-key MAE | 校准 slope |
+|---|---:|---:|---:|---:|
+| linear | `0.620888903` | `0.108694189` | `0.111128089` | `1.242609116` |
+| MLP | `0.655288384` | `0.102821873` | `0.095799242` | `0.662279627` |
+| shuffled MLP | `0.548262066` | `0.136237099` | `0.139737508` | `0.447884718` |
+
+冻结门控：
+
+```text
+MLP calibrated 256-key MAE <= 0.09             MISS  0.095799242
+linear MAE - MLP MAE >= +0.015                 PASS +0.015328847
+MLP AUC - linear AUC >= +0.02                  PASS +0.034399481
+32-key vs 256-key observed-rate MAE <= 0.05    MISS  0.059875488
+shuffled AUC within 0.45--0.55                 PASS  0.548262066
+
+status   = hold
+decision = innovation2_integral_rate_target_unstable
+```
+
+校准确实将 MLP 的 calibration log loss 从 `0.513216589` 降到
+`0.506776186`，并将其 256-key MAE 从 `0.102821873` 降到
+`0.095799242`；同时它仍明显优于线性和打乱标签控制。因此 E1 没有否定
+结构信号，而是否定了“用 32-key 观测率作为精确点目标后直接扩规模”这
+条路径。不得把本结果写成确定性积分发现或正式输出预测结果。
+
+完成产物：
+
+```text
+outputs/local_smoke/i2_present_r5_integral_parity_calibration_smoke_seed0/
+outputs/local_diagnostic/i2_present_r5_integral_parity_calibration_seed0/
+```
+
+其中本地诊断保存 3 行模型 JSONL、128 行结构率 CSV、135168 行
+validation/calibration/test/stability observation 预测 CSV、训练曲线、历史、
+进度、数据摘要和门控。
+
+## 推荐下一步 E2：不确定性感知排序效用审判
+
+E1 的正向证据是排序 AUC 和相对线性 MAE 优势，负向证据是点概率绝对
+误差与 32-key 标签稳定性。因此 E2 不重训、不增加数据，先复用 E1 的
+独立 256-key stability 标签判断网络能否用于“优先筛出更可能平衡的积分
+结构”。
+
+```text
+research question = MLP 能否比线性/打乱控制更好地排序高平衡概率结构？
+same-budget anchor = calibrated linear_same_input
+required control = calibrated shuffled-label MLP + global test prior
+one changed variable = 裁决目标从点概率 MAE 改为稳定率排序/候选筛选效用
+data = 复用 E1 的 128 个 test 结构与 256-key stability 率
+training = 无；不得重新选 checkpoint 或调超参数
+execution = 本地只读后处理
+```
+
+预先冻结 E2 主门：
+
+```text
+MLP Spearman(stable q1 rate) - linear Spearman        >= +0.05
+MLP lowest-q1 top16 observed balance - global mean    >= +0.05
+MLP lowest-q1 top16 observed balance - linear top16   >= +0.03
+shuffled top16 advantage vs global                     <= +0.02
+```
+
+四门全过才设计新的 seed1/几何组合留出确认；若只相关性过门但 top16 不
+过门，路线只保留为解释性统计结果；若连相关性优势也不过门，停止当前
+111-bit 表示，再单变量加入 P-layer reachability 特征。E2 不得把现有
+test 结果包装为独立复验，也不得启动远程 GPU。

@@ -7,6 +7,12 @@ import numpy as np
 
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.run_innovation2_integral_property import main
+from blockcipher_nd.tasks.innovation2.integral_property_calibration import (
+    IntegralCalibrationConfig,
+    adjudicate_calibration,
+    binary_log_loss,
+    fit_monotone_affine_logit_calibration,
+)
 from blockcipher_nd.tasks.innovation2.integral_property_prediction import (
     INPUT_BITS,
     IntegralExperimentConfig,
@@ -180,3 +186,151 @@ def test_cli_writes_complete_smoke_artifacts(tmp_path: Path) -> None:
     assert "同输入线性基线" in svg
     assert "训练标签打乱 MLP 控制" in svg
     assert "训练 0/类" not in svg
+
+
+def test_monotone_logit_calibration_preserves_order_and_improves_fit() -> None:
+    probabilities = np.repeat(np.array([0.10, 0.30, 0.60, 0.80]), 4)
+    labels = np.array(
+        [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+        dtype=np.uint8,
+    )
+
+    calibration = fit_monotone_affine_logit_calibration(probabilities, labels)
+    calibrated = calibration.transform(probabilities)
+
+    assert calibration.slope > 0.0
+    assert np.all(np.diff(calibrated.reshape(4, 4)[:, 0]) > 0.0)
+    assert binary_log_loss(labels, calibrated) < binary_log_loss(
+        labels, probabilities
+    )
+
+
+def test_calibration_gate_requires_probability_and_stability_margins() -> None:
+    config = IntegralCalibrationConfig(
+        run_id="calibration-gate",
+        train_structures=1,
+        validation_structures=1,
+        calibration_structures=1,
+        test_structures=1,
+        train_keys=1,
+        validation_keys=1,
+        calibration_keys=1,
+        test_keys=1,
+        stability_test_keys=1,
+        epochs=1,
+    )
+    rows = [
+        {
+            "role": "anchor",
+            "test_auc": 0.61,
+            "calibration_slope": 1.0,
+            "calibration_intercept": 0.0,
+            "stability_calibrated_structure_rate_mae_256key": 0.105,
+            "observed_rate_32_256_mae": 0.04,
+        },
+        {
+            "role": "candidate",
+            "test_auc": 0.66,
+            "calibration_slope": 1.0,
+            "calibration_intercept": 0.0,
+            "stability_calibrated_structure_rate_mae_256key": 0.085,
+            "observed_rate_32_256_mae": 0.04,
+        },
+        {
+            "role": "control",
+            "test_auc": 0.51,
+            "calibration_slope": 1.0,
+            "calibration_intercept": 0.0,
+            "stability_calibrated_structure_rate_mae_256key": 0.20,
+            "observed_rate_32_256_mae": 0.04,
+        },
+    ]
+    summary = {
+        "structure_splits_disjoint": True,
+        "key_splits_disjoint": True,
+        "stability_structures_match_test": True,
+        "splits": {
+            name: {"q0_rows": 1, "q1_rows": 1}
+            for name in (
+                "train",
+                "validation",
+                "calibration",
+                "test",
+                "stability",
+            )
+        },
+    }
+
+    gate = adjudicate_calibration(config, rows, summary)
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation2_integral_calibration_advance_seed1_geometry"
+    )
+
+
+def test_cli_writes_complete_calibration_smoke_artifacts(tmp_path: Path) -> None:
+    output = tmp_path / "calibration-smoke"
+    status = main(
+        [
+            "--run-id",
+            "i2_test_calibration_smoke",
+            "--output-root",
+            str(output),
+            "--train-structures",
+            "32",
+            "--validation-structures",
+            "16",
+            "--calibration-structures",
+            "16",
+            "--test-structures",
+            "16",
+            "--train-keys",
+            "4",
+            "--validation-keys",
+            "8",
+            "--calibration-keys",
+            "8",
+            "--test-keys",
+            "8",
+            "--stability-test-keys",
+            "16",
+            "--epochs",
+            "1",
+            "--batch-size",
+            "64",
+            "--hidden-bits",
+            "16",
+            "--seed",
+            "0",
+            "--device",
+            "cpu",
+            "--gate-mode",
+            "calibration-smoke",
+        ]
+    )
+
+    assert status == 0
+    assert (output / "results.jsonl").is_file()
+    assert (output / "progress.jsonl").is_file()
+    assert (output / "dataset_summary.json").is_file()
+    assert (output / "structure_rates.csv").is_file()
+    assert (output / "observation_predictions.csv").is_file()
+    assert (output / "gate.json").is_file()
+    assert (output / "curves.svg").is_file()
+    assert (output / "history.csv").is_file()
+    gate = json.loads((output / "gate.json").read_text(encoding="utf-8"))
+    summary = json.loads(
+        (output / "dataset_summary.json").read_text(encoding="utf-8")
+    )
+    prediction_lines = (output / "observation_predictions.csv").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation2_integral_calibration_implementation_ready"
+    )
+    assert summary["structure_splits_disjoint"] is True
+    assert summary["key_splits_disjoint"] is True
+    assert summary["stability_structures_match_test"] is True
+    assert len(prediction_lines) == 1 + 3 * (16 * (8 + 8 + 8 + 16))

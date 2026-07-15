@@ -166,6 +166,29 @@ def build_integral_split(
         prefix=name,
     )
     keys = make_keys(count=key_count, seed=key_seed)
+    return build_integral_split_from_structures(
+        name=name,
+        rounds=rounds,
+        structures=structures,
+        keys=keys,
+        progress_callback=progress_callback,
+    )
+
+
+def build_integral_split_from_structures(
+    *,
+    name: str,
+    rounds: int,
+    structures: tuple[IntegralStructure, ...],
+    keys: tuple[int, ...],
+    progress_callback: ProgressCallback | None = None,
+) -> IntegralParitySplit:
+    structure_count = len(structures)
+    key_count = len(keys)
+    if structure_count <= 0:
+        raise ValueError("structures must not be empty")
+    if key_count <= 0:
+        raise ValueError("keys must not be empty")
     rows = structure_count * key_count
     features = np.empty((rows, INPUT_BITS), dtype=np.uint8)
     labels = np.empty(rows, dtype=np.uint8)

@@ -3138,6 +3138,87 @@ verified bibliographic fact from the inferred route implication.
 
 ---
 
+## [LRN-20260716-001] correction
+
+**Logged**: 2026-07-16T00:00:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+After a context handoff, re-anchor on the latest substantive user request before resuming a stale experiment plan.
+
+### Details
+The active conversation had moved from Feistel/SM4 Innovation 1 work to
+Innovation 2 structure-conditioned integral output-property prediction. A
+handoff summary incorrectly promoted the stale Feistel implementation audit to
+the active goal, and the agent initially announced more SM4 work. The correct
+current task was already represented by committed E0 Innovation 2 artifacts
+and a preregistered E1 calibration/noise experiment.
+
+### Suggested Action
+After context compaction or a handoff, compare the summary's claimed goal with
+the latest substantive user request, recent commits, active experiment docs,
+and local result index. When they conflict, preserve stale dirty work but switch
+the active plan to the newest request before editing or launching experiments.
+
+### Metadata
+- Source: conversation
+- Related Files: task_plan.md, docs/experiments/innovation2-present-r5-structure-conditioned-integral-parity-feasibility-plan.md, outputs/00_RECENT_RESULTS.md
+- Tags: context-handoff, task-drift, innovation2, experiment-routing
+- See Also: LRN-20260621-002
+- Pattern-Key: workflow.context_handoff.latest_user_request_wins
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+---
+
+## [LRN-20260716-002] experiment_result
+
+**Logged**: 2026-07-16T01:05:45+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+Innovation 2 E1 preserved nonlinear structure ranking but rejected direct scale-up of the 32-key point-probability target.
+
+### Details
+The frozen PRESENT-r5 E1 reused the E0 train/validation/test protocol, added an
+independent 128x32 calibration split, and re-estimated the same 128 test
+structures under 256 fresh keys. Positive-slope affine logit calibration
+reduced the MLP's stable-rate MAE from `0.102821873` to `0.095799242`.
+
+The calibrated MLP beat calibrated linear by `0.015328847` MAE and retained
+its `+0.034399481` AUC advantage, while shuffled-label AUC remained `0.548262`.
+However, candidate MAE missed the preregistered `0.09` limit and the 32-key
+versus 256-key observed-rate MAE was `0.059875488`, above the `0.05` stability
+gate. The decision is `innovation2_integral_rate_target_unstable`.
+
+### Suggested Action
+Do not add structures, epochs, seeds, or remote GPU budget to the point-rate
+task. Reuse the stable 256-key evidence for a preregistered ranking/top-k
+candidate-selection audit against the same-input linear and shuffled controls.
+Advance to a new independent split only if that cryptanalytic utility passes.
+
+### Metadata
+- Source: verified local experiment
+- Related Files: docs/experiments/innovation2-present-r5-structure-conditioned-integral-parity-feasibility-plan.md, outputs/local_diagnostic/i2_present_r5_integral_parity_calibration_seed0/gate.json
+- Tags: innovation2, integral-property, calibration, label-noise, ranking
+- See Also: LRN-20260715-009
+- Pattern-Key: innovation2.integral_point_rate_unstable_ranking_signal_retained
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+### Resolution
+- **Resolved**: 2026-07-16T01:05:45+08:00
+- **Commit/PR**: pending
+- **Notes**: Local E1 readiness and diagnostic artifacts passed ownership and completeness gates; performance decision is held.
+
+---
+
 ## [LRN-20260707-001] best_practice
 
 **Logged**: 2026-07-07T07:05:00+08:00
