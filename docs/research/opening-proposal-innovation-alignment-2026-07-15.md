@@ -126,7 +126,7 @@ DES-r6 官方骨干归因，2048/class：
   结论 = 正确左右分支映射的归因跨 seed 成立，但绝对 AUC 未达到 0.55
 ```
 
-这组结果能写成“Feistel 分支语义在本地诊断中优于等容量乱序控制”，不能写成“已找到 Feistel 最优网络”，也不支持 DES-r6 远程扩样。下一项更干净的 Feistel 问题是在已知信号很强的 DES-r5 上做 `true / shuffled / official raw` 同预算归因，判断结构语义在可学习任务上是否还优于控制和主流布局。
+这组结果能写成“Feistel 分支语义在本地诊断中优于等容量乱序控制”，不能写成“已找到 Feistel 最优网络”，也不支持 DES-r6 远程扩样。后续 DES-r5 强信号归因进一步得到：正确八通道分支模型在两 seed 都优于等容量 shuffled，但 seed1 比官方四通道 raw 低 `0.01607` AUC。因此结构映射信号成立，额外 XOR 通道作为架构改进被拒绝。下一项更干净的问题是比较完全等容量的官方 raw 正确映射与 raw shuffled 映射，归因官方布局本身，而不是继续增加通道。
 
 ARX/SPECK 在仓库中已有较大规模结果和 Gohr-style 基线，但目前还没有被整理成与 SPN、Feistel 完全同口径的“架构偏好单元”。旧结果可以作为起点，不能直接和不同 pair 数、差分、轮数、样本量的 GIFT/DES AUC 拼成一张结论表。
 
@@ -147,7 +147,7 @@ Innovation 1 不是只看候选模型的绝对 AUC。每个结构至少需要同
 
 当前 GIFT 大规模实验完成并通过归档后，先根据它的同协议结果决定 Innovation 1 的 SPN 结论强度，再按下面的论文级路线推进：
 
-1. **完成创新点 1 的可比较证据。** 先等待 GIFT-64 双 seed 主流比较形成 SPN 性能结论；Feistel 下一步在 DES-r5 强信号任务做 `true / shuffled / official raw` 归因，不扩大 DES-r6；ARX 则审计并重组 SPECK 的同协议强基线。之后再把已通过的结构规则落到开题点名的 AES、SPECK、SM4。每一类至少记录 AUC/accuracy、参数量、训练时间、样本总量/每类量和跨 seed 稳定性。
+1. **完成创新点 1 的可比较证据。** 先等待 GIFT-64 双 seed 主流比较形成 SPN 性能结论；Feistel 下一步做 DES-r5 官方 raw 正确映射与等容量 raw shuffled 的最小归因，不扩大 DES-r6，也不调优已拒绝的额外 XOR 通道；ARX 则审计并重组 SPECK 的同协议强基线。之后再把已通过的结构规则落到开题点名的 AES、SPECK、SM4。每一类至少记录 AUC/accuracy、参数量、训练时间、样本总量/每类量和跨 seed 稳定性。
 2. **独立启动创新点 2。** 先做小规模、可验证的 `state_r -> state_(r+1)` 基准和确定性基线，测量逐轮预测精度何时回到随机水平；再扩展到不同结构。它不能用区分器 AUC 替代。
 3. **产品化创新点 3。** 将已验证的实验管线抽象为统一的任务和结果 schema，再增加模型/算法选择、任务提交、进度、曲线和报告界面。平台应消费前两项的真实结果，不应为了界面另造一套不可比的实验逻辑。
 
@@ -160,7 +160,8 @@ Innovation 1 不是只看候选模型的绝对 AUC。每个结构至少需要同
 E4--E6 已给出正确 topology 相对 shuffled controls 的归因证据；
 GIFT-64 的百万/类同协议主流网络比较正在运行；
 DES-r5 官方布局已完成强信号校准；
-DES-r6 正确 Feistel 分支映射跨 seed 优于 shuffled/raw，但绝对信号不足，未获准扩样。
+DES-r6 正确 Feistel 分支映射跨 seed 优于 shuffled/raw，但绝对信号不足，未获准扩样；
+DES-r5 正确八通道映射跨 seed 优于等容量 shuffled，但 seed1 落后官方 raw，额外 XOR 通道已拒绝。
 ```
 
 当前不可写：

@@ -62,6 +62,52 @@ claim exact paper reproduction.
   DOI `10.1038/s41598-025-98251-1`. This is the strongest recent prompt to add
   SIMON after DES, not to conflate SIMON's AND-RX behavior with balanced DES.
 
+## Conditional SM4 Generalization Audit
+
+Yu, Wu, and Zhang, *Analysis of SM4 Algorithm Based on Convolutional Residual
+Network* (2023), is the closest project-held neural anchor for the opening
+proposal's named SM4 target. Its reported protocol is:
+
+```text
+input difference = (0x00000000, 0x00000000, 0x00000000, 0x00000001)
+input row         = one 256-bit ciphertext pair
+positive          = fixed-difference plaintext pair encrypted under one key
+negative          = independent second random plaintext encrypted under that key
+train             = 1,000,000 total rows
+test              = 100,000 total rows
+epochs            = 25
+optimizer         = Adam, learning rate 1e-4
+loss              = MSE
+batch size        = 5000
+```
+
+The paper describes a 32-channel convolutional residual tower, dropout `0.5`,
+and two 64-unit fully connected layers. Table 1 reports validation accuracy
+`0.999` at SM4 rounds 3--5, then `0.504`, `0.502`, and `0.496` at rounds 6--8.
+These are accuracy results under the paper protocol, not directly comparable
+to project AUC values.
+
+The repository already has a reduced-round SM4 implementation and the fixed
+profile `sm4_yu2023_conv_resnet`. Its strict
+`encrypted_random_plaintexts` negative class matches the semantic paper
+negative more closely than random ciphertext. The existing
+`multiscale_dense_resnet` is only a literature-family baseline; it is not an
+exact port of the paper's unspecified figure-level convolution details.
+
+SM4 must not reuse the DES two-branch mapping. Its round recurrence is:
+
+```text
+X[i+4] = X[i] xor T(X[i+1] xor X[i+2] xor X[i+3] xor rk[i])
+```
+
+so a structure-attribution candidate needs four ordered 32-bit word roles,
+the three-word round-function input relation, the feedback word, and an
+equal-capacity shuffled-word/bit control. If the DES-r5 strong-signal gate
+passes, freeze a separate SM4-r5 readiness and attribution plan around this
+recurrence plus the Yu/Wu/Zhang-family baseline. Do not launch SM4 merely from
+a DES topology margin, and do not claim generalized-Feistel transfer until the
+SM4 candidate beats its controls under a same-budget protocol.
+
 OpenAlex and arXiv metadata were checked on 2026-07-15. The search found the
 published 2023 Zhang/Wang version and later SIMON/SIMECK or differential-linear
 work, but no newer same-task DES multiple-pair neural architecture benchmark
