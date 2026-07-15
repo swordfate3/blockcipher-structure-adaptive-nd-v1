@@ -69,19 +69,29 @@ while true; do
     seed7_ready=true
   fi
 
-  if [[ "${seed6_ready}" != true ]] && compgen -G "${MONITOR_ROOT}/${SEED6_ID}/logs/*failed.marker" > /dev/null; then
-    echo "$(timestamp) seed6_failed" >> "${MONITOR_ROOT}/monitor.log"
-    exit 1
-  fi
-  if [[ "${seed7_ready}" != true ]] && compgen -G "${MONITOR_ROOT}/${SEED7_ID}/logs/*failed.marker" > /dev/null; then
-    echo "$(timestamp) seed7_failed" >> "${MONITOR_ROOT}/monitor.log"
-    exit 1
-  fi
+  for run_id in "${SEED6_ID}" "${SEED7_ID}"; do
+    recovery_started=false
+    if compgen -G "${MONITOR_ROOT}/${run_id}/logs/*recovery_started.marker" > /dev/null; then
+      recovery_started=true
+    fi
+    if [[ "${recovery_started}" == true ]] && compgen -G "${MONITOR_ROOT}/${run_id}/logs/*recovery_failed.marker" > /dev/null; then
+      echo "$(timestamp) ${run_id}_recovery_failed" >> "${MONITOR_ROOT}/monitor.log"
+      exit 1
+    fi
+    if [[ "${recovery_started}" != true ]] && compgen -G "${MONITOR_ROOT}/${run_id}/logs/*failed.marker" > /dev/null; then
+      echo "$(timestamp) ${run_id}_failed" >> "${MONITOR_ROOT}/monitor.log"
+      exit 1
+    fi
+  done
 
   if [[ "${seed6_ready}" == true && "${seed7_ready}" == true ]]; then
     mkdir -p "${MONITOR_ROOT}/${JOINT_ID}"
     scp -r "${REMOTE}:${RUNS_ROOT}/${JOINT_ID}" "${MONITOR_ROOT}/${JOINT_ID}/" \
       >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
+    if find "${MONITOR_ROOT}/${JOINT_ID}" -name '*recovery_failed.marker' -print -quit | grep -q .; then
+      echo "$(timestamp) joint_recovery_failed" >> "${MONITOR_ROOT}/monitor.log"
+      exit 1
+    fi
     if find "${MONITOR_ROOT}/${JOINT_ID}" -name result_branch_pushed.marker -print -quit | grep -q .; then
       retrieve_seed "${SEED6_ID}" || exit 2
       retrieve_seed "${SEED7_ID}" || exit 2

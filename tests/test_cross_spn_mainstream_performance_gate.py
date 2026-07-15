@@ -131,6 +131,14 @@ def test_large_scale_remote_assets_pass_readiness_and_path_policy() -> None:
     monitor_script = Path(
         "configs/remote/generated/monitor_i1_gift64_mainstream_performance_1m_20260715.sh"
     ).read_text(encoding="utf-8")
+    recovery_script = Path(
+        "configs/remote/generated/"
+        "recover_i1_gift64_mainstream_performance_1m_20260715.cmd"
+    ).read_text(encoding="utf-8")
+    recovery_launcher = Path(
+        "configs/remote/generated/"
+        "launch_recover_i1_gift64_mainstream_performance_1m_20260715.cmd"
+    ).read_text(encoding="utf-8")
 
     assert run_script.count("call :export_score") == 5
     assert "--split final_test_1" in run_script
@@ -141,3 +149,24 @@ def test_large_scale_remote_assets_pass_readiness_and_path_policy() -> None:
     assert "cmd.exe /k" not in launch_script
     assert "G:/lxy/blockcipher-structure-adaptive-nd-runs" in monitor_script
     assert "scripts/index-results" in monitor_script
+    assert "recovery_started.marker" in monitor_script
+    assert "recovery_failed.marker" in monitor_script
+    assert "gate-cross-spn-mainstream-performance" in recovery_script
+    assert "gate-cross-spn-mainstream-performance-joint" in recovery_script
+    assert "recovery_commit.txt" in recovery_script
+    assert "primary_scores.npz" in recovery_script
+    assert "scripts\\train" not in recovery_script
+    assert "cmd.exe /k" not in recovery_script
+    assert "cmd.exe /c" in recovery_launcher
+    assert "cmd.exe /k" not in recovery_launcher
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in recovery_launcher
+
+
+def test_mainstream_gate_entrypoints_bootstrap_the_source_tree() -> None:
+    for path in (
+        Path("scripts/gate-cross-spn-mainstream-performance"),
+        Path("scripts/gate-cross-spn-mainstream-performance-joint"),
+    ):
+        text = path.read_text(encoding="utf-8")
+        assert 'Path(__file__).resolve().parents[1] / "src"' in text
+        assert "sys.path.insert(0," in text
