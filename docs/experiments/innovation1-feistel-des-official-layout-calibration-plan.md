@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** readiness passed; 2048/class calibration ready to launch
+**Status:** 2048/class calibration completed and passed
 
 ## Why This Calibration Exists
 
@@ -125,3 +125,47 @@ the two-seed `2048/class` calibration using a unique tmux session and a fresh
 output directory. Generate JSONL, progress, validation, SVG, history CSV,
 calibration gate, and the numbered recent-result index. Use the gate decision,
 not a single validation epoch, to decide whether DES-r6 attribution reopens.
+
+## Completed Calibration Result
+
+The two-seed calibration completed on 2026-07-15 with all plan-alignment,
+history, per-pair-key, capacity, and fresh-test checks passing.
+
+```text
+result index = outputs/00_RECENT_RESULTS.md entry 001
+results      = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/results.jsonl
+progress     = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/progress.jsonl
+validation   = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/validation.json
+curves       = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/curves.svg
+history      = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/history.csv
+gate         = outputs/local_diagnostic/i1_feistel_des_r5_official_layout_2048_seed0_seed1/gate.json
+```
+
+| seed | validation AUC | mean fresh AUC | mean fresh accuracy | best epoch |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.967437744 | 0.968407075 | 0.905110677 | 6 |
+| 1 | 0.952584267 | 0.964183966 | 0.909342448 | 10 |
+
+Fresh-test AUC repeats:
+
+```text
+seed0 = 0.969305038, 0.969848871, 0.966067314
+seed1 = 0.964449406, 0.962664843, 0.965437651
+```
+
+The gate returned:
+
+```text
+status                     = pass
+decision                   = feistel_des5_official_calibration_passed
+calibration_signal_present = true
+next_action                = run_des6_official_backbone_attribution_2048
+research_decision_applied  = true
+errors                     = []
+```
+
+This calibration proves that the official-layout mechanism, DES adapter,
+strict-negative generator, and local training path can learn a strong reduced
+DES signal at `2048/class`. It does not establish DES-r6 accuracy or Feistel
+topology attribution. It rejects the planned `8192/class` DES-r5 rescue and
+reopens only the same-budget DES-r6 official-backbone attribution test.

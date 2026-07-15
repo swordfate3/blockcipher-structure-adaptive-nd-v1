@@ -14,6 +14,7 @@ from blockcipher_nd.models.structure.feistel import (
 )
 from blockcipher_nd.planning.feistel_des_gate import feistel_des_decision
 from blockcipher_nd.planning.feistel_des_gate import (
+    gate_feistel_des_official_attribution,
     gate_feistel_des_official_calibration,
 )
 from blockcipher_nd.planning.feistel_des_gate import gate_feistel_des_results
@@ -371,3 +372,110 @@ def test_official_calibration_gate_requires_both_des5_seeds(tmp_path: Path) -> N
     )
     assert failed["status"] == "pass"
     assert failed["decision"] == "feistel_des5_official_calibration_inconclusive"
+
+
+def test_official_attribution_gate_requires_true_mapping_on_both_seeds(
+    tmp_path: Path,
+) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_des_r6_official_backbone_attribution_2048_seed0_seed1.csv"
+    role_scores = {
+        0: {
+            "des_feistel_official_backbone_true": 0.62,
+            "des_feistel_official_backbone_shuffled": 0.61,
+            "des_zhang_wang_official_layout": 0.621,
+        },
+        1: {
+            "des_feistel_official_backbone_true": 0.61,
+            "des_feistel_official_backbone_shuffled": 0.60,
+            "des_zhang_wang_official_layout": 0.611,
+        },
+    }
+    rows = []
+    for seed, scores in role_scores.items():
+        for model, auc in scores.items():
+            rows.append(
+                {
+                    "cipher": "DES",
+                    "cipher_key": "des",
+                    "structure": "Feistel-like",
+                    "model": model,
+                    "rounds": 6,
+                    "seed": seed,
+                    "samples_per_class": 2048,
+                    "pairs_per_sample": 16,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "sample_structure": "zhang_wang_case2_official_mcnd",
+                    "key_rotation_interval": 0,
+                    "integral_active_nibble": 0,
+                    "integral_active_nibbles": [],
+                    "validation_integral_active_nibbles": [],
+                    "selected_bit_indices": [],
+                    "difference_profile": "des_zhang_wang2022_mcnd",
+                    "difference_member": 0,
+                    "final_test_repeats": 3,
+                    "history": [{} for _ in range(10)],
+                    "training": {
+                        "key_schedule": "per_pair_random",
+                        "loss": "mse",
+                        "learning_rate": 0.0001,
+                        "optimizer": "adam",
+                        "weight_decay": 0.0008,
+                        "checkpoint_metric": "val_loss",
+                        "restore_best_checkpoint": True,
+                        "early_stopping_patience": 0,
+                        "early_stopping_min_delta": 0.0,
+                        "selected_bit_indices": [],
+                        "model_options": {
+                            "blocks": 5,
+                            "initial_kernel_sizes": [1, 4, 6],
+                        },
+                        "pretraining": {"epochs_ran": 0, "round_sequence": []},
+                    },
+                    "validation": {"key_schedule": "per_pair_random"},
+                    "final_evaluation": {
+                        "auc_mean": auc,
+                        "repeats": 3,
+                        "metrics_by_repeat": [{}, {}, {}],
+                    },
+                    "parameter_count": (
+                        649793
+                        if model == "des_zhang_wang_official_layout"
+                        else 651201
+                    ),
+                    "trainable_parameter_count": (
+                        649793
+                        if model == "des_zhang_wang_official_layout"
+                        else 651201
+                    ),
+                }
+            )
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    passed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+    )
+    assert passed["status"] == "pass", passed["errors"]
+    assert passed["decision"] == "feistel_des6_official_branch_attribution_passed"
+
+    rows[3]["final_evaluation"]["auc_mean"] = 0.60
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    failed = gate_feistel_des_official_attribution(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0, 1),
+        expected_epochs=10,
+        expected_final_repeats=3,
+    )
+    assert failed["status"] == "pass"
+    assert failed["decision"] == "feistel_des6_signal_without_topology_attribution"
