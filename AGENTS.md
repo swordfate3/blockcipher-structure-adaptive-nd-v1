@@ -50,6 +50,7 @@
 
 - Before answering what the project currently uses or how a feature is implemented, inspect the relevant source, config, dependency files, logs, or artifacts first. Do not answer from expectation or memory for dependencies, plotting/rendering libraries, training protocols, remote scripts, artifact paths, experiment status, checkpoint selection, or metrics.
 - If a current-state answer has not been verified in files or command output, either check it before reporting or explicitly label it as an assumption. When a prior statement is wrong, correct it plainly and distinguish the old false claim from the newly verified state.
+- Before downloading or citing a paper, open the actual arXiv/ePrint/publisher landing page and verify that the identifier, title, authors, year, and topic agree. Treat copied bibliographies and remembered identifiers as unverified; record and correct mismatches before they influence route ranking or reproduction plans.
 
 ## Documentation Organization
 

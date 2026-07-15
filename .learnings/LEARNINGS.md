@@ -3039,7 +3039,7 @@ key split audit.
 
 **Logged**: 2026-07-08T12:00:00+08:00
 **Priority**: high
-**Status**: pending
+**Status**: promoted
 **Area**: research
 
 ### Summary
@@ -3058,6 +3058,14 @@ This is related to the earlier arXiv:2505.10792 correction: an arXiv ID can be
 present in a local note while the title, topic, or authors are wrong. A route
 decision should not rely on memory or copied citation metadata alone.
 
+The 2026-07-15 Innovation 2 source acquisition exposed the same pattern in a
+third task. The opening proposal associated Kimura's output-prediction paper
+with ePrint `2022/1724`, Watanabe's CSCML paper with DOI suffix `_18`, and a
+PRESENT paper with ePrint `2019/783`. The actual landing pages resolve to an
+SPDM protocol paper, an unrelated homomorphic-encryption chapter, and a CHES
+AES side-channel analysis, respectively. The verified replacements and
+unresolved citation are recorded in the Innovation 2 literature index.
+
 ### Suggested Action
 Before citing a paper as route evidence, open the arXiv/ePrint/source page and
 verify the identifier, title, authors, year/date, and topic. If only the broad
@@ -3066,13 +3074,14 @@ verified bibliographic fact from the inferred route implication.
 
 ### Metadata
 - Source: source_recheck
-- Related Files: docs/research/innovation1-spn-route-arbitration-20260707.md, docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md
-- Tags: innovation1, literature, citation-hygiene, arxiv, spn
+- Related Files: docs/research/innovation1-spn-route-arbitration-20260707.md, docs/research/innovation1-spn-bit-sensitivity-nonneighbor-route-20260707.md, docs/24032307046_廖锡粤_开题附件.pdf, docs/research/innovation2-output-prediction-literature-index.md
+- Tags: literature, citation-hygiene, arxiv, eprint, doi, innovation1, innovation2
 - See Also: LRN-20260707-002
 - Pattern-Key: research.citation_id_must_match_title_topic
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-07
-- Last-Seen: 2026-07-08
+- Last-Seen: 2026-07-15
+- Promoted: AGENTS.md
 
 ---
 
