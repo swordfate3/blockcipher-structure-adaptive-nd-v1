@@ -42,7 +42,15 @@ while true; do
   echo "$(timestamp) sync" >> "${MONITOR_ROOT}/monitor.log"
   sync_logs
 
-  if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*failed.marker" > /dev/null; then
+  recovery_started=false
+  if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*recovery_started.marker" > /dev/null; then
+    recovery_started=true
+  fi
+  if [[ "${recovery_started}" == true ]] && compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*recovery_failed.marker" > /dev/null; then
+    echo "$(timestamp) recovery_failed" >> "${MONITOR_ROOT}/monitor.log"
+    exit 1
+  fi
+  if [[ "${recovery_started}" != true ]] && compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*failed.marker" > /dev/null; then
     echo "$(timestamp) remote_failed" >> "${MONITOR_ROOT}/monitor.log"
     exit 1
   fi

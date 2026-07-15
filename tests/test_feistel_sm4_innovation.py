@@ -477,9 +477,16 @@ def test_sm4_position_remote_assets_use_safe_retrieval() -> None:
         / "configs/remote/generated/"
         "monitor_i1_feistel_sm4_position_resnet_calibration_2048_20260715.sh"
     ).read_text(encoding="utf-8")
+    recovery_script = (
+        ROOT
+        / "configs/remote/generated/"
+        "recover_i1_feistel_sm4_position_resnet_calibration_2048_20260715.cmd"
+    ).read_text(encoding="utf-8")
 
     assert "scripts\\train" in run_script
     assert "cmd.exe /k" not in run_script
+    assert "p.name!='SHA256SUMS'" not in run_script
+    assert "not p.name == 'SHA256SUMS'" in run_script
     assert "cmd.exe /c" in launch_script
     assert "cmd.exe /k" not in launch_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launch_script
@@ -487,3 +494,9 @@ def test_sm4_position_remote_assets_use_safe_retrieval() -> None:
     assert "cp -a" in monitor_script
     assert "results_archive/${RUN_ID}/." not in monitor_script
     assert "sed 's/\\r$//' SHA256SUMS" in monitor_script
+    assert "recovery_started.marker" in monitor_script
+    assert "recovery_failed.marker" in monitor_script
+    assert "scripts\\train" not in recovery_script
+    assert "gate-feistel-sm4" in recovery_script
+    assert "validation.recovery.json" in recovery_script
+    assert "not p.name == 'SHA256SUMS'" in recovery_script
