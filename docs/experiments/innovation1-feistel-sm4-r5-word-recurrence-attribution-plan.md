@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** implementation and readiness passed; 2048/class attribution ready
+**Status:** 2048/class completed; no strict cross-key signal; protocol audit required
 
 ## Research Question
 
@@ -179,3 +179,49 @@ the frozen six-row `2048/class` local matrix with one unique writer and produce
 results JSONL, progress JSONL, validation JSON, Chinese SVG, history CSV, gate
 JSON, and the numbered recent-result index. Only a complete local gate decides
 whether remote medium scale is justified.
+
+## Completed 2048/Class Result
+
+The six-row matrix completed on 2026-07-15 with exact plan alignment and no
+validation errors:
+
+| Seed | Recurrence candidate | Shuffled control | Conv-ResNet baseline |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.496304949 | 0.495662808 | 0.491743843 |
+| 1 | 0.488717238 | 0.503069679 | 0.503065666 |
+
+The controlled margins were:
+
+```text
+seed0 candidate - shuffled = +0.000642141
+seed1 candidate - shuffled = -0.014352441
+seed0 candidate - baseline = +0.004561106
+seed1 candidate - baseline = -0.014348427
+```
+
+The gate returned:
+
+```text
+signal_present       = false
+topology_attributed  = false
+baseline_competitive = false
+decision             = feistel_sm4_word_recurrence_not_ready
+next_action          = stop_scale_and_audit_sm4_data_model_semantics
+```
+
+The candidate training AUC rose to about `0.77` on both seeds while validation
+and fresh-test AUC remained near chance. The immediate failure mode is therefore
+generalization, not a model that failed to optimize. This result rejects remote
+scale for the current strict rotating-key cell, but it does not establish an
+SM4 architecture ceiling: the Yu/Wu/Zhang paper used roughly 244 times more
+training rows and its key sampling remains unresolved.
+
+Artifacts are under
+`outputs/local_diagnostic/i1_feistel_sm4_r5_word_recurrence_attribution_2048_seed0_seed1/`
+and the completed result is entry `001` in `outputs/00_RECENT_RESULTS.md`.
+
+The executable next step is the frozen four-row key-schedule/signal audit in
+`docs/experiments/innovation1-feistel-sm4-key-schedule-signal-audit-plan.md`.
+It changes no architecture and compares `r3/r5 x fixed/rotating key` on the
+same Conv-ResNet. This determines whether a paper-aligned fixed-key attribution
+cell, a limited data-scarcity exception, or a data/model repair is justified.

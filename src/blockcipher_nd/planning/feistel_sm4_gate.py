@@ -12,6 +12,12 @@ MODEL_ROLES = {
     "shuffled": "sm4_word_recurrence_shuffled",
     "baseline": "multiscale_dense_resnet",
 }
+PROTOCOL_AUDIT_ROLES = {
+    "r3_fixed": (3, 0),
+    "r3_rotating": (3, 1),
+    "r5_fixed": (5, 0),
+    "r5_rotating": (5, 1),
+}
 
 
 def gate_feistel_sm4_results(
@@ -228,4 +234,174 @@ def gate_feistel_sm4_results(
     }
 
 
-__all__ = ["MODEL_ROLES", "gate_feistel_sm4_results"]
+def gate_feistel_sm4_protocol_audit(
+    *,
+    plan_path: Path,
+    results_path: Path,
+    expected_samples_per_class: int,
+    expected_seeds: tuple[int, ...],
+    expected_epochs: int,
+    expected_final_repeats: int,
+    minimum_signal_auc: float = 0.55,
+) -> dict[str, Any]:
+    if expected_seeds != (0,):
+        raise ValueError("SM4 protocol audit is frozen to seed0")
+    alignment = validate_result_plan_alignment(
+        plan_path,
+        results_path,
+        expected_rows=len(PROTOCOL_AUDIT_ROLES),
+    )
+    errors = list(alignment["errors"])
+    try:
+        rows = [
+            json.loads(line)
+            for line in results_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except (OSError, json.JSONDecodeError) as exc:
+        rows = []
+        errors.append(f"cannot read result rows: {exc}")
+
+    role_by_protocol = {
+        protocol: role for role, protocol in PROTOCOL_AUDIT_ROLES.items()
+    }
+    rows_by_role: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        protocol = (row.get("rounds"), row.get("key_rotation_interval"))
+        role = role_by_protocol.get(protocol)
+        if role is None:
+            errors.append(f"unexpected rounds/key protocol: {protocol}")
+            continue
+        if role in rows_by_role:
+            errors.append(f"duplicate protocol role: {role}")
+            continue
+        rows_by_role[role] = row
+
+    missing = set(PROTOCOL_AUDIT_ROLES) - set(rows_by_role)
+    if missing:
+        errors.append(f"missing protocol roles: {sorted(missing)}")
+
+    scores: dict[str, float] = {}
+    parameter_counts: dict[str, dict[str, int]] = {}
+    for role, row in rows_by_role.items():
+        expected_fields = {
+            "cipher_key": "sm4",
+            "model": "multiscale_dense_resnet",
+            "seed": 0,
+            "samples_per_class": expected_samples_per_class,
+            "pairs_per_sample": 1,
+            "feature_encoding": "ciphertext_pair_bits",
+            "negative_mode": "encrypted_random_plaintexts",
+            "sample_structure": "independent_pairs",
+            "difference_profile": "sm4_yu2023_conv_resnet",
+            "difference_member": 0,
+            "final_test_repeats": expected_final_repeats,
+        }
+        for field, expected in expected_fields.items():
+            if row.get(field) != expected:
+                errors.append(
+                    f"{role} {field}={row.get(field)!r} expected={expected!r}"
+                )
+        expected_schedule = "fixed" if role.endswith("fixed") else "rotating"
+        for split in ("training", "validation"):
+            metadata = row.get(split)
+            if not isinstance(metadata, dict):
+                errors.append(f"{role} missing {split} metadata")
+            elif metadata.get("key_schedule") != expected_schedule:
+                errors.append(
+                    f"{role} {split} key_schedule="
+                    f"{metadata.get('key_schedule')!r} expected={expected_schedule!r}"
+                )
+        history = row.get("history")
+        if not isinstance(history, list) or len(history) != expected_epochs:
+            errors.append(f"{role} history must contain {expected_epochs} epochs")
+        final = row.get("final_evaluation")
+        if not isinstance(final, dict):
+            errors.append(f"{role} missing final_evaluation")
+        else:
+            auc = final.get("auc_mean")
+            if not isinstance(auc, (int, float)):
+                errors.append(f"{role} missing final auc_mean")
+            else:
+                scores[role] = float(auc)
+            metrics = final.get("metrics_by_repeat")
+            if final.get("repeats") != expected_final_repeats:
+                errors.append(
+                    f"{role} final repeats={final.get('repeats')!r} "
+                    f"expected={expected_final_repeats}"
+                )
+            if not isinstance(metrics, list) or len(metrics) != expected_final_repeats:
+                errors.append(
+                    f"{role} final metrics_by_repeat must contain "
+                    f"{expected_final_repeats} rows"
+                )
+        parameter_counts[role] = {}
+        for field in ("parameter_count", "trainable_parameter_count"):
+            count = row.get(field)
+            if not isinstance(count, int):
+                errors.append(f"{role} missing {field}")
+            else:
+                parameter_counts[role][field] = count
+
+    capacities = {tuple(counts.values()) for counts in parameter_counts.values()}
+    if len(capacities) > 1:
+        errors.append(f"protocol audit capacity mismatch: {parameter_counts}")
+    if errors:
+        return {
+            "status": "fail",
+            "decision": "invalid_feistel_sm4_protocol_audit",
+            "errors": errors,
+            "alignment": alignment,
+            "research_decision_applied": False,
+        }
+
+    signal = {role: score >= minimum_signal_auc for role, score in scores.items()}
+    if not signal["r3_fixed"]:
+        decision = "feistel_sm4_local_calibration_failed"
+        next_action = "audit_sm4_paper_input_layout_and_dataset_semantics"
+    elif signal["r5_rotating"]:
+        decision = "feistel_sm4_r5_rotating_signal_unstable"
+        next_action = "confirm_r5_rotating_signal_on_seed1_before_attribution"
+    elif not signal["r3_rotating"]:
+        decision = "feistel_sm4_low_round_key_generalization_failed"
+        next_action = "stop_r5_scale_and_audit_key_conditioned_representation"
+    elif signal["r5_fixed"]:
+        decision = "feistel_sm4_fixed_key_dependency_identified"
+        next_action = "freeze_fixed_key_candidate_shuffled_baseline_attribution"
+    else:
+        decision = "feistel_sm4_r5_scale_or_paper_architecture_gap"
+        next_action = "port_closer_yu2023_baseline_before_candidate_scale"
+
+    return {
+        "status": "pass",
+        "decision": decision,
+        "next_action": next_action,
+        "errors": [],
+        "alignment": alignment,
+        "research_decision_applied": True,
+        "samples_per_class": expected_samples_per_class,
+        "seeds": list(expected_seeds),
+        "epochs": expected_epochs,
+        "scores": scores,
+        "signal": signal,
+        "minimum_signal_auc": minimum_signal_auc,
+        "parameter_counts": parameter_counts,
+        "claim_scope": (
+            "local SM4 key-schedule/round signal audit; fixed-key signal is "
+            "calibration evidence and not cross-key generalization"
+        ),
+        "stopped_actions": [
+            "recurrence_candidate_tuning",
+            "random_ciphertext_negative",
+            "sm4_r6_r8_round_sweep",
+            "remote_scale_without_specific_exception",
+        ],
+    }
+
+
+__all__ = [
+    "MODEL_ROLES",
+    "PROTOCOL_AUDIT_ROLES",
+    "gate_feistel_sm4_protocol_audit",
+    "gate_feistel_sm4_results",
+]

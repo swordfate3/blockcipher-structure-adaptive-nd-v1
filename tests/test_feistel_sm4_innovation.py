@@ -11,7 +11,10 @@ from blockcipher_nd.models.structure.feistel import (
     Sm4WordRecurrenceDistinguisher,
     sm4_state_mapping_indices,
 )
-from blockcipher_nd.planning.feistel_sm4_gate import gate_feistel_sm4_results
+from blockcipher_nd.planning.feistel_sm4_gate import (
+    gate_feistel_sm4_protocol_audit,
+    gate_feistel_sm4_results,
+)
 from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.registry.model_factory import build_model
 
@@ -264,3 +267,90 @@ def test_sm4_gate_requires_attribution_signal_and_baseline_competitiveness(
     assert invalid["status"] == "fail"
     assert invalid["decision"] == "invalid_feistel_sm4_protocol"
     assert any("capacity mismatch" in error for error in invalid["errors"])
+
+
+def test_sm4_protocol_audit_identifies_fixed_key_dependency(tmp_path: Path) -> None:
+    plan = ROOT / "configs/experiment/innovation1/innovation1_feistel_sm4_key_schedule_signal_audit_2048_seed0.csv"
+    scores = {
+        (3, 0): 0.99,
+        (3, 1): 0.75,
+        (5, 0): 0.80,
+        (5, 1): 0.51,
+    }
+    fixed_key = 0x0123456789ABCDEFFEDCBA9876543210
+    rows = []
+    for (rounds, rotation), auc in scores.items():
+        key = fixed_key if rotation == 0 else None
+        schedule = "fixed" if rotation == 0 else "rotating"
+        rows.append(
+            {
+                "cipher": "SM4",
+                "cipher_key": "sm4",
+                "structure": "Feistel-like",
+                "model": "multiscale_dense_resnet",
+                "rounds": rounds,
+                "seed": 0,
+                "samples_per_class": 2048,
+                "train_samples_total": None,
+                "validation_samples_total": 2048,
+                "final_test_samples_total": 4096,
+                "final_test_repeats": 3,
+                "dataset_label_mode": "balanced_per_class",
+                "pairs_per_sample": 1,
+                "feature_encoding": "ciphertext_pair_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "train_key": key,
+                "validation_key": key,
+                "final_test_key": key,
+                "key_rotation_interval": rotation,
+                "sample_structure": "independent_pairs",
+                "integral_active_nibble": 0,
+                "integral_active_nibbles": [],
+                "validation_integral_active_nibbles": [],
+                "difference_profile": "sm4_yu2023_conv_resnet",
+                "difference_member": 0,
+                "history": [{} for _ in range(10)],
+                "training": {
+                    "loss": "mse",
+                    "learning_rate": 0.0001,
+                    "optimizer": "adam",
+                    "weight_decay": 0.0,
+                    "checkpoint_metric": "val_auc",
+                    "restore_best_checkpoint": True,
+                    "early_stopping_patience": 0,
+                    "early_stopping_min_delta": 0.0,
+                    "key_schedule": schedule,
+                    "selected_bit_indices": [],
+                    "model_options": {},
+                    "pretraining": {"epochs_ran": 0, "round_sequence": []},
+                },
+                "validation": {"key_schedule": schedule},
+                "final_evaluation": {
+                    "auc_mean": auc,
+                    "repeats": 3,
+                    "metrics_by_repeat": [{}, {}, {}],
+                },
+                "parameter_count": 59809,
+                "trainable_parameter_count": 59809,
+            }
+        )
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+    report = gate_feistel_sm4_protocol_audit(
+        plan_path=plan,
+        results_path=results,
+        expected_samples_per_class=2048,
+        expected_seeds=(0,),
+        expected_epochs=10,
+        expected_final_repeats=3,
+    )
+    assert report["status"] == "pass", report["errors"]
+    assert report["decision"] == "feistel_sm4_fixed_key_dependency_identified"
+    assert report["signal"] == {
+        "r3_fixed": True,
+        "r3_rotating": True,
+        "r5_fixed": True,
+        "r5_rotating": False,
+    }
