@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-15
 
-**Status:** local readiness passed / remote launch assets ready
+**Status:** remote seed6/seed7 launched / watcher-managed running
 
 ## Research Question
 
@@ -189,3 +189,22 @@ Both remote configs also pass `scripts/check-remote-readiness` with five plan
 rows, `1000000/class`, disk-backed cache requirements, and no readiness errors.
 The next executable action is commit/push followed by the two-GPU launch from
 the exact pushed commit.
+
+## Remote Launch
+
+Both large-scale target seeds were launched from the same pushed source:
+
+```text
+source commit = ffdbcef8afe053514236963556c079c1c3398901
+seed6         = A6000 GPU0
+seed7         = A6000 GPU1
+source clones = independent clean run-owned clones under G:\lxy
+monitor       = local tmux i1_gift64_mainstream_1m_monitor
+```
+
+The single bounded post-launch confirmation found the expected git revision,
+clean-status, GPU, and torch initialization logs in both run directories. This
+is evidence that both scheduled tasks entered their run scripts, not a claim
+that dataset generation or training has completed. The watcher owns subsequent
+waiting, failure detection, result-branch retrieval, local validation, plotting,
+and result-index refresh.

@@ -50,7 +50,7 @@ layout repair.
 
 ---
 
-## [ERR-20260715-003] balanced_validation_total_forwarded_as_random_total
+## [ERR-20260715-004] balanced_validation_total_forwarded_as_random_total
 
 **Logged**: 2026-07-15T10:05:00+08:00
 **Priority**: high
@@ -90,7 +90,7 @@ derived `samples_per_class` and pass `samples_total=None` to the generator.
 
 ### Resolution
 - **Resolved**: 2026-07-15T10:08:00+08:00
-- **Commit/PR**: pending
+- **Commit/PR**: ffdbcef
 - **Notes**: Central label-mode guard added; 20 focused protocol tests and the five-row readiness run passed.
 
 ---
