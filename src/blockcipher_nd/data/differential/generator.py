@@ -37,7 +37,14 @@ def make_differential_dataset(config: DifferentialDatasetConfig) -> Differential
             labels.append(1)
 
         for row_index in range(config.samples_per_class):
-            rows.append(generate_negative_row(config, rng, block_bits, row_index=row_index))
+            rows.append(
+                generate_negative_row(
+                    config,
+                    rng,
+                    block_bits,
+                    row_index=config.samples_per_class + row_index,
+                )
+            )
             labels.append(0)
 
     features = np.array(rows, dtype=np.uint8)

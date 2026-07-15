@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -8,6 +9,58 @@ from blockcipher_nd.data.cache import make_chunked_differential_dataset
 from blockcipher_nd.data.differential.config import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.registry.cipher_factory import build_cipher
+
+
+@dataclass(frozen=True)
+class _KeyEchoCipher:
+    rounds: int = 1
+    key: int = 0
+    name: str = "KeyEcho"
+    structure: str = "Feistel-like"
+    block_bits: int = 16
+    key_bits: int = 16
+
+    def encrypt(self, plaintext: int) -> int:
+        return self.key
+
+
+def _row_keys(features: np.ndarray) -> list[int]:
+    return [
+        int("".join(str(int(bit)) for bit in row[:16]), 2)
+        for row in np.asarray(features)
+    ]
+
+
+def test_balanced_per_row_rotation_uses_distinct_keys_across_both_classes(
+    tmp_path,
+) -> None:
+    config = DifferentialDatasetConfig(
+        cipher=_KeyEchoCipher(),
+        input_difference=0x40,
+        samples_per_class=5,
+        seed=23,
+        shuffle=False,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        negative_mode="encrypted_random_plaintexts",
+        key_rotation_interval=1,
+        sample_structure="independent_pairs",
+    )
+
+    memory = make_differential_dataset(config)
+    disk = make_chunked_differential_dataset(
+        config,
+        cache_dir=tmp_path / "global-row-key-cache",
+        chunk_size=2,
+        workers=1,
+    )
+
+    memory_keys = _row_keys(memory.features)
+    disk_keys = _row_keys(disk.features)
+    assert len(set(memory_keys)) == 10
+    assert memory_keys == disk_keys
+    assert memory.metadata["key_rotation_row_indexing"] == "global_dataset_row"
+    assert disk.metadata["key_rotation_row_indexing"] == "global_dataset_row"
 
 
 def test_chunked_dataset_cache_can_generate_with_multiple_workers(tmp_path) -> None:

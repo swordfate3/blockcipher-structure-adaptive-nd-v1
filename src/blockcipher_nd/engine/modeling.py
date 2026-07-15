@@ -87,6 +87,8 @@ def cipher_profile(cipher_key: str) -> CipherProfile:
         "gift64": CipherProfile.gift64,
         "des": CipherProfile.des,
         "sm4": CipherProfile.sm4,
+        "simon64": CipherProfile.simon64_128,
+        "simeck64": CipherProfile.simeck64_128,
     }
     try:
         return mapping[cipher_key]()

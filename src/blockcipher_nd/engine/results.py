@@ -90,6 +90,9 @@ def build_task_result(
             "selected_bit_indices": task["selected_bit_indices"],
             "dataset_label_mode": train_dataset.metadata["dataset_label_mode"],
             "key_schedule": train_dataset.metadata["key_schedule"],
+            "key_rotation_row_indexing": train_dataset.metadata.get(
+                "key_rotation_row_indexing"
+            ),
             "samples_total": train_dataset.metadata["samples_total"],
             "positive_rows": train_dataset.metadata["positive_rows"],
             "negative_rows": train_dataset.metadata["negative_rows"],
@@ -109,6 +112,9 @@ def build_task_result(
             "negative_rows": validation_dataset.metadata["negative_rows"],
             "dataset_label_mode": validation_dataset.metadata["dataset_label_mode"],
             "key_schedule": validation_dataset.metadata["key_schedule"],
+            "key_rotation_row_indexing": validation_dataset.metadata.get(
+                "key_rotation_row_indexing"
+            ),
             "key_rotation_interval": validation_dataset.metadata[
                 "key_rotation_interval"
             ],

@@ -3138,6 +3138,50 @@ verified bibliographic fact from the inferred route implication.
 
 ---
 
+## [LRN-20260716-003] correction
+
+**Logged**: 2026-07-16T02:41:41+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Balanced per-class datasets reset negative row indices and silently reused each rotating key across one positive and one negative sample.
+
+### Details
+Innovation 1's SIMON64/SIMECK64 plan required one independent key per sample
+with `key_rotation_interval=1`. The in-memory and disk-backed balanced
+generators both numbered positive rows `0..N-1` and negative rows `0..N-1`.
+Because rotating keys are derived deterministically from `row_index`, positive
+row `i` and negative row `i` received the same key. The previous claim that
+`key_rotation_interval=1` alone guaranteed one unique key for every balanced
+sample was false, and affected Feistel results must be rerun before AUC is
+interpreted.
+
+### Suggested Action
+Use a global dataset row index for key derivation: positive rows `0..N-1` and
+negative rows `N..2N-1`. Keep mixed random-label rows on their existing global
+index. Version rotating-key cache metadata, test both memory and disk paths
+with a key-observable cipher, and make route gates require the row-indexing
+version before accepting results.
+
+### Metadata
+- Source: source_and_data_audit
+- Related Files: src/blockcipher_nd/data/differential/generator.py, src/blockcipher_nd/data/cache/disk.py, src/blockcipher_nd/data/differential/metadata.py, tests/test_dataset_cache_workers.py
+- Tags: dataset, key-rotation, balanced-classes, cache-invalidation, protocol-alignment
+- See Also: LRN-20260716-001
+- Pattern-Key: dataset.rotating_key_index_must_span_all_classes
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+### Resolution
+- **Resolved**: 2026-07-16T02:41:41+08:00
+- **Commit/PR**: pending
+- **Notes**: Global row indexing, cache metadata invalidation, result metadata, gate enforcement, and memory/disk regression coverage were added; affected experiments were regenerated and re-gated.
+
+---
+
 ## [LRN-20260716-001] correction
 
 **Logged**: 2026-07-16T00:00:00+08:00

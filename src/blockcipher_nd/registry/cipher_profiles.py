@@ -93,5 +93,41 @@ class CipherProfile:
             ),
         )
 
+    @staticmethod
+    def simon64_128() -> "CipherProfile":
+        return CipherProfile(
+            name="SIMON64/128",
+            structure="Feistel-like",
+            block_bits=64,
+            key_bits=128,
+            traits=(
+                "balanced_feistel",
+                "left_right_branch_exchange",
+                "nonlinear_and",
+                "xor",
+                "rotation",
+                "word_parallelism",
+                "round_recurrence",
+            ),
+        )
+
+    @staticmethod
+    def simeck64_128() -> "CipherProfile":
+        return CipherProfile(
+            name="Simeck64/128",
+            structure="Feistel-like",
+            block_bits=64,
+            key_bits=128,
+            traits=(
+                "balanced_feistel",
+                "left_right_branch_exchange",
+                "nonlinear_and",
+                "xor",
+                "rotation",
+                "word_parallelism",
+                "round_recurrence",
+            ),
+        )
+
 
 __all__ = ["CipherProfile"]

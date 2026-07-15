@@ -1,3 +1,9 @@
+from blockcipher_nd.models.structure.feistel.balanced_round_relation import (
+    BalancedFeistelRoundRelationDistinguisher,
+    balanced_feistel_relation_channels,
+    simeck_round_function_bits,
+    simon_round_function_bits,
+)
 from blockcipher_nd.models.structure.feistel.des_branch_pairset import (
     DesFeistelBranchInceptionPairSetDistinguisher,
     DesLstmPairSetDistinguisher,
@@ -11,6 +17,11 @@ from blockcipher_nd.models.structure.feistel.sm4_word_recurrence import (
 )
 
 __all__ = [
+    "BalancedFeistelLuSeNetDistinguisher",
+    "BalancedFeistelRoundRelationDistinguisher",
+    "balanced_feistel_relation_channels",
+    "simeck_round_function_bits",
+    "simon_round_function_bits",
     "DesFeistelBranchInceptionPairSetDistinguisher",
     "DesLstmPairSetDistinguisher",
     "DesZhangWangOfficialLayoutDistinguisher",
@@ -19,3 +30,6 @@ __all__ = [
     "Sm4WordRecurrenceDistinguisher",
     "sm4_state_mapping_indices",
 ]
+from blockcipher_nd.models.structure.feistel.balanced_lu_senet import (
+    BalancedFeistelLuSeNetDistinguisher,
+)

@@ -274,6 +274,8 @@ def cipher_key_from_name(cipher_name: str) -> str:
         "GIFT-64": "gift64",
         "DES": "des",
         "SM4": "sm4",
+        "SIMON64/128": "simon64",
+        "Simeck64/128": "simeck64",
     }
     try:
         return mapping[cipher_name]

@@ -34,6 +34,78 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "feistel_balanced_relation_readiness_passed": (
+        "SIMON/SIMECK 轮关系实现就绪，进入 2048/类本地诊断"
+    ),
+    "feistel_balanced_relation_two_cipher_seed0_pass": (
+        "两种密码均通过轮关系归因门，进入 seed1 同预算确认"
+    ),
+    "feistel_balanced_relation_cipher_conditional": (
+        "轮关系收益仅在一种密码成立，先审计错误轮函数对照"
+    ),
+    "feistel_balanced_signal_without_relation_attribution": (
+        "存在区分信号但无法归因于真实轮关系，停止扩规模"
+    ),
+    "feistel_balanced_relation_not_ready": (
+        "轮关系候选未就绪，先做更低轮公式校准"
+    ),
+    "feistel_balanced_easier_round_calibrated": (
+        "低一轮公式与网络已校准，下一步贴近 Lu SE-ResNet 高轮协议"
+    ),
+    "feistel_balanced_easier_round_cipher_conditional": (
+        "低轮校准仅一种密码通过，先审计另一种轮函数"
+    ),
+    "feistel_balanced_easier_round_signal_without_attribution": (
+        "低轮有信号但真实轮关系无独立贡献，停止该架构扩展"
+    ),
+    "feistel_balanced_easier_round_not_calibrated": (
+        "低一轮仍未校准，转作者代码逐样本数据与布局对拍"
+    ),
+    "feistel_lu_layout_two_cipher_calibrated": (
+        "Lu-SE 布局两种密码均校准，进入高一轮同布局比较"
+    ),
+    "feistel_lu_layout_cipher_conditional": (
+        "Lu-SE 布局仅一种密码通过，保留条件路线"
+    ),
+    "feistel_lu_layout_signal_without_architecture_gain": (
+        "Lu-SE 布局有信号但未优于旧锚点，停止布局扩展"
+    ),
+    "feistel_lu_layout_not_calibrated": (
+        "Lu-SE 布局未校准，先量化数据规模缺口"
+    ),
+    "feistel_relation_scale_slope_two_cipher_pass": (
+        "两种密码均有正数据斜率，进入独立 seed1 同规模确认"
+    ),
+    "feistel_relation_scale_slope_cipher_conditional": (
+        "数据斜率仅一种密码成立，只确认通过的密码"
+    ),
+    "feistel_relation_signal_without_scale_slope": (
+        "仍有低轮信号但样本斜率不足，停止机械扩规模"
+    ),
+    "feistel_relation_scale_probe_not_ready": (
+        "8192/类规模探针未就绪，重新评估 Feistel 路线优先级"
+    ),
+    "feistel_relation_8192_seed1_confirmation_pass": (
+        "独立 seed1 信号与轮关系归因通过，进入双 seed 综合"
+    ),
+    "feistel_relation_8192_seed1_cipher_conditional": (
+        "独立 seed1 只确认一种密码，保留条件路线"
+    ),
+    "feistel_relation_8192_seed1_confirmation_failed": (
+        "独立 seed1 未确认，停止扩规模"
+    ),
+    "feistel_target_round_8192_two_cipher_pass": (
+        "论文目标轮两种密码均过门，进入独立 seed1 确认"
+    ),
+    "feistel_target_round_8192_cipher_conditional": (
+        "论文目标轮信号仅一种密码成立，保留条件路线"
+    ),
+    "feistel_target_round_signal_without_scale_slope": (
+        "论文目标轮有信号但规模增益不足，保留低轮证据"
+    ),
+    "feistel_target_round_8192_not_ready": (
+        "论文目标轮 8192/类未就绪，停止远程扩规模"
+    ),
     "innovation2_integral_property_implementation_ready": (
         "创新2积分性质预测实现就绪，可进入本地诊断"
     ),
@@ -325,6 +397,20 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == "i1_feistel_balanced_round_relation_readiness_seed0":
+        return "创新1 Feistel：SIMON/SIMECK 真实轮关系模型就绪检查"
+    if run_id == "i1_feistel_balanced_round_relation_2048_seed0":
+        return "创新1 Feistel：SIMON/SIMECK 真实轮关系 2048/类归因诊断"
+    if run_id == "i1_feistel_balanced_round_relation_calibration_2048_seed0":
+        return "创新1 Feistel：SIMON r11 / SIMECK r14 低一轮公式校准"
+    if run_id == "i1_feistel_lu_senet_layout_calibration_2048_seed0":
+        return "创新1 Feistel：Lu 源码 SE-ResNet pair 轴布局校准"
+    if run_id == "i1_feistel_round_relation_scale_probe_8192_seed0":
+        return "创新1 Feistel：SIMON/SIMECK 轮关系 8192/类数据斜率探针"
+    if run_id == "i1_feistel_round_relation_scale_probe_8192_seed1":
+        return "创新1 Feistel：SIMON/SIMECK 轮关系 8192/类独立 seed1 确认"
+    if run_id == "i1_feistel_round_relation_target_round_8192_seed0":
+        return "创新1 Feistel：SIMON r12 / SIMECK r15 论文目标轮 8192/类探针"
     if run_id == "i2_present_r5_structure_integral_parity_smoke_seed0":
         return "创新2 E0：PRESENT 5轮结构条件积分平衡概率预测 Smoke"
     if run_id == "i2_present_r5_structure_integral_parity_feasibility_seed0":

@@ -38,6 +38,8 @@ def dataset_metadata(config: DifferentialDatasetConfig) -> dict[str, int | str |
     if config.dataset_label_mode == "balanced_per_class":
         metadata["positive_rows"] = config.samples_per_class
         metadata["negative_rows"] = config.samples_per_class
+    if config.key_rotation_interval > 0:
+        metadata["key_rotation_row_indexing"] = "global_dataset_row"
     return metadata
 
 

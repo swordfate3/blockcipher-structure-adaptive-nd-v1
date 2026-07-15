@@ -15,6 +15,8 @@ from blockcipher_nd.models.structure.arx import (
     ArxWordMixerPairSetDistinguisher,
 )
 from blockcipher_nd.models.structure.feistel import (
+    BalancedFeistelLuSeNetDistinguisher,
+    BalancedFeistelRoundRelationDistinguisher,
     DesFeistelBranchInceptionPairSetDistinguisher,
     DesLstmPairSetDistinguisher,
     DesZhangWangOfficialLayoutDistinguisher,
@@ -108,6 +110,8 @@ from blockcipher_nd.models.structure.spn import (
 )
 
 __all__ = [
+    "BalancedFeistelLuSeNetDistinguisher",
+    "BalancedFeistelRoundRelationDistinguisher",
     "CrossSpnTypedCellPairSetDistinguisher",
     "GiftAlignedTokenMixerRawInputDistinguisher",
     "GiftCrossSpnTypedCellE5Distinguisher",

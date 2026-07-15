@@ -649,8 +649,17 @@ def _plot_subtitle(series: list[dict[str, Any]]) -> str:
         metric_names = ", ".join(_metric_title(metric) for metric in DEFAULT_METRICS)
     context = series[0] if series else {}
     protocol_parts = []
-    if context.get("cipher") and context.get("rounds") != "":
-        protocol_parts.append(f"{context['cipher']} {context['rounds']} 轮")
+    cipher_rounds = list(
+        dict.fromkeys(
+            (str(item.get("cipher") or ""), item.get("rounds", ""))
+            for item in series
+            if item.get("cipher") and item.get("rounds") != ""
+        )
+    )
+    if cipher_rounds:
+        protocol_parts.append(
+            " / ".join(f"{cipher} {rounds} 轮" for cipher, rounds in cipher_rounds)
+        )
     if context.get("train_structures") not in (None, ""):
         structure_text = f"训练 {int(context['train_structures']):,} 个结构"
         if context.get("train_keys_per_structure") not in (None, ""):
@@ -720,9 +729,22 @@ def _compact_label(item: dict[str, Any]) -> str:
         "gift_cross_spn_typed_cell_e6_from_present_off": "迁移基线：源功能边际关闭",
         "gift_cross_spn_typed_cell_e6_from_present_functional_margin": "候选迁移：源真拓扑功能边际",
         "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo": "安慰剂迁移：源打乱功能边际",
+        "simon_lu_round_relation_true": "SIMON 真实轮关系",
+        "simon_lu_round_relation_shuffled": "SIMON 左右错位控制",
+        "simeck_lu_round_relation_true": "SIMECK 真实轮关系",
+        "simeck_lu_round_relation_shuffled": "SIMECK 左右错位控制",
+        "simon_lu_senet_layout_true": "SIMON Lu-SE布局真实关系",
+        "simon_lu_senet_layout_shuffled": "SIMON Lu-SE布局错位控制",
+        "simeck_lu_senet_layout_true": "SIMECK Lu-SE布局真实关系",
+        "simeck_lu_senet_layout_shuffled": "SIMECK Lu-SE布局错位控制",
     }
     if model in aliases:
         return aliases[model]
+    if model == "multiscale_dense_resnet" and item.get("cipher") in {
+        "SIMON64/128",
+        "Simeck64/128",
+    }:
+        return f"{item['cipher'].split('64', 1)[0]} 通用多尺度基线"
     if ": " in model:
         model = model.split(": ", 1)[1]
     model = model.replace("_", " ")

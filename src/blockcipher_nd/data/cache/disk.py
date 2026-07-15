@@ -369,7 +369,7 @@ def _row_factory(
         config,
         rng,
         block_bits,
-        row_index=start + offset,
+        row_index=config.samples_per_class + start + offset,
     )
 
 
