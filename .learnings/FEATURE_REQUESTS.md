@@ -94,7 +94,7 @@ where relevant, then redraw and repeat until it passes.
 
 ### Resolution
 - **Resolved**: 2026-07-16T21:45:00+08:00
-- **Commit/PR**: pending
+- **Commit/PR**: ed5bba5
 - **Notes**: Promoted the mandatory workflow to `AGENTS.md`; verified the
   installed skill path; rendered the latest Innovation 2 joint SVG at
   `1800x958`, found the bottom verdict overlapping the legends, separated the
