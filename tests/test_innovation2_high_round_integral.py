@@ -39,6 +39,7 @@ from blockcipher_nd.tasks.innovation2.high_round_integral_data import (
 from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
     HighRoundIntegralExperimentConfig,
     adjudicate_high_round_integral,
+    run_cuda_memory_preflight,
 )
 from blockcipher_nd.tasks.innovation2.high_round_integral_joint import (
     adjudicate_joint_high_round_integral,
@@ -517,6 +518,257 @@ def test_bridge_gate_rejects_invalid_shuffled_fit_control(tmp_path: Path) -> Non
     )
 
 
+def test_paper_reference_gate_freezes_scale_and_confirms_candidate_advantage(
+    tmp_path: Path,
+) -> None:
+    gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path),
+        rows=_bridge_rows(candidate_auc=0.56, anchor_auc=0.54),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation2_high_round_integral_paper_reference_candidate_advantage"
+    )
+    assert all(gate["paper_reference_plan_checks"].values())
+    assert gate["paper_reference_signal_checks"][
+        "at_least_one_neural_model_confirms_r8_round_reach"
+    ]
+    assert gate["paper_reference_signal_checks"][
+        "candidate_beats_anchor_by_0_005_accuracy_or_auc"
+    ]
+    assert gate["metrics"][
+        "paper_reference_candidate_accuracy_95pct_lower_bound"
+    ] > 0.5
+    approximation = gate["paper_alignment"][
+        "project_paper_reference_approximation"
+    ]
+    assert approximation["per_epoch_full_train_evaluation"] is False
+    assert approximation["final_full_train_evaluation"] is True
+    assert approximation["cuda_memory_preflight_required_before_cache"] is True
+    assert "not exact reproduction" in gate["claim_scope"]
+
+
+def test_paper_reference_gate_separates_round_reach_from_architecture_gain(
+    tmp_path: Path,
+) -> None:
+    gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path),
+        rows=_bridge_rows(candidate_auc=0.535, anchor_auc=0.55),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation2_high_round_integral_paper_reference_round_reach_only"
+    )
+    assert not gate["paper_reference_signal_checks"][
+        "candidate_beats_anchor_by_0_005_accuracy_or_auc"
+    ]
+
+
+def test_paper_reference_gate_holds_weak_signal_and_rejects_plan_mismatch(
+    tmp_path: Path,
+) -> None:
+    weak_gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path),
+        rows=_bridge_rows(candidate_auc=0.52, anchor_auc=0.52),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+    mismatched_gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path, batch_size=128),
+        rows=_bridge_rows(candidate_auc=0.56, anchor_auc=0.54),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert weak_gate["status"] == "hold"
+    assert weak_gate["decision"] == (
+        "innovation2_high_round_integral_paper_reference_not_confirmed"
+    )
+    assert mismatched_gate["status"] == "fail"
+    assert mismatched_gate["decision"] == (
+        "innovation2_high_round_integral_paper_reference_plan_mismatch"
+    )
+    assert not mismatched_gate["paper_reference_plan_checks"][
+        "batch_size_is_2000"
+    ]
+
+
+def test_paper_reference_seed0_plan_is_frozen_after_joint_confirmation() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    plan = json.loads(
+        (
+            project_root
+            / "configs/experiment/innovation2/"
+            "innovation2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert plan["launch_state"] == "ready_for_remote_launch_after_commit_push"
+    assert plan["required_precondition"] == {
+        "run_id": (
+            "i2_present_r8_high_round_integral_bridge_262144_"
+            "joint_seed0_seed1_20260716"
+        ),
+        "status": "pass",
+        "decision": "innovation2_high_round_integral_two_seed_bridge_confirmed",
+    }
+    assert plan["precondition_evidence"].endswith(
+        "i2_present_r8_high_round_integral_bridge_262144_"
+        "joint_seed0_seed1_20260716/gate.json"
+    )
+    common = plan["common"]
+    assert common["train_total_rows"] == 1 << 21
+    assert common["validation_total_rows"] == common["test_total_rows"] == 1 << 17
+    assert common["epochs"] == 50
+    assert common["batch_size"] == 2000
+    assert common["gate_mode"] == "paper_reference"
+    approximation = plan["paper_reference_approximation"]
+    assert approximation["head_bits"] == 2048
+    assert approximation["fc_layer_count"] == 3
+    assert approximation["depicted_mbconv_block_count"] == 1
+    assert approximation["learning_rate_scheduler"] == "none"
+    assert approximation["independent_training_repetitions"] == 1
+    assert approximation["per_epoch_full_train_evaluation"] is False
+    assert approximation["final_full_train_evaluation"] is True
+    assert approximation["cuda_memory_preflight_before_cache"] is True
+    assert approximation["exact_reproduction"] is False
+    assert [row["role"] for row in plan["rows"]] == [
+        "anchor",
+        "candidate",
+        "linear",
+        "control",
+    ]
+    assert plan["forbidden_during_paper_reference_run"] == [
+        "r9_probe",
+        "gift_extension",
+        "aes_extension",
+    ]
+
+
+def test_cuda_memory_preflight_fails_closed_without_cuda_request(
+    tmp_path: Path,
+) -> None:
+    config = HighRoundIntegralExperimentConfig(
+        run_id="memory_preflight_cpu_rejected",
+        output_root=tmp_path / "output",
+        cache_root=tmp_path / "cache",
+        rounds=8,
+        train_rows=2,
+        validation_rows=2,
+        test_rows=2,
+        multiset_count=2,
+        epochs=1,
+        batch_size=2,
+        device="cpu",
+    )
+
+    with pytest.raises(ValueError, match="requires a CUDA device"):
+        run_cuda_memory_preflight(config)
+
+
+def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    run_id = (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed0_gpu0_20260716"
+    )
+    config_path = project_root / (
+        "configs/remote/innovation2_present_r8_high_round_integral_"
+        "paper_reference_2pow21_seed0_gpu0_20260716.json"
+    )
+    plan_path = project_root / (
+        "configs/experiment/innovation2/innovation2_present_r8_high_round_"
+        "integral_paper_reference_2pow21_seed0.json"
+    )
+    run_script = (
+        project_root
+        / (
+            "configs/remote/generated/run_i2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        project_root
+        / (
+            "configs/remote/generated/launch_i2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
+    monitor_script = (
+        project_root
+        / (
+            "configs/remote/generated/monitor_i2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0_gpu0_20260716.sh"
+        )
+    ).read_text(encoding="utf-8")
+
+    readiness = remote_readiness_report(config_path)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+
+    assert readiness["status"] == "pass"
+    assert readiness["errors"] == []
+    assert readiness["plan_rows"] == 4
+    assert readiness["max_samples_per_class"] == 1 << 20
+    assert config["run_id"] == config["task_name"] == run_id
+    assert config["launch_enabled"] is True
+    assert config["dataset_cache"] is True
+    assert config["cuda_memory_preflight"] is True
+    assert config["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+    )
+    experiment = config["experiment"]
+    assert experiment["train_total_rows"] == 1 << 21
+    assert experiment["validation_total_rows"] == 1 << 17
+    assert experiment["test_total_rows"] == 1 << 17
+    assert experiment["epochs"] == 50
+    assert experiment["batch_size"] == 2000
+    assert experiment["base_channels"] == 16
+    assert experiment["head_bits"] == 2048
+    assert experiment["fc_layer_count"] == 3
+    assert experiment["block_count"] == 1
+    assert experiment["learning_rate_scheduler"] == "none"
+    assert experiment["train_eval_interval"] == 0
+    assert experiment["gate_mode"] == "paper_reference"
+    assert experiment["exact_reproduction"] is False
+    assert config["expected_storage"]["feature_cache_bytes"] == 9 * (1 << 30)
+    assert plan["launch_state"] == "ready_for_remote_launch_after_commit_push"
+
+    for fragment in (
+        "--train-rows 2097152",
+        "--validation-rows 131072",
+        "--test-rows 131072",
+        "--epochs 50",
+        "--batch-size 2000",
+        "--head-bits 2048",
+        "--block-count 1",
+        "--cuda-memory-preflight",
+        "--gate-mode paper_reference",
+        "paper_reference_plan_checks",
+        "memory_preflight.json",
+    ):
+        assert fragment in run_script
+    assert "cmd.exe /k" not in run_script + launch_script
+    assert "EnableDelayedExpansion" not in run_script + launch_script
+    assert "!" not in run_script + launch_script
+    assert 'cmd.exe /c %RUN_CMD% 0' in launch_script
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in (
+        run_script + launch_script
+    )
+    assert "C:\\Users" not in run_script + launch_script
+    assert "sleep 300" in monitor_script
+    assert "paper_reference_plan_checks" in monitor_script
+    assert "memory_preflight.json" in monitor_script
+    assert "scripts/index-results" in monitor_script
+
+
 def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     project_root = Path(__file__).resolve().parents[1]
     config_path = (
@@ -866,6 +1118,34 @@ def _bridge_config(
         weight_decay=1e-5,
         device="cuda",
         gate_mode="bridge",
+    )
+
+
+def _paper_reference_config(
+    tmp_path: Path,
+    *,
+    batch_size: int = 2000,
+) -> HighRoundIntegralExperimentConfig:
+    return HighRoundIntegralExperimentConfig(
+        run_id="i2_present_r8_paper_reference_test",
+        output_root=tmp_path / "output",
+        cache_root=tmp_path / "cache",
+        rounds=8,
+        train_rows=1 << 21,
+        validation_rows=1 << 17,
+        test_rows=1 << 17,
+        multiset_count=2,
+        epochs=50,
+        batch_size=batch_size,
+        seed=0,
+        base_channels=16,
+        head_bits=2048,
+        block_count=1,
+        dropout=0.1,
+        learning_rate=1e-3,
+        weight_decay=1e-5,
+        device="cuda",
+        gate_mode="paper_reference",
     )
 
 

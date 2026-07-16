@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -86,8 +87,96 @@ class HighRoundIntegralExperimentConfig:
         for name in ("train_rows", "validation_rows", "test_rows"):
             if int(getattr(self, name)) % 2:
                 raise ValueError(f"{name} must be even")
-        if self.gate_mode not in {"readiness", "diagnostic", "bridge"}:
-            raise ValueError("gate_mode must be readiness, diagnostic, or bridge")
+        if self.gate_mode not in {
+            "readiness",
+            "diagnostic",
+            "bridge",
+            "paper_reference",
+        }:
+            raise ValueError(
+                "gate_mode must be readiness, diagnostic, bridge, or paper_reference"
+            )
+
+
+def run_cuda_memory_preflight(
+    config: HighRoundIntegralExperimentConfig,
+) -> dict[str, Any]:
+    if not config.device.startswith("cuda"):
+        raise ValueError("CUDA memory preflight requires a CUDA device")
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA memory preflight requested but CUDA is unavailable")
+
+    device = torch.device(config.device)
+    distinct_models = (
+        ("anchor", "wu_guo_paper_family_mbconv", config.seed + 100),
+        (
+            "candidate_and_control",
+            "present_integral_structured_residual",
+            config.seed + 200,
+        ),
+        ("linear", "same_input_flat_linear", config.seed + 300),
+    )
+    model_reports: list[dict[str, Any]] = []
+    total_memory = int(torch.cuda.get_device_properties(device).total_memory)
+    input_bits = integral_input_bits(config.multiset_count)
+    for role, model_name, model_seed in distinct_models:
+        torch.manual_seed(model_seed)
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(device)
+        model = _build_model(config, model_name).to(device)
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=config.learning_rate,
+            weight_decay=config.weight_decay,
+        )
+        features = torch.randint(
+            0,
+            2,
+            (config.batch_size, input_bits),
+            dtype=torch.uint8,
+            device=device,
+        )
+        labels = torch.arange(config.batch_size, device=device).remainder(2).float()
+        optimizer.zero_grad(set_to_none=True)
+        logits = model(features).squeeze(1)
+        loss = torch.mean((torch.sigmoid(logits) - labels) ** 2)
+        loss.backward()
+        optimizer.step()
+        torch.cuda.synchronize(device)
+        peak_allocated = int(torch.cuda.max_memory_allocated(device))
+        peak_reserved = int(torch.cuda.max_memory_reserved(device))
+        model_reports.append(
+            {
+                "role": role,
+                "model": model_name,
+                "parameter_count": sum(
+                    parameter.numel() for parameter in model.parameters()
+                ),
+                "peak_allocated_bytes": peak_allocated,
+                "peak_reserved_bytes": peak_reserved,
+                "peak_reserved_fraction": peak_reserved / total_memory,
+                "loss": float(loss.detach().cpu()),
+            }
+        )
+        del features, labels, logits, loss, optimizer, model
+        torch.cuda.empty_cache()
+
+    max_peak_reserved = max(
+        int(report["peak_reserved_bytes"]) for report in model_reports
+    )
+    if max_peak_reserved / total_memory > 0.9:
+        raise RuntimeError("CUDA memory preflight left less than 10% memory headroom")
+    return {
+        "status": "pass",
+        "device": str(device),
+        "device_name": torch.cuda.get_device_name(device),
+        "device_total_memory_bytes": total_memory,
+        "batch_size": config.batch_size,
+        "input_bits": input_bits,
+        "max_peak_reserved_bytes": max_peak_reserved,
+        "max_peak_reserved_fraction": max_peak_reserved / total_memory,
+        "models": model_reports,
+    }
 
 
 def run_high_round_integral_experiment(
@@ -503,6 +592,100 @@ def adjudicate_high_round_integral(
         - strongest_fixed_parity_auc
         >= 0.01,
     }
+    paper_reference_plan_checks = {
+        "rounds_is_8": config.rounds == 8,
+        "train_total_rows_is_2_pow_21": config.train_rows == 1 << 21,
+        "validation_total_rows_is_2_pow_17": config.validation_rows == 1 << 17,
+        "test_total_rows_is_2_pow_17": config.test_rows == 1 << 17,
+        "multiset_count_is_2": config.multiset_count == 2,
+        "epochs_is_50": config.epochs == 50,
+        "batch_size_is_2000": config.batch_size == 2000,
+        "assumed_nf_base_channels_is_16": config.base_channels == 16,
+        "paper_fc_width_is_2048": config.head_bits == 2048,
+        "depicted_mbconv_block_count_is_1": config.block_count == 1,
+        "assumed_shared_dropout_is_0_1": bool(np.isclose(config.dropout, 0.1)),
+        "assumed_adam_learning_rate_is_1e_3": bool(
+            np.isclose(config.learning_rate, 1e-3)
+        ),
+        "paper_l2_weight_is_1e_5": bool(np.isclose(config.weight_decay, 1e-5)),
+        "seed_is_first_paper_reference_seed": config.seed == 0,
+        "remote_cuda_device_requested": config.device.startswith("cuda"),
+    }
+    test_rows = int(config.test_rows)
+    paper_model_checks: dict[str, bool] = {}
+    paper_accuracy_lower_bounds: dict[str, float] = {}
+    for role in ("anchor", "candidate"):
+        accuracy = float(by_role[role]["test_accuracy"])
+        auc = float(by_role[role]["test_auc"])
+        lower_bound = _wilson_lower_bound(accuracy, test_rows)
+        paper_accuracy_lower_bounds[role] = lower_bound
+        paper_model_checks[f"{role}_test_accuracy_at_least_0_53"] = (
+            accuracy >= 0.53
+        )
+        paper_model_checks[f"{role}_test_auc_at_least_0_53"] = auc >= 0.53
+        paper_model_checks[f"{role}_accuracy_95pct_lower_bound_above_chance"] = (
+            lower_bound > 0.5
+        )
+    anchor_round_reach = all(
+        paper_model_checks[name]
+        for name in (
+            "anchor_test_accuracy_at_least_0_53",
+            "anchor_test_auc_at_least_0_53",
+            "anchor_accuracy_95pct_lower_bound_above_chance",
+        )
+    )
+    candidate_round_reach = all(
+        paper_model_checks[name]
+        for name in (
+            "candidate_test_accuracy_at_least_0_53",
+            "candidate_test_auc_at_least_0_53",
+            "candidate_accuracy_95pct_lower_bound_above_chance",
+        )
+    )
+    paper_reference_signal_checks = {
+        **paper_model_checks,
+        "at_least_one_neural_model_confirms_r8_round_reach": (
+            anchor_round_reach or candidate_round_reach
+        ),
+        "shuffled_fit_validation_auc_within_0_03_of_chance": abs(
+            shuffled_fit_validation_auc - 0.5
+        )
+        <= 0.03,
+        "candidate_beats_architecture_prior_by_0_01_auc": candidate_auc
+        - architecture_prior_auc
+        >= 0.01,
+        "candidate_beats_strongest_oriented_fixed_parity_by_0_01_auc": (
+            candidate_auc - strongest_fixed_parity_auc >= 0.01
+        ),
+        "candidate_beats_anchor_by_0_005_accuracy_or_auc": max(
+            candidate_accuracy - anchor_accuracy,
+            candidate_auc - anchor_auc,
+        )
+        >= 0.005,
+    }
+    paper_reference_control_valid = bool(
+        readiness_passed
+        and paper_reference_signal_checks[
+            "shuffled_fit_validation_auc_within_0_03_of_chance"
+        ]
+    )
+    paper_reference_round_reach = bool(
+        paper_reference_signal_checks[
+            "at_least_one_neural_model_confirms_r8_round_reach"
+        ]
+    )
+    paper_reference_candidate_advantage = bool(
+        candidate_round_reach
+        and paper_reference_signal_checks[
+            "candidate_beats_architecture_prior_by_0_01_auc"
+        ]
+        and paper_reference_signal_checks[
+            "candidate_beats_strongest_oriented_fixed_parity_by_0_01_auc"
+        ]
+        and paper_reference_signal_checks[
+            "candidate_beats_anchor_by_0_005_accuracy_or_auc"
+        ]
+    )
     if config.gate_mode == "readiness":
         status = "pass" if readiness_passed else "fail"
         decision = (
@@ -548,6 +731,45 @@ def adjudicate_high_round_integral(
             "Stop mechanical sample scaling and audit the paper's missing Nf, "
             "two-multiset join, block count, and learning-rate schedule; do not run r9 or GIFT."
         )
+    elif config.gate_mode == "paper_reference" and not all(
+        paper_reference_plan_checks.values()
+    ):
+        status = "fail"
+        decision = "innovation2_high_round_integral_paper_reference_plan_mismatch"
+        next_action = (
+            "Repair the frozen 2^21-total-row paper-reference approximation "
+            "configuration before launch or interpretation."
+        )
+    elif config.gate_mode == "paper_reference" and not paper_reference_control_valid:
+        status = "fail"
+        decision = "innovation2_high_round_integral_paper_reference_invalid_control"
+        next_action = (
+            "Audit cache, split, source, shuffled-fit behavior, and approximation "
+            "parameters; do not claim paper-reference round reach."
+        )
+    elif config.gate_mode == "paper_reference" and paper_reference_candidate_advantage:
+        status = "pass"
+        decision = (
+            "innovation2_high_round_integral_paper_reference_candidate_advantage"
+        )
+        next_action = (
+            "Run one identical independent paper-reference seed before any r9 probe; "
+            "keep GIFT and AES stopped."
+        )
+    elif config.gate_mode == "paper_reference" and paper_reference_round_reach:
+        status = "pass"
+        decision = "innovation2_high_round_integral_paper_reference_round_reach_only"
+        next_action = (
+            "Report PRESENT-80 r8 paper-reference-scale round reach without an "
+            "architecture-advantage claim, then run one identical independent seed."
+        )
+    elif config.gate_mode == "paper_reference":
+        status = "hold"
+        decision = "innovation2_high_round_integral_paper_reference_not_confirmed"
+        next_action = (
+            "Stop mechanical scaling and audit the explicit Nf, dropout, block-count, "
+            "tensor-join, and learning-rate assumptions before any new high-round run."
+        )
     elif (
         not readiness_passed
         or not diagnostic_checks["shuffled_fit_validation_auc_within_0_07_of_chance"]
@@ -573,6 +795,8 @@ def adjudicate_high_round_integral(
         "diagnostic_checks": diagnostic_checks,
         "bridge_plan_checks": bridge_plan_checks,
         "bridge_signal_checks": bridge_signal_checks,
+        "paper_reference_plan_checks": paper_reference_plan_checks,
+        "paper_reference_signal_checks": paper_reference_signal_checks,
         "metrics": {
             "anchor_test_accuracy": anchor_accuracy,
             "anchor_test_auc": anchor_auc,
@@ -593,6 +817,12 @@ def adjudicate_high_round_integral(
             "strongest_oriented_fixed_parity_auc": strongest_fixed_parity_auc,
             "candidate_strongest_fixed_parity_auc_delta": candidate_auc
             - strongest_fixed_parity_auc,
+            "paper_reference_anchor_accuracy_95pct_lower_bound": (
+                paper_accuracy_lower_bounds["anchor"]
+            ),
+            "paper_reference_candidate_accuracy_95pct_lower_bound": (
+                paper_accuracy_lower_bounds["candidate"]
+            ),
         },
         "paper_alignment": {
             "headline_multisets": 2,
@@ -612,13 +842,22 @@ def adjudicate_high_round_integral(
                 "adam_initial_learning_rate",
                 "learning_rate_min_max",
             ],
+            "project_paper_reference_approximation": {
+                "base_channels_nf_assumption": 16,
+                "shared_dropout_rate_assumption": 0.1,
+                "depicted_mbconv_block_count": 1,
+                "adam_initial_learning_rate_assumption": 1e-3,
+                "learning_rate_scheduler": "none",
+                "independent_training_repetitions": 1,
+                "per_epoch_full_train_evaluation": False,
+                "final_full_train_evaluation": True,
+                "cuda_memory_preflight_required_before_cache": True,
+                "label_sampling": "deterministic_alternating_balanced",
+                "key_sampling": "deterministic_unique_per_sample",
+            },
         },
         "next_action": next_action,
-        "claim_scope": (
-            f"{'remote data-scarcity bridge' if config.gate_mode == 'bridge' else 'local'} "
-            f"PRESENT-80 r{config.rounds} Wu/Guo paper-family protocol "
-            f"{config.gate_mode}; not exact reproduction and not paper-scale"
-        ),
+        "claim_scope": _claim_scope(config),
     }
 
 
@@ -682,7 +921,7 @@ def _fit_model_row(
         checkpoint_metric="val_auc",
         restore_best_checkpoint=True,
         loss="mse",
-        train_eval_interval=1,
+        train_eval_interval=0 if config.gate_mode == "paper_reference" else 1,
     )
 
     def model_progress(event: str, payload: dict[str, Any]) -> None:
@@ -719,11 +958,7 @@ def _fit_model_row(
         batch_size=config.batch_size,
         device=config.device,
     )
-    execution_scope = (
-        "remote data-scarcity bridge"
-        if config.gate_mode == "bridge"
-        else f"local {config.gate_mode}"
-    )
+    execution_scope = _execution_scope(config)
     row: dict[str, Any] = {
         "run_id": config.run_id,
         "cipher": "PRESENT-80",
@@ -761,6 +996,8 @@ def _fit_model_row(
         "weight_decay": config.weight_decay,
         "loss": "mse",
         "optimizer": "adam",
+        "lr_scheduler": "none",
+        "train_eval_interval": training_result.metadata["train_eval_interval"],
         "history": training_result.history,
         "train_loss": true_train_metrics["loss"],
         "train_accuracy": true_train_metrics["accuracy"],
@@ -780,7 +1017,11 @@ def _fit_model_row(
         "paper_tensor_concat_assumption": "spatial_axis_1",
         "claim_scope": (
             f"PRESENT-80 r{config.rounds} {execution_scope}; "
-            "paper-family protocol only, not exact reproduction and not paper-scale"
+            + (
+                "paper-reference-scale approximation, not exact or 10-repeat reproduction"
+                if config.gate_mode == "paper_reference"
+                else "paper-family protocol only, not exact reproduction and not paper-scale"
+            )
         ),
     }
     _emit(
@@ -823,12 +1064,49 @@ def _emit(
         callback(event, payload)
 
 
+def _wilson_lower_bound(accuracy: float, total: int) -> float:
+    if total <= 0:
+        raise ValueError("total must be positive")
+    bounded_accuracy = min(1.0, max(0.0, float(accuracy)))
+    z = 1.959963984540054
+    denominator = 1.0 + (z * z) / total
+    centre = bounded_accuracy + (z * z) / (2.0 * total)
+    spread = z * math.sqrt(
+        (bounded_accuracy * (1.0 - bounded_accuracy) / total)
+        + (z * z) / (4.0 * total * total)
+    )
+    return (centre - spread) / denominator
+
+
+def _execution_scope(config: HighRoundIntegralExperimentConfig) -> str:
+    if config.gate_mode == "bridge":
+        return "remote data-scarcity bridge"
+    if config.gate_mode == "paper_reference":
+        return "remote paper-reference-scale approximation"
+    return f"local {config.gate_mode}"
+
+
+def _claim_scope(config: HighRoundIntegralExperimentConfig) -> str:
+    if config.gate_mode == "paper_reference":
+        return (
+            f"remote PRESENT-80 r{config.rounds} Wu/Guo paper-reference-scale "
+            "approximation; not exact reproduction and not the paper's 10-repeat "
+            "best-selected protocol"
+        )
+    scope = "remote data-scarcity bridge" if config.gate_mode == "bridge" else "local"
+    return (
+        f"{scope} PRESENT-80 r{config.rounds} Wu/Guo paper-family protocol "
+        f"{config.gate_mode}; not exact reproduction and not paper-scale"
+    )
+
+
 __all__ = [
     "HighRoundIntegralExperimentConfig",
     "adjudicate_high_round_integral",
     "evaluate_fixed_parity_baselines",
     "evaluate_untrained_candidate_baseline",
     "protocol_fixture",
+    "run_cuda_memory_preflight",
     "run_high_round_integral_experiment",
     "summarize_high_round_splits",
 ]

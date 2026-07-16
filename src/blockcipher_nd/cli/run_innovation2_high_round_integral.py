@@ -9,6 +9,7 @@ from typing import Any
 
 from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
     HighRoundIntegralExperimentConfig,
+    run_cuda_memory_preflight,
     run_high_round_integral_experiment,
 )
 
@@ -40,8 +41,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
     parser.add_argument(
+        "--cuda-memory-preflight",
+        action="store_true",
+        help=(
+            "Run one full-batch forward/backward/Adam step for each distinct "
+            "model architecture before generating the dataset cache."
+        ),
+    )
+    parser.add_argument(
         "--gate-mode",
-        choices=("readiness", "diagnostic", "bridge"),
+        choices=("readiness", "diagnostic", "bridge", "paper_reference"),
         default="readiness",
     )
     return parser.parse_args(argv)
@@ -95,6 +104,20 @@ def main(argv: list[str] | None = None) -> int:
             "multisets_per_sample": config.multiset_count,
         },
     )
+    if args.cuda_memory_preflight:
+        memory_preflight = run_cuda_memory_preflight(config)
+        _write_json(output_root / "memory_preflight.json", memory_preflight)
+        progress_callback(
+            "cuda_memory_preflight_done",
+            {
+                "status": memory_preflight["status"],
+                "device": memory_preflight["device"],
+                "batch_size": memory_preflight["batch_size"],
+                "max_peak_reserved_bytes": memory_preflight[
+                    "max_peak_reserved_bytes"
+                ],
+            },
+        )
     result = run_high_round_integral_experiment(
         config,
         progress_callback=progress_callback,

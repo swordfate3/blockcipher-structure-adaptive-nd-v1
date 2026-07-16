@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** seed0 remote data-scarcity bridge verified pass / independent seed1 confirmation prepared
+**状态：** seed0+seed1 remote bridge confirmed / paper-reference approximation package in preparation
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -794,3 +794,164 @@ outputs:
 ```
 
 无论联合结果如何，当前阶段都不并行启动 r9、GIFT 或 AES。
+
+### 12.4 seed1 verified 结果与双 seed 正式裁决（2026-07-16）
+
+seed1 已从 verified remote archive 回收，source、四行结果、三份磁盘 cache、
+原始归档 21 个 SHA256、严格负类、split 和 local re-adjudication 均通过：
+
+```text
+source commit = 1290275fdeef0e43b1bc14a55e0e03af0d3cc45b
+result rows = 4 / 4
+train cache = 262144 / 262144
+validation cache = 32768 / 32768
+test cache = 65536 / 65536
+anchor layout invalidated = false
+```
+
+正式 test：
+
+| seed1 角色 | accuracy | AUC | 说明 |
+|---|---:|---:|---|
+| repaired paper-family anchor | `0.530212402` | `0.541776528` | 正确逐 multiset reshape |
+| structured candidate | `0.533843994` | `0.546991938` | 本项目候选 |
+| same-input linear | `0.516311646` | `0.519512238` | 同输入线性基线 |
+| same-init shuffled candidate | `0.500000000` | `0.501086449` | fit-validation AUC `0.500786804` |
+
+seed1 candidate 差值：
+
+```text
+candidate - repaired anchor AUC        = +0.005215411
+candidate - linear AUC                 = +0.027479701
+candidate - architecture prior AUC     = +0.043738822
+candidate - strongest parity AUC       = +0.045577290
+```
+
+因此 seed1 单独通过四项 bridge signal gate，并在这一颗 seed 上达到冻结的
+`+0.005` 同预算 paper-family anchor 差值。seed0 anchor 因历史双 multiset
+reshape 错误继续排除，所以不能把 anchor 优势夸大成双 seed 架构结论。
+
+双 seed 联合结果：
+
+```text
+run_id = i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716
+status = pass
+decision = innovation2_high_round_integral_two_seed_bridge_confirmed
+candidate AUC mean / min / max = 0.546200363 / 0.545408788 / 0.546991938
+candidate-linear AUC delta mean = +0.025951483
+candidate-prior AUC delta mean = +0.044073370
+candidate-parity AUC delta mean = +0.043193145
+shuffled-fit validation AUC mean = 0.503914449
+```
+
+联合 validity 和 signal checks 全过。允许的结论是：在每颗 seed `262144 total`
+训练行（约 `131072/class`）的 bridge 上，PRESENT-80 r8 候选神经信号已由两颗
+独立 seed 确认，并超过 linear、架构先验和固定 parity 控制。这仍不是
+`2^21 total / 50 epochs / 10 repeats` 论文规模复现，也不是突破声明。
+
+权威产物：
+
+```text
+outputs/remote_results/
+  i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716/
+outputs/local_diagnostic/
+  i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716/
+outputs/00_RECENT_RESULTS.md entry = 001 joint / 002 seed1
+```
+
+证据支持的下一步是执行第 13 节 `2^21 total / 50 epochs` paper-reference
+approximation seed0；保持 r9、GIFT、AES 停止。若该规模只确认 round reach，
+只报告达到 r8；只有 candidate 同时超过 anchor 与强控制才讨论架构收益。
+
+## 13. 双 seed 通过后的论文参考规模近似契约
+
+本节只冻结可执行契约，**不授权在第 12.3 节联合门控确认前启动远程训练**。
+独立 `paper_reference` gate 已与 bridge gate 分离，防止把不同规模、epoch 或
+网络宽度的运行错误解释成 bridge 或 exact reproduction。
+
+### 13.1 同预算问题与矩阵
+
+研究问题：在论文公开的总数据量、训练轮数、batch 和 `FC2048 x3` 宽度下，
+PRESENT-80 r8 是否仍有高于随机和强控制的神经信号；同输入 structured
+candidate 是否优于 Wu/Guo paper-family anchor？唯一模型变量仍是张量组织与
+归纳偏置，数据、split、训练预算和 checkpoint 选择保持一致。
+
+```text
+cipher / rounds             = PRESENT-80 / 8
+train total / approx class  = 2^21 / 2^20
+validation total / class    = 2^17 / 2^16
+test total / class          = 2^17 / 2^16
+multisets / texts           = 2 / 16 each
+input bits                  = 4096
+epochs / batch              = 50 / 2000
+loss / optimizer / L2       = MSE / Adam / 1e-5
+checkpoint                  = best validation AUC, restored before test
+seed                         = 0 first
+device                       = remote A6000
+gate mode                    = paper_reference
+```
+
+四行矩阵保持精简且同预算：paper-family anchor、structured candidate、flat
+linear、same-init shuffled-label candidate。固定 parity 与 same-init untrained
+candidate 不训练，但必须使用完全相同的 test split。第一颗 paper-reference
+seed 通过后才准备完全相同的独立 seed；不执行论文的 10 次独立训练取最好值，
+因此只能支持项目级 paper-reference-scale approximation。
+
+### 13.2 显式近似参数
+
+论文没有公开以下数值，本项目冻结一组可审计假设，不允许在结果揭盲后调参：
+
+```text
+Nf / base channels           = 16（假设）
+MBConv block count           = 1（按图 7 画出的单 block）
+FC width / count             = 2048 / 3（原文明确）
+MBConv and dense dropout     = 0.1 / 0.1（共享假设）
+Adam initial learning rate   = 1e-3（假设）
+learning-rate scheduler      = none（Algorithm 1 缺失 min/max 与归一化项）
+label sampling               = deterministic alternating 50/50
+key sampling                 = deterministic unique 80-bit key per sample
+two-multiset tensor join     = per-multiset [16,16,8], then spatial-axis concat
+independent repetitions      = 1 first，非论文 10-repeat best selection
+per-epoch full train eval     = disabled；最终 checkpoint 仅完整评估一次 train
+CUDA memory preflight        = batch 2000 forward/backward/Adam，先于 cache 生成
+```
+
+这些假设、原文缺失项和 `exact_reproduction=false` 必须写入 gate、结果行、远程
+配置和最终报告。后续若找到作者代码，只能另开 protocol audit，不能静默改写
+已冻结运行。
+
+### 13.3 Advance / stop gate
+
+计划对齐必须逐项满足第 13.1--13.2 节参数。控制有效还要求 cache/split/fixture/
+strict negative 全过，且 shuffled-fit validation AUC 距 `0.5 <= 0.03`。
+
+PRESENT-80 r8 round reach 对 anchor 与 candidate 分别检查：
+
+```text
+test accuracy >= 0.53
+test AUC >= 0.53
+test accuracy Wilson 95% lower confidence bound > 0.50
+```
+
+任一神经模型同时满足三项，只能确认 paper-reference-scale r8 round reach。
+candidate 架构优势还必须同时满足：
+
+```text
+candidate - oriented architecture prior AUC >= 0.01
+candidate - strongest oriented fixed parity AUC >= 0.01
+max(candidate-anchor accuracy delta, AUC delta) >= 0.005
+```
+
+裁决：
+
+- round reach 与 candidate 优势均过：确认候选在该近似协议的单 seed 优势，
+  下一步只运行同协议独立 seed；
+- 仅 round reach 过：只报告达到 r8，不声明超过 paper-family anchor；随后运行
+  同协议独立 seed；
+- round reach 未过：停止机械放大，审计 `Nf/dropout/block/LR/tensor join`；
+- source/cache/control/plan 失效：修证据链，不解释指标。
+
+联合 bridge 已确认，远程包可以生成；但 launcher 只能在本节实现与配置完成
+测试、范围提交并成功推送后，从该精确 commit 启动。启动前先完成 batch 2000
+CUDA 显存预检，失败时不得生成 9 GiB cache。不启动 r9、GIFT、AES 或其他
+密码扩展。
