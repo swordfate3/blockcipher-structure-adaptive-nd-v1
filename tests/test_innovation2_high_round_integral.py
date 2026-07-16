@@ -435,6 +435,11 @@ def test_retrieved_bridge_readjudication_excludes_invalid_anchor_layout(
         json.dumps({"status": "pass", "decision": "remote_old_gate"}),
         encoding="utf-8",
     )
+    source_commit = "4b3a2c33cc323b5586533f0fffb78edbe70e0adf"
+    (artifacts / "git_revision.txt").write_text(
+        source_commit + "\n",
+        encoding="utf-8",
+    )
     project_root = Path(__file__).resolve().parents[1]
     remote_config = project_root / (
         "configs/remote/innovation2_present_r8_high_round_integral_bridge_"
@@ -445,13 +450,26 @@ def test_retrieved_bridge_readjudication_excludes_invalid_anchor_layout(
         artifacts,
         remote_config,
         invalidate_anchor_layout=True,
+        expected_source_commit=source_commit,
     )
 
     assert gate["status"] == "hold"
     assert gate["decision"] == "innovation2_high_round_integral_bridge_stop"
     assert gate["readjudication"]["policy_version"] == POLICY_VERSION
     assert gate["readjudication"]["anchor_layout_invalidated"] is True
+    assert gate["readjudication"]["source_revision_matches_expected"] is True
     assert gate["readjudication"]["evidence_exclusions"][0]["role"] == "anchor"
+
+    mismatch = readjudicate_retrieved_artifacts(
+        artifacts,
+        remote_config,
+        invalidate_anchor_layout=True,
+        expected_source_commit="0" * 40,
+    )
+    assert mismatch["status"] == "fail"
+    assert mismatch["decision"] == (
+        "innovation2_high_round_integral_readjudication_source_mismatch"
+    )
 
 
 def test_bridge_gate_rejects_invalid_shuffled_fit_control(tmp_path: Path) -> None:

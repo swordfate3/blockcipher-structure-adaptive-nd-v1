@@ -68,11 +68,12 @@ while true; do
       --artifacts "${DESTINATION}" \
       --remote-config "${DESTINATION}/remote_config.json" \
       --invalidate-anchor-layout \
+      --expected-source-commit "4b3a2c33cc323b5586533f0fffb78edbe70e0adf" \
       --output "${DESTINATION}/gate.local.json" \
       >> "${MONITOR_ROOT}/readjudication.log" \
       2>> "${MONITOR_ROOT}/readjudication_stderr.log" || exit 3
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
-      "import json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); local_gate=json.loads((root/'gate.local.json').read_text()); data=json.loads((root/'dataset_summary.json').read_text()); cache=json.loads((root/'cache_metadata.json').read_text()); assert all(gate['bridge_plan_checks'].values()); assert all(local_gate['bridge_plan_checks'].values()); assert local_gate['readjudication']['anchor_layout_invalidated']; assert gate['artifact_validation']['status']=='pass'; assert data['status']=='pass'; assert len(cache)==3 and all(v['status']=='complete' for v in cache.values())" \
+      "import json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); local_gate=json.loads((root/'gate.local.json').read_text()); data=json.loads((root/'dataset_summary.json').read_text()); cache=json.loads((root/'cache_metadata.json').read_text()); assert all(gate['bridge_plan_checks'].values()); assert all(local_gate['bridge_plan_checks'].values()); assert local_gate['readjudication']['anchor_layout_invalidated']; assert local_gate['readjudication']['source_revision_matches_expected']; assert gate['artifact_validation']['status']=='pass'; assert data['status']=='pass'; assert len(cache)==3 and all(v['status']=='complete' for v in cache.values())" \
       >> "${MONITOR_ROOT}/readjudication.log" 2>> "${MONITOR_ROOT}/readjudication_stderr.log" || exit 3
     touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \

@@ -25,6 +25,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--remote-config", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--invalidate-anchor-layout", action="store_true")
+    parser.add_argument("--expected-source-commit", default=None)
     return parser.parse_args(argv)
 
 
@@ -33,6 +34,7 @@ def readjudicate_retrieved_artifacts(
     remote_config_path: Path,
     *,
     invalidate_anchor_layout: bool,
+    expected_source_commit: str | None = None,
 ) -> dict[str, Any]:
     remote_config = _load_object(remote_config_path)
     experiment = remote_config.get("experiment")
@@ -69,6 +71,24 @@ def readjudicate_retrieved_artifacts(
         dataset_summary=dataset_summary,
         fixed_baselines=fixed_baselines,
     )
+    source_revision_path = artifacts / "git_revision.txt"
+    source_revision = (
+        source_revision_path.read_text(encoding="utf-8").strip()
+        if source_revision_path.is_file()
+        else ""
+    )
+    source_revision_matches = (
+        expected_source_commit is None or source_revision == expected_source_commit
+    )
+    if not source_revision_matches:
+        gate["status"] = "fail"
+        gate["decision"] = (
+            "innovation2_high_round_integral_readjudication_source_mismatch"
+        )
+        gate["next_action"] = (
+            "Reject plan alignment and retrieve artifacts from the exact frozen "
+            "source commit before interpreting any metric."
+        )
     exclusions = []
     if invalidate_anchor_layout:
         exclusions.append(
@@ -87,6 +107,9 @@ def readjudicate_retrieved_artifacts(
             "anchor_layout_invalidated": invalidate_anchor_layout,
             "evidence_exclusions": exclusions,
             "candidate_only_absolute_signal_gate": True,
+            "source_revision": source_revision,
+            "expected_source_commit": expected_source_commit,
+            "source_revision_matches_expected": source_revision_matches,
         },
     }
 
@@ -97,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
         args.artifacts,
         args.remote_config,
         invalidate_anchor_layout=args.invalidate_anchor_layout,
+        expected_source_commit=args.expected_source_commit,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

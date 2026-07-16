@@ -601,9 +601,12 @@ scripts/readjudicate-innovation2-high-round-integral
   --artifacts outputs/remote_results/<run_id>
   --remote-config outputs/remote_results/<run_id>/remote_config.json
   --invalidate-anchor-layout
+  --expected-source-commit 4b3a2c33cc323b5586533f0fffb78edbe70e0adf
   --output outputs/remote_results/<run_id>/gate.local.json
 ```
 
 `gate.local.json` 会记录 policy version 和被排除的 anchor 角色；原始远程
 `gate.json` 保留作运行历史。最近结果索引优先读取 `gate.local.json`，因此不会
 展示旧 anchor-only gate 的错误 advance，但仍可分别检查两份门控文件。
+如果归档的 `git_revision.txt` 不等于上述冻结提交，本地重裁决直接返回
+`innovation2_high_round_integral_readjudication_source_mismatch`，不解释指标。
