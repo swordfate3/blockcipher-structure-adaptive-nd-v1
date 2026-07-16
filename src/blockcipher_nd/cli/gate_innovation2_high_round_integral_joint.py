@@ -9,15 +9,21 @@ from typing import Any
 
 from blockcipher_nd.tasks.innovation2.high_round_integral_joint import (
     adjudicate_joint_high_round_integral,
+    adjudicate_joint_paper_reference,
 )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Jointly adjudicate two verified Innovation 2 PRESENT-80 r8 bridge "
+            "Jointly adjudicate two verified Innovation 2 PRESENT-80 r8 "
             "artifact directories without training."
         )
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("bridge", "paper_reference"),
+        default="bridge",
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--source-artifacts", nargs=2, required=True, type=Path)
@@ -28,10 +34,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     sources = [_load_source(path) for path in args.source_artifacts]
-    result = adjudicate_joint_high_round_integral(
-        run_id=args.run_id,
-        sources=sources,
+    adjudicate = (
+        adjudicate_joint_high_round_integral
+        if args.mode == "bridge"
+        else adjudicate_joint_paper_reference
     )
+    result = adjudicate(run_id=args.run_id, sources=sources)
     args.output_root.mkdir(parents=True, exist_ok=True)
     progress_path = args.output_root / "progress.jsonl"
     _write_progress(
@@ -40,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         {
             "run_id": args.run_id,
             "source_artifacts": [str(path) for path in args.source_artifacts],
+            "mode": args.mode,
             "training_performed": False,
         },
         mode="w",
@@ -61,7 +70,14 @@ def main(argv: list[str] | None = None) -> int:
     csv_path = args.output_root / "seed_metrics.csv"
     _write_csv(csv_path, result["rows"])
     curves_path = args.output_root / "curves.svg"
-    render_joint_bridge_svg(result["rows"], result["gate"], curves_path)
+    if args.mode == "bridge":
+        render_joint_bridge_svg(result["rows"], result["gate"], curves_path)
+    else:
+        render_joint_paper_reference_svg(
+            result["rows"], result["gate"], curves_path
+        )
+    (args.output_root / "visual_qa_passed.marker").unlink(missing_ok=True)
+    (args.output_root / "visual_qa_pending.marker").touch()
     _write_progress(
         progress_path,
         "run_done",
@@ -69,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
             "run_id": args.run_id,
             "status": result["gate"]["status"],
             "decision": result["gate"]["decision"],
+            "visual_qa_status": "pending",
             "training_performed": False,
         },
         mode="a",
@@ -82,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
         "gate": str(gate_path),
         "metrics": str(csv_path),
         "curves": str(curves_path),
+        "visual_qa_status": "pending",
         "next_action": result["gate"]["next_action"],
     }
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
@@ -99,12 +117,17 @@ def _load_source(path: Path) -> dict[str, Any]:
     ]
     if not isinstance(gate, dict):
         raise ValueError(f"expected JSON object: {gate_path}")
-    return {"artifact_root": str(path), "gate": gate, "rows": rows}
+    return {
+        "artifact_root": str(path),
+        "gate": gate,
+        "rows": rows,
+        "visual_qa_passed": (path / "visual_qa_passed.marker").is_file(),
+    }
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
-        raise ValueError("joint bridge CSV requires rows")
+        raise ValueError("joint Innovation 2 CSV requires rows")
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -268,7 +291,208 @@ def render_joint_bridge_svg(
         plt.close(fig)
 
 
-__all__ = ["main", "parse_args", "render_joint_bridge_svg"]
+def render_joint_paper_reference_svg(
+    rows: list[dict[str, Any]],
+    gate: dict[str, Any],
+    output: Path,
+) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    rc = {
+        "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+        "font.size": 9.5,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": "#CBD5E1",
+        "axes.labelcolor": "#334155",
+        "xtick.color": "#475569",
+        "ytick.color": "#475569",
+        "text.color": "#0F172A",
+        "svg.fonttype": "none",
+    }
+    auc_series = (
+        ("论文族锚点", "anchor_test_auc", "#2563EB"),
+        ("创新2候选", "candidate_test_auc", "#DC2626"),
+        ("线性基线", "linear_test_auc", "#D97706"),
+        ("标签打乱", "shuffled_test_auc", "#64748B"),
+        ("架构先验", "architecture_prior_oriented_auc", "#7C3AED"),
+        ("最强 parity", "strongest_oriented_fixed_parity_auc", "#059669"),
+    )
+    margin_series = (
+        ("相对锚点 AUC", "candidate_anchor_auc_delta", "#2563EB"),
+        ("相对锚点准确率", "candidate_anchor_accuracy_delta", "#0891B2"),
+        ("相对架构先验", "candidate_architecture_prior_auc_delta", "#7C3AED"),
+        ("相对 parity", "candidate_strongest_fixed_parity_auc_delta", "#059669"),
+    )
+    with plt.rc_context(rc):
+        fig, axes = plt.subplots(1, 2, figsize=(12.4, 6.8))
+        fig.subplots_adjust(
+            left=0.075,
+            right=0.975,
+            top=0.76,
+            bottom=0.29,
+            wspace=0.24,
+        )
+        fig.suptitle(
+            "创新2：PRESENT-80 8轮论文参考规模双 seed 联合裁决",
+            x=0.075,
+            y=0.965,
+            ha="left",
+            fontsize=15,
+            fontweight="bold",
+        )
+        fig.text(
+            0.075,
+            0.91,
+            (
+                "每颗 seed：2,097,152 总训练行（1,048,576/类）｜"
+                "50 epochs｜验证与测试各 131,072 行｜非精确复现"
+            ),
+            ha="left",
+            fontsize=10,
+            color="#475569",
+        )
+
+        x = list(range(len(rows)))
+        auc_width = 0.12
+        auc_values: list[float] = []
+        for series_index, (label, key, color) in enumerate(auc_series):
+            offset = (series_index - 2.5) * auc_width
+            values = [float(row[key]) for row in rows]
+            auc_values.extend(values)
+            bars = axes[0].bar(
+                [position + offset for position in x],
+                values,
+                width=auc_width,
+                label=label,
+                color=color,
+                alpha=0.92,
+            )
+            axes[0].bar_label(
+                bars,
+                fmt="%.3f",
+                fontsize=7.1,
+                padding=2,
+                rotation=90,
+            )
+        axes[0].axhline(
+            0.5,
+            color="#94A3B8",
+            linewidth=1.0,
+            linestyle=(0, (2, 2)),
+        )
+        axes[0].axhline(
+            0.53,
+            color="#DC2626",
+            linewidth=1.0,
+            linestyle=(0, (4, 3)),
+        )
+        axes[0].set_ylim(
+            max(0.47, min(auc_values) - 0.012),
+            min(1.0, max(auc_values) + 0.025),
+        )
+        axes[0].set_xticks(x, [f"seed {int(row['seed'])}" for row in rows])
+        axes[0].set_ylabel("独立测试 AUC")
+        axes[0].set_title(
+            "候选、论文族锚点与强控制",
+            loc="left",
+            fontweight="bold",
+        )
+        axes[0].grid(axis="y", color="#E2E8F0", linewidth=0.7, alpha=0.75)
+        auc_handles, auc_labels = axes[0].get_legend_handles_labels()
+
+        margin_values: list[float] = []
+        margin_width = 0.17
+        for series_index, (label, key, color) in enumerate(margin_series):
+            offset = (series_index - 1.5) * margin_width
+            values = [float(row[key]) for row in rows]
+            margin_values.extend(values)
+            bars = axes[1].bar(
+                [position + offset for position in x],
+                values,
+                width=margin_width,
+                label=label,
+                color=color,
+                alpha=0.92,
+            )
+            axes[1].bar_label(bars, fmt="%+.3f", fontsize=7.8, padding=3)
+        axes[1].axhline(0.0, color="#94A3B8", linewidth=0.9)
+        axes[1].axhline(
+            0.005,
+            color="#2563EB",
+            linewidth=1.0,
+            linestyle=(0, (3, 3)),
+        )
+        axes[1].axhline(
+            0.01,
+            color="#DC2626",
+            linewidth=1.0,
+            linestyle=(0, (4, 3)),
+        )
+        axes[1].set_ylim(
+            min(-0.01, min(margin_values) - 0.01),
+            max(0.025, max(margin_values) + 0.015),
+        )
+        axes[1].set_xticks(x, [f"seed {int(row['seed'])}" for row in rows])
+        axes[1].set_ylabel("创新2候选的指标优势")
+        axes[1].set_title(
+            "归因 margin（蓝线 +0.005，红线 +0.01）",
+            loc="left",
+            fontweight="bold",
+        )
+        axes[1].grid(axis="y", color="#E2E8F0", linewidth=0.7, alpha=0.75)
+        margin_handles, margin_labels = axes[1].get_legend_handles_labels()
+
+        fig.legend(
+            auc_handles,
+            auc_labels,
+            loc="lower left",
+            bbox_to_anchor=(0.075, 0.105),
+            ncol=3,
+            frameon=False,
+            fontsize=9.0,
+        )
+        fig.legend(
+            margin_handles,
+            margin_labels,
+            loc="lower right",
+            bbox_to_anchor=(0.975, 0.12),
+            ncol=2,
+            frameon=False,
+            fontsize=9.0,
+        )
+
+        decision = str(gate.get("decision", ""))
+        if decision.endswith("candidate_advantage_confirmed"):
+            verdict = "通过：双 seed 均确认创新2候选相对论文族锚点与强控制的优势"
+        elif decision.endswith("round_reach_confirmed"):
+            verdict = "通过：双 seed 均达到 PRESENT-80 8轮；不声明候选架构优势"
+        elif decision.endswith("seed_variance_hold"):
+            verdict = "暂缓：paper-reference 信号存在 seed 方差，停止机械追加 seed"
+        else:
+            verdict = "无效：source、协议、控制、revision 或视觉证据不完整"
+        fig.text(
+            0.075,
+            0.035,
+            verdict,
+            ha="left",
+            fontsize=10.2,
+            fontweight="bold",
+        )
+        fig.savefig(output, format="svg")
+        plt.close(fig)
+
+
+__all__ = [
+    "main",
+    "parse_args",
+    "render_joint_bridge_svg",
+    "render_joint_paper_reference_svg",
+]
 
 
 if __name__ == "__main__":

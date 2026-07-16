@@ -1048,3 +1048,16 @@ i2_present_r8_high_round_integral_paper_reference_2pow21_joint_seed0_seed1
 匹配、本地重裁决有效、计划与 readiness 全过、shuffled-fit 控制有效，并且两颗
 最终图均有 `visual_qa_passed.marker`。联合 CLI 和真实图只在 seed1 完成后加载
 artifact；不得修改这里已冻结的 decision 分支和阈值。
+
+联合 artifact CLI 使用现有入口：
+
+```text
+scripts/gate-innovation2-high-round-integral-joint --mode paper_reference
+```
+
+该模式会从两个 verified source 目录读取 `gate.local.json`、`results.jsonl` 和
+`visual_qa_passed.marker`，执行预注册纯 gate，并生成 `results.jsonl`、
+`gate.json`、`seed_metrics.csv`、`progress.jsonl` 与专用中文 `curves.svg`。
+每次绘图后 CLI 会删除旧 pass 并写 `visual_qa_pending.marker`。真实联合图生成后
+仍必须单独调用 `visual-qa-redraw`，不能用两颗 source 已通过视觉 QA 代替联合图
+自身的像素验收；验收完成后才删除 pending 并写 `visual_qa_passed.marker`。

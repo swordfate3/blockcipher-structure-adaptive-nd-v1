@@ -1301,6 +1301,56 @@ def test_joint_paper_reference_rejects_invalid_sources(invalid_case: str) -> Non
     )
 
 
+def test_joint_paper_reference_cli_writes_complete_artifacts(tmp_path: Path) -> None:
+    source_roots = [tmp_path / "seed0", tmp_path / "seed1"]
+    for seed, source_root in enumerate(source_roots):
+        source = _joint_paper_reference_source(seed=seed)
+        source_root.mkdir()
+        (source_root / "gate.local.json").write_text(
+            json.dumps(source["gate"]),
+            encoding="utf-8",
+        )
+        (source_root / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in source["rows"]),
+            encoding="utf-8",
+        )
+        (source_root / "visual_qa_passed.marker").touch()
+    output_root = tmp_path / "joint"
+
+    status = joint_gate_main(
+        [
+            "--mode",
+            "paper_reference",
+            "--run-id",
+            (
+                "i2_present_r8_high_round_integral_paper_reference_"
+                "2pow21_joint_seed0_seed1"
+            ),
+            "--source-artifacts",
+            str(source_roots[0]),
+            str(source_roots[1]),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    assert (output_root / "results.jsonl").is_file()
+    assert (output_root / "gate.json").is_file()
+    assert (output_root / "seed_metrics.csv").is_file()
+    assert (output_root / "progress.jsonl").is_file()
+    assert (output_root / "visual_qa_pending.marker").is_file()
+    assert not (output_root / "visual_qa_passed.marker").exists()
+    assert "论文参考规模双 seed 联合裁决" in (
+        output_root / "curves.svg"
+    ).read_text(encoding="utf-8")
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    assert gate["decision"] == (
+        "innovation2_high_round_integral_two_seed_paper_reference_"
+        "candidate_advantage_confirmed"
+    )
+
+
 def test_joint_bridge_cli_writes_complete_artifacts(tmp_path: Path) -> None:
     source_roots = [tmp_path / "seed0", tmp_path / "seed1"]
     for seed, source_root in enumerate(source_roots):
