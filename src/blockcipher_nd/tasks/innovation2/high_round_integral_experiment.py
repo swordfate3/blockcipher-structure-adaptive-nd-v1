@@ -608,7 +608,7 @@ def adjudicate_high_round_integral(
             np.isclose(config.learning_rate, 1e-3)
         ),
         "paper_l2_weight_is_1e_5": bool(np.isclose(config.weight_decay, 1e-5)),
-        "seed_is_first_paper_reference_seed": config.seed == 0,
+        "seed_is_frozen_paper_reference_seed": config.seed in {0, 1},
         "remote_cuda_device_requested": config.device.startswith("cuda"),
     }
     test_rows = int(config.test_rows)

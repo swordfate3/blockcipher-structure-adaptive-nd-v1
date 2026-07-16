@@ -951,6 +951,10 @@ max(candidate-anchor accuracy delta, AUC delta) >= 0.005
 - round reach 未过：停止机械放大，审计 `Nf/dropout/block/LR/tensor join`；
 - source/cache/control/plan 失效：修证据链，不解释指标。
 
+paper-reference seed 集合冻结为 `{0, 1}`：seed0 是当前首颗运行，seed1 只能在
+seed0 完整回收且裁决为 `candidate_advantage` 或 `round_reach_only` 后启用。
+seed2 及更多重复不属于当前计划，必须由新的实验问题和计划另行授权。
+
 联合 bridge 已确认，远程包可以生成；但 launcher 只能在本节实现与配置完成
 测试、范围提交并成功推送后，从该精确 commit 启动。启动前先完成 batch 2000
 CUDA 显存预检，失败时不得生成 9 GiB cache。不启动 r9、GIFT、AES 或其他

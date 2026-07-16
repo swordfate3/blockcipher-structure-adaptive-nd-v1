@@ -599,6 +599,36 @@ def test_paper_reference_gate_holds_weak_signal_and_rejects_plan_mismatch(
     ]
 
 
+def test_paper_reference_gate_allows_only_frozen_seed0_seed1_pair(
+    tmp_path: Path,
+) -> None:
+    rows = _bridge_rows(candidate_auc=0.56, anchor_auc=0.54)
+    seed1_gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path, seed=1),
+        rows=rows,
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+    seed2_gate = adjudicate_high_round_integral(
+        _paper_reference_config(tmp_path, seed=2),
+        rows=rows,
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert seed1_gate["status"] == "pass"
+    assert seed1_gate["paper_reference_plan_checks"][
+        "seed_is_frozen_paper_reference_seed"
+    ]
+    assert seed2_gate["status"] == "fail"
+    assert seed2_gate["decision"] == (
+        "innovation2_high_round_integral_paper_reference_plan_mismatch"
+    )
+    assert not seed2_gate["paper_reference_plan_checks"][
+        "seed_is_frozen_paper_reference_seed"
+    ]
+
+
 def test_innovation2_plot_titles_and_model_roles_are_human_readable() -> None:
     from blockcipher_nd.evaluation.plots import _compact_label, _display_title
 
@@ -1174,6 +1204,7 @@ def _paper_reference_config(
     tmp_path: Path,
     *,
     batch_size: int = 2000,
+    seed: int = 0,
 ) -> HighRoundIntegralExperimentConfig:
     return HighRoundIntegralExperimentConfig(
         run_id="i2_present_r8_paper_reference_test",
@@ -1186,7 +1217,7 @@ def _paper_reference_config(
         multiset_count=2,
         epochs=50,
         batch_size=batch_size,
-        seed=0,
+        seed=seed,
         base_channels=16,
         head_bits=2048,
         block_count=1,
