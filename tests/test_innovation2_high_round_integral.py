@@ -346,6 +346,9 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
         project_root
         / "configs/remote/generated/run_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd"
     ).read_text(encoding="utf-8")
+    cli_wrapper = (
+        project_root / "scripts/run-innovation2-high-round-integral"
+    ).read_text(encoding="utf-8")
     launch_script = (
         project_root
         / "configs/remote/generated/launch_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd"
@@ -418,6 +421,8 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     assert "_started.marker" in run_script
     assert "_done.marker" in run_script
     assert "_failed.marker" in run_script
+    assert "_done.marker\" goto already_complete" in run_script
+    assert "sys.path.insert" in cli_wrapper
     assert "cache_metadata.json" in run_script
     assert "result_branch_pushed.marker" in monitor_script
     assert "scripts/index-results" in monitor_script

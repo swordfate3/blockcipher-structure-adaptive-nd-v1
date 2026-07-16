@@ -475,3 +475,24 @@ source 和 pinned commit，并写入 `started.marker`；成功推送验证结果
 缓存 feature 原始大小约 `1.375 GiB`，另有标签、日志和小型结果文件。依据本地
 r8 同实现生成/训练速度，保守预计远程全流程 `1--3 小时`；实际进度以 watcher
 同步的 `progress.jsonl` 为准，不以 GPU 显存下降推断完成。
+
+### 11.5 首次启动失败与修复
+
+首次启动使用提交 `81c8cb12a804742a56d77188318f9458ff21e90a`。远程证据确认：
+
+```text
+source revision = match
+remote readiness = pass
+torch = 2.5.1+cu118
+CUDA = 11.8 / available true / visible A6000 count 1
+started.marker = present
+dataset progress = not started
+failure = ModuleNotFoundError: No module named 'blockcipher_nd'
+```
+
+原因是新 CLI wrapper 在远程直接使用环境 Python 时没有把仓库 `src/` 放入
+`sys.path`；本地 `uv run` 的已安装项目环境掩盖了这个入口差异。修复后 wrapper
+与仓库其他 thin entrypoint 一致，显式插入 `<repo>/src`。run script 还增加了
+fail-closed retry 规则：已有 `done.marker` 时拒绝重跑；仅在未完成时清除旧的
+`failed/started/failure_reason` 运行标记，缓存和首次失败日志不删除。重新启动
+必须来自包含该修复的已推送新提交。

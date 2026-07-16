@@ -24,6 +24,10 @@ if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
 if not exist "%CACHE_ROOT%" mkdir "%CACHE_ROOT%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 if not exist "%RESULTS_DIR%" mkdir "%RESULTS_DIR%"
+if exist "%LOG_DIR%\%RUN_ID%_done.marker" goto already_complete
+if exist "%LOG_DIR%\%RUN_ID%_failed.marker" del /Q "%LOG_DIR%\%RUN_ID%_failed.marker"
+if exist "%LOG_DIR%\%RUN_ID%_started.marker" del /Q "%LOG_DIR%\%RUN_ID%_started.marker"
+if exist "%LOG_DIR%\%RUN_ID%_failure_reason.txt" del /Q "%LOG_DIR%\%RUN_ID%_failure_reason.txt"
 
 cd /d "%SOURCE_ROOT%" || goto failed
 for /f "delims=" %%S in ('git status --porcelain') do goto dirty_source
@@ -109,6 +113,9 @@ exit /b 4
 
 :invalid_arguments
 exit /b 5
+
+:already_complete
+exit /b 7
 
 :failed
 echo failed>"%LOG_DIR%\%RUN_ID%_failed.marker"
