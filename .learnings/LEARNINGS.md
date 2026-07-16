@@ -28,14 +28,26 @@ current Cloudflare verification, while three closed publisher papers have no
 legal open copy in the checked sources. Neither state should be summarized as
 "all papers downloaded" or "only metadata exists" without qualification.
 
+A later cross-project local filesystem audit found verified author manuscripts
+for two entries previously marked `access_blocked`: Zahednejad and Lyu 2022 and
+Hwang et al. 2026. User-supplied ePrints and a CANS proceedings volume then
+resolved five more blocked or metadata-only entries, with the target Todo/Morii
+chapter extracted from the full book and duplicate books excluded from the paper
+count. The Innovation 2 corpus therefore increased from 14 to 23 verified PDFs,
+while the main full-text gap fell from seven papers to one confirmed publisher
+paywall. Remote access status and local full-text availability are independent
+fields.
+
 ### Suggested Action
 
 For future Innovation 1/2 literature audits, combine DOI/OpenAlex/Crossref
 metadata with saved venue-native searches using exact task, cipher, and method
-terms. Report the dated coverage, verified local PDF count, project-existing
-copies, open-but-access-blocked PDFs, closed full-text gaps, and excluded
-papers separately. Use "executable corpus" rather than "complete search"
-unless a documented systematic-review protocol justifies completeness.
+terms, then search the broader local research workspace by exact title before
+declaring a full-text gap. Report remote access status separately from verified
+local PDF count, project-existing copies, open-but-access-blocked PDFs, closed
+full-text gaps, and excluded papers. Use "executable corpus" rather than
+"complete search" unless a documented systematic-review protocol justifies
+completeness.
 
 ### Metadata
 
@@ -44,7 +56,7 @@ unless a documented systematic-review protocol justifies completeness.
 - Tags: innovation2, literature, completeness, iacr, present, integral-resistance, monomial-prediction, access-status
 - See Also: LRN-20260716-008, LRN-20260708-001
 - Pattern-Key: research.literature.executable_corpus_not_exhaustive
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-16
 - Last-Seen: 2026-07-16
 
@@ -52,7 +64,7 @@ unless a documented systematic-review protocol justifies completeness.
 
 - **Resolved**: 2026-07-16T15:42:57+08:00
 - **Commit/PR**: pending
-- **Notes**: Added venue-native IACR search snapshots, new baseline entries, and explicit PDF-access categories to the Innovation 2 corpus audit.
+- **Notes**: Added venue-native IACR searches, cross-project local-title search, manual-PDF validation and chapter extraction, new baseline entries, and explicit remote-access versus local-availability categories.
 
 ---
 
