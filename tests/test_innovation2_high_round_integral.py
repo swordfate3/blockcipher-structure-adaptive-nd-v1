@@ -11,6 +11,9 @@ import torch
 
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+from blockcipher_nd.cli.check_innovation2_paper_reference_seed1 import (
+    main as seed1_precondition_main,
+)
 from blockcipher_nd.cli.gate_innovation2_high_round_integral_joint import (
     main as joint_gate_main,
 )
@@ -44,6 +47,11 @@ from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
 from blockcipher_nd.tasks.innovation2.high_round_integral_joint import (
     adjudicate_joint_high_round_integral,
     adjudicate_joint_paper_reference,
+)
+from blockcipher_nd.planning.innovation2_paper_reference_precondition import (
+    BLOCKED_DECISION,
+    READY_DECISION,
+    paper_reference_seed1_precondition_report,
 )
 
 
@@ -786,6 +794,104 @@ def test_paper_reference_seed1_plan_is_conditional_and_changes_only_seed() -> No
             "reject_joint_interpretation_and_repair_evidence"
         ),
     }
+
+
+def test_paper_reference_seed1_precondition_allows_package_generation_only(
+    tmp_path: Path,
+) -> None:
+    plan_path, source_root = _seed1_precondition_fixture(tmp_path)
+
+    report = paper_reference_seed1_precondition_report(
+        plan_path=plan_path,
+        source_root=source_root,
+    )
+
+    assert report["status"] == "pass"
+    assert report["decision"] == READY_DECISION
+    assert all(report["checks"].values())
+    assert report["errors"] == []
+    assert report["should_generate_remote_package"] is True
+    assert report["should_launch_remote"] is False
+
+    output = tmp_path / "precondition.json"
+    status = seed1_precondition_main(
+        [
+            "--plan",
+            str(plan_path),
+            "--source-artifacts",
+            str(source_root),
+            "--output",
+            str(output),
+        ]
+    )
+    assert status == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["decision"] == (
+        READY_DECISION
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_case",
+    [
+        "missing_visual_pass",
+        "visual_pending",
+        "decision",
+        "revision",
+        "cache",
+        "malformed_cache",
+        "validation",
+        "wrong_seed",
+    ],
+)
+def test_paper_reference_seed1_precondition_stays_blocked_on_invalid_evidence(
+    tmp_path: Path,
+    invalid_case: str,
+) -> None:
+    plan_path, source_root = _seed1_precondition_fixture(tmp_path)
+    if invalid_case == "missing_visual_pass":
+        (source_root / "visual_qa_passed.marker").unlink()
+    elif invalid_case == "visual_pending":
+        (source_root / "visual_qa_pending.marker").touch()
+    elif invalid_case == "decision":
+        gate = json.loads((source_root / "gate.local.json").read_text())
+        gate["status"] = "hold"
+        gate["decision"] = PAPER_REFERENCE_NOT_CONFIRMED_DECISION_FOR_TEST
+        (source_root / "gate.local.json").write_text(json.dumps(gate))
+    elif invalid_case == "revision":
+        gate = json.loads((source_root / "gate.local.json").read_text())
+        gate["readjudication"]["source_revision_matches_expected"] = False
+        (source_root / "gate.local.json").write_text(json.dumps(gate))
+    elif invalid_case == "cache":
+        cache = json.loads((source_root / "cache_metadata.json").read_text())
+        next(iter(cache.values()))["status"] = "partial"
+        (source_root / "cache_metadata.json").write_text(json.dumps(cache))
+    elif invalid_case == "malformed_cache":
+        (source_root / "cache_metadata.json").write_text(
+            json.dumps({"train": "complete", "validation": {}, "test": {}})
+        )
+    elif invalid_case == "validation":
+        (source_root / "validation.local.json").write_text(
+            json.dumps({"status": "fail"})
+        )
+    else:
+        rows = [
+            {**row, "seed": 1}
+            for row in _load_test_jsonl(source_root / "results.jsonl")
+        ]
+        (source_root / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows)
+        )
+
+    report = paper_reference_seed1_precondition_report(
+        plan_path=plan_path,
+        source_root=source_root,
+    )
+
+    assert report["status"] == "blocked"
+    assert report["decision"] == BLOCKED_DECISION
+    assert report["errors"]
+    assert report["should_generate_remote_package"] is False
+    assert report["should_launch_remote"] is False
 
 
 def test_cuda_memory_preflight_fails_closed_without_cuda_request(
@@ -1552,6 +1658,71 @@ def _bridge_rows(*, candidate_auc: float, anchor_auc: float) -> list[dict[str, A
         row("candidate", candidate_auc),
         row("linear", 0.52),
         row("control", 0.501, shuffled=True),
+    ]
+
+
+def _seed1_precondition_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    project_root = Path(__file__).resolve().parents[1]
+    plan_path = project_root / (
+        "configs/experiment/innovation2/innovation2_present_r8_high_round_"
+        "integral_paper_reference_2pow21_seed1.json"
+    )
+    source_root = tmp_path / "seed0"
+    source_root.mkdir()
+    source = _joint_paper_reference_source(seed=0)
+    run_id = (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed0_gpu0_20260716"
+    )
+    source["gate"]["run_id"] = run_id
+    for row in source["rows"]:
+        row["run_id"] = run_id
+    (source_root / "gate.local.json").write_text(
+        json.dumps(source["gate"]),
+        encoding="utf-8",
+    )
+    (source_root / "validation.local.json").write_text(
+        json.dumps({"status": "pass"}),
+        encoding="utf-8",
+    )
+    (source_root / "dataset_summary.json").write_text(
+        json.dumps({"status": "pass"}),
+        encoding="utf-8",
+    )
+    (source_root / "cache_metadata.json").write_text(
+        json.dumps(
+            {
+                "train": {"status": "complete"},
+                "validation": {"status": "complete"},
+                "test": {"status": "complete"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (source_root / "memory_preflight.json").write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "batch_size": 2000,
+                "max_peak_reserved_fraction": 0.03,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (source_root / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in source["rows"]),
+        encoding="utf-8",
+    )
+    (source_root / "retrieved_from_verified_result_branch.marker").touch()
+    (source_root / "visual_qa_passed.marker").touch()
+    return plan_path, source_root
+
+
+def _load_test_jsonl(path: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
 
 

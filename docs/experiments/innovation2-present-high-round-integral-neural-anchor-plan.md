@@ -1069,3 +1069,19 @@ scripts/gate-innovation2-high-round-integral-joint --mode paper_reference
 每次绘图后 CLI 会删除旧 pass 并写 `visual_qa_pending.marker`。真实联合图生成后
 仍必须单独调用 `visual-qa-redraw`，不能用两颗 source 已通过视觉 QA 代替联合图
 自身的像素验收；验收完成后才删除 pending 并写 `visual_qa_passed.marker`。
+
+seed1 包生成前置条件使用只读入口：
+
+```text
+scripts/check-innovation2-paper-reference-seed1-precondition \
+  --plan configs/experiment/innovation2/innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed1.json \
+  --source-artifacts outputs/remote_results/i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716 \
+  --output <precondition-report.json>
+```
+
+该 gate 检查 verified retrieval、本地 seed0 gate、允许的单 seed decision、
+source revision、四行 seed0 结果、三份 complete cache、数据摘要、本地 artifact
+validation、batch-2000 显存预检、visual pass 且无 pending。通过时只返回
+`should_generate_remote_package=true` 和 `should_launch_remote=false`；随后仍须生成
+精确 seed1 config/launcher/monitor，运行 readiness 与测试，范围提交并推送，再从
+推送 commit 启动。任一证据缺失或无效时保持 seed1 blocked。
