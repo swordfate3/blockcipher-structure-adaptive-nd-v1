@@ -163,8 +163,14 @@ def render_joint_bridge_svg(
         ("相对 parity", "candidate_strongest_fixed_parity_auc_delta", "#059669"),
     )
     with plt.rc_context(rc):
-        fig, axes = plt.subplots(1, 2, figsize=(12.4, 6.2))
-        fig.subplots_adjust(left=0.075, right=0.975, top=0.76, bottom=0.18, wspace=0.24)
+        fig, axes = plt.subplots(1, 2, figsize=(12.4, 6.6))
+        fig.subplots_adjust(
+            left=0.075,
+            right=0.975,
+            top=0.76,
+            bottom=0.28,
+            wspace=0.24,
+        )
         fig.suptitle(
             "创新2：PRESENT-80 8轮高轮积分神经双 seed 联合裁决",
             x=0.075,
@@ -205,7 +211,7 @@ def render_joint_bridge_svg(
         axes[0].set_ylabel("独立测试 AUC")
         axes[0].set_title("候选网络与同协议控制", loc="left", fontweight="bold")
         axes[0].grid(axis="y", color="#E2E8F0", linewidth=0.7, alpha=0.75)
-        axes[0].legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=False)
+        auc_handles, auc_labels = axes[0].get_legend_handles_labels()
 
         margin_values: list[float] = []
         margin_width = 0.22
@@ -231,14 +237,33 @@ def render_joint_bridge_svg(
         axes[1].set_ylabel("候选网络 AUC 优势")
         axes[1].set_title("归因 margin（红线为 +0.01）", loc="left", fontweight="bold")
         axes[1].grid(axis="y", color="#E2E8F0", linewidth=0.7, alpha=0.75)
-        axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=False)
+        margin_handles, margin_labels = axes[1].get_legend_handles_labels()
+
+        fig.legend(
+            auc_handles,
+            auc_labels,
+            loc="lower left",
+            bbox_to_anchor=(0.075, 0.105),
+            ncol=3,
+            frameon=False,
+            fontsize=9.2,
+        )
+        fig.legend(
+            margin_handles,
+            margin_labels,
+            loc="lower right",
+            bbox_to_anchor=(0.975, 0.12),
+            ncol=3,
+            frameon=False,
+            fontsize=9.2,
+        )
 
         verdict = {
             "pass": "通过：两颗 seed 均达到 r8 有用神经信号门槛",
             "hold": "暂缓：至少一颗 seed 未确认全部信号 margin",
             "fail": "无效：source、协议或控制证据不完整",
         }.get(str(gate.get("status")), str(gate.get("decision", "")))
-        fig.text(0.075, 0.045, verdict, ha="left", fontsize=10.2, fontweight="bold")
+        fig.text(0.075, 0.035, verdict, ha="left", fontsize=10.2, fontweight="bold")
         fig.savefig(output, format="svg")
         plt.close(fig)
 

@@ -49,3 +49,56 @@ retain all entries within a configurable time window, defaulting to seven days.
   seven days of the newest result.
 
 ---
+
+## [FEAT-20260716-002] visual_qa_redraw_workflow_availability
+
+**Logged**: 2026-07-16T21:20:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Requested Capability
+Make the `visual-qa-redraw` workflow available and mandatory for checking every
+generated or regenerated user-facing visualization before it is reported as
+complete.
+
+### User Context
+Experiment figures can be syntactically valid and nonempty while still having
+overlapping fonts, cramped curves, ambiguous technical titles, clipped labels,
+or scales that hide decision-relevant differences. The user explicitly requires
+future SVG/PNG/chart generation to pass `visual-qa-redraw`, not only plotting
+tests or a file-size check.
+
+The first installed-skill search did not find the workflow. The user then
+provided the installed skill explicitly at
+`/home/fate/.agents/skills/visual-qa-redraw/SKILL.md`; the exact render-inspect-
+redraw workflow is now available and was applied to the latest Innovation 2
+joint chart.
+
+### Complexity Estimate
+medium
+
+### Suggested Implementation
+Install or expose a vetted `visual-qa-redraw` skill in the Codex skill catalog,
+document its invocation and output contract, and have experiment result handling
+run it after plot generation and before index/document completion. The gate
+should inspect rendered pixels for overlap, clipping, title clarity, curve and
+marker separation, axis readability, legend completeness, and responsive framing
+where relevant, then redraw and repeat until it passes.
+
+### Metadata
+- Frequency: recurring
+- Related Features: training curve SVG, result plots, result retrieval, visual regression
+- See Also: LRN-20260624-001
+- Pattern-Key: visualization.generated_artifacts.require_visual_qa_redraw
+
+### Resolution
+- **Resolved**: 2026-07-16T21:45:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Promoted the mandatory workflow to `AGENTS.md`; verified the
+  installed skill path; rendered the latest Innovation 2 joint SVG at
+  `1800x958`, found the bottom verdict overlapping the legends, separated the
+  legend/verdict regions, re-rendered, and passed full-frame plus bottom-detail
+  pixel inspection.
+
+---

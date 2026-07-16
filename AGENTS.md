@@ -91,6 +91,17 @@
 
 ## Verification And Workspace Hygiene
 
+- After generating or regenerating any user-facing visualization (`SVG`, `PNG`,
+  chart, diagram, or rendered report figure), invoke the `visual-qa-redraw`
+  workflow before calling the artifact complete. The visual gate must inspect a
+  rendered pixel output for text overlap, clipping, unreadable or ambiguous
+  titles, insufficient curve separation, misleading axis ranges, incomplete
+  legends, and mobile/desktop framing when applicable; file existence, nonzero
+  size, XML parsing, and plotting unit tests are not substitutes. If
+  `visual-qa-redraw` is unavailable in the current agent environment, report the
+  missing capability explicitly, log it through `self-improvement`, and perform
+  an interim render-to-pixels inspection without claiming that the requested
+  workflow itself passed.
 - Use `uv run pytest ...`, not bare `pytest`, for project test commands.
 - Keep the project root clean of `tmp_*`; use `/tmp` for transient local markers and remove or ignore them when no longer needed.
 - Before remote launches, audit generated scripts for `cmd.exe /c`, absence of `cmd.exe /k`, and no generated project paths outside `G:\lxy`.
