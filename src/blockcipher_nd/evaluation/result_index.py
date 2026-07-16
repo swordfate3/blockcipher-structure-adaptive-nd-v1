@@ -16,6 +16,10 @@ DEFAULT_RESULT_ROOTS = (
     "remote_results_incomplete",
 )
 
+DEFAULT_INDEX_LIMIT = 30
+DEFAULT_RETENTION_DAYS = 7
+_SECONDS_PER_DAY = 24 * 60 * 60
+
 _SCOPE_PRIORITY = {
     "remote_results": 0,
     "remote_results_incomplete": 1,
@@ -267,10 +271,13 @@ def build_result_index(
     outputs_root: Path,
     *,
     roots: tuple[str, ...] = DEFAULT_RESULT_ROOTS,
-    limit: int = 30,
+    limit: int = DEFAULT_INDEX_LIMIT,
+    retention_days: int = DEFAULT_RETENTION_DAYS,
 ) -> list[dict[str, Any]]:
     if limit < 1:
         raise ValueError("limit must be at least 1")
+    if retention_days < 0:
+        raise ValueError("retention_days must be at least 0")
     entries: list[dict[str, Any]] = []
     for scope in roots:
         scope_root = outputs_root / scope
@@ -294,7 +301,16 @@ def build_result_index(
             str(entry["run_id"]),
         )
     )
-    ranked = entries[:limit]
+    retained_count = min(limit, len(entries))
+    if entries and retention_days > 0:
+        cutoff = float(entries[0]["completed_timestamp"]) - (
+            retention_days * _SECONDS_PER_DAY
+        )
+        recent_count = sum(
+            float(entry["completed_timestamp"]) >= cutoff for entry in entries
+        )
+        retained_count = max(retained_count, recent_count)
+    ranked = entries[:retained_count]
     for rank, entry in enumerate(ranked, start=1):
         entry["rank"] = rank
         entry["rank_label"] = f"{rank:03d}"
@@ -315,11 +331,17 @@ def write_result_index(
     markdown_output: Path | None = None,
     json_output: Path | None = None,
     roots: tuple[str, ...] = DEFAULT_RESULT_ROOTS,
-    limit: int = 30,
+    limit: int = DEFAULT_INDEX_LIMIT,
+    retention_days: int = DEFAULT_RETENTION_DAYS,
 ) -> dict[str, Any]:
     markdown_path = markdown_output or outputs_root / "00_RECENT_RESULTS.md"
     json_path = json_output or outputs_root / "00_RECENT_RESULTS.json"
-    entries = build_result_index(outputs_root, roots=roots, limit=limit)
+    entries = build_result_index(
+        outputs_root,
+        roots=roots,
+        limit=limit,
+        retention_days=retention_days,
+    )
     generated_at = datetime.now().astimezone().isoformat(timespec="seconds")
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -329,6 +351,8 @@ def write_result_index(
             outputs_root=outputs_root,
             markdown_output=markdown_path,
             generated_at=generated_at,
+            minimum_entries=limit,
+            retention_days=retention_days,
         ),
         encoding="utf-8",
     )
@@ -337,6 +361,10 @@ def write_result_index(
             {
                 "generated_at": generated_at,
                 "sort_rule": "gate > validation > results; descending completion time",
+                "retention": {
+                    "minimum_entries": limit,
+                    "days_from_latest_completion": retention_days,
+                },
                 "roots": list(roots),
                 "entries": entries,
             },
@@ -350,6 +378,8 @@ def write_result_index(
     return {
         "status": "pass",
         "entries": len(entries),
+        "minimum_entries": limit,
+        "retention_days": retention_days,
         "markdown": str(markdown_path),
         "json": str(json_path),
     }
@@ -621,11 +651,22 @@ def _render_markdown(
     outputs_root: Path,
     markdown_output: Path,
     generated_at: str,
+    minimum_entries: int,
+    retention_days: int,
 ) -> str:
+    if retention_days > 0:
+        retention_note = (
+            f"> 保留规则：至少显示最新 {minimum_entries} 条，并保留距最新完成结果 "
+            f"{retention_days} 天内的所有条目；实验密集时会超过 {minimum_entries} 条。"
+        )
+    else:
+        retention_note = f"> 保留规则：显示最新 {minimum_entries} 条。"
     lines = [
         "# 最近实验结果",
         "",
         "> `001` 永远表示最新完成的结果。排序优先使用门控、验证、结果文件的完成时间；重新生成曲线不会改变实验先后顺序。",
+        "",
+        retention_note,
         "",
         f"更新时间：`{generated_at}`",
         "",

@@ -5,7 +5,9 @@ import os
 from pathlib import Path
 
 from blockcipher_nd.evaluation.result_index import (
+    DEFAULT_INDEX_LIMIT,
     DEFAULT_RESULT_ROOTS,
+    DEFAULT_RETENTION_DAYS,
     build_result_index,
     write_result_index,
 )
@@ -31,6 +33,11 @@ def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
         "remote_results",
         "remote_results_incomplete",
     )
+
+
+def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
+    assert DEFAULT_INDEX_LIMIT == 30
+    assert DEFAULT_RETENTION_DAYS == 7
 
 
 def test_result_index_orders_by_decision_artifact_not_regenerated_plot(
@@ -87,6 +94,8 @@ def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     assert report["entries"] == 1
     markdown = markdown_output.read_text(encoding="utf-8")
     assert "`001` 永远表示最新完成的结果" in markdown
+    assert "至少显示最新 20 条" in markdown
+    assert "7 天内的所有条目" in markdown
     assert "| 001 |" in markdown
     assert "PRESENT → GIFT-64 跨 SPN 双 seed 联合裁决" in markdown
     assert "双 seed 迁移信号已确认" in markdown
@@ -99,6 +108,37 @@ def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     assert payload["entries"][0]["rank_label"] == "001"
     assert payload["entries"][0]["status"] == "pass"
     assert payload["entries"][0]["decision"] == "two_seed_transfer_signal_confirmed"
+    assert payload["retention"] == {
+        "days_from_latest_completion": 7,
+        "minimum_entries": 20,
+    }
+
+
+def test_result_index_retains_every_result_from_latest_seven_days(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    latest_timestamp = 2_000_000.0
+    for index in range(35):
+        gate = outputs / "local_smoke" / f"recent_{index:02d}" / "gate.json"
+        _write_json(gate, {"status": "pass", "decision": "recent"})
+        _set_mtime(gate, latest_timestamp - index * 60 * 60)
+    for index in range(10):
+        gate = outputs / "local_smoke" / f"old_{index:02d}" / "gate.json"
+        _write_json(gate, {"status": "pass", "decision": "old"})
+        _set_mtime(gate, latest_timestamp - (8 * 24 * 60 * 60) - index)
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_smoke",),
+        limit=30,
+        retention_days=7,
+    )
+
+    assert len(entries) == 35
+    assert entries[0]["run_id"] == "recent_00"
+    assert entries[-1]["run_id"] == "recent_34"
+    assert not any(str(entry["run_id"]).startswith("old_") for entry in entries)
 
 
 def test_result_index_supports_remote_nested_result_artifacts(tmp_path: Path) -> None:
