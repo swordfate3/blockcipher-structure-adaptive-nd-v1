@@ -237,6 +237,44 @@ th.left {
   font-weight: 800;
 }
 
+.set-box {
+  margin: 18px 0;
+  border: 2px solid var(--blue);
+  padding: 16px;
+}
+
+.set-box strong {
+  color: var(--blue);
+}
+
+.set-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.set-item {
+  border: 1px solid var(--line);
+  background: #f8fafb;
+  padding: 8px;
+  text-align: center;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.matrix-status {
+  margin-top: 16px;
+  border-left: 4px solid var(--amber);
+  background: var(--amber-soft);
+  padding: 12px 16px;
+  font-weight: 700;
+}
+
+.matrix-status.good {
+  border-left-color: var(--green);
+  background: var(--green-soft);
+}
+
 details {
   margin: 18px 0;
   border: 1px solid var(--line);
@@ -269,7 +307,8 @@ summary {
   }
 
   .toggles,
-  .result-strip {
+  .result-strip,
+  .set-items {
     grid-template-columns: 1fr;
   }
 

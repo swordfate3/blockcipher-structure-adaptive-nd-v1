@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>一个输入结构和三行矩阵</title>
+  <link rel="stylesheet" href="assets/lesson.css">
+</head>
+<body>
+<main>
+  <h1>先看懂“一个结构”，再看三行矩阵</h1>
+  <p class="lede">这一课只解决两个问题：一个输入结构到底装了什么；论文矩阵的行和列分别代表什么。暂时不需要记“左核”。</p>
+
+  <div class="warning">
+    术语纠正：不要说“跨结构 XOR”。准确说法是“在一个结构内部，对它包含的全部明文输出求 XOR”。多个结构之间通常不互相 XOR。
+  </div>
+
+  <h2>1. 一个输入结构就是一批按规则生成的明文</h2>
+
+  <p>先用只有 4 bit 的玩具明文。规定：</p>
+
+  <pre>前两 bit 固定为 10
+后两 bit 活动，遍历 00、01、10、11</pre>
+
+  <div class="set-box">
+    <strong>这四条明文合在一起，才叫一个结构 S1</strong>
+    <div class="set-items">
+      <div class="set-item">1000</div>
+      <div class="set-item">1001</div>
+      <div class="set-item">1010</div>
+      <div class="set-item">1011</div>
+    </div>
+  </div>
+
+  <p>所以：</p>
+
+  <pre>S1 = {1000, 1001, 1010, 1011}</pre>
+
+  <p><code>S1</code> 不是一条明文，也不是四个结构。它是<strong>一个结构，内部有四条明文</strong>。</p>
+
+  <h2>2. 在一个结构内部求 XOR</h2>
+
+  <p>固定一把密钥 <code>K0</code> 和一个输出公式 <code>g</code>。四条明文各自加密后，<code>g</code> 给出一个 bit：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>S1 内的明文</th><th>加密后计算 g</th></tr></thead>
+      <tbody>
+        <tr><td><code>1000</code></td><td>0</td></tr>
+        <tr><td><code>1001</code></td><td>1</td></tr>
+        <tr><td><code>1010</code></td><td>1</td></tr>
+        <tr><td><code>1011</code></td><td>0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>只对 <code>S1</code> 盒子里的四个结果求 XOR：</p>
+
+  <div class="equation">q(K0,S1,g) = 0 XOR 1 XOR 1 XOR 0 = 0</div>
+
+  <p>这表示 <code>g</code> 在结构 <code>S1</code>、密钥 <code>K0</code> 下得到零和。</p>
+
+  <h2>3. 什么才叫另一个结构</h2>
+
+  <p>如果把固定前缀从 <code>10</code> 改成 <code>11</code>，就得到另一个结构：</p>
+
+  <div class="set-box">
+    <strong>S2 是另一个独立的盒子</strong>
+    <div class="set-items">
+      <div class="set-item">1100</div>
+      <div class="set-item">1101</div>
+      <div class="set-item">1110</div>
+      <div class="set-item">1111</div>
+    </div>
+  </div>
+
+  <p>正确做法是分别计算：</p>
+
+  <pre>q(K0,S1,g) = XOR S1 内四条明文的结果
+q(K0,S2,g) = XOR S2 内四条明文的结果</pre>
+
+  <div class="warning">通常不会再计算 <code>q(S1) XOR q(S2)</code>。在当前神经数据集中，<code>S1</code> 和 <code>S2</code> 是两个候选样本。</div>
+
+  <h2>4. 换成 PRESENT 是同一件事</h2>
+
+  <p>PRESENT 有 64-bit，也就是 16 个 nibble。假设最后一个 nibble 活动，前 15 个 nibble 固定：</p>
+
+  <pre>S = {
+  123456789ABCDEF0,
+  123456789ABCDEF1,
+  ...,
+  123456789ABCDEFF
+}</pre>
+
+  <p>这里有 16 条明文，但仍然只有<strong>一个结构</strong>。活动 nibble 改位置，或者固定的 15 个 nibble 改值，才会得到另一个结构。</p>
+
+  <h2>5. 论文的三行不是三个结构</h2>
+
+  <p>现在固定同一个结构 <code>S</code>，不再换盒子。论文准备检查三个不同的输出公式：</p>
+
+  <pre>y0 = 第一个输出公式
+y1 = 第二个输出公式
+y2 = 第三个输出公式</pre>
+
+  <p>三者都在同一个 <code>S</code> 上计算：</p>
+
+  <pre>I_S(y0) = 把 S 内所有明文的 y0 结果 XOR
+I_S(y1) = 把 S 内所有明文的 y1 结果 XOR
+I_S(y2) = 把 S 内所有明文的 y2 结果 XOR</pre>
+
+  <div class="callout">矩阵的三行是三个输出公式，不是三条明文、三把密钥或三个输入结构。</div>
+
+  <h2>6. 把三行矩阵看成“未决项出勤表”</h2>
+
+  <p>经过论文的前缀检查和最后一轮展开后，已证明为 0 的部分都被删掉，只剩三个暂时不知道是 0 还是 1 的残留项：</p>
+
+  <pre>A、B、C = 三个尚未解决的积分残留</pre>
+
+  <p>三个输出公式分别带着：</p>
+
+  <pre>y0 带着 A、B
+y1 带着 A、C
+y2 带着 B、C</pre>
+
+  <p>把“出现”写成 1，“没出现”写成 0，就是论文矩阵：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>是否选择</th><th>输出公式</th><th>A</th><th>B</th><th>C</th></tr></thead>
+      <tbody>
+        <tr><td><input type="checkbox" data-matrix-row="y0" aria-label="选择 y0"></td><th>y0</th><td>1</td><td>1</td><td>0</td></tr>
+        <tr><td><input type="checkbox" data-matrix-row="y1" aria-label="选择 y1"></td><th>y1</th><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td><input type="checkbox" data-matrix-row="y2" aria-label="选择 y2"></td><th>y2</th><td>0</td><td>1</td><td>1</td></tr>
+        <tr><th colspan="2">所选行 XOR 后每列剩余</th><td><output data-column-parity="a">0</output></td><td><output data-column-parity="b">0</output></td><td><output data-column-parity="c">0</output></td></tr>
+      </tbody>
+    </table>
+    <div class="matrix-status" data-matrix-status>还没有选择输出公式。</div>
+  </div>
+
+  <p>请依次试三种选择：</p>
+
+  <ol class="steps">
+    <li>只选 <code>y0</code>：A、B 各出现一次，仍然未知。</li>
+    <li>选择 <code>y0、y1</code>：A 出现两次抵消，但 B、C 各剩一次。</li>
+    <li>三个全选：A、B、C 都出现两次，全部抵消。</li>
+  </ol>
+
+  <div class="equation">(A XOR B) XOR (A XOR C) XOR (B XOR C) = 0</div>
+
+  <p>所以论文得到：</p>
+
+  <div class="equation">I_S(y0 XOR y1 XOR y2) = 0</div>
+
+  <div class="warning">这不表示每条明文都满足 <code>y0 XOR y1 XOR y2 = 0</code>。它只表示：在结构 S 内，把所有明文的这个组合结果再 XOR，最终为 0。</div>
+
+  <h2>7. “左核”现在可以翻译成人话</h2>
+
+  <p>左核只是计算机用来自动回答下面这个问题的工具：</p>
+
+  <div class="equation">选择哪些行，能让每个未决列都出现偶数次？</div>
+
+  <p>本例答案是选择 <code>y0、y1、y2</code>。把“选/不选”写成：</p>
+
+  <pre>lambda = [1, 1, 1]</pre>
+
+  <p>这里的三个 1 只表示三行都选。计算机写成 <code>lambda M = 0</code>，人话就是“A、B、C 三列全部配成偶数对”。</p>
+
+  <h2>一分钟自测</h2>
+
+  <details>
+    <summary>S1 内有四条明文，所以 S1 是四个结构吗？</summary>
+    <p>不是。S1 是一个结构，内部包含四条按同一活动/固定规则生成的明文。</p>
+  </details>
+
+  <details>
+    <summary>矩阵的 y0、y1、y2 三行是什么？</summary>
+    <p>它们是同一个输入结构上检查的三个输出公式，不是三个结构或三条明文。</p>
+  </details>
+
+  <details>
+    <summary>矩阵中 A 列的 1 表示 A 的真实值为 1 吗？</summary>
+    <p>不是。1 只表示该输出公式包含残留项 A；A 的真实积分值仍然未知。</p>
+  </details>
+
+  <p><strong>推荐原文：</strong><a href="../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf#page=14">Section 4.4, Example 1</a>。现在只对照它的三行表达式和矩阵，不必继续看弱密钥 Example 2。</p>
+
+  <p class="footer-nav"><a href="0001-split-and-cancel-data-example.html">返回第一课</a> · <a href="reference/integral-split-cancel-cheatsheet.html">打开速查表</a>。如果仍不清楚，直接告诉我卡在第几节或哪一行。</p>
+</main>
+<script src="assets/structure-matrix-demo.js"></script>
+</body>
+</html>

@@ -16,3 +16,8 @@ lessons/
 
 The only teaching-related records allowed outside this directory are passive
 self-improvement records under `.learnings/`.
+
+## Lessons
+
+- `0001-split-and-cancel-data-example.html`: full first-pass explanation.
+- `0002-one-structure-to-matrix.html`: prerequisite lesson on one input structure and the three-row matrix.
