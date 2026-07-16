@@ -141,6 +141,21 @@ def test_models_expose_paper_and_semantic_tensor_shapes() -> None:
     assert candidate(features).shape == (3, 1)
 
 
+def test_paper_tensor_joins_individually_reshaped_multisets() -> None:
+    paper = PresentIntegralPaperMbconvAnchor(
+        multiset_count=2,
+        base_channels=4,
+        head_bits=8,
+    )
+    indexed = torch.arange(integral_input_bits(2)).reshape(1, -1)
+    view = paper.paper_tensor_view(indexed)
+
+    assert view[0, 0, 0, 0].item() == 0
+    assert view[0, 0, 0, 15].item() == 120
+    assert view[0, 0, 0, 16].item() == 2048
+    assert view[0, 0, 0, 31].item() == 2168
+
+
 def test_disk_cache_is_parameter_matched_reusable_and_resumable(
     tmp_path: Path,
 ) -> None:
@@ -377,6 +392,21 @@ def test_bridge_gate_stops_weak_signal_and_rejects_plan_mismatch(
     assert not mismatched_gate["bridge_plan_checks"][
         "train_total_rows_is_262144"
     ]
+
+
+def test_bridge_gate_does_not_advance_from_anchor_only_signal(
+    tmp_path: Path,
+) -> None:
+    gate = adjudicate_high_round_integral(
+        _bridge_config(tmp_path),
+        rows=_bridge_rows(candidate_auc=0.529, anchor_auc=0.56),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation2_high_round_integral_bridge_stop"
+    assert not gate["bridge_signal_checks"]["candidate_test_auc_at_least_0_53"]
 
 
 def test_bridge_gate_rejects_invalid_shuffled_fit_control(tmp_path: Path) -> None:

@@ -495,11 +495,7 @@ def adjudicate_high_round_integral(
             shuffled_fit_validation_auc - 0.5
         )
         <= 0.03,
-        "candidate_or_anchor_test_auc_at_least_0_53": max(
-            candidate_auc,
-            anchor_auc,
-        )
-        >= 0.53,
+        "candidate_test_auc_at_least_0_53": candidate_auc >= 0.53,
         "candidate_beats_architecture_prior_by_0_01": candidate_auc
         - architecture_prior_auc
         >= 0.01,

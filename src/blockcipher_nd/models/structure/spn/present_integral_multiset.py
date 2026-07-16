@@ -100,18 +100,22 @@ class PresentIntegralPaperMbconvAnchor(nn.Module):
             raise ValueError(
                 f"expected [batch,{self.input_bits}], got {tuple(features.shape)}"
             )
-        # The paper specifies [16,16,8] for one multiset but not the two-
-        # multiset join. Preserve Eq. 6 order and extend the second spatial axis.
-        return (
-            features.float()
-            .reshape(
-                features.shape[0],
-                TEXTS_PER_MULTISET,
-                TEXTS_PER_MULTISET * self.multiset_count,
-                8,
-            )
-            .permute(0, 3, 1, 2)
+        # Reshape each Eq. 6 multiset independently before extending the
+        # second spatial axis. A global reshape would interleave the two grids.
+        per_multiset = features.float().reshape(
+            features.shape[0],
+            self.multiset_count,
+            TEXTS_PER_MULTISET,
+            TEXTS_PER_MULTISET,
+            8,
         )
+        joined = per_multiset.permute(0, 2, 1, 3, 4).reshape(
+            features.shape[0],
+            TEXTS_PER_MULTISET,
+            TEXTS_PER_MULTISET * self.multiset_count,
+            8,
+        )
+        return joined.permute(0, 3, 1, 2)
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         return self.classifier(self.blocks(self.stem(self.paper_tensor_view(features))))
