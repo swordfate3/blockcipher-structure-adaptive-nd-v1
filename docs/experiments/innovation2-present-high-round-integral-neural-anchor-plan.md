@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** readiness + local r5/r7/r8 diagnostic completed / remote data-scarcity bridge planned
+**状态：** seed0 remote data-scarcity bridge verified pass / independent seed1 confirmation prepared
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -610,3 +610,135 @@ scripts/readjudicate-innovation2-high-round-integral
 展示旧 anchor-only gate 的错误 advance，但仍可分别检查两份门控文件。
 如果归档的 `git_revision.txt` 不等于上述冻结提交，本地重裁决直接返回
 `innovation2_high_round_integral_readjudication_source_mismatch`，不解释指标。
+
+### 11.7 seed0 bridge 完成与正式裁决（2026-07-16）
+
+```text
+run_id = i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716
+training source = 4b3a2c33cc323b5586533f0fffb78edbe70e0adf
+recovery source = c9607661216bd5d23d00e9701b45d0428c34491a
+retrieval = verified result branch + SHA256SUMS pass
+recent result index = 001（完成时）
+```
+
+训练、四行结果、固定基线、三份 cache 和远程原始 gate 均已完成。首次归档在
+生成 `SHA256SUMS` 时失败，原因是启用 delayed expansion 的 batch 内仍包含
+`p.name!='SHA256SUMS'`；CMD 吞掉了 `!`。恢复脚本只重新验证、重裁决、哈希、
+归档和推送现有结果，没有重新生成数据或训练模型。恢复后的全部归档文件通过
+normalized SHA-256 校验，本地重新生成了中文 `curves.svg/history.csv`。
+
+冻结四行 test 结果：
+
+| 角色 | test accuracy | test AUC | 解释 |
+|---|---:|---:|---|
+| paper-family anchor | `0.526321411` | `0.537351800` | 旧双 multiset layout，仅保留历史，不参与结构比较 |
+| structured candidate | `0.527618408` | `0.545408788` | 正式 candidate 证据 |
+| same-input linear | `0.508087158` | `0.520985522` | 同输入可训练线性基线 |
+| same-init shuffled candidate | `0.500000000` | `0.501000870` | 标签控制；fit-validation AUC `0.507042095` |
+
+固定控制及正式 margin：
+
+```text
+untrained same-init candidate AUC            = 0.500800185
+oriented architecture prior AUC              = 0.501000870
+strongest oriented parity AUC                = 0.504599789
+candidate - linear                           = +0.024423266
+candidate - oriented architecture prior      = +0.044407918
+candidate - strongest oriented parity        = +0.040808999
+candidate - local 8192-total candidate        = +0.033775749
+```
+
+`gate.local.json` 的四项正式检查全部通过：
+
+```text
+shuffled-fit validation AUC 距 0.5 <= 0.03     pass
+candidate test AUC >= 0.53                     pass
+candidate - architecture prior >= 0.01         pass
+candidate - strongest oriented parity >= 0.01  pass
+decision = innovation2_high_round_integral_bridge_advance
+```
+
+因此 seed0 证据支持：在冻结 Wu/Guo-family multiset 协议下，PRESENT-80 r8
+存在不能由 flat linear、随机初始化、shuffled label 或固定 parity 解释的神经信号，
+且本地 `8192 total` 的近随机结果确有明显数据稀缺成分。它仍不能支持以下声明：
+
+- 不是论文 `2^21 total train / 50 epochs / 10 repeats` 规模；
+- 不是 exact reproduction；论文仍未报告 `Nf`、dropout rate、可执行 LR 范围
+  和精确 block count；
+- 不是多 seed 正式确认；
+- 不能用旧 layout anchor 声称 candidate 超过 Wu/Guo 网络；
+- 不是 r9、GIFT 或确定性积分结果，也不是突破声明。
+
+权威本地产物：
+
+```text
+outputs/remote_results/
+  i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716/
+    results.jsonl
+    gate.json
+    gate.local.json
+    validation.local.json
+    cache_metadata.json
+    curves.svg
+    history.csv
+    SHA256SUMS
+```
+
+## 12. 下一步：独立 seed1 同规模确认
+
+### 12.1 研究问题与单变量
+
+seed0 的 `0.545409` candidate AUC 是否能在完全独立的 plaintext、master-key、
+model initialization 和 train/validation/test 随机流上复现？唯一研究变量是
+`seed: 0 -> 1`。规模、数据定义、四行模型、epochs、batch、优化器和 gate 不变。
+由于 seed1 从包含 `28751e8` 修复的 source 启动，其 anchor 使用正确的逐 multiset
+reshape；这同时补充同规模可用 paper-family 对照，但不改变 candidate 假设。
+
+```text
+run_id = i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716
+train total / per class = 262144 / 131072
+validation total / per class = 32768 / 16384
+test total / per class = 65536 / 32768
+multisets / texts = 2 / 16 each
+input bits = 4096
+epochs / batch = 5 / 128
+base / head / blocks / dropout = 16 / 256 / 2 / 0.1
+seed = 1
+device = remote A6000 GPU0
+```
+
+同预算矩阵仍为四行：修复后 paper-family anchor、structured candidate、flat
+linear、same-init shuffled-label candidate；固定控制仍为 InvP/InvS/total parity 和
+same-init untrained candidate。不得增加第五个网络或同时改变学习率。
+
+### 12.2 seed1 gate 与后续决策
+
+```text
+source/cache/artifact/negative/split checks all pass
+shuffled-fit validation AUC 距 0.5 <= 0.03
+candidate test AUC >= 0.53
+candidate - oriented architecture prior >= 0.01
+candidate - strongest oriented parity >= 0.01
+```
+
+- seed1 全过：生成 seed0/seed1 joint gate；创新2可报告“两颗 seed 均达到
+  PRESENT-80 r8 有用神经信号”。随后才准备 `2^21 total train / 50 epochs`
+  paper-reference，并将论文未公开参数冻结为显式 approximation；
+- seed1 candidate `0.52--0.53` 或 margin 不过：判为 seed-sensitive bridge，先做
+  同协议训练动态/初始化审计，不直接放大到 `2^21`；
+- control/source/cache 失败：判 invalid，修控制而不解释 AUC；
+- 无论哪种结果，当前都不启动 r9、GIFT、AES，也不把 seed0 单点与论文
+  `0.5732 accuracy` 做突破比较。
+
+可执行包：
+
+```text
+configs/experiment/innovation2/
+  innovation2_present_r8_high_round_integral_bridge_262144_seed1.json
+configs/remote/
+  innovation2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.json
+configs/remote/generated/
+  launch_i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.cmd
+  run_i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.cmd
+  monitor_i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.sh
+```

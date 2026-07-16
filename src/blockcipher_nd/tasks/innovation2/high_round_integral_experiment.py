@@ -487,7 +487,7 @@ def adjudicate_high_round_integral(
             np.isclose(config.learning_rate, 1e-3)
         ),
         "weight_decay_is_1e_5": bool(np.isclose(config.weight_decay, 1e-5)),
-        "seed_is_0": config.seed == 0,
+        "seed_is_frozen_bridge_seed": config.seed in {0, 1},
         "remote_cuda_device_requested": config.device.startswith("cuda"),
     }
     bridge_signal_checks = {

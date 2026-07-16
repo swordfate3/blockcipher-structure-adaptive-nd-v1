@@ -64,6 +64,7 @@ git commit -m "results: %RUN_ID% recovered bridge" > "%LOG_DIR%\%RUN_ID%_recover
 git push origin HEAD:refs/heads/results/%RUN_ID% > "%LOG_DIR%\%RUN_ID%_recovery_branch_push.txt" 2>&1 || goto recovery_failed
 git rev-parse HEAD > "%LOG_DIR%\%RUN_ID%_result_branch_revision.txt" 2>&1 || goto recovery_failed
 if exist "%LOG_DIR%\%RUN_ID%_failed.marker" del /Q "%LOG_DIR%\%RUN_ID%_failed.marker"
+if exist "%LOG_DIR%\%RUN_ID%_recovery_failed.marker" del /Q "%LOG_DIR%\%RUN_ID%_recovery_failed.marker"
 echo pushed>"%LOG_DIR%\%RUN_ID%_result_branch_pushed.marker"
 echo done>"%LOG_DIR%\%RUN_ID%_done.marker"
 echo recovered>"%LOG_DIR%\%RUN_ID%_recovery_done.marker"

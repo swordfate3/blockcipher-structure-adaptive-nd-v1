@@ -370,6 +370,28 @@ def test_bridge_gate_enforces_frozen_plan_and_advance_thresholds(
         pytest.approx(0.02)
     )
 
+    independent_seed_gate = adjudicate_high_round_integral(
+        _bridge_config(tmp_path, seed=1),
+        rows=_bridge_rows(candidate_auc=0.56, anchor_auc=0.531),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+    unsupported_seed_gate = adjudicate_high_round_integral(
+        _bridge_config(tmp_path, seed=2),
+        rows=_bridge_rows(candidate_auc=0.56, anchor_auc=0.531),
+        dataset_summary=_valid_dataset_summary(),
+        fixed_baselines=_bridge_fixed_baselines(),
+    )
+
+    assert independent_seed_gate["status"] == "pass"
+    assert independent_seed_gate["bridge_plan_checks"][
+        "seed_is_frozen_bridge_seed"
+    ]
+    assert unsupported_seed_gate["status"] == "fail"
+    assert not unsupported_seed_gate["bridge_plan_checks"][
+        "seed_is_frozen_bridge_seed"
+    ]
+
 
 def test_bridge_gate_stops_weak_signal_and_rejects_plan_mismatch(
     tmp_path: Path,
@@ -621,6 +643,7 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     assert "scripts/index-results" in monitor_script
     assert "DisableDelayedExpansion" in recovery_launcher
     assert "DisableDelayedExpansion" in recovery_script
+    assert '"%ACTUAL_COMMIT%"' in recovery_launcher
     assert "scripts\\run-innovation2-high-round-integral" not in recovery_script
     assert "scripts\\readjudicate-innovation2-high-round-integral" in recovery_script
     assert "validation.recovery.json" in recovery_script
@@ -630,13 +653,81 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     assert "not p.name == 'SHA256SUMS'" in recovery_script
     assert "_recovery_done.marker" in recovery_script
     assert "_result_branch_pushed.marker" in recovery_script
+    assert 'if exist "%LOG_DIR%\\%RUN_ID%_recovery_failed.marker" del /Q' in recovery_script
     assert "!" not in recovery_launcher + recovery_script
+
+
+def test_remote_bridge_seed1_package_changes_only_the_frozen_seed() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    config_path = project_root / (
+        "configs/remote/innovation2_present_r8_high_round_integral_bridge_"
+        "262144_seed1_gpu0_20260716.json"
+    )
+    plan_path = project_root / (
+        "configs/experiment/innovation2/"
+        "innovation2_present_r8_high_round_integral_bridge_262144_seed1.json"
+    )
+    run_script = (
+        project_root
+        / (
+            "configs/remote/generated/run_i2_present_r8_high_round_integral_"
+            "bridge_262144_seed1_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        project_root
+        / (
+            "configs/remote/generated/launch_i2_present_r8_high_round_integral_"
+            "bridge_262144_seed1_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
+    monitor_script = (
+        project_root
+        / (
+            "configs/remote/generated/monitor_i2_present_r8_high_round_integral_"
+            "bridge_262144_seed1_gpu0_20260716.sh"
+        )
+    ).read_text(encoding="utf-8")
+
+    readiness = remote_readiness_report(config_path)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+
+    assert readiness["status"] == "pass"
+    assert readiness["errors"] == []
+    assert readiness["plan_rows"] == 4
+    assert readiness["max_samples_per_class"] == 131072
+    assert plan["common"]["seed"] == 1
+    assert config["experiment"]["seed"] == 1
+    assert config["experiment"]["train_total_rows"] == 262144
+    assert config["experiment"]["validation_total_rows"] == 32768
+    assert config["experiment"]["test_total_rows"] == 65536
+    assert config["experiment"]["multisets_per_sample"] == 2
+    assert config["experiment"]["negative_definition"] == NEGATIVE_MODE
+    assert [row["role"] for row in plan["rows"]] == [
+        "anchor",
+        "candidate",
+        "linear",
+        "control",
+    ]
+    assert "--seed 1" in run_script
+    assert "source_expected_commit.txt" in run_script
+    assert "not p.name == 'SHA256SUMS'" in run_script
+    assert "!" not in run_script
+    assert "cmd.exe /c" in launch_script.lower()
+    assert "cmd.exe /k" not in (run_script + launch_script + monitor_script).lower()
+    assert "source_expected_commit.txt" in monitor_script
+    assert "--expected-source-commit" in monitor_script
+    assert "--invalidate-anchor-layout" not in monitor_script
+    assert "anchor_layout_invalidated" in monitor_script
+    assert "scripts/index-results" in monitor_script
 
 
 def _bridge_config(
     tmp_path: Path,
     *,
     train_rows: int = 262144,
+    seed: int = 0,
 ) -> HighRoundIntegralExperimentConfig:
     return HighRoundIntegralExperimentConfig(
         run_id="i2_present_r8_bridge_test",
@@ -649,7 +740,7 @@ def _bridge_config(
         multiset_count=2,
         epochs=5,
         batch_size=128,
-        seed=0,
+        seed=seed,
         base_channels=16,
         head_bits=256,
         block_count=2,

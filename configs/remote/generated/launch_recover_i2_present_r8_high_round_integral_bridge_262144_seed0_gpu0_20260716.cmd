@@ -26,5 +26,5 @@ for /f "delims=" %%S in ('git status --porcelain') do exit /b 1
 for /f "delims=" %%H in ('git rev-parse HEAD') do set ACTUAL_COMMIT=%%H
 if /I not "%ACTUAL_COMMIT%"=="%RECOVERY_COMMIT%" exit /b 1
 
-call "%RECOVERY_SOURCE%\configs\remote\generated\recover_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd" "%RECOVERY_COMMIT%"
+call "%RECOVERY_SOURCE%\configs\remote\generated\recover_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd" "%ACTUAL_COMMIT%"
 exit /b %ERRORLEVEL%
