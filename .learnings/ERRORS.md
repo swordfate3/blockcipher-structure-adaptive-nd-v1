@@ -1,3 +1,43 @@
+## [ERR-20260716-007] github_unauthenticated_code_search_rate_limit
+
+**Logged**: 2026-07-16T14:35:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: research
+
+### Summary
+
+GitHub's unauthenticated code-search API could not verify whether Wu/Guo released an implementation of their PRESENT integral-neural distinguisher.
+
+### Error
+
+```text
+API rate limit exceeded for 134.195.101.197.
+```
+
+### Context
+
+- Repository title search for `"Improved integral neural distinguisher" PRESENT` returned zero repositories.
+- The broader code query for `invP`, `invS`, `PRESENT`, and `integral neural` hit the unauthenticated API rate limit.
+- The paper text itself contains no GitHub or public-code URL.
+- No private manuscript or project content was uploaded; only public paper keywords were queried.
+
+### Suggested Fix
+
+Treat public author code as unavailable unless a canonical paper, author page, or authenticated search later verifies it. Implement the data path from the paper only after freezing hand-calculable `InvP/InvS` fixtures and exact bit-order tests; do not infer missing protocol details silently.
+
+### Metadata
+
+- Reproducible: unknown
+- Related Files: docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md, papers/innovation_one/grobid_md/improved-integral-neural-distinguisher-model-for-lightweight-cipher-present.md
+- See Also: ERR-20260706-002
+- Pattern-Key: research.github_unauthenticated_code_search_rate_limited
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+---
+
 ## [ERR-20260715-006] tmux_prefix_match_made_watcher_wait_on_itself
 
 **Logged**: 2026-07-15T15:18:00+08:00

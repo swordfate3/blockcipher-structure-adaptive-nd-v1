@@ -1,3 +1,54 @@
+## [LRN-20260716-008] correction
+
+**Logged**: 2026-07-16T14:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: research
+
+### Summary
+
+Innovation 2 success must include a highest-useful-round comparison against mainstream distinguishers or output predictors; a complete low-round case study is not the final round-reach goal.
+
+### Details
+
+The PRESENT-r5 E0-E6 study completed a method and attribution loop, but the
+user clarified that the intended comparison axis is whether the proposed neural
+method can still distinguish or predict at mainstream high round counts. Exact
+same-task or same-budget comparability is not required for the headline round
+comparison, although task type, data, proof strength, and threat model must remain
+explicit. Therefore, PRESENT r5 is a pilot/diagnostic result rather than completion
+of the full Innovation 2 objective.
+
+Local primary-source checks give useful reference points: Wu and Guo report a
+PRESENT 8-round integral neural distinguisher at 57.32% accuracy; exact integral
+literature reports 9-round key-independent PRESENT distinguishers, while
+Split-and-Cancel reports conditional/weak-key PRESENT results at 10 rounds.
+Those heterogeneous results may be shown together as round reach only when their
+different evidence classes are labeled.
+
+### Suggested Action
+
+Maintain a round-reach matrix for Innovation 2 with cipher, maximum useful round,
+task, input/data complexity, metric, key protocol, and evidence type. Treat r5 as
+the structure-conditioned pilot. Before declaring the innovation thesis-ready,
+run a pre-registered high-round ladder against a mainstream PRESENT anchor and
+require useful signal above strong matched controls at r6-r8; use r9 only after
+r8 clears its gate. Do not equate a low-round methodological loop with achieving
+the user's high-round research objective.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: docs/research/innovation2-thesis-ready-conclusion-20260716.md, docs/research/innovation2-structure-conditioned-integral-output-prediction-20260715.md, papers/innovation_one/grobid_md/improved-integral-neural-distinguisher-model-for-lightweight-cipher-present.md, papers/innovation_two/text/on_extending_integral_distinguishers.txt
+- Tags: innovation2, high-round, mainstream-comparison, present, integral-neural-distinguisher, claim-scope
+- See Also: LRN-20260716-007, LRN-20260716-001
+- Pattern-Key: innovation2.success_requires_mainstream_round_reach
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+---
+
 ## [LRN-20260715-009] correction
 
 **Logged**: 2026-07-15T22:56:01+08:00

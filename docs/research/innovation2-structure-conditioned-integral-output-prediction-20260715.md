@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** E0-E6 完成 / E5 富集通过 / E6 位置先验解释主要收益 / 停止同数据调参
+**状态：** E0-E6 r5 先导实验完成 / E6 位置先验解释主要收益 / 高轮目标未完成
 
 ## 一句话创新
 
@@ -272,3 +272,33 @@ MLP - position-matched random       = +0.036636353  >= +0.03
 **可复现的任务构造、严格控制链和负结果边界**进入毕业论文；若未来需要
 恢复正向神经方法声明，必须换新 benchmark 并在实验前加入位置边际强基线，
 而不是继续利用已观察的 4096-key 结果调参。
+
+## E7：按最高可用轮数重新对齐目标
+
+用户进一步明确，创新2的最终比较轴不是只完成一个低轮方法案例，而是：
+
+```text
+我们的神经方法在多少轮上仍能完成有用区分或预测？
+与主流工作的最高轮数相比处于哪里？
+```
+
+不同任务不要求同条件比较轮数，但报告必须并列给出任务类型、输入规模、
+数据复杂度、密钥条件、指标和证据强度。按本地原文，PRESENT 的直接神经
+积分参照是 Wu/Guo 的 r8 accuracy `0.5732`；确定性积分参照为 r9，最新
+Split-and-Cancel 条件/弱密钥结果到 r10。Kimura 对 small PRESENT-[4]
+原 S-box 的 r5 ciphertext prediction 属于 16-bit toy cipher；Singh 的
+31-round emulation 删除了 AddRoundKey，均不能替代 keyed PRESENT-80 r8
+主流 anchor。
+
+当前 111-bit 结构描述任务不能机械升到 r6/r7：预审计中两轮的 `q=1`
+比例已经为 `0.4898/0.4930`，且 r5 的表观收益在 E6 被输出位置先验解释。
+下一步必须换成独立的高轮 benchmark：严格实现 Wu/Guo 的积分 multiset、
+`InvP/InvS` 数据表示和 PRESENT r5/r7/r8 轮数梯，并加入确定性 parity、
+同输入线性和标签打乱控制。r8 两个独立 seed 的置信区间高于随机后，才
+允许测试 r9 候选；PRESENT r8 未站稳前不扩展到 GIFT。
+
+执行计划：
+
+```text
+docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md
+```
