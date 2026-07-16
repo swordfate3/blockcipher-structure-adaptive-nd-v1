@@ -1036,3 +1036,15 @@ key sampling 与显式论文近似假设必须逐字段相同。
 - 两颗都达到 round reach、但不都满足候选优势：只确认双 seed r8 round reach；
 - seed1 未确认：hold，审计 seed 方差与冻结参数假设，不机械追加 seed；
 - 任一 source/cache/control/plan/visual 失效：拒绝联合解释，先修证据链。
+
+上述规则已在 seed0 指标揭盲前实现为
+`adjudicate_joint_paper_reference`，联合 run id 冻结为：
+
+```text
+i2_present_r8_high_round_integral_paper_reference_2pow21_joint_seed0_seed1
+```
+
+纯 gate 要求 exact seed0/seed1、逐字段同协议、四角色完整、source revision
+匹配、本地重裁决有效、计划与 readiness 全过、shuffled-fit 控制有效，并且两颗
+最终图均有 `visual_qa_passed.marker`。联合 CLI 和真实图只在 seed1 完成后加载
+artifact；不得修改这里已冻结的 decision 分支和阈值。

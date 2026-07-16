@@ -523,3 +523,52 @@ def test_result_index_supports_innovation2_paper_reference_labels(
         "创新2：PRESENT-80 8轮 2^21-total / 50轮训练论文参考规模近似"
     )
     assert entries[0]["decision_display"] == expected_decision
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_high_round_integral_two_seed_paper_reference_"
+            "candidate_advantage_confirmed",
+            "双 seed 论文参考规模候选优势确认，可按限定范围写入论文",
+        ),
+        (
+            "innovation2_high_round_integral_two_seed_paper_reference_"
+            "round_reach_confirmed",
+            "双 seed 达到 PRESENT-80 8轮，但未确认候选架构优势",
+        ),
+        (
+            "innovation2_high_round_integral_two_seed_paper_reference_"
+            "seed_variance_hold",
+            "论文参考规模存在 seed 方差，停止机械追加并审计冻结假设",
+        ),
+        (
+            "innovation2_high_round_integral_two_seed_paper_reference_invalid",
+            "双 seed 论文参考规模证据链无效，修复后重新裁决",
+        ),
+    ],
+)
+def test_result_index_supports_innovation2_joint_paper_reference_labels(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_joint_seed0_seed1"
+    )
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2：PRESENT-80 8轮论文参考规模双 seed 联合裁决"
+    )
+    assert entries[0]["decision_display"] == expected_decision

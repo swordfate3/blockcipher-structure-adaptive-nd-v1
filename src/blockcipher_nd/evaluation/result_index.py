@@ -258,6 +258,18 @@ DECISION_LABELS = {
     "innovation2_high_round_integral_paper_reference_plan_mismatch": (
         "论文参考规模运行偏离冻结协议，不纳入结果比较"
     ),
+    "innovation2_high_round_integral_two_seed_paper_reference_candidate_advantage_confirmed": (
+        "双 seed 论文参考规模候选优势确认，可按限定范围写入论文"
+    ),
+    "innovation2_high_round_integral_two_seed_paper_reference_round_reach_confirmed": (
+        "双 seed 达到 PRESENT-80 8轮，但未确认候选架构优势"
+    ),
+    "innovation2_high_round_integral_two_seed_paper_reference_seed_variance_hold": (
+        "论文参考规模存在 seed 方差，停止机械追加并审计冻结假设"
+    ),
+    "innovation2_high_round_integral_two_seed_paper_reference_invalid": (
+        "双 seed 论文参考规模证据链无效，修复后重新裁决"
+    ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
     ),
@@ -570,6 +582,11 @@ def display_name_for_run(run_id: str) -> str:
         "2pow21_seed0_gpu0_20260716"
     ):
         return "创新2：PRESENT-80 8轮 2^21-total / 50轮训练论文参考规模近似"
+    if run_id == (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_joint_seed0_seed1"
+    ):
+        return "创新2：PRESENT-80 8轮论文参考规模双 seed 联合裁决"
     ranking_seed = re.fullmatch(
         r"i2_present_r5_integral_parity_ranking_utility_seed(?P<seed>\d+)",
         run_id,

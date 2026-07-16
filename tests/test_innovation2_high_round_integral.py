@@ -43,6 +43,18 @@ from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
 )
 from blockcipher_nd.tasks.innovation2.high_round_integral_joint import (
     adjudicate_joint_high_round_integral,
+    adjudicate_joint_paper_reference,
+)
+
+
+PAPER_REFERENCE_CANDIDATE_DECISION_FOR_TEST = (
+    "innovation2_high_round_integral_paper_reference_candidate_advantage"
+)
+PAPER_REFERENCE_ROUND_REACH_DECISION_FOR_TEST = (
+    "innovation2_high_round_integral_paper_reference_round_reach_only"
+)
+PAPER_REFERENCE_NOT_CONFIRMED_DECISION_FOR_TEST = (
+    "innovation2_high_round_integral_paper_reference_not_confirmed"
 )
 
 
@@ -740,6 +752,10 @@ def test_paper_reference_seed1_plan_is_conditional_and_changes_only_seed() -> No
         "anchor_value": 0,
         "candidate_value": 1,
     }
+    assert seed1["joint_run_id"] == (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_joint_seed0_seed1"
+    )
     assert seed1["common"]["seed"] == 1
     assert seed0["common"]["seed"] == 0
     assert {
@@ -1185,6 +1201,106 @@ def test_joint_bridge_gate_rejects_invalid_sources(invalid_case: str) -> None:
     assert not all(result["gate"]["validity_checks"].values())
 
 
+def test_joint_paper_reference_confirms_two_seed_candidate_advantage() -> None:
+    result = adjudicate_joint_paper_reference(
+        run_id="joint_paper_reference",
+        sources=[
+            _joint_paper_reference_source(seed=0),
+            _joint_paper_reference_source(seed=1),
+        ],
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_paper_reference_"
+        "candidate_advantage_confirmed"
+    )
+    assert all(result["gate"]["validity_checks"].values())
+    assert all(result["gate"]["signal_checks"].values())
+    assert [row["seed"] for row in result["rows"]] == [0, 1]
+
+
+def test_joint_paper_reference_separates_round_reach_from_candidate_gain() -> None:
+    result = adjudicate_joint_paper_reference(
+        run_id="joint_paper_reference",
+        sources=[
+            _joint_paper_reference_source(seed=0),
+            _joint_paper_reference_source(
+                seed=1,
+                decision=PAPER_REFERENCE_ROUND_REACH_DECISION_FOR_TEST,
+            ),
+        ],
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_paper_reference_"
+        "round_reach_confirmed"
+    )
+    assert result["gate"]["signal_checks"][
+        "both_sources_confirm_r8_round_reach"
+    ]
+    assert not result["gate"]["signal_checks"][
+        "both_sources_confirm_candidate_advantage"
+    ]
+
+
+def test_joint_paper_reference_holds_seed_variance_without_adding_seed() -> None:
+    result = adjudicate_joint_paper_reference(
+        run_id="joint_paper_reference",
+        sources=[
+            _joint_paper_reference_source(seed=0),
+            _joint_paper_reference_source(
+                seed=1,
+                decision=PAPER_REFERENCE_NOT_CONFIRMED_DECISION_FOR_TEST,
+            ),
+        ],
+    )
+
+    assert result["gate"]["status"] == "hold"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_paper_reference_"
+        "seed_variance_hold"
+    )
+    assert "Do not add another seed mechanically" in result["gate"]["next_action"]
+
+
+@pytest.mark.parametrize(
+    "invalid_case",
+    ["visual_qa", "revision", "protocol", "duplicate_seed", "decision_signal"],
+)
+def test_joint_paper_reference_rejects_invalid_sources(invalid_case: str) -> None:
+    seed0 = _joint_paper_reference_source(seed=0)
+    seed1 = _joint_paper_reference_source(seed=1)
+    if invalid_case == "visual_qa":
+        seed1["visual_qa_passed"] = False
+    elif invalid_case == "revision":
+        seed1["gate"]["readjudication"][
+            "source_revision_matches_expected"
+        ] = False
+    elif invalid_case == "protocol":
+        for row in seed1["rows"]:
+            row["batch_size"] = 1024
+    elif invalid_case == "duplicate_seed":
+        seed1 = _joint_paper_reference_source(seed=0)
+    else:
+        seed1 = _joint_paper_reference_source(
+            seed=1,
+            decision=PAPER_REFERENCE_ROUND_REACH_DECISION_FOR_TEST,
+        )
+        seed1["gate"]["decision"] = PAPER_REFERENCE_CANDIDATE_DECISION_FOR_TEST
+
+    result = adjudicate_joint_paper_reference(
+        run_id="joint_paper_reference",
+        sources=[seed0, seed1],
+    )
+
+    assert result["gate"]["status"] == "fail"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_paper_reference_invalid"
+    )
+
+
 def test_joint_bridge_cli_writes_complete_artifacts(tmp_path: Path) -> None:
     source_roots = [tmp_path / "seed0", tmp_path / "seed1"]
     for seed, source_root in enumerate(source_roots):
@@ -1387,6 +1503,115 @@ def _bridge_rows(*, candidate_auc: float, anchor_auc: float) -> list[dict[str, A
         row("linear", 0.52),
         row("control", 0.501, shuffled=True),
     ]
+
+
+def _joint_paper_reference_source(
+    *,
+    seed: int,
+    decision: str = PAPER_REFERENCE_CANDIDATE_DECISION_FOR_TEST,
+) -> dict[str, Any]:
+    if decision == PAPER_REFERENCE_CANDIDATE_DECISION_FOR_TEST:
+        status = "pass"
+        round_reach = True
+        candidate_advantage = True
+        anchor_auc = 0.54
+        candidate_auc = 0.56
+    elif decision == PAPER_REFERENCE_ROUND_REACH_DECISION_FOR_TEST:
+        status = "pass"
+        round_reach = True
+        candidate_advantage = False
+        anchor_auc = 0.55
+        candidate_auc = 0.52
+    elif decision == PAPER_REFERENCE_NOT_CONFIRMED_DECISION_FOR_TEST:
+        status = "hold"
+        round_reach = False
+        candidate_advantage = False
+        anchor_auc = 0.52
+        candidate_auc = 0.52
+    else:
+        raise ValueError(f"unsupported test decision: {decision}")
+
+    run_id = f"i2_present_r8_paper_reference_seed{seed}"
+    common = {
+        "run_id": run_id,
+        "cipher": "PRESENT-80",
+        "task": "innovation2_present_high_round_integral_multiset",
+        "rounds": 8,
+        "seed": seed,
+        "train_total_rows": 1 << 21,
+        "validation": {"total_rows": 1 << 17, "samples_per_class": 1 << 16},
+        "test": {"total_rows": 1 << 17, "samples_per_class": 1 << 16},
+        "multisets_per_sample": 2,
+        "texts_per_multiset": 16,
+        "input_bits": 4096,
+        "input_view": "wu_guo_invp_invs_cj_xor_c0",
+        "negative_mode": NEGATIVE_MODE,
+        "key_sampling": "one unique PRESENT-80 master key per sample",
+        "epochs": 50,
+        "batch_size": 2000,
+        "learning_rate": 0.001,
+        "weight_decay": 0.00001,
+        "loss": "mse",
+        "optimizer": "adam",
+        "paper_tensor_concat_assumption": "spatial_axis_1",
+    }
+
+    def row(role: str, auc: float, *, shuffled: bool = False) -> dict[str, Any]:
+        return {
+            **common,
+            "role": role,
+            "test_accuracy": auc,
+            "test_auc": auc,
+            "test_calibrated_accuracy": auc,
+            "fit_validation_auc": 0.501 if shuffled else auc,
+            "fit_train_labels_shuffled": shuffled,
+            "fit_validation_labels_shuffled": shuffled,
+        }
+
+    rows = [
+        row("anchor", anchor_auc),
+        row("candidate", candidate_auc),
+        row("linear", 0.51),
+        row("control", 0.501, shuffled=True),
+    ]
+    signal_checks = {
+        "anchor_test_accuracy_at_least_0_53": anchor_auc >= 0.53,
+        "anchor_test_auc_at_least_0_53": anchor_auc >= 0.53,
+        "anchor_accuracy_95pct_lower_bound_above_chance": anchor_auc >= 0.53,
+        "candidate_test_accuracy_at_least_0_53": candidate_advantage,
+        "candidate_test_auc_at_least_0_53": candidate_advantage,
+        "candidate_accuracy_95pct_lower_bound_above_chance": candidate_advantage,
+        "at_least_one_neural_model_confirms_r8_round_reach": round_reach,
+        "shuffled_fit_validation_auc_within_0_03_of_chance": True,
+        "candidate_beats_architecture_prior_by_0_01_auc": candidate_advantage,
+        "candidate_beats_strongest_oriented_fixed_parity_by_0_01_auc": (
+            candidate_advantage
+        ),
+        "candidate_beats_anchor_by_0_005_accuracy_or_auc": candidate_advantage,
+    }
+    gate = {
+        "status": status,
+        "decision": decision,
+        "run_id": run_id,
+        "gate_mode": "paper_reference",
+        "rounds": 8,
+        "metrics": {
+            "architecture_prior_oriented_auc": 0.501,
+            "strongest_oriented_fixed_parity_auc": 0.505,
+        },
+        "paper_reference_plan_checks": {"frozen_protocol": True},
+        "readiness_checks": {"artifacts_complete": True},
+        "paper_reference_signal_checks": signal_checks,
+        "readjudication": {
+            "source_revision_matches_expected": True,
+        },
+    }
+    return {
+        "artifact_root": f"paper_reference_seed{seed}",
+        "gate": gate,
+        "rows": rows,
+        "visual_qa_passed": True,
+    }
 
 
 def _valid_dataset_summary() -> dict[str, Any]:
