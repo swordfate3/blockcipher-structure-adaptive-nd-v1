@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/css/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>CLAASP-MP: An Automated MILP Framework for Monomial Prediction</title>
+    <link rel="stylesheet" href="/css/eprint.css?v=10">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon-180x180.png" />
+    <meta name="tdm-reservation" content="1">
+
+<style>
+  a.toggle-open:after {
+  content:' -';
+  font-weight: 800;
+  }
+  a.toggle-closed:after {
+  content: " ›";
+  font-weight: 800;
+  }
+  .paper-abstract {
+     white-space: pre-wrap;
+  }
+  #metadata dt {
+    margin-top: 1rem;
+  }
+  #metadata dt + dd { /* gap between dt and first dd */
+    margin-top: .75rem;
+  }
+  #metadata dd {
+    margin-left: 2rem;
+  }
+  #metadata dd.keywords {
+    padding-bottom: .5rem;
+  }
+  span.authorName {
+    margin-top: .5rem;
+    font-style: italic;
+  }
+</style>
+
+<script>
+MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEnvironments: false
+    },
+    loader: {
+        load: [
+            "ui/safe",
+            "ui/lazy",
+        ],
+    },
+    options: {
+        safeOptions: {
+        allow: {
+            URLs: "none",
+            classes: "safe",
+            cssIDs: "safe",
+            styles: "safe",
+        },
+        },
+    }
+    };
+</script>
+
+<script id="MathJax-script" async src="/js/mathjax/tex-chtml.js"></script>
+
+
+  <meta name="citation_title" content="CLAASP-MP: An Automated MILP Framework for Monomial Prediction">
+
+  <meta name="citation_author" content="Emanuele Bellini">
+
+  <meta name="citation_author" content="Mohamed Rachidi">
+
+  <meta name="citation_author" content="Sharwan K. Tiwari">
+
+  <meta name="citation_journal_title" content="Cryptology ePrint Archive">
+  <meta name="citation_publication_date" content="2026">
+
+  <meta name="citation_pdf_url" content="https://eprint.iacr.org/2026/735.pdf">
+
+
+
+
+  <meta property="og:image" content="https://eprint.iacr.org/img/iacrlogo.png"/>
+  <meta property="og:image:alt" content="IACR logo"/>
+  <meta property="og:url" content="https://eprint.iacr.org/2026/735">
+  <meta property="og:site_name" content="IACR Cryptology ePrint Archive" />
+  <meta property="og:type" content="article" />
+
+  <meta property="og:title" content="CLAASP-MP: An Automated MILP Framework for Monomial Prediction" />
+  <meta property="og:description" content="We present CLAASP-MP, a monomial prediction (MP) tool based on the three-subset division property without unknown subset (3SDP-woU), integrated into CLAASP, a library for automated analysis of symmetric key cryptographic primitives. The propagation rules of 3SDP-woU are encoded as a Mixed Integer Linear Programming (MILP) model generated directly from the CLAASP component graph, covering the main building blocks used in modern symmetric designs, including S-boxes, linear layers, Boolean word operations, modular addition and multiplication, and linear and nonlinear feedback shift register updates.
+
+Using this model for selected output bits, CLAASP-MP computes algebraic normal form (ANF) (for a small number of rounds), derives superpolies for a chosen cube, and computes a tight upper bound on the algebraic degree with respect to plaintext, key, or IV variables. A monomial is absent if its ANF coefficient is zero, if it does not appear in the superpoly, or if the algebraic degree is too small for it to occur; in all such cases, the output is balanced and yields an integral distinguisher.
+
+We evaluate \name{} on block ciphers, permutations, and stream ciphers implemented in \claasp{}. We introduce an exact bit-level MILP modeling technique for modular multiplication and apply it to provide the first independent algebraic analysis of the MSX block cipher, identifying integral properties that persist up to 7 rounds for MSX-128. Furthermore, we reproduce known distinguishers and identify new cubes for several block ciphers and extend the best-known integral distinguishers of ChaCha and Salsa permutations from 6 and 5 rounds, respectively, to 6.75 rounds. We also discovered new integral distinguishers for Bivium using several 36-dimensional cubes and extended the exact computation of the algebraic degree of Trivium to later initialization clocks while reproducing many published superpolies.
+
+These results show that CLAASP-MP provides a unified and practical MILP-based framework for monomial prediction and algebraic analysis across a wide range of symmetric primitives." />
+  <meta property="article:section" content="ATTACKS" />
+
+  <meta property="article:modified_time" content="2026-04-15T06:11:59+00:00" />
+  <meta property="article:published_time" content="2026-04-15T06:11:59+00:00" />
+
+
+
+      <meta property="article:tag" content="Division property" />
+
+      <meta property="article:tag" content="Superpoly" />
+
+      <meta property="article:tag" content="Cube attacks" />
+
+
+
+  </head>
+
+  <body>
+    <noscript>
+      <h1 class="text-center">What a lovely hat</h1>
+      <h4 class="text-center">Is it made out of <a href="https://iacr.org/tinfoil.html">tin foil</a>?</h4>
+    </noscript>
+    <div class="fixed-top" id="topNavbar">
+      <nav class="navbar navbar-custom navbar-expand-lg">
+        <div class="container px-0 justify-content-between justify-content-lg-evenly">
+          <div class="order-0 align-items-center d-flex">
+            <button class="navbar-toggler btnNoOutline" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false">
+              <span class="icon-bar top-bar"></span>
+              <span class="icon-bar middle-bar"></span>
+              <span class="icon-bar bottom-bar"></span>
+            </button>
+            <a class="d-none me-5 d-lg-inline" href="https://iacr.org/"><img class="iacrlogo" src="/img/iacrlogo_small.png" alt="IACR Logo" style="max-width:6rem;"></a>
+          </div>
+          <a class="ePrintname order-1" href="/">
+            <span class="longNavName">Cryptology ePrint Archive</span>
+          </a>
+          <div class="collapse navbar-collapse order-3" id="navbarContent">
+            <ul class="navbar-nav me-auto ms-2 mb-2 mb-lg-0 justify-content-end w-100">
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Papers
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="navbarDropdown">
+                  <span class="text-dark mx-3" style="white-space:nowrap;">Updates from the last:</span>
+                  <li><a class="dropdown-item ps-custom" href="/days/7">7 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/31">31 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/183">6 months</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/365">365 days</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/byyear">Listing by year</a></li>
+                  <li><a class="dropdown-item" href="/complete">All papers</a></li>
+                  <li><a class="dropdown-item" href="/complete/compact">Compact view</a></li>
+                  <li><a class="dropdown-item" href="https://www.iacr.org/news/subscribe">Subscribe</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/citation.html">How to cite</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/rss">Harvesting metadata</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="submissionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="submissionsDropdown">
+                  <li><a class="dropdown-item" href="/submit">Submit a paper</a></li>
+                  <li><a class="dropdown-item" href="/revise">Revise or withdraw a paper</a></li>
+                  <li><a class="dropdown-item" href="/operations.html">Acceptance and publishing conditions</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  About
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="aboutDropdown">
+                  <li><a class="dropdown-item" href="/about.html">Goals and history</a></li>
+                  <li><a class="dropdown-item" href="/news.html">News</a></li>
+                  <li><a class="dropdown-item" href="/stats">Statistics</a></li>
+                  <li><a class="dropdown-item" href="/contact.html">Contact</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="dropdown ps-md-2 text-right order-2 order-lg-last">
+            <button class="btn btnNoOutline" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/search.svg" class="searchIcon" alt="Search Button"/>
+            </button>
+            <div id="searchDd" class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="dropdownMenuButton1">
+              <form action="/search" method="GET">
+                <div class="input-group">
+                  <input id="searchbox" name="q" type="search" class="form-control" autocomplete="off">
+                  <button class="btn btn-secondary border input-group-append ml-2">
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div class="ms-2 p-1 d-none"><a href="/search">Advanced search</a></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <main id="eprintContent" class="container px-3 py-4 p-md-4">
+
+<div class="row mt-4">
+  <div class="col-md-7 col-lg-8 pe-md-5">
+
+    <h4>Paper 2026/735</h4>
+    <h3 class="mb-3"><a href="/2026/735.pdf">CLAASP-MP: An Automated MILP Framework for Monomial Prediction</a></h3>
+
+
+
+    <div class="author"><span class="authorName">Emanuele Bellini</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0002-2349-0247"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Technology Innovation Institute</span></div>
+
+
+    <div class="author"><span class="authorName">Mohamed Rachidi</span><a class="ms-1" target="_blank" href="https://orcid.org/0009-0008-5279-4902"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Technology Innovation Institute</span></div>
+
+
+    <div class="author"><span class="authorName">Sharwan K. Tiwari</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0002-9487-0669"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Technology Innovation Institute</span></div>
+
+
+    <h5 class="mt-3">Abstract</h5>
+    <p style="white-space: pre-wrap;">We present CLAASP-MP, a monomial prediction (MP) tool based on the three-subset division property without unknown subset (3SDP-woU), integrated into CLAASP, a library for automated analysis of symmetric key cryptographic primitives. The propagation rules of 3SDP-woU are encoded as a Mixed Integer Linear Programming (MILP) model generated directly from the CLAASP component graph, covering the main building blocks used in modern symmetric designs, including S-boxes, linear layers, Boolean word operations, modular addition and multiplication, and linear and nonlinear feedback shift register updates.
+
+Using this model for selected output bits, CLAASP-MP computes algebraic normal form (ANF) (for a small number of rounds), derives superpolies for a chosen cube, and computes a tight upper bound on the algebraic degree with respect to plaintext, key, or IV variables. A monomial is absent if its ANF coefficient is zero, if it does not appear in the superpoly, or if the algebraic degree is too small for it to occur; in all such cases, the output is balanced and yields an integral distinguisher.
+
+We evaluate \name{} on block ciphers, permutations, and stream ciphers implemented in \claasp{}. We introduce an exact bit-level MILP modeling technique for modular multiplication and apply it to provide the first independent algebraic analysis of the MSX block cipher, identifying integral properties that persist up to 7 rounds for MSX-128. Furthermore, we reproduce known distinguishers and identify new cubes for several block ciphers and extend the best-known integral distinguishers of ChaCha and Salsa permutations from 6 and 5 rounds, respectively, to 6.75 rounds. We also discovered new integral distinguishers for Bivium using several 36-dimensional cubes and extended the exact computation of the algebraic degree of Trivium to later initialization clocks while reproducing many published superpolies.
+
+These results show that CLAASP-MP provides a unified and practical MILP-based framework for monomial prediction and algebraic analysis across a wide range of symmetric primitives.</p>
+
+  </div>
+  <div id="metadata" class="col-md-5 col-lg-4 ps-md-5 mt-4 mt-md-0">
+    <h5>Metadata</h5>
+    <dl>
+      <dt>
+        Available format(s)
+      </dt>
+      <dd>
+
+
+        <a class="btn btn-sm btn-outline-dark"
+           href="/2026/735.pdf">
+          <img class="icon" src="/img/file-pdf.svg">PDF</a>
+
+
+
+      </dd>
+
+      <dt>Category</dt>
+        <dd><a rel="nofollow" href="/search?category=ATTACKS"><small class="badge category category-ATTACKS">Attacks and cryptanalysis</small></a></dd>
+
+      <dt>Publication info</dt>
+      <dd>Preprint. </dd>
+
+
+      <dt>Keywords</dt>
+      <dd class="keywords"><a rel="nofollow" href="/search?q=Division%20property" class="me-2 badge bg-secondary keyword">Division property</a><a rel="nofollow" href="/search?q=Superpoly" class="me-2 badge bg-secondary keyword">Superpoly</a><a rel="nofollow" href="/search?q=Cube%20attacks" class="me-2 badge bg-secondary keyword">Cube attacks</a></dd>
+
+      <dt>Contact author(s)</dt>
+      <dd><span class="font-monospace">
+        emanuele bellini<span class="obfuscate"> &#64; </span>tii ae<br>mohamed rachidi<span class="obfuscate"> &#64; </span>tii ae<br>shrawant<span class="obfuscate"> &#64; </span>gmail com
+        </span>
+      </dd>
+      <dt>History</dt>
+
+
+      <dd>2026-04-19: approved</dd>
+
+
+
+      <dd>2026-04-15: received</dd>
+
+
+
+      <dd><a rel="nofollow noindex" href="/archive/versions/2026/735">See all versions</a></dd>
+
+      <dt>Short URL</dt>
+      <dd><a rel="nofollow" href="https://ia.cr/2026/735">https://ia.cr/2026/735</a></dd>
+      <dt>License</dt>
+      <dd><a rel="license" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+        <img class="licenseImg" src="/img/license/CC_BY.svg" alt="Creative Commons Attribution" title="Creative Commons Attribution"><br>
+        <small>CC BY</small>
+        </a>
+      </dd>
+    </dl>
+  </div>
+  </div>
+
+
+  <p class="mt-4"><strong>BibTeX</strong> <button id="bibcopy" class="ms-2 btn btn-sm btn-outline-dark"
+ aria-label="Copy to clipboard"
+                                     onclick="copyBibtex()">
+    <img src="/img/copy-outline.svg" class="icon">Copy to clipboard</button></p>
+  <pre id="bibtex">
+@misc{cryptoeprint:2026/735,
+      author = {Emanuele Bellini and Mohamed Rachidi and Sharwan K. Tiwari},
+      title = {{CLAASP}-{MP}: An Automated {MILP} Framework for Monomial Prediction},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2026/735},
+      year = {2026},
+      url = {https://eprint.iacr.org/2026/735}
+}
+</pre>
+
+
+<script>
+ var bibcopy;
+ function triggerTooltip() {
+   console.log('setting tooltip');
+ }
+ window.onload = triggerTooltip;
+ function copyBibtex() {
+   let range = document.createRange();
+   range.selectNode(document.getElementById('bibtex'));
+   window.getSelection().removeAllRanges();
+   window.getSelection().addRange(range);
+   document.execCommand('copy');
+   window.getSelection().removeAllRanges();
+   let bibcopy = document.getElementById('bibcopy');
+   let copyTooltip = new bootstrap.Tooltip(bibcopy, {trigger: 'manual',
+                                                     title: 'Copied!'});
+   copyTooltip.show();
+   setTimeout(function() {
+     copyTooltip.dispose();
+   }, 2000);
+ }
+</script>
+
+</main>
+<div class="container-fluid mt-auto" id="eprintFooter">
+  <a href="https://iacr.org/">
+    <img id="iacrlogo" src="/img/iacrlogo_small.png" class="img-fluid d-block mx-auto" alt="IACR Logo">
+  </a>
+  <div class="colorDiv"></div>
+  <div class="alert alert-success w-75 mx-auto">
+    Note: In order to protect the privacy of readers, eprint.iacr.org
+    does not use cookies or embedded third party content.
+  </div>
+</div>
+<script src="/css/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+   var topNavbar = document.getElementById('topNavbar');
+   if (topNavbar) {
+     document.addEventListener('scroll', function(e) {
+       if (window.scrollY > 100) {
+         topNavbar.classList.add('scrolled');
+       } else {
+         topNavbar.classList.remove('scrolled');
+       }
+     })
+   }
+  </script>
+
+
+</body>
+</html>

@@ -1,3 +1,56 @@
+## [ERR-20260716-008] iacr_pdf_cloudflare_and_browser_tool_unavailable
+
+**Logged**: 2026-07-16T15:42:57+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+
+Legal open IACR ePrint landing pages were readable, but PDF endpoints returned
+Cloudflare HTML and the real-browser fallback could not be installed under the
+current platform policy.
+
+### Error
+
+```text
+eprint PDF response: HTML document, about 5420 bytes, Cloudflare challenge
+
+npm FetchError: request to https://registry.npmjs.org/@playwright%2fcli failed
+connect EPERM 127.0.0.1:7897
+
+Escalated npx installation: rejected because escalation is disallowed
+```
+
+### Context
+
+- Affected open PDFs include ePrint 2026/340, 2021/1502, 2026/961, and
+  2026/735; additional adjacent ePrint PDFs were affected in the same way.
+- `curl`, browser-like user agents, short IACR URLs, and direct publisher PDF
+  endpoints were checked without bypassing access controls.
+- The Playwright skill was selected as the documented real-browser fallback,
+  but its CLI dependency was absent and the reviewed installation request was
+  rejected. No alternate browser or policy workaround was attempted.
+
+### Suggested Fix
+
+Retry the canonical ePrint PDF URLs when the Cloudflare policy changes, or use
+an already installed/approved real browser after explicit platform approval.
+Until then, retain the landing-page HTML, exact PDF URL, DOI, abstract, and
+`access_blocked` manifest state; never store the challenge HTML as a PDF.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: docs/research/innovation2-high-round-literature-corpus-20260716.md, sources/research_innovation2_paper_manifest_20260716.csv
+- See Also: ERR-20260716-007
+- Pattern-Key: research.iacr_pdf_cloudflare_requires_approved_browser
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+---
+
 ## [ERR-20260716-007] github_unauthenticated_code_search_rate_limit
 
 **Logged**: 2026-07-16T14:35:00+08:00

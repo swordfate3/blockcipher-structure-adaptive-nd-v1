@@ -1,0 +1,2754 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/css/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Search results</title>
+    <link rel="stylesheet" href="/css/eprint.css?v=10">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon-180x180.png" />
+    <meta name="tdm-reservation" content="1">
+
+<style>
+ input {
+   background-color: #e8e8e8 !important;
+ }
+ mark {
+   font-weight: 600;
+   padding: .2em 0px .2em 0px;
+   color: black;
+ }
+ span.term {
+   font-weight: 700 !important;
+   font-family: var(--bs-font-monospace), monospace !important;
+ }
+ form {
+   background-color:#fff;
+ }
+ @media (min-width: 768px) {
+   form {
+     position:sticky;top:6rem;
+   }
+ }
+
+</style>
+<meta name="description" content="Search the Cryptology ePrint Archive">
+
+  </head>
+
+  <body>
+    <noscript>
+      <h1 class="text-center">What a lovely hat</h1>
+      <h4 class="text-center">Is it made out of <a href="https://iacr.org/tinfoil.html">tin foil</a>?</h4>
+    </noscript>
+    <div class="fixed-top" id="topNavbar">
+      <nav class="navbar navbar-custom navbar-expand-lg">
+        <div class="container px-0 justify-content-between justify-content-lg-evenly">
+          <div class="order-0 align-items-center d-flex">
+            <button class="navbar-toggler btnNoOutline" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false">
+              <span class="icon-bar top-bar"></span>
+              <span class="icon-bar middle-bar"></span>
+              <span class="icon-bar bottom-bar"></span>
+            </button>
+            <a class="d-none me-5 d-lg-inline" href="https://iacr.org/"><img class="iacrlogo" src="/img/iacrlogo_small.png" alt="IACR Logo" style="max-width:6rem;"></a>
+          </div>
+          <a class="ePrintname order-1" href="/">
+            <span class="longNavName">Cryptology ePrint Archive</span>
+          </a>
+          <div class="collapse navbar-collapse order-3" id="navbarContent">
+            <ul class="navbar-nav me-auto ms-2 mb-2 mb-lg-0 justify-content-end w-100">
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Papers
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="navbarDropdown">
+                  <span class="text-dark mx-3" style="white-space:nowrap;">Updates from the last:</span>
+                  <li><a class="dropdown-item ps-custom" href="/days/7">7 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/31">31 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/183">6 months</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/365">365 days</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/byyear">Listing by year</a></li>
+                  <li><a class="dropdown-item" href="/complete">All papers</a></li>
+                  <li><a class="dropdown-item" href="/complete/compact">Compact view</a></li>
+                  <li><a class="dropdown-item" href="https://www.iacr.org/news/subscribe">Subscribe</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/citation.html">How to cite</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/rss">Harvesting metadata</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="submissionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="submissionsDropdown">
+                  <li><a class="dropdown-item" href="/submit">Submit a paper</a></li>
+                  <li><a class="dropdown-item" href="/revise">Revise or withdraw a paper</a></li>
+                  <li><a class="dropdown-item" href="/operations.html">Acceptance and publishing conditions</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  About
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="aboutDropdown">
+                  <li><a class="dropdown-item" href="/about.html">Goals and history</a></li>
+                  <li><a class="dropdown-item" href="/news.html">News</a></li>
+                  <li><a class="dropdown-item" href="/stats">Statistics</a></li>
+                  <li><a class="dropdown-item" href="/contact.html">Contact</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="dropdown ps-md-2 text-right order-2 order-lg-last">
+            <button class="btn btnNoOutline" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/search.svg" class="searchIcon" alt="Search Button"/>
+            </button>
+            <div id="searchDd" class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="dropdownMenuButton1">
+              <form action="/search" method="GET">
+                <div class="input-group">
+                  <input id="searchbox" name="q" type="search" class="form-control" autocomplete="off">
+                  <button class="btn btn-secondary border input-group-append ml-2">
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div class="ms-2 p-1 d-none"><a href="/search">Advanced search</a></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <main id="eprintContent" class="container px-3 py-4 p-md-4">
+<div class="row">
+    <div class="col-12 col-lg-4">
+      <form class="p-2 pt-md-4 align-items-end  needs-validation" novalidate onsubmit="return validateForm()" method="GET" action="/search">
+        <label for="anything" class="mt-2 form-label">Match anything</label>
+        <input type="text" name="q" class="form-control form-control-sm" id="anything" aria-label="Match anything" value="PRESENT integral">
+        <label for="title" class="mt-4 form-label">Match title</label>
+        <input type="text" name="title" class="form-control form-control-sm" id="title" aria-label="Match title" value="">
+        <label for="authors" class="mt-4 form-label">Match authors</label>
+        <input type="text" name="authors" class="form-control form-control-sm" id="authors" aria-label="Match authors" value="">
+        <label for="category" class="mt-4 form-label">Category</label><br>
+        <select class="form-select form-select-sm" id="category" name="category" aria-label="Category">
+          <option value="">All categories</option>
+
+          <option value="APPLICATIONS" >Applications</option>
+
+          <option value="PROTOCOLS" >Cryptographic protocols</option>
+
+          <option value="FOUNDATIONS" >Foundations</option>
+
+          <option value="IMPLEMENTATION" >Implementation</option>
+
+          <option value="SECRETKEY" >Secret-key cryptography</option>
+
+          <option value="PUBLICKEY" >Public-key cryptography</option>
+
+          <option value="ATTACKS" >Attacks and cryptanalysis</option>
+
+        </select>
+        <div class="row d-none d-lg-flex">
+          <div class="col-6">
+            <label for="submittedafter" class="mt-4 form-label">Submitted after</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="submittedafter" name="submittedafter" aria-label="Submitted after" value="None" placeholder="Enter a year">
+          </div>
+          <div class="col-6">
+            <label for="submittedbefore" class="mt-4 form-label">Submitted before</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="submittedbefore" name="submittedbefore" aria-label="Submitted before" value="None" placeholder="Enter a year">
+            <div class="invalid-feedback">
+              Dates are inconsistent
+            </div>
+          </div>
+        </div>
+        <div class="row d-none d-lg-flex">
+          <div class="col-6">
+            <label for="revisedafter" class="mt-4 form-label">Revised after</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="revisedafter" name="revisedafter" aria-label="Revised after" placeholder="Enter a year" value="None">
+            <div class="invalid-feedback">
+              Dates are inconsistent
+            </div>
+          </div>
+          <div class="col-6">
+            <label for="revisedbefore" class="mt-4 form-label">Revised before</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="revisedbefore" name="revisedbefore" aria-label="Revised before" value="None" placeholder="Enter a year">
+          </div>
+        </div>
+        <div class="d-none d-lg-flex mt-3">
+          <div class="form-check">
+            <input type="checkbox" id="relevance" name="relevance" >
+            <label for="relevance" class="form-check-label ms-2">Sort by relevance</label>
+          </div>
+        </div>
+        <div class="mt-3 d-flex">
+          <button class="btn btn-primary btn-sm" type="submit">Search</button>
+          <button id="clearButton" class="btn btn-secondary btn-sm ms-2" type="button">Clear</button>
+          <button id="helpButton" class="btn btn-info btn-sm ms-auto" type="button" data-bs-toggle="modal" data-bs-target="#helpModal">Help</button>
+        </div>
+      </form>
+      <div class="modal" tabindex="-1" id="helpModal">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">Search Help</h4>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>
+                You can search for a phrase by enclosing it in double quotes, e.g.,
+                <span class="term text-nowrap"><a href="/search?q=%22differential%20privacy%22">"differential privacy"</a></span>.
+              </p>
+              <p>
+                You can require or exclude specific terms using + and -. For example, to search for papers that contain the term elliptic
+                but not the term factoring, use
+                <span class="term text-nowrap"><a href="/search?q=%2Belliptic%20-factoring">+elliptic -factoring</a></span>
+              </p>
+              <p>
+                To search in a title or for author name, use
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20author%3Aboneh">title:isogeny author:boneh</a></span>.
+                If you want to require both, you can use
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20AND%20author%3Aboneh">title:isogeny AND author:boneh</a></span>
+                because it recognizes logical operators <span class="term">AND</span> and <span class="term">OR</span>.
+                This is equivalent to <a href="/search?title=isogeny&authors=boneh">using the individual fields</a> for author and title.
+                You can also use NOT to negate a condition, as with
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20AND%20NOT%20author%3Aboneh">title:isogeny AND NOT author:boneh</a></span> to search for papers with an author other than Boneh.
+              </p>
+              <p>
+                To find documents containing a term starting with the string
+                <span class="term">differe</span>, use
+                <span class="term"><a href="/search?q=differe%2A">differe*</a></span>.
+                This will match the terms difference, different, and differential
+              </p>
+              <p>
+                Note that search applies stemming, so that if you search for <span class="term">yield</span> it will also match terms
+                <span class="term">yields</span> and <span class="term">yielding</span>. If you want to disable
+                stemming, capitalize the term. A search for <span class="term">Adam</span> will not match the term 'Adams'.
+              </p>
+              <p>
+                The system attempts to recognize possible misspellings. This is perhaps a source of amusement more than anything else.
+              </p>
+              <p>
+                This currently searches the text in titles, authors, abstracts, and keywords, but does not search in the PDF or PS itself.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Parsed query: Query(((present@1 AND Zintegr@2) AND_MAYBE PostingSource(Xapian::ValueWeightPostingSource(slot=2)))) -->
+    </div>
+  <div class="col-12 col-lg-8" style="min-height:80vh">
+
+
+
+
+    <h4 class="mt-3 ms-4">504 results sorted by ID</h5>
+
+    <div class="ms-lg-4 mt-3 results">
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1402" class="paperlink" href="/2026/1402">2026/1402</a>
+          <span class="ms-2"><a href="/2026/1402.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>On Extending Integral Distinguishers</strong>
+              <div class="mt-1"><span class="fst-italic">Dachao Wang, Hosein Hadipour, Simon Gerhalter</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Integral cryptanalysis analyzes block ciphers using input structures for which the sum of a chosen function of the output bits becomes key-independent. However, most methods still test one output expression at a time, so they can miss distinguishers that emerge only when several outputs are combined, either linearly or nonlinearly. They are also not designed to capture key-dependent integral combinations, which may hold deterministically on part of the key space.
+In this work, we develop...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1315" class="paperlink" href="/2026/1315">2026/1315</a>
+          <span class="ms-2"><a href="/2026/1315.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>VERDICT: A Cryptographically Verifiable Framework for Secure Data Lineage in Decentralized DAGs</strong>
+              <div class="mt-1"><span class="fst-italic">Bilel Zaghdoudi, Maria Potop Butucaru</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-FOUNDATIONS">Foundations</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Ensuring the integrity and traceability of data transformations in
+distributed systems presents significant challenges, particularly in
+environments where data privacy and decentralization are paramount.
+This paper introduces a novel secure lineage verification
+system based on Directed Acyclic Graphs (DAGs) and homomorphic
+hash functions, VERDICT. Our approach represents data artifacts
+and their transformations as two interconnected DAGs: a Data DAG
+tracking data dependencies and an...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1262" class="paperlink" href="/2026/1262">2026/1262</a>
+          <span class="ms-2"><a href="/2026/1262.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>PQ-SMS: A Post-Quantum Sanitizable Multi-Signature Scheme for Satellite PKI</strong>
+              <div class="mt-1"><span class="fst-italic">Long Wang, Zhaoman Liu, Jing Fan, Yanhong Fan</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Satellite communication systems, as critical long-lifecycle infrastructure, face a dual security challenge in the coming decades: the threat of quantum computers and the operational rigidity of traditional Public Key Infrastructure (PKI). While migrating to Post-Quantum Cryptography (PQC) addresses the former, it fails to solve the inefficiency of certificate management, where in-orbit policy updates require a prohibitively slow and complex multi-party re-issuance process.
+
+To address...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1244" class="paperlink" href="/2026/1244">2026/1244</a>
+          <span class="ms-2"><a href="/2026/1244.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-14</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Resource Estimation of the Distributed Quantum Algorithm for the Elliptic Curve Logarithm Problem</strong>
+              <div class="mt-1"><span class="fst-italic">MohamadAli Khajeian</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Elliptic Curve Cryptography (ECC) underpins modern public-key infrastructure, relying on the computational hardness of the Elliptic Curve Discrete Logarithm Problem (ECDLP). While monolithic quantum computers running Shor&#39;s algorithm present a long-term threat to ECC, their physical realization is bottlenecked by the massive logical qubit demands of modular arithmetic—specifically modular inversion. Distributed Quantum Computing (DQC) offers a compelling alternative by linking smaller,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1226" class="paperlink" href="/2026/1226">2026/1226</a>
+          <span class="ms-2"><a href="/2026/1226.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-10</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Changing of the Guards with Two Shares - Security Flaws, Corrrections, and Application to Low-Latency AES</strong>
+              <div class="mt-1"><span class="fst-italic">Feng Zhou, Gehui Yang, Junhuai Yang, Hua Chen, Limin Fan</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Masking stands as one of the most effective countermeasures against side-channel attacks. While a number of recent works have investigated first-order masking schemes that eliminate the need for fresh randomness, most existing solutions trade off this randomness reduction against increased latency or area overhead. This paper targets the simultaneous achievement of low latency and zero fresh randomness. To this end, we make the following contributions. First, we identify a security flaw in...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1203" class="paperlink" href="/2026/1203">2026/1203</a>
+          <span class="ms-2"><a href="/2026/1203.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Signatures with Post-Compromise Accountability</strong>
+              <div class="mt-1"><span class="fst-italic">Dennis Dayanikli, Johannes Lang, Anja Lehmann</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Cryptographic signatures play an integral part in ensuring authenticity and integrity in digital systems. Their security crucially relies on the secrecy of the signing key, since knowledge of this key enables an adversary to generate valid signatures on any message. Once a signing key is compromised, the standard countermeasure is to revoke the corresponding public key and to invalidate all signatures produced for this key. However, with this approach even legitimate signatures created by...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1196" class="paperlink" href="/2026/1196">2026/1196</a>
+          <span class="ms-2"><a href="/2026/1196.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-07</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Grand Danois: Succinct Multilinear Polynomial Commitments over Lattices</strong>
+              <div class="mt-1"><span class="fst-italic">Anders Kallesoe, Hamidreza Khoshakhlagh</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present Grand Danois, a new post-quantum multilinear polynomial commitment scheme from lattices for polynomials over $\mathbb{F}_q$ that achieves polylogarithmic $O(\lambda \ell)$ verification complexity and proof sizes. We build on the general approach introduced in Hachi (ePrint 2026/156) with two key changes. First, we switch to the vanishing Short Integer Solution (vSIS) assumption to obtain structured public parameters for our commitment scheme and utilize this structure to design an...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1138" class="paperlink" href="/2026/1138">2026/1138</a>
+          <span class="ms-2"><a href="/2026/1138.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>IcyVeil: An Output-Private DVRF Based on Icy-DVRF</strong>
+              <div class="mt-1"><span class="fst-italic">Ahmet Ramazan Ağırtaş, Arda Buğra ÖZER, Zülfükar Saygı, Oğuz Yayla</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Unbiased and unpredictable randomness is a backbone of Web3 security, yet current Distributed Verifiable Random Function designs often entail a trade-off between performance and privacy. While established protocols like GLOW-DVRF achieve constant-size proofs, they rely on computationally expensive bilinear pairings that impose significant gas overhead in on-chain environments. Existing output-privacy frameworks, such as FlexiRand, are currently limited by the same expensive pairing-based...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1077" class="paperlink" href="/2026/1077">2026/1077</a>
+          <span class="ms-2"><a href="/2026/1077.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-28</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Authenticated and Incremental Single-Server Private Information Retrieval</strong>
+              <div class="mt-1"><span class="fst-italic">Pengfei Lu, Zengpeng Li, Mei Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Authenticated Private Information Retrieval (Authenticated PIR) allows the client to retrieve the desired database entry without revealing any information about the query, while safely aborting if malicious behavior by the server is detected (presented in USENIX &#39;23). However, two key challenges remain: existing single-server authenticated PIR schemes with sublinear online communication have not yet been clearly and fully implemented; incremental updates to the digest introduce unnecessary...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1065" class="paperlink" href="/2026/1065">2026/1065</a>
+          <span class="ms-2"><a href="/2026/1065.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Formal Analysis and Verification of DigiLocker with Tamarin</strong>
+              <div class="mt-1"><span class="fst-italic">Nayan Kakade, Aditya Mundada, Raghvendra Rohit</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Digilocker is a key component of India&#39;s Digital Public Infrastructure, enabling secure digital storage, retrieval, and sharing of government-issued documents. Given its large-scale deployment and reliance on protocols such as OAuth 2.0 with PKCE, HMAC-based API authentication, digital signatures, and encrypted storage, rigorous security assurance is essential which can not be be ensured through conventional testing alone. In this work, we present a formal modeling and verification of...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/1046" class="paperlink" href="/2026/1046">2026/1046</a>
+          <span class="ms-2"><a href="/2026/1046.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>AWARE: A Non-Interactive Anonymous Whistleblowing System against Recipient Corruption</strong>
+              <div class="mt-1"><span class="fst-italic">Ge Gao, Haining Yu, Jinbo Yang, Dongyang Zhan, Xiaohua Jia</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Anonymous whistleblowing systems allow insiders to report organizational misconduct while preserving confidentiality and anonymity. Existing systems often use Tor-based submission and encryption under a recipient public key, so the mailbox does not learn the submitter’s network address or report contents. This protection does not remove reliance on the parties that authenticate insiders or open reports. Two corruption risks remain: (1) token-issuance records held by an authentication server...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/961" class="paperlink" href="/2026/961">2026/961</a>
+          <span class="ms-2"><a href="/2026/961.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Delving Deep into Security Guarantees against Integral Distinguishers with Applications to PRESENT, TWINE and LBLOCK</strong>
+              <div class="mt-1"><span class="fst-italic">Shuo Peng, Jiahui He, Kai Hu, Meiqin Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Integral attacks pose a significant threat to block cipher security, yet providing guarantees against such attacks for a target block cipher is difficult. At
+ASIACRYPT 2021, Hebborn, Lambin, Leander, and Todo proposed the integral resistance property, which offers strong security guarantees for certain SPN and
+AND-RX block ciphers, assuming independent round keys. However, limitations
+remain: they proved a security bound for 13-round Present, while the longest
+known integral...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/943" class="paperlink" href="/2026/943">2026/943</a>
+          <span class="ms-2"><a href="/2026/943.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Optimized G+G Signature</strong>
+              <div class="mt-1"><span class="fst-italic">Renjie Jin, Shuoqu Jian, Longjiang Qu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">At ASIACRYPT 2023, Devevey, Passelègue and Stehlé proposed the G+G signature, which is designed based on the Fiat-Shamir transform without rejection sampling technique. However, the optimization of the G+G signature have not been studied as extensively as those of Lyubashevsky-type signatures.
+The contribution of this work is the integration of the Asymmetric Learning with Errors (ALWE) problem into the key generation phase of the G+G signature. We present a more precise estimation method...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/923" class="paperlink" href="/2026/923">2026/923</a>
+          <span class="ms-2"><a href="/2026/923.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-11</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Practical and Verifiable Encrypted Vector Search for Retrieval-Augmented Generation</strong>
+              <div class="mt-1"><span class="fst-italic">Xiangyu Hui, Xingliang Yuan, Olga Ohrimenko, Sid Chi-Kin Chau</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Retrieval-augmented generation (RAG) systems critically depend on a
+vector-retrieval stage that selects relevant documents from a large
+embedding database. When this stage is outsourced to a RAG-as-a-Service
+provider, query embeddings can reveal sensitive user intent,
+the outsourced index can leak proprietary corpus information, and a malicious
+provider can silently manipulate retrieval results. This motivates privacy-preserving
+verifiable retrieval. The client must be able to confirm...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/893" class="paperlink" href="/2026/893">2026/893</a>
+          <span class="ms-2"><a href="/2026/893.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>The Joint Channel Threshold: Selfish Mining Below 1% Hashrate</strong>
+              <div class="mt-1"><span class="fst-italic">Fateme Ghasemi, Reyhaneh Ameri, Mohammadreza Meybodi</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The selfish-mining literature has progressively lowered the hashrate
+threshold at which a rational Bitcoin miner strictly profits by
+deviating from the honest protocol, from Eyal and Sirer&#39;s 25% down to
+single digits under richer attacker models. Two such models remain
+unreconciled: Gervais et al. (CCS 2016) parameterize network-layer
+adversaries through an eclipse fraction omega and an honest-only
+stale rate o, but assume constant block rewards; WeRLman
+(IEEE S&amp;P 2023) models...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/857" class="paperlink" href="/2026/857">2026/857</a>
+          <span class="ms-2"><a href="/2026/857.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Lasagne: Practical Verifiable Computation over Encrypted Data</strong>
+              <div class="mt-1"><span class="fst-italic">Xinxuan Zhang, Ruida Wang, Qingyun Niu, Peixin Liu, Xianhui Lu, Lutan Zhao, Rui Hou, Yi Deng</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Verifiable Computation on Encrypted Data (VCoED) addresses the computational integrity gap in Fully Homomorphic Encryption (FHE). While recent protocols have made significant strides in making VCoED feasible, server-side proof generation remains computationally intensive, often requiring hours for a modest $2^{20}$-gate payload circuit (e.g., 2.27 hours for Phalanx, 9.26 hours for Blind Fractal). Moreover, most existing schemes lack support for payload circuits that are homomorphically...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/856" class="paperlink" href="/2026/856">2026/856</a>
+          <span class="ms-2"><a href="/2026/856.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>MERIDIAN: A Toroid-Inspired Permutation Block Cipher for Constrained Environments</strong>
+              <div class="mt-1"><span class="fst-italic">Basker Palaniswamy, Paolo Palmieri, Ashok Kumar Das</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-FOUNDATIONS">Foundations</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We introduce MERIDIAN, a 128-bit block cipher designed for resource-constrained environments as a lightweight alternative to AES-128. MERIDIAN retains the AES-128 interface, including a 128-bit block, 128-bit key, and 4×4 byte state, while reusing the standard AES S-box. This enables compatibility with existing AES-128 modes such as ECB, CBC, CFB, OFB, CTR, XTS, CMAC, CCM, and GCM, and allows implementations to reuse established S-box ROMs and GF(28) inverse circuits. The cipher is based on...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/809" class="paperlink" href="/2026/809">2026/809</a>
+          <span class="ms-2"><a href="/2026/809.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-23</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Formal Verification, Integration and Physical Evaluation of Prime-Field Masking on Silicon</strong>
+              <div class="mt-1"><span class="fst-italic">Gaëtan Cassiers, Thorben Moos, Amir Moradi, Nicolai Müller, François-Xavier Standaert</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The resistance of provably secure masked circuits to physical attacks depends in part on the underlying algebraic group and recombination function. Masking over finite fields of odd prime order has been demonstrated, both in theory and in practice, to provide increased natural resistance to side-channel and fault attacks. Its instantiation with a simple additive encoding and implementation-friendly prime modulus was suggested to lead to favorable tradeoffs between security and performance in...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/735" class="paperlink" href="/2026/735">2026/735</a>
+          <span class="ms-2"><a href="/2026/735.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-15</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>CLAASP-MP: An Automated MILP Framework for Monomial Prediction</strong>
+              <div class="mt-1"><span class="fst-italic">Emanuele Bellini, Mohamed Rachidi, Sharwan K. Tiwari</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present CLAASP-MP, a monomial prediction (MP) tool based on the three-subset division property without unknown subset (3SDP-woU), integrated into CLAASP, a library for automated analysis of symmetric key cryptographic primitives. The propagation rules of 3SDP-woU are encoded as a Mixed Integer Linear Programming (MILP) model generated directly from the CLAASP component graph, covering the main building blocks used in modern symmetric designs, including S-boxes, linear layers, Boolean word...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/721" class="paperlink" href="/2026/721">2026/721</a>
+          <span class="ms-2"><a href="/2026/721.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improving LatticeFold+ with ℓ2-norm Checks</strong>
+              <div class="mt-1"><span class="fst-italic">Michał Osadnik</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Folding schemes enable incremental proving by compressing many relation instances into a small accumulator. Recent lattice-based constructions such as LatticeFold+ [CRYPTO &#39;25] achieve post-quantum security, but prover performance is still dominated by expensive $\ell_\infty$ range checks used to control witness growth during folding and extraction. We present a final $\ell_2$-norm-check design that combines random-projection constraints (in the spirit of Rok and Roll [ASIACRYPT &#39;25]) with...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/710" class="paperlink" href="/2026/710">2026/710</a>
+          <span class="ms-2"><a href="/2026/710.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-15</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Optimizing and Implementing Threshold MAYO</strong>
+              <div class="mt-1"><span class="fst-italic">Diego F. Aranha, Giacomo Borin, Sofia Celi, Guilhem Niot</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Threshold signatures distribute trust across multiple parties, eliminating
+single points of failure and reducing insider and key-exfiltration risks—properties that are increasingly important for high-assurance deployments and recently emphasized by NIST’s Multi-Party Threshold Cryptography (MPTC) initiative. We present a practical t-out-of-n threshold variant and emulation of MAYO, a post-quantum signature candidate to NIST’s call for additional signatures. Our proposal builds
+upon the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/708" class="paperlink" href="/2026/708">2026/708</a>
+          <span class="ms-2"><a href="/2026/708.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-11</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Block Circulant Codes for Ethereum PeerDAS</strong>
+              <div class="mt-1"><span class="fst-italic">Birenjith Sasidharan, Emanuele Viterbo, Dankrad Feist</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this report, we describe how block circulant (BC) codes can serve as an alternative to one-dimensional (1D) and two-dimensional (2D) Reed–Solomon (RS) codes in the Ethereum PeerDAS protocol. We begin by reviewing the implementation of 1D RS codes in PeerDAS and then present efficient encoding and reconstruction algorithms for BC codes, developed within the same implementation framework as the respective 1D RS algorithms. The proposed encoding algorithm also permits a graceful integration...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/694" class="paperlink" href="/2026/694">2026/694</a>
+          <span class="ms-2"><a href="/2026/694.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Proximity Signatures</strong>
+              <div class="mt-1"><span class="fst-italic">Guillermo Angeris, Kobi Gurkan</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this note we introduce the concept of proximity signatures, where verifiers who can only access a small part of some data would like a guarantee that (a) this data is “close” to a uniquely decodable message (so the message can be decoded from the data via error decoding) and (b) the uniquely decodable message is signed by an associated secret key. This is useful in situations where the message is very large but the verifiers are small devices who only need the guarantee that the message...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/691" class="paperlink" href="/2026/691">2026/691</a>
+          <span class="ms-2"><a href="/2026/691.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>PipeSC: A Resource-efficient and Pipelined Hardware Accelerator for Sumcheck Protocol</strong>
+              <div class="mt-1"><span class="fst-italic">Kaixuan Wang, Yifan Yanggong, Xiaoyu Yang, Chenti Baixiao, Lei Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Zero-knowledge Succinct Non-interactive Arguments of Knowledge (zk-SNARKs) are cryptographic protocols that allow a prover to convince verifiers of the correctness of a statement without revealing any additional information.
+Recent zk-SNARK constructions have shifted from univariate to multivariate polynomial-based designs, reducing the proving complexity from quasilinear to linear by avoiding costly univariate polynomial interpolation.
+This shift, however, makes the sumcheck protocol—a...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/687" class="paperlink" href="/2026/687">2026/687</a>
+          <span class="ms-2"><a href="/2026/687.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>High-Throughput Side-Channel-Protected Stream Cipher Hardware for 6G Systems</strong>
+              <div class="mt-1"><span class="fst-italic">Yuluan Cao, Cankun Zhao, Bohan Yang, Wenping Zhu, Hanning Wang, Min Zhu, Leibo Liu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Emerging 6G communication systems impose unprecedented requirements on cryptographic primitives, demanding ultra-high throughput, low latency, and strong resistance to implementation-level attacks. LOL2.0 is a recently proposed stream cipher framework that achieves high software efficiency and strong security in post-quantum settings. While several stream ciphers have been proposed to address performance demands, side-channel-protected hardware implementations capable of sustaining 6G-class...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/641" class="paperlink" href="/2026/641">2026/641</a>
+          <span class="ms-2"><a href="/2026/641.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-04</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>HyperVerITAS: Verifying Image Transformations at Scale on Boolean Hypercubes</strong>
+              <div class="mt-1"><span class="fst-italic">Garrett Greiner, Toshi Mowery, Pratik Soni</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present $\mathsf{HyperVerITAS}$, a new zero-knowledge proof (ZKP) system for image provenance that enables scalable, efficient, and privacy-preserving verification of image transformations. $\mathsf{HyperVerITAS}$ builds upon the same minimal trust model as $\mathsf{VerITAS}$ (IEEE S&amp;P &#39;25), requiring trust only in the image source device, while treating the editing software as untrusted. Unlike $\mathsf{VerITAS}$, which relies on FFT-intensive SNARKs and suffers from high memory overhead...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/637" class="paperlink" href="/2026/637">2026/637</a>
+          <span class="ms-2"><a href="/2026/637.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>VeriRAG: Efficient Zero-Knowledge Proofs for Verifiable Retrieval-Augmented Generation</strong>
+              <div class="mt-1"><span class="fst-italic">Chenqi Lin, Yubo Cui, Zhelei Zhou, Cheng Hong, Yufei Wang, Zhaohui Chen, Meng Li</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Retrieval-Augmented Generation (RAG) is widely used to enhance Large Language Models (LLMs), yet the &#34;hallucination&#34; characteristic allows malicious providers to bypass retrieval or claim non-existent data quality. To address these challenges, we present VeriRAG, a framework that leverages Zero-Knowledge Proofs (ZKP) to provide efficient integrity guarantees for RAG systems without compromising dataset privacy. Leveraging the robustness of AI inference, our framework supports Approximate...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/609" class="paperlink" href="/2026/609">2026/609</a>
+          <span class="ms-2"><a href="/2026/609.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Post-Quantum Blockchains with Agility in Mind</strong>
+              <div class="mt-1"><span class="fst-italic">Manuel B. Santos, Danno Ferrin, Ron Kahat, Michael Lodder</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Blockchains intend to provide long-term integrity guarantees through cryptographic primitives that may become vulnerable over time due to algorithmic advances or paradigm shifts such as quantum computation. While cryptographic agility, the ability to transition between algorithms without disrupting operation, is recognized as essential, existing blockchain systems lack comprehensive support for such transitions. We address this gap by designing an Ethereum virtual machine (EVM) compatible...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/607" class="paperlink" href="/2026/607">2026/607</a>
+          <span class="ms-2"><a href="/2026/607.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Refined Approx-SVP Rank Reduction Conditions and Adaptive Lattice Reduction for MSIS Security Estimation</strong>
+              <div class="mt-1"><span class="fst-italic">Xiaohan Zhang, Zijian Zhou, Longjiang Qu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The security of lattice-based cryptography relies critically on the concrete hardness of the approximate shortest vector problem (Approx-SVP). For cryptographic-sized instances, existing Approx-SVP rank reduction conditions may be overly aggressive, as they implicitly assume access to a large number of extremely short lattice vectors. In this work, we systematize and refine Approx-SVP rank reduction conditions from a feasibility perspective. We identify that, in the context of the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/570" class="paperlink" href="/2026/570">2026/570</a>
+          <span class="ms-2"><a href="/2026/570.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>iToken: One-Time-Use Anonymous Token with Issuance Hiding</strong>
+              <div class="mt-1"><span class="fst-italic">Zengpeng Li, Xiangyu Su, Dongfang Wei, Guangyu Liao, Mei Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Privacy-Enhancing Know Your Customer (KYC) integrates one-time-use anonymous tokens (OTATs) into self-sovereign identity frameworks, such as the EU Digital Identity (EUDI) Wallet, Apple’s Private Access Tokens, and W3C’s Privacy-Preserving Advertising proposals (e.g., Private State Tokens), to enable regulatory compliance while preserving user anonymity. To mitigate targeted denial-of-service (DoS) attacks and prevent token misuse (e.g., farming and replay), this paper designs a new OTAT,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/559" class="paperlink" href="/2026/559">2026/559</a>
+          <span class="ms-2"><a href="/2026/559.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>PrivaDE: Privacy-preserving Data Evaluation for Blockchain-based Data Marketplaces</strong>
+              <div class="mt-1"><span class="fst-italic">Wan Ki Wong, Sahel Torkamani, Michele Ciampi, Rik Sarkar</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Evaluating the usefulness of data before purchase is essential when obtaining data for high-quality machine learning models, yet both model builders and data providers are often unwilling to reveal their proprietary assets.
+
+We present PrivaDE, a privacy-preserving protocol that allows a model owner and a data owner to jointly compute a utility score for a candidate dataset without fully exposing model parameters, raw features, or labels. PrivaDE provides strong security against malicious...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/555" class="paperlink" href="/2026/555">2026/555</a>
+          <span class="ms-2"><a href="/2026/555.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-03</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improved Issuer Hiding for BBS-based Anonymous Credentials</strong>
+              <div class="mt-1"><span class="fst-italic">Nesrine Kaaniche, Seyni Kane, Maryline Laurent, Jacques Traoré</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Attribute-based anonymous credential systems often fail to conceal the identity of the credential issuer. Recent attempts to address this limitation either suffer from efficiency issues or rely on security models that make unrealistic assumptions about the behavior of issuers.
+
+In this paper, we demonstrate that existing security models, which assume honest issuers, are inadequate for real-world deployments. Concretely, we present attack scenarios in which a malicious user collaborates...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/545" class="paperlink" href="/2026/545">2026/545</a>
+          <span class="ms-2"><a href="/2026/545.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-26</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Aggregator-Based Voting using proof of Partition</strong>
+              <div class="mt-1"><span class="fst-italic">Marius Lombard-Platet, Doron Zarchy</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present Aggios, a scalable and privacy preserving proxy voting system designed for frequent and large-scale elections such as Decentralized Autonomous Organizations (DAO), when storing votes on the bulletin board is expensive. To this end, Aggios introduces `aggregators&#39;: entities to which voters delegate their votes, and who then post their batched proofs on the public ledger. Aggios achieves strong integrity guarantees: only authorized voters can vote, votes are counted correctly,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/542" class="paperlink" href="/2026/542">2026/542</a>
+          <span class="ms-2"><a href="/2026/542.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>VERIDP: Verifiable Differentially Private Training</strong>
+              <div class="mt-1"><span class="fst-italic">Behzad Abdolmaleki, Amir R. Asadi, Vahid R. Asadi, Stefan Köpsell, Bhavish Mohee, Nahid Roustaeifar, Maryam Zarezadeh</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Stochastic Gradient Descent (SGD) is the foundation of modern machine learning (ML). In privacy-sensitive settings, gradients can reveal details about individual data points. Differential Privacy (DP) protects sensitive data during ML training by clipping gradients and adding calibrated Gaussian noise. However, existing frameworks assume semi-honest participants, which fails in adversarial or federated environments where malicious actors can bypass or alter the noise addition process,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/541" class="paperlink" href="/2026/541">2026/541</a>
+          <span class="ms-2"><a href="/2026/541.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Towards Verifiable AI with Lightweight Cryptographic Proofs of Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Pranay Anchuri, Matteo Campanelli, Paul Cesaretti, Rosario Gennaro, Tushar M. Jois, Hasan S. Kayman, Tugce Ozdemir</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">When large AI models are deployed as cloud-based services, clients have no guarantee that responses are correct or were produced by the intended model. Rerunning inference locally is infeasible for large models, and existing cryptographic proof systems—while providing strong correctness guarantees—introduce prohibitive prover overhead (e.g., hundreds of seconds per query for billion-parameter models). We present a verification framework and protocol that replaces full cryptographic proofs...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/531" class="paperlink" href="/2026/531">2026/531</a>
+          <span class="ms-2"><a href="/2026/531.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Review of IC Logical Reverse Engineering Techniques</strong>
+              <div class="mt-1"><span class="fst-italic">Kevin Xu, Lucas Daudt Franck, Samuel Pagliarini</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-FOUNDATIONS">Foundations</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In the modern, globalized supply chain for application specific integrated circuits (ASICs), reverse engineering (RE) techniques can be employed for malicious and benign reasons. This survey defines the specific problem of logical RE from a hardware security perspective, examines the earliest RE-adjacent techniques, organizes contemporary RE works by both objective and methodology, and summarizes publication trends and the evolution of logical RE over the years. We review existing...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/489" class="paperlink" href="/2026/489">2026/489</a>
+          <span class="ms-2"><a href="/2026/489.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-09</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Threshold Oblivious Pseudorandom Functions from Isogeny Group Actions</strong>
+              <div class="mt-1"><span class="fst-italic">Robi Pedersen</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present a new verifiable oblivious pseudorandom function (VOPRF) from isogeny group actions. Our construction is twice as fast as the previous state of the art of Delpech de Saint Guilhem and Pedersen at a slightly higher communication cost. One major contribution is the realization of a new proof protocol that is integrated as a two-party computation into the OPRF protocol, making the output verifiable. The main design choice behind our construction and this new proof system is to enable...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/484" class="paperlink" href="/2026/484">2026/484</a>
+          <span class="ms-2"><a href="/2026/484.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-09</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Signal Lost (Integrity): The Signal App is More than the Sum of its Protocols</strong>
+              <div class="mt-1"><span class="fst-italic">Kien Tuong Truong, Noemi Terzo, Kenneth G. Paterson</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Signal is a secure messaging app offering end-to-end security for pairwise and group communications. It has tens of millions of users, and has heavily influenced the design of other secure messaging apps (including WhatsApp). Signal has been heavily analysed and, as a result, is rightly regarded as setting the &#34;gold standard&#34; for messaging apps by the scientific community. We present two practical attacks that break the integrity properties of Signal in its advertised threat model. Each...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/474" class="paperlink" href="/2026/474">2026/474</a>
+          <span class="ms-2"><a href="/2026/474.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-12</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Scalable Compliant Privacy on Starknet</strong>
+              <div class="mt-1"><span class="fst-italic">Lior Goldberg, Maya Dotan, Ittay Dror, Gideon Kaempfer, Nir Levi, Noa Oved, Arad Reder, Anat Veredgorn, Noa Wolfgor</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present a privacy protocol implemented on Starknet that enables confidential transactions while maintaining regulatory compliance. Transfers hide the sender, receiver, and amount from external observers, with validity enforced by zero-knowledge proofs generated on the client side using the Stwo STARK prover.
+
+The protocol introduces three key innovations: (1) an efficient note discovery mechanism, (2) a practical compliance framework that enables an auditing entity to selectively...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/385" class="paperlink" href="/2026/385">2026/385</a>
+          <span class="ms-2"><a href="/2026/385.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Enabling Privacy-Preserving Data Valuation: A Verifiable Framework via Zero-Knowledge Proofs</strong>
+              <div class="mt-1"><span class="fst-italic">Ruibang Liu, Minyu Chen, Dengji Ma, Guoqiang Li</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Deep learning’s hunger for high-quality data has catalyzed a burgeoning economy of decentralized data marketplaces. However, a fundamental trust deficit stifles this ecosystem: buyers fear data poisoning, while sellers fear data leakage. Although the Shapley value offers a rigorous economic framework for fair compensation, its calculation traditionally requires a Trusted Third Party (TTP) to access raw data, creating a single point of failure for privacy. Verifying data valuation without...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/365" class="paperlink" href="/2026/365">2026/365</a>
+          <span class="ms-2"><a href="/2026/365.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-23</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Cube and Integral Attacks on ChiLow-32</strong>
+              <div class="mt-1"><span class="fst-italic">Shuo Peng, Akram Khalesi, Zahra Ahmadian, Hosein Hadipour, Jiahui He, Kai Hu, Zhongfeng Niu, Shahram Rasoolzadeh, Meiqin Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The protection of executable code in embedded systems requires efficient mechanisms that ensure confidentiality and integrity.
+Belkheyar \emph{et al.} recently proposed the Authenticated Code Encryption (ACE) framework, with \chilow as the first ACE-2 instantiation at EUROCRYPT~2025.
+\chilow-(32 + $\tau$) is a 32-bit tweakable block cipher combined with a pseudorandom function, featuring quadratic nonlinear layers called ChiChi (\dchi) and a nested tweak/key schedule optimized for...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/340" class="paperlink" href="/2026/340">2026/340</a>
+          <span class="ms-2"><a href="/2026/340.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-05</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improving Neural-Inspired Integral Distinguishers via a Linear-Algebraic Approach</strong>
+              <div class="mt-1"><span class="fst-italic">Yunjae Hwang, Insung Kim, Sunyeop Kim, Myungkyu Lee, Hanbeom Shin, Deukjo Hong, Seokhie Hong, Dongjae Lee, Jaechul Sung, Byoungjin Seok</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The recent study has demonstrated that neural networks can serve as a navigator for an automatic search model for integral cryptanalysis with a reduction in computational complexity. However, the inherent drawbacks of using a deep learning model such as large datasets and limited interpretability are the major obstacles in cryptanalysis. In this paper, we introduce another simple data-driven approach using the linear algebraic concept to characterize key-independent balance properties as the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/312" class="paperlink" href="/2026/312">2026/312</a>
+          <span class="ms-2"><a href="/2026/312.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>RISQrypt: Fast, Secure and Agile Hardware-Software Co-Design for Post-Quantum Cryptography</strong>
+              <div class="mt-1"><span class="fst-italic">Tolun Tosun, Atıl Utku Ay, Quinten Norga, Suparna Kundu, Melik Yazıcı, Erkay Savaş, Ingrid Verbauwhede</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this paper, we present RISQrypt, the first unified architecture in the literature that implements Kyber (ML-KEM) and Dilithium (ML-DSA), standardized lattice-based Post-Quantum Cryptography (PQC) algorithms, with masking. RISQrypt is a hardware–software co-design framework that integrates dedicated cryptographic accelerators to speed up polynomial arithmetic, hashing, and mask-conversion operations, the latter being one of the primary bottlenecks in masked implementations of lattice-based...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/289" class="paperlink" href="/2026/289">2026/289</a>
+          <span class="ms-2"><a href="/2026/289.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-17</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Zero-Knowledge Proof-Carrying Data from Accumulation Schemes</strong>
+              <div class="mt-1"><span class="fst-italic">Tianyu Zheng, Shang Gao, Xun Liu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Proof-carrying data (PCD) is a powerful cryptographic primitive for ensuring computational integrity in distributed settings. State-of-the-art PCD constructions based on accumulation schemes achieve practical prover efficiency and support a wide range of applications. However, realizing zero-knowledge for accumulation-based PCD remains challenging, particularly for high-degree relations. Existing solutions often incur substantial overhead due to the need for zero-knowledge in both the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/248" class="paperlink" href="/2026/248">2026/248</a>
+          <span class="ms-2"><a href="/2026/248.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-12</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Lightweight PQ KEM and Hybrid MQTT Protocol for 8-bit AVR Sensor Nodes</strong>
+              <div class="mt-1"><span class="fst-italic">Yifan Dong, YoungBeom Kim, Jieyu Zheng, Zhichuang Liang, Boyue Fang, Seog Chung Seo, Maire O&#39;Neill, Yunlei Zhao</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Most PQC schemes remain too resource-intensive for ultra-constrained 8-bit AVR wireless sensor nodes. In this work, we present a comprehensive approach to practical lightweight PQC for such devices, covering scheme design, implementation optimization, and protocol integration. Our contributions are threefold: (i) We propose CTRU-Light, a lattice-based KEM specifically tailored for IoT sensor nodes. It combines small moduli, low-degree polynomials, and NTT-friendly arithmetic for high...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/247" class="paperlink" href="/2026/247">2026/247</a>
+          <span class="ms-2"><a href="/2026/247.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Efficient Pairing-Based Batch Arguments for NP  with a Constant-Size Proof</strong>
+              <div class="mt-1"><span class="fst-italic">Zhe Jiang, Kai Zhang, Junqing Gong, Haifeng Qian</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Non-interactive Batch arguments (BARGs) for NP relations  enable a prover to generate a single succinct proof for multiple NP instances, significantly amortizing verification costs. While recent pairing-based BARGs achieve impressive results, their practical efficiency remains limited by proof sizes and verifier pairing operations that scale linearly with the size of the Boolean circuit computing the NP relation. In this work, we present a novel pairing-based BARG construction that achieves...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/202" class="paperlink" href="/2026/202">2026/202</a>
+          <span class="ms-2"><a href="/2026/202.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-12</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>ZKBoost: Zero-Knowledge Verifiable Training for XGBoost</strong>
+              <div class="mt-1"><span class="fst-italic">Nikolas Melissaris, Antigoni Polychroniadou, Akira Takahashi, Chenkai Weng, Jiayi Xu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Gradient boosted decision trees, particularly XGBoost, are among the most effective methods for tabular data. As deployment in sensitive settings increases, cryptographic guarantees of model integrity become essential. We present ZKBoost, the first zero-knowledge proof of training (zkPoT) protocol for XGBoost, enabling model owners to prove correct training on a committed dataset without revealing data or model parameters. Naively re-executing XGBoost training in ZK would incur prohibitive...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/199" class="paperlink" href="/2026/199">2026/199</a>
+          <span class="ms-2"><a href="/2026/199.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>zkAgent: Verifiable LLM Agent Execution via One-Shot Transcript Proofs</strong>
+              <div class="mt-1"><span class="fst-italic">Lizheng Wang, Hancheng Lou, Chongrong Li, Yu Yu, Yuncong Hu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">LLM-based agents, which interleave large language model inference with external tool calls, are increasingly deployed in high-stakes settings. In real-world deployments, each model inference and provider-hosted tool execute behind the provider&#39;s API. Even when the agent loop runs on the user&#39;s device, these provider-executed steps still remain opaque to the user. This opacity creates an end-to-end integrity gap: a malicious provider may substitute the advertised model or fabricate tool...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/195" class="paperlink" href="/2026/195">2026/195</a>
+          <span class="ms-2"><a href="/2026/195.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-26</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>The HyperFrog Cryptosystem: High-Genus Voxel Topology as a Trapdoor for Post-Quantum KEMs</strong>
+              <div class="mt-1"><span class="fst-italic">Victor Duarte Melo</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present HyperFrog, a lattice-based Key Encapsulation Mechanism (KEM) targeting post-quantum security levels. The construction instantiates a variant of the Learning With Errors (LWE) problem in which the secret vector is derived from high-genus topological structures embedded in a three-dimensional grid. Unlike standard LWE schemes that draw secrets from uniform or Gaussian distributions, HyperFrog uses a topology-mining procedure to generate sparse binary secret keys corresponding to...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/167" class="paperlink" href="/2026/167">2026/167</a>
+          <span class="ms-2"><a href="/2026/167.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-15</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Breaking and Fixing Spoed</strong>
+              <div class="mt-1"><span class="fst-italic">Yan Jia, Peng Wang, Gang Liu, Lei Hu, Tingting Guo, Shuping Mao</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Spoed is an authenticated encryption scheme based on compression functions. We show that Spoed fails to achieve its claimed security guarantees with respect to both integrity and confidentiality. In particular, we present a universal forgery attack that succeeds with probability one using only a single encryption query and a single decryption query. The attack exploits a structural weakness in the feedback mechanism of Spoed, allowing internal inputs of the underlying pseudorandom function...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/162" class="paperlink" href="/2026/162">2026/162</a>
+          <span class="ms-2"><a href="/2026/162.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-31</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>IFV: Information Flow Verification at the Pre-silicon Stage Utilizing Static-Formal Methodology</strong>
+              <div class="mt-1"><span class="fst-italic">Rasheed Kibria, Farimah Farahmandi, Mark Tehranipoor</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Modern system-on-chips (SoCs) are becoming prone
+to numerous security vulnerabilities due to their ever-growing
+complexity and size. Therefore, a comprehensive security verification framework is needed at the very early stage of the SoC
+design lifecycle. The datapath of a complex SoC design may be
+vulnerable to information leakage and data integrity issues. The
+designers might be unaware of hidden information flow paths
+present in a particular SoC design at the pre-silicon stage,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/156" class="paperlink" href="/2026/156">2026/156</a>
+          <span class="ms-2"><a href="/2026/156.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-30</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Hachi: Efficient Lattice-Based Multilinear Polynomial Commitments over Extension Fields</strong>
+              <div class="mt-1"><span class="fst-italic">Ngoc Khanh Nguyen, George O&#39;Rourke, Jiapeng Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this work, we present Hachi, a concretely efficient multilinear polynomial commitment scheme that offers succinct proof sizes of $\mathrm{poly}(\ell,\lambda)$ and achieves a “square-root” verifier time complexity of $\tilde{O}(\sqrt{2^\ell \lambda})$ for $\ell$-variate polynomials under the Module-SIS assumption. Compared to the current state-of-the-art scheme, Greyhound (CRYPTO~2024), Hachi provides an asymptotic improvement of $\tilde{O}(\lambda)$ in verification time, which translates...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/126" class="paperlink" href="/2026/126">2026/126</a>
+          <span class="ms-2"><a href="/2026/126.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Censorship Resistance vs Throughput in Multi-Proposer BFT Protocols</strong>
+              <div class="mt-1"><span class="fst-italic">Fatima Elsheimy, Ioannis Kaklamanis, Sarisht Wadhwa, Charalampos Papamanthou, Fan Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Censorship resistance and high throughput are two key benefits of modern multi-proposer BFT protocols. However, in existing designs these two properties are at odds: censorship resistance is typically achieved through duplicating transactions, which in turn harms throughput. This leaves open the question of whether it is possible to improve both properties simultaneously.
+
+In this paper, we formally study the trade-offs between censorship resistance and throughput in multi-proposer BFT...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/122" class="paperlink" href="/2026/122">2026/122</a>
+          <span class="ms-2"><a href="/2026/122.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-09</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>The Motte-and-Bailey Framework for Leakage-Resilient Accordion Modes: Featuring Qaitbay and Alicante</strong>
+              <div class="mt-1"><span class="fst-italic">Mario Marhuenda Beltrán, Mustafa Khairallah</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Accordion modes have experienced a surge in popularity, partially motivated by the recent NIST Accordion modes project. None of the existing practical constructions is leakage-resilient by default. In this work, we design a leakage-resilient Accordion mode. We start by presenting a generic analysis of the Encode-then-Encipher (EtE) framework in the leakage-resilient setting, assuming the enciphering is a leakage-resilient STPRP (STPRPl2). We show that the resulting security, while strong,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/110" class="paperlink" href="/2026/110">2026/110</a>
+          <span class="ms-2"><a href="/2026/110.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-23</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Logarithmic density of rank $\geq1$ and $\geq2$ genus-2 Jacobians and applications to hyperelliptic curve cryptography</strong>
+              <div class="mt-1"><span class="fst-italic">Razvan Barbulescu, Mugurel Barcau, Vicentiu Pasol, George Turcas</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this work we study quantitative existence results for genus-$2$ curves over $\mathbb{Q}$ whose Jacobians have Mordell-Weil rank at least $1$ or $2$, ordering the curves by the naive height of their integral Weierstrass models. We use geometric techniques to show that asymptotically the Jacobians of almost all integral models with two rational points at infinity have rank $r \geq 1$. Since there are $\asymp X^{\frac{13}{2}}$ such models among the $X^7$ curves $y^2=f(x)$ of height $\leq X$,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/093" class="paperlink" href="/2026/093">2026/093</a>
+          <span class="ms-2"><a href="/2026/093.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Optimized Implementation of ML-KEM on ARMv9-A with SVE2 and SME</strong>
+              <div class="mt-1"><span class="fst-italic">Hanyu Wei, Wenqian Li, Shiyu Shen, Hao Yang, Yunlei Zhao</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">As quantum computing continues to advance, traditional public-key cryptosystems face increasing vulnerability, necessitating a global transition toward post-quantum cryptography (PQC). A primary challenge for both cryptographers and system architects is the efficient integration of PQC into high-performance computing platforms. ARM, a dominant processor architecture, has recently introduced ARMv9-A to accelerate modern workloads such as artificial intelligence and cloud computing. Leveraging...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/092" class="paperlink" href="/2026/092">2026/092</a>
+          <span class="ms-2"><a href="/2026/092.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Integrity from Algebraic Manipulation Detection in Trusted-Repeater QKD Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Ailsa Robertson, Christian Schaffner, Sebastian R. Verschoor</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Quantum Key Distribution (QKD) allows secure communication without relying on computational assumptions, but can currently only be deployed over relatively short distances due to hardware constraints. To extend QKD over long distances, networks of trusted repeater nodes can be used, wherein QKD is executed between neighbouring nodes and messages between non-neighbouring nodes are forwarded using a relay protocol. Although these networks are being deployed worldwide, no protocol exists which...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/084" class="paperlink" href="/2026/084">2026/084</a>
+          <span class="ms-2"><a href="/2026/084.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Combined Indistinguishability Analysis - Verifying random probing leakage under random faults</strong>
+              <div class="mt-1"><span class="fst-italic">Armand Schinkel, Pascal Sasdrich</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Cryptographic hardware implementations are vulnerable to combined physical implementation attacks, integrating Side-Channel Analysis and Fault-Injection Analysis to compromise their security. Although theoretically sound countermeasures exist, their practical application is often complicated and error-prone, making automated security verification a necessity. Various tools have been developed to address this need, using different approaches to formally verify security, but they are limited...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/058" class="paperlink" href="/2026/058">2026/058</a>
+          <span class="ms-2"><a href="/2026/058.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Zero Knowledge (About) Encryption: A Comparative Security Analysis of Three Cloud-based Password Managers</strong>
+              <div class="mt-1"><span class="fst-italic">Matteo Scarlata, Giovanni Torrisi, Matilda Backendal, Kenneth G. Paterson</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Zero Knowledge Encryption is a term widely used by vendors of cloud-based password managers. Although it has no strict technical meaning, the term conveys the idea that the server, who stores encrypted password vaults on behalf of users, is unable to learn anything about the contents of those vaults.
+The security claims made by vendors imply that this should hold even if the server is fully malicious. This threat model is justified in practice by the high sensitivity of vault data, which...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/052" class="paperlink" href="/2026/052">2026/052</a>
+          <span class="ms-2"><a href="/2026/052.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Key Updatable Hash Based VRF</strong>
+              <div class="mt-1"><span class="fst-italic">Suman Ghosh, Ratna Dutta, Sourav Mukhopadhyay</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Unbiased, unpredictable, and publicly verifiable randomness is essential for a wide range of blockchain-based Web3 applications. Verifiable Random Functions (VRFs) naturally satisfy these requirements. For practical deployment, however, a VRF scheme must support efficient key generation and allow multiple evaluations across different blockchain rounds.
+In this work, we present a post-quantum secure, key-updatable VRF construction built from symmetric cryptographic primitives, including hash...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/013" class="paperlink" href="/2026/013">2026/013</a>
+          <span class="ms-2"><a href="/2026/013.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-05</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Efficient Threshold ML-DSA</strong>
+              <div class="mt-1"><span class="fst-italic">Sofía Celi, Rafaël del Pino, Thomas Espitau, Guilhem Niot, Thomas Prest</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Threshold signature schemes allow a group of users to jointly generate a digital signature, providing resilience against faults and enhancing decentralization. With the advent of post-quantum cryptography, lattice-based threshold signatures have gained attention as viable PQ-threshold solutions. Nevertheless, existing constructions are limited in terms of their scalability, robustness. Worse, none is compatible with standardized schemes, particularly with the NIST-selected and standardized...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/007" class="paperlink" href="/2026/007">2026/007</a>
+          <span class="ms-2"><a href="/2026/007.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-03</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Certified Framework for Deterministic Navigation in Higher-Genus p-Isogeny Graphs</strong>
+              <div class="mt-1"><span class="fst-italic">Hung T. Dang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present a deterministic framework for navigating $p$-isogeny graphs of genus $g \ge 2$, addressing the lack of canonical and auditable primitives in higher dimensions. The framework integrates two components: the Certified $p$-Isogeny Step (PICS) and a Non-Decomposition Certificate (ND). PICS constructs the unique Frobenius-compatible inseparable isogeny by extracting kernel directions from Hasse--Witt invariants and differential subresultant profiles, thereby eliminating randomized...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2330" class="paperlink" href="/2025/2330">2025/2330</a>
+          <span class="ms-2"><a href="/2025/2330.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Verifiable Aggregate Receipts with Applications to User Engagement Auditing</strong>
+              <div class="mt-1"><span class="fst-italic">Ioannis Kaklamanis, Wenhao Wang, Harjasleen Malvai, Sen Yang, Fan Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Accurate measurements of user engagement underpin important decisions in various settings, such as determining advertising fees based on viewership of online content, allocating public funding based on a clinic’s reported patient volume, or determining whether a group chat app disseminated a message without censorship.
+While common, self-reporting is inherently untrustworthy due to misaligned incentives (e.g., to inflate).
+
+Motivated by this problem, we introduce the notion of Verifiable...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2302" class="paperlink" href="/2025/2302">2025/2302</a>
+          <span class="ms-2"><a href="/2025/2302.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Attacking and Securing Hybrid Homomorphic Encryption Against Power Analysis</strong>
+              <div class="mt-1"><span class="fst-italic">Aikata Aikata, Maciej Czuprynko, Nedžma Musovic, Emira Salkić, Sujoy Sinha Roy</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present the first power side-channel analysis of a Hybrid Homomorphic Encryption (HHE) tailored symmetric encryption scheme. HHE combines lightweight client-side Symmetric Encryption (SE) with server-side homomorphic evaluation, enabling efficient privacy-preserving computation for the client and minimizing the communication overhead. Recent integer-based HHE designs such as PASTA, MASTA, HERA, and Rubato rely on prime-field arithmetic, but their side-channel security has
+not been...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2238" class="paperlink" href="/2025/2238">2025/2238</a>
+
+
+          <small class="ms-auto">Last updated: 2026-05-09</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>arya-STARK: Aggregation-Robust Yet Authentic Training via STARK Proofs</strong>
+              <div class="mt-1"><span class="fst-italic">Abdoul Ahad FALL</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present arya-STARK, a unified post-quantum secure framework that enables Aggregation-Robust Yet Authentic training in Federated Learning through transparent zk-STARK proofs. Current federated learning deployments remain vulnerable to malicious or Byzantine clients capable of submitting statistically valid yet adversarial gradients, while also relying on quantum-fragile primitives for authentication. arya-STARK bridges these gaps by combining (i) transparent, hash-based zk-STARK proofs to...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2228" class="paperlink" href="/2025/2228">2025/2228</a>
+          <span class="ms-2"><a href="/2025/2228.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>PIRANHAS: PrIvacy-Preserving Remote Attestation in Non-Hierarchical Asynchronous Swarms</strong>
+              <div class="mt-1"><span class="fst-italic">Jonas Hofmann, Philipp-Florens Lehwalder, Shahriar Ebrahimi, Parisa Hassanizadeh, Sebastian Faust</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Remote attestation is a fundamental security mechanism for assessing the integrity of remote devices. In practice, widespread adoption of attestation schemes is hindered by a lack of public verifiability and the requirement for interaction in existing protocols. A recent work by Ebrahimi et al. (NDSS&#39;24) constructs publicly verifiable, non-interactive remote attestation, disregarding another important requirement for attesting sensitive systems: privacy protection.
+Similar needs arise in...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2194" class="paperlink" href="/2025/2194">2025/2194</a>
+          <span class="ms-2"><a href="/2025/2194.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-03</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Turning Simulation into Construction: New Uses of NIZK Simulators</strong>
+              <div class="mt-1"><span class="fst-italic">Stephan Krenn, Kai Samelin, Daniel Slamanig</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Simulation is a fundamental technique in cryptography, central to security proofs, probably most well-known is its use for showing zero-knowledge. In this paper, we consider simulations no longer being merely a proof technique, but to constructively use simulators of non-interactive zero-knowledge proofs (NIZKs) as an integral component of cryptographic designs. We have occasionally seen such a use, e.g., in designated verifier signatures (DVS), deniable encryption, or the recent concept of...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2188" class="paperlink" href="/2025/2188">2025/2188</a>
+          <span class="ms-2"><a href="/2025/2188.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>ALIOTH: An Efficient and Secure Weight-of-Evidence Framework for Privacy-Preserving Data Processing</strong>
+              <div class="mt-1"><span class="fst-italic">Ye Dong, Xiangfu Song, W.j Lu, Xudong Chen, Yaxi Yang, Ruonan Chen, Tianwei Zhang, Jin-Song Dong</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Secure two-party computation (2PC)-based privacy-preserving machine learning (ML) has made remarkable progress in recent years. However, most existing works overlook the privacy challenges that arise during the data preprocessing stage.
+Although some recent studies have introduced efficient techniques for privacy-preserving feature selection and data alignment on well-structured datasets, they still fail to address the privacy risks involved in transforming raw data features into...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2170" class="paperlink" href="/2025/2170">2025/2170</a>
+          <span class="ms-2"><a href="/2025/2170.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-29</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Lattice-Based Linkable Ring Signatures for Anonymous and Accountable Whistleblowing</strong>
+              <div class="mt-1"><span class="fst-italic">Vishal Pareek, Aditi Kar Gangopadhyay, Sugata Gangopadhyay</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Ring signatures allow an individual to sign a message on behalf of a group in such a way that the verifier can only confirm that someone in the group signed it, but cannot identify the actual signer. This strong anonymity, while desirable, may also be exploited for repeated or harmful activities. Linkable ring signatures mitigate this issue by enabling the system to recognise whether two signatures originate from the same signer, while still keeping the signer anonymous. Such constructions...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2138" class="paperlink" href="/2025/2138">2025/2138</a>
+          <span class="ms-2"><a href="/2025/2138.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Synergeia: Super-Linear Consistency and Adaptive Stability in a Hybrid PoW/PoS Consensus</strong>
+              <div class="mt-1"><span class="fst-italic">Aaron M. Schutza</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present the Synergeia (Συνεργία) protocol, a novel, permissionless blockchain protocol that synergistically integrates Proof-of-Work (PoW) and a dynamically regulated Proof-of-Stake (PoS) mechanism. Traditional Nakamoto protocols exhibit consistency violations decaying as $\epsilon \approx exp(-\Omega(k))$ leading to long finality times. Our primary contribution is leveraging a Local Dynamic Difficulty (LDD) scheme to reshape the block inter-arrival time distribution towards a Rayleigh...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2127" class="paperlink" href="/2025/2127">2025/2127</a>
+          <span class="ms-2"><a href="/2025/2127.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-21</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Censorship-Resistant Sealed-Bid Auctions on Blockchains</strong>
+              <div class="mt-1"><span class="fst-italic">Orestis Alpos, Lioba Heimbach, Kartik Nayak, Sarisht Wadhwa</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Traditional commit-and-reveal mechanisms have been used to realize sealed-bid on-chain auctions. However, these leak timing information, impose inefficient participation costs -- the inclusion fee to be paid for adding the transaction on-chain -- and also require multiple slots to execute the auction. Recent research investigates single-slot auctions; however, it requires a high threshold of honest parties.
+
+We present a protocol that addresses these issues. Our design combines...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2124" class="paperlink" href="/2025/2124">2025/2124</a>
+          <span class="ms-2"><a href="/2025/2124.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-21</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>SALSAA – Sumcheck-Aided Lattice-based Succinct Arguments and Applications</strong>
+              <div class="mt-1"><span class="fst-italic">Shuto Kuriyama, Russell W. F. Lai, Michał Osadnik, Lorenzo Tucci</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present SALSAA, a more efficient and more versatile extension of the state-of-the-art lattice-based fully-succinct argument frameworks, ``RoK, paper, SISsors (RPS)&#39;&#39; and ``RoK and Roll (RnR)&#39;&#39; [Klooß, Lai, Nguyen, and Osadnik; ASIACRYPT&#39;24, &#39;25], integrating the sumcheck technique as a main component. This integration enables us to design an efficient norm-check protocol (controlling the norm during witness extraction) with a strictly linear-time prover while reducing proof sizes by...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2102" class="paperlink" href="/2025/2102">2025/2102</a>
+          <span class="ms-2"><a href="/2025/2102.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Graph-Theoretic Framework for Randomness Optimization in First-Order Masked Circuits</strong>
+              <div class="mt-1"><span class="fst-italic">Dilip Kumar S. V., Benedikt Gierlichs, Ingrid Verbauwhede</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present a generic, automatable framework to reduce the demand for fresh randomness in first-order masked circuits while preserving security in the glitch-extended probing model. The method analyzes the flow of randomness through a circuit to establish security rules based on the glitch-extended probing model. These rules are then encoded as an interference graph, transforming the optimization challenge into a graph coloring problem, which is solved efficiently with a DSATUR heuristic....</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2032" class="paperlink" href="/2025/2032">2025/2032</a>
+          <span class="ms-2"><a href="/2025/2032.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>TrX: Encrypted Mempools in High Performance BFT Protocols</strong>
+              <div class="mt-1"><span class="fst-italic">Rex Fernando, Guru-Vamsi Policharla, Andrei Tonkikh, Zhuolun Xiang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">MEV (Maximal Extractable Value) remains one of the most corrosive forces in blockchain systems, enabling frontrunning, sandwiching, and other manipulations that directly exploit users. The core culprit is the transparent mempool: validators see transactions before they are ordered. Encrypted mempools are a promising solution by hiding transaction contents until after ordering.
+
+We present the first integration of encrypted mempools with a high-performance BFT protocol. Our system uses a...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1996" class="paperlink" href="/2025/1996">2025/1996</a>
+          <span class="ms-2"><a href="/2025/1996.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Turning Multiple Key-Dependent Attacks into Universal Attacks</strong>
+              <div class="mt-1"><span class="fst-italic">Hosein Hadipour, Yosuke Todo, Mostafizar Rahman, Maria Eichlseder, Ravi Anand, Takanori Isobe</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Key-dependent attacks are effective only for specific weak-key classes, limiting their practical impact. We present a generic statistical framework that combines multiple key-dependent distinguishers into universal attacks covering the full key space. Using log-likelihood ratio statistics, our framework tests the secret key against multiple weak-key distinguishers, aggregates their evidence to determine whether the key is weak or strong for each distinguisher, and exploits this...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1969" class="paperlink" href="/2025/1969">2025/1969</a>
+          <span class="ms-2"><a href="/2025/1969.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-30</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Cryptographic Personas: Responsible Pseudonyms Without De-Anonymization</strong>
+              <div class="mt-1"><span class="fst-italic">Rachel Thomas, Oliwia Kempinski, Hari Kailad, Emma Margaret Shroyer, Ian Miers, Gabriel Kaptchuk</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present cryptographic personas, an approach for facilitating access to pseudonymous speech within a community without enabling abuse.  In systems equipped with cryptographic personas, users are able to authenticate to the service provider under new, unlinkable personas at will and post messages under those personas. When users violate community norms, their ability to post anonymously can be revoked.
+
+Cryptographic personas draws on techniques from recent work, zk-promises. We develop...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1936" class="paperlink" href="/2025/1936">2025/1936</a>
+          <span class="ms-2"><a href="/2025/1936.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-10-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Overshooting the Threshold: ($td+n$)-Masking</strong>
+              <div class="mt-1"><span class="fst-italic">Vincent Grosso, Carlos Andres Lara-Nino</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Masking is one of the most widespread countermeasures against side-channel attacks. However, its integration into hardware implementation is subject to physical hazards that can mitigate its security. To counter glitches, the most studied physical hazard, an effective solution is to resynchronize the signals by integrating additional hardware layers into the architecture. However, these solutions have an impact on the performance of the implementation. A solution to avoid these limitations...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1843" class="paperlink" href="/2025/1843">2025/1843</a>
+          <span class="ms-2"><a href="/2025/1843.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Efficiency Improvements for Signal&#39;s Handshake Protocol</strong>
+              <div class="mt-1"><span class="fst-italic">Barbara Jiabao Benedikt, Sebastian Clermont, Marc Fischlin, Tobias Schmalz</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Signal&#39;s handshake protocol non-interactively generates a shared key between two parties for secure communication. The underlying protocol X3DH, on which the post-quantum hybrid successor, PQXDH, builds, computes three to four individual Diffie-Hellman (DH) keys by combining the long-term identity keys and the ephemeral secrets of the two parties. Each of these DH operations serves a different purpose, either to authenticate the derived key or to provide forward secrecy.
+
+We present here...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1832" class="paperlink" href="/2025/1832">2025/1832</a>
+          <span class="ms-2"><a href="/2025/1832.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-10-10</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Can Quantum Break ZUC? Only with a Million Qubits and a Billion Years to Spare</strong>
+              <div class="mt-1"><span class="fst-italic">Anik Basu Bhaumik, Suman Dutta, Siyi Wang, Anubhab Baksi, Kyungbae Jang, Amit Saha, Hwajeong Seo, Anupam Chattopadhyay</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The ZUC stream cipher is integral to modern mobile communication standards, including 4G and 5G, providing secure data transmission across global networks. Recently, Dutta et al. (Indocrypt, 2024) presented the first quantum resource estimation of ZUC under Grover&#39;s search, Although preliminary, this work marks the beginning of quantum security analysis for ZUC. In this paper, we present an improved quantum resource estimation for ZUC, offering tighter bounds for Grover-based exhaustive key...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1806" class="paperlink" href="/2025/1806">2025/1806</a>
+          <span class="ms-2"><a href="/2025/1806.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improved Integral Attack on ChiLow-32 Exploiting the Inverse of the ChiChi Function</strong>
+              <div class="mt-1"><span class="fst-italic">Akram Khalesi, Zahra Ahmadian, Hosein Hadipour</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The protection of executable code in embedded systems requires efficient mechanisms that ensure confidentiality and integrity.  Belkheyar et al. recently proposed the Authenticated Code Encryption (ACE) framework, with ChiLow-(32 + $\tau$) as the first instantiation of ACE2 at EUROCRYPT 2025.  The design of ChiLow-(32 + $\tau$) is based on a 32-bit tweakable block cipher with a quadratic nonlinear layer, known as ChiChi (denoted by $\chi\!\!\chi$), and a nested tweak key schedule optimized...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1739" class="paperlink" href="/2025/1739">2025/1739</a>
+          <span class="ms-2"><a href="/2025/1739.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Attacking an RSA-like Cryptosystem Using Continued Fractions and Lattices</strong>
+              <div class="mt-1"><span class="fst-italic">George Teseleanu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Let $N = pq$ be the product of two balanced primes. Cotan and Te\c seleanu (2023) introduced a family of RSA-like cryptosystems defined by $ed - k(p^n - 1)(q^n - 1) = 1$, where $n \geq 1$, encompassing classical RSA ($n=1$) and the Elkamchouchi–Elshenawy–Shaban variant ($n=2$). We present a new attack for $n=3$ that integrates continued fractions with lattice-based methods, naturally extending previous results for $n = 1, 2, 4, 6$.</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1728" class="paperlink" href="/2025/1728">2025/1728</a>
+          <span class="ms-2"><a href="/2025/1728.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Precision Strike: Targeted Misclassification of Accelerated CNNs with a Single Clock Glitch</strong>
+              <div class="mt-1"><span class="fst-italic">Arsalan Ali Malik, Furkan Aydin, Aydin Aysu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Fault injection attacks (FIAs) present a significant threat to the integrity of deep neural networks (DNNs), particularly in hardware-accelerated deployments on field-programmable gate arrays (FPGAs). These attacks intentionally introduce faults into the system, leading the DNN to generate incorrect outputs. This work presents the first successful targeted misclassification attack against a convolutional neural network (CNN) implemented on FPGA hardware, achieved by injecting a single clock...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1713" class="paperlink" href="/2025/1713">2025/1713</a>
+          <span class="ms-2"><a href="/2025/1713.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-10-03</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Ilyazh-Web3E2E: A Post-Quantum Hybrid Protocol for Forward-Secure Decentralized Messaging</strong>
+              <div class="mt-1"><span class="fst-italic">Ilyas Zhaisenbayev</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We propose Ilyazh-Web3E2E, a post-quantum hybrid messaging protocol combining classical and PQ-secure KEMs with forward secrecy and robust rekeying. The design augments the Double Ratchet model with hybrid key encapsulation (X25519 + ML-KEM), digital authentication (Ed25519 + ML-DSA), and re-encapsulation-based ratcheting for long-lived Web3 identity protection. The protocol emphasizes forward secrecy, post-compromise security, and decentralized identities. We sketch IND-CCA and AKE security...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1701" class="paperlink" href="/2025/1701">2025/1701</a>
+          <span class="ms-2"><a href="/2025/1701.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-18</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>BPSec-MLS: Asynchronous Key Agreement for Space Communications</strong>
+              <div class="mt-1"><span class="fst-italic">Xisen Tian, Paul Westland</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Key agreement is the cornerstone of any secure communications channel whether over the traditional internet or in delay tolerant networks used in space communications. However, space systems that rely on pre-shared keys face insurmountable limitations in both security and scalability. A single key compromise can expose all past and future encrypted communications, and the static nature of pre-shared keys prevents dynamic group membership, making it difficult to add or remove devices without...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1662" class="paperlink" href="/2025/1662">2025/1662</a>
+          <span class="ms-2"><a href="/2025/1662.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>The Affine One-Wayness (AOW): A Transparent Post-Quantum Temporal Verification via Polynomial Iteration</strong>
+              <div class="mt-1"><span class="fst-italic">MINKA MI NGUIDJOI Thierry Emmanuel</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-FOUNDATIONS">Foundations</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Distributed systems require robust, transparent mechanisms for verifiable temporal ordering
+ to operate without trusted authorities or synchronized clocks. This paper introduces Affine
+ One-Wayness (AOW), a new cryptographic primitive for post-quantum temporal verification
+ based on iterative polynomial evaluation over finite fields. AOW provides strong temporal
+ binding guarantees by reducing its security with a tight reduction to the hardness of the dis
+crete logarithm problem in...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1643" class="paperlink" href="/2025/1643">2025/1643</a>
+          <span class="ms-2"><a href="/2025/1643.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>SCA-GPT: A Generation-Planning-Tool Assisted LLM Agent for Fully Automated Side-Channel Analysis on Cryptosystems</strong>
+              <div class="mt-1"><span class="fst-italic">Wenquan Zhou, An Wang, Yaoling Ding, Annyu Liu, Jingqi Zhang, Jiakun Li, Liehuang Zhu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Non-invasive security constitutes an essential component
+of hardware security, primarily involving side-channel
+analysis (SCA), with various international standards explicitly
+mandating rigorous testing. However, current SCA assessments
+rely on manual expert procedures, causing critical issues: inconsistent
+results due to expert variability, error-prone multi-step
+testing, and high costs with IP leakage risks for manufacturers
+lacking in-house expertise. Automated SCA tools that...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1631" class="paperlink" href="/2025/1631">2025/1631</a>
+          <span class="ms-2"><a href="/2025/1631.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Computationally and Communication Efficient Batched Asynchronous DPSS from Lightweight Cryptography</strong>
+              <div class="mt-1"><span class="fst-italic">Akhil Bandarupalli, Xiaoyu Ji, Soham Jog, Aniket Kate, Chen-Da Liu-Zhang, Yifan Song</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Verifiable Secret Sharing (VSS) is a fundamental primitive in threshold cryptography and multi-party computation. It preserves secrecy, integrity, and availability of a shared secret for a fixed set of parties, with a subset of them being malicious. In practical applications, especially when the secret sharing is expected to be maintained over long durations, the VSS scheme should be able to cater to a dynamic setting where involved parties may change. The primitive known as Dynamic...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1610" class="paperlink" href="/2025/1610">2025/1610</a>
+          <span class="ms-2"><a href="/2025/1610.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>BunnyFinder: Finding Incentive Flaws for Ethereum Consensus</strong>
+              <div class="mt-1"><span class="fst-italic">Rujia Li, Mingfei Zhang, Xueqian Lu, Wenbo Xu, Ying Yan, Sisi Duan</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Ethereum, a leading blockchain platform, relies on incentive mechanisms to improve its stability. Recently, several attacks targeting the incentive mechanisms have been proposed. Examples include the so-called reorganization attacks that cause blocks proposed by honest validators to be discarded to gain more rewards. Finding these attacks, however, heavily relies on expert knowledge and may involve substantial manual effort.
+
+We present BunnyFinder, a semi-automated framework for finding...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1591" class="paperlink" href="/2025/1591">2025/1591</a>
+          <span class="ms-2"><a href="/2025/1591.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-04</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>HE-SecureNet: An Efficient and Usable Framework for Model Training via Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Thomas Schneider, Huan-Chih Wang, Hossein Yalame</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Energy-efficient edge devices are essential for the widespread deployment of machine learning (ML) services. However, their limited computational capabilities make local model training infeasible. While cloud-based training offers a scalable alternative, it raises serious privacy concerns when sensitive data is outsourced. Homomorphic Encryption (HE) enables computation directly on encrypted data and has emerged as a promising solution to this privacy challenge. Yet, current HE-based...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1581" class="paperlink" href="/2025/1581">2025/1581</a>
+          <span class="ms-2"><a href="/2025/1581.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-26</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Cryptanalysis of ChiLow with Cube-Like Attacks</strong>
+              <div class="mt-1"><span class="fst-italic">Shuo Peng, Jiahui He, Kai Hu, Zhongfeng Niu, Shahram Rasoolzadeh, Meiqin Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Proposed in EUROCRYPT~2025, \chilow is a family of tweakable block ciphers and a related PRF built on the novel nonlinear $\chichi$ function, designed to enable efficient and secure embedded code encryption.
+The only key-recovery results of \chilow are from designers which can reach at most 4 out of 8 rounds, which is not enough for a low-latency cipher like \chilow: more cryptanalysis efforts are expected.
+Considering the low-degree $\chichi$ function, we present three kinds of cube-like...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1573" class="paperlink" href="/2025/1573">2025/1573</a>
+          <span class="ms-2"><a href="/2025/1573.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>OneTwoPAKE: Two-Round Strong Asymmetric PAKE with Ideal Security</strong>
+              <div class="mt-1"><span class="fst-italic">Yashvanth Kondi, Ian McQuoid, Kelsey Melissaris, Claudio Orlandi, Lawrence Roy, LaKyah Tyner</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Strong Asymmetric Password-Authenticated Key Exchange (saPAKE) enables a client, holding only a low-entropy password, to repeatedly establish shared high-entropy session keys with a server holding a digest of the expected password. Integrally, the only online attacks afforded to the adversary are those inevitable impersonation and dictionary attacks. As opposed to previous modeling, saPAKE addionally requires that any offline password search against the server’s storage takes place
+after...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1534" class="paperlink" href="/2025/1534">2025/1534</a>
+          <span class="ms-2"><a href="/2025/1534.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>RBOOT: Accelerating Homomorphic Neural Network Inference by Fusing ReLU within Bootstrapping</strong>
+              <div class="mt-1"><span class="fst-italic">Zhaomin Yang, Chao Niu, Benqiang Wei, Zhicong Huang, Cheng Hong, Tao Wei</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">A major bottleneck in secure neural network inference using Fully Homomorphic Encryption (FHE) is the evaluation of non-linear activation functions like ReLU, which are inefficient to compute under FHE. State-of-the-art solutions approximate ReLU using high-degree polynomials, incurring significant computational overhead.  We propose novel methods for functional bootstrapping with CKKS, and based on these methods we present RBOOT, an optimized framework that seamlessly integrates ReLU...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1533" class="paperlink" href="/2025/1533">2025/1533</a>
+          <span class="ms-2"><a href="/2025/1533.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>PARSAN-Mix: Packet-Aware Routing and Shuffling with Additional Noise for Latency Optimization in Mix Networks (Extended Version)</strong>
+              <div class="mt-1"><span class="fst-italic">Mahdi Rahimi</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Mix networks (mix-nets) offer strong anonymity by routing client packets through intermediary hops, where they are shuffled with other packets to obscure their origins from a global adversary monitoring all communication exchanges. However, this anonymity is achieved at the expense of increased end-to-end latency, as packets traverse multiple hops (incurring routing delays) and experience additional delays at each hop for shuffling purposes. Consequently, the overall latency for delivering a...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1524" class="paperlink" href="/2025/1524">2025/1524</a>
+          <span class="ms-2"><a href="/2025/1524.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-29</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>AUPCH: Auditable Unlinkable Payment Channel Hubs</strong>
+              <div class="mt-1"><span class="fst-italic">Pedro Moreno-Sanchez, Mohsen Minaei, Srinivasan Raghuraman, Panagiotis Chatzigiannis, Duc V. Le</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Cryptocurrencies, which have gained significant adoption in
+recent years, face ongoing challenges in scalability and privacy. Payment
+Channel Hubs (PCHs) constitute a solution to both issues by shifting
+transactions off the public ledger. Various PCH constructions have been
+proposed, offering different degrees of unlinkability, efficiency, and inter-
+operability. However, regulatory compliance remains a significant con-
+cern, particularly under emerging frameworks like the EU’s Markets...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1508" class="paperlink" href="/2025/1508">2025/1508</a>
+          <span class="ms-2"><a href="/2025/1508.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Concretely Efficient Fluid MPC with Linear Communication</strong>
+              <div class="mt-1"><span class="fst-italic">Yubo Zeng, Kang Yang, Dengguo Feng, Min Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Traditional Secure Multi-Party Computation (MPC) requires parties to stay online through the whole computation, which compromises scalability when dealing with large-scale and complex tasks. The notion of fluid MPC, introduced by Choudhuri et al. (Crypto 2021), aims to address this challenge by presenting a dynamic participation model where parties have the flexibility to join and leave as needed. The best-known honest-majority MPC protocol by Bienstock et al. (Crypto 2023) in the fluid...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1502" class="paperlink" href="/2025/1502">2025/1502</a>
+          <span class="ms-2"><a href="/2025/1502.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-05-05</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>CARPOOL: Secure And Reliable Proof of Location</strong>
+              <div class="mt-1"><span class="fst-italic">Sayon Duttagupta, Dave Singelée, Xavier Carpent, Takahito Yoshizawa, Farhad Aghili, Aysajan Abidin, Bart Preneel</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Multiple authentication solutions are widely deployed, such as OTP/TOTP/HOTP codes, hardware tokens, PINs, or biometrics. However, in practice, one sometimes needs to authenticate not only the user but also their location. The current state-of-the-art secure localisation schemes are either unreliable or insecure, or require additional hardware to reliably prove the user&#39;s location. This paper proposes CARPOOL, a novel, secure, and reliable approach to affirm the location of the user by...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1465" class="paperlink" href="/2025/1465">2025/1465</a>
+          <span class="ms-2"><a href="/2025/1465.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-12</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>CoRReCt: Compute, Record, Replay, Compare to Secure Computations on Untrusted Systems</strong>
+              <div class="mt-1"><span class="fst-italic">Felix Dörre, Marco Liebel, Jeremias Mechler, Jörn Müller-Quade</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">If the system of an honest user is corrupted, all of its security may be lost: The system may perform computations using different inputs, report different outputs or perform a different computation altogether, including the leakage of secrets to an adversary.
+In this paper, we present an approach that complements arbitrary computations to protect against the consequences of malicious systems. Tothis end, we adapt a well-known technique traditionally used to increase fault tolerance, namely...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1463" class="paperlink" href="/2025/1463">2025/1463</a>
+          <span class="ms-2"><a href="/2025/1463.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-10</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Leakage-Resilient Circuits against $\mathsf{NC^1}$, Revisited</strong>
+              <div class="mt-1"><span class="fst-italic">Yuyu Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-FOUNDATIONS">Foundations</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this study, we revisit leakage-resilient circuits (LRCs) against $\mathsf{NC}^1$-leakage and propose new constructions that minimize the reliance on leak-free hardware. Specifically, we first present a stateless LRC scheme that is resilient to $\mathsf{NC}^1$-leakage, and then extend it to a leakage-tolerant circuit with auxiliary input (AI-LTC). By integrating this with a 2-adaptive leakage-resilient encoding scheme, we achieve a stateful LRC scheme that uses a secure hardware component....</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1453" class="paperlink" href="/2025/1453">2025/1453</a>
+          <span class="ms-2"><a href="/2025/1453.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Password-Hardened Encryption Revisited</strong>
+              <div class="mt-1"><span class="fst-italic">Ruben Baecker, Paul Gerhart, Dominique Schröder</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Passwords remain the dominant form of authentication on the Internet. The rise of single sign-on (SSO) services has centralized password storage, increasing the devastating impact of potential attacks and underscoring the need for secure storage mechanisms. A decade ago, Facebook introduced a novel approach to password security, later formalized in Pythia by Everspaugh et al. (USENIX&#39;15), which proposed the concept of password hardening. The primary motivation behind these advances is to...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1443" class="paperlink" href="/2025/1443">2025/1443</a>
+          <span class="ms-2"><a href="/2025/1443.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Generic Partial Decryption as Feature Engineering for Neural Distinguishers</strong>
+              <div class="mt-1"><span class="fst-italic">Emanuele Bellini, Rocco Brunelli, David Gerault, Anna Hambitzer, Marco Pedicini</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In Neural Cryptanalysis, a deep neural network is trained as a cryptographic distinguisher between pairs of ciphertexts $(F(X), F(X
+\oplus \delta))$, where $F$ is either a random permutation or a block cipher, $\delta$ is a fixed difference. The AutoND framework aims to se neural distinguishers that are treated as a generic tool and discourages cipher-specific optimizations. On the other hand, works such as $[\text{LLS}^+24]$ obtain superior distinguishers by adding dedicated features, such...</p>
+        </div>
+
+      </div>
+
+
+
+      <div class="w-75 mx-auto">
+        <ul class="pagination mt-5 mb-5">
+
+
+
+          <li class="page-item active"><span class="page-link">1</span></li>
+
+          <li class="page-item"><a rel="nofollow" class="page-link" href="/search?q=PRESENT+integral&amp;offset=100">2</a></li>
+
+
+          <li class="page-item"><span class="page-link">...</span></li>
+
+
+          <li class="page-item"><a rel="nofollow" class="page-link" href="/search?q=PRESENT+integral&amp;offset=500">6</a></li>
+          <li class="page-item">
+            <a rel="nofollow" class="page-link" href="/search?q=PRESENT+integral&amp;offset=100">Next »</a>
+          </li>
+
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+      <script>
+       document.getElementById('clearButton').addEventListener('click', function(ev) {
+         document.querySelectorAll('input').forEach(el => {
+           el.value = '';
+         });
+         document.getElementById('category').selectedIndex = "0";
+       });
+
+       function validateForm() {
+         // check that dates are compatible.
+         let submittedAfter = document.getElementById('submittedafter');
+         let submittedBefore = document.getElementById('submittedbefore');
+         let revisedAfter = document.getElementById('revisedafter');
+         let revisedBefore = document.getElementById('revisedbefore');
+         if (submittedAfter.value &&
+             submittedBefore.value &&
+             submittedAfter.value > submittedBefore.value) {
+           submittedAfter.classList.add('is-invalid');
+           submittedBefore.classList.add('is-invalid');
+           return false;
+         }
+         if (revisedAfter.value &&
+             revisedBefore.value &&
+             revisedAfter.value > revisedBefore.value) {
+           revisedAfter.classList.add('is-invalid');
+           revisedBefore.classList.add('is-invalid');
+           return false;
+         }
+         if (revisedBefore.value &&
+             submittedAfter.value &&
+             revisedBefore.value < submittedAfter.value) {
+           revisedBefore.classList.add('is-invalid');
+           submittedAfter.classList.add('is-invalid');
+           return false;
+         }
+         return true;
+       }
+
+      </script>
+      <script src="/js/mark.min.js"></script>
+      <script>
+       var instance = new Mark("div.results");
+       let urlParams = new URLSearchParams(window.location.search);
+       if (urlParams.get('q')) {
+         instance.mark(urlParams.get('q'));
+       }
+       if (urlParams.get('title')) {
+         instance.mark(urlParams.get('title'));
+       }
+       if (urlParams.get('authors')) {
+         instance.mark(urlParams.get('authors'));
+       }
+      </script>
+<!--  -->
+</main>
+<div class="container-fluid mt-auto" id="eprintFooter">
+  <a href="https://iacr.org/">
+    <img id="iacrlogo" src="/img/iacrlogo_small.png" class="img-fluid d-block mx-auto" alt="IACR Logo">
+  </a>
+  <div class="colorDiv"></div>
+  <div class="alert alert-success w-75 mx-auto">
+    Note: In order to protect the privacy of readers, eprint.iacr.org
+    does not use cookies or embedded third party content.
+  </div>
+</div>
+<script src="/css/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+   var topNavbar = document.getElementById('topNavbar');
+   if (topNavbar) {
+     document.addEventListener('scroll', function(e) {
+       if (window.scrollY > 100) {
+         topNavbar.classList.add('scrolled');
+       } else {
+         topNavbar.classList.remove('scrolled');
+       }
+     })
+   }
+  </script>
+
+
+</body>
+</html>

@@ -1,3 +1,61 @@
+## [LRN-20260716-009] correction
+
+**Logged**: 2026-07-16T15:42:57+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Do not equate an executable literature corpus with an exhaustive or complete
+literature search; venue-native keyword rechecks can still reveal current
+PRESENT integral baselines missed by general metadata APIs.
+
+### Details
+
+The first Innovation 2 high-round corpus contained 14 verified PDFs and the
+known neural-integral, output-prediction, division-property, MILP, monomial,
+kernel, and Split-and-Cancel routes. Its documentation still described the
+search too strongly. A follow-up IACR ePrint cross-query on `neural integral`,
+`output prediction`, `PRESENT integral`, and `integral resistance` found two
+additional main-scope papers: Peng et al. ePrint 2026/961, which tightens the
+PRESENT integral-resistance guarantee to 11 rounds, and CLAASP-MP ePrint
+2026/735, a current automated monomial-prediction/3SDP-woU baseline.
+
+The correction also exposed an important status distinction. Four relevant
+papers have legal open ePrint URLs but their PDF endpoints are blocked by the
+current Cloudflare verification, while three closed publisher papers have no
+legal open copy in the checked sources. Neither state should be summarized as
+"all papers downloaded" or "only metadata exists" without qualification.
+
+### Suggested Action
+
+For future Innovation 1/2 literature audits, combine DOI/OpenAlex/Crossref
+metadata with saved venue-native searches using exact task, cipher, and method
+terms. Report the dated coverage, verified local PDF count, project-existing
+copies, open-but-access-blocked PDFs, closed full-text gaps, and excluded
+papers separately. Use "executable corpus" rather than "complete search"
+unless a documented systematic-review protocol justifies completeness.
+
+### Metadata
+
+- Source: literature_reaudit, self_correction
+- Related Files: docs/research/innovation2-high-round-literature-corpus-20260716.md, sources/research_innovation2_paper_manifest_20260716.csv
+- Tags: innovation2, literature, completeness, iacr, present, integral-resistance, monomial-prediction, access-status
+- See Also: LRN-20260716-008, LRN-20260708-001
+- Pattern-Key: research.literature.executable_corpus_not_exhaustive
+- Recurrence-Count: 1
+- First-Seen: 2026-07-16
+- Last-Seen: 2026-07-16
+
+### Resolution
+
+- **Resolved**: 2026-07-16T15:42:57+08:00
+- **Commit/PR**: pending
+- **Notes**: Added venue-native IACR search snapshots, new baseline entries, and explicit PDF-access categories to the Innovation 2 corpus audit.
+
+---
+
 ## [LRN-20260716-008] correction
 
 **Logged**: 2026-07-16T14:20:00+08:00

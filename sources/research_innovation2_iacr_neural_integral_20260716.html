@@ -1,0 +1,1569 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/css/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Search results</title>
+    <link rel="stylesheet" href="/css/eprint.css?v=10">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon-180x180.png" />
+    <meta name="tdm-reservation" content="1">
+
+<style>
+ input {
+   background-color: #e8e8e8 !important;
+ }
+ mark {
+   font-weight: 600;
+   padding: .2em 0px .2em 0px;
+   color: black;
+ }
+ span.term {
+   font-weight: 700 !important;
+   font-family: var(--bs-font-monospace), monospace !important;
+ }
+ form {
+   background-color:#fff;
+ }
+ @media (min-width: 768px) {
+   form {
+     position:sticky;top:6rem;
+   }
+ }
+
+</style>
+<meta name="description" content="Search the Cryptology ePrint Archive">
+
+  </head>
+
+  <body>
+    <noscript>
+      <h1 class="text-center">What a lovely hat</h1>
+      <h4 class="text-center">Is it made out of <a href="https://iacr.org/tinfoil.html">tin foil</a>?</h4>
+    </noscript>
+    <div class="fixed-top" id="topNavbar">
+      <nav class="navbar navbar-custom navbar-expand-lg">
+        <div class="container px-0 justify-content-between justify-content-lg-evenly">
+          <div class="order-0 align-items-center d-flex">
+            <button class="navbar-toggler btnNoOutline" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false">
+              <span class="icon-bar top-bar"></span>
+              <span class="icon-bar middle-bar"></span>
+              <span class="icon-bar bottom-bar"></span>
+            </button>
+            <a class="d-none me-5 d-lg-inline" href="https://iacr.org/"><img class="iacrlogo" src="/img/iacrlogo_small.png" alt="IACR Logo" style="max-width:6rem;"></a>
+          </div>
+          <a class="ePrintname order-1" href="/">
+            <span class="longNavName">Cryptology ePrint Archive</span>
+          </a>
+          <div class="collapse navbar-collapse order-3" id="navbarContent">
+            <ul class="navbar-nav me-auto ms-2 mb-2 mb-lg-0 justify-content-end w-100">
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Papers
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="navbarDropdown">
+                  <span class="text-dark mx-3" style="white-space:nowrap;">Updates from the last:</span>
+                  <li><a class="dropdown-item ps-custom" href="/days/7">7 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/31">31 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/183">6 months</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/365">365 days</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/byyear">Listing by year</a></li>
+                  <li><a class="dropdown-item" href="/complete">All papers</a></li>
+                  <li><a class="dropdown-item" href="/complete/compact">Compact view</a></li>
+                  <li><a class="dropdown-item" href="https://www.iacr.org/news/subscribe">Subscribe</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/citation.html">How to cite</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/rss">Harvesting metadata</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="submissionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="submissionsDropdown">
+                  <li><a class="dropdown-item" href="/submit">Submit a paper</a></li>
+                  <li><a class="dropdown-item" href="/revise">Revise or withdraw a paper</a></li>
+                  <li><a class="dropdown-item" href="/operations.html">Acceptance and publishing conditions</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  About
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="aboutDropdown">
+                  <li><a class="dropdown-item" href="/about.html">Goals and history</a></li>
+                  <li><a class="dropdown-item" href="/news.html">News</a></li>
+                  <li><a class="dropdown-item" href="/stats">Statistics</a></li>
+                  <li><a class="dropdown-item" href="/contact.html">Contact</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="dropdown ps-md-2 text-right order-2 order-lg-last">
+            <button class="btn btnNoOutline" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/search.svg" class="searchIcon" alt="Search Button"/>
+            </button>
+            <div id="searchDd" class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="dropdownMenuButton1">
+              <form action="/search" method="GET">
+                <div class="input-group">
+                  <input id="searchbox" name="q" type="search" class="form-control" autocomplete="off">
+                  <button class="btn btn-secondary border input-group-append ml-2">
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div class="ms-2 p-1 d-none"><a href="/search">Advanced search</a></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <main id="eprintContent" class="container px-3 py-4 p-md-4">
+<div class="row">
+    <div class="col-12 col-lg-4">
+      <form class="p-2 pt-md-4 align-items-end  needs-validation" novalidate onsubmit="return validateForm()" method="GET" action="/search">
+        <label for="anything" class="mt-2 form-label">Match anything</label>
+        <input type="text" name="q" class="form-control form-control-sm" id="anything" aria-label="Match anything" value="neural integral">
+        <label for="title" class="mt-4 form-label">Match title</label>
+        <input type="text" name="title" class="form-control form-control-sm" id="title" aria-label="Match title" value="">
+        <label for="authors" class="mt-4 form-label">Match authors</label>
+        <input type="text" name="authors" class="form-control form-control-sm" id="authors" aria-label="Match authors" value="">
+        <label for="category" class="mt-4 form-label">Category</label><br>
+        <select class="form-select form-select-sm" id="category" name="category" aria-label="Category">
+          <option value="">All categories</option>
+
+          <option value="APPLICATIONS" >Applications</option>
+
+          <option value="PROTOCOLS" >Cryptographic protocols</option>
+
+          <option value="FOUNDATIONS" >Foundations</option>
+
+          <option value="IMPLEMENTATION" >Implementation</option>
+
+          <option value="SECRETKEY" >Secret-key cryptography</option>
+
+          <option value="PUBLICKEY" >Public-key cryptography</option>
+
+          <option value="ATTACKS" >Attacks and cryptanalysis</option>
+
+        </select>
+        <div class="row d-none d-lg-flex">
+          <div class="col-6">
+            <label for="submittedafter" class="mt-4 form-label">Submitted after</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="submittedafter" name="submittedafter" aria-label="Submitted after" value="None" placeholder="Enter a year">
+          </div>
+          <div class="col-6">
+            <label for="submittedbefore" class="mt-4 form-label">Submitted before</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="submittedbefore" name="submittedbefore" aria-label="Submitted before" value="None" placeholder="Enter a year">
+            <div class="invalid-feedback">
+              Dates are inconsistent
+            </div>
+          </div>
+        </div>
+        <div class="row d-none d-lg-flex">
+          <div class="col-6">
+            <label for="revisedafter" class="mt-4 form-label">Revised after</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="revisedafter" name="revisedafter" aria-label="Revised after" placeholder="Enter a year" value="None">
+            <div class="invalid-feedback">
+              Dates are inconsistent
+            </div>
+          </div>
+          <div class="col-6">
+            <label for="revisedbefore" class="mt-4 form-label">Revised before</label><br>
+            <input class="form-control form-control-sm" type="number" min="1996" id="revisedbefore" name="revisedbefore" aria-label="Revised before" value="None" placeholder="Enter a year">
+          </div>
+        </div>
+        <div class="d-none d-lg-flex mt-3">
+          <div class="form-check">
+            <input type="checkbox" id="relevance" name="relevance" >
+            <label for="relevance" class="form-check-label ms-2">Sort by relevance</label>
+          </div>
+        </div>
+        <div class="mt-3 d-flex">
+          <button class="btn btn-primary btn-sm" type="submit">Search</button>
+          <button id="clearButton" class="btn btn-secondary btn-sm ms-2" type="button">Clear</button>
+          <button id="helpButton" class="btn btn-info btn-sm ms-auto" type="button" data-bs-toggle="modal" data-bs-target="#helpModal">Help</button>
+        </div>
+      </form>
+      <div class="modal" tabindex="-1" id="helpModal">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">Search Help</h4>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>
+                You can search for a phrase by enclosing it in double quotes, e.g.,
+                <span class="term text-nowrap"><a href="/search?q=%22differential%20privacy%22">"differential privacy"</a></span>.
+              </p>
+              <p>
+                You can require or exclude specific terms using + and -. For example, to search for papers that contain the term elliptic
+                but not the term factoring, use
+                <span class="term text-nowrap"><a href="/search?q=%2Belliptic%20-factoring">+elliptic -factoring</a></span>
+              </p>
+              <p>
+                To search in a title or for author name, use
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20author%3Aboneh">title:isogeny author:boneh</a></span>.
+                If you want to require both, you can use
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20AND%20author%3Aboneh">title:isogeny AND author:boneh</a></span>
+                because it recognizes logical operators <span class="term">AND</span> and <span class="term">OR</span>.
+                This is equivalent to <a href="/search?title=isogeny&authors=boneh">using the individual fields</a> for author and title.
+                You can also use NOT to negate a condition, as with
+                <span class="term text-nowrap"><a href="/search?q=title%3Aisogeny%20AND%20NOT%20author%3Aboneh">title:isogeny AND NOT author:boneh</a></span> to search for papers with an author other than Boneh.
+              </p>
+              <p>
+                To find documents containing a term starting with the string
+                <span class="term">differe</span>, use
+                <span class="term"><a href="/search?q=differe%2A">differe*</a></span>.
+                This will match the terms difference, different, and differential
+              </p>
+              <p>
+                Note that search applies stemming, so that if you search for <span class="term">yield</span> it will also match terms
+                <span class="term">yields</span> and <span class="term">yielding</span>. If you want to disable
+                stemming, capitalize the term. A search for <span class="term">Adam</span> will not match the term 'Adams'.
+              </p>
+              <p>
+                The system attempts to recognize possible misspellings. This is perhaps a source of amusement more than anything else.
+              </p>
+              <p>
+                This currently searches the text in titles, authors, abstracts, and keywords, but does not search in the PDF or PS itself.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Parsed query: Query(((Zneural@1 AND Zintegr@2) AND_MAYBE PostingSource(Xapian::ValueWeightPostingSource(slot=2)))) -->
+    </div>
+  <div class="col-12 col-lg-8" style="min-height:80vh">
+
+
+
+
+    <h4 class="mt-3 ms-4">52 results sorted by ID</h5>
+
+    <div class="ms-lg-4 mt-3 results">
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/730" class="paperlink" href="/2026/730">2026/730</a>
+          <span class="ms-2"><a href="/2026/730.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-14</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Towards Zero Rotation and Beyond: Architecting Neural Networks for Fast Secure Inference with Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Yifei Cai, Yizhou Feng, Qiao Zhang, Chunsheng Xin, Hongyi Wu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Privacy-preserving deep learning addresses privacy concerns in Machine Learning as a Service (MLaaS) using Homomorphic Encryption (HE) for linear computations. Nevertheless, the high computational cost remains a challenge.  While prior work has attempted to improve the efficiency, most are built upon models originally designed for plaintext inference. These models are inherently limited by architectural inefficiencies when adapted to HE settings. We argue that substantial efficiency...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/541" class="paperlink" href="/2026/541">2026/541</a>
+          <span class="ms-2"><a href="/2026/541.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-04-01</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Towards Verifiable AI with Lightweight Cryptographic Proofs of Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Pranay Anchuri, Matteo Campanelli, Paul Cesaretti, Rosario Gennaro, Tushar M. Jois, Hasan S. Kayman, Tugce Ozdemir</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">When large AI models are deployed as cloud-based services, clients have no guarantee that responses are correct or were produced by the intended model. Rerunning inference locally is infeasible for large models, and existing cryptographic proof systems—while providing strong correctness guarantees—introduce prohibitive prover overhead (e.g., hundreds of seconds per query for billion-parameter models). We present a verification framework and protocol that replaces full cryptographic proofs...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/340" class="paperlink" href="/2026/340">2026/340</a>
+          <span class="ms-2"><a href="/2026/340.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-05</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improving Neural-Inspired Integral Distinguishers via a Linear-Algebraic Approach</strong>
+              <div class="mt-1"><span class="fst-italic">Yunjae Hwang, Insung Kim, Sunyeop Kim, Myungkyu Lee, Hanbeom Shin, Deukjo Hong, Seokhie Hong, Dongjae Lee, Jaechul Sung, Byoungjin Seok</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The recent study has demonstrated that neural networks can serve as a navigator for an automatic search model for integral cryptanalysis with a reduction in computational complexity. However, the inherent drawbacks of using a deep learning model such as large datasets and limited interpretability are the major obstacles in cryptanalysis. In this paper, we introduce another simple data-driven approach using the linear algebraic concept to characterize key-independent balance properties as the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2026/241" class="paperlink" href="/2026/241">2026/241</a>
+          <span class="ms-2"><a href="/2026/241.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-06-02</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Algebraic Attack on Convolutional Neural Networks with Max Pooling</strong>
+              <div class="mt-1"><span class="fst-italic">Zirui Chen, Shi Tang, Zhengchao Gao, Yongjia Su, Lingyue Qin, Xiaoyang Dong</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Recovering the weights and biases of deep neural networks (DNNs) via black-box input-output queries --- known as parameter extraction attacks --- has been extensively studied for ReLU-based fully connected neural networks (FCNNs), but remains unexplored for convolutional neural networks (CNNs) with the max pooling function, a core architecture for computer vision and multimedia processing. The key challenge lies in the CNN’s max pooling layer, which introduces an additional non-linearity and...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2324" class="paperlink" href="/2025/2324">2025/2324</a>
+          <span class="ms-2"><a href="/2025/2324.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>SHAFT: Secure, Handy, Accurate, and Fast Transformer Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Andes Y. L. Kei, Sherman S. M. Chow</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">A growing adoption of transformer-based machine learning models is raising concerns about sensitive data exposure. Nonetheless, current secure inference solutions incur substantial overhead due to their extensive reliance on non-linear protocols, such as softmax and Gaussian error linear unit (GELU). Driven by numerical stability needs, softmax approximations (e.g., NeurIPS 2021) typically extract the maximum element of an input vector, incurring logarithmic rounds (in the input length)....</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/2020" class="paperlink" href="/2025/2020">2025/2020</a>
+          <span class="ms-2"><a href="/2025/2020.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-10-30</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>VerfCNN, Optimal Complexity zkSNARK for Convolutional Neural Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Wenjie Qu, Yanpei Guo, Yue Ying, Jiaheng Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">With the widespread deployment of machine learning services, concerns about potential misconduct by service providers have emerged. Providers may deviate from their promised methodologies when delivering their services, undermining customer trust. Zero-knowledge proofs (ZKPs) offer a promising solution for customers to verify service integrity while preserving the intellectual property of the model weights. However, existing ZKP systems for convolutional neural networks (CNNs) impose...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1917" class="paperlink" href="/2025/1917">2025/1917</a>
+          <span class="ms-2"><a href="/2025/1917.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Embedding belief propagation within a multi-task learning model : An example on Kyber&#39;s NTT</strong>
+              <div class="mt-1"><span class="fst-italic">Thomas Marquet, Elisabeth Oswald</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Domain-informed deep learning integrates specialized knowledge into deep neural networks through modifications to inputs, architectures, loss functions, or training processes. Such approach is usually employed to improve model performance in low/noisy data regime via domain-specific priors. Side-channel analysis is such a domain and even though straight deep learning has become a powerful tool for profiled side-channel, it still struggles on more complex datasets because of weak signals...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1728" class="paperlink" href="/2025/1728">2025/1728</a>
+          <span class="ms-2"><a href="/2025/1728.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-22</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Precision Strike: Targeted Misclassification of Accelerated CNNs with a Single Clock Glitch</strong>
+              <div class="mt-1"><span class="fst-italic">Arsalan Ali Malik, Furkan Aydin, Aydin Aysu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Fault injection attacks (FIAs) present a significant threat to the integrity of deep neural networks (DNNs), particularly in hardware-accelerated deployments on field-programmable gate arrays (FPGAs). These attacks intentionally introduce faults into the system, leading the DNN to generate incorrect outputs. This work presents the first successful targeted misclassification attack against a convolutional neural network (CNN) implemented on FPGA hardware, achieved by injecting a single clock...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1591" class="paperlink" href="/2025/1591">2025/1591</a>
+          <span class="ms-2"><a href="/2025/1591.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-04</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>HE-SecureNet: An Efficient and Usable Framework for Model Training via Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Thomas Schneider, Huan-Chih Wang, Hossein Yalame</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Energy-efficient edge devices are essential for the widespread deployment of machine learning (ML) services. However, their limited computational capabilities make local model training infeasible. While cloud-based training offers a scalable alternative, it raises serious privacy concerns when sensitive data is outsourced. Homomorphic Encryption (HE) enables computation directly on encrypted data and has emerged as a promising solution to this privacy challenge. Yet, current HE-based...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1551" class="paperlink" href="/2025/1551">2025/1551</a>
+          <span class="ms-2"><a href="/2025/1551.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-12-13</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>M&amp;M: Secure Two-Party Machine Learning through Efficient Modulus Conversion and Mixed-Mode Protocols (Full Version)</strong>
+              <div class="mt-1"><span class="fst-italic">Ye Dong, Wen-jie Lu, Xiaoyang Hou, Kang Yang, Jian Liu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Secure two-party machine learning has made substantial progress through the use of mixed-mode protocols.  Despite these advancements, existing approaches often suffer from efficiency bottlenecks due to the inherent mismatch between the optimal domains of various cryptographic primitives, such as Homomorphic Encryption and Oblivious Transfer. In response to these challenges, we introduce the \tNAME{} framework, which features an efficient modulus conversion protocol.  This breakthrough...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1534" class="paperlink" href="/2025/1534">2025/1534</a>
+          <span class="ms-2"><a href="/2025/1534.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>RBOOT: Accelerating Homomorphic Neural Network Inference by Fusing ReLU within Bootstrapping</strong>
+              <div class="mt-1"><span class="fst-italic">Zhaomin Yang, Chao Niu, Benqiang Wei, Zhicong Huang, Cheng Hong, Tao Wei</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">A major bottleneck in secure neural network inference using Fully Homomorphic Encryption (FHE) is the evaluation of non-linear activation functions like ReLU, which are inefficient to compute under FHE. State-of-the-art solutions approximate ReLU using high-degree polynomials, incurring significant computational overhead.  We propose novel methods for functional bootstrapping with CKKS, and based on these methods we present RBOOT, an optimized framework that seamlessly integrates ReLU...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1443" class="paperlink" href="/2025/1443">2025/1443</a>
+          <span class="ms-2"><a href="/2025/1443.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Generic Partial Decryption as Feature Engineering for Neural Distinguishers</strong>
+              <div class="mt-1"><span class="fst-italic">Emanuele Bellini, Rocco Brunelli, David Gerault, Anna Hambitzer, Marco Pedicini</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In Neural Cryptanalysis, a deep neural network is trained as a cryptographic distinguisher between pairs of ciphertexts $(F(X), F(X
+\oplus \delta))$, where $F$ is either a random permutation or a block cipher, $\delta$ is a fixed difference. The AutoND framework aims to se neural distinguishers that are treated as a generic tool and discourages cipher-specific optimizations. On the other hand, works such as $[\text{LLS}^+24]$ obtain superior distinguishers by adding dedicated features, such...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1431" class="paperlink" href="/2025/1431">2025/1431</a>
+          <span class="ms-2"><a href="/2025/1431.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-08-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Multi-Partner Project: Securing Future Edge-AI Processors in Practice (CONVOLVE)</strong>
+              <div class="mt-1"><span class="fst-italic">Sven Argo, Henk Corporaal, Alejandro Garza, Marc Geilen, Manil Dev Gomony, Tim Güneysu, Adrian Marotzke, Fouwad Mir, Christian Larmann, Jan Richter-Brockmann, Jeffrey Smith, Mottaqiallah Taouil, Said Hamdioui</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Artificial Intelligence (AI) has had a profound impact
+on our contemporary society, and it is indisputable that it will
+continue to play a significant role in the future. To further enhance
+AI experience and performance, a transition from large-scale
+server applications towards AI-powered edge devices is inevitable.
+In fact, current projections indicate that the market for Smart
+Edge Processors (SEPs) will grow beyond 70 Billion USD by
+2026 [1]. Such a shift comes with major...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1134" class="paperlink" href="/2025/1134">2025/1134</a>
+          <span class="ms-2"><a href="/2025/1134.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-06-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Optimal Dimensionality Reduction using Conditional Variational AutoEncoder</strong>
+              <div class="mt-1"><span class="fst-italic">Sana Boussam, Mathieu Carbone, Benoît Gérard, Guénaël Renault, Gabriel Zaid</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The benefits of using Deep Learning techniques to enhance side-channel attacks performances have been demonstrated over recent years.
+Most of the work carried out since then focuses on discriminative models.
+However, one of their major limitations is the lack of theoretical results.
+Indeed, this lack of theoretical results, especially concerning the choice of neural network architecture to consider or the loss to prioritize to build an optimal model, can be problematic for both attackers...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/1063" class="paperlink" href="/2025/1063">2025/1063</a>
+          <span class="ms-2"><a href="/2025/1063.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-09-18</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>MIZAR: Boosting Secure Three-Party Deep Learning with Co-Designed Sign-Bit Extraction and GPU Acceleration</strong>
+              <div class="mt-1"><span class="fst-italic">Ye Dong, Xudong Chen, Xiangfu Song, Yaxi Yang, Tianwei Zhang, Jin-Song Dong</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Three-party secret sharing-based computation has emerged as a promising approach for secure deep learning, benefiting from its high throughput. However, it still faces persistent challenges in computing complex operations such as secure Sign-Bit Extraction, particularly in high-latency and low-bandwidth networks.  A recent work, Aegis (Lu et al., Cryptology ePrint&#39;2023), made significant strides by proposing a constant-round DGK-style Sign-Bit Extraction protocol with GPU acceleration on...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/852" class="paperlink" href="/2025/852">2025/852</a>
+          <span class="ms-2"><a href="/2025/852.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-02-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Neural-Inspired Advances in Integral Cryptanalysis</strong>
+              <div class="mt-1"><span class="fst-italic">Liu Zhang, Yiran Yao, Danping Shi, Dongchen Chai, Jian Guo, Zilong Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The studies by Gohr et al. at Crypto 2019 and subsequent related works have demonstrated that neural networks can offer new insights for cryptanalysis. Building on this insight, we leverage neural networks to learn features closely associated with integral properties and use neural network-derived distinguishers as a benchmark for the automatic search. This approach not only confirms the value of deep learning in feature discovery but also shows that neural-guided insights can improve the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/697" class="paperlink" href="/2025/697">2025/697</a>
+          <span class="ms-2"><a href="/2025/697.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-04-17</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Multi-Differential Approach to Enhance Related-Key Neural Distinguishers</strong>
+              <div class="mt-1"><span class="fst-italic">Xue Yuan, Qichun Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">At CRYPTO 2019, Gohr pioneered the integration of differential cryptanalysis with neural networks, demonstrating significant advantages over traditional distinguishers. Subsequently, at Inscrypt 2020, Su et al. proposed the concept of constructing polyhedral differential neural distinguishers by leveraging multiple effective input differences. More recently, at FSE 2024, Bellini et al. introduced a general-purpose tool for automating the training of single-key differential neural...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/688" class="paperlink" href="/2025/688">2025/688</a>
+          <span class="ms-2"><a href="/2025/688.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-01-16</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Uncertainty Estimation in Neural Network-enabled Side-channel Analysis and Links to Explainability</strong>
+              <div class="mt-1"><span class="fst-italic">Seyedmohammad Nouraniboosjin, Fatemeh Ganji</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Side-channel analysis (SCA) has emerged as a critical field in securing
+hardware implementations against potential vulnerabilities. With the advent of artificial intelligence(AI), neural network-based approaches have proven to be among the most useful techniques for profiled SCA. Despite the success of NN-assisted SCA, a critical challenge remains, namely understanding predictive uncertainty. NNs are often uncertain in their predictions, leading to incorrect key guesses with...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/673" class="paperlink" href="/2025/673">2025/673</a>
+          <span class="ms-2"><a href="/2025/673.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-04-14</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Hybrid Fingerprinting for Effective Detection of Cloned Neural Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Can Aknesil, Elena Dubrova, Niklas Lindskog, Jakob Sternby, Håkan Englund</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">As artificial intelligence plays an increasingly important role in decision-making within critical infrastructure, ensuring the authenticity and integrity of neural networks is crucial. This paper addresses the problem of detecting cloned neural networks. We present a method for identifying clones that employs a combination of metrics from both the information and physical domains: output predictions, probability score vectors, and power traces measured from the device running the neural...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/537" class="paperlink" href="/2025/537">2025/537</a>
+          <span class="ms-2"><a href="/2025/537.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-03-26</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improved Framework of Related-key Differential Neural Distinguisher and Applications to the Standard Ciphers</strong>
+              <div class="mt-1"><span class="fst-italic">Rui-Tao Su, Jiong-Jiong Ren, Shao-Zhen Chen</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In recent years, the integration of deep learning with differential cryptanalysis has led to differential neural cryptanalysis, enabling efficient data-driven security evaluation of modern cryptographic algorithms. Compared to traditional differential cryptanalysis, differential neural cryptanalysis enhances the efficiency and automation of the analysis by training neural networks to automatically extract statistical features from ciphertext pairs. As research advances, neural distinguisher...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2025/347" class="paperlink" href="/2025/347">2025/347</a>
+          <span class="ms-2"><a href="/2025/347.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-05-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Helix: Scalable Multi-Party Machine Learning Inference against Malicious Adversaries</strong>
+              <div class="mt-1"><span class="fst-italic">Yansong Zhang, Xiaojun Chen, Qinghui Zhang, Xudong Chen, Ye Dong</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">With the growing emphasis on data privacy, secure multi-party computation has garnered significant attention for its strong security guarantees in developing privacy-preserving machine learning (PPML) schemes. However, only a few works address scenarios with a large number of participants. The state of the art by Liu et al. (LXY24, USENIX Security&#39;24) first achieves a practical PPML protocol for up to 63 parties but is constrained to semi-honest security. Although naive extensions to the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/1753" class="paperlink" href="/2024/1753">2024/1753</a>
+          <span class="ms-2"><a href="/2024/1753.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-11-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>HTCNN: High-Throughput Batch CNN Inference with Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Zewen Ye, Tianyu Wang, Tianshun Huang, Yonggen Li, Chengxuan Wang, Ray C.C. Cheung, Kejie Huang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Homomorphic Encryption (HE) technology allows for processing encrypted data, breaking through data isolation barriers and providing a promising solution for privacy-preserving computation. The integration of HE technology into Convolutional Neural Network (CNN) inference shows potential in addressing privacy issues in identity verification, medical imaging diagnosis, and various other applications. The CKKS HE algorithm stands out as a popular option for homomorphic CNN inference due to its...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/1310" class="paperlink" href="/2024/1310">2024/1310</a>
+          <span class="ms-2"><a href="/2024/1310.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-03-04</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>On the Effects of Neural Network-based Output Prediction Attacks on the Design of Symmetric-key Ciphers</strong>
+              <div class="mt-1"><span class="fst-italic">Hayato Watanabe, Ryoma Ito, Toshihiro Ohigashi</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Proving resistance to conventional attacks, e.g., differential, linear, and integral attacks, is essential for designing a secure symmetric-key cipher. Recent advances in automatic search and deep learning-based methods have made this time-consuming task relatively easy, yet concerns persist over expertise requirements and potential oversights. To overcome these concerns, Kimura et al. proposed neural network-based output prediction (NN) attacks, offering simplicity, generality, and reduced...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/1127" class="paperlink" href="/2024/1127">2024/1127</a>
+          <span class="ms-2"><a href="/2024/1127.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-09-18</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Curl: Private LLMs through Wavelet-Encoded Look-Up Tables</strong>
+              <div class="mt-1"><span class="fst-italic">Manuel B. Santos, Dimitris Mouris, Mehmet Ugurbil, Stanislaw Jarecki, José Reis, Shubho Sengupta, Miguel de Vega</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Recent advancements in transformers have revolutionized machine learning, forming the core of Large language models (LLMs). However, integrating these systems into everyday applications raises privacy concerns as client queries are exposed to model owners. Secure multiparty computation (MPC) allows parties to evaluate machine learning applications while keeping sensitive user inputs and proprietary models private. Due to inherent MPC costs, recent works introduce model-specific optimizations...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/1018" class="paperlink" href="/2024/1018">2024/1018</a>
+          <span class="ms-2"><a href="/2024/1018.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-06-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Sparsity-Aware Protocol for ZK-friendly ML Models: Shedding Lights on Practical ZKML</strong>
+              <div class="mt-1"><span class="fst-italic">Alan Li, Qingkai Liang, Mo Dong</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">As deep learning is being widely adopted across various domains, ensuring the integrity of models has become increasingly crucial. Despite the recent advances in Zero-Knowledge Machine Learning (ZKML) techniques, proving the inference over large ML models is still prohibitive. To enable practical ZKML, model simplification techniques like pruning and quantization should be applied without hesitation. Contrary to conventional belief, recent development in ML space have demonstrated that these...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/1010" class="paperlink" href="/2024/1010">2024/1010</a>
+          <span class="ms-2"><a href="/2024/1010.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-03-29</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>FSSiBNN: FSS-based Secure Binarized Neural Network Inference with Free Bitwidth Conversion</strong>
+              <div class="mt-1"><span class="fst-italic">Peng Yang, Zoe Lin Jiang, Jiehang Zhuang, Junbin Fang, Siu Ming Yiu, Xuan Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Neural network inference as a service enables a cloud server to provide inference services to clients. To ensure the privacy of both the cloud server&#39;s model and the client&#39;s data, secure neural network inference is essential. Binarized neural networks (BNNs), which use binary weights and activations, are often employed to accelerate inference. However, achieving secure BNN inference with secure multi-party computation (MPC) is challenging because MPC protocols cannot directly operate on...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/883" class="paperlink" href="/2024/883">2024/883</a>
+          <span class="ms-2"><a href="/2024/883.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-08</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Low-Latency Linear Transformations with Small Key Transmission for Private Neural Network on Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Byeongseo Min, Joon-Woo Lee</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">As Machine Learning as a Service expands, protecting client data has become a critical challenge. Homomorphic Encryption (HE) enables computation on encrypted data, but practical HE-based AI still suffers from high latency and large key sizes. Among neural network operations, convolution remains a central target for optimization, as it is fundamental to CNNs and increasingly used in transformers and state-space models. To realize HE convolution, various packing strategies—defining the data...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/537" class="paperlink" href="/2024/537">2024/537</a>
+          <span class="ms-2"><a href="/2024/537.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-04-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Confidential and Verifiable Machine Learning Delegations on the Cloud</strong>
+              <div class="mt-1"><span class="fst-italic">Wenxuan Wu, Soamar Homsi, Yupeng Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">With the growing adoption of cloud computing, the ability to store data and delegate computations to powerful and affordable cloud servers have become advantageous for both companies and individual users. However, the security of cloud computing has emerged as a significant concern. Particularly, Cloud Service Providers (CSPs) cannot assure data confidentiality and computations integrity in mission-critical applications. In this paper, we propose a confidential and verifiable delegation...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/071" class="paperlink" href="/2024/071">2024/071</a>
+          <span class="ms-2"><a href="/2024/071.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-03-17</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Too Hot To Be True: Temperature Calibration for Higher Confidence in NN-assisted Side-channel Analysis</strong>
+              <div class="mt-1"><span class="fst-italic">Seyedmohammad Nouraniboosjin, Fatemeh Ganji</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The past years have witnessed a considerable increase in research
+efforts on neural network-assisted profiled side-channel analysis
+(SCA). At the same time, studies have identified challenges, including
+closing the gap between machine learning (ML) classification metrics and
+side-channel attack evaluation. In fact, in NN-assisted SCA, the NN’s
+output distribution forms the basis for successful key recovery. In this
+respect, prior work has studied many aspects of integrating NNs...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2024/032" class="paperlink" href="/2024/032">2024/032</a>
+          <span class="ms-2"><a href="/2024/032.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-04-30</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Verifiable FHE via Lattice-based SNARKs</strong>
+              <div class="mt-1"><span class="fst-italic">Shahla Atapoor, Karim Baghery, Hilder V. L. Pereira, Jannik Spiessens</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Fully Homomorphic Encryption (FHE) is a prevalent cryptographic primitive that allows for computation on encrypted data. In various cryptographic protocols, this enables outsourcing computation to a third party while retaining the privacy of the inputs to the computation. However, these schemes make an honest-but-curious assumption about the adversary. Previous work has tried to remove this assumption by combining FHE with Verifiable Computation (VC). Recent work has increased the...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1939" class="paperlink" href="/2023/1939">2023/1939</a>
+          <span class="ms-2"><a href="/2023/1939.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2023-12-21</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Applications of Neural Network-Based AI in Cryptography</strong>
+              <div class="mt-1"><span class="fst-italic">Abderrahmane Nitaj, Tajjeeddine Rachidi</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Artificial intelligence (AI) is a modern technology that allows plenty of advantages in daily life, such as predicting weather, finding directions, classifying images and videos, even automatically generating code, text, and videos. Other essential technologies such as  blockchain and cybersecurity also benefit from AI. As a core component used in   blockchain and cybersecurity, cryptography can benefit from AI in order  to enhance the  confidentiality and integrity of cyberspace. In this...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1462" class="paperlink" href="/2023/1462">2023/1462</a>
+          <span class="ms-2"><a href="/2023/1462.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2023-09-25</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>High-precision RNS-CKKS on fixed but smaller word-size architectures: theory and application</strong>
+              <div class="mt-1"><span class="fst-italic">Rashmi Agrawal, Jung Ho Ahn, Flavio Bergamaschi, Ro Cammarota, Jung Hee Cheon, Fillipe D. M. de Souza, Huijing Gong, Minsik Kang, Duhyeong Kim, Jongmin Kim, Hubert de Lassus, Jai Hyun Park, Michael Steiner, Wen Wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">A prevalent issue in the residue number system (RNS) variant of the Cheon-Kim-Kim-Song (CKKS) homomorphic encryption (HE) scheme is the challenge of efficiently achieving high precision on hardware architectures with a fixed, yet smaller, word-size of bit-length $W$, especially when the scaling factor satisfies $\log\Delta &gt; W$.
+In this work, we introduce an efficient solution termed composite scaling. In this approach, we group multiple RNS primes as $q_\ell:= \prod_{j=0}^{t-1}...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1342" class="paperlink" href="/2023/1342">2023/1342</a>
+          <span class="ms-2"><a href="/2023/1342.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-04-18</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Modular Sumcheck Proofs with Applications to Machine Learning and Image Processing</strong>
+              <div class="mt-1"><span class="fst-italic">David Balbás, Dario Fiore, Maria Isabel González Vasco, Damien Robissout, Claudio Soriente</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Cryptographic proof systems provide integrity, fairness, and privacy in applications that outsource data processing tasks. However, general-purpose proof systems do not scale well to large inputs. At the same time, ad-hoc solutions for concrete applications - e.g., machine learning or image processing - are more efficient but lack modularity, hence they are hard to extend or to compose with other tools of a data-processing pipeline.
+
+In this paper, we combine the performance of tailored...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1292" class="paperlink" href="/2023/1292">2023/1292</a>
+          <span class="ms-2"><a href="/2023/1292.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2023-08-29</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Enhancing Data Security: A Study of Grain Cipher Encryption using Deep Learning Techniques</strong>
+              <div class="mt-1"><span class="fst-italic">Payal, Pooja, Girish Mishra</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Data security has become a paramount concern in the age of data driven applications, necessitating the deployment of robust encryption techniques. This paper presents an in-depth investigation into the strength and randomness of the keystream generated by the Grain cipher, a widely employed stream cipher in secure communication systems. To achieve this objective, we propose the construction of sophisticated deep learning models for keystream prediction and evaluation. The implications of...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1190" class="paperlink" href="/2023/1190">2023/1190</a>
+          <span class="ms-2"><a href="/2023/1190.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-01-17</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>REED: Chiplet-Based  Accelerator for Fully Homomorphic Encryption</strong>
+              <div class="mt-1"><span class="fst-italic">Aikata Aikata, Ahmet Can Mert, Sunmin Kwon, Maxim Deryabin, Sujoy Sinha Roy</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Fully Homomorphic Encryption (FHE) enables privacy-preserving computation and has many applications. However, its practical implementation faces massive computation and memory overheads. To address this bottleneck, several Application-Specific Integrated Circuit (ASIC) FHE accelerators have been proposed. All these prior works put every component needed for FHE onto one chip (monolithic), hence offering high performance. However, they encounter common challenges associated with large-scale...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/1040" class="paperlink" href="/2023/1040">2023/1040</a>
+          <span class="ms-2"><a href="/2023/1040.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-03-24</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>E2E near-standard and practical authenticated transciphering</strong>
+              <div class="mt-1"><span class="fst-italic">Ehud Aharoni, Nir Drucker, Gilad Ezov, Eyal Kushnir, Hayim Shaul, Omri Soceanu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Homomorphic encryption (HE) enables computation delegation to untrusted third parties while maintaining data confidentiality. Hybrid encryption (a.k.a transciphering) allows a reduction in the number of ciphertexts and storage size, which makes FHE solutions practical for a variety of modern applications. Still, modern transciphering has three main drawbacks: 1) lack of standardization or bad performance of symmetric decryption under FHE; 2) post-HE-evaluation is limited to small-size...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/610" class="paperlink" href="/2023/610">2023/610</a>
+
+
+          <small class="ms-auto">Last updated: 2023-09-05</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Needle in the Haystack: Inspecting Circuit Layout to Identify Hardware Trojans</strong>
+              <div class="mt-1"><span class="fst-italic">Xingyu Meng, Abhrajit Sengupta, Kanad Basu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Distributed integrated circuit (IC) supply chain has resulted in a myriad of security vulnerabilities including that of hardware Trojan (HT). An HT can perform malicious modifications on an IC design with potentially disastrous consequences, such as leaking secret information in cryptographic applications or altering operation instructions in processors. Due to the emergence of outsourced fabrication, an untrusted foundry is considered the most potent adversary in introducing an HT. This can...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/505" class="paperlink" href="/2023/505">2023/505</a>
+          <span class="ms-2"><a href="/2023/505.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2025-05-21</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Side-Channel Analysis of Integrate-and-Fire Neurons within Spiking Neural Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Matthias Probst, Manuel Brosch, Georg Sigl</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Spiking neural networks gain attention due to low power properties and event-based operation, making them suitable for usage in resource constrained embedded devices. Such edge devices allow physical access opening the door for side-channel analysis. In this work, we reverse engineer the parameters of a feed-forward spiking neural network implementation with correlation power analysis. Localized measurements of electro-magnetic emanations enable our attack, despite inherent parallelism and...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2023/021" class="paperlink" href="/2023/021">2023/021</a>
+          <span class="ms-2"><a href="/2023/021.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2026-07-15</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>DLFA: Deep Learning based Fault Analysis against Block Ciphers</strong>
+              <div class="mt-1"><span class="fst-italic">Yukun Cheng, Changhai Ou, Yanzhen Ren, Jiangshan Long, Fan Zhang, Debiao He, Shengmin Xu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The proliferation of embedded cryptographic devices in the Internet of Things (IoT) ecosystem has elevated the importance of physical security assessments. Although traditional Fault Analysis (FA) methods exhibit significant effectiveness in cryptographic key recovery, their practical application is heavily constrained by rigid mathematical requirements, the demand for precise physical fault injection, and a sensitivity to measurement noise. To address these limitations, this paper proposes...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2022/793" class="paperlink" href="/2022/793">2022/793</a>
+          <span class="ms-2"><a href="/2022/793.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2022-06-20</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>LLAMA: A Low Latency Math Library for Secure Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Kanav Gupta, Deepak Kumaraswamy, Nishanth Chandran, Divya Gupta</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Secure machine learning (ML) inference can provide meaningful privacy guarantees to both the client (holding sensitive input) and the server (holding sensitive weights of the ML model) while realizing inference-as-a-service. Although many specialized protocols exist for this task, including those in the preprocessing model (where a majority of the overheads are moved to an input independent offline phase), they all still suffer from large online complexity. Specifically, the protocol phase...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2022/301" class="paperlink" href="/2022/301">2022/301</a>
+          <span class="ms-2"><a href="/2022/301.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2022-10-27</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>How Practical are Fault Injection Attacks, Really?</strong>
+              <div class="mt-1"><span class="fst-italic">Jakub Breier, Xiaolu Hou</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Fault injection attacks (FIA) are a class of active physical attacks, mostly used for malicious purposes such as extraction of cryptographic keys, privilege escalation, attacks on neural network implementations. There are many techniques that can be used to cause the faults in integrated circuits, many of them coming from the area of failure analysis.
+In this paper we tackle the topic of practicality of FIA. We analyze the most commonly used techniques that can be found in the literature,...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2022/183" class="paperlink" href="/2022/183">2022/183</a>
+          <span class="ms-2"><a href="/2022/183.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2024-09-28</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improving Differential-Neural Cryptanalysis</strong>
+              <div class="mt-1"><span class="fst-italic">Liu Zhang, Zilong Wang, Baocang wang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-ATTACKS">Attacks and cryptanalysis</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In CRYPTO&#39;19, Gohr introduced a novel cryptanalysis method by developing a differential-neural distinguisher using neural networks as the underlying distinguisher. He effectively integrated this distinguisher with classical differentials, facilitating a 12-round key recovery attack on Speck32/64 (from a total of 22 rounds). Bao et al. refined the concept of neutral bits, enabling key recovery attacks up to 13 rounds for Speck32/64 and 16 rounds (from a total of 32) for Simon32/64.
+
+Our...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2022/030" class="paperlink" href="/2022/030">2022/030</a>
+          <span class="ms-2"><a href="/2022/030.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2022-12-30</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Improved (Related-key) Differential-based Neural Distinguishers for SIMON and SIMECK Block Ciphers</strong>
+              <div class="mt-1"><span class="fst-italic">Jinyu Lu, Guoqiang Liu, Bing Sun, Chao Li, Li Liu</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In CRYPTO 2019, Gohr made a pioneering attempt and successfully applied deep learning to the differential cryptanalysis against NSA block cipher Speck32/64, achieving higher accuracy than the pure differential distinguishers. By its very nature, mining effective features in data plays a crucial role in data-driven deep learning. In this paper, in addition to considering the integrity of the information from the training data of the ciphertext pair, domain knowledge about the structure of...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2021/673" class="paperlink" href="/2021/673">2021/673</a>
+          <span class="ms-2"><a href="/2021/673.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2023-02-18</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy</strong>
+              <div class="mt-1"><span class="fst-italic">Tianyi Liu, Xiang Xie, Yupeng Zhang</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Deep learning techniques with neural networks are developing prominently in recent years and have been deployed in numerous applications. Despite their great success, in many scenarios it is important for the users to validate that the inferences are truly computed by legitimate neural networks with high accuracy, which is referred to as the integrity of machine learning predictions. To address this issue, in this paper, we propose zkCNN, a zero knowledge proof scheme for convolutional...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2020/1134" class="paperlink" href="/2020/1134">2020/1134</a>
+          <span class="ms-2"><a href="/2020/1134.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2020-09-21</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Back To The Basics: Seamless Integration of Side-Channel Pre-processing in Deep Neural Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Yoo-Seung Won, Xiaolu Hou, Dirmanto Jap, Jakub Breier, Shivam Bhasin</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-SECRETKEY">Secret-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Deep learning approaches have become popular for Side-Channel Analysis (SCA) in the recent years. Especially Convolutional Neural Networks (CNN) due to their natural ability to overcome jitter-based as well as masking countermeasures. However, most efforts have focused on finding optimal architecture for a given dataset and bypass the need for trace pre-processing. However, trace pre-processing is a long studied topic and several proven techniques exist in the literature. There is no...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2020/721" class="paperlink" href="/2020/721">2020/721</a>
+          <span class="ms-2"><a href="/2020/721.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2022-06-06</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>MP2ML: A Mixed-Protocol Machine Learning Framework for Private Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Fabian Boemer, Rosario Cammarota, Daniel Demmler, Thomas Schneider, Hossein Yalame</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-IMPLEMENTATION">Implementation</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Privacy-preserving machine learning (PPML) has many applications, from medical image classification and anomaly detection to financial analysis. nGraph-HE enables data scientists to perform private inference of deep learning (DL) models trained using popular frameworks such as TensorFlow. nGraph-HE computes linear layers using the CKKS homomorphic encryption (HE) scheme. The non-polynomial activation functions, such as MaxPool and ReLU, are evaluated in the clear by the data owner who...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2020/451" class="paperlink" href="/2020/451">2020/451</a>
+          <span class="ms-2"><a href="/2020/451.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2021-03-23</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Maliciously Secure Matrix Multiplication with Applications to Private Deep Learning</strong>
+              <div class="mt-1"><span class="fst-italic">Hao Chen, Miran Kim, Ilya Razenshteyn, Dragos Rotaru, Yongsoo Song, Sameer Wagh</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Computing on data in a manner that preserve the privacy is of growing importance. Multi-Party Computation (MPC) and Homomorphic Encryption (HE) are two cryptographic techniques for privacy-preserving computations. In this work, we have developed efficient UC-secure multiparty protocols for matrix multiplications and two-dimensional convolutions. We built upon the SPDZ framework and integrated the state-of-the-art HE algorithms for matrix multiplication. Our protocol achieved communication...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2020/201" class="paperlink" href="/2020/201">2020/201</a>
+          <span class="ms-2"><a href="/2020/201.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2020-02-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>A Survey on Neural Trojans</strong>
+              <div class="mt-1"><span class="fst-italic">Yuntao Liu, Ankit Mondal, Abhishek Chakraborty, Michael Zuzak, Nina Jacobsen, Daniel Xing, Ankur Srivastava</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-APPLICATIONS">Applications</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">Neural networks have become increasingly prevalent in many real-world applications including security-critical ones. Due to the high hardware requirement and time consumption to train high-performance neural network models, users often outsource training to a machine-learning-as-a-service (MLaaS) provider. This puts the integrity of the trained model at risk. In 2017, Liu et. al. found that, by mixing the training data with a few malicious samples of a certain trigger pattern, hidden...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2019/1049" class="paperlink" href="/2019/1049">2019/1049</a>
+          <span class="ms-2"><a href="/2019/1049.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2020-03-19</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>CrypTFlow: Secure TensorFlow Inference</strong>
+              <div class="mt-1"><span class="fst-italic">Nishant Kumar, Mayank Rathee, Nishanth Chandran, Divya Gupta, Aseem Rastogi, Rahul Sharma</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">We present CrypTFlow, a first of its kind system that converts TensorFlow inference code into Secure Multi-party Computation (MPC) protocols at the push of a button. To do this, we build three components. Our first component, Athos, is an end-to-end compiler from TensorFlow to a variety of semi-honest MPC protocols. The second component, Porthos, is an improved semi-honest 3-party protocol that provides significant speedups for TensorFlow like applications. Finally, to provide...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2018/622" class="paperlink" href="/2018/622">2018/622</a>
+          <span class="ms-2"><a href="/2018/622.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2019-03-09</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>New techniques for Multi-value input Homomorphic Evaluation and Applications</strong>
+              <div class="mt-1"><span class="fst-italic">Sergiu Carpov, Malika Izabachène, Victor Mollimard</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PUBLICKEY">Public-key cryptography</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">In this paper, we propose a new technique to perform several homomorphic operations in one bootstrapping call over a multi-value plaintext space. Our construction relies on the FHEW-based gate bootstrapping; we analyze its structure and propose a strategy we call multi-value bootstrapping which allows to bootstrap an arbitrary function in an efficient way.
+
+The security of our scheme relies on the LWE assumption over the torus. We give three possible applications: we first describe how to...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2017/1038" class="paperlink" href="/2017/1038">2017/1038</a>
+          <span class="ms-2"><a href="/2017/1038.pdf">(PDF)</a></span>
+
+          <small class="ms-auto">Last updated: 2017-10-28</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Embedded Proofs for Verifiable Neural Networks</strong>
+              <div class="mt-1"><span class="fst-italic">Hervé Chabanne, Julien Keuffer, Refik Molva</span></div>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The increasing use of machine learning algorithms to deal with large amount of data and the expertise required by these algorithms lead users to outsource machine learning services. This raises a trust issue about their result when executed in an untrusted environment.
+Verifiable computing (VC) tackles this issue and provides computational integrity for an outsourced computation, although the bottleneck of state of the art VC protocols is the prover time.
+In this paper, we design a VC...</p>
+        </div>
+
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex"><a title="2004/204" class="paperlink" href="/2004/204">2004/204</a>
+          <span class="ms-2"><a href="/2004/204.pdf">(PDF)</a></span>
+          <span class="ms-2"><a href="/2004/204.ps">(PS)</a></span>
+          <small class="ms-auto">Last updated: 2004-11-11</small>
+        </div>
+        <div class="ms-md-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <div>
+              <strong>Authenticated tree parity machine key exchange</strong>
+              <div class="mt-1"><span class="fst-italic">Markus Volkmer, Andre Schaumburg</span></div>
+            </div>
+
+            <div class="float-end mt-1 ms-md-3">
+              <small class="badge category category-PROTOCOLS">Cryptographic protocols</small>
+            </div>
+
+          </div>
+          <p class="mb-0 mt-1 search-abstract">The synchronisation of Tree Parity Machines (TPMs), has proven to
+provide a valuable alternative concept for secure symmetric key exchange. Yet, from a cryptographer&#39;s point of view, authentication is at least
+as important as a secure exchange of keys. Adding an authentication
+via hashing e.g. is straightforward but with no relation to Neural Cryptography.
+We consequently formulate an authenticated key exchange within this
+concept. Another alternative, integrating a Zero-Knowledge...</p>
+        </div>
+
+      </div>
+
+
+
+    </div>
+
+  </div>
+</div>
+      <script>
+       document.getElementById('clearButton').addEventListener('click', function(ev) {
+         document.querySelectorAll('input').forEach(el => {
+           el.value = '';
+         });
+         document.getElementById('category').selectedIndex = "0";
+       });
+
+       function validateForm() {
+         // check that dates are compatible.
+         let submittedAfter = document.getElementById('submittedafter');
+         let submittedBefore = document.getElementById('submittedbefore');
+         let revisedAfter = document.getElementById('revisedafter');
+         let revisedBefore = document.getElementById('revisedbefore');
+         if (submittedAfter.value &&
+             submittedBefore.value &&
+             submittedAfter.value > submittedBefore.value) {
+           submittedAfter.classList.add('is-invalid');
+           submittedBefore.classList.add('is-invalid');
+           return false;
+         }
+         if (revisedAfter.value &&
+             revisedBefore.value &&
+             revisedAfter.value > revisedBefore.value) {
+           revisedAfter.classList.add('is-invalid');
+           revisedBefore.classList.add('is-invalid');
+           return false;
+         }
+         if (revisedBefore.value &&
+             submittedAfter.value &&
+             revisedBefore.value < submittedAfter.value) {
+           revisedBefore.classList.add('is-invalid');
+           submittedAfter.classList.add('is-invalid');
+           return false;
+         }
+         return true;
+       }
+
+      </script>
+      <script src="/js/mark.min.js"></script>
+      <script>
+       var instance = new Mark("div.results");
+       let urlParams = new URLSearchParams(window.location.search);
+       if (urlParams.get('q')) {
+         instance.mark(urlParams.get('q'));
+       }
+       if (urlParams.get('title')) {
+         instance.mark(urlParams.get('title'));
+       }
+       if (urlParams.get('authors')) {
+         instance.mark(urlParams.get('authors'));
+       }
+      </script>
+<!--  -->
+</main>
+<div class="container-fluid mt-auto" id="eprintFooter">
+  <a href="https://iacr.org/">
+    <img id="iacrlogo" src="/img/iacrlogo_small.png" class="img-fluid d-block mx-auto" alt="IACR Logo">
+  </a>
+  <div class="colorDiv"></div>
+  <div class="alert alert-success w-75 mx-auto">
+    Note: In order to protect the privacy of readers, eprint.iacr.org
+    does not use cookies or embedded third party content.
+  </div>
+</div>
+<script src="/css/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+   var topNavbar = document.getElementById('topNavbar');
+   if (topNavbar) {
+     document.addEventListener('scroll', function(e) {
+       if (window.scrollY > 100) {
+         topNavbar.classList.add('scrolled');
+       } else {
+         topNavbar.classList.remove('scrolled');
+       }
+     })
+   }
+  </script>
+
+
+</body>
+</html>

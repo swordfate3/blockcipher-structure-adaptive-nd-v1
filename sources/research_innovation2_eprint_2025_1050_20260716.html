@@ -1,0 +1,356 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/css/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Integral Resistance of Block Ciphers with Key Whitening by Modular Addition</title>
+    <link rel="stylesheet" href="/css/eprint.css?v=10">
+
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon-180x180.png" />
+    <meta name="tdm-reservation" content="1">
+
+<style>
+  a.toggle-open:after {
+  content:' -';
+  font-weight: 800;
+  }
+  a.toggle-closed:after {
+  content: " ›";
+  font-weight: 800;
+  }
+  .paper-abstract {
+     white-space: pre-wrap;
+  }
+  #metadata dt {
+    margin-top: 1rem;
+  }
+  #metadata dt + dd { /* gap between dt and first dd */
+    margin-top: .75rem;
+  }
+  #metadata dd {
+    margin-left: 2rem;
+  }
+  #metadata dd.keywords {
+    padding-bottom: .5rem;
+  }
+  span.authorName {
+    margin-top: .5rem;
+    font-style: italic;
+  }
+</style>
+
+<script>
+MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEnvironments: false
+    },
+    loader: {
+        load: [
+            "ui/safe",
+            "ui/lazy",
+        ],
+    },
+    options: {
+        safeOptions: {
+        allow: {
+            URLs: "none",
+            classes: "safe",
+            cssIDs: "safe",
+            styles: "safe",
+        },
+        },
+    }
+    };
+</script>
+
+<script id="MathJax-script" async src="/js/mathjax/tex-chtml.js"></script>
+
+
+  <meta name="citation_title" content="Integral Resistance of Block Ciphers with Key Whitening by Modular Addition">
+
+  <meta name="citation_author" content="Christof Beierle">
+
+  <meta name="citation_author" content="Phil Hebborn">
+
+  <meta name="citation_author" content="Gregor Leander">
+
+  <meta name="citation_author" content="Yevhen Perehuda">
+
+  <meta name="citation_journal_title" content="Cryptology ePrint Archive">
+  <meta name="citation_publication_date" content="2025">
+
+  <meta name="citation_pdf_url" content="https://eprint.iacr.org/2025/1050.pdf">
+
+
+
+
+  <meta property="og:image" content="https://eprint.iacr.org/img/iacrlogo.png"/>
+  <meta property="og:image:alt" content="IACR logo"/>
+  <meta property="og:url" content="https://eprint.iacr.org/2025/1050">
+  <meta property="og:site_name" content="IACR Cryptology ePrint Archive" />
+  <meta property="og:type" content="article" />
+
+  <meta property="og:title" content="Integral Resistance of Block Ciphers with Key Whitening by Modular Addition" />
+  <meta property="og:description" content="Integral attacks exploit structural weaknesses in symmetric cryptographic primitives by analyzing how subsets of inputs propagate to produce outputs with specific algebraic properties. For the case of (XOR) key-alternating block ciphers using (independent) round keys, at ASIACRYPT&#39;21, Hebborn et al. established the first non-trivial lower bounds on the number of rounds required for ensuring integral resistance in a quite general sense. For the case of adding keys by modular addition, no security arguments are known so far. Here, we present a unified framework for analyzing the integral resistance of primitives using (word-wise) modular addition for key whitening, allowing us to not only fill the gap for security arguments, but also to overcome the heavy computational cost inherent in the case of XOR-whitening." />
+  <meta property="article:section" content="SECRETKEY" />
+
+  <meta property="article:modified_time" content="2025-06-05T08:21:13+00:00" />
+  <meta property="article:published_time" content="2025-06-05T08:21:13+00:00" />
+
+
+
+      <meta property="article:tag" content="Block cipher" />
+
+      <meta property="article:tag" content="Integral attacks" />
+
+      <meta property="article:tag" content="ANF" />
+
+      <meta property="article:tag" content="Modular addition" />
+
+      <meta property="article:tag" content="Inverse cipher" />
+
+
+
+  </head>
+
+  <body>
+    <noscript>
+      <h1 class="text-center">What a lovely hat</h1>
+      <h4 class="text-center">Is it made out of <a href="https://iacr.org/tinfoil.html">tin foil</a>?</h4>
+    </noscript>
+    <div class="fixed-top" id="topNavbar">
+      <nav class="navbar navbar-custom navbar-expand-lg">
+        <div class="container px-0 justify-content-between justify-content-lg-evenly">
+          <div class="order-0 align-items-center d-flex">
+            <button class="navbar-toggler btnNoOutline" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false">
+              <span class="icon-bar top-bar"></span>
+              <span class="icon-bar middle-bar"></span>
+              <span class="icon-bar bottom-bar"></span>
+            </button>
+            <a class="d-none me-5 d-lg-inline" href="https://iacr.org/"><img class="iacrlogo" src="/img/iacrlogo_small.png" alt="IACR Logo" style="max-width:6rem;"></a>
+          </div>
+          <a class="ePrintname order-1" href="/">
+            <span class="longNavName">Cryptology ePrint Archive</span>
+          </a>
+          <div class="collapse navbar-collapse order-3" id="navbarContent">
+            <ul class="navbar-nav me-auto ms-2 mb-2 mb-lg-0 justify-content-end w-100">
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Papers
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="navbarDropdown">
+                  <span class="text-dark mx-3" style="white-space:nowrap;">Updates from the last:</span>
+                  <li><a class="dropdown-item ps-custom" href="/days/7">7 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/31">31 days</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/183">6 months</a></li>
+                  <li><a class="dropdown-item ps-custom" href="/days/365">365 days</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/byyear">Listing by year</a></li>
+                  <li><a class="dropdown-item" href="/complete">All papers</a></li>
+                  <li><a class="dropdown-item" href="/complete/compact">Compact view</a></li>
+                  <li><a class="dropdown-item" href="https://www.iacr.org/news/subscribe">Subscribe</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/citation.html">How to cite</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/rss">Harvesting metadata</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="submissionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="submissionsDropdown">
+                  <li><a class="dropdown-item" href="/submit">Submit a paper</a></li>
+                  <li><a class="dropdown-item" href="/revise">Revise or withdraw a paper</a></li>
+                  <li><a class="dropdown-item" href="/operations.html">Acceptance and publishing conditions</a></li>
+                </ul>
+              </li>
+              <li class="ps-md-3 nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  About
+                </a>
+                <ul class="dropdown-menu me-3" aria-labelledby="aboutDropdown">
+                  <li><a class="dropdown-item" href="/about.html">Goals and history</a></li>
+                  <li><a class="dropdown-item" href="/news.html">News</a></li>
+                  <li><a class="dropdown-item" href="/stats">Statistics</a></li>
+                  <li><a class="dropdown-item" href="/contact.html">Contact</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="dropdown ps-md-2 text-right order-2 order-lg-last">
+            <button class="btn btnNoOutline" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/search.svg" class="searchIcon" alt="Search Button"/>
+            </button>
+            <div id="searchDd" class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="dropdownMenuButton1">
+              <form action="/search" method="GET">
+                <div class="input-group">
+                  <input id="searchbox" name="q" type="search" class="form-control" autocomplete="off">
+                  <button class="btn btn-secondary border input-group-append ml-2">
+                    Search
+                  </button>
+                </div>
+              </form>
+              <div class="ms-2 p-1 d-none"><a href="/search">Advanced search</a></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <main id="eprintContent" class="container px-3 py-4 p-md-4">
+
+<div class="row mt-4">
+  <div class="col-md-7 col-lg-8 pe-md-5">
+
+    <h4>Paper 2025/1050</h4>
+    <h3 class="mb-3"><a href="/2025/1050.pdf">Integral Resistance of Block Ciphers with Key Whitening by Modular Addition</a></h3>
+
+
+
+    <div class="author"><span class="authorName">Christof Beierle</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0002-5558-0722"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Ruhr University Bochum</span></div>
+
+
+    <div class="author"><span class="authorName">Phil Hebborn</span><span class="affiliation">, Ruhr University Bochum</span></div>
+
+
+    <div class="author"><span class="authorName">Gregor Leander</span><a class="ms-1" target="_blank" href="https://orcid.org/0000-0002-2579-8587"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Ruhr University Bochum</span></div>
+
+
+    <div class="author"><span class="authorName">Yevhen Perehuda</span><a class="ms-1" target="_blank" href="https://orcid.org/0009-0003-0856-1582"><img class="align-baseline orcidIcon" src="/img/orcid.svg"></a><span class="affiliation">, Ruhr University Bochum</span></div>
+
+
+    <h5 class="mt-3">Abstract</h5>
+    <p style="white-space: pre-wrap;">Integral attacks exploit structural weaknesses in symmetric cryptographic primitives by analyzing how subsets of inputs propagate to produce outputs with specific algebraic properties. For the case of (XOR) key-alternating block ciphers using (independent) round keys, at ASIACRYPT&#39;21, Hebborn et al. established the first non-trivial lower bounds on the number of rounds required for ensuring integral resistance in a quite general sense. For the case of adding keys by modular addition, no security arguments are known so far. Here, we present a unified framework for analyzing the integral resistance of primitives using (word-wise) modular addition for key whitening, allowing us to not only fill the gap for security arguments, but also to overcome the heavy computational cost inherent in the case of XOR-whitening.</p>
+
+  </div>
+  <div id="metadata" class="col-md-5 col-lg-4 ps-md-5 mt-4 mt-md-0">
+    <h5>Metadata</h5>
+    <dl>
+      <dt>
+        Available format(s)
+      </dt>
+      <dd>
+
+
+        <a class="btn btn-sm btn-outline-dark"
+           href="/2025/1050.pdf">
+          <img class="icon" src="/img/file-pdf.svg">PDF</a>
+
+
+
+      </dd>
+
+      <dt>Category</dt>
+        <dd><a rel="nofollow" href="/search?category=SECRETKEY"><small class="badge category category-SECRETKEY">Secret-key cryptography</small></a></dd>
+
+      <dt>Publication info</dt>
+      <dd>Published by the IACR in CRYPTO 2025</dd>
+
+
+      <dt>Keywords</dt>
+      <dd class="keywords"><a rel="nofollow" href="/search?q=Block%20cipher" class="me-2 badge bg-secondary keyword">Block cipher</a><a rel="nofollow" href="/search?q=Integral%20attacks" class="me-2 badge bg-secondary keyword">Integral attacks</a><a rel="nofollow" href="/search?q=ANF" class="me-2 badge bg-secondary keyword">ANF</a><a rel="nofollow" href="/search?q=Modular%20addition" class="me-2 badge bg-secondary keyword">Modular addition</a><a rel="nofollow" href="/search?q=Inverse%20cipher" class="me-2 badge bg-secondary keyword">Inverse cipher</a></dd>
+
+      <dt>Contact author(s)</dt>
+      <dd><span class="font-monospace">
+        christof beierle<span class="obfuscate"> &#64; </span>rub de<br>phil hebborn<span class="obfuscate"> &#64; </span>rub de<br>gregor leander<span class="obfuscate"> &#64; </span>rub de<br>yevhen perehuda<span class="obfuscate"> &#64; </span>rub de
+        </span>
+      </dd>
+      <dt>History</dt>
+
+
+      <dd>2025-06-06: approved</dd>
+
+
+
+      <dd>2025-06-05: received</dd>
+
+
+
+      <dd><a rel="nofollow noindex" href="/archive/versions/2025/1050">See all versions</a></dd>
+
+      <dt>Short URL</dt>
+      <dd><a rel="nofollow" href="https://ia.cr/2025/1050">https://ia.cr/2025/1050</a></dd>
+      <dt>License</dt>
+      <dd><a rel="license" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+        <img class="licenseImg" src="/img/license/CC_BY.svg" alt="Creative Commons Attribution" title="Creative Commons Attribution"><br>
+        <small>CC BY</small>
+        </a>
+      </dd>
+    </dl>
+  </div>
+  </div>
+
+
+  <p class="mt-4"><strong>BibTeX</strong> <button id="bibcopy" class="ms-2 btn btn-sm btn-outline-dark"
+ aria-label="Copy to clipboard"
+                                     onclick="copyBibtex()">
+    <img src="/img/copy-outline.svg" class="icon">Copy to clipboard</button></p>
+  <pre id="bibtex">
+@misc{cryptoeprint:2025/1050,
+      author = {Christof Beierle and Phil Hebborn and Gregor Leander and Yevhen Perehuda},
+      title = {Integral Resistance of Block Ciphers with Key Whitening by Modular Addition},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2025/1050},
+      year = {2025},
+      url = {https://eprint.iacr.org/2025/1050}
+}
+</pre>
+
+
+<script>
+ var bibcopy;
+ function triggerTooltip() {
+   console.log('setting tooltip');
+ }
+ window.onload = triggerTooltip;
+ function copyBibtex() {
+   let range = document.createRange();
+   range.selectNode(document.getElementById('bibtex'));
+   window.getSelection().removeAllRanges();
+   window.getSelection().addRange(range);
+   document.execCommand('copy');
+   window.getSelection().removeAllRanges();
+   let bibcopy = document.getElementById('bibcopy');
+   let copyTooltip = new bootstrap.Tooltip(bibcopy, {trigger: 'manual',
+                                                     title: 'Copied!'});
+   copyTooltip.show();
+   setTimeout(function() {
+     copyTooltip.dispose();
+   }, 2000);
+ }
+</script>
+
+</main>
+<div class="container-fluid mt-auto" id="eprintFooter">
+  <a href="https://iacr.org/">
+    <img id="iacrlogo" src="/img/iacrlogo_small.png" class="img-fluid d-block mx-auto" alt="IACR Logo">
+  </a>
+  <div class="colorDiv"></div>
+  <div class="alert alert-success w-75 mx-auto">
+    Note: In order to protect the privacy of readers, eprint.iacr.org
+    does not use cookies or embedded third party content.
+  </div>
+</div>
+<script src="/css/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script>
+   var topNavbar = document.getElementById('topNavbar');
+   if (topNavbar) {
+     document.addEventListener('scroll', function(e) {
+       if (window.scrollY > 100) {
+         topNavbar.classList.add('scrolled');
+       } else {
+         topNavbar.classList.remove('scrolled');
+       }
+     })
+   }
+  </script>
+
+
+</body>
+</html>

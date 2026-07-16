@@ -1,8 +1,9 @@
 # 创新2高轮积分与输出预测论文语料库
 
 **检索日期：** 2026-07-16
-**语料状态：** 14 篇全文已验证并提取文本；2 篇直接核心全文访问受阻；
-3 篇强基线仅取得权威元数据；1 篇撤稿记录排除
+**语料状态：** 创新2目录有 14 篇全文；另有 1 篇直接相关的部分解密特征
+论文已存在于创新1目录；4 篇开放 ePrint PDF 被访问验证拦截，3 篇付费
+出版物未发现合法开放全文；1 篇撤稿记录排除
 **创新目标：** 在真实 keyed SPN 上，把神经网络用于高轮积分区分、积分
 输出组合发现或结构条件积分候选预测，并与确定性搜索和简单统计基线比较
 
@@ -41,6 +42,8 @@ papers/innovation_two/pdf/
 papers/innovation_two/text/
 papers/innovation_two/sources/paper_manifest.csv
 sources/research_innovation2_paper_manifest_20260716.csv
+sources/research_innovation2_iacr_*_20260716.html
+sources/research_innovation2_eprint_*_20260716.html
 ```
 
 `papers/` 按项目规则不进入 Git；`sources/` 中的同内容 manifest 快照用于
@@ -58,11 +61,14 @@ sources/research_innovation2_paper_manifest_20260716.csv
 | Beyne and Verbauwhede, *Integral Cryptanalysis Using Algebraic Transition Matrices* (2023) | 以代数转移矩阵寻找广义积分性质，并包含 PRESENT 应用 | PDF 与文本已入库 |
 | Hadipour et al., *Improved Search for Integral, Impossible Differential and Zero-Correlation Attacks* (2024) | 现代自动搜索、精度与效率权衡，包含 PRESENT | PDF 与文本已入库 |
 | Wang, Hadipour, and Gerhalter, *On Extending Integral Distinguishers* (2026) | Split-and-Cancel；对 PRESENT/GIFT 给出组合输出和弱密钥积分的精确基线 | PDF 与文本已入库 |
+| Peng et al., *Delving Deep into Security Guarantees against Integral Distinguishers with Applications to PRESENT, TWINE and LBLOCK* (ePrint 2026/961; DOI `10.1007/s10623-026-01871-5`) | 把 PRESENT 的积分抗性保证从 13 轮收紧到 11 轮，并部分分析 10 轮；这是“不存在区分器”的安全边界，不是 11 轮区分器 | 题录和摘要已保存；开放 ePrint PDF 被 Cloudflare 拦截 |
+| Bellini et al., *CLAASP-MP: An Automated MILP Framework for Monomial Prediction* (ePrint 2026/735) | 当前自动 monomial prediction/3SDP-woU 工具基线，能解释神经候选是否只是经典代数性质 | 题录和摘要已保存；开放 ePrint PDF 被 Cloudflare 拦截 |
 
-三篇题录已核验但未取得开放全文：Todo and Morii 2016 的
-*Compact Representation for Division Property*、Wang et al. 2019 的
-*Improved Integral Attacks on PRESENT-80*、Hebborn et al. 2021 的
-*Strong and Tight Security Guarantees Against Integral Distinguishers*。
+三篇付费出版物未发现合法开放全文：Zahednejad and Lyu 2022、Todo and
+Morii 2016 的 *Compact Representation for Division Property*，以及 Wang
+et al. 2019 的 *Improved Integral Attacks on PRESENT-80*。Hebborn et al.
+2021 已确认有开放 ePrint 2021/1502，但其 PDF 端点在当前环境同样被
+Cloudflare 拦截。
 
 ## 4. 邻近论文，不可混报
 
@@ -72,9 +78,14 @@ sources/research_innovation2_paper_manifest_20260716.csv
 | 论文 | 已有路径 | 用途边界 |
 | --- | --- | --- |
 | Zhang and Wang 2022, differential-neural PRESENT | `papers/innovation_one/pdf/2022_zhang_wang_improving_differential_neural_des_chaskey_present.pdf` | PRESENT r6/r7 差分神经区分参照，不是积分标签 |
+| Bellini et al. 2025, generic partial decryption | `papers/innovation_one/pdf/2025_gpd_feature_engineering_nd.pdf` | 与 `InvP + InvS` 的结构特征工程直接相关，但论文任务是差分神经区分；项目副本已验证为 27 页 PDF，故不重复下载 |
 | Gauthier-Umaña et al. 2026, entropy-based PRESENT ND | `papers/innovation_one/pdf/2026_present_entropy_nd.pdf` | 低参数差分神经与密钥恢复参照，不是积分方法 |
 | Liu et al. 2026, IoT-friendly SPN ND framework | `papers/innovation_one/pdf/2026_liu_spn_iot_friendly_neural_distinguisher_framework.pdf` | SPN 网络结构参照，不是积分区分协议 |
 | Singh 2025, PRESENT full-round emulation | `papers/innovation_two/pdf/2025_singh_present_full_round_emulation.pdf` | 删除 AddRoundKey 的公开变换仿真，不能当作 keyed PRESENT 高轮攻击 |
+
+Gerhalter and Eichlseder 2026 的 PRINCE 复杂线性层积分抗性工作，以及
+Beierle et al. 2025 的模加白化积分抗性工作，也已保存题录与摘要。前者是
+邻近 SPN 方法，后者主要属于 ARX/模加背景，均不作为 PRESENT 主结果比较项。
 
 ## 5. 排除项与访问失败
 
@@ -82,16 +93,21 @@ sources/research_innovation2_paper_manifest_20260716.csv
   已撤稿，且未恢复到稳定题录或有效 PDF，故不进入证据语料。
 - Hwang 2026 的 IACR 页面、作者、摘要、PDF URL 和 CC BY 4.0 信息均已
   保存，但 PDF 端点返回 Cloudflare challenge HTML。
+- Hebborn 2021 的 ePrint 标识及 PDF 端点、Peng 2026 和 CLAASP-MP 2026
+  的 IACR 页面与开放 PDF URL 均已确认；命令行下载仍返回 Cloudflare
+  challenge HTML。Playwright 浏览器安装请求也被平台审批器拒绝，未绕过
+  审批或站点验证。
 - Zahednejad 2022 的 Wiley PDF、EPDF 和 full-XML 均返回 Cloudflare
   challenge HTML；Crossref DOI 和题录有效。
 - 三个以 `.pdf` 命名的 Springer 响应经 `file` 检查实际为 HTML，已拒绝
   入库。manifest 保留其元数据状态，避免以后误认为全文已经下载。
 
 这不是“所有数据库无遗漏”的系统综述。当前检索覆盖 Crossref、OpenAlex、
-arXiv、IACR 页面、ToSC、SpringerOpen 和项目现有论文库；Semantic Scholar
-接口返回错误，通用搜索后端因环境网络/认证限制不可用。结论应表述为：
-截至 2026-07-16，在可访问的权威来源中，直接核心与主要方法强基线已经
-形成可执行语料库，仍有 5 篇已知题录未取得合法开放 PDF。
+arXiv、IACR ePrint 关键词交叉检索、ToSC、Springer 和项目现有论文库；
+Semantic Scholar 有限流，通用搜索后端因环境网络/认证限制不可用。结论应
+表述为：截至 2026-07-16，在可访问的权威来源中，直接核心和主要方法强
+基线已经形成可执行语料库；主语料仍有 7 篇已知全文缺口，其中 4 篇有开放
+ePrint 但被当前访问验证拦截，3 篇未发现合法开放全文。
 
 ## 6. 推荐阅读顺序
 
@@ -100,14 +116,18 @@ Wu/Guo 2024
   -> Zahednejad/Lyu 2022（当前仅题录，先读 Wu/Guo 的复述与比较）
   -> Zhang et al. 2026
   -> Hwang et al. 2026（当前先读已保存摘要）
+  -> Peng et al. 2026（注意：11 轮是抗性保证，不是区分轮数）
   -> On Extending Integral Distinguishers
   -> Todo 2015 + Xiang 2016
-  -> Beyne 2023 + Hadipour 2022/2024
+  -> Beyne 2023 + Hadipour 2022/2024 + CLAASP-MP 2026
+  -> Generic Partial Decryption 2025（已有创新1项目副本）
   -> Kimura 2022/2023 + Watanabe 2024
 ```
 
-前四项决定创新2能否主张“神经高轮积分方法”；中间五项决定强基线和精确
-验证边界；最后三项负责解释“具体输出预测”和“积分输出性质预测”的区别。
+前四项决定创新2能否主张“神经高轮积分方法”；Peng、Split-and-Cancel、
+division-property、monomial-prediction 和 kernel 路线决定强基线和精确验证
+边界；最后的输出预测论文负责解释“具体输出预测”和“积分输出性质预测”的
+区别。
 
 ## 7. 对下一实验的直接影响
 
