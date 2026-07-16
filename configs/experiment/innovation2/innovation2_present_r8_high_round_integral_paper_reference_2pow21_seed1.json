@@ -1,0 +1,100 @@
+{
+  "plan_id": "innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed1",
+  "question": "Does the PRESENT-80 r8 paper-reference-scale round-reach result and any structured-candidate advantage reproduce on the one frozen independent seed under the exact seed0 protocol?",
+  "launch_state": "blocked_until_seed0_retrieved_gate_and_visual_qa_pass",
+  "remote_package_state": "not_generated_until_precondition_passes",
+  "required_precondition": {
+    "run_id": "i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716",
+    "status": "pass",
+    "decision_in": [
+      "innovation2_high_round_integral_paper_reference_candidate_advantage",
+      "innovation2_high_round_integral_paper_reference_round_reach_only"
+    ],
+    "retrieval_state": "retrieved_from_verified_result_branch",
+    "visual_qa_status": "pass"
+  },
+  "precondition_evidence": "outputs/remote_results/i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716/gate.local.json",
+  "visual_qa_evidence": "outputs/remote_results/i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716/visual_qa_passed.marker",
+  "one_variable_change": {
+    "field": "seed",
+    "anchor_value": 0,
+    "candidate_value": 1
+  },
+  "execution_path": "remote_gpu_only_after_precondition",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 8,
+    "seed": 1,
+    "samples_per_class": 1048576,
+    "train_total_rows": 2097152,
+    "train_samples_per_class": 1048576,
+    "validation_total_rows": 131072,
+    "validation_samples_per_class": 65536,
+    "test_total_rows": 131072,
+    "test_samples_per_class": 65536,
+    "multisets_per_sample": 2,
+    "texts_per_multiset": 16,
+    "input_bits": 4096,
+    "epochs": 50,
+    "batch_size": 2000,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "lr_scheduler": "none",
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_unrestricted_random_plaintext_multisets",
+    "sample_structure": "wu_guo_2024_integral_multiset",
+    "key_rotation_interval": 1,
+    "key_sampling": "one_unique_present80_master_key_per_sample",
+    "pairs_per_sample": 32,
+    "validation_key": null,
+    "gate_mode": "paper_reference"
+  },
+  "paper_reference_approximation": {
+    "base_channels_nf_assumption": 16,
+    "head_bits": 2048,
+    "fc_layer_count": 3,
+    "depicted_mbconv_block_count": 1,
+    "shared_dropout_rate_assumption": 0.1,
+    "adam_initial_learning_rate_assumption": 0.001,
+    "learning_rate_scheduler": "none",
+    "paper_tensor_concat_assumption": "spatial_axis_1",
+    "label_sampling": "deterministic_alternating_balanced",
+    "key_sampling": "deterministic_unique_per_sample",
+    "independent_training_repetitions": 1,
+    "per_epoch_full_train_evaluation": false,
+    "final_full_train_evaluation": true,
+    "cuda_memory_preflight_before_cache": true,
+    "paper_reported_repetitions": 10,
+    "exact_reproduction": false
+  },
+  "rows": [
+    {
+      "role": "anchor",
+      "model": "wu_guo_paper_family_mbconv"
+    },
+    {
+      "role": "candidate",
+      "model": "present_integral_structured_residual"
+    },
+    {
+      "role": "linear",
+      "model": "same_input_flat_linear"
+    },
+    {
+      "role": "control",
+      "model": "present_integral_structured_residual_shuffled"
+    }
+  ],
+  "joint_decision_policy": {
+    "both_candidate_advantage": "confirm_two_seed_candidate_advantage",
+    "both_round_reach_but_not_both_candidate_advantage": "confirm_two_seed_round_reach_only",
+    "seed1_not_confirmed": "hold_and_audit_seed_variance_and_frozen_assumptions",
+    "either_source_invalid": "reject_joint_interpretation_and_repair_evidence"
+  },
+  "forbidden_during_paper_reference_run": [
+    "r9_probe",
+    "gift_extension",
+    "aes_extension"
+  ]
+}

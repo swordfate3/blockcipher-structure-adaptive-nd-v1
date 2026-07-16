@@ -711,6 +711,67 @@ def test_paper_reference_seed0_plan_is_frozen_after_joint_confirmation() -> None
     ]
 
 
+def test_paper_reference_seed1_plan_is_conditional_and_changes_only_seed() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    plan_root = project_root / "configs/experiment/innovation2"
+    seed0 = json.loads(
+        (
+            plan_root
+            / "innovation2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0.json"
+        ).read_text(encoding="utf-8")
+    )
+    seed1 = json.loads(
+        (
+            plan_root
+            / "innovation2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed1.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert seed1["launch_state"] == (
+        "blocked_until_seed0_retrieved_gate_and_visual_qa_pass"
+    )
+    assert seed1["remote_package_state"] == (
+        "not_generated_until_precondition_passes"
+    )
+    assert seed1["one_variable_change"] == {
+        "field": "seed",
+        "anchor_value": 0,
+        "candidate_value": 1,
+    }
+    assert seed1["common"]["seed"] == 1
+    assert seed0["common"]["seed"] == 0
+    assert {
+        key: value for key, value in seed1["common"].items() if key != "seed"
+    } == {
+        key: value for key, value in seed0["common"].items() if key != "seed"
+    }
+    assert seed1["paper_reference_approximation"] == seed0[
+        "paper_reference_approximation"
+    ]
+    assert seed1["rows"] == seed0["rows"]
+    assert seed1["forbidden_during_paper_reference_run"] == seed0[
+        "forbidden_during_paper_reference_run"
+    ]
+    assert seed1["required_precondition"]["decision_in"] == [
+        "innovation2_high_round_integral_paper_reference_candidate_advantage",
+        "innovation2_high_round_integral_paper_reference_round_reach_only",
+    ]
+    assert seed1["joint_decision_policy"] == {
+        "both_candidate_advantage": "confirm_two_seed_candidate_advantage",
+        "both_round_reach_but_not_both_candidate_advantage": (
+            "confirm_two_seed_round_reach_only"
+        ),
+        "seed1_not_confirmed": (
+            "hold_and_audit_seed_variance_and_frozen_assumptions"
+        ),
+        "either_source_invalid": (
+            "reject_joint_interpretation_and_repair_evidence"
+        ),
+    }
+
+
 def test_cuda_memory_preflight_fails_closed_without_cuda_request(
     tmp_path: Path,
 ) -> None:
