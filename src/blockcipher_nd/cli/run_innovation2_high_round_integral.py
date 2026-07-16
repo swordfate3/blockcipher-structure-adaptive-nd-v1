@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import datetime
 import json
 from pathlib import Path
 from typing import Any
 
-from blockcipher_nd.evaluation.plots import (
-    plot_jsonl_training_curves,
-    write_history_csv,
-)
 from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
     HighRoundIntegralExperimentConfig,
     run_high_round_integral_experiment,
@@ -109,15 +106,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     _write_json(output_root / "dataset_summary.json", result["dataset_summary"])
     _write_json(output_root / "fixed_baselines.json", result["fixed_baselines"])
-    plot_jsonl_training_curves(
+    plot_report = write_training_artifacts(
         results_path,
-        output_root / "curves.svg",
+        output_root,
         title=(
             f"创新2 H0：PRESENT {config.rounds}轮高轮积分神经锚点"
             f"（{config.gate_mode}，seed {config.seed}）"
         ),
     )
-    write_history_csv(results_path, output_root / "history.csv")
     _write_json(output_root / "gate.json", result["gate"])
     validation = validate_artifacts(output_root, expected_rows=4)
     _write_json(output_root / "validation.json", validation)
@@ -148,10 +144,104 @@ def main(argv: list[str] | None = None) -> int:
         "results": str(results_path),
         "gate": str(output_root / "gate.json"),
         "validation": str(output_root / "validation.json"),
+        "plot_status": plot_report["status"],
         "next_action": gate["next_action"],
     }
     print(json.dumps(report, sort_keys=True))
     return 0 if gate["status"] != "fail" else 1
+
+
+def write_training_artifacts(
+    results_path: Path,
+    output_root: Path,
+    *,
+    title: str,
+) -> dict[str, Any]:
+    try:
+        from blockcipher_nd.evaluation.plots import (
+            plot_jsonl_training_curves,
+            write_history_csv,
+        )
+    except ModuleNotFoundError as error:
+        rows = [
+            json.loads(line)
+            for line in results_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        _write_deferred_svg(output_root / "curves.svg", missing_module=error.name)
+        _write_deferred_history_csv(output_root / "history.csv", rows)
+        marker = {
+            "status": "deferred_to_local_retrieval",
+            "reason": "optional_plot_dependency_missing",
+            "missing_module": error.name,
+        }
+        _write_json(output_root / "plot_deferred.marker", marker)
+        return marker
+
+    plot_jsonl_training_curves(
+        results_path,
+        output_root / "curves.svg",
+        title=title,
+    )
+    history_report = write_history_csv(results_path, output_root / "history.csv")
+    return {
+        "status": "rendered",
+        "history_rows": history_report["rows"],
+    }
+
+
+def _write_deferred_svg(path: Path, *, missing_module: str | None) -> None:
+    module = missing_module or "unknown"
+    path.write_text(
+        "\n".join(
+            (
+                (
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="1200" '
+                    'height="320" viewBox="0 0 1200 320">'
+                ),
+                '  <rect width="1200" height="320" fill="#ffffff"/>',
+                (
+                    '  <text x="60" y="120" font-family="sans-serif" '
+                    'font-size="28" fill="#111827">Remote plotting deferred</text>'
+                ),
+                (
+                    f'  <text x="60" y="175" font-family="sans-serif" '
+                    f'font-size="20" fill="#475569">Missing optional module: '
+                    f"{module}</text>"
+                ),
+                (
+                    '  <text x="60" y="220" font-family="sans-serif" '
+                    'font-size="20" fill="#475569">The local result watcher '
+                    "will regenerate the full training curves.</text>"
+                ),
+                "</svg>",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_deferred_history_csv(
+    path: Path,
+    rows: list[dict[str, Any]],
+) -> None:
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=("run_id", "role", "model", "history_points", "status"),
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    "run_id": row.get("run_id"),
+                    "role": row.get("role"),
+                    "model": row.get("model"),
+                    "history_points": len(row.get("history", [])),
+                    "status": "plot_deferred_to_local_retrieval",
+                }
+            )
 
 
 def validate_artifacts(output_root: Path, *, expected_rows: int) -> dict[str, Any]:

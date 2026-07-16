@@ -73,6 +73,7 @@ if not "%RESULT_LINES%"=="4" goto incomplete_results
 
 if not exist "%ARCHIVE_DIR%" mkdir "%ARCHIVE_DIR%"
 for %%F in (results.jsonl progress.jsonl dataset_summary.json fixed_baselines.json gate.json validation.json curves.svg history.csv) do copy /Y "%RESULTS_DIR%\%%F" "%ARCHIVE_DIR%\%%F" > nul || goto failed
+if exist "%RESULTS_DIR%\plot_deferred.marker" copy /Y "%RESULTS_DIR%\plot_deferred.marker" "%ARCHIVE_DIR%\plot_deferred.marker" > nul
 copy /Y "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%ARCHIVE_DIR%\git_revision.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" "%ARCHIVE_DIR%\git_status_before_run.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_gpu_info.txt" "%ARCHIVE_DIR%\gpu_info.txt" > nul || goto failed

@@ -496,3 +496,11 @@ failure = ModuleNotFoundError: No module named 'blockcipher_nd'
 fail-closed retry 规则：已有 `done.marker` 时拒绝重跑；仅在未完成时清除旧的
 `failed/started/failure_reason` 运行标记，缓存和首次失败日志不删除。重新启动
 必须来自包含该修复的已推送新提交。
+
+修复提交的远程 `--help` 预检随后发现 `torch310` 没有安装可选的
+`matplotlib`。旧 CLI 在模块顶层导入绘图库，导致训练也被无关的绘图依赖
+阻塞。处理原则是不改变远程环境和训练协议：绘图改为训练后的惰性导入；缺少
+可选依赖时写入显式 `plot_deferred.marker`、有效占位 SVG 和简要 CSV，仍要求
+训练、四行结果、dataset/cache/gate/validation 全部通过。verified result branch
+取回并校验哈希后，本地 watcher 使用仓库标准 `scripts/plot-results` 覆盖生成
+完整中文 `curves.svg/history.csv`，再执行本地验证和最近结果索引刷新。

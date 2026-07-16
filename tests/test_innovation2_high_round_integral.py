@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import json
 from pathlib import Path
 from typing import Any
@@ -10,7 +11,12 @@ import torch
 
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
-from blockcipher_nd.cli.run_innovation2_high_round_integral import main
+from blockcipher_nd.cli.run_innovation2_high_round_integral import (
+    _write_deferred_history_csv,
+    _write_deferred_svg,
+    main,
+    write_training_artifacts,
+)
 from blockcipher_nd.models.structure.spn.present_integral_multiset import (
     PresentIntegralPaperMbconvAnchor,
     PresentIntegralStructuredResidualCandidate,
@@ -266,6 +272,64 @@ def test_readiness_cli_writes_complete_artifacts(tmp_path: Path) -> None:
     assert "high_round_model_done" in progress
 
 
+def test_deferred_plot_artifacts_are_explicit_and_valid(tmp_path: Path) -> None:
+    svg_path = tmp_path / "curves.svg"
+    history_path = tmp_path / "history.csv"
+    rows = [
+        {
+            "run_id": "bridge",
+            "role": "candidate",
+            "model": "structured",
+            "history": [{"epoch": 1}, {"epoch": 2}],
+        }
+    ]
+
+    _write_deferred_svg(svg_path, missing_module="matplotlib")
+    _write_deferred_history_csv(history_path, rows)
+
+    assert "<svg" in svg_path.read_text(encoding="utf-8")
+    assert "Remote plotting deferred" in svg_path.read_text(encoding="utf-8")
+    history = history_path.read_text(encoding="utf-8")
+    assert "plot_deferred_to_local_retrieval" in history
+    assert "bridge,candidate,structured,2" in history
+
+
+def test_training_artifacts_defer_when_optional_plot_import_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results_path = tmp_path / "results.jsonl"
+    results_path.write_text(
+        json.dumps(
+            {
+                "run_id": "bridge",
+                "role": "candidate",
+                "model": "structured",
+                "history": [{"epoch": 1}],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    real_import = builtins.__import__
+
+    def missing_plot_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "blockcipher_nd.evaluation.plots":
+            raise ModuleNotFoundError(
+                "No module named 'matplotlib'",
+                name="matplotlib",
+            )
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", missing_plot_import)
+    report = write_training_artifacts(results_path, tmp_path, title="bridge")
+
+    assert report["status"] == "deferred_to_local_retrieval"
+    assert report["missing_module"] == "matplotlib"
+    assert (tmp_path / "plot_deferred.marker").is_file()
+    assert "<svg" in (tmp_path / "curves.svg").read_text(encoding="utf-8")
+
+
 def test_bridge_gate_enforces_frozen_plan_and_advance_thresholds(
     tmp_path: Path,
 ) -> None:
@@ -336,26 +400,43 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     project_root = Path(__file__).resolve().parents[1]
     config_path = (
         project_root
-        / "configs/remote/innovation2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.json"
+        / (
+            "configs/remote/innovation2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.json"
+        )
     )
     plan_path = (
         project_root
-        / "configs/experiment/innovation2/innovation2_present_r8_high_round_integral_bridge_262144_seed0.json"
+        / (
+            "configs/experiment/innovation2/"
+            "innovation2_present_r8_high_round_integral_bridge_262144_seed0.json"
+        )
     )
     run_script = (
         project_root
-        / "configs/remote/generated/run_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd"
+        / (
+            "configs/remote/generated/run_i2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.cmd"
+        )
     ).read_text(encoding="utf-8")
     cli_wrapper = (
         project_root / "scripts/run-innovation2-high-round-integral"
     ).read_text(encoding="utf-8")
     launch_script = (
         project_root
-        / "configs/remote/generated/launch_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.cmd"
+        / (
+            "configs/remote/generated/"
+            "launch_i2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.cmd"
+        )
     ).read_text(encoding="utf-8")
     monitor_script = (
         project_root
-        / "configs/remote/generated/monitor_i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716.sh"
+        / (
+            "configs/remote/generated/"
+            "monitor_i2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.sh"
+        )
     ).read_text(encoding="utf-8")
 
     readiness = remote_readiness_report(config_path)
@@ -425,6 +506,7 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     assert "sys.path.insert" in cli_wrapper
     assert "cache_metadata.json" in run_script
     assert "result_branch_pushed.marker" in monitor_script
+    assert "scripts/plot-results" in monitor_script
     assert "scripts/index-results" in monitor_script
 
 

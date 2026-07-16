@@ -55,6 +55,12 @@ while true; do
       cd "${DESTINATION}" || exit 1
       sha256sum -c <(sed 's/\r$//' SHA256SUMS)
     ) >> "${MONITOR_ROOT}/hash.log" 2>> "${MONITOR_ROOT}/hash_stderr.log" || exit 2
+    UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
+      --results "${DESTINATION}/results.jsonl" \
+      --output "${DESTINATION}/curves.svg" \
+      --history-csv "${DESTINATION}/history.csv" \
+      --title "创新2 H0：PRESENT 8轮高轮积分神经桥接（262144总训练行，seed 0）" \
+      >> "${MONITOR_ROOT}/plot.log" 2>> "${MONITOR_ROOT}/plot_stderr.log" || exit 3
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
       "import json,pathlib; from blockcipher_nd.cli.run_innovation2_high_round_integral import validate_artifacts; root=pathlib.Path(r'${DESTINATION}'); report=validate_artifacts(root,expected_rows=4); (root/'validation.local.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\\n',encoding='utf-8'); raise SystemExit(0 if report['status']=='pass' else 1)" \
       >> "${MONITOR_ROOT}/validation.log" 2>> "${MONITOR_ROOT}/validation_stderr.log" || exit 3
