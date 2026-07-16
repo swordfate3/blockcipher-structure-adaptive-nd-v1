@@ -84,6 +84,26 @@ epochs               = 50（图 8 横轴）
 selection            = 10 次独立训练，报告最高 accuracy
 ```
 
+原始 PDF 第 5--6 页进一步确认数据生成顺序：先生成包含 `r` 个合法积分
+multiset 的集合 `M`，再为该样本随机生成一个 master key `K` 和二元标签 `Y`；
+`Y=1` 时直接用同一个 `K` 加密整个 `M`，`Y=0` 时把 `M` 中所有明文替换为
+不受约束的随机明文，再仍用同一个 `K` 加密。随后每个 multiset 独立以自己的
+`C_0` 形成 `InvP/InvS`，输出顺序按 multiset 依次拼接。这与当前正负类、
+同样本共享 key 和两组 multiset 的语义一致。
+
+当前实现为提高可恢复性做了两项分布近似但非字节级复现的控制：
+
+```text
+paper label sampling      = 每样本随机 Bernoulli Y
+project label sampling    = row_index 奇偶交替，严格 50/50 平衡
+paper key sampling        = 每样本随机生成 80-bit K
+project key sampling      = seed/split/row 派生的无碰撞伪随机 80-bit K
+```
+
+在 `2^21` 量级相对 80-bit key 空间时，随机 key 碰撞概率可忽略，严格平衡标签
+也不改变条件类分布；但这两项仍必须作为 protocol-control approximation 报告，
+不能把 bridge 或未来 paper-scale run 称为逐随机流 exact reproduction。
+
 原文还区分了三组不能混报的 r8 数值：
 
 | 设置 | multiset 数 | r8 accuracy |
