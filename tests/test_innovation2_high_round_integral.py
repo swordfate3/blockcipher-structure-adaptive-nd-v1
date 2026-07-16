@@ -17,6 +17,10 @@ from blockcipher_nd.cli.run_innovation2_high_round_integral import (
     main,
     write_training_artifacts,
 )
+from blockcipher_nd.cli.readjudicate_innovation2_high_round_integral import (
+    POLICY_VERSION,
+    readjudicate_retrieved_artifacts,
+)
 from blockcipher_nd.models.structure.spn.present_integral_multiset import (
     PresentIntegralPaperMbconvAnchor,
     PresentIntegralStructuredResidualCandidate,
@@ -407,6 +411,47 @@ def test_bridge_gate_does_not_advance_from_anchor_only_signal(
     assert gate["status"] == "hold"
     assert gate["decision"] == "innovation2_high_round_integral_bridge_stop"
     assert not gate["bridge_signal_checks"]["candidate_test_auc_at_least_0_53"]
+
+
+def test_retrieved_bridge_readjudication_excludes_invalid_anchor_layout(
+    tmp_path: Path,
+) -> None:
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    rows = _bridge_rows(candidate_auc=0.529, anchor_auc=0.56)
+    (artifacts / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    (artifacts / "dataset_summary.json").write_text(
+        json.dumps(_valid_dataset_summary()),
+        encoding="utf-8",
+    )
+    (artifacts / "fixed_baselines.json").write_text(
+        json.dumps(_bridge_fixed_baselines()),
+        encoding="utf-8",
+    )
+    (artifacts / "gate.json").write_text(
+        json.dumps({"status": "pass", "decision": "remote_old_gate"}),
+        encoding="utf-8",
+    )
+    project_root = Path(__file__).resolve().parents[1]
+    remote_config = project_root / (
+        "configs/remote/innovation2_present_r8_high_round_integral_bridge_"
+        "262144_seed0_gpu0_20260716.json"
+    )
+
+    gate = readjudicate_retrieved_artifacts(
+        artifacts,
+        remote_config,
+        invalidate_anchor_layout=True,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation2_high_round_integral_bridge_stop"
+    assert gate["readjudication"]["policy_version"] == POLICY_VERSION
+    assert gate["readjudication"]["anchor_layout_invalidated"] is True
+    assert gate["readjudication"]["evidence_exclusions"][0]["role"] == "anchor"
 
 
 def test_bridge_gate_rejects_invalid_shuffled_fit_control(tmp_path: Path) -> None:

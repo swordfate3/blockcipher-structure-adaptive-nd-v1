@@ -114,6 +114,31 @@ def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     }
 
 
+def test_result_index_prefers_local_readjudication_gate(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run = outputs / "remote_results" / "bridge"
+    _write_json(
+        run / "gate.json",
+        {"status": "pass", "decision": "remote_old_gate"},
+    )
+    _write_json(
+        run / "gate.local.json",
+        {"status": "hold", "decision": "candidate_only_local_gate"},
+    )
+
+    entries = build_result_index(
+        outputs,
+        roots=("remote_results",),
+        limit=10,
+    )
+
+    assert len(entries) == 1
+    assert entries[0]["status"] == "hold"
+    assert entries[0]["decision"] == "candidate_only_local_gate"
+    assert entries[0]["completion_source"] == "gate.local.json"
+    assert entries[0]["artifacts"]["gate"].endswith("gate.local.json")
+
+
 def test_result_index_retains_every_result_from_latest_seven_days(
     tmp_path: Path,
 ) -> None:

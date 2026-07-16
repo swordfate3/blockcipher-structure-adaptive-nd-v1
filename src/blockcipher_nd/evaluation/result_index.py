@@ -428,7 +428,11 @@ def _index_run(
 
 def _find_artifacts(outputs_root: Path, run_root: Path) -> dict[str, str]:
     selectors: tuple[tuple[str, Callable[[Path], bool], tuple[str, ...]], ...] = (
-        ("gate", lambda path: path.name == "gate.json", ("gate.json",)),
+        (
+            "gate",
+            lambda path: path.name in {"gate.local.json", "gate.json"},
+            ("gate.local.json",),
+        ),
         (
             "validation",
             lambda path: path.name == "validation.json",

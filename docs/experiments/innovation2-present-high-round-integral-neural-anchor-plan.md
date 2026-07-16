@@ -591,3 +591,19 @@ recent index 001 = i2_present_high_round_integral_r8_local_8192_seed0_anchorlayo
 recent index 002 = i2_present_high_round_integral_r7_local_8192_seed0_anchorlayoutfix
 recent index 003 = i2_present_high_round_integral_r5_local_8192_seed0_anchorlayoutfix
 ```
+
+远程回收后不手工改写原始 `gate.json`。使用以下本地工具从四行结果、
+`dataset_summary.json`、`fixed_baselines.json` 和归档的 remote config 重新执行
+当前 candidate-only gate：
+
+```text
+scripts/readjudicate-innovation2-high-round-integral
+  --artifacts outputs/remote_results/<run_id>
+  --remote-config outputs/remote_results/<run_id>/remote_config.json
+  --invalidate-anchor-layout
+  --output outputs/remote_results/<run_id>/gate.local.json
+```
+
+`gate.local.json` 会记录 policy version 和被排除的 anchor 角色；原始远程
+`gate.json` 保留作运行历史。最近结果索引优先读取 `gate.local.json`，因此不会
+展示旧 anchor-only gate 的错误 advance，但仍可分别检查两份门控文件。
