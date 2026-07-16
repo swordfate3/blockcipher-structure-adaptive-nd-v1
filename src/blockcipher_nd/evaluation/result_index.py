@@ -234,6 +234,15 @@ DECISION_LABELS = {
     "innovation2_integral_position_prior_explains_enrichment": (
         "创新2 E6 位置先验解释候选富集，停止神经优势声明"
     ),
+    "innovation2_high_round_integral_two_seed_bridge_confirmed": (
+        "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
+    ),
+    "innovation2_high_round_integral_two_seed_bridge_not_confirmed": (
+        "双 seed 信号未共同过门，停止机械扩规模并审计 seed 敏感性"
+    ),
+    "innovation2_high_round_integral_two_seed_bridge_invalid": (
+        "双 seed source、协议或控制证据无效，修复后重新裁决"
+    ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
     ),
@@ -536,6 +545,11 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E2：PRESENT 5轮积分输出平衡候选排序与 top-16 效用审判"
     if run_id == "i2_present_r5_integral_parity_ranking_utility_joint_seed0_seed1":
         return "创新2 E3：PRESENT 5轮积分输出候选排序双 seed 联合裁决"
+    if run_id == (
+        "i2_present_r8_high_round_integral_bridge_262144_joint_"
+        "seed0_seed1_20260716"
+    ):
+        return "创新2：PRESENT-80 8轮 262144-total 双 seed bridge 联合裁决"
     ranking_seed = re.fullmatch(
         r"i2_present_r5_integral_parity_ranking_utility_seed(?P<seed>\d+)",
         run_id,

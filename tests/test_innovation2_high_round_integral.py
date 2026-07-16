@@ -11,6 +11,9 @@ import torch
 
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+from blockcipher_nd.cli.gate_innovation2_high_round_integral_joint import (
+    main as joint_gate_main,
+)
 from blockcipher_nd.cli.run_innovation2_high_round_integral import (
     _write_deferred_history_csv,
     _write_deferred_svg,
@@ -36,6 +39,9 @@ from blockcipher_nd.tasks.innovation2.high_round_integral_data import (
 from blockcipher_nd.tasks.innovation2.high_round_integral_experiment import (
     HighRoundIntegralExperimentConfig,
     adjudicate_high_round_integral,
+)
+from blockcipher_nd.tasks.innovation2.high_round_integral_joint import (
+    adjudicate_joint_high_round_integral,
 )
 
 
@@ -723,6 +729,117 @@ def test_remote_bridge_seed1_package_changes_only_the_frozen_seed() -> None:
     assert "scripts/index-results" in monitor_script
 
 
+def test_joint_bridge_gate_confirms_two_valid_independent_seeds() -> None:
+    result = adjudicate_joint_high_round_integral(
+        run_id="joint_bridge",
+        sources=[_joint_bridge_source(seed=0), _joint_bridge_source(seed=1)],
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_bridge_confirmed"
+    )
+    assert all(result["gate"]["validity_checks"].values())
+    assert all(result["gate"]["signal_checks"].values())
+    assert [row["seed"] for row in result["rows"]] == [0, 1]
+    assert result["gate"]["metrics"]["candidate_test_auc_min"] == pytest.approx(
+        0.55
+    )
+
+
+def test_joint_bridge_gate_holds_when_seed1_signal_misses() -> None:
+    result = adjudicate_joint_high_round_integral(
+        run_id="joint_bridge",
+        sources=[
+            _joint_bridge_source(seed=0),
+            _joint_bridge_source(seed=1, candidate_auc=0.529, source_pass=False),
+        ],
+    )
+
+    assert result["gate"]["status"] == "hold"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_bridge_not_confirmed"
+    )
+    assert all(result["gate"]["validity_checks"].values())
+    assert not result["gate"]["signal_checks"][
+        "both_candidate_test_auc_at_least_0_53"
+    ]
+    assert not result["gate"]["signal_checks"]["both_source_gates_pass"]
+
+
+@pytest.mark.parametrize("invalid_case", ["duplicate_seed", "protocol", "revision"])
+def test_joint_bridge_gate_rejects_invalid_sources(invalid_case: str) -> None:
+    seed0 = _joint_bridge_source(seed=0)
+    seed1 = _joint_bridge_source(seed=1)
+    if invalid_case == "duplicate_seed":
+        seed1 = _joint_bridge_source(seed=0)
+    elif invalid_case == "protocol":
+        for row in seed1["rows"]:
+            row["batch_size"] = 256
+    else:
+        seed1["gate"]["readjudication"][
+            "source_revision_matches_expected"
+        ] = False
+
+    result = adjudicate_joint_high_round_integral(
+        run_id="joint_bridge",
+        sources=[seed0, seed1],
+    )
+
+    assert result["gate"]["status"] == "fail"
+    assert result["gate"]["decision"] == (
+        "innovation2_high_round_integral_two_seed_bridge_invalid"
+    )
+    assert not all(result["gate"]["validity_checks"].values())
+
+
+def test_joint_bridge_cli_writes_complete_artifacts(tmp_path: Path) -> None:
+    source_roots = [tmp_path / "seed0", tmp_path / "seed1"]
+    for seed, source_root in enumerate(source_roots):
+        source = _joint_bridge_source(seed=seed, artifact_root=str(source_root))
+        source_root.mkdir()
+        (source_root / "gate.local.json").write_text(
+            json.dumps(source["gate"]),
+            encoding="utf-8",
+        )
+        (source_root / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in source["rows"]),
+            encoding="utf-8",
+        )
+    output_root = tmp_path / "joint"
+
+    status = joint_gate_main(
+        [
+            "--run-id",
+            "joint_bridge",
+            "--source-artifacts",
+            *(str(path) for path in source_roots),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    for name in (
+        "results.jsonl",
+        "seed_metrics.csv",
+        "curves.svg",
+        "gate.json",
+        "progress.jsonl",
+    ):
+        assert (output_root / name).is_file()
+        assert (output_root / name).stat().st_size > 0
+    assert "<svg" in (output_root / "curves.svg").read_text(encoding="utf-8")
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    assert gate["status"] == "pass"
+    assert "run_start" in (output_root / "progress.jsonl").read_text(
+        encoding="utf-8"
+    )
+    assert "run_done" in (output_root / "progress.jsonl").read_text(
+        encoding="utf-8"
+    )
+
+
 def _bridge_config(
     tmp_path: Path,
     *,
@@ -750,6 +867,80 @@ def _bridge_config(
         device="cuda",
         gate_mode="bridge",
     )
+
+
+def _joint_bridge_source(
+    *,
+    seed: int,
+    candidate_auc: float = 0.55,
+    source_pass: bool = True,
+    artifact_root: str | None = None,
+) -> dict[str, Any]:
+    run_id = f"i2_present_r8_bridge_seed{seed}"
+    common = {
+        "run_id": run_id,
+        "cipher": "PRESENT-80",
+        "task": "innovation2_present_high_round_integral_multiset",
+        "rounds": 8,
+        "seed": seed,
+        "train_total_rows": 262144,
+        "validation": {"total_rows": 32768, "samples_per_class": 16384},
+        "test": {"total_rows": 65536, "samples_per_class": 32768},
+        "multisets_per_sample": 2,
+        "texts_per_multiset": 16,
+        "input_bits": 4096,
+        "input_view": "wu_guo_invp_invs_cj_xor_c0",
+        "negative_mode": NEGATIVE_MODE,
+        "key_sampling": "one unique PRESENT-80 master key per sample",
+        "epochs": 5,
+        "batch_size": 128,
+        "learning_rate": 1e-3,
+        "weight_decay": 1e-5,
+        "loss": "mse",
+        "optimizer": "adam",
+        "paper_tensor_concat_assumption": "spatial_axis_1",
+    }
+
+    def row(role: str, test_auc: float, fit_validation_auc: float) -> dict[str, Any]:
+        return {
+            **common,
+            "role": role,
+            "test_accuracy": test_auc,
+            "test_auc": test_auc,
+            "fit_validation_auc": fit_validation_auc,
+        }
+
+    return {
+        "artifact_root": artifact_root or f"/artifacts/{run_id}",
+        "rows": [
+            row("anchor", 0.535, 0.535),
+            row("candidate", candidate_auc, candidate_auc),
+            row("linear", 0.52, 0.52),
+            row("control", 0.501, 0.507),
+        ],
+        "gate": {
+            "status": "pass" if source_pass else "hold",
+            "decision": (
+                "innovation2_high_round_integral_bridge_advance"
+                if source_pass
+                else "innovation2_high_round_integral_bridge_stop"
+            ),
+            "gate_mode": "bridge",
+            "rounds": 8,
+            "run_id": run_id,
+            "metrics": {
+                "architecture_prior_oriented_auc": 0.501,
+                "strongest_oriented_fixed_parity_auc": 0.505,
+            },
+            "bridge_plan_checks": {"frozen_protocol": True},
+            "readiness_checks": {"artifacts_complete": True},
+            "bridge_signal_checks": {"candidate_signal": source_pass},
+            "readjudication": {
+                "source_revision_matches_expected": True,
+                "anchor_layout_invalidated": seed == 0,
+            },
+        },
+    }
 
 
 def _bridge_rows(*, candidate_auc: float, anchor_auc: float) -> list[dict[str, Any]]:

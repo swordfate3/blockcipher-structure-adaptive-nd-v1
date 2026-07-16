@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 from blockcipher_nd.evaluation.result_index import (
     DEFAULT_INDEX_LIMIT,
     DEFAULT_RESULT_ROOTS,
@@ -429,3 +431,45 @@ def test_result_index_supports_innovation2_joint_ranking_labels(
     assert entries[0]["decision_display"] == (
         "双 seed 排序与 top-16 效用确认，进入几何组合留出"
     )
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_high_round_integral_two_seed_bridge_confirmed",
+            "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验",
+        ),
+        (
+            "innovation2_high_round_integral_two_seed_bridge_not_confirmed",
+            "双 seed 信号未共同过门，停止机械扩规模并审计 seed 敏感性",
+        ),
+        (
+            "innovation2_high_round_integral_two_seed_bridge_invalid",
+            "双 seed source、协议或控制证据无效，修复后重新裁决",
+        ),
+    ],
+)
+def test_result_index_supports_innovation2_high_round_joint_bridge_labels(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r8_high_round_integral_bridge_262144_joint_"
+        "seed0_seed1_20260716"
+    )
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["display_name"] == (
+        "创新2：PRESENT-80 8轮 262144-total 双 seed bridge 联合裁决"
+    )
+    assert entries[0]["decision_display"] == expected_decision

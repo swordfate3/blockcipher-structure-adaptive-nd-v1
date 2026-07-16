@@ -742,3 +742,55 @@ configs/remote/generated/
   run_i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.cmd
   monitor_i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716.sh
 ```
+
+### 12.3 双 seed 联合裁决冻结（seed1 揭盲前）
+
+联合门槛在 seed1 结果回收前固定，避免根据第二颗 seed 的 AUC 修改标准。联合
+过程不重新训练，只读取两份 verified artifact root 中的 `gate.local.json` 和
+`results.jsonl`：
+
+```text
+joint run_id = i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716
+exact seeds = {0, 1}
+same protocol except seed = required
+both source revisions match expected = required
+seed0 anchor_layout_invalidated = true
+seed1 anchor_layout_invalidated = false
+```
+
+每颗 seed 独立重复同一组冻结门槛：
+
+```text
+candidate test AUC >= 0.53
+candidate - oriented architecture prior >= 0.01
+candidate - strongest oriented fixed parity >= 0.01
+abs(shuffled-fit validation AUC - 0.5) <= 0.03
+source gate status/decision = pass/bridge_advance
+```
+
+联合裁决只有三种：
+
+- `confirmed`：两颗 seed 的 source、协议、控制和信号全部有效；下一步仅准备
+  `2^21 total train / 50 epochs` paper-reference approximation；
+- `not_confirmed`：source 有效但至少一颗 seed 的信号门未过；停止机械放大，
+  审计 seed sensitivity 与 checkpoint dynamics；
+- `invalid`：seed pair、冻结协议、source revision 或 anchor 失效规则不匹配；
+  先修证据链，不解释 AUC。
+
+执行命令及固定产物：
+
+```text
+scripts/gate-innovation2-high-round-integral-joint
+  --run-id i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716
+  --source-artifacts outputs/remote_results/<seed0-run> outputs/remote_results/<seed1-run>
+  --output-root outputs/local_diagnostic/<joint-run-id>
+
+outputs:
+  results.jsonl
+  seed_metrics.csv
+  curves.svg
+  gate.json
+  progress.jsonl
+```
+
+无论联合结果如何，当前阶段都不并行启动 r9、GIFT 或 AES。
