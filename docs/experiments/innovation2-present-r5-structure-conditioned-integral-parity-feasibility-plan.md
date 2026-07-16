@@ -698,7 +698,17 @@ outputs/local_diagnostic/i2_present_r5_integral_parity_geometry_holdout_seed0/
 outputs/local_diagnostic/i2_present_r5_integral_parity_geometry_holdout_ranking_seed0/
 ```
 
-## 推荐下一步 E5：排序候选的精确认证富集率
+## 历史 E5 提案：排序候选的精确认证富集率（未执行）
+
+该提案在实现前被文献与能力审计替代。EUROCRYPT 2026 已有神经候选加
+split-search 验证；当前环境又没有可核验的 SAT/MILP/Sage 工具，保守
+活动单项式证书对 PRESENT r5 全部候选均返回未知。项目没有把有限密钥
+验证冒充精确证明。实际 E5/E6 见：
+
+```text
+docs/experiments/innovation2-present-r5-fresh-key-enrichment-plan.md
+docs/experiments/innovation2-present-r5-output-position-prior-audit-plan.md
+```
 
 E5 不再扩大网络训练规模，而是检验当前排序结果是否能降低传统精确验证的
 搜索成本。冻结研究问题和执行边界如下：

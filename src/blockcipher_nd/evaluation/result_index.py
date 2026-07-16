@@ -194,6 +194,42 @@ DECISION_LABELS = {
     "innovation2_integral_geometry_holdout_not_confirmed": (
         "几何组合留出未确认，停止扩规模并重设结构表示"
     ),
+    "innovation2_integral_fresh_key_implementation_ready": (
+        "创新2 E5 全新密钥富集验证实现就绪，可运行 4096-key 矩阵"
+    ),
+    "innovation2_integral_fresh_key_smoke_invalid": (
+        "创新2 E5 实现未就绪，先修复选择器或批量 parity"
+    ),
+    "innovation2_integral_fresh_key_protocol_invalid": (
+        "创新2 E5 协议无效，不解释选择器指标"
+    ),
+    "innovation2_integral_fresh_key_enrichment_passed": (
+        "创新2 E5 全新密钥候选富集通过，冻结实验并进入论文写作"
+    ),
+    "innovation2_integral_fresh_key_ranking_only": (
+        "创新2 E5 仅排序富集通过，按经验贡献进入论文写作"
+    ),
+    "innovation2_integral_fresh_key_enrichment_not_confirmed": (
+        "创新2 E5 全新密钥富集未确认，保留 E4 诊断边界"
+    ),
+    "innovation2_integral_position_prior_audit_ready": (
+        "创新2 E6 输出位置先验归因实现就绪，可运行 4096-key 审判"
+    ),
+    "innovation2_integral_position_prior_smoke_invalid": (
+        "创新2 E6 实现未就绪，先修复训练重建或位置匹配"
+    ),
+    "innovation2_integral_position_prior_protocol_invalid": (
+        "创新2 E6 协议无效，不解释位置归因指标"
+    ),
+    "innovation2_integral_neural_interaction_residual_supported": (
+        "创新2 E6 神经结构交互残差通过，可按位置感知方法写入论文"
+    ),
+    "innovation2_integral_position_prior_dominant_with_conditional_residual": (
+        "创新2 E6 全局收益由位置先验主导，仅保留位置内神经残差"
+    ),
+    "innovation2_integral_position_prior_explains_enrichment": (
+        "创新2 E6 位置先验解释候选富集，停止神经优势声明"
+    ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"
     ),

@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** 方法蓝图冻结 / E0-E3 完成 / 双 seed 排序效用确认，待几何留出
+**状态：** E0-E6 完成 / E5 富集通过 / E6 位置先验解释主要收益 / 停止同数据调参
 
 ## 一句话创新
 
@@ -193,3 +193,82 @@ E3 已按同预算 seed1 完成，四门再次通过。两颗 seed 的 MLP Spear
 nibble、输出 mask 三元组在 train/test 间完全留出，判断模型是否学到可
 迁移的结构关系，而非记住常见位置/掩码组合。该几何留出仍应先在本地
 同预算审判；通过前不启动远程 GPU。
+
+## E4 结果与 2026 论文边界复审
+
+E4 已于 `2026-07-16` 完成。训练、validation、calibration、test 的
+`(active_nibble, output_nibble, output_mask)` 三元组完全互斥，结构 MLP
+在 128 个未见 geometry 和每个结构 256 把新密钥上的 Spearman 为
+`0.825454`，相对线性提高 `+0.139636`；MLP top-16 平衡率为
+`0.950439`，相对线性 top-16 提高 `+0.065430`，四个冻结排序门全过。
+
+最新文献把创新边界进一步收紧：
+
+- Zhang 等在 EUROCRYPT 2026 的 *Neural-inspired Advances in Integral
+  Cryptanalysis* 已采用神经特征提出积分输出组合，再用前缀/后缀 split
+  search 逐候选验证。因此“神经候选生成 + 传统积分验证”不能作为本项目
+  的首创点。
+- Hwang 等的 kernel 路线从多把随机密钥的 parity matrix 提取经验平衡
+  空间，并用独立密钥做后选择验证；它明确区分 `B_true` 与 `B_emp`，有限
+  密钥结果仍不是无条件证明。
+- Wang、Hadipour、Gerhalter 的 *On Extending Integral Distinguishers*
+  用精确后缀 ANF、前缀 monomial-prediction oracle 和左核给出可靠但不完备
+  的 Split-and-Cancel 证书。其 PRESENT 结果使用 60/63 个活动位和一次
+  最后一轮精确展开，与本项目“4 活动位、固定上下文、跨密钥排序”的任务
+  不同。
+
+因此可答辩的新意应表述为：**结构条件输入、geometry-disjoint 泛化和
+同预算候选富集评估**，而不是首次把神经网络用于积分分析，也不是首次把
+神经候选交给符号验证。
+
+## E5 路线调整
+
+原拟直接做精确认证，但 readiness 审计发现当前环境没有 Z3、PySAT、
+MILP、Sage 或 S-box Analyzer；五轮活动单项式支持上界对 E4 的全部 128
+个候选都返回未知，不能提供有区分力的证书。用有限密钥穷举替代 SAT 并
+改称“精确”会造成错误论文结论。
+
+E5 因此冻结为 `4096` 把全新密钥的同预算候选富集验证：固定 E4 模型与
+候选，不重训；比较 MLP、线性、无标签 P-layer 可达性启发式和固定随机
+各 16 个候选。零失败候选只报告二项分布 95% 单侧失败率上界，不称为
+确定性积分。E5 通过后停止机械实验扩展，进入论文方法、对照、限制和图表
+写作；精确 SAT/Split-and-Cancel 认证保留为条件允许时的增强工作。
+
+## E5-E6 最终裁决
+
+E5 在 4096 把全新密钥上按预注册门通过：MLP top-16 平均平衡率为
+`0.956604`，相对线性、P-layer 可达性和固定随机分别提高
+`+0.062210/+0.107971/+0.154449`，且有 8 个结构零次观察到失衡。
+
+但 8 个零失败结构全部位于 `output_nibble=0`。E6 随后只用冻结训练 split
+构造输出位置边际先验，并加入与 MLP 输出位置直方图完全相同的线性/随机
+对照。结果为：
+
+```text
+MLP mean balance                    = 0.956604004
+train output-position prior         = 0.941787720
+position-matched linear             = 0.950653076
+position-matched random             = 0.919967651
+
+MLP - position prior                = +0.014816284  < +0.03
+MLP - position-matched linear       = +0.005950928  < +0.02
+MLP - position-matched random       = +0.036636353  >= +0.03
+```
+
+最终 decision 为 `innovation2_integral_position_prior_explains_enrichment`。
+这推翻了“E5 已足以证明神经结构交互优势”的强解释，但不否定 E0-E5 的
+原始数值。当前最严格、可写入毕业论文的结论是：
+
+1. 项目建立了不泄漏密钥、结构和 geometry 的结构条件积分 parity 预测与
+   top-k 评测流程，并在双 seed、geometry holdout 和 4096 fresh keys 上
+   完整运行。
+2. MLP 相对弱线性/随机/P-layer 对照表现出明显候选富集。
+3. 更强的训练输出位置先验和位置匹配线性基线解释了主要收益；当前 111-bit
+   表示没有建立独立于输出位置的非线性结构交互优势。
+4. 有限密钥零失败不是确定性积分证明，也不能与 Split-and-Cancel、SAT、
+   MILP 或 division-property 结果等同。
+
+因此同一 PRESENT r5 数据上停止继续调模型、选择器和门槛。创新2作为
+**可复现的任务构造、严格控制链和负结果边界**进入毕业论文；若未来需要
+恢复正向神经方法声明，必须换新 benchmark 并在实验前加入位置边际强基线，
+而不是继续利用已观察的 4096-key 结果调参。
