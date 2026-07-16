@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用数据看懂 Split-and-Cancel</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <h1>用 4 条明文看懂 Split-and-Cancel</h1>
+  <p class="lede">目标不是先记住“ANF、单项式预测、左核”这些名字，而是亲手看见：单个输出不平衡时，几个输出组合起来仍可能严格平衡。</p>
+
+  <div class="objective">
+    学完这一页，你应该能区分三个数：一条密文内部的掩码奇偶值、一个输入集合上的积分 XOR、同一结构跨多把密钥的经验平衡率。
+  </div>
+
+  <h2>第一层：一条密文的 4-bit 输出变成 1 bit</h2>
+
+  <p>先固定输出 mask 为 <code>1111</code>。对一条 4-bit 输出 <code>c3c2c1c0</code>，计算：</p>
+
+  <div class="equation">g(c) = c3 XOR c2 XOR c1 XOR c0</div>
+
+  <p>这一步只把<strong>一条密文</strong>压成一个 bit，还不是积分。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>输入</th><th>输出 nibble</th><th>逐 bit 计算</th><th>g(c)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>00</code></td><td><code>1001</code></td><td><code>1 XOR 0 XOR 0 XOR 1</code></td><td>0</td></tr>
+        <tr><td><code>01</code></td><td><code>0011</code></td><td><code>0 XOR 0 XOR 1 XOR 1</code></td><td>0</td></tr>
+        <tr><td><code>10</code></td><td><code>0100</code></td><td><code>0 XOR 1 XOR 0 XOR 0</code></td><td>1</td></tr>
+        <tr><td><code>11</code></td><td><code>0001</code></td><td><code>0 XOR 0 XOR 0 XOR 1</code></td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>第二层：跨整个输入结构再 XOR 一次</h2>
+
+  <p>现在把 <code>00, 01, 10, 11</code> 看成一个活动 2-bit 输入结构。对四条明文的 <code>g(c)</code> 再做一次 XOR：</p>
+
+  <div class="equation">I<sub>S</sub>(g) = 0 XOR 0 XOR 1 XOR 1 = 0</div>
+
+  <p>这时才能说：在这把密钥、这个输入结构和这个输出函数下，观测到零和。</p>
+
+  <div class="warning">
+    积分语境里的“平衡/zero-sum”指 XOR 结果为 0，也就是 1 的数量为偶数，不一定要求 0 和 1 各占一半。比如 <code>0000</code> 和 <code>1111</code> 的 XOR 都是 0。
+  </div>
+
+  <h2>第三层：为什么有限密钥实验不是数学证明</h2>
+
+  <p>换一把密钥，四条输出也会变化。假设对同一个结构测试 8 把密钥，得到：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>密钥</th><th>K0</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th><th>K5</th><th>K6</th><th>K7</th></tr>
+      </thead>
+      <tbody>
+        <tr><th>积分结果 q(K,S,g)</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>这里：</p>
+
+  <pre>经验平衡率 P(q=0) = 6 / 8 = 75%
+经验非平衡率 P(q=1) = 2 / 8 = 25%</pre>
+
+  <p>这正接近我们当前 Innovation 2 网络学的东西：根据结构字段，预测它在新密钥上更可能排在高平衡率候选中。</p>
+
+  <p>但它不能推出：</p>
+
+  <div class="equation">对所有密钥 K，都有 q(K,S,g) = 0</div>
+
+  <p>论文的目标比 75% 更严格：它要用符号方法证明“所有允许的密钥都为 0”，或者明确写出哪些密钥条件保证为 0。</p>
+
+  <h2>第四层：先用真实输出表看“组合抵消”</h2>
+
+  <p>先忘掉密码内部公式，只看两个输出 bit <code>c0</code> 和 <code>c1</code>：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>输入</th><th>c0</th><th>c1</th><th>h = c0 XOR c1</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>00</code></td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><code>01</code></td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td><code>10</code></td><td>0</td><td>1</td><td>1</td></tr>
+        <tr><td><code>11</code></td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><th>跨集合 XOR</th><td class="bad">1</td><td class="bad">1</td><td class="good">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><code>c0</code> 单独不平衡，<code>c1</code> 单独也不平衡，但是：</p>
+
+  <div class="equation">I<sub>S</sub>(c0 XOR c1) = I<sub>S</sub>(c0) XOR I<sub>S</sub>(c1) = 1 XOR 1 = 0</div>
+
+  <p>这就是 Split-and-Cancel 最朴素的现象：两个坏结果可以因为相同残留出现两次而抵消。</p>
+
+  <h2>第五层：论文为什么需要“未决项矩阵”</h2>
+
+  <p>真实密码不可能把所有明文、所有密钥全部枚举。论文把最后一轮精确展开。它的玩具例子是：</p>
+
+  <pre>y0 = x0 XOR k0 XOR x1*x2 XOR x2*x3
+y1 = x1 XOR k1 XOR x1*x2 XOR x1*x3
+y2 = x2 XOR k2 XOR x2*x3 XOR x1*x3</pre>
+
+  <p>前 p 轮的 oracle 已经证明 <code>x0,x1,x2,k0,k1,k2</code> 的积分 XOR 都是 0。剩下三个暂时无法证明为 0 的项，记成：</p>
+
+  <pre>A = I_S(x1*x2)
+B = I_S(x2*x3)
+C = I_S(x1*x3)</pre>
+
+  <p><code>A/B/C</code> 不是默认等于 1。它们的意思只是“目前不知道是 0 还是 1”。于是三行的积分结果可以写成：</p>
+
+  <pre>I_S(y0) = A XOR B
+I_S(y1) = A XOR C
+I_S(y2) = B XOR C</pre>
+
+  <p>现在三行一起 XOR：</p>
+
+  <div class="equation">(A XOR B) XOR (A XOR C) XOR (B XOR C) = A XOR A XOR B XOR B XOR C XOR C = 0</div>
+
+  <p>关键在于：不需要知道 <code>A/B/C</code> 的真实值。每个未知项都出现两次，所以必然抵消。</p>
+
+  <div class="demo" aria-labelledby="demo-title">
+    <h3 id="demo-title">动手切换 A、B、C</h3>
+    <p>任选三个未知积分值。观察前三项会改变，但最后的组合始终是 0。</p>
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" data-unknown="a"> A = 1</label>
+      <label class="toggle"><input type="checkbox" data-unknown="b"> B = 1</label>
+      <label class="toggle"><input type="checkbox" data-unknown="c"> C = 1</label>
+    </div>
+    <div class="result-strip">
+      <div class="result-cell"><strong>I<sub>S</sub>(y0)</strong><output data-result="y0">0</output></div>
+      <div class="result-cell"><strong>I<sub>S</sub>(y1)</strong><output data-result="y1">0</output></div>
+      <div class="result-cell"><strong>I<sub>S</sub>(y2)</strong><output data-result="y2">0</output></div>
+      <div class="result-cell good"><strong>三行组合</strong><output data-result="combined">0</output></div>
+    </div>
+  </div>
+
+  <h2>第六层：矩阵只是把上面的式子压缩记录</h2>
+
+  <p>按列记录每行包含哪些未决项：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>输出量</th><th>A = x1*x2</th><th>B = x2*x3</th><th>C = x1*x3</th></tr></thead>
+      <tbody>
+        <tr><th>y0</th><td>1</td><td>1</td><td>0</td></tr>
+        <tr><th>y1</th><td>1</td><td>0</td><td>1</td></tr>
+        <tr><th>y2</th><td>0</td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>选择向量 <code>lambda = [1,1,1]</code> 表示三个输出量都选。三行按位 XOR：</p>
+
+  <div class="equation">lambda M = [1,1,1] M = [0,0,0]</div>
+
+  <p>所以 <code>lambda</code> 在矩阵的左核里，而它对应的输出组合就是：</p>
+
+  <div class="equation">G = y0 XOR y1 XOR y2</div>
+
+  <p>“求左核”并没有创造新的密码学事实；它只是一次性找出所有能让每一列出现偶数次的行组合。</p>
+
+  <h2>第七层：为什么会得到 1/4 弱密钥</h2>
+
+  <p>加入最后一轮密钥后，某个组合可能没有完全消掉，而是剩下：</p>
+
+  <div class="equation">I<sub>S</sub>(G) = k1*A XOR k0*B</div>
+
+  <p><code>A/B</code> 仍然未知。逐个看两个密钥 bit：</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>k0</th><th>k1</th><th>剩余表达式</th><th>是否保证为 0</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>0</td><td><code>0*A XOR 0*B = 0</code></td><td class="good">保证</td></tr>
+        <tr><td>0</td><td>1</td><td><code>A</code></td><td class="unknown">未知</td></tr>
+        <tr><td>1</td><td>0</td><td><code>B</code></td><td class="unknown">未知</td></tr>
+        <tr><td>1</td><td>1</td><td><code>A XOR B</code></td><td class="unknown">未知</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>四种密钥取值中，只有 <code>k0=k1=0</code> 可以无条件保证，所以覆盖比例是：</p>
+
+  <div class="equation">1 / 4 = 2^-2</div>
+
+  <p>这就是论文里“弱密钥 portion 至少为 <code>2^-2</code>”的直观来源。它不是训练准确率 25%，而是满足精确密钥条件的密钥子空间占全部密钥空间的四分之一。</p>
+
+  <h2>最后把论文和我们的网络对齐</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th class="left">问题</th><th>当前 Innovation 2</th><th>Split-and-Cancel</th></tr></thead>
+      <tbody>
+        <tr><td class="left">输入是什么</td><td>结构描述与给定 mask</td><td>输入结构与输出函数族</td></tr>
+        <tr><td class="left">输出是什么</td><td>跨新密钥的经验排序</td><td>可证明的组合基</td></tr>
+        <tr><td class="left">例如</td><td>这个候选约 75% 密钥平衡</td><td>这个组合对所有密钥为 0</td></tr>
+        <tr><td class="left">主要工具</td><td>MLP、校准、top-k</td><td>ANF、oracle、左核</td></tr>
+        <tr><td class="left">能否代替证明</td><td class="bad">不能</td><td class="good">能在声明范围内证明</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="success">
+    最值得记住的一句话：网络回答“先检查谁更划算”，Split-and-Cancel 回答“检查后能否严格证明”。两者可以串起来，但不能互相冒充。
+  </div>
+
+  <h2>一分钟自测</h2>
+
+  <details>
+    <summary>问题 1：8 把密钥中有 6 把得到 q=0，能否称为确定性积分？</summary>
+    <p>不能。只能报告有限样本下的经验平衡率为 75%。确定性积分要求对声明范围内的所有密钥成立，或者有符号证明。</p>
+  </details>
+
+  <details>
+    <summary>问题 2：矩阵里一个 1 是否表示该单项式的积分值一定为 1？</summary>
+    <p>不是。矩阵里的 1 表示“这个输出表达式包含该未决单项式”。未决意味着 oracle 暂时不能证明其积分和为 0，并不等于真实值是 1。</p>
+  </details>
+
+  <details>
+    <summary>问题 3：为什么 lambda=[1,1,1] 能给出证明？</summary>
+    <p>因为三行相加后，每个未决列都出现两次，F2 中 <code>1 XOR 1 = 0</code>。所有未决项消失，其余项此前已经由 prefix oracle 证明为零和。</p>
+  </details>
+
+  <p><strong>推荐原文：</strong><a href="../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf#page=14">论文 Section 4.4, Example 1-2</a>。先对照 Example 1 的三行矩阵，再看 Example 2 如何产生弱密钥条件。</p>
+
+  <p class="footer-nav"><a href="../reference/integral-split-cancel-cheatsheet.html">打开一页速查表</a>。任何一步仍然不清楚，可以直接指出表格中的具体一行继续问。</p>
+</main>
+<script src="../assets/split-cancel-demo.js"></script>
+</body>
+</html>

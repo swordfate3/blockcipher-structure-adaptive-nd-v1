@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>积分与 Split-and-Cancel 速查</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+<main>
+  <h1>积分与 Split-and-Cancel 速查</h1>
+  <p class="lede">用于检查自己当前算的是单条密文、输入集合，还是跨密钥概率。</p>
+
+  <h2>三个层级</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>层级</th><th>计算</th><th>含义</th></tr></thead>
+      <tbody>
+        <tr><td>单条密文</td><td><code>g(c)=&lt;u,c&gt;</code></td><td>把输出 mask 压成 1 bit</td></tr>
+        <tr><td>一个输入结构</td><td><code>q= XOR_{x in S} g(E_K(x))</code></td><td>这把密钥下的积分观测</td></tr>
+        <tr><td>多把密钥</td><td><code>P_K(q=0)</code></td><td>经验平衡率，不是全密钥证明</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Split-and-Cancel 五步</h2>
+  <ol class="steps">
+    <li>把密码切成前 <code>p</code> 轮和后 <code>q</code> 轮，论文通常取 <code>q=1</code>。</li>
+    <li>精确展开每个输出 observable 的最后一轮 ANF。</li>
+    <li>prefix oracle 删除已证明零和的边界单项式。</li>
+    <li>行记录 observable，列记录未决单项式，得到矩阵 <code>M</code>。</li>
+    <li>求 <code>lambda M=0</code>；每个非零 <code>lambda</code> 给出一个零和输出组合。</li>
+  </ol>
+
+  <h2>读矩阵时不要犯的错</h2>
+  <div class="warning">
+    <code>M[i,m]=1</code> 只表示第 i 个输出表达式包含未决项 m，不表示 m 的真实积分值为 1。
+  </div>
+
+  <h2>四种结论</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>结论</th><th>需要的证据</th></tr></thead>
+      <tbody>
+        <tr><td>单密钥 q=0</td><td>一次结构枚举</td></tr>
+        <tr><td>高经验平衡率</td><td>多把独立密钥统计</td></tr>
+        <tr><td>弱密钥零和</td><td>明确密钥条件下的符号证明</td></tr>
+        <tr><td>全密钥零和</td><td>对所有密钥的符号证明</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="success">神经网络用于排序候选；精确模型用于认证结论。</div>
+
+  <p class="footer-nav"><a href="../lessons/0001-split-and-cancel-data-example.html">返回详细数据课</a> · <a href="../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf#page=14">阅读论文 Example 1-2</a></p>
+</main>
+</body>
+</html>
