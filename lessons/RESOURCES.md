@@ -2,13 +2,13 @@
 
 ## Knowledge
 
-- [Paper: _On Extending Integral Distinguishers_](papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf)
+- [Paper: _On Extending Integral Distinguishers_](../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf)
   Primary source for Split-and-Cancel, the left-kernel criterion, pullback theorems, and PRESENT/GIFT results. Use for all claims about the paper.
 - [Public implementation: `hadipourh/splitandcancel`](https://github.com/hadipourh/splitandcancel)
   Authors' code referenced by the paper. Use when moving from the conceptual matrix example to reproducibility or implementation auditing.
-- [Innovation 2 research blueprint](docs/research/innovation2-structure-conditioned-integral-output-prediction-20260715.md)
+- [Innovation 2 research blueprint](../docs/research/innovation2-structure-conditioned-integral-output-prediction-20260715.md)
   Current project definition of structure-conditioned empirical integral-property prediction. Use to keep neural ranking separate from exact certification.
-- [Innovation 2 experiment record](docs/experiments/innovation2-present-r5-structure-conditioned-integral-parity-feasibility-plan.md)
+- [Innovation 2 experiment record](../docs/experiments/innovation2-present-r5-structure-conditioned-integral-parity-feasibility-plan.md)
   Frozen data protocol and E0-E3 evidence. Use when comparing the paper's exact output-combination search with the project's cross-key ranking task.
 
 ## Wisdom (Communities)
