@@ -531,6 +531,22 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
             "262144_seed0_gpu0_20260716.sh"
         )
     ).read_text(encoding="utf-8")
+    recovery_launcher = (
+        project_root
+        / (
+            "configs/remote/generated/"
+            "launch_recover_i2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
+    recovery_script = (
+        project_root
+        / (
+            "configs/remote/generated/"
+            "recover_i2_present_r8_high_round_integral_bridge_"
+            "262144_seed0_gpu0_20260716.cmd"
+        )
+    ).read_text(encoding="utf-8")
 
     readiness = remote_readiness_report(config_path)
     config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -576,6 +592,8 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     }
     assert "cmd.exe /k" not in (run_script + launch_script + monitor_script).lower()
     assert "cmd.exe /c" in launch_script.lower()
+    assert "!" not in run_script
+    assert "not p.name == 'SHA256SUMS'" in run_script
     for argument in (
         "--rounds 8",
         "--train-rows 262144",
@@ -601,6 +619,18 @@ def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     assert "result_branch_pushed.marker" in monitor_script
     assert "scripts/plot-results" in monitor_script
     assert "scripts/index-results" in monitor_script
+    assert "DisableDelayedExpansion" in recovery_launcher
+    assert "DisableDelayedExpansion" in recovery_script
+    assert "scripts\\run-innovation2-high-round-integral" not in recovery_script
+    assert "scripts\\readjudicate-innovation2-high-round-integral" in recovery_script
+    assert "validation.recovery.json" in recovery_script
+    assert "gate.recovery.json" in recovery_script
+    assert "--invalidate-anchor-layout" in recovery_script
+    assert "4b3a2c33cc323b5586533f0fffb78edbe70e0adf" in recovery_script
+    assert "not p.name == 'SHA256SUMS'" in recovery_script
+    assert "_recovery_done.marker" in recovery_script
+    assert "_result_branch_pushed.marker" in recovery_script
+    assert "!" not in recovery_launcher + recovery_script
 
 
 def _bridge_config(

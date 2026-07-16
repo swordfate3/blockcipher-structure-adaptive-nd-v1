@@ -85,7 +85,7 @@ copy /Y "%REMOTE_CONFIG%" "%ARCHIVE_DIR%\remote_config.json" > nul || goto faile
 copy /Y "%PLAN%" "%ARCHIVE_DIR%\plan.json" > nul || goto failed
 "%PY%" -c "import json,pathlib; root=pathlib.Path(r'%CACHE_ROOT%'); out={p.parent.name:json.loads(p.read_text(encoding='utf-8')) for p in sorted(root.glob('*/metadata.json'))}; assert len(out)==3 and all(v.get('status')=='complete' for v in out.values()); pathlib.Path(r'%ARCHIVE_DIR%\cache_metadata.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n',encoding='utf-8')" || goto failed
 echo * -text>"%ARCHIVE_DIR%\.gitattributes"
-"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%ARCHIVE_DIR%'); files=sorted(p for p in root.rglob('*') if p.is_file() and p.name!='SHA256SUMS'); (root/'SHA256SUMS').write_text('\n'.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix() for p in files)+'\n',encoding='utf-8')" || goto failed
+"%PY%" -c "import hashlib,pathlib; root=pathlib.Path(r'%ARCHIVE_DIR%'); files=sorted(p for p in root.rglob('*') if p.is_file() and not p.name == 'SHA256SUMS'); (root/'SHA256SUMS').write_text('\n'.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.relative_to(root).as_posix() for p in files)+'\n',encoding='utf-8')" || goto failed
 
 git config user.name "remote-experiment"
 git config user.email "remote-experiment@local.invalid"
