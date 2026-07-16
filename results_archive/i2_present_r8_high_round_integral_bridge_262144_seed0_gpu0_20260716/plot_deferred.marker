@@ -1,0 +1,5 @@
+{
+  "missing_module": "matplotlib",
+  "reason": "optional_plot_dependency_missing",
+  "status": "deferred_to_local_retrieval"
+}

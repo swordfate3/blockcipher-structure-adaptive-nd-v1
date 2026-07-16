@@ -1,0 +1,95 @@
+{
+  "artifact_validation": {
+    "errors": [],
+    "expected_rows": 4,
+    "missing": [],
+    "result_rows": 4,
+    "status": "pass"
+  },
+  "bridge_plan_checks": {
+    "base_channels_is_16": true,
+    "batch_size_is_128": true,
+    "block_count_is_2": true,
+    "dropout_is_0_1": true,
+    "epochs_is_5": true,
+    "head_bits_is_256": true,
+    "learning_rate_is_1e_3": true,
+    "multiset_count_is_2": true,
+    "remote_cuda_device_requested": true,
+    "rounds_is_8": true,
+    "seed_is_0": true,
+    "test_total_rows_is_65536": true,
+    "train_total_rows_is_262144": true,
+    "validation_total_rows_is_32768": true,
+    "weight_decay_is_1e_5": true
+  },
+  "bridge_signal_checks": {
+    "candidate_beats_architecture_prior_by_0_01": true,
+    "candidate_beats_strongest_oriented_fixed_parity_by_0_01": true,
+    "candidate_or_anchor_test_auc_at_least_0_53": true,
+    "shuffled_fit_validation_auc_within_0_03_of_chance": true
+  },
+  "claim_scope": "remote data-scarcity bridge PRESENT-80 r8 Wu/Guo paper-family protocol bridge; not exact reproduction and not paper-scale",
+  "decision": "innovation2_high_round_integral_bridge_advance",
+  "diagnostic_checks": {
+    "r5_anchor_accuracy_at_least_0_90": true,
+    "r5_candidate_beats_architecture_prior_by_0_10": true,
+    "r8_metrics_finite": true,
+    "shuffled_fit_validation_auc_within_0_07_of_chance": true
+  },
+  "gate_mode": "bridge",
+  "metrics": {
+    "anchor_test_accuracy": 0.5263214111328125,
+    "anchor_test_auc": 0.5373518001288176,
+    "architecture_prior_oriented_auc": 0.5010008700191975,
+    "candidate_anchor_accuracy_delta": 0.0012969970703125,
+    "candidate_anchor_auc_delta": 0.008056987542659044,
+    "candidate_architecture_prior_auc_delta": 0.04440791765227914,
+    "candidate_strongest_fixed_parity_auc_delta": 0.040808998979628086,
+    "candidate_test_accuracy": 0.527618408203125,
+    "candidate_test_auc": 0.5454087876714766,
+    "fixed_total_parity_auc": 0.49593703960999846,
+    "fixed_total_parity_best_accuracy": 0.5003509521484375,
+    "linear_test_auc": 0.5209855218417943,
+    "shuffled_fit_validation_auc": 0.5070420950651169,
+    "shuffled_test_auc": 0.5010008700191975,
+    "strongest_oriented_fixed_parity_auc": 0.5045997886918485,
+    "strongest_oriented_fixed_parity_name": "negative_invp_parity_weight",
+    "untrained_candidate_test_auc": 0.5008001853711903
+  },
+  "next_action": "Prepare the 2^21-total-row, 50-epoch paper-reference run and an independent seed; keep r9 and GIFT stopped.",
+  "paper_alignment": {
+    "exact_reproduction": false,
+    "headline_multisets": 2,
+    "missing_from_paper": [
+      "Nf",
+      "dropout_rate",
+      "exact_mbconv_dense_block_count",
+      "adam_initial_learning_rate",
+      "learning_rate_min_max"
+    ],
+    "paper_batch_size": 2000,
+    "paper_epochs": 50,
+    "paper_headline_r8_accuracy": 0.5732,
+    "paper_repetitions_best_selected": 10,
+    "paper_tensor_concat_assumption": "spatial_axis_1",
+    "paper_test_total_rows": 131072,
+    "paper_training_total_rows": 2097152,
+    "paper_validation_total_rows": 131072
+  },
+  "readiness_checks": {
+    "all_fixed_baseline_metrics_finite": true,
+    "all_model_metrics_finite": true,
+    "dataset_summary_passed": true,
+    "disk_backed_cache_complete": true,
+    "four_model_roles_present": true,
+    "key_splits_disjoint": true,
+    "protocol_fixture_passed": true,
+    "reference_c0_views_expected": true,
+    "shuffled_control_uses_shuffled_train_and_validation": true,
+    "strict_negative_definition": true
+  },
+  "rounds": 8,
+  "run_id": "i2_present_r8_high_round_integral_bridge_262144_seed0_gpu0_20260716",
+  "status": "pass"
+}

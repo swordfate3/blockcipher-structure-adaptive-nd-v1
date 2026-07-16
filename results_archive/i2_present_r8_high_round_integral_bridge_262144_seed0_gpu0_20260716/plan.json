@@ -1,0 +1,33 @@
+{
+  "plan_id": "innovation2_present_r8_high_round_integral_bridge_262144_seed0",
+  "question": "Does the local r8 near-chance result come from the 256x train-row gap to Wu/Guo rather than a dead high-round route?",
+  "common": {
+    "samples_per_class": 131072,
+    "negative_mode": "encrypted_unrestricted_random_plaintext_multisets",
+    "sample_structure": "wu_guo_2024_integral_multiset",
+    "key_rotation_interval": 1,
+    "learning_rate": 0.001,
+    "rounds": 8,
+    "seed": 0,
+    "pairs_per_sample": 32,
+    "validation_key": null
+  },
+  "rows": [
+    {
+      "role": "anchor",
+      "model": "wu_guo_paper_family_mbconv"
+    },
+    {
+      "role": "candidate",
+      "model": "present_integral_structured_residual"
+    },
+    {
+      "role": "linear",
+      "model": "same_input_flat_linear"
+    },
+    {
+      "role": "control",
+      "model": "present_integral_structured_residual_shuffled"
+    }
+  ]
+}
