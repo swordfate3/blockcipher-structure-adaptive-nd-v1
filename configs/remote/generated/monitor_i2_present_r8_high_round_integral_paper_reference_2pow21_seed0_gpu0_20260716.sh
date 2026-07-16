@@ -63,6 +63,8 @@ while true; do
       --history-csv "${DESTINATION}/history.csv" \
       --title "创新2：PRESENT 8轮论文参考规模近似（2^21总训练行，seed0）" \
       >> "${MONITOR_ROOT}/plot.log" 2>> "${MONITOR_ROOT}/plot_stderr.log" || exit 3
+    rm -f "${DESTINATION}/visual_qa_passed.marker"
+    touch "${DESTINATION}/visual_qa_pending.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
       "import json,pathlib; from blockcipher_nd.cli.run_innovation2_high_round_integral import validate_artifacts; root=pathlib.Path(r'${DESTINATION}'); report=validate_artifacts(root,expected_rows=4); (root/'validation.local.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\\n',encoding='utf-8'); raise SystemExit(0 if report['status']=='pass' else 1)" \
       >> "${MONITOR_ROOT}/validation.log" 2>> "${MONITOR_ROOT}/validation_stderr.log" || exit 3
@@ -79,7 +81,7 @@ while true; do
     touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
       >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || exit 4
-    echo "$(timestamp) verified_results_retrieved_and_indexed" >> "${MONITOR_ROOT}/monitor.log"
+    echo "$(timestamp) verified_results_retrieved_indexed_visual_qa_pending" >> "${MONITOR_ROOT}/monitor.log"
     exit 0
   fi
 

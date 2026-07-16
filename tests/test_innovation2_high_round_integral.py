@@ -777,6 +777,9 @@ def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> Non
     assert "paper_reference_plan_checks" in monitor_script
     assert "memory_preflight.json" in monitor_script
     assert "scripts/index-results" in monitor_script
+    assert "visual_qa_pending.marker" in monitor_script
+    assert "visual_qa_passed.marker" in monitor_script
+    assert "verified_results_retrieved_indexed_visual_qa_pending" in monitor_script
 
 
 def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
