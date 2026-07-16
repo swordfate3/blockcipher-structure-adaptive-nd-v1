@@ -6,6 +6,12 @@
 attacks on block ciphers. This is an acquisition and route-definition record,
 not yet a full systematic review.
 
+The expanded corpus for the current high-round integral-neural target, including
+PRESENT-specific papers and deterministic search baselines, is maintained in
+`docs/research/innovation2-high-round-literature-corpus-20260716.md`. This file
+remains the narrower output-prediction index and should not be read as the full
+Innovation 2 literature set.
+
 ## Innovation Boundary
 
 The opening proposal defines Innovation 2 as a separate task from neural
