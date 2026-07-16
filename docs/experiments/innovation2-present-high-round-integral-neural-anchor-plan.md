@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** seed0+seed1 remote bridge confirmed / paper-reference approximation package in preparation
+**状态：** seed0+seed1 remote bridge confirmed / paper-reference approximation seed0 running
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -955,3 +955,51 @@ max(candidate-anchor accuracy delta, AUC delta) >= 0.005
 测试、范围提交并成功推送后，从该精确 commit 启动。启动前先完成 batch 2000
 CUDA 显存预检，失败时不得生成 9 GiB cache。不启动 r9、GIFT、AES 或其他
 密码扩展。
+
+### 13.4 远程启动与 watcher 交接（2026-07-16）
+
+论文参考规模包在 `f64aab9` 完成并推送。首次计划任务在正式训练、显存预检和
+cache 生成前 fail-closed：SYSTEM 账户执行旧 `for /f (git status --porcelain)`
+clean gate 时返回 `dirty_source`，但交互账户对同一 run-owned clone 的
+`git status --porcelain` 为空。该次没有生成 cache 或实验结果，不能计为一次
+训练运行。
+
+修复 `694fcc2` 不放宽 clean gate，而是：
+
+```text
+GIT_CONFIG_KEY_0 / VALUE_0 = 本次 run-owned source 的 safe.directory
+git status stdout/stderr = 持久化到独立日志
+git command failure = source_status_failed / exit 8
+porcelain 文件非空 = dirty_source / exit 2
+porcelain 文件为 0 byte = 继续 exact source revision gate
+```
+
+修复后同一 run id 从精确推送 commit 重新启动并通过一次 bounded confirmation：
+
+```text
+run_id = i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716
+remote source = 694fcc2b36aa3af0df3a9dc9fc4074d1623596e6
+remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\<run_id>
+started.marker = present
+readiness output = present
+memory_preflight.json = present
+progress.jsonl = present
+state = running
+```
+
+后续不由主线程 SSH 轮询。自动回收交给：
+
+```text
+tmux = i2-r8-paper-reference-2pow21-seed0
+monitor root = outputs/remote_results_incomplete/
+  i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716_monitor/
+verified destination = outputs/remote_results/
+  i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716/
+watcher workflow revision = dc2d16adbe8e89ce68b5bbc5cd1bb8250d00700e
+```
+
+watcher 只在 result branch marker、原始 SHA、四行结果、三份 cache、source、
+paper-reference gate 和 local validation 全部通过后回收并刷新最近结果索引。
+重绘 SVG 后必须留下 `visual_qa_pending.marker`；后续 agent 使用
+`visual-qa-redraw` 完成像素检查、必要重绘并写入 pass，才能把结果处理称为完整。
+运行中任务没有完成 gate，因此当前不进入 `00_RECENT_RESULTS`。
