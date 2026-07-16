@@ -753,11 +753,21 @@ def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> Non
         "--gate-mode paper_reference",
         "paper_reference_plan_checks",
         "memory_preflight.json",
+        "set GIT_CONFIG_KEY_0=safe.directory",
+        (
+            "set GIT_CONFIG_VALUE_0=G:/lxy/blockcipher-structure-adaptive-nd-"
+            "runs/%RUN_ID%/source"
+        ),
+        "git_status_porcelain.txt",
+        "git_status_porcelain_stderr.txt",
+        "goto source_status_failed",
     ):
         assert fragment in run_script
     assert "cmd.exe /k" not in run_script + launch_script
     assert "EnableDelayedExpansion" not in run_script + launch_script
     assert "!" not in run_script + launch_script
+    assert "for /f \"delims=\" %%S in ('git status --porcelain')" not in run_script
+    assert 'if not "%%~zA"=="0" goto dirty_source' in run_script
     assert 'cmd.exe /c %RUN_CMD% 0' in launch_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in (
         run_script + launch_script

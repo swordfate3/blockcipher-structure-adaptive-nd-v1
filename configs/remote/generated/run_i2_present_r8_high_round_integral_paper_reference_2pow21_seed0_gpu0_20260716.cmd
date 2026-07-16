@@ -19,6 +19,9 @@ set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%
 set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+set GIT_CONFIG_COUNT=1
+set GIT_CONFIG_KEY_0=safe.directory
+set GIT_CONFIG_VALUE_0=G:/lxy/blockcipher-structure-adaptive-nd-runs/%RUN_ID%/source
 
 if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
 if not exist "%CACHE_ROOT%" mkdir "%CACHE_ROOT%"
@@ -30,7 +33,8 @@ if exist "%LOG_DIR%\%RUN_ID%_started.marker" del /Q "%LOG_DIR%\%RUN_ID%_started.
 if exist "%LOG_DIR%\%RUN_ID%_failure_reason.txt" del /Q "%LOG_DIR%\%RUN_ID%_failure_reason.txt"
 
 cd /d "%SOURCE_ROOT%" || goto failed
-for /f "delims=" %%S in ('git status --porcelain') do goto dirty_source
+git status --porcelain > "%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt" 2> "%LOG_DIR%\%RUN_ID%_git_status_porcelain_stderr.txt" || goto source_status_failed
+for %%A in ("%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt") do if not "%%~zA"=="0" goto dirty_source
 git rev-parse HEAD > "%LOG_DIR%\%RUN_ID%_git_revision.txt" 2>&1 || goto failed
 fc /b "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%RUN_ROOT%\source_expected_commit.txt" > nul || goto source_revision_mismatch
 git status --short --branch > "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" 2>&1 || goto failed
@@ -78,6 +82,8 @@ if exist "%RESULTS_DIR%\plot_deferred.marker" copy /Y "%RESULTS_DIR%\plot_deferr
 copy /Y "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%ARCHIVE_DIR%\git_revision.txt" > nul || goto failed
 copy /Y "%RUN_ROOT%\source_expected_commit.txt" "%ARCHIVE_DIR%\source_expected_commit.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" "%ARCHIVE_DIR%\git_status_before_run.txt" > nul || goto failed
+copy /Y "%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt" "%ARCHIVE_DIR%\git_status_porcelain.txt" > nul || goto failed
+copy /Y "%LOG_DIR%\%RUN_ID%_git_status_porcelain_stderr.txt" "%ARCHIVE_DIR%\git_status_porcelain_stderr.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_gpu_info.txt" "%ARCHIVE_DIR%\gpu_info.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_torch_info.txt" "%ARCHIVE_DIR%\torch_info.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_readiness.txt" "%ARCHIVE_DIR%\readiness.json" > nul || goto failed
@@ -105,6 +111,11 @@ exit /b 0
 echo dirty_source>"%LOG_DIR%\%RUN_ID%_failed.marker"
 echo Remote run-owned source clone is dirty.>"%LOG_DIR%\%RUN_ID%_failure_reason.txt"
 exit /b 2
+
+:source_status_failed
+echo source_status_failed>"%LOG_DIR%\%RUN_ID%_failed.marker"
+echo Git could not verify the run-owned source clone status.>"%LOG_DIR%\%RUN_ID%_failure_reason.txt"
+exit /b 8
 
 :source_revision_mismatch
 echo source_revision_mismatch>"%LOG_DIR%\%RUN_ID%_failed.marker"
