@@ -599,6 +599,35 @@ def test_paper_reference_gate_holds_weak_signal_and_rejects_plan_mismatch(
     ]
 
 
+def test_innovation2_plot_titles_and_model_roles_are_human_readable() -> None:
+    from blockcipher_nd.evaluation.plots import _compact_label, _display_title
+
+    assert _display_title(
+        "i2_present_r8_high_round_integral_bridge_262144_seed1_gpu0_20260716"
+    ) == (
+        "创新2：PRESENT-80 8轮高轮积分神经桥接 "
+        "（262,144总训练行，seed 1）"
+    )
+    assert _display_title(
+        "i2_present_r8_high_round_integral_paper_reference_2pow21_"
+        "seed0_gpu0_20260716"
+    ) == (
+        "创新2：PRESENT-80 8轮论文参考规模近似 "
+        "（2^21总训练行，seed 0）"
+    )
+    expected_labels = {
+        "wu_guo_paper_family_mbconv": "论文族锚点：Wu/Guo MBConv",
+        "present_integral_structured_residual": "创新2候选：结构积分残差网络",
+        "same_input_flat_linear": "同输入线性基线",
+        "present_integral_structured_residual_shuffled": (
+            "标签打乱控制（候选同架构）"
+        ),
+    }
+    assert {
+        model: _compact_label({"model": model}) for model in expected_labels
+    } == expected_labels
+
+
 def test_paper_reference_seed0_plan_is_frozen_after_joint_confirmation() -> None:
     project_root = Path(__file__).resolve().parents[1]
     plan = json.loads(

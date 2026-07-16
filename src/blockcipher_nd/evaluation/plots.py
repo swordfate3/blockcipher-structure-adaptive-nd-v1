@@ -541,6 +541,26 @@ def _display_title(title: str) -> str:
     }
     if stem in title_aliases:
         return title_aliases[stem]
+    i2_bridge = re.fullmatch(
+        r"i2_present_r8_high_round_integral_bridge_262144_seed(?P<seed>\d+)"
+        r"(?:_gpu\d+)?(?:_\d{8})?",
+        stem,
+    )
+    if i2_bridge:
+        return (
+            "创新2：PRESENT-80 8轮高轮积分神经桥接 "
+            f"（262,144总训练行，seed {i2_bridge.group('seed')}）"
+        )
+    i2_paper_reference = re.fullmatch(
+        r"i2_present_r8_high_round_integral_paper_reference_2pow21_"
+        r"seed(?P<seed>\d+)(?:_gpu\d+)?(?:_\d{8})?",
+        stem,
+    )
+    if i2_paper_reference:
+        return (
+            "创新2：PRESENT-80 8轮论文参考规模近似 "
+            f"（2^21总训练行，seed {i2_paper_reference.group('seed')}）"
+        )
     transfer_match = re.fullmatch(
         r"i1_gift64_cross_spn_typed_transfer_r2_seed(?P<seed>\d+)",
         stem,
@@ -699,6 +719,12 @@ def _compact_label(item: dict[str, Any]) -> str:
         "linear_same_input": "同输入线性基线",
         "structure_mlp": "结构交互 MLP",
         "structure_mlp_shuffled_labels": "训练标签打乱 MLP 控制",
+        "wu_guo_paper_family_mbconv": "论文族锚点：Wu/Guo MBConv",
+        "present_integral_structured_residual": "创新2候选：结构积分残差网络",
+        "same_input_flat_linear": "同输入线性基线",
+        "present_integral_structured_residual_shuffled": (
+            "标签打乱控制（候选同架构）"
+        ),
         "present_zhang_wang_keras_mcnd": "Zhang-Wang MCND",
         "present_nibble_paligned_mcnd": "I1 nibble-P MCND",
         "present_nibble_invp_only_spn_only": "InvP token mixer",
