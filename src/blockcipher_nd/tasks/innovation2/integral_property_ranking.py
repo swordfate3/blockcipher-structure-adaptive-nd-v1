@@ -16,6 +16,7 @@ SOURCE_DECISIONS = {
 RANKING_PASS_DECISIONS = {
     "innovation2_integral_ranking_utility_advance_independent_confirmation",
     "innovation2_integral_ranking_utility_independent_confirmation_passed",
+    "innovation2_integral_geometry_holdout_passed",
 }
 
 
@@ -71,6 +72,9 @@ def evaluate_integral_ranking(
     )
     observed_q1_rates = _float_column(source_rows, OBSERVED_RATE_COLUMN)
     source_seed = _source_seed(str(source_gate["run_id"]))
+    structure_split_mode = str(
+        source_gate.get("structure_split_mode", "random-disjoint")
+    )
     global_q1_rate = float(observed_q1_rates.mean())
     global_balance_rate = 1.0 - global_q1_rate
 
@@ -111,8 +115,9 @@ def evaluate_integral_ranking(
             "selected_structure_ids": structure_ids[selected_indices].tolist(),
             "source_run_id": str(source_gate["run_id"]),
             "source_decision": str(source_gate["decision"]),
+            "structure_split_mode": structure_split_mode,
             "claim_scope": (
-                "read-only E2 utility adjudication on the frozen PRESENT-r5 E1 "
+                "read-only ranking utility adjudication on the frozen PRESENT-r5 "
                 "128-structure, 256-key stability set; not retraining, not an "
                 "independent replication, and not a deterministic integral proof"
             ),
@@ -189,7 +194,28 @@ def adjudicate_integral_ranking(
             <= thresholds.maximum_control_global_topk_balance_advantage
         ),
     }
-    if all(checks.values()):
+    structure_split_mode = str(
+        source_gate.get("structure_split_mode", "random-disjoint")
+    )
+    geometry_holdout = structure_split_mode == "geometry-disjoint"
+    if geometry_holdout and all(checks.values()):
+        status = "pass"
+        decision = "innovation2_integral_geometry_holdout_passed"
+        next_action = (
+            "Freeze a local exact-certification bridge: compare MLP top-16, linear "
+            "top-16, and deterministic/random candidates under the same held-out "
+            "geometries using a Split-and-Cancel or equivalent exact verifier. Do "
+            "not launch remote scale before certified-candidate enrichment passes."
+        )
+    elif geometry_holdout:
+        status = "hold"
+        decision = "innovation2_integral_geometry_holdout_not_confirmed"
+        next_action = (
+            "Stop remote scale and exact-certification promotion for the current "
+            "111-bit representation. Inspect failed geometry checks, then change only "
+            "the representation, beginning with PRESENT P-layer reachability features."
+        )
+    elif all(checks.values()):
         status = "pass"
         if int(candidate["seed"]) == 0:
             decision = (
@@ -247,6 +273,7 @@ def adjudicate_integral_ranking(
         "gate_mode": "ranking-utility",
         "source_run_id": str(source_gate["run_id"]),
         "source_decision": str(source_gate["decision"]),
+        "structure_split_mode": structure_split_mode,
         "training_performed": False,
         "checks": checks,
         "thresholds": {
@@ -294,9 +321,9 @@ def adjudicate_integral_ranking(
         },
         "next_action": next_action,
         "claim_scope": (
-            "read-only E2 utility adjudication on the frozen PRESENT-r5 E1 "
-            "128-structure, 256-key stability set; not retraining, not an "
-            "independent replication, and not a deterministic integral proof"
+            "read-only PRESENT-r5 ranking utility adjudication on a frozen "
+            f"128-structure, 256-key {structure_split_mode} stability set; not "
+            "retraining and not a deterministic integral proof"
         ),
     }
 
@@ -462,12 +489,24 @@ def _validate_source(
         OBSERVED_RATE_COLUMN,
         *(model.score_column for model in MODELS),
     }
+    structure_split_mode = str(
+        source_gate.get("structure_split_mode", "random-disjoint")
+    )
+    if structure_split_mode == "geometry-disjoint":
+        required_columns.update({"geometry_id", "structure_split_mode"})
     missing = required_columns - set(source_rows[0]) if source_rows else required_columns
     if missing:
         raise ValueError(f"source structure rates are missing columns: {sorted(missing)}")
     structure_ids = [str(row["structure_id"]) for row in source_rows]
     if len(set(structure_ids)) != len(structure_ids):
         raise ValueError("source structure ids must be unique")
+    if structure_split_mode == "geometry-disjoint":
+        split_modes = {str(row["structure_split_mode"]) for row in source_rows}
+        geometry_ids = [str(row["geometry_id"]) for row in source_rows]
+        if split_modes != {"geometry-disjoint"}:
+            raise ValueError("geometry source rows must identify geometry-disjoint mode")
+        if len(set(geometry_ids)) != len(geometry_ids):
+            raise ValueError("geometry source rows must contain unique geometry ids")
     for column in (OBSERVED_RATE_COLUMN, *(model.score_column for model in MODELS)):
         values = _float_column(source_rows, column)
         if not np.all((0.0 <= values) & (values <= 1.0)):

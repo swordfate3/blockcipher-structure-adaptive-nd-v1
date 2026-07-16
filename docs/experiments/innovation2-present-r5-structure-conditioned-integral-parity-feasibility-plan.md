@@ -595,6 +595,26 @@ forbidden = 增加结构/epochs/seeds、改标签、启动远程GPU
 `--structure-split-mode geometry-disjoint`，默认值保持当前 random-disjoint，
 不得同时加入 P-layer 特征。冻结命令形状为：
 
+先执行不用于结论的 readiness gate，只验证新拆分的数据所有权、双类标签、
+三模型训练链与产物完整性：
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/run-innovation2-integral-property \
+  --run-id i2_present_r5_integral_parity_geometry_holdout_readiness_seed0 \
+  --structure-split-mode geometry-disjoint \
+  --train-structures 64 --validation-structures 32 --test-structures 32 \
+  --train-keys 4 --validation-keys 8 --test-keys 8 \
+  --calibration-structures 32 --calibration-keys 8 \
+  --stability-test-keys 32 \
+  --epochs 1 --seed 0 --device cpu --gate-mode calibration-smoke \
+  --output-root outputs/local_smoke/i2_present_r5_integral_parity_geometry_holdout_readiness_seed0
+```
+
+readiness 必须同时满足：四组 geometry 两两互斥、每个 geometry 只有一个
+固定上下文、密钥集合两两互斥、stability 精确复用 test 结构、所有训练/
+评估拆分均有两个标签、三模型与 JSONL/CSV/SVG/gate 产物齐全。通过后运行
+以下冻结 E4 诊断：
+
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/run-innovation2-integral-property \
   --run-id i2_present_r5_integral_parity_geometry_holdout_seed0 \
@@ -606,3 +626,99 @@ UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/run-innovation2-integral-proper
   --epochs 20 --seed 0 --device cpu --gate-mode calibration \
   --output-root outputs/local_diagnostic/i2_present_r5_integral_parity_geometry_holdout_seed0
 ```
+
+## E4 完成结果：几何组合留出排序效用通过
+
+完成时间：`2026-07-16`。
+
+readiness 运行：
+
+```text
+run_id = i2_present_r5_integral_parity_geometry_holdout_readiness_seed0
+status = pass
+decision = innovation2_integral_geometry_holdout_implementation_ready
+```
+
+四组 geometry 两两互斥、每个 geometry 只有一个固定上下文、四组主密钥
+两两互斥、stability 精确复用 test 结构、所有拆分均有双类标签，三模型和
+JSONL/CSV/SVG/gate 产物完整。readiness 只证明实现可运行，不进入方法效果
+结论。
+
+完整 E4 训练与校准运行：
+
+```text
+run_id = i2_present_r5_integral_parity_geometry_holdout_seed0
+status = hold
+decision = innovation2_integral_rate_target_unstable
+
+MLP test AUC                         = 0.705343011
+linear test AUC                      = 0.671034441
+MLP-linear AUC margin                = +0.034308569
+shuffled-label MLP test AUC          = 0.494528072
+MLP calibrated 256-key MAE           = 0.075952530
+linear calibrated 256-key MAE        = 0.100183572
+linear-MLP calibrated MAE margin      = +0.024231042
+observed 32-key / 256-key rate MAE    = 0.051849365
+```
+
+概率校准门的五项检查通过四项；唯一失败项是观测率稳定性
+`0.051849365 > 0.05`。因此不得把当前网络写成精确的平衡概率预测器，也不
+通过增加 epochs、结构、seed 或远程 GPU 来追逐这个贴线门。
+
+预注册的 E4 排序审判运行：
+
+```text
+run_id = i2_present_r5_integral_parity_geometry_holdout_ranking_seed0
+status = pass
+decision = innovation2_integral_geometry_holdout_passed
+
+MLP Spearman                         = 0.825453999846
+linear Spearman                      = 0.685817746157
+MLP-linear Spearman margin           = +0.139636253689  >= +0.05
+MLP top-16 observed balance rate     = 0.950439453125
+global observed balance rate         = 0.735198974609
+MLP-global top-16 advantage          = +0.215240478516  >= +0.05
+linear top-16 observed balance rate  = 0.885009765625
+MLP-linear top-16 advantage          = +0.065429687500  >= +0.03
+shuffled-global top-16 advantage     = +0.013336181641  <= +0.02
+```
+
+四个冻结排序门全部通过。当前可写入毕业论文的结论是：在 PRESENT 5 轮、
+`128` 个训练中未出现的 `(active_nibble, output_nibble, output_mask)` 几何
+组合和每个结构 `256` 把新密钥的本地诊断上，结构 MLP 比同输入线性基线
+更有效地排序并筛选经验上高平衡率的 top-16 候选；该效用不是由打乱标签
+控制产生。该结论是候选排序与筛选证据，不是确定性积分证明、弱密钥定理、
+远程/论文规模训练或 SOTA 性能比较。
+
+产物：
+
+```text
+outputs/local_smoke/i2_present_r5_integral_parity_geometry_holdout_readiness_seed0/
+outputs/local_diagnostic/i2_present_r5_integral_parity_geometry_holdout_seed0/
+outputs/local_diagnostic/i2_present_r5_integral_parity_geometry_holdout_ranking_seed0/
+```
+
+## 推荐下一步 E5：排序候选的精确认证富集率
+
+E5 不再扩大网络训练规模，而是检验当前排序结果是否能降低传统精确验证的
+搜索成本。冻结研究问题和执行边界如下：
+
+```text
+research question = MLP top-16 是否比线性、确定性启发式和固定随机候选包含更多可精确认证的积分性质？
+same-budget anchor = 当前 E4 linear top-16，使用完全相同的 16 个候选验证预算
+required controls = fixed-seed random-16 + 不使用神经分数的确定性结构启发式-16
+candidate = 当前 E4 MLP top-16；不得重训或重新挑 seed
+one changed variable = candidate selector；精确验证器、轮数、密钥模型和预算全部相同
+scale = 每组 16 个候选，PRESENT r5，seed0 E4 冻结 ranking.csv
+epochs = 0（只读冻结排序结果）
+execution = local CPU；先实现并用手算/已知小轮性质验证精确认证器
+readiness = verifier 对已知正例/反例正确，候选集合无重叠歧义，超时与未知状态单独记录
+advance gate = MLP 可认证数严格高于 linear、deterministic、random，且至少命中 1 个可认证性质
+hold gate = 全部方法均为 0 或 verifier 返回未知，先审计认证能力，不解释为网络失败
+stop gate = MLP 不高于任一必要对照，停止把当前经验排序提升为积分发现方法
+forbidden = 远程扩样本、重训 E4、只用有限随机密钥观测代替精确证明、删除失败/超时候选
+```
+
+E5 通过后，论文可以形成完整链条：结构条件网络缩小候选空间，再由传统精确
+方法认证；E5 不通过时，论文仍保留 E0-E4 的经验候选排序贡献，但必须把
+“自动发现确定性积分性质”列为未完成工作。

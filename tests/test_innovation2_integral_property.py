@@ -10,6 +10,7 @@ from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.run_innovation2_integral_property import main
 from blockcipher_nd.cli.evaluate_innovation2_integral_ranking import (
     main as ranking_main,
+    render_ranking_svg,
 )
 from blockcipher_nd.cli.summarize_innovation2_integral_ranking import (
     main as ranking_summary_main,
@@ -27,6 +28,7 @@ from blockcipher_nd.tasks.innovation2.integral_property_prediction import (
     adjudicate,
     build_integral_split,
     integral_mask_parity,
+    make_structure_splits,
     summarize_splits,
 )
 from blockcipher_nd.tasks.innovation2.integral_property_ranking import (
@@ -96,6 +98,38 @@ def test_integral_splits_repeat_structure_over_keys_and_remain_disjoint() -> Non
     assert summary["status"] == "pass"
     assert summary["structure_splits_disjoint"] is True
     assert summary["key_splits_disjoint"] is True
+
+
+def test_geometry_disjoint_structure_splits_withhold_all_geometry_ids() -> None:
+    counts = {"train": 32, "validation": 8, "calibration": 8, "test": 8}
+    structures = make_structure_splits(
+        split_counts=counts,
+        seed=7,
+        structure_split_mode="geometry-disjoint",
+        random_seed_offsets={
+            "train": 101,
+            "validation": 301,
+            "calibration": 701,
+            "test": 501,
+        },
+    )
+
+    geometry_sets = {
+        name: {structure.geometry_id for structure in split}
+        for name, split in structures.items()
+    }
+    assert {name: len(split) for name, split in structures.items()} == counts
+    assert all(len(geometry_sets[name]) == counts[name] for name in counts)
+    assert all(
+        geometry_sets[left].isdisjoint(geometry_sets[right])
+        for index, left in enumerate(counts)
+        for right in tuple(counts)[index + 1 :]
+    )
+    assert all(
+        structure.fixed_plaintext & (0xF << (4 * structure.active_nibble)) == 0
+        for split in structures.values()
+        for structure in split
+    )
 
 
 def test_diagnostic_gate_requires_candidate_to_beat_linear_and_shuffle() -> None:
@@ -319,6 +353,8 @@ def test_cli_writes_complete_calibration_smoke_artifacts(tmp_path: Path) -> None
             "cpu",
             "--gate-mode",
             "calibration-smoke",
+            "--structure-split-mode",
+            "geometry-disjoint",
         ]
     )
 
@@ -340,11 +376,18 @@ def test_cli_writes_complete_calibration_smoke_artifacts(tmp_path: Path) -> None
     ).splitlines()
     assert gate["status"] == "pass"
     assert gate["decision"] == (
-        "innovation2_integral_calibration_implementation_ready"
+        "innovation2_integral_geometry_holdout_implementation_ready"
     )
     assert summary["structure_splits_disjoint"] is True
     assert summary["key_splits_disjoint"] is True
     assert summary["stability_structures_match_test"] is True
+    assert summary["structure_split_mode"] == "geometry-disjoint"
+    assert summary["geometry_splits_disjoint"] is True
+    assert summary["one_structure_per_geometry"] is True
+    assert gate["structure_split_mode"] == "geometry-disjoint"
+    assert gate["readiness_checks"][
+        "geometry_splits_disjoint_when_required"
+    ] is True
     assert len(prediction_lines) == 1 + 3 * (16 * (8 + 8 + 8 + 16))
 
 
@@ -390,6 +433,34 @@ def test_integral_ranking_preserves_source_seed_and_confirmation_decision() -> N
     assert result["gate"]["decision"] == (
         "innovation2_integral_ranking_utility_independent_confirmation_passed"
     )
+
+
+def test_geometry_holdout_ranking_uses_geometry_specific_decision(
+    tmp_path: Path,
+) -> None:
+    source_rows = _ranking_source_rows()
+    for index, row in enumerate(source_rows):
+        row["geometry_id"] = f"geometry-{index:03d}"
+        row["structure_split_mode"] = "geometry-disjoint"
+    source_gate = _ranking_source_gate()
+    source_gate["structure_split_mode"] = "geometry-disjoint"
+
+    result = evaluate_integral_ranking(
+        run_id="i2-geometry-ranking-test",
+        source_rows=source_rows,
+        source_gate=source_gate,
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["decision"] == (
+        "innovation2_integral_geometry_holdout_passed"
+    )
+    assert result["gate"]["structure_split_mode"] == "geometry-disjoint"
+    curves_path = tmp_path / "geometry-ranking.svg"
+    render_ranking_svg(result["rows"], result["gate"], curves_path)
+    svg = curves_path.read_text(encoding="utf-8")
+    assert "创新2 E4" in svg
+    assert "未见位置与掩码组合" in svg
 
 
 def test_joint_integral_ranking_requires_seed0_and_seed1_passes() -> None:

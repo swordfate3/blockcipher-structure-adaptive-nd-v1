@@ -133,6 +133,17 @@ def render_ranking_svg(
     ]
     global_balance = float(by_role["candidate"]["global_observed_balance_rate"])
     metrics = gate["metrics"]
+    geometry_holdout = gate.get("structure_split_mode") == "geometry-disjoint"
+    title = (
+        "创新2 E4：PRESENT 5轮未见位置与掩码组合的积分候选排序"
+        if geometry_holdout
+        else "创新2 E2：PRESENT 5轮积分输出平衡候选排序审判"
+    )
+    subtitle = (
+        "测试 128 个训练中未出现的活动位置、输出位置与掩码组合；每个候选用 256 把新密钥估计真实平衡率。"
+        if geometry_holdout
+        else "复用 E1 的 128 个未见结构；每个结构用 256 把新密钥估计真实平衡率。"
+    )
 
     with plt.rc_context(
         {
@@ -154,7 +165,7 @@ def render_ranking_svg(
         fig, axes = plt.subplots(1, 2, figsize=(12.6, 6.3))
         fig.subplots_adjust(left=0.075, right=0.975, top=0.73, bottom=0.20, wspace=0.30)
         fig.suptitle(
-            "创新2 E2：PRESENT 5轮积分输出平衡候选排序审判",
+            title,
             x=0.075,
             y=0.965,
             ha="left",
@@ -164,10 +175,7 @@ def render_ranking_svg(
         fig.text(
             0.075,
             0.895,
-            (
-                "复用 E1 的 128 个未见结构；每个结构用 256 把新密钥估计真实平衡率。"
-                "本图只做排序与 top-16 筛选，不重训模型。"
-            ),
+            subtitle + "本图只做排序与 top-16 筛选，不重训模型。",
             ha="left",
             va="top",
             fontsize=10.0,

@@ -15,9 +15,9 @@ from blockcipher_nd.tasks.innovation2.integral_property_prediction import (
     IntegralParitySplit,
     LinearParityPredictor,
     ProgressCallback,
-    build_integral_split,
     build_integral_split_from_structures,
     make_keys,
+    make_structure_splits,
     summarize_splits,
 )
 from blockcipher_nd.training import (
@@ -49,6 +49,7 @@ class IntegralCalibrationConfig:
     weight_decay: float = 1e-4
     device: str = "cpu"
     gate_mode: str = "calibration"
+    structure_split_mode: str = "random-disjoint"
 
     def __post_init__(self) -> None:
         for name in (
@@ -72,6 +73,13 @@ class IntegralCalibrationConfig:
         if self.gate_mode not in {"calibration-smoke", "calibration"}:
             raise ValueError(
                 "gate_mode must be calibration-smoke or calibration"
+            )
+        if self.structure_split_mode not in {
+            "random-disjoint",
+            "geometry-disjoint",
+        }:
+            raise ValueError(
+                "structure_split_mode must be random-disjoint or geometry-disjoint"
             )
 
 
@@ -154,43 +162,40 @@ def run_integral_calibration_experiment(
     *,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
+    split_specs = {
+        "train": (config.train_structures, config.train_keys, 101, 201),
+        "validation": (
+            config.validation_structures,
+            config.validation_keys,
+            301,
+            401,
+        ),
+        "calibration": (
+            config.calibration_structures,
+            config.calibration_keys,
+            701,
+            801,
+        ),
+        "test": (config.test_structures, config.test_keys, 501, 601),
+    }
+    structures_by_split = make_structure_splits(
+        split_counts={name: values[0] for name, values in split_specs.items()},
+        seed=config.seed,
+        structure_split_mode=config.structure_split_mode,
+        random_seed_offsets={
+            name: values[2] for name, values in split_specs.items()
+        },
+    )
     splits = {
-        "train": build_integral_split(
-            name="train",
+        name: build_integral_split_from_structures(
+            name=name,
             rounds=config.rounds,
-            structure_count=config.train_structures,
-            key_count=config.train_keys,
-            structure_seed=config.seed + 101,
-            key_seed=config.seed + 201,
+            structures=structures_by_split[name],
+            keys=make_keys(count=values[1], seed=config.seed + values[3]),
+            structure_split_mode=config.structure_split_mode,
             progress_callback=progress_callback,
-        ),
-        "validation": build_integral_split(
-            name="validation",
-            rounds=config.rounds,
-            structure_count=config.validation_structures,
-            key_count=config.validation_keys,
-            structure_seed=config.seed + 301,
-            key_seed=config.seed + 401,
-            progress_callback=progress_callback,
-        ),
-        "calibration": build_integral_split(
-            name="calibration",
-            rounds=config.rounds,
-            structure_count=config.calibration_structures,
-            key_count=config.calibration_keys,
-            structure_seed=config.seed + 701,
-            key_seed=config.seed + 801,
-            progress_callback=progress_callback,
-        ),
-        "test": build_integral_split(
-            name="test",
-            rounds=config.rounds,
-            structure_count=config.test_structures,
-            key_count=config.test_keys,
-            structure_seed=config.seed + 501,
-            key_seed=config.seed + 601,
-            progress_callback=progress_callback,
-        ),
+        )
+        for name, values in split_specs.items()
     }
     splits["stability"] = build_integral_split_from_structures(
         name="stability",
@@ -200,9 +205,13 @@ def run_integral_calibration_experiment(
             count=config.stability_test_keys,
             seed=config.seed + 1001,
         ),
+        structure_split_mode=config.structure_split_mode,
         progress_callback=progress_callback,
     )
-    dataset_summary = summarize_calibration_splits(splits)
+    dataset_summary = summarize_calibration_splits(
+        splits,
+        structure_split_mode=config.structure_split_mode,
+    )
 
     models = (
         ("anchor", "linear_same_input", False),
@@ -249,12 +258,17 @@ def run_integral_calibration_experiment(
 
 def summarize_calibration_splits(
     splits: dict[str, IntegralParitySplit],
+    *,
+    structure_split_mode: str = "random-disjoint",
 ) -> dict[str, Any]:
     required = {"train", "validation", "calibration", "test", "stability"}
     if set(splits) != required:
         raise ValueError(f"calibration splits must be {sorted(required)}")
     main = {name: split for name, split in splits.items() if name != "stability"}
-    summary = summarize_splits(main)
+    summary = summarize_splits(
+        main,
+        structure_split_mode=structure_split_mode,
+    )
     all_key_sets = [set(split.keys) for split in splits.values()]
     all_keys_disjoint = all(
         all_key_sets[left].isdisjoint(all_key_sets[right])
@@ -432,6 +446,7 @@ def _fit_calibrated_model_row(
         "integral_set_size": INTEGRAL_SET_SIZE,
         "input_bits": INPUT_BITS,
         "input_view": "active_output_mask_fixed_context",
+        "structure_split_mode": config.structure_split_mode,
         "key_omitted_from_features": True,
         "fit_train_labels_shuffled": shuffle_labels,
         "parameter_count": int(
@@ -573,6 +588,14 @@ def adjudicate_calibration(
             dataset_summary["structure_splits_disjoint"]
         ),
         "all_key_splits_disjoint": bool(dataset_summary["key_splits_disjoint"]),
+        "geometry_splits_disjoint_when_required": bool(
+            config.structure_split_mode != "geometry-disjoint"
+            or dataset_summary["geometry_splits_disjoint"]
+        ),
+        "one_structure_per_geometry_when_required": bool(
+            config.structure_split_mode != "geometry-disjoint"
+            or dataset_summary["one_structure_per_geometry"]
+        ),
         "stability_structures_match_test": bool(
             dataset_summary["stability_structures_match_test"]
         ),
@@ -603,16 +626,29 @@ def adjudicate_calibration(
     readiness_passed = all(readiness_checks.values())
     if config.gate_mode == "calibration-smoke":
         status = "pass" if readiness_passed else "fail"
-        decision = (
-            "innovation2_integral_calibration_implementation_ready"
-            if readiness_passed
-            else "innovation2_integral_calibration_smoke_invalid"
-        )
-        next_action = (
-            "Run the frozen local E1 calibration and 256-key stability diagnostic."
-            if readiness_passed
-            else "Repair split ownership, calibration, or artifact generation before E1."
-        )
+        if config.structure_split_mode == "geometry-disjoint":
+            decision = (
+                "innovation2_integral_geometry_holdout_implementation_ready"
+                if readiness_passed
+                else "innovation2_integral_geometry_holdout_smoke_invalid"
+            )
+            next_action = (
+                "Run the frozen local E4 geometry-holdout calibration and 256-key "
+                "stability diagnostic."
+                if readiness_passed
+                else "Repair geometry ownership or artifact generation before E4."
+            )
+        else:
+            decision = (
+                "innovation2_integral_calibration_implementation_ready"
+                if readiness_passed
+                else "innovation2_integral_calibration_smoke_invalid"
+            )
+            next_action = (
+                "Run the frozen local E1 calibration and 256-key stability diagnostic."
+                if readiness_passed
+                else "Repair split ownership, calibration, or artifact generation before E1."
+            )
     elif not readiness_passed or not diagnostic_checks["shuffled_auc_near_chance"]:
         status = "fail"
         decision = "innovation2_integral_calibration_invalid_control"
@@ -645,6 +681,7 @@ def adjudicate_calibration(
         "status": status,
         "decision": decision,
         "gate_mode": config.gate_mode,
+        "structure_split_mode": config.structure_split_mode,
         "run_id": config.run_id,
         "readiness_checks": readiness_checks,
         "diagnostic_checks": diagnostic_checks,
@@ -662,7 +699,8 @@ def adjudicate_calibration(
         "next_action": next_action,
         "claim_scope": (
             "local PRESENT r5 independent-calibration and 256-fresh-key "
-            "structure-rate stability diagnostic only"
+            f"structure-rate stability diagnostic with {config.structure_split_mode} "
+            "splits only"
         ),
     }
 
@@ -691,6 +729,10 @@ def _calibration_structure_rate_rows(
         row: dict[str, Any] = {
             "structure_id": structure.structure_id,
             "signature": structure.signature,
+            "geometry_id": structure.geometry_id,
+            "structure_split_mode": test_split.dataset.metadata.get(
+                "structure_split_mode", "random-disjoint"
+            ),
             "active_nibble": structure.active_nibble,
             "output_nibble": structure.output_nibble,
             "output_mask": f"{structure.output_mask:04b}",

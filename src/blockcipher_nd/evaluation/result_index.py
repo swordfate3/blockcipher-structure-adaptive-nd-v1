@@ -146,6 +146,12 @@ DECISION_LABELS = {
     "innovation2_integral_calibration_implementation_ready": (
         "创新2 E1 校准与标签稳定性实现就绪，可进入本地诊断"
     ),
+    "innovation2_integral_geometry_holdout_implementation_ready": (
+        "创新2 E4 几何组合留出实现就绪，可进入本地诊断"
+    ),
+    "innovation2_integral_geometry_holdout_smoke_invalid": (
+        "创新2 E4 几何组合留出实现未就绪，先修复数据所有权或产物链"
+    ),
     "innovation2_integral_calibration_smoke_invalid": (
         "创新2 E1 Smoke 无效，先修校准协议"
     ),
@@ -181,6 +187,12 @@ DECISION_LABELS = {
     ),
     "innovation2_integral_ranking_redesign_representation": (
         "当前结构表示无稳定排序效用，先加入 P-layer 可达性特征"
+    ),
+    "innovation2_integral_geometry_holdout_passed": (
+        "几何组合留出排序效用通过，进入精确积分认证桥接"
+    ),
+    "innovation2_integral_geometry_holdout_not_confirmed": (
+        "几何组合留出未确认，停止扩规模并重设结构表示"
     ),
     "e4_typed_topology_attribution_robust_scratch_efficiency_conditional": (
         "类型拓扑归因稳健，短期 scratch 优势仅条件成立"

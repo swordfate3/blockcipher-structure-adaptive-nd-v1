@@ -48,6 +48,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="cpu")
     parser.add_argument(
+        "--structure-split-mode",
+        choices=("random-disjoint", "geometry-disjoint"),
+        default="random-disjoint",
+    )
+    parser.add_argument(
         "--gate-mode",
         choices=("smoke", "diagnostic", "calibration-smoke", "calibration"),
         default="diagnostic",
@@ -107,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
             weight_decay=args.weight_decay,
             device=args.device,
             gate_mode=args.gate_mode,
+            structure_split_mode=args.structure_split_mode,
         )
     else:
         config = IntegralExperimentConfig(
@@ -126,8 +132,16 @@ def main(argv: list[str] | None = None) -> int:
             weight_decay=args.weight_decay,
             device=args.device,
             gate_mode=args.gate_mode,
+            structure_split_mode=args.structure_split_mode,
         )
-    progress_callback("run_start", {"run_id": args.run_id, "gate_mode": args.gate_mode})
+    progress_callback(
+        "run_start",
+        {
+            "run_id": args.run_id,
+            "gate_mode": args.gate_mode,
+            "structure_split_mode": args.structure_split_mode,
+        },
+    )
     if calibration_mode:
         result = run_integral_calibration_experiment(
             config,
@@ -160,7 +174,11 @@ def main(argv: list[str] | None = None) -> int:
     plot_jsonl_training_curves(
         results_path,
         output_root / "curves.svg",
-        title=_plot_title(args.gate_mode, args.seed),
+        title=_plot_title(
+            args.gate_mode,
+            args.seed,
+            args.structure_split_mode,
+        ),
     )
     write_history_csv(results_path, output_root / "history.csv")
     progress_callback(
@@ -204,7 +222,16 @@ def _write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
-def _plot_title(gate_mode: str, seed: int) -> str:
+def _plot_title(
+    gate_mode: str,
+    seed: int,
+    structure_split_mode: str = "random-disjoint",
+) -> str:
+    if structure_split_mode == "geometry-disjoint":
+        return (
+            "创新2 E4：PRESENT 5轮积分候选几何组合留出"
+            f"（{gate_mode}，seed {seed}）"
+        )
     if gate_mode.startswith("calibration"):
         return (
             "创新2 E1：PRESENT 5轮积分平衡概率独立校准与标签稳定性"

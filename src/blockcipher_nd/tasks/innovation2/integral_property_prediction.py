@@ -23,6 +23,8 @@ MASK_BITS = 15
 CONTEXT_BITS = 64
 INPUT_BITS = POSITION_BITS + POSITION_BITS + MASK_BITS + CONTEXT_BITS
 INTEGRAL_SET_SIZE = 16
+GEOMETRY_COUNT = POSITION_BITS * POSITION_BITS * MASK_BITS
+STRUCTURE_SPLIT_MODES = {"random-disjoint", "geometry-disjoint"}
 
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
@@ -53,6 +55,13 @@ class IntegralStructure:
         return (
             f"a{self.active_nibble:02d}-o{self.output_nibble:02d}-"
             f"m{self.output_mask:X}-p{self.fixed_plaintext:016X}"
+        )
+
+    @property
+    def geometry_id(self) -> str:
+        return (
+            f"a{self.active_nibble:02d}-o{self.output_nibble:02d}-"
+            f"m{self.output_mask:X}"
         )
 
     def feature_vector(self) -> np.ndarray:
@@ -105,6 +114,7 @@ class IntegralExperimentConfig:
     weight_decay: float = 1e-4
     device: str = "cpu"
     gate_mode: str = "diagnostic"
+    structure_split_mode: str = "random-disjoint"
 
     def __post_init__(self) -> None:
         for name in (
@@ -124,6 +134,10 @@ class IntegralExperimentConfig:
             raise ValueError("the frozen feasibility protocol requires PRESENT r5")
         if self.gate_mode not in {"smoke", "diagnostic"}:
             raise ValueError("gate_mode must be smoke or diagnostic")
+        if self.structure_split_mode not in STRUCTURE_SPLIT_MODES:
+            raise ValueError(
+                "structure_split_mode must be random-disjoint or geometry-disjoint"
+            )
 
 
 class LinearParityPredictor(nn.Module):
@@ -158,6 +172,7 @@ def build_integral_split(
     key_count: int,
     structure_seed: int,
     key_seed: int,
+    structure_split_mode: str = "random-disjoint",
     progress_callback: ProgressCallback | None = None,
 ) -> IntegralParitySplit:
     structures = make_structures(
@@ -171,6 +186,7 @@ def build_integral_split(
         rounds=rounds,
         structures=structures,
         keys=keys,
+        structure_split_mode=structure_split_mode,
         progress_callback=progress_callback,
     )
 
@@ -181,6 +197,7 @@ def build_integral_split_from_structures(
     rounds: int,
     structures: tuple[IntegralStructure, ...],
     keys: tuple[int, ...],
+    structure_split_mode: str = "random-disjoint",
     progress_callback: ProgressCallback | None = None,
 ) -> IntegralParitySplit:
     structure_count = len(structures)
@@ -241,6 +258,7 @@ def build_integral_split_from_structures(
             "input_bits": INPUT_BITS,
             "integral_set_size": INTEGRAL_SET_SIZE,
             "key_omitted_from_features": True,
+            "structure_split_mode": structure_split_mode,
         },
     )
     _emit(
@@ -297,6 +315,71 @@ def make_structures(
     return tuple(structures)
 
 
+def make_structure_splits(
+    *,
+    split_counts: dict[str, int],
+    seed: int,
+    structure_split_mode: str,
+    random_seed_offsets: dict[str, int],
+) -> dict[str, tuple[IntegralStructure, ...]]:
+    if structure_split_mode not in STRUCTURE_SPLIT_MODES:
+        raise ValueError(
+            "structure_split_mode must be random-disjoint or geometry-disjoint"
+        )
+    if set(split_counts) != set(random_seed_offsets):
+        raise ValueError("split counts and random seed offsets must have the same keys")
+    if any(count <= 0 for count in split_counts.values()):
+        raise ValueError("all structure split counts must be positive")
+    if structure_split_mode == "random-disjoint":
+        return {
+            name: make_structures(
+                count=count,
+                seed=seed + random_seed_offsets[name],
+                prefix=name,
+            )
+            for name, count in split_counts.items()
+        }
+
+    total = sum(split_counts.values())
+    if total > GEOMETRY_COUNT:
+        raise ValueError(
+            f"geometry-disjoint splits request {total} geometries, "
+            f"but only {GEOMETRY_COUNT} exist"
+        )
+    rng = np.random.default_rng(seed + 1201)
+    geometry_indices = rng.choice(GEOMETRY_COUNT, size=total, replace=False)
+    result: dict[str, tuple[IntegralStructure, ...]] = {}
+    offset = 0
+    for name, count in split_counts.items():
+        structures: list[IntegralStructure] = []
+        for local_index, geometry_index_value in enumerate(
+            geometry_indices[offset : offset + count]
+        ):
+            geometry_index = int(geometry_index_value)
+            active_nibble, remainder = divmod(
+                geometry_index,
+                POSITION_BITS * MASK_BITS,
+            )
+            output_nibble, mask_index = divmod(remainder, MASK_BITS)
+            output_mask = mask_index + 1
+            fixed_plaintext = int(
+                rng.integers(0, 1 << 64, dtype=np.uint64)
+            )
+            fixed_plaintext &= ~(0xF << (4 * active_nibble))
+            structures.append(
+                IntegralStructure(
+                    structure_id=f"{name}-{local_index:06d}",
+                    active_nibble=active_nibble,
+                    output_nibble=output_nibble,
+                    output_mask=output_mask,
+                    fixed_plaintext=fixed_plaintext,
+                )
+            )
+        result[name] = tuple(structures)
+        offset += count
+    return result
+
+
 def make_keys(*, count: int, seed: int) -> tuple[int, ...]:
     rng = np.random.default_rng(seed)
     keys: list[int] = []
@@ -319,27 +402,32 @@ def run_integral_property_experiment(
 ) -> dict[str, Any]:
     split_specs = (
         ("train", config.train_structures, config.train_keys, 101, 201),
-        (
-            "validation",
-            config.validation_structures,
-            config.validation_keys,
-            301,
-            401,
-        ),
+        ("validation", config.validation_structures, config.validation_keys, 301, 401),
         ("test", config.test_structures, config.test_keys, 501, 601),
     )
+    structures_by_split = make_structure_splits(
+        split_counts={name: structures for name, structures, _, _, _ in split_specs},
+        seed=config.seed,
+        structure_split_mode=config.structure_split_mode,
+        random_seed_offsets={
+            name: structure_offset
+            for name, _, _, structure_offset, _ in split_specs
+        },
+    )
     splits: dict[str, IntegralParitySplit] = {}
-    for name, structures, keys, structure_offset, key_offset in split_specs:
-        splits[name] = build_integral_split(
+    for name, _, keys, _, key_offset in split_specs:
+        splits[name] = build_integral_split_from_structures(
             name=name,
             rounds=config.rounds,
-            structure_count=structures,
-            key_count=keys,
-            structure_seed=config.seed + structure_offset,
-            key_seed=config.seed + key_offset,
+            structures=structures_by_split[name],
+            keys=make_keys(count=keys, seed=config.seed + key_offset),
+            structure_split_mode=config.structure_split_mode,
             progress_callback=progress_callback,
         )
-    dataset_summary = summarize_splits(splits)
+    dataset_summary = summarize_splits(
+        splits,
+        structure_split_mode=config.structure_split_mode,
+    )
     models = (
         ("anchor", "linear_same_input", False),
         ("candidate", "structure_mlp", False),
@@ -375,16 +463,36 @@ def run_integral_property_experiment(
     }
 
 
-def summarize_splits(splits: dict[str, IntegralParitySplit]) -> dict[str, Any]:
+def summarize_splits(
+    splits: dict[str, IntegralParitySplit],
+    *,
+    structure_split_mode: str = "random-disjoint",
+) -> dict[str, Any]:
     structure_sets = {
         name: {structure.signature for structure in split.structures}
         for name, split in splits.items()
     }
     key_sets = {name: set(split.keys) for name, split in splits.items()}
+    geometry_sets = {
+        name: {structure.geometry_id for structure in split.structures}
+        for name, split in splits.items()
+    }
     structure_disjoint = _three_way_disjoint(structure_sets)
     key_disjoint = _three_way_disjoint(key_sets)
+    geometry_disjoint = _three_way_disjoint(geometry_sets)
+    one_structure_per_geometry = all(
+        len(geometry_sets[name]) == len(split.structures)
+        for name, split in splits.items()
+    )
+    geometry_required = structure_split_mode == "geometry-disjoint"
+    valid = (
+        structure_disjoint
+        and key_disjoint
+        and (not geometry_required or geometry_disjoint)
+        and (not geometry_required or one_structure_per_geometry)
+    )
     summary: dict[str, Any] = {
-        "status": "pass" if structure_disjoint and key_disjoint else "fail",
+        "status": "pass" if valid else "fail",
         "task": "innovation2_integral_property_prediction",
         "cipher": "PRESENT-80",
         "rounds": 5,
@@ -392,6 +500,9 @@ def summarize_splits(splits: dict[str, IntegralParitySplit]) -> dict[str, Any]:
         "integral_set_size": INTEGRAL_SET_SIZE,
         "structure_splits_disjoint": structure_disjoint,
         "key_splits_disjoint": key_disjoint,
+        "structure_split_mode": structure_split_mode,
+        "geometry_splits_disjoint": geometry_disjoint,
+        "one_structure_per_geometry": one_structure_per_geometry,
         "splits": {},
     }
     for name, split in splits.items():
@@ -411,6 +522,8 @@ def summarize_splits(splits: dict[str, IntegralParitySplit]) -> dict[str, Any]:
                     & (split.observed_q1_rates < 1.0)
                 )
             ),
+            "geometry_count": len(geometry_sets[name]),
+            "geometry_ids": sorted(geometry_sets[name]),
             "keys": [f"{key:020X}" for key in split.keys],
         }
     return summary
@@ -521,6 +634,7 @@ def _fit_model_row(
         "integral_set_size": INTEGRAL_SET_SIZE,
         "input_bits": INPUT_BITS,
         "input_view": "active_output_mask_fixed_context",
+        "structure_split_mode": config.structure_split_mode,
         "key_omitted_from_features": True,
         "fit_train_labels_shuffled": shuffle_labels,
         "parameter_count": int(
@@ -627,6 +741,14 @@ def adjudicate(
             dataset_summary["structure_splits_disjoint"]
         ),
         "key_splits_disjoint": bool(dataset_summary["key_splits_disjoint"]),
+        "geometry_splits_disjoint_when_required": bool(
+            config.structure_split_mode != "geometry-disjoint"
+            or dataset_summary["geometry_splits_disjoint"]
+        ),
+        "one_structure_per_geometry_when_required": bool(
+            config.structure_split_mode != "geometry-disjoint"
+            or dataset_summary["one_structure_per_geometry"]
+        ),
         "all_splits_have_both_labels": split_has_both_labels,
         "all_metrics_finite": finite_metrics,
         "three_model_rows_present": len(rows) == 3,
@@ -696,6 +818,7 @@ def adjudicate(
         "status": status,
         "decision": decision,
         "gate_mode": config.gate_mode,
+        "structure_split_mode": config.structure_split_mode,
         "run_id": config.run_id,
         "readiness_checks": readiness_checks,
         "diagnostic_checks": diagnostic_checks,
@@ -713,7 +836,7 @@ def adjudicate(
         "next_action": next_action,
         "claim_scope": (
             "local PRESENT r5 structure-conditioned omitted-key integral parity "
-            "probability diagnostic only"
+            f"probability diagnostic with {config.structure_split_mode} splits only"
         ),
     }
 
@@ -728,6 +851,10 @@ def _structure_rate_rows(
             "split": split.name,
             "structure_id": structure.structure_id,
             "signature": structure.signature,
+            "geometry_id": structure.geometry_id,
+            "structure_split_mode": split.dataset.metadata.get(
+                "structure_split_mode", "random-disjoint"
+            ),
             "active_nibble": structure.active_nibble,
             "output_nibble": structure.output_nibble,
             "output_mask": f"{structure.output_mask:04b}",
