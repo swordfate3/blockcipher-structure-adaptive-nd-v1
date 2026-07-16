@@ -8,6 +8,9 @@ set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 set RUN_ID=i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716
 set TASK_NAME=I2_PRESENT_R8_PAPER_REFERENCE_2POW21_SEED0_GPU0
+set GIT_CONFIG_COUNT=1
+set GIT_CONFIG_KEY_0=safe.directory
+set GIT_CONFIG_VALUE_0=G:/lxy/blockcipher-structure-adaptive-nd-runs/%RUN_ID%/source
 set SOURCE_COMMIT=%~1
 if "%SOURCE_COMMIT%"=="" exit /b 2
 
@@ -26,7 +29,6 @@ if exist "%SOURCE_ROOT%\.git" (
   git clone --no-checkout "%REPO_URL%" "%SOURCE_ROOT%" || exit /b 1
 )
 cd /d "%SOURCE_ROOT%" || exit /b 1
-git config --global --add safe.directory G:/lxy/blockcipher-structure-adaptive-nd-runs/%RUN_ID%/source
 git checkout --detach "%SOURCE_COMMIT%" || exit /b 1
 for /f "delims=" %%S in ('git status --porcelain') do exit /b 1
 for /f "delims=" %%H in ('git rev-parse HEAD') do set ACTUAL_COMMIT=%%H

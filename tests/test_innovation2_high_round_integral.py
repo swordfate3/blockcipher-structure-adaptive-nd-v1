@@ -797,6 +797,13 @@ def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> Non
     assert "!" not in run_script + launch_script
     assert "for /f \"delims=\" %%S in ('git status --porcelain')" not in run_script
     assert 'if not "%%~zA"=="0" goto dirty_source' in run_script
+    assert "git config --global" not in launch_script
+    assert "set GIT_CONFIG_COUNT=1" in launch_script
+    assert "set GIT_CONFIG_KEY_0=safe.directory" in launch_script
+    assert (
+        "set GIT_CONFIG_VALUE_0=G:/lxy/blockcipher-structure-adaptive-nd-"
+        "runs/%RUN_ID%/source"
+    ) in launch_script
     assert 'cmd.exe /c %RUN_CMD% 0' in launch_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in (
         run_script + launch_script
