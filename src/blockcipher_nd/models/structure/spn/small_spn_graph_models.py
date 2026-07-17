@@ -6,6 +6,10 @@ import numpy as np
 import torch
 from torch import nn
 
+from blockcipher_nd.models.structure.spn.small_spn_topology_controls import (
+    topology_players,
+)
+
 
 @dataclass(frozen=True)
 class SmallSpnModelSpec:
@@ -21,8 +25,8 @@ class SmallSpnModelSpec:
     def __post_init__(self) -> None:
         if self.model_name not in {"graphgps", "scgt"}:
             raise ValueError("model_name must be graphgps or scgt")
-        if self.topology_mode not in {"true", "shuffled"}:
-            raise ValueError("topology_mode must be true or shuffled")
+        if self.topology_mode not in {"true", "shuffled", "corrupted"}:
+            raise ValueError("topology_mode must be true, shuffled, or corrupted")
         if self.position_mode not in {"absolute", "cell_equivariant"}:
             raise ValueError("position_mode must be absolute or cell_equivariant")
         if self.processor_mode not in {"stacked", "round_shared"}:
@@ -125,9 +129,7 @@ class SmallSpnTopologyPredictor(nn.Module):
         self.spec = spec
         hidden_dim = spec.hidden_dim
         truth_bits = _truth_table_bits(sboxes)
-        player_array = np.asarray(players, dtype=np.int64)
-        if spec.topology_mode == "shuffled":
-            player_array = np.roll(player_array, shift=1, axis=0)
+        player_array = topology_players(players, spec.topology_mode)
         inverse = np.argsort(player_array, axis=1)
         self.register_buffer("sbox_truth_bits", torch.from_numpy(truth_bits))
         self.register_buffer("players", torch.from_numpy(player_array.copy()))

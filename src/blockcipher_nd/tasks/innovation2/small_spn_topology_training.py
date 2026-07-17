@@ -17,6 +17,10 @@ from blockcipher_nd.models.structure.spn.small_spn_graph_models import (
     SmallSpnModelSpec,
     SmallSpnTopologyPredictor,
 )
+from blockcipher_nd.models.structure.spn.small_spn_edge_token_models import (
+    SmallSpnCipherEdgeTokenTransformer,
+    SmallSpnEdgeTokenSpec,
+)
 from blockcipher_nd.tasks.innovation2.small_spn_exact_labels import (
     SmallSpnAuditConfig,
     _binary_auc,
@@ -191,25 +195,40 @@ def train_topology_row(
 ) -> dict[str, Any]:
     _seed_everything(row_spec.seed)
     device = torch.device(config.device)
-    model_spec = SmallSpnModelSpec(
-        model_name=row_spec.model_name,
-        topology_mode=row_spec.topology_mode,
-        position_mode=row_spec.position_mode,
-        processor_mode=row_spec.processor_mode,
-        hidden_dim=config.hidden_dim,
-        blocks=config.blocks,
-        heads=config.heads,
-        dropout=config.dropout,
-    )
-    model = SmallSpnTopologyPredictor(
-        model_spec,
-        sboxes=data["sboxes"],
-        players=data["players"],
-        structure_active_bits=data["structure_active"],
-        structure_basis=data["structure_basis"],
-        structure_basis_valid=data["structure_basis_valid"],
-        output_mask_bits=data["output_mask_bits"],
-    ).to(device)
+    if row_spec.model_name == "cett":
+        model = SmallSpnCipherEdgeTokenTransformer(
+            SmallSpnEdgeTokenSpec(
+                topology_mode=row_spec.topology_mode,
+                hidden_dim=config.hidden_dim,
+                layers=config.blocks,
+                heads=config.heads,
+                dropout=config.dropout,
+            ),
+            sboxes=data["sboxes"],
+            players=data["players"],
+            structure_active_bits=data["structure_active"],
+            output_mask_bits=data["output_mask_bits"],
+        ).to(device)
+    else:
+        model_spec = SmallSpnModelSpec(
+            model_name=row_spec.model_name,
+            topology_mode=row_spec.topology_mode,
+            position_mode=row_spec.position_mode,
+            processor_mode=row_spec.processor_mode,
+            hidden_dim=config.hidden_dim,
+            blocks=config.blocks,
+            heads=config.heads,
+            dropout=config.dropout,
+        )
+        model = SmallSpnTopologyPredictor(
+            model_spec,
+            sboxes=data["sboxes"],
+            players=data["players"],
+            structure_active_bits=data["structure_active"],
+            structure_basis=data["structure_basis"],
+            structure_basis_valid=data["structure_basis_valid"],
+            output_mask_bits=data["output_mask_bits"],
+        ).to(device)
     train_arrays = _example_arrays(
         data["labels"], data["split_indices"]["train"], data["fit_cells"]
     )

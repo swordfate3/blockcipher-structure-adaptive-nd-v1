@@ -464,6 +464,16 @@ edge-edge/query-edge交互是否是当前neighbor-gather模型缺失的能力。
 和label-shuffle继续冻结；若仍不超过错误拓扑，停止该合成benchmark上的网络架构搜索，
 回到标签族和任务定义审计。
 
+E35的首次wrong-P实现随后被审计为协议无效：跨variant roll把heldout P3换成train-seen
+P2，不能作为同难度控制。E35b使用固定destination-cell rotation保持每个variant/P-family
+身份后从头重跑。CETT true、公平控制和label-shuffle的dual均值为
+`0.671767/0.664944/0.484934`；true只领先公平控制`0.006823`且低于ID边际`0.054761`。
+
+因此当前合成SPN上的神经架构搜索关闭，真实密码迁移继续关闭。下一步是E36不训练审计：
+验证matched标签是否具有足够的P-layer条件敏感性和组外正负宽度。若标签门不过，应更换
+标签族、候选提供者或任务定义，不能继续用更多神经网络结构掩盖benchmark不可识别性。
+
+
 ## 当前神经训练开放门
 
 下一次神经训练必须同时满足以下条件：

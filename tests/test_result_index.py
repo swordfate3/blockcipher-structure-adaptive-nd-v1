@@ -423,6 +423,51 @@ def test_result_index_labels_innovation2_small_spn_round_shared_reasoner(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_cipher_edge_token(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_cipher_edge_token_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_small_spn_cipher_edge_token_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E35：Cipher Edge-Token Transformer两seed归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "edge-token模型未过冻结门，关闭合成架构搜索并返回标签任务设计"
+    )
+
+
+def test_result_index_names_innovation2_small_spn_cipher_edge_token_fair_control(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_cipher_edge_token_fair_control_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_small_spn_cipher_edge_token_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E35b：Cipher Edge-Token Transformer公平控制重裁决"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

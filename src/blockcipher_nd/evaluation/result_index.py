@@ -602,6 +602,21 @@ DECISION_LABELS = {
     "innovation2_small_spn_round_shared_protocol_invalid": (
         "共享可变步数、cell等变、来源、split或metric协议无效"
     ),
+    "innovation2_small_spn_cipher_edge_token_readiness_passed": (
+        "Cipher Edge-Token Transformer与cell不变性就绪，可运行冻结两seed矩阵"
+    ),
+    "innovation2_small_spn_cipher_edge_token_confirmed": (
+        "显式edge-token模型超过边际与错误P-layer，可准备真实密码迁移readiness"
+    ),
+    "innovation2_small_spn_cipher_edge_token_not_attributed": (
+        "edge-token收益未归因于真实P-layer，关闭合成神经拓扑路线"
+    ),
+    "innovation2_small_spn_cipher_edge_token_not_ready": (
+        "edge-token模型未过冻结门，关闭合成架构搜索并返回标签任务设计"
+    ),
+    "innovation2_small_spn_cipher_edge_token_protocol_invalid": (
+        "edge tokenization、cell不变性、来源、split或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1049,6 +1064,14 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E34：共享轮处理器就绪smoke"
     if run_id == "i2_small_spn_round_shared_reasoner_seed0_seed1_20260718":
         return "创新2 E34：共享轮处理器两seed拓扑归因"
+    if run_id == "i2_small_spn_cipher_edge_token_smoke_seed0_20260718":
+        return "创新2 E35：Cipher Edge-Token Transformer就绪smoke"
+    if run_id == "i2_small_spn_cipher_edge_token_seed0_seed1_20260718":
+        return "创新2 E35：Cipher Edge-Token Transformer两seed归因"
+    if run_id == "i2_small_spn_cipher_edge_token_fair_control_smoke_seed0_20260718":
+        return "创新2 E35b：Cipher Edge-Token Transformer公平控制就绪smoke"
+    if run_id == "i2_small_spn_cipher_edge_token_fair_control_seed0_seed1_20260718":
+        return "创新2 E35b：Cipher Edge-Token Transformer公平控制重裁决"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

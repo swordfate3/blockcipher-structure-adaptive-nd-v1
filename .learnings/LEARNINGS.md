@@ -68,6 +68,53 @@ completeness.
 
 ---
 
+## [LRN-20260718-001] correction
+
+**Logged**: 2026-07-18T03:40:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+Group-disjoint topology controls must preserve heldout family identity; rolling the variant axis can replace heldout topology with a train-seen family and invalidate attribution.
+
+### Details
+Innovation 2 E33--E35 used `np.roll(player_array, shift=1, axis=0)` for the
+wrong-P-layer control. Variants are ordered by S-box then P-layer, while train
+uses `P0..P2` and unseen-P/dual-unseen use `P3`. The roll therefore maps every
+heldout `P3` to train-seen `P2`, and maps each group's `P0` to `P3`. The control
+changes both topology correctness and distribution difficulty. Its high AUC
+cannot be interpreted as evidence that the model prefers wrong topology.
+
+The candidate's failure against the independent ID marginal remains raw
+evidence, but true-minus-rolled-control deltas and topology-attribution gates
+are protocol-invalid until a same-family control is run.
+
+### Suggested Action
+For group-disjoint graph controls, transform each row's own topology with the
+same fixed nontrivial corruption, such as destination composition, and assert
+that heldout-family controls do not equal any train-family topology. Freeze
+labels, splits, and all other inputs. Add a regression test for family identity
+before training and reclassify affected gates as protocol-invalid rather than
+interpreting biased control metrics.
+
+### Metadata
+- Source: self_correction, experiment_audit
+- Related Files: src/blockcipher_nd/models/structure/spn/small_spn_topology_controls.py, docs/experiments/innovation2-small-spn-cipher-edge-token-fair-control-plan.md
+- Tags: innovation2, topology-control, heldout, distribution-shift, attribution, protocol
+- See Also: LRN-20260717-001, LRN-20260717-003
+- Pattern-Key: research.controls.preserve_heldout_family_identity
+- Recurrence-Count: 1
+- First-Seen: 2026-07-18
+- Last-Seen: 2026-07-18
+
+### Resolution
+- **Resolved**: 2026-07-18T03:55:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added a family-preserving destination-corruption control, regression checks, reclassified the rolled-control run as protocol-invalid, and completed an independent fair-control rerun.
+
+---
+
 ## [LRN-20260717-001] correction
 
 **Logged**: 2026-07-17T12:20:00+08:00

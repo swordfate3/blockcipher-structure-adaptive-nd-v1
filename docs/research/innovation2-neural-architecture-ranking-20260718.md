@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：架构调研完成 / E33、E33-R与E34均未过拓扑归因门 / typed edge-token Transformer为下一候选 / 真实密码训练未开放
+状态：E33--E35b架构审判完成 / 当前合成神经架构搜索关闭 / 下一步审计标签可识别性 / 真实密码训练未开放
 
 ## 1. 结论先行
 
@@ -274,3 +274,18 @@ token的思想，但不采用大型通用框架：16个bit node、16个有向P-l
 relation和1个mask query组成固定小token集。候选的关键增量是让P-layer边成为显式对象，
 支持edge-edge和query-edge交互；这与GraphGPS的neighbor gather是不同关系算子。仍必须
 通过cell重标号不变性、错误P-layer和label-shuffle门，失败后关闭该合成神经拓扑路线。
+
+E35首次运行后发现控制协议错误：跨variant `np.roll`把所有heldout P3替换成train-seen
+P2，使rolled-P dual虚高到`0.822889`。该run已重分类为protocol-invalid，不能用
+`true-wrong`差值做拓扑结论。
+
+E35b改用每个variant自身P-layer的固定destination-cell rotation，明确保持heldout
+P-family身份。公平重跑中，CETT true/fair-control/label-shuffle的dual均值分别为
+`0.671767/0.664944/0.484934`。true只领先公平控制`0.006823`，且低于ID边际
+`0.054761`；两seed均未过基线。CETT有效失败，当前合成benchmark上的GraphGPS、SCGT、
+looped reasoner和edge-token架构搜索关闭。
+
+下一步不再排名新网络名称，而是E36拓扑标签可识别性审计：量化固定S-box下P0--P3的
+标签翻转、P-layer interaction宽度、train-only matched cell中的P敏感比例，以及这些
+信号在unseen-P/dual拆分是否仍有正负支持。只有标签本身先过因果敏感性与公平控制门，
+才允许设计新的benchmark或恢复神经模型比较。
