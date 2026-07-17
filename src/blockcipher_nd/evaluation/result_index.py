@@ -392,6 +392,15 @@ DECISION_LABELS = {
     "innovation2_skinny_r7_hwang_protocol_invalid": (
         "SKINNY向量、缓存、拆分或GF(2)协议无效"
     ),
+    "innovation2_skinny_r8_hwang_kernel_reproduced": (
+        "SKINNY-64/64 8轮 two-active-cell 一维 kernel 已精确复现"
+    ),
+    "innovation2_skinny_r8_hwang_kernel_not_reproduced": (
+        "SKINNY 8轮论文 kernel 未完整复现，先审计协议"
+    ),
+    "innovation2_skinny_r8_hwang_protocol_invalid": (
+        "SKINNY向量、密钥所有权、缓存或GF(2)协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -793,6 +802,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E19：PRESENT 7轮跨密钥输出平衡概率审计"
     if run_id == "i2_skinny64_r7_hwang_kernel_readiness_768keys_seed0_20260717":
         return "创新2 E20：SKINNY-64/64 7轮 Hwang exact-kernel 就绪审计"
+    if run_id == "i2_skinny64_r8_hwang_kernel_readiness_768keys_seed0_20260717":
+        return "创新2 E21：SKINNY-64/64 8轮 two-active-cell kernel 就绪审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

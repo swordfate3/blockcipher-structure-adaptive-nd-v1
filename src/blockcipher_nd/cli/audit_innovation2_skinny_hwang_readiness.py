@@ -126,6 +126,13 @@ def render_skinny_hwang_svg(
     rows: list[dict[str, Any]],
     gate: dict[str, Any],
     output_path: Path,
+    *,
+    experiment_code: str = "E20",
+    rounds: int = 7,
+    target_label: str = "cell15",
+    control_label: str = "cell0",
+    expected_rank: int = 46,
+    expected_nullity: int = 18,
 ) -> None:
     by_role = {str(row["role"]): row for row in rows}
     target = by_role["target"]
@@ -164,7 +171,7 @@ def render_skinny_hwang_svg(
             wspace=0.28,
         )
         figure.suptitle(
-            "创新2 E20：SKINNY-64/64 7轮论文 kernel 协议复现",
+            f"创新2 {experiment_code}：SKINNY-64/64 {rounds}轮论文 kernel 协议复现",
             x=0.07,
             y=0.965,
             ha="left",
@@ -174,7 +181,10 @@ def render_skinny_hwang_svg(
         figure.text(
             0.07,
             0.89,
-            "同一组768把密钥：目标为活动 cell15，控制为活动 cell0；raw 64-bit parity，MSB-first。",
+            (
+                f"同一组768把密钥：目标为活动 {target_label}，控制为活动 "
+                f"{control_label}；raw 64-bit parity，MSB-first。"
+            ),
             ha="left",
             va="top",
             fontsize=10.0,
@@ -186,21 +196,21 @@ def render_skinny_hwang_svg(
             target_ranks,
             width,
             color="#2563EB",
-            label="目标 cell15",
+            label=f"目标 {target_label}",
         )
         rank_control_bars = rank_axis.bar(
             positions + width / 2,
             control_ranks,
             width,
             color="#64748B",
-            label="控制 cell0",
+            label=f"控制 {control_label}",
         )
         rank_axis.axhline(
-            46,
+            expected_rank,
             color="#D97706",
             linestyle="--",
             linewidth=1.2,
-            label="论文目标 rank=46",
+            label=f"论文目标 rank={expected_rank}",
         )
         rank_axis.bar_label(rank_target_bars, padding=3, fontsize=9)
         rank_axis.bar_label(rank_control_bars, padding=3, fontsize=9)
@@ -225,28 +235,28 @@ def render_skinny_hwang_svg(
             target_nullities,
             width,
             color="#059669",
-            label="目标 cell15",
+            label=f"目标 {target_label}",
         )
         nullity_control_bars = nullity_axis.bar(
             positions + width / 2,
             control_nullities,
             width,
             color="#64748B",
-            label="控制 cell0",
+            label=f"控制 {control_label}",
         )
         nullity_axis.axhline(
-            18,
+            expected_nullity,
             color="#D97706",
             linestyle="--",
             linewidth=1.2,
-            label="论文目标 nullity=18",
+            label=f"论文目标 nullity={expected_nullity}",
         )
         nullity_axis.bar_label(nullity_target_bars, padding=3, fontsize=9)
         nullity_axis.bar_label(nullity_control_bars, padding=3, fontsize=9)
         nullity_axis.set_title("经验输出 balance space 维数", loc="left", fontweight="bold")
         nullity_axis.set_ylabel("kernel 维数 / nullity")
         nullity_axis.set_xticks(positions, split_labels)
-        nullity_axis.set_ylim(0, 22)
+        nullity_axis.set_ylim(0, max(2.5, expected_nullity * 1.22))
         nullity_axis.grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
         nullity_handles, nullity_labels = nullity_axis.get_legend_handles_labels()
         figure.legend(
@@ -273,6 +283,15 @@ def render_skinny_hwang_svg(
             ),
             "innovation2_skinny_r7_hwang_protocol_invalid": (
                 "密码向量、缓存、拆分或 GF(2) 协议无效"
+            ),
+            "innovation2_skinny_r8_hwang_kernel_reproduced": (
+                "cells14+15 的一维 span 精确复现，cells0+1 控制未复现"
+            ),
+            "innovation2_skinny_r8_hwang_kernel_not_reproduced": (
+                "8轮论文 kernel 签名未完整复现，先审计协议"
+            ),
+            "innovation2_skinny_r8_hwang_protocol_invalid": (
+                "密码向量、缓存、密钥所有权或 GF(2) 协议无效"
             ),
         }
         figure.text(
