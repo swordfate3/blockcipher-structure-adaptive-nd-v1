@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** E0-E6 r5 先导实验完成但被位置先验解释 / PRESENT 与 SKINNY kernel 标签族暂缓 / SPECK E25-E26 精确复现通过 / E27 仅得到两个同kernel低word正位置 / 下一门E27-N拓扑对齐对照 / 神经训练尚未开放
+**状态：** E0-E6 r5收益被位置先验解释 / PRESENT、SKINNY坐标标签族暂缓 / SPECK E25-E26精确复现但E27-N拓扑族无命中并停止 / 下一门E30仿射子空间benchmark审计 / 神经训练尚未开放
 
 ## 一句话创新
 
@@ -386,6 +386,19 @@ E27 的最终结果正好落入该边界：只有 `{5,6}` 与 `{6,7}` 在完整6
 SPECK真实 `ROR7(x)+y` lane关系定义的16个跨word pair，并用 offset-minus-one
 的16个pair作同预算控制。只有真实拓扑 family 明确超过错位控制，才继续
 构造多mask标签；否则停止 SPECK 固定pair路线。
+
+E27-N 已完成该停止审判。真实 `{y_i,x_(i+7)}` 与错位
+`{y_i,x_(i+6)}` 两组各16个pair在同一8把Phase C筛选密钥上均为 `0/16`
+命中；没有候选进入64-key补全。本地对256个 `2^30` 精确枚举行的缓存、计时、
+密钥、Phase C冻结SHA和GF(2)裁决重算全部通过。因此SPECK固定pair路线已停止，
+不得继续扫描其他offset或把E25论文锚点复制成神经训练标签。
+
+这一结果连同PRESENT坐标context捷径和SKINNY坐标位置族过窄，说明下一个benchmark
+不能继续只枚举“哪些坐标bit/cell活动”。E30转向文献允许的一般线性/仿射输入子空间：
+在PRESENT-80 7轮固定16维、`64+64`密钥预算和完整输出parity，只改变子空间orientation，
+先判断是否形成跨密钥稳定且多样的joint kernel。该路线与Carlet等对k维affine space
+积分传播的形式化对象一致，但本项目仍只把有限密钥kernel当经验标签readiness；
+不会把它写成确定性证明，也不会在标签宽度与组外捷径门之前训练网络。
 
 ## 当前神经训练开放门
 

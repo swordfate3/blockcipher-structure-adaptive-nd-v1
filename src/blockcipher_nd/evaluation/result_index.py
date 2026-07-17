@@ -506,6 +506,18 @@ DECISION_LABELS = {
     "innovation2_speck_topology_pair_protocol_invalid": (
         "SPECK拓扑pair映射、密钥、缓存、计时或GF(2)协议无效"
     ),
+    "innovation2_present_linear_subspace_readiness_passed": (
+        "PRESENT 16维线性子空间kernel实现就绪，可运行冻结E30审计"
+    ),
+    "innovation2_present_linear_subspace_kernel_family_ready": (
+        "PRESENT随机orientation形成足够宽的跨密钥稳定kernel族"
+    ),
+    "innovation2_present_linear_subspace_kernel_family_too_sparse": (
+        "PRESENT随机orientation的稳定kernel或签名仍不足"
+    ),
+    "innovation2_present_linear_subspace_protocol_invalid": (
+        "PRESENT线性子空间RREF、密钥、缓存、向量化或GF(2)协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -933,6 +945,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E28：SPECK32/64位置×mask标签宽度与组外捷径审计"
     if run_id == "i2_speck32_hwang_topology_pairs_gpu0_20260717":
         return "创新2 E27-N：SPECK32/64 ROR7模加对齐与错位控制"
+    if run_id == "i2_present_r7_linear_subspace_kernel_diversity_128keys_seed0_20260717":
+        return "创新2 E30：PRESENT-80 7轮16维线性子空间kernel多样性"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

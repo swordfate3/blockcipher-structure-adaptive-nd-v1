@@ -1,7 +1,7 @@
 # 创新2 E25：SPECK32/64 Hwang Table 7 kernel 协议与分块执行就绪计划
 
 日期：2026-07-17
-状态：E27位置族过窄 / E28不执行 / E27-N实现与本地readiness通过 / 待远程精确枚举
+状态：E27-N完成且无screen命中 / SPECK固定pair路线停止 / E28-E29不执行 / 转E30新benchmark审计
 
 ## 1. 路线来源
 
@@ -990,3 +990,70 @@ QA，才能将 `visual_qa_pending.marker` 转为通过标记。
 远程执行门仍保持：只能从精确 pushed commit 启动 run-owned clean clone；GPU缓存、
 日志、archive均位于 `G:\lxy`；结果分支、SHA256、本地独立验证、结果索引和真实图像
 QA全部完成前，不得把 E27-N 报告为完成，也不得启动E28或神经网络训练。
+
+## 19. E27-N 完成结果与最终裁决
+
+E27-N 从精确 pushed commit
+`1f75efa87afa54f63977392b1d4ba1d6f2d1b852` 在远程RTX A6000 GPU0完成，
+并从 verified result branch 回收。本地独立验证结果：
+
+```text
+status = pass
+errors = []
+manifest_verified = true
+phase_c_baselines_verified = true
+source_commit = git_revision = expected_source_commit
+remote_gate_matches_recomputation = true
+timing rows = 256/256
+all cache roles complete = true
+resume rows generated = 0
+```
+
+两组32个跨word pair全部完成8-key精确screen，每行遍历 `2^30` 明文：
+
+```text
+真实ROR7-to-addition对齐：
+  screen命中 = 0 / 16
+  各lane平衡密钥数范围 = 2..7 / 8
+
+offset-minus-one错位控制：
+  screen命中 = 0 / 16
+  各lane平衡密钥数范围 = 1..6 / 8
+
+64-key补全候选 = 0
+total exact rows = 256
+summed row time = 1819.921311秒（约30分20秒）
+max allocated GPU memory = 1073741824 bytes（1 GiB）
+```
+
+最终门控：
+
+```text
+status = hold
+decision = innovation2_speck_topology_pair_no_signal
+true/control screen hits = 0/0
+true/control stable lanes = 0/0
+training = no
+remote_scale = no
+```
+
+这说明论文结构 `{5,6}` 及局部相邻平移 `{6,7}` 的稳定mask不能推广为由首轮
+`ROR7(x)+y` lane关系定义的跨word位置族。根据结果揭晓前冻结的停止门，当前
+SPECK固定pair路线到此结束：不补更多密钥、不扫描其余14个offset、不执行E28/E29，
+也不训练神经网络。该结果只否定当前固定pair标签族，不否定Hwang论文kernel本身；
+E25-E26对论文结构与四种固定值的精确复现仍然成立。
+
+真实 `curves.svg` 已按自然尺寸 `1444x756` 渲染到像素并通过
+`visual-qa-redraw`：中文标题、说明、四类点图例、真实/控制双面板、32个lane、
+8-key阈值、底部指标、停止裁决和证据范围无重叠、裁切、缺字或结构歧义；
+`visual_qa_pending.marker` 已替换为 `visual_qa_passed.marker`。
+
+推荐下一步不是继续位置扫描，而是执行E30新benchmark readiness：在PRESENT-80
+7轮保持每个结构 `2^16` 个明文和 `64+64` 密钥的跨密钥kernel目标，唯一改变输入集合从坐标活动
+cube扩展为确定性采样、RREF去重的16维线性子空间。先审计随机orientation能否形成
+至少8个非平凡、至少4种稳定joint-kernel签名，并与同预算坐标子空间锚点比较；未过门
+则停止该benchmark，不训练。正式计划另见：
+
+```text
+docs/experiments/innovation2-present-r7-affine-subspace-kernel-diversity-plan.md
+```
