@@ -9,6 +9,11 @@ from blockcipher_nd.cli import audit_innovation2_speck_hwang_contexts as cli
 from blockcipher_nd.cli.plot_innovation2_speck_hwang_contexts import (
     main as plot_main,
 )
+from blockcipher_nd.cli import validate_innovation2_speck_hwang_contexts as validator
+from blockcipher_nd.cli.validate_innovation2_speck_hwang_contexts import (
+    main as validate_main,
+    validate_context_archive,
+)
 from blockcipher_nd.tasks.innovation2 import speck_hwang_contexts as contexts
 from blockcipher_nd.tasks.innovation2.integral_subspace_audit import gf2_kernel_basis
 from blockcipher_nd.tasks.innovation2.speck_hwang_contexts import (
@@ -335,6 +340,9 @@ def test_e26_remote_scripts_preserve_cache_and_windows_contracts() -> None:
     monitor = Path(
         "configs/remote/generated/monitor_i2_speck32_hwang_contexts_32plus32_gpu0_20260717.sh"
     ).read_text(encoding="utf-8")
+    postprocess = Path(
+        "configs/remote/generated/postprocess_i2_speck32_hwang_contexts_32plus32_gpu0_20260717.sh"
+    ).read_text(encoding="utf-8")
     assert "cmd.exe /c" in launch
     assert "cmd.exe /k" not in run + launch
     assert "!" not in run + launch
@@ -347,6 +355,12 @@ def test_e26_remote_scripts_preserve_cache_and_windows_contracts() -> None:
     assert "/RU SYSTEM /RL HIGHEST" in launch
     assert "logs/${RUN_ID}_done.marker" in monitor
     assert "sleep 60" in monitor
+    assert "ssh " not in postprocess
+    assert "validate-innovation2-speck-hwang-contexts" in postprocess
+    assert "plot-innovation2-speck-hwang-contexts" in postprocess
+    assert "scripts/index-results" in postprocess
+    assert "visual_qa_pending.marker" in postprocess
+    assert "sleep 30" in postprocess
 
 
 def test_e26_plot_cli_writes_chinese_explanatory_svg(tmp_path) -> None:
@@ -379,3 +393,203 @@ def test_e26_plot_cli_writes_chinese_explanatory_svg(tmp_path) -> None:
     assert "创新2 E26" in svg
     assert "00复用Phase C" in svg
     assert "四种 fixed context" in svg
+
+
+def test_e26_local_validator_recomputes_verified_archive(
+    monkeypatch, tmp_path
+) -> None:
+    source_commit = "9e8f3ea35d2a0b691f702791064e7867247270a2"
+    root = _write_valid_context_archive(
+        monkeypatch, tmp_path, source_commit=source_commit
+    )
+
+    assert (
+        validate_main(
+            [
+                "--artifact-root",
+                str(root),
+                "--expected-source-commit",
+                source_commit,
+            ]
+        )
+        == 0
+    )
+    validation = json.loads((root / "validation.local.json").read_text())
+    gate = json.loads((root / "gate.local.json").read_text())
+    assert validation["status"] == "pass"
+    assert validation["timing_rows"] == 258
+    assert validation["phase_c_baseline_verified"] is True
+    assert validation["errors"] == []
+    assert gate["decision"] == "innovation2_speck_hwang_context_invariant"
+
+
+def test_e26_local_validator_rejects_derived_context_tampering(
+    monkeypatch, tmp_path
+) -> None:
+    source_commit = "9e8f3ea35d2a0b691f702791064e7867247270a2"
+    root = _write_valid_context_archive(
+        monkeypatch, tmp_path, source_commit=source_commit
+    )
+    context_path = root / "context_parity_rows.npy"
+    rows = np.load(context_path)
+    rows[3, 0, 0] ^= np.uint32(1)
+    np.save(context_path, rows)
+
+    validation, gate = validate_context_archive(
+        root, expected_source_commit=source_commit
+    )
+    assert validation["status"] == "fail"
+    assert "derived context11 rows violate the permutation partition identity" in validation[
+        "errors"
+    ]
+    assert gate["status"] == "fail"
+
+
+def _write_valid_context_archive(
+    monkeypatch,
+    tmp_path: Path,
+    *,
+    source_commit: str,
+) -> Path:
+    root = tmp_path / "archive"
+    root.mkdir()
+    config = _config()
+    keys = make_phase_c_keys(config.phase_c_config())
+    context_rows = _invariant_context_rows()
+    direct_rows = context_rows[3, :, :1]
+    result = _evaluate(context_rows)
+    (root / "baseline_phase_c").mkdir()
+    np.save(root / "baseline_phase_c/parity_rows.npy", context_rows[0])
+    np.save(
+        root / "baseline_phase_c/completed.npy",
+        np.ones(context_rows[0].shape, dtype=np.bool_),
+    )
+    phase_c_cache = SpeckParityCacheConfig(
+        run_id=f"{PHASE_C_RUN_ID}:anchor",
+        rounds=(6, 7),
+        keys=keys,
+        active_bits=SPECK32_ACTIVE_BITS,
+        fixed_plaintext=0,
+        chunk_size=config.chunk_size,
+        backend=config.backend,
+        device=config.device,
+    )
+    baseline_metadata_path = root / "baseline_phase_c/metadata.json"
+    baseline_metadata_path.write_text(
+        json.dumps(_cache_metadata(phase_c_cache), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    baseline_parity_hash = hashlib.sha256(
+        (root / "baseline_phase_c/parity_rows.npy").read_bytes()
+    ).hexdigest()
+    baseline_metadata_hash = hashlib.sha256(
+        baseline_metadata_path.read_bytes()
+    ).hexdigest()
+    monkeypatch.setattr(validator, "PHASE_C_PARITY_SHA256", baseline_parity_hash)
+    monkeypatch.setattr(validator, "PHASE_C_METADATA_SHA256", baseline_metadata_hash)
+    result["metadata"]["context00_parity_sha256"] = baseline_parity_hash
+    result["metadata"]["context00_metadata_sha256"] = baseline_metadata_hash
+
+    cache_specs = {
+        "01": (keys, context_rows[1], "01"),
+        "10": (keys, context_rows[2], "10"),
+        "11_direct": (keys[:1], direct_rows, "11"),
+    }
+    for cache_name, (cache_keys, parity_rows, context_value) in cache_specs.items():
+        cache_dir = root / f"cache/context{cache_name}"
+        cache_dir.mkdir(parents=True)
+        cache_config = SpeckParityCacheConfig(
+            run_id=f"{config.run_id}:context{cache_name}",
+            rounds=(6, 7),
+            keys=cache_keys,
+            active_bits=SPECK32_ACTIVE_BITS,
+            fixed_plaintext=fixed_plaintext_for_context(context_value),
+            chunk_size=config.chunk_size,
+            backend=config.backend,
+            device=config.device,
+        )
+        (cache_dir / "metadata.json").write_text(
+            json.dumps(_cache_metadata(cache_config), sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        np.save(cache_dir / "parity_rows.npy", parity_rows)
+        np.save(
+            cache_dir / "completed.npy",
+            np.ones(parity_rows.shape, dtype=np.bool_),
+        )
+
+    np.save(root / "context_parity_rows.npy", context_rows)
+    np.save(root / "direct_context11_rows.npy", direct_rows)
+    (root / "metadata.json").write_text(
+        json.dumps(result["metadata"], sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (root / "gate.json").write_text(
+        json.dumps(result["gate"], sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (root / "summary.json").write_text(
+        json.dumps(
+            {
+                "resume_rows_generated": {"01": 0, "10": 0, "11_direct": 0},
+                "partition_fixture_valid": True,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "results.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in result["rows"]),
+        encoding="utf-8",
+    )
+    (root / "kernel_basis.csv").write_text(
+        "run_id,role,rounds,split,basis_index,mask_hex,mask_weight,basis_valid,context\n",
+        encoding="utf-8",
+    )
+    (root / "keys.csv").write_text(
+        "key_index,split,key_hex\n"
+        + "".join(
+            f"{index},{'discovery' if index < 32 else 'validation'},0x{key:016X}\n"
+            for index, key in enumerate(keys)
+        ),
+        encoding="utf-8",
+    )
+    progress_rows = []
+    for context, rounds_values, key_count in (
+        ("01", (6, 7), 64),
+        ("10", (6, 7), 64),
+        ("11_direct", (6, 7), 1),
+    ):
+        for rounds in rounds_values:
+            for key_index in range(key_count):
+                progress_rows.append(
+                    {
+                        "event": "speck_parity_row_done",
+                        "context": context,
+                        "rounds": rounds,
+                        "key_index": key_index,
+                        "elapsed_seconds": 7.0,
+                        "peak_memory_bytes": 1024,
+                    }
+                )
+    (root / "progress.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in progress_rows),
+        encoding="utf-8",
+    )
+    (root / "source_expected_commit.txt").write_text(
+        source_commit + "\n", encoding="utf-8"
+    )
+    (root / "retrieved_from_verified_result_branch.marker").touch()
+    manifest_files = sorted(
+        path
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.name not in {"SHA256SUMS", "retrieved_from_verified_result_branch.marker"}
+    )
+    (root / "SHA256SUMS").write_text(
+        "".join(
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.relative_to(root).as_posix()}\n"
+            for path in manifest_files
+        ),
+        encoding="utf-8",
+    )
+    return root
