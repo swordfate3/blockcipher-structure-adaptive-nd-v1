@@ -137,10 +137,19 @@ def assignments_to_plaintexts(
 
     fixed_mask = _fixed_mask(active_bits)
     fixed = np.uint32(fixed_plaintext & fixed_mask)
-    if active_bits == SPECK32_ACTIVE_BITS:
-        low_five = values & np.uint32(0x1F)
-        upper_twenty_five = (values >> np.uint32(5)) << np.uint32(7)
-        return low_five | upper_twenty_five | fixed
+    fixed_bits = _two_fixed_bits(active_bits)
+    if fixed_bits is not None:
+        first, second = fixed_bits
+        low_mask = (1 << first) - 1
+        middle_width = second - first - 1
+        middle_mask = (1 << middle_width) - 1
+        low = values & np.uint32(low_mask)
+        middle = (
+            ((values >> np.uint32(first)) & np.uint32(middle_mask))
+            << np.uint32(first + 1)
+        )
+        upper = (values >> np.uint32(second - 1)) << np.uint32(second + 1)
+        return low | middle | upper | fixed
 
     plaintexts = np.full(values.shape, fixed, dtype=np.uint32)
     for assignment_bit, plaintext_bit in enumerate(active_bits):
@@ -168,10 +177,16 @@ def assignments_to_plaintexts_torch(
         raise ValueError("assignment exceeds active-bit width")
 
     fixed = fixed_plaintext & _fixed_mask(active_bits)
-    if active_bits == SPECK32_ACTIVE_BITS:
-        low_five = assignments & 0x1F
-        upper_twenty_five = (assignments >> 5) << 7
-        return low_five | upper_twenty_five | fixed
+    fixed_bits = _two_fixed_bits(active_bits)
+    if fixed_bits is not None:
+        first, second = fixed_bits
+        low_mask = (1 << first) - 1
+        middle_width = second - first - 1
+        middle_mask = (1 << middle_width) - 1
+        low = assignments & low_mask
+        middle = ((assignments >> first) & middle_mask) << (first + 1)
+        upper = (assignments >> (second - 1)) << (second + 1)
+        return low | middle | upper | fixed
 
     plaintexts = torch.full_like(assignments, fixed)
     for assignment_bit, plaintext_bit in enumerate(active_bits):
@@ -402,6 +417,13 @@ def _validate_structure(active_bits: tuple[int, ...], fixed_plaintext: int) -> N
 def _fixed_mask(active_bits: tuple[int, ...]) -> int:
     active_mask = sum(1 << bit for bit in active_bits)
     return ((1 << 32) - 1) ^ active_mask
+
+
+def _two_fixed_bits(active_bits: tuple[int, ...]) -> tuple[int, int] | None:
+    fixed_bits = tuple(bit for bit in range(32) if bit not in set(active_bits))
+    if len(fixed_bits) != 2:
+        return None
+    return fixed_bits
 
 
 def _emit(

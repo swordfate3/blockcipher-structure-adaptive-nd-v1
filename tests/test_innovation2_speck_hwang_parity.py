@@ -104,6 +104,27 @@ def test_e25_torch_exact_assignment_mapping_matches_numpy() -> None:
     np.testing.assert_array_equal(actual.numpy().astype(np.uint32), expected)
 
 
+def test_e25_two_fixed_bit_fast_mapping_supports_position_control() -> None:
+    torch = pytest.importorskip("torch")
+    active_bits = tuple(bit for bit in range(32) if bit not in {0, 1})
+    assignments = np.asarray([0, 1, 31, 32, (1 << 30) - 1], dtype=np.uint32)
+    expected = np.asarray([0, 4, 124, 128, 0xFFFFFFFC], dtype=np.uint32)
+    numpy_plaintexts = assignments_to_plaintexts(
+        assignments,
+        active_bits=active_bits,
+        fixed_plaintext=0,
+    )
+    torch_plaintexts = assignments_to_plaintexts_torch(
+        torch.from_numpy(assignments.astype(np.int64)),
+        active_bits=active_bits,
+        fixed_plaintext=0,
+    )
+    np.testing.assert_array_equal(numpy_plaintexts, expected)
+    np.testing.assert_array_equal(
+        torch_plaintexts.numpy().astype(np.uint32), expected
+    )
+
+
 @pytest.mark.parametrize("chunk_size", [1, 7, 64, 1000])
 def test_e25_chunked_parity_equals_scalar_exhaustive(chunk_size: int) -> None:
     active_bits = (0, 2, 4, 7, 9, 12)

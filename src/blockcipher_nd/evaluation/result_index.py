@@ -443,6 +443,18 @@ DECISION_LABELS = {
     "innovation2_speck_hwang_phase_b_protocol_invalid": (
         "SPECK结构、CUDA、缓存、计时或论文mask协议无效"
     ),
+    "innovation2_speck_hwang_phase_c_kernel_reproduced": (
+        "SPECK 6/7轮论文kernel在32+32新密钥上精确复现，位置控制通过"
+    ),
+    "innovation2_speck_hwang_phase_c_position_control_not_specific": (
+        "SPECK论文mask也在位置控制中成立，结构特异性不足，禁止训练"
+    ),
+    "innovation2_speck_hwang_phase_c_kernel_not_reproduced": (
+        "SPECK 6/7轮论文kernel未在32+32新密钥上精确复现"
+    ),
+    "innovation2_speck_hwang_phase_c_protocol_invalid": (
+        "SPECK Phase C密钥、结构、CUDA缓存、计时或GF(2)协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -860,6 +872,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E24：SKINNY-64/64 7轮单活动cell kernel多样性审计"
     if run_id == "i2_speck32_hwang_phase_b_singlekey_gpu0_20260717":
         return "创新2 E25 Phase B：SPECK32/64精确2^30单key GPU计时门"
+    if run_id == "i2_speck32_hwang_phase_c_32plus32_gpu0_20260717":
+        return "创新2 E25 Phase C：SPECK32/64 32+32密钥精确kernel复现"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
