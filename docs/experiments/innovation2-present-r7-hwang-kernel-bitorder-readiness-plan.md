@@ -567,15 +567,18 @@ outputs/local_audits/
 
 ## 18. 推荐下一步：E15 PRESENT 拓扑感知活动几何
 
-E15 固定同一轮数、密钥、上下文和16-bit活动宽度，构造16个由 PRESENT 结构直接
+E15 固定同一轮数、密钥、上下文和16-bit活动宽度，构造12个由 PRESENT 结构直接
 定义的几何，而不是任意滑动：
 
 ```text
 family A: 四个边界对齐4-nibble块，start = 0,4,8,12
 family B: family A 每个结构经过 PRESENT P-layer 一次映射
 family C: family A 每个结构经过 PRESENT P-layer 两次映射
-family D: 四个 nibble-column，{c,c+4,c+8,c+12}, c=0..3
 ```
+
+实施前静态去重确认：原计划的 family D 四个 nibble-column 与 family B 完全
+相同，不能重复计为额外结构。P-layer 三次映射回到原集合，因此四个基础块各有
+`P^0/P^1/P^2` 三个唯一几何，共12个。
 
 P-layer 映射按当前实现的精确 bit permutation：
 
@@ -587,7 +590,7 @@ p(63) = 63
 冻结预算：
 
 ```text
-structures = 16
+structures = 12 unique
 keys per structure = 128 = 64 + 64
 plaintexts per structure per key = 65536
 key generation seed = seed + 3301
@@ -596,5 +599,85 @@ training = none
 ```
 
 门槛继续要求 Hwang 原始结构精确四维、所有 joint basis 验证两半、至少4个不同
-joint签名和至少8个非平凡结构。通过后才用 E13 同一 mask/边际基线重建标签表；
+joint签名和至少6个非平凡结构。通过后才用 E13 同一 mask/边际基线重建标签表；
 否则转固定高16位并变化 inactive context，或停止 PRESENT r7 多结构预测路线。
+
+## 19. 2026-07-17 E15 结果
+
+12个拓扑几何全部完成，readiness 校验全部通过。结果严格按 `P` 的幂次分层：
+
+| 基础块 | `P^0` joint dim | `P^1` joint dim | `P^2` joint dim |
+|---:|---:|---:|---:|
+| `0` | `7` | `0` | `0` |
+| `4` | `4` | `0` | `0` |
+| `8` | `4` | `0` | `0` |
+| `12` | `4` | `0` | `0` |
+
+`block12_p0` 继续精确复现 Hwang 四维 span；`block04_p0` 和 `block08_p0`
+也等于该 span，`block00_p0` 保留 E11 已见的额外三维。8个经过 `P^1/P^2`
+得到的非连续活动几何，其联合128把密钥 kernel 全部降为零。单个64-key half
+偶尔出现1--2维经验方向，但另一半不支持，不能算稳定输出性质。
+
+最终仍只有空 kernel、Hwang 四维和低位七维三种签名，非平凡结构仍是原来的
+四个边界对齐块：
+
+```text
+status = hold
+decision = innovation2_topology_geometry_kernel_diversity_insufficient
+distinct_joint_kernel_signatures = 3
+nontrivial_joint_kernel_structures = 4
+training = no
+remote_scale = no
+```
+
+因此 E15 排除了“将已知活动块沿 PRESENT P-layer 轨道移动即可产生丰富输出标签”
+的假设。当前证据仍不足以构造神经训练集，不能把12个几何直接送入模型。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_topology_geometry_kernel_diversity_128keys_seed0_20260717/
+```
+
+最终 `curves.svg` 经 `visual-qa-redraw` 渲染为 `1800×849` 像素检查；标题、
+中文 glyph、双面板、12个拓扑标签、数值标注、签名类别和裁决文字均无重叠或
+裁切。
+
+## 20. 推荐下一步：E16 高16位活动集合的固定上下文审计
+
+E16 不再改变活动集合，固定已精确复现论文 kernel 的 project bits `48..63`，
+只改变其余 `0..47` 位的固定明文上下文。研究问题是：同一个活动子空间平移到
+不同 affine coset 后，稳定输出 kernel 是否会改变，从而产生可学习的
+`context + output mask -> balanced` 标签交互。
+
+冻结协议：
+
+```text
+cipher / rounds = PRESENT-80 / 7
+active bits = 48..63
+contexts = 16
+context 0 = all-zero Hwang anchor
+contexts 1..15 = seed+4401 生成的确定性非零48-bit常量
+keys per context = 128 = 64 discovery + 64 validation
+key generation seed = seed + 3301
+plaintexts per context per key = 65536
+key_chunk_size = 4
+training = none
+same-budget anchor = direct GF(2) empirical kernel
+```
+
+只改变 inactive context；轮数、活动宽度、密钥、密钥划分和 kernel 算法保持
+不变。推进门槛冻结为：
+
+```text
+zero-context Hwang anchor remains exact
+all joint bases validate on both key halves
+at least 4 distinct joint-kernel signatures
+at least 8 contexts have nontrivial joint kernels
+```
+
+通过后进入 E17，在16个 context 上重建候选 mask 标签，并要求 context 边际、
+mask identity、mask weight 和 context+mask 加性基线不能解释标签，之后才讨论
+神经网络。若 E16 仍只有一个 Hwang kernel 或少于4个签名，则停止 PRESENT r7
+多结构输出预测路线；不增加 context 数、不增加密钥数，也不启动远程训练。

@@ -257,6 +257,28 @@ def test_result_index_labels_innovation2_cyclic_geometry(tmp_path: Path) -> None
     )
 
 
+def test_result_index_labels_innovation2_topology_geometry(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r7_topology_geometry_kernel_diversity_128keys_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_topology_geometry_kernel_diversity_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E15：PRESENT 7轮P-layer拓扑活动几何审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "P-layer拓扑活动几何形成足够多稳定 kernel，可重建标签表"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

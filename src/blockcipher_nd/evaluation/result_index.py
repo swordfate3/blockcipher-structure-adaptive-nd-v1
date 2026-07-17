@@ -317,6 +317,15 @@ DECISION_LABELS = {
     "innovation2_cyclic_geometry_diversity_protocol_invalid": (
         "循环活动几何协议或 Hwang anchor 校验无效"
     ),
+    "innovation2_topology_geometry_kernel_diversity_ready": (
+        "P-layer拓扑活动几何形成足够多稳定 kernel，可重建标签表"
+    ),
+    "innovation2_topology_geometry_kernel_diversity_insufficient": (
+        "P-layer拓扑活动几何的输出 kernel 多样性不足"
+    ),
+    "innovation2_topology_geometry_protocol_invalid": (
+        "P-layer拓扑几何协议或 Hwang anchor 校验无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -688,6 +697,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_cyclic_geometry_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E14：PRESENT 7轮循环活动几何输出 kernel 扩展"
+    if run_id == (
+        "i2_present_r7_topology_geometry_kernel_diversity_128keys_seed0_20260717"
+    ):
+        return "创新2 E15：PRESENT 7轮P-layer拓扑活动几何审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
