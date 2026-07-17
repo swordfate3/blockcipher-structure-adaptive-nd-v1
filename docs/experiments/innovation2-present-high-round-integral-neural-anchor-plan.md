@@ -1209,3 +1209,8 @@ monitor root = outputs/remote_results_incomplete/
 verified destination = outputs/remote_results/
   i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717/
 ```
+
+本地 watcher 首次同步随后确认 `started.marker` 存在，readiness 为 `pass`
+（4 rows、8 项 invariant、无 errors），A6000 batch-2000 显存预检通过，最大 reserved
+为约 `1.558 GB / 3.02%`；`progress.jsonl` 已进入 train cache generation。此时无
+failed/done/result-branch/verified marker，seed1 状态正式记为 running。
