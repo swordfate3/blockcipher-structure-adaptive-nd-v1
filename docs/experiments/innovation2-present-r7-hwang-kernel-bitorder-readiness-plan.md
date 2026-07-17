@@ -1,6 +1,6 @@
 # 创新2 E10：PRESENT 7轮 Hwang kernel bit-order readiness 计划
 
-**状态：** completed / hold / bit-order partially resolved
+**状态：** E11b pass / Hwang four-dimensional kernel reproduced / E12 pending
 
 **日期：** 2026-07-17
 
@@ -228,6 +228,8 @@ output mapping          = paper bi -> project bit i
 fixed inactive context  = all zero
 keys                    = 128 total
 discovery / validation  = 64 + 64 disjoint
+key generation seed     = seed + 3301
+E10 key overlap         = none; verify against seed + 2301 keys
 plaintexts per key      = 65536
 key_chunk_size          = 1
 seed                    = 0
@@ -250,3 +252,123 @@ joint kernel span equals four paper-mask span  = true
 失败，停止路线并审计论文具体 plaintext context、轮边界和作者实现。只有四维 kernel
 在互斥新密钥上复现，才开始设计“结构 + candidate mask -> 跨密钥平衡稳定性/排序”
 的神经输出预测数据集，并要求直接 kernel、边际先验、mask 匹配和标签打乱控制。
+
+## 9. 2026-07-17 E11 结果
+
+E11 已使用与 E10 完全互斥的128把密钥完成：
+
+| 密钥集合 | 密钥数 | rank | kernel dim | 论文 mask 失败 | 控制 mask 失败 |
+|---|---:|---:|---:|---:|---:|
+| discovery | 64 | `57` | `7` | `0` | `125` |
+| validation | 64 | `56` | `8` | `0` | `136` |
+| joint | 128 | `57` | `7` | `0` | `261` |
+
+所有 readiness 检查通过，包括两个密钥半的标量/向量化完整输出 XOR 对齐。
+四个论文 mask 在128把新密钥上零失败，控制 mask 大量失败，因此论文输出性质
+获得强经验支持。但 joint kernel 仍有7维，比论文报告多3维，未通过“恰好四维且
+空间相等”的门槛：
+
+```text
+status = hold
+decision = innovation2_present_r7_hwang_kernel_underconstrained
+training = no
+remote_scale = no
+```
+
+论文第4.1节明确固定同一个 plaintext multiset `S`，每一行只采样独立密钥；因此
+全零固定上下文并未违反其形式协议。论文同时说明所有实验使用 `m=10^3` 发现密钥
+和 `m'=10^6` hold-out 密钥，本项目128-key E11 远低于论文验证规模，不能把多出的
+三维直接解释为论文错误或新的所有密钥性质。
+
+## 10. E11b 高16位同预算对照
+
+E10 中 `high_48_63__direct` 也包含四个论文 mask。为区分“低位结构尚未采样收敛”
+与“论文 last16 实际映射到高位”，E11b 固定与 E11 完全相同的128把密钥、轮数、
+固定上下文、输出映射和计算代码，只改变一个变量：
+
+```text
+active bits = project bits 48..63
+```
+
+门槛仍为四个论文 mask 在两半零失败、joint kernel dimension `4` 且空间恰好等于
+论文四维 span。若高位达到四维而低位为七维，优先选择高位作为论文协议映射；若
+两者都高于四维，再设计更大密钥收敛审判，不进入神经训练。
+
+## 11. 2026-07-17 E11b 结果与最终映射裁决
+
+E11b 使用与 E11 完全相同的128把密钥，只把活动输入改为项目 bits `48..63`：
+
+| 密钥集合 | 密钥数 | rank | kernel dim | 论文 mask 失败 | 控制 mask 失败 |
+|---|---:|---:|---:|---:|---:|
+| discovery | 64 | `59` | `5` | `0` | `116` |
+| validation | 64 | `58` | `6` | `0` | `133` |
+| joint | 128 | `60` | `4` | `0` | `249` |
+
+joint kernel 的 canonical basis 精确为：
+
+```text
+0x0000000000000001 = b0
+0x0000000000001010 = b4 XOR b12
+0x0001000000010000 = b16 XOR b48
+0x1010000010100000 = b20 XOR b28 XOR b52 XOR b60
+```
+
+因此同预算对照给出明确裁决：
+
+```text
+status = pass
+decision = innovation2_present_r7_hwang_kernel_reproduced
+input_orientation = high_48_63
+joint_kernel_dimension = 4
+joint_kernel_equals_paper_span = true
+training = no
+remote_scale = no
+```
+
+此前仅根据 Wu/Guo“最右侧活动 bit”文字推断项目 `0..15` 是 Hwang last16 的映射，
+证据不足。E11/E11b 的同密钥、同预算实验表明：项目 `48..63` 才能精确复现
+Hwang Table 8 的四维 kernel；项目 `0..15` 保留七维，是另一个固定结构，不能
+当作该论文协议。创新2后续必须冻结 `high_48_63 + direct output mapping`。
+
+E11 与 E11b 两张 `curves.svg` 均经 `visual-qa-redraw` 以 `1800×866` 像素
+检查，标题、中文 glyph、坐标、图例、数据标签和裁决文字无重叠或裁切。
+
+## 12. 推荐下一步：E12 16-bit 活动块 kernel 多样性 readiness
+
+论文单一结构已经校准，但一个结构不能训练“结构条件化输出预测”模型。E12 先
+回答：改变16-bit 连续活动块位置后，是否得到多个在互斥密钥上稳定且不同的输出
+kernel，从而形成真正有标签多样性的预测问题。
+
+冻结矩阵：
+
+```text
+cipher / rounds          = PRESENT-80 / 7
+active blocks            = bits 0..15, 16..31, 32..47, 48..63
+fixed inactive context   = all zero
+output feature           = full 64-bit ciphertext XOR word
+keys per structure       = 128 = 64 discovery + 64 validation
+key generation seed      = seed + 3301, same across structures
+plaintexts per structure = 65536 per key
+key_chunk_size           = 1
+seed                     = 0
+training                 = none
+same-budget anchor       = direct GF(2) empirical kernel
+```
+
+这里只改变活动块位置。高16位 Hwang 结构是正校准 anchor，低16位 E11 是已知
+七维对照；中间两个活动块是新候选。
+
+推进门槛：
+
+```text
+Hwang high16 joint kernel remains exact four-dimensional paper span
+all structures have nonzero parity words and scalar/vectorized agreement
+each reported joint basis validates on both key halves
+at least two distinct joint-kernel signatures
+at least two structures have nontrivial joint kernels
+```
+
+通过后才设计结构/mask 样本表，并在训练前检查：标签不能由活动块位置或 mask
+Hamming weight 的单字段边际直接解释；必须保留直接 kernel、训练集字段边际、
+mask 匹配和标签打乱控制。若四个块只有同一个 kernel，下一步改为固定高16位并
+变化非活动上下文；不得用重复标签直接训练网络。

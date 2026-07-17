@@ -140,6 +140,51 @@ def test_result_index_labels_innovation2_hwang_readiness(tmp_path: Path) -> None
     )
 
 
+def test_result_index_labels_innovation2_hwang_convergence(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r7_hwang_kernel_convergence_128keys_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r7_hwang_kernel_reproduced",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E11：PRESENT 7轮论文四维输出 kernel 收敛审判"
+    )
+    assert entries[0]["decision_display"] == (
+        "128把新密钥复现论文四维输出 kernel，进入结构族扩展"
+    )
+
+
+def test_result_index_labels_innovation2_hwang_high16_control(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
+    )
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_r7_hwang_kernel_underconstrained",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E11b：PRESENT 7轮高16位论文 kernel 同预算对照"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

@@ -278,6 +278,18 @@ DECISION_LABELS = {
     "innovation2_present_r7_hwang_protocol_invalid": (
         "PRESENT 7轮论文 kernel 协议校验无效，先修实现"
     ),
+    "innovation2_present_r7_hwang_kernel_reproduced": (
+        "128把新密钥复现论文四维输出 kernel，进入结构族扩展"
+    ),
+    "innovation2_present_r7_hwang_kernel_underconstrained": (
+        "论文 mask 稳定，但128把密钥下的经验 kernel 仍高于四维"
+    ),
+    "innovation2_present_r7_hwang_kernel_not_reproduced": (
+        "论文 mask 未在两组新密钥上保持稳定，停止训练并审计协议"
+    ),
+    "innovation2_present_r7_hwang_convergence_protocol_invalid": (
+        "论文四维 kernel 收敛协议无效，先修复实现或密钥拆分"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -633,6 +645,12 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_hwang_kernel_last16_bitorder_readiness_seed0_20260717"
     ):
         return "创新2 E10：PRESENT 7轮论文输出 mask bit-order 校准"
+    if run_id == "i2_present_r7_hwang_kernel_convergence_128keys_seed0_20260717":
+        return "创新2 E11：PRESENT 7轮论文四维输出 kernel 收敛审判"
+    if run_id == (
+        "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
+    ):
+        return "创新2 E11b：PRESENT 7轮高16位论文 kernel 同预算对照"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

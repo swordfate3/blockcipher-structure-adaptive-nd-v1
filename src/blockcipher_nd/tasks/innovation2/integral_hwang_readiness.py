@@ -49,6 +49,28 @@ class HwangReadinessConfig:
             raise ValueError("key_chunk_size must be positive")
 
 
+@dataclass(frozen=True)
+class HwangKernelConvergenceConfig:
+    run_id: str
+    seed: int = 0
+    rounds: int = 7
+    keys: int = 128
+    key_chunk_size: int = 1
+    input_orientation: str = "low_0_15"
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if self.rounds != 7:
+            raise ValueError("the frozen convergence audit requires PRESENT r7")
+        if self.keys != 128:
+            raise ValueError("the frozen convergence audit requires exactly 128 keys")
+        if self.key_chunk_size <= 0:
+            raise ValueError("key_chunk_size must be positive")
+        if self.input_orientation not in INPUT_ORIENTATIONS:
+            raise ValueError(f"unknown input orientation: {self.input_orientation}")
+
+
 def paper_basis_masks(*, output_mapping: str) -> tuple[int, ...]:
     if output_mapping not in OUTPUT_MAPPINGS:
         raise ValueError(f"unknown output mapping: {output_mapping}")
@@ -167,6 +189,230 @@ def run_hwang_readiness_audit(
     }
 
 
+def run_hwang_kernel_convergence_audit(
+    config: HwangKernelConvergenceConfig,
+    *,
+    progress_callback: ProgressCallback | None = None,
+) -> dict[str, Any]:
+    keys = make_keys(count=config.keys, seed=config.seed + 3301)
+    e10_keys = make_keys(count=8, seed=config.seed + 2301)
+    structure = BitIntegralStructure(
+        structure_id=f"hwang-r7-{config.input_orientation}",
+        active_bits=INPUT_ORIENTATIONS[config.input_orientation],
+        output_nibble=0,
+        output_mask=1,
+        fixed_plaintext=0,
+    )
+    xor_words = _collect_xor_words(
+        structure,
+        keys,
+        rounds=config.rounds,
+        key_chunk_size=config.key_chunk_size,
+        progress_callback=progress_callback,
+    )
+    half = config.keys // 2
+    scalar_indices = (0, half)
+    scalar_matches = all(
+        int(xor_words[index])
+        == scalar_bit_integral_output_xor(
+            structure,
+            rounds=config.rounds,
+            key=keys[index],
+        )
+        for index in scalar_indices
+    )
+    rows, basis_rows, readiness, gate = evaluate_hwang_kernel_convergence(
+        config,
+        xor_words=xor_words,
+        scalar_matches=scalar_matches,
+        key_halves_disjoint=set(keys[:half]).isdisjoint(keys[half:]),
+        e10_keys_disjoint=set(keys).isdisjoint(e10_keys),
+    )
+    return {
+        "rows": rows,
+        "basis_rows": basis_rows,
+        "gate": gate,
+        "metadata": {
+            "run_id": config.run_id,
+            "task": "innovation2_present_r7_hwang_kernel_convergence",
+            "cipher": "PRESENT-80",
+            "rounds": config.rounds,
+            "seed": config.seed,
+            "key_generation_seed": config.seed + 3301,
+            "keys": config.keys,
+            "key_half_size": half,
+            "key_chunk_size": config.key_chunk_size,
+            "plaintexts_per_structure": structure.set_size,
+            "active_bits": list(structure.active_bits),
+            "input_orientation": config.input_orientation,
+            "fixed_plaintext": f"0x{structure.fixed_plaintext:016X}",
+            "output_mapping": "direct",
+            "paper_basis_bits": [list(bits) for bits in PAPER_BASIS_BITS],
+            "key_fingerprints": [f"{key:020X}" for key in keys],
+            "e10_keys_disjoint": readiness["all_e11_keys_disjoint_from_e10"],
+            "training_performed": False,
+            "claim_scope": gate["claim_scope"],
+        },
+    }
+
+
+def evaluate_hwang_kernel_convergence(
+    config: HwangKernelConvergenceConfig,
+    *,
+    xor_words: np.ndarray,
+    scalar_matches: bool,
+    key_halves_disjoint: bool,
+    e10_keys_disjoint: bool,
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, bool],
+    dict[str, Any],
+]:
+    xor_words = np.asarray(xor_words, dtype=np.uint64)
+    if xor_words.shape != (config.keys,):
+        raise ValueError(f"xor_words must have shape ({config.keys},)")
+    half = config.keys // 2
+    paper_masks = paper_basis_masks(output_mapping="direct")
+    nonpaper_masks = control_masks(seed=config.seed, output_mapping="direct")
+    paper_span = _span(paper_masks)
+    split_words = {
+        "discovery": xor_words[:half],
+        "validation": xor_words[half:],
+        "joint": xor_words,
+    }
+    rows: list[dict[str, Any]] = []
+    basis_rows: list[dict[str, Any]] = []
+    for split, words in split_words.items():
+        basis = gf2_kernel_basis(words)
+        kernel_equals_paper_span = (
+            len(basis) == 4 and all(vector in paper_span for vector in basis)
+        )
+        row = {
+            "run_id": config.run_id,
+            "input_orientation": config.input_orientation,
+            "split": split,
+            "keys": len(words),
+            "rank": 64 - len(basis),
+            "kernel_dimension": len(basis),
+            "paper_mask_failures": _mask_failure_count(words, paper_masks),
+            "control_mask_failures": _mask_failure_count(words, nonpaper_masks),
+            "paper_masks_in_kernel": kernel_basis_valid(words, paper_masks),
+            "kernel_equals_paper_span": kernel_equals_paper_span,
+            "nonzero_output_parity_words": int(np.count_nonzero(words)),
+        }
+        rows.append(row)
+        for basis_index, vector in enumerate(basis):
+            basis_rows.append(
+                {
+                    "run_id": config.run_id,
+                    "split": split,
+                    "basis_index": basis_index,
+                    "vector_hex": f"0x{vector:016X}",
+                    "vector_weight": vector.bit_count(),
+                    "in_paper_span": vector in paper_span,
+                }
+            )
+    readiness = {
+        "three_kernel_splits_present": len(rows) == 3,
+        "key_halves_nonempty_and_disjoint": key_halves_disjoint,
+        "all_e11_keys_disjoint_from_e10": e10_keys_disjoint,
+        "vectorized_output_xor_matches_scalar_in_both_halves": scalar_matches,
+        "paper_basis_has_dimension_four": len(paper_span) == 16,
+        "output_parity_words_not_all_zero": bool(np.count_nonzero(xor_words)),
+        "all_metrics_finite": all(
+            math.isfinite(float(row[key]))
+            for row in rows
+            for key in (
+                "rank",
+                "kernel_dimension",
+                "paper_mask_failures",
+                "control_mask_failures",
+                "nonzero_output_parity_words",
+            )
+        ),
+    }
+    gate = adjudicate_hwang_kernel_convergence(config, rows, readiness)
+    return rows, basis_rows, readiness, gate
+
+
+def adjudicate_hwang_kernel_convergence(
+    config: HwangKernelConvergenceConfig,
+    rows: list[dict[str, Any]],
+    readiness_checks: dict[str, bool],
+) -> dict[str, Any]:
+    by_split = {str(row["split"]): row for row in rows}
+    discovery = by_split.get("discovery", {})
+    validation = by_split.get("validation", {})
+    joint = by_split.get("joint", {})
+    paper_masks_stable = all(
+        row.get("paper_masks_in_kernel") is True
+        and int(row.get("paper_mask_failures", -1)) == 0
+        for row in (discovery, validation, joint)
+    )
+    exact_joint_kernel = (
+        int(joint.get("kernel_dimension", -1)) == 4
+        and joint.get("kernel_equals_paper_span") is True
+    )
+    readiness_pass = bool(readiness_checks) and all(readiness_checks.values())
+    if not readiness_pass:
+        status = "fail"
+        decision = "innovation2_present_r7_hwang_convergence_protocol_invalid"
+        next_action = {
+            "action": "repair key separation, scalar parity, or kernel computation",
+            "training": False,
+            "remote_scale": False,
+        }
+    elif paper_masks_stable and exact_joint_kernel:
+        status = "pass"
+        decision = "innovation2_present_r7_hwang_kernel_reproduced"
+        next_action = {
+            "action": "freeze calibrated kernel and audit output-property structure diversity",
+            "next_adjudication": (
+                "E12 contiguous 16-bit active-block kernel diversity readiness"
+            ),
+            "required_controls": [
+                "direct GF(2) kernel",
+                "training-only field marginals",
+                "mask-matched controls",
+            ],
+            "training": False,
+            "remote_scale": False,
+        }
+    elif paper_masks_stable:
+        status = "hold"
+        decision = "innovation2_present_r7_hwang_kernel_underconstrained"
+        next_action = {
+            "action": "freeze a 256-key convergence audit",
+            "reason": "paper masks survive but empirical kernel dimension remains above four",
+            "training": False,
+            "remote_scale": "evaluate after cache/readiness audit",
+        }
+    else:
+        status = "hold"
+        decision = "innovation2_present_r7_hwang_kernel_not_reproduced"
+        next_action = {
+            "action": "audit plaintext context, round boundary, and author implementation",
+            "training": False,
+            "remote_scale": False,
+        }
+    return {
+        "run_id": config.run_id,
+        "input_orientation": config.input_orientation,
+        "status": status,
+        "decision": decision,
+        "readiness_checks": readiness_checks,
+        "paper_masks_stable_both_halves": paper_masks_stable,
+        "joint_kernel_dimension": int(joint.get("kernel_dimension", -1)),
+        "joint_kernel_equals_paper_span": bool(
+            joint.get("kernel_equals_paper_span", False)
+        ),
+        "claim_scope": (
+            "128 fresh-key empirical reproduction of Hwang et al. PRESENT r7 "
+            "linear balance-mask kernel; not an all-key proof or neural result"
+        ),
+        "next_action": next_action,
+    }
 def summarize_protocols(
     config: HwangReadinessConfig,
     *,

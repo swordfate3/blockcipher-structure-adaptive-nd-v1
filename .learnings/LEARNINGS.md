@@ -202,6 +202,139 @@ already revealed target data, thresholds, or decision branches.
 
 ---
 
+## [LRN-20260717-004] best_practice
+
+**Logged**: 2026-07-17T13:32:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+Compare GF(2) subspaces by rank and basis membership; never enumerate a kernel span whose dimension is not tightly bounded.
+
+### Details
+The first Innovation 2 E11 convergence implementation constructed every element
+of an empirical kernel span before comparing it with the four-dimensional paper
+space. The exact-positive fixture had dimension four, but the deliberately
+underconstrained negative fixture had dimension 63. Enumerating `2^63` vectors
+caused the focused test process to be terminated by memory protection.
+
+The equality decision only needs linear-algebraic invariants. Because the paper
+space has known dimension four, the empirical kernel equals it exactly when the
+empirical kernel also has dimension four and every empirical basis vector belongs
+to the 16-element paper span. Large empirical kernels must never be expanded.
+
+### Suggested Action
+For future GF(2) audits, compute rank/RREF and test basis containment. Enumerate a
+span only when its dimension is explicitly small and bounded before allocation.
+Include an underconstrained high-nullity regression fixture so accidental
+exponential enumeration fails during development rather than a real experiment.
+
+### Metadata
+- Source: active_runtime_failure
+- Related Files: src/blockcipher_nd/tasks/innovation2/integral_hwang_readiness.py, tests/test_innovation2_hwang_readiness.py
+- Tags: innovation2, gf2, kernel, complexity, memory, regression
+- See Also: LRN-20260717-003
+- Pattern-Key: research.gf2.compare_subspaces_without_span_enumeration
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T13:32:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Replaced empirical span enumeration with dimension-four plus basis-membership equality and retained a 63-dimensional negative regression fixture.
+
+---
+
+## [LRN-20260717-005] correction
+
+**Logged**: 2026-07-17T13:41:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+Resolve cross-paper PRESENT bit-order ambiguity with a same-budget exact-kernel reproduction, not prose such as “rightmost” inherited from a related paper.
+
+### Details
+After E10, both project input blocks `0..15` and `48..63` contained the four
+Hwang Table 8 output masks under eight keys. The first interpretation selected
+`0..15` because Hwang follows prior indexing and Wu/Guo describes a related
+PRESENT structure as activating the rightmost plaintext bits. That inference was
+too strong: related-paper prose did not establish the integer/state mapping used
+by Hwang's Appendix A.1 experiment.
+
+A controlled 128-key comparison held every other field fixed. Project `0..15`
+produced a seven-dimensional joint kernel, while project `48..63` produced rank
+60 and exactly the four-dimensional span reported by Hwang. The empirical exact
+kernel therefore resolves the mapping in favor of `48..63` for this project.
+
+### Suggested Action
+When a paper's bit numbering is underspecified, preregister plausible mappings
+and compare them with the same keys, rounds, contexts, and exact algebraic target.
+Freeze the mapping that reproduces the full rank/kernel signature, not merely
+one that contains selected masks at low sample count. Treat prose from adjacent
+papers as supporting context rather than decisive protocol evidence.
+
+### Metadata
+- Source: self_correction, controlled_experiment
+- Related Files: docs/experiments/innovation2-present-r7-hwang-kernel-bitorder-readiness-plan.md, src/blockcipher_nd/tasks/innovation2/integral_hwang_readiness.py
+- Tags: innovation2, present, bit-order, kernel, paper-reproduction, same-budget-control
+- See Also: LRN-20260717-003, LRN-20260717-004
+- Pattern-Key: research.bit_order.resolve_with_exact_same_budget_signature
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T13:41:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Froze project bits 48..63 with direct output numbering after the 128-key joint kernel exactly matched all four Hwang basis vectors.
+
+---
+
+## [LRN-20260717-006] best_practice
+
+**Logged**: 2026-07-17T13:45:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Summary
+CLI artifact tests that replace an entire experiment runner do not protect the runner's return boundary; keep one real-runner test with only expensive primitives stubbed.
+
+### Details
+While inserting the E11 convergence functions, the E10 runner's final gate and
+return block was accidentally moved below an unconditional return in another
+function. The E10 CLI test still passed because it monkeypatched
+`run_hwang_readiness_audit` itself with a fabricated result. Focused E11 tests and
+compilation also passed, leaving a real E10 regression undetected until a manual
+source-boundary review before commit.
+
+### Suggested Action
+For experiment CLIs, retain artifact tests with a mocked runner, but also call the
+real orchestration function in a separate regression test. Stub only the expensive
+cipher/data primitive and assert the runner returns rows, gate, and metadata. This
+checks control-flow and return placement without rerunning the full experiment.
+
+### Metadata
+- Source: precommit_source_review
+- Related Files: src/blockcipher_nd/tasks/innovation2/integral_hwang_readiness.py, tests/test_innovation2_hwang_readiness.py
+- Tags: tests, orchestration, monkeypatch, regression, innovation2
+- See Also: LRN-20260717-004
+- Pattern-Key: tests.real_orchestrator_with_expensive_primitive_stub
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T13:45:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Restored the E10 gate/return block to its function and added a real-runner regression with only XOR generation and scalar checking stubbed.
+
+---
+
 ## [LRN-20260716-008] correction
 
 **Logged**: 2026-07-16T14:20:00+08:00

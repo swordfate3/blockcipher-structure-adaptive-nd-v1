@@ -6,13 +6,16 @@ from pathlib import Path
 import numpy as np
 
 from blockcipher_nd.cli import audit_innovation2_hwang_readiness as cli
+from blockcipher_nd.tasks.innovation2 import integral_hwang_readiness as hwang
 from blockcipher_nd.tasks.innovation2.integral_bit_transition_audit import (
     BitIntegralStructure,
 )
 from blockcipher_nd.tasks.innovation2.integral_hwang_readiness import (
+    HwangKernelConvergenceConfig,
     HwangReadinessConfig,
     adjudicate_hwang_readiness,
     control_masks,
+    evaluate_hwang_kernel_convergence,
     paper_basis_masks,
     summarize_protocols,
 )
@@ -169,3 +172,94 @@ def test_cli_writes_expected_artifacts(monkeypatch, tmp_path: Path) -> None:
     svg = (tmp_path / "curves.svg").read_text(encoding="utf-8")
     assert "论文积分输出 mask 的 bit-order 校准" in svg
     assert "不是积分/随机二分类" in svg
+
+
+def test_readiness_runner_returns_gate_when_lower_level_xor_is_stubbed(
+    monkeypatch,
+) -> None:
+    word = np.uint64((1 << 20) | (1 << 60))
+    monkeypatch.setattr(
+        hwang,
+        "_collect_xor_words",
+        lambda structure, keys, **kwargs: np.full(len(keys), word, dtype=np.uint64),
+    )
+    monkeypatch.setattr(
+        hwang,
+        "scalar_bit_integral_output_xor",
+        lambda structure, rounds, key: int(word),
+    )
+
+    result = hwang.run_hwang_readiness_audit(HwangReadinessConfig(run_id="runner"))
+
+    assert len(result["rows"]) == 4
+    assert result["gate"]["run_id"] == "runner"
+    assert result["metadata"]["task"] == (
+        "innovation2_present_r7_hwang_kernel_bitorder_readiness"
+    )
+
+
+def test_kernel_convergence_accepts_exact_paper_span() -> None:
+    config = HwangKernelConvergenceConfig(run_id="convergence-test")
+    rows = _paper_orthogonal_rows()
+    xor_words = np.asarray(rows + rows + rows[:8], dtype=np.uint64)
+
+    summaries, basis_rows, readiness, gate = evaluate_hwang_kernel_convergence(
+        config,
+        xor_words=xor_words,
+        scalar_matches=True,
+        key_halves_disjoint=True,
+        e10_keys_disjoint=True,
+    )
+
+    assert len(summaries) == 3
+    assert len(basis_rows) == 12
+    assert all(readiness.values())
+    assert all(row["kernel_dimension"] == 4 for row in summaries)
+    assert all(row["kernel_equals_paper_span"] is True for row in summaries)
+    assert gate["decision"] == "innovation2_present_r7_hwang_kernel_reproduced"
+
+
+def test_kernel_convergence_holds_when_rank_is_too_low() -> None:
+    config = HwangKernelConvergenceConfig(run_id="convergence-test")
+    words = np.asarray([(1 << 20) | (1 << 60)] * 128, dtype=np.uint64)
+
+    _, _, readiness, gate = evaluate_hwang_kernel_convergence(
+        config,
+        xor_words=words,
+        scalar_matches=True,
+        key_halves_disjoint=True,
+        e10_keys_disjoint=True,
+    )
+
+    assert all(readiness.values())
+    assert gate["paper_masks_stable_both_halves"] is True
+    assert gate["joint_kernel_dimension"] > 4
+    assert gate["decision"] == (
+        "innovation2_present_r7_hwang_kernel_underconstrained"
+    )
+
+
+def test_kernel_convergence_config_accepts_only_frozen_orientations() -> None:
+    assert HwangKernelConvergenceConfig(
+        run_id="high",
+        input_orientation="high_48_63",
+    ).input_orientation == "high_48_63"
+
+    with np.testing.assert_raises(ValueError):
+        HwangKernelConvergenceConfig(run_id="bad", input_orientation="middle")
+
+
+def _paper_orthogonal_rows() -> list[int]:
+    constrained = {0, 4, 12, 16, 48, 20, 28, 52, 60}
+    rows = [1 << bit for bit in range(64) if bit not in constrained]
+    rows.extend(
+        [
+            (1 << 4) | (1 << 12),
+            (1 << 16) | (1 << 48),
+            (1 << 20) | (1 << 28),
+            (1 << 20) | (1 << 52),
+            (1 << 20) | (1 << 60),
+        ]
+    )
+    assert len(rows) == 60
+    return rows
