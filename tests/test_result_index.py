@@ -70,6 +70,30 @@ def test_result_index_includes_innovation2_local_output_property_audit(
     )
 
 
+def test_result_index_labels_innovation2_active_bit_transition_audit(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r6_output_property_active_bits5_6_7_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_r6_active_bit_transition_benchmark_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E8：PRESENT 6轮积分输出性质细粒度活动 bit 审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "r6 的 5--7 活动 bit 均无可重复结构信号，停止当前单 mask 训练路线"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

@@ -183,3 +183,9 @@ remote_scale               = no
 若某个宽度过门，选择残差最大的单一宽度冻结 geometry-disjoint 三模型训练；若
 全部不过门，停止 r6 当前结构描述路线，不做 seed1、不扩大密钥数、不远程训练，
 回到 r5 方法学章节或重新设计更强的积分结构定义。
+
+执行记录转入：
+
+```text
+docs/experiments/innovation2-present-r6-active-bit-transition-audit-plan.md
+```

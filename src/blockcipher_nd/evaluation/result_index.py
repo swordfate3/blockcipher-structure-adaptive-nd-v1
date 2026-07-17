@@ -248,6 +248,15 @@ DECISION_LABELS = {
     "innovation2_output_property_transition_audit_invalid": (
         "输出性质过渡审计无效，先修数据或校验"
     ),
+    "innovation2_r6_active_bit_transition_benchmark_ready": (
+        "r6 细粒度活动 bit 输出性质 benchmark 通过，可进入本地训练"
+    ),
+    "innovation2_r6_active_bit_transition_benchmark_not_ready": (
+        "r6 的 5--7 活动 bit 均无可重复结构信号，停止当前单 mask 训练路线"
+    ),
+    "innovation2_r6_active_bit_transition_audit_invalid": (
+        "r6 活动 bit 过渡审计无效，先修复数据、密钥拆分或统计校验"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -591,6 +600,10 @@ def display_name_for_run(run_id: str) -> str:
         "width1_width2_seed0_20260717"
     ):
         return "创新2 E7：PRESENT 6轮积分输出性质活动宽度过渡审计"
+    if run_id == (
+        "i2_present_r6_output_property_active_bits5_6_7_seed0_20260717"
+    ):
+        return "创新2 E8：PRESENT 6轮积分输出性质细粒度活动 bit 审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
