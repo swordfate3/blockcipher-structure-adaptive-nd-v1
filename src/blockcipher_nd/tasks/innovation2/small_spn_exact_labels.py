@@ -19,6 +19,7 @@ STATE_BITS = 16
 MASTER_KEYS = 256
 AUDIT_SBOXES = 4
 AUDIT_PLAYERS = 4
+MAX_PLAYER_FAMILY = 16
 AUDIT_ROUNDS = (2, 3, 4, 5)
 MASK_COUNT = 64
 SBOX_SEED = 32001
@@ -89,15 +90,21 @@ def make_sboxes() -> tuple[tuple[int, ...], ...]:
     return tuple(values)
 
 
-def make_players() -> tuple[tuple[int, ...], ...]:
+def make_player_family(count: int) -> tuple[tuple[int, ...], ...]:
+    if count <= 0 or count > MAX_PLAYER_FAMILY:
+        raise ValueError("player family count must be between 1 and 16")
     rng = np.random.default_rng(PLAYER_SEED)
     base = tuple((4 * bit) % 15 if bit < 15 else 15 for bit in range(16))
     values = [base]
-    while len(values) < AUDIT_PLAYERS:
+    while len(values) < count:
         candidate = tuple(int(value) for value in rng.permutation(16))
         if candidate not in values:
             values.append(candidate)
     return tuple(values)
+
+
+def make_players() -> tuple[tuple[int, ...], ...]:
+    return make_player_family(AUDIT_PLAYERS)
 
 
 def make_variants(config: SmallSpnAuditConfig) -> tuple[SmallSpnVariant, ...]:

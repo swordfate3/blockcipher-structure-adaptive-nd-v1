@@ -626,6 +626,30 @@ DECISION_LABELS = {
     "innovation2_small_spn_topology_label_audit_protocol_invalid": (
         "拓扑标签来源、shape、variant顺序或train-only选择协议无效"
     ),
+    "innovation2_small_spn_expanded_topology_benchmark_ready": (
+        "扩展拓扑族的标签宽度、交互、组外边际与公平控制门通过"
+    ),
+    "innovation2_small_spn_expanded_topology_benchmark_not_ready": (
+        "扩展拓扑族仍不支持公平组外学习，停止随机P-layer机械扩展"
+    ),
+    "innovation2_small_spn_expanded_topology_protocol_invalid": (
+        "扩展拓扑缓存、split、train-only选择或公平控制协议无效"
+    ),
+    "innovation2_small_spn_expanded_neural_screen_readiness_passed": (
+        "扩展拓扑GraphGPS/CETT训练流程就绪，可运行两seed候选筛选"
+    ),
+    "innovation2_small_spn_expanded_neural_candidate_screened": (
+        "至少一个候选稳定超过扩展benchmark的ID边际，可进入公平拓扑归因"
+    ),
+    "innovation2_small_spn_expanded_neural_screen_not_ready": (
+        "GraphGPS/CETT均未稳定超过扩展benchmark的ID边际"
+    ),
+    "innovation2_small_spn_expanded_neural_screen_not_attributed": (
+        "扩展拓扑神经筛选的label-shuffle控制异常，暂不选择候选"
+    ),
+    "innovation2_small_spn_expanded_neural_screen_protocol_invalid": (
+        "扩展拓扑神经筛选的来源、split、等变性或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1083,6 +1107,12 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E35b：Cipher Edge-Token Transformer公平控制重裁决"
     if run_id == "i2_small_spn_topology_label_identifiability_20260718":
         return "创新2 E36：小状态SPN拓扑标签可识别性审计"
+    if run_id == "i2_small_spn_expanded_topology_4s16p_256keys_20260718":
+        return "创新2 E37：4×16小状态SPN扩展拓扑benchmark审计"
+    if run_id == "i2_small_spn_expanded_neural_screen_smoke_seed0_20260718":
+        return "创新2 E38：扩展拓扑GraphGPS/CETT筛选就绪smoke"
+    if run_id == "i2_small_spn_expanded_neural_screen_seed0_seed1_20260718":
+        return "创新2 E38：扩展拓扑GraphGPS/CETT两seed候选筛选"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -492,6 +492,54 @@ def test_result_index_labels_innovation2_small_spn_topology_identifiability(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_expanded_topology(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_expanded_topology_4s16p_256keys_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_expanded_topology_benchmark_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E37：4×16小状态SPN扩展拓扑benchmark审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "扩展拓扑族的标签宽度、交互、组外边际与公平控制门通过"
+    )
+
+
+def test_result_index_labels_innovation2_small_spn_expanded_neural_screen(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_expanded_neural_screen_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_expanded_neural_candidate_screened",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E38：扩展拓扑GraphGPS/CETT两seed候选筛选"
+    )
+    assert entries[0]["decision_display"] == (
+        "至少一个候选稳定超过扩展benchmark的ID边际，可进入公平拓扑归因"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
