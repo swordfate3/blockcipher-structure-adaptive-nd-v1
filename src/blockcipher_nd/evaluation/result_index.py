@@ -374,6 +374,15 @@ DECISION_LABELS = {
     "innovation2_fresh_context_protocol_invalid": (
         "fresh-key、E16 source 或 Hwang anchor 协议无效"
     ),
+    "innovation2_balance_rate_interaction_ready": (
+        "跨密钥平衡率 interaction 残差可重复，可设计连续预测"
+    ),
+    "innovation2_balance_rate_interaction_not_reproducible": (
+        "跨密钥平衡率 interaction 弱、噪声化或被控制解释"
+    ),
+    "innovation2_balance_rate_protocol_invalid": (
+        "E18重放、XOR缓存、mask网格或标量校验无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -769,6 +778,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_fresh_expanded_context_kernel_128keys_seed0_20260717"
     ):
         return "创新2 E18：PRESENT 7轮64-context fresh-key kernel扩展"
+    if run_id == (
+        "i2_present_r7_context_mask_balance_rate_128keys_seed0_20260717"
+    ):
+        return "创新2 E19：PRESENT 7轮跨密钥输出平衡概率审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -1069,3 +1069,86 @@ validation residual standard deviation `>=0.05`；有限密钥噪声修正后的
 excess variance严格大于0；两个 shuffle control residual correlation均 `<0.10`。
 通过后才设计连续值/排序神经预测，仍不直接远程训练；失败则停止 PRESENT r7
 context 输出概率分支，转文献支持的其他密码/轮数结构族。
+
+## 31. 2026-07-17 E19 结果
+
+E19 完整重放 E18 的64个 context、128把密钥和全部 joint-kernel 签名，并将
+`64 x 128` 个积分输出 XOR word 持久化为 `xor_words.npy`。从该缓存构造
+`16` 个输出 nibble乘以每个 nibble 的 `15` 个非零 mask，共 `240` 个候选
+mask、`64 x 240 = 15360` 个 `(context, mask)` cell。没有训练神经网络。
+
+协议检查全部通过：E18 的64个 joint 签名全部复现，发现/验证各64把密钥互斥，
+mask 网格完整，XOR 缓存形状和类型正确，zero context 与首个新增 context 的
+标量实现复核一致。最终指标为：
+
+| 指标 | 结果 | 预注册门槛 |
+|---|---:|---:|
+| 原始 balance-rate 两半相关 | `0.7063695522` | `>= 0.25` |
+| interaction 残差两半相关 | `0.0012802112` | `>= 0.20` |
+| 两半 rate 平均绝对差 | `0.0678202311` | `<= 0.15` |
+| 验证 interaction 残差标准差 | `0.0599370044` | `>= 0.05` |
+| 验证 interaction 残差方差 | `0.0035924445` | 诊断量 |
+| 二项有限密钥噪声方差估计 | `0.0037270501` | 诊断量 |
+| 噪声修正 interaction excess variance | `0.0000000000` | `> 0` |
+| context-shuffle 残差相关 | `0.0089938952` | `abs < 0.10` |
+| label-shuffle 残差相关 | `-0.0037839902` | `abs < 0.10` |
+
+原始平衡率在两半密钥之间高度相关，但去除 context 与 mask 加性边际后，真正的
+`context x mask` 交互相关只剩 `0.00128`；验证残差方差还低于有限64-key采样的
+二项噪声估计，噪声修正后的额外交互方差为零。也就是说，可重复的是稳定的
+context/mask 边际，不是创新2需要学习的结构条件交互。因此最终裁决为：
+
+```text
+status = hold
+decision = innovation2_balance_rate_interaction_not_reproducible
+strict kernel membership = stop for PRESENT r7 contexts
+cross-key balance probability = stop for PRESENT r7 contexts
+neural training = no
+remote_scale = no
+```
+
+这是对冻结的64-context、240-mask、两组64把采样密钥的本地协议审计，不是神经
+模型结果、paper-scale 训练或全密钥空间证明。它足以否决“从当前标签表直接训练或
+机械增加 context/key/mask”这一下一步，但不能外推为所有 PRESENT 积分输出性质
+均不存在。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_context_mask_balance_rate_128keys_seed0_20260717/
+```
+
+`curves.svg` 的散点层已栅格化，文件由约 `2.4 MB` 降至约 `53 KB`。最终以
+`1800 x 864` 像素执行 `visual-qa-redraw` 检查，标题、双面板、门槛标记、裁决文字
+无重叠或裁切，中文字体完整，坐标和门槛含义明确。
+
+## 32. 推荐下一步：E20 SKINNY-64/64 论文 kernel 协议就绪审计
+
+E19 后停止 PRESENT r7 inactive-context 路线，不继续增加密钥、context、mask、
+seed，也不训练连续值网络。下一步转向 Hwang 2026 正文主案例 SKINNY-64/64；
+PRESENT 在该论文中只是附录案例，而 SKINNY 与神经积分输出性质的联系更直接。
+
+Hwang Section 5.1 给出了可执行的同预算锚点：SKINNY-64/64、7轮、单个活动明文
+cell、MSB-first 64-bit parity feature、`10^6` data，经验矩阵的 `(rank, nullity)`
+应为 `(46, 18)`，Table 2 给出完整18维 kernel basis；8轮则只剩
+`b28 xor b44 xor b60` 一个 basis。当前源码扫描未发现 keyed SKINNY-64/64 实现，
+因此 E20 先做密码与协议复现，不做训练。
+
+E20 的可执行顺序冻结为：
+
+```text
+research question = 项目能否逐项复现 Hwang SKINNY-64/64 7轮 exact kernel
+same-budget anchor = Hwang Section 5.1 / Table 2 的 64-bit parity fixture
+one variable = cipher 从 PRESENT-80 切换为 SKINNY-64/64
+implementation = keyed SKINNY-64/64 + 权威测试向量 + 明确 tweakey/round 约定
+bit order = 4x4 nibble state，论文 MSB-first，必须用 exact basis 裁决
+readiness gate = 权威向量通过，rank=46，nullity=18，18个 Table 2 basis 全部一致
+training = none
+execution = 本地、磁盘缓存、可恢复进度；未过 readiness 不上远程 GPU
+advance = 通过后才设计 structure/mask 输出属性标签及边际/group/fresh-key 控制
+stop = exact fixture 无法复现时先审计协议差异，不扩样本、不换网络掩盖问题
+```
+
+这个顺序保持创新2的任务不变：预测“给定结构和输出 mask 的积分输出性质”，而不
+退回“积分数据与随机数据二分类”。
