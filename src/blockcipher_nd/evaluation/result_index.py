@@ -467,6 +467,18 @@ DECISION_LABELS = {
     "innovation2_speck_hwang_context_protocol_invalid": (
         "SPECK context baseline、推导、CUDA缓存、计时或GF(2)协议无效"
     ),
+    "innovation2_speck_hwang_position_family_advance": (
+        "SPECK固定位置族满足正负标签数量与跨word覆盖；进入组外捷径审计"
+    ),
+    "innovation2_speck_hwang_position_family_narrow": (
+        "SPECK固定位置族过窄；暂停训练并评估非相邻或旋转等价结构"
+    ),
+    "innovation2_speck_hwang_position_family_anchor_only": (
+        "SPECK仅论文固定位置保持稳定；停止当前位置标签路线"
+    ),
+    "innovation2_speck_hwang_position_family_protocol_invalid": (
+        "SPECK位置族baseline、映射、缓存、计时或GF(2)协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -888,6 +900,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E25 Phase C：SPECK32/64 32+32密钥精确kernel复现"
     if run_id == "i2_speck32_hwang_contexts_32plus32_gpu0_20260717":
         return "创新2 E26：SPECK32/64四种固定context kernel审计"
+    if run_id == "i2_speck32_hwang_positions_gpu0_20260717":
+        return "创新2 E27：SPECK32/64相邻固定位置kernel族筛选"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

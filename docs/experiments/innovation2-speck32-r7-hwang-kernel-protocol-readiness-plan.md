@@ -680,3 +680,42 @@ anchor_only_or_invalid:
 禁止：用8-key screen 命中直接当最终正标签；把 fixed value 四种取值重复计作样本；
 对 screen 失败位置继续机械补64把密钥；在 position/mask group-disjoint shortcut gate
 之前训练任何神经网络。
+
+### 16.4 E27 实现与本地 readiness
+
+E27 实现冻结为：
+
+```text
+run_id = i2_speck32_hwang_positions_gpu0_20260717
+remote device = RTX A6000 GPU0
+screen cache = cache/positionXX/screen/{metadata.json,parity_rows.npy,completed.npy}
+validation cache = cache/positionXX/validation/{metadata.json,parity_rows.npy,completed.npy}
+verified result branch = results/i2_speck32_hwang_positions_gpu0_20260717
+```
+
+Phase C control 哈希已在实现前冻结：
+
+```text
+control parity SHA256 = 34486c570a630544ce3ca9fccf1297629bc7924fb6ec19adcf939a4b97b485ca
+control metadata SHA256 = 79d31905668c8121ca8ee2f30fc2fd6bd87d981bdafadf544143e182b5d2b1d3
+```
+
+本地 readiness 只验证映射、冻结 baseline、密钥顺序和动态候选规则，不运行 `2^30`
+枚举。2026-07-17 就绪结果：
+
+```text
+status = pass
+mapping_fixture_valid = true
+phase_c_anchor_and_control_verified = true
+phase_c_keys = 64
+position_pairs = 30
+screen_keys = 8
+max_validation_candidates = 8
+training_performed = false
+```
+
+聚焦测试覆盖：30个位置边界、相邻 bit 映射、候选超过8个时的 low/high word 冻结
+选择、advance/narrow/anchor-only 三分支、只对screen候选生成56-key缓存、E25/E26
+回归、结果索引，以及远程 `G:\lxy`、`cmd.exe /c`、无 delayed expansion、verified
+archive、独立验证、绘图和 `visual_qa_pending` handoff。远程结果必须经本地 manifest、
+baseline SHA、cache-to-aggregate parity、密钥顺序、GF(2) gate 独立重算后才能裁决。
