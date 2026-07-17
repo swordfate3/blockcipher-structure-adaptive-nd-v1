@@ -1,7 +1,7 @@
 # 创新2 E25：SPECK32/64 Hwang Table 7 kernel 协议与分块执行就绪计划
 
 日期：2026-07-17
-状态：E27 通过协议验证但位置族过窄 / 仅{5,6}与{6,7}为64-key稳定正位置 / E28不执行 / 下一门E27-N拓扑对齐对照
+状态：E27位置族过窄 / E28不执行 / E27-N实现与本地readiness通过 / 待远程精确枚举
 
 ## 1. 路线来源
 
@@ -955,3 +955,38 @@ outputs/00_RECENT_RESULTS.md entry 001
 `visual-qa-redraw`：标题、中文解释、30个位置标签、双word面板、anchor/control
 注释、8-key阈值线、裁决和证据范围无重叠、裁切、缺字或结构歧义；marker 已转换为
 `visual_qa_passed.marker`。
+
+## 18. E27-N 实现与远程就绪证据
+
+E27-N 已按16.6节冻结协议实现，远程运行ID为：
+
+```text
+i2_speck32_hwang_topology_pairs_gpu0_20260717
+```
+
+实现保持单一变量：真实 `{y_i, x_(i+7)}` 对齐与错位
+`{y_i, x_(i+6)}` 控制各16个lane；两组独立按lane升序最多选择4个8-key候选，
+补齐同一Phase C剩余56把密钥。缓存按 `family/lane/phase` 落盘，并在独立校验中核对
+密钥序列、活动位、固定明文、后端、chunk、设备、聚合数组、完成位图、resume行数、
+动态计时身份、Phase C冻结SHA256、source commit及远程门控重算。
+
+本地就绪证据：
+
+```text
+focused tests = 28 passed
+Phase C readiness = pass
+Phase C keys = 64
+families x lanes = 2 x 16
+screen keys = 8
+max validation candidates = 4 per family
+training performed = false
+```
+
+合成裁决图已按自然尺寸 `1444x756` 渲染成像素并执行 `visual-qa-redraw`。标题、说明、
+四类点图例、双面板、阈值线、lane标签、指标、裁决和证据范围均无重叠、裁切、缺字或
+结构歧义。该图只验证绘图实现，不是实验结果；真实远程结果回收后仍必须重新执行视觉
+QA，才能将 `visual_qa_pending.marker` 转为通过标记。
+
+远程执行门仍保持：只能从精确 pushed commit 启动 run-owned clean clone；GPU缓存、
+日志、archive均位于 `G:\lxy`；结果分支、SHA256、本地独立验证、结果索引和真实图像
+QA全部完成前，不得把 E27-N 报告为完成，也不得启动E28或神经网络训练。

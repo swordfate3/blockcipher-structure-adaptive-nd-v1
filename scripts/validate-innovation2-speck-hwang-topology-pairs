@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.validate_innovation2_speck_hwang_topology_pairs import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
