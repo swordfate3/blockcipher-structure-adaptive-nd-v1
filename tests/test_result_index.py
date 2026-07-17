@@ -211,6 +211,30 @@ def test_result_index_labels_innovation2_active_block_diversity(
     )
 
 
+def test_result_index_labels_innovation2_output_label_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r7_structure_mask_label_readiness_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_output_label_shortcut_dominated",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E13：PRESENT 7轮结构-mask输出标签边际捷径审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "活动块+mask简单边际已解释标签，禁止直接训练神经网络"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

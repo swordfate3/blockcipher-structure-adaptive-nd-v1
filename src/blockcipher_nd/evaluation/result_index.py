@@ -299,6 +299,15 @@ DECISION_LABELS = {
     "innovation2_present_r7_active_block_diversity_protocol_invalid": (
         "活动块 kernel 多样性协议无效，先修复结构或论文 anchor"
     ),
+    "innovation2_output_label_interaction_ready": (
+        "边际基线未完全解释结构-mask标签，可扩大结构族"
+    ),
+    "innovation2_output_label_shortcut_dominated": (
+        "活动块+mask简单边际已解释标签，禁止直接训练神经网络"
+    ),
+    "innovation2_output_label_readiness_protocol_invalid": (
+        "结构-mask标签源证据或构造无效，先修复协议"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -664,6 +673,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_active_block_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E12：PRESENT 7轮活动块输出 kernel 多样性 readiness"
+    if run_id == "i2_present_r7_structure_mask_label_readiness_seed0_20260717":
+        return "创新2 E13：PRESENT 7轮结构-mask输出标签边际捷径审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
