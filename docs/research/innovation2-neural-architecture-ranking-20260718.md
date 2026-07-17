@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：架构调研完成 / E33与E33-R均未过拓扑归因门 / round-shared reasoner为下一候选 / 真实密码训练未开放
+状态：架构调研完成 / E33、E33-R与E34均未过拓扑归因门 / typed edge-token Transformer为下一候选 / 真实密码训练未开放
 
 ## 1. 结论先行
 
@@ -263,3 +263,14 @@ equivariant SCGT不开放。
 reasoner：保留cell-equivariant node表示和同一GraphGPS operator，只把三个静态独立block
 替换成一个共享block，并按样本真实轮数执行2--5次。该候选直接对应当前“轮数只是embedding、
 传播深度固定”的源码错配，仍需同预算true/wrong-P和label-shuffle裁决；失败即停止该家族。
+
+E34现已完成。round-shared真实P-layer dual均值为`0.683643`，低于ID边际`0.726528`、
+E33-R静态锚点`0.711548`和错误P-layer`0.708540`；两seed分别为`0.647404/0.719881`。
+共享处理器只有`146881`参数，约为静态锚点的一半，cell等变和标签打乱控制均正常，因而
+不能用实现错误解释失败。GraphGPS/looped家族停止，SCGT不再开放。
+
+下一候选改为小型`Cipher Edge-Token Transformer`。它吸收TokenGT把node与edge统一为
+token的思想，但不采用大型通用框架：16个bit node、16个有向P-layer edge、4个S-box
+relation和1个mask query组成固定小token集。候选的关键增量是让P-layer边成为显式对象，
+支持edge-edge和query-edge交互；这与GraphGPS的neighbor gather是不同关系算子。仍必须
+通过cell重标号不变性、错误P-layer和label-shuffle门，失败后关闭该合成神经拓扑路线。

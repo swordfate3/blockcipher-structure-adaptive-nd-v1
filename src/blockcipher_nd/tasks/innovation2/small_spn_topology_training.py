@@ -73,12 +73,14 @@ class TrainingRowSpec:
     label_mode: str
     seed: int
     position_mode: str = "absolute"
+    processor_mode: str = "stacked"
 
     @property
     def row_id(self) -> str:
         suffix = "label_shuffle" if self.label_mode == "shuffled" else self.topology_mode
         position = "" if self.position_mode == "absolute" else f"_{self.position_mode}"
-        return f"{self.model_name}{position}_{suffix}_seed{self.seed}"
+        processor = "" if self.processor_mode == "stacked" else f"_{self.processor_mode}"
+        return f"{self.model_name}{position}{processor}_{suffix}_seed{self.seed}"
 
 
 def training_matrix(config: TopologyTrainingConfig) -> tuple[TrainingRowSpec, ...]:
@@ -193,6 +195,7 @@ def train_topology_row(
         model_name=row_spec.model_name,
         topology_mode=row_spec.topology_mode,
         position_mode=row_spec.position_mode,
+        processor_mode=row_spec.processor_mode,
         hidden_dim=config.hidden_dim,
         blocks=config.blocks,
         heads=config.heads,
@@ -283,6 +286,7 @@ def train_topology_row(
         "model_name": row_spec.model_name,
         "topology_mode": row_spec.topology_mode,
         "position_mode": row_spec.position_mode,
+        "processor_mode": row_spec.processor_mode,
         "label_mode": row_spec.label_mode,
         "seed": row_spec.seed,
         "best_epoch": best_epoch,

@@ -11,6 +11,9 @@ from blockcipher_nd.cli.plot_innovation2_small_spn_topology import (
 from blockcipher_nd.cli.plot_innovation2_small_spn_cell_equivariance import (
     render_cell_equivariance_svg,
 )
+from blockcipher_nd.cli.plot_innovation2_small_spn_round_shared_reasoner import (
+    render_round_shared_reasoner_svg,
+)
 from blockcipher_nd.models.structure.spn.small_spn_graph_models import (
     BasisSetEncoder,
     SmallSpnModelSpec,
@@ -19,6 +22,7 @@ from blockcipher_nd.models.structure.spn.small_spn_graph_models import (
 from blockcipher_nd.tasks.innovation2 import small_spn_exact_labels as labels
 from blockcipher_nd.tasks.innovation2 import small_spn_cell_equivariance as equivariance
 from blockcipher_nd.tasks.innovation2 import small_spn_topology_training as training
+from blockcipher_nd.tasks.innovation2 import small_spn_round_shared_reasoner as reasoner
 
 
 def _model_data() -> dict[str, np.ndarray]:
@@ -52,6 +56,7 @@ def _model(
     model_name: str,
     topology_mode: str = "true",
     position_mode: str = "absolute",
+    processor_mode: str = "stacked",
 ) -> SmallSpnTopologyPredictor:
     data = _model_data()
     return SmallSpnTopologyPredictor(
@@ -59,6 +64,7 @@ def _model(
             model_name=model_name,
             topology_mode=topology_mode,
             position_mode=position_mode,
+            processor_mode=processor_mode,
             hidden_dim=32,
             blocks=2,
             heads=4,
@@ -105,6 +111,41 @@ def test_cell_equivariant_mode_removes_absolute_ids_and_is_relabeling_invariant(
     assert model.nibble_embedding is None
     assert model.lane_embedding is not None
     error = equivariance.measure_cell_relabeling_error(_model_data())
+    assert error <= 1e-6
+
+
+def test_round_shared_processor_uses_one_block_and_two_to_five_steps() -> None:
+    class AddOne(torch.nn.Module):
+        def forward(
+            self,
+            hidden: torch.Tensor,
+            incoming: torch.Tensor,
+            outgoing: torch.Tensor,
+        ) -> torch.Tensor:
+            del incoming, outgoing
+            return hidden + 1
+
+    model = _model(
+        "graphgps",
+        position_mode="cell_equivariant",
+        processor_mode="round_shared",
+    )
+    assert len(model.blocks) == 1
+    model.blocks[0] = AddOne()
+    hidden = torch.zeros((4, 16, 32))
+    identity = torch.arange(16).expand(4, -1)
+    output = model._run_graph_processor(
+        hidden,
+        identity,
+        identity,
+        torch.tensor([0, 1, 2, 3]),
+    )
+    expected = torch.tensor([2, 3, 4, 5], dtype=output.dtype)
+    assert torch.allclose(output[:, 0, 0], expected)
+    assert torch.allclose(output, expected[:, None, None].expand_as(output))
+    error = equivariance.measure_cell_relabeling_error(
+        _model_data(), processor_mode="round_shared"
+    )
     assert error <= 1e-6
 
 
@@ -222,4 +263,49 @@ def test_cell_equivariance_matrix_gate_and_plot_are_frozen(tmp_path: Path) -> No
     svg = output.read_text(encoding="utf-8")
     assert "创新2 E33-R" in svg
     assert "cell重标号" in svg
+    assert "不是PRESENT/GIFT/SKINNY真实密码结果" in svg
+
+
+def test_round_shared_matrix_gate_and_plot_are_frozen(tmp_path: Path) -> None:
+    config = training.TopologyTrainingConfig(run_id="e34")
+    matrix = reasoner.round_shared_training_matrix(config)
+    assert len(matrix) == 5
+    assert all(row.position_mode == "cell_equivariant" for row in matrix)
+    assert all(row.processor_mode == "round_shared" for row in matrix)
+
+    def row(topology: str, label: str, seed: int, dual: float) -> dict[str, object]:
+        return {
+            "model_name": "graphgps",
+            "position_mode": "cell_equivariant",
+            "processor_mode": "round_shared",
+            "topology_mode": topology,
+            "label_mode": label,
+            "seed": seed,
+            "best_validation_auc": 0.8,
+            "train_auc": 0.8,
+            "unseen_sbox_auc": 0.80 if label == "true" else 0.5,
+            "unseen_player_auc": 0.76 if label == "true" else 0.5,
+            "dual_unseen_auc": dual,
+            "training_performed": True,
+        }
+
+    rows = [
+        row("true", "true", 0, 0.82),
+        row("true", "true", 1, 0.81),
+        row("shuffled", "true", 0, 0.74),
+        row("shuffled", "true", 1, 0.73),
+        row("true", "shuffled", 0, 0.50),
+    ]
+    gate = reasoner.adjudicate_round_shared_reasoner(
+        config, {"source": True}, 1e-7, rows
+    )
+    assert gate["decision"] == (
+        "innovation2_small_spn_round_shared_reasoner_confirmed"
+    )
+
+    output = tmp_path / "curves.svg"
+    render_round_shared_reasoner_svg({"rows": rows, "gate": gate}, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E34" in svg
+    assert "按实际轮数" in svg
     assert "不是PRESENT/GIFT/SKINNY真实密码结果" in svg

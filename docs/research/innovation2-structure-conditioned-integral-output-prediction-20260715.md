@@ -453,6 +453,17 @@ dual-unseen AUC仅`0.711548`，仍低于ID边际`0.726528`，并与错误P-layer
 诊断，而不是追逐新模型名称。数据、split、40 epochs、seed0/1、wrong-P和label-shuffle
 全部冻结；未超过ID边际和wrong-P各`0.03`就停止合成GraphGPS/looped路线。
 
+E34 round-shared reasoner已完成。真实P-layer dual均值为`0.683643`，低于ID边际
+`0.726528`、E33-R静态锚点`0.711548`和错误P-layer`0.708540`。裁决为
+`innovation2_small_spn_round_shared_reasoner_not_ready`；合成GraphGPS/looped家族停止，
+真实密码迁移仍关闭。
+
+下一候选只开放一个关系算子方向：小型Cipher Edge-Token Transformer。它把16条有向
+P-layer边和4个S-box relation显式编码成token，并由output-mask query参与attention，测试
+edge-edge/query-edge交互是否是当前neighbor-gather模型缺失的能力。数据、split、true/wrong-P
+和label-shuffle继续冻结；若仍不超过错误拓扑，停止该合成benchmark上的网络架构搜索，
+回到标签族和任务定义审计。
+
 ## 当前神经训练开放门
 
 下一次神经训练必须同时满足以下条件：

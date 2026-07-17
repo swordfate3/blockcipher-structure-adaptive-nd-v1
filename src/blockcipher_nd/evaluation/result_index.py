@@ -587,6 +587,21 @@ DECISION_LABELS = {
     "innovation2_small_spn_cell_equivariance_protocol_invalid": (
         "cell重标号等变、来源、split、forward或metric协议无效"
     ),
+    "innovation2_small_spn_round_shared_readiness_passed": (
+        "按实际轮数循环的共享图处理器就绪，可运行冻结两seed归因矩阵"
+    ),
+    "innovation2_small_spn_round_shared_reasoner_confirmed": (
+        "共享轮处理器超过边际与错误P-layer，只开放同处理器SCGT增益审计"
+    ),
+    "innovation2_small_spn_round_shared_topology_not_attributed": (
+        "共享轮处理器收益未归因于真实P-layer，停止拓扑贡献声明"
+    ),
+    "innovation2_small_spn_round_shared_reasoner_not_ready": (
+        "共享轮处理器未过冻结门，停止合成GraphGPS/looped家族"
+    ),
+    "innovation2_small_spn_round_shared_protocol_invalid": (
+        "共享可变步数、cell等变、来源、split或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1030,6 +1045,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E33-R：cell重标号等变表示就绪smoke"
     if run_id == "i2_small_spn_cell_equivariance_seed0_seed1_20260718":
         return "创新2 E33-R：cell重标号等变GraphGPS两seed归因"
+    if run_id == "i2_small_spn_round_shared_reasoner_smoke_seed0_20260718":
+        return "创新2 E34：共享轮处理器就绪smoke"
+    if run_id == "i2_small_spn_round_shared_reasoner_seed0_seed1_20260718":
+        return "创新2 E34：共享轮处理器两seed拓扑归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

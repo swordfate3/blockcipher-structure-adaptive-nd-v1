@@ -59,7 +59,9 @@ def equivariance_training_matrix(
     )
 
 
-def measure_cell_relabeling_error(data: dict[str, Any]) -> float:
+def measure_cell_relabeling_error(
+    data: dict[str, Any], *, processor_mode: str = "stacked"
+) -> float:
     cell_permutation = np.asarray([2, 0, 3, 1], dtype=np.int64)
     node_permutation = np.asarray(
         [4 * cell_permutation[node // 4] + node % 4 for node in range(16)],
@@ -74,6 +76,7 @@ def measure_cell_relabeling_error(data: dict[str, Any]) -> float:
         model_name="graphgps",
         topology_mode="true",
         position_mode="cell_equivariant",
+        processor_mode=processor_mode,
         hidden_dim=32,
         blocks=2,
         heads=4,
@@ -263,4 +266,3 @@ def _gate(
         ),
         "next_action": {"action": action, "remote_scale": False},
     }
-

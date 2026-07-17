@@ -12,6 +12,7 @@ class SmallSpnModelSpec:
     model_name: str
     topology_mode: str = "true"
     position_mode: str = "absolute"
+    processor_mode: str = "stacked"
     hidden_dim: int = 64
     blocks: int = 3
     heads: int = 4
@@ -24,6 +25,8 @@ class SmallSpnModelSpec:
             raise ValueError("topology_mode must be true or shuffled")
         if self.position_mode not in {"absolute", "cell_equivariant"}:
             raise ValueError("position_mode must be absolute or cell_equivariant")
+        if self.processor_mode not in {"stacked", "round_shared"}:
+            raise ValueError("processor_mode must be stacked or round_shared")
         if self.hidden_dim <= 0 or self.hidden_dim % self.heads:
             raise ValueError("hidden_dim must be positive and divisible by heads")
         if self.blocks <= 0:
@@ -166,9 +169,10 @@ class SmallSpnTopologyPredictor(nn.Module):
         )
         self.basis_to_nodes = nn.Linear(hidden_dim, hidden_dim)
         self.input_norm = nn.LayerNorm(hidden_dim)
+        block_count = 1 if spec.processor_mode == "round_shared" else spec.blocks
         self.blocks = nn.ModuleList(
             SmallSpnGpsBlock(hidden_dim, spec.heads, spec.dropout)
-            for _ in range(spec.blocks)
+            for _ in range(block_count)
         )
         readout_parts = 6 if self.basis_encoder is not None else 5
         self.head = nn.Sequential(
@@ -219,8 +223,34 @@ class SmallSpnTopologyPredictor(nn.Module):
         hidden = self.input_norm(hidden)
         incoming_index = self.inverse_players[variant_index]
         outgoing_index = self.players[variant_index]
+        hidden = self._run_graph_processor(
+            hidden, incoming_index, outgoing_index, round_index
+        )
+        mask_weight = output_mask.unsqueeze(-1)
+        active_weight = active.unsqueeze(-1)
+        mask_pool = (hidden * mask_weight).sum(dim=1) / mask_weight.sum(dim=1).clamp_min(1.0)
+        active_pool = (hidden * active_weight).sum(dim=1) / active_weight.sum(dim=1).clamp_min(1.0)
+        parts = [hidden.mean(dim=1), mask_pool, active_pool, sbox_hidden, round_hidden]
+        if basis_pool is not None:
+            parts.append(basis_pool)
+        return self.head(torch.cat(parts, dim=-1)).squeeze(-1)
+
+    def _run_graph_processor(
+        self,
+        hidden: torch.Tensor,
+        incoming_index: torch.Tensor,
+        outgoing_index: torch.Tensor,
+        round_index: torch.Tensor,
+    ) -> torch.Tensor:
         gather_shape = (-1, -1, self.spec.hidden_dim)
-        for block in self.blocks:
+        if self.spec.processor_mode == "round_shared":
+            block = self.blocks[0]
+            step_count = round_index + 2
+            blocks = (block for _ in range(5))
+        else:
+            step_count = None
+            blocks = iter(self.blocks)
+        for step, block in enumerate(blocks):
             incoming = torch.gather(
                 hidden,
                 1,
@@ -231,15 +261,13 @@ class SmallSpnTopologyPredictor(nn.Module):
                 1,
                 outgoing_index.unsqueeze(-1).expand(*gather_shape),
             )
-            hidden = block(hidden, incoming, outgoing)
-        mask_weight = output_mask.unsqueeze(-1)
-        active_weight = active.unsqueeze(-1)
-        mask_pool = (hidden * mask_weight).sum(dim=1) / mask_weight.sum(dim=1).clamp_min(1.0)
-        active_pool = (hidden * active_weight).sum(dim=1) / active_weight.sum(dim=1).clamp_min(1.0)
-        parts = [hidden.mean(dim=1), mask_pool, active_pool, sbox_hidden, round_hidden]
-        if basis_pool is not None:
-            parts.append(basis_pool)
-        return self.head(torch.cat(parts, dim=-1)).squeeze(-1)
+            updated = block(hidden, incoming, outgoing)
+            if step_count is None:
+                hidden = updated
+            else:
+                should_update = (step < step_count).view(-1, 1, 1)
+                hidden = torch.where(should_update, updated, hidden)
+        return hidden
 
 
 def _truth_table_bits(sboxes: np.ndarray) -> np.ndarray:
