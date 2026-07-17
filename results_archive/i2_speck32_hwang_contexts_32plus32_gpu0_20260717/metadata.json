@@ -1,0 +1,35 @@
+{
+  "assignments_per_exact_row": 1073741824,
+  "backend": "torch_int32",
+  "chunk_size": 16777216,
+  "cipher": "SPECK32/64",
+  "claim_scope": "remote paired 32+32 sampled-key audit of four fixed values for the SPECK32/64 bits-5,6 integral structure using exact 2^30 rows, a verified Phase C baseline, and a directly checked permutation-partition derivation; not neural training, paper-scale, or a new integral property",
+  "context00_metadata_sha256": "67138d81e04240b99f42046d2dd6e64a44a8b1586562947176360339a33afe00",
+  "context00_parity_sha256": "3a6df2692fd428938cf8d30e16521947efd1b3242dfc62f288094d7f5187637f",
+  "context00_source_commit": "700ac88a4c250fb43ff076ce043c79a575faf95d",
+  "context00_source_run": "i2_speck32_hwang_phase_c_32plus32_gpu0_20260717",
+  "context11_derivation": "parity00 xor parity01 xor parity10",
+  "contexts": [
+    "00",
+    "01",
+    "10",
+    "11"
+  ],
+  "device": "cuda",
+  "discovery_keys": 32,
+  "fixed_bits": [
+    5,
+    6
+  ],
+  "key_generation_seed": 25031,
+  "new_exact_rows": 258,
+  "rounds": [
+    6,
+    7
+  ],
+  "run_id": "i2_speck32_hwang_contexts_32plus32_gpu0_20260717",
+  "task": "innovation2_speck32_hwang_fixed_context_audit",
+  "total_keys": 64,
+  "training_performed": false,
+  "validation_keys": 32
+}
