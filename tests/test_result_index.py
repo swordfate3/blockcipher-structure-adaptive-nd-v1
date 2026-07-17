@@ -279,6 +279,30 @@ def test_result_index_labels_innovation2_topology_geometry(tmp_path: Path) -> No
     )
 
 
+def test_result_index_labels_innovation2_deterministic_provider(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_deterministic_provider_contract_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_deterministic_provider_semantics_mismatch",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E31：PRESENT高轮确定性积分标签提供者契约审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "现有确定性结果的常数值、输出函数或负类语义不匹配当前标签"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

@@ -518,6 +518,18 @@ DECISION_LABELS = {
     "innovation2_present_linear_subspace_protocol_invalid": (
         "PRESENT线性子空间RREF、密钥、缓存、向量化或GF(2)协议无效"
     ),
+    "innovation2_deterministic_provider_ready": (
+        "确定性提供者契约完整，可进入高轮structure×linear-mask标签atlas审计"
+    ),
+    "innovation2_deterministic_provider_semantics_mismatch": (
+        "现有确定性结果的常数值、输出函数或负类语义不匹配当前标签"
+    ),
+    "innovation2_deterministic_provider_runtime_unavailable": (
+        "同目标确定性提供者当前依赖不可用运行时或商业求解器"
+    ),
+    "innovation2_deterministic_provider_protocol_invalid": (
+        "确定性提供者版本、安全解析、文件集或GF(2)契约无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -947,6 +959,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E27-N：SPECK32/64 ROR7模加对齐与错位控制"
     if run_id == "i2_present_r7_linear_subspace_kernel_diversity_128keys_seed0_20260717":
         return "创新2 E30：PRESENT-80 7轮16维线性子空间kernel多样性"
+    if run_id == "i2_present_r9_deterministic_provider_contract_20260718":
+        return "创新2 E31：PRESENT高轮确定性积分标签提供者契约审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

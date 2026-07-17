@@ -1,7 +1,7 @@
 # 创新2 E30：PRESENT-80 7轮16维线性子空间 kernel 多样性就绪计划
 
 日期：2026-07-17
-状态：实现与smoke通过 / 待运行冻结128-key完整审计
+状态：冻结128-key完整审计已完成 / hold / 随机orientation路线停止
 
 ## 1. 研究问题
 
@@ -137,3 +137,69 @@ training performed = false
 4-key smoke的nullity和签名受行数下界支配，只能证明实现就绪，不作为标签证据，也不
 进入最近实验索引。下一步按本计划原样运行32个随机orientation和 `64+64` 把密钥；
 不得根据smoke指标调整seed、维度、轮数或门槛。
+
+## 8. 冻结完整审计结果
+
+权威run：
+
+```text
+i2_present_r7_linear_subspace_kernel_diversity_128keys_seed0_20260717
+```
+
+实际完成规模与预注册一致：
+
+```text
+structures                  = 36 = 4 coordinate + 32 random
+keys                        = 128 = 64 discovery + 64 validation
+plaintexts/structure/key    = 65536
+total PRESENT encryptions   = 301989888
+training_performed          = false
+```
+
+11项协议与resume门全部通过。四个同预算坐标锚点保留了非平凡joint kernel：
+
+| 结构 | discovery nullity | validation nullity | joint nullity | half retention |
+|---|---:|---:|---:|---:|
+| `coordinate_0` | 8 | 8 | 8 | 1.0 |
+| `coordinate_1` | 4 | 4 | 4 | 1.0 |
+| `coordinate_2` | 4 | 5 | 4 | 1.0 |
+| `coordinate_3` | 7 | 5 | 5 | 1.0 |
+
+因此本次负结果不是PRESENT实现、bit order、GF(2)消元或锚点校准失败。与之相对，
+32个随机orientation的完整结果是：
+
+```text
+nontrivial joint kernels             = 0 / 32
+distinct nonzero joint signatures    = 0
+mean half-intersection retention      = 0.0
+```
+
+冻结裁决：
+
+```text
+status       = hold
+decision     = innovation2_present_linear_subspace_kernel_family_too_sparse
+training     = no
+remote_scale = no
+```
+
+科学解释限于：PRESENT-80 r7的坐标16维子空间保留经验输出kernel，但任意随机
+`GL(64,2)` orientation没有形成可训练的跨密钥kernel族。不得外推成“所有仿射
+子空间都没有积分性质”，也不得把有限128-key证据称为全密钥证明。
+
+结果已进入 `outputs/00_RECENT_RESULTS.md` 的 `001`。`curves.svg` 已按原生交付尺寸
+对应的 `1469x790` 像素执行 `visual-qa-redraw`：标题、说明、图例、坐标轴、36个结构
+ID、底部指标和裁决均无重叠、裁切或歧义。
+
+## 9. 推荐下一步
+
+停止随机orientation，不改seed、维度或轮数继续挑选。E15已经完成并否定了坐标块的
+P-layer一阶/二阶轨道扩展，因此也不能把“topology-preserving”简单解释成再次运行
+P-layer orbit。
+
+下一步先做确定性候选提供者契约审计：检查division-property、monomial-prediction和
+algebraic-transition-matrix工具能否输出与本项目目标完全相同的
+`input affine set x linear output mask` 标签，而不是更宽的高阶输出单项式或广义积分
+关系。该审计将决定是构建高轮PRESENT候选标签atlas，还是改用可精确枚举的小状态
+SPN生成训练标签并执行跨密码拓扑迁移。两条路线都必须先过标签宽度、fresh-key和
+组外捷径门，之后才开放神经训练。
