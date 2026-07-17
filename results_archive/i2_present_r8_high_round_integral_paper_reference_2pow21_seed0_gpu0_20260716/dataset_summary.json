@@ -1,0 +1,72 @@
+{
+  "all_caches_complete": true,
+  "all_labels_balanced": true,
+  "all_reference_c0_views_expected": true,
+  "all_sampled_features_binary": true,
+  "all_splits_disk_backed": true,
+  "bit_order": "multiset_view_text_state_lsb_first",
+  "cipher": "PRESENT-80",
+  "input_bits": 4096,
+  "key_sampling": "one unique master key per sample",
+  "key_splits_disjoint_by_construction": true,
+  "multisets_per_sample": 2,
+  "negative_definition": "encrypted_unrestricted_random_plaintext_multisets",
+  "paper_tensor_concat_assumption": "spatial_axis_1",
+  "protocol_fixture": {
+    "feature_length_matches_protocol": true,
+    "negative_plaintexts_not_forced_into_integral_structure": true,
+    "negative_reference_views_expected": true,
+    "positive_low_nibble_enumerates_0_to_15": true,
+    "positive_reference_views_expected": true,
+    "split_fixture_keys_distinct": true
+  },
+  "protocol_version": "wu_guo_2024_integral_multiset_v1",
+  "rounds": 8,
+  "splits": {
+    "test": {
+      "cache_complete": true,
+      "cache_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716\\dataset_cache\\test_4407b3bd04acb56f",
+      "cache_identity": "4407b3bd04acb56f2d343911c6cc95f1f6d8ff0b967989a8f23687956694d3ee",
+      "cache_status": "created",
+      "key_index_offset": 8589934592,
+      "labels_balanced": true,
+      "negative_rows": 65536,
+      "positive_rows": 65536,
+      "reference_c0_views_expected": true,
+      "sampled_features_binary": true,
+      "samples_per_class": 65536,
+      "total_rows": 131072
+    },
+    "train": {
+      "cache_complete": true,
+      "cache_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716\\dataset_cache\\train_18029e0bdd28e046",
+      "cache_identity": "18029e0bdd28e04646d67871754a686d045f468456f310f59651c47d1d4847f8",
+      "cache_status": "created",
+      "key_index_offset": 0,
+      "labels_balanced": true,
+      "negative_rows": 1048576,
+      "positive_rows": 1048576,
+      "reference_c0_views_expected": true,
+      "sampled_features_binary": true,
+      "samples_per_class": 1048576,
+      "total_rows": 2097152
+    },
+    "validation": {
+      "cache_complete": true,
+      "cache_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716\\dataset_cache\\validation_36bdef2f540def05",
+      "cache_identity": "36bdef2f540def051d2df38ef992f33ef3c27ce4319f5c29d84cdb72219c8fe7",
+      "cache_status": "created",
+      "key_index_offset": 4294967296,
+      "labels_balanced": true,
+      "negative_rows": 65536,
+      "positive_rows": 65536,
+      "reference_c0_views_expected": true,
+      "sampled_features_binary": true,
+      "samples_per_class": 65536,
+      "total_rows": 131072
+    }
+  },
+  "status": "pass",
+  "task": "innovation2_present_high_round_integral_multiset",
+  "texts_per_multiset": 16
+}

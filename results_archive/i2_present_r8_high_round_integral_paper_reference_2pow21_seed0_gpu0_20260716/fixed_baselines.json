@@ -1,0 +1,30 @@
+{
+  "negative_invp_parity_weight": {
+    "auc": 0.4980625776806846,
+    "best_accuracy": 0.5009689331054688,
+    "best_threshold": -54.0,
+    "negative_mean": -63.96983337402344,
+    "positive_mean": -63.996429443359375
+  },
+  "negative_invs_parity_weight": {
+    "auc": 0.49933993141166866,
+    "best_accuracy": 0.50091552734375,
+    "best_threshold": -71.0,
+    "negative_mean": -63.97517395019531,
+    "positive_mean": -63.98406982421875
+  },
+  "negative_total_parity_weight": {
+    "auc": 0.4989202182041481,
+    "best_accuracy": 0.5006637573242188,
+    "best_threshold": -125.0,
+    "negative_mean": -127.94500732421875,
+    "positive_mean": -127.98049926757812
+  },
+  "untrained_structured_candidate": {
+    "accuracy": 0.49723052978515625,
+    "auc": 0.4954497318249196,
+    "best_accuracy": 0.5004425048828125,
+    "loss": 0.693364065606147,
+    "model_seed": 200.0
+  }
+}

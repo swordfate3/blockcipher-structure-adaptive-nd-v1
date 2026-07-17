@@ -1,0 +1,81 @@
+{
+  "plan_id": "innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed0",
+  "question": "At the Wu/Guo public total-row, epoch, batch, and FC-width scale, does PRESENT-80 r8 retain neural round-reach signal and does the structured candidate beat the same-budget paper-family anchor and strong controls?",
+  "launch_state": "ready_for_remote_launch_after_commit_push",
+  "required_precondition": {
+    "run_id": "i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716",
+    "status": "pass",
+    "decision": "innovation2_high_round_integral_two_seed_bridge_confirmed"
+  },
+  "precondition_evidence": "outputs/local_diagnostic/i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716/gate.json",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 8,
+    "seed": 0,
+    "samples_per_class": 1048576,
+    "train_total_rows": 2097152,
+    "train_samples_per_class": 1048576,
+    "validation_total_rows": 131072,
+    "validation_samples_per_class": 65536,
+    "test_total_rows": 131072,
+    "test_samples_per_class": 65536,
+    "multisets_per_sample": 2,
+    "texts_per_multiset": 16,
+    "input_bits": 4096,
+    "epochs": 50,
+    "batch_size": 2000,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "lr_scheduler": "none",
+    "weight_decay": 0.00001,
+    "negative_mode": "encrypted_unrestricted_random_plaintext_multisets",
+    "sample_structure": "wu_guo_2024_integral_multiset",
+    "key_rotation_interval": 1,
+    "key_sampling": "one_unique_present80_master_key_per_sample",
+    "pairs_per_sample": 32,
+    "validation_key": null,
+    "gate_mode": "paper_reference"
+  },
+  "paper_reference_approximation": {
+    "base_channels_nf_assumption": 16,
+    "head_bits": 2048,
+    "fc_layer_count": 3,
+    "depicted_mbconv_block_count": 1,
+    "shared_dropout_rate_assumption": 0.1,
+    "adam_initial_learning_rate_assumption": 0.001,
+    "learning_rate_scheduler": "none",
+    "paper_tensor_concat_assumption": "spatial_axis_1",
+    "label_sampling": "deterministic_alternating_balanced",
+    "key_sampling": "deterministic_unique_per_sample",
+    "independent_training_repetitions": 1,
+    "per_epoch_full_train_evaluation": false,
+    "final_full_train_evaluation": true,
+    "cuda_memory_preflight_before_cache": true,
+    "paper_reported_repetitions": 10,
+    "exact_reproduction": false
+  },
+  "rows": [
+    {
+      "role": "anchor",
+      "model": "wu_guo_paper_family_mbconv"
+    },
+    {
+      "role": "candidate",
+      "model": "present_integral_structured_residual"
+    },
+    {
+      "role": "linear",
+      "model": "same_input_flat_linear"
+    },
+    {
+      "role": "control",
+      "model": "present_integral_structured_residual_shuffled"
+    }
+  ],
+  "forbidden_during_paper_reference_run": [
+    "r9_probe",
+    "gift_extension",
+    "aes_extension"
+  ]
+}
