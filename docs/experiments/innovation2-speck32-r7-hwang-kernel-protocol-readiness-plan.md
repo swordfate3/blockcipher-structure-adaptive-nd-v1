@@ -485,6 +485,7 @@ direct context11 crosscheck = 第一把key x rounds 6和7 = 2 rows
 backend/device/chunk = torch_int32 / CUDA / 2^24
 execution = remote GPU
 estimated new row time = about 30-31 minutes
+local plot = scripts/plot-innovation2-speck-hwang-contexts -> curves.svg
 training/epochs = none
 ```
 
