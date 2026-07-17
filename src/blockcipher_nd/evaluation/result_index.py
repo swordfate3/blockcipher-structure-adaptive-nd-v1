@@ -266,6 +266,18 @@ DECISION_LABELS = {
     "innovation2_stable_balance_subspace_protocol_invalid": (
         "平衡子空间协议未校准，先修 parity word 或 GF(2) kernel"
     ),
+    "innovation2_present_r7_hwang_bitorder_ready": (
+        "唯一 bit-order 复现论文输出 mask，可扩大新密钥复核"
+    ),
+    "innovation2_present_r7_hwang_bitorder_ambiguous": (
+        "多个 bit-order 通过，需增加密钥并核对论文状态布局"
+    ),
+    "innovation2_present_r7_hwang_bitorder_not_reproduced": (
+        "当前映射未复现论文输出 mask，停止训练并审计协议"
+    ),
+    "innovation2_present_r7_hwang_protocol_invalid": (
+        "PRESENT 7轮论文 kernel 协议校验无效，先修实现"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -617,6 +629,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_stable_balance_subspace_r5_r6_bits5_6_7_seed0_20260717"
     ):
         return "创新2 E9：PRESENT 输出平衡 mask 子空间稳定性审计"
+    if run_id == (
+        "i2_present_r7_hwang_kernel_last16_bitorder_readiness_seed0_20260717"
+    ):
+        return "创新2 E10：PRESENT 7轮论文输出 mask bit-order 校准"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

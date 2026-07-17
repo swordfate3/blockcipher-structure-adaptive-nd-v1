@@ -16,7 +16,7 @@ from blockcipher_nd.tasks.innovation2.integral_property_prediction import make_k
 
 
 ACTIVE_BIT_WIDTHS = (5, 6, 7)
-ALLOWED_ACTIVE_BIT_WIDTHS = (4, *ACTIVE_BIT_WIDTHS)
+ALLOWED_ACTIVE_BIT_WIDTHS = (4, *ACTIVE_BIT_WIDTHS, 16)
 MARGINAL_INPUT_BITS = 64 + 16 + 15
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
@@ -33,7 +33,9 @@ class BitIntegralStructure:
         if not self.structure_id:
             raise ValueError("structure_id must be non-empty")
         if len(self.active_bits) not in ALLOWED_ACTIVE_BIT_WIDTHS:
-            raise ValueError("active_bits must contain four, five, six, or seven positions")
+            raise ValueError(
+                "active_bits must contain four, five, six, seven, or sixteen positions"
+            )
         if tuple(sorted(set(self.active_bits))) != self.active_bits:
             raise ValueError("active_bits must be sorted and unique")
         if any(not 0 <= bit < 64 for bit in self.active_bits):
