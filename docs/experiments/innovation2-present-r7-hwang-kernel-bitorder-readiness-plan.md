@@ -912,3 +912,77 @@ training = no neural network
 来自 row-wise 泄漏，可进入 E18 fresh-key 稳定性验证；若任一 group-disjoint
 真实标签基线 AUC `>=0.75`，则当前 context/mask 位模式本身已经形成可泛化捷径，
 停止该标签族且不训练神经网络。
+
+## 27. 2026-07-17 E17c 结果
+
+首次随机平衡四折产生了若干单类 dual test block，协议门正确返回 `fail`；该输出
+未索引、未解释。修复只按“每个 train/test block 同时有0/1”搜索平衡折，不读取
+或优化 AUC，随后同一512行、同一 ridge 和同一门槛重新运行。全部512行在每种
+group protocol 下恰好获得一次组外预测。
+
+最终指标：
+
+| 拆分 | accuracy | Brier | raw AUC | directional AUC |
+|---|---:|---:|---:|---:|
+| 逐行 LOOCV | `0.750000` | `0.067941` | `0.916667` | `0.916667` |
+| context-disjoint | `0.625000` | `0.266785` | `0.367188` | `0.632812` |
+| mask-disjoint | `0.859375` | `0.064018` | `0.950623` | `0.950623` |
+| context+mask dual-disjoint | `0.625000` | `0.266583` | `0.366740` | `0.633260` |
+| 标签打乱 dual-disjoint | `0.750000` | `0.195840` | `0.473490` | `0.526510` |
+
+context-disjoint 和 dual-disjoint 均低于 `0.75`，说明 E17b 的 context identity
+高分很大程度来自逐行拆分泄漏；但 mask-disjoint directional AUC 仍为 `0.950623`，
+位模式捷径可泛化到未见 mask。不能只选择通过的拆分来缩窄创新任务，因此联合
+裁决仍为：
+
+```text
+status = hold
+decision = innovation2_group_disjoint_shortcut_generalizes
+training = no
+remote_scale = no
+```
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_context_mask_group_disjoint_readiness_seed0_20260717/
+```
+
+最终 `curves.svg` 经 `visual-qa-redraw` 渲染为 `1800×799`；原始/方向无关 AUC、
+`0.75` 线、accuracy/Brier、五种拆分、图例和裁决均无重叠、裁切或方向歧义。
+
+## 28. 推荐下一步：E18 64-context fresh-key kernel 扩展
+
+当前16个 context 只有4种翻转 incidence pattern，继续重排同一标签矩阵已经没有
+信息增益。E18 同时完成 fresh-key 验证和结构族扩展：保留 E16 的16个 context
+作为精确回归 anchor，再加入48个确定性新 context；活动集合、轮数和 kernel
+算法不变。
+
+```text
+cipher / rounds = PRESENT-80 / 7
+active bits = 48..63
+contexts = 64 = 16 E16 anchors + 48 new low48 constants
+new-context generation seed = seed + 7401
+fresh keys = 128 = 64 discovery + 64 validation
+fresh-key seed = seed + 8801
+fresh keys disjoint from E16 seed+3301 keys
+plaintexts per context per key = 65536
+key_chunk_size = 4
+training = none
+```
+
+只改变 context 数量和密钥证据集；不改变候选 mask、标签定义或轮数。门槛：
+
+```text
+zero-context Hwang anchor remains exact
+all joint bases validate both fresh-key halves
+all 16 E16 context signatures reproduce exactly on fresh keys
+at least 8 distinct joint-kernel signatures across 64 contexts
+at least 24 contexts contain directions beyond the Hwang span
+```
+
+通过后才基于64-context fresh-key joint kernels 重建 span 标签，并重新执行
+context/mask 双轴 group-disjoint 审计；失败则停止 PRESENT r7 inactive-context
+输出预测分支。E18 是本地向量化协议审计，不是神经训练，不启动远程 GPU；不得
+把64个 context 或128把采样密钥描述为 paper-scale 或全密钥证明。

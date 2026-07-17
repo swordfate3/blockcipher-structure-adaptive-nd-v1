@@ -353,6 +353,15 @@ DECISION_LABELS = {
     "innovation2_equal_prevalence_label_protocol_invalid": (
         "E16 span 或等流行率翻转-mask 标签构造无效"
     ),
+    "innovation2_group_disjoint_shortcuts_controlled": (
+        "组外线性捷径受控，可进入 fresh-key 稳定性验证"
+    ),
+    "innovation2_group_disjoint_shortcut_generalizes": (
+        "至少一种组外拆分仍保留位模式捷径，禁止训练"
+    ),
+    "innovation2_group_disjoint_protocol_invalid": (
+        "context/mask 组外拆分、覆盖或源标签无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -740,6 +749,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_equal_prevalence_context_mask_readiness_seed0_20260717"
     ):
         return "创新2 E17b：PRESENT 7轮等流行率翻转-mask标签审计"
+    if run_id == (
+        "i2_present_r7_context_mask_group_disjoint_readiness_seed0_20260717"
+    ):
+        return "创新2 E17c：PRESENT 7轮context/mask双轴组外捷径审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
