@@ -308,6 +308,15 @@ DECISION_LABELS = {
     "innovation2_output_label_readiness_protocol_invalid": (
         "结构-mask标签源证据或构造无效，先修复协议"
     ),
+    "innovation2_cyclic_geometry_kernel_diversity_ready": (
+        "循环滑动活动几何形成足够多稳定 kernel，可重建扩展标签表"
+    ),
+    "innovation2_cyclic_geometry_kernel_diversity_insufficient": (
+        "循环滑动活动几何的输出 kernel 多样性不足"
+    ),
+    "innovation2_cyclic_geometry_diversity_protocol_invalid": (
+        "循环活动几何协议或 Hwang anchor 校验无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -675,6 +684,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E12：PRESENT 7轮活动块输出 kernel 多样性 readiness"
     if run_id == "i2_present_r7_structure_mask_label_readiness_seed0_20260717":
         return "创新2 E13：PRESENT 7轮结构-mask输出标签边际捷径审计"
+    if run_id == (
+        "i2_present_r7_cyclic_geometry_kernel_diversity_128keys_seed0_20260717"
+    ):
+        return "创新2 E14：PRESENT 7轮循环活动几何输出 kernel 扩展"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

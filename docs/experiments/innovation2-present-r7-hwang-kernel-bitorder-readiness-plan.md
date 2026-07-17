@@ -522,3 +522,79 @@ at least 8 structures have nontrivial joint kernels
 仍低于停止线，并用 geometry-disjoint split 冻结训练/验证结构。若滑动窗口仍只有
 1--2个签名或 mask 身份继续接近完美，转向变化固定上下文或非连续活动几何，仍不
 训练神经网络。
+
+## 17. 2026-07-17 E14 结果
+
+16个循环窗口全部完成，readiness 校验全部通过。joint kernel 只在四个4-nibble
+边界对齐的起点非平凡：
+
+| 起点 | 活动 nibbles | discovery dim | validation dim | joint dim | joint签名 |
+|---:|---|---:|---:|---:|---|
+| `0` | `0,1,2,3` | `7` | `8` | `7` | 低位额外三维 + Hwang span |
+| `4` | `4,5,6,7` | `4` | `4` | `4` | Hwang span |
+| `8` | `8,9,10,11` | `5` | `4` | `4` | Hwang span |
+| `12` | `12,13,14,15` | `5` | `6` | `4` | Hwang span |
+
+其余12个起点的 joint kernel 维数均为 `0`。部分非对齐窗口在单独的64-key half
+中出现1--3维经验 kernel，但在联合128把密钥后全部消失，说明互斥密钥半成功
+过滤了有限采样假方向。
+
+最终只有三种 joint 签名：空 kernel、Hwang 四维、低位七维；非平凡结构仅4个。
+因此裁决为：
+
+```text
+status = hold
+decision = innovation2_cyclic_geometry_kernel_diversity_insufficient
+distinct_joint_kernel_signatures = 3
+nontrivial_joint_kernel_structures = 4
+training = no
+remote_scale = no
+```
+
+这排除了“把连续16 bit 每次平移一个 nibble 就能自然获得丰富标签”的路线。稳定
+输出性质依赖4-nibble边界对齐结构，下一步应使用 PRESENT P-layer 拓扑变换而不是
+继续机械滑动。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_cyclic_geometry_kernel_diversity_128keys_seed0_20260717/
+```
+
+最终 `curves.svg` 经 `visual-qa-redraw` 渲染为 `1800×843` 像素检查；标题、
+中文 glyph、坐标、16个起点、签名标签、Hwang anchor 线和裁决文字无重叠或裁切。
+
+## 18. 推荐下一步：E15 PRESENT 拓扑感知活动几何
+
+E15 固定同一轮数、密钥、上下文和16-bit活动宽度，构造16个由 PRESENT 结构直接
+定义的几何，而不是任意滑动：
+
+```text
+family A: 四个边界对齐4-nibble块，start = 0,4,8,12
+family B: family A 每个结构经过 PRESENT P-layer 一次映射
+family C: family A 每个结构经过 PRESENT P-layer 两次映射
+family D: 四个 nibble-column，{c,c+4,c+8,c+12}, c=0..3
+```
+
+P-layer 映射按当前实现的精确 bit permutation：
+
+```text
+p(i) = (16*i mod 63), i < 63
+p(63) = 63
+```
+
+冻结预算：
+
+```text
+structures = 16
+keys per structure = 128 = 64 + 64
+plaintexts per structure per key = 65536
+key generation seed = seed + 3301
+key_chunk_size = 4
+training = none
+```
+
+门槛继续要求 Hwang 原始结构精确四维、所有 joint basis 验证两半、至少4个不同
+joint签名和至少8个非平凡结构。通过后才用 E13 同一 mask/边际基线重建标签表；
+否则转固定高16位并变化 inactive context，或停止 PRESENT r7 多结构预测路线。
