@@ -323,6 +323,30 @@ def test_result_index_labels_innovation2_context_label(tmp_path: Path) -> None:
     )
 
 
+def test_result_index_labels_innovation2_equal_prevalence_label(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r7_equal_prevalence_context_mask_readiness_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_equal_prevalence_context_label_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E17b：PRESENT 7轮等流行率翻转-mask标签审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "等流行率翻转-mask 标签未被强捷径解释，可做 fresh-key 验证"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

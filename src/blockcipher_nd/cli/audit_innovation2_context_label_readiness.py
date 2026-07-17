@@ -120,6 +120,16 @@ def render_context_label_svg(
     label_rows: list[dict[str, Any]],
     gate: dict[str, Any],
     output_path: Path,
+    *,
+    title: str = "创新2 E17：context-mask 输出平衡标签的捷径审计",
+    subtitle: str = (
+        "标签来自 E16 的16个稳定 joint kernel；18个候选 mask，共288行；"
+        "不重新加密、不训练网络。"
+    ),
+    primary_stop: float = 0.95,
+    primary_stop_label: str = "捷径 AUC 停止线 0.95",
+    secondary_stop: float | None = 0.98,
+    secondary_stop_label: str = "身份加性停止线 0.98",
 ) -> None:
     context_ids = np.arange(16, dtype=np.int64)
     positives = [
@@ -160,7 +170,7 @@ def render_context_label_svg(
             wspace=0.38,
         )
         figure.suptitle(
-            "创新2 E17：context-mask 输出平衡标签的捷径审计",
+            title,
             x=0.065,
             y=0.965,
             ha="left",
@@ -170,7 +180,7 @@ def render_context_label_svg(
         figure.text(
             0.065,
             0.89,
-            "标签来自 E16 的16个稳定 joint kernel；18个候选 mask，共288行；不重新加密、不训练网络。",
+            subtitle,
             ha="left",
             va="top",
             fontsize=10.0,
@@ -224,21 +234,22 @@ def render_context_label_svg(
                     zorder=4,
                 )
         baseline_axis.axvline(
-            0.95,
+            primary_stop,
             color="#D97706",
             linestyle="--",
             linewidth=1.1,
-            label="捷径 AUC 停止线 0.95",
+            label=primary_stop_label,
             zorder=0,
         )
-        baseline_axis.axvline(
-            0.98,
-            color="#64748B",
-            linestyle=":",
-            linewidth=1.2,
-            label="身份加性停止线 0.98",
-            zorder=0,
-        )
+        if secondary_stop is not None:
+            baseline_axis.axvline(
+                secondary_stop,
+                color="#64748B",
+                linestyle=":",
+                linewidth=1.2,
+                label=secondary_stop_label,
+                zorder=0,
+            )
         baseline_axis.set_title(
             "无需神经网络的基线准确率与 AUC",
             loc="left",
@@ -268,6 +279,15 @@ def render_context_label_svg(
             ),
             "innovation2_context_label_readiness_protocol_invalid": (
                 "E16源证据或标签构造无效"
+            ),
+            "innovation2_equal_prevalence_context_label_ready": (
+                "等流行率 mask 未被强捷径解释，可做 fresh-key 验证"
+            ),
+            "innovation2_equal_prevalence_context_label_shortcut_dominated": (
+                "等流行率标签仍被简单捷径解释，禁止训练"
+            ),
+            "innovation2_equal_prevalence_label_protocol_invalid": (
+                "E16 span 或等流行率标签构造无效"
             ),
         }
         figure.text(

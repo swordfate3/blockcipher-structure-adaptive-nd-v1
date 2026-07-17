@@ -837,3 +837,78 @@ context 标签签名、完整512行且无恒定标签。推进门槛冻结为所
 边际 AUC `<0.75`，身份加性与 bitwise 线性 AUC `<0.75`；accuracy 同时报告但
 不再作为唯一裁决依据。通过后才进入 E18 fresh-key 稳定性验证，仍不训练；失败
 则停止当前 context-mask 表并重新选择结构族。
+
+## 25. 2026-07-17 E17b 结果
+
+E17b 从完整 span 自动得到32个 membership=`4/16` 的 mask，完整生成512行；
+readiness 全部通过。mask 身份泄漏被成功消除：mask identity 和 mask weight 的
+AUC 都降为 `0.5`。但正标签集中在少数 context：
+
+```text
+context 5,7,10,13: 16 / 32 positive
+context 12,14:      32 / 32 positive
+other 10 contexts:   0 / 32 positive
+```
+
+基线结果：
+
+| 基线 | accuracy | AUC |
+|---|---:|---:|
+| 全局正例率 | `0.750000` | `0.500000` |
+| context身份边际 | `0.875000` | `0.958333` |
+| context汉明重量边际 | `0.812500` | `0.901042` |
+| mask身份边际 | `0.750000` | `0.500000` |
+| mask汉明重量边际 | `0.750000` | `0.500000` |
+| context+mask身份加性 | `0.750000` | `0.916667` |
+| 48+64位模式线性 | `0.750000` | `0.916667` |
+| 标签打乱位模式线性 | `0.750000` | `0.449402` |
+
+因此最终裁决为：
+
+```text
+status = hold
+decision = innovation2_equal_prevalence_context_label_shortcut_dominated
+training = no
+remote_scale = no
+```
+
+完整 kernel union 的64个翻转 mask 实际只有4种 context incidence pattern，每种
+16个 mask：`{15}`、`{12,14}`、`{5,10,12,14}`、`{7,12,13,14}`。因此继续在
+当前16个 context 上挑 mask，无法让其余9个 exact-Hwang context 产生额外正例。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_equal_prevalence_context_mask_readiness_seed0_20260717/
+```
+
+第一次渲染错误复用了 E17 的 `0.95/0.98` 线；`visual-qa-redraw` 将 renderer
+参数化并只保留 E17b 正确的 `0.75` AUC 线，最终以 `1800×853` 检查通过。标题、
+32/16/0 context bars、双指标、标签、门槛线、图例和裁决均无重叠、裁切或误导。
+
+## 26. 推荐下一步：E17c 双轴 group-disjoint 捷径审计
+
+E17/E17b 的 LOOCV 每次只留一行，训练数据仍包含同一个 context 的其他 mask，
+因此 context identity marginal 是随机 pair split 的泄漏上界，不能代表未见
+context 泛化。E17c 不改变512行标签，唯一变量是评估拆分：
+
+```text
+context folds = 4 deterministic folds over 16 contexts
+mask folds = 4 deterministic folds over 32 masks
+context-disjoint: hold one context fold, predict its all masks
+mask-disjoint: hold one mask fold, predict it on all contexts
+dual-disjoint: for all 16 context-fold × mask-fold pairs,
+               train without either held group and predict their intersection
+features = 48 context bits + 64 mask bits
+model = ridge linear, alpha = 1.0
+training = no neural network
+```
+
+每种协议必须让全部512行恰好获得一次 out-of-group prediction，训练/测试标签两类
+齐全，并报告 accuracy、Brier 和 AUC。标签打乱使用相同 dual-disjoint folds。
+推进门槛冻结为 context-disjoint、mask-disjoint 和 dual-disjoint bitwise AUC 均
+`<0.75`，且 label-shuffle dual AUC 在 `[0.35,0.65]`。通过表示当前高 AUC 主要
+来自 row-wise 泄漏，可进入 E18 fresh-key 稳定性验证；若任一 group-disjoint
+真实标签基线 AUC `>=0.75`，则当前 context/mask 位模式本身已经形成可泛化捷径，
+停止该标签族且不训练神经网络。

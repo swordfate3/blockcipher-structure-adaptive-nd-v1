@@ -31,6 +31,22 @@ class ContextLabelReadinessConfig:
             raise ValueError("ridge_alpha must be positive")
 
 
+@dataclass(frozen=True)
+class FlippingContextLabelReadinessConfig:
+    run_id: str
+    seed: int = 0
+    ridge_alpha: float = 1.0
+    membership_count: int = 4
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if self.ridge_alpha <= 0:
+            raise ValueError("ridge_alpha must be positive")
+        if self.membership_count != 4:
+            raise ValueError("the frozen E17b audit requires membership count four")
+
+
 def run_context_label_readiness_audit(
     config: ContextLabelReadinessConfig,
     *,
@@ -126,6 +142,115 @@ def run_context_label_readiness_audit(
     }
 
 
+def run_flipping_context_label_readiness_audit(
+    config: FlippingContextLabelReadinessConfig,
+    *,
+    source_gate: dict[str, Any],
+    source_metadata: dict[str, Any],
+    source_basis_rows: list[dict[str, str]],
+) -> dict[str, Any]:
+    source_checks = validate_source(source_gate, source_metadata, source_basis_rows)
+    kernels, contexts = kernel_bases_and_contexts_from_rows(source_basis_rows)
+    kernel_spans = {
+        context_id: bounded_span(basis, max_dimension=16)
+        for context_id, basis in kernels.items()
+    }
+    candidate_masks = equal_prevalence_flipping_masks(
+        kernel_spans,
+        membership_count=config.membership_count,
+    )
+    label_rows = build_context_label_rows(
+        config,
+        contexts=contexts,
+        candidate_masks=candidate_masks,
+        positive_masks=set(candidate_masks),
+        kernel_spans=kernel_spans,
+        candidate_role="equal_prevalence_flipping",
+    )
+    baseline_rows = evaluate_context_baselines(config, label_rows)
+    labels = np.asarray(
+        [int(row["balanced_label"]) for row in label_rows], dtype=np.uint8
+    )
+    mask_prevalences = {
+        mask: sum(mask in span for span in kernel_spans.values())
+        for mask in candidate_masks
+    }
+    context_signatures = {
+        "".join(
+            str(int(row["balanced_label"]))
+            for row in label_rows
+            if int(row["context_id"]) == context_id
+        )
+        for context_id in CONTEXT_IDS
+    }
+    readiness = {
+        **source_checks,
+        "source_basis_union_has_nine_masks": (
+            len({vector for basis in kernels.values() for vector in basis}) == 9
+        ),
+        "thirty_two_equal_prevalence_masks_selected": len(candidate_masks) == 32,
+        "all_candidate_masks_are_nonzero": all(mask != 0 for mask in candidate_masks),
+        "all_masks_balanced_in_exactly_four_contexts": all(
+            count == config.membership_count for count in mask_prevalences.values()
+        ),
+        "complete_context_mask_grid": len(label_rows)
+        == len(CONTEXT_IDS) * len(candidate_masks),
+        "labels_have_both_classes": set(int(value) for value in labels) == {0, 1},
+        "all_metrics_finite": all(
+            math.isfinite(float(row[key]))
+            for row in baseline_rows
+            for key in ("accuracy", "brier", "auc")
+        ),
+    }
+    gate = adjudicate_flipping_context_label_readiness(
+        config,
+        baseline_rows,
+        readiness,
+        positive_rate=float(labels.mean()),
+        flipping_masks=len(candidate_masks),
+        distinct_context_label_signatures=len(context_signatures),
+    )
+    return {
+        "rows": baseline_rows,
+        "label_rows": label_rows,
+        "gate": gate,
+        "metadata": {
+            "run_id": config.run_id,
+            "task": "innovation2_equal_prevalence_context_mask_label_readiness",
+            "source_run_id": source_gate.get("run_id"),
+            "contexts": len(CONTEXT_IDS),
+            "candidate_masks": len(candidate_masks),
+            "membership_count": config.membership_count,
+            "label_rows": len(label_rows),
+            "ridge_alpha": config.ridge_alpha,
+            "seed": config.seed,
+            "training_performed": False,
+            "claim_scope": gate["claim_scope"],
+        },
+    }
+
+
+def equal_prevalence_flipping_masks(
+    kernel_spans: dict[int, set[int]],
+    *,
+    membership_count: int,
+) -> tuple[int, ...]:
+    if set(kernel_spans) != set(CONTEXT_IDS):
+        raise ValueError("kernel_spans must contain context ids 0 through 15")
+    if not 0 < membership_count < len(CONTEXT_IDS):
+        raise ValueError("membership_count must be strictly between zero and sixteen")
+    union = set().union(*kernel_spans.values())
+    return tuple(
+        sorted(
+            mask
+            for mask in union
+            if mask != 0
+            and sum(mask in span for span in kernel_spans.values())
+            == membership_count
+        )
+    )
+
+
 def validate_source(
     source_gate: dict[str, Any],
     source_metadata: dict[str, Any],
@@ -189,12 +314,13 @@ def kernel_bases_and_contexts_from_rows(
 
 
 def build_context_label_rows(
-    config: ContextLabelReadinessConfig,
+    config: ContextLabelReadinessConfig | FlippingContextLabelReadinessConfig,
     *,
     contexts: dict[int, int],
     candidate_masks: tuple[int, ...],
     positive_masks: set[int],
     kernel_spans: dict[int, set[int]],
+    candidate_role: str = "kernel_basis_union",
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for context_id in CONTEXT_IDS:
@@ -212,7 +338,7 @@ def build_context_label_rows(
                     "mask_value": mask,
                     "mask_weight": mask.bit_count(),
                     "mask_role": (
-                        "kernel_basis_union" if mask in positive_masks else "matched_control"
+                        candidate_role if mask in positive_masks else "matched_control"
                     ),
                     "balanced_label": int(mask in kernel_spans[context_id]),
                 }
@@ -221,7 +347,7 @@ def build_context_label_rows(
 
 
 def evaluate_context_baselines(
-    config: ContextLabelReadinessConfig,
+    config: ContextLabelReadinessConfig | FlippingContextLabelReadinessConfig,
     rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     labels = np.asarray([int(row["balanced_label"]) for row in rows], dtype=np.float64)
@@ -405,6 +531,96 @@ def adjudicate_context_label_readiness(
     }
 
 
+def adjudicate_flipping_context_label_readiness(
+    config: FlippingContextLabelReadinessConfig,
+    baseline_rows: list[dict[str, Any]],
+    readiness_checks: dict[str, bool],
+    *,
+    positive_rate: float,
+    flipping_masks: int,
+    distinct_context_label_signatures: int,
+) -> dict[str, Any]:
+    metrics = {str(row["baseline"]): row for row in baseline_rows}
+    shortcut_auc_checks = {
+        "positive_rate_is_one_quarter": math.isclose(
+            positive_rate, 0.25, abs_tol=1e-12
+        ),
+        "all_thirty_two_masks_flip_across_contexts": flipping_masks == 32,
+        "at_least_four_context_label_signatures": (
+            distinct_context_label_signatures >= 4
+        ),
+        "context_identity_marginal_auc_below_0p75": (
+            float(metrics["context_identity_marginal"]["auc"]) < 0.75
+        ),
+        "context_weight_marginal_auc_below_0p75": (
+            float(metrics["context_weight_marginal"]["auc"]) < 0.75
+        ),
+        "mask_identity_marginal_auc_below_0p75": (
+            float(metrics["mask_identity_marginal"]["auc"]) < 0.75
+        ),
+        "mask_weight_marginal_auc_below_0p75": (
+            float(metrics["mask_weight_marginal"]["auc"]) < 0.75
+        ),
+        "context_mask_additive_auc_below_0p75": (
+            float(metrics["context_mask_additive"]["auc"]) < 0.75
+        ),
+        "context_mask_bitwise_linear_auc_below_0p75": (
+            float(metrics["context_mask_bitwise_linear"]["auc"]) < 0.75
+        ),
+    }
+    readiness_pass = bool(readiness_checks) and all(readiness_checks.values())
+    if not readiness_pass:
+        status = "fail"
+        decision = "innovation2_equal_prevalence_label_protocol_invalid"
+        next_action = {
+            "action": "repair E16 span selection or equal-prevalence label construction",
+            "training": False,
+            "remote_scale": False,
+        }
+    elif all(shortcut_auc_checks.values()):
+        status = "pass"
+        decision = "innovation2_equal_prevalence_context_label_ready"
+        next_action = {
+            "action": "validate equal-prevalence labels on fresh keys",
+            "next_adjudication": "E18 fresh-key context kernel stability",
+            "training": False,
+            "remote_scale": False,
+        }
+    else:
+        status = "hold"
+        decision = "innovation2_equal_prevalence_context_label_shortcut_dominated"
+        next_action = {
+            "action": "stop current context-mask label family and redesign structures",
+            "training": False,
+            "remote_scale": False,
+        }
+    return {
+        "run_id": config.run_id,
+        "status": status,
+        "decision": decision,
+        "readiness_checks": readiness_checks,
+        "shortcut_auc_checks": shortcut_auc_checks,
+        "positive_rate": positive_rate,
+        "flipping_masks": flipping_masks,
+        "distinct_context_label_signatures": distinct_context_label_signatures,
+        "baseline_accuracies": {
+            key: float(row["accuracy"])
+            for key, row in metrics.items()
+            if key != "direct_gf2_kernel_oracle"
+        },
+        "baseline_aucs": {
+            key: float(row["auc"])
+            for key, row in metrics.items()
+            if key != "direct_gf2_kernel_oracle"
+        },
+        "claim_scope": (
+            "deterministic equal-prevalence context-mask shortcut readiness from "
+            "E16 joint kernels; not a neural result or cryptanalytic improvement claim"
+        ),
+        "next_action": next_action,
+    }
+
+
 def ridge_loocv_predictions(
     design: np.ndarray,
     labels: np.ndarray,
@@ -472,7 +688,7 @@ def _bitwise_design(
 
 
 def _metric_row(
-    config: ContextLabelReadinessConfig,
+    config: ContextLabelReadinessConfig | FlippingContextLabelReadinessConfig,
     key: str,
     label: str,
     predictions: np.ndarray,

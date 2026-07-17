@@ -8,9 +8,13 @@ import numpy as np
 from blockcipher_nd.cli import audit_innovation2_context_label_readiness as cli
 from blockcipher_nd.tasks.innovation2.integral_context_label_readiness import (
     ContextLabelReadinessConfig,
+    FlippingContextLabelReadinessConfig,
+    adjudicate_flipping_context_label_readiness,
     adjudicate_context_label_readiness,
+    equal_prevalence_flipping_masks,
     ridge_loocv_predictions,
     run_context_label_readiness_audit,
+    run_flipping_context_label_readiness_audit,
 )
 
 
@@ -135,6 +139,98 @@ def test_context_label_runner_builds_frozen_grid() -> None:
     assert len(result["rows"]) == 9
     assert result["gate"]["readiness_checks"][
         "source_basis_union_has_nine_masks"
+    ] is True
+
+
+def test_equal_prevalence_selector_keeps_membership_four_masks() -> None:
+    spans = {context_id: {0} for context_id in range(16)}
+    for mask in range(1, 33):
+        group_start = 4 * (mask % 4)
+        for context_id in range(group_start, group_start + 4):
+            spans[context_id].add(mask)
+    spans[0].add(1000)
+
+    selected = equal_prevalence_flipping_masks(spans, membership_count=4)
+
+    assert selected == tuple(range(1, 33))
+
+
+def test_flipping_context_gate_uses_auc_stop_line() -> None:
+    config = FlippingContextLabelReadinessConfig(run_id="test")
+    baselines = [
+        {"baseline": "context_identity_marginal", "accuracy": 0.75, "auc": 0.6},
+        {"baseline": "context_weight_marginal", "accuracy": 0.75, "auc": 0.6},
+        {"baseline": "mask_identity_marginal", "accuracy": 0.75, "auc": 0.5},
+        {"baseline": "mask_weight_marginal", "accuracy": 0.75, "auc": 0.6},
+        {"baseline": "context_mask_additive", "accuracy": 0.75, "auc": 0.7},
+        {
+            "baseline": "context_mask_bitwise_linear",
+            "accuracy": 0.75,
+            "auc": 0.80,
+        },
+    ]
+
+    gate = adjudicate_flipping_context_label_readiness(
+        config,
+        baselines,
+        {"ok": True},
+        positive_rate=0.25,
+        flipping_masks=32,
+        distinct_context_label_signatures=4,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["shortcut_auc_checks"][
+        "context_mask_bitwise_linear_auc_below_0p75"
+    ] is False
+
+
+def test_flipping_context_runner_builds_512_row_grid() -> None:
+    common = (1, 2, 4, 8)
+    basis_rows = []
+    for context_id in range(16):
+        extras = (
+            (16,)
+            if context_id < 4
+            else (32,)
+            if context_id < 8
+            else (64,)
+            if context_id == 8
+            else (128,)
+            if context_id == 9
+            else (256,)
+            if context_id == 10
+            else ()
+        )
+        for basis_index, vector in enumerate(common + extras):
+            basis_rows.append(
+                {
+                    "context_id": str(context_id),
+                    "fixed_plaintext": f"0x{context_id:016X}",
+                    "basis_index": str(basis_index),
+                    "vector_hex": f"0x{vector:016X}",
+                    "vector_weight": str(vector.bit_count()),
+                }
+            )
+    result = run_flipping_context_label_readiness_audit(
+        FlippingContextLabelReadinessConfig(run_id="flipping-runner"),
+        source_gate={
+            "run_id": "source",
+            "status": "pass",
+            "decision": "innovation2_inactive_context_kernel_diversity_ready",
+        },
+        source_metadata={
+            "task": "innovation2_present_r7_inactive_context_kernel_diversity",
+            "training_performed": False,
+            "contexts": [f"0x{context_id:012X}" for context_id in range(16)],
+        },
+        source_basis_rows=basis_rows,
+    )
+
+    assert result["metadata"]["candidate_masks"] == 32
+    assert result["metadata"]["label_rows"] == 512
+    assert result["gate"]["readiness_checks"][
+        "all_masks_balanced_in_exactly_four_contexts"
     ] is True
 
 
