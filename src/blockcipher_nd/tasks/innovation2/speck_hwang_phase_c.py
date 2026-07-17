@@ -191,6 +191,9 @@ def evaluate_phase_c(
             CONTROL_ACTIVE_BITS
             == tuple(bit for bit in range(OUTPUT_BITS) if bit not in {0, 1})
         ),
+        "exact_torch_cuda_backend": (
+            config.backend == "torch_int32" and config.device.startswith("cuda")
+        ),
         "parity_shapes_are_exact": (
             anchor.shape == (2, config.total_keys)
             and control.shape == (1, config.total_keys)

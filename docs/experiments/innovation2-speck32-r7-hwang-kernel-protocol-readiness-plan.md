@@ -365,6 +365,7 @@ estimated control time = about 7-8 minutes
 execution = remote GPU from an exact pushed commit and run-owned clean clone
 retrieval = local tmux watcher plus verified result archive
 local plot = scripts/plot-innovation2-speck-hwang-phase-c -> curves.svg
+local validation = scripts/validate-innovation2-speck-hwang-phase-c
 training = no
 ```
 
