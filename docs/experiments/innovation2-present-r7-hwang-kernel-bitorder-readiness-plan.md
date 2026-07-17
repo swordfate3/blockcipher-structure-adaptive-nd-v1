@@ -753,6 +753,87 @@ direct GF(2) oracle
 
 推进门槛：标签两类齐全；至少3个 mask 跨 context 翻转；至少4种 context 标签
 签名；context 与 mask 单边边际准确率低于 `0.95/0.98`；context+mask身份加性
-准确率低于 `0.98`；bitwise 线性准确率低于 `0.95`。通过只表示可以进入独立
-fresh-key label 稳定性验证，仍不直接训练。若任一强捷径越线，则先重构候选 mask
-或 context family，不启动本地或远程神经网络。
+准确率低于 `0.98`；bitwise 线性准确率低于 `0.95`。所有 context/mask 边际、
+身份加性和 bitwise 线性捷径的 AUC 还必须低于 `0.95`，不能用固定 `0.5`
+阈值下的 accuracy 掩盖接近完美的排序能力。通过只表示可以进入独立 fresh-key
+label 稳定性验证，仍不直接训练。若任一强捷径越线，则先重构候选 mask 或
+context family，不启动本地或远程神经网络。
+
+## 23. 2026-07-17 E17 结果与门控纠正
+
+E17 从 E16 的9个 basis-union mask 和9个同权重全局负控制构造了 `16×18=288`
+行标签。标签两类、5种 context 签名和5个跨 context 翻转 mask 均存在，正例率为
+`0.274306`。但无需神经网络的强基线已经接近完美排序：
+
+| 基线 | accuracy | AUC |
+|---|---:|---:|
+| 全局正例率 | `0.725694` | `0.500000` |
+| context身份边际 | `0.725694` | `0.591030` |
+| context汉明重量边际 | `0.725694` | `0.580673` |
+| mask身份边际 | `0.947917` | `0.978227` |
+| mask汉明重量边际 | `0.725694` | `0.680243` |
+| context+mask身份加性 | `0.947917` | `0.967991` |
+| 48+64位模式线性 | `0.944444` | `0.975410` |
+| 标签打乱位模式线性 | `0.701389` | `0.529829` |
+
+初始 accuracy-only 门槛曾产生 provisional pass，但在结果索引和提交前被作废。
+固定 `0.5` 阈值使三个主要捷径的 accuracy 略低于停止线，却掩盖了
+`0.968--0.978` 的 AUC。门控修正为同时要求所有非 oracle 捷径 AUC `<0.95`
+后，最终裁决为：
+
+```text
+status = hold
+decision = innovation2_context_label_shortcut_dominated
+training = no
+remote_scale = no
+```
+
+这不是 E16 context-dependent kernel 信号被否定，而是当前候选表构造不合格：
+4个 Hwang basis mask 对全部 context 恒正，9个匹配控制对全部 context 恒负，
+mask 身份因此几乎直接给出标签。不能用这个288行表训练神经网络。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_context_mask_label_readiness_seed0_20260717/
+```
+
+最终图同时展示 accuracy 和 AUC。第一次双指标渲染的 `0.948` 标签与 `0.95`
+停止线冲突；`visual-qa-redraw` 将高值标签移入条形内部后，以 `1800×853`
+重新检查通过。标题、中文 glyph、16个 context、8组双指标、停止线、图例和裁决
+文字均无重叠或裁切。
+
+## 24. 推荐下一步：E17b 等流行率翻转-mask 标签审计
+
+E17b 保持 E16 context、kernel 和所有基线算法不变，只重构候选 mask。对16个
+joint kernel 的完整非零 span 做静态统计：
+
+```text
+union nonzero masks = 79
+common-to-all masks = 15
+flipping masks = 64
+membership in 1 context = 16 masks
+membership in 2 contexts = 16 masks
+membership in 4 contexts = 32 masks
+```
+
+冻结选择全部32个“恰在4/16个 context 中平衡”的 mask，去掉恒正公共子空间和
+恒负控制，不按结果再挑 mask：
+
+```text
+contexts = 16
+candidate masks = 32
+label rows = 16 * 32 = 512
+per-mask positive rate = 4 / 16 = 0.25
+global positive rate = 0.25
+training = none
+```
+
+同一流行率使 mask-identity marginal 不能仅凭每个 mask 的总体正例率排序标签。
+E17b 继续报告 context/mask身份与重量边际、context+mask身份加性、48+64位模式
+线性和标签打乱控制。readiness 要求32个 mask 全部跨 context 翻转、至少4种
+context 标签签名、完整512行且无恒定标签。推进门槛冻结为所有 context/mask
+边际 AUC `<0.75`，身份加性与 bitwise 线性 AUC `<0.75`；accuracy 同时报告但
+不再作为唯一裁决依据。通过后才进入 E18 fresh-key 稳定性验证，仍不训练；失败
+则停止当前 context-mask 表并重新选择结构族。

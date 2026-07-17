@@ -335,6 +335,50 @@ checks control-flow and return placement without rerunning the full experiment.
 
 ---
 
+## [LRN-20260717-007] correction
+
+**Logged**: 2026-07-17T15:08:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+Shortcut-readiness gates must constrain AUC as well as fixed-threshold accuracy; low accuracy can hide nearly perfect ranking.
+
+### Details
+The first E17 context-mask shortcut gate used only accuracy. It provisionally
+passed because mask identity, context+mask additive, and context/mask bitwise
+linear baselines had accuracies `0.947917`, `0.947917`, and `0.944444`, just
+below the frozen accuracy thresholds. Their AUCs were `0.978227`, `0.967991`,
+and `0.975410`, however, showing that these deterministic shortcuts already
+ranked almost every label correctly. A fixed `0.5` decision threshold hid this
+ranking power and would have allowed a neural model to claim value by learning
+the same shortcut.
+
+### Suggested Action
+For binary shortcut, control, and attribution gates, report both accuracy and
+AUC and block advancement when either metric crosses its preregistered stop
+line. Treat AUC as the primary threshold-free signal when class prevalence or
+calibration makes fixed-threshold accuracy misleading. Visualizations must show
+both metrics when both affect the decision.
+
+### Metadata
+- Source: self_correction, verified_local_experiment
+- Related Files: src/blockcipher_nd/tasks/innovation2/integral_context_label_readiness.py, docs/experiments/innovation2-present-r7-hwang-kernel-bitorder-readiness-plan.md
+- Tags: innovation2, shortcut, auc, accuracy, gate, calibration
+- See Also: LRN-20260716-007
+- Pattern-Key: research.shortcut_gates_require_auc_and_accuracy
+- Recurrence-Count: 2
+- First-Seen: 2026-07-09
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T15:08:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added AUC stop checks and an AUC regression fixture, reran E17, and changed the decision from pass to shortcut-dominated hold.
+
+---
+
 ## [LRN-20260716-008] correction
 
 **Logged**: 2026-07-16T14:20:00+08:00

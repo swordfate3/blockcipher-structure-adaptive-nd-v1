@@ -335,6 +335,15 @@ DECISION_LABELS = {
     "innovation2_inactive_context_protocol_invalid": (
         "固定上下文协议或 Hwang anchor 校验无效"
     ),
+    "innovation2_context_label_interaction_ready": (
+        "强基线未解释 context-mask 交互，可做 fresh-key 验证"
+    ),
+    "innovation2_context_label_shortcut_dominated": (
+        "简单 context/mask 捷径已解释标签，禁止训练"
+    ),
+    "innovation2_context_label_readiness_protocol_invalid": (
+        "E16源证据或 context-mask 标签构造无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -714,6 +723,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E16：PRESENT 7轮高16位固定上下文 kernel 审计"
+    if run_id == (
+        "i2_present_r7_context_mask_label_readiness_seed0_20260717"
+    ):
+        return "创新2 E17：PRESENT 7轮context-mask输出标签捷径审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
