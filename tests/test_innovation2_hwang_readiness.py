@@ -11,8 +11,10 @@ from blockcipher_nd.tasks.innovation2.integral_bit_transition_audit import (
     BitIntegralStructure,
 )
 from blockcipher_nd.tasks.innovation2.integral_hwang_readiness import (
+    ActiveBlockKernelDiversityConfig,
     HwangKernelConvergenceConfig,
     HwangReadinessConfig,
+    adjudicate_active_block_kernel_diversity,
     adjudicate_hwang_readiness,
     control_masks,
     evaluate_hwang_kernel_convergence,
@@ -263,3 +265,69 @@ def _paper_orthogonal_rows() -> list[int]:
     )
     assert len(rows) == 60
     return rows
+
+
+def test_active_block_diversity_gate_requires_distinct_nontrivial_kernels() -> None:
+    config = ActiveBlockKernelDiversityConfig(run_id="diversity")
+    readiness = {"ok": True}
+    rows = [{"block_id": block_id} for block_id in range(4)]
+
+    passed = adjudicate_active_block_kernel_diversity(
+        config,
+        rows,
+        readiness,
+        distinct_signatures=3,
+        nontrivial_structures=4,
+    )
+    held = adjudicate_active_block_kernel_diversity(
+        config,
+        rows,
+        readiness,
+        distinct_signatures=1,
+        nontrivial_structures=4,
+    )
+    invalid = adjudicate_active_block_kernel_diversity(
+        config,
+        rows,
+        {"ok": False},
+        distinct_signatures=3,
+        nontrivial_structures=4,
+    )
+
+    assert passed["decision"] == (
+        "innovation2_present_r7_active_block_kernel_diversity_ready"
+    )
+    assert held["decision"] == (
+        "innovation2_present_r7_active_block_kernel_not_diverse"
+    )
+    assert invalid["decision"] == (
+        "innovation2_present_r7_active_block_diversity_protocol_invalid"
+    )
+
+
+def test_active_block_diversity_runner_returns_complete_result(monkeypatch) -> None:
+    orthogonal_rows = _paper_orthogonal_rows()
+    words = np.asarray(
+        orthogonal_rows + orthogonal_rows + orthogonal_rows[:8],
+        dtype=np.uint64,
+    )
+    monkeypatch.setattr(
+        hwang,
+        "_collect_xor_words",
+        lambda structure, keys, **kwargs: words.copy(),
+    )
+    monkeypatch.setattr(
+        hwang,
+        "scalar_bit_integral_output_xor",
+        lambda structure, rounds, key: int(words[0]),
+    )
+
+    result = hwang.run_active_block_kernel_diversity_audit(
+        ActiveBlockKernelDiversityConfig(run_id="diversity-runner")
+    )
+
+    assert len(result["rows"]) == 4
+    assert result["gate"]["status"] == "hold"
+    assert result["metadata"]["task"] == (
+        "innovation2_present_r7_active_block_kernel_diversity"
+    )

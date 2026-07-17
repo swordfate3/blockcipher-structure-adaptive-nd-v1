@@ -27,6 +27,12 @@ INPUT_ORIENTATIONS = {
     "high_48_63": tuple(range(48, 64)),
 }
 OUTPUT_MAPPINGS = ("direct", "reflected")
+CONTIGUOUS_ACTIVE_BLOCKS = {
+    "block_0_15": tuple(range(0, 16)),
+    "block_16_31": tuple(range(16, 32)),
+    "block_32_47": tuple(range(32, 48)),
+    "block_48_63": tuple(range(48, 64)),
+}
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 
@@ -69,6 +75,25 @@ class HwangKernelConvergenceConfig:
             raise ValueError("key_chunk_size must be positive")
         if self.input_orientation not in INPUT_ORIENTATIONS:
             raise ValueError(f"unknown input orientation: {self.input_orientation}")
+
+
+@dataclass(frozen=True)
+class ActiveBlockKernelDiversityConfig:
+    run_id: str
+    seed: int = 0
+    rounds: int = 7
+    keys: int = 128
+    key_chunk_size: int = 1
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if self.rounds != 7:
+            raise ValueError("the frozen diversity audit requires PRESENT r7")
+        if self.keys != 128:
+            raise ValueError("the frozen diversity audit requires exactly 128 keys")
+        if self.key_chunk_size <= 0:
+            raise ValueError("key_chunk_size must be positive")
 
 
 def paper_basis_masks(*, output_mapping: str) -> tuple[int, ...]:
@@ -410,6 +435,241 @@ def adjudicate_hwang_kernel_convergence(
         "claim_scope": (
             "128 fresh-key empirical reproduction of Hwang et al. PRESENT r7 "
             "linear balance-mask kernel; not an all-key proof or neural result"
+        ),
+        "next_action": next_action,
+    }
+
+
+def run_active_block_kernel_diversity_audit(
+    config: ActiveBlockKernelDiversityConfig,
+    *,
+    progress_callback: ProgressCallback | None = None,
+) -> dict[str, Any]:
+    keys = make_keys(count=config.keys, seed=config.seed + 3301)
+    half = config.keys // 2
+    structures = {
+        block_id: BitIntegralStructure(
+            structure_id=f"present-r7-{block_id}",
+            active_bits=active_bits,
+            output_nibble=0,
+            output_mask=1,
+            fixed_plaintext=0,
+        )
+        for block_id, active_bits in CONTIGUOUS_ACTIVE_BLOCKS.items()
+    }
+    xor_words_by_block: dict[str, np.ndarray] = {}
+    for block_id, structure in structures.items():
+        xor_words_by_block[block_id] = _collect_xor_words(
+            structure,
+            keys,
+            rounds=config.rounds,
+            key_chunk_size=config.key_chunk_size,
+            progress_callback=progress_callback,
+        )
+    scalar_matches = all(
+        int(xor_words_by_block[block_id][0])
+        == scalar_bit_integral_output_xor(
+            structure,
+            rounds=config.rounds,
+            key=keys[0],
+        )
+        for block_id, structure in structures.items()
+    )
+    rows, basis_rows, readiness, gate = evaluate_active_block_kernel_diversity(
+        config,
+        xor_words_by_block=xor_words_by_block,
+        scalar_matches=scalar_matches,
+        key_halves_disjoint=set(keys[:half]).isdisjoint(keys[half:]),
+    )
+    return {
+        "rows": rows,
+        "basis_rows": basis_rows,
+        "gate": gate,
+        "metadata": {
+            "run_id": config.run_id,
+            "task": "innovation2_present_r7_active_block_kernel_diversity",
+            "cipher": "PRESENT-80",
+            "rounds": config.rounds,
+            "seed": config.seed,
+            "key_generation_seed": config.seed + 3301,
+            "keys": config.keys,
+            "key_half_size": half,
+            "key_chunk_size": config.key_chunk_size,
+            "plaintexts_per_structure_per_key": 1 << 16,
+            "active_blocks": {
+                block_id: list(active_bits)
+                for block_id, active_bits in CONTIGUOUS_ACTIVE_BLOCKS.items()
+            },
+            "fixed_plaintext": "0x0000000000000000",
+            "training_performed": False,
+            "claim_scope": gate["claim_scope"],
+        },
+    }
+
+
+def evaluate_active_block_kernel_diversity(
+    config: ActiveBlockKernelDiversityConfig,
+    *,
+    xor_words_by_block: dict[str, np.ndarray],
+    scalar_matches: bool,
+    key_halves_disjoint: bool,
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, bool],
+    dict[str, Any],
+]:
+    if set(xor_words_by_block) != set(CONTIGUOUS_ACTIVE_BLOCKS):
+        raise ValueError("xor_words_by_block must contain the four frozen blocks")
+    half = config.keys // 2
+    paper_masks = paper_basis_masks(output_mapping="direct")
+    nonpaper_masks = control_masks(seed=config.seed, output_mapping="direct")
+    paper_span = _span(paper_masks)
+    rows: list[dict[str, Any]] = []
+    basis_rows: list[dict[str, Any]] = []
+    all_joint_bases_validate_halves = True
+    for block_id, active_bits in CONTIGUOUS_ACTIVE_BLOCKS.items():
+        words = np.asarray(xor_words_by_block[block_id], dtype=np.uint64)
+        if words.shape != (config.keys,):
+            raise ValueError(f"xor words for {block_id} must have shape ({config.keys},)")
+        discovery = words[:half]
+        validation = words[half:]
+        discovery_basis = gf2_kernel_basis(discovery)
+        validation_basis = gf2_kernel_basis(validation)
+        joint_basis = gf2_kernel_basis(words)
+        basis_valid_both_halves = kernel_basis_valid(
+            discovery, joint_basis
+        ) and kernel_basis_valid(validation, joint_basis)
+        all_joint_bases_validate_halves &= basis_valid_both_halves
+        signature = ":".join(f"{vector:016X}" for vector in joint_basis)
+        rows.append(
+            {
+                "run_id": config.run_id,
+                "block_id": block_id,
+                "active_start": active_bits[0],
+                "active_stop": active_bits[-1],
+                "discovery_kernel_dimension": len(discovery_basis),
+                "validation_kernel_dimension": len(validation_basis),
+                "joint_kernel_dimension": len(joint_basis),
+                "joint_rank": 64 - len(joint_basis),
+                "joint_basis_signature": signature,
+                "joint_basis_valid_both_halves": basis_valid_both_halves,
+                "joint_kernel_equals_paper_span": (
+                    len(joint_basis) == 4
+                    and all(vector in paper_span for vector in joint_basis)
+                ),
+                "paper_mask_failures": _mask_failure_count(words, paper_masks),
+                "control_mask_failures": _mask_failure_count(
+                    words, nonpaper_masks
+                ),
+                "nonzero_output_parity_words": int(np.count_nonzero(words)),
+            }
+        )
+        for basis_index, vector in enumerate(joint_basis):
+            basis_rows.append(
+                {
+                    "run_id": config.run_id,
+                    "block_id": block_id,
+                    "basis_index": basis_index,
+                    "vector_hex": f"0x{vector:016X}",
+                    "vector_weight": vector.bit_count(),
+                    "in_hwang_paper_span": vector in paper_span,
+                }
+            )
+    high_anchor = next(row for row in rows if row["block_id"] == "block_48_63")
+    signatures = {str(row["joint_basis_signature"]) for row in rows}
+    nontrivial_structures = sum(
+        int(row["joint_kernel_dimension"]) > 0 for row in rows
+    )
+    readiness = {
+        "four_frozen_blocks_present": len(rows) == 4,
+        "key_halves_nonempty_and_disjoint": key_halves_disjoint,
+        "vectorized_output_xor_matches_scalar_all_blocks": scalar_matches,
+        "all_output_parity_words_nonzero_somewhere": all(
+            int(row["nonzero_output_parity_words"]) > 0 for row in rows
+        ),
+        "all_joint_bases_validate_both_halves": all_joint_bases_validate_halves,
+        "hwang_high16_anchor_exact_four_dimensional_span": bool(
+            high_anchor["joint_kernel_equals_paper_span"]
+        ),
+        "all_metrics_finite": all(
+            math.isfinite(float(row[key]))
+            for row in rows
+            for key in (
+                "discovery_kernel_dimension",
+                "validation_kernel_dimension",
+                "joint_kernel_dimension",
+                "joint_rank",
+                "paper_mask_failures",
+                "control_mask_failures",
+                "nonzero_output_parity_words",
+            )
+        ),
+    }
+    gate = adjudicate_active_block_kernel_diversity(
+        config,
+        rows,
+        readiness,
+        distinct_signatures=len(signatures),
+        nontrivial_structures=nontrivial_structures,
+    )
+    return rows, basis_rows, readiness, gate
+
+
+def adjudicate_active_block_kernel_diversity(
+    config: ActiveBlockKernelDiversityConfig,
+    rows: list[dict[str, Any]],
+    readiness_checks: dict[str, bool],
+    *,
+    distinct_signatures: int,
+    nontrivial_structures: int,
+) -> dict[str, Any]:
+    readiness_pass = bool(readiness_checks) and all(readiness_checks.values())
+    diversity_pass = distinct_signatures >= 2 and nontrivial_structures >= 2
+    if not readiness_pass:
+        status = "fail"
+        decision = "innovation2_present_r7_active_block_diversity_protocol_invalid"
+        next_action = {
+            "action": "repair block generation, scalar parity, or Hwang anchor",
+            "training": False,
+            "remote_scale": False,
+        }
+    elif diversity_pass:
+        status = "pass"
+        decision = "innovation2_present_r7_active_block_kernel_diversity_ready"
+        next_action = {
+            "action": "build structure-mask label table and audit marginal predictability",
+            "next_adjudication": (
+                "E13 structure-mask output-property benchmark readiness"
+            ),
+            "required_controls": [
+                "direct GF(2) kernel",
+                "active-block marginal prior",
+                "mask-weight marginal prior",
+                "label shuffle",
+            ],
+            "training": False,
+            "remote_scale": False,
+        }
+    else:
+        status = "hold"
+        decision = "innovation2_present_r7_active_block_kernel_not_diverse"
+        next_action = {
+            "action": "hold high16 active bits fixed and vary inactive context",
+            "reason": "contiguous active-block position does not diversify labels",
+            "training": False,
+            "remote_scale": False,
+        }
+    return {
+        "run_id": config.run_id,
+        "status": status,
+        "decision": decision,
+        "readiness_checks": readiness_checks,
+        "distinct_joint_kernel_signatures": distinct_signatures,
+        "nontrivial_joint_kernel_structures": nontrivial_structures,
+        "claim_scope": (
+            "four-structure local kernel-diversity readiness under 128 sampled keys; "
+            "not a neural result or all-key proof"
         ),
         "next_action": next_action,
     }

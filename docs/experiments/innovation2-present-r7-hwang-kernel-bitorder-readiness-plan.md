@@ -372,3 +372,72 @@ at least two structures have nontrivial joint kernels
 Hamming weight 的单字段边际直接解释；必须保留直接 kernel、训练集字段边际、
 mask 匹配和标签打乱控制。若四个块只有同一个 kernel，下一步改为固定高16位并
 变化非活动上下文；不得用重复标签直接训练网络。
+
+## 13. 2026-07-17 E12 结果
+
+E12 已按冻结矩阵完成：
+
+| 活动块 | discovery dim | validation dim | joint dim | joint kernel |
+|---|---:|---:|---:|---|
+| `0..15` | `7` | `8` | `7` | Hwang 四维 span + 3个额外方向 |
+| `16..31` | `4` | `4` | `4` | 精确 Hwang 四维 span |
+| `32..47` | `5` | `4` | `4` | 精确 Hwang 四维 span |
+| `48..63` | `5` | `6` | `4` | 精确 Hwang 四维 span |
+
+所有四个结构的 joint basis 均在 discovery/validation 两个密钥半上验证通过，
+标量/向量化完整输出 XOR 一致，高16位论文 anchor 仍精确四维。四个结构共有两个
+不同 joint-kernel 签名，且四个结构均有非平凡 kernel，因此 E12 裁决为：
+
+```text
+status = pass
+decision = innovation2_present_r7_active_block_kernel_diversity_ready
+distinct_joint_kernel_signatures = 2
+nontrivial_joint_kernel_structures = 4
+training = no
+remote_scale = no
+```
+
+该结果证明活动结构能够改变稳定输出性质，但差异全部集中在 `0..15` 活动块：
+另外三个活动块共享同一个 Hwang 四维 kernel。因此活动块位置本身可能成为完全
+足够的捷径，E12 通过不等于神经模型 readiness。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_active_block_kernel_diversity_128keys_seed0_20260717/
+```
+
+最终 `curves.svg` 经 `visual-qa-redraw` 渲染为 `1800×850` 像素检查；标题、
+中文 glyph、坐标、图例、四个活动块标签、数据标签和裁决文字无重叠或裁切。
+
+## 14. 推荐下一步：E13 结构-mask 标签与边际捷径审计
+
+E13 不重新加密，也不训练神经网络。它从 E12 的四个 joint kernel 构造完整标签
+表，判断任务是否只是记忆活动块或 mask 身份。
+
+冻结候选 mask 集合：
+
+```text
+positive candidates = 四个结构 joint canonical basis 的并集
+extra candidates    = 固定 seed 生成的同 Hamming-weight 非 kernel 控制
+structures          = 四个 E12 活动块
+label               = candidate mask 是否属于该结构的 joint kernel span
+```
+
+对每个 `(active_block, candidate_mask)` 组合生成一行，至少比较：
+
+```text
+global positive-rate baseline
+active-block-only marginal baseline
+mask-identity-only marginal baseline
+mask-weight-only marginal baseline
+two-field additive block+mask baseline
+label-shuffle control
+```
+
+readiness 门槛：标签同时包含正负类；至少两个 mask 在不同结构间翻转；活动块单字段
+和 mask-weight 单字段不能完美预测；必须明确报告 mask-identity 与 block+mask 加性
+基线能解释多少标签。若 mask identity 或简单加性边际已经近乎完美，下一步不是
+训练 MLP，而是扩大结构族（优先变化固定上下文或非连续活动几何）以制造真正的
+结构-mask 交互。只有边际控制后仍有可重复残差，才设计神经输出预测模型。

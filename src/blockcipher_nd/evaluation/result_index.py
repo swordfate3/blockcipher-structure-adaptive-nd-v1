@@ -290,6 +290,15 @@ DECISION_LABELS = {
     "innovation2_present_r7_hwang_convergence_protocol_invalid": (
         "论文四维 kernel 收敛协议无效，先修复实现或密钥拆分"
     ),
+    "innovation2_present_r7_active_block_kernel_diversity_ready": (
+        "不同活动块产生多个稳定输出 kernel，可构造结构条件标签表"
+    ),
+    "innovation2_present_r7_active_block_kernel_not_diverse": (
+        "活动块位置未形成足够的输出 kernel 多样性"
+    ),
+    "innovation2_present_r7_active_block_diversity_protocol_invalid": (
+        "活动块 kernel 多样性协议无效，先修复结构或论文 anchor"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -651,6 +660,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
     ):
         return "创新2 E11b：PRESENT 7轮高16位论文 kernel 同预算对照"
+    if run_id == (
+        "i2_present_r7_active_block_kernel_diversity_128keys_seed0_20260717"
+    ):
+        return "创新2 E12：PRESENT 7轮活动块输出 kernel 多样性 readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
