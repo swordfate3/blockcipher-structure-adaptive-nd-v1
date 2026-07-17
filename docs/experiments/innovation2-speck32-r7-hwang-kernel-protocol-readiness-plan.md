@@ -1,7 +1,7 @@
 # 创新2 E25：SPECK32/64 Hwang Table 7 kernel 协议与分块执行就绪计划
 
 日期：2026-07-17
-状态：协议已核实 / Phase A 完成 / Phase B 通过并验证回收 / Phase C 已预注册待实施
+状态：Phase C 通过并验证回收 / SPECK 6、7轮论文 kernel 精确复现 / E26 context 审计待实施
 
 ## 1. 路线来源
 
@@ -373,3 +373,149 @@ training = no
 本阶段唯一改变的实验变量是固定 bit 位置；不修改密码实现、轮边界、密钥组、枚举
 规模、输出 bit order 或 kernel 评价。Phase C 结果生成后必须刷新最近结果索引；如
 生成图表，必须经过 `visual-qa-redraw` 的像素级检查后才能完成结果处理。
+
+## 13. Phase C 完成结果与裁决
+
+Phase C 从精确提交 `700ac88a4c250fb43ff076ce043c79a575faf95d` 在远程
+RTX A6000 完成。verified archive、SHA256 manifest、source commit、缓存元数据、
+64把密钥 split、192条 row timing 和本地 GF(2) 重算全部通过：
+
+```text
+validation.local.status = pass
+validation.local.errors = []
+manifest_verified = true
+source_commit_matches = true
+remote_gate_matches_recomputation = true
+resume rows generated = 0
+timing rows = 192/192
+```
+
+精确 kernel 结果：
+
+```text
+anchor，固定 bit {5,6}=00，6轮：
+  discovery rank/nullity = 23/9
+  validation rank/nullity = 23/9
+  joint rank/nullity = 23/9
+  joint basis = Hwang Table 7 九维 span（精确相等）
+  discovery 9个方向在 validation 全部存活
+
+anchor，固定 bit {5,6}=00，7轮：
+  discovery rank/nullity = 30/2
+  validation rank/nullity = 31/1
+  joint rank/nullity = 31/1
+  joint basis = {0x02050204}（精确等于 Hwang Table 7）
+  discovery 的2个经验方向中仅论文方向在 validation 存活
+
+position control，固定 bit {0,1}=00，7轮：
+  discovery rank/nullity = 31/1
+  validation rank/nullity = 31/1
+  joint rank/nullity = 32/0
+  joint kernel = empty
+  Hwang mask 0x02050204 不成立
+```
+
+7轮 discovery 的额外一维是32行有限样本的伪方向；它在不相交 validation 中消失，
+joint 正好收敛到论文一维。这验证了 Phase C 预注册时“不要求每个32-key半矩阵单独
+满31秩、以64-key joint精确空间为硬门”的统计处理，而不是事后放宽门槛。
+
+运行证据：
+
+```text
+anchor r6 mean/max row seconds = 6.9587 / 7.0377
+anchor r7 mean/max row seconds = 7.1258 / 7.2069
+control r7 mean/max row seconds = 7.1077 / 7.1938
+summed row time = 1356.30 seconds（约22分36秒）
+max allocated GPU memory = 1073741824 bytes（1 GiB）
+```
+
+最终裁决：
+
+```text
+status = pass
+decision = innovation2_speck_hwang_phase_c_kernel_reproduced
+training = no
+remote mechanical scale = no
+next = E26 SPECK fixed-context kernel invariance/diversity audit
+```
+
+这证明 Hwang/Wang 的 SPECK32/64 6轮九维、7轮一维输出平衡 kernel 在32把发现密钥
+与32把全新验证密钥的 exact `2^30` 结构上复现，而且移动固定位置的同预算控制不含
+该 kernel。它不是论文 `10^3/10^6` 密钥规模、全密钥证明、神经结果或新积分性质。
+
+权威证据：
+
+```text
+outputs/remote_results/i2_speck32_hwang_phase_c_32plus32_gpu0_20260717/
+outputs/00_RECENT_RESULTS.md entry 001
+```
+
+真实 `curves.svg` 已渲染为像素检查，中文字体、标题、图例、柱状分离、七项 gate、
+裁决文字和导出边界均无重叠、裁切或歧义，`visual_qa_passed.marker` 已记录。
+
+## 14. 下一审判 E26：四种固定 context kernel 不变性/多样性
+
+### 14.1 研究问题与同预算 anchor
+
+Phase C 只有一个正结构 `{5,6}=00` 和一个负位置控制 `{0,1}=00`，尚不足以构造
+结构条件输出标签：模型可能只记住固定位置。E26 只改变 `{5,6}` 两个固定 bit 的取值，
+判断 `00/01/10/11` 是产生不同稳定 kernel 的有效结构变量，还是应视为不影响标签的
+nuisance context。
+
+同预算 anchor 是 Phase C 的 context `00`，必须逐字节复用 verified cache：
+
+```text
+anchor parity_rows SHA256 = 3a6df2692fd428938cf8d30e16521947efd1b3242dfc62f288094d7f5187637f
+anchor metadata SHA256 = 67138d81e04240b99f42046d2dd6e64a44a8b1586562947176360339a33afe00
+keys = Phase C 相同64把，保持 paired comparison
+rounds = 6,7
+fixed positions = {5,6}
+```
+
+### 14.2 唯一变量、规模与计算优化
+
+```text
+唯一变量 = fixed context value
+contexts = 00（verified baseline）, 01, 10, 11
+discovery/validation = Phase C相同32+32把密钥
+exact assignments per row = 2^30
+new exact enumeration = contexts 01和10 x rounds 6和7 x 64 keys = 256 rows
+context11 = parity00 xor parity01 xor parity10
+direct context11 crosscheck = 第一把key x rounds 6和7 = 2 rows
+backend/device/chunk = torch_int32 / CUDA / 2^24
+execution = remote GPU
+estimated new row time = about 30-31 minutes
+training/epochs = none
+```
+
+推导 `parity00 xor parity01 xor parity10 xor parity11 = 0` 来自四个 context 对完整
+`2^32` 明文空间的分割，以及任意轮数 SPECK 仍为置换、全输出空间 XOR 为0。该推导
+必须先在小结构 exhaustive fixture 通过，再以 context11 的一把密钥6/7轮直接完整
+枚举交叉验证；不能只因公式看似正确就省略实现校准。
+
+### 14.3 裁决门与后续分支
+
+共同 readiness gate：baseline SHA/metadata/keys 精确匹配，01/10缓存完整且 resume
+生成0行，context11 两个 direct crosscheck 通过，所有 split basis 回代有效，远程归档
+与本地重算一致。
+
+结果分支预注册：
+
+```text
+A. context_invariant:
+   四个 context 的6轮 joint kernel均精确等于论文九维；
+   四个 context 的7轮 joint kernel均精确等于0x02050204；
+   论文方向在每个 context 的 discovery/validation 分别成立。
+   -> 固定值不是标签变量；下一步扩展 fixed-position family，保留 context-matched controls。
+
+B. context_dependent_stable:
+   至少两个 context 形成不同、跨两半稳定的非平凡 joint kernel。
+   -> context可能提供标签多样性；下一步先做 mask/context边际与组外捷径审计，仍不训练。
+
+C. unstable_or_invalid:
+   joint kernel不能跨两半稳定、baseline不匹配或推导交叉验证失败。
+   -> hold，审计协议；不增加密钥、不训练。
+```
+
+禁止路线：把四个 context 当四个训练样本直接训练；把相同 kernel 说成标签多样性；
+跳过位置族与 mask-matched shortcut baseline；机械扩大到更多密钥而不先解释 E26 分支。
