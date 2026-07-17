@@ -1,0 +1,51 @@
+{
+  "active_bit_mask": "0xFFFFFF9F",
+  "active_bits": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "assignments_per_key": 1073741824,
+  "backend": "torch_int32",
+  "chunk_size": 16777216,
+  "cipher": "SPECK32/64",
+  "device": "cuda",
+  "fixed_mask": "0x00000060",
+  "fixed_plaintext": "0x00000000",
+  "keys": [
+    "0x1918111009080100"
+  ],
+  "output_bit_order": "LSB-first",
+  "rounds": [
+    6,
+    7
+  ],
+  "run_id": "i2_speck32_hwang_phase_b_singlekey_gpu0_20260717"
+}
