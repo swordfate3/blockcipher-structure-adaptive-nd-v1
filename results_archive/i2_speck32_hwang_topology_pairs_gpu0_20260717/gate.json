@@ -1,0 +1,53 @@
+{
+  "claim_scope": "remote exact-2^30 paired-key screen and at-most-four-per-family 64-key confirmation of 16 ROR7-to-addition aligned cross-word pairs versus 16 offset-minus-one controls; not neural training or an all-key proof",
+  "decision": "innovation2_speck_topology_pair_no_signal",
+  "metrics": {
+    "control_screen_hits": 0,
+    "control_stable_count": 0,
+    "expected_new_exact_rows": 256,
+    "screen_candidates": {
+      "offset_minus_one": [],
+      "ror7_add_aligned": []
+    },
+    "screen_hit_delta": 0,
+    "selected_candidates": {
+      "offset_minus_one": [],
+      "ror7_add_aligned": []
+    },
+    "stable_lanes": {
+      "offset_minus_one": [],
+      "ror7_add_aligned": []
+    },
+    "true_screen_hits": 0,
+    "true_stable_count": 0
+  },
+  "next_action": {
+    "action": "stop the current SPECK fixed-pair route",
+    "remote_scale": false,
+    "training": false
+  },
+  "readiness_checks": {
+    "all_computed_bases_validate": true,
+    "all_new_caches_completed": true,
+    "cache_roles_match_dynamic_plan": true,
+    "candidate_selection_matches_frozen_rule": true,
+    "cuda_available": true,
+    "cuda_device_count_positive": true,
+    "exact_phase_c_paired_keys": true,
+    "official_speck32_vector_matches": true,
+    "phase_c_anchor_and_control_sha_verified": true,
+    "resume_generates_zero_rows": true,
+    "screen_shape_and_dtype": true,
+    "thirty_two_summary_rows_present": true,
+    "timing_evidence_for_all_dynamic_rows": true,
+    "two_families_have_16_unique_pairs_each": true,
+    "validation_shape_and_dtype": true
+  },
+  "run_id": "i2_speck32_hwang_topology_pairs_gpu0_20260717",
+  "runtime": {
+    "max_peak_memory_bytes": 1073741824,
+    "timed_rows": 256,
+    "total_elapsed_seconds": 1819.9213106992538
+  },
+  "status": "hold"
+}

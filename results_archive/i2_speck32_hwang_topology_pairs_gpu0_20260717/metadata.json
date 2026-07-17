@@ -1,0 +1,40 @@
+{
+  "assignments_per_exact_row": 1073741824,
+  "backend": "torch_int32",
+  "chunk_size": 16777216,
+  "cipher": "SPECK32/64",
+  "claim_scope": "remote exact-2^30 paired-key screen and at-most-four-per-family 64-key confirmation of 16 ROR7-to-addition aligned cross-word pairs versus 16 offset-minus-one controls; not neural training or an all-key proof",
+  "device": "cuda",
+  "expected_new_exact_rows": 256,
+  "families": [
+    "ror7_add_aligned",
+    "offset_minus_one"
+  ],
+  "lanes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "rounds": [
+    7
+  ],
+  "run_id": "i2_speck32_hwang_topology_pairs_gpu0_20260717",
+  "screen_keys": 8,
+  "target_mask": "0x02050204",
+  "task": "innovation2_speck32_hwang_topology_pair_control",
+  "total_keys": 64,
+  "training_performed": false
+}
