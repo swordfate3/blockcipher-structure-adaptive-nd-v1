@@ -1,0 +1,11 @@
+run_id,role,rounds,split,basis_index,mask_hex,mask_weight,basis_valid,position_start
+i2_speck32_hwang_positions_gpu0_20260717,position00,7,discovery,0,0x06448DAD,13,True,0
+i2_speck32_hwang_positions_gpu0_20260717,position00,7,validation,0,0xC4710F69,15,True,0
+i2_speck32_hwang_positions_gpu0_20260717,position05,7,discovery,0,0x02050204,5,True,5
+i2_speck32_hwang_positions_gpu0_20260717,position05,7,discovery,1,0xE5409C4A,13,True,5
+i2_speck32_hwang_positions_gpu0_20260717,position05,7,validation,0,0x02050204,5,True,5
+i2_speck32_hwang_positions_gpu0_20260717,position05,7,joint,0,0x02050204,5,True,5
+i2_speck32_hwang_positions_gpu0_20260717,position06,7,discovery,0,0x02050204,5,True,6
+i2_speck32_hwang_positions_gpu0_20260717,position06,7,validation,0,0x02050204,5,True,6
+i2_speck32_hwang_positions_gpu0_20260717,position06,7,validation,1,0x05938816,11,True,6
+i2_speck32_hwang_positions_gpu0_20260717,position06,7,joint,0,0x02050204,5,True,6
