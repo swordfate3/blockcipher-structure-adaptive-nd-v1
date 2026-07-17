@@ -1,7 +1,7 @@
 # 创新2 E25：SPECK32/64 Hwang Table 7 kernel 协议与分块执行就绪计划
 
 日期：2026-07-17
-状态：E26 通过并验证回收 / 四种固定值 kernel 不变 / E27 fixed-position family 待实施
+状态：E27 通过协议验证但位置族过窄 / 仅{5,6}与{6,7}为64-key稳定正位置 / E28不执行 / 下一门E27-N拓扑对齐对照
 
 ## 1. 路线来源
 
@@ -794,3 +794,164 @@ label_grid_too_narrow:
 即使 E28 通过，E27 最多10个完整位置仍不足以直接支撑神经模型的结构组外训练。
 E29 必须先用新密钥确认标签，并把独立结构数量扩展到可形成稳定 train/validation/test
 组的规模；禁止把同一位置的不同密钥复制成多个“独立结构样本”。
+
+### 16.6 条件窄分支 E27-N：ROR7-to-addition 拓扑对齐对照
+
+E27-N 只在以下任一条件成立时执行：E27 裁决为 `narrow_position_family`；或 E27
+过数量门但 E28 裁决为 `label_grid_too_narrow`。若 E27 为 `anchor_only`，当前
+SPECK位置路线直接停止，不得用 E27-N 绕过停止门。若 E28 已通过标签宽度与捷径门，
+优先做 E29 fresh-key，不运行 E27-N。
+
+SPECK32/64 项目整数表示中，低16 bit为 `y`，高16 bit为 `x`。一轮首先计算
+`ROR7(x) + y`，所以进入同一模加 bit lane 的真实输入关系为：
+
+```text
+true topology pair(i) = { y_i, x_(i+7 mod 16) }
+project bits          = { i, 16 + ((i+7) mod 16) }
+i                     = 0..15
+```
+
+同预算错位控制只把高字索引偏移减1：
+
+```text
+offset-minus-one control(i) = { y_i, x_(i+6 mod 16) }
+project bits                = { i, 16 + ((i+6) mod 16) }
+i                           = 0..15
+```
+
+两组各16个 pair，组内和组间均按 `(family, i)` 唯一标识；所有 pair 固定两个 bit
+为 `00`，其余30 bit活动。保持 E27 的密码、7轮、目标 mask `0x02050204`、Phase C
+64把密钥、CUDA backend、chunk、输出 bit order 和 exact `2^30` 明文不变。唯一
+研究变量是跨 word pair 是否符合真实 `ROR7 -> addition` lane 对齐。
+
+分阶段预算：
+
+```text
+Phase S:
+  true 16 + control 16
+  Phase C key indices 0..7
+  exact rows = 32 * 8 = 256
+  screen pass = target mask在8把key全部平衡
+  random-parity expected hits = 32 / 2^8 = 0.125
+
+Phase V:
+  true候选按i升序最多取4个
+  control候选按i升序最多取4个
+  若某组不足4个，不从另一组补齐名额
+  selected candidate增加indices 8..63共56个exact row
+  max additional rows = 8 * 56 = 448
+```
+
+不得按两组合并排序后只挑真实拓扑候选；每组独立最多4个能保持同预算归因。screen
+失败 pair 不补密钥。预计 Phase S 约30分钟，Phase V 每个候选约6.5分钟，上限总时长
+约82分钟；远程GPU、逐 pair 磁盘缓存、resume、verified branch、本地独立重算和视觉
+QA规则与 E27 相同。
+
+裁决：
+
+```text
+topology_aligned_family:
+  64-key稳定true位置 >= 2；
+  64-key稳定control位置 = 0；
+  true screen hits - control screen hits >= 2；
+  每个稳定true位置的joint kernel包含目标mask。
+  -> 构造拓扑pair × output-mask标签宽度门；仍不训练。
+
+topology_not_specific:
+  任一control候选在64-key稳定，或true/control screen命中差<2。
+  -> hold/stop；真实对齐没有超过错位控制，不继续换offset挑结果。
+
+topology_no_signal:
+  true family没有64-key稳定位置。
+  -> 停止当前SPECK固定pair路线，不增加密钥、不测试其余14个offset。
+
+protocol_invalid:
+  key/cache/backend/mapping/timing/GF(2)任一门失败。
+  -> 只修协议，不解释信号。
+```
+
+禁止把 `same lane`、`ROL2/XOR` 对齐或其他 offset 同时加入该矩阵。它们是不同假设，
+只有当前真实 ROR7-to-addition family 明确失败且论文路线仍有独立理由时才能另行
+预注册；不得事后扫描16个offset并报告最好一个。
+
+## 17. E27 完成结果与裁决
+
+E27 从精确 pushed commit `41d60a1b73c2018a09b2cfae7a9ccc44ca256d9f` 在远程
+RTX A6000 GPU0 完成，并从 verified result branch 回收。本地独立验证结果：
+
+```text
+status = pass
+errors = []
+manifest_verified = true
+phase_c_baselines_verified = true
+source_commit_matches = true
+remote_gate_matches_recomputation = true
+timing rows = 280/280
+all cache roles complete = true
+resume rows generated = 0
+```
+
+动态预算实际执行为：
+
+```text
+28个新相邻位置 x 8 screen keys = 224 exact rows
+screen新候选 = position start 6，即fixed bits {6,7}
+Phase V = {6,7} x 56 remaining keys = 56 exact rows
+total new exact rows = 280
+assignments per row = 2^30
+summed row time = 2001.108052 seconds（约33分21秒）
+max allocated GPU memory = 1073741824 bytes（1 GiB）
+```
+
+8-key screen 中，除已验证 anchor `{5,6}` 外，只有相邻 pair `{6,7}` 达到 `8/8`
+平衡。它补到完整64把密钥后仍稳定：
+
+```text
+fixed {5,6}:
+  discovery/validation/joint nullity = 2/1/1
+  joint rank = 31
+  joint kernel = {0x02050204}
+
+fixed {6,7}:
+  discovery/validation/joint nullity = 1/2/1
+  joint rank = 31
+  joint kernel = {0x02050204}
+```
+
+两处半集中的额外经验方向均未进入 joint。其余28个位置被计为 sampled negatives：
+`{0,1}` 是 Phase C 完整64-key负控制，其他27个是8-key screen failures，不能夸大为
+完整64-key否定。高16-bit word的15个相邻 pair 全部screen失败；稳定正位置只覆盖
+低 word。
+
+最终门控：
+
+```text
+stable positive positions = [5, 6]
+stable positive count = 2 < 4
+sampled negative count = 28 >= 8
+positive words = [low]
+screen candidates excluding anchor/control = [6]
+candidate overflow = false
+status = hold
+decision = innovation2_speck_hwang_position_family_narrow
+training = no
+```
+
+因此 E27 证明论文7轮 mask 不只属于精确的 `{5,6}`，相邻平移一位的 `{6,7}` 也在
+同一64-key协议下成立；但它没有形成覆盖两个word的宽位置族，而且两个正位置的
+joint kernel 完全相同。这个证据不足以构造预注册 E28 所需的至少8个完整位置和8个
+flipping masks，所以 E28 不执行，不能用空标签网格制造“通过”。下一步按结果揭晓前
+冻结的16.6节执行 E27-N：ROR7-to-addition真实跨word对齐 family 与 offset-minus-one
+同预算错位控制。
+
+权威证据：
+
+```text
+outputs/remote_results/i2_speck32_hwang_positions_gpu0_20260717/
+outputs/00_RECENT_RESULTS.md entry 001
+```
+
+真实 `curves.svg` 已按自然尺寸 `1461x743` 渲染到像素并通过
+`visual-qa-redraw`：标题、中文解释、30个位置标签、双word面板、anchor/control
+注释、8-key阈值线、裁决和证据范围无重叠、裁切、缺字或结构歧义；marker 已转换为
+`visual_qa_passed.marker`。
