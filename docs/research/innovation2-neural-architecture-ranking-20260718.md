@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：架构调研完成 / 标签门未开放 / 不启动训练
+状态：架构调研完成 / E32b合成SPN标签门通过 / E33小规模比较可启动 / 真实密码训练未开放
 
 ## 1. 结论先行
 
@@ -219,8 +219,9 @@ sources/research_innovation2_neural_cryptanalysis_architectures_20260718.json
 
 ## 8. 推荐下一步
 
-先执行E31确定性候选提供者契约审计，不训练SCGT。E31必须回答：现有工具输出的
-`input set`、`output function`、常数值、负样本语义和bit order，是否与当前target
-逐字段一致。通过后构造高轮标签atlas；若CLAASP因license不可执行、ATM又只能提供
-未知常数或广义关系，则转向可精确枚举的小状态SPN标签生成，再以cipher-disjoint和
-topology-disjoint拆分测试SCGT的算法迁移能力。
+E31已确认provider语义不完整；E32原始合成标签又被ID边际解释。E32b使用train-only
+matched contrast后通过宽度与组外捷径门，因此下一步执行E33三行同预算小规模比较：
+deterministic marginal、small GraphGPS和SCGT。训练只使用9个train topology，三个
+heldout split不参与选择或优化；同时运行label-shuffle与P-layer-shuffle归因控制。
+只有真实topology模型超过 `dual-unseen AUC=0.726528`边际并优于shuffled topology，
+才进入真实密码迁移审计。该开放不等于真实PRESENT高轮训练已获批准。

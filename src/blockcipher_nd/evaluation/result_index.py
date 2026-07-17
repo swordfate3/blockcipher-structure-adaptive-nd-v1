@@ -530,6 +530,33 @@ DECISION_LABELS = {
     "innovation2_deterministic_provider_protocol_invalid": (
         "确定性提供者版本、安全解析、文件集或GF(2)契约无效"
     ),
+    "innovation2_small_spn_exact_label_readiness_passed": (
+        "小状态SPN全key精确标签实现就绪，可运行冻结E32审计"
+    ),
+    "innovation2_small_spn_exact_label_family_ready": (
+        "小状态SPN精确标签宽度与组外反捷径门通过，可准备E33网络比较"
+    ),
+    "innovation2_small_spn_exact_label_shortcut_dominated": (
+        "小状态SPN标签可被组外位置或ID边际解释，禁止训练图网络"
+    ),
+    "innovation2_small_spn_exact_label_too_narrow": (
+        "小状态SPN精确标签的正负宽度、签名或跨cipher交互不足"
+    ),
+    "innovation2_small_spn_exact_label_protocol_invalid": (
+        "小状态SPN双射、全key覆盖、缓存、parity或标签协议无效"
+    ),
+    "innovation2_small_spn_matched_contrast_ready": (
+        "训练内matched-contrast宽度与组外反捷径门通过，可准备E33网络比较"
+    ),
+    "innovation2_small_spn_matched_contrast_still_shortcut_dominated": (
+        "matched-contrast标签仍可被组外ID边际解释，停止当前benchmark"
+    ),
+    "innovation2_small_spn_matched_contrast_too_narrow": (
+        "matched-contrast的cell、类别或topology pattern不足"
+    ),
+    "innovation2_small_spn_matched_contrast_protocol_invalid": (
+        "matched-contrast来源、train-only选择、shape或索引协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -961,6 +988,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E30：PRESENT-80 7轮16维线性子空间kernel多样性"
     if run_id == "i2_present_r9_deterministic_provider_contract_20260718":
         return "创新2 E31：PRESENT高轮确定性积分标签提供者契约审计"
+    if run_id == "i2_small_spn_exact_label_width_16ciphers_256keys_seed0_20260718":
+        return "创新2 E32：16-bit小状态SPN全key精确标签宽度审计"
+    if run_id == "i2_small_spn_matched_contrast_readjudication_20260718":
+        return "创新2 E32b：小状态SPN训练内matched-contrast重裁决"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

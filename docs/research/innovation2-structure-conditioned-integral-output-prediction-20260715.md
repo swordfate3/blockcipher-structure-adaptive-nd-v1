@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** E0-E6 r5收益被位置先验解释 / PRESENT、SKINNY坐标标签族暂缓 / SPECK E25-E26精确复现但E27-N拓扑族无命中并停止 / E30随机线性子空间0/32命中并停止 / 下一门确定性候选提供者契约审计 / 神经训练尚未开放
+**状态：** 真实PRESENT/SKINNY/SPECK标签族仍暂缓 / E30随机子空间与E31确定性provider均未开放真实密码训练 / E32小SPN精确标签被ID边际解释 / E32b train-only matched contrast过门 / 仅E33合成SPN神经比较开放
 
 ## 一句话创新
 
@@ -416,6 +416,21 @@ P-layer orbit包装成新的“拓扑保持变换”。
 下一门先冻结候选提供者契约：输出必须明确给出输入集合、线性输出mask、确定性/经验
 标签语义、负样本证明范围和bit order。只有完全同目标的候选才能进入标签atlas；
 高阶输出单项式或多项广义关系只能作为扩展任务单独报告。
+
+E31完整审计最终为hold：CLAASP-MP当前缺Gurobi运行时；ATM的305个singleton中虽有
+198个线性输出候选，但constant值未知、负类不完备，公开8文件union rank为468而非
+论文报告的470。它们不能直接作为当前0/1标签。
+
+E32随后在16-bit合成SPN、16个S-box/P-layer组合和全部256把toy key上生成57344个
+精确标签。正负宽度、签名和cipher interaction均充足，但通用
+`round+structure+mask`边际在三种heldout达到约0.984--0.987 AUC，因此原始标签表
+禁止训练。
+
+E32b只用9个train topology选择其内部同时有正负的589个base cell，完全不读取
+heldout标签。重裁决保留9424行与336种16-topology模式，并把unseen-S、unseen-P、
+dual-unseen最强ID边际降至 `0.775693/0.742532/0.726528`，全部低于冻结停止线。
+因此只开放E33合成SPN上的GraphGPS/SCGT比较；真实PRESENT/GIFT/SKINNY神经训练仍未
+开放，必须等待合成模型的topology attribution与后续真实密码迁移门。
 
 ## 当前神经训练开放门
 

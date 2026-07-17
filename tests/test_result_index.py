@@ -303,6 +303,54 @@ def test_result_index_labels_innovation2_deterministic_provider(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_exact_labels(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_exact_label_width_16ciphers_256keys_seed0_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_exact_label_family_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E32：16-bit小状态SPN全key精确标签宽度审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "小状态SPN精确标签宽度与组外反捷径门通过，可准备E33网络比较"
+    )
+
+
+def test_result_index_labels_innovation2_small_spn_matched_contrast(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_matched_contrast_readjudication_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_matched_contrast_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E32b：小状态SPN训练内matched-contrast重裁决"
+    )
+    assert entries[0]["decision_display"] == (
+        "训练内matched-contrast宽度与组外反捷径门通过，可准备E33网络比较"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
