@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** paper-reference seed0 round-reach-only / identical seed1 running
+**状态：** 辅助 round-reach 锚点；seed0 完成 / seed1 因主任务纠正取消
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -1214,3 +1214,37 @@ verified destination = outputs/remote_results/
 （4 rows、8 项 invariant、无 errors），A6000 batch-2000 显存预检通过，最大 reserved
 为约 `1.558 GB / 3.02%`；`progress.jsonl` 已进入 train cache generation。此时无
 failed/done/result-branch/verified marker，seed1 状态正式记为 running。
+
+### 13.8 主任务纠正与 seed1 取消（2026-07-17）
+
+用户再次明确创新2的最终方法必须是：给定积分输入结构和输出位置/掩码，预测
+该输出性质在一个完整结构内是否 XOR 平衡，或预测其跨密钥平衡概率/排序；H0 的
+`structured multiset vs random multiset` 二分类只允许作为辅助主流轮数锚点。
+
+因此正在生成 train cache 的 seed1 不再回答当前主研究问题，已主动终止：
+
+```text
+run_id = i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717
+Windows task = I2_PRESENT_R8_PAPER_REFERENCE_2POW21_SEED1_GPU0
+remote source = 50cd6f44fb97f17e5ced449b93eb282196a583df
+terminal state = cancelled_by_research_goal_correction
+completed results = none
+metric interpretation = forbidden
+```
+
+取消前只有 `started.marker`、readiness、显存预检和部分 train cache 生成进度，
+没有 done、verified result branch 或完整四行结果。远程任务通过 `schtasks /End`
+终止，并在运行目录 `logs` 下写入 `*_cancelled.marker`；本地 tmux watcher 也已
+停止。该取消任务不是失败实验、不进入最近结果索引，也不参与 seed0 联合裁决。
+
+H0 seed0 的已验证结果保留，但其结论严格降级为：项目在论文参考规模近似下
+复现了 PRESENT-80 r8 二分类 round-reach 信号。它不是创新2输出性质预测结果。
+
+下一步转入：
+
+```text
+docs/experiments/innovation2-present-r6-output-property-transition-audit-plan.md
+```
+
+该审计先寻找 r6 的可学习输出性质过渡区；通过前不启动新的远程训练，也不继续
+H0 seed2、r9、GIFT 或 AES 二分类扩展。

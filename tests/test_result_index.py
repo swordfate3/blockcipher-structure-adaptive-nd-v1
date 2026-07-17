@@ -31,9 +31,42 @@ def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
     assert DEFAULT_RESULT_ROOTS == (
         "local_smoke",
         "local_diagnostic",
+        "local_audits",
         "smoke",
         "remote_results",
         "remote_results_incomplete",
+    )
+
+
+def test_result_index_includes_innovation2_local_output_property_audit(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r6_output_property_transition_"
+        "width1_width2_seed0_20260717"
+    )
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation2_r6_two_nibble_"
+                "output_prediction_benchmark_not_ready"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert len(entries) == 1
+    assert entries[0]["scope"] == "local_audits"
+    assert entries[0]["display_name"] == (
+        "创新2 E7：PRESENT 6轮积分输出性质活动宽度过渡审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "r6 两活动 nibble 的位置残差不足，转 5--7 活动 bit 审计"
     )
 
 

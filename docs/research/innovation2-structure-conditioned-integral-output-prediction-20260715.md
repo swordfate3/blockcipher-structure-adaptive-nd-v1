@@ -2,7 +2,7 @@
 
 **日期：** 2026-07-15
 
-**状态：** E0-E6 r5 先导实验完成 / E6 位置先验解释主要收益 / 高轮目标未完成
+**状态：** E0-E6 r5 先导实验完成 / E6 位置先验解释主要收益 / H0 仅作辅助轮数锚点 / 高轮输出预测未完成
 
 ## 一句话创新
 
@@ -273,7 +273,7 @@ MLP - position-matched random       = +0.036636353  >= +0.03
 恢复正向神经方法声明，必须换新 benchmark 并在实验前加入位置边际强基线，
 而不是继续利用已观察的 4096-key 结果调参。
 
-## E7：按最高可用轮数重新对齐目标
+## E7：辅助高轮锚点与主任务边界
 
 用户进一步明确，创新2的最终比较轴不是只完成一个低轮方法案例，而是：
 
@@ -292,13 +292,21 @@ Split-and-Cancel 条件/弱密钥结果到 r10。Kimura 对 small PRESENT-[4]
 
 当前 111-bit 结构描述任务不能机械升到 r6/r7：预审计中两轮的 `q=1`
 比例已经为 `0.4898/0.4930`，且 r5 的表观收益在 E6 被输出位置先验解释。
-下一步必须换成独立的高轮 benchmark：严格实现 Wu/Guo 的积分 multiset、
-`InvP/InvS` 数据表示和 PRESENT r5/r7/r8 轮数梯，并加入确定性 parity、
-同输入线性和标签打乱控制。r8 两个独立 seed 的置信区间高于随机后，才
-允许测试 r9 候选；PRESENT r8 未站稳前不扩展到 GIFT。
+Wu/Guo 的积分 multiset、`InvP/InvS` 数据表示和 PRESENT r5/r7/r8 轮数梯
+可以回答“主流二分类协议在多少轮仍有信号”，但它的标签是结构集合与随机
+集合的类别，不是输出掩码是否平衡。因此 H0 只能作为辅助 round-reach 锚点，
+不能替代本创新的结构条件积分输出性质预测。
+
+H0 seed0 已在 `2^21` 总训练行、50 epochs 的论文参考规模近似上得到 r8
+round-reach 信号；随后启动的同协议 seed1 因用户再次明确主任务边界而取消，
+未完成指标不得解释。创新2主线回到“结构描述 -> 跨密钥平衡概率/排序”。
+由于单活动 nibble 的 r6 标签近随机，下一步先审计增加活动 nibble 数能否在
+r6 形成既非全平衡、也非全随机、并且保留位置先验残差的可学习过渡区；通过
+后再训练网络，不直接扩远程数据量。
 
 执行计划：
 
 ```text
 docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md
+docs/experiments/innovation2-present-r6-output-property-transition-audit-plan.md
 ```

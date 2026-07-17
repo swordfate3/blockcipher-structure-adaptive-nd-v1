@@ -68,6 +68,92 @@ completeness.
 
 ---
 
+## [LRN-20260717-001] correction
+
+**Logged**: 2026-07-17T12:20:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+Innovation 2 must remain a structure-conditioned integral output-property prediction task; structured-vs-random binary distinguishing is only an auxiliary round-reach benchmark.
+
+### Details
+The completed PRESENT r8 paper-reference seed0 run and the subsequently launched
+seed1 run classify a valid integral multiset versus an encrypted unrestricted
+random multiset. That task can anchor mainstream neural round reach, but its
+label does not say whether a specified output mask is balanced within one
+complete structured plaintext set. Treating it as the final Innovation 2 method
+silently replaced the user-defined output-prediction objective with a different
+binary distinguisher objective.
+
+### Suggested Action
+Keep high-round binary distinguishers explicitly labeled as auxiliary anchors.
+For the Innovation 2 primary route, require each sample to describe an input
+structure plus output position/mask, aggregate XOR over every plaintext inside
+that structure, and predict cross-key balance probability, stability, or rank.
+Before remote scaling, require a local benchmark transition gate and marginal-
+matched controls. Cancel running jobs when their labels no longer answer the
+corrected primary question, and never interpret incomplete metrics.
+
+### Metadata
+- Source: user_feedback
+- Related Files: docs/research/innovation2-structure-conditioned-integral-output-prediction-20260715.md, docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md, docs/experiments/innovation2-present-r6-output-property-transition-audit-plan.md
+- Tags: innovation2, output-property, integral, task-definition, binary-anchor, remote-cancellation
+- See Also: LRN-20260716-008, LRN-20260715-009, LRN-20260716-007
+- Pattern-Key: innovation2.goal.output_prediction_not_binary_distinguisher
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T12:20:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Cancelled the misaligned running seed1 binary benchmark, stopped its local watcher, reclassified H0 as auxiliary evidence, and froze an output-property benchmark redesign audit.
+
+---
+
+## [LRN-20260717-002] correction
+
+**Logged**: 2026-07-17T12:30:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+Finite-key binomial sampling variance must be removed before treating cross-structure balance-rate spread as learnable integral-property signal.
+
+### Details
+The first r6 transition audit used 32 keys per structure and observed a two-active-
+nibble balance-rate standard deviation of about `0.086`. Pure Bernoulli sampling
+near probability one half already has standard deviation
+`sqrt(0.25/32) = 0.088`, so the original gate could pass on label-estimation noise
+alone. The apparent pass was invalidated before indexing or training.
+
+### Suggested Action
+For structure-conditioned output-property benchmark audits, report observed rate
+variance, an unbiased finite-key binomial noise estimate, and nonnegative excess
+variance. Apply the same correction after subtracting categorical marginal means.
+Use enough fresh keys for the corrected metric to resolve the frozen gate, and do
+not launch neural training from uncorrected observed-rate spread.
+
+### Metadata
+- Source: self_correction
+- Related Files: src/blockcipher_nd/tasks/innovation2/integral_transition_audit.py, docs/experiments/innovation2-present-r6-output-property-transition-audit-plan.md
+- Tags: innovation2, finite-key, binomial-noise, balance-rate, benchmark-gate
+- See Also: LRN-20260716-002, LRN-20260717-001
+- Pattern-Key: innovation2.output_property.remove_finite_key_sampling_variance
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T12:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Invalidated the 32-key pass, added noise-corrected gates, and increased the frozen audit to 256 keys per structure.
+
+---
+
 ## [LRN-20260716-008] correction
 
 **Logged**: 2026-07-16T14:20:00+08:00

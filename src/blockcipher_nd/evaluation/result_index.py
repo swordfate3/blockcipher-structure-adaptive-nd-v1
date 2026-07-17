@@ -11,6 +11,7 @@ from typing import Any, Callable
 DEFAULT_RESULT_ROOTS = (
     "local_smoke",
     "local_diagnostic",
+    "local_audits",
     "smoke",
     "remote_results",
     "remote_results_incomplete",
@@ -24,8 +25,9 @@ _SCOPE_PRIORITY = {
     "remote_results": 0,
     "remote_results_incomplete": 1,
     "local_diagnostic": 2,
-    "local_smoke": 3,
-    "smoke": 4,
+    "local_audits": 3,
+    "local_smoke": 4,
+    "smoke": 5,
 }
 
 ARTIFACT_LABELS = {
@@ -233,6 +235,18 @@ DECISION_LABELS = {
     ),
     "innovation2_integral_position_prior_explains_enrichment": (
         "创新2 E6 位置先验解释候选富集，停止神经优势声明"
+    ),
+    "innovation2_r6_two_nibble_output_prediction_benchmark_ready": (
+        "r6 两活动 nibble 输出性质 benchmark 通过，可进入本地训练"
+    ),
+    "innovation2_r6_two_nibble_almost_always_balanced": (
+        "r6 两活动 nibble 几乎总平衡，转 r7 标签过渡审计"
+    ),
+    "innovation2_r6_two_nibble_output_prediction_benchmark_not_ready": (
+        "r6 两活动 nibble 的位置残差不足，转 5--7 活动 bit 审计"
+    ),
+    "innovation2_output_property_transition_audit_invalid": (
+        "输出性质过渡审计无效，先修数据或校验"
     ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
@@ -572,6 +586,11 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E2：PRESENT 5轮积分输出平衡候选排序与 top-16 效用审判"
     if run_id == "i2_present_r5_integral_parity_ranking_utility_joint_seed0_seed1":
         return "创新2 E3：PRESENT 5轮积分输出候选排序双 seed 联合裁决"
+    if run_id == (
+        "i2_present_r6_output_property_transition_"
+        "width1_width2_seed0_20260717"
+    ):
+        return "创新2 E7：PRESENT 6轮积分输出性质活动宽度过渡审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
