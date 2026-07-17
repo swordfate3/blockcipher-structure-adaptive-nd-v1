@@ -364,6 +364,7 @@ estimated anchor time = about 15 minutes from Phase B timing
 estimated control time = about 7-8 minutes
 execution = remote GPU from an exact pushed commit and run-owned clean clone
 retrieval = local tmux watcher plus verified result archive
+local plot = scripts/plot-innovation2-speck-hwang-phase-c -> curves.svg
 training = no
 ```
 

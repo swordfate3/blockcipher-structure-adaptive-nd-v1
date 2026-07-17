@@ -7,6 +7,9 @@ from blockcipher_nd.cli.audit_innovation2_speck_hwang_phase_c import (
     _load_timing_evidence,
     _summarize_runtime,
 )
+from blockcipher_nd.cli.plot_innovation2_speck_hwang_phase_c import (
+    main as plot_main,
+)
 from blockcipher_nd.tasks.innovation2 import speck_hwang_phase_c as phase_c
 from blockcipher_nd.tasks.innovation2.integral_subspace_audit import gf2_kernel_basis
 from blockcipher_nd.tasks.innovation2.speck_hwang_parity import hwang_speck_basis_masks
@@ -232,3 +235,35 @@ def test_e25_phase_c_remote_scripts_preserve_windows_and_monitor_contracts() -> 
     assert "/RU SYSTEM /RL HIGHEST" in launch
     assert "logs/${RUN_ID}_done.marker" in monitor
     assert "sleep 60" in monitor
+
+
+def test_e25_phase_c_plot_cli_writes_chinese_explanatory_svg(tmp_path) -> None:
+    result = _evaluate()
+    results_path = tmp_path / "results.jsonl"
+    gate_path = tmp_path / "gate.json"
+    output_path = tmp_path / "curves.svg"
+    results_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in result["rows"]),
+        encoding="utf-8",
+    )
+    gate_path.write_text(
+        json.dumps(result["gate"], sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    assert (
+        plot_main(
+            [
+                "--results",
+                str(results_path),
+                "--gate",
+                str(gate_path),
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+    svg = output_path.read_text(encoding="utf-8")
+    assert "创新2 E25 Phase C" in svg
+    assert "32把发现密钥 + 32把全新验证密钥" in svg
+    assert "预注册裁决门" in svg
