@@ -719,3 +719,78 @@ training_performed = false
 回归、结果索引，以及远程 `G:\lxy`、`cmd.exe /c`、无 delayed expansion、verified
 archive、独立验证、绘图和 `visual_qa_pending` handoff。远程结果必须经本地 manifest、
 baseline SHA、cache-to-aggregate parity、密钥顺序、GF(2) gate 独立重算后才能裁决。
+
+### 16.5 条件下一门 E28：位置 × mask 标签宽度与组外捷径
+
+E28 只在 E27 得到 `innovation2_speck_hwang_position_family_advance` 且本地独立
+验证通过后执行。它是本地纯后处理，不新增明文枚举、不增加密钥、不训练网络。
+输入冻结为 E27 中拥有完整64-key parity 的位置：Phase C anchor、control，以及
+进入 Phase V 的候选。8-key-only screen 失败位置不得伪装成64-key确定标签。
+
+每个完整位置先重算 joint kernel。候选 output mask 使用有界、确定性规则：
+
+```text
+1. 收集每个joint kernel的全部非零basis mask；
+2. 收集同一kernel内任意两个不同basis mask的pairwise XOR；
+3. 去重并按整数升序排序；
+4. 只保留在至少1个、但非全部完整位置kernel中成立的flipping mask；
+5. 不加入“在所有位置恒负”的人工mask，因为mask identity会直接泄漏标签。
+```
+
+这不是完整枚举高维 kernel span；它是固定的 basis+pairwise 标签宽度诊断。若某个
+kernel 只有更高阶组合才产生额外方向，E28 不据此声称不存在，只报告当前有界候选
+不足。标签网格定义为：
+
+```text
+label(position, mask) = 1 iff mask belongs to that position's 64-key joint kernel
+```
+
+readiness 下限：
+
+```text
+full-evidence positions >= 8
+flipping masks >= 8
+distinct position label signatures >= 4
+positive rate in [0.10, 0.90]
+target mask 0x02050204 included and flips across positions
+complete position x mask grid
+```
+
+同一标签网格必须报告 global、position identity、mask identity、position/mask weight、
+identity-additive 和 32+32 bitwise linear 基线的 accuracy、Brier、AUC。随后冻结三类
+group-disjoint 评价：
+
+```text
+position-disjoint：整组留出位置；
+mask-disjoint：整组留出mask；
+dual-disjoint：测试cell的位置和mask均未在训练cell出现；
+control：相同dual folds上的标签打乱。
+```
+
+fold 只能用固定 seed0、按整数排序后的确定性分组；每个 train/test fold 必须两类齐全，
+否则 readiness 失败，不得事后换 seed 或合并最难 fold。方向无关捷径指标为
+`max(AUC, 1-AUC)`，避免反向预测被错误当成无信号。
+
+裁决预注册：
+
+```text
+advance_label_grid:
+  readiness全部通过；
+  position identity、mask identity、additive、bitwise线性AUC均<0.75；
+  position/mask/dual-disjoint directional AUC均<0.75；
+  shuffle dual directional AUC<=0.65。
+  -> E29 fresh-key稳定性与结构族扩展；仍不直接训练。
+
+label_grid_shortcut_dominated:
+  标签宽度足够，但任一真实组外捷径AUC>=0.75。
+  -> 停止当前SPECK相邻位置×mask表，不挑选通过的单一split。
+
+label_grid_too_narrow:
+  完整位置<8、flipping mask<8、签名<4或类别/fold不完整。
+  -> 不训练；若E27是narrow分支则优先审判ROR7-to-addition真实对齐与offset-1错位控制，
+     若E27虽过数量门但mask宽度不足，同样转拓扑耦合结构族而不是机械加密钥。
+```
+
+即使 E28 通过，E27 最多10个完整位置仍不足以直接支撑神经模型的结构组外训练。
+E29 必须先用新密钥确认标签，并把独立结构数量扩展到可形成稳定 train/validation/test
+组的规模；禁止把同一位置的不同密钥复制成多个“独立结构样本”。
