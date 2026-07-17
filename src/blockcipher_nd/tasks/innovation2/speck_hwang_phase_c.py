@@ -156,7 +156,7 @@ def evaluate_phase_c(
     basis_rows: list[dict[str, Any]] = []
     all_basis_valid = True
     for role, rounds, words, paper_basis in specs:
-        row, emitted_basis, valid = _summarize_kernel(
+        row, emitted_basis, valid = summarize_speck_kernel(
             config,
             role=role,
             rounds=rounds,
@@ -356,13 +356,14 @@ def adjudicate_phase_c(
     }
 
 
-def _summarize_kernel(
+def summarize_speck_kernel(
     config: SpeckHwangPhaseCConfig,
     *,
     role: str,
     rounds: int,
     words: np.ndarray,
     paper_basis: tuple[int, ...],
+    fixed_bits: str | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]], bool]:
     split_words = {
         "discovery": words[: config.discovery_keys],
@@ -414,7 +415,11 @@ def _summarize_kernel(
             "task": "innovation2_speck32_hwang_phase_c_exact_kernel",
             "role": role,
             "rounds": rounds,
-            "fixed_bits": "5,6" if role == "anchor" else "0,1",
+            "fixed_bits": (
+                fixed_bits
+                if fixed_bits is not None
+                else "5,6" if role == "anchor" else "0,1"
+            ),
             "discovery_keys": config.discovery_keys,
             "validation_keys": config.validation_keys,
             **metrics,
