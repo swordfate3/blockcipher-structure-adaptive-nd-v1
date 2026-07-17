@@ -1,0 +1,34 @@
+{
+  "anchor_fixed_bits": [
+    5,
+    6
+  ],
+  "anchor_rounds": [
+    6,
+    7
+  ],
+  "assignments_per_key_round_role": 1073741824,
+  "backend": "torch_int32",
+  "chunk_size": 16777216,
+  "cipher": "SPECK32/64",
+  "claim_scope": "remote 32-discovery plus 32-fresh-validation sampled-key reproduction using exact 2^30 plaintext structures and one same-budget position control; not paper-scale, an all-key proof, neural training, or a new integral-property claim",
+  "control_fixed_bits": [
+    0,
+    1
+  ],
+  "control_rounds": [
+    7
+  ],
+  "device": "cuda",
+  "discovery_keys": 32,
+  "expected_exact_rows": 192,
+  "fixed_context": "00",
+  "key_generation_seed": 25031,
+  "output_bit_order": "LSB-first",
+  "run_id": "i2_speck32_hwang_phase_c_32plus32_gpu0_20260717",
+  "seed": 0,
+  "task": "innovation2_speck32_hwang_phase_c_exact_kernel",
+  "total_keys": 64,
+  "training_performed": false,
+  "validation_keys": 32
+}
