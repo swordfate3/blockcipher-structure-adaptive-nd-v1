@@ -351,6 +351,54 @@ def test_result_index_labels_innovation2_small_spn_matched_contrast(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_topology_training(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_graphgps_scgt_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_topology_predictor_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E33：小状态SPN GraphGPS/SCGT两seed拓扑归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "真实SPN拓扑预测器超过边际与错误拓扑控制，可进入真实密码迁移readiness"
+    )
+
+
+def test_result_index_labels_innovation2_small_spn_cell_equivariance(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_cell_equivariance_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_small_spn_cell_equivariance_repair_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E33-R：cell重标号等变GraphGPS两seed归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "cell等变修复未过冻结门，停止当前GraphGPS表示路线"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

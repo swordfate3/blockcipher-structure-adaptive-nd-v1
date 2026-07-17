@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：架构调研完成 / E32b合成SPN标签门通过 / E33小规模比较可启动 / 真实密码训练未开放
+状态：架构调研完成 / E33与E33-R均未过拓扑归因门 / round-shared reasoner为下一候选 / 真实密码训练未开放
 
 ## 1. 结论先行
 
@@ -13,7 +13,7 @@ input  = cipher topology + rounds + input affine/subspace structure + output mas
 target = balance/kernel property, fresh-key stability, or candidate ranking
 ```
 
-当前最匹配的神经候选不是单独的CNN、LSTM或通用Transformer，而是一个小型
+在实验前，最匹配的神经候选不是单独的CNN、LSTM或通用Transformer，而是一个小型
 双编码器：
 
 ```text
@@ -25,7 +25,7 @@ cipher S-box/P-layer graph --small GraphGPS-----+
 暂定名为 `Subspace-Cipher Graph Transformer`（SCGT）。这个名称只描述待验证的
 项目候选，不能在实验过门前宣称为已完成创新或有效模型。
 
-E30已经证明：网络架构不是当前第一瓶颈。四个坐标16维子空间有joint kernel，
+E33现已进一步证明：网络名称和容量不是有效性的证据。四个坐标16维子空间有joint kernel，
 32个随机orientation却是 `0/32`。没有宽标签族时，更强模型只会记忆位置、mask或
 确定性候选生成器的输出。因此本文件冻结未来网络矩阵，但不开放训练。
 
@@ -217,11 +217,49 @@ sources/research_innovation2_set_graph_transformers_20260718.json
 sources/research_innovation2_neural_cryptanalysis_architectures_20260718.json
 ```
 
-## 8. 推荐下一步
+## 8. E33结果与架构重排
 
-E31已确认provider语义不完整；E32原始合成标签又被ID边际解释。E32b使用train-only
-matched contrast后通过宽度与组外捷径门，因此下一步执行E33三行同预算小规模比较：
-deterministic marginal、small GraphGPS和SCGT。训练只使用9个train topology，三个
-heldout split不参与选择或优化；同时运行label-shuffle与P-layer-shuffle归因控制。
-只有真实topology模型超过 `dual-unseen AUC=0.726528`边际并优于shuffled topology，
-才进入真实密码迁移审计。该开放不等于真实PRESENT高轮训练已获批准。
+E33在E32b的9424行matched-contrast数据上完成两seed同预算比较。dual-unseen AUC为：
+
+```text
+ID marginal baseline = 0.726528
+GraphGPS true         = 0.682672
+SCGT true             = 0.726947
+GraphGPS wrong P      = 0.752444
+label shuffle         = 0.465781
+```
+
+因此原排名不能直接解释为“SCGT第一名且可以继续加规模”。GraphGPS真实拓扑低于边际，
+错误P-layer反而更高；SCGT仅与边际持平。源码审计发现当前模型同时加入绝对bit、nibble、
+lane embedding，这破坏了并行S-box cell同时重标号时应有的对称性，并可能让网络优先记住
+坐标编号。
+
+当前探索顺序调整为：
+
+1. `cell-equivariant GraphGPS`：去掉绝对bit/nibble身份，只保留cell内lane role；先修复
+   已识别的表示缺陷，不增加容量。
+2. `equivariant SCGT`：仅当第一步证明真实P-layer贡献后，再测试basis hyperedge增益。
+3. `round-shared / looped graph processor`：仅当等变GraphGPS在未见拓扑通过、但跨轮失败时开放。
+4. `TokenGT edge-token`：仅当消融证明当前node-message无法表达必要edge-edge交互时开放。
+
+Mamba、KAN、更深MLP和大型纯Transformer仍不优先；它们不会自动修复cell重标号对称性，
+也缺少当前失败模式对应的归纳偏置。
+
+## 9. 推荐下一步
+
+E33已经失败，且错误P-layer优于真实P-layer。下一步不是直接尝试更多新模型，而是执行
+E33-R单变量cell-equivariance审计：冻结E33数据、split、hidden64、3 blocks、40 epochs、
+seed0/1和优化器，只替换绝对位置表示。候选同时与E33绝对位置锚点、ID边际、错误P-layer
+和label-shuffle比较。只有真实拓扑在两seed上超过dual边际、均值超过边际与错误拓扑各
+`0.03`，才开放equivariant SCGT；否则停止当前GraphGPS家族，不进入真实密码迁移。
+
+E33-R现已完成。cell重标号最大logit误差为`8.94e-08`，证明实现满足冻结等变契约；
+真实P-layer dual均值由`0.682672`改善到`0.711548`，但仍低于ID边际`0.726528`，且只比
+错误P-layer`0.708831`高`0.002717`。所以绝对位置确实是部分缺陷，却不是主要瓶颈；
+equivariant SCGT不开放。
+
+后验逐轮诊断中，3轮dual为`0.500/0.414`，4轮为`0.773/0.852`；2轮无matched cell，
+5轮只有负类，不能解释。这使下一候选从TokenGT转为小型round-shared neural algorithmic
+reasoner：保留cell-equivariant node表示和同一GraphGPS operator，只把三个静态独立block
+替换成一个共享block，并按样本真实轮数执行2--5次。该候选直接对应当前“轮数只是embedding、
+传播深度固定”的源码错配，仍需同预算true/wrong-P和label-shuffle裁决；失败即停止该家族。

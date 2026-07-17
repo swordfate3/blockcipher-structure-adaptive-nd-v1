@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.train_innovation2_small_spn_topology import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

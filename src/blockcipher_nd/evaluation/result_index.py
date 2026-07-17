@@ -557,6 +557,36 @@ DECISION_LABELS = {
     "innovation2_small_spn_matched_contrast_protocol_invalid": (
         "matched-contrast来源、train-only选择、shape或索引协议无效"
     ),
+    "innovation2_small_spn_topology_training_readiness_passed": (
+        "小状态SPN GraphGPS/SCGT训练实现就绪，可运行冻结两seed归因矩阵"
+    ),
+    "innovation2_small_spn_topology_predictor_ready": (
+        "真实SPN拓扑预测器超过边际与错误拓扑控制，可进入真实密码迁移readiness"
+    ),
+    "innovation2_small_spn_topology_signal_not_attributed": (
+        "神经收益未归因于真实SPN拓扑或label-shuffle控制异常"
+    ),
+    "innovation2_small_spn_topology_predictor_not_ready": (
+        "GraphGPS未稳定超过冻结ID边际，停止当前合成网络路线"
+    ),
+    "innovation2_small_spn_topology_training_protocol_invalid": (
+        "GraphGPS/SCGT来源、split、forward、checkpoint或metric协议无效"
+    ),
+    "innovation2_small_spn_cell_equivariance_readiness_passed": (
+        "cell重标号等变表示与控制路径就绪，可运行冻结两seed归因矩阵"
+    ),
+    "innovation2_small_spn_cell_equivariance_repair_confirmed": (
+        "等变GraphGPS超过边际与错误P-layer，只开放同表示SCGT增益审计"
+    ),
+    "innovation2_small_spn_cell_equivariance_topology_not_attributed": (
+        "等变表示收益仍未归因于真实P-layer，停止拓扑贡献声明"
+    ),
+    "innovation2_small_spn_cell_equivariance_repair_not_ready": (
+        "cell等变修复未过冻结门，停止当前GraphGPS表示路线"
+    ),
+    "innovation2_small_spn_cell_equivariance_protocol_invalid": (
+        "cell重标号等变、来源、split、forward或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -992,6 +1022,14 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E32：16-bit小状态SPN全key精确标签宽度审计"
     if run_id == "i2_small_spn_matched_contrast_readjudication_20260718":
         return "创新2 E32b：小状态SPN训练内matched-contrast重裁决"
+    if run_id == "i2_small_spn_graphgps_scgt_smoke_seed0_20260718":
+        return "创新2 E33：小状态SPN GraphGPS/SCGT训练就绪smoke"
+    if run_id == "i2_small_spn_graphgps_scgt_seed0_seed1_20260718":
+        return "创新2 E33：小状态SPN GraphGPS/SCGT两seed拓扑归因"
+    if run_id == "i2_small_spn_cell_equivariance_smoke_seed0_20260718":
+        return "创新2 E33-R：cell重标号等变表示就绪smoke"
+    if run_id == "i2_small_spn_cell_equivariance_seed0_seed1_20260718":
+        return "创新2 E33-R：cell重标号等变GraphGPS两seed归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
