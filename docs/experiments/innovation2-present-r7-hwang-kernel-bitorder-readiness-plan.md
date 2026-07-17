@@ -671,7 +671,7 @@ same-budget anchor = direct GF(2) empirical kernel
 不变。推进门槛冻结为：
 
 ```text
-zero-context Hwang anchor remains exact
+zero-context kernel continues to contain the Hwang four-dimensional span
 all joint bases validate on both key halves
 at least 4 distinct joint-kernel signatures
 at least 8 contexts have nontrivial joint kernels
@@ -975,7 +975,7 @@ training = none
 只改变 context 数量和密钥证据集；不改变候选 mask、标签定义或轮数。门槛：
 
 ```text
-zero-context Hwang anchor remains exact
+zero-context kernel continues to contain the Hwang four-dimensional span
 all joint bases validate both fresh-key halves
 all 16 E16 context signatures reproduce exactly on fresh keys
 at least 8 distinct joint-kernel signatures across 64 contexts
@@ -986,3 +986,86 @@ at least 24 contexts contain directions beyond the Hwang span
 context/mask 双轴 group-disjoint 审计；失败则停止 PRESENT r7 inactive-context
 输出预测分支。E18 是本地向量化协议审计，不是神经训练，不启动远程 GPU；不得
 把64个 context 或128把采样密钥描述为 paper-scale 或全密钥证明。
+
+## 29. 2026-07-17 E18 结果
+
+64个 context、128把全新密钥全部完成。fresh keys 与 E16 的128把密钥完全不相交，
+两个64-key half、两个标量 XOR anchor、所有 joint basis 和 Hwang 四维 span 校验
+全部通过。64个 context 的 fresh-key joint 维数分布为：
+
+```text
+dim 4: 42 contexts
+dim 5: 19 contexts
+dim 6:  2 contexts
+dim 7:  1 context
+```
+
+所有64个 context 都继续包含 Hwang 四维子空间，说明论文 basis 本身稳定；但 E16
+的16个完整经验 kernel 签名只有 `7/16` 在全新密钥上精确复现。全64个 context
+形成9种 fresh-key 签名，22个包含 Hwang 之外的方向，低于预注册的24个门槛。
+
+初始 readiness 错误要求 zero context 的经验 kernel 必须恰好四维；fresh keys
+下它为五维，但仍完整包含 Hwang basis。这是应由签名稳定性门裁决的有限密钥额外
+方向，不是协议故障。该过强校准在不重复加密的情况下改为 Hwang span containment，
+重新裁决后最终结果为：
+
+```text
+status = hold
+decision = innovation2_context_kernel_fresh_key_unstable
+reproduced_e16_context_signatures = 7 / 16
+distinct_joint_kernel_signatures = 9
+contexts_with_directions_beyond_hwang = 22
+training = no
+remote_scale = no
+```
+
+因此停止 PRESENT r7 inactive-context **严格 kernel membership 二分类标签**路线。
+E16 的 context-dependent 额外方向在单一128-key池上真实存在，但不足以作为跨新
+密钥池稳定的确定性标签；E17/E17b/E17c 的标签表不得进入神经训练。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_fresh_expanded_context_kernel_128keys_seed0_20260717/
+```
+
+第一次 E18 渲染的图例遮挡签名类别9和曲线数据；`visual-qa-redraw` 将两组图例移到
+坐标轴上方，以 `1800×820` 重新检查通过。标题、64-context轴、E16/新增边界、
+三条维数曲线、9类签名、图例和裁决无重叠或裁切。
+
+## 30. 推荐下一步：E19 跨密钥平衡概率标签审计
+
+E18 表明二元“是否属于所有采样密钥的 joint kernel”对额外方向过于脆弱，但每个
+`(context, output mask)` 在不同密钥上的平衡频率仍可能是可重复的连续输出性质。
+E19 只改变标签目标：从严格 membership 改为跨密钥平衡概率，不改变 PRESENT 7轮、
+64个 context、明文集合或密钥协议。
+
+```text
+contexts = E18 frozen 64
+keys = E18 frozen 128 = 64 discovery + 64 validation
+candidate masks = 16 output nibbles * 15 nonzero 4-bit masks = 240
+cells = 64 * 240 = 15360
+per-key label = parity(mask & integral_output_xor_word) == 0
+cell target = balanced-key rate in each 64-key half
+training = none
+```
+
+E19 重新计算一次 E18 的确定性 XOR words 并持久化为小型 `xor_words.npy`，以后所有
+概率标签和控制都从该缓存派生，不再重复约5亿次块加密。必须报告：
+
+```text
+discovery/validation rate Pearson correlation
+discovery/validation interaction-residual correlation
+mean absolute half-rate difference
+context marginal, mask identity, mask weight and additive residual variance
+finite-key binomial noise estimate and nonnegative excess variance
+label-shuffle and context-shuffle controls
+```
+
+推进门槛冻结为：两半 rate correlation `>=0.25`；两半去除 context/mask 加性边际
+后的 residual correlation `>=0.20`；mean absolute half-rate difference `<=0.15`；
+validation residual standard deviation `>=0.05`；有限密钥噪声修正后的 interaction
+excess variance严格大于0；两个 shuffle control residual correlation均 `<0.10`。
+通过后才设计连续值/排序神经预测，仍不直接远程训练；失败则停止 PRESENT r7
+context 输出概率分支，转文献支持的其他密码/轮数结构族。

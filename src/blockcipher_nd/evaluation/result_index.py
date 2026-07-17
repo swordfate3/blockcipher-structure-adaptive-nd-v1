@@ -362,6 +362,18 @@ DECISION_LABELS = {
     "innovation2_group_disjoint_protocol_invalid": (
         "context/mask 组外拆分、覆盖或源标签无效"
     ),
+    "innovation2_fresh_expanded_context_kernel_ready": (
+        "fresh-key稳定且64-context kernel 多样性充足，可重建标签"
+    ),
+    "innovation2_context_kernel_fresh_key_unstable": (
+        "E16 context kernel 签名未在全新密钥上复现"
+    ),
+    "innovation2_fresh_expanded_context_diversity_insufficient": (
+        "fresh-key稳定但新增 context kernel 多样性不足"
+    ),
+    "innovation2_fresh_context_protocol_invalid": (
+        "fresh-key、E16 source 或 Hwang anchor 协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -753,6 +765,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_context_mask_group_disjoint_readiness_seed0_20260717"
     ):
         return "创新2 E17c：PRESENT 7轮context/mask双轴组外捷径审计"
+    if run_id == (
+        "i2_present_r7_fresh_expanded_context_kernel_128keys_seed0_20260717"
+    ):
+        return "创新2 E18：PRESENT 7轮64-context fresh-key kernel扩展"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
