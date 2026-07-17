@@ -481,6 +481,30 @@ def test_result_index_labels_innovation2_skinny_geometry(tmp_path: Path) -> None
     )
 
 
+def test_result_index_labels_innovation2_skinny_bottom_row_closure(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_skinny64_r8_bottom_row_pair_closure_128keys_seed0_20260717"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_skinny_r8_bottom_row_pair_family_not_closed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E23：SKINNY-64/64 8轮底行活动pair kernel闭合审判"
+    )
+    assert entries[0]["decision_display"] == (
+        "SKINNY 8轮底行pair稳定kernel仅4/6，未达到闭合门"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

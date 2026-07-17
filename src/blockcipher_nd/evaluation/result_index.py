@@ -410,6 +410,18 @@ DECISION_LABELS = {
     "innovation2_skinny_r8_geometry_protocol_invalid": (
         "SKINNY论文anchor、密钥、缓存或GF(2)协议无效"
     ),
+    "innovation2_skinny_r8_bottom_row_pair_family_ready": (
+        "SKINNY 8轮底行pair形成足够多稳定kernel，可进入标签捷径审计"
+    ),
+    "innovation2_skinny_r8_bottom_row_anchor_not_reproduced": (
+        "SKINNY 8轮E22已知方向未在全新密钥上全部复现"
+    ),
+    "innovation2_skinny_r8_bottom_row_pair_family_not_closed": (
+        "SKINNY 8轮底行pair稳定kernel仅4/6，未达到闭合门"
+    ),
+    "innovation2_skinny_r8_bottom_row_protocol_invalid": (
+        "SKINNY底行pair、密钥、缓存、公开向量或GF(2)协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -817,6 +829,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_skinny64_r8_adjacent_pair_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E22：SKINNY-64/64 8轮相邻活动pair kernel多样性审计"
+    if run_id == (
+        "i2_skinny64_r8_bottom_row_pair_closure_128keys_seed0_20260717"
+    ):
+        return "创新2 E23：SKINNY-64/64 8轮底行活动pair kernel闭合审判"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
