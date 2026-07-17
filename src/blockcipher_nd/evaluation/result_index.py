@@ -617,6 +617,15 @@ DECISION_LABELS = {
     "innovation2_small_spn_cipher_edge_token_protocol_invalid": (
         "edge tokenization、cell不变性、来源、split或metric协议无效"
     ),
+    "innovation2_small_spn_topology_labels_identifiable": (
+        "P-layer条件标签具有百级组外宽度，可先重建公平benchmark"
+    ),
+    "innovation2_small_spn_topology_labels_not_identifiable": (
+        "P-layer条件标签宽度或类平衡不足，停止当前合成标签路线"
+    ),
+    "innovation2_small_spn_topology_label_audit_protocol_invalid": (
+        "拓扑标签来源、shape、variant顺序或train-only选择协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1072,6 +1081,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E35b：Cipher Edge-Token Transformer公平控制就绪smoke"
     if run_id == "i2_small_spn_cipher_edge_token_fair_control_seed0_seed1_20260718":
         return "创新2 E35b：Cipher Edge-Token Transformer公平控制重裁决"
+    if run_id == "i2_small_spn_topology_label_identifiability_20260718":
+        return "创新2 E36：小状态SPN拓扑标签可识别性审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

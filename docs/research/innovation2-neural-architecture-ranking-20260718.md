@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E33--E35b架构审判完成 / 当前合成神经架构搜索关闭 / 下一步审计标签可识别性 / 真实密码训练未开放
+状态：E36标签可识别性门通过 / 当前3-P训练拓扑样本不足 / E37扩展拓扑族待建 / 真实密码训练未开放
 
 ## 1. 结论先行
 
@@ -289,3 +289,14 @@ looped reasoner和edge-token架构搜索关闭。
 标签翻转、P-layer interaction宽度、train-only matched cell中的P敏感比例，以及这些
 信号在unseen-P/dual拆分是否仍有正负支持。只有标签本身先过因果敏感性与公平控制门，
 才允许设计新的benchmark或恢复神经模型比较。
+
+E36现已通过全部冻结门。589个matched cell中，train P-sensitive any-S为`585`，
+train S×P interaction为`521`，full interaction为`579`；在S3下有`391`个dual P-effect
+cell，目标正负为`234/157`。因此标签确实包含宽P-layer条件信号，不能把E33--E35b失败
+解释为标签完全不依赖拓扑。
+
+新的主瓶颈是独立拓扑样本量。5301条训练行只来自`3 S-box x 3 P-layer=9`张图，独立
+P-layer仅3个；round/structure/mask行不会增加图分布样本量。对随机生成的P permutation，
+从3个训练图外推第4个图严重欠定。下一步E37应先生成`4 S-box x 16 P-layer`的精确标签，
+形成12个train P、4个heldout P，再重新做train-only matched、interaction、边际和公平控制
+门。扩展标签门通过前，不再比较网络结构。
