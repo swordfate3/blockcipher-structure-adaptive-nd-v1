@@ -34,7 +34,15 @@ if exist "%LOG_DIR%\%RUN_ID%_failure_reason.txt" del /Q "%LOG_DIR%\%RUN_ID%_fail
 
 cd /d "%SOURCE_ROOT%" || goto failed
 git status --porcelain > "%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt" 2> "%LOG_DIR%\%RUN_ID%_git_status_porcelain_stderr.txt" || goto source_status_failed
+for %%A in ("%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt") do if not "%%~zA"=="0" goto recheck_source_status
+goto source_status_clean
+
+:recheck_source_status
+git update-index -q --refresh > "%LOG_DIR%\%RUN_ID%_git_refresh.txt" 2> "%LOG_DIR%\%RUN_ID%_git_refresh_stderr.txt"
+git status --porcelain > "%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt" 2> "%LOG_DIR%\%RUN_ID%_git_status_porcelain_stderr.txt" || goto source_status_failed
 for %%A in ("%LOG_DIR%\%RUN_ID%_git_status_porcelain.txt") do if not "%%~zA"=="0" goto dirty_source
+
+:source_status_clean
 git rev-parse HEAD > "%LOG_DIR%\%RUN_ID%_git_revision.txt" 2>&1 || goto failed
 fc /b "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%RUN_ROOT%\source_expected_commit.txt" > nul || goto source_revision_mismatch
 git status --short --branch > "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" 2>&1 || goto failed

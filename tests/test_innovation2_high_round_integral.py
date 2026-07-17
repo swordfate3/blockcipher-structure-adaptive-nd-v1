@@ -1009,7 +1009,10 @@ def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> Non
     assert "EnableDelayedExpansion" not in run_script + launch_script
     assert "!" not in run_script + launch_script
     assert "for /f \"delims=\" %%S in ('git status --porcelain')" not in run_script
+    assert 'if not "%%~zA"=="0" goto recheck_source_status' in run_script
     assert 'if not "%%~zA"=="0" goto dirty_source' in run_script
+    assert ":recheck_source_status" in run_script
+    assert "git update-index -q --refresh" in run_script
     assert "git config --global" not in launch_script
     assert "set GIT_CONFIG_COUNT=1" in launch_script
     assert "set GIT_CONFIG_KEY_0=safe.directory" in launch_script
