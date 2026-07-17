@@ -681,3 +681,78 @@ at least 8 contexts have nontrivial joint kernels
 mask identity、mask weight 和 context+mask 加性基线不能解释标签，之后才讨论
 神经网络。若 E16 仍只有一个 Hwang kernel 或少于4个签名，则停止 PRESENT r7
 多结构输出预测路线；不增加 context 数、不增加密钥数，也不启动远程训练。
+
+## 21. 2026-07-17 E16 结果
+
+16个固定上下文全部完成，全部 readiness 校验通过。全零 context 精确复现 Hwang
+四维 kernel，另一个非零 context 的标量/向量 XOR 也完全一致。联合128把密钥下：
+
+| joint维数 | context 数 | kernel 类型 |
+|---:|---:|---|
+| `4` | `9` | 精确 Hwang 四维 span |
+| `5` | `5` | Hwang span 加一个 context-dependent 方向 |
+| `6` | `2` | Hwang span 加两个 context-dependent 方向 |
+
+五维结构中有三种不同的额外方向模式，六维结构共享一种模式；连同原始 Hwang
+四维，共形成5种 joint kernel 签名。所有16个 context 都非平凡，且所有扩展
+kernel 都仍包含 Hwang 四维子空间。
+
+```text
+status = pass
+decision = innovation2_inactive_context_kernel_diversity_ready
+distinct_joint_kernel_signatures = 5
+nontrivial_joint_kernel_contexts = 16
+training = no
+remote_scale = no
+```
+
+这支持 E16 的核心假设：同一个16-bit活动子空间平移到不同 affine coset 后，
+指定输出 mask 的平衡性质可以改变。它是结构条件输出性质信号，但目前仍是128把
+采样密钥上的 GF(2) kernel 审计，不是神经结果，也不是全密钥证明。
+
+权威产物：
+
+```text
+outputs/local_audits/
+  i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717/
+```
+
+第一次渲染中左图图例遮挡 context 14 的验证曲线高点；`visual-qa-redraw` 将图例
+移到坐标轴上方后重新渲染为 `1800×836`。最终标题、中文 glyph、图例、两图坐标、
+16个 context、kernel 曲线、签名标签、anchor 线和裁决文字均无重叠或裁切。
+
+## 22. 推荐下一步：E17 context-mask 标签捷径审计
+
+E17 不重新加密，直接消费 E16 已验证的16个 joint kernel。候选 mask 由所有
+context 的 kernel basis 并集构成；当前并集有9个唯一方向。为每个方向生成一个
+相同 Hamming weight、且位于所有 source kernel 之外的确定性负控制，共18个
+候选 mask：
+
+```text
+contexts = 16
+positive basis-union masks = 9
+matched negative controls = 9
+label rows = 16 * 18 = 288
+label(context, mask) = 1 iff mask belongs to that context joint kernel
+training = none
+```
+
+必须报告以下无需神经网络的基线：
+
+```text
+global positive rate
+context identity marginal
+context Hamming-weight marginal
+mask identity marginal
+mask Hamming-weight marginal
+context + mask identity additive LOOCV ridge
+48 context bits + 64 mask bits linear LOOCV ridge
+label-shuffle bitwise linear control
+direct GF(2) oracle
+```
+
+推进门槛：标签两类齐全；至少3个 mask 跨 context 翻转；至少4种 context 标签
+签名；context 与 mask 单边边际准确率低于 `0.95/0.98`；context+mask身份加性
+准确率低于 `0.98`；bitwise 线性准确率低于 `0.95`。通过只表示可以进入独立
+fresh-key label 稳定性验证，仍不直接训练。若任一强捷径越线，则先重构候选 mask
+或 context family，不启动本地或远程神经网络。
