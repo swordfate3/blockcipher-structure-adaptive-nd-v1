@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
 from blockcipher_nd.cli.plot_innovation2_small_spn_expanded_topology import (
     render_expanded_topology_svg,
@@ -11,11 +12,30 @@ from blockcipher_nd.cli.plot_innovation2_small_spn_expanded_topology import (
 from blockcipher_nd.cli.plot_innovation2_small_spn_expanded_neural_screen import (
     render_expanded_neural_screen_svg,
 )
+from blockcipher_nd.cli.plot_innovation2_small_spn_pair_relation_reasoner import (
+    render_pair_relation_svg,
+)
+from blockcipher_nd.cli.plot_innovation2_small_spn_pair_relation_fair_control import (
+    render_pair_relation_fair_control_svg,
+)
+from blockcipher_nd.cli.plot_innovation2_small_spn_pair_relation_no_triangle import (
+    render_no_triangle_ablation_svg,
+)
+from blockcipher_nd.models.structure.spn.small_spn_pair_relation_models import (
+    SmallSpnPairRelationReasoner,
+    SmallSpnPairRelationSpec,
+)
 from blockcipher_nd.tasks.innovation2 import (
     small_spn_expanded_topology_labels as expanded,
 )
 from blockcipher_nd.tasks.innovation2 import (
     small_spn_expanded_neural_screen as neural_screen,
+)
+from blockcipher_nd.tasks.innovation2 import (
+    small_spn_pair_relation_reasoner as pair_reasoner,
+)
+from blockcipher_nd.tasks.innovation2 import (
+    small_spn_pair_relation_no_triangle as no_triangle,
 )
 from blockcipher_nd.tasks.innovation2.small_spn_topology_training import (
     TopologyTrainingConfig,
@@ -319,4 +339,365 @@ def test_expanded_neural_plot_explains_models_and_scope(tmp_path: Path) -> None:
     svg = output.read_text(encoding="utf-8")
     assert "创新2 E38" in svg
     assert "GraphGPS与边Token网络" in svg
+    assert "不是实际密码高轮结果" in svg
+
+
+def test_pair_relation_reasoner_builds_pairs_and_uses_round_steps() -> None:
+    data = _expanded_model_data()
+    model = SmallSpnPairRelationReasoner(
+        SmallSpnPairRelationSpec(hidden_dim=32, path_rank=4, dropout=0.0),
+        sboxes=data["sboxes"],
+        players=data["players"],
+        structure_active_bits=data["structure_active"],
+        output_mask_bits=data["output_mask_bits"],
+    ).eval()
+    variants = torch.tensor([0, 15, 48, 63])
+    rounds = torch.arange(4)
+    structures = torch.tensor([0, 3, 7, 13])
+    masks = torch.tensor([0, 17, 39, 63])
+    relation, _ = model.build_initial_relation(variants, rounds, structures, masks)
+    output = model(variants, rounds, structures, masks)
+    assert relation.shape == (4, 16, 16, 32)
+    assert output.shape == (4,)
+    assert torch.isfinite(output).all()
+    assert model.step_counts(rounds).tolist() == [2, 3, 4, 5]
+
+
+def test_pair_relation_contract_is_equivariant_sensitive_and_bounded() -> None:
+    contract = pair_reasoner.measure_pair_relation_contract(_expanded_model_data())
+    assert contract["initial_pair_shape_matches"] is True
+    assert contract["pair_count"] == 256
+    assert contract["shared_triangle_block_count"] == 1
+    assert contract["step_schedule"] == [2, 3, 4, 5]
+    assert contract["parameter_count"] <= pair_reasoner.GRAPHGPS_PARAMETER_ANCHOR
+    assert contract["cell_relabeling_max_abs_logit_error"] <= 1e-6
+    assert contract["true_corrupted_max_abs_logit_difference"] >= 1e-5
+    assert contract["fair_control_heldout_avoids_true_train"] is True
+    assert contract["fair_control_heldout_avoids_corrupted_train"] is True
+    assert contract["absolute_bit_cell_or_variant_embedding_absent"] is True
+
+
+def test_pair_relation_matrix_and_gate_are_frozen() -> None:
+    full_config = pair_reasoner.PairRelationTrainingConfig(run_id="full")
+    matrix = pair_reasoner.pair_relation_training_matrix(full_config)
+    assert len(matrix) == 3
+    assert [row.seed for row in matrix if row.label_mode == "true"] == [0, 1]
+    assert sum(row.label_mode == "shuffled" for row in matrix) == 1
+
+    def row(seed: int, dual: float, label: str = "true") -> dict:
+        return {
+            "model_name": "pair_relation_reasoner",
+            "topology_mode": "true",
+            "label_mode": label,
+            "seed": seed,
+            "best_validation_auc": 0.8,
+            "train_auc": 0.8,
+            "unseen_sbox_auc": 0.75,
+            "unseen_player_auc": 0.72,
+            "dual_unseen_auc": dual,
+            "parameter_count": 150000,
+            "training_performed": True,
+        }
+
+    rows = [row(0, 0.75), row(1, 0.76), row(0, 0.5, "shuffled")]
+    contract = {
+        "initial_pair_shape_matches": True,
+        "pair_count": 256,
+        "shared_triangle_block_count": 1,
+        "step_schedule": [2, 3, 4, 5],
+        "parameter_count": 150000,
+        "cell_relabeling_max_abs_logit_error": 1e-8,
+        "true_corrupted_max_abs_logit_difference": 0.1,
+        "fair_control_heldout_avoids_true_train": True,
+        "fair_control_heldout_avoids_corrupted_train": True,
+        "all_corrupted_players_are_permutations": True,
+        "absolute_bit_cell_or_variant_embedding_absent": True,
+    }
+    ready = pair_reasoner.adjudicate_pair_relation_reasoner(
+        full_config, {"source": True}, contract, rows
+    )
+    assert ready["decision"] == (
+        "innovation2_small_spn_pair_relation_candidate_screened"
+    )
+
+    weak = [
+        {**item, "dual_unseen_auc": 0.65}
+        if item["label_mode"] == "true"
+        else item
+        for item in rows
+    ]
+    hold = pair_reasoner.adjudicate_pair_relation_reasoner(
+        full_config, {"source": True}, contract, weak
+    )
+    assert hold["decision"] == (
+        "innovation2_small_spn_pair_relation_reasoner_not_ready"
+    )
+
+
+def test_pair_relation_plot_has_method_baselines_and_scope(tmp_path: Path) -> None:
+    rows = [
+        {
+            "model_name": "pair_relation_reasoner",
+            "topology_mode": "true",
+            "label_mode": "true",
+            "seed": seed,
+            "unseen_sbox_auc": 0.78 + seed * 0.01,
+            "unseen_player_auc": 0.74 + seed * 0.01,
+            "dual_unseen_auc": 0.75 + seed * 0.01,
+            "parameter_count": 150000,
+        }
+        for seed in (0, 1)
+    ]
+    rows.append(
+        {
+            "model_name": "pair_relation_reasoner",
+            "topology_mode": "true",
+            "label_mode": "shuffled",
+            "seed": 0,
+            "unseen_sbox_auc": 0.5,
+            "unseen_player_auc": 0.5,
+            "dual_unseen_auc": 0.5,
+            "parameter_count": 150000,
+        }
+    )
+    summary = {
+        "rows": rows,
+        "gate": {
+            "decision": "innovation2_small_spn_pair_relation_candidate_screened"
+        },
+    }
+    output = tmp_path / "curves.svg"
+    render_pair_relation_svg(summary, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E39" in svg
+    assert "16×16关系状态" in svg
+    assert "不是实际密码高轮结果" in svg
+
+
+def test_pair_relation_fair_control_gate_requires_per_seed_and_mean_margin() -> None:
+    config = pair_reasoner.PairRelationTrainingConfig(run_id="control")
+
+    def row(seed: int, dual: float, topology: str) -> dict:
+        return {
+            "model_name": "pair_relation_reasoner",
+            "topology_mode": topology,
+            "label_mode": "true",
+            "seed": seed,
+            "best_validation_auc": 0.8,
+            "train_auc": 0.8,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+            "parameter_count": 111825,
+            "training_performed": True,
+        }
+
+    true_rows = [row(0, 0.75, "true"), row(1, 0.76, "true")]
+    control_rows = [row(0, 0.68, "corrupted"), row(1, 0.69, "corrupted")]
+    source_gate = {
+        "run_id": "i2_small_spn_pair_relation_reasoner_seed0_seed1_20260718",
+        "decision": "innovation2_small_spn_pair_relation_candidate_screened",
+    }
+    contract = {
+        "fair_control_heldout_avoids_true_train": True,
+        "fair_control_heldout_avoids_corrupted_train": True,
+        "all_corrupted_players_are_permutations": True,
+    }
+    confirmed = pair_reasoner.adjudicate_pair_relation_attribution(
+        config,
+        {"source": True},
+        contract,
+        source_gate,
+        true_rows,
+        control_rows,
+    )
+    assert confirmed["decision"] == (
+        "innovation2_small_spn_pair_relation_topology_confirmed"
+    )
+
+    close_control = [row(0, 0.74, "corrupted"), row(1, 0.75, "corrupted")]
+    hold = pair_reasoner.adjudicate_pair_relation_attribution(
+        config,
+        {"source": True},
+        contract,
+        source_gate,
+        true_rows,
+        close_control,
+    )
+    assert hold["decision"] == (
+        "innovation2_small_spn_pair_relation_topology_not_attributed"
+    )
+
+
+def test_pair_relation_fair_control_plot_explains_attribution(tmp_path: Path) -> None:
+    def row(seed: int, dual: float, topology: str) -> dict:
+        return {
+            "seed": seed,
+            "topology_mode": topology,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+        }
+
+    summary = {
+        "true_rows": [row(0, 0.75, "true"), row(1, 0.76, "true")],
+        "control_rows": [
+            row(0, 0.68, "corrupted"),
+            row(1, 0.69, "corrupted"),
+        ],
+        "gate": {
+            "decision": "innovation2_small_spn_pair_relation_topology_confirmed"
+        },
+    }
+    output = tmp_path / "control.svg"
+    render_pair_relation_fair_control_svg(summary, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "E39 Phase B" in svg
+    assert "公平错误P-layer" in svg
+    assert "不是实际密码高轮结果" in svg
+
+
+def test_no_triangle_block_is_parameter_matched_and_pair_local() -> None:
+    data = _expanded_model_data()
+    triangle = SmallSpnPairRelationReasoner(
+        SmallSpnPairRelationSpec(
+            processor_mode="triangle", hidden_dim=32, path_rank=4, dropout=0.0
+        ),
+        sboxes=data["sboxes"],
+        players=data["players"],
+        structure_active_bits=data["structure_active"],
+        output_mask_bits=data["output_mask_bits"],
+    ).eval()
+    local = SmallSpnPairRelationReasoner(
+        SmallSpnPairRelationSpec(
+            processor_mode="local", hidden_dim=32, path_rank=4, dropout=0.0
+        ),
+        sboxes=data["sboxes"],
+        players=data["players"],
+        structure_active_bits=data["structure_active"],
+        output_mask_bits=data["output_mask_bits"],
+    ).eval()
+    assert sum(parameter.numel() for parameter in triangle.parameters()) == sum(
+        parameter.numel() for parameter in local.parameters()
+    )
+
+    relation = torch.randn(2, 16, 16, 32)
+    changed = relation.clone()
+    changed[0, 3, 11] += torch.randn(32)
+    with torch.no_grad():
+        baseline = local.local_block(relation)
+        perturbed = local.local_block(changed)
+    delta = torch.abs(baseline - perturbed)
+    delta[0, 3, 11] = 0.0
+    assert float(delta.max()) == 0.0
+
+
+def test_no_triangle_contract_and_gate_are_frozen() -> None:
+    contract = pair_reasoner.measure_pair_relation_contract(
+        _expanded_model_data(), processor_mode="local"
+    )
+    assert contract["shared_triangle_block_count"] == 0
+    assert contract["shared_local_block_count"] == 1
+    assert contract["processor_mode"] == "local"
+    assert contract["parameter_count"] == contract["counterpart_parameter_count"]
+    assert contract["off_pair_influence_max_abs"] == 0.0
+    assert contract["cell_relabeling_max_abs_logit_error"] <= 1e-6
+
+    config = pair_reasoner.PairRelationTrainingConfig(run_id="e40")
+
+    def row(
+        seed: int, dual: float, *, model: str, label: str = "true"
+    ) -> dict:
+        return {
+            "model_name": model,
+            "processor_mode": "local" if model.endswith("no_triangle") else "triangle",
+            "topology_mode": "true",
+            "label_mode": label,
+            "seed": seed,
+            "best_validation_auc": 0.8,
+            "train_auc": 0.8,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+            "parameter_count": 111825,
+            "training_performed": True,
+        }
+
+    source_rows = [
+        row(0, 0.70, model="pair_relation_reasoner"),
+        row(1, 0.74, model="pair_relation_reasoner"),
+    ]
+    candidate_rows = [
+        row(0, 0.64, model="pair_relation_no_triangle"),
+        row(1, 0.67, model="pair_relation_no_triangle"),
+        row(0, 0.50, model="pair_relation_no_triangle", label="shuffled"),
+    ]
+    source_gate = {
+        "run_id": no_triangle.E39_PHASE_A_RUN_ID,
+        "decision": "innovation2_small_spn_pair_relation_candidate_screened",
+    }
+    topology_gate = {
+        "run_id": no_triangle.E39_PHASE_B_RUN_ID,
+        "decision": "innovation2_small_spn_pair_relation_topology_confirmed",
+    }
+    gate_contract = {
+        **contract,
+        "parameter_count": 111825,
+        "counterpart_parameter_count": 111825,
+        "true_corrupted_max_abs_logit_difference": 0.01,
+    }
+    attributed = no_triangle.adjudicate_no_triangle_ablation(
+        config,
+        {"source": True},
+        gate_contract,
+        candidate_rows,
+        source_gate,
+        topology_gate,
+        source_rows,
+    )
+    assert attributed["decision"] == (
+        "innovation2_small_spn_pair_relation_triangle_attributed"
+    )
+
+    close_rows = [
+        {**candidate_rows[0], "dual_unseen_auc": 0.69},
+        {**candidate_rows[1], "dual_unseen_auc": 0.73},
+        candidate_rows[2],
+    ]
+    not_isolated = no_triangle.adjudicate_no_triangle_ablation(
+        config,
+        {"source": True},
+        gate_contract,
+        close_rows,
+        source_gate,
+        topology_gate,
+        source_rows,
+    )
+    assert not_isolated["decision"] == (
+        "innovation2_small_spn_pair_relation_triangle_not_isolated"
+    )
+
+
+def test_no_triangle_plot_explains_single_variable_ablation(tmp_path: Path) -> None:
+    def row(seed: int, dual: float, label: str = "true") -> dict:
+        return {
+            "seed": seed,
+            "label_mode": label,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+        }
+
+    summary = {
+        "source_rows": [row(0, 0.72), row(1, 0.74)],
+        "rows": [row(0, 0.66), row(1, 0.68), row(0, 0.50, "shuffled")],
+        "gate": {
+            "decision": "innovation2_small_spn_pair_relation_triangle_attributed"
+        },
+    }
+    output = tmp_path / "e40.svg"
+    render_no_triangle_ablation_svg(summary, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E40" in svg
+    assert "逐pair局部更新" in svg
     assert "不是实际密码高轮结果" in svg

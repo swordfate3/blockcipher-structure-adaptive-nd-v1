@@ -650,6 +650,45 @@ DECISION_LABELS = {
     "innovation2_small_spn_expanded_neural_screen_protocol_invalid": (
         "扩展拓扑神经筛选的来源、split、等变性或metric协议无效"
     ),
+    "innovation2_small_spn_pair_relation_readiness_passed": (
+        "有向bit-pair路径推理器的关系、等变性与训练流程就绪"
+    ),
+    "innovation2_small_spn_pair_relation_candidate_screened": (
+        "有向bit-pair路径推理器稳定超过ID边际，可进入公平拓扑归因"
+    ),
+    "innovation2_small_spn_pair_relation_reasoner_not_ready": (
+        "有向bit-pair路径推理器未稳定超过扩展benchmark的ID边际"
+    ),
+    "innovation2_small_spn_pair_relation_not_attributed": (
+        "有向bit-pair路径推理器的label-shuffle控制异常"
+    ),
+    "innovation2_small_spn_pair_relation_protocol_invalid": (
+        "有向bit-pair初始化、triangle update、等变性或训练协议无效"
+    ),
+    "innovation2_small_spn_pair_relation_topology_confirmed": (
+        "有向bit-pair路径推理器稳定领先公平错误P-layer控制"
+    ),
+    "innovation2_small_spn_pair_relation_topology_not_attributed": (
+        "有向bit-pair路径推理器未稳定领先公平错误P-layer控制"
+    ),
+    "innovation2_small_spn_pair_relation_attribution_protocol_invalid": (
+        "有向bit-pair拓扑归因的来源、控制、seed、参数或metric协议无效"
+    ),
+    "innovation2_small_spn_pair_relation_no_triangle_readiness_passed": (
+        "同预算no-triangle局部pair消融流程就绪"
+    ),
+    "innovation2_small_spn_pair_relation_triangle_attributed": (
+        "triangle路径组合稳定领先同预算局部pair更新"
+    ),
+    "innovation2_small_spn_pair_relation_triangle_not_isolated": (
+        "triangle未稳定领先同预算局部pair更新，路径贡献尚未隔离"
+    ),
+    "innovation2_small_spn_pair_relation_no_triangle_not_attributed": (
+        "no-triangle消融的label-shuffle控制异常"
+    ),
+    "innovation2_small_spn_pair_relation_no_triangle_protocol_invalid": (
+        "no-triangle消融的来源、pair局部性、参数、等变性或训练协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1113,6 +1152,16 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E38：扩展拓扑GraphGPS/CETT筛选就绪smoke"
     if run_id == "i2_small_spn_expanded_neural_screen_seed0_seed1_20260718":
         return "创新2 E38：扩展拓扑GraphGPS/CETT两seed候选筛选"
+    if run_id == "i2_small_spn_pair_relation_reasoner_smoke_seed0_20260718":
+        return "创新2 E39：有向bit-pair路径推理器就绪smoke"
+    if run_id == "i2_small_spn_pair_relation_reasoner_seed0_seed1_20260718":
+        return "创新2 E39：有向bit-pair路径推理器两seed筛选"
+    if run_id == "i2_small_spn_pair_relation_fair_control_seed0_seed1_20260718":
+        return "创新2 E39 Phase B：有向bit-pair路径推理器公平拓扑归因"
+    if run_id == "i2_small_spn_pair_relation_no_triangle_smoke_seed0_20260718":
+        return "创新2 E40：SPN-PRR no-triangle消融就绪smoke"
+    if run_id == "i2_small_spn_pair_relation_no_triangle_seed0_seed1_20260718":
+        return "创新2 E40：SPN-PRR同预算no-triangle路径归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

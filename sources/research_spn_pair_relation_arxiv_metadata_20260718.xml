@@ -1,0 +1,130 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/wFBkPzZQP5gdAZtU3xhYIHUrmKQ</id>
+  <title>arXiv Query: search_query=&amp;id_list=1905.11136,1810.02244,2106.06935,1911.06455&amp;start=0&amp;max_results=10</title>
+  <updated>2026-07-17T21:04:32Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=1905.11136,1810.02244,2106.06935,1911.06455" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
+  <opensearch:totalResults>4</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/1911.06455v2</id>
+    <title>Graph Transformer Networks</title>
+    <updated>2020-02-05T04:23:19Z</updated>
+    <link href="https://arxiv.org/abs/1911.06455v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1911.06455v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Graph neural networks (GNNs) have been widely used in representation learning on graphs and achieved state-of-the-art performance in tasks such as node classification and link prediction. However, most existing GNNs are designed to learn node representations on the fixed and homogeneous graphs. The limitations especially become problematic when learning representations on a misspecified graph or a heterogeneous graph that consists of various types of nodes and edges. In this paper, we propose Graph Transformer Networks (GTNs) that are capable of generating new graph structures, which involve identifying useful connections between unconnected nodes on the original graph, while learning effective node representation on the new graphs in an end-to-end fashion. Graph Transformer layer, a core layer of GTNs, learns a soft selection of edge types and composite relations for generating useful multi-hop connections so-called meta-paths. Our experiments show that GTNs learn new graph structures, based on data and tasks without domain knowledge, and yield powerful node representation via convolution on the new graphs. Without domain-specific graph preprocessing, GTNs achieved the best performance in all three benchmark node classification tasks against the state-of-the-art methods that require pre-defined meta-paths from domain knowledge.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.SI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2019-11-06T06:40:05Z</published>
+    <arxiv:comment>Neural Information Processing Systems (NeurIPS), 2019</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Seongjun Yun</name>
+    </author>
+    <author>
+      <name>Minbyul Jeong</name>
+    </author>
+    <author>
+      <name>Raehyun Kim</name>
+    </author>
+    <author>
+      <name>Jaewoo Kang</name>
+    </author>
+    <author>
+      <name>Hyunwoo J. Kim</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2106.06935v4</id>
+    <title>Neural Bellman-Ford Networks: A General Graph Neural Network Framework for Link Prediction</title>
+    <updated>2022-01-21T22:05:56Z</updated>
+    <link href="https://arxiv.org/abs/2106.06935v4" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2106.06935v4" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Link prediction is a very fundamental task on graphs. Inspired by traditional path-based methods, in this paper we propose a general and flexible representation learning framework based on paths for link prediction. Specifically, we define the representation of a pair of nodes as the generalized sum of all path representations, with each path representation as the generalized product of the edge representations in the path. Motivated by the Bellman-Ford algorithm for solving the shortest path problem, we show that the pr100 10671  100 10671    0     0  12660      0 --:--:-- --:--:-- --:--:-- 12658
+oposed path formulation can be efficiently solved by the generalized Bellman-Ford algorithm. To further improve the capacity of the path formulation, we propose the Neural Bellman-Ford Network (NBFNet), a general graph neural network framework that solves the path formulation with learned operators in the generalized Bellman-Ford algorithm. The NBFNet parameterizes the generalized Bellman-Ford algorithm with 3 neural components, namely INDICATOR, MESSAGE and AGGREGATE functions, which corresponds to the boundary condition, multiplication operator, and summation operator respectively. The NBFNet is very general, covers many traditional path-based methods, and can be applied to both homogeneous graphs and multi-relational graphs (e.g., knowledge graphs) in both transductive and inductive settings. Experiments on both homogeneous graphs and knowledge graphs show that the proposed NBFNet outperforms existing methods by a large margin in both transductive and inductive settings, achieving new state-of-the-art results.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2021-06-13T07:03:34Z</published>
+    <arxiv:comment>NeurIPS 2021</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Zhaocheng Zhu</name>
+    </author>
+    <author>
+      <name>Zuobai Zhang</name>
+    </author>
+    <author>
+      <name>Louis-Pascal Xhonneux</name>
+    </author>
+    <author>
+      <name>Jian Tang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1810.02244v5</id>
+    <title>Weisfeiler and Leman Go Neural: Higher-order Graph Neural Networks</title>
+    <updated>2021-11-30T15:37:55Z</updated>
+    <link href="https://arxiv.org/abs/1810.02244v5" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1810.02244v5" rel="related" type="application/pdf" title="pdf"/>
+    <summary>In recent years, graph neural networks (GNNs) have emerged as a powerful neural architecture to learn vector representations of nodes and graphs in a supervised, end-to-end fashion. Up to now, GNNs have only been evaluated empirically -- showing promising results. The following work investigates GNNs from a theoretical point of view and relates them to the $1$-dimensional Weisfeiler-Leman graph isomorphism heuristic ($1$-WL). We show that GNNs have the same expressiveness as the $1$-WL in terms of distinguishing non-isomorphic (sub-)graphs. Hence, both algorithms also have the same shortcomings. Based on this, we propose a generalization of GNNs, so-called $k$-dimensional GNNs ($k$-GNNs), which can take higher-order graph structures at multiple scales into account. These higher-order structures play an essential role in the characterization of social networks and molecule graphs. Our experimental evaluation confirms our theoretical findings as well as confirms that higher-order information is useful in the task of graph classification and regression.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.NE" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2018-10-04T14:31:57Z</published>
+    <arxiv:comment>Extended version with proofs, accepted at AAAI 2019, added units of measurement of QM9 dataset into appendix, removed results from Wu et al., 2018 due to different units</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Christopher Morris</name>
+    </author>
+    <author>
+      <name>Martin Ritzert</name>
+    </author>
+    <author>
+      <name>Matthias Fey</name>
+    </author>
+    <author>
+      <name>William L. Hamilton</name>
+    </author>
+    <author>
+      <name>Jan Eric Lenssen</name>
+    </author>
+    <author>
+      <name>Gaurav Rattan</name>
+    </author>
+    <author>
+      <name>Martin Grohe</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1905.11136v4</id>
+    <title>Provably Powerful Graph Networks</title>
+    <updated>2020-06-09T11:28:26Z</updated>
+    <link href="https://arxiv.org/abs/1905.11136v4" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1905.11136v4" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Recently, the Weisfeiler-Lehman (WL) graph isomorphism test was used to measure the expressive power of graph neural networks (GNN). It was shown that the popular message passing GNN cannot distinguish between graphs that are indistinguishable by the 1-WL test (Morris et al. 2018; Xu et al. 2019). Unfortunately, many simple instances of graphs are indistinguishable by the 1-WL test.
+  In search for more expressive graph learning models we build upon the recent k-order invariant and equivariant graph neural networks (Maron et al. 2019a,b) and present two results:
+  First, we show that such k-order networks can distinguish between non-isomorphic graphs as good as the k-WL tests, which are provably stronger than the 1-WL test for k&gt;2. This makes these models strictly stronger than message passing models. Unfortunately, the higher expressiveness of these models comes with a computational cost of processing high order tensors.
+  Second, setting our goal at building a provably stronger, simple and scalable model we show that a reduced 2-order network containing just scaled identity operator, augmented with a single quadratic operation (matrix multiplication) has a provable 3-WL expressive power. Differently put, we suggest a simple model that interleaves applications of standard Multilayer-Perceptron (MLP) applied to the feature dimension and matrix multiplication. We validate this model by presenting state of the art results on popular graph classification and regression tasks. To the best of our knowledge, this is the first practical invariant/equivariant model with guaranteed 3-WL expressiveness, strictly stronger than message passing models.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2019-05-27T11:33:19Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Haggai Maron</name>
+    </author>
+    <author>
+      <name>Heli Ben-Hamu</name>
+    </author>
+    <author>
+      <name>Hadar Serviansky</name>
+    </author>
+    <author>
+      <name>Yaron Lipman</name>
+    </author>
+  </entry>
+</feed>

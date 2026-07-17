@@ -540,6 +540,78 @@ def test_result_index_labels_innovation2_small_spn_expanded_neural_screen(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_pair_relation_reasoner(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_pair_relation_reasoner_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_small_spn_pair_relation_reasoner_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E39：有向bit-pair路径推理器两seed筛选"
+    )
+    assert entries[0]["decision_display"] == (
+        "有向bit-pair路径推理器未稳定超过扩展benchmark的ID边际"
+    )
+
+
+def test_result_index_labels_innovation2_small_spn_pair_relation_fair_control(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_pair_relation_fair_control_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_pair_relation_topology_confirmed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E39 Phase B：有向bit-pair路径推理器公平拓扑归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "有向bit-pair路径推理器稳定领先公平错误P-layer控制"
+    )
+
+
+def test_result_index_labels_innovation2_small_spn_no_triangle_ablation(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_pair_relation_no_triangle_seed0_seed1_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_pair_relation_triangle_attributed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E40：SPN-PRR同预算no-triangle路径归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "triangle路径组合稳定领先同预算局部pair更新"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
