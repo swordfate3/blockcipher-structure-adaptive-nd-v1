@@ -257,6 +257,15 @@ DECISION_LABELS = {
     "innovation2_r6_active_bit_transition_audit_invalid": (
         "r6 活动 bit 过渡审计无效，先修复数据、密钥拆分或统计校验"
     ),
+    "innovation2_r6_stable_balance_subspace_ready": (
+        "r6 稳定平衡子空间存在，可进入结构条件 kernel 属性预测"
+    ),
+    "innovation2_r6_stable_balance_subspace_not_found": (
+        "r4 校准通过，r6 当前结构族无稳定平衡子空间"
+    ),
+    "innovation2_stable_balance_subspace_protocol_invalid": (
+        "平衡子空间协议未校准，先修 parity word 或 GF(2) kernel"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -604,6 +613,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r6_output_property_active_bits5_6_7_seed0_20260717"
     ):
         return "创新2 E8：PRESENT 6轮积分输出性质细粒度活动 bit 审计"
+    if run_id == (
+        "i2_present_stable_balance_subspace_r5_r6_bits5_6_7_seed0_20260717"
+    ):
+        return "创新2 E9：PRESENT 输出平衡 mask 子空间稳定性审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -154,6 +154,54 @@ not launch neural training from uncorrected observed-rate spread.
 
 ---
 
+## [LRN-20260717-003] correction
+
+**Logged**: 2026-07-17T13:00:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+Research-protocol calibration gates must use a known cryptographic fixture, not an assumed signal in arbitrary lower-round structures.
+
+### Details
+The first Innovation 2 E9 gate assumed that at least 10% of random PRESENT r5
+structures with 5--7 active bits would have a nontrivial empirical output kernel.
+The GF(2) rank, basis validation, disjoint key halves, and scalar/vectorized XOR
+checks all passed, but only one of 192 r5 structures had a nontrivial joint kernel.
+The run was therefore labeled protocol-invalid even though the implementation was
+correct and the calibration assumption had no known-property guarantee.
+
+A PRESENT r4 fixture with one complete active nibble is supported by the earlier
+parity audit and direct scalar checks: its full 64-bit output XOR word is zero.
+Using all 16 nibble positions under the same 256 keys produced joint-kernel
+dimension 64 for every fixture, while leaving all revealed r6 data and gates
+unchanged.
+
+### Suggested Action
+Before using a low-round row as a protocol calibration gate, name the exact known
+property and encode its expected output, rank, kernel, or parity value as a fixture.
+Treat arbitrary lower-round datasets as reference evidence, not calibration. When
+only the calibration assumption fails, repair that fixture without changing the
+already revealed target data, thresholds, or decision branches.
+
+### Metadata
+- Source: self_correction
+- Related Files: docs/experiments/innovation2-present-stable-balance-subspace-readiness-plan.md, src/blockcipher_nd/tasks/innovation2/integral_subspace_audit.py
+- Tags: innovation2, calibration, known-fixture, gf2-kernel, preregistration
+- See Also: LRN-20260717-002, LRN-20260716-007
+- Pattern-Key: research.calibration_gate_requires_known_property_fixture
+- Recurrence-Count: 1
+- First-Seen: 2026-07-17
+- Last-Seen: 2026-07-17
+
+### Resolution
+- **Resolved**: 2026-07-17T13:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Replaced the unsupported r5 random-structure calibration assumption with a fixed r4 single-active-nibble zero-XOR fixture; target r6 evidence and gates were unchanged.
+
+---
+
 ## [LRN-20260716-008] correction
 
 **Logged**: 2026-07-16T14:20:00+08:00

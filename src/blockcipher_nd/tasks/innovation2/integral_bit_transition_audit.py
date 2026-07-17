@@ -16,6 +16,7 @@ from blockcipher_nd.tasks.innovation2.integral_property_prediction import make_k
 
 
 ACTIVE_BIT_WIDTHS = (5, 6, 7)
+ALLOWED_ACTIVE_BIT_WIDTHS = (4, *ACTIVE_BIT_WIDTHS)
 MARGINAL_INPUT_BITS = 64 + 16 + 15
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
@@ -31,8 +32,8 @@ class BitIntegralStructure:
     def __post_init__(self) -> None:
         if not self.structure_id:
             raise ValueError("structure_id must be non-empty")
-        if len(self.active_bits) not in ACTIVE_BIT_WIDTHS:
-            raise ValueError("active_bits must contain five, six, or seven positions")
+        if len(self.active_bits) not in ALLOWED_ACTIVE_BIT_WIDTHS:
+            raise ValueError("active_bits must contain four, five, six, or seven positions")
         if tuple(sorted(set(self.active_bits))) != self.active_bits:
             raise ValueError("active_bits must be sorted and unique")
         if any(not 0 <= bit < 64 for bit in self.active_bits):
@@ -161,6 +162,33 @@ def bit_integral_parity_matrix(
     *,
     structure_chunk_size: int = 4,
 ) -> np.ndarray:
+    xor_words = bit_integral_output_xor_matrix(
+        structures,
+        round_keys,
+        structure_chunk_size=structure_chunk_size,
+    )
+    result = np.zeros(xor_words.shape, dtype=np.uint8)
+    parity_lookup = np.asarray(
+        [value.bit_count() & 1 for value in range(16)],
+        dtype=np.uint8,
+    )
+    for index, structure in enumerate(structures):
+        output_nibbles = (
+            xor_words[index] >> np.uint64(4 * structure.output_nibble)
+        ) & np.uint64(0xF)
+        masked = (output_nibbles & np.uint64(structure.output_mask)).astype(
+            np.uint8
+        )
+        result[index] = parity_lookup[masked]
+    return result
+
+
+def bit_integral_output_xor_matrix(
+    structures: tuple[BitIntegralStructure, ...],
+    round_keys: np.ndarray,
+    *,
+    structure_chunk_size: int = 4,
+) -> np.ndarray:
     if not structures:
         raise ValueError("structures must be non-empty")
     widths = {len(structure.active_bits) for structure in structures}
@@ -172,12 +200,8 @@ def bit_integral_parity_matrix(
         raise ValueError("structure_chunk_size must be positive")
 
     rounds = round_keys.shape[0] - 1
-    result = np.zeros((len(structures), round_keys.shape[1]), dtype=np.uint8)
+    result = np.zeros((len(structures), round_keys.shape[1]), dtype=np.uint64)
     sbox = np.asarray(PRESENT_SBOX, dtype=np.uint64)
-    parity_lookup = np.asarray(
-        [value.bit_count() & 1 for value in range(16)],
-        dtype=np.uint8,
-    )
     for start in range(0, len(structures), structure_chunk_size):
         stop = min(start + structure_chunk_size, len(structures))
         chunk = structures[start:stop]
@@ -195,17 +219,7 @@ def bit_integral_parity_matrix(
             states = _present_permutation_layer_words(states)
         states ^= round_keys[rounds, :, None, None]
         xor_words = np.bitwise_xor.reduce(states, axis=2)
-        shifts = np.asarray(
-            [4 * structure.output_nibble for structure in chunk],
-            dtype=np.uint64,
-        )
-        masks = np.asarray(
-            [structure.output_mask for structure in chunk],
-            dtype=np.uint64,
-        )
-        output_nibbles = (xor_words >> shifts[None, :]) & np.uint64(0xF)
-        masked = (output_nibbles & masks[None, :]).astype(np.uint8)
-        result[start:stop] = parity_lookup[masked].T
+        result[start:stop] = xor_words.T
     return result
 
 
@@ -215,12 +229,26 @@ def scalar_bit_integral_parity(
     rounds: int,
     key: int,
 ) -> int:
+    xor_word = scalar_bit_integral_output_xor(
+        structure,
+        rounds=rounds,
+        key=key,
+    )
+    output_value = (xor_word >> (4 * structure.output_nibble)) & 0xF
+    return (output_value & structure.output_mask).bit_count() & 1
+
+
+def scalar_bit_integral_output_xor(
+    structure: BitIntegralStructure,
+    *,
+    rounds: int,
+    key: int,
+) -> int:
     cipher = Present80(rounds=rounds, key=key)
     xor_word = 0
     for plaintext in structure.plaintexts():
         xor_word ^= cipher.encrypt(int(plaintext))
-    output_value = (xor_word >> (4 * structure.output_nibble)) & 0xF
-    return (output_value & structure.output_mask).bit_count() & 1
+    return xor_word
 
 
 def run_bit_transition_audit(
