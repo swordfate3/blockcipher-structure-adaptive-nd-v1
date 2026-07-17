@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** seed0+seed1 remote bridge confirmed / paper-reference approximation seed0 running
+**状态：** paper-reference seed0 round-reach-only / identical seed1 package prepared
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -1085,3 +1085,98 @@ validation、batch-2000 显存预检、visual pass 且无 pending。通过时只
 `should_generate_remote_package=true` 和 `should_launch_remote=false`；随后仍须生成
 精确 seed1 config/launcher/monitor，运行 readiness 与测试，范围提交并推送，再从
 推送 commit 启动。任一证据缺失或无效时保持 seed1 blocked。
+
+### 13.6 seed0 verified 结果与单 seed 裁决（2026-07-17）
+
+seed0 已从 verified result branch 回收。远程 source、四行结果、三份磁盘 cache、
+严格负类、逐样本唯一 PRESENT-80 key、split、CUDA 显存预检、原始 archive 哈希、
+本地 artifact validation 和独立 readjudication 均通过：
+
+```text
+run_id = i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716
+source commit = 694fcc2b36aa3af0df3a9dc9fc4074d1623596e6
+train cache = 2,097,152 / 2,097,152
+validation cache = 131,072 / 131,072
+test cache = 131,072 / 131,072
+result rows = 4 / 4
+validation.local = pass
+gate.local = pass
+```
+
+正式 test 结果：
+
+| seed0 角色 | accuracy | AUC | 最佳 validation AUC |
+|---|---:|---:|---:|
+| Wu/Guo paper-family anchor | `0.539436340` | `0.553644314` | `0.553490084` @ epoch 5 |
+| structured candidate | `0.529075623` | `0.548082726` | `0.549722653` @ epoch 19 |
+| same-input linear | `0.524902344` | `0.535075686` | `0.536630982` @ epoch 22 |
+| same-init shuffled control | `0.499877930` | `0.498149598` | `0.501544337` @ epoch 5 |
+
+关键差值与冻结门：
+
+```text
+candidate - anchor accuracy = -0.010360718
+candidate - anchor AUC      = -0.005561587
+candidate - linear AUC      = +0.013007040
+candidate - architecture prior AUC = +0.043532458
+candidate - strongest fixed parity AUC = +0.046145304
+
+anchor accuracy / AUC / Wilson lower bound =
+  0.539436340 / 0.553644314 / 0.536736813
+candidate accuracy / AUC / Wilson lower bound =
+  0.529075623 / 0.548082726 / 0.526372547
+```
+
+anchor 同时通过 `accuracy >= 0.53`、`AUC >= 0.53` 和 Wilson 下界高于随机，
+因此单 seed 的 PRESENT-80 r8 round reach 成立。candidate 的 AUC 有信号并超过
+linear、架构先验和 fixed parity，但 accuracy 比冻结的 `0.53` 低约
+`0.000924377`，且 accuracy/AUC 都没有比 anchor 高 `0.005`。正式裁决是：
+
+```text
+decision = innovation2_high_round_integral_paper_reference_round_reach_only
+candidate_architecture_advantage = not confirmed
+```
+
+这支持“在项目的论文参考规模近似协议下，PRESENT-80 8 轮可区分”，不支持
+structured candidate 优于 Wu/Guo paper-family anchor。anchor accuracy 比论文
+headline `0.5732` 低约 `0.033764`；论文使用 10 次独立训练取最好，本项目 seed0
+只有一次训练，且 `Nf/dropout/block/LR/tensor join` 含显式假设，因此不是 exact
+reproduction、SOTA 或突破证据。
+
+真实 `curves.svg` 已使用 `visual-qa-redraw` 在 `1800 x 1281` 像素全幅和顶部/
+底部细节视图检查。标题、中文 glyph、轴、动态尺度、图例、曲线、表格和边界均无
+重叠或裁切；`visual_qa_pending.marker` 已替换为 `visual_qa_passed.marker`。最近结果
+索引已刷新，verified seed0 是 `outputs/00_RECENT_RESULTS.md` 的 `001`。
+
+权威产物：
+
+```text
+outputs/remote_results/
+  i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716/
+```
+
+### 13.7 seed1 包准备与下一步
+
+seed0 结果、verified retrieval 和 visual QA 全部通过后，机器前置门返回：
+
+```text
+decision = innovation2_paper_reference_seed1_precondition_ready
+should_generate_remote_package = true
+should_launch_remote = false
+```
+
+因此已生成完全同预算的 seed1 包：
+
+```text
+run_id = i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717
+config = configs/remote/innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717.json
+run = configs/remote/generated/run_i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717.cmd
+launcher = configs/remote/generated/launch_i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717.cmd
+monitor = configs/remote/generated/monitor_i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717.sh
+```
+
+remote readiness 已通过。回归测试逐字段确认训练/验证/test 总量、四行矩阵、网络、
+50 epochs、batch 2000、严格负类、key sampling、缓存、显存预检和全部论文近似
+假设不变，唯一研究变量是 `seed: 0 -> 1`。范围提交并推送后，从该精确 commit
+启动 seed1 并交给本地 tmux watcher。seed1 verified 回收且真实图通过 QA 后，执行
+预注册联合 gate；不调参、不加 seed2，不启动 r9、GIFT 或 AES。

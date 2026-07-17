@@ -1031,6 +1031,129 @@ def test_paper_reference_remote_package_is_plan_aligned_and_fail_closed() -> Non
     assert "verified_results_retrieved_indexed_visual_qa_pending" in monitor_script
 
 
+def test_paper_reference_seed1_remote_package_changes_only_frozen_seed() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    seed0_run_id = (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed0_gpu0_20260716"
+    )
+    seed1_run_id = (
+        "i2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed1_gpu0_20260717"
+    )
+    config_root = project_root / "configs/remote"
+    generated_root = config_root / "generated"
+    plan_root = project_root / "configs/experiment/innovation2"
+    seed0_config_path = config_root / (
+        "innovation2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed0_gpu0_20260716.json"
+    )
+    seed1_config_path = config_root / (
+        "innovation2_present_r8_high_round_integral_paper_reference_"
+        "2pow21_seed1_gpu0_20260717.json"
+    )
+    seed0_config = json.loads(seed0_config_path.read_text(encoding="utf-8"))
+    seed1_config = json.loads(seed1_config_path.read_text(encoding="utf-8"))
+    seed0_plan = json.loads(
+        (
+            plan_root
+            / "innovation2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed0.json"
+        ).read_text(encoding="utf-8")
+    )
+    seed1_plan = json.loads(
+        (
+            plan_root
+            / "innovation2_present_r8_high_round_integral_"
+            "paper_reference_2pow21_seed1.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    readiness = remote_readiness_report(seed1_config_path)
+    assert readiness["status"] == "pass"
+    assert readiness["errors"] == []
+    assert readiness["plan_rows"] == 4
+    assert readiness["max_samples_per_class"] == 1 << 20
+    assert seed0_config["experiment"]["seed"] == 0
+    assert seed1_config["experiment"]["seed"] == 1
+    assert {
+        key: value
+        for key, value in seed1_config["experiment"].items()
+        if key != "seed"
+    } == {
+        key: value
+        for key, value in seed0_config["experiment"].items()
+        if key != "seed"
+    }
+    assert {
+        key: value for key, value in seed1_plan["common"].items() if key != "seed"
+    } == {
+        key: value for key, value in seed0_plan["common"].items() if key != "seed"
+    }
+    assert seed1_config["required_precondition"]["decision"] == (
+        "innovation2_high_round_integral_paper_reference_round_reach_only"
+    )
+    for evidence_key in (
+        "local_evidence",
+        "retrieval_evidence",
+        "visual_qa_evidence",
+    ):
+        assert "seed0" in seed1_config["required_precondition"][evidence_key]
+
+    seed0_run = (generated_root / f"run_{seed0_run_id}.cmd").read_text(
+        encoding="utf-8"
+    )
+    seed1_run = (generated_root / f"run_{seed1_run_id}.cmd").read_text(
+        encoding="utf-8"
+    )
+    normalized_seed1_run = (
+        seed1_run.replace(seed1_run_id, seed0_run_id)
+        .replace(
+            "paper_reference_2pow21_seed1.json",
+            "paper_reference_2pow21_seed0.json",
+        )
+        .replace(
+            "paper_reference_2pow21_seed1_gpu0_20260717.json",
+            "paper_reference_2pow21_seed0_gpu0_20260716.json",
+        )
+        .replace("--seed 1", "--seed 0")
+    )
+    assert normalized_seed1_run == seed0_run
+
+    seed0_launch = (generated_root / f"launch_{seed0_run_id}.cmd").read_text(
+        encoding="utf-8"
+    )
+    seed1_launch = (generated_root / f"launch_{seed1_run_id}.cmd").read_text(
+        encoding="utf-8"
+    )
+    normalized_seed1_launch = seed1_launch.replace(
+        seed1_run_id, seed0_run_id
+    ).replace(
+        "I2_PRESENT_R8_PAPER_REFERENCE_2POW21_SEED1_GPU0",
+        "I2_PRESENT_R8_PAPER_REFERENCE_2POW21_SEED0_GPU0",
+    )
+    assert normalized_seed1_launch == seed0_launch
+
+    seed0_monitor = (generated_root / f"monitor_{seed0_run_id}.sh").read_text(
+        encoding="utf-8"
+    )
+    seed1_monitor = (generated_root / f"monitor_{seed1_run_id}.sh").read_text(
+        encoding="utf-8"
+    )
+    normalized_seed1_monitor = (
+        seed1_monitor.replace(seed1_run_id, seed0_run_id)
+        .replace("paper-reference-seed1-retrieval", "paper-reference-seed0-retrieval")
+        .replace("，seed1）", "，seed0）")
+    )
+    assert normalized_seed1_monitor == seed0_monitor
+    assert "cmd.exe /k" not in seed1_run + seed1_launch
+    assert "EnableDelayedExpansion" not in seed1_run + seed1_launch
+    assert "!" not in seed1_run + seed1_launch
+    assert "cmd.exe /c %RUN_CMD% 0" in seed1_launch
+    assert "sleep 300" in seed1_monitor
+    assert "visual_qa_pending.marker" in seed1_monitor
+
+
 def test_remote_bridge_package_is_plan_aligned_and_fail_closed() -> None:
     project_root = Path(__file__).resolve().parents[1]
     config_path = (
