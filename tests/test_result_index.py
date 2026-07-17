@@ -529,6 +529,28 @@ def test_result_index_labels_innovation2_skinny_single_cell_diversity(
     )
 
 
+def test_result_index_labels_innovation2_speck_phase_b(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_speck32_hwang_phase_b_singlekey_gpu0_20260717"
+    run_root = outputs / "remote_results" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_speck_hwang_phase_b_single_key_timing_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E25 Phase B：SPECK32/64精确2^30单key GPU计时门"
+    )
+    assert entries[0]["decision_display"] == (
+        "SPECK精确2^30单key计时门通过；尚不是多key kernel复现"
+    )
+
+
 def test_result_index_defaults_keep_thirty_entries_and_seven_days() -> None:
     assert DEFAULT_INDEX_LIMIT == 30
     assert DEFAULT_RETENTION_DAYS == 7

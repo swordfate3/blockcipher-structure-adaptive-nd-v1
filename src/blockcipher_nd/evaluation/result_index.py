@@ -434,6 +434,15 @@ DECISION_LABELS = {
     "innovation2_skinny_r7_single_cell_protocol_invalid": (
         "SKINNY单活动cell、密钥、缓存、公开向量或GF(2)协议无效"
     ),
+    "innovation2_speck_hwang_phase_b_single_key_timing_ready": (
+        "SPECK精确2^30单key计时门通过；尚不是多key kernel复现"
+    ),
+    "innovation2_speck_hwang_phase_b_direct_enumeration_not_scalable": (
+        "SPECK精确2^30直接枚举时间或显存不可扩展"
+    ),
+    "innovation2_speck_hwang_phase_b_protocol_invalid": (
+        "SPECK结构、CUDA、缓存、计时或论文mask协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -849,6 +858,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_skinny64_r7_single_cell_geometry_128keys_seed0_20260717"
     ):
         return "创新2 E24：SKINNY-64/64 7轮单活动cell kernel多样性审计"
+    if run_id == "i2_speck32_hwang_phase_b_singlekey_gpu0_20260717":
+        return "创新2 E25 Phase B：SPECK32/64精确2^30单key GPU计时门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
