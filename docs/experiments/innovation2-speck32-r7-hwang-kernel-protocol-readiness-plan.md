@@ -1,7 +1,7 @@
 # 创新2 E25：SPECK32/64 Hwang Table 7 kernel 协议与分块执行就绪计划
 
 日期：2026-07-17
-状态：Phase C 通过并验证回收 / SPECK 6、7轮论文 kernel 精确复现 / E26 context 审计待实施
+状态：E26 通过并验证回收 / 四种固定值 kernel 不变 / E27 fixed-position family 待实施
 
 ## 1. 路线来源
 
@@ -530,3 +530,153 @@ C. unstable_or_invalid:
 
 禁止路线：把四个 context 当四个训练样本直接训练；把相同 kernel 说成标签多样性；
 跳过位置族与 mask-matched shortcut baseline；机械扩大到更多密钥而不先解释 E26 分支。
+
+## 15. E26 完成结果与裁决
+
+E26 从精确提交 `9e8f3ea35d2a0b691f702791064e7867247270a2` 在远程
+RTX A6000 完成。verified archive、SHA256 manifest、Phase C baseline 哈希、258条
+row timing、01/10磁盘缓存、context11推导与两条直接 exact crosscheck、本地八个
+GF(2) kernel 重算全部通过：
+
+```text
+validation.local.status = pass
+validation.local.errors = []
+manifest_verified = true
+phase_c_baseline_verified = true
+source_commit_matches = true
+remote_gate_matches_recomputation = true
+timing rows = 258/258
+resume rows generated = 0 for 01 / 10 / 11_direct
+small partition fixture = pass
+context11 direct r6/r7 crosscheck = pass / pass
+```
+
+四种固定值的精确结果：
+
+```text
+6轮：
+  context 00 discovery/validation/joint nullity = 9/9/9
+  context 01 discovery/validation/joint nullity = 9/9/9
+  context 10 discovery/validation/joint nullity = 9/9/9
+  context 11 discovery/validation/joint nullity = 9/9/9
+  四个 joint kernel 均精确等于 Hwang Table 7 九维 span
+
+7轮：
+  context 00 discovery/validation/joint nullity = 2/1/1
+  context 01 discovery/validation/joint nullity = 1/1/1
+  context 10 discovery/validation/joint nullity = 2/1/1
+  context 11 discovery/validation/joint nullity = 1/2/1
+  四个 joint kernel 均精确等于 {0x02050204}
+```
+
+7轮不同半集出现的第二个经验方向位置不同，并且都没有在联合64把密钥中存活；这与
+Phase C 的有限样本诊断一致。硬证据是四个 context 的 joint rank/nullity 均为
+`31/1`，且论文方向分别在每个 context 的 discovery 与 validation 成立。
+
+汇总：
+
+```text
+exact paper-span context/round cells = 8/8
+paper directions valid in both halves = 8/8
+distinct joint signatures at r6 = 1
+distinct joint signatures at r7 = 1
+nontrivial contexts at r6/r7 = 4/4 and 4/4
+summed new exact-row time = 1817.35 seconds（约30分17秒）
+max allocated GPU memory = 1073741824 bytes（1 GiB）
+```
+
+最终裁决：
+
+```text
+status = pass
+decision = innovation2_speck_hwang_context_invariant
+fixed context value = nuisance, not a label variable
+training = no
+next = E27 SPECK fixed-position kernel family and shortcut readiness
+```
+
+这补齐了 Wang 2020 没有逐项报告的固定值语义：在本项目 exact `2^30`、32+32把
+paired sampled keys 下，`{5,6}` 的四种固定值共享相同6/7轮 kernel。它不是论文
+`10^3/10^6` 密钥规模、全密钥证明、神经结果或新积分性质。
+
+权威证据：
+
+```text
+outputs/remote_results/i2_speck32_hwang_contexts_32plus32_gpu0_20260717/
+outputs/00_RECENT_RESULTS.md entry 001
+```
+
+真实 `curves.svg` 已通过 `visual-qa-redraw` 像素检查：6/7轮双面板、四个 context、
+三个 key split、论文期望线、有限样本第二维和底部裁决均无重叠、裁切或歧义；
+`visual_qa_passed.marker` 已记录。
+
+## 16. 下一审判 E27：相邻固定位置 family 筛选
+
+### 16.1 研究问题与同预算结构族
+
+E26 证明 fixed value 不提供标签多样性。E27 固定 `context=00`，只移动两个相邻固定
+bit 的位置，测试7轮论文 mask `0x02050204` 是否只属于 `{5,6}`，还是在一组位置上
+形成可用于结构条件输出预测的正负 family。
+
+结构族冻结为两个16-bit word 内的全部相邻 pair：
+
+```text
+low word  = {(0,1), (1,2), ..., (14,15)}
+high word = {(16,17), (17,18), ..., (30,31)}
+total positions = 30
+active bits = 其余30 bit
+fixed context = 00
+rounds = 7
+target mask = 0x02050204
+```
+
+所有位置具有完全相同的活动宽度、明文数、轮数、密钥顺序、后端和评价；唯一变量是
+fixed pair start。Phase C `{5,6}` 是 verified positive anchor，`{0,1}` 是 verified
+negative control，必须复用其64-key cache与哈希，不重新挑选 anchor/control。
+
+### 16.2 分阶段规模与动态预算门
+
+```text
+Phase S screen keys = Phase C key indices 0..7
+screen positions = 除anchor/control外其余28个相邻pair
+screen exact rows = 28 * 8 = 224
+screen pass = paper mask在8把key上全部平衡
+false-positive expectation under random parity = 28 / 2^8 = 0.109375
+
+Phase V candidate keys = indices 8..63（24 discovery remainder + 32 validation）
+per candidate additional exact rows = 56
+full candidate evidence = 64 paired keys
+```
+
+候选数若 `<=8`，验证全部候选。若 screen 候选 `>8`，不得事后挑最漂亮的位置；使用
+冻结的确定性选择：分别按 pair start 升序取 low-word 前4个和 high-word 前4个，缺额
+再按全局升序补齐，并把“候选过宽”作为单独指标。预计基础 screen 约26分钟，每个
+进入 Phase V 的新候选约增加6.5分钟。执行路径为远程 GPU、逐位置磁盘缓存、可恢复
+进度和 exact pushed commit；本地只做小结构映射与 gate readiness。
+
+### 16.3 裁决与停止门
+
+共同 readiness：Phase C anchor/control baseline SHA与key顺序匹配；30个位置唯一且覆盖
+两字；screen/validation缓存完整并可恢复；所有 paper-mask checks 与候选 joint kernel
+本地重算一致。
+
+```text
+advance_position_family:
+  64-key稳定正位置 >= 4（含anchor）
+  sampled negative位置 >= 8（含control）
+  正位置覆盖low/high两个word
+  每个稳定正位置的joint kernel包含0x02050204
+  -> E28 mask-matched position-group holdout与捷径审计，仍不训练。
+
+narrow_position_family:
+  稳定正位置为2或3，或只在一个word出现
+  -> hold；评估非相邻、旋转等价位置族，不机械增加密钥。
+
+anchor_only_or_invalid:
+  只有{5,6}正，anchor/control不复现，或缓存/推导无效
+  -> 停止当前SPECK位置标签路线；不训练。
+```
+
+禁止：用8-key screen 命中直接当最终正标签；把 fixed value 四种取值重复计作样本；
+对 screen 失败位置继续机械补64把密钥；在 position/mask group-disjoint shortcut gate
+之前训练任何神经网络。
