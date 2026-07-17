@@ -231,6 +231,9 @@ def test_e25_phase_c_remote_scripts_preserve_windows_and_monitor_contracts() -> 
     monitor = Path(
         "configs/remote/generated/monitor_i2_speck32_hwang_phase_c_32plus32_gpu0_20260717.sh"
     ).read_text(encoding="utf-8")
+    postprocess = Path(
+        "configs/remote/generated/postprocess_i2_speck32_hwang_phase_c_32plus32_gpu0_20260717.sh"
+    ).read_text(encoding="utf-8")
     assert "cmd.exe /c" in launch
     assert "cmd.exe /k" not in launch + run
     assert "!" not in launch + run
@@ -244,6 +247,12 @@ def test_e25_phase_c_remote_scripts_preserve_windows_and_monitor_contracts() -> 
     assert "/RU SYSTEM /RL HIGHEST" in launch
     assert "logs/${RUN_ID}_done.marker" in monitor
     assert "sleep 60" in monitor
+    assert "ssh " not in postprocess
+    assert "validate-innovation2-speck-hwang-phase-c" in postprocess
+    assert "plot-innovation2-speck-hwang-phase-c" in postprocess
+    assert "scripts/index-results" in postprocess
+    assert "visual_qa_pending.marker" in postprocess
+    assert "sleep 30" in postprocess
 
 
 def test_e25_phase_c_plot_cli_writes_chinese_explanatory_svg(tmp_path) -> None:
