@@ -1,7 +1,7 @@
 # 创新2 H0：PRESENT 高轮积分神经主流锚点计划
 
 **日期：** 2026-07-16
-**状态：** paper-reference seed0 round-reach-only / identical seed1 package prepared
+**状态：** paper-reference seed0 round-reach-only / identical seed1 running
 **先导证据：** PRESENT-80 r5 E0-E6
 **主流锚点：** Wu/Guo 2024 PRESENT integral-neural r8
 
@@ -1194,3 +1194,18 @@ worktree raw hash 和 path-filtered hash 均为
 继续证明实验参数唯一变化是 seed。首次失败没有生成 dataset cache、memory preflight
 或训练结果，不计为一次实验运行；修复推送后允许使用同一 run id 从新的精确 commit
 重启。
+
+修复与证据文档推送后，seed1 从精确 commit
+`50cd6f44fb97f17e5ced449b93eb282196a583df` 使用同一 run id 重新调度。一次有界
+启动确认显示 Windows 计划任务处于 running 状态，run-owned source 已 checkout 到
+该 commit，Git revision、porcelain、GPU、torch 和 readiness 日志均已生成，未出现
+新的 failed marker；确认时尚处于 started/progress 之前的短启动阶段。后续主线程
+停止 SSH，自动同步和 verified 回收交给：
+
+```text
+tmux = i2-r8-paper-reference-2pow21-seed1
+monitor root = outputs/remote_results_incomplete/
+  i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717_monitor/
+verified destination = outputs/remote_results/
+  i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717/
+```
