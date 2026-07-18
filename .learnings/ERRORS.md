@@ -51,6 +51,49 @@ Until then, retain the landing-page HTML, exact PDF URL, DOI, abstract, and
 
 ---
 
+## [ERR-20260718-001] atm_qmc_python313_ortools_multiprocessing
+
+**Logged**: 2026-07-18T17:55:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+ATM author QMC model generation could not pickle OR-Tools CP-SAT variables through multiprocessing under Python 3.13.
+
+### Error
+
+```text
+TypeError: cannot pickle 'ortools.sat.python.cp_model_helper.CpModelProto' object
+```
+
+### Context
+
+- Operation: E58-A mechanism reproduction of the official ATM projected-SAT provider.
+- Source: AlgebraicTransitionMatrices commit `b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b`.
+- Environment: CPython 3.13.12, OR-Tools 9.15.6755, python-sat 1.9.dev6.
+- Failure occurred while `QMC_optimise_CNF` sent constraint-generation tasks containing CP-SAT variables to a multiprocessing pool.
+- No SAT coefficient or cryptographic result had been produced at the failure point.
+
+### Suggested Fix
+
+Keep the official source immutable and replace only QMC prime-implicant and constraint-list parallelism with an equivalent deterministic single-process adapter. Freeze CP-SAT to one worker and require full truth-table comparison before trusting the generated CNF.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/tasks/innovation2/atm_native_sat_witness_provider.py, docs/experiments/innovation2-present-atm-native-sat-witness-provider-plan.md
+- See Also: LRN-20260718-006
+
+### Resolution
+
+- **Resolved**: 2026-07-18T17:55:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added a project-side single-process QMC compatibility shim; all 256 PRESENT S-box algebraic transition coefficients matched direct truth values and the keyed-toy witness controls passed.
+
+---
+
 ## [ERR-20260716-007] github_unauthenticated_code_search_rate_limit
 
 **Logged**: 2026-07-16T14:35:00+08:00

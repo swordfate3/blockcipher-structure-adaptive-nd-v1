@@ -612,3 +612,17 @@ E57正式结果已关闭直接标量路线。470个relation共693个坐标，`wt
 下一阶段只改变provider表示：先用E53-A一、二轮exact fixture校准，再对一个冻结九轮relation
 做硬cap可执行性审计。候选必须输出可复验constant或actual PRESENT-80 master-key witness；
 只输出可达性、只支持独立轮密钥或超cap均停止。通过前网络排名继续冻结。
+
+E58优先审计ATM作者代码已有的PySAT投影模型，而不是立即安装另一个通用求解框架。作者
+`is_key_dependent/get_sum`可在理论上导出独立轮密钥key-monomial，但`get_sum`存在tuple/int
+成员检查错误，`*_limited`还会把cap exhaustion返回为dependent/1。E58将通过项目侧adapter修正
+前者、拒绝后者作为证书，并用S-box/toy全真值校准后再做一个九轮60秒硬cap探针。即使找到
+witness，也只开放“独立轮密钥广义relation”标签宽度审计，不自动声称PRESENT-80负类。
+
+E58-A机制复现已经通过。作者原生Glucose4模型对PRESENT S-box全部256个`(u,v)`代数转移
+系数与直接真值完全一致，其中90个非零；一位`F_k(x)=x XOR k`返回key exponent `0x1`且独立
+重放为odd，常数`x`系数无key witness，强制低cap返回unknown。Python 3.13的QMC并行
+`CpModelProto`不可pickle，因此adapter只将等价约束生成改为单进程，并由256项真值门约束。
+
+这只开放E58-B单个九轮mutation的60秒硬cap探针。未得到relation级odd witness前，公开470
+正类仍没有可配对的严格负类，DeepSets/Cross-Attention训练继续关闭。

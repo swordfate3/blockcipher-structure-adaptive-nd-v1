@@ -1077,6 +1077,30 @@ def test_result_index_skips_explicitly_excluded_protocol_invalid_run(
     assert [entry["run_id"] for entry in entries] == ["valid_boundary"]
 
 
+def test_result_index_labels_innovation2_atm_native_sat_phase_a(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_atm_native_sat_provider_phase_a_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E58-A：ATM原生PySAT见证机制校准"
+    )
+    assert entries[0]["decision_display"] == (
+        "原生SAT机制低轮校准通过，进入单个九轮relation硬cap探针"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
