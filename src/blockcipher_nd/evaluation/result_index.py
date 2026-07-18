@@ -824,6 +824,18 @@ DECISION_LABELS = {
     "innovation2_present_r5_strict_label_provider_protocol_invalid": (
         "五轮标签提供者的PRESENT、证书、反例或产物协议无效"
     ),
+    "innovation2_present_r5_open_3sdp_exact_oracle_ready": (
+        "一、二轮exact ANF与GF(2)消去校准通过，进入GLPK trail枚举器实现"
+    ),
+    "innovation2_present_r5_open_3sdp_exact_oracle_invalid": (
+        "开放3SDP的exact ANF、bit order、fixture、mask XOR或反例协议无效"
+    ),
+    "innovation2_present_r5_open_3sdp_cancellation_control_failed": (
+        "trail奇偶未复现S-box exact ANF，停止开放provider实现"
+    ),
+    "innovation2_present_r5_open_3sdp_glpk_runtime_not_ready": (
+        "exact oracle正确，但Sage/GLPK运行环境未就绪"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1327,6 +1339,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E51：PRESENT四轮CGPR正式残差与拓扑归因"
     if run_id == "i2_present_r5_strict_label_provider_coverage_20260718":
         return "创新2 E52：PRESENT五轮严格标签提供者覆盖审计"
+    if run_id == "i2_present_r5_open_3sdp_exact_anf_phase_a_20260718":
+        return "创新2 E53-A：PRESENT开放3SDP exact-ANF与消去校准"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

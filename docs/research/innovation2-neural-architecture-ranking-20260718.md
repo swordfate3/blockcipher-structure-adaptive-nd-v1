@@ -531,3 +531,12 @@ superpoly并证明结果恒零。
 后端，先在PRESENT 1--2轮exact-ANF fixture验证3SDP trail奇偶消去与bit order，再尝试冻结的
 `16 structures x 64 masks`五轮子集。若只能复现普通2SDP可达性而不能处理消去，则停止该实现；
 只有子集新增严格正类、正负均非零且证书复验全过，才扩大完整池并重新开放神经结构搜索。
+
+E53-A现已完成上述exact oracle。完整PRESENT-80一、二轮输出ANF分别含`1907`与`4352830`
+个单项式，随机向量与标量加密对拍`8/8`和`4/4`。每轮均生成8个全key/全offset严格正类、
+8个具体反例负类及4个multi-bit mask fixture，所有证书边界和反例复验通过。
+
+PRESENT S-box的256个exponent pair中，166个至少存在一条raw trail，但只有90个奇数parity、
+与exact ANF非零系数一致；其余76个是existence-only误报，单个pair最多228条路径偶数抵消。
+这给后续GLPK实现提供了可执行的强控制：它必须复现全部transition parity、正负fixture、bit
+order与multi-mask XOR，不能只报告SAT/UNSAT可达性。网络排名和五轮训练门保持关闭。

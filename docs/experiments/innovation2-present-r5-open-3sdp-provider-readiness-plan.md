@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待实现
+状态：Phase A exact oracle完成 / GLPK trail枚举器待实现
 
 ## 1. 研究问题
 
@@ -104,3 +104,55 @@ visual_qa_passed.marker
 E53若未通过，五轮神经搜索继续关闭。E53与后续完整池均通过后，先运行确定性shortcut/
 feature attribution，再冻结最多3行的首个五轮网络矩阵：确定性baseline、E44最强简洁神经
 锚点、一个基于标签几何证据选择的结构候选。不得先验指定GraphGPS或Transformer为创新结论。
+
+## 7. Phase A exact oracle正式结果
+
+权威run：
+
+```text
+i2_present_r5_open_3sdp_exact_anf_phase_a_20260718
+```
+
+实现保留了完整`64 plaintext + 80 key = 144`个符号变量，并准确实现PRESENT-80真实key
+schedule、S-box ANF、P-layer和final whitening。没有固定key，也没有把inactive plaintext固定为0。
+
+```text
+r1 total output ANF monomials          = 1907
+r2 total output ANF monomials          = 4352830
+r1 exact-vs-scalar vectors             = 8 / 8 pass
+r2 exact-vs-scalar vectors             = 4 / 4 pass
+r1 strict positive / negative fixtures = 8 / 8
+r2 strict positive / negative fixtures = 8 / 8
+multi-bit output-mask fixtures         = 4 / round
+positive scalar rechecks               = all pass
+negative concrete witnesses            = all pass
+```
+
+多bit mask按所选output bit完整superpoly的GF(2)异或计算；所有fixture均复核component XOR与
+combined superpoly一致。非零superpoly同时确认保留key变量与inactive plaintext变量。
+
+S-box transition完整枚举结果：
+
+```text
+candidate (input exponent, output exponent) = 256
+at least one raw trail exists               = 166
+odd trail parity / exact nonzero coefficient= 90
+existence-only false positives              = 76
+maximum even-cancelled raw trail count      = 228
+```
+
+全部trail按GF(2)奇偶得到的transition与直接S-box exact ANF逐项一致，且改变输出坐标展开顺序
+不改变结果。故普通“存在一条trail”控制被明确否定，不能作为五轮正负标签。
+
+Sage 9.5的`GLPKBackend` binary fixture通过，但GLPK trail enumerator尚未实现，五轮`16x64`
+子集没有执行。Phase A裁决：
+
+```text
+status       = pass
+decision     = innovation2_present_r5_open_3sdp_exact_oracle_ready
+training     = no
+remote_scale = no
+```
+
+下一步只实现GLPK trail枚举器，并要求它逐项复现本run的全部一、二轮fixture和76个消去控制。
+通过前不执行五轮子集、不训练网络、不使用远程GPU。
