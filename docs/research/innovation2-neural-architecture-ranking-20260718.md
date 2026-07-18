@@ -501,3 +501,17 @@ E51是这个E43四轮架构循环的正式终局门：固定30轮seed0，比较r
 和fair-corrupted pair。true pair必须达到`0.70`并分别超过ridge/prefix-only/错误P
 `0.02/0.02/0.03`。全部通过才允许seed1；否则停止新网络枚举，回到E45确定性约`0.69`
 与E44最强真实神经`0.561979`两项可写结论。
+
+E51正式30轮seed0已经关闭CGPR。ridge、prefix-only、true pair和corrupted pair的validation
+AUC为`0.686082/0.703174/0.685938/0.685938`；true pair相对ridge、prefix-only和错误P的
+差值为`-0.000144/-0.017236/+0.000000`。所有协议门通过，但候选、pair残差和拓扑归因门
+全部失败。
+
+因此E43四轮架构排名不再增加新模型：确定性ANF/degree约`0.69`是最强可解释方法，E44
+triangle `0.561979`是最强纯神经锚点；E47--E51证明MSPN、identity、degree蒸馏和CGPR均
+没有在强控制下增加组外价值。prefix-only `0.703174`只是seed0容量控制，相对ridge优势
+`0.017093`低于预告实质margin，不升格主创新。
+
+下一研究轴从“再换网络”转为“提高严格标签轮数”。E52只审计PRESENT-80五轮全密钥/全offset
+证书与反例覆盖，以及能否构造structure-disjoint、边际匹配的checkerboard。标签门未通过前，
+NBFNet、Transformer、r4调参、seed1和远程GPU全部关闭；标签门通过后才重新排序网络。

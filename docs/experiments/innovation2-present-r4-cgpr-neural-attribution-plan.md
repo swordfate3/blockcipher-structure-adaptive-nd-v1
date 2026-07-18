@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待执行
+状态：完成 / hold / CGPR候选未过门
 
 ## 1. 研究问题
 
@@ -103,3 +103,63 @@ visual_qa_passed.marker
 
 声明范围：PRESENT-80四轮、E43严格标签、本地seed0的CGPR正式残差与拓扑归因；不是高轮
 积分区分器、新攻击、远程规模结果或SOTA。
+
+## 6. 2026-07-18实际结果
+
+权威run：
+
+```text
+i2_present_r4_cgpr_neural_attribution_seed0_20260718
+```
+
+E43/E44/E45/E49/E50 source、hash、标签、split、ridge、零残差、冻结base、参数、禁用输入、
+拓扑embedding和三行30轮流程检查全部通过。结果：
+
+| 行 | 最佳epoch | train AUC | validation AUC |
+|---|---:|---:|---:|
+| E45 ANF-prefix ridge | 0 | `0.777216` | `0.686082` |
+| ridge + prefix-only residual | 2 | `0.769416` | `0.703174` |
+| ridge + true-P pair residual | 2 | `0.777325` | `0.685938` |
+| ridge + fair-corrupted-P pair residual | 2 | `0.777325` | `0.685938` |
+
+冻结差值：
+
+```text
+true pair - ridge          = -0.000144
+true pair - prefix-only    = -0.017236
+true pair - corrupted pair = +0.000000
+```
+
+true pair没有达到`0.70`，没有超过ridge`0.02`，没有超过prefix-only`0.02`，也没有超过错误P
+`0.03`。协议有效但候选门首先失败：
+
+```text
+status   = hold
+decision = innovation2_present_cgpr_candidate_not_ready
+seed1    = no
+remote   = no
+```
+
+prefix-only在seed0达到`0.703174`，但它只是同预算容量控制，优势相对ridge为`0.017093`，低于
+预告的`0.02`实质margin，且不含新的pair/topology贡献。不得把它后验升格成主创新或直接跑
+seed1。
+
+## 7. 推荐下一步
+
+停止CGPR和E43四轮新网络枚举。具体关闭：MSPN扩容、identity token、Monomial Transformer、
+NBFNet、CGPR调参、prefix residual seed1、更长epoch、r4新processor和远程GPU。保留：
+
+```text
+E45/E48确定性ANF/degree解释锚点  validation AUC约0.69
+E44真实神经pair-state锚点       validation AUC 0.561979
+E47--E51受控失败边界             说明神经传播/残差未增加组外价值
+```
+
+下一瓶颈不是四轮架构，而是五轮严格标签覆盖。执行E52无训练审计：比较当前sound ANF support
+提供者与更精确、仍可验证的division-property/monomial-certificate提供者，判断PRESENT-80五轮
+能否生成足够正负类、structure-disjoint、边际匹配的数据。只有五轮标签达到与E43同级宽度、
+证书/反例复验和反捷径门，才重新开放网络；否则把创新2冻结为四轮方法学案例与负结果边界。
+
+最终`curves.svg`按`visual-qa-redraw`渲染为`1800×941`像素检查；四行正式AUC、`0.70`门、
+训练/验证差距、三个控制差值、裁决与证据范围无重叠、裁切、缺字或掩盖正确/错误P相同的
+视觉编码，已记录`visual_qa_passed.marker`。

@@ -797,6 +797,21 @@ DECISION_LABELS = {
     "innovation2_present_cgpr_readiness_failed": (
         "证书引导残差的source、ridge、零等价、拓扑、参数或训练契约失败"
     ),
+    "innovation2_present_cgpr_topology_attributed": (
+        "CGPR超过ridge、prefix-only与错误P控制，正式拓扑归因通过"
+    ),
+    "innovation2_present_cgpr_candidate_not_ready": (
+        "CGPR未通过正式候选门，停止E43四轮新网络枚举"
+    ),
+    "innovation2_present_cgpr_pair_residual_not_attributed": (
+        "正确P未超过prefix-only残差，pair-state没有独立贡献"
+    ),
+    "innovation2_present_cgpr_topology_not_attributed": (
+        "正确P未超过错误P残差，P-layer贡献未归因"
+    ),
+    "innovation2_present_cgpr_attribution_protocol_invalid": (
+        "CGPR正式归因的source、ridge、模型、控制或训练协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1296,6 +1311,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E49：PRESENT四轮中间degree谱蒸馏readiness"
     if run_id == "i2_present_r4_cgpr_readiness_seed0_20260718":
         return "创新2 E50：PRESENT四轮证书引导pair-state残差readiness"
+    if run_id == "i2_present_r4_cgpr_neural_attribution_seed0_20260718":
+        return "创新2 E51：PRESENT四轮CGPR正式残差与拓扑归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
