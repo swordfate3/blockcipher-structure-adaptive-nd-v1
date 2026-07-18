@@ -956,6 +956,15 @@ DECISION_LABELS = {
     "innovation2_present_unit_balance_profile_protocol_invalid": (
         "E43重放、谱重排、特征或split协议无效"
     ),
+    "innovation2_present_profile_operator_readiness_passed": (
+        "prefix引导逐节点平衡谱算子实现与短训练就绪，可进入正式seed0"
+    ),
+    "innovation2_present_profile_operator_optimization_not_ready": (
+        "安全前缀的两轮学习未就绪，停止正式profile训练"
+    ),
+    "innovation2_present_profile_operator_protocol_invalid": (
+        "profile source、等变性、masked loss、参数或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1502,6 +1511,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E64：多坐标relation非平凡消去分解"
     if run_id == "i2_present_r4_unit_balance_profile_readiness_20260718":
         return "创新2 E65：PRESENT四轮单位输出平衡谱readiness"
+    if run_id == (
+        "i2_present_r4_prefix_guided_profile_operator_readiness_seed0_20260718"
+    ):
+        return "创新2 E66：PRESENT四轮prefix引导平衡谱算子readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

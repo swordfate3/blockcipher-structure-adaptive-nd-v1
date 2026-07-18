@@ -725,3 +725,9 @@ operator不开放；ANF前缀领先正确拓扑`0.089306`，开放一次prefix-g
 operator readiness。该方向的单变量不是增加Transformer容量，而是把逐query分类改为同一
 structure下共享前缀表示、一次产生64个输出logit，并用独立node MLP与fair-corrupted-P消息
 处理器控制跨输出交互。它仍限于PRESENT-80四轮严格标签，不构成高轮或攻击结果。
+
+E66两轮readiness已经通过。三种关系模式参数均为`5679`，cell重标号误差`1.94e-7`、masked
+loss误差`0`；independent/true-P/corrupted-P validation AUC分别为
+`0.717778/0.799167/0.692222`。两轮AUC不作为正式收益，但正确P相对同容量独立node和错误P
+已分别显示`+0.081389/+0.106944`的防退化信号，因此只开放E67固定30轮seed0正式归因；
+E67必须重新满足绝对AUC、独立容量和错误拓扑三重门，不能直接把readiness写成创新结论。

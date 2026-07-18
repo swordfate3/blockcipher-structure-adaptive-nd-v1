@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.train_innovation2_present_balance_profile_operator_readiness import main
+
+raise SystemExit(main())
