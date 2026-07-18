@@ -15,6 +15,7 @@ from blockcipher_nd.tasks.innovation2.present_generalized_relation_precursor_bou
     CanonicalRelation,
     precursor_plaintext_count,
 )
+from blockcipher_nd.ciphers.spn.present import Present80
 
 
 @dataclass(frozen=True)
@@ -527,6 +528,34 @@ def run_present_relation_panel(
     model_output: Path,
     panel_output: Path,
 ) -> dict[str, Any]:
+    query_specs = [
+        {
+            "input_exponent": input_exponent,
+            "output_exponent": output_exponent,
+        }
+        for output_exponent in output_exponents
+    ]
+    return run_present_relation_queries(
+        atm_root,
+        rounds=rounds,
+        query_specs=query_specs,
+        projected_key_cap=projected_key_cap,
+        trail_model_cap=trail_model_cap,
+        model_output=model_output,
+        panel_output=panel_output,
+    )
+
+
+def run_present_relation_queries(
+    atm_root: Path,
+    *,
+    rounds: int,
+    query_specs: Sequence[dict[str, Any]],
+    projected_key_cap: int,
+    trail_model_cap: int,
+    model_output: Path,
+    panel_output: Path,
+) -> dict[str, Any]:
     bundle = build_present_independent_key_model(atm_root, rounds=rounds)
     model_output.write_text(
         json.dumps(bundle["metadata"], indent=2, sort_keys=True) + "\n",
@@ -534,7 +563,9 @@ def run_present_relation_panel(
     )
     panel_output.write_text("", encoding="utf-8")
     rows: list[dict[str, Any]] = []
-    for query_index, output_exponent in enumerate(output_exponents):
+    for query_index, query_spec in enumerate(query_specs):
+        input_exponent = int(query_spec["input_exponent"])
+        output_exponent = int(query_spec["output_exponent"])
         query_start = time.monotonic()
         probe = find_key_monomial_witness(
             bundle["model"],
@@ -567,8 +598,20 @@ def run_present_relation_panel(
                 label = 0
                 certificate = "key_dependent_odd_witness"
         elif probe["status"] == "no_witness":
-            label = 1
-            certificate = "constant_exhaustive_no_nonzero_key_monomial"
+            replay = replay_key_monomial_parity(
+                bundle["model"],
+                bundle["input_vars"],
+                bundle["output_vars"],
+                bundle["key_vars"],
+                input_exponent=input_exponent,
+                output_exponent=output_exponent,
+                key_exponent_mask=0,
+                trail_model_cap=trail_model_cap,
+                solver_factory=bundle["solver_factory"],
+            )
+            if replay["status"] == "exact":
+                label = 1
+                certificate = "constant_exhaustive_no_nonzero_key_monomial"
         row = {
             "query_index": query_index,
             "rounds": rounds,
@@ -581,12 +624,290 @@ def run_present_relation_panel(
             "probe": probe,
             "replay": replay,
             "elapsed_seconds": time.monotonic() - query_start,
+            "query_metadata": {
+                key: value
+                for key, value in query_spec.items()
+                if key not in {"input_exponent", "output_exponent"}
+            },
         }
         rows.append(row)
         with panel_output.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(row, sort_keys=True) + "\n")
             handle.flush()
     return {"model": bundle["metadata"], "rows": rows}
+
+
+def present_two_round_input_cone(output_bit: int) -> tuple[int, ...]:
+    if output_bit not in range(64):
+        raise ValueError("output_bit must be in [0, 63]")
+    permutation = tuple(
+        (16 * bit) % 63 if bit < 63 else 63 for bit in range(64)
+    )
+    inverse = [0] * 64
+    for source, destination in enumerate(permutation):
+        inverse[destination] = source
+    round_two_pre_permutation = inverse[output_bit]
+    round_two_cell = round_two_pre_permutation // 4
+    round_two_inputs = tuple(4 * round_two_cell + bit for bit in range(4))
+    round_one_source_cells = {
+        inverse[position] // 4 for position in round_two_inputs
+    }
+    return tuple(
+        sorted(
+            4 * cell + bit
+            for cell in round_one_source_cells
+            for bit in range(4)
+        )
+    )
+
+
+def two_round_cone_matched_queries(output_bit: int = 0) -> tuple[dict[str, Any], ...]:
+    cone = present_two_round_input_cone(output_bit)
+    cone_set = set(cone)
+    outside_bit = min(bit for bit in range(64) if bit not in cone_set)
+    queries: list[dict[str, Any]] = []
+    for weight in range(1, 9):
+        inside_bits = cone[:weight]
+        outside_bits = cone[: weight - 1] + (outside_bit,)
+        for group, bits in (("inside", inside_bits), ("outside", outside_bits)):
+            input_exponent = sum(1 << bit for bit in bits)
+            queries.append(
+                {
+                    "input_exponent": input_exponent,
+                    "output_exponent": 1 << output_bit,
+                    "weight": weight,
+                    "cone_group": group,
+                    "all_input_bits_inside_cone": group == "inside",
+                    "input_bits": list(bits),
+                    "output_bit": output_bit,
+                }
+            )
+    return tuple(queries)
+
+
+def _binary_auc(labels: Sequence[int], scores: Sequence[float]) -> float | None:
+    positives = [score for label, score in zip(labels, scores) if label == 1]
+    negatives = [score for label, score in zip(labels, scores) if label == 0]
+    if not positives or not negatives:
+        return None
+    wins = 0.0
+    for positive in positives:
+        for negative in negatives:
+            wins += float(positive > negative) + 0.5 * float(positive == negative)
+    return wins / (len(positives) * len(negatives))
+
+
+def scalar_present_independent_key_coefficient(
+    *,
+    rounds: int,
+    input_exponent: int,
+    output_exponent: int,
+    round_keys: Sequence[int],
+) -> int:
+    if len(round_keys) != rounds + 1:
+        raise ValueError("round_keys must include one key per round plus post-whitening")
+    accumulator = 0
+    plaintext = input_exponent
+    while True:
+        state = plaintext
+        for round_index in range(rounds):
+            state ^= int(round_keys[round_index]) & ((1 << 64) - 1)
+            state = Present80._permutation_layer(Present80._sbox_layer(state))
+        state ^= int(round_keys[-1]) & ((1 << 64) - 1)
+        accumulator ^= int((state & output_exponent) == output_exponent)
+        if plaintext == 0:
+            return accumulator
+        plaintext = (plaintext - 1) & input_exponent
+
+
+def evaluate_cone_matched_panel(
+    config: NativeSatProviderConfig,
+    *,
+    phase_a_gate: dict[str, Any],
+    model: dict[str, Any] | None,
+    rows: Sequence[dict[str, Any]],
+    planned_queries: int,
+    worker_status: str,
+    wall_clock_cap_seconds: int,
+) -> dict[str, Any]:
+    labels = [int(row["label"]) for row in rows if row.get("label") in {0, 1}]
+    resolved_rows = [row for row in rows if row.get("label") in {0, 1}]
+    constant_rows = sum(label == 1 for label in labels)
+    key_dependent_rows = sum(label == 0 for label in labels)
+    unknown_rows = planned_queries - len(resolved_rows)
+    degree_auc_raw = _binary_auc(
+        labels,
+        [float(row["query_metadata"]["weight"]) for row in resolved_rows],
+    )
+    degree_auc = (
+        None
+        if degree_auc_raw is None
+        else max(degree_auc_raw, 1.0 - degree_auc_raw)
+    )
+    cone_auc_raw = _binary_auc(
+        labels,
+        [
+            0.0 if row["query_metadata"]["all_input_bits_inside_cone"] else 1.0
+            for row in resolved_rows
+        ],
+    )
+    cone_auc = (
+        None if cone_auc_raw is None else max(cone_auc_raw, 1.0 - cone_auc_raw)
+    )
+    weights = {
+        int(row["query_metadata"]["weight"]): set()
+        for row in rows
+    }
+    for row in rows:
+        weights[int(row["query_metadata"]["weight"])].add(
+            str(row["query_metadata"]["cone_group"])
+        )
+    all_negative_witnesses_replay = all(
+        row.get("label") != 0
+        or (
+            int(row["probe"]["witness"]["key_exponent_mask"]) != 0
+            and row.get("replay", {}).get("status") == "exact"
+            and row.get("replay", {}).get("parity") == 1
+        )
+        for row in rows
+    )
+    scalar_key_sets = (
+        (0, 0, 0),
+        (0x0123456789ABCDEF, 0xFEDCBA9876543210, 0x1111222233334444),
+        (0xAAAAAAAAAAAAAAAA, 0x5555555555555555, 0xDEADBEEFCAFEBABE),
+    )
+    positive_scalar_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if row.get("label") != 1:
+            continue
+        scalar_values = [
+            scalar_present_independent_key_coefficient(
+                rounds=2,
+                input_exponent=int(row["input_exponent"]),
+                output_exponent=int(row["output_exponent"]),
+                round_keys=keys,
+            )
+            for keys in scalar_key_sets
+        ]
+        expected = row.get("replay", {}).get("parity")
+        positive_scalar_rows.append(
+            {
+                "query_index": row.get("query_index"),
+                "expected_constant": expected,
+                "scalar_values": scalar_values,
+                "match": expected in {0, 1}
+                and all(value == expected for value in scalar_values),
+            }
+        )
+    all_positive_scalar_checks_match = bool(positive_scalar_rows) and all(
+        row["match"] for row in positive_scalar_rows
+    )
+    source_checks = {
+        "e58_phase_a_gate_passed": phase_a_gate.get("status") == "pass"
+        and phase_a_gate.get("decision")
+        == "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+        "model_rounds_are_two": bool(model and model.get("rounds") == 2),
+        "model_has_three_key_additions": bool(
+            model and model.get("key_additions") == 3
+        ),
+        "model_has_192_independent_key_variables": bool(
+            model
+            and model.get("key_variables") == 192
+            and model.get("key_model") == "independent_round_keys"
+        ),
+        "each_weight_has_inside_outside_pair": len(weights) == 8
+        and all(groups == {"inside", "outside"} for groups in weights.values()),
+        "two_round_cone_is_bits_0_to_15": present_two_round_input_cone(0)
+        == tuple(range(16)),
+        "all_constant_rows_match_three_scalar_key_sets": (
+            all_positive_scalar_checks_match
+        ),
+    }
+    width_checks = {
+        "completed_queries_at_least_12": len(rows) >= 12,
+        "unknown_fraction_at_most_0p25": unknown_rows / planned_queries <= 0.25,
+        "strict_constant_rows_at_least_4": constant_rows >= 4,
+        "strict_key_dependent_rows_at_least_4": key_dependent_rows >= 4,
+        "all_negative_witnesses_replay_odd": all_negative_witnesses_replay,
+    }
+    shortcut_checks = {
+        "degree_only_auc_at_most_0p65": degree_auc is not None and degree_auc <= 0.65,
+        "cone_membership_auc_at_most_0p80": cone_auc is not None and cone_auc <= 0.80,
+    }
+    metrics = {
+        "planned_queries": planned_queries,
+        "completed_queries": len(rows),
+        "strict_constant_rows": constant_rows,
+        "strict_key_dependent_rows": key_dependent_rows,
+        "unknown_rows": unknown_rows,
+        "degree_only_auc": degree_auc,
+        "cone_membership_strongest_direction_auc": cone_auc,
+        "worker_status": worker_status,
+        "scalar_validated_constant_rows": sum(
+            bool(row["match"]) for row in positive_scalar_rows
+        ),
+    }
+    if not all(source_checks.values()):
+        status = "fail"
+        decision = "innovation2_atm_r2_cone_matched_panel_protocol_invalid"
+        action = "repair cone/query/model ownership before interpreting labels"
+    elif not all(width_checks.values()):
+        status = "hold"
+        decision = "innovation2_atm_r2_cone_matched_panel_width_not_ready"
+        action = "do not train RCCA; singleton strict label width remains insufficient"
+    elif not all(shortcut_checks.values()):
+        status = "hold"
+        decision = "innovation2_atm_r2_singleton_relation_shortcut_dominated"
+        action = "close singleton relations and design multi-coordinate GF(2) cancellation"
+    else:
+        status = "pass"
+        decision = "innovation2_atm_r2_cone_matched_panel_ready"
+        action = "run the full strict label-width and shortcut audit before RCCA"
+    gate = {
+        "run_id": config.run_id,
+        "status": status,
+        "decision": decision,
+        "source_checks": source_checks,
+        "width_checks": width_checks,
+        "shortcut_checks": shortcut_checks,
+        "metrics": metrics,
+        "scalar_validation": {
+            "key_sets": len(scalar_key_sets),
+            "rows": positive_scalar_rows,
+        },
+        "wall_clock_cap_seconds": wall_clock_cap_seconds,
+        "projected_key_cap": config.projected_key_cap,
+        "trail_model_cap": config.trail_model_cap,
+        "claim_scope": (
+            "PRESENT two-round independent-round-key cone-matched singleton relation "
+            "label audit; not actual PRESENT-80 labels, neural training, attack, or SOTA"
+        ),
+        "next_action": {
+            "action": action,
+            "full_width_audit": status == "pass",
+            "multi_coordinate_design": decision
+            in {
+                "innovation2_atm_r2_cone_matched_panel_width_not_ready",
+                "innovation2_atm_r2_singleton_relation_shortcut_dominated",
+            },
+            "training": False,
+            "remote_scale": False,
+        },
+    }
+    result_rows = [
+        {
+            "run_id": config.run_id,
+            "task": "innovation2_atm_r2_cone_matched_panel",
+            "metric": key,
+            "value": value,
+            "status": status,
+            "decision": decision,
+            "training_performed": False,
+        }
+        for key, value in metrics.items()
+        if key != "worker_status"
+    ]
+    return {"gate": gate, "result_rows": result_rows}
 
 
 def evaluate_low_round_panel(

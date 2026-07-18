@@ -1149,6 +1149,30 @@ def test_result_index_labels_innovation2_atm_r2_relation_panel(
     )
 
 
+def test_result_index_labels_innovation2_atm_r2_cone_panel(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r2_atm_cone_matched_panel_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_atm_r2_cone_matched_panel_width_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "依赖锥内外16条单坐标查询全部constant，关闭RCCA并转多坐标GF(2)消去关系"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

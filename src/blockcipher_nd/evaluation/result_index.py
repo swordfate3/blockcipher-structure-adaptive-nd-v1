@@ -881,6 +881,15 @@ DECISION_LABELS = {
     "innovation2_atm_r2_strict_relation_panel_not_ready": (
         "两轮16条查询全部constant，缺少严格负类，禁止训练RCCA"
     ),
+    "innovation2_atm_r2_cone_matched_panel_width_not_ready": (
+        "依赖锥内外16条单坐标查询全部constant，关闭RCCA并转多坐标GF(2)消去关系"
+    ),
+    "innovation2_atm_r2_singleton_relation_shortcut_dominated": (
+        "单坐标严格标签可被依赖锥捷径解释，转多坐标GF(2)消去关系"
+    ),
+    "innovation2_atm_r2_cone_matched_panel_protocol_invalid": (
+        "两轮依赖锥配对、SAT模型或标量复核无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1413,6 +1422,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E58-B：ATM原生SAT九轮严格负类单候选探针"
     if run_id == "i2_present_r2_atm_strict_relation_panel_20260718":
         return "创新2 E59：PRESENT两轮ATM严格relation标签面板"
+    if run_id == "i2_present_r2_atm_cone_matched_panel_20260718":
+        return "创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

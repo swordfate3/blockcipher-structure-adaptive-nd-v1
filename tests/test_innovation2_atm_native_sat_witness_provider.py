@@ -6,9 +6,13 @@ from blockcipher_nd.tasks.innovation2.atm_native_sat_witness_provider import (
     count_models_parity,
     evaluate_phase_a,
     evaluate_low_round_panel,
+    evaluate_cone_matched_panel,
     evaluate_r9_probe,
     key_mask_from_projected_literals,
     select_singleton_relation_mutation,
+    scalar_present_independent_key_coefficient,
+    present_two_round_input_cone,
+    two_round_cone_matched_queries,
 )
 from blockcipher_nd.cli.plot_innovation2_atm_native_sat_provider import (
     render_atm_native_sat_provider,
@@ -18,6 +22,9 @@ from blockcipher_nd.cli.plot_innovation2_atm_native_sat_r9_probe import (
 )
 from blockcipher_nd.cli.plot_innovation2_atm_r2_strict_relation_panel import (
     render_atm_r2_strict_relation_panel,
+)
+from blockcipher_nd.cli.plot_innovation2_atm_r2_cone_matched_panel import (
+    render_atm_r2_cone_matched_panel,
 )
 
 
@@ -338,3 +345,151 @@ def test_r2_plot_explains_single_class_hold(tmp_path: object) -> None:
     assert "创新2 E59" in svg
     assert "单一类别阻止神经训练" in svg
     assert "不能训练RCCA" in svg
+
+
+def test_two_round_cone_matched_queries_are_label_blind_weight_pairs() -> None:
+    queries = two_round_cone_matched_queries()
+
+    assert present_two_round_input_cone(0) == tuple(range(16))
+    assert len(queries) == 16
+    for weight in range(1, 9):
+        pair = queries[2 * (weight - 1) : 2 * weight]
+        assert [query["cone_group"] for query in pair] == ["inside", "outside"]
+        assert all(query["weight"] == weight for query in pair)
+        assert all(int(query["input_exponent"]).bit_count() == weight for query in pair)
+        assert pair[0]["output_exponent"] == pair[1]["output_exponent"] == 1
+
+
+def test_cone_panel_routes_shortcut_dominated_labels_to_multicoordinate() -> None:
+    phase_a = {
+        "status": "pass",
+        "decision": "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+    }
+    model = {
+        "rounds": 2,
+        "key_additions": 3,
+        "key_variables": 192,
+        "key_model": "independent_round_keys",
+    }
+    rows = []
+    for query in two_round_cone_matched_queries():
+        inside = bool(query["all_input_bits_inside_cone"])
+        rows.append(
+            {
+                "input_exponent": query["input_exponent"],
+                "output_exponent": query["output_exponent"],
+                "label": 0 if inside else 1,
+                "query_metadata": {
+                    key: value
+                    for key, value in query.items()
+                    if key not in {"input_exponent", "output_exponent"}
+                },
+                "probe": (
+                    {
+                        "status": "witness",
+                        "witness": {"key_exponent_mask": 1},
+                    }
+                    if inside
+                    else {"status": "no_witness"}
+                ),
+                "replay": (
+                    {"status": "exact", "parity": 1 if inside else 0}
+                ),
+            }
+        )
+
+    result = evaluate_cone_matched_panel(
+        NativeSatProviderConfig(run_id="e60_test"),
+        phase_a_gate=phase_a,
+        model=model,
+        rows=rows,
+        planned_queries=16,
+        worker_status="completed",
+        wall_clock_cap_seconds=60,
+    )
+
+    assert result["gate"]["status"] == "hold"
+    assert result["gate"]["decision"] == (
+        "innovation2_atm_r2_singleton_relation_shortcut_dominated"
+    )
+    assert result["gate"]["metrics"][
+        "cone_membership_strongest_direction_auc"
+    ] == 1.0
+    assert result["gate"]["next_action"]["multi_coordinate_design"] is True
+    assert result["gate"]["next_action"]["training"] is False
+
+
+def test_cone_panel_all_constant_routes_to_multicoordinate(tmp_path) -> None:
+    phase_a = {
+        "status": "pass",
+        "decision": "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+    }
+    model = {
+        "rounds": 2,
+        "key_additions": 3,
+        "key_variables": 192,
+        "key_model": "independent_round_keys",
+        "cnf_clauses": 2080,
+    }
+    rows = []
+    for query_index, query in enumerate(two_round_cone_matched_queries()):
+        expected_constant = 1 if query_index == 0 else 0
+        rows.append(
+            {
+                "query_index": query_index,
+                "input_exponent": query["input_exponent"],
+                "output_exponent": query["output_exponent"],
+                "label": 1,
+                "query_metadata": {
+                    key: value
+                    for key, value in query.items()
+                    if key not in {"input_exponent", "output_exponent"}
+                },
+                "probe": {"status": "no_witness", "witness": None},
+                "replay": {"status": "exact", "parity": expected_constant},
+            }
+        )
+
+    result = evaluate_cone_matched_panel(
+        NativeSatProviderConfig(run_id="e60_all_constant_test"),
+        phase_a_gate=phase_a,
+        model=model,
+        rows=rows,
+        planned_queries=16,
+        worker_status="completed",
+        wall_clock_cap_seconds=60,
+    )
+
+    gate = result["gate"]
+    assert gate["status"] == "hold"
+    assert gate["decision"] == (
+        "innovation2_atm_r2_cone_matched_panel_width_not_ready"
+    )
+    assert gate["metrics"]["scalar_validated_constant_rows"] == 16
+    assert gate["source_checks"][
+        "all_constant_rows_match_three_scalar_key_sets"
+    ] is True
+    assert gate["next_action"]["multi_coordinate_design"] is True
+    assert gate["next_action"]["training"] is False
+
+    summary = {"gate": gate, "model": model}
+    output = tmp_path / "curves.svg"
+    render_atm_r2_cone_matched_panel(summary, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E60" in svg
+    assert "16/16条constant完成标量复核" in svg
+    assert "转向多坐标GF(2)消去关系" in svg
+
+
+def test_scalar_independent_key_coefficient_rejects_wrong_key_count() -> None:
+    try:
+        scalar_present_independent_key_coefficient(
+            rounds=2,
+            input_exponent=1,
+            output_exponent=1,
+            round_keys=(0, 0),
+        )
+    except ValueError as exc:
+        assert "post-whitening" in str(exc)
+    else:
+        raise AssertionError("wrong key count was accepted")

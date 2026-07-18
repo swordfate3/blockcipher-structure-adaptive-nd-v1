@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E55三轮exact sparse-ANF触发500万项硬cap / 当前五轮严格标签provider家族关闭 / 神经训练未开放
+状态：E60单坐标严格标签面板全constant / RCCA训练未开放 / 转多坐标GF(2)消去关系
 
 ## 1. 结论先行
 
@@ -650,3 +650,19 @@ key-dependent为0。provider执行性通过，标签宽度失败，因此RCCA仍
 下一门只能预注册依赖锥内/外平衡的输出位置并先比较exact reachability基线。若singleton标签
 可被reachability完全解释，则新网络没有研究价值，必须转multi-coordinate GF(2) cancellation
 relation；不得靠后验扫64位挑出有负类的位置后直接训练。
+
+E60预注册两轮`v=e0`的真实反向依赖锥`bits 0..15`。对输入重量1--8分别配对全锥内prefix与
+同重量、仅最后一位换成bit16的锥外control。这样标签前就冻结16条query，并能直接检验
+degree-only与cone-membership强基线。即使得到严格正负类，若cone AUC超过`0.80`也停止
+singleton任务；只有残差信号存在，才继续RCCA标签宽度审计。
+
+E60已完成并关闭singleton任务。16条查询全部完成且无unknown，结果为`16 constant / 0
+key-dependent`；16条constant均通过key exponent 0精确重放以及三组独立轮密钥的完整标量系数
+对拍。第一条查询恒为1，其余15条恒为0。由于只有一个类别，degree-only和cone-membership AUC
+均不可定义，这不是反捷径通过。RCCA、DeepSets、远程扩展和1024-query singleton扫描全部关闭。
+
+下一优先级不再是继续更换神经网络名称，而是E61多坐标GF(2) cancellation relation：将2--4个
+坐标的key-polynomial support做对称差，以零支撑作为严格positive，以保留具体odd key-monomial
+并精确重放作为strict negative。只有同relation size和结构边际匹配后能得到各至少256条正负类，
+才比较deterministic cancellation、coordinate-set DeepSets和RCCA；否则创新2保留现有四轮
+方法学结果，不用模型容量制造表面可训练性。
