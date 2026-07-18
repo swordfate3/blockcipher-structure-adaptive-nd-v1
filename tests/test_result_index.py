@@ -1004,6 +1004,30 @@ def test_result_index_labels_innovation2_present_query_cone_sparse_anf(
     )
 
 
+def test_result_index_labels_innovation2_generalized_relation_contract(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_generalized_integral_relation_contract_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_generalized_relation_label_contract_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E56：PRESENT九轮广义积分relation神经标签契约审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "广义relation正类存在，但真实key schedule、严格负类与互斥拆分未就绪"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

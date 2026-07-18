@@ -866,6 +866,18 @@ DECISION_LABELS = {
     "innovation2_present_r3_query_cone_sparse_anf_protocol_invalid": (
         "E53-A重放、位序或语义控制失败，三轮结果不可解释"
     ),
+    "innovation2_generalized_relation_label_contract_not_ready": (
+        "广义relation正类存在，但真实key schedule、严格负类与互斥拆分未就绪"
+    ),
+    "innovation2_generalized_relation_extension_ready": (
+        "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
+    ),
+    "innovation2_generalized_relation_original_target_ready": (
+        "广义relation可映射原PRESENT-80平衡目标，可先构建标签atlas"
+    ),
+    "innovation2_generalized_relation_contract_protocol_invalid": (
+        "ATM来源版本、安全解析或源码契约无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1377,6 +1389,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E54：PRESENT五轮full-superpoly tensor语义边界审计"
     if run_id == "i2_present_r3_query_cone_sparse_anf_growth_20260718":
         return "创新2 E55：PRESENT三轮query-cone exact sparse-ANF硬cap门"
+    if run_id == "i2_present_r9_generalized_integral_relation_contract_20260718":
+        return "创新2 E56：PRESENT九轮广义积分relation神经标签契约审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

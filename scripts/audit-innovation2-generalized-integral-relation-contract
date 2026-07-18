@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_generalized_integral_relation_contract import main
+
+raise SystemExit(main())
