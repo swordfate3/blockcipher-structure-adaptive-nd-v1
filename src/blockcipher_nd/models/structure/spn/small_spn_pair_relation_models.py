@@ -16,6 +16,9 @@ from blockcipher_nd.models.structure.spn.small_spn_topology_controls import (
 class SmallSpnPairRelationSpec:
     topology_mode: str = "true"
     processor_mode: str = "triangle"
+    state_bits: int = 16
+    round_categories: int = 4
+    round_step_offset: int = 2
     hidden_dim: int = 64
     path_rank: int = 8
     dropout: float = 0.10
@@ -25,6 +28,10 @@ class SmallSpnPairRelationSpec:
             raise ValueError("topology_mode must be true or corrupted")
         if self.processor_mode not in {"triangle", "local"}:
             raise ValueError("processor_mode must be triangle or local")
+        if self.state_bits <= 0 or self.state_bits % 4:
+            raise ValueError("state_bits must be a positive multiple of four")
+        if self.round_categories <= 0 or self.round_step_offset <= 0:
+            raise ValueError("round_categories and round_step_offset must be positive")
         if self.hidden_dim <= 0 or self.path_rank <= 0:
             raise ValueError("hidden_dim and path_rank must be positive")
 
@@ -85,7 +92,19 @@ class SmallSpnPairRelationReasoner(nn.Module):
     ) -> None:
         super().__init__()
         self.spec = spec
+        self.state_bits = spec.state_bits
+        self.pair_count = spec.state_bits * spec.state_bits
+        self.max_steps = spec.round_step_offset + spec.round_categories - 1
         hidden_dim = spec.hidden_dim
+        players = np.asarray(players, dtype=np.int64)
+        structure_active_bits = np.asarray(structure_active_bits, dtype=np.float32)
+        output_mask_bits = np.asarray(output_mask_bits, dtype=np.float32)
+        if players.ndim != 2 or players.shape[1] != spec.state_bits:
+            raise ValueError("players must have shape variants x state_bits")
+        if structure_active_bits.ndim != 2 or structure_active_bits.shape[1] != spec.state_bits:
+            raise ValueError("structure_active_bits must have width state_bits")
+        if output_mask_bits.ndim != 2 or output_mask_bits.shape[1] != spec.state_bits:
+            raise ValueError("output_mask_bits must have width state_bits")
         player_array = topology_players(players, spec.topology_mode)
         self.register_buffer("players", torch.from_numpy(player_array.copy()))
         self.register_buffer(
@@ -93,13 +112,13 @@ class SmallSpnPairRelationReasoner(nn.Module):
         )
         self.register_buffer(
             "structure_active_bits",
-            torch.from_numpy(np.asarray(structure_active_bits, dtype=np.float32)),
+            torch.from_numpy(structure_active_bits),
         )
         self.register_buffer(
             "output_mask_bits",
-            torch.from_numpy(np.asarray(output_mask_bits, dtype=np.float32)),
+            torch.from_numpy(output_mask_bits),
         )
-        bit_index = np.arange(16, dtype=np.int64)
+        bit_index = np.arange(spec.state_bits, dtype=np.int64)
         self.register_buffer(
             "identity_relation",
             torch.from_numpy((bit_index[:, None] == bit_index[None, :]).astype(np.float32)),
@@ -122,7 +141,7 @@ class SmallSpnPairRelationReasoner(nn.Module):
         )
         self.source_lane_embedding = nn.Embedding(4, hidden_dim)
         self.destination_lane_embedding = nn.Embedding(4, hidden_dim)
-        self.round_embedding = nn.Embedding(4, hidden_dim)
+        self.round_embedding = nn.Embedding(spec.round_categories, hidden_dim)
         self.relation_input = nn.Linear(9, hidden_dim)
         self.sbox_encoder = nn.Sequential(
             nn.Linear(128, hidden_dim * 2),
@@ -162,7 +181,7 @@ class SmallSpnPairRelationReasoner(nn.Module):
             if self.spec.processor_mode == "triangle"
             else self.local_block
         )
-        for step in range(self.MAX_STEPS):
+        for step in range(self.max_steps):
             updated = processor(relation)
             relation = torch.where(
                 (step < step_count).view(-1, 1, 1, 1), updated, relation
@@ -187,7 +206,8 @@ class SmallSpnPairRelationReasoner(nn.Module):
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         device = variant_index.device
         batch = variant_index.shape[0]
-        bit_index = torch.arange(16, device=device)
+        state_bits = self.state_bits
+        bit_index = torch.arange(state_bits, device=device)
         active = self.structure_active_bits[structure_index]
         output_mask = self.output_mask_bits[mask_index]
         player = self.players[variant_index]
@@ -195,10 +215,10 @@ class SmallSpnPairRelationReasoner(nn.Module):
         identity = self.identity_relation.expand(batch, -1, -1)
         same_cell = self.same_cell_relation.expand(batch, -1, -1)
         same_lane = self.same_lane_relation.expand(batch, -1, -1)
-        source_active = active[:, :, None].expand(-1, -1, 16)
-        destination_active = active[:, None, :].expand(-1, 16, -1)
-        source_mask = output_mask[:, :, None].expand(-1, -1, 16)
-        destination_mask = output_mask[:, None, :].expand(-1, 16, -1)
+        source_active = active[:, :, None].expand(-1, -1, state_bits)
+        destination_active = active[:, None, :].expand(-1, state_bits, -1)
+        source_mask = output_mask[:, :, None].expand(-1, -1, state_bits)
+        destination_mask = output_mask[:, None, :].expand(-1, state_bits, -1)
         features = torch.stack(
             (
                 identity,
@@ -237,9 +257,8 @@ class SmallSpnPairRelationReasoner(nn.Module):
             "round_hidden": round_hidden,
         }
 
-    @staticmethod
-    def step_counts(round_index: torch.Tensor) -> torch.Tensor:
-        return round_index + 2
+    def step_counts(self, round_index: torch.Tensor) -> torch.Tensor:
+        return round_index + self.spec.round_step_offset
 
 
 def _weighted_pair_pool(relation: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:

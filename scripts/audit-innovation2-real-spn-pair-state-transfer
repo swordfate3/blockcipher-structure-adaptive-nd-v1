@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_real_spn_pair_state_transfer import main
+
+raise SystemExit(main())

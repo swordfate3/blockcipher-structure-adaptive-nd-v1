@@ -698,6 +698,18 @@ DECISION_LABELS = {
     "innovation2_small_spn_pair_state_topology_control_protocol_invalid": (
         "局部pair-state拓扑控制的来源、控制、seed、参数、局部性或metric协议无效"
     ),
+    "innovation2_real_spn_pair_state_transfer_ready": (
+        "真实SPN标签族与64-bit pair-state均通过训练readiness"
+    ),
+    "innovation2_real_spn_pair_state_label_bank_not_ready": (
+        "64-bit pair-state就绪，但现有PRESENT/SKINNY标签库不足以训练"
+    ),
+    "innovation2_real_spn_pair_state_model_not_ready": (
+        "真实SPN标签或64-bit pair-state模型契约尚未就绪"
+    ),
+    "innovation2_real_spn_pair_state_transfer_protocol_invalid": (
+        "真实SPN迁移审计的来源、标签聚合、64-bit模型或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1175,6 +1187,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_small_spn_pair_relation_no_triangle_fair_control_seed0_seed1_20260718"
     ):
         return "创新2 E41：局部pair-state公平拓扑归因"
+    if run_id == "i2_real_spn_pair_state_transfer_readiness_20260718":
+        return "创新2 E42：真实SPN标签与64-bit pair-state迁移readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

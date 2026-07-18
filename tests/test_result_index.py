@@ -638,6 +638,30 @@ def test_result_index_labels_innovation2_pair_state_topology_control(
     )
 
 
+def test_result_index_labels_innovation2_real_spn_pair_state_transfer(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_real_spn_pair_state_transfer_readiness_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_real_spn_pair_state_label_bank_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E42：真实SPN标签与64-bit pair-state迁移readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "64-bit pair-state就绪，但现有PRESENT/SKINNY标签库不足以训练"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

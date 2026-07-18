@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待标签库与64-bit模型契约审计 / 禁止训练
+状态：已完成 / hold / 64-bit模型就绪，真实标签库未过门
 
 ## 1. 研究问题
 
@@ -141,3 +141,76 @@ visual_qa_passed.marker
 ```
 
 推荐执行路径：本地CPU审计；若本地CUDA可用可补显存测量，但不训练、不连接远程GPU。
+
+## 8. 2026-07-18实际结果
+
+权威run：
+
+```text
+i2_real_spn_pair_state_transfer_readiness_20260718
+```
+
+审计于`08:41:49--08:41:52`在本地CPU完成。12个来源gate、metadata和results均存在，
+run id、历史decision和全部协议检查与冻结来源匹配；每个输入文件的SHA256已写入
+`label_sources.json`。
+
+真实标签族readiness：
+
+| 标签族 | 独立结构 | 非平凡结构 | 签名 | fresh-key | 最强简单AUC | 通过检查 | 训练就绪 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| PRESENT r7 context | `64` | `64` | `9` | `0.4375` | `0.950623` | `6/8` | 否 |
+| SKINNY r7 single-cell | `16` | `4` | `4` | `1.0` | 未形成可审计标签表 | `3/8` | 否 |
+| SKINNY r8 adjacent-pair | `16` | `3` | `3` | `1.0` | 未形成可审计标签表 | `2/8` | 否 |
+| SKINNY r8 bottom-row | `6` | `4` | `4` | `0.666667` | 未形成可审计标签表 | `2/8` | 否 |
+
+PRESENT是最接近的族，但E16旧签名在E18 fresh keys上只复现`7/16`，且E17c
+mask-disjoint bitwise directional AUC为`0.9506225586`。这两项分别违反`>=0.90`和
+`<=0.65`门，不能用64个context总数掩盖。SKINNY各族主要失败于独立结构和非平凡结构
+数量不足；缺失prevalence、group split和marginal AUC也按未就绪处理，不按通过处理。
+
+64-bit模型契约全部通过：
+
+```text
+initial pair tensor              = 8 x 64 x 64 x 16
+pair count                       = 4096
+round step schedule              = [7,8]
+cell relabel max logit error     = 1.1175870895385742e-07
+true/corrupted max logit delta   = 0.0051683783531188965
+local off-pair influence         = 0.0
+local/triangle h16 parameters    = 10741 / 10741
+```
+
+`local/triangle x hidden16/32/64 x batch1/2/4/8`共24个前向/反向配置全部完成，logit和梯度
+均有限；冻结最低目标`hidden32,batch4`两种处理器均通过。最大记录的进程峰值RSS为
+`1801445376 bytes`（`1.678 GiB`）。这是同一进程的绝对峰值，不解释为单个模型独占内存，
+但足以确认本地readiness配置可运行。
+
+最终裁决：
+
+```text
+status       = hold
+decision     = innovation2_real_spn_pair_state_label_bank_not_ready
+model_ready  = true
+label_ready  = 0 / 4 families
+training     = no
+remote_scale = no
+```
+
+因此真实密码迁移的阻塞点已定位为标签提供者，不是pair-state扩到64-bit失败。不得在现有
+PRESENT E16/E18 context或SKINNY少量稳定geometry上训练，也不得用NBFNet、FloydNet或更深
+Transformer绕过标签门。
+
+## 9. 推荐下一步
+
+下一审判应是“真实SPN确定性标签atlas提供者”，不是神经网络实验。必须解决E31留下的精确
+契约缺口：provider需要返回明确的affine input set、linear output mask、balanced=0/1和
+可证明或完备的negative语义。最低目标仍是`32`个独立结构、`8`个非平凡结构、`4`个稳定
+签名、fresh-key或证明复现`>=0.90`，并重跑本E42捷径门。
+
+在provider未就绪前，创新2网络结论冻结为：SPN专用有向pair-state在合成拓扑族上已通过
+真实/错误P-layer归因，64-bit实现readiness通过；真实密码神经性能尚未开放。下一阶段不
+增加context、key、mask、hidden、epoch或远程GPU做机械补量。
+
+最终`curves.svg`按`visual-qa-redraw`渲染为`1824x974`像素检查；标题、说明、四个标签族、
+两种处理器、数值、门槛线、裁决和导出边界均无重叠、裁切或歧义，已记录
+`visual_qa_passed.marker`。

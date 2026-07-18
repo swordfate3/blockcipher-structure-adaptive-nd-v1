@@ -145,3 +145,8 @@ pair-state表示和SPN拓扑联合编码，不得把通用pair network或triangl
 下一步是E42真实密码迁移readiness审计：核对现有PRESENT输出性质标签的语义、可用结构数、
 key采样、finite-key噪声校正和64-bit pair-state内存预算。先冻结同数据的ID边际、triangle、
 local和fair-corrupted必要控制；readiness通过前不训练真实密码模型、不启动远程GPU。
+
+E42现已完成：64-bit pair-local/triangle共24个前向/反向配置全部通过，但PRESENT/SKINNY
+四个真实标签族均未满足训练门，裁决为`innovation2_real_spn_pair_state_label_bank_not_ready`。
+因此E41方法证据保留，真实密码训练继续关闭；下一步转确定性标签atlas提供者契约，不再
+枚举神经网络结构。

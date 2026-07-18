@@ -368,3 +368,13 @@ triangle增量，当前排名更新为：
 下一步不再继续合成网络枚举。E42先审计现有PRESENT输出性质标签和64-bit pair-state迁移条件，
 冻结同数据ID、triangle、local与fair-corrupted控制的最小矩阵；只有标签宽度、finite-key
 噪声校正、内存与split门通过，才开放真实密码本地readiness训练。远程GPU继续关闭。
+
+E42已从机器产物重新核验真实迁移条件。64-bit pair-local与triangle在hidden16/32/64、
+batch1/2/4/8的24个前向/反向配置全部通过；4096 pair、7/8步、cell等变性、错误P-layer
+敏感性和local off-pair契约均成立。因此模型扩展不是当前瓶颈。
+
+标签侧0/4族就绪。PRESENT r7 context虽然过`6/8`项，但fresh-key签名复现只有`0.4375`，
+mask-disjoint简单基线AUC为`0.950623`；SKINNY r7/r8族最多只有4个非平凡结构，均未达到
+`8/32`宽度门。当前架构排名不再开放新候选：pair-state仍是最强方法，triangle/local作为
+同表示处理器；NBFNet、FloydNet和更深Transformer均暂缓。下一研究优先级转为满足完整
+0/1 balance语义与negative契约的真实SPN标签atlas提供者，标签门通过后才恢复网络比较。
