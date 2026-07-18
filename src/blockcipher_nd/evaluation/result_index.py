@@ -1220,6 +1220,15 @@ DECISION_LABELS = {
     "innovation2_rectangle80_unit_profile_expansion_protocol_invalid": (
         "E87锚点重放或RECTANGLE严格标签协议无效"
     ),
+    "innovation2_rectangle80_nested_cube_monotonic_labels_ready": (
+        "RECTANGLE四轮7/8/9-bit嵌套cube严格标签门通过，可做无训练单调机制审计"
+    ),
+    "innovation2_rectangle80_nested_cube_monotonic_labels_not_ready": (
+        "嵌套cube标签宽度或匹配容量不足，关闭当前单调神经路线"
+    ),
+    "innovation2_rectangle80_nested_cube_monotonic_protocol_invalid": (
+        "E88重放、嵌套关系、单调closure或反例语义无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1898,6 +1907,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E92：RECTANGLE参数零增量Row-Typed Shift Operator readiness"
     if run_id == "i2_neural_architecture_boundary_synthesis_20260719":
         return "创新2 E93：跨SPN神经结构证据与边界综合"
+    if run_id == "i2_rectangle80_r4_nested_cube_monotonic_readiness_20260719":
+        return "创新2 E94：RECTANGLE-80四轮7/8/9-bit嵌套cube单调标签门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

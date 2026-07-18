@@ -1032,3 +1032,14 @@ Transformer/GraphGPS/NBFNet变体属于`deferred/no_budget`。
 综合裁决为`innovation2_architecture_boundary_confirmed_third_spn_neural_not_confirmed`。这不是停止
 创新2，而是把下一预算门从“再试网络”改为“先获得新sound标签、独立输出任务机制，或同容量
 预训练前真实拓扑margin至少`+0.03`”。在此之前不继续当前unit-profile benchmark模型枚举。
+
+E94 按 E93 的第一种重开条件建立了新的 sound 标签家族。RECTANGLE-80 四轮的 192 条冻结 8-bit
+结构被确定性扩成严格 `7 ⊂ 8 ⊂ 9` cube 链，三档 positive/negative/unknown 分别为
+`9259/2466/563`、`9995/1791/502`、`10650/1195/443`。三种正类到超集负类冲突均为零，36 个
+抽样反例全部由标量密码重算通过；匹配后最强 dimension/position/output 一元基线 AUC 为 `0.5`。
+
+因此 `Monotone Cube-Lattice Operator` 从 deferred 升级为 `label_ready`，但尚未获得确定性关系
+margin，更不是神经方法。下一预算只给 E95 无训练 true/shuffled/wrong-superset/independent 机制门；
+真实 nesting 对所有错误关系至少产生 `+0.03` AUC margin 后，才允许两轮神经 readiness。E93 的
+正式排名仍不变：PRESENT/GIFT 分别训练的 r3-only Profile Operator 仍是唯一 formal-confirmed
+神经方法家族，RECTANGLE 第三 SPN 神经结果仍未确认。
