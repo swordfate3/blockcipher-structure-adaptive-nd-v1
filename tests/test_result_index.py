@@ -1818,6 +1818,30 @@ def test_result_index_labels_innovation2_shared_profile_attribution(
     )
 
 
+def test_result_index_labels_innovation2_rectangle80_profile(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_rectangle80_r4_unit_balance_profile_readiness_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_rectangle80_unit_profile_raw_labels_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E87：RECTANGLE-80四轮严格unit平衡谱标签readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "RECTANGLE四轮原始标签未进入正负过渡区，下一步只改为五轮"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

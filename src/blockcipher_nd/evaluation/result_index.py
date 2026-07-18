@@ -1199,6 +1199,18 @@ DECISION_LABELS = {
     "innovation2_shared_profile_operator_attribution_protocol_invalid": (
         "E85/锚点来源、30轮schedule、动态拓扑或产物协议无效"
     ),
+    "innovation2_rectangle80_unit_profile_ready": (
+        "RECTANGLE四轮严格unit谱标签门通过，下一步扩到192结构"
+    ),
+    "innovation2_rectangle80_unit_profile_raw_labels_not_ready": (
+        "RECTANGLE四轮原始标签未进入正负过渡区，下一步只改为五轮"
+    ),
+    "innovation2_rectangle80_unit_profile_matching_not_ready": (
+        "RECTANGLE原始标签足够但matching容量不足，下一步只扩结构"
+    ),
+    "innovation2_rectangle80_unit_profile_protocol_invalid": (
+        "RECTANGLE最终版规范、行序、向量化、support或反例协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1809,6 +1821,8 @@ def display_name_for_run(run_id: str) -> str:
         "attribution_seed0_20260719"
     ):
         return "创新2 E86：PRESENT/GIFT共享Profile Operator 30轮seed0归因"
+    if run_id == "i2_rectangle80_r4_unit_balance_profile_readiness_20260719":
+        return "创新2 E87：RECTANGLE-80四轮严格unit平衡谱标签readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
