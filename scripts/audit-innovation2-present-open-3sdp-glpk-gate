@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_present_open_3sdp_glpk_gate import main
+
+raise SystemExit(main())

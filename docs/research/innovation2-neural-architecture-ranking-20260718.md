@@ -540,3 +540,13 @@ PRESENT S-box的256个exponent pair中，166个至少存在一条raw trail，但
 与exact ANF非零系数一致；其余76个是existence-only误报，单个pair最多228条路径偶数抵消。
 这给后续GLPK实现提供了可执行的强控制：它必须复现全部transition parity、正负fixture、bit
 order与multi-mask XOR，不能只报告SAT/UNSAT可达性。网络排名和五轮训练门保持关闭。
+
+E53-B进一步验证了Sage/GLPK逐解blocking。代表output exponent `v=1/3/7`分别完整枚举
+`4/28/224`个term-choice解，raw count与GF(2) parity逐项匹配E53-A，说明约束语义正确；对应
+独立进程墙钟约`0.58/0.55/2.11`秒。最重`v=15`需要1792个解，在冻结10秒内未完成，parity
+保持unknown。当前也没有可替代的PySAT、CryptoMiniSat、Z3、BDD或model-counter后端。
+
+因此关闭per-solution GLPK扩到PRESENT电路的路线，不通过加timeout或解释部分枚举补救。下一
+provider门E54改审计exact local transition tensor的GF(2)变量消元宽度：只有真实PRESENT-80
+五轮因子图在确定性min-fill/query-aware顺序下最大factor变量数不超过26、估计峰值不超过4GiB，
+并复现E53-A一、二轮fixture，才实现实际收缩。网络排名、五轮训练和远程GPU继续冻结。

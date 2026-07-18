@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：Phase A exact oracle完成 / GLPK trail枚举器待实现
+状态：Phase A完成 / Phase B GLPK blocking不具扩展性 / 转E54
 
 ## 1. 研究问题
 
@@ -156,3 +156,44 @@ remote_scale = no
 
 下一步只实现GLPK trail枚举器，并要求它逐项复现本run的全部一、二轮fixture和76个消去控制。
 通过前不执行五轮子集、不训练网络、不使用远程GPU。
+
+## 8. Phase B GLPK逐解blocking正式结果
+
+权威run：
+
+```text
+i2_present_r5_open_3sdp_glpk_blocking_gate_20260718
+```
+
+实现为每个活动output coordinate选择一项S-box ANF term，用GLPK binary变量编码选择与输入
+exponent的Boolean union；每取得一个解就加入精确no-good blocking约束。完整性不以“solver
+返回infeasible”单独判断，还要求解数等于所选坐标ANF term数量的Cartesian product。
+
+冻结代表query与10秒/query结果：
+
+```text
+output exponent v=1   expected/completed = 4 / 4       count/parity exact match
+output exponent v=3   expected/completed = 28 / 28     count/parity exact match
+output exponent v=7   expected/completed = 224 / 224   count/parity exact match
+output exponent v=15  expected/completed = 1792 / n/a  timeout, parity unknown
+```
+
+前三项共256个GLPK解与E53-A exact raw-trail count逐项一致；墙钟时间约
+`0.58/0.55/2.11`秒。`v=15`在10秒内未完成，runner杀死独立Sage进程并记录`timeout`，没有
+保存或解释部分parity。当前环境复查无PySAT、CryptoMiniSat、Z3、BDD或model-counter后端。
+
+裁决：
+
+```text
+status       = hold
+decision     = innovation2_present_r5_open_3sdp_glpk_blocking_not_scalable
+training     = no
+remote_scale = no
+```
+
+这说明GLPK约束和blocking在低复杂度下正确，但逐解方法在单个4-bit S-box最重query已越过预算，
+不得扩到一轮或五轮全密码。明确关闭：加长timeout、把部分枚举当parity、五轮GLPK电路扩展、
+标签门前神经训练。
+
+下一步为E54：用exact GF(2) local transition tensor和变量消元直接计算parity，先审计PRESENT
+真实因子图的induced width与峰值内存；宽度不过门则停止当前五轮严格标签provider路线。

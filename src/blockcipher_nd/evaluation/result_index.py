@@ -836,6 +836,15 @@ DECISION_LABELS = {
     "innovation2_present_r5_open_3sdp_glpk_runtime_not_ready": (
         "exact oracle正确，但Sage/GLPK运行环境未就绪"
     ),
+    "innovation2_present_r5_open_3sdp_glpk_blocking_not_scalable": (
+        "GLPK低复杂度计数正确但最重S-box query超时，转transition tensor宽度审计"
+    ),
+    "innovation2_present_r5_open_3sdp_glpk_sbox_enumerator_ready": (
+        "代表S-box query均完整复现exact计数，可进入一轮PRESENT电路fixture"
+    ),
+    "innovation2_present_r5_open_3sdp_glpk_enumerator_invalid": (
+        "GLPK约束、blocking、计数完整性或timeout分类无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1341,6 +1350,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E52：PRESENT五轮严格标签提供者覆盖审计"
     if run_id == "i2_present_r5_open_3sdp_exact_anf_phase_a_20260718":
         return "创新2 E53-A：PRESENT开放3SDP exact-ANF与消去校准"
+    if run_id == "i2_present_r5_open_3sdp_glpk_blocking_gate_20260718":
+        return "创新2 E53-B：PRESENT S-box GLPK逐解blocking扩展性门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
