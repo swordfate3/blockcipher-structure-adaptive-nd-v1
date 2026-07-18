@@ -714,3 +714,14 @@ E64已经确认后一种情况。dual的6158个positive中，6152个是both-coor
 因此E62严格标签本身无误，但原任务被重分类为singleton balance组合主导；E63的复杂RCCA没有
 独立的非平凡消去目标。多坐标网络搜索停止，不再实现pair-path relation变体。创新2当前最强可写
 神经结构证据仍是E39 SPN-PRR在16-bit合成单坐标benchmark上的拓扑归因，不是PRESENT/GIFT突破。
+
+E65没有重启上述多坐标relation路线，而是把E43真实PRESENT四轮的64个unit-mask严格标签重排
+为每个活动结构一次输出64维masked balance profile。checkerboard得到`356/120`条train/
+validation观察坐标、`50/18`个互斥structure和`32/23`个输出bit；行列边际AUC均为`0.5`。
+
+确定性路由中，static/错误P可达/正确P可达/ANF前缀validation AUC为
+`0.514722/0.695694/0.704306/0.793611`。正确P只领先错误P`0.008611`，因此纯拓扑profile
+operator不开放；ANF前缀领先正确拓扑`0.089306`，开放一次prefix-guided nodewise profile
+operator readiness。该方向的单变量不是增加Transformer容量，而是把逐query分类改为同一
+structure下共享前缀表示、一次产生64个输出logit，并用独立node MLP与fair-corrupted-P消息
+处理器控制跨输出交互。它仍限于PRESENT-80四轮严格标签，不构成高轮或攻击结果。

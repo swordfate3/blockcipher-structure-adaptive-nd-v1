@@ -938,6 +938,24 @@ DECISION_LABELS = {
     "innovation2_small_spn_relation_decomposition_protocol_invalid": (
         "E62标签重算、四类分解或negative witness无效"
     ),
+    "innovation2_present_unit_balance_profile_topology_ready": (
+        "单位输出平衡谱宽且正确拓扑信号过门，可测试逐节点profile operator"
+    ),
+    "innovation2_present_unit_balance_profile_prefix_ready": (
+        "单位输出平衡谱宽且ANF前缀信号过门，可测试prefix引导profile operator"
+    ),
+    "innovation2_present_unit_balance_profile_signal_not_ready": (
+        "单位输出平衡谱缺少非平凡组外信号，停止该神经结构"
+    ),
+    "innovation2_present_unit_balance_profile_shortcut_dominated": (
+        "单位输出平衡谱仍被行列边际解释，禁止训练"
+    ),
+    "innovation2_present_unit_balance_profile_too_narrow": (
+        "单位输出平衡谱宽度或覆盖不足，停止该路线"
+    ),
+    "innovation2_present_unit_balance_profile_protocol_invalid": (
+        "E43重放、谱重排、特征或split协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1482,6 +1500,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E63：DeepSets/RCCA正式双seed筛选"
     if run_id == "i2_small_spn_relation_decomposition_20260718":
         return "创新2 E64：多坐标relation非平凡消去分解"
+    if run_id == "i2_present_r4_unit_balance_profile_readiness_20260718":
+        return "创新2 E65：PRESENT四轮单位输出平衡谱readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
