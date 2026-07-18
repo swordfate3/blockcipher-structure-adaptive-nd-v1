@@ -662,6 +662,54 @@ def test_result_index_labels_innovation2_real_spn_pair_state_transfer(
     )
 
 
+def test_result_index_labels_innovation2_present_universal_balance_atlas(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_universal_balance_atlas_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_universal_balance_atlas_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E43：PRESENT四轮全称平衡证书/反例atlas"
+    )
+    assert entries[0]["decision_display"] == (
+        "PRESENT四轮证书/反例atlas与checkerboard反捷径门通过"
+    )
+
+
+def test_result_index_labels_innovation2_present_pair_state_attribution(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_pair_state_neural_attribution_seed0_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_pair_state_topology_attributed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E44：PRESENT四轮64-bit pair-state神经归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "64-bit pair-state在严格PRESENT四轮标签上通过正确P-layer归因"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

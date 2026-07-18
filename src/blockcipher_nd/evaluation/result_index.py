@@ -710,6 +710,30 @@ DECISION_LABELS = {
     "innovation2_real_spn_pair_state_transfer_protocol_invalid": (
         "真实SPN迁移审计的来源、标签聚合、64-bit模型或metric协议无效"
     ),
+    "innovation2_present_universal_balance_atlas_ready": (
+        "PRESENT四轮证书/反例atlas与checkerboard反捷径门通过"
+    ),
+    "innovation2_present_universal_balance_atlas_too_narrow": (
+        "PRESENT四轮严格标签或checkerboard宽度不足"
+    ),
+    "innovation2_present_universal_balance_atlas_shortcut_dominated": (
+        "PRESENT四轮matched atlas仍可被一元边际解释"
+    ),
+    "innovation2_present_universal_balance_atlas_protocol_invalid": (
+        "PRESENT四轮atlas的ANF、反例、split、mask或证书协议无效"
+    ),
+    "innovation2_present_pair_state_topology_attributed": (
+        "64-bit pair-state在严格PRESENT四轮标签上通过正确P-layer归因"
+    ),
+    "innovation2_present_pair_state_candidate_not_ready": (
+        "64-bit pair-state未超过严格PRESENT四轮候选开放门"
+    ),
+    "innovation2_present_pair_state_topology_not_attributed": (
+        "64-bit pair-state预测信号未归因到正确P-layer"
+    ),
+    "innovation2_present_pair_state_attribution_protocol_invalid": (
+        "PRESENT四轮pair-state的source、模型、控制、metric或训练协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1189,6 +1213,12 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E41：局部pair-state公平拓扑归因"
     if run_id == "i2_real_spn_pair_state_transfer_readiness_20260718":
         return "创新2 E42：真实SPN标签与64-bit pair-state迁移readiness"
+    if run_id == "i2_present_r4_universal_balance_atlas_20260718":
+        return "创新2 E43：PRESENT四轮全称平衡证书/反例atlas"
+    if run_id == "i2_present_r4_pair_state_neural_attribution_seed0_20260718":
+        return "创新2 E44：PRESENT四轮64-bit pair-state神经归因"
+    if run_id == "i2_present_r4_pair_state_neural_attribution_smoke_seed0_20260718":
+        return "创新2 E44：PRESENT四轮64-bit pair-state训练就绪smoke"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
