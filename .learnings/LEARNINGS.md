@@ -7260,3 +7260,54 @@ non-publication local work when possible.
 - Promoted: AGENTS.md
 
 ---
+## [LRN-20260718-006] correction
+
+**Logged**: 2026-07-18T14:30:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Algebraic Transition Matrix input coordinates use the precursor indicator basis, not an ordinary input monomial; scalar support is `2^wt(u)`, not `2^(n-wt(u))`.
+
+### Details
+
+Innovation 2 E57 initially interpreted an ATM coordinate `(u,v)` as the ordinary
+monomial product `x^u * E_K(x)^v`. For the public PRESENT nine-round relations,
+whose input exponents have weight 60--63, this incorrectly reduced each scalar
+sum to 2--16 plaintexts and produced a misleading `0/470` cross-key stability
+diagnostic.
+
+The paper's Definition 7, Theorem 6, and Algorithm 1 use
+`pi_u(x)=1[x <= u]` over `Prec(u)={x:x<=u}`. Its support has size `2^wt(u)`.
+The corrected 470-relation audit therefore requires at least `2^60`
+plaintexts per relation and key, with median `2^63`; the earlier result tested
+the wrong basis and has no cryptographic interpretation.
+
+### Suggested Action
+
+Before evaluating imported algebraic-basis coordinates, freeze the exact basis
+functions from the paper and source, unit-test their support cardinality, and
+apply a data-complexity boundary before encryption. Mark any run using a
+different basis protocol-invalid; do not repair it by post-hoc bit mappings or
+remote brute-force scale.
+
+### Metadata
+
+- Source: paper_reaudit, self_correction
+- Related Files: docs/experiments/innovation2-present-r9-generalized-relation-value-witness-plan.md, src/blockcipher_nd/tasks/innovation2/present_generalized_relation_precursor_boundary.py
+- Tags: innovation2, present, algebraic-transition-matrix, precursor-basis, monomial, data-complexity
+- See Also: LRN-20260718-005, LRN-20260718-003
+- Pattern-Key: innovation2.provider.atm_precursor_basis_not_ordinary_monomial
+- Recurrence-Count: 1
+- First-Seen: 2026-07-18
+- Last-Seen: 2026-07-18
+
+### Resolution
+
+- **Resolved**: 2026-07-18T14:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Replaced the wrong-basis evaluator with a precursor support boundary audit and invalidated the `0/470` diagnostic.
+
+---

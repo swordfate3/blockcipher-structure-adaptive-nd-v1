@@ -594,8 +594,21 @@ E56正式审计确认ATM广义relation正类有宽度，但神经标签仍未就
 schedule。独立轮密钥下constant relation作为正类原则上比actual schedule更强，但常数0/1仍需
 直接求值，actual schedule下严格负类也必须有具体key witness；二者不能从basis缺失推断。
 
-下一门E57利用ATM坐标的高输入指数重量：`wt(u)=60--63`意味着Definition 6直接求和每坐标只需
-`2--16`个明文。先在真实PRESENT-80九轮上给470个正relation求常数，并生成边际匹配候选；只有
-两颗具体master key给出不同relation值才形成严格负类。达到至少256正/256负、witness复验、
-relation-disjoint和边际匹配后，才开放`deterministic marginal / coordinate-set DeepSets /
-Relation-Cipher Cross-Attention`三行本地矩阵。E57前其他新网络继续关闭。
+E57最初把ATM坐标误读为普通输入monomial `x^u`，并错误估算每坐标只需
+`2^(64-wt(u))=2--16`个明文。论文Definition 7和Algorithm 1表明输入实际采用precursor basis：
+`pi_u=1_{x<=u}`，其支持大小为`2^wt(u)`。因此当前`wt(u)=60--63`对应`2^60--2^63`个明文。
+错误`x^u` evaluator的`0/470`跨key稳定只能标记为wrong-basis诊断，不能当密码学结果。
+
+修正后的E57只审计precursor数据复杂度与标量cap，不执行大规模加密。若最小relation-key成本
+已经超过`2^24`本地门，就关闭直接标量求常数/negative witness；只有获得可执行的algebraic/SAT
+constant与key-dependence provider，才重新开放`deterministic marginal / coordinate-set
+DeepSets / Relation-Cipher Cross-Attention`矩阵。其他新网络继续关闭。
+
+E57正式结果已关闭直接标量路线。470个relation共693个坐标，`wt(u)`直方图为
+`60:3, 61:40, 62:98, 63:552`；单relation、单key最小/中位/最大成本为
+`2^60/2^63/2^65`，最小双key witness为`2^61`，而冻结本地cap只有`2^24`。来源和语义控制
+全部通过，但成本门全部失败；没有执行大规模加密、神经训练或远程GPU。
+
+下一阶段只改变provider表示：先用E53-A一、二轮exact fixture校准，再对一个冻结九轮relation
+做硬cap可执行性审计。候选必须输出可复验constant或actual PRESENT-80 master-key witness；
+只输出可达性、只支持独立轮密钥或超cap均停止。通过前网络排名继续冻结。

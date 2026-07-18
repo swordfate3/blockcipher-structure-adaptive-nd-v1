@@ -869,6 +869,9 @@ DECISION_LABELS = {
     "innovation2_generalized_relation_label_contract_not_ready": (
         "广义relation正类存在，但真实key schedule、严格负类与互斥拆分未就绪"
     ),
+    "innovation2_present_r9_generalized_relation_scalar_witness_infeasible": (
+        "最小relation已需2^60明文，关闭直接标量常数与negative-witness路线"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -964,6 +967,8 @@ def build_result_index(
         if not scope_root.is_dir():
             continue
         for run_root in sorted(path for path in scope_root.iterdir() if path.is_dir()):
+            if (run_root / "index_excluded.marker").is_file():
+                continue
             entry = _index_run(outputs_root, scope, run_root)
             if entry is not None:
                 entries.append(entry)
@@ -1391,6 +1396,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E55：PRESENT三轮query-cone exact sparse-ANF硬cap门"
     if run_id == "i2_present_r9_generalized_integral_relation_contract_20260718":
         return "创新2 E56：PRESENT九轮广义积分relation神经标签契约审计"
+    if run_id == "i2_present_r9_generalized_relation_precursor_boundary_20260718":
+        return "创新2 E57：PRESENT九轮广义relation precursor标量边界"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

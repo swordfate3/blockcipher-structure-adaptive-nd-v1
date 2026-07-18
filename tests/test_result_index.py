@@ -1028,6 +1028,55 @@ def test_result_index_labels_innovation2_generalized_relation_contract(
     )
 
 
+def test_result_index_labels_innovation2_generalized_relation_precursor_boundary(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_generalized_relation_precursor_boundary_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation2_present_r9_generalized_relation_scalar_witness_infeasible"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E57：PRESENT九轮广义relation precursor标量边界"
+    )
+    assert entries[0]["decision_display"] == (
+        "最小relation已需2^60明文，关闭直接标量常数与negative-witness路线"
+    )
+
+
+def test_result_index_skips_explicitly_excluded_protocol_invalid_run(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    excluded = outputs / "local_audits" / "wrong_basis_diagnostic"
+    included = outputs / "local_audits" / "valid_boundary"
+    _write_json(
+        excluded / "gate.json",
+        {"status": "hold", "decision": "wrong_basis_diagnostic"},
+    )
+    (excluded / "index_excluded.marker").write_text(
+        "protocol-invalid\n", encoding="utf-8"
+    )
+    _write_json(
+        included / "gate.json",
+        {"status": "hold", "decision": "valid_boundary"},
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert [entry["run_id"] for entry in entries] == ["valid_boundary"]
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

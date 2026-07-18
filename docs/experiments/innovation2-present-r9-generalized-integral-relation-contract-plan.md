@@ -193,17 +193,22 @@ remote   = no
 不直接训练DeepSets或Relation-Cipher Cross-Attention，不用random unknown补负类，不按文件ID
 拆分，也不把独立轮密钥关系称为PRESENT-80 balance标签。
 
-执行E57真实PRESENT-80 relation值与negative-witness门。Definition 6中的每个坐标为
-`x^u * E_K(x)^v`；当前`wt(u)=60--63`，所以直接求和只需枚举`2^(64-wt(u))=2--16`个明文。
-E57应：
+执行E57 precursor语义与标量witness边界门。论文Definition 7和Algorithm 1中的输入基函数是
+`pi_u=1_{x<=u}`，不是普通monomial `x^u`。当前`wt(u)=60--63`，所以直接求和实际需要
+`|Prec(u)|=2^wt(u)=2^60--2^63`个明文。E57应：
 
 ```text
-1. 在真实PRESENT-80九轮、直接bit mapping下计算470个正relation的常数值；
-2. 用多颗master key验证ATM正relation保持不变，并记录0/1；
-3. 生成与正类relation size、wt(u)、wt(v)边际匹配的候选；
-4. 只有两颗具体master key给出不同relation值时才标为严格negative；
-5. 至少256正/256负、witness复验、relation-disjoint和边际匹配全部通过后，才开放三行本地神经矩阵。
+1. 机器核验470个relation的precursor/plain-monomial复杂度；
+2. 报告单relation-key最小/中位/最大明文数；
+3. 与冻结2^24本地标量cap比较；
+4. 若失败，关闭直接标量求常数/negative witness，不执行大规模加密；
+5. 仅在有可执行algebraic/SAT provider时才重新讨论广义relation监督标签。
 ```
 
-若ATM正relation在direct mapping下不稳定，先审计bit/round convention，不后验挑mapping；若严格
-负类不足256，广义relation神经路线关闭。
+此前按`x^u`错误实现得到`0/470`稳定，只是wrong-basis诊断，不能解释ATM relation或后验挑bit
+mapping。标量边界失败时，广义relation神经路线继续关闭。
+
+E57现已完成。470个relation的最小/中位/最大precursor标量成本分别为`2^60/2^63/2^65`
+明文/单key，最小双key witness成本为`2^61`，远超冻结`2^24` cap。因此直接标量常数与
+negative-witness路线关闭；下一步只允许审计可执行的algebraic/SAT provider，不转远程枚举，
+也不开放神经矩阵。
