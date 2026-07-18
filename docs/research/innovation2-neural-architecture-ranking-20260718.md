@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E68性能第一 / E73简洁性第一 / E74 GIFT严格标签matching容量未就绪
+状态：PRESENT E68/E73与GIFT E79均完成双seed真实SPN拓扑归因
 
 ## 1. 结论先行
 
@@ -858,3 +858,18 @@ E78 seed0正式归因已经通过。independent/corrupted/true validation AUC为
 跨SPN泛化结论。下一步只运行完全相同的30轮seed1；不得在复现前改变模型、输入、错误P或门槛。
 PRESENT E68仍是完整前缀性能第一，E73是PRESENT简洁性第一；GIFT E78暂列第二真实SPN的单seed
 候选证据。
+
+E79 seed1已独立复现并通过联合门。GIFT independent/corrupted/true AUC为
+seed0 `0.571280/0.774714/0.913111`、seed1 `0.569719/0.784599/0.911030`；双seed mean true
+为`0.912071`，mean true相对独立、错误P和E77公平ridge增益为
+`+0.341571/+0.132414/+0.168574`。
+
+创新2现在首次拥有同一`r3-only Prefix-Guided Nodewise Profile Operator`归纳偏置在两个真实
+64-bit SPN上的独立严格标签证据：PRESENT mean true `0.946667`，GIFT mean true `0.912071`，
+两者均逐seed通过独立node与same-family错误P控制。这里的“同一方法”指相同13维r3输入格式、
+64-node共享算子和真实cipher P-layer；两套模型分别在各自标签上训练，不是checkpoint迁移或零样本
+跨密码泛化。PRESENT使用96结构、GIFT使用192结构，AUC不可当同数据性能排行直接比较。
+
+下一步停止PRESENT/GIFT同benchmark模型枚举。先形成E80跨SPN方法级证据与claim-boundary综合，
+然后只在SKINNY-64或另一真实SPN通过同级strict label、structure-disjoint和边际控制后开放第三密码
+训练。若标签门不通过，保留双密码四轮方法贡献，不用高轮或SOTA语言扩大结论。
