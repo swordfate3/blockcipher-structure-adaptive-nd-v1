@@ -1513,6 +1513,30 @@ def test_result_index_labels_innovation2_gift64_unit_profile_readiness(
     )
 
 
+def test_result_index_labels_innovation2_gift64_unit_profile_expansion(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_gift64_r4_unit_balance_profile_192_structures_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_gift64_unit_balance_profile_expansion_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E75：GIFT-64四轮严格单位输出平衡谱192结构容量复核"
+    )
+    assert entries[0]["decision_display"] == (
+        "GIFT-64四轮192结构严格unit谱容量门通过，可测试r3-only算子"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

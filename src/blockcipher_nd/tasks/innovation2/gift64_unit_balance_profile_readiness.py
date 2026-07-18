@@ -33,6 +33,7 @@ AUDIT_STRUCTURES = 96
 AUDIT_WITNESS_KEYS = 16
 AUDIT_OFFSETS = 8
 AUDIT_MATCH_ATTEMPTS = 64
+EXPANSION_STRUCTURES = 192
 ACTIVE_DIMENSION = 8
 OUTPUT_BITS = 64
 
@@ -81,6 +82,34 @@ class Gift64UnitProfileConfig:
             or self.match_attempts != AUDIT_MATCH_ATTEMPTS
         ):
             raise ValueError("E74 protocol is frozen")
+
+
+@dataclass(frozen=True)
+class Gift64UnitProfileExpansionConfig:
+    run_id: str
+    rounds: int = AUDIT_ROUNDS
+    structure_count: int = EXPANSION_STRUCTURES
+    witness_keys: int = AUDIT_WITNESS_KEYS
+    offsets_per_structure: int = AUDIT_OFFSETS
+    match_attempts: int = AUDIT_MATCH_ATTEMPTS
+    structure_seed: int = 20260718
+    key_seed: int = 7401
+    offset_seed: int = 17401
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if (
+            self.rounds != AUDIT_ROUNDS
+            or self.structure_count != EXPANSION_STRUCTURES
+            or self.witness_keys != AUDIT_WITNESS_KEYS
+            or self.offsets_per_structure != AUDIT_OFFSETS
+            or self.match_attempts != AUDIT_MATCH_ATTEMPTS
+        ):
+            raise ValueError("E75 protocol is frozen")
+
+
+Gift64ProfileConfig = Gift64UnitProfileConfig | Gift64UnitProfileExpansionConfig
 
 
 def reconstruct_gift_sbox_from_anf(value: int) -> int:
@@ -177,7 +206,7 @@ def _sbox_support(inputs: list[set[int]], output_bit: int) -> set[int]:
 
 
 def build_gift_unit_atlas(
-    config: Gift64UnitProfileConfig,
+    config: Gift64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
 ) -> dict[str, Any]:
     keys = make_gift_keys(config.witness_keys, config.key_seed)
@@ -366,10 +395,11 @@ def _rate(values: list[int], default: float) -> float:
 
 
 def evaluate_gift_unit_profile(
-    config: Gift64UnitProfileConfig,
+    config: Gift64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     matched: dict[str, Any],
+    anchor_checks: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     labels = raw["labels"]
     positive = int(np.sum(labels == 1))
@@ -410,7 +440,8 @@ def evaluate_gift_unit_profile(
         ),
         "gift_permutation_is_bijective": sorted(_GIFT64_PERM) == list(range(64)),
         "vectorized_scalar_fixture_matches": vector_fixture["all_pass"],
-        "raw_shape_is_96x64": labels.shape == (96, 64),
+        "structure_count_matches": len(structures) == config.structure_count,
+        "raw_shape_matches": labels.shape == (config.structure_count, OUTPUT_BITS),
         "all_positive_rows_have_certificate": all(
             row["certificate"] == "full_cube_monomial_absent_from_support_overapprox"
             for row in raw["rows"]
@@ -430,6 +461,7 @@ def evaluate_gift_unit_profile(
         "train_validation_structures_disjoint": not set(
             matched["split_indices"]["train"]
         ).intersection(matched["split_indices"]["validation"]),
+        **(anchor_checks or {}),
     }
     width_checks = {
         "raw_each_class_at_least_256": positive >= 256 and negative >= 256,
@@ -453,7 +485,10 @@ def evaluate_gift_unit_profile(
         "output_class_delta_zero": matched["balance"]["maximum_mask_class_delta"] == 0,
     }
     status, decision, action = adjudicate_gift_profile_checks(
-        protocol_checks, width_checks, shortcut_checks
+        protocol_checks,
+        width_checks,
+        shortcut_checks,
+        experiment=_profile_experiment(config),
     )
     return {
         "run_id": config.run_id,
@@ -479,23 +514,32 @@ def adjudicate_gift_profile_checks(
     protocol_checks: dict[str, bool],
     width_checks: dict[str, bool],
     shortcut_checks: dict[str, bool],
+    *,
+    experiment: str = "e74",
 ) -> tuple[str, str, str]:
+    if experiment not in {"e74", "e75"}:
+        raise ValueError("experiment must be e74 or e75")
+    decision_stem = (
+        "innovation2_gift64_unit_balance_profile_expansion"
+        if experiment == "e75"
+        else "innovation2_gift64_unit_balance_profile"
+    )
     if not all(protocol_checks.values()):
         status = "fail"
-        decision = "innovation2_gift64_unit_balance_profile_protocol_invalid"
+        decision = f"{decision_stem}_protocol_invalid"
         action = "repair GIFT semantics, vectorization, witness, or certificate protocol"
     elif not all(width_checks.values()) or not all(shortcut_checks.values()):
         status = "hold"
-        decision = "innovation2_gift64_unit_balance_profile_not_ready"
+        decision = f"{decision_stem}_not_ready"
         action = "redesign strict GIFT labels or matching before neural training"
     else:
         status = "pass"
-        decision = "innovation2_gift64_unit_balance_profile_ready"
+        decision = f"{decision_stem}_ready"
         action = "run a local r3-only GIFT profile operator readiness matrix"
     return status, decision, action
 
 
-def validate_gift_vectorized_fixture(config: Gift64UnitProfileConfig) -> dict[str, Any]:
+def validate_gift_vectorized_fixture(config: Gift64ProfileConfig) -> dict[str, Any]:
     keys = make_gift_keys(4, config.key_seed + 99)
     words = np.asarray(
         [0, 1, 0x0123456789ABCDEF, 0xFEDCBA9876543210, 0xFFFFFFFFFFFFFFFF],
@@ -517,7 +561,7 @@ def validate_gift_vectorized_fixture(config: Gift64UnitProfileConfig) -> dict[st
 
 
 def validate_gift_negative_witnesses(
-    config: Gift64UnitProfileConfig,
+    config: Gift64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     sample_count: int = 24,
@@ -545,12 +589,12 @@ def validate_gift_negative_witnesses(
 
 
 def result_rows_for_gift_profile(
-    config: Gift64UnitProfileConfig, gate: dict[str, Any]
+    config: Gift64ProfileConfig, gate: dict[str, Any]
 ) -> list[dict[str, Any]]:
     metrics = gate["metrics"]
     common = {
         "run_id": config.run_id,
-        "task": "innovation2_gift64_unit_balance_profile_readiness",
+        "task": _profile_task(config),
         "cipher": "GIFT-64",
         "rounds": config.rounds,
         "status": gate["status"],
@@ -585,13 +629,25 @@ def _safe_auc(labels: np.ndarray, scores: np.ndarray) -> float:
     return float(binary_auc(labels.astype(np.float32), scores.astype(np.float64)))
 
 
-def serializable_config(config: Gift64UnitProfileConfig) -> dict[str, Any]:
+def _profile_experiment(config: Gift64ProfileConfig) -> str:
+    return "e75" if isinstance(config, Gift64UnitProfileExpansionConfig) else "e74"
+
+
+def _profile_task(config: Gift64ProfileConfig) -> str:
+    if _profile_experiment(config) == "e75":
+        return "innovation2_gift64_unit_balance_profile_expansion"
+    return "innovation2_gift64_unit_balance_profile_readiness"
+
+
+def serializable_config(config: Gift64ProfileConfig) -> dict[str, Any]:
     return asdict(config)
 
 
 __all__ = [
     "GIFT64_SBOX_ANF",
+    "Gift64ProfileConfig",
     "Gift64UnitProfileConfig",
+    "Gift64UnitProfileExpansionConfig",
     "adjudicate_gift_profile_checks",
     "build_gift_checkerboard",
     "build_gift_unit_atlas",

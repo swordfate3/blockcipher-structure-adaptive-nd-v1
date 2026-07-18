@@ -10,7 +10,9 @@ from typing import Any
 import numpy as np
 
 from blockcipher_nd.tasks.innovation2.gift64_unit_balance_profile_readiness import (
+    Gift64ProfileConfig,
     Gift64UnitProfileConfig,
+    Gift64UnitProfileExpansionConfig,
     build_gift_checkerboard,
     build_gift_unit_atlas,
     evaluate_gift_unit_profile,
@@ -28,12 +30,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--protocol", choices=("e74", "e75"), default="e74")
+    parser.add_argument("--anchor-root", type=Path)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    config = Gift64UnitProfileConfig(run_id=args.run_id)
+    config: Gift64ProfileConfig
+    if args.protocol == "e75":
+        if args.anchor_root is None:
+            raise ValueError("E75 requires --anchor-root pointing to the completed E74 run")
+        config = Gift64UnitProfileExpansionConfig(run_id=args.run_id)
+    else:
+        config = Gift64UnitProfileConfig(run_id=args.run_id)
     args.output_root.mkdir(parents=True, exist_ok=True)
     progress = args.output_root / "progress.jsonl"
     _write_progress(progress, "run_start", {"training": False, "cipher": "GIFT-64"})
@@ -52,13 +62,30 @@ def main(argv: list[str] | None = None) -> int:
     _write_progress(
         progress, "matched_benchmark_complete", matched["split_metrics"]
     )
-    gate = evaluate_gift_unit_profile(config, structures, raw, matched)
+    anchor_checks = None
+    if args.protocol == "e75":
+        anchor_checks = _validate_e74_anchor(args.anchor_root, structures, raw)
+        _write_progress(progress, "e74_anchor_validated", anchor_checks)
+    gate = evaluate_gift_unit_profile(
+        config,
+        structures,
+        raw,
+        matched,
+        anchor_checks=anchor_checks,
+    )
     result_rows = result_rows_for_gift_profile(config, gate)
     targets, observed = _matched_profile_arrays(raw["labels"].shape, matched["rows"])
 
     metadata = {
         "run_id": config.run_id,
-        "task": "innovation2_gift64_unit_balance_profile_readiness",
+        "task": (
+            "innovation2_gift64_unit_balance_profile_expansion"
+            if args.protocol == "e75"
+            else "innovation2_gift64_unit_balance_profile_readiness"
+        ),
+        "experiment": args.protocol,
+        "anchor_root": None if args.anchor_root is None else str(args.anchor_root),
+        "anchor_checks": anchor_checks,
         "config": serializable_config(config),
         "target": (
             "64 unit-output cube XOR coordinates are zero for every GIFT-64 "
@@ -134,6 +161,53 @@ def _matched_profile_arrays(
         targets[structure_index, output_bit] = int(row["label"])
         observed[structure_index, output_bit] = True
     return targets, observed
+
+
+def _validate_e74_anchor(
+    anchor_root: Path,
+    structures: tuple[Any, ...],
+    raw: dict[str, Any],
+) -> dict[str, bool]:
+    gate = json.loads((anchor_root / "gate.json").read_text(encoding="utf-8"))
+    structure_payload = json.loads(
+        (anchor_root / "structures.json").read_text(encoding="utf-8")
+    )
+    anchor_structures = structure_payload["structures"]
+    expected_structures = [
+        {
+            "index": structure.index,
+            "structure_id": structure.structure_id,
+            "role": structure.role,
+            "active_bits": list(structure.active_bits),
+            "active_mask_hex": f"0x{structure.active_mask:016X}",
+            "split": "validation" if not structure.index % 4 else "train",
+        }
+        for structure in structures[:96]
+    ]
+    anchor_labels = np.full((96, 64), -1, dtype=np.int8)
+    with (anchor_root / "atlas.jsonl").open(encoding="utf-8") as handle:
+        for line in handle:
+            row = json.loads(line)
+            if row["label"] is not None:
+                anchor_labels[int(row["structure_index"]), int(row["output_bit"])] = int(
+                    row["label"]
+                )
+    anchor_prefix = np.load(anchor_root / "prefix_features.npy", allow_pickle=False)
+    return {
+        "e74_anchor_status_is_hold": gate.get("status") == "hold",
+        "e74_anchor_decision_matches": gate.get("decision")
+        == "innovation2_gift64_unit_balance_profile_not_ready",
+        "e74_anchor_shape_matches": anchor_labels.shape == (96, 64)
+        and anchor_prefix.shape == (96, 64, 39),
+        "first_96_structure_definitions_equal": anchor_structures
+        == expected_structures,
+        "first_96_ternary_labels_equal": np.array_equal(
+            anchor_labels, raw["labels"][:96]
+        ),
+        "first_96_prefix_features_equal": np.array_equal(
+            anchor_prefix, raw["prefix_features"][:96]
+        ),
+    }
 
 
 def _write_progress(path: Path, event: str, payload: dict[str, Any]) -> None:

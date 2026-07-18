@@ -818,3 +818,13 @@ E74已经完成第二真实SPN的第一道门，但裁决为hold。GIFT-64四轮
 下一实验只把确定性结构库从96扩大到192，其他标签语义、4轮、8-bit cube、16 keys、8 offsets、
 split、matching与所有门保持不变。若宽度通过，才开放GIFT r3-only三行本地readiness；若仍失败，
 关闭当前GIFT unit-profile迁移并转SKINNY或新的sound标签表示。E68/E73排名不受E74 hold影响。
+
+E75已经在唯一改变结构数的条件下通过。前96结构定义、三态标签和39维前缀逐项重放E74；
+192结构得到`6087/3286/2915`个positive/negative/unknown、168个mixed结构和187种签名。
+checkerboard扩展到train `248/248`、validation `62/62`，覆盖143个结构与39个validation输出bit，
+行列class delta仍为0，一元边际AUC仍全部0.5。
+
+因此GIFT-64四轮严格profile现在只开放E76本地两轮readiness：同参数比较independent node、
+true GIFT P-layer与same-family fair-corrupted P，并报告r3-only/full39 train-only ridge。
+这不是跨密码神经成功；只有正确P逐项超过独立与错误P且r3 deterministic信息没有明显落后完整
+前缀，才进入30轮seed0。E68/E73仍分别是当前性能与简洁性第一。

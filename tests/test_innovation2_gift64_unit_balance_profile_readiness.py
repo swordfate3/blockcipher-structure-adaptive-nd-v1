@@ -8,12 +8,14 @@ import numpy as np
 from blockcipher_nd.ciphers.spn.gift import Gift64, _SBOX
 from blockcipher_nd.cli.audit_innovation2_gift64_unit_balance_profile_readiness import (
     _matched_profile_arrays,
+    _validate_e74_anchor,
 )
 from blockcipher_nd.cli.plot_innovation2_gift64_unit_balance_profile_readiness import (
     main as plot_main,
 )
 from blockcipher_nd.tasks.innovation2.gift64_unit_balance_profile_readiness import (
     Gift64UnitProfileConfig,
+    Gift64UnitProfileExpansionConfig,
     adjudicate_gift_profile_checks,
     build_gift_checkerboard,
     encrypt_gift_words,
@@ -24,6 +26,7 @@ from blockcipher_nd.tasks.innovation2.gift64_unit_balance_profile_readiness impo
 from blockcipher_nd.tasks.innovation2.present_universal_balance_atlas import (
     ActiveStructure,
     _cube_assignments,
+    make_structures,
 )
 
 
@@ -108,6 +111,12 @@ def test_gate_passes_only_when_protocol_width_and_shortcuts_pass() -> None:
         "fail",
         "innovation2_gift64_unit_balance_profile_protocol_invalid",
     )
+    assert adjudicate_gift_profile_checks(
+        passed, passed, passed, experiment="e75"
+    )[:2] == (
+        "pass",
+        "innovation2_gift64_unit_balance_profile_expansion_ready",
+    )
 
 
 def test_plot_writes_clear_chinese_e74_svg(tmp_path: Path) -> None:
@@ -162,3 +171,75 @@ def test_e74_config_is_frozen() -> None:
         assert "frozen" in str(error)
     else:
         raise AssertionError("E74 audit dimensions must remain frozen")
+
+
+def test_e75_expands_only_the_structure_count() -> None:
+    anchor = Gift64UnitProfileConfig(run_id="e74-test")
+    expansion = Gift64UnitProfileExpansionConfig(run_id="e75-test")
+
+    assert expansion.structure_count == 192
+    for field in (
+        "rounds",
+        "witness_keys",
+        "offsets_per_structure",
+        "match_attempts",
+        "structure_seed",
+        "key_seed",
+        "offset_seed",
+    ):
+        assert getattr(expansion, field) == getattr(anchor, field)
+    assert make_structures(expansion)[:96] == make_structures(anchor)
+
+
+def test_e75_anchor_replay_checks_all_frozen_arrays(tmp_path: Path) -> None:
+    config = Gift64UnitProfileConfig(run_id="e74-test")
+    structures = make_structures(config)
+    labels = np.zeros((192, 64), dtype=np.int8)
+    prefix = np.zeros((192, 64, 39), dtype=np.float64)
+    anchor_root = tmp_path / "anchor"
+    anchor_root.mkdir()
+    (anchor_root / "gate.json").write_text(
+        json.dumps(
+            {
+                "status": "hold",
+                "decision": "innovation2_gift64_unit_balance_profile_not_ready",
+            }
+        ),
+        encoding="utf-8",
+    )
+    structure_rows = [
+        {
+            "index": structure.index,
+            "structure_id": structure.structure_id,
+            "role": structure.role,
+            "active_bits": list(structure.active_bits),
+            "active_mask_hex": f"0x{structure.active_mask:016X}",
+            "split": "validation" if not structure.index % 4 else "train",
+        }
+        for structure in structures
+    ]
+    (anchor_root / "structures.json").write_text(
+        json.dumps({"structures": structure_rows}), encoding="utf-8"
+    )
+    with (anchor_root / "atlas.jsonl").open("w", encoding="utf-8") as handle:
+        for structure_index in range(96):
+            for output_bit in range(64):
+                handle.write(
+                    json.dumps(
+                        {
+                            "structure_index": structure_index,
+                            "output_bit": output_bit,
+                            "label": 0,
+                        }
+                    )
+                    + "\n"
+                )
+    np.save(anchor_root / "prefix_features.npy", prefix[:96])
+
+    checks = _validate_e74_anchor(
+        anchor_root,
+        make_structures(Gift64UnitProfileExpansionConfig(run_id="e75-test")),
+        {"labels": labels, "prefix_features": prefix},
+    )
+
+    assert all(checks.values())

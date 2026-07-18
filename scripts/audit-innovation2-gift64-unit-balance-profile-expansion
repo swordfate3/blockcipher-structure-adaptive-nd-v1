@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import sys
+
+from blockcipher_nd.cli.audit_innovation2_gift64_unit_balance_profile_readiness import main
+
+raise SystemExit(main(["--protocol", "e75", *sys.argv[1:]]))

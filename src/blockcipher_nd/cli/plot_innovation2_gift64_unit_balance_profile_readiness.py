@@ -31,6 +31,11 @@ def render_gift64_unit_balance_profile(
 ) -> None:
     gate = summary["gate"]
     metrics = gate["metrics"]
+    metadata = summary.get("metadata", {})
+    experiment = metadata.get("experiment", "e74")
+    structure_count = metadata.get("config", {}).get("structure_count")
+    if structure_count is None:
+        structure_count = metrics.get("raw_rows", 6144) // 64
     split = metrics["matched_split_metrics"]
     raw_counts = (
         metrics["raw_positive"],
@@ -47,7 +52,21 @@ def render_gift64_unit_balance_profile(
         "innovation2_gift64_unit_balance_profile_protocol_invalid": (
             "GIFT轮函数、ANF、反例或split协议无效；必须先修复。"
         ),
+        "innovation2_gift64_unit_balance_profile_expansion_ready": (
+            "192结构严格标签与容量门通过；下一步只做本地三行神经readiness。"
+        ),
+        "innovation2_gift64_unit_balance_profile_expansion_not_ready": (
+            "192结构仍未形成足够checkerboard；关闭当前GIFT unit-profile迁移。"
+        ),
+        "innovation2_gift64_unit_balance_profile_expansion_protocol_invalid": (
+            "E74锚点重放或GIFT标签协议无效；不解释扩结构结果。"
+        ),
     }
+    title = (
+        "创新2 E75：扩大到192个结构后，GIFT-64四轮严格积分平衡谱是否可训练"
+        if experiment == "e75"
+        else "创新2 E74：GIFT-64四轮的64位积分平衡谱能否形成严格训练标签"
+    )
     colors = ("#0F766E", "#2563EB", "#94A3B8")
     with plt.rc_context(
         {
@@ -67,7 +86,7 @@ def render_gift64_unit_balance_profile(
         figure.text(
             0.065,
             0.955,
-            "创新2 E74：GIFT-64四轮的64位积分平衡谱能否形成严格训练标签",
+            title,
             ha="left",
             va="top",
             fontsize=15.0,
@@ -77,7 +96,10 @@ def render_gift64_unit_balance_profile(
         figure.text(
             0.065,
             0.895,
-            "每个输入结构活动8个坐标位，网络目标是一次预测64个输出bit分别是否始终XOR平衡。",
+            (
+                f"共{structure_count}个输入结构，每个活动8个坐标位；目标是一次预测64个输出bit"
+                "分别是否始终XOR平衡。"
+            ),
             ha="left",
             va="top",
             fontsize=9.8,
@@ -174,7 +196,10 @@ def render_gift64_unit_balance_profile(
         figure.text(
             0.065,
             0.053,
-            "证据范围：GIFT-64四轮严格标签readiness；不是神经性能、高轮区分器、攻击或SOTA结果。",
+            (
+                "证据范围：GIFT-64四轮严格标签与matching容量readiness；"
+                "不是神经性能、高轮区分器、攻击或SOTA结果。"
+            ),
             ha="left",
             va="bottom",
             fontsize=9.0,
