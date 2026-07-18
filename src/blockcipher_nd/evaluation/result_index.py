@@ -1097,6 +1097,15 @@ DECISION_LABELS = {
     "innovation2_gift64_r3_only_profile_protocol_invalid": (
         "GIFT-64 E75来源、拓扑、参数公平或训练协议无效"
     ),
+    "innovation2_gift64_topology_interaction_gate_repaired": (
+        "公平拓扑ridge与同权重反事实确认真实GIFT P交互，可另立正式计划"
+    ),
+    "innovation2_gift64_topology_interaction_not_confirmed": (
+        "公平确定性或同权重拓扑归因未确认，关闭GIFT r3-only"
+    ),
+    "innovation2_gift64_topology_interaction_protocol_invalid": (
+        "GIFT-64 E75/E76重放、ridge、拓扑变体或checkpoint协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1675,6 +1684,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E75：GIFT-64四轮严格单位输出平衡谱192结构容量复核"
     if run_id == "i2_gift64_r4_r3_only_profile_operator_readiness_seed0_20260719":
         return "创新2 E76：GIFT-64四轮r3-only平衡谱算子readiness"
+    if run_id == "i2_gift64_r4_topology_interaction_readjudication_20260719":
+        return "创新2 E77：GIFT-64四轮拓扑交互公平基线与同权重再审判"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

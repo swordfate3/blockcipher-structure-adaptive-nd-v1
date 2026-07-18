@@ -1561,6 +1561,30 @@ def test_result_index_labels_innovation2_gift64_r3_only_readiness(
     )
 
 
+def test_result_index_labels_innovation2_gift64_topology_readjudication(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_gift64_r4_topology_interaction_readjudication_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_gift64_topology_interaction_gate_repaired",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E77：GIFT-64四轮拓扑交互公平基线与同权重再审判"
+    )
+    assert entries[0]["decision_display"] == (
+        "公平拓扑ridge与同权重反事实确认真实GIFT P交互，可另立正式计划"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

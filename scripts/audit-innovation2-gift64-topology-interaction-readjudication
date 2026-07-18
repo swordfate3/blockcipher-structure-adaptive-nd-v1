@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_gift64_topology_interaction_readjudication import main
+
+raise SystemExit(main())
