@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.synthesize_innovation2_neural_architecture_boundary import main
+
+raise SystemExit(main())

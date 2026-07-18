@@ -1023,3 +1023,12 @@ E92把E91机制转成参数零增量的Row-Typed Shift Operator：对P层前驱h
 正式神经结论仍是PRESENT/GIFT分别训练的r3-only Prefix-Guided Nodewise Profile Operator；
 RECTANGLE贡献收束为sound标签、正向两轮readiness、30轮贴线拓扑诊断和row类型机制/实现边界。
 下一步优先做方法与claim综合，或等待新的sound标签/独立机制证据，不继续同benchmark网络枚举。
+
+E93完成跨分支方法级综合并重放七个冻结来源。当前唯一`formal_confirmed`方法家族是PRESENT/GIFT
+分别训练的r3-only Profile Operator；RECTANGLE原算子和row确定性表示属于`mechanism_only`；
+RECTANGLE row神经、共享参数和SKINNY residual属于`closed`；无新标签/机制支持的通用
+Transformer/GraphGPS/NBFNet变体属于`deferred/no_budget`。
+
+综合裁决为`innovation2_architecture_boundary_confirmed_third_spn_neural_not_confirmed`。这不是停止
+创新2，而是把下一预算门从“再试网络”改为“先获得新sound标签、独立输出任务机制，或同容量
+预训练前真实拓扑margin至少`+0.03`”。在此之前不继续当前unit-profile benchmark模型枚举。

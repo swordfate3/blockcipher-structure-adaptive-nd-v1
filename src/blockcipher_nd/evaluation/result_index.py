@@ -1262,6 +1262,12 @@ DECISION_LABELS = {
     "innovation2_rectangle80_row_typed_shift_operator_protocol_invalid": (
         "E88/E90/E91来源、row通道置换、参数公平或训练协议无效"
     ),
+    "innovation2_architecture_boundary_confirmed_third_spn_neural_not_confirmed": (
+        "PRESENT/GIFT独立算子保持正式第一，第三SPN神经尚未确认"
+    ),
+    "innovation2_architecture_boundary_synthesis_protocol_invalid": (
+        "创新2冻结来源或神经结构证据分级不一致"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1890,6 +1896,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_rectangle80_row_typed_shift_operator_readiness_seed0_20260719"
     ):
         return "创新2 E92：RECTANGLE参数零增量Row-Typed Shift Operator readiness"
+    if run_id == "i2_neural_architecture_boundary_synthesis_20260719":
+        return "创新2 E93：跨SPN神经结构证据与边界综合"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

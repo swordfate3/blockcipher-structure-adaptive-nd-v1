@@ -1962,6 +1962,33 @@ def test_result_index_labels_innovation2_rectangle80_row_typed_operator(
     )
 
 
+def test_result_index_labels_innovation2_architecture_boundary(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_neural_architecture_boundary_synthesis_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation2_architecture_boundary_confirmed_"
+                "third_spn_neural_not_confirmed"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E93：跨SPN神经结构证据与边界综合"
+    )
+    assert entries[0]["decision_display"] == (
+        "PRESENT/GIFT独立算子保持正式第一，第三SPN神经尚未确认"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
