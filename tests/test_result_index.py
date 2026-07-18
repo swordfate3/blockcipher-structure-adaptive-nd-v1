@@ -1585,6 +1585,30 @@ def test_result_index_labels_innovation2_gift64_topology_readjudication(
     )
 
 
+def test_result_index_labels_innovation2_gift64_r3_seed0_attribution(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_gift64_r4_r3_only_profile_operator_attribution_seed0_20260719"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_gift64_r3_only_neural_gain_attributed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E78：GIFT-64四轮r3-only平衡谱算子30轮seed0归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "GIFT-64真实P的30轮seed0质量与拓扑增益通过，可运行seed1"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

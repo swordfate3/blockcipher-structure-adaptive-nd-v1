@@ -368,7 +368,11 @@ def train_gift_r3_matrix(
             if best is None or validation_metrics["auc"] > best["validation_auc"]:
                 best = {
                     "run_id": config.run_id,
-                    "task": "innovation2_gift64_r3_only_profile_readiness",
+                    "task": getattr(
+                        config,
+                        "task_name",
+                        "innovation2_gift64_r3_only_profile_readiness",
+                    ),
                     "row_id": history["row_id"],
                     "relation_mode": mode,
                     "seed": config.seed,
