@@ -142,10 +142,10 @@ remote = no
 E68继续保持当前第一名。
 
 下一步先执行无新训练的E72方向归因审计：在E67/E68双seed true-P checkpoint上分别遮蔽
-r1/r2/r3 13维切片，并用同一E65 split拟合single-round train-only ridge，判断验证信号是否
-确实集中在靠近输出的r3，以及双seed模型对三段的依赖是否一致。若r3主导和切片遮蔽方向在
-双seed稳定成立，才预注册一个“output-to-input backward recurrent”新候选；否则把反向轮序
-高分视为两轮优化偶然并停止轮递归路线。
+r1/r2/r3 13维切片，并用同一E65 split拟合single-round train-only ridge，判断哪个round真正
+主导，以及双seed模型对三段的依赖是否一致。反向序列把r1放在最靠近输出头的位置，因此若
+r1稳定主导，下一候选应使用保留正确轮序的early-round skip，而不是把反向GRU事后升级；若
+证据不一致，则把反向轮序高分视为两轮优化偶然并停止轮递归路线。
 
 最终`curves.svg`经`visual-qa-redraw`渲染为`1900 x 1013`像素检查；三行训练/验证AUC、
 反向轮序名称、两项差值、`0.70/0.02`门、停止裁决和范围均无重叠、裁切或图例歧义。

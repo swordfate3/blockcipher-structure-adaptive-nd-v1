@@ -1028,6 +1028,15 @@ DECISION_LABELS = {
     "innovation2_present_round_recurrent_protocol_invalid": (
         "显式轮序算子的source、等变性、参数公平或训练协议无效"
     ),
+    "innovation2_present_early_round_skip_candidate_ready": (
+        "r1主导经ridge与双seed切片中和确认，可测试early-round skip"
+    ),
+    "innovation2_present_round_direction_not_confirmed": (
+        "轮切片证据不支持新轮序结构，停止轮递归分支"
+    ),
+    "innovation2_present_round_slice_protocol_invalid": (
+        "E65/E67/E68重放或轮切片中和协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1592,6 +1601,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r4_round_recurrent_profile_operator_readiness_seed0_20260718"
     ):
         return "创新2 E71：PRESENT四轮显式轮序平衡谱算子readiness"
+    if run_id == "i2_present_r4_round_slice_direction_attribution_20260718":
+        return "创新2 E72：PRESENT四轮平衡谱前缀轮切片方向归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

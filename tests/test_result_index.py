@@ -1441,6 +1441,30 @@ def test_result_index_labels_innovation2_present_round_recurrent_readiness(
     )
 
 
+def test_result_index_labels_innovation2_present_round_slice_direction(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_round_slice_direction_attribution_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_round_direction_not_confirmed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E72：PRESENT四轮平衡谱前缀轮切片方向归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "轮切片证据不支持新轮序结构，停止轮递归分支"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
