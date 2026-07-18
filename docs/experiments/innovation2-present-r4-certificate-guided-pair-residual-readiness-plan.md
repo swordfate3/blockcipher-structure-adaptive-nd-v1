@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待实现
+状态：完成 / pass / 允许E51正式seed0计划
 
 ## 1. 研究问题
 
@@ -90,12 +90,16 @@ E43/E44/E45/E49 run id、decision、hash与关键metric匹配
 第4轮oracle/certificate/witness输入             = absent
 zero-residual final score与ridge max error      <= 1e-7
 ridge weights在训练前后max delta                = 0
-true/corrupted同权重初始score delta             >= 1e-5
+true/corrupted同权重pair embedding delta        >= 1e-5
 prefix-only/true/corrupted残差参数差             <= 1%
 logit、loss、gradient finite                    = pass
 三行均完成2 epochs                              = pass
 每行validation AUC                              in [0.35, 0.80]
 ```
+
+这里检查pair embedding而不是零初始化后的最终score：残差最后一层为零时，正确/错误P的最终
+score都必须严格等于ridge，要求二者同时不同在逻辑上不可能。embedding门在训练结果揭示前
+冻结，用来确认错误P确实改变残差分支内部表示，同时不破坏zero-residual等价门。
 
 全部通过：
 
@@ -139,3 +143,80 @@ visual_qa_passed.marker
 
 声明范围：PRESENT-80四轮、E43严格标签、两轮本地CGPR实现readiness；不是有效预测、高轮
 积分区分器、新攻击、远程规模证据或SOTA。
+
+## 8. 计划内逻辑修正
+
+实现前发现原门同时要求“零初始化残差的最终score严格等于ridge”和“正确/错误P初始最终
+score不同”，两者逻辑矛盾。任何训练结果揭示前，将后者修正为：
+
+```text
+true/corrupted同权重pair embedding max delta >= 1e-5
+```
+
+最终score继续要求零残差等于ridge。这样既验证pair分支感知P-layer，又不破坏零残差等价。
+其余数据、模型、矩阵、预算和门均未改变。
+
+## 9. 2026-07-18实际结果
+
+权威run：
+
+```text
+i2_present_r4_cgpr_readiness_seed0_20260718
+```
+
+E43/E44/E45/E49 source、hash、标签、split和关键metric全部复核通过。确定性base精确复现：
+
+```text
+ANF-prefix dimensions             = 1036 x 39
+ridge validation AUC              = 0.6860815857512209
+zero-residual max absolute error  = 0.0
+ridge weight max training delta   = 0.0
+```
+
+模型contract：
+
+```text
+prefix-only residual parameters        = 10659
+true pair residual parameters           = 10725
+corrupted pair residual parameters      = 10725
+parameter relative spread               = 0.6154%
+true/corrupted pair embedding max delta = 0.0272198
+forbidden oracle/certificate buffers    = absent
+forward/loss/gradient finite             = pass
+```
+
+两轮readiness诊断：
+
+| 行 | 最佳epoch | train AUC | validation AUC |
+|---|---:|---:|---:|
+| E45 ridge只读锚点 | 0 | `0.777216` | `0.686082` |
+| ridge + prefix-only residual | 2 | `0.769416` | `0.703174` |
+| ridge + true-P pair residual | 2 | `0.777325` | `0.685938` |
+| ridge + fair-corrupted-P pair residual | 2 | `0.777325` | `0.685938` |
+
+两轮AUC只用于确认范围和流程，不用于性能排名。尤其正确/错误P完全相同，当前没有拓扑残差
+证据；它不会阻止readiness，但会在E51正式门中被`+0.03`归因要求直接审判。
+
+所有实现门通过：
+
+```text
+status   = pass
+decision = innovation2_present_cgpr_readiness_passed
+E51      = 允许另建30轮seed0正式计划
+seed1    = no
+remote   = no
+```
+
+## 10. 推荐下一步
+
+执行E51 30轮seed0正式残差与拓扑归因。保持E50代码、39维前缀、ridge、残差上限`0.25`、
+hidden16、path-rank2、batch32和三行残差矩阵不变。E51必须同时要求true pair CGPR达到
+`0.70`、超过ridge`0.02`、超过prefix-only`0.02`并超过错误P`0.03`。不根据E50两轮结果
+修改阈值或把prefix-only提升为主候选。
+
+E51任一正式门失败则停止E43四轮新网络枚举；不增加残差上限、pair隐藏维度、epoch或seed，
+不迁移r5，不使用远程GPU。只有全部正式门通过才允许本地seed1确认。
+
+最终`curves.svg`按`visual-qa-redraw`渲染为`1800×936`像素检查；中文标题、两张柱图、
+ridge/随机基准、训练/验证数值、参数说明、readiness裁决和证据范围无重叠、裁切、缺字或
+误导性性能声明，已记录`visual_qa_passed.marker`。

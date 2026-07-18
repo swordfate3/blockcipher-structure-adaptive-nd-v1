@@ -487,3 +487,17 @@ ANF-prefix作为冻结确定性base，只让E44 pair-state处理器学习base未
 prefix-only residual与fair-corrupted-P residual控制区分非线性容量和真实拓扑增量；正式
 性能门必须另建计划。若后续正式true residual不能超过E45 ridge与两个控制，则网络探索
 应回到E44方法学结果，不再为E43四轮标签枚举新架构。
+
+E50已完成`Certificate-Guided Pair-State Residual`两轮实现readiness。39维ANF-prefix ridge
+精确复现`0.686082`；三种残差初始化与ridge逐样本误差为`0`，训练后ridge权重变化为`0`。
+prefix-only/pair参数为`10659/10725`，差`0.6154%`；正确/错误P同权重pair embedding最大
+差`0.027220`，说明残差分支内部确实感知拓扑。
+
+两轮validation AUC为prefix-only `0.703174`、true pair `0.685938`、corrupted pair
+`0.685938`。这些值只证明训练流程稳定；正确/错误P完全相同，不能声称pair残差已有贡献，
+也不能因prefix-only两轮较高而后验改路线。
+
+E51是这个E43四轮架构循环的正式终局门：固定30轮seed0，比较ridge、prefix-only、true pair
+和fair-corrupted pair。true pair必须达到`0.70`并分别超过ridge/prefix-only/错误P
+`0.02/0.02/0.03`。全部通过才允许seed1；否则停止新网络枚举，回到E45确定性约`0.69`
+与E44最强真实神经`0.561979`两项可写结论。

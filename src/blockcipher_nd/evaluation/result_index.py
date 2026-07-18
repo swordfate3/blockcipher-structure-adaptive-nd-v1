@@ -791,6 +791,12 @@ DECISION_LABELS = {
     "innovation2_present_degree_spectrum_protocol_invalid": (
         "degree谱蒸馏的source、teacher、泄漏、模型、控制或训练协议无效"
     ),
+    "innovation2_present_cgpr_readiness_passed": (
+        "证书引导pair-state残差实现与两轮训练readiness通过"
+    ),
+    "innovation2_present_cgpr_readiness_failed": (
+        "证书引导残差的source、ridge、零等价、拓扑、参数或训练契约失败"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1288,6 +1294,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r4_degree_spectrum_distillation_readiness_seed0_20260718"
     ):
         return "创新2 E49：PRESENT四轮中间degree谱蒸馏readiness"
+    if run_id == "i2_present_r4_cgpr_readiness_seed0_20260718":
+        return "创新2 E50：PRESENT四轮证书引导pair-state残差readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

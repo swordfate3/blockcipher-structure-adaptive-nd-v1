@@ -172,6 +172,17 @@ class SmallSpnPairRelationReasoner(nn.Module):
         structure_index: torch.Tensor,
         mask_index: torch.Tensor,
     ) -> torch.Tensor:
+        return self.head(
+            self.encode(variant_index, round_index, structure_index, mask_index)
+        ).squeeze(-1)
+
+    def encode(
+        self,
+        variant_index: torch.Tensor,
+        round_index: torch.Tensor,
+        structure_index: torch.Tensor,
+        mask_index: torch.Tensor,
+    ) -> torch.Tensor:
         relation, context = self.build_initial_relation(
             variant_index, round_index, structure_index, mask_index
         )
@@ -186,7 +197,7 @@ class SmallSpnPairRelationReasoner(nn.Module):
             relation = torch.where(
                 (step < step_count).view(-1, 1, 1, 1), updated, relation
             )
-        pools = [
+        pools = (
             relation.mean(dim=(1, 2)),
             _weighted_pair_pool(relation, context["identity"]),
             _weighted_pair_pool(relation, context["p_edge"]),
@@ -194,8 +205,8 @@ class SmallSpnPairRelationReasoner(nn.Module):
             _weighted_pair_pool(relation, context["mask_to_active"]),
             context["sbox_hidden"],
             context["round_hidden"],
-        ]
-        return self.head(torch.cat(pools, dim=-1)).squeeze(-1)
+        )
+        return torch.cat(pools, dim=-1)
 
     def build_initial_relation(
         self,
