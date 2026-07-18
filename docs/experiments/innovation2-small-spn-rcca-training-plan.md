@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：readiness已通过 / 正式Phase A待执行
+状态：正式Phase A已完成 / 暂缓 / RCCA关闭
 
 ## 1. 研究问题
 
@@ -185,3 +185,47 @@ RCCA label-shuffle       0.462586    0.471497    0.516807
 这些是8-epoch readiness诊断，不用于RCCA收益结论。RCCA smoke在dual低于DeepSets且wrong-P高于
 true-P，提示正式门可能失败，但预注册流程规定readiness只验证协议；不得据此后验取消或修改正式
 矩阵。下一步仍按第6节运行40-epoch seed0/1 Phase A，失败则关闭RCCA。
+
+## 10. 正式Phase A完成记录
+
+```text
+run_id = i2_small_spn_rcca_seed0_seed1_20260718
+mode   = full / local CPU / hidden64 / 40 epochs
+status = hold
+decision = innovation2_small_spn_rcca_not_ready
+```
+
+五行正式结果：
+
+```text
+                         unseen-S    unseen-P    dual       best epoch
+DeepSets true seed0      0.834995    0.589084    0.603005   37
+DeepSets true seed1      0.827578    0.663007    0.678269   39
+RCCA true seed0          0.862550    0.422499    0.526025   40
+RCCA true seed1          0.724061    0.554897    0.532732   33
+RCCA label-shuffle       0.480148    0.466295    0.515766   9
+```
+
+同paired seed的dual差值：
+
+```text
+seed0 RCCA - DeepSets = -0.076981
+seed1 RCCA - DeepSets = -0.145537
+RCCA mean dual        = 0.529378
+required mean dual    = 0.715895
+E62 marginal anchor   = 0.685895
+```
+
+正式协议全部有效：token交换和cell重标号误差为`4.47e-08/8.94e-08`，true/wrong-P fixture
+差为`1.44e-03`，参数为`259713/293313`，shuffle控制接近随机。失败不能归因于实现不变量、
+标签打乱流程、明显参数失衡或提前checkpoint泄漏。
+
+五个Phase A门中只有`label-shuffle <= 0.60`通过；DeepSets与RCCA均未逐seed超过边际，RCCA也
+未逐seed超过DeepSets。因此不启动Phase B wrong-P训练，关闭RCCA，不增加hidden、layer、epoch、
+seed或远程GPU。
+
+推荐下一步是E64 exact relation decomposition审计，而不是另一种attention：把E62每个relation
+positive分成“两坐标各自都balanced”的trivial conjunction与“两坐标各自nonzero但256-bit parity
+向量相等”的nontrivial cancellation；同时评估singleton-status确定性基线。只有nontrivial正负在
+所有split都有宽度且该基线不过强，才值得设计新的关系算子。否则E62训练任务本身被重新归类为
+单坐标组合问题，创新2保留E39 SPN-PRR方法证据并停止多坐标网络搜索。

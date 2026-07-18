@@ -696,3 +696,12 @@ readiness AUC不作科学裁决，但风险信号明确：DeepSets/RCCA true/wro
 `0.701076/0.599471/0.678291`，RCCA true暂时低于DeepSets且wrong-P更高。不能据此后验改模型；
 下一步执行冻结40-epoch双seed Phase A。若RCCA不逐seed超过DeepSets与0.685895边际，直接关闭，
 不再增加容量或改换attention变体。
+
+E63正式Phase A已经否决RCCA。DeepSets dual为`0.603005/0.678269`，RCCA为
+`0.526025/0.532732`；paired差为`-0.076981/-0.145537`，RCCA mean仅`0.529378`，低于
+E62边际`0.685895`。label-shuffle为`0.515766`，不变量、参数预算和训练流程均有效。
+
+因此不运行wrong-P Phase B，RCCA关闭。下一步不是继续试Transformer/attention变体，而是E64
+精确分解E62标签：区分both-singleton-balanced产生的简单positive与两个nonzero parity vector真正
+相等产生的cancellation positive，并测singleton-status强基线。这个审计决定多坐标任务是否仍有
+独立学习价值；不过门则停止该路线，避免把单坐标AND组合包装成新神经结构创新。
