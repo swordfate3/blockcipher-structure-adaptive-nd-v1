@@ -447,3 +447,27 @@ support集合包含的变量身份可能才是关键。MSPN排名撤回到未就
 full-cube oracle的前提下显著降低跨标签碰撞并保持组外AUC，才开放`Identity-Sketch
 Monomial Propagator`。否则神经证书近似路线停止，E45确定性ANF-prefix归因作为当前最强
 解释，E44 triangle保留为最强真实神经锚点。
+
+E48已经完成，变量身份碰撞假设没有获得支持。degree-only、exact identity、sketch64、
+local-ID-permuted sketch64和fair-corrupted-P sketch64的validation AUC分别为
+`0.689170/0.599109/0.670712/0.407785/0.599325`。identity sketch对变量对应和P-layer敏感，
+但相对degree-only低`0.018457`；精确身份也低`0.090060`。degree-only跨标签冲突行率仅
+`2.6062%`，精确身份降到`0.1931%`并没有转化为更高组外AUC。
+
+因此关闭`Identity-Sketch Monomial Propagator`与`Monomial Token Set Transformer`，不再把
+E47失败归因于身份碰撞。当前证据排序更新为：
+
+```text
+1. E45/E48确定性ANF-prefix degree spectrum（解释锚点，AUC约0.69，不是神经结果）
+2. directed pair-state triangle（当前最强真实PRESENT神经锚点，AUC 0.561979）
+3. directed pair-state local（更简单神经锚点，AUC 0.549914）
+4. MSPN（组外过拟合且错误P-layer更高，当前实现关闭）
+5. identity-sketch/token网络（E48不支持，关闭）
+6. query-conditioned NBFNet（没有证据表明路径算子是当前首要瓶颈，继续暂缓）
+```
+
+唯一仍直接对应证据的神经问题是“网络能否学会中间degree spectrum”。E49只允许在E47 MSPN
+上加入训练期1--3轮辅助蒸馏，不把teacher feature喂给最终head，并用target-shuffle和
+self-consistent fair-corrupted-P控制排除普通正则化与错误transport。E49是两轮本地readiness，
+不是新候选结论；不过门则停止证书传播神经路线，不再枚举更宽MSPN、identity token、
+Transformer或远程规模。

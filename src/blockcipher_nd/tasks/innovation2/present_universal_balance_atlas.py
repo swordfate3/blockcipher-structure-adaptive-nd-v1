@@ -197,10 +197,21 @@ def make_output_masks() -> tuple[LinearOutputMask, ...]:
 
 
 def possible_active_monomials(
-    active_bits: tuple[int, ...], rounds: int
+    active_bits: tuple[int, ...],
+    rounds: int,
+    *,
+    player: np.ndarray | tuple[int, ...] | None = None,
 ) -> tuple[frozenset[int], ...]:
     if len(active_bits) != ACTIVE_DIMENSION:
         raise ValueError("active_bits must contain eight coordinates")
+    player_array = np.asarray(
+        [_player_target(bit) for bit in range(64)] if player is None else player,
+        dtype=np.int64,
+    )
+    if player_array.shape != (64,) or not np.array_equal(
+        np.sort(player_array), np.arange(64)
+    ):
+        raise ValueError("player must be a 64-bit permutation")
     variable_by_bit = {bit: variable for variable, bit in enumerate(active_bits)}
     state: list[set[int]] = [
         {0, 1 << variable_by_bit[bit]} if bit in variable_by_bit else {0}
@@ -217,7 +228,7 @@ def possible_active_monomials(
                 )
         after_permutation: list[set[int]] = [set() for _ in range(64)]
         for bit, support in enumerate(after_sbox):
-            after_permutation[_player_target(bit)] = support
+            after_permutation[int(player_array[bit])] = support
         state = after_permutation
     return tuple(frozenset(support) for support in state)
 

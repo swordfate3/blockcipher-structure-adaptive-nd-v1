@@ -767,6 +767,18 @@ DECISION_LABELS = {
     "innovation2_present_mspn_attribution_protocol_invalid": (
         "MSPN正式归因的source、模型、控制、metric或训练协议无效"
     ),
+    "innovation2_present_identity_sketch_route_ready": (
+        "变量身份sketch显著超过degree-only与公平控制，可进入身份传播网络readiness"
+    ),
+    "innovation2_present_exact_monomial_token_route_ready": (
+        "精确support身份超过degree-only，下一候选为稀疏单项式token网络"
+    ),
+    "innovation2_present_support_identity_not_supported": (
+        "变量身份未超过degree-only，关闭identity网络并转向中间degree谱学习问题"
+    ),
+    "innovation2_present_support_identity_protocol_invalid": (
+        "support身份审计的source、传播、投影、碰撞或ridge协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1258,6 +1270,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E46：PRESENT四轮MSPN训练就绪smoke"
     if run_id == "i2_present_r4_mspn_neural_attribution_seed0_20260718":
         return "创新2 E47：PRESENT四轮MSPN正式神经归因"
+    if run_id == "i2_present_r4_support_identity_collision_20260718":
+        return "创新2 E48：PRESENT四轮support身份碰撞审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
