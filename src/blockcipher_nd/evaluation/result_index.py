@@ -980,6 +980,15 @@ DECISION_LABELS = {
     "innovation2_present_profile_operator_attribution_protocol_invalid": (
         "E67 source、contract、metric或正式训练协议无效"
     ),
+    "innovation2_present_profile_operator_two_seed_confirmed": (
+        "正确P平衡谱算子双seed均超过独立node、错误P和ANF ridge"
+    ),
+    "innovation2_present_profile_operator_seed_not_replicated": (
+        "seed1或联合门未复现seed0结构增益，停止该算子"
+    ),
+    "innovation2_present_profile_operator_replication_protocol_invalid": (
+        "seed0 source、profile、contract或seed1协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1534,6 +1543,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r4_prefix_guided_profile_operator_attribution_seed0_20260718"
     ):
         return "创新2 E67：PRESENT四轮prefix引导平衡谱算子正式归因"
+    if run_id == "i2_present_r4_prefix_guided_profile_operator_seed1_20260718":
+        return "创新2 E68：PRESENT四轮prefix引导平衡谱算子双seed复核"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

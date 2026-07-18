@@ -738,3 +738,14 @@ E67 seed0正式归因进一步通过。independent/true-P/corrupted-P validation
 PRESENT-80严格输出性质标签上同时超过同容量、错误拓扑和安全确定性前缀的神经结构结果，
 但仍限四轮且只有seed0。下一步只运行完全相同的seed1矩阵；在复核前不能升级为稳定结论，
 更不能写成高轮积分区分器或攻击突破。
+
+E68 seed1已独立复现：independent/true-P/corrupted-P AUC为
+`0.765000/0.961389/0.819444`，正确P相对三类锚点的增益为
+`+0.196389/+0.141944/+0.167778`。双seed mean true AUC为`0.957222`，mean增益为
+`+0.193472/+0.147083/+0.163611`，两seed所有绝对、关系、ridge和过拟合门均通过。
+
+因此当前架构排名第一更新为`Prefix-Guided Nodewise Profile Operator`，但限定为真实
+PRESENT-80四轮unit-output universal-balance profile方法证据；E39 SPN-PRR仍是合成跨拓扑
+归因锚点，两者不能合并成高轮结论。下一候选不是更大网络，而是先审计E43非unit linear-mask
+族能否形成同级严格profile；只有宽度和反捷径门通过，才给已确认的64-node operator增加一个
+轻量mask-query decoder。
