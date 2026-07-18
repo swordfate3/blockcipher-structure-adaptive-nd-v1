@@ -1221,6 +1221,30 @@ def test_result_index_labels_innovation2_small_spn_multicoordinate_relation(
     )
 
 
+def test_result_index_labels_innovation2_small_spn_rcca_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_small_spn_rcca_readiness_seed0_20260718"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_small_spn_rcca_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E63：DeepSets/RCCA训练readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "DeepSets/RCCA不变量与四行训练流程通过，进入正式双seed矩阵"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

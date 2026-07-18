@@ -687,3 +687,12 @@ train-only选出2048个relation模板，覆盖3轮与4轮各1024条；训练/dua
 dual P-effect与train SxP interaction比例为`0.985352/0.989258`。因此RCCA现在首次有一个严格、
 宽且反捷径通过的多坐标benchmark。下一排名只保留两项：同预算DeepSets基线与RCCA候选；
 wrong-P和label-shuffle是必要控制。其他新网络继续冻结，E63失败即关闭RCCA。
+
+E63 readiness已通过全部实现契约。DeepSets/RCCA参数为`70465/79073`，relation token交换与cell
+重标号误差为`2.98e-08/7.45e-08`，true/wrong-P同权重logit差为`9.19e-04`。四行8-epoch
+流程完整，label-shuffle dual为`0.516807`。
+
+readiness AUC不作科学裁决，但风险信号明确：DeepSets/RCCA true/wrong-P dual分别为
+`0.701076/0.599471/0.678291`，RCCA true暂时低于DeepSets且wrong-P更高。不能据此后验改模型；
+下一步执行冻结40-epoch双seed Phase A。若RCCA不逐seed超过DeepSets与0.685895边际，直接关闭，
+不再增加容量或改换attention变体。

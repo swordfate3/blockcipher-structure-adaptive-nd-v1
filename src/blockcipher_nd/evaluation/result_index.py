@@ -914,6 +914,18 @@ DECISION_LABELS = {
     "innovation2_small_spn_multicoordinate_relation_protocol_invalid": (
         "E37缓存、train-only选择或全密钥证书无效"
     ),
+    "innovation2_small_spn_rcca_readiness_passed": (
+        "DeepSets/RCCA不变量与四行训练流程通过，进入正式双seed矩阵"
+    ),
+    "innovation2_small_spn_rcca_phase_b_ready": (
+        "RCCA正式双seed超过DeepSets与边际，可进入wrong-P拓扑归因"
+    ),
+    "innovation2_small_spn_rcca_not_ready": (
+        "RCCA未稳定超过DeepSets与强边际，关闭该架构"
+    ),
+    "innovation2_small_spn_rcca_protocol_invalid": (
+        "RCCA不变量、来源、参数预算或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1452,6 +1464,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门"
     if run_id == "i2_small_spn_multicoordinate_relation_readiness_20260718":
         return "创新2 E62：小型SPN严格多坐标relation readiness"
+    if run_id == "i2_small_spn_rcca_readiness_seed0_20260718":
+        return "创新2 E63：DeepSets/RCCA训练readiness"
+    if run_id == "i2_small_spn_rcca_seed0_seed1_20260718":
+        return "创新2 E63：DeepSets/RCCA正式双seed筛选"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
