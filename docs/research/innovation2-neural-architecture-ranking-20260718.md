@@ -666,3 +666,14 @@ key-dependent`；16条constant均通过key exponent 0精确重放以及三组独
 并精确重放作为strict negative。只有同relation size和结构边际匹配后能得到各至少256条正负类，
 才比较deterministic cancellation、coordinate-set DeepSets和RCCA；否则创新2保留现有四轮
 方法学结果，不用模型容量制造表面可训练性。
+
+E61-A进一步否决了“先完整导出240个坐标key-polynomial，再离线找nullspace”的实现。60秒内只
+落盘8条，其中7条exact且全部key-dependent；unit output只有41个非零odd项、约0.11秒，但二次
+output monomial已经有1763项、约7.7秒，三次`v=0x7`在首个projected mask即超过`2^16` trail
+cap并耗时31.45秒。最终为`7 exact / 233 unknown / 0 positive relation / 0 matched negative`。
+
+因此PRESENT两轮ATM完整支撑矩阵关闭，不通过提高cap、远程GPU或事后删掉高次数输出继续。
+RCCA仍未实现。下一架构证据门应迁移到项目已有、可全枚举且无unknown的小型SPN严格标签源：
+先构造同尺寸多坐标GF(2) relation正负类，再以`ID/重量边际 -> DeepSets -> RCCA true/wrong-P`
+最小矩阵验证cross-attention增益。通过只能证明small-SPN方法可行，之后仍需独立解决PRESENT
+严格标签provider；失败则直接关闭RCCA，不再用新网络名称延长路线。

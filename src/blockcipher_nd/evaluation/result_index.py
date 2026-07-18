@@ -890,6 +890,18 @@ DECISION_LABELS = {
     "innovation2_atm_r2_cone_matched_panel_protocol_invalid": (
         "两轮依赖锥配对、SAT模型或标量复核无效"
     ),
+    "innovation2_atm_r2_multicoordinate_support_runtime_not_ready": (
+        "完整key-polynomial支撑60秒仅完成8/240，关闭该exact支撑路线"
+    ),
+    "innovation2_atm_r2_multicoordinate_support_width_not_ready": (
+        "多坐标支撑缺少足够严格消去正负关系，禁止训练RCCA"
+    ),
+    "innovation2_atm_r2_multicoordinate_support_phase_b_ready": (
+        "多坐标严格消去关系通过Phase A，可构建256/class标签atlas"
+    ),
+    "innovation2_atm_r2_multicoordinate_support_protocol_invalid": (
+        "E60来源、坐标池或独立轮密钥支撑协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1424,6 +1436,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E59：PRESENT两轮ATM严格relation标签面板"
     if run_id == "i2_present_r2_atm_cone_matched_panel_20260718":
         return "创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计"
+    if run_id == "i2_present_r2_atm_multicoordinate_support_phase_a_20260718":
+        return "创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

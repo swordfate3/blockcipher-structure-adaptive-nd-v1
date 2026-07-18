@@ -1173,6 +1173,30 @@ def test_result_index_labels_innovation2_atm_r2_cone_panel(
     )
 
 
+def test_result_index_labels_innovation2_atm_multicoordinate_support(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r2_atm_multicoordinate_support_phase_a_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_atm_r2_multicoordinate_support_runtime_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门"
+    )
+    assert entries[0]["decision_display"] == (
+        "完整key-polynomial支撑60秒仅完成8/240，关闭该exact支撑路线"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

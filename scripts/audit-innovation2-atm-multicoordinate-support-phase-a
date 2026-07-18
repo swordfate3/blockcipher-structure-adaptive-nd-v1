@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_atm_multicoordinate_support_phase_a import main
+
+raise SystemExit(main())
