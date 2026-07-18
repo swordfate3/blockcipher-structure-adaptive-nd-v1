@@ -208,3 +208,9 @@ E63先跑hidden32、8 epochs、seed0的本地readiness，验证token permutation
 输出差异、四行训练和checkpoint。通过后自动进入hidden64、40 epochs、seed0/1正式矩阵。
 正式门保持：RCCA逐seed超过DeepSets和dual边际`0.685895`，mean dual领先DeepSets与wrong-P各
 至少0.03，label-shuffle dual不超过0.60。失败立即关闭RCCA；通过也只能声称小型SPN方法证据。
+
+后续E64补充了E62当时缺失的决定性强基线：`both coordinate individually balanced`。E62的
+2048模板在dual split中有6158个positive，但其中6152个是both-zero，真正两个nonzero parity
+vector相等的positive只有6个；both-balanced基线dual AUC为`0.999513`。因此E62原始readiness
+“通过”只对当时预注册的ID/重量/结构group基线成立，不能再解释为非平凡cancellation训练门通过。
+E62数据与全密钥证书仍然有效，但任务已被E64重分类为singleton组合主导。

@@ -926,6 +926,18 @@ DECISION_LABELS = {
     "innovation2_small_spn_rcca_protocol_invalid": (
         "RCCA不变量、来源、参数预算或训练协议无效"
     ),
+    "innovation2_small_spn_relation_nontrivial_width_not_ready": (
+        "非平凡消去正类极窄，停止多坐标神经网络路线"
+    ),
+    "innovation2_small_spn_relation_singleton_shortcut_dominated": (
+        "singleton平衡状态几乎完全解释relation标签，停止多坐标网络"
+    ),
+    "innovation2_small_spn_relation_nontrivial_residual_ready": (
+        "非平凡GF(2)消去残差宽且未被singleton状态解释，可审计pair-path算子"
+    ),
+    "innovation2_small_spn_relation_decomposition_protocol_invalid": (
+        "E62标签重算、四类分解或negative witness无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1468,6 +1480,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E63：DeepSets/RCCA训练readiness"
     if run_id == "i2_small_spn_rcca_seed0_seed1_20260718":
         return "创新2 E63：DeepSets/RCCA正式双seed筛选"
+    if run_id == "i2_small_spn_relation_decomposition_20260718":
+        return "创新2 E64：多坐标relation非平凡消去分解"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
