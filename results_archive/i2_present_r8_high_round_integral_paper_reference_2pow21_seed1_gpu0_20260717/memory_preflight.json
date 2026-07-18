@@ -1,0 +1,39 @@
+{
+  "batch_size": 2000,
+  "device": "cuda",
+  "device_name": "NVIDIA RTX A6000",
+  "device_total_memory_bytes": 51526500352,
+  "input_bits": 4096,
+  "max_peak_reserved_bytes": 1558183936,
+  "max_peak_reserved_fraction": 0.030240437936893946,
+  "models": [
+    {
+      "loss": 0.26173901557922363,
+      "model": "wu_guo_paper_family_mbconv",
+      "parameter_count": 25187937,
+      "peak_allocated_bytes": 1365166080,
+      "peak_reserved_bytes": 1558183936,
+      "peak_reserved_fraction": 0.030240437936893946,
+      "role": "anchor"
+    },
+    {
+      "loss": 0.2544673681259155,
+      "model": "present_integral_structured_residual",
+      "parameter_count": 78689,
+      "peak_allocated_bytes": 393186816,
+      "peak_reserved_bytes": 513802240,
+      "peak_reserved_fraction": 0.009971611432757762,
+      "role": "candidate_and_control"
+    },
+    {
+      "loss": 0.2573639154434204,
+      "model": "same_input_flat_linear",
+      "parameter_count": 4097,
+      "peak_allocated_bytes": 58869248,
+      "peak_reserved_bytes": 77594624,
+      "peak_reserved_fraction": 0.00150591682862056,
+      "role": "linear"
+    }
+  ],
+  "status": "pass"
+}

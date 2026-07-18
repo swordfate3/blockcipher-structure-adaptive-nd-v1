@@ -1,0 +1,34 @@
+{
+  "checked_invariants": [
+    "plan_exists",
+    "expected_rows_matches_plan",
+    "run_id_task_archive_alignment",
+    "github_ssh_repo",
+    "cmd_exe_c_only_policy",
+    "g_lxy_artifact_policy",
+    "training_protocol_matches_plan",
+    "medium_scale_dataset_cache"
+  ],
+  "config": "configs\\remote\\innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717.json",
+  "errors": [],
+  "expected_rows": 4,
+  "max_samples_per_class": 1048576,
+  "plan": "configs\\experiment\\innovation2\\innovation2_present_r8_high_round_integral_paper_reference_2pow21_seed1.json",
+  "plan_rows": 4,
+  "run_id": "i2_present_r8_high_round_integral_paper_reference_2pow21_seed1_gpu0_20260717",
+  "status": "pass",
+  "warnings": [
+    "remote config does not override loss; runner default or plan value will apply",
+    "remote config does not override optimizer; runner default or plan value will apply",
+    "remote config does not override optimizer_state_transition; runner default or plan value will apply",
+    "remote config does not override weight_decay; runner default or plan value will apply",
+    "remote config does not override lr_scheduler; runner default or plan value will apply",
+    "remote config does not override max_learning_rate; runner default or plan value will apply",
+    "remote config does not override key_rotation_interval; runner default or plan value will apply",
+    "remote config does not override sample_structure; runner default or plan value will apply",
+    "remote config does not override checkpoint_metric; runner default or plan value will apply",
+    "remote config does not override restore_best_checkpoint; runner default or plan value will apply",
+    "remote config does not override early_stopping_patience; runner default or plan value will apply",
+    "remote config does not override early_stopping_min_delta; runner default or plan value will apply"
+  ]
+}
