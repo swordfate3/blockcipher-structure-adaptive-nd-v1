@@ -902,6 +902,18 @@ DECISION_LABELS = {
     "innovation2_atm_r2_multicoordinate_support_protocol_invalid": (
         "E60来源、坐标池或独立轮密钥支撑协议无效"
     ),
+    "innovation2_small_spn_multicoordinate_relation_training_ready": (
+        "全256主密钥多坐标relation标签与反捷径门通过，可训练DeepSets与RCCA"
+    ),
+    "innovation2_small_spn_multicoordinate_relation_width_not_ready": (
+        "小型SPN多坐标relation缺少严格标签或拓扑宽度，停止RCCA"
+    ),
+    "innovation2_small_spn_multicoordinate_relation_shortcut_dominated": (
+        "小型SPN多坐标relation被拓扑无关边际解释，停止RCCA"
+    ),
+    "innovation2_small_spn_multicoordinate_relation_protocol_invalid": (
+        "E37缓存、train-only选择或全密钥证书无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1438,6 +1450,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计"
     if run_id == "i2_present_r2_atm_multicoordinate_support_phase_a_20260718":
         return "创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门"
+    if run_id == "i2_small_spn_multicoordinate_relation_readiness_20260718":
+        return "创新2 E62：小型SPN严格多坐标relation readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
