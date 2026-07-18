@@ -1037,6 +1037,36 @@ DECISION_LABELS = {
     "innovation2_present_round_slice_protocol_invalid": (
         "E65/E67/E68重放或轮切片中和协议无效"
     ),
+    "innovation2_present_r3_only_profile_readiness_passed": (
+        "r3-only平衡谱算子readiness通过，可进入30轮seed0"
+    ),
+    "innovation2_present_r3_only_profile_readiness_not_passed": (
+        "r3-only质量或拓扑增益未过门，保留完整39维E68"
+    ),
+    "innovation2_present_r3_only_profile_protocol_invalid": (
+        "r3切片、source、参数公平或训练协议无效"
+    ),
+    "innovation2_present_r3_only_neural_gain_attributed": (
+        "r3-only正确P算子保持E67质量与拓扑增益，可进入seed1"
+    ),
+    "innovation2_present_r3_only_quality_not_retained": (
+        "r3-only未保持完整39维E67质量，保留E68"
+    ),
+    "innovation2_present_r3_only_topology_not_attributed": (
+        "r3-only未通过正确P拓扑归因，不进入seed1"
+    ),
+    "innovation2_present_r3_only_attribution_protocol_invalid": (
+        "r3-only readiness、source、contract或30轮协议无效"
+    ),
+    "innovation2_present_r3_only_two_seed_confirmed": (
+        "r3-only参数压缩算子双seed保持质量与正确P拓扑增益"
+    ),
+    "innovation2_present_r3_only_seed_not_replicated": (
+        "r3-only seed1未保持质量，保留完整39维E68"
+    ),
+    "innovation2_present_r3_only_replication_protocol_invalid": (
+        "r3-only seed0/source/contract或seed1协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1603,6 +1633,12 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E71：PRESENT四轮显式轮序平衡谱算子readiness"
     if run_id == "i2_present_r4_round_slice_direction_attribution_20260718":
         return "创新2 E72：PRESENT四轮平衡谱前缀轮切片方向归因"
+    if run_id == "i2_present_r4_r3_only_profile_operator_readiness_seed0_20260718":
+        return "创新2 E73：PRESENT四轮r3-only平衡谱算子readiness"
+    if run_id == "i2_present_r4_r3_only_profile_operator_attribution_seed0_20260718":
+        return "创新2 E73：PRESENT四轮r3-only平衡谱算子正式归因"
+    if run_id == "i2_present_r4_r3_only_profile_operator_seed1_20260718":
+        return "创新2 E73：PRESENT四轮r3-only平衡谱算子双seed复核"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -794,3 +794,14 @@ E72已经确认r3稳定主导。single-round ridge的r1/r2/r3 AUC为
 reasoning和early-round skip全部关闭，E68保持第一。下一优先级不是新网络名称，而是E73
 r3-only同结构压缩门：只删除r1/r2输入，仍比较true/independent/fair-corrupted P。若保持
 E68质量，得到更简单且更可解释的方法；失败则保留完整39维E68。
+
+E73已经双seed通过。r3-only只输入13维、参数`4795`，比E68的39维/`5679`减少66.7%输入与
+15.57%参数。true-P validation AUC为`0.945556/0.947778`，平均`0.946667`；相对完整E68
+逐seed为`-0.007500/-0.013611`，平均`-0.010556`，均在预注册`-0.02`容差内。
+它逐seed领先independent `+0.288056/+0.275833`，领先fair-corrupted P
+`+0.125556/+0.068333`，并保持小于`0.02`的train-validation gap。
+
+因此架构排名分成两个维度：完整39维E68仍是性能第一（mean `0.957222`）；r3-only E73是
+简洁性与可解释性第一（mean `0.946667`，输入和参数显著减少），两者都只限PRESENT-80四轮
+8-bit活动cube严格unit profile。停止同benchmark继续枚举容量。下一结构搜索必须先在第二真实
+SPN上通过同级strict profile标签门，优先审计GIFT-64或SKINNY-64；标签未就绪前不训练。
