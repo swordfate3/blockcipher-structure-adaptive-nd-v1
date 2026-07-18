@@ -911,3 +911,15 @@ E83随后测试了适配SKINNY非置换线性层的`Sparse Linear-Layer Profile 
 r3-only operator；SKINNY局部候选改为`True-Ridge-Guided Sparse Residual`，它必须以零残差严格
 复现true ridge，并证明神经残差超过该强基线。若E84失败，SKINNY以严格五轮标签与确定性拓扑
 基线收束，不再调深SLPO。
+
+E84已经完成且协议全部通过，但神经增益不能归因于真实SKINNY拓扑。冻结true sparse39 ridge为
+`0.862045`；independent/true/corrupted residual分别为`0.867836/0.867379/0.867227`。
+true相对ridge只有`+0.005335`，相对independent为`-0.000457`，相对错误图仅`+0.000152`，
+三项readiness门全部失败。零残差、ridge冻结、4,795参数公平、cell等变和真实/错误图差异均通过，
+因此结果不是实现或控制未生效。
+
+SKINNY分支在E82严格五轮标签与E83 true sparse39 ridge `0.862045`处收束；SLPO和ridge-guided
+residual都没有产生可归因神经增益，不再调epoch、hidden、消息步数或远程规模。创新2当前已确认
+神经方法第一名仍是PRESENT/GIFT的r3-only Prefix-Guided Nodewise Profile Operator。下一步先做
+无训练的方法/claim综合，并只为能提供同级sound标签、structure-disjoint split和公平拓扑控制的
+新真实密码开放网络实验；SKINNY hold不能扩大解释为整个创新2失败。

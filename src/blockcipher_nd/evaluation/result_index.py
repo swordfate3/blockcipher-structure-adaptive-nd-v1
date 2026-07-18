@@ -1169,6 +1169,15 @@ DECISION_LABELS = {
     "innovation2_skinny64_sparse_profile_readiness_protocol_invalid": (
         "E82来源、稀疏图、参数公平、等变或训练协议无效"
     ),
+    "innovation2_skinny64_true_ridge_residual_readiness_passed": (
+        "SKINNY真实图残差超过冻结ridge与两类控制，可预注册30轮seed0"
+    ),
+    "innovation2_skinny64_true_ridge_residual_not_ready": (
+        "SKINNY神经残差未超过强ridge与控制，收束当前神经搜索"
+    ),
+    "innovation2_skinny64_true_ridge_residual_protocol_invalid": (
+        "E82/E83来源、ridge、零残差、冻结buffer、图或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1764,6 +1773,11 @@ def display_name_for_run(run_id: str) -> str:
         "readiness_seed0_20260719"
     ):
         return "创新2 E83：SKINNY-64五轮r4-only稀疏线性层算子readiness"
+    if run_id == (
+        "i2_skinny64_r5_true_ridge_sparse_residual_"
+        "readiness_seed0_20260719"
+    ):
+        return "创新2 E84：SKINNY-64五轮真实拓扑ridge引导稀疏残差readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

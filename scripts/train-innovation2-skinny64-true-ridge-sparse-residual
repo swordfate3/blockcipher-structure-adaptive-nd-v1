@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.train_innovation2_skinny64_true_ridge_sparse_residual import main
+
+raise SystemExit(main())
