@@ -897,3 +897,17 @@ validation仅`18/18`，覆盖7/3个结构；一元边际AUC仍为0.5，说明问
 双密码r3-only operator证据占第一；下一步E82只审计SKINNY目标轮数4 -> 5是否把标签推进到正负
 过渡区。若五轮标签门通过，才把同一思想改成`r4-only`最后前缀算子；若仍失败，停止当前
 SKINNY 8-bit unit-profile，不扫描更多轮数或新网络。
+
+E82五轮标签过渡已经通过：`4080/1208/856`的positive/negative/unknown、64个mixed结构，
+checkerboard train `584/584`、validation `162/162`，覆盖47/17个结构和59个validation输出bit，
+一元边际AUC全为0.5。E81锚点、96结构和预算逐项重放，因此证据支持的变化来自唯一新增的第五轮。
+
+E83随后测试了适配SKINNY非置换线性层的`Sparse Linear-Layer Profile Operator`。真实与错误图
+都保持128边、逐target入度和lane，模型三行均4,795参数。公平ridge中true sparse39为`0.862045`，
+显著超过local13 `0.763146`和corrupted sparse39 `0.739217`，证明显式真实图展开有强信号。
+
+但两轮神经independent/true/corrupted仅为`0.800069/0.794524/0.788961`；true没有超过两类
+控制，且落后true ridge `0.067520`。所以SLPO不进入30轮。下一结构排名第一仍是PRESENT/GIFT
+r3-only operator；SKINNY局部候选改为`True-Ridge-Guided Sparse Residual`，它必须以零残差严格
+复现true ridge，并证明神经残差超过该强基线。若E84失败，SKINNY以严格五轮标签与确定性拓扑
+基线收束，不再调深SLPO。

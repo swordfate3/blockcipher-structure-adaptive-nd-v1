@@ -31,6 +31,9 @@ def render_skinny64_unit_balance_profile(
 ) -> None:
     gate = summary["gate"]
     metrics = gate["metrics"]
+    metadata = summary.get("metadata", {})
+    experiment = metadata.get("experiment", "e81")
+    rounds = int(metadata.get("config", {}).get("rounds", 4))
     next_action = str(gate.get("next_action", {}).get("action", ""))
     if next_action == "stop r4 expansion and audit an r5 label-distribution transition":
         not_ready_decision = (
@@ -54,7 +57,26 @@ def render_skinny64_unit_balance_profile(
         "innovation2_skinny64_unit_balance_profile_protocol_invalid": (
             "SKINNY坐标、向量化、support或反例协议无效；必须先修复。"
         ),
+        "innovation2_skinny64_r5_unit_balance_profile_transition_ready": (
+            "五轮严格标签进入可训练过渡区；下一步只开放r4-only两轮本地readiness。"
+        ),
+        "innovation2_skinny64_r5_unit_balance_profile_transition_not_ready": (
+            "五轮标签仍未形成宽且配平的面板；停止当前8-bit unit-profile跨轮扫描。"
+        ),
+        "innovation2_skinny64_r5_unit_balance_profile_transition_protocol_invalid": (
+            "E81锚点、五轮向量化、support或反例协议无效；必须先修复。"
+        ),
     }
+    title = (
+        "创新2 E82：SKINNY-64五轮能否把严格积分平衡谱推进到可训练过渡区"
+        if experiment == "e82"
+        else "创新2 E81：SKINNY-64四轮的64位积分平衡谱能否形成严格训练标签"
+    )
+    subtitle = (
+        "逐项重放E81的96个结构与全部预算；唯一改变是目标轮数从四轮增加到五轮。"
+        if experiment == "e82"
+        else "复用GIFT E74的96个8活动bit输入cube、16个见证密钥、每结构8个固定偏移、split和门槛。"
+    )
     colors = ("#0F766E", "#2563EB", "#94A3B8")
     with plt.rc_context(
         {
@@ -74,7 +96,7 @@ def render_skinny64_unit_balance_profile(
         figure.text(
             0.065,
             0.955,
-            "创新2 E81：SKINNY-64四轮的64位积分平衡谱能否形成严格训练标签",
+            title,
             ha="left",
             va="top",
             fontsize=15.0,
@@ -84,7 +106,7 @@ def render_skinny64_unit_balance_profile(
         figure.text(
             0.065,
             0.895,
-            "复用GIFT E74的96个8活动bit输入cube、16个见证密钥、每结构8个固定偏移、split和门槛。",
+            subtitle,
             ha="left",
             va="top",
             fontsize=9.8,
@@ -182,7 +204,7 @@ def render_skinny64_unit_balance_profile(
         figure.text(
             0.065,
             0.053,
-            "证据范围：SKINNY-64/64四轮严格标签与matching readiness；不是神经性能、高轮、攻击或SOTA。",
+            f"证据范围：SKINNY-64/64 {rounds}轮严格标签与matching readiness；不是神经性能、高轮、攻击或SOTA。",
             ha="left",
             va="bottom",
             fontsize=9.0,

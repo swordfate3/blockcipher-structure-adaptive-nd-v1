@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -13,7 +14,9 @@ from blockcipher_nd.tasks.innovation2.present_universal_balance_atlas import (
     make_structures,
 )
 from blockcipher_nd.tasks.innovation2.skinny64_unit_balance_profile_readiness import (
+    Skinny64ProfileConfig,
     Skinny64UnitProfileConfig,
+    Skinny64UnitProfileTransitionConfig,
     build_skinny_checkerboard,
     build_skinny_unit_atlas,
     evaluate_skinny_unit_profile,
@@ -28,12 +31,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--protocol", choices=("e81", "e82"), default="e81")
+    parser.add_argument("--anchor-root", type=Path)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    config = Skinny64UnitProfileConfig(run_id=args.run_id)
+    config: Skinny64ProfileConfig
+    if args.protocol == "e82":
+        if args.anchor_root is None:
+            raise ValueError("E82 requires --anchor-root pointing to completed E81")
+        config = Skinny64UnitProfileTransitionConfig(run_id=args.run_id)
+    else:
+        config = Skinny64UnitProfileConfig(run_id=args.run_id)
     args.output_root.mkdir(parents=True, exist_ok=True)
     progress = args.output_root / "progress.jsonl"
     progress.write_text("", encoding="utf-8")
@@ -57,13 +68,30 @@ def main(argv: list[str] | None = None) -> int:
     _write_progress(
         progress, "matched_benchmark_complete", matched["split_metrics"]
     )
-    gate = evaluate_skinny_unit_profile(config, structures, raw, matched)
+    anchor = None
+    if args.protocol == "e82":
+        anchor = _validate_e81_anchor(args.anchor_root, structures)
+        _write_progress(progress, "e81_anchor_validated", anchor["checks"])
+    gate = evaluate_skinny_unit_profile(
+        config,
+        structures,
+        raw,
+        matched,
+        anchor_checks=None if anchor is None else anchor["checks"],
+    )
     result_rows = result_rows_for_skinny_profile(config, gate)
     targets, observed = _matched_profile_arrays(raw["labels"].shape, matched["rows"])
     metadata = {
         "run_id": config.run_id,
-        "task": "innovation2_skinny64_unit_balance_profile_readiness",
-        "experiment": "e81",
+        "task": (
+            "innovation2_skinny64_r5_unit_balance_profile_transition"
+            if args.protocol == "e82"
+            else "innovation2_skinny64_unit_balance_profile_readiness"
+        ),
+        "experiment": args.protocol,
+        "anchor_root": None if args.anchor_root is None else str(args.anchor_root),
+        "anchor_checks": None if anchor is None else anchor["checks"],
+        "anchor_hashes": None if anchor is None else anchor["hashes"],
         "same_budget_anchor": "i2_gift64_r4_unit_balance_profile_readiness_20260718",
         "config": serializable_config(config),
         "target": (
@@ -129,6 +157,58 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     return 1 if gate["status"] == "fail" else 0
+
+
+def _validate_e81_anchor(
+    anchor_root: Path,
+    structures: tuple[Any, ...],
+) -> dict[str, Any]:
+    gate_path = anchor_root / "gate.json"
+    structures_path = anchor_root / "structures.json"
+    metadata_path = anchor_root / "metadata.json"
+    gate = json.loads(gate_path.read_text(encoding="utf-8"))
+    structure_payload = json.loads(structures_path.read_text(encoding="utf-8"))
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    expected_structures = [
+        {
+            "index": structure.index,
+            "structure_id": structure.structure_id,
+            "role": structure.role,
+            "active_bits": list(structure.active_bits),
+            "active_mask_hex": f"0x{structure.active_mask:016X}",
+            "split": "validation" if not structure.index % 4 else "train",
+        }
+        for structure in structures
+    ]
+    config = metadata.get("config", {})
+    checks = {
+        "e81_anchor_run_id_matches": gate.get("run_id")
+        == "i2_skinny64_r4_unit_balance_profile_readiness_20260719",
+        "e81_anchor_status_is_hold": gate.get("status") == "hold",
+        "e81_anchor_decision_matches": gate.get("decision")
+        == "innovation2_skinny64_unit_balance_profile_not_ready",
+        "e81_anchor_protocol_passes": bool(gate.get("protocol_checks"))
+        and all(gate["protocol_checks"].values()),
+        "e81_anchor_rounds_are_four": config.get("rounds") == 4,
+        "e82_structures_replay_e81": structure_payload.get("structures")
+        == expected_structures,
+    }
+    return {
+        "checks": checks,
+        "hashes": {
+            "gate.json": _sha256(gate_path),
+            "structures.json": _sha256(structures_path),
+            "metadata.json": _sha256(metadata_path),
+        },
+    }
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _matched_profile_arrays(

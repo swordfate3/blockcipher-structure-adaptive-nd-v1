@@ -14,9 +14,6 @@ from blockcipher_nd.ciphers.spn.skinny import (
     generate_round_constants,
     int_to_cells,
 )
-from blockcipher_nd.tasks.innovation2.present_active_dimension_zero_shot_transfer import (
-    compatible_prefix_features,
-)
 from blockcipher_nd.tasks.innovation2.present_universal_balance_atlas import (
     ActiveStructure,
     _cube_assignments,
@@ -27,6 +24,7 @@ from blockcipher_nd.training.metrics import binary_auc
 
 
 AUDIT_ROUNDS = 4
+TRANSITION_ROUNDS = 5
 AUDIT_STRUCTURES = 96
 AUDIT_WITNESS_KEYS = 16
 AUDIT_OFFSETS = 8
@@ -86,6 +84,39 @@ class Skinny64UnitProfileConfig:
             or self.offset_seed != 17401
         ):
             raise ValueError("E81 protocol is frozen")
+
+
+@dataclass(frozen=True)
+class Skinny64UnitProfileTransitionConfig:
+    run_id: str
+    rounds: int = TRANSITION_ROUNDS
+    structure_count: int = AUDIT_STRUCTURES
+    witness_keys: int = AUDIT_WITNESS_KEYS
+    offsets_per_structure: int = AUDIT_OFFSETS
+    match_attempts: int = AUDIT_MATCH_ATTEMPTS
+    structure_seed: int = 20260718
+    key_seed: int = 7401
+    offset_seed: int = 17401
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if (
+            self.rounds != TRANSITION_ROUNDS
+            or self.structure_count != AUDIT_STRUCTURES
+            or self.witness_keys != AUDIT_WITNESS_KEYS
+            or self.offsets_per_structure != AUDIT_OFFSETS
+            or self.match_attempts != AUDIT_MATCH_ATTEMPTS
+            or self.structure_seed != 20260718
+            or self.key_seed != 7401
+            or self.offset_seed != 17401
+        ):
+            raise ValueError("E82 protocol is frozen")
+
+
+Skinny64ProfileConfig = (
+    Skinny64UnitProfileConfig | Skinny64UnitProfileTransitionConfig
+)
 
 
 def reconstruct_skinny_sbox_from_anf(value: int) -> int:
@@ -214,14 +245,17 @@ def _cell_lane_to_bit(cell: int, lane: int) -> int:
 
 
 def build_skinny_unit_atlas(
-    config: Skinny64UnitProfileConfig,
+    config: Skinny64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
 ) -> dict[str, Any]:
     keys = make_skinny_keys(config.witness_keys, config.key_seed)
     round_tweakeys = skinny_round_tweakeys(keys, config.rounds)
     round_constants = generate_round_constants(config.rounds)
     labels = np.full((len(structures), OUTPUT_BITS), -1, dtype=np.int8)
-    prefix = np.empty((len(structures), OUTPUT_BITS, 39), dtype=np.float64)
+    prefix_rounds = tuple(range(1, config.rounds))
+    prefix = np.empty(
+        (len(structures), OUTPUT_BITS, 13 * len(prefix_rounds)), dtype=np.float64
+    )
     witness_key_indices = np.full(labels.shape, -1, dtype=np.int16)
     witness_offsets = np.zeros(labels.shape, dtype=np.uint64)
     rows: list[dict[str, Any]] = []
@@ -229,13 +263,14 @@ def build_skinny_unit_atlas(
     for structure in structures:
         supports = {
             rounds: skinny_variable_supports(structure.active_bits, rounds)
-            for rounds in (1, 2, 3, 4)
+            for rounds in range(1, config.rounds + 1)
         }
-        prefix[structure.index] = compatible_prefix_features(
-            {rounds: supports[rounds] for rounds in (1, 2, 3)},
+        prefix[structure.index] = profile_prefix_features(
+            supports,
             ACTIVE_DIMENSION,
+            prefix_rounds,
         )
-        support_sizes.extend(len(support) for support in supports[4])
+        support_sizes.extend(len(support) for support in supports[config.rounds])
         full_cube = (1 << ACTIVE_DIMENSION) - 1
         assignments = _cube_assignments(structure.active_bits)
         rng = random.Random(
@@ -258,7 +293,7 @@ def build_skinny_unit_atlas(
                         negative_bits[output_bit] = (key_index, offset_index, offset)
         for output_bit in range(OUTPUT_BITS):
             witness = negative_bits.get(output_bit)
-            if full_cube not in supports[4][output_bit]:
+            if full_cube not in supports[config.rounds][output_bit]:
                 labels[structure.index, output_bit] = 1
                 status = "positive"
                 certificate = "full_cube_monomial_absent_from_support_overapprox"
@@ -304,6 +339,28 @@ def build_skinny_unit_atlas(
         "witness_offsets": witness_offsets,
         "support_sizes": support_sizes,
     }
+
+
+def profile_prefix_features(
+    supports_by_round: dict[int, tuple[frozenset[int], ...]],
+    active_dimension: int,
+    prefix_rounds: tuple[int, ...],
+) -> np.ndarray:
+    features = np.empty((64, 13 * len(prefix_rounds)), dtype=np.float64)
+    universe = float(1 << active_dimension)
+    for output_bit in range(64):
+        values: list[float] = []
+        for rounds in prefix_rounds:
+            support = supports_by_round[rounds][output_bit]
+            size = len(support)
+            values.extend((size / universe,) * 4)
+            degree_counts = np.zeros(9, dtype=np.float64)
+            for monomial in support:
+                degree_counts[min(monomial.bit_count(), 8)] += 1.0
+            degree_counts /= max(1.0, float(degree_counts.sum()))
+            values.extend(degree_counts.tolist())
+        features[output_bit] = np.asarray(values, dtype=np.float64)
+    return features
 
 
 def build_skinny_checkerboard(
@@ -416,10 +473,11 @@ def _rate(values: list[int], default: float) -> float:
 
 
 def evaluate_skinny_unit_profile(
-    config: Skinny64UnitProfileConfig,
+    config: Skinny64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     matched: dict[str, Any],
+    anchor_checks: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     labels = raw["labels"]
     positive = int(np.sum(labels == 1))
@@ -469,6 +527,8 @@ def evaluate_skinny_unit_profile(
         "support_fixture_exact_terms_are_covered": support_fixture["all_pass"],
         "structure_count_matches": len(structures) == config.structure_count,
         "raw_shape_matches": labels.shape == (config.structure_count, OUTPUT_BITS),
+        "prefix_shape_matches": raw["prefix_features"].shape
+        == (config.structure_count, OUTPUT_BITS, 13 * (config.rounds - 1)),
         "all_positive_rows_have_certificate": all(
             row["certificate"] == "full_cube_monomial_absent_from_support_overapprox"
             for row in raw["rows"]
@@ -489,6 +549,7 @@ def evaluate_skinny_unit_profile(
         "train_validation_structures_disjoint": not set(
             matched["split_indices"]["train"]
         ).intersection(matched["split_indices"]["validation"]),
+        **(anchor_checks or {}),
     }
     width_checks = {
         "raw_each_class_at_least_256": positive >= 256 and negative >= 256,
@@ -521,7 +582,10 @@ def evaluate_skinny_unit_profile(
         == 0,
     }
     status, decision, action = adjudicate_skinny_profile_checks(
-        protocol_checks, width_checks, shortcut_checks
+        protocol_checks,
+        width_checks,
+        shortcut_checks,
+        experiment=_profile_experiment(config),
     )
     return {
         "run_id": config.run_id,
@@ -532,7 +596,8 @@ def evaluate_skinny_unit_profile(
         "shortcut_checks": shortcut_checks,
         "metrics": metrics,
         "claim_scope": (
-            "strict SKINNY-64/64 r4 8-bit-cube unit-output profile label readiness; "
+            f"strict SKINNY-64/64 r{config.rounds} 8-bit-cube unit-output "
+            "profile label readiness; "
             "no neural gain, high-round, cross-cipher generalization, attack, or SOTA claim"
         ),
         "next_action": {
@@ -547,11 +612,20 @@ def adjudicate_skinny_profile_checks(
     protocol_checks: dict[str, bool],
     width_checks: dict[str, bool],
     shortcut_checks: dict[str, bool],
+    *,
+    experiment: str = "e81",
 ) -> tuple[str, str, str]:
+    if experiment not in {"e81", "e82"}:
+        raise ValueError("experiment must be e81 or e82")
+    stem = (
+        "innovation2_skinny64_r5_unit_balance_profile_transition"
+        if experiment == "e82"
+        else "innovation2_skinny64_unit_balance_profile"
+    )
     if not all(protocol_checks.values()):
         return (
             "fail",
-            "innovation2_skinny64_unit_balance_profile_protocol_invalid",
+            f"{stem}_protocol_invalid",
             "repair SKINNY coordinates, vectorization, support, witness, or split",
         )
     raw_width_keys = (
@@ -564,29 +638,37 @@ def adjudicate_skinny_profile_checks(
     if not all(shortcut_checks.values()):
         return (
             "hold",
-            "innovation2_skinny64_unit_balance_profile_not_ready",
+            f"{stem}_not_ready",
             "stop the shortcut-prone label route and rank a new sound representation",
         )
     if not all(width_checks.values()):
         action = (
             "audit 192-structure packing capacity before any expansion; do not train"
             if raw_width_ready
-            else "stop r4 expansion and audit an r5 label-distribution transition"
+            else (
+                "stop the SKINNY 8-bit unit-profile round scan and rank a new sound label"
+                if experiment == "e82"
+                else "stop r4 expansion and audit an r5 label-distribution transition"
+            )
         )
         return (
             "hold",
-            "innovation2_skinny64_unit_balance_profile_not_ready",
+            f"{stem}_not_ready",
             action,
         )
     return (
         "pass",
-        "innovation2_skinny64_unit_balance_profile_ready",
-        "run a local r3-only SKINNY profile operator readiness matrix",
+        f"{stem}_ready",
+        (
+            "run E83 local r4-only SKINNY profile operator readiness"
+            if experiment == "e82"
+            else "run a local r3-only SKINNY profile operator readiness matrix"
+        ),
     )
 
 
 def validate_skinny_vectorized_fixture(
-    config: Skinny64UnitProfileConfig,
+    config: Skinny64ProfileConfig,
 ) -> dict[str, Any]:
     keys = make_skinny_keys(4, config.key_seed + 99)
     words = np.asarray(
@@ -639,7 +721,7 @@ def validate_skinny_support_fixture() -> dict[str, Any]:
 
 
 def validate_skinny_negative_witnesses(
-    config: Skinny64UnitProfileConfig,
+    config: Skinny64ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     sample_count: int = 24,
@@ -673,12 +755,16 @@ def validate_skinny_negative_witnesses(
 
 
 def result_rows_for_skinny_profile(
-    config: Skinny64UnitProfileConfig, gate: dict[str, Any]
+    config: Skinny64ProfileConfig, gate: dict[str, Any]
 ) -> list[dict[str, Any]]:
     metrics = gate["metrics"]
     common = {
         "run_id": config.run_id,
-        "task": "innovation2_skinny64_unit_balance_profile_readiness",
+        "task": (
+            "innovation2_skinny64_r5_unit_balance_profile_transition"
+            if _profile_experiment(config) == "e82"
+            else "innovation2_skinny64_unit_balance_profile_readiness"
+        ),
         "cipher": "SKINNY-64/64",
         "rounds": config.rounds,
         "status": gate["status"],
@@ -707,8 +793,12 @@ def result_rows_for_skinny_profile(
     ]
 
 
-def serializable_config(config: Skinny64UnitProfileConfig) -> dict[str, Any]:
+def serializable_config(config: Skinny64ProfileConfig) -> dict[str, Any]:
     return asdict(config)
+
+
+def _profile_experiment(config: Skinny64ProfileConfig) -> str:
+    return "e82" if isinstance(config, Skinny64UnitProfileTransitionConfig) else "e81"
 
 
 def _safe_auc(labels: np.ndarray, scores: np.ndarray) -> float:
@@ -719,13 +809,16 @@ def _safe_auc(labels: np.ndarray, scores: np.ndarray) -> float:
 
 __all__ = [
     "SKINNY64_SBOX_ANF",
+    "Skinny64ProfileConfig",
     "Skinny64UnitProfileConfig",
+    "Skinny64UnitProfileTransitionConfig",
     "adjudicate_skinny_profile_checks",
     "build_skinny_checkerboard",
     "build_skinny_unit_atlas",
     "encrypt_skinny_words",
     "evaluate_skinny_unit_profile",
     "make_skinny_keys",
+    "profile_prefix_features",
     "reconstruct_skinny_sbox_from_anf",
     "result_rows_for_skinny_profile",
     "serializable_config",

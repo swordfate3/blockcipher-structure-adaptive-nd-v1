@@ -1148,6 +1148,27 @@ DECISION_LABELS = {
     "innovation2_skinny64_unit_balance_profile_protocol_invalid": (
         "SKINNY坐标、向量化、support、反例或split协议无效"
     ),
+    "innovation2_skinny64_r5_unit_balance_profile_transition_ready": (
+        "SKINNY-64五轮严格unit谱进入可训练过渡区，可做r4-only readiness"
+    ),
+    "innovation2_skinny64_r5_unit_balance_profile_transition_not_ready": (
+        "SKINNY-64五轮严格unit谱仍不够宽，停止当前跨轮扫描"
+    ),
+    "innovation2_skinny64_r5_unit_balance_profile_transition_protocol_invalid": (
+        "E81锚点、五轮向量化、support、反例或split协议无效"
+    ),
+    "innovation2_skinny64_sparse_profile_readiness_passed": (
+        "SKINNY真实稀疏线性图的ridge与两轮神经门通过，可预注册30轮seed0"
+    ),
+    "innovation2_skinny64_sparse_profile_topology_not_attributed": (
+        "公平ridge未归因SKINNY真实线性图，停止当前稀疏算子"
+    ),
+    "innovation2_skinny64_sparse_profile_readiness_not_passed": (
+        "SKINNY稀疏算子两轮未同时超过控制，停止正式训练"
+    ),
+    "innovation2_skinny64_sparse_profile_readiness_protocol_invalid": (
+        "E82来源、稀疏图、参数公平、等变或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1736,6 +1757,13 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E80：PRESENT/GIFT r3-only平衡谱算子方法级综合"
     if run_id == "i2_skinny64_r4_unit_balance_profile_readiness_20260719":
         return "创新2 E81：SKINNY-64四轮严格单位输出平衡谱标签readiness"
+    if run_id == "i2_skinny64_r5_unit_balance_profile_transition_20260719":
+        return "创新2 E82：SKINNY-64五轮严格单位输出平衡谱标签过渡"
+    if run_id == (
+        "i2_skinny64_r5_r4_only_sparse_profile_operator_"
+        "readiness_seed0_20260719"
+    ):
+        return "创新2 E83：SKINNY-64五轮r4-only稀疏线性层算子readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

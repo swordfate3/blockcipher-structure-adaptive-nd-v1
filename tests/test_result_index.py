@@ -1684,6 +1684,59 @@ def test_result_index_labels_innovation2_skinny_unit_profile_readiness(
     )
 
 
+def test_result_index_labels_innovation2_skinny_r5_profile_transition(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_skinny64_r5_unit_balance_profile_transition_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation2_skinny64_r5_unit_balance_profile_transition_ready"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E82：SKINNY-64五轮严格单位输出平衡谱标签过渡"
+    )
+    assert entries[0]["decision_display"] == (
+        "SKINNY-64五轮严格unit谱进入可训练过渡区，可做r4-only readiness"
+    )
+
+
+def test_result_index_labels_innovation2_skinny_sparse_profile_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_skinny64_r5_r4_only_sparse_profile_operator_"
+        "readiness_seed0_20260719"
+    )
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_skinny64_sparse_profile_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E83：SKINNY-64五轮r4-only稀疏线性层算子readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "SKINNY真实稀疏线性图的ridge与两轮神经门通过，可预注册30轮seed0"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
