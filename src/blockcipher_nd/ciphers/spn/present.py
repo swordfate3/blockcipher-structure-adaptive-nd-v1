@@ -27,6 +27,20 @@ PRESENT_SBOX = (
 PRESENT_INV_SBOX = tuple(PRESENT_SBOX.index(value) for value in range(16))
 
 
+def present_sbox_anf_terms(output_bit: int) -> tuple[int, ...]:
+    if output_bit not in range(4):
+        raise ValueError("output_bit must be in [0, 3]")
+    coefficients = [(PRESENT_SBOX[value] >> output_bit) & 1 for value in range(16)]
+    for bit in range(4):
+        for mask in range(16):
+            if mask & (1 << bit):
+                coefficients[mask] ^= coefficients[mask ^ (1 << bit)]
+    return tuple(mask for mask, coefficient in enumerate(coefficients) if coefficient)
+
+
+PRESENT_SBOX_ANF = tuple(present_sbox_anf_terms(bit) for bit in range(4))
+
+
 @dataclass(frozen=True)
 class Present80:
     rounds: int

@@ -734,6 +734,39 @@ DECISION_LABELS = {
     "innovation2_present_pair_state_attribution_protocol_invalid": (
         "PRESENT四轮pair-state的source、模型、控制、metric或训练协议无效"
     ),
+    "innovation2_present_mspn_route_ready": (
+        "ANF前缀复杂度归因通过，下一网络选择单项式支撑传播网络"
+    ),
+    "innovation2_present_query_nbfnet_route_ready": (
+        "正确P-layer可达归因通过，下一网络选择query-conditioned NBFNet"
+    ),
+    "innovation2_present_static_set_route_dominant": (
+        "静态active-mask集合统计主导，暂停拓扑网络"
+    ),
+    "innovation2_present_certificate_attribution_unresolved": (
+        "非oracle确定性特征均未解释PRESENT四轮弱神经信号"
+    ),
+    "innovation2_present_certificate_attribution_protocol_invalid": (
+        "PRESENT四轮证书复杂度归因的source、特征、标准化或metric协议无效"
+    ),
+    "innovation2_present_mspn_readiness_passed": (
+        "单项式支撑传播网络实现与两轮训练readiness通过"
+    ),
+    "innovation2_present_mspn_readiness_failed": (
+        "单项式支撑传播网络的等变、有限性、参数或训练控制未通过"
+    ),
+    "innovation2_present_mspn_topology_attributed": (
+        "MSPN在严格PRESENT四轮标签上超过pair-state并通过正确P-layer归因"
+    ),
+    "innovation2_present_mspn_candidate_not_ready": (
+        "MSPN未通过严格PRESENT四轮正式候选门"
+    ),
+    "innovation2_present_mspn_topology_not_attributed": (
+        "MSPN预测信号未归因到正确P-layer transport"
+    ),
+    "innovation2_present_mspn_attribution_protocol_invalid": (
+        "MSPN正式归因的source、模型、控制、metric或训练协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1219,6 +1252,12 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E44：PRESENT四轮64-bit pair-state神经归因"
     if run_id == "i2_present_r4_pair_state_neural_attribution_smoke_seed0_20260718":
         return "创新2 E44：PRESENT四轮64-bit pair-state训练就绪smoke"
+    if run_id == "i2_present_r4_certificate_complexity_attribution_20260718":
+        return "创新2 E45：PRESENT四轮证书复杂度与拓扑特征归因"
+    if run_id == "i2_present_r4_mspn_readiness_smoke_seed0_20260718":
+        return "创新2 E46：PRESENT四轮MSPN训练就绪smoke"
+    if run_id == "i2_present_r4_mspn_neural_attribution_seed0_20260718":
+        return "创新2 E47：PRESENT四轮MSPN正式神经归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

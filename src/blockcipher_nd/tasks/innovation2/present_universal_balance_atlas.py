@@ -8,7 +8,11 @@ from typing import Any
 
 import numpy as np
 
-from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX, Present80
+from blockcipher_nd.ciphers.spn.present import (
+    PRESENT_SBOX,
+    PRESENT_SBOX_ANF,
+    Present80,
+)
 from blockcipher_nd.tasks.innovation2.integral_fresh_key_validation import (
     present_round_key_matrix,
 )
@@ -104,20 +108,6 @@ class WitnessRecord:
     offset_index: int
     offset: int
     parity_word: int
-
-
-def coordinate_anf_terms(output_bit: int) -> tuple[int, ...]:
-    if output_bit not in range(4):
-        raise ValueError("output_bit must be in [0, 3]")
-    coefficients = [(PRESENT_SBOX[value] >> output_bit) & 1 for value in range(16)]
-    for bit in range(4):
-        for mask in range(16):
-            if mask & (1 << bit):
-                coefficients[mask] ^= coefficients[mask ^ (1 << bit)]
-    return tuple(mask for mask, coefficient in enumerate(coefficients) if coefficient)
-
-
-PRESENT_SBOX_ANF = tuple(coordinate_anf_terms(bit) for bit in range(4))
 
 
 def reconstruct_present_sbox_from_anf(value: int) -> int:

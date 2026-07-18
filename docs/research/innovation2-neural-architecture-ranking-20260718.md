@@ -409,3 +409,41 @@ triangle之前，也不增加Transformer容量。
 complexity、active/mask set统计与P-layer置换不变控制。若证书复杂度基线解释E44，下一
 网络应编码单项式支撑状态或集合序列；若只有真实拓扑特征有效，才开放query-conditioned
 Bellman-Ford关系推理器。这个审计比盲目枚举新网络更直接对应当前失败模式。
+
+E45确定性归因已经完成。static-set、错误拓扑、正确拓扑、ANF 1--3轮前缀和最终证书
+oracle的validation AUC分别为`0.504309/0.459063/0.648161/0.686082/1.000000`。正确
+拓扑相对错误拓扑为`+0.189098`，说明标签确有P-layer路径信息；ANF前缀又比正确拓扑高
+`+0.037920`且比静态set高`+0.181772`。按冻结门，下一网络明确选择MSPN，而不是NBFNet。
+
+E46实现了`Monomial Support Propagation Network`：64个bit维护32维压缩支撑状态，以
+PRESENT S-box真实ANF项组合、共享step执行4次、经true/fair-corrupted P-layer搬运，并由
+output-mask query池化。模型参数`17788`，是E44的`1.66x`；cell重标号误差`5.22e-08`，
+true/corrupted初始logit差`0.054705`，没有预计算prefix/oracle buffer。
+
+两轮true/corrupted/label-shuffle AUC为`0.506500/0.507325/0.504668`，只作为readiness；
+全部有限性、等变性、参数、source和shuffle门通过。当前架构排序更新为：
+
+```text
+1. MSPN（E45证据直接支持；E46 readiness通过，待E47正式seed0）
+2. directed pair-state triangle（E44真实标签AUC 0.561979，拓扑归因不足）
+3. directed pair-state local（更简单锚点，E44 AUC 0.549914）
+4. query-conditioned NBFNet（正确拓扑特征有效，但弱于ANF前缀，继续暂缓）
+5. static Set Transformer/DeepSets（static AUC约随机，不优先）
+```
+
+下一步只开放E47 MSPN 30轮seed0正式归因。它必须同时比较E45 prefix ridge、E44 triangle、
+MSPN fair-corrupted和label-shuffle；不过门则停止当前MSPN，不通过加容量或远程GPU机械补救。
+
+E47正式30轮结果否定了当前MSPN实现。true/corrupted/shuffle validation AUC为
+`0.518673/0.560830/0.527291`；true低于E44 triangle `0.043307`、低于E45 prefix ridge
+`0.167409`，且低于错误P-layer `0.042157`。true train AUC达到`0.794375`，说明失败不是
+完全无法拟合，而是structure-disjoint泛化和正确transport归因失败。
+
+因此“ANF前缀特征有效”不能直接推出“degree-compressed可微传播有效”。当前MSPN只保留
+匿名degree/support强度，term mean/product会把不同活动变量组合映射到同类状态；E45精确
+support集合包含的变量身份可能才是关键。MSPN排名撤回到未就绪，不运行seed1。
+
+下一架构前必须执行support-state collision审计。只有固定维变量身份sketch在不读取最终
+full-cube oracle的前提下显著降低跨标签碰撞并保持组外AUC，才开放`Identity-Sketch
+Monomial Propagator`。否则神经证书近似路线停止，E45确定性ANF-prefix归因作为当前最强
+解释，E44 triangle保留为最强真实神经锚点。

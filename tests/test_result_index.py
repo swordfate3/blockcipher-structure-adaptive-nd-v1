@@ -710,6 +710,78 @@ def test_result_index_labels_innovation2_present_pair_state_attribution(
     )
 
 
+def test_result_index_labels_innovation2_present_certificate_complexity(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_certificate_complexity_attribution_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_mspn_route_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E45：PRESENT四轮证书复杂度与拓扑特征归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "ANF前缀复杂度归因通过，下一网络选择单项式支撑传播网络"
+    )
+
+
+def test_result_index_labels_innovation2_present_mspn_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_mspn_readiness_smoke_seed0_20260718"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_mspn_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E46：PRESENT四轮MSPN训练就绪smoke"
+    )
+    assert entries[0]["decision_display"] == (
+        "单项式支撑传播网络实现与两轮训练readiness通过"
+    )
+
+
+def test_result_index_labels_innovation2_present_mspn_attribution(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_mspn_neural_attribution_seed0_20260718"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_mspn_topology_attributed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E47：PRESENT四轮MSPN正式神经归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "MSPN在严格PRESENT四轮标签上超过pair-state并通过正确P-layer归因"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
