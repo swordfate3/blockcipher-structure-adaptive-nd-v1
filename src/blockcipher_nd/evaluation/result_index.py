@@ -1127,6 +1127,27 @@ DECISION_LABELS = {
     "innovation2_gift64_r3_only_replication_protocol_invalid": (
         "GIFT-64 E75/E78来源、参数公平或30轮seed1协议无效"
     ),
+    "innovation2_cross_spn_r3_profile_method_confirmed_skinny_labels_not_ready": (
+        "PRESENT/GIFT双密码方法证据通过，SKINNY严格标签尚未就绪"
+    ),
+    "innovation2_cross_spn_r3_profile_method_confirmed_third_spn_ready": (
+        "PRESENT/GIFT双密码方法证据通过，第三SPN标签可进入训练门"
+    ),
+    "innovation2_cross_spn_r3_profile_method_not_confirmed": (
+        "PRESENT或GIFT逐seed拓扑归因未同时通过"
+    ),
+    "innovation2_cross_spn_method_synthesis_protocol_invalid": (
+        "E73/E79或SKINNY冻结来源、hash与方法契约无效"
+    ),
+    "innovation2_skinny64_unit_balance_profile_ready": (
+        "SKINNY-64四轮严格unit谱标签门通过，可做本地三行readiness"
+    ),
+    "innovation2_skinny64_unit_balance_profile_not_ready": (
+        "SKINNY-64四轮严格unit谱宽度或反捷径门不足，禁止训练"
+    ),
+    "innovation2_skinny64_unit_balance_profile_protocol_invalid": (
+        "SKINNY坐标、向量化、support、反例或split协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1711,6 +1732,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E78：GIFT-64四轮r3-only平衡谱算子30轮seed0归因"
     if run_id == "i2_gift64_r4_r3_only_profile_operator_seed1_20260719":
         return "创新2 E79：GIFT-64四轮r3-only平衡谱算子30轮双seed确认"
+    if run_id == "i2_cross_spn_r3_profile_operator_method_synthesis_20260719":
+        return "创新2 E80：PRESENT/GIFT r3-only平衡谱算子方法级综合"
+    if run_id == "i2_skinny64_r4_unit_balance_profile_readiness_20260719":
+        return "创新2 E81：SKINNY-64四轮严格单位输出平衡谱标签readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

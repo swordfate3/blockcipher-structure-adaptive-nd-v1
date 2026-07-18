@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_innovation2_cross_spn_r3_profile_operator_synthesis import main
+
+raise SystemExit(main())

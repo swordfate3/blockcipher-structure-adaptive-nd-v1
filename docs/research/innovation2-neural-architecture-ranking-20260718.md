@@ -873,3 +873,27 @@ seed0 `0.571280/0.774714/0.913111`、seed1 `0.569719/0.784599/0.911030`；双see
 下一步停止PRESENT/GIFT同benchmark模型枚举。先形成E80跨SPN方法级证据与claim-boundary综合，
 然后只在SKINNY-64或另一真实SPN通过同级strict label、structure-disjoint和边际控制后开放第三密码
 训练。若标签门不通过，保留双密码四轮方法贡献，不用高轮或SOTA语言扩大结论。
+
+E80已经完成无训练方法综合。所有E73/E79来源hash、历史裁决、内部协议、13维输入、hidden 32、
+2步共享消息和4,795参数契约均通过。重新从原始结果行计算，PRESENT mean true相对independent和
+错误P为`+0.281944/+0.096944`，GIFT为`+0.341571/+0.132414`；四个逐seed真实P对两类控制的
+margin均超过`0.03`。
+
+因此当前第一名不再只是PRESENT内的候选，而是`r3-only Prefix-Guided Nodewise Profile
+Operator`的双真实SPN方法证据。边界仍然严格：两套模型分别训练，PRESENT为96结构/476边，
+GIFT为192结构/620边，AUC不可横向排名；没有零样本迁移、高轮、攻击或SOTA结论。
+
+SKINNY E20/E21论文kernel已复现，但E22/E23/E24的稳定宽标签族未通过，E42 ready label
+family仍为`0`。下一优先级因此不是TokenGT、GraphGPS、RR-PGPO或扩大现有算子，而是E81
+SKINNY-64四轮严格unit-profile标签readiness；标签门通过前不训练。若E81失败，保留PRESENT+
+GIFT双密码方法贡献并转向新的sound标签表示，不能用神经网络搜索填补标签缺口。
+
+E81已经完成且协议全过，但四轮标签不平衡：`5563 positive / 71 negative / 510 unknown`，
+resolved positive prevalence为`0.987398`，只有10/96个mixed结构。配平后train仅`46/46`、
+validation仅`18/18`，覆盖7/3个结构；一元边际AUC仍为0.5，说明问题是严格负类和mixed结构
+太少，不是位置捷径。
+
+因此SKINNY四轮unit-profile不开放神经训练，也不扩到192结构。当前架构排名仍由PRESENT/GIFT
+双密码r3-only operator证据占第一；下一步E82只审计SKINNY目标轮数4 -> 5是否把标签推进到正负
+过渡区。若五轮标签门通过，才把同一思想改成`r4-only`最后前缀算子；若仍失败，停止当前
+SKINNY 8-bit unit-profile，不扫描更多轮数或新网络。

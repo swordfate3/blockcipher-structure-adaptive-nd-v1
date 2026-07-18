@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_innovation2_skinny64_unit_balance_profile_readiness import main
+
+raise SystemExit(main())
