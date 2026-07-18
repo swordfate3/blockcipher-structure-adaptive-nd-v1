@@ -989,6 +989,24 @@ DECISION_LABELS = {
     "innovation2_present_profile_operator_replication_protocol_invalid": (
         "seed0 source、profile、contract或seed1协议无效"
     ),
+    "innovation2_present_multibit_mask_query_ready": (
+        "多bit linear-mask非平凡标签和信号过门，可测试轻量query decoder"
+    ),
+    "innovation2_present_multibit_profile_componentwise_dominated": (
+        "多bit正类由unit平衡状态组合解释，停止mask-query decoder"
+    ),
+    "innovation2_present_multibit_profile_marginal_dominated": (
+        "多bit标签仍被边际捷径解释，禁止训练decoder"
+    ),
+    "innovation2_present_multibit_profile_too_narrow": (
+        "多bit mask family宽度不足，停止扩展"
+    ),
+    "innovation2_present_multibit_profile_signal_not_ready": (
+        "多bit标签缺少非平凡确定性信号，停止decoder"
+    ),
+    "innovation2_present_multibit_profile_protocol_invalid": (
+        "E43重放、matching、分解或特征协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1545,6 +1563,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E67：PRESENT四轮prefix引导平衡谱算子正式归因"
     if run_id == "i2_present_r4_prefix_guided_profile_operator_seed1_20260718":
         return "创新2 E68：PRESENT四轮prefix引导平衡谱算子双seed复核"
+    if run_id == "i2_present_r4_multibit_mask_profile_readiness_20260718":
+        return "创新2 E69：PRESENT四轮多bit linear-mask profile审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

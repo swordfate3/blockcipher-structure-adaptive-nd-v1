@@ -1369,6 +1369,30 @@ def test_result_index_labels_innovation2_present_profile_operator_replication(
     )
 
 
+def test_result_index_labels_innovation2_present_multibit_mask_profile(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_multibit_mask_profile_readiness_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_multibit_profile_componentwise_dominated",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E69：PRESENT四轮多bit linear-mask profile审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "多bit正类由unit平衡状态组合解释，停止mask-query decoder"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
