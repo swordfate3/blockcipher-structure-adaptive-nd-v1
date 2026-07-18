@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.train_innovation2_rectangle80_r3_only_profile_operator import main
+
+raise SystemExit(main())

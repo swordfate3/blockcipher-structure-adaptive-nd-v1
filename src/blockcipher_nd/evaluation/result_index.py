@@ -1220,6 +1220,18 @@ DECISION_LABELS = {
     "innovation2_rectangle80_unit_profile_expansion_protocol_invalid": (
         "E87锚点重放或RECTANGLE严格标签协议无效"
     ),
+    "innovation2_rectangle80_r3_only_profile_readiness_passed": (
+        "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
+    ),
+    "innovation2_rectangle80_r3_only_topology_baseline_not_ready": (
+        "公平确定性基线未确认RECTANGLE真实P层信息，关闭当前神经路线"
+    ),
+    "innovation2_rectangle80_r3_only_profile_readiness_not_passed": (
+        "RECTANGLE真实P层未同时超过神经控制和公平ridge，停止正式训练"
+    ),
+    "innovation2_rectangle80_r3_only_profile_protocol_invalid": (
+        "E88来源、RECTANGLE cell-major拓扑、参数公平或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1834,6 +1846,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E87：RECTANGLE-80四轮严格unit平衡谱标签readiness"
     if run_id == "i2_rectangle80_r4_unit_balance_profile_192_structures_20260719":
         return "创新2 E88：RECTANGLE-80四轮严格unit平衡谱192结构容量复核"
+    if run_id == (
+        "i2_rectangle80_r4_r3_only_profile_operator_readiness_seed0_20260719"
+    ):
+        return "创新2 E89：RECTANGLE-80四轮r3-only平衡谱算子readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

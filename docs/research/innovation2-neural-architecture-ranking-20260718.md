@@ -975,3 +975,17 @@ GraphGPS或扩大共享模型，只测试与PRESENT/GIFT方法可归因对齐的
 true RECTANGLE P-layer和same-family corrupted P-layer；三行使用E88相同数据、13维第3轮前缀、
 相同共享算子容量和两轮预算。真实P必须同时超过两类控制才允许30轮seed0，否则RECTANGLE神经
 分支收束在sound标签证据，不进行seed1或远程规模。
+
+E89首次在RECTANGLE上训练与PRESENT/GIFT同类的r3-only Profile Operator，并先修复物理索引差异：
+RECTANGLE S盒cell是`[c,16+c,32+c,48+c]`而非连续4 bit，因此标签、mask和39维前缀先做可逆
+cell-major重排，真实ShiftRow也共轭到同一索引。全部重排、置换、等变和来源重放门通过。
+
+公平ridge local/corrupted/true AUC为`0.687869/0.774292/0.824682`，true相对local和错误P增益
+`+0.136814/+0.050391`。两轮神经independent/corrupted/true AUC为
+`0.662404/0.757646/0.805034`，真实P领先两类同参数控制`+0.142629/+0.047388`，并只比公平
+true-P ridge低`0.019649`。所有预注册门通过。
+
+这把RECTANGLE从“第三种sound标签”推进到“第三种真实SPN的正向神经readiness”，但还不是正式
+双seed方法证据。下一步只开放相同三行30轮seed0，并以公平true-P ridge `0.824682`约束神经质量；
+失败即关闭RECTANGLE神经路线，成功才运行seed1。当前不枚举Transformer、GraphGPS、attention、
+更深消息步数或共享三密码模型，也不启动远程GPU。
