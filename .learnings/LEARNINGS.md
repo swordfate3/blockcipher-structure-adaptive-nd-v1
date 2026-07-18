@@ -68,6 +68,59 @@ completeness.
 
 ---
 
+## [LRN-20260718-002] correction
+
+**Logged**: 2026-07-18T12:15:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A cube key-coefficient computed after fixing non-cube plaintext bits to zero is not an all-inactive-offset integral certificate; use the full superpoly and prove the selected output-mask polynomial is identically zero.
+
+### Details
+
+Innovation 2 E52 requires a positive label to hold for every PRESENT-80 key and
+every inactive plaintext offset. CLAASP-MP's
+`find_keycoeff_of_cube_monomial_of_specific_output_bit` explicitly fixes every
+non-cube, non-key input bit to zero. It can therefore characterize the cube
+coefficient at the zero inactive offset, but it does not establish the frozen
+all-offset target.
+
+`find_superpoly_of_specific_output_bit` leaves non-cube plaintext variables
+symbolic. For a multi-bit linear output mask, the matching certificate must XOR
+the full superpolies of all selected output bits over GF(2) and prove the result
+is the zero polynomial over both key and inactive plaintext variables. CLAASP's
+MSB-first output index must also be mapped to the project's LSB-first bit order
+before interpreting a certificate.
+
+### Suggested Action
+
+Every deterministic label-provider manifest must state whether inactive public
+variables remain symbolic or are fixed. Reject zero-offset-only key
+coefficients as universal positives, require multi-bit mask polynomial XOR, and
+freeze an independent bit-order fixture before provider execution.
+
+### Metadata
+
+- Source: source_audit, self_correction
+- Related Files: docs/experiments/innovation2-present-r5-strict-label-provider-coverage-audit-plan.md, src/blockcipher_nd/tasks/innovation2/present_r5_strict_label_provider_coverage.py
+- Tags: innovation2, present, cube, superpoly, key-coefficient, inactive-offset, certificate
+- See Also: LRN-20260717-001
+- Pattern-Key: innovation2.certificate.full_superpoly_required_for_all_offsets
+- Recurrence-Count: 1
+- First-Seen: 2026-07-18
+- Last-Seen: 2026-07-18
+
+### Resolution
+
+- **Resolved**: 2026-07-18T12:15:00+08:00
+- **Commit/PR**: pending
+- **Notes**: E52 provider manifest and experiment record now select full superpoly semantics and explicitly reject the zero-offset key-coefficient shortcut.
+
+---
+
 ## [LRN-20260718-001] correction
 
 **Logged**: 2026-07-18T03:40:00+08:00

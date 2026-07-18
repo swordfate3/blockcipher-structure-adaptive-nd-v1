@@ -515,3 +515,19 @@ triangle `0.561979`是最强纯神经锚点；E47--E51证明MSPN、identity、de
 下一研究轴从“再换网络”转为“提高严格标签轮数”。E52只审计PRESENT-80五轮全密钥/全offset
 证书与反例覆盖，以及能否构造structure-disjoint、边际匹配的checkerboard。标签门未通过前，
 NBFNet、Transformer、r4调参、seed1和远程GPU全部关闭；标签门通过后才重新排序网络。
+
+E52正式全池确认五轮瓶颈在标签提供者。P0对`96 x 300 = 28800`候选得到
+`positive/negative/unknown = 0/27446/1354`；32个抽样negative全部通过标量PRESENT复验，
+但6144个结构-输出位支撑全部饱和为`256/256`，无法证明任何正类，mixed structure为0。
+因此五轮训练集未就绪，不能用经验平衡率或有限密钥零失败补正类。
+
+CLAASP-MP frozen source具备PRESENT-80模型与完整superpoly接口，但当前Sage环境缺`bitstring`、
+`gurobipy`和已验证Gurobi license，也没有非Gurobi monomial backend。语义上必须使用保留
+inactive plaintext变量的`find_superpoly_of_specific_output_bit`；`find_keycoeff...`把非cube
+明文固定为0，只证明零offset，不满足当前全offset目标。多bit mask还需异或对应bit的完整
+superpoly并证明结果恒零。
+
+网络排名继续冻结。下一优先级为E53开放3SDP provider门：利用本机已验证的Sage/GLPK MILP
+后端，先在PRESENT 1--2轮exact-ANF fixture验证3SDP trail奇偶消去与bit order，再尝试冻结的
+`16 structures x 64 masks`五轮子集。若只能复现普通2SDP可达性而不能处理消去，则停止该实现；
+只有子集新增严格正类、正负均非零且证书复验全过，才扩大完整池并重新开放神经结构搜索。

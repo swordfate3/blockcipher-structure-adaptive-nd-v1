@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待调研实现
+状态：已完成 / hold / 五轮严格标签库未就绪
 
 ## 1. 研究问题
 
@@ -119,3 +119,88 @@ visual_qa_passed.marker
 E52完成后必须给出：最强提供者、覆盖率、证书/反例正确性、是否可训练、下一步是否开放网络、
 明确关闭的替代语义与机械扩展。声明范围仅为五轮严格标签提供者覆盖，不是神经结果、五轮
 区分器、新攻击或SOTA。
+
+## 7. 正式执行结果
+
+权威run：
+
+```text
+i2_present_r5_strict_label_provider_coverage_20260718
+```
+
+P0完整执行了冻结的`96 x 300 = 28800`候选池：
+
+```text
+positive                              = 0
+negative                              = 27446
+unknown                               = 1354
+positive / negative mixed structures = 0
+support size min / max                = 256 / 256
+fully saturated output supports       = 6144 / 6144
+sampled negative scalar recheck       = 32 / 32 pass
+```
+
+P0的正确性门全部通过，但五轮每一个`structure x output bit`都已包含全部256个活动变量单项式。
+因此support overapprox无法证明任何full-cube monomial缺失，无法构造train/validation
+checkerboard。这是标签提供者覆盖失败，不是五轮性质不存在，也不是神经网络失败。
+
+P1静态与运行环境审计：
+
+```text
+CLAASP source commit                  = f2239d639ae5c4a013947ce9121c6f4464584758
+PRESENT-80 configurable-round model  = present
+full superpoly API                    = present
+independent cube-sum verifier         = present
+non-Gurobi monomial backend           = absent
+Sage                                  = 9.5 available
+bitstring in Sage runtime             = absent
+gurobipy                              = absent
+Gurobi license                        = not checked because package is absent
+preinstalled relevant Docker image    = absent in the read-only image audit
+```
+
+## 8. P1语义修正
+
+五轮目标要求对所有inactive offset成立。CLAASP-MP的
+`find_keycoeff_of_cube_monomial_of_specific_output_bit`会把全部非cube明文位固定为0，只能
+覆盖零offset，不能作为当前正类证书。
+
+真正匹配目标的是`find_superpoly_of_specific_output_bit`：它保留非cube明文变量和key变量。
+对于多bit output mask，必须把所选输出bit的完整superpoly在GF(2)上异或，并证明所得多项式
+恒为0。执行前还必须对拍CLAASP的MSB-first output index与本项目LSB-first bit编号。当前仅完成
+源码语义核对，没有执行CLAASP-MP，不能声称复现其结果。
+
+## 9. 裁决
+
+```text
+status       = hold
+decision     = innovation2_present_r5_strict_label_bank_not_ready
+training     = no
+remote_scale = no
+```
+
+明确关闭：有限密钥经验平衡标签、零offset key-coefficient标签、PRESENT四轮继续调网络、
+seed1、更长epoch和五轮标签门前的远程GPU扩展。E52不是神经结果、五轮区分器、攻击或SOTA。
+
+## 10. 推荐下一步：E53开放3SDP求解门
+
+本机Sage 9.5的`MixedIntegerLinearProgram`已用`GLPKBackend`通过一变量binary MILP fixture，
+所以不把“没有Gurobi”直接当成路线终点。E53只改变provider实现，保持E52 structure、mask、
+witness bank和门槛不变：
+
+```text
+question       = 开放MILP后端能否正确实现3SDP trail枚举与GF(2)消去
+anchor         = E52 P0 sound support overapprox
+readiness      = PRESENT 1--2轮exact-ANF positive/negative与bit-order fixtures
+candidate      = Sage/GLPK上的最小3SDP provider或可验证的等价开放实现
+first scale    = 16 structures x 64 masks，P0固定子集
+device         = local CPU
+seeds/epochs   = not applicable
+advance        = positive/negative均非零，证书复验全过，且相对P0新增严格正类
+stop           = 只能做2SDP可达性、不能处理trail奇偶消去，或fixture不一致
+remote/training= no
+```
+
+只有E53先过fixture、再过固定子集覆盖门，才扩大五轮完整池；完整池达到E52宽度与反捷径门后，
+才重新开放五轮网络排名。首个网络矩阵仍应是确定性baseline、最强简洁神经锚点和一个结构候选，
+不得提前枚举GraphGPS、Transformer、NBFNet或远程规模。

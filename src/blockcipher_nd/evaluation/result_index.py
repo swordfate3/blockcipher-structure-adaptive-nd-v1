@@ -812,6 +812,18 @@ DECISION_LABELS = {
     "innovation2_present_cgpr_attribution_protocol_invalid": (
         "CGPR正式归因的source、ridge、模型、控制或训练协议无效"
     ),
+    "innovation2_present_r5_strict_label_bank_not_ready": (
+        "五轮P0无可证明正类且P1运行环境未就绪，禁止训练新网络"
+    ),
+    "innovation2_present_r5_strict_label_p1_subset_required": (
+        "五轮P0覆盖不足，进入CLAASP-MP完整superpoly固定子集门"
+    ),
+    "innovation2_present_r5_strict_label_bank_ready": (
+        "五轮严格正负标签与反捷径门通过，先做确定性捷径归因"
+    ),
+    "innovation2_present_r5_strict_label_provider_protocol_invalid": (
+        "五轮标签提供者的PRESENT、证书、反例或产物协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1313,6 +1325,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E50：PRESENT四轮证书引导pair-state残差readiness"
     if run_id == "i2_present_r4_cgpr_neural_attribution_seed0_20260718":
         return "创新2 E51：PRESENT四轮CGPR正式残差与拓扑归因"
+    if run_id == "i2_present_r5_strict_label_provider_coverage_20260718":
+        return "创新2 E52：PRESENT五轮严格标签提供者覆盖审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
