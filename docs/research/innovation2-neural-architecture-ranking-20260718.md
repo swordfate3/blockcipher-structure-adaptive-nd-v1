@@ -963,3 +963,15 @@ SPN，但尚无RECTANGLE神经结果。下一步E88只把结构数从96扩到192
 key/offset预算和门槛全部重放。只有E88保持宽度、结构覆盖和反捷径门，才开放r3-only三行两轮
 readiness；不得把unknown当negative、直接复用PRESENT/GIFT checkpoint、训练共享模型或启动
 远程GPU。
+
+E88只把RECTANGLE结构库从96扩到192，并逐项重放E87前96结构、三态标签和39维前缀特征。
+扩容后positive/negative/unknown为`9995/1791/502`，192个结构全部mixed，三态签名191种；
+checkerboard训练为`1208/1208`、验证为`388/388`，覆盖144/48个互斥结构和41个验证输出bit。
+global、output-bit、active-bit与最强一元AUC仍全部为`0.5`，全部规范、soundness、witness和锚点
+重放门通过。
+
+因此RECTANGLE正式成为第三种可开放同类神经结构readiness的真实SPN。下一步不枚举Transformer、
+GraphGPS或扩大共享模型，只测试与PRESENT/GIFT方法可归因对齐的最小三行：independent node、
+true RECTANGLE P-layer和same-family corrupted P-layer；三行使用E88相同数据、13维第3轮前缀、
+相同共享算子容量和两轮预算。真实P必须同时超过两类控制才允许30轮seed0，否则RECTANGLE神经
+分支收束在sound标签证据，不进行seed1或远程规模。

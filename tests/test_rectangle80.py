@@ -6,6 +6,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from blockcipher_nd.cli.audit_innovation2_rectangle80_unit_balance_profile_readiness import (
+    _validate_e87_anchor,
+)
 from blockcipher_nd.cli.plot_innovation2_rectangle80_unit_balance_profile_readiness import (
     main as plot_main,
 )
@@ -18,6 +21,7 @@ from blockcipher_nd.ciphers.spn.rectangle import (
 from blockcipher_nd.tasks.innovation2.rectangle80_unit_balance_profile_readiness import (
     OFFICIAL_ZERO_VECTOR,
     Rectangle80UnitProfileConfig,
+    Rectangle80UnitProfileExpansionConfig,
     adjudicate_rectangle80_profile_checks,
     build_rectangle80_checkerboard,
     encrypt_rectangle80_words,
@@ -28,6 +32,7 @@ from blockcipher_nd.tasks.innovation2.rectangle80_unit_balance_profile_readiness
 from blockcipher_nd.tasks.innovation2.present_universal_balance_atlas import (
     ActiveStructure,
     _cube_assignments,
+    make_structures,
 )
 
 
@@ -166,6 +171,103 @@ def test_rectangle80_validation_and_e87_protocol_are_frozen() -> None:
         Rectangle80UnitProfileConfig(run_id="e87-test", witness_keys=8)
 
 
+def test_e88_expands_only_the_structure_count() -> None:
+    anchor = Rectangle80UnitProfileConfig(run_id="e87-test")
+    expansion = Rectangle80UnitProfileExpansionConfig(run_id="e88-test")
+
+    assert expansion.structure_count == 192
+    for field in (
+        "rounds",
+        "witness_keys",
+        "offsets_per_structure",
+        "match_attempts",
+        "structure_seed",
+        "key_seed",
+        "offset_seed",
+    ):
+        assert getattr(expansion, field) == getattr(anchor, field)
+    assert make_structures(expansion)[:96] == make_structures(anchor)
+
+
+def test_e88_gate_requires_protocol_and_all_width_checks() -> None:
+    passed = {"check": True}
+
+    assert adjudicate_rectangle80_profile_checks(
+        passed, passed, passed, passed, experiment="e88"
+    )[:2] == (
+        "pass",
+        "innovation2_rectangle80_unit_profile_expansion_ready",
+    )
+    assert adjudicate_rectangle80_profile_checks(
+        passed, passed, {"check": False}, passed, experiment="e88"
+    )[:2] == (
+        "hold",
+        "innovation2_rectangle80_unit_profile_expansion_not_ready",
+    )
+    assert adjudicate_rectangle80_profile_checks(
+        {"check": False}, passed, passed, passed, experiment="e88"
+    )[:2] == (
+        "fail",
+        "innovation2_rectangle80_unit_profile_expansion_protocol_invalid",
+    )
+
+
+def test_e88_anchor_replay_checks_all_frozen_arrays(tmp_path: Path) -> None:
+    anchor = Rectangle80UnitProfileConfig(run_id="e87-test")
+    expansion = Rectangle80UnitProfileExpansionConfig(run_id="e88-test")
+    anchor_structures = make_structures(anchor)
+    expanded_structures = make_structures(expansion)
+    labels = np.zeros((192, 64), dtype=np.int8)
+    prefix = np.zeros((192, 64, 39), dtype=np.float64)
+    anchor_root = tmp_path / "anchor"
+    anchor_root.mkdir()
+    (anchor_root / "gate.json").write_text(
+        json.dumps(
+            {
+                "status": "pass",
+                "decision": "innovation2_rectangle80_unit_profile_ready",
+            }
+        ),
+        encoding="utf-8",
+    )
+    structure_rows = [
+        {
+            "index": structure.index,
+            "structure_id": structure.structure_id,
+            "role": structure.role,
+            "active_bits": list(structure.active_bits),
+            "active_mask_hex": f"0x{structure.active_mask:016X}",
+            "split": "validation" if not structure.index % 4 else "train",
+        }
+        for structure in anchor_structures
+    ]
+    (anchor_root / "structures.json").write_text(
+        json.dumps({"structures": structure_rows}), encoding="utf-8"
+    )
+    with (anchor_root / "atlas.jsonl").open("w", encoding="utf-8") as handle:
+        for structure_index in range(96):
+            for output_bit in range(64):
+                handle.write(
+                    json.dumps(
+                        {
+                            "structure_index": structure_index,
+                            "output_bit": output_bit,
+                            "label": 0,
+                        }
+                    )
+                    + "\n"
+                )
+    np.save(anchor_root / "prefix_features.npy", prefix[:96])
+
+    checks = _validate_e87_anchor(
+        anchor_root,
+        expanded_structures,
+        {"labels": labels, "prefix_features": prefix},
+    )
+
+    assert all(checks.values())
+
+
 def test_plot_writes_clear_chinese_e87_svg(tmp_path: Path) -> None:
     split = {
         "train": {
@@ -207,3 +309,47 @@ def test_plot_writes_clear_chinese_e87_svg(tmp_path: Path) -> None:
     assert "创新2 E87" in svg
     assert "80-bit key" in svg
     assert "不是7轮论文复现" in svg
+
+
+def test_plot_writes_clear_chinese_e88_svg(tmp_path: Path) -> None:
+    split = {
+        "train": {
+            "positive": 300,
+            "negative": 300,
+            "structures": 100,
+            "output_bits": 48,
+        },
+        "validation": {
+            "positive": 80,
+            "negative": 80,
+            "structures": 30,
+            "output_bits": 32,
+        },
+    }
+    summary = {
+        "metadata": {"experiment": "e88", "config": {"structure_count": 192}},
+        "gate": {
+            "decision": "innovation2_rectangle80_unit_profile_expansion_ready",
+            "metrics": {
+                "raw_positive": 8000,
+                "raw_negative": 3000,
+                "raw_unknown": 1288,
+                "matched_split_metrics": split,
+                "matched_marginal_baselines": {
+                    "global": 0.5,
+                    "output_bit": 0.5,
+                    "active_bit": 0.5,
+                    "strongest_auc": 0.5,
+                },
+            },
+        },
+    }
+    summary_path = tmp_path / "summary.json"
+    output_path = tmp_path / "curves.svg"
+    summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+    assert plot_main(["--summary", str(summary_path), "--output", str(output_path)]) == 0
+    svg = output_path.read_text(encoding="utf-8")
+    assert "创新2 E88" in svg
+    assert "192个8维输入cube" in svg
+    assert "仅使用第3轮前缀的三行神经网络就绪实验" in svg

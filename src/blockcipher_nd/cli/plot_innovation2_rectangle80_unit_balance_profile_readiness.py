@@ -31,6 +31,11 @@ def render_rectangle80_unit_profile(
 ) -> None:
     gate = summary["gate"]
     metrics = gate["metrics"]
+    metadata = summary.get("metadata", {})
+    experiment = metadata.get("experiment", "e87")
+    structure_count = metadata.get("config", {}).get("structure_count")
+    if structure_count is None:
+        structure_count = metrics.get("raw_rows", 6144) // 64
     split = metrics["matched_split_metrics"]
     raw_counts = (
         metrics["raw_positive"],
@@ -50,7 +55,21 @@ def render_rectangle80_unit_profile(
         "innovation2_rectangle80_unit_profile_protocol_invalid": (
             "最终版规范、行序、向量化、support或反例协议无效；必须先修复。"
         ),
+        "innovation2_rectangle80_unit_profile_expansion_ready": (
+            "192结构容量复核通过；下一步只做本地、仅使用第3轮前缀的三行神经网络就绪实验。"
+        ),
+        "innovation2_rectangle80_unit_profile_expansion_not_ready": (
+            "192结构仍未稳定保持宽度或反捷径门；关闭当前RECTANGLE四轮神经路线。"
+        ),
+        "innovation2_rectangle80_unit_profile_expansion_protocol_invalid": (
+            "E87锚点重放或RECTANGLE标签协议无效；不解释扩结构结果。"
+        ),
     }
+    title = (
+        "创新2 E88：RECTANGLE-80四轮扩到192结构后能否开放神经网络实验"
+        if experiment == "e88"
+        else "创新2 E87：RECTANGLE-80四轮能否形成严格输出平衡谱标签"
+    )
     with plt.rc_context(
         {
             "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
@@ -69,7 +88,7 @@ def render_rectangle80_unit_profile(
         figure.text(
             0.065,
             0.955,
-            "创新2 E87：RECTANGLE-80四轮能否形成严格输出平衡谱标签",
+            title,
             ha="left",
             va="top",
             fontsize=15.0,
@@ -79,7 +98,10 @@ def render_rectangle80_unit_profile(
         figure.text(
             0.065,
             0.895,
-            "96个8维输入cube，每个结构查询64个输出bit；当前只审计标签，不训练神经网络。",
+            (
+                f"{structure_count}个8维输入cube，每个结构查询64个输出bit；"
+                "当前只审计标签，不训练神经网络。"
+            ),
             ha="left",
             va="top",
             fontsize=9.8,
@@ -174,7 +196,10 @@ def render_rectangle80_unit_profile(
         figure.text(
             0.065,
             0.053,
-            "证据范围：RECTANGLE-80最终版四轮严格标签readiness；不是7轮论文复现、神经性能、高轮攻击或SOTA。",
+            (
+                "证据范围：RECTANGLE-80最终版四轮严格标签与matching容量readiness；"
+                "不是7轮论文复现、神经性能、高轮攻击或SOTA。"
+            ),
             ha="left",
             va="bottom",
             fontsize=9.0,

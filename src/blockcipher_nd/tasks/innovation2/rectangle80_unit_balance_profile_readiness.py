@@ -31,6 +31,7 @@ AUDIT_STRUCTURES = 96
 AUDIT_WITNESS_KEYS = 16
 AUDIT_OFFSETS = 8
 AUDIT_MATCH_ATTEMPTS = 64
+EXPANSION_STRUCTURES = 192
 ACTIVE_DIMENSION = 8
 OUTPUT_BITS = 64
 OFFICIAL_ZERO_VECTOR = 0x0874E8B1E3542D96
@@ -82,6 +83,36 @@ class Rectangle80UnitProfileConfig:
             or self.match_attempts != AUDIT_MATCH_ATTEMPTS
         ):
             raise ValueError("E87 protocol is frozen")
+
+
+@dataclass(frozen=True)
+class Rectangle80UnitProfileExpansionConfig:
+    run_id: str
+    rounds: int = AUDIT_ROUNDS
+    structure_count: int = EXPANSION_STRUCTURES
+    witness_keys: int = AUDIT_WITNESS_KEYS
+    offsets_per_structure: int = AUDIT_OFFSETS
+    match_attempts: int = AUDIT_MATCH_ATTEMPTS
+    structure_seed: int = 20260718
+    key_seed: int = 8701
+    offset_seed: int = 18701
+
+    def __post_init__(self) -> None:
+        if not self.run_id:
+            raise ValueError("run_id must be non-empty")
+        if (
+            self.rounds != AUDIT_ROUNDS
+            or self.structure_count != EXPANSION_STRUCTURES
+            or self.witness_keys != AUDIT_WITNESS_KEYS
+            or self.offsets_per_structure != AUDIT_OFFSETS
+            or self.match_attempts != AUDIT_MATCH_ATTEMPTS
+        ):
+            raise ValueError("E88 protocol is frozen")
+
+
+Rectangle80ProfileConfig = (
+    Rectangle80UnitProfileConfig | Rectangle80UnitProfileExpansionConfig
+)
 
 
 def reconstruct_rectangle_sbox_from_anf(value: int) -> int:
@@ -290,10 +321,11 @@ def build_rectangle80_checkerboard(
 
 
 def evaluate_rectangle80_unit_profile(
-    config: Rectangle80UnitProfileConfig,
+    config: Rectangle80ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     matched: dict[str, Any],
+    anchor_checks: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     labels = raw["labels"]
     positive = int(np.sum(labels == 1))
@@ -390,6 +422,7 @@ def evaluate_rectangle80_unit_profile(
         "train_validation_structures_disjoint": not set(
             matched["split_indices"]["train"]
         ).intersection(matched["split_indices"]["validation"]),
+        **(anchor_checks or {}),
     }
     raw_width_checks = {
         "raw_each_class_at_least_256": positive >= 256 and negative >= 256,
@@ -433,6 +466,7 @@ def evaluate_rectangle80_unit_profile(
         raw_width_checks,
         matching_width_checks,
         shortcut_checks,
+        experiment=_profile_experiment(config),
     )
     return {
         "run_id": config.run_id,
@@ -451,6 +485,8 @@ def evaluate_rectangle80_unit_profile(
         "next_action": {
             "action": action,
             "training": False,
+            "neural_readiness": status == "pass"
+            and _profile_experiment(config) == "e88",
             "remote_scale": False,
         },
     }
@@ -461,7 +497,33 @@ def adjudicate_rectangle80_profile_checks(
     raw_width_checks: dict[str, bool],
     matching_width_checks: dict[str, bool],
     shortcut_checks: dict[str, bool],
+    *,
+    experiment: str = "e87",
 ) -> tuple[str, str, str]:
+    if experiment not in {"e87", "e88"}:
+        raise ValueError("experiment must be e87 or e88")
+    if experiment == "e88":
+        if not all(protocol_checks.values()):
+            return (
+                "fail",
+                "innovation2_rectangle80_unit_profile_expansion_protocol_invalid",
+                "repair E87 replay or RECTANGLE label protocol",
+            )
+        if (
+            not all(raw_width_checks.values())
+            or not all(matching_width_checks.values())
+            or not all(shortcut_checks.values())
+        ):
+            return (
+                "hold",
+                "innovation2_rectangle80_unit_profile_expansion_not_ready",
+                "close the current RECTANGLE r4 unit-profile neural route",
+            )
+        return (
+            "pass",
+            "innovation2_rectangle80_unit_profile_expansion_ready",
+            "run a local RECTANGLE r3-only three-row neural readiness matrix",
+        )
     if not all(protocol_checks.values()):
         return (
             "fail",
@@ -488,7 +550,7 @@ def adjudicate_rectangle80_profile_checks(
 
 
 def validate_rectangle80_vectorized_fixture(
-    config: Rectangle80UnitProfileConfig,
+    config: Rectangle80ProfileConfig,
 ) -> dict[str, Any]:
     keys = (0, 1, (1 << 80) - 1, 0x0123456789ABCDEFFEDC)
     words = np.asarray(
@@ -516,7 +578,7 @@ def validate_rectangle80_vectorized_fixture(
 
 
 def validate_rectangle80_negative_witnesses(
-    config: Rectangle80UnitProfileConfig,
+    config: Rectangle80ProfileConfig,
     structures: tuple[ActiveStructure, ...],
     raw: dict[str, Any],
     sample_count: int = 24,
@@ -552,13 +614,13 @@ def validate_rectangle80_negative_witnesses(
 
 
 def result_rows_for_rectangle80_profile(
-    config: Rectangle80UnitProfileConfig,
+    config: Rectangle80ProfileConfig,
     gate: dict[str, Any],
 ) -> list[dict[str, Any]]:
     metrics = gate["metrics"]
     common = {
         "run_id": config.run_id,
-        "task": "innovation2_rectangle80_unit_balance_profile_readiness",
+        "task": _profile_task(config),
         "cipher": "RECTANGLE-80",
         "rounds": config.rounds,
         "status": gate["status"],
@@ -587,14 +649,30 @@ def result_rows_for_rectangle80_profile(
     ]
 
 
-def serializable_config(config: Rectangle80UnitProfileConfig) -> dict[str, Any]:
+def _profile_experiment(config: Rectangle80ProfileConfig) -> str:
+    return (
+        "e88"
+        if isinstance(config, Rectangle80UnitProfileExpansionConfig)
+        else "e87"
+    )
+
+
+def _profile_task(config: Rectangle80ProfileConfig) -> str:
+    if _profile_experiment(config) == "e88":
+        return "innovation2_rectangle80_unit_balance_profile_expansion"
+    return "innovation2_rectangle80_unit_balance_profile_readiness"
+
+
+def serializable_config(config: Rectangle80ProfileConfig) -> dict[str, Any]:
     return asdict(config)
 
 
 __all__ = [
     "OFFICIAL_ZERO_VECTOR",
     "RECTANGLE_SBOX_ANF",
+    "Rectangle80ProfileConfig",
     "Rectangle80UnitProfileConfig",
+    "Rectangle80UnitProfileExpansionConfig",
     "adjudicate_rectangle80_profile_checks",
     "build_rectangle80_checkerboard",
     "build_rectangle80_unit_atlas",
