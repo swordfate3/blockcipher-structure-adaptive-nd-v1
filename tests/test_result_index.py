@@ -1101,6 +1101,30 @@ def test_result_index_labels_innovation2_atm_native_sat_phase_a(
     )
 
 
+def test_result_index_labels_innovation2_atm_native_sat_r9_probe(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_atm_native_sat_r9_singleton_probe_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E58-B：ATM原生SAT九轮严格负类单候选探针"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮原生SAT单候选超过60秒，保持unknown并关闭该exact witness路线"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

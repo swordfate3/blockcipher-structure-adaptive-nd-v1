@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待执行
+状态：E58-A pass / E58-B hold / 九轮exact witness路线关闭
 
 ## 1. 研究问题
 
@@ -174,3 +174,38 @@ remote   = no
 
 推荐下一步按第5节只运行一个冻结九轮mutation硬cap探针。它必须返回relation全部坐标GF(2)
 合并后的非零key exponent与odd parity；单坐标witness、timeout或cap都不能标strict negative。
+
+## 9. Phase B实际结果
+
+权威run：
+
+```text
+i2_present_atm_native_sat_r9_singleton_probe_20260718
+```
+
+冻结候选由公开正类确定性生成：
+
+```text
+source    = {(u=0xFFFFFFFFFFFFFFF0, v=0x0000000000000001)}
+candidate = {(u=0xFFFFFFFFFFFFFFF0, v=0x0000000000000002)}
+mutation  = output bit rotate-left by 1
+```
+
+source是公开constant正类；candidate不在公开正类union span。relation size保持1，输入重量保持60，
+输出重量保持1。所有候选协议控制通过。
+
+worker在冻结60秒墙钟内没有完成，也没有写出部分stdout/stderr或worker result。父进程按计划
+终止任务；没有key exponent、odd parity或relation replay可以解释。
+
+```text
+status        = hold
+decision      = innovation2_atm_native_sat_r9_wall_clock_cap_exceeded
+candidate     = unknown
+strict negative= no
+training      = no
+remote        = no
+```
+
+推荐下一步是不换candidate、不提高`2^16/2^20`内部cap、不转远程GPU。ATM九轮广义relation
+监督标签路线在当前exact provider下关闭；E58-A保留为低轮机制复现，E56的470正类和E57的
+`2^60`标量边界保留为论文证据。新的神经结构实验必须回到另一个可执行、正负都严格的标签任务。

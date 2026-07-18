@@ -34,7 +34,7 @@ commit= b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
 [x] adapter修复get_sum集合类型错误
 [x] exact witness包含key exponent、坐标parity和重放记录
 [x] S-box 256项与toy key-dependence全真值校准
-[ ] 九轮单relation候选在硬cap内给出witness或unknown
+[x] 九轮单relation候选在硬cap内给出witness或unknown（60秒timeout -> unknown）
 [ ] actual PRESENT-80 key schedule provider（E58明确不实现）
 [ ] paper-scale 40-core九轮搜索复现（E58明确不实现）
 ```
@@ -44,3 +44,7 @@ commit= b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
 非零key monomial只证明候选对作者的独立轮密钥变量存在代数依赖。它不能自动迁移成actual
 PRESENT-80 master-key schedule下的负类；后者需要把80-bit schedule纳入模型或给出具体master
 key见证。反过来，公开独立轮密钥下constant正类在round/bit约定一致时可以限制到actual schedule。
+
+E58-B的冻结singleton mutation在60秒内未完成。该结果没有反驳candidate的key dependence，也
+没有形成负类；它只证明当前原生exact projected-SAT worker在冻结本地预算内不能提供九轮标签。
+因此不执行paper-scale搜索或32候选扩展，ATM监督学习接口保持关闭。

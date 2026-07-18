@@ -875,6 +875,9 @@ DECISION_LABELS = {
     "innovation2_atm_native_sat_mechanism_ready_for_r9_probe": (
         "原生SAT机制低轮校准通过，进入单个九轮relation硬cap探针"
     ),
+    "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded": (
+        "九轮原生SAT单候选超过60秒，保持unknown并关闭该exact witness路线"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1403,6 +1406,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E57：PRESENT九轮广义relation precursor标量边界"
     if run_id == "i2_present_atm_native_sat_provider_phase_a_20260718":
         return "创新2 E58-A：ATM原生PySAT见证机制校准"
+    if run_id == "i2_present_atm_native_sat_r9_singleton_probe_20260718":
+        return "创新2 E58-B：ATM原生SAT九轮严格负类单候选探针"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

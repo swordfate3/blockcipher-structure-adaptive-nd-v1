@@ -626,3 +626,13 @@ E58-A机制复现已经通过。作者原生Glucose4模型对PRESENT S-box全部
 
 这只开放E58-B单个九轮mutation的60秒硬cap探针。未得到relation级odd witness前，公开470
 正类仍没有可配对的严格负类，DeepSets/Cross-Attention训练继续关闭。
+
+E58-B已经按冻结stop rule关闭九轮exact witness。公开singleton正类
+`(u=0xFFFFFFFFFFFFFFF0,v=0x1)`只把输出bit旋转为`v=0x2`，relation size、输入重量60和输出
+重量1均保持，candidate也不在公开正类span；但worker在60秒内未完成，没有输出key exponent、
+odd parity或relation replay。candidate因此保持unknown，不是strict negative。
+
+ATM九轮监督标签路线现已关闭：不换mutation、不提高cap、不转远程、不训练预注册的
+DeepSets/Cross-Attention。下一架构研究只能建立在另一套可执行严格正负标签上；优先审计低轮
+PRESENT独立轮密钥relation是否能在同一exact provider下形成足够宽且边际受控的benchmark，
+而不是再次改变九轮provider预算。

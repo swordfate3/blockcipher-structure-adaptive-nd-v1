@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_atm_native_sat_r9_probe import main
+
+raise SystemExit(main())

@@ -4,11 +4,16 @@ import importlib
 import math
 import statistics
 import sys
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Sequence
 
 from blockcipher_nd.tasks.innovation2.deterministic_provider_contract import ATM_COMMIT
+from blockcipher_nd.tasks.innovation2.present_generalized_relation_precursor_boundary import (
+    CanonicalRelation,
+    precursor_plaintext_count,
+)
 
 
 @dataclass(frozen=True)
@@ -315,6 +320,351 @@ def install_single_process_qmc_compatibility_shim() -> None:
         return result
 
     prop_models.QMC_optimise_CNF = qmc_optimise_cnf_single_process
+
+
+def select_singleton_relation_mutation(
+    relations: Sequence[CanonicalRelation],
+    *,
+    state_bits: int = 64,
+) -> dict[str, Any]:
+    coordinates = sorted({coordinate for relation in relations for coordinate in relation})
+    coordinate_index = {coordinate: index for index, coordinate in enumerate(coordinates)}
+    pivots = _gf2_pivots(
+        sum(1 << coordinate_index[coordinate] for coordinate in relation)
+        for relation in relations
+    )
+    singletons = sorted(
+        (relation[0] for relation in relations if len(relation) == 1),
+        key=lambda coordinate: (
+            precursor_plaintext_count(coordinate[0]),
+            coordinate,
+        ),
+    )
+    mask = (1 << state_bits) - 1
+    for input_exponent, output_exponent in singletons:
+        for shift in range(1, state_bits):
+            candidate_output = (
+                (output_exponent << shift)
+                | (output_exponent >> (state_bits - shift))
+            ) & mask
+            candidate = (input_exponent, candidate_output)
+            if candidate in coordinate_index:
+                in_positive_span = _is_in_span(
+                    1 << coordinate_index[candidate], pivots
+                )
+            else:
+                in_positive_span = False
+            if not in_positive_span:
+                return {
+                    "source_relation": [
+                        {
+                            "input_exponent": input_exponent,
+                            "input_exponent_hex": f"0x{input_exponent:016X}",
+                            "output_exponent": output_exponent,
+                            "output_exponent_hex": f"0x{output_exponent:016X}",
+                        }
+                    ],
+                    "candidate_relation": [
+                        {
+                            "input_exponent": input_exponent,
+                            "input_exponent_hex": f"0x{input_exponent:016X}",
+                            "output_exponent": candidate_output,
+                            "output_exponent_hex": f"0x{candidate_output:016X}",
+                        }
+                    ],
+                    "output_rotation": shift,
+                    "relation_size": 1,
+                    "input_weight": input_exponent.bit_count(),
+                    "source_output_weight": output_exponent.bit_count(),
+                    "candidate_output_weight": candidate_output.bit_count(),
+                    "source_is_public_positive": True,
+                    "candidate_is_in_public_positive_span": False,
+                }
+    raise ValueError("no singleton marginal-matched mutation outside the positive span")
+
+
+def _gf2_pivots(rows: Iterable[int]) -> dict[int, int]:
+    pivots: dict[int, int] = {}
+    for row in rows:
+        value = int(row)
+        while value:
+            pivot = value.bit_length() - 1
+            if pivot in pivots:
+                value ^= pivots[pivot]
+            else:
+                pivots[pivot] = value
+                break
+    return pivots
+
+
+def _is_in_span(value: int, pivots: dict[int, int]) -> bool:
+    remainder = int(value)
+    while remainder:
+        pivot = remainder.bit_length() - 1
+        if pivot not in pivots:
+            return False
+        remainder ^= pivots[pivot]
+    return True
+
+
+def run_r9_singleton_probe(
+    atm_root: Path,
+    *,
+    input_exponent: int,
+    output_exponent: int,
+    projected_key_cap: int,
+    trail_model_cap: int,
+) -> dict[str, Any]:
+    root = str(atm_root)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    components = importlib.import_module("Construction.Components")
+    compound = importlib.import_module("Construction.CompoundFunction")
+    iterated = importlib.import_module("Construction.IteratedCipher")
+    sat_tools = importlib.import_module("Tools.SATmodelling")
+    solvers = importlib.import_module("pysat.solvers")
+    install_single_process_qmc_compatibility_shim()
+
+    start = time.monotonic()
+    present_sbox = components.SBox(
+        4,
+        4,
+        [0xC, 5, 6, 0xB, 9, 0, 0xA, 0xD, 3, 0xE, 0xF, 8, 4, 7, 1, 2],
+    )
+    bit_permutation = (
+        0,
+        16,
+        32,
+        48,
+        1,
+        17,
+        33,
+        49,
+        2,
+        18,
+        34,
+        50,
+        3,
+        19,
+        35,
+        51,
+        4,
+        20,
+        36,
+        52,
+        5,
+        21,
+        37,
+        53,
+        6,
+        22,
+        38,
+        54,
+        7,
+        23,
+        39,
+        55,
+        8,
+        24,
+        40,
+        56,
+        9,
+        25,
+        41,
+        57,
+        10,
+        26,
+        42,
+        58,
+        11,
+        27,
+        43,
+        59,
+        12,
+        28,
+        44,
+        60,
+        13,
+        29,
+        45,
+        61,
+        14,
+        30,
+        46,
+        62,
+        15,
+        31,
+        47,
+        63,
+    )
+    round_function = compound.CompoundFunction(64, 64)
+    sbox_ids = [round_function.add_component(present_sbox) for _ in range(16)]
+    for bit in range(64):
+        round_function.connect_components(
+            compound.INPUT_ID, bit, sbox_ids[bit // 4], bit % 4
+        )
+        round_function.connect_components(
+            sbox_ids[bit // 4], bit % 4, compound.OUTPUT_ID, bit_permutation[bit]
+        )
+    cipher = iterated.construct_iterated_cipher(
+        [round_function] * 9, [(1 << 64) - 1] * 10
+    )
+    model, input_vars, output_vars, key_vars = cipher.to_model()
+    model_ready_seconds = time.monotonic() - start
+    probe = find_key_monomial_witness(
+        model,
+        input_vars,
+        output_vars,
+        key_vars,
+        input_exponent=input_exponent,
+        output_exponent=output_exponent,
+        projected_key_cap=projected_key_cap,
+        trail_model_cap=trail_model_cap,
+        solver_factory=solvers.Glucose4,
+        projected_model_enumerator=sat_tools.enum_projected_models,
+    )
+    replay: dict[str, Any] | None = None
+    if probe["status"] == "witness":
+        replay = replay_key_monomial_parity(
+            model,
+            input_vars,
+            output_vars,
+            key_vars,
+            input_exponent=input_exponent,
+            output_exponent=output_exponent,
+            key_exponent_mask=int(probe["witness"]["key_exponent_mask"]),
+            trail_model_cap=trail_model_cap,
+            solver_factory=solvers.Glucose4,
+        )
+    return {
+        "model": {
+            "rounds": 9,
+            "key_additions": 10,
+            "key_model": "independent_round_keys",
+            "input_variables": len(input_vars),
+            "output_variables": len(output_vars),
+            "key_variables": len(key_vars),
+            "cnf_clauses": len(model),
+            "maximum_cnf_variable": max(
+                (abs(literal) for clause in model for literal in clause), default=0
+            ),
+            "model_ready_seconds": model_ready_seconds,
+        },
+        "probe": probe,
+        "replay": replay,
+        "total_seconds": time.monotonic() - start,
+    }
+
+
+def evaluate_r9_probe(
+    config: NativeSatProviderConfig,
+    *,
+    candidate: dict[str, Any],
+    worker_status: str,
+    worker_result: dict[str, Any] | None,
+    wall_clock_cap_seconds: int,
+) -> dict[str, Any]:
+    candidate_checks = {
+        "source_is_public_positive": bool(candidate["source_is_public_positive"]),
+        "candidate_is_outside_public_positive_span": not bool(
+            candidate["candidate_is_in_public_positive_span"]
+        ),
+        "relation_size_preserved": int(candidate["relation_size"]) == 1,
+        "input_weight_preserved": True,
+        "output_weight_preserved": int(candidate["source_output_weight"])
+        == int(candidate["candidate_output_weight"]),
+    }
+    strict_witness = False
+    if worker_status == "completed" and worker_result is not None:
+        probe = worker_result["probe"]
+        replay = worker_result.get("replay")
+        strict_witness = bool(
+            probe["status"] == "witness"
+            and probe.get("witness")
+            and int(probe["witness"]["key_exponent_mask"]) != 0
+            and replay
+            and replay["status"] == "exact"
+            and replay["parity"] == 1
+        )
+    witness_checks = {
+        "worker_completed_within_wall_clock_cap": worker_status == "completed",
+        "nonzero_key_exponent_witness_found": strict_witness,
+        "relation_level_replay_is_exactly_odd": strict_witness,
+        "key_model_is_independent_round_keys": bool(
+            worker_result
+            and worker_result.get("model", {}).get("key_model")
+            == "independent_round_keys"
+        ),
+    }
+    if not all(candidate_checks.values()):
+        status = "fail"
+        decision = "innovation2_atm_native_sat_r9_candidate_protocol_invalid"
+        action = "repair the frozen marginal-matched mutation; do not search alternatives"
+    elif strict_witness:
+        status = "pass"
+        decision = "innovation2_atm_native_sat_r9_strict_negative_found"
+        action = "expand to at most 32 frozen matched candidates for label-width audit"
+    elif worker_status == "timeout":
+        status = "hold"
+        decision = "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded"
+        action = "close the native exact r9 witness route at the frozen cap"
+    elif worker_status == "completed":
+        status = "hold"
+        decision = "innovation2_atm_native_sat_r9_negative_not_proven"
+        action = "retain the candidate as unknown; do not relabel or mutate post hoc"
+    else:
+        status = "fail"
+        decision = "innovation2_atm_native_sat_r9_worker_failed"
+        action = "diagnose the worker failure before interpreting the provider"
+    gate = {
+        "run_id": config.run_id,
+        "status": status,
+        "decision": decision,
+        "candidate_checks": candidate_checks,
+        "witness_checks": witness_checks,
+        "worker_status": worker_status,
+        "wall_clock_cap_seconds": wall_clock_cap_seconds,
+        "projected_key_cap": config.projected_key_cap,
+        "trail_model_cap": config.trail_model_cap,
+        "claim_scope": (
+            "one frozen PRESENT nine-round independent-round-key generalized-relation "
+            "mutation probe; not an actual PRESENT-80 master-key negative, neural "
+            "training result, attack, or SOTA"
+        ),
+        "next_action": {
+            "action": action,
+            "label_width_audit": strict_witness,
+            "training": False,
+            "remote_scale": False,
+            "closed_routes": [
+                "timeout or cap interpreted as a negative",
+                "post-hoc candidate mutation",
+                "actual PRESENT-80 claims",
+                "neural training before 256/256 strict label width",
+            ],
+        },
+    }
+    result_rows = [
+        {
+            "run_id": config.run_id,
+            "task": "innovation2_atm_native_sat_r9_singleton_probe",
+            "metric": "strict_negative_found",
+            "value": strict_witness,
+            "status": status,
+            "decision": decision,
+            "training_performed": False,
+        },
+        {
+            "run_id": config.run_id,
+            "task": "innovation2_atm_native_sat_r9_singleton_probe",
+            "metric": "worker_completed",
+            "value": worker_status == "completed",
+            "status": status,
+            "decision": decision,
+            "training_performed": False,
+        },
+    ]
+    return {"gate": gate, "result_rows": result_rows}
 
 
 def run_phase_a_calibration(

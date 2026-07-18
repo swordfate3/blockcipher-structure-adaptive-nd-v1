@@ -5,10 +5,15 @@ from blockcipher_nd.tasks.innovation2.atm_native_sat_witness_provider import (
     algebraic_transition_coefficient,
     count_models_parity,
     evaluate_phase_a,
+    evaluate_r9_probe,
     key_mask_from_projected_literals,
+    select_singleton_relation_mutation,
 )
 from blockcipher_nd.cli.plot_innovation2_atm_native_sat_provider import (
     render_atm_native_sat_provider,
+)
+from blockcipher_nd.cli.plot_innovation2_atm_native_sat_r9_probe import (
+    render_atm_native_sat_r9_probe,
 )
 
 
@@ -117,3 +122,106 @@ def test_phase_a_plot_states_low_round_scope(tmp_path: object) -> None:
     assert "创新2 E58-A" in svg
     assert "不是九轮负类" in svg
     assert "cap必须返回unknown" in svg
+
+
+def test_singleton_mutation_preserves_marginals_and_avoids_positive_span() -> None:
+    relations = (
+        ((0b1110, 0b0001),),
+        ((0b1101, 0b0010),),
+        ((0b1011, 0b0100),),
+    )
+
+    candidate = select_singleton_relation_mutation(relations, state_bits=4)
+
+    assert candidate["relation_size"] == 1
+    assert candidate["source_output_weight"] == candidate["candidate_output_weight"]
+    assert candidate["candidate_is_in_public_positive_span"] is False
+    assert candidate["source_relation"] != candidate["candidate_relation"]
+
+
+def test_r9_timeout_remains_unknown_and_does_not_open_training() -> None:
+    candidate = {
+        "source_is_public_positive": True,
+        "candidate_is_in_public_positive_span": False,
+        "relation_size": 1,
+        "input_weight": 60,
+        "source_output_weight": 1,
+        "candidate_output_weight": 1,
+    }
+
+    result = evaluate_r9_probe(
+        NativeSatProviderConfig(run_id="e58b_test"),
+        candidate=candidate,
+        worker_status="timeout",
+        worker_result=None,
+        wall_clock_cap_seconds=60,
+    )
+
+    assert result["gate"]["status"] == "hold"
+    assert result["gate"]["decision"] == (
+        "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded"
+    )
+    assert result["gate"]["next_action"]["training"] is False
+
+
+def test_r9_exact_odd_replay_opens_only_label_width_audit() -> None:
+    candidate = {
+        "source_is_public_positive": True,
+        "candidate_is_in_public_positive_span": False,
+        "relation_size": 1,
+        "input_weight": 60,
+        "source_output_weight": 1,
+        "candidate_output_weight": 1,
+    }
+    worker = {
+        "model": {"key_model": "independent_round_keys"},
+        "probe": {
+            "status": "witness",
+            "witness": {"key_exponent_mask": 1},
+        },
+        "replay": {"status": "exact", "parity": 1},
+    }
+
+    result = evaluate_r9_probe(
+        NativeSatProviderConfig(run_id="e58b_test"),
+        candidate=candidate,
+        worker_status="completed",
+        worker_result=worker,
+        wall_clock_cap_seconds=60,
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["next_action"]["label_width_audit"] is True
+    assert result["gate"]["next_action"]["training"] is False
+
+
+def test_r9_plot_calls_timeout_unknown_not_negative(tmp_path: object) -> None:
+    from pathlib import Path
+
+    output = Path(str(tmp_path)) / "curves.svg"
+    summary = {
+        "candidate": {
+            "input_weight": 60,
+            "source_output_weight": 1,
+            "candidate_output_weight": 1,
+        },
+        "gate": {
+            "decision": "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded",
+            "wall_clock_cap_seconds": 60,
+            "projected_key_cap": 1 << 16,
+            "trail_model_cap": 1 << 20,
+            "candidate_checks": {"marginal": True},
+            "witness_checks": {
+                "worker_completed_within_wall_clock_cap": False,
+                "nonzero_key_exponent_witness_found": False,
+            },
+            "next_action": {"training": False},
+        },
+    }
+
+    render_atm_native_sat_r9_probe(summary, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E58-B" in svg
+    assert "超时不等于负类" in svg
+    assert "保持unknown" in svg
