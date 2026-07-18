@@ -1085,6 +1085,18 @@ DECISION_LABELS = {
     "innovation2_gift64_unit_balance_profile_expansion_protocol_invalid": (
         "GIFT-64 E74锚点重放或192结构扩展协议无效"
     ),
+    "innovation2_gift64_r3_only_profile_readiness_passed": (
+        "GIFT-64真实P-layer的r3-only两轮门通过，可进入30轮seed0"
+    ),
+    "innovation2_gift64_r3_only_prefix_not_sufficient": (
+        "GIFT-64第3轮前缀信息不足，只允许审计完整39维算子"
+    ),
+    "innovation2_gift64_r3_only_profile_readiness_not_passed": (
+        "GIFT-64真实P-layer未过两轮归因门，停止r3-only正式训练"
+    ),
+    "innovation2_gift64_r3_only_profile_protocol_invalid": (
+        "GIFT-64 E75来源、拓扑、参数公平或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1661,6 +1673,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E74：GIFT-64四轮严格单位输出平衡谱标签readiness"
     if run_id == "i2_gift64_r4_unit_balance_profile_192_structures_20260719":
         return "创新2 E75：GIFT-64四轮严格单位输出平衡谱192结构容量复核"
+    if run_id == "i2_gift64_r4_r3_only_profile_operator_readiness_seed0_20260719":
+        return "创新2 E76：GIFT-64四轮r3-only平衡谱算子readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
