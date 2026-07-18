@@ -1002,3 +1002,13 @@ same-family错误P只有`+0.029646`，比预注册`+0.030000`拓扑门少`0.0003
 训练新模型，而是无训练审计row identity是否在同预算确定性表示上产生错误P无法解释的新增margin；
 通过后才允许一个容量配平的Row-Typed Shift Operator两轮门，否则RECTANGLE停在E88 sound标签、
 E89正向readiness和E90贴线诊断。
+
+E91用无训练同预算审计验证上述row/lane假设。untyped true/corrupted ridge为
+`0.824682/0.774292`；117维typed true/corrupted/wrong-row true为
+`0.838964/0.801639/0.821740`。typed true相对无类型锚点、同维错误P和同维错误row分别提高
+`+0.014282/+0.037325/+0.017224`，三项预注册机制门全部通过。
+
+因此Row-Typed Shift Operator从“贴线后的猜测”升级为有错误类型与错误拓扑控制支持的新候选。
+下一步E92只允许容量配平的low-rank row调制，candidate、错误row和untyped anchor参数严格相同；
+不得用四套lane专属网络扩大容量。两轮必须同时超过E89 untyped true锚点、错误row、错误P并接近
+E91 typed ridge，才开放30轮。E91本身不是神经收益或第三密码正式成功。

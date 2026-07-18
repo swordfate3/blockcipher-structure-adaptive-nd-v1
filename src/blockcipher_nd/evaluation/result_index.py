@@ -1244,6 +1244,15 @@ DECISION_LABELS = {
     "innovation2_rectangle80_r3_only_attribution_protocol_invalid": (
         "E88/E89来源、cell-major拓扑、参数公平或30轮协议无效"
     ),
+    "innovation2_rectangle80_row_typed_representation_ready": (
+        "RECTANGLE row类型表示通过机制门，可设计容量配平的新算子"
+    ),
+    "innovation2_rectangle80_row_typed_representation_not_ready": (
+        "RECTANGLE row类型未同时超过锚点和错误控制，不训练新网络"
+    ),
+    "innovation2_rectangle80_row_typed_representation_protocol_invalid": (
+        "E88/E90来源或RECTANGLE row类型表示协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1866,6 +1875,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_rectangle80_r4_r3_only_profile_operator_attribution_seed0_20260719"
     ):
         return "创新2 E90：RECTANGLE-80四轮r3-only平衡谱算子30轮seed0归因"
+    if run_id == "i2_rectangle80_row_typed_shift_representation_audit_20260719":
+        return "创新2 E91：RECTANGLE row-typed ShiftRow表示无训练审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
