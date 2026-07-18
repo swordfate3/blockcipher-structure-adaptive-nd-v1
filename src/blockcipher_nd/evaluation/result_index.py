@@ -689,6 +689,15 @@ DECISION_LABELS = {
     "innovation2_small_spn_pair_relation_no_triangle_protocol_invalid": (
         "no-triangle消融的来源、pair局部性、参数、等变性或训练协议无效"
     ),
+    "innovation2_small_spn_pair_state_topology_confirmed": (
+        "局部pair-state稳定领先公平错误P-layer控制"
+    ),
+    "innovation2_small_spn_pair_state_topology_not_attributed": (
+        "局部pair-state未稳定领先公平错误P-layer控制"
+    ),
+    "innovation2_small_spn_pair_state_topology_control_protocol_invalid": (
+        "局部pair-state拓扑控制的来源、控制、seed、参数、局部性或metric协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1162,6 +1171,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E40：SPN-PRR no-triangle消融就绪smoke"
     if run_id == "i2_small_spn_pair_relation_no_triangle_seed0_seed1_20260718":
         return "创新2 E40：SPN-PRR同预算no-triangle路径归因"
+    if run_id == (
+        "i2_small_spn_pair_relation_no_triangle_fair_control_seed0_seed1_20260718"
+    ):
+        return "创新2 E41：局部pair-state公平拓扑归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

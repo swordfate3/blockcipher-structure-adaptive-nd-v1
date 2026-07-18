@@ -21,6 +21,9 @@ from blockcipher_nd.cli.plot_innovation2_small_spn_pair_relation_fair_control im
 from blockcipher_nd.cli.plot_innovation2_small_spn_pair_relation_no_triangle import (
     render_no_triangle_ablation_svg,
 )
+from blockcipher_nd.cli.plot_innovation2_small_spn_pair_state_topology_control import (
+    render_pair_state_topology_control_svg,
+)
 from blockcipher_nd.models.structure.spn.small_spn_pair_relation_models import (
     SmallSpnPairRelationReasoner,
     SmallSpnPairRelationSpec,
@@ -36,6 +39,9 @@ from blockcipher_nd.tasks.innovation2 import (
 )
 from blockcipher_nd.tasks.innovation2 import (
     small_spn_pair_relation_no_triangle as no_triangle,
+)
+from blockcipher_nd.tasks.innovation2 import (
+    small_spn_pair_state_topology_control as pair_state_control,
 )
 from blockcipher_nd.tasks.innovation2.small_spn_topology_training import (
     TopologyTrainingConfig,
@@ -700,4 +706,99 @@ def test_no_triangle_plot_explains_single_variable_ablation(tmp_path: Path) -> N
     svg = output.read_text(encoding="utf-8")
     assert "创新2 E40" in svg
     assert "逐pair局部更新" in svg
+    assert "不是实际密码高轮结果" in svg
+
+
+def test_pair_state_topology_control_requires_per_seed_and_mean_margin() -> None:
+    config = pair_reasoner.PairRelationTrainingConfig(run_id="e41")
+
+    def row(seed: int, dual: float, topology: str, label: str = "true") -> dict:
+        return {
+            "model_name": "pair_relation_no_triangle",
+            "processor_mode": "local",
+            "topology_mode": topology,
+            "label_mode": label,
+            "seed": seed,
+            "best_validation_auc": 0.8,
+            "train_auc": 0.8,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+            "parameter_count": 111825,
+            "training_performed": True,
+        }
+
+    source_rows = [
+        row(0, 0.72, "true"),
+        row(1, 0.74, "true"),
+        row(0, 0.50, "true", "shuffled"),
+    ]
+    controls = [row(0, 0.66, "corrupted"), row(1, 0.68, "corrupted")]
+    source_gate = {
+        "run_id": pair_state_control.E40_RUN_ID,
+        "decision": "innovation2_small_spn_pair_relation_triangle_not_isolated",
+    }
+    contract = {
+        "shared_triangle_block_count": 0,
+        "shared_local_block_count": 1,
+        "processor_mode": "local",
+        "parameter_count": 111825,
+        "counterpart_parameter_count": 111825,
+        "off_pair_influence_max_abs": 0.0,
+        "cell_relabeling_max_abs_logit_error": 1e-8,
+        "fair_control_heldout_avoids_true_train": True,
+        "fair_control_heldout_avoids_corrupted_train": True,
+        "all_corrupted_players_are_permutations": True,
+    }
+    confirmed = pair_state_control.adjudicate_pair_state_topology_control(
+        config,
+        {"source": True},
+        contract,
+        source_gate,
+        source_rows,
+        controls,
+    )
+    assert confirmed["decision"] == (
+        "innovation2_small_spn_pair_state_topology_confirmed"
+    )
+
+    close_controls = [row(0, 0.71, "corrupted"), row(1, 0.73, "corrupted")]
+    hold = pair_state_control.adjudicate_pair_state_topology_control(
+        config,
+        {"source": True},
+        contract,
+        source_gate,
+        source_rows,
+        close_controls,
+    )
+    assert hold["decision"] == (
+        "innovation2_small_spn_pair_state_topology_not_attributed"
+    )
+
+
+def test_pair_state_topology_control_plot_explains_scope(tmp_path: Path) -> None:
+    def row(seed: int, dual: float, topology: str) -> dict:
+        return {
+            "seed": seed,
+            "topology_mode": topology,
+            "unseen_sbox_auc": dual + 0.1,
+            "unseen_player_auc": dual + 0.05,
+            "dual_unseen_auc": dual,
+        }
+
+    summary = {
+        "true_rows": [row(0, 0.72, "true"), row(1, 0.74, "true")],
+        "control_rows": [
+            row(0, 0.66, "corrupted"),
+            row(1, 0.68, "corrupted"),
+        ],
+        "gate": {
+            "decision": "innovation2_small_spn_pair_state_topology_confirmed"
+        },
+    }
+    output = tmp_path / "e41.svg"
+    render_pair_state_topology_control_svg(summary, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E41" in svg
+    assert "局部pair-state" in svg
     assert "不是实际密码高轮结果" in svg

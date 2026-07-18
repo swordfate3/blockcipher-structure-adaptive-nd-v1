@@ -175,7 +175,7 @@ def adjudicate_no_triangle_ablation(
     else:
         status = "hold"
         decision = "innovation2_small_spn_pair_relation_triangle_not_isolated"
-        action = "retain pair-state evidence, stop triangle-specific claims, and rank query-conditioned NBFNet versus structured P families"
+        action = "run the missing no-triangle fair-corrupted P control before selecting another architecture"
     gate = _gate(config, status, decision, protocol, checks, contract, action)
     gate["metrics"] = metrics
     return gate

@@ -193,6 +193,6 @@ decision = innovation2_small_spn_pair_relation_triangle_not_isolated
 最终SVG按`visual-qa-redraw`渲染为`1824x966`像素检查，标题、图例、数值、基线、裁决文字和
 导出边界均无重叠、裁切或歧义，已记录`visual_qa_passed.marker`。
 
-下一步不直接迁移真实密码或启动远程GPU。先做E41候选排序：比较query-conditioned NBFNet
-与结构化P-layer数据族是否能提出比当前pair-state更明确、单变量且可公平归因的增量；若
-没有，则优先把pair-state方法整理为真实密码标签迁移readiness，而不是继续枚举网络名称。
+下一步不直接迁移真实密码或启动远程GPU。E40只给no-triangle运行了true topology，尚缺
+自身的fair-corrupted P控制。E41先补seed0/1两行，判断pair-state局部模型是否真正利用正确
+P-layer；在这个缺口解决前不开发NBFNet，也不继续枚举网络名称。
