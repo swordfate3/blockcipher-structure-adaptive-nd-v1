@@ -1007,6 +1007,18 @@ DECISION_LABELS = {
     "innovation2_present_multibit_profile_protocol_invalid": (
         "E43重放、matching、分解或特征协议无效"
     ),
+    "innovation2_present_active_dimension_zero_shot_confirmed": (
+        "unit-profile算子双seed零样本跨4/12-bit活动维度通过"
+    ),
+    "innovation2_present_active_dimension_zero_shot_not_confirmed": (
+        "unit-profile算子零样本跨活动维度未确认，保留8-bit域内结果"
+    ),
+    "innovation2_present_active_dimension_transfer_labels_not_ready": (
+        "4/12-bit严格unit标签宽度不足，不解释迁移AUC"
+    ),
+    "innovation2_present_active_dimension_transfer_protocol_invalid": (
+        "source、前缀兼容或checkpoint迁移协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1565,6 +1577,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E68：PRESENT四轮prefix引导平衡谱算子双seed复核"
     if run_id == "i2_present_r4_multibit_mask_profile_readiness_20260718":
         return "创新2 E69：PRESENT四轮多bit linear-mask profile审计"
+    if run_id == "i2_present_r4_active_dimension_zero_shot_transfer_20260718":
+        return "创新2 E70：PRESENT四轮unit-profile跨活动维度零样本迁移"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

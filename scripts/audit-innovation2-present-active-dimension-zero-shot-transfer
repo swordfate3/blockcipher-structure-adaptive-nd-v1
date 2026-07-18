@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_present_active_dimension_zero_shot_transfer import main
+
+raise SystemExit(main())
