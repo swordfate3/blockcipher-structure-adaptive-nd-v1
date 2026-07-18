@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：计划冻结 / 待实现
+状态：完成 / hold / 中间谱蒸馏未过门
 
 ## 1. 研究问题
 
@@ -126,3 +126,78 @@ visual_qa_passed.marker
 
 声明范围：PRESENT-80四轮、E43严格标签、两轮本地中间degree-spectrum辅助监督readiness；
 不是高轮积分区分器、新攻击、远程规模证据或SOTA。
+
+## 7. 2026-07-18实际结果
+
+权威run：
+
+```text
+i2_present_r4_degree_spectrum_distillation_readiness_seed0_20260718
+```
+
+E43/E45/E47/E48 source、hash、split、teacher、target shuffle、参数、泄漏、有限梯度和三行两轮
+流程检查全部通过。模型contract：
+
+```text
+teacher shape                         = 1036 x 3 x 13
+auxiliary prediction shape            = 8 x 3 x 13
+E47 MSPN parameters                   = 17788
+E49 distilled parameters              = 18281
+parameter ratio                       = 1.027715
+shared auxiliary-head parameters      = 493
+auxiliary-head direct balance delta   = 0.0
+balance head width unchanged          = true
+teacher/prefix/certificate buffers    = absent
+```
+
+最佳checkpoint结果：
+
+| 行 | validation balance AUC | validation teacher normalized MSE |
+|---|---:|---:|
+| E47 label-only只读锚点 | `0.518673` | 不适用 |
+| 正确P + 真谱蒸馏 | `0.475151` | `0.797746` |
+| 正确P + train-target打乱 | `0.465384` | `0.850731` |
+| 错误P + 自洽错误谱 | `0.453246` | `0.735733` |
+
+真谱MSE低于绝对门`0.90`，但相对target打乱只改善：
+
+```text
+true - target-shuffle normalized MSE = -0.052985
+required                             <= -0.10
+```
+
+同时真谱balance AUC为`0.475151`，低于防退化线`0.48`，也低于E47 label-only `0.518673`。
+因此不能把MSE下降解释成足够的组外中间状态学习：
+
+```text
+status   = hold
+decision = innovation2_present_degree_spectrum_not_learned
+E50 formal MSPN = no
+seed1           = no
+remote          = no
+```
+
+## 8. 推荐下一步
+
+停止当前证书传播神经路线：不运行30轮蒸馏、不调`auxiliary_scale`、不增加MSPN宽度/深度，
+不恢复identity token，也不迁移r5或远程GPU。E45/E48约`0.69`的确定性ANF/degree结果与E44
+triangle `0.561979`神经结果应作为两类独立锚点保留。
+
+下一架构问题改为“安全确定性前端 + 神经残差”，而不是“神经网络重新发明传播算法”：
+
+```text
+base     = train-only E45 ANF-prefix ridge（冻结）
+residual = E44 64-bit pair-state processor
+target   = 只学习ridge未解释的balance残差
+controls = prefix-only residual + fair-corrupted-P pair residual
+```
+
+下一步冻结E50两轮本地实现readiness。E45 39维前缀只来自1--3轮S-box/P-layer/active/mask，
+允许作为显式安全特征；第4轮oracle、certificate、witness仍禁止。只有base复现、残差零初始化
+等价、参数匹配、错误P敏感、无泄漏和三行有限训练全部通过，才另建30轮正式计划。E50
+readiness不以两轮AUC声称提升；NBFNet、Transformer、seed1和远程仍关闭。
+
+最终`curves.svg`按`visual-qa-redraw`渲染为`1800×936`像素；首次曲线图因三行接近而改成
+最终checkpoint柱状对比，精确标注AUC/MSE、冻结门、旧锚点和截断纵轴。最终标题、图例、
+柱值、坐标、裁决与导出边界无重叠、裁切、缺字或误导性缩放，已记录
+`visual_qa_passed.marker`。

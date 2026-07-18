@@ -471,3 +471,19 @@ E47失败归因于身份碰撞。当前证据排序更新为：
 self-consistent fair-corrupted-P控制排除普通正则化与错误transport。E49是两轮本地readiness，
 不是新候选结论；不过门则停止证书传播神经路线，不再枚举更宽MSPN、identity token、
 Transformer或远程规模。
+
+E49两轮degree-spectrum蒸馏readiness没有通过。真谱、target-shuffle和自洽错误P的validation
+teacher normalized MSE为`0.797746/0.850731/0.735733`；真谱只比打乱低`0.052985`，没有
+达到冻结的`0.10`优势。对应balance AUC为`0.475151/0.465384/0.453246`，真谱还低于
+`0.48`防退化线和E47 label-only `0.518673`。
+
+这关闭了“让MSPN从活动位和拓扑自己近似证书传播”的分支：不再增加epoch、hidden、
+auxiliary scale、identity token或teacher head。当前排名收敛为两个不同证据层：E45/E48
+确定性ANF/degree约`0.69`是最强解释锚点；E44 triangle `0.561979`是最强真实神经锚点。
+
+下一候选改为`Certificate-Guided Pair-State Residual`：把可公开计算、非oracle的E45 1--3轮
+ANF-prefix作为冻结确定性base，只让E44 pair-state处理器学习base未解释的残差。它不属于
+被E49关闭的“神经传播近似”，但也尚未获得性能证据。E50只做两轮实现readiness，并用
+prefix-only residual与fair-corrupted-P residual控制区分非线性容量和真实拓扑增量；正式
+性能门必须另建计划。若后续正式true residual不能超过E45 ridge与两个控制，则网络探索
+应回到E44方法学结果，不再为E43四轮标签枚举新架构。

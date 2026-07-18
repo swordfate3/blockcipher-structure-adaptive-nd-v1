@@ -130,6 +130,17 @@ class PresentMonomialSupportPropagationNetwork(nn.Module):
         structure_index: torch.Tensor,
         mask_index: torch.Tensor,
     ) -> torch.Tensor:
+        state, initial, active, output_mask = self.propagate(
+            variant_index, structure_index, mask_index
+        )
+        return self.classify(state, initial, active, output_mask)
+
+    def propagate(
+        self,
+        variant_index: torch.Tensor,
+        structure_index: torch.Tensor,
+        mask_index: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         state, active, output_mask = self.build_initial_state(
             structure_index, mask_index
         )
@@ -137,6 +148,15 @@ class PresentMonomialSupportPropagationNetwork(nn.Module):
         for _ in range(self.spec.rounds):
             state = self.shared_step(state)
             state = self.transport(state, variant_index)
+        return state, initial, active, output_mask
+
+    def classify(
+        self,
+        state: torch.Tensor,
+        initial: torch.Tensor,
+        active: torch.Tensor,
+        output_mask: torch.Tensor,
+    ) -> torch.Tensor:
         query_pool = _weighted_bit_pool(state, output_mask)
         active_pool = _weighted_bit_pool(initial, active)
         global_pool = state.mean(dim=1)
@@ -180,6 +200,52 @@ class PresentMonomialSupportPropagationNetwork(nn.Module):
             1,
             inverse[:, :, None].expand(-1, -1, state.shape[-1]),
         )
+
+
+class PresentDegreeSpectrumDistillationNetwork(
+    PresentMonomialSupportPropagationNetwork
+):
+    spectrum_dimensions = 13
+    supervised_steps = 3
+
+    def __init__(
+        self,
+        spec: PresentMspnSpec,
+        *,
+        players: np.ndarray,
+        structure_active_bits: np.ndarray,
+        output_mask_bits: np.ndarray,
+    ) -> None:
+        super().__init__(
+            spec,
+            players=players,
+            structure_active_bits=structure_active_bits,
+            output_mask_bits=output_mask_bits,
+        )
+        self.spectrum_head = nn.Sequential(
+            nn.LayerNorm(spec.hidden_dim),
+            nn.Linear(spec.hidden_dim, self.spectrum_dimensions),
+        )
+
+    def forward_with_auxiliary(
+        self,
+        variant_index: torch.Tensor,
+        structure_index: torch.Tensor,
+        mask_index: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        state, active, output_mask = self.build_initial_state(
+            structure_index, mask_index
+        )
+        initial = state
+        spectrum_predictions: list[torch.Tensor] = []
+        for step in range(self.spec.rounds):
+            state = self.shared_step(state)
+            state = self.transport(state, variant_index)
+            if step < self.supervised_steps:
+                query_pool = _weighted_bit_pool(state, output_mask)
+                spectrum_predictions.append(self.spectrum_head(query_pool))
+        logits = self.classify(state, initial, active, output_mask)
+        return logits, torch.stack(spectrum_predictions, dim=1)
 
 
 def _weighted_bit_pool(state: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:

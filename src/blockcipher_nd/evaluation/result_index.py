@@ -779,6 +779,18 @@ DECISION_LABELS = {
     "innovation2_present_support_identity_protocol_invalid": (
         "support身份审计的source、传播、投影、碰撞或ridge协议无效"
     ),
+    "innovation2_present_degree_spectrum_readiness_passed": (
+        "中间degree谱可组外学习且balance未退化，可进入30轮正式归因"
+    ),
+    "innovation2_present_degree_spectrum_not_learned": (
+        "真谱未明显优于target打乱，停止证书传播神经路线"
+    ),
+    "innovation2_present_degree_spectrum_balance_degenerated": (
+        "中间degree谱可学但balance退化，只保留冻结loss-scale审计"
+    ),
+    "innovation2_present_degree_spectrum_protocol_invalid": (
+        "degree谱蒸馏的source、teacher、泄漏、模型、控制或训练协议无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1272,6 +1284,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E47：PRESENT四轮MSPN正式神经归因"
     if run_id == "i2_present_r4_support_identity_collision_20260718":
         return "创新2 E48：PRESENT四轮support身份碰撞审计"
+    if run_id == (
+        "i2_present_r4_degree_spectrum_distillation_readiness_seed0_20260718"
+    ):
+        return "创新2 E49：PRESENT四轮中间degree谱蒸馏readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

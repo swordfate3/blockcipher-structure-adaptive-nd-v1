@@ -806,6 +806,30 @@ def test_result_index_labels_innovation2_present_support_identity_collision(
     )
 
 
+def test_result_index_labels_innovation2_present_degree_spectrum_distillation(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r4_degree_spectrum_distillation_readiness_seed0_20260718"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_degree_spectrum_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E49：PRESENT四轮中间degree谱蒸馏readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "中间degree谱可组外学习且balance未退化，可进入30轮正式归因"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
