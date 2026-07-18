@@ -1012,3 +1012,14 @@ E91用无训练同预算审计验证上述row/lane假设。untyped true/corrupte
 下一步E92只允许容量配平的low-rank row调制，candidate、错误row和untyped anchor参数严格相同；
 不得用四套lane专属网络扩大容量。两轮必须同时超过E89 untyped true锚点、错误row、错误P并接近
 E91 typed ridge，才开放30轮。E91本身不是神经收益或第三密码正式成功。
+
+E92把E91机制转成参数零增量的Row-Typed Shift Operator：对P层前驱hidden channels按四个row执行
+固定`0/8/16/24`循环置换，四行都保持`4,795`参数。两轮untyped true、typed true、typed错误P、
+错误row true AUC为`0.805034/0.812825/0.775674/0.806581`。typed true相对错误P为`+0.037152`，
+且只比E91 typed ridge低`0.026139`，但相对无类型和错误row只有`+0.007792/+0.006244`，未过
+`+0.01`独立row语义门。
+
+因此E92严格hold，不进入30轮，也不添加learnable row embedding或lane专属容量。创新2当前最强
+正式神经结论仍是PRESENT/GIFT分别训练的r3-only Prefix-Guided Nodewise Profile Operator；
+RECTANGLE贡献收束为sound标签、正向两轮readiness、30轮贴线拓扑诊断和row类型机制/实现边界。
+下一步优先做方法与claim综合，或等待新的sound标签/独立机制证据，不继续同benchmark网络枚举。
