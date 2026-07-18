@@ -1019,6 +1019,15 @@ DECISION_LABELS = {
     "innovation2_present_active_dimension_transfer_protocol_invalid": (
         "source、前缀兼容或checkpoint迁移协议无效"
     ),
+    "innovation2_present_round_recurrent_readiness_passed": (
+        "显式轮序平衡谱算子readiness通过，可进入30轮seed0归因"
+    ),
+    "innovation2_present_round_recurrent_readiness_not_passed": (
+        "显式轮序或正确P增益未过门，停止RR-PGPO"
+    ),
+    "innovation2_present_round_recurrent_protocol_invalid": (
+        "显式轮序算子的source、等变性、参数公平或训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1579,6 +1588,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E69：PRESENT四轮多bit linear-mask profile审计"
     if run_id == "i2_present_r4_active_dimension_zero_shot_transfer_20260718":
         return "创新2 E70：PRESENT四轮unit-profile跨活动维度零样本迁移"
+    if run_id == (
+        "i2_present_r4_round_recurrent_profile_operator_readiness_seed0_20260718"
+    ):
+        return "创新2 E71：PRESENT四轮显式轮序平衡谱算子readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

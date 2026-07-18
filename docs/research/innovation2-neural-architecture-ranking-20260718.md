@@ -773,3 +773,13 @@ provider完成`0/16`。source/hash/checkpoint和8-bit前缀重放通过，但两
 `Round-Recurrent Prefix-Guided Profile Operator`，按r1->r2->r3依次更新64个node状态。E68
 true-P双seed作为只读同预算锚点，并训练相同参数预算的错误轮序和fair-corrupted-P控制；只有
 显式轮序逐seed维持E68质量并稳定超过两项控制，才把round recurrence加入方法。
+
+E71 Phase A已经否决原正向RR-PGPO。三行均为`5461`参数，协议、masked loss、cell等变和
+E65重放全部通过；正确轮序/反向轮序/错误P的两轮validation AUC分别为
+`0.716667/0.867222/0.697222`。正确轮序相对反向轮序为`-0.150556`，相对错误P仅
+`+0.019444`，未过两项`+0.02`门，因此不进入30轮。
+
+反向轮序领先不是39维切片错误：E65特征确实按r1/r2/r3连续排列。不过该结果来自预注册控制，
+不能事后改名直接升级。E68仍排名第一。下一步E72只做双seed checkpoint切片遮蔽与single-round
+ridge方向归因；只有证据稳定支持“从输出侧向输入侧回推”，才开放新的backward recurrent
+候选，否则停止轮递归分支。
