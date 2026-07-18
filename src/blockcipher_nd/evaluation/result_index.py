@@ -878,6 +878,9 @@ DECISION_LABELS = {
     "innovation2_atm_native_sat_r9_wall_clock_cap_exceeded": (
         "九轮原生SAT单候选超过60秒，保持unknown并关闭该exact witness路线"
     ),
+    "innovation2_atm_r2_strict_relation_panel_not_ready": (
+        "两轮16条查询全部constant，缺少严格负类，禁止训练RCCA"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1408,6 +1411,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E58-A：ATM原生PySAT见证机制校准"
     if run_id == "i2_present_atm_native_sat_r9_singleton_probe_20260718":
         return "创新2 E58-B：ATM原生SAT九轮严格负类单候选探针"
+    if run_id == "i2_present_r2_atm_strict_relation_panel_20260718":
+        return "创新2 E59：PRESENT两轮ATM严格relation标签面板"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

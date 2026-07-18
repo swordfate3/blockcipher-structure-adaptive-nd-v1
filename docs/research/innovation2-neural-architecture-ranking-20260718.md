@@ -636,3 +636,17 @@ ATM九轮监督标签路线现已关闭：不换mutation、不提高cap、不转
 DeepSets/Cross-Attention。下一架构研究只能建立在另一套可执行严格正负标签上；优先审计低轮
 PRESENT独立轮密钥relation是否能在同一exact provider下形成足够宽且边际受控的benchmark，
 而不是再次改变九轮provider预算。
+
+E59据此冻结两轮16-query readiness：固定`u=0xFFFFFFFFFFFFFFF0`与unit output `e0..e15`，
+在60秒总墙钟、`2^12` projected-key和`2^16` trail cap下要求至少12条完成，并同时得到至少4条
+exact constant和4条odd-witness key-dependent标签。通过后只扩大标签宽度和捷径审计；只有
+严格正负各256且边际匹配，才实现`deterministic / DeepSets / Relation-Cipher Cross-Attention`
+三行矩阵。这个顺序避免在没有benchmark时再次枚举网络。
+
+E59的16条两轮query全部在2秒内完成，模型含2080条CNF和192个独立key变量，逐query中位
+时间`0.000609s`；但`e0..e15`全部是exact constant，非零projected key mask数量均为0，strict
+key-dependent为0。provider执行性通过，标签宽度失败，因此RCCA仍不实现。
+
+下一门只能预注册依赖锥内/外平衡的输出位置并先比较exact reachability基线。若singleton标签
+可被reachability完全解释，则新网络没有研究价值，必须转multi-coordinate GF(2) cancellation
+relation；不得靠后验扫64位挑出有负类的位置后直接训练。

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import math
 import statistics
 import sys
@@ -407,14 +408,11 @@ def _is_in_span(value: int, pivots: dict[int, int]) -> bool:
     return True
 
 
-def run_r9_singleton_probe(
-    atm_root: Path,
-    *,
-    input_exponent: int,
-    output_exponent: int,
-    projected_key_cap: int,
-    trail_model_cap: int,
+def build_present_independent_key_model(
+    atm_root: Path, *, rounds: int
 ) -> dict[str, Any]:
+    if rounds < 1:
+        raise ValueError("rounds must be positive")
     root = str(atm_root)
     if root not in sys.path:
         sys.path.insert(0, root)
@@ -431,71 +429,8 @@ def run_r9_singleton_probe(
         4,
         [0xC, 5, 6, 0xB, 9, 0, 0xA, 0xD, 3, 0xE, 0xF, 8, 4, 7, 1, 2],
     )
-    bit_permutation = (
-        0,
-        16,
-        32,
-        48,
-        1,
-        17,
-        33,
-        49,
-        2,
-        18,
-        34,
-        50,
-        3,
-        19,
-        35,
-        51,
-        4,
-        20,
-        36,
-        52,
-        5,
-        21,
-        37,
-        53,
-        6,
-        22,
-        38,
-        54,
-        7,
-        23,
-        39,
-        55,
-        8,
-        24,
-        40,
-        56,
-        9,
-        25,
-        41,
-        57,
-        10,
-        26,
-        42,
-        58,
-        11,
-        27,
-        43,
-        59,
-        12,
-        28,
-        44,
-        60,
-        13,
-        29,
-        45,
-        61,
-        14,
-        30,
-        46,
-        62,
-        15,
-        31,
-        47,
-        63,
+    bit_permutation = tuple(
+        (16 * bit) % 63 if bit < 63 else 63 for bit in range(64)
     )
     round_function = compound.CompoundFunction(64, 64)
     sbox_ids = [round_function.add_component(present_sbox) for _ in range(16)]
@@ -507,10 +442,47 @@ def run_r9_singleton_probe(
             sbox_ids[bit // 4], bit % 4, compound.OUTPUT_ID, bit_permutation[bit]
         )
     cipher = iterated.construct_iterated_cipher(
-        [round_function] * 9, [(1 << 64) - 1] * 10
+        [round_function] * rounds, [(1 << 64) - 1] * (rounds + 1)
     )
     model, input_vars, output_vars, key_vars = cipher.to_model()
-    model_ready_seconds = time.monotonic() - start
+    metadata = {
+        "rounds": rounds,
+        "key_additions": rounds + 1,
+        "key_model": "independent_round_keys",
+        "input_variables": len(input_vars),
+        "output_variables": len(output_vars),
+        "key_variables": len(key_vars),
+        "cnf_clauses": len(model),
+        "maximum_cnf_variable": max(
+            (abs(literal) for clause in model for literal in clause), default=0
+        ),
+        "model_ready_seconds": time.monotonic() - start,
+    }
+    return {
+        "model": model,
+        "input_vars": input_vars,
+        "output_vars": output_vars,
+        "key_vars": key_vars,
+        "solver_factory": solvers.Glucose4,
+        "projected_model_enumerator": sat_tools.enum_projected_models,
+        "metadata": metadata,
+    }
+
+
+def run_r9_singleton_probe(
+    atm_root: Path,
+    *,
+    input_exponent: int,
+    output_exponent: int,
+    projected_key_cap: int,
+    trail_model_cap: int,
+) -> dict[str, Any]:
+    start = time.monotonic()
+    bundle = build_present_independent_key_model(atm_root, rounds=9)
+    model = bundle["model"]
+    input_vars = bundle["input_vars"]
+    output_vars = bundle["output_vars"]
+    key_vars = bundle["key_vars"]
     probe = find_key_monomial_witness(
         model,
         input_vars,
@@ -520,8 +492,8 @@ def run_r9_singleton_probe(
         output_exponent=output_exponent,
         projected_key_cap=projected_key_cap,
         trail_model_cap=trail_model_cap,
-        solver_factory=solvers.Glucose4,
-        projected_model_enumerator=sat_tools.enum_projected_models,
+        solver_factory=bundle["solver_factory"],
+        projected_model_enumerator=bundle["projected_model_enumerator"],
     )
     replay: dict[str, Any] | None = None
     if probe["status"] == "witness":
@@ -534,26 +506,200 @@ def run_r9_singleton_probe(
             output_exponent=output_exponent,
             key_exponent_mask=int(probe["witness"]["key_exponent_mask"]),
             trail_model_cap=trail_model_cap,
-            solver_factory=solvers.Glucose4,
+            solver_factory=bundle["solver_factory"],
         )
     return {
-        "model": {
-            "rounds": 9,
-            "key_additions": 10,
-            "key_model": "independent_round_keys",
-            "input_variables": len(input_vars),
-            "output_variables": len(output_vars),
-            "key_variables": len(key_vars),
-            "cnf_clauses": len(model),
-            "maximum_cnf_variable": max(
-                (abs(literal) for clause in model for literal in clause), default=0
-            ),
-            "model_ready_seconds": model_ready_seconds,
-        },
+        "model": bundle["metadata"],
         "probe": probe,
         "replay": replay,
         "total_seconds": time.monotonic() - start,
     }
+
+
+def run_present_relation_panel(
+    atm_root: Path,
+    *,
+    rounds: int,
+    input_exponent: int,
+    output_exponents: Sequence[int],
+    projected_key_cap: int,
+    trail_model_cap: int,
+    model_output: Path,
+    panel_output: Path,
+) -> dict[str, Any]:
+    bundle = build_present_independent_key_model(atm_root, rounds=rounds)
+    model_output.write_text(
+        json.dumps(bundle["metadata"], indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    panel_output.write_text("", encoding="utf-8")
+    rows: list[dict[str, Any]] = []
+    for query_index, output_exponent in enumerate(output_exponents):
+        query_start = time.monotonic()
+        probe = find_key_monomial_witness(
+            bundle["model"],
+            bundle["input_vars"],
+            bundle["output_vars"],
+            bundle["key_vars"],
+            input_exponent=input_exponent,
+            output_exponent=output_exponent,
+            projected_key_cap=projected_key_cap,
+            trail_model_cap=trail_model_cap,
+            solver_factory=bundle["solver_factory"],
+            projected_model_enumerator=bundle["projected_model_enumerator"],
+        )
+        replay: dict[str, Any] | None = None
+        label: int | None = None
+        certificate = "unknown"
+        if probe["status"] == "witness":
+            replay = replay_key_monomial_parity(
+                bundle["model"],
+                bundle["input_vars"],
+                bundle["output_vars"],
+                bundle["key_vars"],
+                input_exponent=input_exponent,
+                output_exponent=output_exponent,
+                key_exponent_mask=int(probe["witness"]["key_exponent_mask"]),
+                trail_model_cap=trail_model_cap,
+                solver_factory=bundle["solver_factory"],
+            )
+            if replay["status"] == "exact" and replay["parity"] == 1:
+                label = 0
+                certificate = "key_dependent_odd_witness"
+        elif probe["status"] == "no_witness":
+            label = 1
+            certificate = "constant_exhaustive_no_nonzero_key_monomial"
+        row = {
+            "query_index": query_index,
+            "rounds": rounds,
+            "input_exponent": input_exponent,
+            "input_exponent_hex": f"0x{input_exponent:016X}",
+            "output_exponent": output_exponent,
+            "output_exponent_hex": f"0x{output_exponent:016X}",
+            "label": label,
+            "certificate": certificate,
+            "probe": probe,
+            "replay": replay,
+            "elapsed_seconds": time.monotonic() - query_start,
+        }
+        rows.append(row)
+        with panel_output.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+            handle.flush()
+    return {"model": bundle["metadata"], "rows": rows}
+
+
+def evaluate_low_round_panel(
+    config: NativeSatProviderConfig,
+    *,
+    phase_a_gate: dict[str, Any],
+    model: dict[str, Any] | None,
+    rows: Sequence[dict[str, Any]],
+    planned_queries: int,
+    rounds: int,
+    worker_status: str,
+    wall_clock_cap_seconds: int,
+) -> dict[str, Any]:
+    constant_rows = sum(row.get("label") == 1 for row in rows)
+    key_dependent_rows = sum(row.get("label") == 0 for row in rows)
+    explicit_unknown = sum(row.get("label") is None for row in rows)
+    missing_rows = planned_queries - len(rows)
+    total_unknown = explicit_unknown + missing_rows
+    all_negative_witnesses_replay = all(
+        row.get("label") != 0
+        or (
+            int(row["probe"]["witness"]["key_exponent_mask"]) != 0
+            and row.get("replay", {}).get("status") == "exact"
+            and row.get("replay", {}).get("parity") == 1
+        )
+        for row in rows
+    )
+    source_checks = {
+        "e58_phase_a_gate_passed": phase_a_gate.get("status") == "pass"
+        and phase_a_gate.get("decision")
+        == "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+        "model_artifact_present": model is not None,
+        "model_rounds_match": bool(model and int(model.get("rounds", -1)) == rounds),
+        "model_key_additions_match": bool(
+            model and int(model.get("key_additions", -1)) == rounds + 1
+        ),
+        "model_key_variables_match": bool(
+            model and int(model.get("key_variables", -1)) == (rounds + 1) * 64
+        ),
+        "independent_round_key_model": bool(
+            model and model.get("key_model") == "independent_round_keys"
+        ),
+    }
+    width_checks = {
+        "completed_queries_at_least_12": len(rows) >= 12,
+        "unknown_fraction_at_most_0p25": total_unknown / planned_queries <= 0.25,
+        "strict_constant_rows_at_least_4": constant_rows >= 4,
+        "strict_key_dependent_rows_at_least_4": key_dependent_rows >= 4,
+        "all_negative_witnesses_replay_odd": all_negative_witnesses_replay,
+        "all_nonresolved_rows_are_unknown": all(
+            row.get("label") in {0, 1, None} for row in rows
+        ),
+    }
+    metrics = {
+        "planned_queries": planned_queries,
+        "completed_queries": len(rows),
+        "strict_constant_rows": constant_rows,
+        "strict_key_dependent_rows": key_dependent_rows,
+        "explicit_unknown_rows": explicit_unknown,
+        "missing_timeout_rows": missing_rows,
+        "total_unknown_fraction": total_unknown / planned_queries,
+        "worker_status": worker_status,
+    }
+    if not all(source_checks.values()):
+        status = "fail"
+        decision = "innovation2_atm_r2_strict_relation_panel_protocol_invalid"
+        action = "repair source/model ownership before interpreting panel labels"
+    elif all(width_checks.values()):
+        status = "pass"
+        decision = "innovation2_atm_r2_strict_relation_panel_ready"
+        action = "expand to the frozen 1024-query label-width and shortcut audit"
+    else:
+        status = "hold"
+        decision = "innovation2_atm_r2_strict_relation_panel_not_ready"
+        action = (
+            "do not train RCCA; inspect class diversity and provider completion, then "
+            "decide whether multi-coordinate cancellation is required"
+        )
+    gate = {
+        "run_id": config.run_id,
+        "status": status,
+        "decision": decision,
+        "source_checks": source_checks,
+        "width_checks": width_checks,
+        "metrics": metrics,
+        "wall_clock_cap_seconds": wall_clock_cap_seconds,
+        "projected_key_cap": config.projected_key_cap,
+        "trail_model_cap": config.trail_model_cap,
+        "claim_scope": (
+            "PRESENT two-round independent-round-key ATM strict relation-label panel "
+            "readiness; not actual PRESENT-80 labels, neural training, attack, or SOTA"
+        ),
+        "next_action": {
+            "action": action,
+            "full_width_audit": status == "pass",
+            "training": False,
+            "remote_scale": False,
+        },
+    }
+    result_rows = [
+        {
+            "run_id": config.run_id,
+            "task": "innovation2_atm_r2_strict_relation_panel",
+            "metric": key,
+            "value": value,
+            "status": status,
+            "decision": decision,
+            "training_performed": False,
+        }
+        for key, value in metrics.items()
+        if key != "worker_status"
+    ]
+    return {"gate": gate, "result_rows": result_rows}
 
 
 def evaluate_r9_probe(

@@ -5,6 +5,7 @@ from blockcipher_nd.tasks.innovation2.atm_native_sat_witness_provider import (
     algebraic_transition_coefficient,
     count_models_parity,
     evaluate_phase_a,
+    evaluate_low_round_panel,
     evaluate_r9_probe,
     key_mask_from_projected_literals,
     select_singleton_relation_mutation,
@@ -14,6 +15,9 @@ from blockcipher_nd.cli.plot_innovation2_atm_native_sat_provider import (
 )
 from blockcipher_nd.cli.plot_innovation2_atm_native_sat_r9_probe import (
     render_atm_native_sat_r9_probe,
+)
+from blockcipher_nd.cli.plot_innovation2_atm_r2_strict_relation_panel import (
+    render_atm_r2_strict_relation_panel,
 )
 
 
@@ -225,3 +229,112 @@ def test_r9_plot_calls_timeout_unknown_not_negative(tmp_path: object) -> None:
     assert "创新2 E58-B" in svg
     assert "超时不等于负类" in svg
     assert "保持unknown" in svg
+
+
+def test_r2_panel_requires_both_strict_classes() -> None:
+    phase_a = {
+        "status": "pass",
+        "decision": "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+    }
+    model = {
+        "rounds": 2,
+        "key_additions": 3,
+        "key_variables": 192,
+        "key_model": "independent_round_keys",
+    }
+    rows = [
+        {"label": 1, "probe": {"status": "no_witness"}, "replay": None}
+        for _ in range(12)
+    ]
+
+    result = evaluate_low_round_panel(
+        NativeSatProviderConfig(run_id="e59_test"),
+        phase_a_gate=phase_a,
+        model=model,
+        rows=rows,
+        planned_queries=16,
+        rounds=2,
+        worker_status="timeout",
+        wall_clock_cap_seconds=60,
+    )
+
+    assert result["gate"]["status"] == "hold"
+    assert not result["gate"]["width_checks"][
+        "strict_key_dependent_rows_at_least_4"
+    ]
+    assert result["gate"]["next_action"]["training"] is False
+
+
+def test_r2_panel_passes_with_replayed_balanced_width() -> None:
+    phase_a = {
+        "status": "pass",
+        "decision": "innovation2_atm_native_sat_mechanism_ready_for_r9_probe",
+    }
+    model = {
+        "rounds": 2,
+        "key_additions": 3,
+        "key_variables": 192,
+        "key_model": "independent_round_keys",
+    }
+    constants = [
+        {"label": 1, "probe": {"status": "no_witness"}, "replay": None}
+        for _ in range(8)
+    ]
+    negatives = [
+        {
+            "label": 0,
+            "probe": {
+                "status": "witness",
+                "witness": {"key_exponent_mask": index + 1},
+            },
+            "replay": {"status": "exact", "parity": 1},
+        }
+        for index in range(8)
+    ]
+
+    result = evaluate_low_round_panel(
+        NativeSatProviderConfig(run_id="e59_test"),
+        phase_a_gate=phase_a,
+        model=model,
+        rows=constants + negatives,
+        planned_queries=16,
+        rounds=2,
+        worker_status="completed",
+        wall_clock_cap_seconds=60,
+    )
+
+    assert result["gate"]["status"] == "pass"
+    assert result["gate"]["next_action"]["full_width_audit"] is True
+    assert result["gate"]["next_action"]["training"] is False
+
+
+def test_r2_plot_explains_single_class_hold(tmp_path: object) -> None:
+    from pathlib import Path
+
+    output = Path(str(tmp_path)) / "curves.svg"
+    summary = {
+        "model": {"cnf_clauses": 2080},
+        "gate": {
+            "decision": "innovation2_atm_r2_strict_relation_panel_not_ready",
+            "metrics": {
+                "completed_queries": 16,
+                "explicit_unknown_rows": 0,
+                "missing_timeout_rows": 0,
+                "strict_constant_rows": 16,
+                "strict_key_dependent_rows": 0,
+            },
+            "width_checks": {
+                "completed_queries_at_least_12": True,
+                "strict_constant_rows_at_least_4": True,
+                "strict_key_dependent_rows_at_least_4": False,
+            },
+            "next_action": {"training": False},
+        },
+    }
+
+    render_atm_r2_strict_relation_panel(summary, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "创新2 E59" in svg
+    assert "单一类别阻止神经训练" in svg
+    assert "不能训练RCCA" in svg

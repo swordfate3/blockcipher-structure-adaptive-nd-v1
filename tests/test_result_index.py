@@ -1125,6 +1125,30 @@ def test_result_index_labels_innovation2_atm_native_sat_r9_probe(
     )
 
 
+def test_result_index_labels_innovation2_atm_r2_relation_panel(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r2_atm_strict_relation_panel_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_atm_r2_strict_relation_panel_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E59：PRESENT两轮ATM严格relation标签面板"
+    )
+    assert entries[0]["decision_display"] == (
+        "两轮16条查询全部constant，缺少严格负类，禁止训练RCCA"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

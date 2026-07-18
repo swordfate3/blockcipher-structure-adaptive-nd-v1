@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_innovation2_atm_r2_strict_relation_panel import main
+
+raise SystemExit(main())
