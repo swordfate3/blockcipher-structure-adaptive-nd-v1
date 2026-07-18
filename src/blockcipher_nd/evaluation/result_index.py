@@ -845,6 +845,15 @@ DECISION_LABELS = {
     "innovation2_present_r5_open_3sdp_glpk_enumerator_invalid": (
         "GLPK约束、blocking、计数完整性或timeout分类无效"
     ),
+    "innovation2_present_r5_transition_tensor_boundary_infeasible": (
+        "全key/全offset最终边界需136变量，dense tensor不可行，转三轮稀疏ANF硬cap门"
+    ),
+    "innovation2_present_r5_transition_tensor_internal_width_audit_ready": (
+        "完整superpoly边界门通过，可构造PRESENT内部因子图"
+    ),
+    "innovation2_present_r5_transition_tensor_boundary_protocol_invalid": (
+        "E53-A来源或全key/全offset边界计算无效"
+    ),
     "innovation2_high_round_integral_two_seed_bridge_confirmed": (
         "两颗 seed 均确认 PRESENT-80 8轮神经信号，准备论文参考规模近似实验"
     ),
@@ -1352,6 +1361,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E53-A：PRESENT开放3SDP exact-ANF与消去校准"
     if run_id == "i2_present_r5_open_3sdp_glpk_blocking_gate_20260718":
         return "创新2 E53-B：PRESENT S-box GLPK逐解blocking扩展性门"
+    if run_id == "i2_present_r5_transition_tensor_boundary_audit_20260718":
+        return "创新2 E54：PRESENT五轮full-superpoly tensor语义边界审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E37扩展拓扑benchmark通过 / E38最小GraphGPS-CETT归因矩阵待跑 / 真实密码训练未开放
+状态：E54五轮full-superpoly dense tensor边界失败 / E55三轮稀疏ANF硬cap门待执行 / 神经训练未开放
 
 ## 1. 结论先行
 
@@ -550,3 +550,16 @@ E53-B进一步验证了Sage/GLPK逐解blocking。代表output exponent `v=1/3/7`
 provider门E54改审计exact local transition tensor的GF(2)变量消元宽度：只有真实PRESENT-80
 五轮因子图在确定性min-fill/query-aware顺序下最大factor变量数不超过26、估计峰值不超过4GiB，
 并复现E53-A一、二轮fixture，才实现实际收缩。网络排名、五轮训练和远程GPU继续冻结。
+
+E54首先执行了比内部treewidth更早的full-superpoly语义边界门。8-bit cube之外必须保留56个
+inactive plaintext变量，再加80个master-key变量，唯一语义匹配的最终输出边界为136变量、
+`2^136`项；即使bit-packed也需约`1.0141e31 GiB`，远超冻结的26变量/4GiB门。固定key、
+zero-offset和固定赋值虽然维度更小，却都不能证明all-key/all-offset正类。因此内部factor graph
+与min-fill没有构造，dense tensor路线在语义边界处关闭。
+
+E53-A的稀疏完整输出ANF从一轮1907项增长到二轮4352830项，fixture最大superpoly从13项增长
+到53392项，尚无可靠五轮稀疏上界。最后一个不改变标签语义的开放provider门是E55：本地CPU
+沿12个冻结output query的反向依赖锥计算三轮exact sparse ANF，每query硬限500万项、60秒、
+4GiB，并先重放E53-A一、二轮fixture。任何越界即关闭当前全变量provider家族；全部通过才以
+相同cap进入四轮，再通过才允许五轮固定子集。E55结束前，网络排名、四轮重新枚举、五轮训练
+和远程GPU继续冻结。

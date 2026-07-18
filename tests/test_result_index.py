@@ -952,6 +952,32 @@ def test_result_index_labels_innovation2_present_open_3sdp_glpk_gate(
     )
 
 
+def test_result_index_labels_innovation2_present_transition_tensor_boundary(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_transition_tensor_boundary_audit_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation2_present_r5_transition_tensor_boundary_infeasible"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E54：PRESENT五轮full-superpoly tensor语义边界审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "全key/全offset最终边界需136变量，dense tensor不可行，转三轮稀疏ANF硬cap门"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

@@ -121,6 +121,59 @@ freeze an independent bit-order fixture before provider execution.
 
 ---
 
+## [LRN-20260718-003] correction
+
+**Logged**: 2026-07-18T14:05:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Full-superpoly tensor feasibility must count retained key and inactive-plaintext boundary variables before auditing internal factor-graph treewidth.
+
+### Details
+
+Innovation 2 E54 originally proposed constructing the full PRESENT-80 five-round
+factor graph and comparing min-fill orders. That can be misleading because
+internal variables are eliminable while the requested all-key/all-offset
+superpoly itself must remain a function of 80 master-key variables and 56
+inactive plaintext variables. Its final boundary therefore has 136 variables
+and `2^136` dense entries, requiring about `1.0141e31 GiB` even when bit-packed.
+
+Fixed-key, zero-inactive-offset, or fixed-assignment contractions have smaller
+boundaries only because they change the universal label semantics. A favorable
+internal treewidth cannot repair an infeasible required output tensor, so
+building the internal graph after this boundary failure would spend work
+without answering the target question.
+
+### Suggested Action
+
+For exact tensor, variable-elimination, BDD, or factor-graph label providers,
+first enumerate the variables that must remain in the requested certificate and
+apply the final-boundary memory gate. Construct and optimize the internal graph
+only if that semantic boundary passes. Record lower-dimensional controls as
+semantic mismatches rather than feasible substitutes.
+
+### Metadata
+
+- Source: experiment_audit, self_correction
+- Related Files: docs/experiments/innovation2-present-r5-transition-tensor-width-audit-plan.md, src/blockcipher_nd/tasks/innovation2/present_transition_tensor_boundary_audit.py
+- Tags: innovation2, present, full-superpoly, tensor, retained-boundary, treewidth, exact-label
+- See Also: LRN-20260718-002
+- Pattern-Key: innovation2.provider.audit_retained_boundary_before_internal_treewidth
+- Recurrence-Count: 1
+- First-Seen: 2026-07-18
+- Last-Seen: 2026-07-18
+
+### Resolution
+
+- **Resolved**: 2026-07-18T14:05:00+08:00
+- **Commit/PR**: pending
+- **Notes**: E54 now applies the 136-variable semantic boundary before internal graph construction and routes only to a capped sparse query-cone gate.
+
+---
+
 ## [LRN-20260718-001] correction
 
 **Logged**: 2026-07-18T03:40:00+08:00
