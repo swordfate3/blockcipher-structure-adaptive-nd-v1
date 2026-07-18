@@ -1067,6 +1067,15 @@ DECISION_LABELS = {
     "innovation2_present_r3_only_replication_protocol_invalid": (
         "r3-only seed0/source/contract或seed1协议无效"
     ),
+    "innovation2_gift64_unit_balance_profile_ready": (
+        "GIFT-64四轮严格unit谱标签与反捷径门通过，可测试r3-only算子"
+    ),
+    "innovation2_gift64_unit_balance_profile_not_ready": (
+        "GIFT-64四轮严格unit谱宽度或反捷径门不足，禁止神经训练"
+    ),
+    "innovation2_gift64_unit_balance_profile_protocol_invalid": (
+        "GIFT-64轮函数、ANF、反例或split协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1639,6 +1648,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E73：PRESENT四轮r3-only平衡谱算子正式归因"
     if run_id == "i2_present_r4_r3_only_profile_operator_seed1_20260718":
         return "创新2 E73：PRESENT四轮r3-only平衡谱算子双seed复核"
+    if run_id == "i2_gift64_r4_unit_balance_profile_readiness_20260718":
+        return "创新2 E74：GIFT-64四轮严格单位输出平衡谱标签readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

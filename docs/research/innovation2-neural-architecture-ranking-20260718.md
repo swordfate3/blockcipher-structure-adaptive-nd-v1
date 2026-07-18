@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E68 prefix-guided profile operator双seed第一 / E70跨维度标签未就绪
+状态：E68性能第一 / E73简洁性第一 / E74 GIFT严格标签matching容量未就绪
 
 ## 1. 结论先行
 
@@ -805,3 +805,16 @@ E73已经双seed通过。r3-only只输入13维、参数`4795`，比E68的39维/`
 简洁性与可解释性第一（mean `0.946667`，输入和参数显著减少），两者都只限PRESENT-80四轮
 8-bit活动cube严格unit profile。停止同benchmark继续枚举容量。下一结构搜索必须先在第二真实
 SPN上通过同级strict profile标签门，优先审计GIFT-64或SKINNY-64；标签未就绪前不训练。
+
+E74已经完成第二真实SPN的第一道门，但裁决为hold。GIFT-64四轮`96 x 64`原始atlas得到
+`3022 positive / 1381 negative / 1741 unknown`，72个结构同时含正负类、共有91种三态签名。
+官方向量、S-box ANF、四轮向量化/标量对拍、24个negative witness复验和全部split协议均通过。
+
+问题只出在冻结checkerboard容量：train为`92/92`、validation为`28/28`，低于
+`150/150`与`50/50`门；行列class delta均为0，一元边际AUC也全部为0.5。现有标签矩阵的
+逐输出配平理论上界只有train 318边和validation 100边，而目标总边为300和100，说明96结构
+几乎没有packing余量。因此不降低门槛、不扩大有限key投票，也不启动GIFT神经网络。
+
+下一实验只把确定性结构库从96扩大到192，其他标签语义、4轮、8-bit cube、16 keys、8 offsets、
+split、matching与所有门保持不变。若宽度通过，才开放GIFT r3-only三行本地readiness；若仍失败，
+关闭当前GIFT unit-profile迁移并转SKINNY或新的sound标签表示。E68/E73排名不受E74 hold影响。
