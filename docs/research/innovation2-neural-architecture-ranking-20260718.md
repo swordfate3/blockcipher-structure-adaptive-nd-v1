@@ -989,3 +989,16 @@ true-P ridge低`0.019649`。所有预注册门通过。
 双seed方法证据。下一步只开放相同三行30轮seed0，并以公平true-P ridge `0.824682`约束神经质量；
 失败即关闭RECTANGLE神经路线，成功才运行seed1。当前不枚举Transformer、GraphGPS、attention、
 更深消息步数或共享三密码模型，也不启动远程GPU。
+
+E90把RECTANGLE相同三行从头训练30轮。independent/corrupted/true validation AUC为
+`0.726366/0.861051/0.890696`，真实P相对独立节点和E89公平ridge增益为
+`+0.164331/+0.066014`，train-validation gap仅`+0.004165`，候选质量全部通过。但真实P相对
+same-family错误P只有`+0.029646`，比预注册`+0.030000`拓扑门少`0.000354`；因此严格裁决为hold，
+不运行seed1、不放宽门槛。
+
+这个贴线结果指出了比“再加epoch”更具体的结构问题：当前共享算子对同cell四个lane做无类型均值，
+而RECTANGLE的四个lane分别属于四个state row，ShiftRow位移固定为`[0,1,12,13]`。均值可能保留
+大部分可预测性，却削弱真实row-typed位移相对cell-rotation错误P的可辨别性。下一优先级不是直接
+训练新模型，而是无训练审计row identity是否在同预算确定性表示上产生错误P无法解释的新增margin；
+通过后才允许一个容量配平的Row-Typed Shift Operator两轮门，否则RECTANGLE停在E88 sound标签、
+E89正向readiness和E90贴线诊断。

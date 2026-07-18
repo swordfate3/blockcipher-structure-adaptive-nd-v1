@@ -429,6 +429,12 @@ def train_rectangle_r3_matrix(
     checkpoints.mkdir(parents=True, exist_ok=True)
     trained_rows: list[dict[str, Any]] = []
     history_rows: list[dict[str, Any]] = []
+    row_prefix = getattr(config, "row_prefix", "rectangle_r3_profile")
+    task_name = getattr(
+        config,
+        "task_name",
+        "innovation2_rectangle80_r3_only_profile_readiness",
+    )
     for mode in RELATION_MODES:
         _seed_everything(config.seed)
         model = make_rectangle_r3_model(config, mode).to(config.device)
@@ -460,7 +466,7 @@ def train_rectangle_r3_matrix(
                 model, sources, validation_indices, config
             )
             history = {
-                "row_id": f"rectangle_r3_profile_{mode}_seed{config.seed}",
+                "row_id": f"{row_prefix}_{mode}_seed{config.seed}",
                 "relation_mode": mode,
                 "epoch": epoch,
                 **{f"train_{key}": value for key, value in train_metrics.items()},
@@ -473,7 +479,7 @@ def train_rectangle_r3_matrix(
             if best is None or validation_metrics["auc"] > best["validation_auc"]:
                 best = {
                     "run_id": config.run_id,
-                    "task": "innovation2_rectangle80_r3_only_profile_readiness",
+                    "task": task_name,
                     "row_id": history["row_id"],
                     "relation_mode": mode,
                     "seed": config.seed,

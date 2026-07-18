@@ -1232,6 +1232,18 @@ DECISION_LABELS = {
     "innovation2_rectangle80_r3_only_profile_protocol_invalid": (
         "E88来源、RECTANGLE cell-major拓扑、参数公平或训练协议无效"
     ),
+    "innovation2_rectangle80_r3_only_neural_gain_attributed": (
+        "RECTANGLE真实P层30轮seed0质量与拓扑增益通过，可运行seed1"
+    ),
+    "innovation2_rectangle80_r3_only_quality_not_confirmed": (
+        "RECTANGLE真实P层绝对质量、过拟合或公平ridge门未过"
+    ),
+    "innovation2_rectangle80_r3_only_topology_not_attributed": (
+        "RECTANGLE真实P层未稳定领先同参数拓扑控制"
+    ),
+    "innovation2_rectangle80_r3_only_attribution_protocol_invalid": (
+        "E88/E89来源、cell-major拓扑、参数公平或30轮协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1850,6 +1862,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_rectangle80_r4_r3_only_profile_operator_readiness_seed0_20260719"
     ):
         return "创新2 E89：RECTANGLE-80四轮r3-only平衡谱算子readiness"
+    if run_id == (
+        "i2_rectangle80_r4_r3_only_profile_operator_attribution_seed0_20260719"
+    ):
+        return "创新2 E90：RECTANGLE-80四轮r3-only平衡谱算子30轮seed0归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
