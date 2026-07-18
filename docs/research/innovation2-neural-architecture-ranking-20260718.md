@@ -1043,3 +1043,17 @@ margin，更不是神经方法。下一预算只给 E95 无训练 true/shuffled/
 真实 nesting 对所有错误关系至少产生 `+0.03` AUC margin 后，才允许两轮神经 readiness。E93 的
 正式排名仍不变：PRESENT/GIFT 分别训练的 r3-only Profile Operator 仍是唯一 formal-confirmed
 神经方法家族，RECTANGLE 第三 SPN 神经结果仍未确认。
+
+E95 随后否决了 `Monotone Cube-Lattice Operator` 的训练预算。五种同为44列、45个ridge系数的
+确定性模式 validation AUC 为：独立节点`0.659853`、真实嵌套`0.674691`、打乱嵌套
+`0.656339`、错误超集`0.656339`、真实但不投影`0.671110`。真实关系相对前三类控制的margin只有
+`+0.014837/+0.018351/+0.018351`，均未过`+0.03`，绝对AUC也未过`0.70`。
+
+真实关系相对不投影只增加`+0.003581`，说明单调投影本身不是主要收益来源。冻结映射下 shuffled
+与wrong-superset在192/192条chain上重合，因此只能视为一个完整的错误关系控制；不后验更换映射
+补跑。E94从`label_ready`更新为`label_ready_but_unattributed`，不再开放神经训练。
+
+当前架构排名仍以PRESENT/GIFT分别训练的r3-only Profile Operator为唯一`formal_confirmed`方法。
+RECTANGLE原算子/row-typed/nested-cube、共享参数、SKINNY residual和通用Transformer/GNN变体均没有
+新的训练预算。下一步E96只做研究组合边界复核：若没有新的sound、非平凡、可控机制，则停止架构
+枚举并把预算转向现有双密码方法的论文表达与限制说明。

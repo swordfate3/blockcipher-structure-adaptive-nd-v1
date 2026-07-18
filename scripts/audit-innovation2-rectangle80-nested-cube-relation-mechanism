@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_rectangle80_nested_cube_relation_mechanism import main
+
+raise SystemExit(main())
