@@ -1187,6 +1187,18 @@ DECISION_LABELS = {
     "innovation2_shared_profile_operator_protocol_invalid": (
         "双密码来源、运行时拓扑、共享参数、公平预算或等变协议无效"
     ),
+    "innovation2_shared_profile_operator_seed0_attributed": (
+        "共享算子在PRESENT/GIFT均保留30轮质量与拓扑增益，可运行seed1"
+    ),
+    "innovation2_shared_profile_operator_quality_not_retained": (
+        "共享算子未保留至少一个密码的独立模型质量，关闭共享分支"
+    ),
+    "innovation2_shared_profile_operator_topology_not_attributed": (
+        "共享算子未在至少一个密码超过独立或错误拓扑，关闭共享分支"
+    ),
+    "innovation2_shared_profile_operator_attribution_protocol_invalid": (
+        "E85/锚点来源、30轮schedule、动态拓扑或产物协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1792,6 +1804,11 @@ def display_name_for_run(run_id: str) -> str:
         "readiness_seed0_20260719"
     ):
         return "创新2 E85：PRESENT/GIFT拓扑参数化共享Profile Operator readiness"
+    if run_id == (
+        "i2_present_gift_r4_topology_parameterized_shared_profile_operator_"
+        "attribution_seed0_20260719"
+    ):
+        return "创新2 E86：PRESENT/GIFT共享Profile Operator 30轮seed0归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

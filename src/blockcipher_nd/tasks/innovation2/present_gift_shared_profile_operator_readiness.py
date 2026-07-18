@@ -89,6 +89,10 @@ class SharedProfileReadinessConfig:
         ):
             raise ValueError("E85 readiness protocol is frozen")
 
+    @property
+    def task_name(self) -> str:
+        return "innovation2_present_gift_shared_profile_operator_readiness"
+
 
 def load_e85_sources(
     present_profile_root: Path,
@@ -447,7 +451,7 @@ def train_shared_profile_matrix(
             if best is None or macro_validation_auc > best["macro_validation_auc"]:
                 best = {
                     "run_id": config.run_id,
-                    "task": "innovation2_present_gift_shared_profile_operator_readiness",
+                    "task": config.task_name,
                     "row_id": history_row["row_id"],
                     "relation_mode": mode,
                     "seed": config.seed,

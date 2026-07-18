@@ -939,3 +939,14 @@ same-family错误拓扑。这个问题不同于AutoND的通用架构与Zahedneja
 下一步只开放E86固定30轮seed0共享归因：保持数据、schedule、参数、控制和优化器不变，分别要求
 PRESENT/GIFT接近E73/E79独立30轮锚点并稳定超过独立与错误拓扑。通过后才复现seed1；失败则保留
 两套独立模型并关闭共享参数分支，不增加cipher adapter、容量或远程预算。
+
+E86已经把E85正向readiness推进到30轮seed0，但正式质量门为hold。共享true模型在PRESENT/GIFT的
+AUC为`0.950278/0.859521`：PRESENT比E73独立锚点高`+0.004722`，GIFT却比E78独立锚点低
+`-0.053590`，超过允许的`-0.03`退化。macro true为`0.904900`且只比两锚点平均低`0.024434`，
+但逐密码门禁止用PRESENT补偿GIFT；GIFT完整history最高值也是epoch30的`0.859521`。
+
+四项拓扑归因仍全部通过：PRESENT true相对independent/corrupted为`+0.303194/+0.085556`，
+GIFT为`+0.342612/+0.111082`。因此TPSPO证明“一套参数能同时处理两种运行时SPN拓扑并保留拓扑
+信号”的readiness价值，却没有证明它能替代两套独立正式模型。共享参数分支在此关闭，不运行seed1，
+不加入cipher adapter、容量或多任务权重调参。E73/E79独立双seed operator继续保持正式方法第一名；
+E85/E86作为参数共享边界证据保留，而不是整个创新2失败。

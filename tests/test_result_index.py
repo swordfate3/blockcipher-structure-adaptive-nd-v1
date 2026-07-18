@@ -1791,6 +1791,33 @@ def test_result_index_labels_innovation2_shared_profile_operator(
     )
 
 
+def test_result_index_labels_innovation2_shared_profile_attribution(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_gift_r4_topology_parameterized_shared_profile_operator_"
+        "attribution_seed0_20260719"
+    )
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_shared_profile_operator_seed0_attributed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E86：PRESENT/GIFT共享Profile Operator 30轮seed0归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "共享算子在PRESENT/GIFT均保留30轮质量与拓扑增益，可运行seed1"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
