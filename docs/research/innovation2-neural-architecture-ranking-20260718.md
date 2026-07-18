@@ -1057,3 +1057,14 @@ E95 随后否决了 `Monotone Cube-Lattice Operator` 的训练预算。五种同
 RECTANGLE原算子/row-typed/nested-cube、共享参数、SKINNY residual和通用Transformer/GNN变体均没有
 新的训练预算。下一步E96只做研究组合边界复核：若没有新的sound、非平凡、可控机制，则停止架构
 枚举并把预算转向现有双密码方法的论文表达与限制说明。
+
+E96 已完成上述组合复核。十个冻结来源全部按hash和内部门重放通过，八类候选中只有
+PRESENT/GIFT分别训练的r3-only Profile Operator属于`formal_confirmed`；RECTANGLE Cube-Lattice
+属于`label_ready_but_unattributed`；Mask-Query Hypergraph和活动维度条件算子属于
+`provider_missing`；RECTANGLE row/原算子、SKINNY residual、共享参数和通用Transformer/GNN均为
+closed、mechanism-only closed或deferred no-budget。
+
+立即可训练新候选数为`0`，综合裁决为
+`innovation2_architecture_portfolio_converged_no_new_training_budget`。因此当前创新2神经结构探索周期
+收束：默认转论文整合；若继续研究，只允许先做非平凡GF(2) cancellation严格positive provider的
+可行性审计。任何新网络在标签与确定性机制重新过门前都没有训练预算。

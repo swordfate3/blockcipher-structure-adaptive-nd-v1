@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_innovation2_post_e95_architecture_portfolio_boundary import main
+
+raise SystemExit(main())

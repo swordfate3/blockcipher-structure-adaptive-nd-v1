@@ -1238,6 +1238,15 @@ DECISION_LABELS = {
     "innovation2_rectangle80_nested_cube_relation_protocol_invalid": (
         "E94来源、关系映射、容量、拆分或单调投影协议无效"
     ),
+    "innovation2_architecture_portfolio_converged_no_new_training_budget": (
+        "当前无合格新架构训练候选，停止枚举并转严格provider研究或论文收束"
+    ),
+    "innovation2_architecture_portfolio_new_candidate_ready": (
+        "出现通过标签与机制门的新候选，只允许预注册最高优先级路线"
+    ),
+    "innovation2_architecture_portfolio_protocol_invalid": (
+        "冻结来源或架构候选分类不一致，先修复组合证据"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1920,6 +1929,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E94：RECTANGLE-80四轮7/8/9-bit嵌套cube单调标签门"
     if run_id == "i2_rectangle80_r4_nested_cube_relation_mechanism_20260719":
         return "创新2 E95：RECTANGLE-80四轮嵌套cube关系无训练机制门"
+    if run_id == "i2_post_e95_architecture_portfolio_boundary_20260719":
+        return "创新2 E96：E95后神经架构候选组合边界复核"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

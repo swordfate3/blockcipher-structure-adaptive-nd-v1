@@ -1938,6 +1938,33 @@ def test_result_index_labels_innovation2_rectangle80_nested_cube_relation(
     )
 
 
+def test_result_index_labels_innovation2_post_e95_portfolio(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_post_e95_architecture_portfolio_boundary_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation2_architecture_portfolio_"
+                "converged_no_new_training_budget"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E96：E95后神经架构候选组合边界复核"
+    )
+    assert entries[0]["decision_display"] == (
+        "当前无合格新架构训练候选，停止枚举并转严格provider研究或论文收束"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
