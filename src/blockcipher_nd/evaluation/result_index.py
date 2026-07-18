@@ -1178,6 +1178,15 @@ DECISION_LABELS = {
     "innovation2_skinny64_true_ridge_residual_protocol_invalid": (
         "E82/E83来源、ridge、零残差、冻结buffer、图或训练协议无效"
     ),
+    "innovation2_shared_profile_operator_readiness_passed": (
+        "一套共享算子在PRESENT/GIFT均超过控制，可进入30轮seed0"
+    ),
+    "innovation2_shared_profile_operator_readiness_not_passed": (
+        "共享参数未同时保留双密码质量与拓扑增益，保留独立模型"
+    ),
+    "innovation2_shared_profile_operator_protocol_invalid": (
+        "双密码来源、运行时拓扑、共享参数、公平预算或等变协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1778,6 +1787,11 @@ def display_name_for_run(run_id: str) -> str:
         "readiness_seed0_20260719"
     ):
         return "创新2 E84：SKINNY-64五轮真实拓扑ridge引导稀疏残差readiness"
+    if run_id == (
+        "i2_present_gift_r4_topology_parameterized_shared_profile_operator_"
+        "readiness_seed0_20260719"
+    ):
+        return "创新2 E85：PRESENT/GIFT拓扑参数化共享Profile Operator readiness"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_innovation2_present_gift_shared_profile_operator import main
+
+raise SystemExit(main())

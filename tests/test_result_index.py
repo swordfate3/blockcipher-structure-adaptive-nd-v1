@@ -1764,6 +1764,33 @@ def test_result_index_labels_innovation2_skinny_true_ridge_residual(
     )
 
 
+def test_result_index_labels_innovation2_shared_profile_operator(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_gift_r4_topology_parameterized_shared_profile_operator_"
+        "readiness_seed0_20260719"
+    )
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_shared_profile_operator_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E85：PRESENT/GIFT拓扑参数化共享Profile Operator readiness"
+    )
+    assert entries[0]["decision_display"] == (
+        "一套共享算子在PRESENT/GIFT均超过控制，可进入30轮seed0"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
