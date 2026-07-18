@@ -965,6 +965,21 @@ DECISION_LABELS = {
     "innovation2_present_profile_operator_protocol_invalid": (
         "profile source、等变性、masked loss、参数或训练协议无效"
     ),
+    "innovation2_present_profile_operator_neural_gain_attributed": (
+        "正确P平衡谱算子超过独立node、错误P和ANF ridge，允许seed1"
+    ),
+    "innovation2_present_profile_operator_no_ridge_gain": (
+        "正确拓扑贡献成立但未超过ANF ridge，不运行seed1"
+    ),
+    "innovation2_present_profile_operator_relation_not_attributed": (
+        "候选未稳定领先独立node或错误P，停止该结构"
+    ),
+    "innovation2_present_profile_operator_candidate_not_ready": (
+        "正式绝对AUC或过拟合门失败，停止该结构"
+    ),
+    "innovation2_present_profile_operator_attribution_protocol_invalid": (
+        "E67 source、contract、metric或正式训练协议无效"
+    ),
     "innovation2_generalized_relation_extension_ready": (
         "广义relation扩展标签就绪，但必须与linear-mask balance任务分开"
     ),
@@ -1515,6 +1530,10 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r4_prefix_guided_profile_operator_readiness_seed0_20260718"
     ):
         return "创新2 E66：PRESENT四轮prefix引导平衡谱算子readiness"
+    if run_id == (
+        "i2_present_r4_prefix_guided_profile_operator_attribution_seed0_20260718"
+    ):
+        return "创新2 E67：PRESENT四轮prefix引导平衡谱算子正式归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
