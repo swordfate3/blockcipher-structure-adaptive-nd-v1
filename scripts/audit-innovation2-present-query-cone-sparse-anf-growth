@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_present_query_cone_sparse_anf_growth import main
+
+raise SystemExit(main())

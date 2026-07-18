@@ -978,6 +978,32 @@ def test_result_index_labels_innovation2_present_transition_tensor_boundary(
     )
 
 
+def test_result_index_labels_innovation2_present_query_cone_sparse_anf(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r3_query_cone_sparse_anf_growth_20260718"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation2_present_r3_query_cone_sparse_anf_hard_cap_exceeded"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E55：PRESENT三轮query-cone exact sparse-ANF硬cap门"
+    )
+    assert entries[0]["decision_display"] == (
+        "三轮query越过冻结硬cap，关闭当前full-variable sparse provider"
+    )
+
+
 def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"

@@ -2,7 +2,7 @@
 
 日期：2026-07-18
 
-状态：E54五轮full-superpoly dense tensor边界失败 / E55三轮稀疏ANF硬cap门待执行 / 神经训练未开放
+状态：E55三轮exact sparse-ANF触发500万项硬cap / 当前五轮严格标签provider家族关闭 / 神经训练未开放
 
 ## 1. 结论先行
 
@@ -563,3 +563,24 @@ E53-A的稀疏完整输出ANF从一轮1907项增长到二轮4352830项，fixture
 4GiB，并先重放E53-A一、二轮fixture。任何越界即关闭当前全变量provider家族；全部通过才以
 相同cap进入四轮，再通过才允许五轮固定子集。E55结束前，网络排名、四轮重新枚举、五轮训练
 和远程GPU继续冻结。
+
+E55已经完成并关闭当前exact full-variable provider家族。query-cone实现先对E53-A完成
+`32/32`行一、二轮exact重放，superpoly、unit输出hash、随机赋值标量PRESENT、错误P-layer和
+zero-offset语义控制全部通过。三轮Q00--Q02完成，query内最大项数为
+`2149131/1417246/1775929`，三者都从二轮strict positive转为三轮strict negative，且反例
+标量复验通过。Q03在`3.2048s`达到`5000001`项并触发冻结term cap，Q04--Q11按停止线跳过。
+
+因此不进入四轮/五轮query-cone，不提高cap、不转远程、不使用部分多项式标签。连同E52--E54，
+当前可执行的support、GLPK逐解、dense tensor与exact sparse-ANF四条五轮严格标签provider路线
+均已关闭。这个结论关闭的是当前提供器家族，不是证明五轮积分正类不存在，也不是神经网络
+结构上限。
+
+神经结构排名继续冻结：E45/E48确定性ANF/degree约`0.69`仍是四轮解释锚点，E44 triangle
+`0.561979`仍是最强纯神经锚点；MSPN、identity、degree蒸馏和CGPR没有获得新增组外价值。
+下一步不能靠换NBFNet、Transformer或更大模型绕过标签。
+
+新的E56只审计“广义积分关系输出预测”契约：检查Algebraic Transition Matrices现有预计算
+basis能否形成真实PRESENT key schedule下可验证的`输入指数/子空间 + 输出单项式关系`正负标签，
+以及这种关系与当前linear-mask XOR平衡任务的映射边界。只有标签宽度、group-disjoint拆分、
+强边际控制和确定性复验全部通过，才重新开放一个三行最小神经矩阵；否则不改变target来制造
+可训练结果，创新2保留四轮方法学与五轮provider边界结论。

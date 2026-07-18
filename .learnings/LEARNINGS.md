@@ -174,6 +174,58 @@ semantic mismatches rather than feasible substitutes.
 
 ---
 
+## [LRN-20260718-004] best_practice
+
+**Logged**: 2026-07-18T13:40:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A small final cube superpoly does not imply tractable exact sparse-ANF computation; enforce caps on every intermediate query polynomial.
+
+### Details
+
+Innovation 2 E55 computed PRESENT-80 three-round output queries while retaining
+all 64 plaintext and 80 master-key variables. The first three completed queries
+had final cube superpolies of only 12, 12, and 13 terms, but their largest
+intermediate exact polynomials already contained 2,149,131, 1,417,246, and
+1,775,929 terms. The fourth query reached 5,000,001 intermediate terms before
+its final superpoly could be determined and correctly returned `unknown`.
+
+Monitoring only the final certificate size would hide the actual time and
+memory boundary and could tempt partial-polynomial interpretation. Query-cone
+pruning reduces the number of state coordinates, but GF(2) products inside the
+remaining cone can still expand sharply before cube extraction cancels terms.
+
+### Suggested Action
+
+Exact ANF, superpoly, and symbolic query providers must apply term, time, and
+memory caps to every intermediate polynomial operation. On any cap event,
+discard the incomplete polynomial, label the query `unknown`, and stop a frozen
+provider gate when its protocol requires all queries; do not infer feasibility
+from small completed superpolies or raise caps post hoc.
+
+### Metadata
+
+- Source: verified_local_experiment
+- Related Files: docs/experiments/innovation2-present-r3-query-cone-sparse-anf-growth-plan.md, src/blockcipher_nd/tasks/innovation2/present_query_cone_sparse_anf_growth.py
+- Tags: innovation2, present, exact-anf, query-cone, superpoly, hard-cap, symbolic-growth
+- See Also: LRN-20260718-003, LRN-20260718-002
+- Pattern-Key: innovation2.provider.cap_intermediate_polynomials_not_only_final_superpoly
+- Recurrence-Count: 1
+- First-Seen: 2026-07-18
+- Last-Seen: 2026-07-18
+
+### Resolution
+
+- **Resolved**: 2026-07-18T13:40:00+08:00
+- **Commit/PR**: pending
+- **Notes**: E55 caps every GF(2) xor/product intermediate and stops with an unknown label at the first over-cap query.
+
+---
+
 ## [LRN-20260718-001] correction
 
 **Logged**: 2026-07-18T03:40:00+08:00
