@@ -1256,6 +1256,15 @@ DECISION_LABELS = {
     "innovation2_present_cancellation_provider_protocol_invalid": (
         "E52-E69来源或12-query面板漂移，先修复provider审计协议"
     ),
+    "innovation2_present_r9_pu_ranking_benchmark_not_ready": (
+        "九轮ATM关系分组宽度与秩契约未通过，不训练E99并继续关闭远程扩展"
+    ),
+    "innovation2_present_r9_pu_ranking_ready_for_local_neural_gate": (
+        "九轮正例-未标注排序基准通过，只开放E99本地神经排序门"
+    ),
+    "innovation2_present_r9_pu_ranking_protocol_invalid": (
+        "九轮ATM来源或候选池协议无效，只修复审计而不解释科学结果"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1942,6 +1951,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E96：E95后神经架构候选组合边界复核"
     if run_id == "i2_present_r5_cancellation_provider_feasibility_20260719":
         return "创新2 E97：PRESENT五轮非平凡GF(2)消去provider可行性审计"
+    if run_id == "i2_present_r9_generalized_relation_pu_ranking_readiness_20260719":
+        return "创新2 E98：PRESENT九轮广义积分关系正例-未标注排序就绪审判"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

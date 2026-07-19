@@ -1992,6 +1992,30 @@ def test_result_index_labels_innovation2_e97_cancellation_provider(
     )
 
 
+def test_result_index_labels_innovation2_e98_pu_ranking_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_generalized_relation_pu_ranking_readiness_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_r9_pu_ranking_benchmark_not_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E98：PRESENT九轮广义积分关系正例-未标注排序就绪审判"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮ATM关系分组宽度与秩契约未通过，不训练E99并继续关闭远程扩展"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
