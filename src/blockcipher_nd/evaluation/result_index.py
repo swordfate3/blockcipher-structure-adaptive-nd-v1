@@ -1247,6 +1247,15 @@ DECISION_LABELS = {
     "innovation2_architecture_portfolio_protocol_invalid": (
         "冻结来源或架构候选分类不一致，先修复组合证据"
     ),
+    "innovation2_present_cancellation_provider_not_feasible_under_frozen_caps": (
+        "冻结cap内无合格非平凡相消provider，停止当前provider研究并转论文收束"
+    ),
+    "innovation2_present_cancellation_provider_feasible": (
+        "严格非平凡相消provider通过，只允许扩标签并先做确定性机制门"
+    ),
+    "innovation2_present_cancellation_provider_protocol_invalid": (
+        "E52-E69来源或12-query面板漂移，先修复provider审计协议"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1931,6 +1940,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E95：RECTANGLE-80四轮嵌套cube关系无训练机制门"
     if run_id == "i2_post_e95_architecture_portfolio_boundary_20260719":
         return "创新2 E96：E95后神经架构候选组合边界复核"
+    if run_id == "i2_present_r5_cancellation_provider_feasibility_20260719":
+        return "创新2 E97：PRESENT五轮非平凡GF(2)消去provider可行性审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

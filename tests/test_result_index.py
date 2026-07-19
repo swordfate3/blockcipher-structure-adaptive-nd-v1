@@ -1965,6 +1965,33 @@ def test_result_index_labels_innovation2_post_e95_portfolio(
     )
 
 
+def test_result_index_labels_innovation2_e97_cancellation_provider(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r5_cancellation_provider_feasibility_20260719"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation2_present_cancellation_provider_"
+                "not_feasible_under_frozen_caps"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E97：PRESENT五轮非平凡GF(2)消去provider可行性审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "冻结cap内无合格非平凡相消provider，停止当前provider研究并转论文收束"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
