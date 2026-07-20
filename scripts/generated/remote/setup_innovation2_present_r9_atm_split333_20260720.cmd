@@ -56,7 +56,8 @@ git config --global --add safe.directory %ATM_ROOT%
 echo bitarrays/bitset*.pyd>> %ATM_ROOT%\.git\info\exclude
 echo bitarrays/.build/>> %ATM_ROOT%\.git\info\exclude
 for /f "delims=" %%A in ('git -C %ATM_ROOT% status --porcelain') do goto atm_dirty
-git -C %ATM_ROOT% fetch origin
+git -C %ATM_ROOT% cat-file -e %ATM_COMMIT%
+if errorlevel 1 git -C %ATM_ROOT% fetch origin
 if errorlevel 1 goto setup_failed
 git -C %ATM_ROOT% checkout %ATM_COMMIT%
 if errorlevel 1 goto setup_failed

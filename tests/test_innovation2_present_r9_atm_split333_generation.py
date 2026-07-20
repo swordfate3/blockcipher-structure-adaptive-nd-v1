@@ -105,6 +105,8 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "set PYTHONPATH=%SOURCE%\\src" in pipeline
     assert "--stage-id readiness --marker-root %LOGS%" in setup
     assert setup.count("status --porcelain") == 2
+    assert "git -C %ATM_ROOT% cat-file -e %ATM_COMMIT%" in setup
+    assert "if errorlevel 1 git -C %ATM_ROOT% fetch origin" in setup
     assert "bitarrays/bitset*.pyd" in setup
     assert pipeline.count("--timeout-seconds 600") == 2
     assert pipeline.count("--timeout-seconds 43200") == 3
