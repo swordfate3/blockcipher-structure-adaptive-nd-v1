@@ -13,6 +13,12 @@ set VENV=%RUN_ROOT%\venv
 set OUTPUT=%RUN_ROOT%\results
 set LOGS=%RUN_ROOT%\logs
 set PIP_CACHE_DIR=%RUN_ROOT%\pip-cache
+set RUN_HOME=%RUN_ROOT%\home
+set RUN_TEMP=%RUN_ROOT%\tmp
+set HOME=%RUN_HOME%
+set USERPROFILE=%RUN_HOME%
+set TEMP=%RUN_TEMP%
+set TMP=%RUN_TEMP%
 set PYTHONUTF8=1
 set BASE_PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set PY=%VENV%\Scripts\python.exe
@@ -30,6 +36,8 @@ if not exist G:\lxy\blockcipher-structure-adaptive-nd-runs mkdir G:\lxy\blockcip
 if not exist %RUN_ROOT% mkdir %RUN_ROOT%
 if not exist %LOGS% mkdir %LOGS%
 if not exist %OUTPUT% mkdir %OUTPUT%
+if not exist %RUN_HOME% mkdir %RUN_HOME%
+if not exist %RUN_TEMP% mkdir %RUN_TEMP%
 if exist %LOGS%\setup_passed.marker del %LOGS%\setup_passed.marker
 if exist %LOGS%\setup_failed.marker del %LOGS%\setup_failed.marker
 call "%VCVARS%" > %LOGS%\vcvars_stdout.txt 2> %LOGS%\vcvars_stderr.txt
@@ -41,6 +49,7 @@ if exist %LOGS%\readiness_done.marker del %LOGS%\readiness_done.marker
 if exist %LOGS%\readiness_timeout.marker del %LOGS%\readiness_timeout.marker
 if exist %LOGS%\readiness_failed.marker del %LOGS%\readiness_failed.marker
 
+git config --global --add safe.directory %BOOTSTRAP%
 for /f "delims=" %%A in ('git -C %BOOTSTRAP% rev-parse HEAD') do set SOURCE_COMMIT=%%A
 if not defined SOURCE_COMMIT goto setup_failed
 echo %SOURCE_COMMIT%> %LOGS%\bootstrap_revision.txt

@@ -104,6 +104,11 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "!" not in combined
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in setup
     assert "set BOOTSTRAP=G:\\lxy\\blockcipher-structure-adaptive-nd-v1-clean" in setup
+    assert "set HOME=%RUN_HOME%" in setup
+    assert "set USERPROFILE=%RUN_HOME%" in setup
+    assert "set TEMP=%RUN_TEMP%" in setup
+    assert "set TMP=%RUN_TEMP%" in setup
+    assert "git config --global --add safe.directory %BOOTSTRAP%" in setup
     assert "set SOURCE_COMMIT=%%A" in setup
     assert "git -C %SOURCE% merge --ff-only %SOURCE_COMMIT%" in setup
     assert "set ACTUAL_SOURCE_COMMIT=%%A" in setup
@@ -130,6 +135,7 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert pipeline.count("--mode probe") == 2
     assert pipeline.count("--mode search") == 3
     assert 'cmd.exe /c %PIPELINE%' in launcher
+    assert "/RU SYSTEM" in launcher
     assert "schtasks /Run" in launcher
 
 
