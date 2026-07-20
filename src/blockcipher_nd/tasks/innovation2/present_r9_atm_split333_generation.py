@@ -321,10 +321,14 @@ def execute_phase(
         "elapsed_seconds": time.perf_counter() - started,
     }
     if mode == "probe":
+        runtime_activity_observed = _probe_runtime_activity_observed(
+            candidate_call_sum=phase_summary["candidate_call_sum"],
+            internal_snapshot=internal_snapshot,
+        )
         probe_pass = (
             controlled
             and len(after_candidates) == len(before_candidates) + 1
-            and internal_snapshot["oracle_call_sum"] > 0
+            and runtime_activity_observed
             and (len(before_candidates) == 0 or reused_events > 0)
         )
         probe_index = len(after_candidates)
@@ -442,6 +446,17 @@ def _phase_failure(
 
 def _candidate_files(search_root: Path) -> tuple[Path, ...]:
     return tuple(sorted((search_root / "candidate_results").glob("*.json")))
+
+
+def _probe_runtime_activity_observed(
+    *,
+    candidate_call_sum: int,
+    internal_snapshot: dict[str, Any],
+) -> bool:
+    return candidate_call_sum > 0 and (
+        int(internal_snapshot["oracle_call_sum"]) > 0
+        or any(int(size) > 0 for size in internal_snapshot["cache_sizes"])
+    )
 
 
 def _progress_events(path: Path) -> tuple[str, ...]:

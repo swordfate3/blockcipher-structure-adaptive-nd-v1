@@ -258,3 +258,21 @@ Task Scheduler state = Running
 输入顺序靠前的重候选会阻塞父进程接收后续已完成结果，使其只留在内存，阶段超时时无法恢复。
 该问题不改变密码学结果，但削弱逐候选持久化契约。修复要求改用`imap_unordered`，让任意worker
 完成的候选立即校验并原子写盘；最终层处理仍按冻结候选顺序执行，关系结果保持确定性。
+
+有序返回修复提交`6e2a06e`推送后，旧任务在确认零个匹配run id的Python worker后受控停止；
+`pipeline.lock`重命名为带时间戳的中断证据，961个候选、metadata和progress全部保留。bootstrap与
+run-owned source随后均对齐到`6e2a06e`。恢复探针成功原子写入第962个候选，但门槛暂时返回hold：
+
+```text
+candidate_call_sum       = 38
+new_durable_candidates   = 1
+candidate_files_after    = 962
+internal cache sizes     = [19, 0, 34, 16, 0, 29]
+internal oracle_call_sum = 0
+```
+
+这是`imap_unordered`首完成候选触发受控中断后，pool终止其余worker造成的内部统计汇总竞态；它不
+表示候选未经过真实ATM oracle。探针门因此要求候选级oracle调用非零，并且内部调用计数或共享缓存
+活动至少一项非零，同时继续要求恰好新增一个checksummed候选和已有缓存复用。该修复不改变split、
+轮数、SAT模型、候选集、参数hash或关系语义。修复推送并重新通过两个恢复探针后，才重新开放
+`stage_001`；现有962个候选继续复用。

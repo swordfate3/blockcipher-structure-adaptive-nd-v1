@@ -12,6 +12,7 @@ from blockcipher_nd.tasks.innovation2.present_r9_atm_split333_generation import 
     PRESENT_BIT_PERMUTATION,
     RUN_ID,
     SOURCE_HASHES,
+    _probe_runtime_activity_observed,
     execute_phase,
     search_config,
 )
@@ -216,3 +217,30 @@ assert "torch" not in sys.modules
         env=env,
     )
     assert completed.returncode == 0, completed.stderr
+
+
+def test_e104_probe_accepts_durable_result_when_worker_shutdown_loses_call_counts() -> None:
+    assert _probe_runtime_activity_observed(
+        candidate_call_sum=38,
+        internal_snapshot={
+            "cache_sizes": [19, 0, 34, 16, 0, 29],
+            "oracle_call_entries": 0,
+            "oracle_call_sum": 0,
+        },
+    )
+    assert not _probe_runtime_activity_observed(
+        candidate_call_sum=0,
+        internal_snapshot={
+            "cache_sizes": [19, 0, 34, 16, 0, 29],
+            "oracle_call_entries": 0,
+            "oracle_call_sum": 0,
+        },
+    )
+    assert not _probe_runtime_activity_observed(
+        candidate_call_sum=38,
+        internal_snapshot={
+            "cache_sizes": [0, 0, 0, 0, 0, 0],
+            "oracle_call_entries": 0,
+            "oracle_call_sum": 0,
+        },
+    )
