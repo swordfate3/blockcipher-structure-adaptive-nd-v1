@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册修订 / E98-C通过 / 待执行本地训练
+状态：完成 / hold / 九轮通用坐标神经信号确认、PRESENT拓扑归因未通过
 
 ## 1. 研究问题
 
@@ -88,11 +88,11 @@ loss、Recall@1、Recall@5、MRR、Top-5 enrichment和最差fold。
 
 ## 6. 冻结裁决门
 
-E98-B最强非随机锚点是：
+E98-C最强非随机锚点是：
 
 ```text
-absolute_position Recall@5 = 0.132478632
-absolute_position MRR      = 0.120060420
+absolute_position Recall@5 = 0.128205128
+absolute_position MRR      = 0.119001193
 ```
 
 `advance_remote_design`必须同时满足：
