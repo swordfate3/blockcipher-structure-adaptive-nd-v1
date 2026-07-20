@@ -21,3 +21,4 @@ self-improvement records under `.learnings/`.
 
 - `0001-split-and-cancel-data-example.html`: full first-pass explanation.
 - `0002-one-structure-to-matrix.html`: prerequisite lesson on one input structure and the three-row matrix.
+- `0003-innovation2-current-method.html`: current PG-NBPO data, labels, network, results, and high-round boundary.

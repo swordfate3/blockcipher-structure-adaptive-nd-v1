@@ -316,6 +316,23 @@ summary {
   td {
     padding: 8px;
   }
+
+  .innovation2-method th,
+  .innovation2-method td {
+    overflow-wrap: anywhere;
+    padding: 6px 4px;
+    white-space: normal;
+    font-size: 0.76rem;
+  }
+
+  .innovation2-method td code {
+    padding: 0;
+    font-size: 0.70rem;
+  }
+
+  .innovation2-method pre {
+    font-size: 0.76rem;
+  }
 }
 
 @media print {

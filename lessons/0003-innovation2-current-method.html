@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>创新2当前方法：从一个cube到64维严格平衡谱</title>
+  <link rel="stylesheet" href="assets/lesson.css">
+</head>
+<body class="innovation2-method">
+<main>
+  <h1>创新2当前到底如何做</h1>
+  <p class="lede">从一批结构化明文出发，严格判断哪些输出bit保持XOR平衡，再让一个读取前三轮代数特征和真实SPN拓扑的小网络一次预测64个输出bit的平衡谱。</p>
+
+  <div class="success">
+    当前已确认的方法叫<strong>前缀引导逐节点平衡谱算子</strong>（Prefix-Guided Nodewise Balance-Profile Operator，PG-NBPO）。它在PRESENT-80四轮和GIFT-64四轮分别训练、双seed通过；它不是七到九轮攻击。
+  </div>
+
+  <h2>1. 它预测什么，不预测什么</h2>
+
+  <p>创新2不预测某条明文的具体密文，也不做“真结构对随机数据”的二分类。一个查询是：</p>
+
+  <pre>给定：密码、轮数r、8个活动输入bit组成的cube S、输出bit j
+询问：对S内部全部2^8=256条明文加密后，输出bit j的XOR是否恒为0？</pre>
+
+  <div class="equation">B_r(S,j)=XOR<sub>x in S</sub> bit_j(E_K^r(x))</div>
+
+  <p>网络对同一个结构一次输出64个logit，对应：</p>
+
+  <pre>[B_r(S,0), B_r(S,1), ..., B_r(S,63)]</pre>
+
+  <div class="warning">这里的“平衡”是一个结构内部全部明文输出的XOR为0。不是四个输出bit先异或成一个bit，也不是不同结构之间互相XOR。</div>
+
+  <h2>2. 一条真实PRESENT数据如何生成</h2>
+
+  <p>项目中的真实训练结构<code>cube_026</code>有8个活动bit：</p>
+
+  <pre>active_bits = [4, 7, 28, 38, 40, 44, 53, 59]
+active_mask = 0x0820114010000090</pre>
+
+  <p>固定其余56个bit为一个inactive offset。令8个活动变量为<code>a0...a7</code>，每个取0或1：</p>
+
+  <div class="equation">P(a)=offset XOR (a0&lt;&lt;4) XOR (a1&lt;&lt;7) XOR ... XOR (a7&lt;&lt;59)</div>
+
+  <p>遍历所有<code>00000000...11111111</code>，得到256条明文。下面使用标签库中的真实反例密钥和offset：</p>
+
+  <pre>key    = 0xF1BC97C6D8FB8EBA3CCF
+offset = 0x360B6CBF6E347522
+rounds = 4</pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>活动赋值</th><th>明文</th><th>四轮输出</th><th>bit 12</th><th>bit 33</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><code>360B6CBF6E347522</code></td><td><code>21C5DEF99D12C527</code></td><td>0</td><td>0</td></tr>
+        <tr><td>1</td><td><code>360B6CBF6E347532</code></td><td><code>34559FA1C85F90F6</code></td><td>1</td><td>0</td></tr>
+        <tr><td>2</td><td><code>360B6CBF6E3475A2</code></td><td><code>76BBCD42D85A92F3</code></td><td>1</td><td>1</td></tr>
+        <tr><td>3</td><td><code>360B6CBF6E3475B2</code></td><td><code>23EB9C57DD1AC7A3</code></td><td>0</td><td>1</td></tr>
+        <tr><td>4</td><td><code>360B6CBF7E347522</code></td><td><code>13D5EED8962BD617</code></td><td>1</td><td>0</td></tr>
+        <tr><td>5</td><td><code>360B6CBF7E347532</code></td><td><code>1655AE91D37F92DF</code></td><td>1</td><td>0</td></tr>
+        <tr><td>6</td><td><code>360B6CBF7E3475A2</code></td><td><code>5492EF6BD06292FB</code></td><td>1</td><td>1</td></tr>
+        <tr><td>7</td><td><code>360B6CBF7E3475B2</code></td><td><code>11D3AE7ED423D6BB</code></td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>表里只展示前8条，程序实际对256条全部求XOR。结果是：</p>
+
+  <pre>XOR all 256 output bit 12 = 1
+XOR all 256 output bit 33 = 0
+XOR all 256 ciphertexts   = 0x9810000008009010</pre>
+
+  <p>所以这个具体密钥和offset已经证明bit 12不是“对所有情况恒平衡”。bit 33在这里为0，但仅凭一次为0还不能证明它对所有密钥和offset都平衡。</p>
+
+  <h2>3. 标签为什么有三种</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>存储值</th><th>含义</th><th>判定依据</th><th>是否训练</th></tr></thead>
+      <tbody>
+        <tr><td class="good">1 / positive</td><td>严格平衡</td><td>完整8变量cube单项式不可能出现在目标输出ANF支撑中</td><td>是</td></tr>
+        <tr><td class="bad">0 / negative</td><td>不是全称平衡</td><td>找到真实PRESENT-80调度密钥和inactive offset，使256条输出XOR为1</td><td>是</td></tr>
+        <tr><td class="unknown">-1 / unknown</td><td>尚未判定</td><td>既没有全称正证书，也没有具体反例</td><td>否</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><code>cube_026, bit 12</code>的标签是0，证书是<code>concrete_key_offset_masked_xor_one</code>。<code>cube_026, bit 33</code>的标签是1，证书是<code>full_cube_monomial_absent_from_support_overapprox</code>。</p>
+
+  <div class="callout">正类要求“所有密钥、所有inactive offset都成立”；负类只需一个可复算反例。unknown绝不偷改成negative。</div>
+
+  <h2>4. 神经网络看不到最终答案</h2>
+
+  <p>目标是四轮平衡标签，但网络只看第三轮结束时的代数前缀。对每个输出bit节点，追踪8个活动变量经过前三轮S-box和P-layer后可能形成的ANF单项式支撑。</p>
+
+  <p><code>cube_026, bit 33</code>的真实13维第三轮特征为：</p>
+
+  <pre>[0.375, 0.375, 0.375, 0.375,
+ 0.0104167, 0.0833333, 0.2395833, 0.3333333,
+ 0.2395833, 0.0833333, 0.0104167, 0, 0]</pre>
+
+  <p>前4项是支撑规模统计：mean、max、normalized sum、union size。这里都是<code>0.375</code>，表示该单位输出节点的支撑中有<code>0.375 x 256 = 96</code>种活动变量单项式。</p>
+
+  <p>后9项是次数0到8的归一化直方图。把它乘回96，可读成：</p>
+
+  <pre>degree 0..8 monomial counts = [1, 8, 23, 32, 23, 8, 1, 0, 0]</pre>
+
+  <div class="warning">第4轮最终证书、具体witness、密钥、offset、256条输出XOR和标签本身都不进入特征。否则网络只是在读取答案。</div>
+
+  <h2>5. 4,795参数的PG-NBPO如何计算</h2>
+
+  <pre>输入              batch x 64 nodes x 13 features
+LayerNorm         每个节点归一化13维特征
+Linear            13 -> 32，得到节点状态h_j
+消息传递          重复2次
+输出头            LayerNorm(32) -> Linear(32,1)
+输出              batch x 64 logits</pre>
+
+  <p>每次消息传递给输出节点<code>j</code>准备三份32维信息：</p>
+
+  <ol class="steps">
+    <li><strong>自身状态：</strong><code>h_j</code>。</li>
+    <li><strong>S-box/nibble上下文：</strong>和<code>j</code>同属一个4-bit nibble的4个节点状态均值。</li>
+    <li><strong>P-layer前驱：</strong>真实P置换中流向<code>j</code>的前驱节点状态。</li>
+  </ol>
+
+  <p>三份信息拼成96维，经过共享更新块：</p>
+
+  <div class="equation">Linear(96,32) -> GELU -> Dropout(0.10) -> Linear(32,32) -> residual -> LayerNorm</div>
+
+  <p>64个节点共享同一套参数，所以模型学习的是“哪类代数支撑沿SPN结构传播后容易保持平衡”，不是为每个bit死记一套分类器。</p>
+
+  <h2>6. 为什么同时训练三行模型</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>模型行</th><th>参数量</th><th>关系输入</th><th>要排除的解释</th></tr></thead>
+      <tbody>
+        <tr><td><code>independent</code></td><td>4,795</td><td>不用真实nibble/P关系</td><td>单节点13维特征已经足够</td></tr>
+        <tr><td><code>true</code></td><td>4,795</td><td>真实S-box分组和P-layer</td><td>候选方法</td></tr>
+        <tr><td><code>corrupted</code></td><td>4,795</td><td>同family的确定性错误P-layer</td><td>任意消息混合都能提升</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>hidden、message steps、dropout、优化器、epoch、seed和参数量全部相同。只有关系图不同，因此<code>true-corrupted</code>才是“真实密码拓扑是否有独立价值”的关键差值。</p>
+
+  <h2>7. 数据矩阵和损失如何组织</h2>
+
+  <p>一个batch元素是一整个结构，不是单条<code>(structure, output bit)</code>边：</p>
+
+  <pre>prefix_features : structures x 64 x 13
+profile_targets : structures x 64，观测位置为0/1，其余为-1
+profile_observed: structures x 64，严格正负标签位置为true</pre>
+
+  <p>网络产生64个logit，但损失只看<code>profile_observed=true</code>的位置：</p>
+
+  <div class="equation">L = sum(M_sj * BCE(logit_sj, target_sj)) / sum(M_sj)</div>
+
+  <p>checkerboard同时保证：训练和验证结构互斥；每个结构和每个输出bit的正负数量配平；重复边为0；global、output-only和active-bit边际AUC接近0.5。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>密码</th><th>轮数</th><th>结构库</th><th>训练观测边</th><th>验证观测边</th></tr></thead>
+      <tbody>
+        <tr><td>PRESENT-80</td><td>4</td><td>96 x 64</td><td>178正 + 178负</td><td>60正 + 60负</td></tr>
+        <tr><td>GIFT-64</td><td>4</td><td>192 x 64</td><td>248正 + 248负</td><td>62正 + 62负</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>8. 训练参数和正式结果</h2>
+
+  <pre>epochs=30, batch_size=8 structures, hidden=32, message_steps=2
+optimizer=AdamW, lr=1e-3, weight_decay=1e-4, dropout=0.10
+seeds=0,1, checkpoint=best structure-disjoint validation AUC</pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>密码</th><th>seed</th><th>independent</th><th>true-P</th><th>wrong-P</th><th>true-wrong</th></tr></thead>
+      <tbody>
+        <tr><td>PRESENT r4</td><td>0</td><td>0.657500</td><td class="good">0.945556</td><td>0.820000</td><td>+0.125556</td></tr>
+        <tr><td>PRESENT r4</td><td>1</td><td>0.671944</td><td class="good">0.947778</td><td>0.879444</td><td>+0.068333</td></tr>
+        <tr><td>GIFT r4</td><td>0</td><td>0.571280</td><td class="good">0.913111</td><td>0.774714</td><td>+0.138398</td></tr>
+        <tr><td>GIFT r4</td><td>1</td><td>0.569719</td><td class="good">0.911030</td><td>0.784599</td><td>+0.126431</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>PRESENT和GIFT使用相同方法结构，但使用各自P-layer、各自严格标签并分别从头训练。它不是一个PRESENT checkpoint零样本迁移到GIFT。</p>
+
+  <h2>9. 最新九轮E98和主方法是什么关系</h2>
+
+  <p>E98没有训练PG-NBPO。它审查的是另一条高轮桥接假设：能否把公开ATM的PRESENT轮函数九轮广义积分关系做成正例-未标注候选排序。</p>
+
+  <pre>ATM序列化关系       = 470
+GF(2)并集秩         = 468
+严格文件留出正例    = 24
+有正例的留出组      = 3 / 8
+达到每组8条的组     = 1 / 8
+E99神经排序          = closed</pre>
+
+  <p>候选构造和捷径控制通过，但独立正例太少，而且470与468的秩差异未解释。因此现在不能把九轮关系重复增强后训练，也不能把未标注候选叫作负例。</p>
+
+  <div class="warning">当前最强创新2结果仍是PRESENT/GIFT四轮PG-NBPO。九轮E98是“高轮数据是否够资格训练”的审计，不是九轮神经预测成绩。</div>
+
+  <h2>10. 创新点到底落在哪里</h2>
+
+  <ol class="steps">
+    <li><strong>任务创新：</strong>从预测具体密文或真假样本，改成一次预测64维积分输出平衡谱。</li>
+    <li><strong>标签创新：</strong>全称正证书、具体负见证、unknown保留，不用有限密钥投票冒充证明。</li>
+    <li><strong>表示创新：</strong>只输入目标轮前的ANF支撑规模和次数谱，避免最终标签泄漏。</li>
+    <li><strong>网络创新：</strong>把64个输出bit作为节点，沿真实S-box分组和P-layer共享消息传递。</li>
+    <li><strong>评测创新：</strong>structure-disjoint checkerboard、强边际基线和同参数错误拓扑控制。</li>
+    <li><strong>证据边界：</strong>双密码双seed确认四轮方法，同时明确报告五到九轮严格标签尚未就绪。</li>
+  </ol>
+
+  <h2>一分钟自测</h2>
+
+  <details>
+    <summary>网络的一个样本是一条明文吗？</summary>
+    <p>不是。一个样本是一个8-bit活动cube结构，内部有256条明文；网络一次输出该结构的64个输出bit预测。</p>
+  </details>
+
+  <details>
+    <summary>某个密钥下256条输出XOR为0，就能标成positive吗？</summary>
+    <p>不能。positive需要全称证书；一次或有限次为0只能说明尚未看到反例。</p>
+  </details>
+
+  <details>
+    <summary>true模型AUC高，如何证明不是单节点特征或任意图混合？</summary>
+    <p>同预算比较independent和corrupted两行；两颗seed都要求true分别领先至少0.03。</p>
+  </details>
+
+  <details>
+    <summary>E98是否已经做到PRESENT九轮预测？</summary>
+    <p>没有。E98只做九轮正例-未标注数据就绪审计，因独立正例不足和470/468秩差异而暂缓。</p>
+  </details>
+
+  <p><strong>主要依据：</strong><a href="../docs/research/innovation2-thesis-consolidation-20260719.md">创新2论文综合</a>、<a href="../docs/experiments/innovation2-present-r9-generalized-relation-pu-ranking-readiness-plan.md">E98正式记录</a>、<a href="../src/blockcipher_nd/models/structure/spn/present_balance_profile_operator.py">PG-NBPO实现</a>和<a href="../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf">Split-and-Cancel论文</a>。</p>
+
+  <p class="footer-nav"><a href="0002-one-structure-to-matrix.html">返回第二课</a> · <a href="reference/integral-split-cancel-cheatsheet.html">打开积分速查表</a>。如果仍有一处模糊，直接指出“数据、标签、13维特征、消息传递、损失或高轮边界”中的哪一项。</p>
+</main>
+</body>
+</html>
