@@ -93,7 +93,7 @@ def _complete_raw_retrieval(root: Path) -> Path:
         {
             "controlled_interruption": True,
             "new_durable_candidates": 1,
-            "candidate_reuse_events_total": 0,
+            "candidate_reuse_events_total": 7,
         },
     )
     _write_json(
@@ -179,6 +179,45 @@ def test_e104_retrieval_validation_rejects_corrupt_candidate(tmp_path: Path) -> 
     assert validation["status"] == "fail"
     assert validation["checks"]["candidate_cache_integrity"] is False
     assert validation["next_action"]["e105_open"] is False
+
+
+def test_e104_retrieval_uses_latest_numbered_resume_probes(tmp_path: Path) -> None:
+    raw = _complete_raw_retrieval(tmp_path)
+    results = raw / "results"
+    _write_json(
+        results / "probe_963.json",
+        {
+            "controlled_interruption": True,
+            "new_durable_candidates": 1,
+            "candidate_reuse_events_total": 963,
+        },
+    )
+    _write_json(
+        results / "probe_964.json",
+        {
+            "controlled_interruption": True,
+            "new_durable_candidates": 1,
+            "candidate_reuse_events_total": 964,
+        },
+    )
+    for suffix in (963, 964):
+        (results / f"probe_{suffix}_passed.marker").write_text(
+            "pass\n",
+            encoding="utf-8",
+        )
+    _write_json(
+        results / "probe_001.json",
+        {"controlled_interruption": False, "new_durable_candidates": 0},
+    )
+
+    validation = validate_split333_retrieval(
+        Split333RetrievalConfig(),
+        raw_root=raw,
+    )
+
+    assert validation["status"] == "pass"
+    assert validation["metrics"]["first_resume_probe"] == "probe_963"
+    assert validation["metrics"]["second_resume_probe"] == "probe_964"
 
 
 def test_e104_retrieval_cli_promotes_only_after_validation(tmp_path: Path) -> None:

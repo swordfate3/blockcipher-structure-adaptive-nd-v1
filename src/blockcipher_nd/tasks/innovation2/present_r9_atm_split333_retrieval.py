@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -56,8 +57,6 @@ def validate_split333_retrieval(
         "source_revision": logs / "source_revision.txt",
         "atm_revision": logs / "atm_revision.txt",
         "source_status": logs / "source_status_after_sync.txt",
-        "probe_001_passed": results / "probe_001_passed.marker",
-        "probe_002_passed": results / "probe_002_passed.marker",
         "readiness_gate": results / "readiness_gate.json",
         "probe_gate": results / "probe_gate.json",
         "generation_gate": results / "gate.json",
@@ -66,13 +65,25 @@ def validate_split333_retrieval(
         "generation_marker": results / "generation_passed.marker",
         "source_hashes": results / "source_hashes.json",
         "model_contract": results / "model_contract.json",
-        "probe_001": results / "probe_001.json",
-        "probe_002": results / "probe_002.json",
         "search_metadata": search_root / "metadata.json",
         "search_result": search_root / "result.json",
         "search_complete": search_root / "complete.marker",
         "search_progress": search_root / "progress.jsonl",
     }
+    probe_paths = _probe_files(results)
+    if len(probe_paths) >= 2:
+        first_probe_path, second_probe_path = probe_paths[-2:]
+        required["first_resume_probe"] = first_probe_path
+        required["second_resume_probe"] = second_probe_path
+        required["first_resume_probe_passed"] = first_probe_path.with_name(
+            f"{first_probe_path.stem}_passed.marker"
+        )
+        required["second_resume_probe_passed"] = second_probe_path.with_name(
+            f"{second_probe_path.stem}_passed.marker"
+        )
+    else:
+        required["first_resume_probe"] = results / "missing_first_resume_probe.json"
+        required["second_resume_probe"] = results / "missing_second_resume_probe.json"
     existence_checks = {
         f"required_{name}_exists": path.is_file() for name, path in required.items()
     }
@@ -101,8 +112,8 @@ def validate_split333_retrieval(
     generation_marker = _load_json(required["generation_marker"])
     actual_source_hashes = _load_json(required["source_hashes"])
     model_contract = _load_json(required["model_contract"])
-    probe_001 = _load_json(required["probe_001"])
-    probe_002 = _load_json(required["probe_002"])
+    first_probe = _load_json(required["first_resume_probe"])
+    second_probe = _load_json(required["second_resume_probe"])
     search_metadata = _load_json(required["search_metadata"])
 
     completed_relations: tuple[tuple[tuple[int, int], ...], ...] = ()
@@ -133,13 +144,18 @@ def validate_split333_retrieval(
         == config.expected_model_sha256,
         "readiness_gate_pass": readiness_gate.get("status") == "pass",
         "probe_gate_pass": probe_gate.get("status") == "pass",
-        "probe_001_completed_one_candidate": probe_001.get("controlled_interruption")
+        "first_resume_probe_completed_one_candidate": first_probe.get(
+            "controlled_interruption"
+        )
         is True
-        and int(probe_001.get("new_durable_candidates", 0)) == 1,
-        "probe_002_reused_candidates": probe_002.get("controlled_interruption")
+        and int(first_probe.get("new_durable_candidates", 0)) == 1
+        and int(first_probe.get("candidate_reuse_events_total", 0)) > 0,
+        "second_resume_probe_reused_candidates": second_probe.get(
+            "controlled_interruption"
+        )
         is True
-        and int(probe_002.get("candidate_reuse_events_total", 0)) > 0
-        and int(probe_002.get("new_durable_candidates", 0)) == 1,
+        and int(second_probe.get("candidate_reuse_events_total", 0)) > 0
+        and int(second_probe.get("new_durable_candidates", 0)) == 1,
         "generation_gate_pass": generation_gate.get("status") == "pass",
         "generation_decision_matches": generation_gate.get("decision")
         == GENERATION_DECISION,
@@ -173,11 +189,13 @@ def validate_split333_retrieval(
         "candidate_files": candidate_audit["files"],
         "candidate_bytes": candidate_audit["bytes"],
         "candidate_cache_sha256": candidate_audit["aggregate_sha256"],
-        "probe_001_reuse_events": int(
-            probe_001.get("candidate_reuse_events_total", 0)
+        "first_resume_probe": required["first_resume_probe"].stem,
+        "second_resume_probe": required["second_resume_probe"].stem,
+        "first_resume_probe_reuse_events": int(
+            first_probe.get("candidate_reuse_events_total", 0)
         ),
-        "probe_002_reuse_events": int(
-            probe_002.get("candidate_reuse_events_total", 0)
+        "second_resume_probe_reuse_events": int(
+            second_probe.get("candidate_reuse_events_total", 0)
         ),
         "parameter_hash": expected_parameter_hash,
         "integrity_error": integrity_error,
@@ -292,6 +310,15 @@ def _audit_candidate_cache(root: Path, *, parameter_hash: str) -> dict[str, Any]
         "aggregate_sha256": aggregate.hexdigest(),
         "errors": errors,
     }
+
+
+def _probe_files(results_root: Path) -> tuple[Path, ...]:
+    numbered: list[tuple[int, Path]] = []
+    for path in results_root.glob("probe_*.json"):
+        match = re.fullmatch(r"probe_(\d+)", path.stem)
+        if match:
+            numbered.append((int(match.group(1)), path))
+    return tuple(path for _, path in sorted(numbered))
 
 
 def _artifact_manifest(
