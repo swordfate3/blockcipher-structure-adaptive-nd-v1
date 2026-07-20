@@ -16,6 +16,7 @@ from blockcipher_nd.tasks.innovation2.atm_resumable_search_runner import (
     _evaluate_candidates,
     _gf2_nullspace,
     run_resumable_integral_property_search,
+    validate_completed_search_result,
 )
 
 
@@ -91,6 +92,10 @@ def test_resume_matches_uninterrupted_and_skips_durable_candidate(tmp_path: Path
     )
     assert resumed_oracle.calls[first_coordinate] == 1
     assert resumed["relations"] == anchor["relations"]
+    assert validate_completed_search_result(
+        tmp_path / "resumed",
+        config=config,
+    ) == resumed["relations"]
     assert ((3, 2), (3, 4)) in resumed["relations"]
     assert (tmp_path / "anchor/result.json").read_bytes() == (
         tmp_path / "resumed/result.json"

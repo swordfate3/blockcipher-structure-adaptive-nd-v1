@@ -316,6 +316,19 @@ def run_resumable_integral_property_search(
     }
 
 
+def validate_completed_search_result(
+    output_root: Path,
+    *,
+    config: ResumableSearchConfig,
+) -> tuple[Relation, ...]:
+    """Validate and load a completed result without invoking its oracle."""
+    return _load_completed_result(
+        result_path=output_root / "result.json",
+        complete_path=output_root / "complete.marker",
+        parameter_hash=config.parameter_hash(),
+    )
+
+
 def _next_weight_candidates(
     previous_basis: set[Coordinate],
     *,

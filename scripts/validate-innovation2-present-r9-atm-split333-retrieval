@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.validate_innovation2_present_r9_atm_split333_retrieval import main
+
+raise SystemExit(main())
