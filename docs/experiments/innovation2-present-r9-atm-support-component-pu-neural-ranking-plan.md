@@ -133,3 +133,70 @@ output = outputs/local_diagnostic/i2_present_r9_atm_support_component_pu_neural_
 产物包括`results.jsonl`、`gate.json`、`summary.json`、`metadata.json`、`progress.jsonl`、
 `fold_metrics.csv`、`history.csv`、`curves.svg`和`visual_qa_passed.marker`。完成后更新本文件正式结果与
 可执行下一步，并刷新最近结果索引。
+
+## 8. 正式结果
+
+执行时间：2026-07-20。完整执行`2 seeds × 6 folds × 4 trained rows × 40 epochs`，使用最终epoch
+权重；所有E98-C来源、候选宽度和泄漏检查通过。
+
+```text
+status   = hold
+decision = innovation2_present_r9_pu_generic_neural_signal_only
+remote   = no
+```
+
+六折聚合结果：
+
+| 模型 | seed | 参数量 | Recall@1 | Recall@5 | MRR | 最差折Recall@5 |
+|---|---:|---:|---:|---:|---:|---:|
+| absolute_position | 0/1 | 0 | 0.049145 | 0.128205 | 0.119001 | 0.076923 |
+| summary_mlp | 0 | 1033 | 0.373932 | 0.523504 | 0.448112 | 0.384615 |
+| summary_mlp | 1 | 1033 | 0.393162 | 0.570513 | 0.483670 | 0.487179 |
+| coordinate_deepsets | 0 | 3937 | 0.903846 | 0.995726 | 0.945691 | 0.987179 |
+| coordinate_deepsets | 1 | 3937 | 0.888889 | 0.993590 | 0.935544 | 0.987179 |
+| present_topology_set | 0 | 2041 | 0.198718 | 0.585470 | 0.367639 | 0.525641 |
+| present_topology_set | 1 | 2041 | 0.202991 | 0.568376 | 0.365750 | 0.538462 |
+| topology label shuffle | 0 | 2041 | 0.059829 | 0.143162 | 0.116671 | 0.038462 |
+| topology label shuffle | 1 | 2041 | 0.051282 | 0.136752 | 0.107987 | 0.064103 |
+
+坐标集合网在两seed和全部六折几乎满分，远超位置规则、摘要MLP和标签打乱，证明九轮公开正关系
+相对旋转unlabeled候选存在强且稳定的可学习坐标结构。因为fold同时按positive support和候选旋转
+轨道互斥，这不是相同relation跨train/test的记忆泄漏。
+
+但当前`present_topology_set`没有保留可学习的绝对bit身份：它虽然明显超过位置规则和标签打乱，
+却比`coordinate_deepsets`低约`0.41..0.43 Recall@5`和`0.57..0.58 MRR`，MRR也低于摘要MLP。
+所以不能把强结果归因于PRESENT真实P-layer，冻结拓扑advance门失败，远程保持关闭。
+
+产物位于：
+
+```text
+outputs/local_diagnostic/i2_present_r9_atm_support_component_pu_neural_ranking_seed0_seed1_20260720/
+```
+
+`curves.svg`经`visual-qa-redraw`渲染为2500×1348像素检查，无文字重叠、裁切、缺字、含糊标题、
+不可辨曲线或误导坐标轴。
+
+## 9. 推荐下一步
+
+下一问题不是增加样本/epoch，而是验证真实P-layer能否在强坐标身份模型上提供残差增益：
+
+```text
+E100: identity-preserving PRESENT topology residual attribution
+source/data = E98-C原六折与全部候选不变
+anchor      = coordinate_deepsets
+candidate   = coordinate identity path + true PRESENT P-layer residual
+control     = 同参数coordinate identity path + fixed wrong-P residual
+seeds/folds = 0,1 / 6
+epochs      = 40，最终epoch，不用test选权重
+device      = local CPU
+metrics     = Recall@1、Recall@5、MRR
+```
+
+只改变残差中的P映射；true-P和wrong-P使用配对初始化、相同参数量和batch顺序。由于E99的
+Recall@5已接近天花板，主门改用仍有空间的Recall@1/MRR：true-P两seed均需相对coordinate anchor
+`Recall@1 +0.02、MRR +0.01`，同时相对wrong-P `Recall@1 +0.01、MRR +0.005`，且Recall@5下降
+不得超过0.005、最差折不得崩溃。通过才允许设计独立来源确认；不通过则保留“九轮通用坐标关系
+识别”结果，停止当前PRESENT拓扑归因和远程放大。
+
+禁止路线：直接远程扩大、继续训练当前丢失绝对身份的拓扑网、把unlabeled称为negative、用二分类
+accuracy/AUC汇报、或把同公开语料六折结果称为九轮区分器/PRESENT-80攻击/SOTA。

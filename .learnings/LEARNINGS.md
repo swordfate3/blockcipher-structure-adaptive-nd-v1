@@ -68,6 +68,66 @@ completeness.
 
 ---
 
+## [LRN-20260720-001] best_practice
+
+**Logged**: 2026-07-20T14:40:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Positive/unlabeled ranking folds must keep candidate-generation equivalence orbits intact, not only positive supports and exact positive relations.
+
+### Details
+
+The PRESENT r9 ATM E98-B gate grouped the corrected 468 known-positive
+relations by shared exact `(u,v)` support coordinates. This produced balanced
+`6x78` positive folds with zero positive relation and support overlap. During
+the E99 pre-training gate, a stricter check removed every train candidate that
+also appeared as a test unlabeled candidate. Some train pools then fell from
+at least 31 candidates to zero.
+
+The cause is structural: candidates are synchronous 64-bit rotations. Known
+positives from the same rotation orbit can land in different support-only
+folds, so their unlabeled candidate sets overlap even when their exact positive
+coordinates do not. Training on those repeated unlabeled identities and then
+testing against them would leak candidate identity and make positive recovery
+artificially easy.
+
+A read-only probe showed that unioning shared-coordinate components with exact
+rotation-orbit components remains feasible: 468 positives form 352 combined
+components, the largest has 6 relations, and deterministic packing still gives
+six groups of 78.
+
+### Suggested Action
+
+Before any positive/unlabeled ranking training, construct components over both
+positive-support overlap and the equivalence relation induced by candidate
+generation. Require zero exact relation overlap across all train/test examples,
+not just positives, and recheck candidate width after fold-specific filtering.
+Treat a support-only readiness pass as insufficient when candidate orbits can
+cross folds.
+
+### Metadata
+
+- Source: self_correction, pre_training_gate
+- Related Files: docs/experiments/innovation2-present-r9-atm-support-component-pu-readiness-plan.md, docs/experiments/innovation2-present-r9-atm-support-component-pu-neural-ranking-plan.md, src/blockcipher_nd/tasks/innovation2/present_r9_atm_support_component_pu_neural_ranking.py
+- Tags: innovation2, present, positive-unlabeled, ranking, data-leakage, rotation-orbit
+- See Also: LRN-20260718-006
+- Pattern-Key: research.pu_ranking.candidate_equivalence_orbits_must_be_fold_disjoint
+- Recurrence-Count: 1
+- First-Seen: 2026-07-20
+- Last-Seen: 2026-07-20
+
+### Resolution
+
+- **Resolved**: 2026-07-20T14:58:00+08:00
+- **Commit/PR**: 32a3953
+- **Notes**: Added E98-C support-plus-rotation-orbit components, proved six balanced folds retain 55/51 minimum train/test candidate width, and enforced zero train/test relation overlap before reopening E99.
+
+---
+
 ## [LRN-20260718-002] correction
 
 **Logged**: 2026-07-18T12:15:00+08:00
