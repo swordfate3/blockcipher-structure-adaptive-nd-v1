@@ -130,5 +130,15 @@ def test_e104_windows_scripts_preserve_remote_and_scheduler_contract() -> None:
     assert combined.count("--timeout-seconds 43200") == 3
     assert "--mode probe" in combined
     assert "--mode search" in combined
+    assert "--no-deps --editable %SOURCE%" in combined
     assert "(3,3,3)" not in combined
     assert "schtasks /Run" in texts[2]
+
+
+def test_e104_python_wrappers_are_windows_spawn_safe() -> None:
+    for name in (
+        "scripts/run-innovation2-present-r9-atm-split333-generation",
+        "scripts/supervise-innovation2-atm-stage",
+    ):
+        text = Path(name).read_text(encoding="utf-8")
+        assert 'if __name__ == "__main__":' in text

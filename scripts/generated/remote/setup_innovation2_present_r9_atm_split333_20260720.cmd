@@ -58,6 +58,8 @@ if not exist %PY% %BASE_PY% -m venv %VENV%
 if errorlevel 1 goto setup_failed
 %PY% -m pip install --disable-pip-version-check --cache-dir %PIP_CACHE_DIR% --requirement %SOURCE%\configs\runtime\innovation2_atm_windows_py310_requirements.txt > %LOGS%\pip_install_stdout.txt 2> %LOGS%\pip_install_stderr.txt
 if errorlevel 1 goto setup_failed
+%PY% -m pip install --disable-pip-version-check --no-deps --editable %SOURCE% > %LOGS%\project_install_stdout.txt 2> %LOGS%\project_install_stderr.txt
+if errorlevel 1 goto setup_failed
 %PY% -m pip freeze > %LOGS%\pip_freeze.txt
 %PY% --version > %LOGS%\python_version.txt 2>&1
 cl.exe > %LOGS%\compiler_version.txt 2>&1
