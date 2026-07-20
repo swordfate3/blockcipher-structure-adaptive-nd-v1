@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from blockcipher_nd.cli import postprocess_innovation2_present_r9_atm_split333
 from blockcipher_nd.cli.validate_innovation2_present_r9_atm_split333_retrieval import (
     main,
 )
@@ -284,3 +285,112 @@ def test_postprocess_stops_before_e105_when_e104_is_incomplete(tmp_path: Path) -
     report = json.loads((raw / "postprocess.local.json").read_text(encoding="utf-8"))
     assert report["stage"] == "e104_validation"
     assert report["e105_started"] is False
+
+
+def test_postprocess_indexes_failed_e105_evaluation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "validate_e104_main",
+        lambda _argv: 0,
+    )
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "run_e105_main",
+        lambda _argv: 1,
+    )
+    e105 = tmp_path / "e105"
+
+    def index_results(_argv) -> int:
+        report = json.loads((e105 / "postprocess.json").read_text(encoding="utf-8"))
+        assert report["stage"] == "e105_evaluation"
+        assert report["result_index_refreshed"] is False
+        calls.append("index")
+        return 0
+
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "index_results_main",
+        index_results,
+    )
+
+    return_code = postprocess_innovation2_present_r9_atm_split333.main(
+        [
+            "--raw-root",
+            str(tmp_path / "raw"),
+            "--verified-root",
+            str(tmp_path / "verified"),
+            "--checkpoint-root",
+            str(tmp_path / "checkpoints"),
+            "--public-results-root",
+            str(tmp_path / "public"),
+            "--e105-output-root",
+            str(e105),
+        ]
+    )
+
+    assert return_code == 1
+    assert calls == ["index"]
+    report = json.loads((e105 / "postprocess.json").read_text(encoding="utf-8"))
+    assert report["stage"] == "e105_evaluation"
+    assert report["result_index_refreshed"] is True
+
+
+def test_postprocess_indexes_e105_when_plotting_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "validate_e104_main",
+        lambda _argv: 0,
+    )
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "run_e105_main",
+        lambda _argv: 0,
+    )
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "plot_e105_main",
+        lambda _argv: 1,
+    )
+    e105 = tmp_path / "e105"
+
+    def index_results(_argv) -> int:
+        report = json.loads((e105 / "postprocess.json").read_text(encoding="utf-8"))
+        assert report["stage"] == "e105_plot"
+        assert report["result_index_refreshed"] is False
+        calls.append("index")
+        return 0
+
+    monkeypatch.setattr(
+        postprocess_innovation2_present_r9_atm_split333,
+        "index_results_main",
+        index_results,
+    )
+
+    return_code = postprocess_innovation2_present_r9_atm_split333.main(
+        [
+            "--raw-root",
+            str(tmp_path / "raw"),
+            "--verified-root",
+            str(tmp_path / "verified"),
+            "--checkpoint-root",
+            str(tmp_path / "checkpoints"),
+            "--public-results-root",
+            str(tmp_path / "public"),
+            "--e105-output-root",
+            str(e105),
+        ]
+    )
+
+    assert return_code == 1
+    assert calls == ["index"]
+    report = json.loads((e105 / "postprocess.json").read_text(encoding="utf-8"))
+    assert report["stage"] == "e105_plot"
+    assert report["result_index_refreshed"] is True

@@ -68,16 +68,19 @@ def main(argv: list[str] | None = None) -> int:
         ]
     )
     if evaluation_code != 0:
-        _write_report(
-            args.e105_output_root / "postprocess.json",
-            {
-                "status": "fail",
-                "stage": "e105_evaluation",
-                "e104_verified": True,
-                "visual_qa_required": False,
-            },
-        )
-        return evaluation_code
+        report_path = args.e105_output_root / "postprocess.json"
+        report = {
+            "status": "fail",
+            "stage": "e105_evaluation",
+            "e104_verified": True,
+            "result_index_refreshed": False,
+            "visual_qa_required": False,
+        }
+        _write_report(report_path, report)
+        index_code = index_results_main([])
+        report["result_index_refreshed"] = index_code == 0
+        _write_report(report_path, report)
+        return evaluation_code if index_code == 0 else index_code
 
     plot_code = plot_e105_main(
         [
@@ -88,17 +91,20 @@ def main(argv: list[str] | None = None) -> int:
         ]
     )
     if plot_code != 0:
-        _write_report(
-            args.e105_output_root / "postprocess.json",
-            {
-                "status": "fail",
-                "stage": "e105_plot",
-                "e104_verified": True,
-                "e105_evaluated": True,
-                "visual_qa_required": True,
-            },
-        )
-        return plot_code
+        report_path = args.e105_output_root / "postprocess.json"
+        report = {
+            "status": "fail",
+            "stage": "e105_plot",
+            "e104_verified": True,
+            "e105_evaluated": True,
+            "result_index_refreshed": False,
+            "visual_qa_required": True,
+        }
+        _write_report(report_path, report)
+        index_code = index_results_main([])
+        report["result_index_refreshed"] = index_code == 0
+        _write_report(report_path, report)
+        return plot_code if index_code == 0 else index_code
 
     index_code = index_results_main([])
     report = {
