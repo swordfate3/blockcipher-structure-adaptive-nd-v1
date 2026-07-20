@@ -133,6 +133,8 @@ def test_e104_windows_scripts_preserve_remote_and_scheduler_contract() -> None:
     assert "--mode probe" in combined
     assert "--mode search" in combined
     assert "--no-deps --editable %SOURCE%" in combined
+    assert "del %LOGS%\\setup_failed.marker" in combined
+    assert "del %LOGS%\\pipeline_failed.marker" in combined
     assert "(3,3,3)" not in combined
     assert "schtasks /Run" in texts[2]
 

@@ -10,6 +10,11 @@ set PY=%RUN_ROOT%\venv\Scripts\python.exe
 set PYTHONPATH=%SOURCE%\src
 set PYTHONUTF8=1
 
+if exist %LOGS%\pipeline_passed.marker del %LOGS%\pipeline_passed.marker
+if exist %LOGS%\pipeline_failed.marker del %LOGS%\pipeline_failed.marker
+if exist %LOGS%\probe_failed.marker del %LOGS%\probe_failed.marker
+if exist %LOGS%\resource_cap_hit.marker del %LOGS%\resource_cap_hit.marker
+
 call G:\lxy\blockcipher-structure-adaptive-nd-v1-clean\scripts\generated\remote\setup_innovation2_present_r9_atm_split333_20260720.cmd
 if errorlevel 1 goto pipeline_failed
 
