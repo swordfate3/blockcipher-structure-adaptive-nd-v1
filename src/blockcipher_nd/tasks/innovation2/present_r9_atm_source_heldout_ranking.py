@@ -223,6 +223,11 @@ def evaluate_source_heldout(
         }
         for relation in sorted(heldout_relations, key=_canonical_coordinates)
     )
+    training_overlap_audit = _fold_training_overlap_audit(
+        public_groups=public_groups,
+        evaluation_pools=pools,
+        heldout_relations=heldout_relations,
+    )
     tensors = tensorize_pools(pools) if pools else None
     manifest_checks = _validate_checkpoint_manifest(
         checkpoint_manifest,
@@ -234,6 +239,9 @@ def evaluate_source_heldout(
         **e104_evidence_checks,
         "heldout_relations_nonempty": bool(heldout_relations),
         "heldout_exact_public_overlap_zero": not bool(heldout_relations & public_relations),
+        "all_evaluation_relations_absent_from_fold_training_pools": (
+            training_overlap_audit["maximum_fold_training_overlap"] == 0
+        ),
     }
     if not all(manifest_checks.values()) or not all(source_checks.values()) or tensors is None:
         gate = {
@@ -244,7 +252,12 @@ def evaluate_source_heldout(
             "source_checks": source_checks,
             "next_action": {"action": "repair source or checkpoint evidence; do not interpret ranks"},
         }
-        return {"gate": gate, "result_rows": [], "rank_rows": [], "audit": {}}
+        return {
+            "gate": gate,
+            "result_rows": [],
+            "rank_rows": [],
+            "audit": training_overlap_audit,
+        }
 
     scores_by_seed: dict[int, list[list[list[float]]]] = {seed: [] for seed in SEEDS}
     state_unchanged = True
@@ -295,6 +308,7 @@ def evaluate_source_heldout(
         coordinate for relation in public_relations for coordinate in relation
     )
     audit = {
+        **training_overlap_audit,
         "public_relations": len(public_relations),
         "heldout_relations": len(heldout_relations),
         "heldout_exact_public_overlap": len(heldout_relations & public_relations),
@@ -381,6 +395,47 @@ def evaluate_source_heldout(
         "result_rows": result_rows,
         "rank_rows": rank_rows,
         "audit": audit,
+    }
+
+
+def _fold_training_overlap_audit(
+    *,
+    public_groups: dict[str, set[Property]],
+    evaluation_pools: tuple[dict[str, Any], ...],
+    heldout_relations: set[Property],
+) -> dict[str, Any]:
+    fold_audit = build_neural_folds(public_groups, PuNeuralRankingConfig())
+    evaluation_relations = {
+        relation for pool in evaluation_pools for relation in pool["relations"]
+    }
+    fold_rows: list[dict[str, Any]] = []
+    for fold_data in fold_audit["folds"]:
+        training_relations = {
+            relation
+            for pool in fold_data.train_pools
+            for relation in pool["relations"]
+        }
+        overlap = training_relations & evaluation_relations
+        positive_overlap = training_relations & heldout_relations
+        fold_rows.append(
+            {
+                "fold": fold_data.fold,
+                "training_relations": len(training_relations),
+                "evaluation_relations": len(evaluation_relations),
+                "training_evaluation_overlap": len(overlap),
+                "training_heldout_positive_overlap": len(positive_overlap),
+                "overlap_relation_ids": sorted(_relation_id(item) for item in overlap),
+            }
+        )
+    return {
+        "evaluation_relation_identities": len(evaluation_relations),
+        "maximum_fold_training_overlap": max(
+            row["training_evaluation_overlap"] for row in fold_rows
+        ),
+        "maximum_fold_training_positive_overlap": max(
+            row["training_heldout_positive_overlap"] for row in fold_rows
+        ),
+        "fold_training_overlap": fold_rows,
     }
 
 

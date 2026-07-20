@@ -126,11 +126,20 @@ def _checkpoint_manifest(root: Path) -> dict[str, object]:
     }
 
 
+def _public_groups() -> dict[str, set[frozenset[tuple[int, int]]]]:
+    return {
+        "public": {
+            frozenset({(1, 1 << relative_distance)})
+            for relative_distance in range(1, 7)
+        }
+    }
+
+
 def test_source_heldout_evaluation_is_zero_update_and_small_set_is_diagnostic(
     tmp_path: Path,
 ) -> None:
     manifest = _checkpoint_manifest(tmp_path)
-    public_groups = {"public": {frozenset({(1, 1)})}}
+    public_groups = _public_groups()
     heldout = {frozenset({(1 << 9, 1 << 27)})}
     result = evaluate_source_heldout(
         SourceHeldoutRankingConfig(),
@@ -156,7 +165,7 @@ def test_source_heldout_gate_rejects_unverified_e104_source(tmp_path: Path) -> N
     manifest = _checkpoint_manifest(tmp_path)
     result = evaluate_source_heldout(
         SourceHeldoutRankingConfig(),
-        public_groups={"public": {frozenset({(1, 1)})}},
+        public_groups=_public_groups(),
         heldout_relations={frozenset({(2, 8)})},
         checkpoint_manifest=manifest,
         checkpoint_root=tmp_path,
@@ -166,6 +175,32 @@ def test_source_heldout_gate_rejects_unverified_e104_source(tmp_path: Path) -> N
     )
     assert result["gate"]["status"] == "fail"
     assert result["gate"]["decision"].endswith("protocol_invalid")
+
+
+def test_source_heldout_gate_rejects_relations_seen_in_fold_training_candidates(
+    tmp_path: Path,
+) -> None:
+    manifest = _checkpoint_manifest(tmp_path)
+    result = evaluate_source_heldout(
+        SourceHeldoutRankingConfig(),
+        public_groups=_public_groups(),
+        heldout_relations={frozenset({(2, 4)})},
+        checkpoint_manifest=manifest,
+        checkpoint_root=tmp_path,
+        e104_gate={
+            "status": "pass",
+            "decision": "innovation2_present_r9_split333_generation_passed",
+        },
+        e104_evidence_checks={"frozen_e104_evidence": True},
+        device="cpu",
+    )
+
+    assert result["gate"]["status"] == "fail"
+    assert result["gate"]["source_checks"][
+        "all_evaluation_relations_absent_from_fold_training_pools"
+    ] is False
+    assert result["audit"]["maximum_fold_training_overlap"] > 0
+    assert result["result_rows"] == []
 
 
 def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
