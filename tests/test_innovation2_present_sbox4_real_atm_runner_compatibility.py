@@ -7,6 +7,7 @@ from blockcipher_nd.cli.plot_innovation2_present_sbox4_real_atm_runner_compatibi
 )
 from blockcipher_nd.tasks.innovation2.present_sbox4_real_atm_runner_compatibility import (
     _bitset_build_command,
+    _compiler_version_line,
     audit_relation_spaces,
     canonical_relations,
     normalized_lf_sha256,
@@ -106,3 +107,12 @@ def test_normalized_source_hash_is_independent_of_checkout_line_endings(
     crlf.write_bytes(b"line1\r\nline2\r\n")
     lf.write_bytes(b"line1\nline2\n")
     assert normalized_lf_sha256(crlf) == normalized_lf_sha256(lf)
+
+
+def test_msvc_version_banner_is_selected_over_usage_text() -> None:
+    assert _compiler_version_line(
+        (
+            "Usage: cl [ options ] filename",
+            "Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32535 for x64",
+        )
+    ) == "Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32535 for x64"

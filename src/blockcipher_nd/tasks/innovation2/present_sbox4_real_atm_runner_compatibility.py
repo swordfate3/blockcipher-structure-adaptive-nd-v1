@@ -157,7 +157,7 @@ def build_bitset_extension(
     ]
     if not version_lines:
         raise RuntimeError("compiler version output is empty")
-    compiler_version = version_lines[0]
+    compiler_version = _compiler_version_line(version_lines)
     if shutil.which("file"):
         file_type = subprocess.run(
             ["file", str(output)],
@@ -244,6 +244,17 @@ def _bitset_build_command(
         library_name,
     ]
     return command, (object_path, pdb_path, import_library)
+
+
+def _compiler_version_line(lines: Sequence[str]) -> str:
+    return next(
+        (
+            line
+            for line in lines
+            if "Microsoft" in line and "C/C++" in line
+        ),
+        lines[0],
+    )
 
 
 def import_real_atm_runtime(atm_root: Path) -> dict[str, Any]:
