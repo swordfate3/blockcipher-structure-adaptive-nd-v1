@@ -6,6 +6,9 @@ from pathlib import Path
 import pytest
 import torch
 
+from blockcipher_nd.cli.plot_innovation2_present_r9_atm_source_heldout_ranking import (
+    render_source_heldout_ranking,
+)
 from blockcipher_nd.cli.run_innovation2_present_r9_atm_source_heldout_ranking import (
     parse_args,
 )
@@ -163,3 +166,51 @@ def test_source_heldout_gate_rejects_unverified_e104_source(tmp_path: Path) -> N
     )
     assert result["gate"]["status"] == "fail"
     assert result["gate"]["decision"].endswith("protocol_invalid")
+
+
+def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        {
+            "model": "absolute_position_6fold_ensemble",
+            "seed": -1,
+            "recall_at_1": 0.10,
+            "recall_at_5": 0.20,
+            "mean_reciprocal_rank": 0.18,
+            "top5_enrichment": 2.0,
+        },
+        {
+            "model": "coordinate_deepsets_6fold_ensemble",
+            "seed": 0,
+            "recall_at_1": 0.62,
+            "recall_at_5": 0.82,
+            "mean_reciprocal_rank": 0.70,
+            "top5_enrichment": 8.2,
+        },
+        {
+            "model": "coordinate_deepsets_6fold_ensemble",
+            "seed": 1,
+            "recall_at_1": 0.60,
+            "recall_at_5": 0.80,
+            "mean_reciprocal_rank": 0.68,
+            "top5_enrichment": 8.0,
+        },
+    ]
+    summary = {
+        "gate": {
+            "decision": "innovation2_present_r9_split333_source_heldout_signal_confirmed"
+        },
+        "result_rows": rows,
+        "audit": {"heldout_relations": 48, "minimum_unlabeled_per_pool": 61},
+    }
+    output = tmp_path / "curves.svg"
+
+    render_source_heldout_ranking(summary, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "PRESENT九轮缺失(3,3,3)来源留出排序" in svg
+    assert "不更新权重" in svg
+    assert "未标注候选不是严格负类" in svg
+    assert "相对位置规则的绝对增益" in svg
+    assert "不是二分类" in svg
