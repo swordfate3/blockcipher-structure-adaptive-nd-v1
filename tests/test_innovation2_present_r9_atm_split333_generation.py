@@ -107,8 +107,14 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert setup.count("-m venv --system-site-packages %VENV%") == 2
     assert 'import torch; print(torch.__version__)' in setup
     assert "if errorlevel 1 rmdir /s /q %VENV%" in setup
+    assert "set VCVARS64=C:\\Program Files\\Microsoft Visual Studio" in setup
+    assert 'call "%VCVARS64%"' in setup
+    assert "set INCLUDE >> %LOGS%\\compiler_environment.txt" in setup
+    assert "set LIB >> %LOGS%\\compiler_environment.txt" in setup
     assert "set PYTHONPATH=%SOURCE%\\src" in setup
     assert "set PYTHONPATH=%SOURCE%\\src" in pipeline
+    assert "VC\\Auxiliary\\Build\\vcvars64.bat" in setup
+    assert 'call "%VCVARS%"' in setup
     assert "--stage-id readiness --marker-root %LOGS%" in setup
     assert setup.count("status --porcelain") == 2
     assert "git -C %ATM_ROOT% cat-file -e %ATM_COMMIT%" in setup

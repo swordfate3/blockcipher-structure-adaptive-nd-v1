@@ -200,8 +200,11 @@ attempt source = de97bab8dd44eb4a91730cb7f3d7496f8efd50b9
 ATM commit     = b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
 torch import   = failed through eager innovation2 package import
 source gate    = failed because Windows core.autocrlf changed LF bytes to CRLF
+MSVC build     = failed because Task Scheduler had cl.exe but no Windows SDK INCLUDE/LIB
 probe/search   = not started
 ```
 
 延迟导入修复 `8073a8f` 与 Windows 来源哈希修复 `e5411d8` 已推送。下一次启动必须同步这些
-提交，并通过 Git blob 来源校验、Phase A 环境门和两个10分钟候选探针后，才允许进入九轮搜索。
+提交；setup 还必须显式调用已验证存在的 Visual Studio 2022 `vcvars64.bat`，使 `math.h` 等
+Windows SDK 头文件对 MSVC 可见。通过 Git blob 来源校验、Phase A 环境门和两个10分钟候选
+探针后，才允许进入九轮搜索。

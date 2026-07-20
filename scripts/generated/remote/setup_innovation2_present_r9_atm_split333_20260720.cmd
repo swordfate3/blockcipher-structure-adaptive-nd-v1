@@ -15,10 +15,12 @@ set PIP_CACHE_DIR=%RUN_ROOT%\pip-cache
 set PYTHONUTF8=1
 set BASE_PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set PY=%VENV%\Scripts\python.exe
+set VCVARS64=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
 set PYTHONPATH=%SOURCE%\src
 set REPO=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
 set ATM_REPO=https://github.com/michielverbauwhede/AlgebraicTransitionMatrices.git
 set ATM_COMMIT=b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
+set VCVARS=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 
@@ -29,6 +31,8 @@ if not exist %LOGS% mkdir %LOGS%
 if not exist %OUTPUT% mkdir %OUTPUT%
 if exist %LOGS%\setup_passed.marker del %LOGS%\setup_passed.marker
 if exist %LOGS%\setup_failed.marker del %LOGS%\setup_failed.marker
+call "%VCVARS%" > %LOGS%\vcvars_stdout.txt 2> %LOGS%\vcvars_stderr.txt
+if errorlevel 1 goto setup_failed
 if exist %LOGS%\source_dirty.marker del %LOGS%\source_dirty.marker
 if exist %LOGS%\atm_dirty.marker del %LOGS%\atm_dirty.marker
 if exist %LOGS%\readiness_started.marker del %LOGS%\readiness_started.marker
@@ -63,6 +67,13 @@ git -C %ATM_ROOT% checkout %ATM_COMMIT%
 if errorlevel 1 goto setup_failed
 git -C %ATM_ROOT% rev-parse HEAD > %LOGS%\atm_revision.txt
 git -C %ATM_ROOT% status --short --branch > %LOGS%\atm_status.txt
+
+if not exist "%VCVARS64%" goto setup_failed
+call "%VCVARS64%" > %LOGS%\vcvars64_stdout.txt 2> %LOGS%\vcvars64_stderr.txt
+if errorlevel 1 goto setup_failed
+where cl.exe > %LOGS%\compiler_environment.txt 2>&1
+set INCLUDE >> %LOGS%\compiler_environment.txt
+set LIB >> %LOGS%\compiler_environment.txt
 
 if not exist %PY% %BASE_PY% -m venv --system-site-packages %VENV%
 if errorlevel 1 goto setup_failed
