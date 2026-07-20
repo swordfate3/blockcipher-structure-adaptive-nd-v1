@@ -103,7 +103,9 @@ eval run   = i2_present_r9_atm_split333_source_heldout_ranking_seed0_seed1_20260
 
 Freeze至少输出checkpoint manifest、12个权重、复现指标、gate、progress和metadata。Evaluate至少输出
 `results.jsonl`、逐关系rank CSV、summary、gate、metadata、progress和中文可视化。可视化必须经过
-`visual-qa-redraw`像素检查；每个完成的结果阶段都刷新`outputs/00_RECENT_RESULTS.md/json`。
+`visual-qa-redraw`像素检查；每个完成的结果阶段都刷新`outputs/00_RECENT_RESULTS.md/json`。Evaluate的
+metadata还必须记录本地Git revision、E105任务/运行器/绘图/后处理源码SHA-256，以及仅覆盖这些
+源码的scoped Git状态；无关工作树改动不得混入该状态。
 
 ## 6. 下一步边界
 

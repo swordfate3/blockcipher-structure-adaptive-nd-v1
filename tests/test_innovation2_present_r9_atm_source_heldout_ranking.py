@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,8 @@ from blockcipher_nd.cli.plot_innovation2_present_r9_atm_source_heldout_ranking i
     render_source_heldout_ranking,
 )
 from blockcipher_nd.cli.run_innovation2_present_r9_atm_source_heldout_ranking import (
+    E105_SOURCE_PATHS,
+    _evaluation_code_provenance,
     parse_args,
 )
 from blockcipher_nd.tasks.innovation2.present_r9_atm_source_heldout_ranking import (
@@ -61,6 +64,47 @@ def test_cli_separates_freeze_from_heldout_evaluation() -> None:
     )
     assert evaluate.mode == "evaluate"
     assert not hasattr(evaluate, "e99_summary")
+
+
+def test_evaluation_code_provenance_hashes_only_scoped_sources(
+    tmp_path: Path,
+) -> None:
+    for index, relative in enumerate(E105_SOURCE_PATHS):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"source-{index}\n", encoding="utf-8")
+    unrelated = tmp_path / "unrelated.txt"
+    unrelated.write_text("tracked\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=E105 Test",
+            "-c",
+            "user.email=e105@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+
+    changed_source = tmp_path / E105_SOURCE_PATHS[0]
+    changed_source.write_text("changed\n", encoding="utf-8")
+    unrelated.write_text("unrelated change\n", encoding="utf-8")
+    provenance = _evaluation_code_provenance(tmp_path)
+
+    assert len(provenance["git_revision"]) == 40
+    assert provenance["source_sha256"] == {
+        relative: sha256(tmp_path / relative) for relative in E105_SOURCE_PATHS
+    }
+    assert provenance["scoped_worktree_clean"] is False
+    assert provenance["scoped_git_status"] == [f" M {E105_SOURCE_PATHS[0]}"]
+    assert all("unrelated.txt" not in line for line in provenance["scoped_git_status"])
 
 
 def test_load_relations_json_accepts_unsigned_64_bit_coordinates(tmp_path: Path) -> None:

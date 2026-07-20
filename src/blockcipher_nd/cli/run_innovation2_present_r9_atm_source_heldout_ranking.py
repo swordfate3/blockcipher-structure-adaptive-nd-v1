@@ -28,6 +28,14 @@ from blockcipher_nd.tasks.innovation2.present_r9_pu_ranking_readiness import (
 )
 
 
+E105_SOURCE_PATHS = (
+    "src/blockcipher_nd/tasks/innovation2/present_r9_atm_source_heldout_ranking.py",
+    "src/blockcipher_nd/cli/run_innovation2_present_r9_atm_source_heldout_ranking.py",
+    "src/blockcipher_nd/cli/plot_innovation2_present_r9_atm_source_heldout_ranking.py",
+    "src/blockcipher_nd/cli/postprocess_innovation2_present_r9_atm_split333.py",
+)
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Freeze E99 coordinate checkpoints or evaluate E104 split333 without adaptation."
@@ -201,6 +209,7 @@ def _evaluate(args: argparse.Namespace) -> int:
         e104_evidence_checks=e104_evidence_checks,
         device=args.device,
     )
+    code_provenance = _evaluation_code_provenance()
     metadata = {
         "run_id": config.evaluation_run_id,
         "task": "innovation2_present_r9_atm_split333_source_heldout_ranking",
@@ -220,6 +229,7 @@ def _evaluate(args: argparse.Namespace) -> int:
             "e104_model_contract": sha256(model_contract_path),
             "e104_search_metadata": sha256(search_metadata_path),
         },
+        "code_provenance": code_provenance,
         "claim_scope": evaluation["gate"].get("claim_scope", "protocol invalid"),
     }
     common = {
@@ -243,6 +253,56 @@ def _evaluate(args: argparse.Namespace) -> int:
         {"status": evaluation["gate"]["status"], "decision": evaluation["gate"]["decision"]},
     )
     return 1 if evaluation["gate"]["status"] == "fail" else 0
+
+
+def _evaluation_code_provenance(
+    repository_root: Path | None = None,
+) -> dict[str, Any]:
+    if repository_root is None:
+        repository_root = Path(
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(Path(__file__).resolve().parent),
+                    "rev-parse",
+                    "--show-toplevel",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+    repository_root = repository_root.resolve()
+    revision = subprocess.run(
+        ["git", "-C", str(repository_root), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    status_lines = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repository_root),
+            "status",
+            "--short",
+            "--",
+            *E105_SOURCE_PATHS,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    return {
+        "git_revision": revision,
+        "source_sha256": {
+            relative: sha256(repository_root / relative)
+            for relative in E105_SOURCE_PATHS
+        },
+        "scoped_git_status": status_lines,
+        "scoped_worktree_clean": not status_lines,
+    }
 
 
 def _write_progress(path: Path, event: str, payload: dict[str, Any]) -> None:
