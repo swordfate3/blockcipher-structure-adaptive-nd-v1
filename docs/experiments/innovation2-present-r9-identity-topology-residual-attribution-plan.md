@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 待实现与本地执行
+状态：完成 / hold / 坐标身份锚点仍最佳、当前PRESENT拓扑分支停止
 
 ## 1. 研究问题
 
@@ -127,4 +127,73 @@ output = outputs/local_diagnostic/i2_present_r9_identity_topology_residual_attri
 
 ## 7. 正式结果
 
-待执行。
+执行时间：2026-07-20。完整运行`3 models × 2 seeds × 6 folds × 40 epochs`，全部来源、fold、
+候选宽度、全关系零重合、paired参数量和wrong-P循环结构检查通过。
+
+```text
+status   = hold
+decision = innovation2_present_r9_coordinate_identity_anchor_remains_best
+remote   = no
+```
+
+六折聚合：
+
+| 模型 | seed | 参数量 | Recall@1 | Recall@5 | MRR | 最差折Recall@5 |
+|---|---:|---:|---:|---:|---:|---:|
+| coordinate_anchor | 0 | 3937 | 0.903846 | 0.995726 | 0.945691 | 0.987179 |
+| coordinate_anchor | 1 | 3937 | 0.888889 | 0.993590 | 0.935544 | 0.987179 |
+| identity_true_p_residual | 0 | 4778 | 0.923077 | 0.997863 | 0.955164 | 0.987179 |
+| identity_true_p_residual | 1 | 4778 | 0.905983 | 0.995726 | 0.944358 | 0.987179 |
+| identity_wrong_p_residual | 0 | 4778 | 0.905983 | 1.000000 | 0.948362 | 1.000000 |
+| identity_wrong_p_residual | 1 | 4778 | 0.925214 | 0.995726 | 0.956680 | 0.987179 |
+
+坐标锚点精确重放E99。true/wrong残差均为4778参数且每折从配对初始化开始，训练后residual scale
+稳定离开0，说明残差路径实际参与学习。
+
+归因差值：
+
+```text
+seed0 true - anchor:  Recall@1 +0.019231, MRR +0.009473
+seed0 true - wrong-P: Recall@1 +0.017094, MRR +0.006802
+
+seed1 true - anchor:  Recall@1 +0.017094, MRR +0.008814
+seed1 true - wrong-P: Recall@1 -0.019231, MRR -0.012322
+```
+
+seed0相对wrong-P通过，但相对anchor分别比冻结门槛少`0.000769 Recall@1`和`0.000527 MRR`；
+不事后放宽。seed1虽然相对anchor同方向小幅提高，却被wrong-P明显反超。因此残差容量可以改变排名，
+但不能稳定归因于真实PRESENT P-layer。`identity_anchor_remains_best`按预注册含义是保留E99坐标身份
+结果并停止当前PRESENT拓扑分支，不再增加epoch、宽度或远程样本。
+
+产物位于：
+
+```text
+outputs/local_diagnostic/i2_present_r9_identity_topology_residual_attribution_seed0_seed1_20260720/
+```
+
+`curves.svg`经`visual-qa-redraw`渲染为2500×1348像素检查；标题、中文模型标签、柱状差异、逐折
+曲线、图例、坐标范围和裁决说明无重叠、裁切、缺字或误导性放大。
+
+## 8. 推荐下一步
+
+当前模型搜索已经回答：九轮公开ATM关系具有强坐标可学习性，但PRESENT拓扑归因未确认。下一步不再
+训练第四个拓扑变体，而是执行E101高轮来源/生成可恢复性审计：
+
+```text
+question = 是否存在可执行的独立九轮/十轮关系确认来源？
+public source inventory = 冻结ATM仓库、论文语料和本地文献manifest
+candidate A = notebook声明但未公开的R9 split (3,3,3)
+candidate B = notebook声明但无公开结果的9个R10 split
+baseline = 8个公开R9 split的历史stats与当前468关系
+device/path = 先本地只读审计，不启动搜索
+```
+
+必须审计第三方环境、bitarray编译、线程数、历史耗时/oracle calls、输出hash/安全解析，以及搜索是否有
+逐候选或逐weight层落盘、参数匹配复用和中断恢复。现有公开stats显示单个R9 split约45分钟至6.6小时、
+最重约2208亿oracle calls；原notebook使用阻塞`Pool.map`并只在完整搜索结束后写pickle/stats，当前
+不满足长任务持久化与恢复门。
+
+只有先实现并烟测route-owned resumable runner，能持续写`progress.jsonl`、候选结果缓存、参数元数据
+和完成marker，才允许在项目受控路径生成`(3,3,3)`或R10。新生成数据只能称复核集，不能冒充论文
+公开结果或独立publication。若无法可靠恢复或预估资源超限，则正式收束高轮路线为E99通用坐标
+关系识别证据，不启动远程暴力搜索。
