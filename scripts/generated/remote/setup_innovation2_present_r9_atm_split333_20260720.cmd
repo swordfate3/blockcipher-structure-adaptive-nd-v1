@@ -38,6 +38,9 @@ if not exist %LOGS% mkdir %LOGS%
 if not exist %OUTPUT% mkdir %OUTPUT%
 if not exist %RUN_HOME% mkdir %RUN_HOME%
 if not exist %RUN_TEMP% mkdir %RUN_TEMP%
+if exist %OUTPUT%\readiness_gate.json del %OUTPUT%\readiness_gate.json
+if exist %OUTPUT%\phase_a_gate.json del %OUTPUT%\phase_a_gate.json
+if exist %OUTPUT%\readiness_passed.marker del %OUTPUT%\readiness_passed.marker
 if exist %LOGS%\setup_passed.marker del %LOGS%\setup_passed.marker
 if exist %LOGS%\setup_failed.marker del %LOGS%\setup_failed.marker
 call "%VCVARS%" > %LOGS%\vcvars_stdout.txt 2> %LOGS%\vcvars_stderr.txt

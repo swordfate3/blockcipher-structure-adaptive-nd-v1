@@ -133,9 +133,20 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "**/__pycache__/" in setup
     assert "*.pyc" in setup
     assert "set LOCK=%RUN_ROOT%\\pipeline.lock" in pipeline
+    assert "set HOME=%RUN_HOME%" in pipeline
+    assert "set USERPROFILE=%RUN_HOME%" in pipeline
+    assert "set TEMP=%RUN_TEMP%" in pipeline
+    assert "set TMP=%RUN_TEMP%" in pipeline
+    assert 'call "%VCVARS%" > %LOGS%\\pipeline_vcvars_stdout.txt' in pipeline
+    assert "set INCLUDE >> %LOGS%\\pipeline_compiler_environment.txt" in pipeline
+    assert "set LIB >> %LOGS%\\pipeline_compiler_environment.txt" in pipeline
+    assert "for %%S in (probe_001 probe_002 stage_001 stage_002 stage_003)" in pipeline
     assert "mkdir %LOCK% 2>nul" in pipeline
     assert "if errorlevel 1 exit /b 9" in pipeline
     assert pipeline.count("rmdir /s /q %LOCK%") == 4
+    assert "del %OUTPUT%\\readiness_gate.json" in setup
+    assert "del %OUTPUT%\\phase_a_gate.json" in setup
+    assert "del %OUTPUT%\\readiness_passed.marker" in setup
     assert pipeline.count("--timeout-seconds 600") == 2
     assert pipeline.count("--timeout-seconds 43200") == 3
     assert pipeline.count("--mode probe") == 2

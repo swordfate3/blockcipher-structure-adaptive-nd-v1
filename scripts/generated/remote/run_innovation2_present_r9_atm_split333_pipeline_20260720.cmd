@@ -7,7 +7,14 @@ set ATM_ROOT=%RUN_ROOT%\atm-source
 set OUTPUT=%RUN_ROOT%\results
 set LOGS=%RUN_ROOT%\logs
 set LOCK=%RUN_ROOT%\pipeline.lock
+set RUN_HOME=%RUN_ROOT%\home
+set RUN_TEMP=%RUN_ROOT%\tmp
+set HOME=%RUN_HOME%
+set USERPROFILE=%RUN_HOME%
+set TEMP=%RUN_TEMP%
+set TMP=%RUN_TEMP%
 set PY=%RUN_ROOT%\venv\Scripts\python.exe
+set VCVARS=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
 set PYTHONPATH=%SOURCE%\src
 set PYTHONUTF8=1
 
@@ -19,9 +26,20 @@ if exist %LOGS%\pipeline_passed.marker del %LOGS%\pipeline_passed.marker
 if exist %LOGS%\pipeline_failed.marker del %LOGS%\pipeline_failed.marker
 if exist %LOGS%\probe_failed.marker del %LOGS%\probe_failed.marker
 if exist %LOGS%\resource_cap_hit.marker del %LOGS%\resource_cap_hit.marker
+for %%S in (probe_001 probe_002 stage_001 stage_002 stage_003) do (
+  if exist %LOGS%\%%S_started.marker del %LOGS%\%%S_started.marker
+  if exist %LOGS%\%%S_done.marker del %LOGS%\%%S_done.marker
+  if exist %LOGS%\%%S_failed.marker del %LOGS%\%%S_failed.marker
+  if exist %LOGS%\%%S_timeout.marker del %LOGS%\%%S_timeout.marker
+)
 
 call G:\lxy\blockcipher-structure-adaptive-nd-v1-clean\scripts\generated\remote\setup_innovation2_present_r9_atm_split333_20260720.cmd
 if errorlevel 1 goto pipeline_failed
+call "%VCVARS%" > %LOGS%\pipeline_vcvars_stdout.txt 2> %LOGS%\pipeline_vcvars_stderr.txt
+if errorlevel 1 goto pipeline_failed
+where cl.exe > %LOGS%\pipeline_compiler_environment.txt 2>&1
+set INCLUDE >> %LOGS%\pipeline_compiler_environment.txt
+set LIB >> %LOGS%\pipeline_compiler_environment.txt
 
 %PY% %SOURCE%\scripts\supervise-innovation2-atm-stage --timeout-seconds 600 --stage-id probe_001 --marker-root %LOGS% --stdout %LOGS%\probe_001_stdout.txt --stderr %LOGS%\probe_001_stderr.txt -- %PY% %SOURCE%\scripts\run-innovation2-present-r9-atm-split333-generation --mode probe --atm-root %ATM_ROOT% --e103-anchor %SOURCE%\configs\experiment\innovation2\innovation2_present_sbox4_r3_real_atm_compatibility_gate_anchor.json --output-root %OUTPUT%
 if errorlevel 1 goto probe_failed

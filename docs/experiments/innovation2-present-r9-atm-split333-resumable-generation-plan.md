@@ -231,3 +231,9 @@ outputs/remote_results_incomplete/i2_present_r9_atm_split333_resumable_generatio
 后续 pipeline 必须在清理 marker 前原子获取 run-owned `pipeline.lock`，重复实例直接返回且不得写
 同一候选缓存；ATM 本地 exclude 还必须覆盖 `**/__pycache__/`与`*.pyc`。只有单一 owner 可以进入
 Phase A/B/C。
+
+首个真实 `probe_001` 在 `0.84s` 后失败，日志仍是 MSVC 找不到 `math.h`。Phase A 本身已经通过；
+根因是 `setup.cmd` 的 `setlocal` 在返回 pipeline 时恢复了环境，导致后续 probe/search 丢失
+`INCLUDE/LIB`，同时也丢失 run-owned `HOME/TEMP`。因此 pipeline owner 必须在 Phase A 返回后
+再次调用 `vcvars64.bat`，并独立设置 run-owned `HOME/USERPROFILE/TEMP/TMP`。该失败没有执行真实
+候选 oracle，也不是 `candidate_boundary_too_coarse` 裁决。
