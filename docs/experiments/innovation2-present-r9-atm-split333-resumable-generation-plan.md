@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：目标机 Phase A 修复后待重跑 / 九轮搜索尚未启动
+状态：远程 Phase C `stage_001` 运行中 / 最终关系尚未回收
 
 ## 1. 研究问题
 
@@ -237,3 +237,18 @@ Phase A/B/C。
 `INCLUDE/LIB`，同时也丢失 run-owned `HOME/TEMP`。因此 pipeline owner 必须在 Phase A 返回后
 再次调用 `vcvars64.bat`，并独立设置 run-owned `HOME/USERPROFILE/TEMP/TMP`。该失败没有执行真实
 候选 oracle，也不是 `candidate_boundary_too_coarse` 裁决。
+
+2026-07-20 20:14，本地 tmux watcher 观察到当前 SYSTEM 任务同时存在：
+
+```text
+probe_001_done.marker
+probe_001_passed.marker
+probe_002_done.marker
+probe_002_passed.marker
+stage_001_started.marker
+Task Scheduler state = Running
+```
+
+这证明两个 fresh-process 探针门均已通过并自动开放 Phase C；当前是36-worker的首个12小时搜索
+阶段。详细 probe JSON、候选坐标、调用数与耗时尚未回收到本地，故本记录暂不填推测值，也不宣称
+九轮关系已经生成。watcher 将在 terminal marker 后自动进行 raw fallback 回收。

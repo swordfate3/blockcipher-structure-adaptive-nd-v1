@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_innovation2_present_r9_atm_source_heldout_ranking import main
+
+raise SystemExit(main())

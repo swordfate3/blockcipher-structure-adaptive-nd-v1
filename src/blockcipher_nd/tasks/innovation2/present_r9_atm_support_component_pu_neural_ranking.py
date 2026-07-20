@@ -298,6 +298,7 @@ def train_one_fold(
     train_tensors: PoolTensors,
     test_tensors: PoolTensors,
     device: str,
+    include_state_dict: bool = False,
 ) -> dict[str, Any]:
     torch.manual_seed(seed * 1009 + fold * 37 + 17)
     np.random.seed(seed * 1009 + fold * 37 + 17)
@@ -345,7 +346,7 @@ def train_one_fold(
         )
     training_seconds = time.monotonic() - started
     metrics = evaluate_model(model, test_tensors, device=device, batch_size=config.batch_size)
-    return {
+    result = {
         "metrics": {
             "model": model_name,
             "seed": seed,
@@ -357,6 +358,12 @@ def train_one_fold(
         },
         "history": history,
     }
+    if include_state_dict:
+        result["state_dict"] = {
+            name: value.detach().cpu().clone()
+            for name, value in model.state_dict().items()
+        }
+    return result
 
 
 class SummaryMlp(nn.Module):
@@ -482,6 +489,18 @@ def evaluate_model(
     device: str,
     batch_size: int,
 ) -> dict[str, Any]:
+    scores = score_model(model, tensors, device=device, batch_size=batch_size)
+    ranks = _ranks(scores, tensors.relation_ids)
+    return _ranking_metrics(ranks, [len(ids) for ids in tensors.relation_ids])
+
+
+def score_model(
+    model: nn.Module,
+    tensors: PoolTensors,
+    *,
+    device: str,
+    batch_size: int,
+) -> list[list[float]]:
     scores: list[list[float]] = []
     model.eval()
     with torch.no_grad():
@@ -495,8 +514,7 @@ def evaluate_model(
             batch_scores = batch_scores.masked_fill(~batch_mask, -1e9).cpu()
             for row_index, mask in enumerate(tensors.item_mask[start:stop]):
                 scores.append(batch_scores[row_index, : int(mask.sum())].tolist())
-    ranks = _ranks(scores, tensors.relation_ids)
-    return _ranking_metrics(ranks, [len(ids) for ids in tensors.relation_ids])
+    return scores
 
 
 def evaluate_absolute_position(
