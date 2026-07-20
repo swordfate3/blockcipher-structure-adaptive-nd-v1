@@ -1292,6 +1292,18 @@ DECISION_LABELS = {
     "innovation2_present_r9_atm_support_orbit_pu_protocol_invalid": (
         "九轮ATM旋转轨道或候选协议无效，只修复协议"
     ),
+    "innovation2_present_r9_pu_topology_neural_signal_confirmed": (
+        "九轮PU排序的PRESENT拓扑神经增益双seed确认，只开放远程方案设计"
+    ),
+    "innovation2_present_r9_pu_generic_neural_signal_only": (
+        "九轮PU排序只有通用神经信号，拓扑归因未过并保持远程关闭"
+    ),
+    "innovation2_present_r9_pu_public_corpus_neural_route_stopped": (
+        "九轮公开PU语料神经排序未稳定超过控制，停止当前路线"
+    ),
+    "innovation2_present_r9_pu_neural_ranking_protocol_invalid": (
+        "九轮PU神经排序来源、折、候选或指标协议无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1986,6 +1998,11 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E98-B：PRESENT九轮ATM支撑组件互斥PU排序就绪门"
     if run_id == "i2_present_r9_atm_support_rotation_orbit_pu_readiness_20260720":
         return "创新2 E98-C：PRESENT九轮ATM支撑与旋转轨道双互斥PU就绪门"
+    if run_id == (
+        "i2_present_r9_atm_support_component_pu_neural_ranking_"
+        "seed0_seed1_20260720"
+    ):
+        return "创新2 E99：PRESENT九轮ATM轨道互斥PU神经排序双seed门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

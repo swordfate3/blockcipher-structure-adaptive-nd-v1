@@ -2086,6 +2086,31 @@ def test_result_index_labels_innovation2_e98c_support_rotation_orbit_pu(
     )
 
 
+def test_result_index_labels_innovation2_e99_pu_neural_ranking(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r9_atm_support_component_pu_neural_ranking_"
+        "seed0_seed1_20260720"
+    )
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r9_pu_topology_neural_signal_confirmed",
+        },
+    )
+    entries = build_result_index(outputs, limit=10)
+    assert entries[0]["display_name"] == (
+        "创新2 E99：PRESENT九轮ATM轨道互斥PU神经排序双seed门"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮PU排序的PRESENT拓扑神经增益双seed确认，只开放远程方案设计"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
