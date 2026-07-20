@@ -141,14 +141,23 @@ def build_bitset_extension(
     finally:
         if temporary.exists():
             temporary.unlink()
-    compiler_version = subprocess.run(
-        [compiler, "--version"],
-        check=True,
+    version_command = [compiler] if platform_name == "nt" else [compiler, "--version"]
+    version_result = subprocess.run(
+        version_command,
+        check=False,
         capture_output=True,
         text=True,
         encoding=output_encoding,
         errors="replace",
-    ).stdout.splitlines()[0]
+    )
+    version_lines = [
+        line.strip()
+        for line in (version_result.stdout + "\n" + version_result.stderr).splitlines()
+        if line.strip()
+    ]
+    if not version_lines:
+        raise RuntimeError("compiler version output is empty")
+    compiler_version = version_lines[0]
     if shutil.which("file"):
         file_type = subprocess.run(
             ["file", str(output)],
