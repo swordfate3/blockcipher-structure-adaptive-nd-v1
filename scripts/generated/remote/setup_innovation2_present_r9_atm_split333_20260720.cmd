@@ -27,6 +27,14 @@ if not exist G:\lxy\blockcipher-structure-adaptive-nd-runs mkdir G:\lxy\blockcip
 if not exist %RUN_ROOT% mkdir %RUN_ROOT%
 if not exist %LOGS% mkdir %LOGS%
 if not exist %OUTPUT% mkdir %OUTPUT%
+if exist %LOGS%\setup_passed.marker del %LOGS%\setup_passed.marker
+if exist %LOGS%\setup_failed.marker del %LOGS%\setup_failed.marker
+if exist %LOGS%\source_dirty.marker del %LOGS%\source_dirty.marker
+if exist %LOGS%\atm_dirty.marker del %LOGS%\atm_dirty.marker
+if exist %LOGS%\readiness_started.marker del %LOGS%\readiness_started.marker
+if exist %LOGS%\readiness_done.marker del %LOGS%\readiness_done.marker
+if exist %LOGS%\readiness_timeout.marker del %LOGS%\readiness_timeout.marker
+if exist %LOGS%\readiness_failed.marker del %LOGS%\readiness_failed.marker
 
 if not exist %SOURCE%\.git git clone %REPO% %SOURCE%
 if errorlevel 1 goto setup_failed

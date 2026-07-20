@@ -9,6 +9,10 @@ from blockcipher_nd.cli.supervise_innovation2_atm_stage import main
 
 def test_stage_supervisor_records_success_and_output(tmp_path: Path) -> None:
     marker_root = tmp_path / "markers"
+    marker_root.mkdir()
+    (marker_root / "fixture_success_failed.marker").write_text(
+        "stale", encoding="utf-8"
+    )
     stdout = tmp_path / "logs/stdout.txt"
     stderr = tmp_path / "logs/stderr.txt"
     status = main(
@@ -36,6 +40,7 @@ def test_stage_supervisor_records_success_and_output(tmp_path: Path) -> None:
     )
     assert marker["status"] == "done"
     assert marker["return_code"] == 0
+    assert not (marker_root / "fixture_success_failed.marker").exists()
 
 
 def test_stage_supervisor_kills_timed_out_process_tree(tmp_path: Path) -> None:

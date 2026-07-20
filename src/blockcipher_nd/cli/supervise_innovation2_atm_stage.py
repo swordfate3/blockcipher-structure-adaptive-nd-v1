@@ -39,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
     done_path = args.marker_root / f"{args.stage_id}_done.marker"
     timeout_path = args.marker_root / f"{args.stage_id}_timeout.marker"
     failure_path = args.marker_root / f"{args.stage_id}_failed.marker"
+    for stale in (done_path, timeout_path, failure_path):
+        stale.unlink(missing_ok=True)
     started = time.time()
     _write_marker(
         started_path,
