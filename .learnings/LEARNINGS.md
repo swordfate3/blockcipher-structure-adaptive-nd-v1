@@ -7371,3 +7371,111 @@ remote brute-force scale.
 - **Notes**: Replaced the wrong-basis evaluator with a precursor support boundary audit and invalidated the `0/470` diagnostic.
 
 ---
+
+## [LRN-20260720-002] best_practice
+
+**Logged**: 2026-07-20T21:28:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Any neural result intended for later zero-adaptation or external-source evaluation must persist the exact final checkpoints and their source/metric hashes during the original run.
+
+### Details
+
+Innovation 2 E99 saved complete fold metrics, histories, source hashes, and a
+visual gate, but did not save its twelve `coordinate_deepsets` fold weights.
+E104 later created a genuinely new source-heldout target, so the planned E105
+evaluation could not literally load the historical E99 models. Metrics alone
+cannot reconstruct model state or prove that a later evaluation used the same
+weights.
+
+The safe recovery was a separate Freeze phase that had no E104 input argument,
+replayed the exact public-source E99 seed/fold/epoch protocol, required all
+twelve fold metrics to match the historical E99 summary, and then persisted
+checksummed state dicts before reading any heldout relation. This preserves
+zero adaptation to E104, but it is still a deterministic checkpoint replay and
+must not be described as loading originally saved E99 weights.
+
+### Suggested Action
+
+When preregistering a neural experiment that may feed transfer, heldout,
+ensemble, calibration, or fresh-source evaluation, require checkpoint output,
+source/plan hash, seed/fold identity, final-epoch or selection rule, and a
+checkpoint manifest in the original result contract. Reject metrics-only
+artifacts as direct frozen-model evidence. If historical weights are missing,
+use a separately gated deterministic replay that cannot accept heldout inputs.
+
+### Metadata
+
+- Source: experiment_handoff_audit
+- Related Files: docs/experiments/innovation2-present-r9-atm-split333-source-heldout-ranking-plan.md, src/blockcipher_nd/tasks/innovation2/present_r9_atm_source_heldout_ranking.py
+- Tags: checkpoints, zero-adaptation, heldout, source-transfer, reproducibility, innovation2
+- See Also: LRN-20260720-001
+- Pattern-Key: research.transfer.persist_original_checkpoint_manifest
+- Recurrence-Count: 1
+- First-Seen: 2026-07-20
+- Last-Seen: 2026-07-20
+
+### Resolution
+
+- **Resolved**: 2026-07-20T21:28:00+08:00
+- **Commit/PR**: 4ac5749
+- **Notes**: Added a source-isolated E105 Freeze phase; all 12 replay metrics matched and all 12 checkpoints were checksummed before E104 evaluation.
+
+---
+
+## [LRN-20260720-003] best_practice
+
+**Logged**: 2026-07-20T21:28:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+Every new completed-result scope under `outputs/` must be added to the default result-index roots and covered by a discovery test before the first run uses it.
+
+### Details
+
+The E105 Freeze run correctly wrote `gate.json`, `results.jsonl`, progress, and
+checkpoint artifacts under `outputs/local_readiness/`. The mandatory
+`scripts/index-results` command returned `status=pass`, but the new run was
+absent because `local_readiness` was not in `DEFAULT_RESULT_ROOTS`. A successful
+index command therefore did not prove that the just-completed result had been
+indexed.
+
+The fix added `local_readiness` to discovery and scope priority, added a
+regression fixture, regenerated the index, and verified the Freeze run as
+entry `001`. The same audit also corrected `remote_results_incomplete` entries
+with a raw retrieval notice so they display `原始回收 / 尚未验证` instead of
+the misleading generic `结果已生成`.
+
+### Suggested Action
+
+Before writing a completed result to a new top-level output scope, update and
+test `DEFAULT_RESULT_ROOTS`. After every index refresh, assert the expected run
+ID, scope, completion number, and status text in the generated index; do not
+treat the command exit code alone as sufficient. Preserve the distinction
+between verified remote results and raw fallback retrievals.
+
+### Metadata
+
+- Source: result_handling_audit
+- Related Files: src/blockcipher_nd/evaluation/result_index.py, tests/test_result_index.py, outputs/00_RECENT_RESULTS.md
+- Tags: result-index, outputs, local-readiness, fallback-retrieval, reporting
+- See Also: LRN-20260714-002
+- Pattern-Key: outputs.index.new_scope_requires_discovery_test
+- Recurrence-Count: 1
+- First-Seen: 2026-07-20
+- Last-Seen: 2026-07-20
+
+### Resolution
+
+- **Resolved**: 2026-07-20T21:28:00+08:00
+- **Commit/PR**: b7f314b
+- **Notes**: Added local readiness discovery and explicit unverified-fallback status; focused result-index tests and refreshed index passed.
+
+---
