@@ -371,7 +371,7 @@ def _evaluate_candidates(
         initializer=_initialize_worker,
         initargs=(oracle,),
     ) as pool:
-        yield from pool.imap(_invoke_worker, candidates, chunksize=1)
+        yield from pool.imap_unordered(_invoke_worker, candidates, chunksize=1)
 
 
 def _build_relations(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 from dataclasses import replace
 from pathlib import Path
@@ -12,6 +13,7 @@ from blockcipher_nd.tasks.innovation2.atm_resumable_search_runner import (
     ControlledInterruption,
     ParameterMismatchError,
     ResumableSearchConfig,
+    _evaluate_candidates,
     _gf2_nullspace,
     run_resumable_integral_property_search,
 )
@@ -35,6 +37,12 @@ class CountingFixtureOracle:
         if input_weight + coordinate[1].bit_count() == 2:
             return False, set()
         return True, set()
+
+
+class DelayedFixtureOracle:
+    def __call__(self, coordinate: tuple[int, int]) -> tuple[bool, set[tuple[int, int]]]:
+        time.sleep(0.3 if coordinate == (0, 0) else 0.01)
+        return False, set()
 
 
 def _config(*, workers: int = 1) -> ResumableSearchConfig:
@@ -174,6 +182,19 @@ def test_two_worker_incremental_runner_preserves_math_result(tmp_path: Path) -> 
         output_root=tmp_path / "parallel",
     )
     assert parallel["relations"] == single["relations"]
+
+
+def test_parallel_candidates_return_as_completed_without_head_of_line_blocking() -> None:
+    results = _evaluate_candidates(
+        DelayedFixtureOracle(),
+        ((0, 0), (0, 1)),
+        num_workers=2,
+    )
+    try:
+        first_coordinate, _ = next(results)
+    finally:
+        results.close()
+    assert first_coordinate == (0, 1)
 
 
 def test_gf2_nullspace_returns_relation_between_duplicate_columns() -> None:
