@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 目标机实现与就绪门待执行
+状态：目标机 Phase A 修复后待重跑 / 九轮搜索尚未启动
 
 ## 1. 研究问题
 
@@ -77,6 +77,11 @@ E104新增Windows MSVC bitset构建路径，必须记录：
 - `.cp310-win_amd64.pyd` path/hash/size与真实import；
 - 固定依赖版本、`pip freeze`和安装日志；
 - single-process QMC兼容shim与16个PRESENT S-box转移模型复用。
+
+目标机 Git 全局配置为 `core.autocrlf=true`。冻结来源门因此以冻结 commit 的 Git blob
+计算 SHA-256，并单独要求 tracked worktree 干净；Windows 工作树中的 bitset 源码另记录原始
+SHA-256，并将 CRLF 规范化为仓库 LF 后复核冻结 SHA-256。该处理只消除平台换行差异，任何
+冻结 blob、commit 或 tracked worktree 内容漂移仍会关闭来源门。
 
 依赖锁必须至少包括`numpy`、`pybind11`、`ortools`、`python-sat`和`galois`，且在run-owned venv中
 完成import smoke。网络安装失败是环境hold，不得回退到共享环境脏装或把文件写到`C:\Users`。
@@ -185,3 +190,18 @@ outputs/remote_results/i2_present_r9_atm_split333_resumable_generation_20260720/
 ## 9. 正式结果
 
 待执行。
+
+### 9.1 Phase A 启动记录
+
+2026-07-20 首次到达真实 readiness 后暴露两个环境问题，均发生在候选探针和长搜索之前：
+
+```text
+attempt source = de97bab8dd44eb4a91730cb7f3d7496f8efd50b9
+ATM commit     = b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
+torch import   = failed through eager innovation2 package import
+source gate    = failed because Windows core.autocrlf changed LF bytes to CRLF
+probe/search   = not started
+```
+
+延迟导入修复 `8073a8f` 与 Windows 来源哈希修复 `e5411d8` 已推送。下一次启动必须同步这些
+提交，并通过 Git blob 来源校验、Phase A 环境门和两个10分钟候选探针后，才允许进入九轮搜索。
