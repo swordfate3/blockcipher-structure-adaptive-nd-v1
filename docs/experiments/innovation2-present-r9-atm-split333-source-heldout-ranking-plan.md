@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 等待E104生成门
+状态：Freeze通过 / 12个E99 checkpoint已冻结 / Evaluate等待E104生成门
 
 ## 1. 研究问题
 
@@ -107,4 +107,32 @@ Freeze至少输出checkpoint manifest、12个权重、复现指标、gate、prog
 
 ## 7. 正式结果
 
-待E104与E105执行完成后填写。
+### 7.1 Freeze阶段
+
+2026-07-20本地CPU完成公开语料checkpoint重放：
+
+```text
+status                 = pass
+decision               = innovation2_present_r9_e99_coordinate_checkpoints_frozen
+public source checks   = 8/8 pass
+checkpoint replay      = 12/12 exact metric match
+checkpoint files       = 12
+heldout source read    = false
+E104 relations read    = false
+```
+
+全部公开ATM文件hash、冻结commit、470条序列化关系、468维联合秩、E99 summary/gate hash均通过。
+每个seed的六个`coordinate_deepsets`最终epoch模型都复现原E99逐折Recall@1、Recall@5、MRR、loss、
+rank边界和参数量；12个checkpoint分别写入SHA-256 manifest。Freeze没有E104命令行参数，输出manifest
+也明确记录`heldout_source_read=false`，因此新`(3,3,3)`关系未用于训练或选择。
+
+产物：
+
+```text
+outputs/local_readiness/
+i2_present_r9_atm_e99_coordinate_checkpoint_replay_seed0_seed1_20260720/
+```
+
+当前裁决只开放Evaluate readiness，不构成新的神经性能结果。下一步严格等待E104
+`generation_passed`及来源/模型/参数hash检索通过，再加载已冻结权重做零适配排序；E104若进入
+resource cap、hold或fail，Evaluate保持关闭。

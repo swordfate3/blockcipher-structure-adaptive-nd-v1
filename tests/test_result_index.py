@@ -30,11 +30,40 @@ def _set_mtime(path: Path, timestamp: float) -> None:
 def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
     assert DEFAULT_RESULT_ROOTS == (
         "local_smoke",
+        "local_readiness",
         "local_diagnostic",
         "local_audits",
         "smoke",
         "remote_results",
         "remote_results_incomplete",
+    )
+
+
+def test_result_index_includes_local_readiness_checkpoint_replay(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_atm_e99_coordinate_checkpoint_replay_seed0_seed1_20260720"
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r9_e99_coordinate_checkpoints_frozen",
+        },
+    )
+    (run_root / "results.jsonl").write_text("{}\n", encoding="utf-8")
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert len(entries) == 1
+    assert entries[0]["scope"] == "local_readiness"
+    assert entries[0]["run_id"] == run_id
+    assert entries[0]["display_name"] == (
+        "创新2 E105-F：PRESENT九轮E99坐标模型权重冻结重放"
+    )
+    assert entries[0]["decision_display"] == (
+        "E99坐标集合模型12个折权重全部复现并冻结，等待E104来源留出评估"
     )
 
 

@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 DEFAULT_RESULT_ROOTS = (
     "local_smoke",
+    "local_readiness",
     "local_diagnostic",
     "local_audits",
     "smoke",
@@ -25,9 +26,10 @@ _SCOPE_PRIORITY = {
     "remote_results": 0,
     "remote_results_incomplete": 1,
     "local_diagnostic": 2,
-    "local_audits": 3,
-    "local_smoke": 4,
-    "smoke": 5,
+    "local_readiness": 3,
+    "local_audits": 4,
+    "local_smoke": 5,
+    "smoke": 6,
 }
 
 ARTIFACT_LABELS = {
@@ -1304,6 +1306,12 @@ DECISION_LABELS = {
     "innovation2_present_r9_pu_neural_ranking_protocol_invalid": (
         "九轮PU神经排序来源、折、候选或指标协议无效"
     ),
+    "innovation2_present_r9_e99_coordinate_checkpoints_frozen": (
+        "E99坐标集合模型12个折权重全部复现并冻结，等待E104来源留出评估"
+    ),
+    "innovation2_present_r9_e99_checkpoint_replay_invalid": (
+        "E99坐标模型重放未完全复现，禁止读取E104关系"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -2053,6 +2061,13 @@ def display_name_for_run(run_id: str) -> str:
         "seed0_seed1_20260720"
     ):
         return "创新2 E100：PRESENT九轮坐标身份保持拓扑残差归因"
+    if run_id == (
+        "i2_present_r9_atm_e99_coordinate_checkpoint_replay_"
+        "seed0_seed1_20260720"
+    ):
+        return "创新2 E105-F：PRESENT九轮E99坐标模型权重冻结重放"
+    if run_id == "i2_present_r9_atm_split333_resumable_generation_20260720":
+        return "创新2 E104：PRESENT九轮ATM缺失(3,3,3) split可恢复生成"
     if run_id == (
         "i2_present_r9_r10_atm_source_generation_resume_readiness_20260720"
     ):
