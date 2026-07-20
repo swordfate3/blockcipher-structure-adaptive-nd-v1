@@ -28,8 +28,9 @@ heldout source  = E104本地检索并验证通过的R9 (3,3,3) relations.json
 key model       = independent 64-bit round keys
 ```
 
-E105必须验证公开八文件hash、E99 gate/summary hash、E104 gate/manifest/relations hash、九轮与
-`(3,3,3)`参数、来源commit及`generation_passed.marker`。E104处于running、fallback-retrieved、
+E105必须验证公开八文件hash、E99 gate/summary hash、E104 gate/relations hash、冻结ATM source
+hash、完整64-bit模型hash、search parameter hash及`generation_passed.marker`；并在输出中生成本次
+输入hash manifest。E104处于running、fallback-retrieved、
 resource-cap、hold或fail时不得读取其关系进行评估。
 
 ## 3. 两阶段冻结协议

@@ -136,6 +136,7 @@ def test_source_heldout_evaluation_is_zero_update_and_small_set_is_diagnostic(
         checkpoint_manifest=manifest,
         checkpoint_root=tmp_path,
         e104_gate={"status": "pass", "decision": "innovation2_present_r9_split333_generation_passed"},
+        e104_evidence_checks={"frozen_e104_evidence": True},
         device="cpu",
     )
     assert result["gate"]["status"] == "hold"
@@ -157,6 +158,7 @@ def test_source_heldout_gate_rejects_unverified_e104_source(tmp_path: Path) -> N
         checkpoint_manifest=manifest,
         checkpoint_root=tmp_path,
         e104_gate={"status": "hold", "decision": "resource_cap_hit"},
+        e104_evidence_checks={"frozen_e104_evidence": True},
         device="cpu",
     )
     assert result["gate"]["status"] == "fail"

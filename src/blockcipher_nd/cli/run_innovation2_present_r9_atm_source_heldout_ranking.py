@@ -18,6 +18,10 @@ from blockcipher_nd.tasks.innovation2.present_r9_atm_source_heldout_ranking impo
     serializable_config,
     sha256,
 )
+from blockcipher_nd.tasks.innovation2.present_r9_atm_split333_generation import (
+    SOURCE_HASHES,
+    search_config,
+)
 from blockcipher_nd.tasks.innovation2.present_r9_pu_ranking_readiness import (
     audit_sources,
     load_relation_groups,
@@ -145,7 +149,18 @@ def _evaluate(args: argparse.Namespace) -> int:
     e104_gate_path = args.e104_root / "gate.json"
     relations_path = args.e104_root / "relations.json"
     marker_path = args.e104_root / "generation_passed.marker"
-    required = (manifest_path, e104_gate_path, relations_path, marker_path)
+    source_hashes_path = args.e104_root / "source_hashes.json"
+    model_contract_path = args.e104_root / "model_contract.json"
+    search_metadata_path = args.e104_root / "search_state/metadata.json"
+    required = (
+        manifest_path,
+        e104_gate_path,
+        relations_path,
+        marker_path,
+        source_hashes_path,
+        model_contract_path,
+        search_metadata_path,
+    )
     if not all(path.is_file() for path in required):
         gate = {
             "run_id": config.evaluation_run_id,
@@ -160,6 +175,20 @@ def _evaluate(args: argparse.Namespace) -> int:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     e104_gate = json.loads(e104_gate_path.read_text(encoding="utf-8"))
+    source_hashes = json.loads(source_hashes_path.read_text(encoding="utf-8"))
+    model_contract = json.loads(model_contract_path.read_text(encoding="utf-8"))
+    search_metadata = json.loads(search_metadata_path.read_text(encoding="utf-8"))
+    generation_marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    expected_parameter_hash = search_config().parameter_hash()
+    e104_evidence_checks = {
+        "source_hashes_match_frozen_atm": source_hashes == SOURCE_HASHES,
+        "model_sha256_matches_full_present64": model_contract.get("sha256")
+        == "ccc91bfdb16e6104eeca6fde32ec71951f130c261e17b5b7202e6197304166d2",
+        "search_parameter_hash_matches": search_metadata.get("parameter_hash")
+        == expected_parameter_hash,
+        "generation_marker_parameter_hash_matches": generation_marker.get("parameter_hash")
+        == expected_parameter_hash,
+    }
     relations = load_relations_json(relations_path)
     public_groups = load_relation_groups(args.results_root)
     evaluation = evaluate_source_heldout(
@@ -169,6 +198,7 @@ def _evaluate(args: argparse.Namespace) -> int:
         checkpoint_manifest=manifest,
         checkpoint_root=args.checkpoint_root,
         e104_gate=e104_gate,
+        e104_evidence_checks=e104_evidence_checks,
         device=args.device,
     )
     metadata = {
@@ -186,6 +216,9 @@ def _evaluate(args: argparse.Namespace) -> int:
             "e104_gate": sha256(e104_gate_path),
             "e104_relations": sha256(relations_path),
             "e104_generation_marker": sha256(marker_path),
+            "e104_source_hashes": sha256(source_hashes_path),
+            "e104_model_contract": sha256(model_contract_path),
+            "e104_search_metadata": sha256(search_metadata_path),
         },
         "claim_scope": evaluation["gate"].get("claim_scope", "protocol invalid"),
     }

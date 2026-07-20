@@ -210,6 +210,7 @@ def evaluate_source_heldout(
     checkpoint_manifest: dict[str, Any],
     checkpoint_root: Path,
     e104_gate: dict[str, Any],
+    e104_evidence_checks: dict[str, bool],
     device: str,
 ) -> dict[str, Any]:
     public_relations = set().union(*public_groups.values())
@@ -231,6 +232,7 @@ def evaluate_source_heldout(
     source_checks = {
         "e104_status_pass": e104_gate.get("status") == "pass",
         "e104_decision_matches": e104_gate.get("decision") == E104_DECISION,
+        **e104_evidence_checks,
         "heldout_relations_nonempty": bool(heldout_relations),
         "heldout_exact_public_overlap_zero": not bool(heldout_relations & public_relations),
     }
