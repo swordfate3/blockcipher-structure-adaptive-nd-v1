@@ -138,6 +138,7 @@ RUN_ROOT。启动命令返回后只做一次有界确认：run目录、started m
 等待远程 complete / hold / timeout / failure marker；
 低频检查monitor健康，不在主线程SSH轮询；
 完成或阶段裁决后从 G:/lxy/blockcipher-structure-adaptive-nd-runs 拉回原始产物；
+每次回收先写入全新staging快照，旧raw回收归档后再切换，禁止把历史失败marker合并进成功快照；
 校验Git提交、参数hash、结果hash、来源hash与manifest；
 写入 outputs/remote_results 或 remote_results_incomplete；
 触发文档、可视化、visual-qa-redraw和最近结果索引更新。

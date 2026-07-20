@@ -27,6 +27,12 @@ VALIDATION_RUN_ID = "i2_present_r9_atm_split333_retrieval_validation_20260720"
 EXPECTED_SOURCE_COMMIT = "85fc73200c56730894522034f5819bf72e0cb792"
 EXPECTED_MODEL_SHA256 = "ccc91bfdb16e6104eeca6fde32ec71951f130c261e17b5b7202e6197304166d2"
 GENERATION_DECISION = "innovation2_present_r9_split333_generation_passed"
+CONFLICTING_SUCCESS_TERMINALS = (
+    "pipeline_failed.marker",
+    "probe_failed.marker",
+    "resource_cap_hit.marker",
+    "setup_failed.marker",
+)
 
 
 @dataclass(frozen=True)
@@ -135,6 +141,9 @@ def validate_split333_retrieval(
         parameter_hash=expected_parameter_hash,
     )
     checks = {
+        "no_conflicting_terminal_markers": not any(
+            (logs / name).exists() for name in CONFLICTING_SUCCESS_TERMINALS
+        ),
         "source_commit_matches": source_revision == config.expected_source_commit,
         "atm_commit_matches": atm_revision == config.expected_atm_commit,
         "source_tracked_worktree_clean": len(source_status_lines) == 1

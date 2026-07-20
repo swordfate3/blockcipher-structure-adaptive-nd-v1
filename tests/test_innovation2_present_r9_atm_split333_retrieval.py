@@ -182,6 +182,22 @@ def test_e104_retrieval_validation_rejects_corrupt_candidate(tmp_path: Path) -> 
     assert validation["next_action"]["e105_open"] is False
 
 
+def test_e104_retrieval_rejects_stale_conflicting_terminal_marker(
+    tmp_path: Path,
+) -> None:
+    raw = _complete_raw_retrieval(tmp_path)
+    (raw / "logs/probe_failed.marker").write_text("stale\n", encoding="utf-8")
+
+    validation = validate_split333_retrieval(
+        Split333RetrievalConfig(),
+        raw_root=raw,
+    )
+
+    assert validation["status"] == "fail"
+    assert validation["checks"]["no_conflicting_terminal_markers"] is False
+    assert validation["next_action"]["e105_open"] is False
+
+
 def test_e104_retrieval_uses_latest_numbered_resume_probes(tmp_path: Path) -> None:
     raw = _complete_raw_retrieval(tmp_path)
     results = raw / "results"
