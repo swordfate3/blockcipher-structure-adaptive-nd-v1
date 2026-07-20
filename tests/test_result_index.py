@@ -2111,6 +2111,31 @@ def test_result_index_labels_innovation2_e99_pu_neural_ranking(
     )
 
 
+def test_result_index_labels_innovation2_e100_identity_topology_residual(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_present_r9_identity_topology_residual_attribution_"
+        "seed0_seed1_20260720"
+    )
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_r9_coordinate_identity_anchor_remains_best",
+        },
+    )
+    entries = build_result_index(outputs, limit=10)
+    assert entries[0]["display_name"] == (
+        "创新2 E100：PRESENT九轮坐标身份保持拓扑残差归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮坐标身份锚点仍最佳，停止当前PRESENT拓扑分支"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:

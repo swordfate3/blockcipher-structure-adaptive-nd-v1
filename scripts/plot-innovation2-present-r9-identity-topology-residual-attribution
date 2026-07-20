@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.plot_innovation2_present_r9_identity_topology_residual_attribution import main
+
+raise SystemExit(main())

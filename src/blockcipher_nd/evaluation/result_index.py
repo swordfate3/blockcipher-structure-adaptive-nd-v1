@@ -1304,6 +1304,18 @@ DECISION_LABELS = {
     "innovation2_present_r9_pu_neural_ranking_protocol_invalid": (
         "九轮PU神经排序来源、折、候选或指标协议无效"
     ),
+    "innovation2_present_r9_identity_true_p_residual_attributed": (
+        "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
+    ),
+    "innovation2_present_r9_identity_residual_capacity_only": (
+        "九轮身份残差只有容量收益，真实P未超过错误P控制"
+    ),
+    "innovation2_present_r9_coordinate_identity_anchor_remains_best": (
+        "九轮坐标身份锚点仍最佳，停止当前PRESENT拓扑分支"
+    ),
+    "innovation2_present_r9_identity_topology_residual_protocol_invalid": (
+        "九轮身份拓扑残差的来源、配对模型、fold或指标协议无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -2003,6 +2015,11 @@ def display_name_for_run(run_id: str) -> str:
         "seed0_seed1_20260720"
     ):
         return "创新2 E99：PRESENT九轮ATM轨道互斥PU神经排序双seed门"
+    if run_id == (
+        "i2_present_r9_identity_topology_residual_attribution_"
+        "seed0_seed1_20260720"
+    ):
+        return "创新2 E100：PRESENT九轮坐标身份保持拓扑残差归因"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
