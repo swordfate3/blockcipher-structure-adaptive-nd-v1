@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_innovation2_present_sbox4_real_atm_runner_compatibility import main
+
+raise SystemExit(main())

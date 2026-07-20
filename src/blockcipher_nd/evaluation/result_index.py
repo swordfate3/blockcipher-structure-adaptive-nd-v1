@@ -1334,6 +1334,21 @@ DECISION_LABELS = {
     "innovation2_present_atm_resumable_runner_protocol_invalid": (
         "ATM恢复runner的来源、等价性、完整性或参数协议无效"
     ),
+    "innovation2_present_sbox4_real_atm_compatibility_passed": (
+        "真实ATM小切片兼容门通过，只开放R9缺失split的受控计划"
+    ),
+    "innovation2_present_sbox4_real_atm_environment_incompatible": (
+        "真实ATM的bitset、依赖、QMC或Manager运行环境不兼容"
+    ),
+    "innovation2_present_sbox4_real_atm_runner_mismatch": (
+        "真实ATM官方搜索与可恢复runner的空间或恢复协议不一致"
+    ),
+    "innovation2_present_sbox4_real_atm_resource_cap_hit": (
+        "真实ATM小切片超过资源上限，R9生成继续关闭"
+    ),
+    "innovation2_present_sbox4_real_atm_source_protocol_invalid": (
+        "E102或真实ATM冻结来源重放无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -2044,6 +2059,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E101：PRESENT九/十轮ATM新来源生成与恢复就绪审计"
     if run_id == "i2_present_atm_resumable_search_runner_fixture_20260720":
         return "创新2 E102：PRESENT ATM逐候选断点恢复一致性门"
+    if run_id == "i2_present_sbox4_r3_real_atm_runner_compatibility_20260720":
+        return "创新2 E103：PRESENT S-box 4-bit三轮真实ATM兼容性门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

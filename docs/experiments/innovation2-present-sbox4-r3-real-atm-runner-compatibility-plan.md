@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 待环境构建与执行
+状态：已完成 / `real_atm_compatibility_passed`
 
 ## 1. 研究问题
 
@@ -117,4 +117,89 @@ output = outputs/local_audits/i2_present_sbox4_r3_real_atm_runner_compatibility_
 
 ## 6. 正式结果
 
-待执行。
+执行时间：2026-07-20。正式命令受外层180秒硬上限约束，实际8.72秒完成。第一次沙箱内执行在
+`multiprocessing.Manager()`创建本地IPC socket时被系统拒绝，发生在任何候选搜索之前；清理该次
+半成品后，在允许本地IPC的环境按完全相同协议重跑并得到以下结果。
+
+```text
+status   = pass
+decision = innovation2_present_sbox4_real_atm_compatibility_passed
+remote   = no
+R9/R10 search = not started
+```
+
+冻结来源`5/5`、环境`7/7`、真实运行`14/14`全部通过。当前CPython 3.13 ABI下从冻结C++源原子
+重建并导入：
+
+```text
+extension = bitset.cpython-313-x86_64-linux-gnu.so
+sha256    = 09b1212b56f489a24cc2bdd4fbaa97120909ed3506b602185b3268504f87c361
+g++       = 11.4.0
+galois    = 0.4.11
+ortools   = 9.15.6755
+python-sat= 1.9.dev6
+pybind11  = 3.0.4
+numpy     = 2.4.6
+```
+
+single-process QMC兼容shim构造出的统一模型hash为
+`256bb0847cb295298e241b5e5698dc1114ae0d514467b6a3baa7c7e938edf051`，统一模型16变量、
+71 clauses；`f1/f2/f3`分别57/73/57 clauses和4/8/4个独立key变量。
+
+真实运行指标：
+
+| 路线 | 外层候选调用 | 内部oracle activity | 最终关系数 | GF(2)秩 | 时间 |
+|---|---:|---:|---:|---:|---:|
+| 官方`Search.py`两worker | 16 | 14,234 | 0 | 0 | 0.645 s |
+| route-owned两worker中断恢复 | 18 | 14,992 | 0 | 0 | 恢复段0.190 s |
+
+runner中断时两个worker已实际调用3个候选，但父进程只收到并原子持久化1个；恢复后该已完成候选
+没有再次调用，另外两个只预取未落盘的候选允许重算。因此18对16的差值是透明记录的并行预取成本，
+不是结果漂移或“零恢复开销”宣传。
+
+两边最终均为空关系空间、秩0、singleton 0，双向span与singleton一致性检查通过。这个结果足以说明
+官方构模、真实`Avec`、Manager cache、PySAT、bitset和两进程调度能被runner承载，但关系相等是空
+空间上的兼容证据，不能当作新积分关系、负例、PRESENT高轮结果或模型效果。
+
+分阶段耗时：
+
+```text
+bitset rebuild = 6.809 s
+model build    = 0.020 s
+official search= 0.645 s
+runner resume  = 0.190 s
+total gate     = 8.720 s / 180 s cap
+```
+
+完整产物：
+
+```text
+outputs/local_audits/i2_present_sbox4_r3_real_atm_runner_compatibility_20260720/
+```
+
+`curves.svg`第一次像素检查发现总耗时说明压近最高柱、零关系用伪高度柱可能误导；重绘后总耗时移入
+独立白底说明，四个零值改为零轴空心标记。最终经`visual-qa-redraw`以2500x1357像素检查，标题、
+柱值、零值、坐标轴、注释、裁决和证据边界无重叠、裁切、缺字或误导性非零表达。
+
+## 7. 推荐下一步
+
+预注册E104“PRESENT R9 `(3,3,3)`单split受控生成计划与目标机就绪门”。E103只开放计划，未开放
+立即长跑；E104必须在任何真实候选启动前完成：
+
+```text
+question = 目标机器能否在可取消、可恢复、磁盘容量可控的条件下只生成缺失R9 split？
+same-source anchor = 冻结公开R9八个split的stats、文件维数和hash
+candidate = notebook声明但无公开结果的R9 (3,3,3)，limit=2^10，36 threads
+one variable = split；构模、independent 64-bit round keys、Avec和搜索语义保持官方协议
+training/seeds/epochs = 不适用
+execution = CPU/SAT长任务，优先远程受控工作目录；不是GPU神经训练
+```
+
+就绪门必须验证目标机Python/编译器/bitset ABI和依赖锁、冻结Git提交、64-bit真实构模dry-run、
+逐候选cache文件大小抽样、磁盘预算、Manager IPC、36线程上限、进程回收、超时/取消、参数匹配恢复、
+started/progress/complete、原始结果安全转换和本地tmux monitor/retrieval。历史R9单split仅提供0.75至
+6.61小时参考，不能保证`(3,3,3)`耗时；应设置分阶段墙钟预算和早停，不并行R10九split。
+
+只有目标机dry-run与缓存容量门通过，才可启动唯一的R9 `(3,3,3)`长搜索。完成后称
+`locally generated confirmation set`，不能冒充公开论文结果或独立publication。若目标机ABI、
+磁盘、IPC、恢复或资源门失败，只修E104就绪问题，不退回原notebook不可恢复长跑。

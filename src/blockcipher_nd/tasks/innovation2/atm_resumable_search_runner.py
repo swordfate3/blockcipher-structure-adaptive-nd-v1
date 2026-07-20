@@ -442,6 +442,10 @@ def _candidate_path(
 def _normalize_oracle_result(raw: Any) -> OracleResult:
     if not isinstance(raw, tuple) or len(raw) != 2 or not isinstance(raw[0], bool):
         raise TypeError("ATM oracle must return (bool, iterable[(int, int)])")
+    if raw[1] is None:
+        if not raw[0]:
+            raise TypeError("key-independent ATM oracle results must include a support iterable")
+        return True, set()
     support: set[Coordinate] = set()
     for item in raw[1]:
         if (

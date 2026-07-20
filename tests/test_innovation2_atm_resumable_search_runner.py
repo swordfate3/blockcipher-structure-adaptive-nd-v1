@@ -178,3 +178,34 @@ def test_two_worker_incremental_runner_preserves_math_result(tmp_path: Path) -> 
 
 def test_gf2_nullspace_returns_relation_between_duplicate_columns() -> None:
     assert _gf2_nullspace((0b11,), width=2) == (0b11,)
+
+
+def test_official_key_dependent_none_support_is_accepted(tmp_path: Path) -> None:
+    class OfficialShapeOracle:
+        def __call__(
+            self, coordinate: tuple[int, int]
+        ) -> tuple[bool, set[tuple[int, int]] | None]:
+            return True, None
+
+    result = run_resumable_integral_property_search(
+        OfficialShapeOracle(),
+        config=_config(),
+        output_root=tmp_path / "run",
+    )
+    assert result["relations"] == ()
+    assert result["key_dependent_candidates"] == 9
+
+
+def test_key_independent_none_support_is_rejected(tmp_path: Path) -> None:
+    class InvalidOracle:
+        def __call__(
+            self, coordinate: tuple[int, int]
+        ) -> tuple[bool, set[tuple[int, int]] | None]:
+            return False, None
+
+    with pytest.raises(TypeError, match="key-independent"):
+        run_resumable_integral_property_search(
+            InvalidOracle(),
+            config=_config(),
+            output_root=tmp_path / "run",
+        )
