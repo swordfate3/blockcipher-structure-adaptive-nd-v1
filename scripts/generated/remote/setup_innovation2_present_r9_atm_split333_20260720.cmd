@@ -15,6 +15,7 @@ set PIP_CACHE_DIR=%RUN_ROOT%\pip-cache
 set PYTHONUTF8=1
 set BASE_PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set PY=%VENV%\Scripts\python.exe
+set PYTHONPATH=%SOURCE%\src
 set REPO=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
 set ATM_REPO=https://github.com/michielverbauwhede/AlgebraicTransitionMatrices.git
 set ATM_COMMIT=b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b

@@ -7,6 +7,7 @@ set ATM_ROOT=%RUN_ROOT%\atm-source
 set OUTPUT=%RUN_ROOT%\results
 set LOGS=%RUN_ROOT%\logs
 set PY=%RUN_ROOT%\venv\Scripts\python.exe
+set PYTHONPATH=%SOURCE%\src
 set PYTHONUTF8=1
 
 call G:\lxy\blockcipher-structure-adaptive-nd-v1-clean\scripts\generated\remote\setup_innovation2_present_r9_atm_split333_20260720.cmd

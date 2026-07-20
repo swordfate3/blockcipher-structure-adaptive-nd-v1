@@ -101,6 +101,8 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "!" not in combined
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in setup
     assert "set VENV=%RUN_ROOT%\\venv" in setup
+    assert "set PYTHONPATH=%SOURCE%\\src" in setup
+    assert "set PYTHONPATH=%SOURCE%\\src" in pipeline
     assert "--stage-id readiness --marker-root %LOGS%" in setup
     assert setup.count("status --porcelain") == 2
     assert "bitarrays/bitset*.pyd" in setup
