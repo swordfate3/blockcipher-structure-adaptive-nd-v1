@@ -6,6 +6,7 @@ set http_proxy=
 set https_proxy=
 set RUN_ID=i2_present_r9_atm_split333_resumable_generation_20260720
 set RUN_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs\%RUN_ID%
+set BOOTSTRAP=G:\lxy\blockcipher-structure-adaptive-nd-v1-clean
 set SOURCE=%RUN_ROOT%\source
 set ATM_ROOT=%RUN_ROOT%\atm-source
 set VENV=%RUN_ROOT%\venv
@@ -40,6 +41,10 @@ if exist %LOGS%\readiness_done.marker del %LOGS%\readiness_done.marker
 if exist %LOGS%\readiness_timeout.marker del %LOGS%\readiness_timeout.marker
 if exist %LOGS%\readiness_failed.marker del %LOGS%\readiness_failed.marker
 
+for /f "delims=" %%A in ('git -C %BOOTSTRAP% rev-parse HEAD') do set SOURCE_COMMIT=%%A
+if not defined SOURCE_COMMIT goto setup_failed
+echo %SOURCE_COMMIT%> %LOGS%\bootstrap_revision.txt
+
 if not exist %SOURCE%\.git git clone %REPO% %SOURCE%
 if errorlevel 1 goto setup_failed
 git config --global --add safe.directory %SOURCE%
@@ -47,11 +52,16 @@ git -C %SOURCE% status --short --branch > %LOGS%\source_status_before_sync.txt
 for /f "delims=" %%A in ('git -C %SOURCE% status --porcelain') do goto source_dirty
 git -C %SOURCE% fetch origin
 if errorlevel 1 goto setup_failed
+git -C %SOURCE% cat-file -e %SOURCE_COMMIT%
+if errorlevel 1 git -C %SOURCE% fetch origin %SOURCE_COMMIT%
+if errorlevel 1 goto setup_failed
 git -C %SOURCE% checkout main
 if errorlevel 1 goto setup_failed
-git -C %SOURCE% pull --ff-only origin main
+git -C %SOURCE% merge --ff-only %SOURCE_COMMIT%
 if errorlevel 1 goto setup_failed
-git -C %SOURCE% rev-parse HEAD > %LOGS%\source_revision.txt
+for /f "delims=" %%A in ('git -C %SOURCE% rev-parse HEAD') do set ACTUAL_SOURCE_COMMIT=%%A
+if not "%ACTUAL_SOURCE_COMMIT%"=="%SOURCE_COMMIT%" goto setup_failed
+echo %ACTUAL_SOURCE_COMMIT%> %LOGS%\source_revision.txt
 git -C %SOURCE% status --short --branch > %LOGS%\source_status_after_sync.txt
 
 if not exist %ATM_ROOT%\.git git clone %ATM_REPO% %ATM_ROOT%

@@ -103,6 +103,11 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "EnableDelayedExpansion" not in combined
     assert "!" not in combined
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in setup
+    assert "set BOOTSTRAP=G:\\lxy\\blockcipher-structure-adaptive-nd-v1-clean" in setup
+    assert "set SOURCE_COMMIT=%%A" in setup
+    assert "git -C %SOURCE% merge --ff-only %SOURCE_COMMIT%" in setup
+    assert "set ACTUAL_SOURCE_COMMIT=%%A" in setup
+    assert 'if not "%ACTUAL_SOURCE_COMMIT%"=="%SOURCE_COMMIT%"' in setup
     assert "set VENV=%RUN_ROOT%\\venv" in setup
     assert setup.count("-m venv --system-site-packages %VENV%") == 2
     assert 'import torch; print(torch.__version__)' in setup

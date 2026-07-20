@@ -208,3 +208,8 @@ probe/search   = not started
 提交；setup 还必须显式调用已验证存在的 Visual Studio 2022 `vcvars64.bat`，使 `math.h` 等
 Windows SDK 头文件对 MSVC 可见。通过 Git blob 来源校验、Phase A 环境门和两个10分钟候选
 探针后，才允许进入九轮搜索。
+
+连续重启还暴露了 bootstrap 与 run-owned source 各自追踪 `origin/main` 的竞态：run-owned source
+每次落后启动脚本一个提交，使刚修复的环境逻辑没有进入实际进程。后续 setup 必须读取 bootstrap
+clone 的精确 HEAD，将 run-owned source 以 `--ff-only` 快进到同一提交，并在 readiness 前验证两者
+相同；只比较两个独立的 `origin/main` 状态不足以证明计划对齐。
