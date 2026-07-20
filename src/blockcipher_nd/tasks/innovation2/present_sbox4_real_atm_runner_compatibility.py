@@ -120,14 +120,23 @@ def build_bitset_extension(
         includes=includes,
         build_root=atm_root / "bitarrays/.build",
     )
+    output_encoding = "mbcs" if platform_name == "nt" else "utf-8"
     started = time.perf_counter()
     try:
         completed = subprocess.run(
             command,
-            check=True,
+            check=False,
             capture_output=True,
             text=True,
+            encoding=output_encoding,
+            errors="replace",
         )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                "bitset extension compilation failed\n"
+                f"stdout:\n{completed.stdout}\n"
+                f"stderr:\n{completed.stderr}"
+            )
         os.replace(temporary, output)
     finally:
         if temporary.exists():
@@ -137,6 +146,8 @@ def build_bitset_extension(
         check=True,
         capture_output=True,
         text=True,
+        encoding=output_encoding,
+        errors="replace",
     ).stdout.splitlines()[0]
     if shutil.which("file"):
         file_type = subprocess.run(
