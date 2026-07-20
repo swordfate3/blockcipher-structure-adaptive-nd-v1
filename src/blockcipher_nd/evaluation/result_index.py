@@ -1325,6 +1325,15 @@ DECISION_LABELS = {
     "innovation2_present_high_round_source_generation_audit_protocol_invalid": (
         "PRESENT高轮来源、notebook、stats或E100重放协议无效"
     ),
+    "innovation2_present_atm_resumable_runner_fixture_passed": (
+        "ATM逐候选恢复fixture通过，只开放真实ATM低成本兼容性门"
+    ),
+    "innovation2_present_atm_resumable_runner_fixture_insufficient": (
+        "ATM恢复fixture路径覆盖不足，只扩充fixture而不启动真实搜索"
+    ),
+    "innovation2_present_atm_resumable_runner_protocol_invalid": (
+        "ATM恢复runner的来源、等价性、完整性或参数协议无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -2033,6 +2042,8 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r9_r10_atm_source_generation_resume_readiness_20260720"
     ):
         return "创新2 E101：PRESENT九/十轮ATM新来源生成与恢复就绪审计"
+    if run_id == "i2_present_atm_resumable_search_runner_fixture_20260720":
+        return "创新2 E102：PRESENT ATM逐候选断点恢复一致性门"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

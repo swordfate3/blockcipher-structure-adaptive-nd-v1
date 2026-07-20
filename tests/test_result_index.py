@@ -2158,6 +2158,28 @@ def test_result_index_labels_innovation2_e101_source_generation_resume(
     )
 
 
+def test_result_index_labels_innovation2_e102_resumable_runner_fixture(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_atm_resumable_search_runner_fixture_20260720"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_atm_resumable_runner_fixture_passed",
+        },
+    )
+    entries = build_result_index(outputs, limit=10)
+    assert entries[0]["display_name"] == (
+        "创新2 E102：PRESENT ATM逐候选断点恢复一致性门"
+    )
+    assert entries[0]["decision_display"] == (
+        "ATM逐候选恢复fixture通过，只开放真实ATM低成本兼容性门"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:

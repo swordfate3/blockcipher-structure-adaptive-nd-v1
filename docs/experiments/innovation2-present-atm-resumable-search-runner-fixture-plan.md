@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 待实现与执行
+状态：已完成 / `fixture_passed`
 
 ## 1. 研究问题
 
@@ -108,4 +108,66 @@ output = outputs/local_audits/i2_present_atm_resumable_search_runner_fixture_202
 
 ## 7. 正式结果
 
-待执行。
+执行时间：2026-07-20。E102使用冻结官方候选生成语义和route-owned逐候选持久化runner，完成
+3-bit确定性`Avec` fixture。没有构造或搜索PRESENT九/十轮关系，没有训练或远程任务。
+
+```text
+status   = pass
+decision = innovation2_present_atm_resumable_runner_fixture_passed
+remote   = no
+R9/R10 long search = closed
+```
+
+来源检查`5/5`通过：E101 gate hash/状态/裁决、ATM commit和官方`Search.py` hash全部重放一致。
+恢复协议`15/15`通过，产物契约`18/18`通过。核心同预算结果：
+
+| 运行 | Avec候选调用 | 结果关系数 | 说明 |
+|---|---:|---:|---|
+| 无中断锚点 | 16 | 7 | 完整顺序执行 |
+| 中断后恢复 | 16 | 7 | 第1个候选落盘后中断，恢复复用该候选 |
+| 损坏缓存恢复 | 17 | 7 | 首个候选文件损坏，被拒绝后只重算该候选 |
+
+无中断与恢复的规范化`result.json`逐字节相等，数学关系集相等；中断前完成候选的调用次数保持1，
+总oracle调用没有因正常恢复增加。另行验证：
+
+```text
+parameter mismatch rejection       = pass
+corrupt candidate rejection/retry  = pass
+unfinished temporary file ignored  = pass
+completed result hash reuse         = pass (0 new oracle calls)
+result-before-complete ordering     = pass
+basis / WUV / key-dependent paths  = 6 / 2 / 8 candidates
+```
+
+runner现在持续写参数hash、started marker、逐候选checksummed JSON、`progress.jsonl`、原子
+`result.json`和最后的complete marker。多worker路径使用父进程逐项接收的`Pool.imap`，候选文件只由
+父进程写入；两worker测试与单worker数学结果相同。重启后已完成候选不会重算，未完成候选与oracle
+内部Manager cache允许重建，这个性能降级已写入metadata而不改变结果语义。
+
+完整产物：
+
+```text
+outputs/local_audits/i2_present_atm_resumable_search_runner_fixture_20260720/
+```
+
+`curves.svg`经`visual-qa-redraw`渲染为2500x1351像素检查；标题、调用次数、恢复契约、路径覆盖、
+坐标轴、数据标签和证据边界均无重叠、裁切、缺字或结构歧义。
+
+## 8. 推荐下一步
+
+执行E103“真实ATM低成本兼容性门”，研究问题从文件机制推进到官方运行时兼容：
+
+```text
+question = runner能否承载冻结官方构模、真实Avec、Manager cache和多进程返回？
+anchor = 同一资源封顶真实ATM小任务的官方无恢复执行
+candidate = route-owned runner执行相同候选/oracle
+one variable = 调度与持久化；构模、Avec、limit、候选和数学结果保持一致
+scale = local CPU bounded compatibility only，秒/分钟级硬cap
+training/seeds/epochs = 不适用
+```
+
+E103必须先选择可在本地完成的低轮或缩小状态真实ATM fixture，并记录官方依赖、bitarray ABI、
+模型hash、进程数、oracle calls、wall-clock和硬cap。推进门要求官方与runner结果完全相等、至少一次
+真实多进程增量返回、cache/progress持续落盘、受控中断恢复不重算已完成候选。只有E103通过，才另立
+R9 `(3,3,3)`单split生成计划；R10九split、远程并行、神经训练和SOTA宣称继续关闭。若E103遇到
+环境/ABI或真实oracle不兼容，只修兼容性，不回退到不可恢复notebook长跑。
