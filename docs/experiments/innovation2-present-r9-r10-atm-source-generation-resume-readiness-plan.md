@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 待执行只读审计
+状态：已完成 / `resumable_runner_required`
 
 ## 1. 研究问题
 
@@ -124,4 +124,74 @@ output   = outputs/local_audits/i2_present_r9_r10_atm_source_generation_resume_r
 
 ## 6. 正式结果
 
-待执行。
+执行时间：2026-07-20。E101对冻结ATM提交进行了只读重放，没有执行ATM搜索、神经训练或远程任务。
+全部12项来源/协议检查通过：提交与文件hash、E100 gate、R9/R10 split、`2^10` limit、36线程声明、
+公开文件计数和8份历史stats均与预注册一致。
+
+```text
+status   = hold
+decision = innovation2_present_high_round_resumable_runner_required
+training = no
+search   = no
+remote   = no
+```
+
+来源覆盖：
+
+| 轮数 | notebook声明split | 公开pickle | 声明但无公开结果 |
+|---:|---:|---:|---:|
+| 9 | 9 | 8 | 1：`(3,3,3)` |
+| 10 | 9 | 0 | 9 |
+
+缺失项保持`declared_without_public_result`，不解释为零维、搜索失败或negative evidence。8个公开R9
+split的历史成本为：
+
+```text
+time min/median/max = 2714.433652 / 12580.347397 / 23786.157261 seconds
+                     = 0.75 / 3.49 / 6.61 hours
+oracle calls min/median/max = 2,666,126 / 139,139,663.5 / 220,841,578,547
+```
+
+环境10项检查通过7项：当前环境能发现所需Python模块，公开README记录bitarray构建命令；但
+`requirements.txt`没有固定版本，bitarray没有ABI/build元数据。原搜索恢复契约9项只通过2项，
+通过项只是“已有最终pickle则复用”和“完整搜索后才写结果”；生成门要求的7项全部缺失：
+
+```text
+started marker                    = false
+continuous progress.jsonl         = false
+incremental candidate/layer cache = false
+parameter-matched resume          = false
+atomic completion                 = false
+nonblocking incremental boundary  = false
+interrupted equality fixture      = false
+```
+
+因此公开notebook虽然明确声明R9/R10调用，却不能安全承担小时级长搜索。E101关闭`long_search_open`
+与`remote_scale`，只开放route-owned runner实现。
+
+完整产物：
+
+```text
+outputs/local_audits/i2_present_r9_r10_atm_source_generation_resume_readiness_20260720/
+```
+
+`curves.svg`经`visual-qa-redraw`渲染为2500x1350像素检查；三栏标题、中文说明、坐标轴、图例、
+数据标签和裁决说明无重叠、裁切、缺字或结构歧义。
+
+## 7. 推荐下一步
+
+执行E102“route-owned可恢复ATM搜索器fixture门”，只改变任务调度与持久化，不改变ATM数学oracle：
+
+```text
+question = 中断后能否严格复用已完成候选，并得到与无中断搜索完全相同的结果？
+same-budget anchor = 同一小型确定性fixture的一次无中断顺序执行
+candidate = 同一fixture经受控中断后，用同参数恢复执行
+one variable = 增量持久化/恢复调度；候选、oracle和结果规范化保持相同
+scale = 本地CPU小fixture；至少3个候选，在首个候选完成后受控中断
+seeds/epochs = 不适用（非神经训练）
+```
+
+runner必须写参数hash、started marker、逐候选原子结果、`progress.jsonl`和complete marker；恢复时跳过
+已完成候选，参数不匹配必须拒绝复用。推进门要求中断/无中断结果逐字节规范化相等、已完成候选调用
+次数不增加、半写文件不被当作完成、所有marker/hash验证通过。fixture通过后才另立R9 `(3,3,3)`
+生成计划；R10九个split、远程并行和神经训练继续关闭。若fixture失败，只修runner，不启动长搜索。

@@ -1316,6 +1316,15 @@ DECISION_LABELS = {
     "innovation2_present_r9_identity_topology_residual_protocol_invalid": (
         "九轮身份拓扑残差的来源、配对模型、fold或指标协议无效"
     ),
+    "innovation2_present_high_round_source_generation_ready": (
+        "PRESENT高轮新关系生成链路就绪，只允许预注册R9缺失split"
+    ),
+    "innovation2_present_high_round_resumable_runner_required": (
+        "PRESENT高轮源码有生成调用但缺少可靠恢复，先实现runner而不启动长搜索"
+    ),
+    "innovation2_present_high_round_source_generation_audit_protocol_invalid": (
+        "PRESENT高轮来源、notebook、stats或E100重放协议无效"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -2020,6 +2029,10 @@ def display_name_for_run(run_id: str) -> str:
         "seed0_seed1_20260720"
     ):
         return "创新2 E100：PRESENT九轮坐标身份保持拓扑残差归因"
+    if run_id == (
+        "i2_present_r9_r10_atm_source_generation_resume_readiness_20260720"
+    ):
+        return "创新2 E101：PRESENT九/十轮ATM新来源生成与恢复就绪审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
