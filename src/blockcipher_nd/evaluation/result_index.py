@@ -42,6 +42,9 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "raw_fallback_incomplete": (
+        "远程原始产物已回收，但尚未形成通过验证的结果分支或最终裁决"
+    ),
     "feistel_balanced_relation_readiness_passed": (
         "SIMON/SIMECK 轮关系实现就绪，进入 2048/类本地诊断"
     ),
@@ -1479,6 +1482,7 @@ STATUS_LABELS = {
     "hold": "暂缓",
     "running": "运行中",
     "results_available": "结果已生成",
+    "fallback_retrieved": "原始回收 / 尚未验证",
     "unknown": "状态未知",
 }
 
@@ -1625,6 +1629,12 @@ def _index_run(
     status = str(decision_payload.get("status") or "results_available")
     decision = str(decision_payload.get("decision") or "")
     claim_scope = str(decision_payload.get("claim_scope") or "")
+    if scope == "remote_results_incomplete" and (
+        run_root / "RAW_RETRIEVAL_NOTICE.txt"
+    ).is_file():
+        status = "fallback_retrieved"
+        if not decision:
+            decision = "raw_fallback_incomplete"
     return {
         "run_id": run_root.name,
         "display_name": display_name_for_run(run_root.name),

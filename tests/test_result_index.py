@@ -2841,6 +2841,23 @@ def test_result_index_prefers_verified_remote_copy_for_same_run_id(
     assert entries[0]["decision"] == "verified"
 
 
+def test_result_index_marks_raw_remote_fallback_as_unverified(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = outputs / "remote_results_incomplete" / "fallback_run"
+    run_root.mkdir(parents=True)
+    (run_root / "results.jsonl").write_text("{}\n", encoding="utf-8")
+    (run_root / "RAW_RETRIEVAL_NOTICE.txt").write_text(
+        "raw fallback\n",
+        encoding="utf-8",
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["status"] == "fallback_retrieved"
+    assert entries[0]["status_display"] == "原始回收 / 尚未验证"
+    assert entries[0]["decision"] == "raw_fallback_incomplete"
+
+
 def test_result_index_supports_r3_local_diagnostic_chinese_names(
     tmp_path: Path,
 ) -> None:
