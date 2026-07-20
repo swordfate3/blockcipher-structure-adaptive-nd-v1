@@ -7,6 +7,7 @@ import importlib.util
 import json
 import multiprocessing
 import os
+import shutil
 import subprocess
 import sys
 import sysconfig
@@ -83,14 +84,23 @@ class ManagerCountingOracle:
         return self.delegate(coordinate)
 
 
-def build_bitset_extension(atm_root: Path, *, compiler: str = "g++") -> dict[str, Any]:
+def build_bitset_extension(
+    atm_root: Path,
+    *,
+    compiler: str | None = None,
+    platform_name: str | None = None,
+) -> dict[str, Any]:
     source = atm_root / "bitarrays/src/bitset.cpp"
     header = atm_root / "bitarrays/src/bitset.hpp"
     extension_suffix = sysconfig.get_config_var("EXT_SUFFIX")
     if not extension_suffix:
         raise RuntimeError("Python EXT_SUFFIX is unavailable")
     output = atm_root / "bitarrays" / f"bitset{extension_suffix}"
-    temporary = output.with_name(f".{output.name}.{uuid.uuid4().hex}.tmp")
+    platform_name = platform_name or os.name
+    compiler = compiler or ("cl.exe" if platform_name == "nt" else "g++")
+    temporary = output.with_name(
+        f".{output.stem}.{uuid.uuid4().hex}{output.suffix}"
+    )
     includes = tuple(
         dict.fromkeys(
             value
@@ -102,21 +112,14 @@ def build_bitset_extension(atm_root: Path, *, compiler: str = "g++") -> dict[str
             if value
         )
     )
-    command = [
-        compiler,
-        "-O3",
-        "-Wall",
-        "-shared",
-        "-std=c++2a",
-        "-DNDEBUG",
-        "-funroll-loops",
-        "-fvisibility=hidden",
-        "-fPIC",
-        *(item for include in includes for item in ("-I", include)),
-        str(source),
-        "-o",
-        str(temporary),
-    ]
+    command, auxiliary_paths = _bitset_build_command(
+        platform_name=platform_name,
+        compiler=compiler,
+        source=source,
+        output=temporary,
+        includes=includes,
+        build_root=atm_root / "bitarrays/.build",
+    )
     started = time.perf_counter()
     try:
         completed = subprocess.run(
@@ -135,12 +138,15 @@ def build_bitset_extension(atm_root: Path, *, compiler: str = "g++") -> dict[str
         capture_output=True,
         text=True,
     ).stdout.splitlines()[0]
-    file_type = subprocess.run(
-        ["file", str(output)],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+    if shutil.which("file"):
+        file_type = subprocess.run(
+            ["file", str(output)],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    else:
+        file_type = "Windows CPython extension (.pyd)"
     return {
         "python_version": sys.version.splitlines()[0],
         "python_cache_tag": sys.implementation.cache_tag,
@@ -156,7 +162,66 @@ def build_bitset_extension(atm_root: Path, *, compiler: str = "g++") -> dict[str
         "extension_sha256": sha256(output),
         "extension_bytes": output.stat().st_size,
         "file_type": file_type,
+        "platform_name": platform_name,
+        "auxiliary_paths": [str(path) for path in auxiliary_paths],
     }
+
+
+def _bitset_build_command(
+    *,
+    platform_name: str,
+    compiler: str,
+    source: Path,
+    output: Path,
+    includes: Sequence[str],
+    build_root: Path,
+) -> tuple[list[str], tuple[Path, ...]]:
+    if platform_name != "nt":
+        return (
+            [
+                compiler,
+                "-O3",
+                "-Wall",
+                "-shared",
+                "-std=c++2a",
+                "-DNDEBUG",
+                "-funroll-loops",
+                "-fvisibility=hidden",
+                "-fPIC",
+                *(item for include in includes for item in ("-I", include)),
+                str(source),
+                "-o",
+                str(output),
+            ],
+            (),
+        )
+    build_root.mkdir(parents=True, exist_ok=True)
+    python_root = Path(sysconfig.get_config_var("installed_base") or sys.prefix)
+    library_name = sysconfig.get_config_var("LDLIBRARY") or (
+        f"python{sys.version_info.major}{sys.version_info.minor}.lib"
+    )
+    object_path = build_root / "bitset.obj"
+    pdb_path = build_root / "bitset.pdb"
+    import_library = build_root / "bitset.lib"
+    command = [
+        compiler,
+        "/nologo",
+        "/O2",
+        "/LD",
+        "/std:c++20",
+        "/EHsc",
+        "/DNDEBUG",
+        *(f"/I{include}" for include in includes),
+        f"/Fo{object_path}",
+        f"/Fd{pdb_path}",
+        str(source),
+        "/link",
+        f"/OUT:{output}",
+        f"/IMPLIB:{import_library}",
+        f"/LIBPATH:{python_root / 'libs'}",
+        library_name,
+    ]
+    return command, (object_path, pdb_path, import_library)
 
 
 def import_real_atm_runtime(atm_root: Path) -> dict[str, Any]:

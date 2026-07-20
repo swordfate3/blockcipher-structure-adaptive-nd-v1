@@ -1,0 +1,7 @@
+{
+  "artifact_path": "outputs/local_audits/i2_present_sbox4_r3_real_atm_runner_compatibility_20260720/gate.json",
+  "artifact_sha256": "8a651da1f16824482ae7653229757d2a3dfde25772a6ded8babe69691f5116e3",
+  "decision": "innovation2_present_sbox4_real_atm_compatibility_passed",
+  "run_id": "i2_present_sbox4_r3_real_atm_runner_compatibility_20260720",
+  "status": "pass"
+}

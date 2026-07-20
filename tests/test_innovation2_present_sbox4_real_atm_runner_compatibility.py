@@ -6,6 +6,7 @@ from blockcipher_nd.cli.plot_innovation2_present_sbox4_real_atm_runner_compatibi
     render_real_atm_compatibility,
 )
 from blockcipher_nd.tasks.innovation2.present_sbox4_real_atm_runner_compatibility import (
+    _bitset_build_command,
     audit_relation_spaces,
     canonical_relations,
 )
@@ -73,3 +74,24 @@ def test_e103_plot_states_empty_space_and_claim_boundary(tmp_path: Path) -> None
     assert "两边同为空空间：只证明兼容，不是发现" in svg
     assert "尚未启动R9或R10搜索" in svg
     assert "不是64-bit PRESENT" in svg
+
+
+def test_windows_bitset_build_command_keeps_intermediates_in_build_root(
+    tmp_path: Path,
+) -> None:
+    build_root = tmp_path / "atm/bitarrays/.build"
+    command, auxiliary = _bitset_build_command(
+        platform_name="nt",
+        compiler="cl.exe",
+        source=tmp_path / "atm/bitarrays/src/bitset.cpp",
+        output=tmp_path / "atm/bitarrays/bitset.cp310-win_amd64.pyd",
+        includes=(r"G:\run\venv\Include", r"G:\run\venv\pybind11"),
+        build_root=build_root,
+    )
+    assert command[0] == "cl.exe"
+    assert "/LD" in command
+    assert "/std:c++20" in command
+    assert any(item.startswith("/OUT:") and item.endswith(".pyd") for item in command)
+    assert any(item.startswith("/LIBPATH:") for item in command)
+    assert auxiliary
+    assert all(path.is_relative_to(build_root) for path in auxiliary)
