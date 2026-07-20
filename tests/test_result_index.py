@@ -2016,6 +2016,30 @@ def test_result_index_labels_innovation2_e98_pu_ranking_readiness(
     )
 
 
+def test_result_index_labels_innovation2_e98a_atm_basis_merge_source(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_atm_basis_merge_source_audit_20260720"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r9_atm_public_merge_count_not_rank",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E98-A：PRESENT九轮ATM基底合并与缺失split来源审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "公开ATM的470是去重计数，正确合并秩为468；来源差异已解释但E99仍关闭"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:

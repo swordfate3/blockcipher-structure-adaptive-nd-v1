@@ -1265,6 +1265,15 @@ DECISION_LABELS = {
     "innovation2_present_r9_pu_ranking_protocol_invalid": (
         "九轮ATM来源或候选池协议无效，只修复审计而不解释科学结果"
     ),
+    "innovation2_present_r9_atm_public_merge_count_not_rank": (
+        "公开ATM的470是去重计数，正确合并秩为468；来源差异已解释但E99仍关闭"
+    ),
+    "innovation2_present_r9_atm_basis_merge_audit_protocol_invalid": (
+        "ATM冻结来源、依赖恢复或split覆盖审计无效，只修复协议"
+    ),
+    "innovation2_present_r9_atm_470_468_mismatch_not_explained": (
+        "470与468差异仍未解释，保持九轮神经训练关闭"
+    ),
     "innovation2_rectangle80_r3_only_profile_readiness_passed": (
         "RECTANGLE真实P层两轮神经门与公平基线门通过，可进入30轮seed0"
     ),
@@ -1953,6 +1962,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E97：PRESENT五轮非平凡GF(2)消去provider可行性审计"
     if run_id == "i2_present_r9_generalized_relation_pu_ranking_readiness_20260719":
         return "创新2 E98：PRESENT九轮广义积分关系正例-未标注排序就绪审判"
+    if run_id == "i2_present_r9_atm_basis_merge_source_audit_20260720":
+        return "创新2 E98-A：PRESENT九轮ATM基底合并与缺失split来源审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"
