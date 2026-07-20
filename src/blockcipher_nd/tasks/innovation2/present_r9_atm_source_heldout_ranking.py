@@ -6,7 +6,6 @@ import math
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from statistics import mean
 from typing import Any
 
 import numpy as np
