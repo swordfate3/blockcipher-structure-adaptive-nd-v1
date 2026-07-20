@@ -105,7 +105,8 @@ Freeze至少输出checkpoint manifest、12个权重、复现指标、gate、prog
 `results.jsonl`、逐关系rank CSV、summary、gate、metadata、progress和中文可视化。可视化必须经过
 `visual-qa-redraw`像素检查；每个完成的结果阶段都刷新`outputs/00_RECENT_RESULTS.md/json`。Evaluate的
 metadata还必须记录本地Git revision、E105任务/运行器/绘图/后处理源码SHA-256，以及仅覆盖这些
-源码的scoped Git状态；无关工作树改动不得混入该状态。
+源码和实际触发回收/评估的持久monitor脚本SHA-256，以及仅覆盖这些文件的scoped Git状态；无关
+工作树改动不得混入该状态。
 
 ## 6. 下一步边界
 

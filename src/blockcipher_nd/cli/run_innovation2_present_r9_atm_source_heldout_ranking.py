@@ -33,6 +33,7 @@ E105_SOURCE_PATHS = (
     "src/blockcipher_nd/cli/run_innovation2_present_r9_atm_source_heldout_ranking.py",
     "src/blockcipher_nd/cli/plot_innovation2_present_r9_atm_source_heldout_ranking.py",
     "src/blockcipher_nd/cli/postprocess_innovation2_present_r9_atm_split333.py",
+    "configs/remote/generated/monitor_i2_present_r9_atm_split333_20260720.sh",
 )
 
 
