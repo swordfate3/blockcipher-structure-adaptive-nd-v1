@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：预注册 / 待执行
+状态：完成 / pass / E99本地训练恢复开放
 
 ## 1. 触发原因与研究问题
 
@@ -80,4 +80,57 @@ output   = outputs/local_audits/i2_present_r9_atm_support_rotation_orbit_pu_read
 
 ## 6. 正式结果
 
-待执行。
+执行时间：2026-07-20。
+
+```text
+status   = pass
+decision = innovation2_present_r9_atm_support_orbit_pu_ready
+training = no
+remote   = no
+```
+
+冻结468个独立positive形成368个同步旋转轨道；与共享坐标边合并后得到352个不可拆组件：
+
+```text
+component size 1: 267
+component size 2:  67
+component size 3:  11
+component size 4:   3
+component size 5:   2
+component size 6:   2
+```
+
+最大组件仅6条，确定性装箱仍得到`78,78,78,78,78,78`。六折最小候选宽度为：
+
+```text
+train pool minimum unlabeled = 55
+test pool minimum unlabeled  = 51
+```
+
+所有关键泄漏检查均为0：旋转轨道跨组、train/test全部关系（含unlabeled）精确重合、候选碰对侧
+positive support、候选命中470个已知positive。边缘统计不匹配也为0。
+
+最强非随机捷径仍为绝对bit位置：
+
+```text
+Recall@5 = 0.128205128
+MRR      = 0.119001193
+```
+
+低于冻结停止线`0.50/0.35`。产物位于：
+
+```text
+outputs/local_audits/i2_present_r9_atm_support_rotation_orbit_pu_readiness_20260720/
+```
+
+`curves.svg`通过`visual-qa-redraw`的2500×1345像素检查，无文字重叠、裁切、缺字、含糊标题或
+误导坐标轴。
+
+### 下一步
+
+E98-C证明可以在不牺牲宽度的情况下修复E98-B遗漏的候选轨道泄漏。下一步更新E99来源为本gate
+`ebebd137a90c53ea9a45c0f3af8a30b02803d9f1e395f38e4d822bbd31523568`，冻结新的六个
+support+orbit组件组，执行原定两seed、六折、40 epochs的本地神经排序矩阵。
+
+远程仍关闭。E99若不稳定超过本门最强位置锚点及summary/coordinate/label-shuffle控制，停止或本地
+重设计；不得用更多epoch、删泄漏检查或把unlabeled改称negative来放宽裁决。

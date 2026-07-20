@@ -2064,6 +2064,28 @@ def test_result_index_labels_innovation2_e98b_support_component_pu(
     )
 
 
+def test_result_index_labels_innovation2_e98c_support_rotation_orbit_pu(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_atm_support_rotation_orbit_pu_readiness_20260720"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r9_atm_support_orbit_pu_ready",
+        },
+    )
+    entries = build_result_index(outputs, limit=10)
+    assert entries[0]["display_name"] == (
+        "创新2 E98-C：PRESENT九轮ATM支撑与旋转轨道双互斥PU就绪门"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮ATM支撑与旋转轨道双互斥PU门通过，可恢复E99本地神经排序"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
