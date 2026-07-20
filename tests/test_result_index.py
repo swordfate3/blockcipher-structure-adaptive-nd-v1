@@ -2040,6 +2040,30 @@ def test_result_index_labels_innovation2_e98a_atm_basis_merge_source(
     )
 
 
+def test_result_index_labels_innovation2_e98b_support_component_pu(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_atm_support_component_pu_readiness_20260720"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_present_r9_atm_support_component_pu_ready",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E98-B：PRESENT九轮ATM支撑组件互斥PU排序就绪门"
+    )
+    assert entries[0]["decision_display"] == (
+        "九轮ATM支撑组件互斥PU数据门通过，只开放E99本地神经排序"
+    )
+
+
 def test_result_index_labels_innovation2_rectangle80_r3_attribution(
     tmp_path: Path,
 ) -> None:
