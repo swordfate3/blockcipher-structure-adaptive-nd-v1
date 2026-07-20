@@ -64,7 +64,11 @@ if errorlevel 1 goto setup_failed
 git -C %ATM_ROOT% rev-parse HEAD > %LOGS%\atm_revision.txt
 git -C %ATM_ROOT% status --short --branch > %LOGS%\atm_status.txt
 
-if not exist %PY% %BASE_PY% -m venv %VENV%
+if not exist %PY% %BASE_PY% -m venv --system-site-packages %VENV%
+if errorlevel 1 goto setup_failed
+%PY% -c "import torch; print(torch.__version__)" > %LOGS%\venv_torch_smoke.txt 2>&1
+if errorlevel 1 rmdir /s /q %VENV%
+if not exist %PY% %BASE_PY% -m venv --system-site-packages %VENV%
 if errorlevel 1 goto setup_failed
 %PY% -m pip install --disable-pip-version-check --cache-dir %PIP_CACHE_DIR% --requirement %SOURCE%\configs\runtime\innovation2_atm_windows_py310_requirements.txt > %LOGS%\pip_install_stdout.txt 2> %LOGS%\pip_install_stderr.txt
 if errorlevel 1 goto setup_failed

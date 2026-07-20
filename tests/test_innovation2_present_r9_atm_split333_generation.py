@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from blockcipher_nd.tasks.innovation2.present_r9_atm_split333_generation import (
@@ -101,6 +104,9 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "!" not in combined
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in setup
     assert "set VENV=%RUN_ROOT%\\venv" in setup
+    assert setup.count("-m venv --system-site-packages %VENV%") == 2
+    assert 'import torch; print(torch.__version__)' in setup
+    assert "if errorlevel 1 rmdir /s /q %VENV%" in setup
     assert "set PYTHONPATH=%SOURCE%\\src" in setup
     assert "set PYTHONPATH=%SOURCE%\\src" in pipeline
     assert "--stage-id readiness --marker-root %LOGS%" in setup
@@ -148,3 +154,31 @@ def test_e104_python_wrappers_are_windows_spawn_safe() -> None:
     ):
         text = Path(name).read_text(encoding="utf-8")
         assert 'if __name__ == "__main__":' in text
+
+
+def test_e104_module_import_does_not_require_torch() -> None:
+    code = """
+import importlib.abc
+import sys
+
+class RejectTorch(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname == "torch" or fullname.startswith("torch."):
+            raise ModuleNotFoundError("torch intentionally unavailable")
+        return None
+
+sys.meta_path.insert(0, RejectTorch())
+from blockcipher_nd.tasks.innovation2.present_r9_atm_split333_generation import SPLIT
+assert SPLIT == (3, 3, 3)
+assert "torch" not in sys.modules
+"""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path("src").resolve())
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert completed.returncode == 0, completed.stderr
