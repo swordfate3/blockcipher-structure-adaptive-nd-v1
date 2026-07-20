@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     start_new_session = os.name != "nt"
     if os.name == "nt":
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-    with args.stdout.open("ab") as stdout, args.stderr.open("ab") as stderr:
+    with args.stdout.open("wb") as stdout, args.stderr.open("wb") as stderr:
         process = subprocess.Popen(
             command,
             stdout=stdout,

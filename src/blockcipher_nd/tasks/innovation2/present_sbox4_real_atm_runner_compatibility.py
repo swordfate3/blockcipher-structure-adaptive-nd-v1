@@ -158,6 +158,8 @@ def build_bitset_extension(
         "seconds": time.perf_counter() - started,
         "source_sha256": sha256(source),
         "header_sha256": sha256(header),
+        "source_normalized_lf_sha256": normalized_lf_sha256(source),
+        "header_normalized_lf_sha256": normalized_lf_sha256(header),
         "extension_path": str(output),
         "extension_sha256": sha256(output),
         "extension_bytes": output.stat().st_size,
@@ -723,3 +725,8 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def normalized_lf_sha256(path: Path) -> str:
+    data = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()

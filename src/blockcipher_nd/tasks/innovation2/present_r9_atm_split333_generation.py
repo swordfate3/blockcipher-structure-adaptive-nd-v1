@@ -149,13 +149,34 @@ def execute_phase(
     progress = output_root / "phase_progress.jsonl"
     started = time.perf_counter()
     _append_progress(progress, "phase_start", mode=mode)
-    hashes = {relative: sha256(atm_root / relative) for relative in SOURCE_HASHES}
+    try:
+        hashes = _canonical_git_source_hashes(atm_root)
+        git_blobs_read = True
+    except (OSError, subprocess.CalledProcessError):
+        hashes = {}
+        git_blobs_read = False
+    tracked_status = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(atm_root),
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
     source_checks = {
         "e103_gate_hash_matches": e103_gate_sha256 == E103_GATE_SHA256,
         "e103_status_pass": e103_gate.get("status") == "pass",
         "e103_decision_matches": e103_gate.get("decision") == E103_DECISION,
         "atm_commit_matches": actual_atm_commit == ATM_COMMIT,
+        "canonical_git_blobs_read": git_blobs_read,
         "all_source_hashes_match": hashes == SOURCE_HASHES,
+        "tracked_worktree_clean": tracked_status.returncode == 0
+        and not tracked_status.stdout.strip(),
     }
     if not all(source_checks.values()):
         return _phase_failure(
@@ -175,6 +196,14 @@ def execute_phase(
     environment_checks = {
         "disk_free_at_least_500gib": free_bytes >= MINIMUM_FREE_BYTES,
         "compiled_extension_exists": Path(build["extension_path"]).is_file(),
+        "bitset_source_normalized_hash_matches": build[
+            "source_normalized_lf_sha256"
+        ]
+        == SOURCE_HASHES["bitarrays/src/bitset.cpp"],
+        "bitset_header_normalized_hash_matches": build[
+            "header_normalized_lf_sha256"
+        ]
+        == SOURCE_HASHES["bitarrays/src/bitset.hpp"],
         "compiled_extension_imported": Path(runtime["bitset_module"]).resolve()
         == Path(build["extension_path"]).resolve(),
         "python_extension_suffix_matches": Path(build["extension_path"]).name.endswith(
@@ -469,3 +498,15 @@ def file_sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _canonical_git_source_hashes(atm_root: Path) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for relative in SOURCE_HASHES:
+        content = subprocess.run(
+            ["git", "-C", str(atm_root), "show", f"{ATM_COMMIT}:{relative}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        hashes[relative] = hashlib.sha256(content).hexdigest()
+    return hashes

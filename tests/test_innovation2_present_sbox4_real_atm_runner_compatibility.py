@@ -9,6 +9,7 @@ from blockcipher_nd.tasks.innovation2.present_sbox4_real_atm_runner_compatibilit
     _bitset_build_command,
     audit_relation_spaces,
     canonical_relations,
+    normalized_lf_sha256,
 )
 
 
@@ -95,3 +96,13 @@ def test_windows_bitset_build_command_keeps_intermediates_in_build_root(
     assert any(item.startswith("/LIBPATH:") for item in command)
     assert auxiliary
     assert all(path.is_relative_to(build_root) for path in auxiliary)
+
+
+def test_normalized_source_hash_is_independent_of_checkout_line_endings(
+    tmp_path: Path,
+) -> None:
+    crlf = tmp_path / "crlf.cpp"
+    lf = tmp_path / "lf.cpp"
+    crlf.write_bytes(b"line1\r\nline2\r\n")
+    lf.write_bytes(b"line1\nline2\n")
+    assert normalized_lf_sha256(crlf) == normalized_lf_sha256(lf)

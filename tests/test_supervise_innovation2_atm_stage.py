@@ -15,6 +15,9 @@ def test_stage_supervisor_records_success_and_output(tmp_path: Path) -> None:
     )
     stdout = tmp_path / "logs/stdout.txt"
     stderr = tmp_path / "logs/stderr.txt"
+    stdout.parent.mkdir(parents=True)
+    stdout.write_text("stale-output", encoding="utf-8")
+    stderr.write_text("stale-error", encoding="utf-8")
     status = main(
         [
             "--timeout-seconds",
@@ -35,6 +38,7 @@ def test_stage_supervisor_records_success_and_output(tmp_path: Path) -> None:
     )
     assert status == 0
     assert stdout.read_text(encoding="utf-8").strip() == "stage-ok"
+    assert stderr.read_text(encoding="utf-8") == ""
     marker = json.loads(
         (marker_root / "fixture_success_done.marker").read_text(encoding="utf-8")
     )
