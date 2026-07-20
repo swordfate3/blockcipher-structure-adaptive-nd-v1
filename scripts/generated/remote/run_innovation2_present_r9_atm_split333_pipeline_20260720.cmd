@@ -6,9 +6,14 @@ set SOURCE=%RUN_ROOT%\source
 set ATM_ROOT=%RUN_ROOT%\atm-source
 set OUTPUT=%RUN_ROOT%\results
 set LOGS=%RUN_ROOT%\logs
+set LOCK=%RUN_ROOT%\pipeline.lock
 set PY=%RUN_ROOT%\venv\Scripts\python.exe
 set PYTHONPATH=%SOURCE%\src
 set PYTHONUTF8=1
+
+mkdir %LOCK% 2>nul
+if errorlevel 1 exit /b 9
+echo %DATE% %TIME%> %LOCK%\owner.txt
 
 if exist %LOGS%\pipeline_passed.marker del %LOGS%\pipeline_passed.marker
 if exist %LOGS%\pipeline_failed.marker del %LOGS%\pipeline_failed.marker
@@ -48,16 +53,20 @@ goto pipeline_failed
 
 :pipeline_passed
 echo pipeline_passed> %LOGS%\pipeline_passed.marker
+rmdir /s /q %LOCK%
 exit /b 0
 
 :resource_cap
 echo resource_cap_hit> %LOGS%\resource_cap_hit.marker
+rmdir /s /q %LOCK%
 exit /b 2
 
 :probe_failed
 echo probe_failed> %LOGS%\probe_failed.marker
+rmdir /s /q %LOCK%
 exit /b 3
 
 :pipeline_failed
 echo pipeline_failed> %LOGS%\pipeline_failed.marker
+rmdir /s /q %LOCK%
 exit /b 1

@@ -130,6 +130,12 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
     assert "git -C %ATM_ROOT% cat-file -e %ATM_COMMIT%" in setup
     assert "if errorlevel 1 git -C %ATM_ROOT% fetch origin" in setup
     assert "bitarrays/bitset*.pyd" in setup
+    assert "**/__pycache__/" in setup
+    assert "*.pyc" in setup
+    assert "set LOCK=%RUN_ROOT%\\pipeline.lock" in pipeline
+    assert "mkdir %LOCK% 2>nul" in pipeline
+    assert "if errorlevel 1 exit /b 9" in pipeline
+    assert pipeline.count("rmdir /s /q %LOCK%") == 4
     assert pipeline.count("--timeout-seconds 600") == 2
     assert pipeline.count("--timeout-seconds 43200") == 3
     assert pipeline.count("--mode probe") == 2
