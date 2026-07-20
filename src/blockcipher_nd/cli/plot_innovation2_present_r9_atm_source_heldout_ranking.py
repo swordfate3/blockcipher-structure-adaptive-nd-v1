@@ -9,8 +9,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-MODEL_LABELS = ("位置规则", "坐标集合网 seed0", "坐标集合网 seed1")
-COLORS = ("#64748B", "#0F766E", "#D97706")
+MODEL_LABELS = {
+    "absolute_position_6fold_ensemble": "位置规则",
+    "training_coordinate_frequency_6fold_ensemble": "训练坐标频率",
+    "training_support_overlap_6fold_ensemble": "训练支撑重合",
+    "coordinate_deepsets_seed0": "坐标网 seed0",
+    "coordinate_deepsets_seed1": "坐标网 seed1",
+}
+MODEL_COLORS = {
+    "absolute_position_6fold_ensemble": "#64748B",
+    "training_coordinate_frequency_6fold_ensemble": "#2563EB",
+    "training_support_overlap_6fold_ensemble": "#7C3AED",
+    "coordinate_deepsets_seed0": "#0F766E",
+    "coordinate_deepsets_seed1": "#D97706",
+}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -38,7 +50,23 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         next(row for row in result_rows if row["seed"] == seed)
         for seed in (0, 1)
     ]
-    rows = (anchor, *neural)
+    deterministic = [
+        row
+        for model in (
+            "absolute_position_6fold_ensemble",
+            "training_coordinate_frequency_6fold_ensemble",
+            "training_support_overlap_6fold_ensemble",
+        )
+        for row in result_rows
+        if row["model"] == model
+    ]
+    rows = (*deterministic, *neural)
+    row_keys = [
+        row["model"] if row["seed"] == -1 else f"coordinate_deepsets_seed{row['seed']}"
+        for row in rows
+    ]
+    labels = [MODEL_LABELS[key] for key in row_keys]
+    colors = [MODEL_COLORS[key] for key in row_keys]
 
     with plt.rc_context(
         {
@@ -55,7 +83,7 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         figure.subplots_adjust(
             left=0.065,
             right=0.975,
-            top=0.70,
+            top=0.73,
             bottom=0.29,
             wspace=0.34,
         )
@@ -88,14 +116,14 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
             color="#526070",
         )
 
-        x = np.arange(len(MODEL_LABELS))
-        width = 0.34
+        x = np.arange(len(rows))
+        width = 0.32
         recall1 = [float(row["recall_at_1"]) for row in rows]
         recall5 = [float(row["recall_at_5"]) for row in rows]
         axes[0].bar(x - width / 2, recall1, width, color="#94A3B8", label="Recall@1")
         axes[0].bar(x + width / 2, recall5, width, color="#475569", label="Recall@5")
         axes[0].axhline(0.50, color="#DC2626", linestyle="--", linewidth=1.2, label="Recall@5最低线0.50")
-        axes[0].set_xticks(x, MODEL_LABELS, rotation=18, ha="right")
+        axes[0].set_xticks(x, labels, rotation=22, ha="right", fontsize=8.3)
         axes[0].set_ylim(0, 1.06)
         axes[0].set_ylabel("比例")
         axes[0].set_title("正关系进入前1名或前5名的比例", loc="left", fontweight="bold")
@@ -103,9 +131,9 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         axes[0].grid(axis="y", color="#E5E7EB", linewidth=0.8)
 
         mrr = [float(row["mean_reciprocal_rank"]) for row in rows]
-        axes[1].bar(x, mrr, color=COLORS, width=0.58)
+        axes[1].bar(x, mrr, color=colors, width=0.58)
         axes[1].axhline(0.40, color="#DC2626", linestyle="--", linewidth=1.2, label="MRR最低线0.40")
-        axes[1].set_xticks(x, MODEL_LABELS, rotation=18, ha="right")
+        axes[1].set_xticks(x, labels, rotation=22, ha="right", fontsize=8.3)
         axes[1].set_ylim(0, 1.06)
         axes[1].set_ylabel("MRR")
         axes[1].set_title("正关系平均排名质量", loc="left", fontweight="bold")

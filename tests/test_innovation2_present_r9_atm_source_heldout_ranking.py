@@ -266,6 +266,22 @@ def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
             "top5_enrichment": 2.0,
         },
         {
+            "model": "training_coordinate_frequency_6fold_ensemble",
+            "seed": -1,
+            "recall_at_1": 0.14,
+            "recall_at_5": 0.25,
+            "mean_reciprocal_rank": 0.20,
+            "top5_enrichment": 2.5,
+        },
+        {
+            "model": "training_support_overlap_6fold_ensemble",
+            "seed": -1,
+            "recall_at_1": 0.13,
+            "recall_at_5": 0.23,
+            "mean_reciprocal_rank": 0.22,
+            "top5_enrichment": 2.3,
+        },
+        {
             "model": "coordinate_deepsets_6fold_ensemble",
             "seed": 0,
             "recall_at_1": 0.62,
@@ -303,5 +319,7 @@ def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
     assert "PRESENT九轮缺失(3,3,3)来源留出排序" in svg
     assert "不更新权重" in svg
     assert "训练坐标频率和支撑重合规则" in svg
+    assert "训练坐标频率" in svg
+    assert "训练支撑重合" in svg
     assert "相对最强确定性规则的绝对增益" in svg
     assert "不是二分类" in svg
