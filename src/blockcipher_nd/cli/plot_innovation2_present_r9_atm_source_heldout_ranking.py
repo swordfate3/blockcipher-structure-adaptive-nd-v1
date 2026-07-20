@@ -81,7 +81,7 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         figure.text(
             0.065,
             0.849,
-            "每个池包含一条已验证正关系及其同步旋转未标注候选；未标注候选不是严格负类。",
+            "每池含一条正关系及其同步旋转未标注候选；迁移门同时比较位置、训练坐标频率和支撑重合规则。",
             ha="left",
             va="top",
             fontsize=9.8,
@@ -113,8 +113,13 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         axes[1].grid(axis="y", color="#E5E7EB", linewidth=0.8)
 
         gain_x = np.arange(2)
-        recall_gain = [row["recall_at_5"] - anchor["recall_at_5"] for row in neural]
-        mrr_gain = [row["mean_reciprocal_rank"] - anchor["mean_reciprocal_rank"] for row in neural]
+        best_anchor = gate.get("metrics", {}).get("best_deterministic_anchor", {})
+        recall_reference = float(best_anchor.get("recall_at_5", anchor["recall_at_5"]))
+        mrr_reference = float(
+            best_anchor.get("mean_reciprocal_rank", anchor["mean_reciprocal_rank"])
+        )
+        recall_gain = [row["recall_at_5"] - recall_reference for row in neural]
+        mrr_gain = [row["mean_reciprocal_rank"] - mrr_reference for row in neural]
         axes[2].bar(gain_x - width / 2, recall_gain, width, color="#0F766E", label="Recall@5增益")
         axes[2].bar(gain_x + width / 2, mrr_gain, width, color="#D97706", label="MRR增益")
         axes[2].axhline(0.20, color="#0F766E", linestyle="--", linewidth=1.2, alpha=0.75, label="Recall门槛+0.20")
@@ -123,8 +128,8 @@ def render_source_heldout_ranking(summary: dict[str, Any], output: Path) -> None
         upper = max(0.25, max((*recall_gain, *mrr_gain)) + 0.08)
         axes[2].set_ylim(lower, upper)
         axes[2].set_xticks(gain_x, ("seed0", "seed1"))
-        axes[2].set_ylabel("相对位置规则的绝对增益")
-        axes[2].set_title("冻结模型是否超过确定性位置规则", loc="left", fontweight="bold")
+        axes[2].set_ylabel("相对最强确定性规则的绝对增益")
+        axes[2].set_title("冻结模型是否超过逐指标最强规则", loc="left", fontweight="bold")
         axes[2].legend(frameon=False, fontsize=8.0)
         axes[2].grid(axis="y", color="#E5E7EB", linewidth=0.8)
 

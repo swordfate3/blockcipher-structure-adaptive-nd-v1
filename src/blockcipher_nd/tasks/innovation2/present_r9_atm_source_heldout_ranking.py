@@ -24,6 +24,7 @@ from blockcipher_nd.tasks.innovation2.present_r9_atm_support_component_pu_neural
     train_one_fold,
 )
 from blockcipher_nd.tasks.innovation2.present_r9_pu_ranking_readiness import (
+    _baseline_score,
     _canonical_coordinates,
     _relation_id,
     _rotation_candidates,
@@ -223,8 +224,9 @@ def evaluate_source_heldout(
         }
         for relation in sorted(heldout_relations, key=_canonical_coordinates)
     )
+    public_fold_audit = build_neural_folds(public_groups, PuNeuralRankingConfig())
     training_overlap_audit = _fold_training_overlap_audit(
-        public_groups=public_groups,
+        fold_audit=public_fold_audit,
         evaluation_pools=pools,
         heldout_relations=heldout_relations,
     )
@@ -299,10 +301,52 @@ def evaluate_source_heldout(
             )
         )
 
-    anchor_scores = _absolute_anchor_scores(pools, checkpoint_manifest["checkpoints"])
-    anchor_ranks = _ranks(anchor_scores, tensors.relation_ids)
-    anchor_metrics = _ranking_metrics(anchor_ranks, pool_sizes)
-    result_rows.append({"model": "absolute_position_6fold_ensemble", "seed": -1, **anchor_metrics})
+    deterministic_scores = {
+        "absolute_position_6fold_ensemble": _absolute_anchor_scores(
+            pools,
+            checkpoint_manifest["checkpoints"],
+        ),
+        "training_coordinate_frequency_6fold_ensemble": (
+            _fold_deterministic_anchor_scores(
+                pools,
+                fold_audit=public_fold_audit,
+                baseline="training_coordinate_frequency",
+            )
+        ),
+        "training_support_overlap_6fold_ensemble": _fold_deterministic_anchor_scores(
+            pools,
+            fold_audit=public_fold_audit,
+            baseline="training_support_overlap",
+        ),
+    }
+    deterministic_rows: list[dict[str, Any]] = []
+    for model, scores in deterministic_scores.items():
+        metrics = _ranking_metrics(
+            _ranks(scores, tensors.relation_ids),
+            pool_sizes,
+        )
+        row = {"model": model, "seed": -1, **metrics}
+        deterministic_rows.append(row)
+        result_rows.append(row)
+    anchor_metrics = next(
+        row
+        for row in deterministic_rows
+        if row["model"] == "absolute_position_6fold_ensemble"
+    )
+    best_recall_anchor = max(
+        deterministic_rows,
+        key=lambda row: (row["recall_at_5"], row["model"]),
+    )
+    best_mrr_anchor = max(
+        deterministic_rows,
+        key=lambda row: (row["mean_reciprocal_rank"], row["model"]),
+    )
+    best_deterministic_anchor = {
+        "recall_at_5": best_recall_anchor["recall_at_5"],
+        "recall_at_5_model": best_recall_anchor["model"],
+        "mean_reciprocal_rank": best_mrr_anchor["mean_reciprocal_rank"],
+        "mean_reciprocal_rank_model": best_mrr_anchor["model"],
+    }
     minimum_unlabeled = min(len(pool["unlabeled_relations"]) for pool in pools)
     public_coordinates = Counter(
         coordinate for relation in public_relations for coordinate in relation
@@ -340,8 +384,16 @@ def evaluate_source_heldout(
         advance_checks[f"seed{seed}_recall_at_5_met"] = row["recall_at_5"] >= config.minimum_recall_at_5
         advance_checks[f"seed{seed}_mrr_met"] = row["mean_reciprocal_rank"] >= config.minimum_mrr
         advance_checks[f"seed{seed}_enrichment_met"] = row["top5_enrichment"] >= config.minimum_top5_enrichment
-        advance_checks[f"seed{seed}_recall_beats_anchor"] = row["recall_at_5"] >= anchor_metrics["recall_at_5"] + config.recall_margin_over_anchor
-        advance_checks[f"seed{seed}_mrr_beats_anchor"] = row["mean_reciprocal_rank"] >= anchor_metrics["mean_reciprocal_rank"] + config.mrr_margin_over_anchor
+        advance_checks[f"seed{seed}_recall_beats_best_deterministic"] = (
+            row["recall_at_5"]
+            >= best_deterministic_anchor["recall_at_5"]
+            + config.recall_margin_over_anchor
+        )
+        advance_checks[f"seed{seed}_mrr_beats_best_deterministic"] = (
+            row["mean_reciprocal_rank"]
+            >= best_deterministic_anchor["mean_reciprocal_rank"]
+            + config.mrr_margin_over_anchor
+        )
     seed_rows = [next(row for row in result_rows if row["seed"] == seed) for seed in SEEDS]
     advance_checks["seed_recall_delta_bounded"] = abs(
         seed_rows[0]["recall_at_5"] - seed_rows[1]["recall_at_5"]
@@ -382,7 +434,13 @@ def evaluate_source_heldout(
         "manifest_checks": manifest_checks,
         "source_checks": source_checks,
         "advance_checks": advance_checks,
-        "metrics": {"anchor": anchor_metrics, "models": result_rows, **audit},
+        "metrics": {
+            "anchor": anchor_metrics,
+            "deterministic_anchors": deterministic_rows,
+            "best_deterministic_anchor": best_deterministic_anchor,
+            "models": result_rows,
+            **audit,
+        },
         "claim_scope": (
             "zero-adaptation positive-unlabeled ranking of locally generated PRESENT r9 ATM "
             "split (3,3,3) relations under independent round keys; not binary classification, "
@@ -400,11 +458,10 @@ def evaluate_source_heldout(
 
 def _fold_training_overlap_audit(
     *,
-    public_groups: dict[str, set[Property]],
+    fold_audit: dict[str, Any],
     evaluation_pools: tuple[dict[str, Any], ...],
     heldout_relations: set[Property],
 ) -> dict[str, Any]:
-    fold_audit = build_neural_folds(public_groups, PuNeuralRankingConfig())
     evaluation_relations = {
         relation for pool in evaluation_pools for relation in pool["relations"]
     }
@@ -437,6 +494,36 @@ def _fold_training_overlap_audit(
         ),
         "fold_training_overlap": fold_rows,
     }
+
+
+def _fold_deterministic_anchor_scores(
+    pools: tuple[dict[str, Any], ...],
+    *,
+    fold_audit: dict[str, Any],
+    baseline: str,
+) -> list[list[float]]:
+    fold_scores: list[list[list[float]]] = []
+    for fold_data in fold_audit["folds"]:
+        train_relations = {pool["positive"] for pool in fold_data.train_pools}
+        train_coordinates = Counter(
+            coordinate for relation in train_relations for coordinate in relation
+        )
+        fold_scores.append(
+            [
+                [
+                    _baseline_score(
+                        baseline,
+                        relation,
+                        train_relations=train_relations,
+                        train_coordinates=train_coordinates,
+                        position_target=fold_data.audit["absolute_position_target"],
+                    )
+                    for relation in pool["relations"]
+                ]
+                for pool in pools
+            ]
+        )
+    return _ensemble_scores(fold_scores)
 
 
 def load_relations_json(path: Path) -> set[Property]:

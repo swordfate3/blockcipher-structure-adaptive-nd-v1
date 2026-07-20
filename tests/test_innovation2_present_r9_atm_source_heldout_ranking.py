@@ -159,6 +159,17 @@ def test_source_heldout_evaluation_is_zero_update_and_small_set_is_diagnostic(
     assert result["audit"]["evaluation_backward_calls"] == 0
     assert result["audit"]["model_state_unchanged"] is True
     assert result["audit"]["minimum_unlabeled_per_pool"] >= 31
+    deterministic = result["gate"]["metrics"]["deterministic_anchors"]
+    assert {row["model"] for row in deterministic} == {
+        "absolute_position_6fold_ensemble",
+        "training_coordinate_frequency_6fold_ensemble",
+        "training_support_overlap_6fold_ensemble",
+    }
+    best = result["gate"]["metrics"]["best_deterministic_anchor"]
+    assert best["recall_at_5"] == max(row["recall_at_5"] for row in deterministic)
+    assert best["mean_reciprocal_rank"] == max(
+        row["mean_reciprocal_rank"] for row in deterministic
+    )
 
 
 def test_source_heldout_gate_rejects_unverified_e104_source(tmp_path: Path) -> None:
@@ -234,7 +245,13 @@ def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
     ]
     summary = {
         "gate": {
-            "decision": "innovation2_present_r9_split333_source_heldout_signal_confirmed"
+            "decision": "innovation2_present_r9_split333_source_heldout_signal_confirmed",
+            "metrics": {
+                "best_deterministic_anchor": {
+                    "recall_at_5": 0.25,
+                    "mean_reciprocal_rank": 0.22,
+                }
+            },
         },
         "result_rows": rows,
         "audit": {"heldout_relations": 48, "minimum_unlabeled_per_pool": 61},
@@ -246,6 +263,6 @@ def test_e105_plot_uses_chinese_explanations_and_zero_adaptation_scope(
     svg = output.read_text(encoding="utf-8")
     assert "PRESENT九轮缺失(3,3,3)来源留出排序" in svg
     assert "不更新权重" in svg
-    assert "未标注候选不是严格负类" in svg
-    assert "相对位置规则的绝对增益" in svg
+    assert "训练坐标频率和支撑重合规则" in svg
+    assert "相对最强确定性规则的绝对增益" in svg
     assert "不是二分类" in svg
