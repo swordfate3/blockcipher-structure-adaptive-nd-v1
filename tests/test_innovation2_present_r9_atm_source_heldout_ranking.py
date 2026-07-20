@@ -21,6 +21,8 @@ from blockcipher_nd.tasks.innovation2.present_r9_atm_source_heldout_ranking impo
     sha256,
 )
 from blockcipher_nd.tasks.innovation2.present_r9_atm_support_component_pu_neural_ranking import (
+    PuNeuralRankingConfig,
+    build_neural_folds,
     make_model,
 )
 
@@ -92,6 +94,11 @@ def test_load_relations_json_rejects_duplicate_or_out_of_range_data(tmp_path: Pa
 def _checkpoint_manifest(root: Path) -> dict[str, object]:
     checkpoint_root = root / "checkpoints"
     checkpoint_root.mkdir()
+    fold_audit = build_neural_folds(_public_groups(), PuNeuralRankingConfig())
+    position_targets = {
+        fold_data.fold: fold_data.audit["absolute_position_target"]
+        for fold_data in fold_audit["folds"]
+    }
     rows = []
     for seed in (0, 1):
         for fold in range(6):
@@ -113,7 +120,7 @@ def _checkpoint_manifest(root: Path) -> dict[str, object]:
                     "fold": fold,
                     "path": f"checkpoints/{path.name}",
                     "sha256": sha256(path),
-                    "absolute_position_target": 31.5,
+                    "absolute_position_target": position_targets[fold],
                 }
             )
     return {
@@ -211,6 +218,38 @@ def test_source_heldout_gate_rejects_relations_seen_in_fold_training_candidates(
         "all_evaluation_relations_absent_from_fold_training_pools"
     ] is False
     assert result["audit"]["maximum_fold_training_overlap"] > 0
+    assert result["result_rows"] == []
+
+
+def test_source_heldout_gate_rejects_checkpoint_payload_identity_drift(
+    tmp_path: Path,
+) -> None:
+    manifest = _checkpoint_manifest(tmp_path)
+    entry = manifest["checkpoints"][0]
+    path = tmp_path / entry["path"]
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    payload["seed"] = 1
+    torch.save(payload, path)
+    entry["sha256"] = sha256(path)
+
+    result = evaluate_source_heldout(
+        SourceHeldoutRankingConfig(),
+        public_groups=_public_groups(),
+        heldout_relations={frozenset({(1 << 9, 1 << 27)})},
+        checkpoint_manifest=manifest,
+        checkpoint_root=tmp_path,
+        e104_gate={
+            "status": "pass",
+            "decision": "innovation2_present_r9_split333_generation_passed",
+        },
+        e104_evidence_checks={"frozen_e104_evidence": True},
+        device="cpu",
+    )
+
+    assert result["gate"]["status"] == "fail"
+    assert result["gate"]["manifest_checks"][
+        "all_checkpoint_payload_seed_folds_match"
+    ] is False
     assert result["result_rows"] == []
 
 

@@ -244,6 +244,12 @@ def evaluate_source_heldout(
         "all_evaluation_relations_absent_from_fold_training_pools": (
             training_overlap_audit["maximum_fold_training_overlap"] == 0
         ),
+        "checkpoint_position_targets_match_rebuilt_folds": (
+            _checkpoint_position_targets_match(
+                checkpoint_manifest,
+                fold_audit=public_fold_audit,
+            )
+        ),
     }
     if not all(manifest_checks.values()) or not all(source_checks.values()) or tensors is None:
         gate = {
@@ -600,6 +606,13 @@ def _validate_checkpoint_manifest(
 ) -> dict[str, bool]:
     entries = manifest.get("checkpoints", ())
     paths = [checkpoint_root / str(entry.get("path", "")) for entry in entries]
+    payloads: list[dict[str, Any] | None] = []
+    for path in paths:
+        try:
+            payload = torch.load(path, map_location="cpu", weights_only=True)
+        except Exception:
+            payload = None
+        payloads.append(payload if isinstance(payload, dict) else None)
     return {
         "freeze_status_pass": manifest.get("status") == "pass",
         "freeze_decision_matches": manifest.get("decision")
@@ -618,7 +631,48 @@ def _validate_checkpoint_manifest(
             path.is_file() and sha256(path) == entry.get("sha256")
             for path, entry in zip(paths, entries, strict=True)
         ),
+        "all_checkpoint_payloads_load": len(payloads) == 12
+        and all(payload is not None for payload in payloads),
+        "all_checkpoint_payload_models_match": len(payloads) == 12
+        and all(
+            payload is not None and payload.get("model") == "coordinate_deepsets"
+            for payload in payloads
+        ),
+        "all_checkpoint_payload_seed_folds_match": len(payloads) == 12
+        and all(
+            payload is not None
+            and payload.get("seed") == entry.get("seed")
+            and payload.get("fold") == entry.get("fold")
+            for payload, entry in zip(payloads, entries, strict=True)
+        ),
+        "all_checkpoint_state_dicts_present": len(payloads) == 12
+        and all(
+            payload is not None and isinstance(payload.get("state_dict"), dict)
+            for payload in payloads
+        ),
     }
+
+
+def _checkpoint_position_targets_match(
+    manifest: dict[str, Any],
+    *,
+    fold_audit: dict[str, Any],
+) -> bool:
+    expected = {
+        fold_data.fold: float(fold_data.audit["absolute_position_target"])
+        for fold_data in fold_audit["folds"]
+    }
+    entries = manifest.get("checkpoints", ())
+    return len(entries) == 12 and all(
+        entry.get("fold") in expected
+        and math.isclose(
+            float(entry.get("absolute_position_target", float("nan"))),
+            expected[entry["fold"]],
+            abs_tol=1e-12,
+            rel_tol=0.0,
+        )
+        for entry in entries
+    )
 
 
 def _ensemble_scores(model_scores: list[list[list[float]]]) -> list[list[float]]:
