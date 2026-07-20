@@ -182,6 +182,26 @@ def test_e104_windows_scripts_preserve_remote_and_scheduler_contract() -> None:
     assert "schtasks /Run" in texts[2]
 
 
+def test_e104_local_monitor_persists_fresh_snapshot_and_postprocess_contract() -> None:
+    monitor = Path(
+        "configs/remote/generated/monitor_i2_present_r9_atm_split333_20260720.sh"
+    )
+    text = monitor.read_text(encoding="utf-8")
+
+    assert text.startswith("#!/usr/bin/env bash\nset -u\n")
+    assert "G:/lxy/blockcipher-structure-adaptive-nd-runs/${run_id}" in text
+    assert 'incoming="${local_root}/.incoming-${stamp}"' in text
+    assert "outputs/remote_results_incomplete_history" in text
+    assert 'mv "$incoming/logs" "$local_root/logs"' in text
+    assert 'mv "$incoming/results" "$local_root/results"' in text
+    assert "pipeline_passed.marker probe_failed.marker resource_cap_hit.marker" in text
+    assert "scripts/postprocess-innovation2-present-r9-atm-split333" in text
+    assert "scripts/index-results" in text
+    assert "--checkpoint-root" in text
+    assert "--e105-output-root" in text
+    assert "cmd.exe /k" not in text
+
+
 def test_e104_python_wrappers_are_windows_spawn_safe() -> None:
     for name in (
         "scripts/run-innovation2-present-r9-atm-split333-generation",

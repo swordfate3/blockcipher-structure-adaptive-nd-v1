@@ -135,6 +135,10 @@ RUN_ROOT。启动命令返回后只做一次有界确认：run目录、started m
 随后启动本地tmux watcher，负责：
 
 ```text
+configs/remote/generated/monitor_i2_present_r9_atm_split333_20260720.sh
+```
+
+```text
 等待远程 complete / hold / timeout / failure marker；
 低频检查monitor健康，不在主线程SSH轮询；
 完成或阶段裁决后从 G:/lxy/blockcipher-structure-adaptive-nd-runs 拉回原始产物；
