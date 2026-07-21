@@ -129,7 +129,6 @@ def render_external_source_readiness(summary: dict[str, Any], output: Path) -> N
             frameon=False,
         )
         novelty = summary["e104_novelty"]
-        gate = summary["gate"]
         figure.text(
             0.055,
             0.145,
@@ -145,7 +144,7 @@ def render_external_source_readiness(summary: dict[str, Any], output: Path) -> N
         figure.text(
             0.055,
             0.085,
-            "裁决：暂无可直接评估E99的外部来源；停止坐标身份迁移，下一步改审Hwang九轮四个输出mask的确定性复现契约。",
+            "裁决：暂无可直接评估E99的外部来源；停止坐标身份迁移，遵守E97停止门并转论文收束。",
             ha="left",
             va="bottom",
             fontsize=9.8,
@@ -154,7 +153,7 @@ def render_external_source_readiness(summary: dict[str, Any], output: Path) -> N
         figure.text(
             0.055,
             0.035,
-            f"证据边界：{gate['decision']}；没有生成新关系、没有神经指标，也不构成PRESENT-80攻击或SOTA结果。",
+            "重开条件：出现新的可靠provider或满足零重合且新增至少32维的同语义独立来源；本结果不是神经指标或SOTA。",
             ha="left",
             va="bottom",
             fontsize=9.0,

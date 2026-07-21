@@ -184,8 +184,8 @@ def adjudicate_external_relation_sources(
         status = "hold"
         decision = "innovation2_present_r9_external_relation_source_unavailable"
         action = (
-            "stop E99 coordinate-identity transfer; audit deterministic reproduction of the "
-            "four Hwang PRESENT r9 output masks as a new target representation"
+            "stop E99 coordinate-identity transfer; consolidate the thesis evidence and wait "
+            "for a new sound provider or a verified span-external relation source"
         )
     known_novelty = [
         int(row["new_relation_space_dimensions"])
@@ -220,7 +220,13 @@ def adjudicate_external_relation_sources(
             "training": False,
             "remote_scale": False,
             "r10_generation": False,
-            "target_representation_change_required": status == "hold",
+            "target_representation_change_required": False,
+            "provider_research_open": False,
+            "thesis_consolidation": status == "hold",
+            "reopen_only_for": (
+                "a new sound provider with verifiable certificates or a machine-readable "
+                "same-semantics source with zero training overlap and at least 32 new dimensions"
+            ),
         },
     }
 

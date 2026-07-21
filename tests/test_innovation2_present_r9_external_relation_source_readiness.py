@@ -52,7 +52,10 @@ def test_e106_holds_e99_when_no_external_source_is_eligible() -> None:
     assert gate["metrics"]["machine_readable_candidate_sources"] == 1
     assert gate["metrics"]["maximum_known_new_dimensions"] == 0
     assert gate["next_action"]["e99_evaluation_open"] is False
-    assert gate["next_action"]["target_representation_change_required"] is True
+    assert gate["next_action"]["target_representation_change_required"] is False
+    assert gate["next_action"]["provider_research_open"] is False
+    assert gate["next_action"]["thesis_consolidation"] is True
+    assert "new sound provider" in gate["next_action"]["action"]
 
 
 def test_e106_opens_only_for_a_fully_qualified_source() -> None:
@@ -94,7 +97,7 @@ def test_e106_source_matrix_keeps_alternative_semantics_out_of_e99() -> None:
     assert rows["splitandcancel_present"]["direct_e99_eligible"] is False
 
 
-def test_e106_plot_explains_source_gates_and_next_representation(
+def test_e106_plot_explains_source_gates_and_stop_boundary(
     tmp_path: Path,
 ) -> None:
     summary = {
@@ -113,4 +116,5 @@ def test_e106_plot_explains_source_gates_and_next_representation(
     assert "当前没有来源满足全部条件" in svg
     assert "Hwang 2026 PRESENT R9四个输出mask" in svg
     assert "新增维度=0" in svg
-    assert "没有神经指标" in svg
+    assert "遵守E97停止门并转论文收束" in svg
+    assert "新的可靠provider" in svg

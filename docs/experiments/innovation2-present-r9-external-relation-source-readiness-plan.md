@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：计划冻结 / 本地零训练审计待执行
+状态：已完成 / hold / 停止E99坐标迁移并转论文收束
 
 ## 1. 研究问题
 
@@ -41,7 +41,8 @@ execution       = local CPU read-only audit
 5. CLAASP-MP：存在通用monomial/superpoly代码方法，但当前语料没有冻结的PRESENT R9关系结果，
    cube/output-monomial语义也不是E99输入。
 
-Hwang和Split-and-Cancel可以成为后续“更换表示或目标”的候选，但不能在E106中转换成E99来源。
+Hwang和Split-and-Cancel是本次来源语义对照，不能在E106中转换成E99来源。E97已经关闭当前
+PRESENT高轮输出预测provider研究，因此它们也不自动构成下一项实验。
 
 ## 3. 来源资格控制
 
@@ -84,6 +85,43 @@ output = outputs/local_audits/i2_present_r9_external_relation_source_readiness_2
 `progress.jsonl`和中文资格矩阵图。图必须经过`visual-qa-redraw`像素检查并写marker，随后刷新最近结果
 索引。
 
-若没有合格来源，推荐下一步是单独审计Hwang PRESENT R9四个固定输出mask能否通过现有确定性提供者
-复现，且不枚举`2^60`明文。该下一步明确改变目标表示，不能加载E99 checkpoint。Hwang提供者不可行
-时停止PRESENT R9输出mask训练路线；Split-and-Cancel仓库在代码/结果实际公开前保持来源hold。
+## 6. 正式结果
+
+冻结输入和全部协议检查通过，E106得到：
+
+```text
+status                              = hold
+decision                            = innovation2_present_r9_external_relation_source_unavailable
+candidate_sources                   = 5
+eligible_external_sources           = 0
+machine_readable_candidate_sources  = 1
+same_atm_semantics_candidate_sources= 2
+maximum_known_new_dimensions        = 0
+minimum_required_new_dimensions     = 32
+```
+
+唯一机器可读且同语义的候选是E104 ATM R9 `(3,3,3)`，但其321条关系中318条与公开训练关系完全
+重合；余下3条虽然文件层面新，仍未给公开468维span增加任何GF(2)维度。其他候选缺少机器关系、
+轮数不符，或采用输出mask、弱密钥、monomial等不同语义，因此不能直接喂给冻结E99模型。
+
+E106是本地零训练来源资格审计，不是新的神经网络结果、PRESENT-80攻击、论文复现或SOTA比较。
+
+## 7. 推荐下一步与停止门
+
+E106没有发现合格来源，因此永久停止E99绝对坐标身份的外部迁移路线；不生成ATM R10、不继续其他
+split、不筛选E104三条关系，也不通过加epoch、网络宽度或远程GPU绕过来源问题。
+
+同时遵守E97的provider停止门：不另立Hwang四mask复现实验，不提高exact-ANF、ATM等现有provider
+的资源上限，不启动PRESENT七至九轮输出预测训练。默认下一步转论文收束，把E99--E106整理为
+“九轮关系学习信号存在，但坐标身份泛化缺少span外独立来源”的证据链，并与E52--E55、E97的
+“高轮严格标签生成边界”并列陈述。
+
+只有未来出现以下任一新证据时才另立计划重开：
+
+1. 新的sound provider算法或可验证证书实现，并重新通过E97同等级别的语义和复杂度门；
+2. 机器可读、同为PRESENT R9独立轮密钥ATM `(u,v)`语义、与训练及旋转候选零重合，并在公开
+   468维span外新增至少32维的独立来源。
+
+最终`curves.svg`已按`visual-qa-redraw`渲染为`1800 x 1037`像素检查：标题、两行说明、六来源乘
+六资格矩阵、行列标签、图例和底部三行结论均无字体重叠、裁切、缺字或语义歧义，验收记录为
+`visual_qa_passed.marker`。最近结果索引状态见`outputs/00_RECENT_RESULTS.md`。
