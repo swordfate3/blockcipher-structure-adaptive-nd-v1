@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：条件式预注册 / 等待OPA2正式门
+状态：条件式预注册 / 本地smoke通过 / 等待OPA2正式门
 
 ## 1. 研究问题
 
@@ -121,3 +121,28 @@ curves.svg
 
 结果回收后必须校验OPA2 gate哈希、源提交、缓存、结果行、history和checkpoint；图像经过
 `visual-qa-redraw`真实像素检查后才能标记完成，并在同一回合刷新`outputs/00_RECENT_RESULTS.md/json`。
+
+## 8. 本地实现门结果
+
+```text
+run_id = i2_output_prediction_opa3_present_r3_selected8_topology_attribution_smoke_20260722
+train/test = 64/64 total pairs
+epochs = 1
+result rows = 24/24
+history rows = 3/3
+checkpoint hashes = 3/3
+cache rows = 128/128
+protocol/execution checks = all true
+status = pass
+decision = innovation2_selected8_topology_attribution_local_smoke_passed
+```
+
+smoke使用synthetic OPA2 pass gate只验证gate ownership接口、三种映射、数据、训练、指标和产物闭环，
+不构成正式OPA2授权，也不解释64条测试上的AUC。真实、identity和固定错误映射均为64位置双射；
+错误映射与真实P在`64/64`个destination位置不同；三个模型参数量完全相同。
+
+`curves.svg`由`visual-qa-redraw`转为1920×1080等效像素图检查。标题、三段协议说明、热图数字、
+色条、坐标标签、四个面板和底部裁决无重叠、裁切、缺字或模糊范围，已写入
+`visual_qa_passed.marker`。最近结果索引已刷新，当前为`001`。
+
+正式OPA3仍保持关闭，唯一解锁条件是OPA2正式gate完整通过；本地smoke不得替代该门。

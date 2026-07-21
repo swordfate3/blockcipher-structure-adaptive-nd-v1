@@ -251,12 +251,25 @@ class _PresentSpnOutputBlock(nn.Module):
 
 
 class SelectedOutputPresentSpn(nn.Module):
-    def __init__(self, token_dim: int = 189, blocks: int = 3) -> None:
+    def __init__(
+        self,
+        token_dim: int = 189,
+        blocks: int = 3,
+        source_for_destination: torch.Tensor | None = None,
+    ) -> None:
         super().__init__()
         self.embedding = nn.Linear(1, token_dim)
         self.position_embedding = nn.Parameter(torch.zeros(1, 64, token_dim))
         nn.init.trunc_normal_(self.position_embedding, std=0.02)
-        source_for_destination = _present_source_for_destination()
+        source_for_destination = (
+            _present_source_for_destination()
+            if source_for_destination is None
+            else source_for_destination.detach().clone().to(dtype=torch.long)
+        )
+        if source_for_destination.shape != (64,) or sorted(
+            source_for_destination.tolist()
+        ) != list(range(64)):
+            raise ValueError("source_for_destination must be a 64-position permutation")
         self.blocks = nn.ModuleList(
             _PresentSpnOutputBlock(token_dim, source_for_destination)
             for _ in range(blocks)
@@ -289,6 +302,17 @@ def _present_source_for_destination() -> torch.Tensor:
         destination_msb = 63 - destination_integer
         source_for_destination[destination_msb] = source_msb
     return torch.tensor(source_for_destination, dtype=torch.long)
+
+
+def _present_topology_mapping(mode: str) -> torch.Tensor:
+    exact = _present_source_for_destination()
+    if mode == "exact":
+        return exact
+    if mode == "identity":
+        return torch.arange(64, dtype=torch.long)
+    if mode == "wrong":
+        return exact.roll(1)
+    raise ValueError(f"unknown PRESENT topology mode: {mode}")
 
 
 def prepare_architecture_data(
@@ -672,6 +696,17 @@ def _build_model(
         return SelectedOutputPresentSpn(
             token_dim=config.present_spn_dim,
             blocks=config.present_spn_blocks,
+        )
+    topology_mode = {
+        "present_spn_exact_p": "exact",
+        "present_spn_identity_p": "identity",
+        "present_spn_wrong_p": "wrong",
+    }.get(architecture)
+    if topology_mode is not None:
+        return SelectedOutputPresentSpn(
+            token_dim=config.present_spn_dim,
+            blocks=config.present_spn_blocks,
+            source_for_destination=_present_topology_mapping(topology_mode),
         )
     raise ValueError(f"unknown architecture: {architecture}")
 

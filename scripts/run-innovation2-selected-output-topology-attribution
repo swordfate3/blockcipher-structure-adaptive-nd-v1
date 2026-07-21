@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_innovation2_selected_output_topology_attribution import main
+
+raise SystemExit(main())

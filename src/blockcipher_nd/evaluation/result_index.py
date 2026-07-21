@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_selected8_topology_attribution_local_smoke_passed": (
+        "PRESENT三轮真实/identity/错误P-layer同容量归因实现门通过"
+    ),
+    "innovation2_selected8_present_topology_independently_attributed": (
+        "真实PRESENT P-layer在第四固定密钥上超过两个同容量拓扑控制"
+    ),
+    "innovation2_selected8_present_topology_not_attributed": (
+        "PRESENT结构网络有效但真实P-layer未超过同容量拓扑控制"
+    ),
+    "innovation2_selected8_topology_attribution_protocol_invalid": (
+        "P-layer映射、OPA2所有权、数据、训练或产物协议无效"
+    ),
     "innovation2_selected8_architecture_confirmation_local_smoke_passed": (
         "第四密钥候选/MLP匹配shuffle确认实现门通过，开放OPA2远程正式确认"
     ),
@@ -1880,6 +1892,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_opa3_present_r3_selected8"):
+        return "创新2 OPA3：PRESENT三轮真实P-layer与同容量错误拓扑归因"
     if run_id.startswith("i2_output_prediction_opa2_present_r3_selected8"):
         return "创新2 OPA2：PRESENT三轮候选架构与MLP的第四密钥匹配控制确认"
     if run_id.startswith(
