@@ -64,10 +64,14 @@ def render_spn_rescnn_hybrid(summary: dict[str, Any], output: Path) -> None:
             "figure.facecolor": "#FFFFFF",
         }
     ):
-        figure, axes = plt.subplots(1, 2, figsize=(16.0, 8.6))
+        figure = plt.figure(figsize=(16.0, 8.6))
         figure.subplots_adjust(
             left=0.11, right=0.965, top=0.70, bottom=0.20, wspace=0.28
         )
+        grid = figure.add_gridspec(1, 2, width_ratios=(1.0, 1.08), wspace=0.28)
+        heat_axis = figure.add_subplot(grid[0, 0])
+        delta_grid = grid[0, 1].subgridspec(3, 1, hspace=0.48)
+        delta_axes = [figure.add_subplot(delta_grid[index, 0]) for index in range(3)]
         figure.text(
             0.11,
             0.955,
@@ -110,7 +114,6 @@ def render_spn_rescnn_hybrid(summary: dict[str, Any], output: Path) -> None:
             color="#475569",
         )
 
-        heat_axis = axes[0]
         deviation = max(0.02, float(np.max(np.abs(auc - 0.5))))
         image = heat_axis.imshow(
             auc,
@@ -140,33 +143,58 @@ def render_spn_rescnn_hybrid(summary: dict[str, Any], output: Path) -> None:
         colorbar = figure.colorbar(image, ax=heat_axis, fraction=0.046, pad=0.035)
         colorbar.set_label("AUC")
 
-        delta_axis = axes[1]
         positions = np.arange(len(bits))
         colors = ("#0F766E", "#2563EB", "#7C3AED")
-        labels = ("真实P - ResCNN", "真实P - 错误P", "真实P - 标签打乱")
-        width = 0.24
-        for index, (row, color, label) in enumerate(
-            zip(deltas, colors, labels, strict=True)
+        labels = (
+            "真实P - ResCNN（逐bit门 >= +0.005）",
+            "真实P - 错误P（逐bit门 >= +0.015）",
+            "真实P - 标签打乱（逐bit门 >= +0.015）",
+        )
+        thresholds = (0.005, 0.015, 0.015)
+        for index, (axis, row, color, label, threshold) in enumerate(
+            zip(delta_axes, deltas, colors, labels, thresholds, strict=True)
         ):
-            delta_axis.bar(
-                positions + (index - 1) * width,
+            axis.bar(
+                positions,
                 row,
-                width=width,
+                width=0.62,
                 color=color,
-                label=label,
             )
-        delta_axis.axhline(0.0, color="#475569", linewidth=1.0)
-        delta_axis.set_xticks(positions, [f"bit {bit}" for bit in bits])
-        delta_axis.set_ylabel("AUC差值")
-        delta_axis.set_title("候选相对锚点与控制的增益", loc="left", fontweight="bold")
-        delta_axis.grid(axis="y", color="#E5E7EB", linewidth=0.7)
-        delta_axis.legend(loc="upper center", ncol=1, frameon=False)
-        span = max(0.08, float(np.max(np.abs(deltas)) + 0.03))
-        delta_axis.set_ylim(-span, span)
+            axis.axhline(0.0, color="#475569", linewidth=0.9)
+            axis.axhline(
+                threshold,
+                color="#DC2626",
+                linewidth=0.9,
+                linestyle="--",
+            )
+            axis.set_title(label, loc="left", fontsize=9.2, fontweight="bold")
+            axis.grid(axis="y", color="#E5E7EB", linewidth=0.7)
+            span = max(
+                0.025,
+                threshold * 2.0,
+                float(np.max(np.abs(row))) * 1.25,
+            )
+            axis.set_ylim(-span, span)
+            axis.set_xticks(
+                positions,
+                [f"bit {bit}" for bit in bits] if index == 2 else [""] * len(bits),
+            )
+            for position, value in zip(positions, row, strict=True):
+                offset = span * 0.055
+                axis.text(
+                    position,
+                    value + (offset if value >= 0 else -offset),
+                    f"{value:+.3f}",
+                    ha="center",
+                    va="bottom" if value >= 0 else "top",
+                    fontsize=7.3,
+                    color="#111827",
+                )
+        delta_axes[1].set_ylabel("AUC差值")
 
         decision_text = {
             "innovation2_spn_rescnn_hybrid_local_smoke_passed": (
-                "四行模型、数据和产物实现门通过；等待OPB1正式裁决"
+                "四行模型、数据和产物实现门通过；本地小样本不作性能裁决"
             ),
             "innovation2_spn_rescnn_hybrid_candidate_requires_confirmation": (
                 "混合候选超过ResCNN锚点及两个必要控制；进入独立密钥确认"

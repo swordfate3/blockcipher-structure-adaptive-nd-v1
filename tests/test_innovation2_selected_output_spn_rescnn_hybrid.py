@@ -285,6 +285,8 @@ def test_hybrid_plot_has_plain_chinese_scope(tmp_path: Path) -> None:
     assert "SPN-ResCNN" in svg
     assert "真实密文输出bit" in svg
     assert "不是四轮" in svg
+    assert "真实P - 错误P" in svg
+    assert "逐bit门" in svg
 
 
 def test_training_cli_import_does_not_require_matplotlib() -> None:

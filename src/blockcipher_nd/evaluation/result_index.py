@@ -67,7 +67,7 @@ DECISION_LABELS = {
         "八输出轮间审计的P层几何、候选隔离、密钥调度、计数或产物协议无效"
     ),
     "innovation2_spn_rescnn_hybrid_local_smoke_passed": (
-        "PRESENT三轮SPN-ResCNN混合模型四行实现门通过，等待OPB1裁决"
+        "PRESENT三轮SPN-ResCNN混合模型四行实现门通过，正式性能由远程矩阵裁决"
     ),
     "innovation2_spn_rescnn_hybrid_candidate_requires_confirmation": (
         "SPN-ResCNN混合模型超过ResCNN、错误P与标签打乱，进入独立密钥确认"
