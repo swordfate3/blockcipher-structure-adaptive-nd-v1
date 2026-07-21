@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程单密钥校准待启动
+状态：本地实现门通过 / 远程单密钥校准运行中
 
 ## 1. 唯一研究问题
 
@@ -154,3 +154,22 @@ plan   = configs/experiment/innovation2/innovation2_output_prediction_op9_presen
 
 远程包使用GPU0、固定提交、独立干净克隆、Task Scheduler `cmd.exe /c`、分块落盘数据缓存、逐epoch
 覆盖式checkpoint和本地tmux自动回收。预计耗时`6--14小时`，以monitor回收的门控产物为准。
+
+## 9. OP9-B启动记录
+
+远程任务已于`2026-07-21 18:35 +08:00`从已推送提交启动：
+
+```text
+source commit = 714c9942f25810b850cb31573eaaad369f18538e
+remote state  = running
+remote root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721
+monitor       = tmux:i2-op9-kimura-monitor
+```
+
+第一次调度从提交`5bdd8a5`进入训练入口后立即失败，错误为远程直接Python未发现`blockcipher_nd`。
+提交`714c994`为run脚本增加`PYTHONPATH=%SOURCE_ROOT%\src`，定向回归`7 passed`；重新调度后
+`started.marker`、Git revision、GPU、torch和readiness证据存在，旧`failed.marker`已被runner清除。
+
+本地monitor负责稀疏同步进度；只有远程结果分支推送、SHA-256校验、协议门和缓存完整性全部通过后，
+任务才可从`running`改为`retrieved from verified result branch`。当前尚无100-epoch性能结果，不作通过或
+失败裁决。
