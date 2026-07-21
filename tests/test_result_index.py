@@ -400,6 +400,45 @@ def test_result_index_labels_innovation2_output_parity_exact_anf(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_prediction_kimura_lstm_local_smoke_passed",
+            "Kimura式完整输出LSTM本地实现门通过，只开放远程单密钥论文规模校准",
+        ),
+        (
+            "innovation2_output_prediction_kimura_lstm_single_key_supported",
+            "PRESENT三轮完整输出LSTM单固定密钥校准通过，只开放第二密钥确认",
+        ),
+        (
+            "innovation2_output_prediction_kimura_lstm_single_key_not_supported",
+            "PRESENT三轮完整输出LSTM单密钥校准未过门，停止论文族机械扩展",
+        ),
+        (
+            "innovation2_output_prediction_kimura_lstm_protocol_invalid",
+            "Kimura式完整输出预测的数据、模型、指标、缓存或checkpoint协议无效",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_kimura_lstm_output_prediction(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_output_prediction_op9_present_r3_kimura_lstm_smoke_20260721"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP9：PRESENT三轮Kimura式完整64-bit真实密文输出预测"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:

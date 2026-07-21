@@ -72,7 +72,7 @@ completeness.
 
 **Logged**: 2026-07-21T11:40:00+08:00
 **Priority**: critical
-**Status**: pending
+**Status**: promoted
 **Area**: research
 
 ### Summary
@@ -105,6 +105,15 @@ identity of the sample distribution. The Wu/Guo-style multiset classifier can
 serve only as an external high-round baseline and must not become the primary
 Innovation 2 contract.
 
+The subsequent source-level protocol audit found a second boundary. Kimura's
+published PRESENT r3 ciphertext-prediction experiment uses a full 64-bit target,
+MSB-first bit sequences, a six-layer LSTM with 300 hidden units, MSE, RMSprop at
+`0.001`, 100 epochs, `2^17` total training pairs, and `2^16` total test pairs for
+each fixed-key model. OP1--OP8 instead use `4096` training rows, five epochs,
+MLP/BCE diagnostics, and later a 16-parity target with AUC gates. Those runs are
+valid output-prediction diagnostics but are neither an exact Kimura reproduction
+nor sufficient evidence that paper-style PRESENT r3 output prediction fails.
+
 ### Suggested Action
 
 Before any further Innovation 2 experiment, choose and preregister exactly one
@@ -124,13 +133,14 @@ that primary trajectory.
 ### Metadata
 
 - Source: user_feedback
-- Related Files: docs/research/innovation2-thesis-consolidation-20260719.md, docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md, docs/experiments/innovation2-present-r9-atm-support-component-pu-neural-ranking-plan.md
+- Related Files: AGENTS.md, docs/research/innovation2-output-prediction-paper-protocol-audit-20260721.md, docs/experiments/innovation2-output-prediction-op9-present-r3-kimura-lstm-plan.md, papers/innovation_two/text/2021_kimura_output_prediction_block_ciphers.txt
 - Tags: innovation2, research-coherence, task-contract, round-ladder, metrics, thesis-claim
 - See Also: LRN-20260720-001
 - Pattern-Key: research.innovation.freeze_canonical_task_contract
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-21
 - Last-Seen: 2026-07-21
+- Promoted: AGENTS.md
 
 ---
 

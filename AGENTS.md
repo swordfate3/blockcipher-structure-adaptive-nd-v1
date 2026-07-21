@@ -46,6 +46,12 @@
 - Do not mix benchmark changes with model or feature changes unless the user explicitly asks to redesign the benchmark. Preserve validation data, labels, negative-sample definition, metric computation, and plan-alignment logic for comparable experiments.
 - Validate with the narrowest meaningful command or test before reporting completion. If validation fails, debug the actual failure rather than guessing or broadening the change.
 
+## Innovation 2 Output-Prediction Contract
+
+- Innovation 2's primary task predicts cipher output values for unseen inputs under a fixed unknown secret key. A one-bit ciphertext parity is still output prediction; its `0/1` value is not a positive/negative sample class. Do not substitute real-vs-random, structured-vs-random, balance-property, cube-property, kernel-membership, or ATM-relation classification for this task.
+- Keep full-output, selected-bit, and parity targets explicitly distinguished, but require every primary label to be a deterministic function of the true cipher output for that same input. Binary losses and AUC are allowed evaluation tools and do not change the task semantics.
+- Do not treat the OP1--OP8 `4096`-training-row, five-epoch MLP/parity diagnostics as a reproduction or failure of the Kimura output-prediction protocol. The published PRESENT r3 ciphertext-prediction row uses full 64-bit output, an LSTM family, MSE/RMSprop, 100 epochs, `2^17` total training pairs and `2^16` total test pairs for each fixed-key model; its main success quantity is full-output exact match. State key count separately: the paper averages independently trained fixed-key models across many keys.
+
 ## Factual Reporting Discipline
 
 - Before answering what the project currently uses or how a feature is implemented, inspect the relevant source, config, dependency files, logs, or artifacts first. Do not answer from expectation or memory for dependencies, plotting/rendering libraries, training protocols, remote scripts, artifact paths, experiment status, checkpoint selection, or metrics.

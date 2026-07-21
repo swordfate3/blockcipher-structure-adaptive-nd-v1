@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_innovation2_output_prediction_kimura_lstm import main
+
+raise SystemExit(main())
