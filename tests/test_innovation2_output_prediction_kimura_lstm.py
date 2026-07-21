@@ -228,6 +228,7 @@ def test_remote_package_freezes_total_rows_and_windows_hygiene() -> None:
     assert "_plot_deferred.marker" in run
     assert "plot-innovation2-output-prediction-kimura-lstm" not in run
     assert "plot-innovation2-output-prediction-kimura-lstm" in monitor
+    assert 'rm -rf "${MONITOR_ROOT}/${RUN_ID}/logs"' in monitor
     assert "scripts/index-results" in monitor
     assert "C:\\Users" not in run.replace(
         "C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519",

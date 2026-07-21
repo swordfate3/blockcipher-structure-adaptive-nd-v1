@@ -16,6 +16,7 @@ timestamp() {
 }
 
 sync_live_artifacts() {
+  rm -rf "${MONITOR_ROOT}/${RUN_ID}/logs"
   scp -r "${REMOTE}:${REMOTE_ROOT}/logs" "${MONITOR_ROOT}/${RUN_ID}/" \
     >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
   mkdir -p "${MONITOR_ROOT}/${RUN_ID}/results"

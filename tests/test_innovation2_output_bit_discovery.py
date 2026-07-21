@@ -262,6 +262,7 @@ def test_remote_package_waits_for_op9_and_freezes_fresh_scale() -> None:
     assert "_plot_deferred.marker" in run
     assert "plot-innovation2-output-bit-discovery" not in run
     assert "plot-innovation2-output-bit-discovery" in monitor
+    assert 'rm -rf "${MONITOR_ROOT}/${RUN_ID}/logs"' in monitor
     assert "waiting_for_verified_op9_retrieval" in monitor
     assert "sleep 120" in monitor
 
