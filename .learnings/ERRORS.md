@@ -174,7 +174,7 @@ Import the plotting module only inside the local `smoke` branch. Add a subproces
 ### Resolution
 
 - **Resolved**: 2026-07-21T23:32:00+08:00
-- **Commit/PR**: pending
+- **Commit/PR**: 3e4c222
 - **Notes**: Plotting is now lazily imported only for local smoke, and the new test emulates the remote environment without Matplotlib.
 
 ---

@@ -161,15 +161,17 @@ shuffle确认，不开放四轮XOR、更多模型或机械扩样本。
 ```text
 initial source commit = 7d4e45de5a98aa297a585103e8b6542e1ce73e13
 repaired source commit = 7ee17cfb7befb4731663f28a2956795b0e4373d0
-final position-preserving source commit = fdeb49d3081b22f6cdf1770594dfc36e0dbf8d07
+position-preserving source commit = fdeb49d3081b22f6cdf1770594dfc36e0dbf8d07
+final remote-compatible source commit = 3e4c22236bff6c8231acc169bc636188e55d1118
 remote run id = i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721
 remote path = G:\lxy\blockcipher-structure-adaptive-nd-runs\<run-id>
 initial launch = failed before task creation because Task Scheduler /TR exceeded 261 characters
 repair = short wrapper G:\lxy\scheduled-runs\i2_opa1_key2.cmd
 first retry = failed before training on a transient dirty-source gate; later read-only status was clean
-final retry = started marker present; readiness status=pass
+second retry = started/readiness passed but eager plotting import failed because remote torch310 has no Matplotlib
+final retry = started marker, readiness pass, progress.jsonl and disk cache metadata all present
 local watcher = tmux i2_opa1_arch_screen_watch_20260721
 ```
 
-远程状态现为`running`。正式结果只在watcher回收verified result branch、40条结果、500条history和
+远程状态现为`running`，且已越过导入与缓存持久化门。正式结果只在watcher回收verified result branch、40条结果、500条history和
 5个checkpoint后才算`completed remotely`；主线程不重复SSH轮询。
