@@ -190,10 +190,22 @@ def test_plot_explains_bit_order_and_fresh_confirmation(tmp_path: Path) -> None:
                 "fresh_mlp_auc": 0.5,
                 "discovery_lstm_accuracy_margin": 0.006 if bit == 7 else 0.0,
                 "fresh_lstm_accuracy_margin": 0.006 if bit == 7 else 0.0,
+                "fresh_selector_auc": 0.5 + (0.018 if bit == 7 else 0.0),
+                "fresh_selector_accuracy_margin": 0.006 if bit == 7 else 0.0,
             }
             for bit in range(64)
         ],
-        "candidates": {"candidate_msb_indices": [7]},
+        "candidates": {
+            "candidate_msb_indices": [7],
+            "all_64_discovery_ranking": [
+                {
+                    "msb_index": bit,
+                    "discovery_auc": 0.5 + (0.02 if bit == 7 else 0.0),
+                    "discovery_accuracy_margin": 0.006 if bit == 7 else 0.0,
+                }
+                for bit in range(64)
+            ],
+        },
         "gate": {
             "decision": "innovation2_true_output_bits_fresh_confirmed",
             "metrics": {"fresh_confirmed_msb_indices": [7]},

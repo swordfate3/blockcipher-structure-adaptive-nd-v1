@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程单密钥校准运行中
+状态：远程单密钥校准已验证回收 / 完整输出路线暂缓
 
 ## 1. 唯一研究问题
 
@@ -192,5 +192,45 @@ monitor       = tmux:i2-op9-kimura-monitor
 `started.marker`、Git revision、GPU、torch和readiness证据存在，旧`failed.marker`已被runner清除。
 
 本地monitor负责稀疏同步进度；只有远程结果分支推送、SHA-256校验、协议门和缓存完整性全部通过后，
-任务才可从`running`改为`retrieved from verified result branch`。当前尚无100-epoch性能结果，不作通过或
-失败裁决。
+任务才可从`running`改为`retrieved from verified result branch`。该回收门现已完成，正式结果见下一节。
+
+## 10. OP9-B正式结果与裁决
+
+远程三行矩阵已完成、推送验证结果分支并回收，本地SHA-256、缓存、checkpoint manifest和协议门全部
+通过。恢复后的固定执行提交为`06f7638`；远程环境缺少`matplotlib`，因此SVG按修复后的流程在本地
+验证回收后生成，并通过`visual-qa-redraw`像素检查，无文字重叠、裁切或语义歧义。
+
+```text
+Kimura LSTM true output:
+  bit match   = 0.499915838
+  macro AUC   = 0.500007607
+  exact match = 0 / 65536
+  test MSE    = 0.250080714
+
+matched MLP true output:
+  bit match   = 0.498848200
+  macro AUC   = 0.508066504
+  exact match = 0 / 65536
+  test MSE    = 0.392121862
+
+Kimura LSTM label shuffle:
+  bit match   = 0.500027418
+  macro AUC   = 0.500013948
+  exact match = 0 / 65536
+```
+
+OP9冻结的完整输出LSTM路线门未通过：LSTM没有超过随机或标签打乱控制，完整命中为0，与Kimura
+Table 12的`2^-1.30 ≈ 0.406126`多密钥平均结果存在数量级差距。因此停止继续增加完整输出LSTM的
+数据、epoch、层数、seed和轮数；这不是PRESENT三轮所有单bit输出预测失败。
+
+MLP的宏AUC为`0.5081`，高于两个LSTM，但总体bit match仍低于逐bit多数类均值，且测试MSE暴露明显
+泛化问题。按用户冻结的新主目标，OP9不再用全64-bit平均或exact-match裁决创新2，而是把两个真实
+输出模型交给OP10逐bit扫描。OP10必须在发现集选择具体`(bit, model)`，再用全新不重合明文确认；
+只有确认位置才能进入专用输出头和第二固定密钥复验。
+
+```text
+status              = hold
+decision            = innovation2_output_prediction_kimura_lstm_single_key_not_supported
+remote full-output  = stop
+next adjudication   = OP10 easy true-output-bit fresh confirmation
+```

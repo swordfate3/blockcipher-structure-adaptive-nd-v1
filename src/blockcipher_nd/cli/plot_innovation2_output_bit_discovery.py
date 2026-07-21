@@ -32,6 +32,10 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
     mode = summary.get("metadata", {}).get("mode", "unknown")
     candidates = set(summary["candidates"]["candidate_msb_indices"])
     confirmed = set(gate["metrics"]["fresh_confirmed_msb_indices"])
+    selection_by_bit = {
+        int(row["msb_index"]): row
+        for row in summary["candidates"]["all_64_discovery_ranking"]
+    }
     x = np.arange(64)
     discovery_lstm = np.asarray(
         [row["discovery_lstm_auc"] for row in ranking], dtype=float
@@ -47,11 +51,19 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
         [row["fresh_shuffle_auc"] for row in ranking], dtype=float
     )
     fresh_mlp = np.asarray([row["fresh_mlp_auc"] for row in ranking], dtype=float)
+    discovery_selector_auc = np.asarray(
+        [selection_by_bit[bit]["discovery_auc"] for bit in range(64)],
+        dtype=float,
+    )
+    fresh_selector_auc = np.asarray(
+        [row["fresh_selector_auc"] for row in ranking], dtype=float
+    )
     discovery_margin = np.asarray(
-        [row["discovery_lstm_accuracy_margin"] for row in ranking], dtype=float
+        [selection_by_bit[bit]["discovery_accuracy_margin"] for bit in range(64)],
+        dtype=float,
     )
     fresh_margin = np.asarray(
-        [row["fresh_lstm_accuracy_margin"] for row in ranking], dtype=float
+        [row["fresh_selector_accuracy_margin"] for row in ranking], dtype=float
     )
     with plt.rc_context(
         {
@@ -123,6 +135,7 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
             discovery_shuffle,
             "发现集：64个输出bit的逐bit AUC",
             candidates,
+            discovery_selector_auc,
         )
         _plot_auc_panel(
             axes[0, 1],
@@ -132,6 +145,7 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
             fresh_shuffle,
             "全新明文确认集：冻结模型逐bit AUC",
             confirmed,
+            fresh_selector_auc,
         )
 
         margin_axis = axes[1, 0]
@@ -140,14 +154,14 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
             discovery_margin,
             color="#0F766E",
             linewidth=1.5,
-            label="发现集 LSTM",
+            label="发现集冻结选择模型",
         )
         margin_axis.plot(
             x,
             fresh_margin,
             color="#2563EB",
             linewidth=1.5,
-            label="fresh确认 LSTM",
+            label="fresh同一冻结模型",
         )
         margin_axis.axhline(0.0, color="#475569", linestyle="--", linewidth=1.0)
         margin_axis.axhline(
@@ -287,6 +301,7 @@ def _plot_auc_panel(
     shuffled: np.ndarray,
     title: str,
     highlighted_bits: set[int],
+    highlighted_values: np.ndarray,
 ) -> None:
     axis.plot(x, lstm, color="#0F766E", linewidth=1.6, label="真实输出LSTM")
     axis.plot(x, mlp, color="#2563EB", linewidth=1.2, label="参数匹配MLP")
@@ -310,7 +325,7 @@ def _plot_auc_panel(
         bits = np.asarray(sorted(highlighted_bits), dtype=int)
         axis.scatter(
             bits,
-            lstm[bits],
+            highlighted_values[bits],
             s=38,
             facecolor="#F8FAFC",
             edgecolor="#0F172A",

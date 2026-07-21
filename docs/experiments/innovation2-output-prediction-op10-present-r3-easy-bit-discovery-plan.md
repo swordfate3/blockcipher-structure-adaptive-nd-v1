@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 自动等待OP9模型完成
+状态：远程fresh确认通过 / 等待架构匹配控制与独立密钥复验
 
 ## 1. 唯一研究问题
 
@@ -146,11 +146,48 @@ decision        = innovation2_output_bit_discovery_local_smoke_passed
 OP10实现与远程包固定在已推送提交：
 
 ```text
-source commit = d23d16a6e474e002be4a4f0d497d76404d1c4bec
+source commit = 06f76382fed86fc0b231e48c5a358cf0c116f54b
 watcher       = tmux:i2-op10-bit-monitor
-watcher state = waiting_for_verified_op9_retrieval
+watcher state = verified_results_retrieved_and_indexed
 ```
 
 watcher只有看到OP9从验证结果分支回收成功的本地marker后，才会调度OP10。远程OP10读取OP9保留在
 `G:\lxy`的三个最终checkpoint和数据缓存，生成`2^16`条fresh确认明文；完成后自动验证384行结果、
 候选hash、fresh缓存和结果分支，再回收并刷新索引。主线程不重复SSH轮询。
+
+## 10. OP10远程正式结果
+
+远程发现与fresh确认已完成并从验证结果分支回收。候选SHA-256、三个源checkpoint、384行逐bit结果、
+`65536`条fresh缓存、明文唯一性/互斥性、MSB-first映射和真实PRESENT输出重放全部通过。
+
+```text
+status                = pass
+decision              = innovation2_true_output_bits_fresh_confirmed
+discovery candidates  = 8
+fresh confirmed       = 8 / 8
+confirmed MSB indices = 0, 2, 8, 10, 32, 34, 40, 42
+selector model        = matched_mlp_true_output（8个位置全部相同）
+```
+
+| MSB位置 | 整数bit | nibble / 内部bit | fresh准确率 | 超多数类 | fresh AUC | AUC-打乱LSTM |
+|---:|---:|---:|---:|---:|---:|---:|
+| 32 | 31 | 8 / 0 | 0.518173 | +0.017197 | 0.524560 | +0.024620 |
+| 34 | 29 | 8 / 2 | 0.518600 | +0.017441 | 0.524725 | +0.024723 |
+| 2 | 61 | 0 / 2 | 0.517242 | +0.015396 | 0.523485 | +0.023422 |
+| 42 | 21 | 10 / 2 | 0.514175 | +0.013428 | 0.520558 | +0.020404 |
+| 40 | 23 | 10 / 0 | 0.518478 | +0.016815 | 0.525110 | +0.025295 |
+| 8 | 55 | 2 / 0 | 0.512665 | +0.011734 | 0.519002 | +0.019002 |
+| 0 | 63 | 0 / 0 | 0.519394 | +0.018600 | 0.526567 | +0.026507 |
+| 10 | 53 | 2 / 2 | 0.515320 | +0.014221 | 0.522252 | +0.022344 |
+
+八个位置在发现集冻结后全部于全新明文复现，说明单固定密钥PRESENT三轮存在可预测的真实输出bit；
+完整64-bit exact-match为0不影响该逐bit结论。位置还呈现规则子集：nibble只为`0/2/8/10`，且
+`bit_in_nibble_msb`只为`0/2`，值得在独立密钥上检验是否为稳定SPN结构而非当前密钥偶然。
+
+证据边界必须保留：八个候选全部由MLP选择，当前标签打乱行是LSTM，只能作为跨架构负控制。OP10
+通过的是fresh输出信号门，不是MLP架构匹配归因门，也不是跨密钥结论。下一步OP11固定这八个位置，
+在独立秘密密钥上比较完整64输出MLP、八输出专用MLP和八输出标签打乱MLP；第二密钥结果揭盲前不得
+更改位置或阈值。
+
+最终`curves.svg`经过`visual-qa-redraw`重绘：候选圆点和准确率曲线改为每个bit实际冻结的模型，确认
+条形图明确标出八个MLP位置；像素检查无重叠、裁切、曲线指代错误或中文语义歧义。
