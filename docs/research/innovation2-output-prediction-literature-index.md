@@ -6,11 +6,16 @@
 attacks on block ciphers. This is an acquisition and route-definition record,
 not yet a full systematic review.
 
-The expanded corpus for the current high-round integral-neural target, including
-PRESENT-specific papers and deterministic search baselines, is maintained in
-`docs/research/innovation2-high-round-literature-corpus-20260716.md`. This file
-remains the narrower output-prediction index and should not be read as the full
-Innovation 2 literature set.
+**Current-route update (2026-07-22):** Innovation 2 now freezes fixed-unknown-key
+true ciphertext-output prediction as its primary task. The current experiment
+and claim boundary is maintained in
+`docs/research/innovation2-output-prediction-thesis-boundary-20260721.md`; the
+source-level protocol audit is
+`docs/research/innovation2-output-prediction-paper-protocol-audit-20260721.md`;
+the SPN-aware novelty audit is
+`docs/research/innovation2-spn-aware-output-prediction-novelty-audit-20260722.md`.
+The broader `innovation2-high-round-literature-corpus-20260716.md` remains an
+adjacent historical integral-neural corpus, not the current task definition.
 
 ## Innovation Boundary
 

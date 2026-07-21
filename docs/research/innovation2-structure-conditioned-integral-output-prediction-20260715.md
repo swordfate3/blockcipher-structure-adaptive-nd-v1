@@ -1,5 +1,10 @@
 # Innovation 2：结构条件化积分输出性质预测
 
+> 历史路线说明（2026-07-22）：本文定义的是“输入结构集合到跨集合XOR平衡性质”的历史研究蓝图，
+> 不是当前“未见明文到同一明文真实密文输出值”的创新2主任务。当前任务与最终证据边界见
+> `docs/research/innovation2-output-prediction-thesis-boundary-20260721.md`。本文中的r5、平衡概率和
+> 结构标签不能与OP9--OPA3的逐明文输出AUC合并比较。
+
 **日期：** 2026-07-15
 
 **状态：** 真实PRESENT/SKINNY/SPECK标签族仍暂缓 / E30随机子空间与E31确定性provider均未开放真实密码训练 / E32小SPN精确标签被ID边际解释 / E32b train-only matched contrast过门 / 仅E33合成SPN神经比较开放

@@ -1,8 +1,10 @@
-# 创新2最终论文综合：结构条件积分输出平衡谱预测
+# [历史路线] 创新2论文综合：结构条件积分输出平衡谱预测
 
-> 历史路线说明：本文收束的是2026-07-19时的结构条件积分输出平衡谱路线。2026-07-21以后，用户
-> 冻结的当前创新2主任务改为固定未知秘密密钥下的真实密码输出值预测；OP9--OP12的最新权威边界见
-> `docs/research/innovation2-output-prediction-thesis-boundary-20260721.md`。两种任务不得混为同一结果。
+> 当前状态说明（2026-07-22）：本文收束的是2026-07-19时的结构条件积分输出平衡谱路线。当前创新2
+> 主任务是固定未知秘密密钥下的真实密码输出值预测；OP9--OPA3的唯一权威边界见
+> `docs/research/innovation2-output-prediction-thesis-boundary-20260721.md`，当前论文底稿见
+> `docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md`。两种任务不得混为同一
+> 结果或轮数轨迹，本文件标题中的“综合”只指历史PG-NBPO分支。
 
 **冻结日期：** 2026-07-19
 

@@ -1,5 +1,11 @@
 # 创新2高轮积分与输出预测论文语料库
 
+> 历史路线说明（2026-07-22）：本文是为高轮积分神经区分、平衡性质和确定性搜索分支建立的广义
+> 语料库，论文仍可作为相邻工作引用，但它不再定义当前创新2实验任务。当前真实输出值预测的协议与
+> 文献边界分别见`innovation2-output-prediction-literature-index.md`、
+> `innovation2-output-prediction-paper-protocol-audit-20260721.md`和
+> `innovation2-spn-aware-output-prediction-novelty-audit-20260722.md`。
+
 **检索日期：** 2026-07-16
 **语料状态：** 创新2目录有 23 篇已验证全文；另有 1 篇直接相关的部分
 解密特征论文已存在于创新1目录；主语料只剩 1 篇付费出版物未发现合法

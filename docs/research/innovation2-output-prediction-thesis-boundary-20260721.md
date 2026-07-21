@@ -4,6 +4,29 @@
 
 状态：OP9--OPA3完成 / 三轮SPN式架构独立确认 / 精确P-layer归因未通过 / 四轮结构路线关闭
 
+## 权威入口与阅读顺序
+
+截至`2026-07-22`，本文件是创新2当前任务、结果范围和停止边界的唯一权威状态入口。建议按以下顺序
+阅读和引用：
+
+1. 本文件：任务契约、正式证据表、可写/不可写结论和下一步；
+2. `docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md`：可进入论文模板的章节底稿；
+3. `docs/research/innovation2-spn-aware-output-prediction-novelty-audit-20260722.md`：核心论文与联网检索限定的新颖性边界；
+4. `docs/experiments/innovation2-output-prediction-op9-*.md`至`opa3-*.md`：逐实验协议、产物与gate；
+5. `outputs/00_RECENT_RESULTS.md`：本地可查看的最新结果入口，OPA3正式结果在完成时为`001`。
+
+下列文档保留历史价值，但不再定义当前创新2：
+
+| 历史文档 | 历史任务 | 当前用途 |
+|---|---|---|
+| `innovation2-thesis-ready-conclusion-20260716.md` | PRESENT r5结构条件积分候选排序 | 位置先验负归因与早期评测方法 |
+| `innovation2-thesis-consolidation-20260719.md` | PRESENT/GIFT严格平衡谱PG-NBPO | 独立的历史积分性质预测章节 |
+| `innovation2-neural-architecture-ranking-20260718.md` | 积分平衡/关系标签上的结构网络排序 | 历史架构探索记录 |
+| `innovation2-structure-conditioned-integral-output-prediction-20260715.md` | 结构集合XOR平衡性质预测 | 历史研究蓝图 |
+
+这些历史任务的输入对象、标签、指标和轮数不能与当前“未见明文到真实密文输出值”的结果串成同一条
+轮数提升轨迹。
+
 ## 0. 2026-07-22路线更新
 
 本文原先在OP12后关闭的是“四轮结构化XOR + MLP”路线，不是所有四轮真实输出值函数或所有网络
