@@ -105,6 +105,30 @@ def test_topology_models_have_identical_parameters_and_output_shape() -> None:
         assert model(torch.zeros((2, 64))).shape == (2, 8)
 
 
+def test_explicit_exact_topology_preserves_default_model_and_control_initialization() -> None:
+    features = torch.arange(128, dtype=torch.float32).reshape(2, 64) % 2
+    models = []
+    for mapping in (None, "exact", "identity", "wrong"):
+        torch.manual_seed(12345)
+        models.append(
+            SelectedOutputPresentSpn(
+                token_dim=4,
+                blocks=1,
+                source_for_destination=(
+                    None if mapping is None else _present_topology_mapping(mapping)
+                ),
+            )
+        )
+
+    reference_parameters = dict(models[0].named_parameters())
+    for model in models[1:]:
+        assert all(
+            torch.equal(reference_parameters[name], parameter)
+            for name, parameter in model.named_parameters()
+        )
+    assert torch.equal(models[0](features), models[1](features))
+
+
 def test_opa2_gate_is_the_only_formal_authority() -> None:
     assert authorize_from_opa2_gate(_opa2_gate(0.98)) == pytest.approx(0.98)
 
