@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：核心全文语料审计完成 / 暂定创新边界 / 等待OPA3拓扑归因
+状态：核心全文、三组联网检索与新增候选元数据核验完成 / 暂定创新边界 / 等待OPA3拓扑归因
 
 ## 1. 审计问题与声明范围
 
@@ -61,6 +61,23 @@ Singh最接近逐轮PRESENT建模：为31轮分别训练64-512-512-512-64 MLP，
 
 这占据“去密钥PRESENT公开轮函数的逐轮MLP仿真”，却不是固定未知秘密密钥下的输出预测攻击。其网络
 仍是通用MLP，没有在模型内部显式执行nibble局部混合和P-layer重排，也没有真实/错误拓扑同参数控制。
+
+### 2.5 Jeong等，2024/2026补充近邻
+
+联网检索新增了Jeong、Ahmadzadeh和Moon的2024论文`Comprehensive Neural Cryptanalysis on Block
+Ciphers Using Different Encryption Methods`，Crossref DOI为`10.3390/math12131936`。其正式摘要覆盖EE、
+PR、key recovery和ciphertext classification，比较全连接、RNN与Transformer，目标密码为DES、SDES、
+AES、SAES和SPECK。
+
+Jeong、Park和Moon的2026后续论文`Scalable Neural Cryptanalysis of Block Ciphers in Federated Attack
+Environments`，DOI `10.3390/math14020373`，把EE/PR扩展到多服务器联邦环境并比较全连接与BiLSTM。
+两篇论文说明“输出仿真使用非LSTM架构”和“多架构比较”本身不是空白，但其Crossref摘要均不包含
+PRESENT、显式S-box/P-layer网络或错误拓扑归因。MDPI落地页在当前环境拒绝访问，因此这里是正式
+书目与摘要级核验，不冒充全文协议审计。
+
+另一新增候选`Neural Cryptanalysis of Lightweight Block Ciphers Using Residual MLPs`，DOI
+`10.1109/CSR64739.2025.11130149`，经IEEE搜索记录和摘要核对属于SIMON/SPECK all-in-one差分分类，
+不是明文到真实密文输出值预测。
 
 ## 3. 与当前项目的逐项对照
 
@@ -148,11 +165,36 @@ exact-P复跑与OPA2 mean AUC差 <= 0.005
 1. 等待OPA3 verified result branch回收并完成正式图像质检，不从训练MSE预判。
 2. OPA3通过后，把exact/identity/wrong-P结果加入论文核心表，并实现条件式OPA4。
 3. OPA3不通过时，删除论文中的精确拓扑因果措辞，保留OPA2整体架构边界。
-4. 在最终使用“新方法”措辞前，再做一次venue-native补充检索，关键词至少覆盖
-   `structure-aware output prediction block cipher`、`SPN-aware neural output prediction`、
-   `PRESENT P-layer neural network`和`cipher-topology output prediction`。
+4. 在最终使用“新方法”措辞前，核验联网检索新增候选的实际落地页和全文，并把任务不同的BiLSTM、
+   neural distinguisher、active-S-box预测与积分分类明确排除或纳入对照。
 
-## 9. 核心来源
+## 9. 2026-07-22联网交叉检索
+
+使用Tavily advanced search在IACR ePrint、arXiv、Springer、IEEE、ACM和Semantic Scholar范围执行
+三组关键词：
+
+```text
+structure-aware neural output prediction block cipher SPN PRESENT P-layer cipher topology
+PRESENT neural network P-layer output prediction ciphertext prediction structure aware
+cipher topology neural network output prediction block cipher wrong topology shuffled topology ablation
+```
+
+返回的密码学近邻为Kimura/Watanabe输出预测、Jeong等通用EE/PR多架构实验、Singh去密钥逐轮MLP、
+Wu/Guo积分神经区分器、active-S-box预测、相关密钥/Residual-MLP差分神经区分器和早期通用PRESENT
+神经分析。没有返回同时满足“固定未知密钥真实输出值 + 网络内显式P-layer +
+exact/identity/wrong-P同参数消融 + 匹配shuffle”的记录。
+
+这个未命中只提高暂定创新边界的可信度，不构成首次性证明。2024/2026 Jeong等论文已经通过Crossref
+核验标题、作者、年份、DOI与摘要任务，但尚未完成全文协议审计；因此它们只用于限制“非LSTM/多架构”
+措辞，不用于同协议数值比较。
+
+可复核搜索日志：
+
+```text
+sources/research_innovation2_spn_aware_output_prediction_web_20260722.md
+```
+
+## 10. 核心来源
 
 - Kimura et al., *Output Prediction Attacks on Block Ciphers Using Deep Learning*, ACNS Workshops 2022,
   DOI `10.1007/978-3-031-16815-4_15`, IACR ePrint `2021/401`。
@@ -163,3 +205,7 @@ exact-P复跑与OPA2 mean AUC差 <= 0.005
   `10.1007/978-3-031-76934-4_13`。
 - Singh, *PRESENT Full Round Emulation: Structural Flaws and Predictable Outputs*, IACR ePrint
   `2025/1069`。
+- Jeong, Ahmadzadeh, and Moon, *Comprehensive Neural Cryptanalysis on Block Ciphers Using Different
+  Encryption Methods*, Mathematics 12(13), 1936 (2024), DOI `10.3390/math12131936`；元数据/摘要级。
+- Jeong, Park, and Moon, *Scalable Neural Cryptanalysis of Block Ciphers in Federated Attack
+  Environments*, Mathematics 14(2), 373 (2026), DOI `10.3390/math14020373`；元数据/摘要级。
