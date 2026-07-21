@@ -5,6 +5,7 @@ from pathlib import Path
 
 import torch
 
+from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.cli.plot_innovation2_selected_output_bit_head import (
     render_selected_output_bit_head,
 )
@@ -26,6 +27,26 @@ def test_selected_output_head_emits_only_preregistered_eight_bits() -> None:
 
     assert output.shape == (3, 8)
     assert SELECTED_MSB_INDICES == (0, 2, 8, 10, 32, 34, 40, 42)
+
+
+def test_selected_bits_have_four_inverse_p_same_sbox_pairs() -> None:
+    inverse_sources: dict[int, int] = {}
+    for msb_index in SELECTED_MSB_INDICES:
+        integer_bit = 63 - msb_index
+        source_word = Present80.inverse_permutation_layer(1 << integer_bit)
+        assert source_word.bit_count() == 1
+        source_bit = source_word.bit_length() - 1
+        assert Present80.permutation_layer(1 << source_bit) == 1 << integer_bit
+        inverse_sources[msb_index] = source_bit
+
+    same_sbox_pairs = {
+        (left, right)
+        for index, left in enumerate(SELECTED_MSB_INDICES)
+        for right in SELECTED_MSB_INDICES[index + 1 :]
+        if inverse_sources[left] // 4 == inverse_sources[right] // 4
+    }
+
+    assert same_sbox_pairs == {(0, 32), (2, 34), (8, 40), (10, 42)}
 
 
 def test_selected_output_head_is_close_to_full64_parameter_budget() -> None:

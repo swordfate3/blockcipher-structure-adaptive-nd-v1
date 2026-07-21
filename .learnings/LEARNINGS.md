@@ -1,3 +1,71 @@
+## [LRN-20260721-004] correction
+
+**Logged**: 2026-07-21T20:48:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+PRESENT structured output-XOR masks must be grouped after converting MSB-first ciphertext positions through the inverse P-layer; visual ciphertext-nibble adjacency does not imply a shared last-round S-box.
+
+### Details
+
+The first conditional OP12 sketch paired OP10 positions as `(0,2)`, `(8,10)`,
+`(32,34)`, and `(40,42)` because each pair is close in the displayed
+MSB-first ciphertext layout. That grouping is not a same-S-box topology claim.
+For an MSB-first position `m`, the integer bit is `63-m`; applying the exact
+inverse PRESENT P-layer gives the pre-permutation S-box output source.
+
+The eight OP10 positions map as follows:
+
+```text
+MSB position   integer bit   inverse-P source   source S-box / output role
+0              63            63                 15 / 3
+2              61            55                 13 / 3
+8              55            31                  7 / 3
+10             53            23                  5 / 3
+32             31            61                 15 / 1
+34             29            53                 13 / 1
+40             23            29                  7 / 1
+42             21            21                  5 / 1
+```
+
+Therefore the actual same-last-round-S-box pairs are `(0,32)`, `(2,34)`,
+`(8,40)`, and `(10,42)`. The old pairs are still admissible same-output-nibble
+controls, but must not be labeled as the primary S-box-aligned XOR candidates.
+The round-trip check
+`P(1 << inverse_source) == 1 << (63 - msb_position)` passed for all eight
+positions.
+
+### Suggested Action
+
+Before preregistering any PRESENT multi-output XOR experiment, freeze the bit
+numbering and produce an explicit `MSB -> integer -> inverse-P source -> S-box
+/ role` table. Compare same-S-box pairs against the visually adjacent
+same-output-nibble pairs as a matched geometry control. Retain the two
+same-role four-bit groups `(0,2,8,10)` and `(32,34,40,42)` as a distinct
+candidate family rather than conflating them with same-S-box grouping.
+
+### Metadata
+
+- Source: self_correction, deterministic_topology_audit
+- Related Files: src/blockcipher_nd/ciphers/spn/present.py, docs/experiments/innovation2-output-prediction-op11-present-r3-selected8-independent-key-plan.md
+- Tags: innovation2, present, output-prediction, xor-mask, inverse-p-layer, bit-order, same-sbox
+- See Also: LRN-20260721-003, LRN-20260717-005
+- Pattern-Key: research.innovation2.xor_masks_require_invp_same_sbox_geometry
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T20:48:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the conditional OP12 geometry in the OP11 experiment record before any four-round XOR run was preregistered or launched.
+
+---
+
 ## [LRN-20260721-003] correction
 
 **Logged**: 2026-07-21T18:42:00+08:00
