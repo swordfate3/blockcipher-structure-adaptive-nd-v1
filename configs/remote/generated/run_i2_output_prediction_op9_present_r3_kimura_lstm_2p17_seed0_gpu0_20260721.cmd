@@ -15,6 +15,7 @@ set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
 set PLAN=configs\experiment\innovation2\innovation2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0.json
 set REMOTE_CONFIG=configs\remote\innovation2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
+set PYTHONPATH=%SOURCE_ROOT%\src
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%

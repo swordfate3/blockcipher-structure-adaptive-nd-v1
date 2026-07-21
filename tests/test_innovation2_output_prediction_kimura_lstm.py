@@ -218,6 +218,7 @@ def test_remote_package_freezes_total_rows_and_windows_hygiene() -> None:
     assert "cmd.exe /c" in launch
     assert "cmd.exe /k" not in launch + run
     assert "source_expected_commit.txt" in launch + run
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in run
     assert "--mode paper_calibration" in run
     assert '"%RESULTS_DIR%\\data\\%%F"' in run
     assert '"%RESULTS_DIR%\\models\\%%F"' in run
