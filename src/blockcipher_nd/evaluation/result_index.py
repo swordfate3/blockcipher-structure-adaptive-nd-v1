@@ -42,6 +42,21 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_topology_bottleneck_local_smoke_passed": (
+        "PRESENT三轮低秩拓扑瓶颈四行实现门通过，开放第五密钥正式实验"
+    ),
+    "innovation2_topology_bottleneck_ready_for_independent_confirmation": (
+        "拓扑瓶颈兼顾真实输出预测、错误P归因和标签打乱控制，进入第六密钥确认"
+    ),
+    "innovation2_topology_bottleneck_attributed_with_performance_cost": (
+        "拓扑瓶颈超过错误P与标签打乱，但相对原SPN锚点存在性能代价"
+    ),
+    "innovation2_topology_bottleneck_not_attributed": (
+        "低秩位置条件未使真实P超过错误P与标签打乱，停止该瓶颈路线"
+    ),
+    "innovation2_topology_bottleneck_protocol_invalid": (
+        "OPB1的OPA3所有权、数据、低秩模型、控制、训练或产物协议无效"
+    ),
     "innovation2_selected8_topology_attribution_local_smoke_passed": (
         "PRESENT三轮真实/identity/错误P-layer同容量归因实现门通过"
     ),
@@ -1892,6 +1907,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_opb1_present_r3_topology_bottleneck"):
+        return "创新2 OPB1：PRESENT三轮低秩拓扑瓶颈真实密文输出预测"
     if run_id.startswith("i2_output_prediction_opa3_present_r3_selected8"):
         return "创新2 OPA3：PRESENT三轮真实P-layer与同容量错误拓扑归因"
     if run_id.startswith("i2_output_prediction_opa2_present_r3_selected8"):

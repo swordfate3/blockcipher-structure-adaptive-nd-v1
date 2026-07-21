@@ -287,6 +287,61 @@ class SelectedOutputPresentSpn(nn.Module):
         return self.head(self.norm(selected)).squeeze(-1)
 
 
+class SelectedOutputTopologyBottleneckSpn(nn.Module):
+    """SPN predictor with low-rank per-round fixed-key position conditioning."""
+
+    def __init__(
+        self,
+        token_dim: int = 189,
+        blocks: int = 3,
+        source_for_destination: torch.Tensor | None = None,
+    ) -> None:
+        super().__init__()
+        self.embedding = nn.Linear(1, token_dim)
+        source_for_destination = (
+            _present_source_for_destination()
+            if source_for_destination is None
+            else source_for_destination.detach().clone().to(dtype=torch.long)
+        )
+        if source_for_destination.shape != (64,) or sorted(
+            source_for_destination.tolist()
+        ) != list(range(64)):
+            raise ValueError("source_for_destination must be a 64-position permutation")
+        self.key_strengths = nn.ParameterList(
+            nn.Parameter(torch.empty(1, 64, 1)) for _ in range(blocks)
+        )
+        self.key_directions = nn.ParameterList(
+            nn.Parameter(torch.empty(1, 1, token_dim)) for _ in range(blocks)
+        )
+        for strengths, direction in zip(
+            self.key_strengths,
+            self.key_directions,
+            strict=True,
+        ):
+            nn.init.normal_(strengths, std=0.02)
+            nn.init.normal_(direction, std=0.02)
+        self.blocks = nn.ModuleList(
+            _PresentSpnOutputBlock(token_dim, source_for_destination)
+            for _ in range(blocks)
+        )
+        self.norm = nn.LayerNorm(token_dim)
+        self.head = nn.Linear(token_dim, 1)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        _validate_feature_shape(features)
+        hidden = self.embedding(features.float().unsqueeze(-1))
+        for strengths, direction, block in zip(
+            self.key_strengths,
+            self.key_directions,
+            self.blocks,
+            strict=True,
+        ):
+            hidden = hidden + torch.tanh(strengths) * direction
+            hidden = block(hidden)
+        selected = hidden[:, list(SELECTED_MSB_INDICES), :]
+        return self.head(self.norm(selected)).squeeze(-1)
+
+
 def _validate_feature_shape(features: torch.Tensor) -> None:
     if features.ndim != 2 or features.shape[1] != 64:
         raise ValueError(f"expected [batch, 64] input, got {tuple(features.shape)}")
@@ -707,6 +762,18 @@ def _build_model(
             token_dim=config.present_spn_dim,
             blocks=config.present_spn_blocks,
             source_for_destination=_present_topology_mapping(topology_mode),
+        )
+    bottleneck_topology_mode = {
+        "topology_bottleneck_exact_p": "exact",
+        "topology_bottleneck_wrong_p": "wrong",
+    }.get(architecture)
+    if bottleneck_topology_mode is not None:
+        return SelectedOutputTopologyBottleneckSpn(
+            token_dim=config.present_spn_dim,
+            blocks=config.present_spn_blocks,
+            source_for_destination=_present_topology_mapping(
+                bottleneck_topology_mode
+            ),
         )
     raise ValueError(f"unknown architecture: {architecture}")
 

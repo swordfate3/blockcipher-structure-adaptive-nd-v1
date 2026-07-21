@@ -1,0 +1,81 @@
+{
+  "plan_id": "innovation2_output_prediction_opb1_present_r3_topology_bottleneck_key4",
+  "question": "Does replacing the original full per-position embedding with low-rank per-round fixed-key conditioning preserve selected-output prediction while making exact PRESENT diffusion outperform a fixed wrong permutation on a fresh fixed key?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_topology_bottleneck",
+  "opa3_authority": {
+    "run_id": "i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722",
+    "status": "hold",
+    "decision": "innovation2_selected8_present_topology_not_attributed",
+    "gate_sha256": "def55214d46acf0e199f465fda66e6ca394f094ceec78d419354357df1c50943",
+    "exact_mean_auc": 1.0,
+    "wrong_mean_auc": 1.0,
+    "attributed_bits": 0,
+    "retrieval_status": "verified_result_branch"
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 4,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "fifth_independent_fixed_unknown_key",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "rows": [
+    {
+      "role": "same_budget_original_spn_anchor",
+      "model": "selected8_present_spn_anchor_exact_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_exact_p_full_position_embedding_output8",
+      "topology": "exact_present_p_layer",
+      "train_labels": "true",
+      "parameters": 3879415
+    },
+    {
+      "role": "topology_bottleneck_candidate",
+      "model": "selected8_topology_bottleneck_exact_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_exact_p_low_rank_round_condition_output8",
+      "topology": "exact_present_p_layer",
+      "train_labels": "true",
+      "parameters": 3868078
+    },
+    {
+      "role": "wrong_topology_control",
+      "model": "selected8_topology_bottleneck_wrong_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_wrong_p_low_rank_round_condition_output8",
+      "topology": "exact_mapping_destination_roll_one",
+      "train_labels": "true",
+      "parameters": 3868078
+    },
+    {
+      "role": "matched_label_shuffle_control",
+      "model": "selected8_topology_bottleneck_exact_p_label_shuffle",
+      "architecture": "present_spn_dim189_blocks3_exact_p_low_rank_round_condition_output8",
+      "topology": "exact_present_p_layer",
+      "train_labels": "deterministically_shuffled",
+      "parameters": 3868078
+    }
+  ],
+  "final_gate": {
+    "minimum_anchor_mean_auc": 0.9,
+    "minimum_candidate_mean_auc": 0.9,
+    "minimum_candidate_minus_anchor_mean_auc": -0.05,
+    "minimum_candidate_minus_wrong_mean_auc": 0.03,
+    "minimum_candidate_minus_shuffle_mean_auc": 0.03,
+    "minimum_joint_passed_bits": 4,
+    "minimum_per_bit_candidate_auc": 0.55,
+    "minimum_per_bit_candidate_minus_each_control_auc": 0.02,
+    "minimum_per_bit_candidate_minus_anchor_auc": -0.1,
+    "minimum_per_bit_accuracy_minus_majority": 0.005
+  },
+  "next_action_on_pass": "Repeat the unchanged four-row matrix under fixed-key seed5 before any round extension.",
+  "stop_action": "If exact-P does not beat wrong-P and shuffle, stop the bottleneck route and rank a separately preregistered SPN-ResCNN hybrid; do not add data, epochs, wrong permutations, or output positions."
+}
