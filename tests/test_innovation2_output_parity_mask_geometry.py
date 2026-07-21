@@ -106,6 +106,23 @@ def test_mask_geometry_gate_requires_candidate_anchor_and_shuffle_margins() -> N
         "innovation2_output_parity_mask_geometry_not_calibrated"
     )
 
+    rows[2]["test_macro_auc"] = 0.60
+    r2_config = OutputParityPredictionConfig(
+        run_id="test-output-parity-r2",
+        rounds=2,
+        train_rows=128,
+        validation_rows=64,
+        test_rows=64,
+        hidden_dim=16,
+        epochs=1,
+        batch_size=32,
+    )
+    r2_gate = adjudicate_mask_geometry(r2_config, {"protocol": True}, training)
+    assert "PRESENT r2" in r2_gate["claim_scope"]
+    assert r2_gate["next_action"]["next_adjudication"] == (
+        "present_r2_independent_fixed_key_confirmation"
+    )
+
 
 def test_mask_geometry_plot_explains_real_output_target(tmp_path: Path) -> None:
     summary = {
@@ -220,7 +237,32 @@ def test_independent_key_plot_preserves_output_prediction_scope(
     render_output_parity_independent_key(summary, output)
 
     svg = output.read_text(encoding="utf-8")
-    assert "独立固定密钥确认" in svg
+    assert "双固定密钥确认" in svg
     assert "真实密文四位置异或输出" in svg
     assert "不是真假或平衡类别" in svg
     assert "不是高轮攻击" in svg
+
+
+def test_two_key_round_step_uses_round_specific_decision() -> None:
+    supported_gate = {
+        "status": "pass",
+        "decision": "innovation2_output_parity_mask_geometry_supported",
+        "metrics": {"aligned_parity_macro_auc": 0.80},
+        "thresholds": {"aligned_macro_auc_min": 0.55},
+    }
+
+    result = adjudicate_two_key_confirmation(
+        "op4-r2",
+        supported_gate,
+        supported_gate,
+        {"independent": True},
+        rounds=2,
+    )
+
+    assert result["status"] == "pass"
+    assert result["decision"] == (
+        "innovation2_output_parity_present_r2_two_key_supported"
+    )
+    assert result["next_action"]["next_adjudication"] == (
+        "present_r3_two_key_round_step"
+    )

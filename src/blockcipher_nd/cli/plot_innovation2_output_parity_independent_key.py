@@ -28,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def render_output_parity_independent_key(summary: dict[str, Any], output: Path) -> None:
     gate = summary["gate"]
+    rounds = int(summary.get("metadata", {}).get("config", {}).get("rounds", 1))
+    round_text = {1: "一轮", 2: "二轮", 3: "三轮"}.get(rounds, f"{rounds}轮")
     seed_metrics = (gate["metrics"]["seed0"], gate["metrics"]["seed1"])
     values = tuple(
         (
@@ -60,7 +62,7 @@ def render_output_parity_independent_key(summary: dict[str, Any], output: Path) 
         figure.text(
             0.08,
             0.955,
-            "创新2 OP3：结构对齐密文输出parity的独立固定密钥确认",
+            f"创新2：PRESENT{round_text}结构对齐密文输出parity的双固定密钥确认",
             ha="left",
             va="top",
             fontsize=15.0,
@@ -132,6 +134,10 @@ def render_output_parity_independent_key(summary: dict[str, Any], output: Path) 
             "innovation2_output_parity_mask_geometry_two_key_confirmed"
         ):
             decision_text = "双固定密钥确认通过；下一步只把PRESENT轮数从一轮改为两轮。"
+        elif (
+            gate["decision"] == "innovation2_output_parity_present_r2_two_key_supported"
+        ):
+            decision_text = "PRESENT二轮双密钥门通过；下一步只把轮数从二轮改为三轮。"
         elif gate["status"] == "hold":
             decision_text = "独立密钥未确认；停止扩轮与扩规模，转输出预测论文协议审计。"
         else:
@@ -148,7 +154,7 @@ def render_output_parity_independent_key(summary: dict[str, Any], output: Path) 
         figure.text(
             0.08,
             0.052,
-            "证据边界：PRESENT-80一轮、两把固定密钥、本地小规模；不是高轮攻击、论文复现或SOTA。",
+            f"证据边界：PRESENT-80 {round_text}、两把固定密钥、本地小规模；不是高轮攻击、论文复现或SOTA。",
             ha="left",
             va="bottom",
             fontsize=9.0,

@@ -243,18 +243,28 @@ def adjudicate_mask_geometry(
     elif performance_gate:
         status = "pass"
         decision = "innovation2_output_parity_mask_geometry_supported"
-        next_adjudication = "op3_independent_fixed_key_confirmation"
+        next_adjudication = (
+            "op3_independent_fixed_key_confirmation"
+            if config.rounds == 1
+            else f"present_r{config.rounds}_independent_fixed_key_confirmation"
+        )
         action = (
-            "preregister OP3 independent fixed-key confirmation at PRESENT r1 with "
-            "the same aligned, contiguous, and shuffled matrix"
+            "preregister an independent fixed-key confirmation at PRESENT "
+            f"r{config.rounds} with the same aligned, contiguous, and shuffled matrix"
         )
     else:
         status = "hold"
         decision = "innovation2_output_parity_mask_geometry_not_calibrated"
-        next_adjudication = "output_prediction_literature_protocol_audit"
+        next_adjudication = (
+            "output_prediction_literature_protocol_audit"
+            if config.rounds == 1
+            else f"present_r{config.rounds}_local_representation_redesign"
+        )
         action = (
-            "stop sample, epoch, key, and round scaling; audit the exact output-prediction "
-            "input encoding, architecture, and fixed-key protocol in the closest literature"
+            "stop mechanical scaling and audit the exact output-prediction protocol"
+            if config.rounds == 1
+            else f"stop mechanical scaling and compare an SPN-local representation at "
+            f"PRESENT r{config.rounds} with unchanged output targets"
         )
     return {
         "run_id": config.run_id,
@@ -279,7 +289,8 @@ def adjudicate_mask_geometry(
             "aligned_minus_shuffled_macro_auc": aligned_minus_shuffled,
         },
         "claim_scope": (
-            "local one-round fixed-key known-plaintext ciphertext-output parity mask-geometry "
+            f"local PRESENT r{config.rounds} fixed-key known-plaintext ciphertext-output "
+            "parity mask-geometry "
             "calibration; labels are real ciphertext parities rather than sample classes, "
             "and this is not a high-round attack, paper reproduction, or SOTA result"
         ),
@@ -298,6 +309,8 @@ def adjudicate_two_key_confirmation(
     anchor_gate: dict[str, Any],
     current_gate: dict[str, Any],
     independence_checks: dict[str, bool],
+    *,
+    rounds: int = 1,
 ) -> dict[str, Any]:
     anchor_supported = (
         anchor_gate.get("status") == "pass"
@@ -323,20 +336,38 @@ def adjudicate_two_key_confirmation(
         )
     elif anchor_supported and current_supported:
         status = "pass"
-        decision = "innovation2_output_parity_mask_geometry_two_key_confirmed"
-        next_adjudication = "op4_present_r2_two_key_round_step"
-        action = (
-            "preregister OP4 changing only PRESENT rounds from r1 to r2 for both "
-            "fixed-key seeds under the same mask, model, data, and epoch budgets"
-        )
+        if rounds == 1:
+            decision = "innovation2_output_parity_mask_geometry_two_key_confirmed"
+            next_adjudication = "op4_present_r2_two_key_round_step"
+            action = (
+                "preregister OP4 changing only PRESENT rounds from r1 to r2 for both "
+                "fixed-key seeds under the same mask, model, data, and epoch budgets"
+            )
+        else:
+            decision = f"innovation2_output_parity_present_r{rounds}_two_key_supported"
+            next_adjudication = f"present_r{rounds + 1}_two_key_round_step"
+            action = (
+                f"preregister the next round step changing only PRESENT rounds from r{rounds} "
+                f"to r{rounds + 1} for both fixed-key seeds under the same budgets"
+            )
     else:
         status = "hold"
-        decision = "innovation2_output_parity_mask_geometry_two_key_not_confirmed"
-        next_adjudication = "output_prediction_literature_protocol_audit"
-        action = (
-            "stop round, sample, epoch, capacity, and key scaling; audit the closest "
-            "fixed-key ciphertext-output prediction protocol"
-        )
+        if rounds == 1:
+            decision = "innovation2_output_parity_mask_geometry_two_key_not_confirmed"
+            next_adjudication = "output_prediction_literature_protocol_audit"
+            action = (
+                "stop round, sample, epoch, capacity, and key scaling; audit the closest "
+                "fixed-key ciphertext-output prediction protocol"
+            )
+        else:
+            decision = (
+                f"innovation2_output_parity_present_r{rounds}_two_key_not_supported"
+            )
+            next_adjudication = f"present_r{rounds}_local_representation_redesign"
+            action = (
+                f"stop mechanical scaling and compare an SPN-local representation against "
+                f"the current MLP at PRESENT r{rounds} with unchanged output targets"
+            )
     anchor_metrics = anchor_gate.get("metrics", {})
     current_metrics = current_gate.get("metrics", {})
     aligned_auc_values = [
@@ -362,7 +393,7 @@ def adjudicate_two_key_confirmation(
             - min(aligned_auc_values),
         },
         "claim_scope": (
-            "local PRESENT-80 one-round confirmation across two independently generated "
+            f"local PRESENT-80 r{rounds} confirmation across two independently generated "
             "fixed secret keys and disjoint plaintext sets; targets are true ciphertext "
             "output parities rather than sample classes, and this is not a high-round "
             "attack, paper reproduction, or SOTA result"

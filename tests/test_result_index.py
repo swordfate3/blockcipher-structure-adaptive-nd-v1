@@ -187,6 +187,39 @@ def test_result_index_labels_innovation2_output_parity_independent_key(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_present_r2_two_key_supported",
+            "PRESENT二轮结构对齐密文输出parity双密钥通过，只开放三轮同预算门",
+        ),
+        (
+            "innovation2_output_parity_present_r2_two_key_not_supported",
+            "PRESENT二轮结构对齐输出parity未通过，停止扩轮并做本地表示重设计",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_present_r2(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op4_present_r2_seed1_joint_20260721"
+    )
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP4：PRESENT二轮结构对齐密文输出parity双密钥门"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:

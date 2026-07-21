@@ -32,6 +32,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", default=RUN_ID)
     parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--rounds", default=1, type=int)
+    parser.add_argument("--experiment")
     parser.add_argument("--anchor-root", type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     return parser.parse_args(argv)
@@ -39,8 +41,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    config = OutputParityPredictionConfig(run_id=args.run_id, seed=args.seed)
-    experiment = (
+    config = OutputParityPredictionConfig(
+        run_id=args.run_id, seed=args.seed, rounds=args.rounds
+    )
+    experiment = args.experiment or (
         "op3_independent_key_confirmation"
         if args.anchor_root is not None
         else "op2_mask_geometry"
@@ -75,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
             anchor_gate,
             single_key_gate,
             independence_checks,
+            rounds=config.rounds,
         )
     else:
         gate = single_key_gate
@@ -92,7 +97,9 @@ def main(argv: list[str] | None = None) -> int:
         "secret_key_hex": f"{int(contiguous['secret_key']):020x}",
         "key_protocol": "one fixed unknown key; disjoint plaintext splits",
         "only_changed_variable": (
-            "independent fixed secret key and disjoint plaintexts"
+            "PRESENT round count"
+            if config.rounds > 1
+            else "independent fixed secret key and disjoint plaintexts"
             if args.anchor_root is not None
             else "ciphertext output parity mask geometry"
         ),
@@ -174,10 +181,12 @@ def _load_and_validate_anchor(
     anchor_key = int(str(anchor_metadata["secret_key_hex"]), 16)
     current_key = int(datasets["contiguous"]["secret_key"])
     checks = {
-        "anchor_run_id_matches_op2_seed0": anchor_gate.get("run_id")
-        == "i2_output_parity_prediction_op2_mask_geometry_present_r1_seed0_20260721",
+        "anchor_gate_and_metadata_run_ids_match": anchor_gate.get("run_id")
+        == anchor_metadata.get("run_id"),
         "anchor_seed_is_zero": anchor_seed == 0,
         "current_seed_is_one": config.seed == 1,
+        "anchor_and_current_rounds_match": int(anchor_metadata["config"]["rounds"])
+        == config.rounds,
         "independent_secret_keys_differ": anchor_key != current_key,
         "cross_run_plaintexts_are_disjoint": np.intersect1d(
             anchor_plaintexts, current_plaintexts
