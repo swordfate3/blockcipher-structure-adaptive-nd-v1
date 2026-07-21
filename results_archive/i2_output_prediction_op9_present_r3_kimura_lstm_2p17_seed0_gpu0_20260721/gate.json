@@ -1,0 +1,50 @@
+{
+  "claim_scope": "single-fixed-key paper-family calibration; full 64-bit PRESENT r3 ciphertext-output prediction, not sample classification, not a 100-key exact reproduction, attack-round claim, or SOTA result",
+  "decision": "innovation2_output_prediction_kimura_lstm_single_key_not_supported",
+  "execution_checks": {
+    "all_metrics_finite": true,
+    "at_least_one_full_output_exact_match": false,
+    "history_rows_complete": true,
+    "lstm_bit_match_at_least_0_505": false,
+    "lstm_minus_shuffle_auc_at_least_0_010": false,
+    "lstm_minus_shuffle_bit_match_at_least_0_005": false,
+    "shuffle_changes_only_training_target_order": true,
+    "three_checkpoint_hashes_present": true,
+    "three_training_rows_complete": true
+  },
+  "metrics": {
+    "lstm_bit_match": 0.49991583824157715,
+    "lstm_exact_match": 0.0,
+    "lstm_exact_match_count": 0,
+    "lstm_macro_auc": 0.5000076072404503,
+    "lstm_minus_matched_mlp_bit_match": 0.0010676383972167969,
+    "lstm_minus_matched_mlp_macro_auc": -0.008058896950338457,
+    "lstm_minus_shuffled_bit_match": -0.00011157989501953125,
+    "lstm_minus_shuffled_macro_auc": -6.340460720122287e-06,
+    "matched_mlp_bit_match": 0.49884819984436035,
+    "matched_mlp_macro_auc": 0.5080665041907888,
+    "shuffled_bit_match": 0.5000274181365967,
+    "shuffled_macro_auc": 0.5000139477011705
+  },
+  "next_action": {
+    "action": "stop Kimura-LSTM data, epoch, layer, round, and seed scaling; reassess a preregistered true ciphertext-output representation",
+    "next_adjudication": "output_prediction_target_reassessment",
+    "remote_scale": false,
+    "sample_classification": false,
+    "target": "full_64_bit_true_ciphertext_output"
+  },
+  "protocol_checks": {
+    "cache_arrays_have_expected_shapes": true,
+    "cache_is_complete": true,
+    "features_are_msb_first_plaintext_bits": true,
+    "kimura_architecture_fields_match": true,
+    "labels_are_outputs_not_sample_classes": true,
+    "official_present_vector_matches": true,
+    "plaintexts_are_unique": true,
+    "single_fixed_unknown_key": true,
+    "targets_are_msb_first_true_ciphertext_bits": true,
+    "train_and_test_plaintexts_are_disjoint": true
+  },
+  "run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "status": "hold"
+}

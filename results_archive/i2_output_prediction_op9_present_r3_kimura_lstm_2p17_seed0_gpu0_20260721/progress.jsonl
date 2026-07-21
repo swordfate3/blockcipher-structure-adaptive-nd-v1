@@ -1,0 +1,354 @@
+{"event": "run_start", "mode": "paper_calibration", "run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721", "sample_classification": false, "target": "full_64_bit_true_ciphertext_output", "timestamp": "2026-07-21T18:34:48+08:00", "training": true}
+{"completed_rows": 4096, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:49+08:00", "total_rows": 196608}
+{"completed_rows": 8192, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:49+08:00", "total_rows": 196608}
+{"completed_rows": 12288, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:50+08:00", "total_rows": 196608}
+{"completed_rows": 16384, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:50+08:00", "total_rows": 196608}
+{"completed_rows": 20480, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:50+08:00", "total_rows": 196608}
+{"completed_rows": 24576, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:51+08:00", "total_rows": 196608}
+{"completed_rows": 28672, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:51+08:00", "total_rows": 196608}
+{"completed_rows": 32768, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:51+08:00", "total_rows": 196608}
+{"completed_rows": 36864, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:52+08:00", "total_rows": 196608}
+{"completed_rows": 40960, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:52+08:00", "total_rows": 196608}
+{"completed_rows": 45056, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:52+08:00", "total_rows": 196608}
+{"completed_rows": 49152, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:53+08:00", "total_rows": 196608}
+{"completed_rows": 53248, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:53+08:00", "total_rows": 196608}
+{"completed_rows": 57344, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:53+08:00", "total_rows": 196608}
+{"completed_rows": 61440, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:54+08:00", "total_rows": 196608}
+{"completed_rows": 65536, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:54+08:00", "total_rows": 196608}
+{"completed_rows": 69632, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:54+08:00", "total_rows": 196608}
+{"completed_rows": 73728, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:55+08:00", "total_rows": 196608}
+{"completed_rows": 77824, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:55+08:00", "total_rows": 196608}
+{"completed_rows": 81920, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:56+08:00", "total_rows": 196608}
+{"completed_rows": 86016, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:56+08:00", "total_rows": 196608}
+{"completed_rows": 90112, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:56+08:00", "total_rows": 196608}
+{"completed_rows": 94208, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:57+08:00", "total_rows": 196608}
+{"completed_rows": 98304, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:57+08:00", "total_rows": 196608}
+{"completed_rows": 102400, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:57+08:00", "total_rows": 196608}
+{"completed_rows": 106496, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:58+08:00", "total_rows": 196608}
+{"completed_rows": 110592, "event": "cache_chunk", "timestamp": "2026-07-21T18:34:58+08:00", "total_rows": 196608}
+{"completed_rows": 114688, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:00+08:00", "total_rows": 196608}
+{"completed_rows": 118784, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:01+08:00", "total_rows": 196608}
+{"completed_rows": 122880, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:01+08:00", "total_rows": 196608}
+{"completed_rows": 126976, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:02+08:00", "total_rows": 196608}
+{"completed_rows": 131072, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:03+08:00", "total_rows": 196608}
+{"completed_rows": 135168, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:03+08:00", "total_rows": 196608}
+{"completed_rows": 139264, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:04+08:00", "total_rows": 196608}
+{"completed_rows": 143360, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:04+08:00", "total_rows": 196608}
+{"completed_rows": 147456, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:04+08:00", "total_rows": 196608}
+{"completed_rows": 151552, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:05+08:00", "total_rows": 196608}
+{"completed_rows": 155648, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:05+08:00", "total_rows": 196608}
+{"completed_rows": 159744, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:06+08:00", "total_rows": 196608}
+{"completed_rows": 163840, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:06+08:00", "total_rows": 196608}
+{"completed_rows": 167936, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:06+08:00", "total_rows": 196608}
+{"completed_rows": 172032, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:07+08:00", "total_rows": 196608}
+{"completed_rows": 176128, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:07+08:00", "total_rows": 196608}
+{"completed_rows": 180224, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:08+08:00", "total_rows": 196608}
+{"completed_rows": 184320, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:08+08:00", "total_rows": 196608}
+{"completed_rows": 188416, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:08+08:00", "total_rows": 196608}
+{"completed_rows": 192512, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:09+08:00", "total_rows": 196608}
+{"completed_rows": 196608, "event": "cache_chunk", "timestamp": "2026-07-21T18:35:09+08:00", "total_rows": 196608}
+{"cache_arrays_have_expected_shapes": true, "cache_is_complete": true, "event": "data_ready", "features_are_msb_first_plaintext_bits": true, "kimura_architecture_fields_match": true, "labels_are_outputs_not_sample_classes": true, "official_present_vector_matches": true, "plaintexts_are_unique": true, "single_fixed_unknown_key": true, "targets_are_msb_first_true_ciphertext_bits": true, "timestamp": "2026-07-21T18:35:09+08:00", "train_and_test_plaintexts_are_disjoint": true}
+{"epoch": 1, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:35:27+08:00", "train_mse": 0.2633289367747693}
+{"epoch": 2, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:35:42+08:00", "train_mse": 0.25074937760882676}
+{"epoch": 3, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:35:57+08:00", "train_mse": 0.2504827413993098}
+{"epoch": 4, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:36:12+08:00", "train_mse": 0.2503548903819137}
+{"epoch": 5, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:36:28+08:00", "train_mse": 0.2502849333504855}
+{"epoch": 6, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:36:43+08:00", "train_mse": 0.2502487534482043}
+{"epoch": 7, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:36:58+08:00", "train_mse": 0.2502146448291569}
+{"epoch": 8, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:37:13+08:00", "train_mse": 0.25019138473362545}
+{"epoch": 9, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:37:28+08:00", "train_mse": 0.25018329963518227}
+{"epoch": 10, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:37:43+08:00", "train_mse": 0.2501651200325341}
+{"epoch": 11, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:37:58+08:00", "train_mse": 0.250150732179236}
+{"epoch": 12, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:38:14+08:00", "train_mse": 0.2501399410709837}
+{"epoch": 13, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:38:29+08:00", "train_mse": 0.2501281255208596}
+{"epoch": 14, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:38:44+08:00", "train_mse": 0.2501208752075854}
+{"epoch": 15, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:38:59+08:00", "train_mse": 0.2501134457816079}
+{"epoch": 16, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:39:15+08:00", "train_mse": 0.25010615888004395}
+{"epoch": 17, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:39:30+08:00", "train_mse": 0.25010323369383514}
+{"epoch": 18, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:39:45+08:00", "train_mse": 0.2500976764456482}
+{"epoch": 19, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:40:01+08:00", "train_mse": 0.2500931109304929}
+{"epoch": 20, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:40:16+08:00", "train_mse": 0.2500887188991783}
+{"epoch": 21, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:40:31+08:00", "train_mse": 0.25008787656770437}
+{"epoch": 22, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:40:47+08:00", "train_mse": 0.2500822719955522}
+{"epoch": 23, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:41:02+08:00", "train_mse": 0.25008456882255814}
+{"epoch": 24, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:41:17+08:00", "train_mse": 0.2500792100554463}
+{"epoch": 25, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:41:32+08:00", "train_mse": 0.2500811024740415}
+{"epoch": 26, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:41:47+08:00", "train_mse": 0.25007853764464016}
+{"epoch": 27, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:42:03+08:00", "train_mse": 0.2500762470444897}
+{"epoch": 28, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:42:18+08:00", "train_mse": 0.2500774085294779}
+{"epoch": 29, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:42:33+08:00", "train_mse": 0.250072363204481}
+{"epoch": 30, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:42:48+08:00", "train_mse": 0.2500700867451542}
+{"epoch": 31, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:43:03+08:00", "train_mse": 0.2500731310719857}
+{"epoch": 32, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:43:18+08:00", "train_mse": 0.2500726470107111}
+{"epoch": 33, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:43:33+08:00", "train_mse": 0.25006821212105024}
+{"epoch": 34, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:43:48+08:00", "train_mse": 0.25006820123280704}
+{"epoch": 35, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:44:03+08:00", "train_mse": 0.2500680679306697}
+{"epoch": 36, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:44:18+08:00", "train_mse": 0.2500633314498373}
+{"epoch": 37, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:44:33+08:00", "train_mse": 0.2500641478693524}
+{"epoch": 38, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:44:48+08:00", "train_mse": 0.2500646204023269}
+{"epoch": 39, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:45:03+08:00", "train_mse": 0.25006501021289296}
+{"epoch": 40, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:45:18+08:00", "train_mse": 0.2500664640519972}
+{"epoch": 41, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:45:33+08:00", "train_mse": 0.2500635445774151}
+{"epoch": 42, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:45:49+08:00", "train_mse": 0.2500650148083423}
+{"epoch": 43, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:46:04+08:00", "train_mse": 0.2500625021382348}
+{"epoch": 44, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:46:19+08:00", "train_mse": 0.25006536791920553}
+{"epoch": 45, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:46:34+08:00", "train_mse": 0.25006309492050605}
+{"epoch": 46, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:46:49+08:00", "train_mse": 0.2500652823252949}
+{"epoch": 47, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:47:04+08:00", "train_mse": 0.2500653322354083}
+{"epoch": 48, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:47:19+08:00", "train_mse": 0.25006073399936213}
+{"epoch": 49, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:47:34+08:00", "train_mse": 0.2500628531499842}
+{"epoch": 50, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:47:49+08:00", "train_mse": 0.2500593274203311}
+{"epoch": 51, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:48:05+08:00", "train_mse": 0.25006088154373174}
+{"epoch": 52, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:48:20+08:00", "train_mse": 0.2500607096087606}
+{"epoch": 53, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:48:35+08:00", "train_mse": 0.250059503943703}
+{"epoch": 54, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:48:50+08:00", "train_mse": 0.25006101724989094}
+{"epoch": 55, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:49:05+08:00", "train_mse": 0.2500587730762618}
+{"epoch": 56, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:49:20+08:00", "train_mse": 0.2500570428649098}
+{"epoch": 57, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:49:35+08:00", "train_mse": 0.2500567757774661}
+{"epoch": 58, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:49:50+08:00", "train_mse": 0.2500589540920828}
+{"epoch": 59, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:50:06+08:00", "train_mse": 0.2500560189587304}
+{"epoch": 60, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:50:20+08:00", "train_mse": 0.2500549396063434}
+{"epoch": 61, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:50:36+08:00", "train_mse": 0.25005507870378096}
+{"epoch": 62, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:50:51+08:00", "train_mse": 0.2500536323225333}
+{"epoch": 63, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:51:06+08:00", "train_mse": 0.25005206108949096}
+{"epoch": 64, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:51:21+08:00", "train_mse": 0.2500515844876645}
+{"epoch": 65, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:51:36+08:00", "train_mse": 0.25005090661056784}
+{"epoch": 66, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:51:51+08:00", "train_mse": 0.2500520360133578}
+{"epoch": 67, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:52:06+08:00", "train_mse": 0.2500496416887472}
+{"epoch": 68, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:52:21+08:00", "train_mse": 0.2500473646437058}
+{"epoch": 69, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:52:36+08:00", "train_mse": 0.25004655103452933}
+{"epoch": 70, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:52:51+08:00", "train_mse": 0.2500482344039483}
+{"epoch": 71, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:53:06+08:00", "train_mse": 0.25004877824540017}
+{"epoch": 72, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:53:21+08:00", "train_mse": 0.25004923790561406}
+{"epoch": 73, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:53:37+08:00", "train_mse": 0.25004940758776684}
+{"epoch": 74, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:53:51+08:00", "train_mse": 0.25004677278820964}
+{"epoch": 75, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:54:07+08:00", "train_mse": 0.25004808003109247}
+{"epoch": 76, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:54:22+08:00", "train_mse": 0.25004788368073605}
+{"epoch": 77, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:54:37+08:00", "train_mse": 0.2500498326005527}
+{"epoch": 78, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:54:52+08:00", "train_mse": 0.25004838917379857}
+{"epoch": 79, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:55:07+08:00", "train_mse": 0.25004893657614957}
+{"epoch": 80, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:55:22+08:00", "train_mse": 0.2500495064939514}
+{"epoch": 81, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:55:37+08:00", "train_mse": 0.2500492725484946}
+{"epoch": 82, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:55:52+08:00", "train_mse": 0.2500477471382965}
+{"epoch": 83, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:56:07+08:00", "train_mse": 0.2500471691369057}
+{"epoch": 84, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:56:22+08:00", "train_mse": 0.25004710339362646}
+{"epoch": 85, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:56:38+08:00", "train_mse": 0.2500511652656314}
+{"epoch": 86, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:56:53+08:00", "train_mse": 0.25004947489128426}
+{"epoch": 87, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:57:08+08:00", "train_mse": 0.2500483177627757}
+{"epoch": 88, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:57:23+08:00", "train_mse": 0.25004776140895046}
+{"epoch": 89, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:57:38+08:00", "train_mse": 0.2500500337212088}
+{"epoch": 90, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:57:53+08:00", "train_mse": 0.25004793305333806}
+{"epoch": 91, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:58:09+08:00", "train_mse": 0.25004820550384466}
+{"epoch": 92, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:58:24+08:00", "train_mse": 0.2500465817993245}
+{"epoch": 93, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:58:39+08:00", "train_mse": 0.2500492914246024}
+{"epoch": 94, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:58:54+08:00", "train_mse": 0.2500504444856233}
+{"epoch": 95, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:59:09+08:00", "train_mse": 0.25004639321332434}
+{"epoch": 96, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:59:24+08:00", "train_mse": 0.2500516942836839}
+{"epoch": 97, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:59:40+08:00", "train_mse": 0.2500482706416278}
+{"epoch": 98, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T18:59:55+08:00", "train_mse": 0.250048700238267}
+{"epoch": 99, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T19:00:10+08:00", "train_mse": 0.2500499570442116}
+{"epoch": 100, "event": "epoch_done", "model": "kimura_lstm_true_output", "timestamp": "2026-07-21T19:00:25+08:00", "train_mse": 0.25004757527835864}
+{"epoch": 1, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:33+08:00", "train_mse": 2.9343533857718285}
+{"epoch": 2, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:35+08:00", "train_mse": 0.250824935969149}
+{"epoch": 3, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:38+08:00", "train_mse": 0.25071971645593294}
+{"epoch": 4, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:41+08:00", "train_mse": 0.25095491053571095}
+{"epoch": 5, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:43+08:00", "train_mse": 0.24992567162053092}
+{"epoch": 6, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:46+08:00", "train_mse": 0.24840358088636094}
+{"epoch": 7, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:49+08:00", "train_mse": 0.24626848388743383}
+{"epoch": 8, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:51+08:00", "train_mse": 0.24331978916734442}
+{"epoch": 9, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:54+08:00", "train_mse": 0.23954419204687838}
+{"epoch": 10, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:57+08:00", "train_mse": 0.2350923350506946}
+{"epoch": 11, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:00:59+08:00", "train_mse": 0.2302850555747682}
+{"epoch": 12, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:02+08:00", "train_mse": 0.22549575337461647}
+{"epoch": 13, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:05+08:00", "train_mse": 0.22087535019682036}
+{"epoch": 14, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:08+08:00", "train_mse": 0.2166054945189444}
+{"epoch": 15, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:10+08:00", "train_mse": 0.21265103523978723}
+{"epoch": 16, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:13+08:00", "train_mse": 0.20905094520139755}
+{"epoch": 17, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:16+08:00", "train_mse": 0.2057341244787949}
+{"epoch": 18, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:19+08:00", "train_mse": 0.20267341330327326}
+{"epoch": 19, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:21+08:00", "train_mse": 0.19987398029525139}
+{"epoch": 20, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:24+08:00", "train_mse": 0.19729449285978262}
+{"epoch": 21, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:27+08:00", "train_mse": 0.19490960732628082}
+{"epoch": 22, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:29+08:00", "train_mse": 0.19271240097373266}
+{"epoch": 23, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:32+08:00", "train_mse": 0.19069589038645063}
+{"epoch": 24, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:35+08:00", "train_mse": 0.18882637119895662}
+{"epoch": 25, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:38+08:00", "train_mse": 0.18704158175319208}
+{"epoch": 26, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:40+08:00", "train_mse": 0.18542883844065727}
+{"epoch": 27, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:43+08:00", "train_mse": 0.18388107025612044}
+{"epoch": 28, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:46+08:00", "train_mse": 0.18249279190695233}
+{"epoch": 29, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:48+08:00", "train_mse": 0.18113906073222097}
+{"epoch": 30, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:51+08:00", "train_mse": 0.17987900399430146}
+{"epoch": 31, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:54+08:00", "train_mse": 0.1786834609356447}
+{"epoch": 32, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:56+08:00", "train_mse": 0.17755715150497053}
+{"epoch": 33, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:01:59+08:00", "train_mse": 0.17651617124624863}
+{"epoch": 34, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:02+08:00", "train_mse": 0.17550062293071278}
+{"epoch": 35, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:04+08:00", "train_mse": 0.1745209502362286}
+{"epoch": 36, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:07+08:00", "train_mse": 0.17360393873559588}
+{"epoch": 37, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:10+08:00", "train_mse": 0.17271296879971487}
+{"epoch": 38, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:13+08:00", "train_mse": 0.17189835920817131}
+{"epoch": 39, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:16+08:00", "train_mse": 0.17106985336499747}
+{"epoch": 40, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:18+08:00", "train_mse": 0.17032347774943446}
+{"epoch": 41, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:21+08:00", "train_mse": 0.1695805669467063}
+{"epoch": 42, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:24+08:00", "train_mse": 0.16888500885625035}
+{"epoch": 43, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:27+08:00", "train_mse": 0.16822053651617352}
+{"epoch": 44, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:30+08:00", "train_mse": 0.16758025141302824}
+{"epoch": 45, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:33+08:00", "train_mse": 0.16693570002007618}
+{"epoch": 46, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:36+08:00", "train_mse": 0.16637089595405996}
+{"epoch": 47, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:38+08:00", "train_mse": 0.16580260769592314}
+{"epoch": 48, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:41+08:00", "train_mse": 0.16523415607230163}
+{"epoch": 49, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:44+08:00", "train_mse": 0.16468662888905783}
+{"epoch": 50, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:47+08:00", "train_mse": 0.16418003478838727}
+{"epoch": 51, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:49+08:00", "train_mse": 0.1636482194785458}
+{"epoch": 52, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:52+08:00", "train_mse": 0.1631437747655582}
+{"epoch": 53, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:55+08:00", "train_mse": 0.16270004076113764}
+{"epoch": 54, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:02:58+08:00", "train_mse": 0.16222540439139266}
+{"epoch": 55, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:01+08:00", "train_mse": 0.16183833011314164}
+{"epoch": 56, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:04+08:00", "train_mse": 0.16138565407459282}
+{"epoch": 57, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:07+08:00", "train_mse": 0.160986328052104}
+{"epoch": 58, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:09+08:00", "train_mse": 0.1605988307157986}
+{"epoch": 59, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:12+08:00", "train_mse": 0.16017745690896845}
+{"epoch": 60, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:15+08:00", "train_mse": 0.15977269858854015}
+{"epoch": 61, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:17+08:00", "train_mse": 0.15944778142056748}
+{"epoch": 62, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:20+08:00", "train_mse": 0.15909203780529424}
+{"epoch": 63, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:23+08:00", "train_mse": 0.15877117313948474}
+{"epoch": 64, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:26+08:00", "train_mse": 0.15840864102574415}
+{"epoch": 65, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:29+08:00", "train_mse": 0.15806934898250802}
+{"epoch": 66, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:32+08:00", "train_mse": 0.15775975910014495}
+{"epoch": 67, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:34+08:00", "train_mse": 0.15746536585265858}
+{"epoch": 68, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:37+08:00", "train_mse": 0.15716245703811182}
+{"epoch": 69, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:40+08:00", "train_mse": 0.15686504100676757}
+{"epoch": 70, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:43+08:00", "train_mse": 0.1565621451059087}
+{"epoch": 71, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:46+08:00", "train_mse": 0.15628301411788925}
+{"epoch": 72, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:48+08:00", "train_mse": 0.15602976137824953}
+{"epoch": 73, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:51+08:00", "train_mse": 0.15574574946572284}
+{"epoch": 74, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:54+08:00", "train_mse": 0.15543824757764924}
+{"epoch": 75, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:56+08:00", "train_mse": 0.15521655870747963}
+{"epoch": 76, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:03:59+08:00", "train_mse": 0.15495119814863756}
+{"epoch": 77, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:02+08:00", "train_mse": 0.15469275076179656}
+{"epoch": 78, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:04+08:00", "train_mse": 0.15444518835465715}
+{"epoch": 79, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:07+08:00", "train_mse": 0.1542167196344053}
+{"epoch": 80, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:10+08:00", "train_mse": 0.1539849152059105}
+{"epoch": 81, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:13+08:00", "train_mse": 0.15373681172332}
+{"epoch": 82, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:15+08:00", "train_mse": 0.15352272573454684}
+{"epoch": 83, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:18+08:00", "train_mse": 0.15331234560994744}
+{"epoch": 84, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:21+08:00", "train_mse": 0.15309712914449847}
+{"epoch": 85, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:24+08:00", "train_mse": 0.15287714686496656}
+{"epoch": 86, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:27+08:00", "train_mse": 0.15267100289861446}
+{"epoch": 87, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:30+08:00", "train_mse": 0.1524562498304931}
+{"epoch": 88, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:33+08:00", "train_mse": 0.1522684992246468}
+{"epoch": 89, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:37+08:00", "train_mse": 0.15207368258757015}
+{"epoch": 90, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:40+08:00", "train_mse": 0.15187652114400407}
+{"epoch": 91, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:43+08:00", "train_mse": 0.15169432652623982}
+{"epoch": 92, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:46+08:00", "train_mse": 0.151511513128753}
+{"epoch": 93, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:49+08:00", "train_mse": 0.15134499007785962}
+{"epoch": 94, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:52+08:00", "train_mse": 0.15116690281342926}
+{"epoch": 95, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:55+08:00", "train_mse": 0.15096507145403848}
+{"epoch": 96, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:04:58+08:00", "train_mse": 0.1508201992839986}
+{"epoch": 97, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:05:01+08:00", "train_mse": 0.1506012306026605}
+{"epoch": 98, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:05:04+08:00", "train_mse": 0.15050193934030176}
+{"epoch": 99, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:05:07+08:00", "train_mse": 0.150333612165241}
+{"epoch": 100, "event": "epoch_done", "model": "matched_mlp_true_output", "timestamp": "2026-07-21T19:05:11+08:00", "train_mse": 0.150151379521958}
+{"epoch": 1, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:05:33+08:00", "train_mse": 0.2619321154093086}
+{"epoch": 2, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:05:48+08:00", "train_mse": 0.250767521063608}
+{"epoch": 3, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:06:04+08:00", "train_mse": 0.25048646723735146}
+{"epoch": 4, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:06:19+08:00", "train_mse": 0.25035994920585836}
+{"epoch": 5, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:06:34+08:00", "train_mse": 0.2502854776910226}
+{"epoch": 6, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:06:49+08:00", "train_mse": 0.25024313221547345}
+{"epoch": 7, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:07:04+08:00", "train_mse": 0.2502096517009704}
+{"epoch": 8, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:07:20+08:00", "train_mse": 0.25018846775378734}
+{"epoch": 9, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:07:35+08:00", "train_mse": 0.2501683576008418}
+{"epoch": 10, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:07:50+08:00", "train_mse": 0.2501546587213852}
+{"epoch": 11, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:08:05+08:00", "train_mse": 0.2501463547350795}
+{"epoch": 12, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:08:20+08:00", "train_mse": 0.2501342148357253}
+{"epoch": 13, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:08:36+08:00", "train_mse": 0.25012398660123836}
+{"epoch": 14, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:08:51+08:00", "train_mse": 0.2501201048785333}
+{"epoch": 15, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:09:06+08:00", "train_mse": 0.25011109958632005}
+{"epoch": 16, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:09:21+08:00", "train_mse": 0.25010418116221445}
+{"epoch": 17, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:09:36+08:00", "train_mse": 0.2501009246666399}
+{"epoch": 18, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:09:51+08:00", "train_mse": 0.2500945539627537}
+{"epoch": 19, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:10:06+08:00", "train_mse": 0.25009199660939885}
+{"epoch": 20, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:10:22+08:00", "train_mse": 0.250087638431296}
+{"epoch": 21, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:10:37+08:00", "train_mse": 0.2500830907308682}
+{"epoch": 22, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:10:52+08:00", "train_mse": 0.2500810770661701}
+{"epoch": 23, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:11:07+08:00", "train_mse": 0.2500836923663883}
+{"epoch": 24, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:11:22+08:00", "train_mse": 0.25007863035853006}
+{"epoch": 25, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:11:37+08:00", "train_mse": 0.2500766013345128}
+{"epoch": 26, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:11:52+08:00", "train_mse": 0.2500731379204808}
+{"epoch": 27, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:12:08+08:00", "train_mse": 0.2500703586661075}
+{"epoch": 28, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:12:23+08:00", "train_mse": 0.25007141499986574}
+{"epoch": 29, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:12:38+08:00", "train_mse": 0.2500700784421497}
+{"epoch": 30, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:12:53+08:00", "train_mse": 0.25006767112040507}
+{"epoch": 31, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:13:08+08:00", "train_mse": 0.2500672533758461}
+{"epoch": 32, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:13:24+08:00", "train_mse": 0.25006701145548504}
+{"epoch": 33, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:13:39+08:00", "train_mse": 0.2500668624370519}
+{"epoch": 34, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:13:54+08:00", "train_mse": 0.2500645993525268}
+{"epoch": 35, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:14:09+08:00", "train_mse": 0.2500660605653593}
+{"epoch": 36, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:14:24+08:00", "train_mse": 0.2500677714140238}
+{"epoch": 37, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:14:39+08:00", "train_mse": 0.2500651127770652}
+{"epoch": 38, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:14:54+08:00", "train_mse": 0.2500671951138429}
+{"epoch": 39, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:15:09+08:00", "train_mse": 0.2500647258227673}
+{"epoch": 40, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:15:24+08:00", "train_mse": 0.25006506080012514}
+{"epoch": 41, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:15:39+08:00", "train_mse": 0.2500664869121465}
+{"epoch": 42, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:15:55+08:00", "train_mse": 0.250061358734456}
+{"epoch": 43, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:16:10+08:00", "train_mse": 0.2500651962716347}
+{"epoch": 44, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:16:25+08:00", "train_mse": 0.25006631449173256}
+{"epoch": 45, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:16:40+08:00", "train_mse": 0.25006399759126907}
+{"epoch": 46, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:16:55+08:00", "train_mse": 0.2500639104005131}
+{"epoch": 47, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:17:11+08:00", "train_mse": 0.25006771881930945}
+{"epoch": 48, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:17:26+08:00", "train_mse": 0.2500631870482266}
+{"epoch": 49, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:17:41+08:00", "train_mse": 0.2500673292211104}
+{"epoch": 50, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:17:56+08:00", "train_mse": 0.250064065711058}
+{"epoch": 51, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:18:12+08:00", "train_mse": 0.250064221794446}
+{"epoch": 52, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:18:27+08:00", "train_mse": 0.25006556820653714}
+{"epoch": 53, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:18:42+08:00", "train_mse": 0.2500626593953257}
+{"epoch": 54, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:18:57+08:00", "train_mse": 0.2500640176149318}
+{"epoch": 55, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:19:12+08:00", "train_mse": 0.25006601329459954}
+{"epoch": 56, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:19:27+08:00", "train_mse": 0.2500637694265606}
+{"epoch": 57, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:19:42+08:00", "train_mse": 0.25006184076391946}
+{"epoch": 58, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:19:57+08:00", "train_mse": 0.25006276316003095}
+{"epoch": 59, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:20:12+08:00", "train_mse": 0.250062808001303}
+{"epoch": 60, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:20:28+08:00", "train_mse": 0.25006308310980785}
+{"epoch": 61, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:20:43+08:00", "train_mse": 0.25006356235508065}
+{"epoch": 62, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:20:58+08:00", "train_mse": 0.25006256979304453}
+{"epoch": 63, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:21:13+08:00", "train_mse": 0.25006278729529186}
+{"epoch": 64, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:21:28+08:00", "train_mse": 0.2500606558603522}
+{"epoch": 65, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:21:43+08:00", "train_mse": 0.2500621162096195}
+{"epoch": 66, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:21:58+08:00", "train_mse": 0.2500621713579676}
+{"epoch": 67, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:22:14+08:00", "train_mse": 0.2500612551343693}
+{"epoch": 68, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:22:29+08:00", "train_mse": 0.2500616278848611}
+{"epoch": 69, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:22:44+08:00", "train_mse": 0.25005783237452306}
+{"epoch": 70, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:22:59+08:00", "train_mse": 0.2500591332413933}
+{"epoch": 71, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:23:14+08:00", "train_mse": 0.25005640908239}
+{"epoch": 72, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:23:29+08:00", "train_mse": 0.2500562560662729}
+{"epoch": 73, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:23:45+08:00", "train_mse": 0.2500582200691497}
+{"epoch": 74, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:24:00+08:00", "train_mse": 0.250056924905266}
+{"epoch": 75, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:24:15+08:00", "train_mse": 0.2500567472700368}
+{"epoch": 76, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:24:30+08:00", "train_mse": 0.25005360987529457}
+{"epoch": 77, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:24:45+08:00", "train_mse": 0.25005469093639476}
+{"epoch": 78, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:25:00+08:00", "train_mse": 0.2500539226075489}
+{"epoch": 79, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:25:15+08:00", "train_mse": 0.25005252897608443}
+{"epoch": 80, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:25:30+08:00", "train_mse": 0.25005394410709414}
+{"epoch": 81, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:25:45+08:00", "train_mse": 0.25005082777670395}
+{"epoch": 82, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:26:01+08:00", "train_mse": 0.2500521243548519}
+{"epoch": 83, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:26:16+08:00", "train_mse": 0.2500478702650071}
+{"epoch": 84, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:26:31+08:00", "train_mse": 0.25005091481079944}
+{"epoch": 85, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:26:46+08:00", "train_mse": 0.25005009823235014}
+{"epoch": 86, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:27:01+08:00", "train_mse": 0.25005073492548036}
+{"epoch": 87, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:27:16+08:00", "train_mse": 0.2500489412011575}
+{"epoch": 88, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:27:32+08:00", "train_mse": 0.2500486789442675}
+{"epoch": 89, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:27:47+08:00", "train_mse": 0.2500467648014819}
+{"epoch": 90, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:28:02+08:00", "train_mse": 0.2500492017036322}
+{"epoch": 91, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:28:17+08:00", "train_mse": 0.25004880287497144}
+{"epoch": 92, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:28:32+08:00", "train_mse": 0.25004967904919795}
+{"epoch": 93, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:28:48+08:00", "train_mse": 0.2500492152244078}
+{"epoch": 94, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:29:03+08:00", "train_mse": 0.2500484193913053}
+{"epoch": 95, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:29:18+08:00", "train_mse": 0.25004718701597994}
+{"epoch": 96, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:29:33+08:00", "train_mse": 0.2500467012878289}
+{"epoch": 97, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:29:48+08:00", "train_mse": 0.25004731129047286}
+{"epoch": 98, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:30:04+08:00", "train_mse": 0.2500487701856855}
+{"epoch": 99, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:30:19+08:00", "train_mse": 0.2500477960691114}
+{"epoch": 100, "event": "epoch_done", "model": "kimura_lstm_label_shuffle", "timestamp": "2026-07-21T19:30:34+08:00", "train_mse": 0.2500482396624193}
+{"decision": "innovation2_output_prediction_kimura_lstm_single_key_not_supported", "event": "run_done", "status": "hold", "timestamp": "2026-07-21T19:30:39+08:00"}
+{"event": "run_start", "mode": "paper_calibration", "run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721", "sample_classification": false, "target": "full_64_bit_true_ciphertext_output", "timestamp": "2026-07-21T19:42:56+08:00", "training": true}
+{"cache_arrays_have_expected_shapes": true, "cache_is_complete": true, "event": "data_ready", "features_are_msb_first_plaintext_bits": true, "kimura_architecture_fields_match": true, "labels_are_outputs_not_sample_classes": true, "official_present_vector_matches": true, "plaintexts_are_unique": true, "single_fixed_unknown_key": true, "targets_are_msb_first_true_ciphertext_bits": true, "timestamp": "2026-07-21T19:42:57+08:00", "train_and_test_plaintexts_are_disjoint": true}
+{"decision": "innovation2_output_prediction_kimura_lstm_single_key_not_supported", "event": "run_done", "status": "hold", "timestamp": "2026-07-21T19:43:14+08:00"}

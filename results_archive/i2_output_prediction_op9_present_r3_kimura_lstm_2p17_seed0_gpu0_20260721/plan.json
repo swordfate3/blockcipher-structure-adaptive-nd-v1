@@ -1,0 +1,43 @@
+{
+  "plan_id": "innovation2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0",
+  "question": "Can the Kimura full-output LSTM protocol recover true PRESENT r3 ciphertext-output signal that the 4096-row five-epoch diagnostics did not test?",
+  "task": "fixed_key_true_ciphertext_output_prediction",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 0,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "one_fixed_unknown_key_per_model",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "64_msb_first_true_ciphertext_bits",
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch",
+    "primary_metric": "rounded_full_64_bit_exact_match"
+  },
+  "rows": [
+    {
+      "role": "paper_anchor",
+      "model": "kimura_lstm_true_output",
+      "architecture": "lstm_hidden300_layers6",
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "same_budget_anchor",
+      "model": "matched_mlp_true_output",
+      "architecture": "mlp_hidden1936_two_layers",
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "control",
+      "model": "kimura_lstm_label_shuffle",
+      "architecture": "lstm_hidden300_layers6",
+      "train_labels_shuffled": true
+    }
+  ]
+}

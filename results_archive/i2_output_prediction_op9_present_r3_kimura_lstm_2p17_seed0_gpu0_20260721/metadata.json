@@ -1,0 +1,35 @@
+{
+  "cipher": "PRESENT-80",
+  "claim_scope": "single-fixed-key paper-family calibration; full 64-bit PRESENT r3 ciphertext-output prediction, not sample classification, not a 100-key exact reproduction, attack-round claim, or SOTA result",
+  "config": {
+    "batch_size": 250,
+    "data_chunk_rows": 4096,
+    "device": "cuda",
+    "epochs": 100,
+    "hidden_dim": 300,
+    "layers": 6,
+    "learning_rate": 0.001,
+    "mlp_hidden_dim": 1936,
+    "mode": "paper_calibration",
+    "rounds": 3,
+    "run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+    "seed": 0,
+    "test_rows": 65536,
+    "train_rows": 131072
+  },
+  "experiment": "op9_present_r3_kimura_lstm",
+  "input": "64 MSB-first plaintext bits",
+  "key_protocol": "one fixed unknown key; disjoint plaintext train/test",
+  "mode": "paper_calibration",
+  "paper_exact_reproduction": false,
+  "paper_family": "Kimura et al. output prediction",
+  "parameter_counts": {
+    "kimura_lstm": 3994864,
+    "matched_mlp": 3999840
+  },
+  "run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "sample_classification": false,
+  "secret_key_hex": "6c4ed2f6546b08ac0b96",
+  "target": "64 MSB-first true ciphertext bits",
+  "task": "innovation2_output_prediction"
+}
