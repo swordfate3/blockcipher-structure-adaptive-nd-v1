@@ -71,7 +71,7 @@ def _complete_raw_retrieval(root: Path) -> Path:
         "## main...origin/main\n",
         encoding="utf-8",
     )
-    _write_json(results / "readiness_gate.json", {"status": "pass"})
+    _write_json(results / "phase_a_gate.json", {"status": "pass"})
     _write_json(results / "probe_gate.json", {"status": "pass"})
     _write_json(
         results / "gate.json",
@@ -165,6 +165,22 @@ def test_e104_retrieval_validation_replays_all_frozen_evidence(tmp_path: Path) -
     assert validation["metrics"]["relation_rank"] == 1
     assert validation["metrics"]["candidate_files"] == 1
     assert validation["next_action"]["e105_open"] is True
+
+
+def test_e104_retrieval_requires_production_phase_a_gate(tmp_path: Path) -> None:
+    raw = _complete_raw_retrieval(tmp_path)
+    results = raw / "results"
+    (results / "phase_a_gate.json").unlink()
+    _write_json(results / "readiness_gate.json", {"status": "pass"})
+
+    validation = validate_split333_retrieval(
+        Split333RetrievalConfig(),
+        raw_root=raw,
+    )
+
+    assert validation["status"] == "fail"
+    assert validation["existence_checks"]["required_phase_a_gate_exists"] is False
+    assert validation["next_action"]["e105_open"] is False
 
 
 def test_e104_retrieval_validation_rejects_corrupt_candidate(tmp_path: Path) -> None:

@@ -265,6 +265,37 @@ def test_source_heldout_gate_rejects_relations_seen_in_fold_training_candidates(
     assert result["result_rows"] == []
 
 
+def test_source_heldout_gate_records_source_with_no_new_dimensions(
+    tmp_path: Path,
+) -> None:
+    manifest = _checkpoint_manifest(tmp_path)
+    public_groups = _public_groups()
+    heldout = {next(iter(public_groups["public"]))}
+
+    result = evaluate_source_heldout(
+        SourceHeldoutRankingConfig(),
+        public_groups=public_groups,
+        heldout_relations=heldout,
+        checkpoint_manifest=manifest,
+        checkpoint_root=tmp_path,
+        e104_gate={
+            "status": "pass",
+            "decision": "innovation2_present_r9_split333_generation_passed",
+        },
+        e104_evidence_checks={"frozen_e104_evidence": True},
+        device="cpu",
+    )
+
+    novelty = result["gate"]["source_novelty_audit"]
+    assert result["gate"]["status"] == "fail"
+    assert novelty["heldout_exact_public_overlap"] == 1
+    assert novelty["heldout_exact_novel_relations"] == 0
+    assert novelty["new_relation_space_dimensions"] == 0
+    assert novelty["heldout_span_within_public"] is True
+    assert "stop the E99 coordinate-identity route" in result["gate"]["next_action"]["action"]
+    assert result["result_rows"] == []
+
+
 def test_source_heldout_gate_rejects_checkpoint_payload_identity_drift(
     tmp_path: Path,
 ) -> None:

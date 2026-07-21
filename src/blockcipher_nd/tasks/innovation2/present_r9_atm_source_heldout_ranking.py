@@ -23,6 +23,9 @@ from blockcipher_nd.tasks.innovation2.present_r9_atm_support_component_pu_neural
     tensorize_pools,
     train_one_fold,
 )
+from blockcipher_nd.tasks.innovation2.present_r9_atm_support_component_pu_readiness import (
+    _canonical_independent_basis,
+)
 from blockcipher_nd.tasks.innovation2.present_r9_pu_ranking_readiness import (
     _baseline_score,
     _canonical_coordinates,
@@ -230,6 +233,11 @@ def evaluate_source_heldout(
         evaluation_pools=pools,
         heldout_relations=heldout_relations,
     )
+    source_novelty_audit = _source_novelty_audit(
+        public_relations=public_relations,
+        heldout_relations=heldout_relations,
+    )
+    training_overlap_audit.update(source_novelty_audit)
     tensors = tensorize_pools(pools) if pools else None
     manifest_checks = _validate_checkpoint_manifest(
         checkpoint_manifest,
@@ -252,13 +260,25 @@ def evaluate_source_heldout(
         ),
     }
     if not all(manifest_checks.values()) or not all(source_checks.values()) or tensors is None:
+        source_adds_no_dimensions = (
+            source_novelty_audit["heldout_relations"] > 0
+            and source_novelty_audit["new_relation_space_dimensions"] == 0
+        )
         gate = {
             "run_id": config.evaluation_run_id,
             "status": "fail",
             "decision": "innovation2_present_r9_split333_source_heldout_protocol_invalid",
             "manifest_checks": manifest_checks,
             "source_checks": source_checks,
-            "next_action": {"action": "repair source or checkpoint evidence; do not interpret ranks"},
+            "source_novelty_audit": source_novelty_audit,
+            "next_action": {
+                "action": (
+                    "stop the E99 coordinate-identity route; E104 adds no new relation-space "
+                    "dimensions and post-hoc subset scoring is not an external-source test"
+                    if source_adds_no_dimensions
+                    else "repair source or checkpoint evidence; do not interpret ranks"
+                )
+            },
         }
         return {
             "gate": gate,
@@ -499,6 +519,30 @@ def _fold_training_overlap_audit(
             row["training_heldout_positive_overlap"] for row in fold_rows
         ),
         "fold_training_overlap": fold_rows,
+    }
+
+
+def _source_novelty_audit(
+    *,
+    public_relations: set[Property],
+    heldout_relations: set[Property],
+) -> dict[str, Any]:
+    public_rank = len(_canonical_independent_basis(public_relations)[0])
+    heldout_rank = len(_canonical_independent_basis(heldout_relations)[0])
+    union_rank = len(
+        _canonical_independent_basis(public_relations | heldout_relations)[0]
+    )
+    exact_overlap = len(public_relations & heldout_relations)
+    return {
+        "public_relations": len(public_relations),
+        "heldout_relations": len(heldout_relations),
+        "heldout_exact_public_overlap": exact_overlap,
+        "heldout_exact_novel_relations": len(heldout_relations) - exact_overlap,
+        "public_relation_rank": public_rank,
+        "heldout_relation_rank": heldout_rank,
+        "union_relation_rank": union_rank,
+        "new_relation_space_dimensions": union_rank - public_rank,
+        "heldout_span_within_public": union_rank == public_rank,
     }
 
 

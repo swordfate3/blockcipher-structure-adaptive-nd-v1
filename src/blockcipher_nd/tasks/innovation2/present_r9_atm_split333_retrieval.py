@@ -63,7 +63,7 @@ def validate_split333_retrieval(
         "source_revision": logs / "source_revision.txt",
         "atm_revision": logs / "atm_revision.txt",
         "source_status": logs / "source_status_after_sync.txt",
-        "readiness_gate": results / "readiness_gate.json",
+        "phase_a_gate": results / "phase_a_gate.json",
         "probe_gate": results / "probe_gate.json",
         "generation_gate": results / "gate.json",
         "generation_summary": results / "summary.json",
@@ -110,7 +110,7 @@ def validate_split333_retrieval(
         for line in required["source_status"].read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    readiness_gate = _load_json(required["readiness_gate"])
+    phase_a_gate = _load_json(required["phase_a_gate"])
     probe_gate = _load_json(required["probe_gate"])
     generation_gate = _load_json(required["generation_gate"])
     generation_summary = _load_json(required["generation_summary"])
@@ -151,7 +151,7 @@ def validate_split333_retrieval(
         "source_hashes_match": actual_source_hashes == SOURCE_HASHES,
         "model_hash_matches": model_contract.get("sha256")
         == config.expected_model_sha256,
-        "readiness_gate_pass": readiness_gate.get("status") == "pass",
+        "phase_a_gate_pass": phase_a_gate.get("status") == "pass",
         "probe_gate_pass": probe_gate.get("status") == "pass",
         "first_resume_probe_completed_one_candidate": first_probe.get(
             "controlled_interruption"
