@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_selected8_architecture_screen_local_smoke_passed": (
+        "PRESENT三轮固定八输出五模型实现门通过，开放第三密钥发现屏"
+    ),
+    "innovation2_selected8_architecture_candidate_requires_confirmation": (
+        "发现非MLP架构候选，必须进入第四密钥与匹配shuffle独立确认"
+    ),
+    "innovation2_selected8_mlp_anchor_retained_after_screen": (
+        "非MLP候选未通过预注册增益门，保留专用八输出MLP锚点"
+    ),
+    "innovation2_selected8_architecture_protocol_invalid": (
+        "多架构发现屏的数据、位序、参数预算、训练或产物协议无效"
+    ),
     "innovation2_r4_structured_xor_local_smoke_passed": (
         "PRESENT四轮真实输出结构化XOR实现门通过，开放远程正式归因门"
     ),
@@ -1856,6 +1868,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opa1_present_r3_selected8_architecture_screen"
+    ):
+        return "创新2 OPA1：PRESENT三轮固定八个真实密文输出bit的五模型架构发现屏"
     if run_id.startswith("i2_output_prediction_op12_present_r4_structured_xor"):
         return "创新2 OP12：PRESENT四轮多输出bit结构化XOR真实值预测"
     if run_id.startswith("i2_output_prediction_op11_present_r3_selected8"):

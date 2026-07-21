@@ -1,0 +1,73 @@
+{
+  "plan_id": "innovation2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2",
+  "question": "Which parameter-matched architecture deserves independent matched-shuffle confirmation for the eight preregistered PRESENT r3 true ciphertext output bits?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_architecture_screen",
+  "phase": "A discovery only",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 2,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "third_independent_fixed_unknown_key",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch",
+    "primary_metric": "per_bit_auc_with_accuracy_over_majority"
+  },
+  "rows": [
+    {
+      "role": "anchor",
+      "model": "selected8_mlp_true_output",
+      "architecture": "mlp_64_1936_1936_8",
+      "parameters": 3891368
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_lstm_true_output",
+      "architecture": "kimura_lstm_hidden300_layers6_output8",
+      "parameters": 3978008
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_rescnn_true_output",
+      "architecture": "rescnn_channels256_blocks10_output8",
+      "parameters": 3951112
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_transformer_true_output",
+      "architecture": "transformer_dim256_heads8_layers7_ff576_output8",
+      "parameters": 3939016
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_present_spn_true_output",
+      "architecture": "present_spn_dim189_blocks3_exact_p_layer_output8",
+      "parameters": 3879415
+    }
+  ],
+  "candidate_gate": {
+    "minimum_viable_bits": 4,
+    "per_bit_minimum_auc": 0.51,
+    "per_bit_minimum_accuracy_minus_majority": 0.005,
+    "minimum_mean_auc_gain_vs_mlp": 0.003,
+    "minimum_gain_bits_vs_mlp": 4,
+    "minimum_per_bit_auc_gain_vs_mlp": 0.002
+  },
+  "next_action_on_pass": "Run only the selected winner true/shuffle and MLP true/shuffle under seed3.",
+  "stop_action": "If no non-MLP candidate passes, retain MLP and do not tune more architectures on seed2.",
+  "forbidden": [
+    "final architecture claim from Phase A",
+    "output-position reselection",
+    "five-model ten-row shuffle matrix",
+    "automatic r4 XOR reopening"
+  ]
+}
