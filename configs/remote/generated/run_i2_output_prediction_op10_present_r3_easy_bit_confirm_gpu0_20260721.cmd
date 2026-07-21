@@ -58,8 +58,8 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   > "%LOG_DIR%\%RUN_ID%_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_stderr.txt"
 if errorlevel 1 goto failed
 
-"%PY%" scripts\plot-innovation2-output-bit-discovery --summary "%RESULTS_DIR%\summary.json" --output "%RESULTS_DIR%\curves.svg" > "%LOG_DIR%\%RUN_ID%_plot_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_plot_stderr.txt" || goto failed
-for %%F in (results.jsonl ranking.csv candidates.json candidates.sha256 metadata.json summary.json gate.json progress.jsonl curves.svg) do if not exist "%RESULTS_DIR%\%%F" goto incomplete_results
+echo deferred_to_local_verified_retrieval>"%LOG_DIR%\%RUN_ID%_plot_deferred.marker"
+for %%F in (results.jsonl ranking.csv candidates.json candidates.sha256 metadata.json summary.json gate.json progress.jsonl) do if not exist "%RESULTS_DIR%\%%F" goto incomplete_results
 for %%F in (plaintexts.npy features.npy full_targets.npy cache_metadata.json) do if not exist "%RESULTS_DIR%\fresh_data\%%F" goto incomplete_results
 set RESULT_LINES=0
 for /f "tokens=3" %%L in ('find /c /v "" "%RESULTS_DIR%\results.jsonl"') do set RESULT_LINES=%%L
@@ -69,7 +69,7 @@ if not "%RESULT_LINES%"=="384" goto incomplete_results
 "%PY%" -c "import hashlib,json,pathlib; root=pathlib.Path(r'%RESULTS_DIR%'); gate=json.loads((root/'gate.json').read_text(encoding='utf-8')); cache=json.loads((root/'fresh_data'/'cache_metadata.json').read_text(encoding='utf-8')); expected=(root/'candidates.sha256').read_text(encoding='ascii').split()[0]; actual=hashlib.sha256((root/'candidates.json').read_bytes()).hexdigest(); assert gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and cache['status']=='complete' and cache['completed_rows']==65536 and actual==expected" || goto incomplete_results
 
 if not exist "%ARCHIVE_DIR%" mkdir "%ARCHIVE_DIR%"
-for %%F in (results.jsonl ranking.csv candidates.json candidates.sha256 metadata.json summary.json gate.json progress.jsonl curves.svg) do copy /Y "%RESULTS_DIR%\%%F" "%ARCHIVE_DIR%\%%F" > nul || goto failed
+for %%F in (results.jsonl ranking.csv candidates.json candidates.sha256 metadata.json summary.json gate.json progress.jsonl) do copy /Y "%RESULTS_DIR%\%%F" "%ARCHIVE_DIR%\%%F" > nul || goto failed
 copy /Y "%RESULTS_DIR%\fresh_data\cache_metadata.json" "%ARCHIVE_DIR%\fresh_cache_metadata.json" > nul || goto failed
 copy /Y "%SOURCE_OUTPUT_ROOT%\checkpoint_manifest.json" "%ARCHIVE_DIR%\source_checkpoint_manifest.json" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%ARCHIVE_DIR%\git_revision.txt" > nul || goto failed

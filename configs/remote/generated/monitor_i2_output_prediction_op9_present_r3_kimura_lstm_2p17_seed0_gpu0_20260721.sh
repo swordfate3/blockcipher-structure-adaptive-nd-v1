@@ -59,6 +59,11 @@ while true; do
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
       "import json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); meta=json.loads((root/'metadata.json').read_text()); cache=json.loads((root/'cache_metadata.json').read_text()); assert gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and meta['sample_classification'] is False and cache['status']=='complete' and cache['completed_rows']==196608" \
       >> "${MONITOR_ROOT}/validation.log" 2>> "${MONITOR_ROOT}/validation_stderr.log" || exit 3
+    MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python \
+      scripts/plot-innovation2-output-prediction-kimura-lstm \
+      --summary "${DESTINATION}/summary.json" \
+      --output "${DESTINATION}/curves.svg" \
+      >> "${MONITOR_ROOT}/plot.log" 2>> "${MONITOR_ROOT}/plot_stderr.log" || exit 3
     touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
       >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || exit 4

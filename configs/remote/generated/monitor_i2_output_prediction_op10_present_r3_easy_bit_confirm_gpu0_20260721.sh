@@ -75,6 +75,11 @@ while true; do
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
       "import hashlib,json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); cache=json.loads((root/'fresh_cache_metadata.json').read_text()); expected=(root/'candidates.sha256').read_text().split()[0]; actual=hashlib.sha256((root/'candidates.json').read_bytes()).hexdigest(); assert gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and cache['status']=='complete' and cache['completed_rows']==65536 and actual==expected" \
       >> "${MONITOR_ROOT}/validation.log" 2>> "${MONITOR_ROOT}/validation_stderr.log" || exit 3
+    MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python \
+      scripts/plot-innovation2-output-bit-discovery \
+      --summary "${DESTINATION}/summary.json" \
+      --output "${DESTINATION}/curves.svg" \
+      >> "${MONITOR_ROOT}/plot.log" 2>> "${MONITOR_ROOT}/plot_stderr.log" || exit 3
     touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
     UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
       >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || exit 4

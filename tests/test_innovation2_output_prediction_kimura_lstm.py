@@ -225,6 +225,9 @@ def test_remote_package_freezes_total_rows_and_windows_hygiene() -> None:
     assert "_result_branch_pushed.marker" in run + monitor
     assert "${RUN_ID}_failed.marker" in monitor
     assert "sleep 120" in monitor
+    assert "_plot_deferred.marker" in run
+    assert "plot-innovation2-output-prediction-kimura-lstm" not in run
+    assert "plot-innovation2-output-prediction-kimura-lstm" in monitor
     assert "scripts/index-results" in monitor
     assert "C:\\Users" not in run.replace(
         "C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519",

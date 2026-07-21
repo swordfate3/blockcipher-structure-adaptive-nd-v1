@@ -49,8 +49,8 @@ echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
   > "%LOG_DIR%\%RUN_ID%_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_stderr.txt"
 if errorlevel 1 goto failed
 
-"%PY%" scripts\plot-innovation2-output-prediction-kimura-lstm --summary "%RESULTS_DIR%\summary.json" --output "%RESULTS_DIR%\curves.svg" > "%LOG_DIR%\%RUN_ID%_plot_stdout.txt" 2> "%LOG_DIR%\%RUN_ID%_plot_stderr.txt" || goto failed
-for %%F in (results.jsonl progress.jsonl history.csv metadata.json summary.json gate.json checkpoint_manifest.json curves.svg) do if not exist "%RESULTS_DIR%\%%F" goto incomplete_results
+echo deferred_to_local_verified_retrieval>"%LOG_DIR%\%RUN_ID%_plot_deferred.marker"
+for %%F in (results.jsonl progress.jsonl history.csv metadata.json summary.json gate.json checkpoint_manifest.json) do if not exist "%RESULTS_DIR%\%%F" goto incomplete_results
 for %%F in (plaintexts.npy features.npy full_targets.npy cache_metadata.json) do if not exist "%RESULTS_DIR%\data\%%F" goto incomplete_results
 for %%F in (kimura_lstm_true_output_final.pt matched_mlp_true_output_final.pt kimura_lstm_label_shuffle_final.pt) do if not exist "%RESULTS_DIR%\models\%%F" goto incomplete_results
 set RESULT_LINES=0
@@ -61,7 +61,7 @@ if not "%RESULT_LINES%"=="3" goto incomplete_results
 "%PY%" -c "import json,pathlib; root=pathlib.Path(r'%RESULTS_DIR%'); gate=json.loads((root/'gate.json').read_text(encoding='utf-8')); meta=json.loads((root/'metadata.json').read_text(encoding='utf-8')); cache=json.loads((root/'data'/'cache_metadata.json').read_text(encoding='utf-8')); checkpoints=json.loads((root/'checkpoint_manifest.json').read_text(encoding='utf-8')); assert gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and meta['sample_classification'] is False and cache['status']=='complete' and cache['completed_rows']==196608 and len(checkpoints)==3" || goto incomplete_results
 
 if not exist "%ARCHIVE_DIR%" mkdir "%ARCHIVE_DIR%"
-for %%F in (results.jsonl progress.jsonl history.csv metadata.json summary.json gate.json checkpoint_manifest.json curves.svg) do copy /Y "%RESULTS_DIR%\%%F" "%ARCHIVE_DIR%\%%F" > nul || goto failed
+for %%F in (results.jsonl progress.jsonl history.csv metadata.json summary.json gate.json checkpoint_manifest.json) do copy /Y "%RESULTS_DIR%\%%F" "%ARCHIVE_DIR%\%%F" > nul || goto failed
 copy /Y "%RESULTS_DIR%\data\cache_metadata.json" "%ARCHIVE_DIR%\cache_metadata.json" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_revision.txt" "%ARCHIVE_DIR%\git_revision.txt" > nul || goto failed
 copy /Y "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" "%ARCHIVE_DIR%\git_status_before_run.txt" > nul || goto failed
