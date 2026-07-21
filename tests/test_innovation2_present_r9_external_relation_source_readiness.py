@@ -7,9 +7,21 @@ from blockcipher_nd.cli.plot_innovation2_present_r9_external_relation_source_rea
 )
 from blockcipher_nd.tasks.innovation2.present_r9_external_relation_source_readiness import (
     ExternalRelationSourceConfig,
+    _split_present_rows_present,
     _source_rows,
     adjudicate_external_relation_sources,
 )
+
+
+def test_e106_splitandcancel_table_check_tolerates_pdf_column_spacing() -> None:
+    text = """
+        PRESENT        9      263          28          1           -      reference
+                       9      260           3          1         16.37    Subsection 5.1
+                       9      260           4        ≥ 2−2       16.37    Subsection 5.1
+    """
+
+    assert _split_present_rows_present(text) is True
+    assert _split_present_rows_present(text.replace("Subsection 5.1", "other")) is False
 
 
 def _rows() -> list[dict[str, object]]:

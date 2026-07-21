@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -130,8 +131,7 @@ def audit_external_relation_sources(
             )
         ),
         "split_text_hash_matches": sha256(split_text) == EXPECTED_SPLIT_TEXT_SHA256,
-        "split_present_r9_rows_present": "PRESENT        9      260           3"
-        in split_content,
+        "split_present_r9_rows_present": _split_present_rows_present(split_content),
         "claasp_text_hash_matches": sha256(claasp_text) == EXPECTED_CLAASP_TEXT_SHA256,
         "claasp_has_no_frozen_present_r9_result": "our objective is not to derive new"
         in claasp_content,
@@ -416,6 +416,20 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object: {path}")
     return payload
+
+
+def _split_present_rows_present(text: str) -> bool:
+    exact_row = re.search(
+        r"^\s*9\s+260\s+3\s+1\s+16\.37\s+Subsection 5\.1\s*$",
+        text,
+        flags=re.MULTILINE,
+    )
+    weak_key_row = re.search(
+        r"^\s*9\s+260\s+4\s+≥\s*2−2\s+16\.37\s+Subsection 5\.1\s*$",
+        text,
+        flags=re.MULTILINE,
+    )
+    return exact_row is not None and weak_key_row is not None
 
 
 def sha256(path: Path) -> str:
