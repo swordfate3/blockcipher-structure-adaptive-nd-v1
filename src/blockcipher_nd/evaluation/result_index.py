@@ -1378,6 +1378,18 @@ DECISION_LABELS = {
     "innovation2_output_parity_present_r3_bit_role_protocol_invalid": (
         "PRESENT三轮bit路由、拓扑控制、输出或训练协议无效"
     ),
+    "innovation2_output_parity_exact_anf_difficulty_transition_confirmed": (
+        "r1--r3真实输出parity精确ANF难度跃迁确认，只开放三轮嵌套数据斜率"
+    ),
+    "innovation2_output_parity_exact_anf_difficulty_transition_not_confirmed": (
+        "精确ANF未支持数据稀疏机制，停止当前mask路线扩样本与扩轮"
+    ),
+    "innovation2_output_parity_exact_anf_difficulty_protocol_invalid": (
+        "精确ANF、标量重放或冻结神经来源协议无效"
+    ),
+    "innovation2_output_parity_exact_anf_difficulty_hard_cap_exceeded": (
+        "部分真实输出parity精确ANF超过冻结硬上限，不提高上限或扩训练"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -1793,6 +1805,11 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == (
+        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_"
+        "difficulty_20260721"
+    ):
+        return "创新2 OP8：PRESENT r1--r3真实密文输出parity精确ANF难度审计"
     if run_id == (
         "i2_output_parity_prediction_op7_present_r3_bit_role_routing_seed0_20260721"
     ):

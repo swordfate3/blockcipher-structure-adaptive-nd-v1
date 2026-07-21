@@ -358,6 +358,48 @@ def test_result_index_labels_innovation2_output_parity_bit_role(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_exact_anf_difficulty_transition_confirmed",
+            "r1--r3真实输出parity精确ANF难度跃迁确认，只开放三轮嵌套数据斜率",
+        ),
+        (
+            "innovation2_output_parity_exact_anf_difficulty_transition_not_confirmed",
+            "精确ANF未支持数据稀疏机制，停止当前mask路线扩样本与扩轮",
+        ),
+        (
+            "innovation2_output_parity_exact_anf_difficulty_protocol_invalid",
+            "精确ANF、标量重放或冻结神经来源协议无效",
+        ),
+        (
+            "innovation2_output_parity_exact_anf_difficulty_hard_cap_exceeded",
+            "部分真实输出parity精确ANF超过冻结硬上限，不提高上限或扩训练",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_exact_anf(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_"
+        "difficulty_20260721"
+    )
+    run_root = outputs / "local_audits" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP8：PRESENT r1--r3真实密文输出parity精确ANF难度审计"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:

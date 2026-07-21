@@ -836,9 +836,12 @@ t(y) = y0 xor y1 xor y2 xor y3 = <1111, y>
 ```
 
 This is a fixed nonzero linear output mask. It changes a four-bit exact-output
-prediction task into a binary parity-classification task. It must not be called
-an integral prediction unless the experiment additionally defines a structured
-input multiset `S` and XOR-sums the masked output across all `x in S`.
+prediction task into a one-bit exact-output prediction task. Although the
+target value is encoded as `0/1` and can be optimized with binary cross-entropy,
+it is not a sample-classification task: the target is the deterministic value of
+`<1111, E_K^r(P)>` for that plaintext under the fixed unknown key. It must not be
+called an integral prediction unless the experiment additionally defines a
+structured input multiset `S` and XOR-sums the masked output across all `x in S`.
 
 The exact Kimura-style task variant was not found in the current literature
 search, but the methodological core has close prior art in neural linear
@@ -849,11 +852,13 @@ ablation by itself, not yet a defensible independent innovation claim.
 
 ### Suggested Action
 
-Use `single-sample output parity prediction` or `linear output-mask prediction`
-in plans and reports. If the route is developed, compare all 15 nonzero nibble
-masks against LAT/Walsh or classical linear baselines, test unseen keys, and
-require a cryptanalytic use such as discovering new approximations or reducing
-key-recovery data before treating it as an innovation candidate.
+Use `single-sample output parity prediction`, `one-bit output prediction`, or
+`linear output-mask prediction` in plans and reports. State that `0/1` is the
+predicted ciphertext-output value, not a positive/negative class. If the route
+is developed, compare all 15 nonzero nibble masks against LAT/Walsh or classical
+linear baselines, test unseen keys, and require a cryptanalytic use such as
+discovering new approximations or reducing key-recovery data before treating it
+as an innovation candidate.
 
 ### Metadata
 
