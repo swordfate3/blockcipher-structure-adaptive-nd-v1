@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_r4_structured_xor_local_smoke_passed": (
+        "PRESENT四轮真实输出结构化XOR实现门通过，开放远程正式归因门"
+    ),
+    "innovation2_r4_structured_xor_supported": (
+        "至少一个四轮结构化XOR家族超过单bit与全部匹配控制"
+    ),
+    "innovation2_r4_structured_xor_not_supported": (
+        "四轮结构化XOR未超过单bit与全部匹配控制，停止机械扩展"
+    ),
+    "innovation2_r4_structured_xor_protocol_invalid": (
+        "四轮真实输出XOR的数据、mask、控制、指标、缓存或checkpoint协议无效"
+    ),
     "innovation2_selected8_independent_key_local_smoke_passed": (
         "固定八输出bit独立密钥实现门通过，开放OP11远程正式确认"
     ),
@@ -1844,6 +1856,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_op12_present_r4_structured_xor"):
+        return "创新2 OP12：PRESENT四轮多输出bit结构化XOR真实值预测"
     if run_id.startswith("i2_output_prediction_op11_present_r3_selected8"):
         return "创新2 OP11：PRESENT三轮固定八个真实密文输出bit的独立密钥确认"
     if run_id.startswith("i2_output_prediction_op10_present_r3_easy_bit"):

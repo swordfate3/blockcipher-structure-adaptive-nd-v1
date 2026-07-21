@@ -1,0 +1,56 @@
+{
+  "plan_id": "innovation2_output_prediction_op12_present_r4_structured_xor_key1",
+  "question": "Does direct prediction of preregistered structured XORs of OP11-selected ciphertext bits preserve PRESENT r4 signal beyond single-bit, derived-parity, geometry, and shuffled-label controls?",
+  "task": "fixed_key_structured_true_ciphertext_output_xor_prediction",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 4,
+    "seed": 1,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "same_second_fixed_unknown_key_as_op11",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "six_preregistered_true_ciphertext_output_xor_values",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "structured_masks": [
+    {"name": "same_sbox_pair_0_32", "bits": [0, 32], "family": "same_sbox_pair"},
+    {"name": "same_sbox_pair_2_34", "bits": [2, 34], "family": "same_sbox_pair"},
+    {"name": "same_sbox_pair_8_40", "bits": [8, 40], "family": "same_sbox_pair"},
+    {"name": "same_sbox_pair_10_42", "bits": [10, 42], "family": "same_sbox_pair"},
+    {"name": "same_role4_0_2_8_10", "bits": [0, 2, 8, 10], "family": "same_role_four"},
+    {"name": "same_role4_32_34_40_42", "bits": [32, 34, 40, 42], "family": "same_role_four"}
+  ],
+  "geometry_control_masks": [
+    {"name": "output_nibble_pair_0_2", "bits": [0, 2], "family": "output_nibble_pair"},
+    {"name": "output_nibble_pair_8_10", "bits": [8, 10], "family": "output_nibble_pair"},
+    {"name": "output_nibble_pair_32_34", "bits": [32, 34], "family": "output_nibble_pair"},
+    {"name": "output_nibble_pair_40_42", "bits": [40, 42], "family": "output_nibble_pair"},
+    {"name": "mixed_role4_0_2_32_34", "bits": [0, 2, 32, 34], "family": "mixed_role_four"},
+    {"name": "mixed_role4_8_10_40_42", "bits": [8, 10, 40, 42], "family": "mixed_role_four"}
+  ],
+  "rows": [
+    {"role": "single_bit_anchor", "model": "selected8_mlp_true_output", "output_bits": 8, "train_labels_shuffled": false},
+    {"role": "candidate", "model": "structured6_mlp_true_xor", "output_bits": 6, "train_labels_shuffled": false},
+    {"role": "geometry_control", "model": "geometry6_mlp_true_xor", "output_bits": 6, "train_labels_shuffled": false},
+    {"role": "architecture_matched_control", "model": "structured6_mlp_label_shuffle", "output_bits": 6, "train_labels_shuffled": true}
+  ],
+  "per_mask_gate": {
+    "minimum_auc": 0.51,
+    "minimum_accuracy_minus_majority": 0.005,
+    "minimum_true_minus_shuffle_auc": 0.005,
+    "minimum_true_minus_geometry_auc": 0.005,
+    "minimum_true_minus_derived_auc": 0.005,
+    "minimum_true_minus_best_component_auc": 0.002
+  },
+  "family_gate": "At least two of four same-S-box pair masks pass all six gates, or both same-role four-bit masks pass all six gates.",
+  "next_action_on_pass": "Repeat the identical r4 masks and four-row matrix under the seed0 fixed secret key before any r5 experiment.",
+  "stop_action": "If neither family passes, stop mask enumeration and data, epoch, model, and round scaling; retain the OP11 r3 selected-bit result."
+}
