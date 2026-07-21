@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：本地readiness通过 / 正式训练等待OPB1裁决
+状态：本地readiness通过 / OPB1负归因正式授权 / 准备seed6远程启动
 
 ## 1. 研究问题
 
@@ -147,5 +147,19 @@ hybrid shuffle    = 0.466814
 `visual-qa-redraw`像素检查：中文标题与裁决、热图数字、色条、图例、坐标和证据边界无重叠、裁切或
 低对比度问题。
 
-证据支持的下一动作保持不变：等待OPB1 gate。只有OPB1有效返回低秩瓶颈未归因，才允许制作并启动
-OPC1的正式seed6远程包；其他OPB1分支继续优先，OPC1不并行远程运行，也不开放PRESENT四轮。
+OPB1正式结果已经回收并满足唯一授权分支：
+
+```text
+run_id = i2_output_prediction_opb1_present_r3_topology_bottleneck_key4_gpu0_20260722
+status = hold
+decision = innovation2_topology_bottleneck_not_attributed
+candidate exact-P mean AUC = 1.0
+candidate wrong-P mean AUC = 1.0
+candidate - wrong-P = 0.0
+attributed bits = 0/8
+gate SHA256 = 776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549
+```
+
+因此OPC1正式seed6四行矩阵现已授权。下一动作是验证冻结远程包，范围提交并推送，从推送提交在A6000
+GPU0启动`131072/65536`、`100 epochs × 4`模型实验，并交由独立本地tmux watcher回收。该实验仍只
+是PRESENT三轮模型归因，不开放四轮或五轮。

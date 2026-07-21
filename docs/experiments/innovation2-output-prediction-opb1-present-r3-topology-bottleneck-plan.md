@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：已预注册 / 等待实现门
+状态：正式结果完成 / 低秩瓶颈未归因 / 路线停止并开放OPC1
 
 ## 1. 研究问题
 
@@ -263,3 +263,50 @@ i2_opb1_tbneck_k4_watch_20260722
 它负责稀疏等待远程终态、优先回收verified result branch、校验SHA256/OPA3 gate/来源提交/数量、生成
 正式SVG并刷新最近结果索引。主线程不再SSH轮询。正式结果回收前，本节状态保持`running`，不得报告
 性能指标或写成完成。
+
+## 11. 正式结果与最终裁决
+
+verified result branch已由本地watcher完整回收：
+
+```text
+source commit             = fad379bd65b74fa189afeead4fac88ee3ec64004
+OPA3 gate SHA256          = def55214d46acf0e199f465fda66e6ca394f094ceec78d419354357df1c50943
+train/test                = 131072/65536 total pairs
+result/history/checkpoint = 32/400/4
+cache rows                = 196608
+archive SHA256            = all pass
+protocol/execution checks = all true
+```
+
+八位置平均AUC为：
+
+```text
+原SPN锚点 exact-P         = 1.000000000
+低秩瓶颈 exact-P          = 1.000000000
+低秩瓶颈 wrong-P          = 1.000000000
+低秩瓶颈 label-shuffle    = 0.499476582
+
+candidate - anchor        = +0.000000000
+candidate - wrong-P       = +0.000000000
+candidate - shuffle       = +0.500523418
+attributed bits           = 0/8
+```
+
+低秩条件成功保留了真实输出预测能力，并显著超过匹配标签打乱；但真实P与错误P在八个bit上仍全部
+并列`AUC=1.0`。因此失败的是“精确P-layer归因”，不是三轮八输出预测本身。正式gate为：
+
+```text
+status = hold
+decision = innovation2_topology_bottleneck_not_attributed
+attribution_passed = false
+utility_passed = false
+priority_passed = false
+```
+
+正式SVG已按`visual-qa-redraw`渲染检查，中文标题、协议说明、热图、色条、模型标签、归因差值、零性能
+代价面板和底部裁决均无重叠、裁切或误导范围。
+
+证据支持的下一动作是停止低秩拓扑瓶颈路线，不改变rank、数据、epoch、错误排列或输出位置。OPC1
+SPN-ResCNN混合已完成本地readiness，现在由本gate哈希
+`776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549`正式授权seed6四行远程实验；
+OPB1不开放PRESENT四轮。

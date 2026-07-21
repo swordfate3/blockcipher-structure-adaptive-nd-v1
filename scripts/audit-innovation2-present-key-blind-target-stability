@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_present_key_blind_target_stability import (
+    main,
+)
+
+raise SystemExit(main())

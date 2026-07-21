@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -202,3 +203,79 @@ def test_result_index_names_opc1_in_plain_chinese() -> None:
         "i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_smoke_seed6_20260722"
     )
     assert name == "创新2 OPC1：PRESENT三轮SPN-ResCNN混合真实密文输出预测"
+
+
+def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
+    root = Path(__file__).resolve().parents[1]
+    plan_path = root / (
+        "configs/experiment/innovation2/"
+        "innovation2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6.json"
+    )
+    remote_config_path = root / (
+        "configs/remote/"
+        "innovation2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_"
+        "key6_gpu0_20260722.json"
+    )
+    run_path = root / (
+        "configs/remote/generated/"
+        "run_i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_"
+        "key6_gpu0_20260722.cmd"
+    )
+    launch_path = root / (
+        "configs/remote/generated/"
+        "launch_i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_"
+        "key6_gpu0_20260722.cmd"
+    )
+    monitor_path = root / (
+        "configs/remote/generated/"
+        "monitor_i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_"
+        "key6_gpu0_20260722.sh"
+    )
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    remote_config = json.loads(remote_config_path.read_text(encoding="utf-8"))
+    run = run_path.read_text(encoding="utf-8")
+    launch = launch_path.read_text(encoding="utf-8")
+    monitor = monitor_path.read_text(encoding="utf-8")
+    windows_scripts = run + launch
+    expected_gate_sha = (
+        "776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549"
+    )
+
+    assert plan["opb1_authority"]["status"] == "hold"
+    assert plan["opb1_authority"]["decision"] == (
+        "innovation2_topology_bottleneck_not_attributed"
+    )
+    assert plan["opb1_authority"]["attributed_bits"] == 0
+    assert plan["opb1_authority"]["gate_sha256"] == expected_gate_sha
+    assert plan["common"]["seed"] == 6
+    assert plan["common"]["train_total_rows"] == 131072
+    assert plan["common"]["test_total_rows"] == 65536
+    assert plan["common"]["epochs"] == 100
+    assert len(plan["rows"]) == 4
+    assert len({row["parameters"] for row in plan["rows"]}) == 1
+    assert {row["model"] for row in plan["rows"]} == set(remote_config["models"])
+    assert remote_config["opb1_gate_sha256"] == expected_gate_sha
+    assert remote_config["expected_result_rows"] == 32
+    assert remote_config["expected_history_rows"] == 400
+    assert remote_config["expected_checkpoints"] == 4
+    assert remote_config["remote_directory"] == "i2_opc1_hybrid_k6_20260722"
+    assert remote_config["archive_directory"] == "i2_opc1_hybrid_k6_20260722"
+    assert remote_config["dataset_cache_root"].startswith("G:\\lxy\\")
+    assert remote_config["checkpoint_root"].startswith("G:\\lxy\\")
+    assert "--mode spn_rescnn_hybrid" in run
+    assert "--opb1-gate" in run
+    assert "selected8_spn_rescnn_wrong_p_true_output_final.pt" in run
+    assert "cache['completed_rows']==196608" in run
+    assert "meta['config']['seed']==6" in run
+    assert "cmd.exe /c" in launch
+    assert "cmd.exe /k" not in windows_scripts.lower()
+    assert "EnableDelayedExpansion" not in windows_scripts
+    assert "!" not in windows_scripts
+    assert "G:\\lxy" in windows_scripts
+    assert "source_expected_commit.txt" in windows_scripts
+    assert "git status --porcelain" in windows_scripts
+    assert expected_gate_sha in run
+    assert expected_gate_sha in monitor
+    assert "plot_innovation2_selected_output_spn_rescnn_hybrid" in monitor
+    assert "outputs/remote_results/" in monitor
+    assert "opb1_gate.json" in monitor

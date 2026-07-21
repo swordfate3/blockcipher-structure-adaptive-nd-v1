@@ -42,6 +42,15 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_present_r3_key_blind_zero_shot_target_not_stable": (
+        "无密钥或校准输入时，同一明文的三轮真实输出bit不能跨未见密钥稳定预测"
+    ),
+    "innovation2_present_r3_key_blind_cross_key_bias_requires_replication": (
+        "参考密钥频率在未见密钥上出现候选偏差，需用全新密钥集独立复验"
+    ),
+    "innovation2_present_r3_key_blind_target_stability_protocol_invalid": (
+        "key-blind审计的密钥拆分、明文复用、真实标签、指标或产物协议无效"
+    ),
     "innovation2_present_selected8_next_round_is_partial_subkey_recovery_not_diffusion_criticality": (
         "完整当前状态加八个下一状态bit可恢复四个轮密钥nibble，不能测量扩散临界轮"
     ),
@@ -1931,6 +1940,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opk1_present_r3_key_blind_target_stability_audit"
+    ):
+        return "创新2 OPK1：PRESENT三轮key-blind跨密钥输出目标稳定性审计"
     if run_id.startswith(
         "i2_present_next_round_selected8_partial_subkey_identifiability_audit"
     ):
