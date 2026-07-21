@@ -1,0 +1,23 @@
+[
+  {
+    "architecture": "present_spn_exact_p",
+    "config_hash": "019fb721326a5185f0e0befdf00dba7ae624791d1e2709e69081bf56f2fa7696",
+    "model": "present_spn_exact_p_true_output",
+    "path": "models\\present_spn_exact_p_true_output_final.pt",
+    "sha256": "ad3859809cc25215a26dbbb06356b3fe610c90cf2fc83b1735c959d6c155c567"
+  },
+  {
+    "architecture": "present_spn_identity_p",
+    "config_hash": "3a93abaed10e1df8b5253b696631ae711546138f8da3207eb6677db0707acb22",
+    "model": "present_spn_identity_p_true_output",
+    "path": "models\\present_spn_identity_p_true_output_final.pt",
+    "sha256": "a8185d7072c8fdc2bdde43a4987c7b9648ec056180a4e52fd8d0b621a7a4b508"
+  },
+  {
+    "architecture": "present_spn_wrong_p",
+    "config_hash": "1bf4bd326ff9219d833c69f0bd09424df3c38083f2c860293fb4b30aa80e52a8",
+    "model": "present_spn_wrong_p_true_output",
+    "path": "models\\present_spn_wrong_p_true_output_final.pt",
+    "sha256": "06892903f6a40038522f4185a8a3f19dfddad558c84f9d6e1aa298c499ce0fca"
+  }
+]

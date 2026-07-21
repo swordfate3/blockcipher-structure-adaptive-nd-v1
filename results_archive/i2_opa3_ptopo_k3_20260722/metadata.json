@@ -1,0 +1,62 @@
+{
+  "cipher": "PRESENT-80",
+  "claim_scope": "fourth fixed secret key PRESENT r3 selected-eight-output P-layer topology attribution; not r4 evidence, full-ciphertext recovery, sample classification, or SOTA",
+  "config": {
+    "batch_size": 250,
+    "data_chunk_rows": 4096,
+    "device": "cuda",
+    "epochs": 100,
+    "learning_rate": 0.001,
+    "lstm_hidden_dim": 300,
+    "lstm_layers": 6,
+    "maximum_opa2_reproduction_delta": 0.005,
+    "minimum_attributed_bits": 4,
+    "minimum_exact_auc": 0.51,
+    "minimum_mean_control_margin": 0.03,
+    "minimum_per_bit_control_margin": 0.02,
+    "mlp_hidden_dim": 1936,
+    "mode": "topology_attribution",
+    "present_spn_blocks": 3,
+    "present_spn_dim": 189,
+    "rounds": 3,
+    "run_id": "i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722",
+    "seed": 3,
+    "selected_msb_indices": [
+      0,
+      2,
+      8,
+      10,
+      32,
+      34,
+      40,
+      42
+    ],
+    "test_rows": 65536,
+    "train_rows": 131072
+  },
+  "experiment": "opa3_present_r3_selected8_topology_attribution",
+  "input": "64 MSB-first plaintext bits",
+  "key_protocol": "same fourth fixed unknown key as OPA2; disjoint plaintext train/test",
+  "mode": "topology_attribution",
+  "opa2_gate_run_id": "i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722",
+  "parameter_counts": {
+    "present_spn_exact_p": 3879415,
+    "present_spn_identity_p": 3879415,
+    "present_spn_wrong_p": 3879415
+  },
+  "run_id": "i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722",
+  "sample_classification": false,
+  "secret_key_hex": "f210925384d43f593a85",
+  "selected_msb_indices": [
+    0,
+    2,
+    8,
+    10,
+    32,
+    34,
+    40,
+    42
+  ],
+  "target": "eight preregistered MSB-first true ciphertext bits",
+  "task": "innovation2_output_prediction"
+}
