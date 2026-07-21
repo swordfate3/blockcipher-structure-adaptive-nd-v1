@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -243,3 +244,76 @@ def test_result_index_names_opa2_in_plain_chinese() -> None:
     assert "OPA2" in name
     assert "第四密钥" in name
     assert "匹配控制确认" in name
+
+
+def test_formal_remote_package_is_frozen_and_windows_safe() -> None:
+    root = Path(__file__).resolve().parents[1]
+    plan_path = root / (
+        "configs/experiment/innovation2/"
+        "innovation2_output_prediction_opa2_present_r3_selected8_present_spn_key3.json"
+    )
+    remote_config_path = root / (
+        "configs/remote/"
+        "innovation2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722.json"
+    )
+    run_path = root / (
+        "configs/remote/generated/"
+        "run_i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722.cmd"
+    )
+    launch_path = root / (
+        "configs/remote/generated/"
+        "launch_i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722.cmd"
+    )
+    monitor_path = root / (
+        "configs/remote/generated/"
+        "monitor_i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722.sh"
+    )
+
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    remote_config = json.loads(remote_config_path.read_text(encoding="utf-8"))
+    run = run_path.read_text(encoding="utf-8")
+    launch = launch_path.read_text(encoding="utf-8")
+    monitor = monitor_path.read_text(encoding="utf-8")
+    combined = run + launch + monitor
+
+    expected_gate_sha = "9936d740f9af9c71e469edf4d23a2aa185776a8d3021335064e0a44cb79b7bd1"
+    assert plan["phase_a_authority"]["candidate"] == "present_spn"
+    assert plan["phase_a_authority"]["gate_sha256"] == expected_gate_sha
+    assert plan["common"]["seed"] == 3
+    assert plan["common"]["train_total_rows"] == 131072
+    assert plan["common"]["test_total_rows"] == 65536
+    assert plan["common"]["epochs"] == 100
+    assert len(plan["rows"]) == 4
+    assert {row["model"] for row in plan["rows"]} == set(remote_config["models"])
+    assert remote_config["candidate_architecture"] == "present_spn"
+    assert remote_config["phase_a_gate_sha256"] == expected_gate_sha
+    assert remote_config["expected_result_rows"] == 32
+    assert remote_config["expected_history_rows"] == 400
+    assert remote_config["expected_checkpoints"] == 4
+    assert remote_config["remote_directory"] == "i2_opa2_pspn_k3_20260722"
+    assert remote_config["archive_directory"] == "i2_opa2_pspn_k3_20260722"
+
+    assert "set REMOTE_DIR=i2_opa2_pspn_k3_20260722" in launch + run
+    assert "set ARCHIVE_NAME=i2_opa2_pspn_k3_20260722" in run
+    assert "set SCHEDULE_CMD=%SCHEDULE_ROOT%\\i2_opa2_pspn_k3.cmd" in launch
+    assert '/TR "cmd.exe /c %SCHEDULE_CMD%"' in launch
+    assert len("cmd.exe /c G:\\lxy\\scheduled-runs\\i2_opa2_pspn_k3.cmd") < 261
+    assert "cmd.exe /k" not in combined.lower()
+    assert "EnableDelayedExpansion" not in launch + run
+    assert "!" not in launch + run
+
+    assert "phase_a_gate.json" in run
+    assert "PHASE_A_GATE_SHA256" in monitor
+    assert "sha256sum -c" in monitor
+    assert "visual_qa_pending.marker" in monitor
+    assert "scripts/index-results" in monitor
+    assert "retrieved_from_verified_result_branch.marker" in monitor
+
+    allowed_user_path = (
+        "C:/Users/1304Lijinlin/.ssh/"
+        "github_blockcipher_20260612_result_pusher_ed25519"
+    )
+    for text in (launch, run):
+        assert text.count("C:/Users") == 1
+        assert allowed_user_path in text
+    assert "C:/Users" not in monitor

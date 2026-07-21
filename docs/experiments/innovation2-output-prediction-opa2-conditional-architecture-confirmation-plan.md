@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：条件式预注册 / 等待OPA1正式门
+状态：OPA1已授权PRESENT-SPN候选 / 本地smoke通过 / 正式seed3待启动
 
 ## 1. 启动条件
 
@@ -98,3 +98,31 @@ mean[(candidate true - candidate shuffle) - (MLP true - MLP shuffle)] >= +0.003
 - 只比较true行而省略两条匹配shuffle；
 - 因OPA2通过直接宣称高轮、完整密文恢复或SOTA；
 - OPA2失败后增加seed、模型、数据或epoch补救。
+
+## 7. OPA1授权与本地实现门
+
+OPA1 raw-fallback gate已通过完整性验证并唯一选择：
+
+```text
+candidate_architecture = present_spn
+OPA1 candidate mean AUC = 1.000000000
+OPA1 candidate - MLP mean AUC = +0.468343205
+OPA1 protocol/execution checks = all pass
+```
+
+OPA2本地smoke：
+
+```text
+run_id = i2_output_prediction_opa2_present_r3_selected8_present_spn_smoke_20260722
+train/test = 64/64 total pairs
+epochs = 1
+result rows = 32/32
+history rows = 4/4
+checkpoints = 4/4
+protocol/execution checks = all pass
+decision = innovation2_selected8_architecture_confirmation_local_smoke_passed
+```
+
+smoke图已通过`visual-qa-redraw`像素检查；tiny AUC不作性能结论。正式下一步冻结为第四固定密钥
+`seed3`的四行`present_spn/MLP true/shuffle`远程确认。若PRESENT-SPN未同时通过自身shuffle和相对
+MLP增益门，则OPA1的AUC=1只保留为未复现的第三密钥发现，最终架构仍为MLP。

@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地位置保持实现门通过 / 远程Phase A运行中
+状态：远程Phase A完成 / raw fallback验证通过 / 开放OPA2
 
 ## 1. 研究问题
 
@@ -173,5 +173,44 @@ final retry = started marker, readiness pass, progress.jsonl and disk cache meta
 local watcher = tmux i2_opa1_arch_screen_watch_20260721
 ```
 
-远程状态现为`running`，且已越过导入与缓存持久化门。正式结果只在watcher回收verified result branch、40条结果、500条history和
-5个checkpoint后才算`completed remotely`；主线程不重复SSH轮询。
+该交接随后完成全部训练，但结果分支归档失败；最终状态和fallback证据见下一节。
+
+## 9. 正式Phase A结果
+
+远程训练在`2026-07-22T01:32:55+08:00`完成。40条结果、500条history、5个checkpoint hash和
+196608条缓存均完整，全部protocol/execution checks通过。由于描述性run路径过长，结果归档在创建
+`results_archive`时失败，未形成verified result branch；原始小型证据随后从允许的`G:\lxy` run root
+回收到：
+
+```text
+outputs/remote_results_incomplete/
+  i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721_raw_fallback/
+```
+
+该目录包含`raw_retrieval_notice.json`和`fallback_validation.json`，因此状态是`fallback-retrieved / validated`，
+不是verified result-branch archive。它可以授权下一受控gate，但论文式报告必须保留该限定。
+
+八位置正式平均结果：
+
+| 模型 | 平均AUC | 平均accuracy-majority | 通过位置 |
+|---|---:|---:|---:|
+| MLP | 0.531656795 | +0.020458221 | 8/8 |
+| 六层LSTM | 0.500000000 | -0.001750946 | 0/8 |
+| 位置保持ResCNN | 0.588387942 | +0.062622070 | 8/8 |
+| Transformer | 0.499477131 | -0.001598358 | 0/8 |
+| PRESENT-SPN-aware | 1.000000000 | +0.498088837 | 8/8 |
+
+候选门结果：
+
+```text
+ResCNN mean AUC - MLP       = +0.056731148，passed
+PRESENT-SPN mean AUC - MLP = +0.468343205，passed
+selected_candidate_for_phase_b = present_spn
+decision = innovation2_selected8_architecture_candidate_requires_confirmation
+```
+
+`PRESENT-SPN-aware`在八个输出bit上全部AUC=1且准确率接近100%，属于异常强发现，不是最终架构结论。
+当前协议检查已排除明文重合、目标bit回放错误和显式样本分类，但Phase A没有同架构shuffle，仍不能排除
+结构网络利用意外捷径、实现泄漏或仅在第三固定密钥上的特殊可学习性。因此唯一允许的下一步是OPA2：
+第四把固定密钥上比较`present_spn true/shuffle + MLP true/shuffle`。不得基于本结果宣称高轮突破、完整
+密文恢复或SOTA，也不得跳过匹配控制直接扩到四轮。
