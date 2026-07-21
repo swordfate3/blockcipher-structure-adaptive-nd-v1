@@ -1,3 +1,49 @@
+## [ERR-20260721-001] remote_launcher_https_clone_connection_reset
+
+**Logged**: 2026-07-21T21:20:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+The OP12 remote launcher HTTPS clone was reset by GitHub before any scheduled training task was created.
+
+### Error
+
+```text
+fatal: unable to access 'https://github.com/swordfate3/blockcipher-structure-adaptive-nd-v1.git/':
+Recv failure: Connection was reset
+```
+
+### Context
+
+- Operation: create an OP12 launcher-only clean clone under `G:\lxy` after the source commit was pushed.
+- The failure occurred before the run-owned experiment clone or Windows scheduled task existed.
+- No source overlay, remote training result, cache, or checkpoint was created by the failed attempt.
+
+### Suggested Fix
+
+For remote launcher clones, fall back to the already configured dedicated GitHub SSH key after an HTTPS transport reset. Use a new clean path under `G:\lxy`, verify clean status and exact HEAD, and continue launching only from the pushed commit. Do not substitute `scp` source overlays.
+
+### Metadata
+
+- Reproducible: no
+- Related Files: configs/remote/generated/launch_i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721.cmd
+- See Also: ERR-20260716-007
+- Pattern-Key: remote.git_https_reset_use_existing_scoped_ssh_key
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T21:20:00+08:00
+- **Commit/PR**: pending
+- **Notes**: A new launcher clone under `G:\lxy` succeeded with the pre-existing scoped GitHub SSH key; its clean HEAD matched `97fd53e95dea9edbe7fcd4e21ab068a1823626c8`, and OP12 then passed the bounded started/readiness gate.
+
+---
+
 ## [ERR-20260716-008] iacr_pdf_cloudflare_and_browser_tool_unavailable
 
 **Logged**: 2026-07-16T15:42:57+08:00

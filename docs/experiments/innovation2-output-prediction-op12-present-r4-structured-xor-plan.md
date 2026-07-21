@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程正式门待启动
+状态：本地实现门通过 / 远程正式门运行中
 
 ## 1. 唯一研究问题
 
@@ -180,3 +180,18 @@ bit频次匹配、训练标签打乱、26行结果、4行训练历史、四check
 最终`curves.svg`经过两轮`visual-qa-redraw`像素检查。第一版右上高点和右下柱顶接近图例；扩大两个
 面板上方纵轴留白后重新渲染，最终标题、图例、柱体、曲线、mask标签、门槛线和裁决无重叠、遮挡、
 裁切、缺字或歧义，记录`visual_qa_passed.marker`。
+
+## 10. 远程启动记录
+
+```text
+run_id        = i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721
+source commit = 97fd53e95dea9edbe7fcd4e21ab068a1823626c8
+remote state  = running
+started gate  = readiness.txt + started.marker + torch/GPU logs present
+local watcher = tmux:i2_op12_structured_xor_monitor
+```
+
+远程源代码位于run-owned干净克隆，启动提交在启动时与`origin/main`一致。第一次创建launcher的HTTPS
+clone被GitHub连接重置；未创建训练任务，随后使用已有专用GitHub SSH key在新的`G:\lxy` clean-clone
+路径成功同步同一提交。没有`scp`源码覆盖或dirty overlay。正式结果尚未回收，当前不得填写四轮mask
+通过数或OP13裁决。
