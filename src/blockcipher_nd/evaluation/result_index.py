@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_selected8_architecture_confirmation_local_smoke_passed": (
+        "第四密钥候选/MLP匹配shuffle确认实现门通过，开放OPA2远程正式确认"
+    ),
+    "innovation2_selected8_architecture_priority_independently_confirmed": (
+        "OPA1候选在第四固定密钥上超过MLP及匹配shuffle，架构优先得到独立确认"
+    ),
+    "innovation2_selected8_mlp_retained_after_architecture_confirmation": (
+        "OPA1候选未通过第四密钥匹配控制确认，保留专用八输出MLP"
+    ),
+    "innovation2_selected8_architecture_confirmation_protocol_invalid": (
+        "第四密钥确认的候选所有权、数据、匹配shuffle、训练或产物协议无效"
+    ),
     "innovation2_selected8_architecture_screen_local_smoke_passed": (
         "PRESENT三轮固定八输出五模型实现门通过，开放第三密钥发现屏"
     ),
@@ -1868,6 +1880,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_opa2_present_r3_selected8"):
+        return "创新2 OPA2：PRESENT三轮候选架构与MLP的第四密钥匹配控制确认"
     if run_id.startswith(
         "i2_output_prediction_opa1_present_r3_selected8_architecture_screen"
     ):
