@@ -226,3 +226,40 @@ OPA3 gate SHA256 = def55214d46acf0e199f465fda66e6ca394f094ceec78d419354357df1c50
 四行正式实验，并把等待/回收交给本地tmux watcher。理由是readiness已经排除实现与协议阻塞，而
 低秩瓶颈是否能在固定预算下拉开真实P和错误P只能由正式训练回答。不得把readiness的随机小样本
 AUC用于取消或宣传候选。
+
+## 10. 正式远程启动
+
+OPB1已经从已推送提交启动：
+
+```text
+source commit = fad379bd65b74fa189afeead4fac88ee3ec64004
+run_id = i2_output_prediction_opb1_present_r3_topology_bottleneck_key4_gpu0_20260722
+remote run root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opb1_tbneck_k4_20260722
+physical GPU = 0
+status = running
+```
+
+远程旧主克隆位于历史`refactor/model-project-structure`分支且包含大量本地修改，因此没有拉取、清理
+或重置。启动先从GitHub推送提交创建`G:\lxy\opb1-launcher-fad379b`干净启动克隆，随后launcher
+为本实验创建独立短路径run-owned clone；两者HEAD均精确匹配上述提交。
+
+启动返回后的一次有界只读确认已经验证：
+
+```text
+SSH / torch310 / CUDA / two A6000 = pass
+remote source expected commit     = fad379bd65b74fa189afeead4fac88ee3ec64004
+readiness                         = status=pass
+started marker                    = present
+progress.jsonl                    = present, cache_chunk events durable
+disk cache files                  = plaintexts.npy / features.npy / full_targets.npy / cache_metadata.json
+```
+
+本地tmux watcher为：
+
+```text
+i2_opb1_tbneck_k4_watch_20260722
+```
+
+它负责稀疏等待远程终态、优先回收verified result branch、校验SHA256/OPA3 gate/来源提交/数量、生成
+正式SVG并刷新最近结果索引。主线程不再SSH轮询。正式结果回收前，本节状态保持`running`，不得报告
+性能指标或写成完成。
