@@ -1312,6 +1312,9 @@ DECISION_LABELS = {
     "innovation2_present_r9_e99_coordinate_checkpoints_frozen": (
         "E99坐标集合模型12个折权重全部复现并冻结，等待E104来源留出评估"
     ),
+    "innovation2_present_r9_external_relation_source_unavailable": (
+        "暂无满足同语义、零重合和至少32个新增维度的外部来源，停止E99坐标迁移"
+    ),
     "innovation2_present_r9_e99_checkpoint_replay_invalid": (
         "E99坐标模型重放未完全复现，禁止读取E104关系"
     ),
@@ -2086,6 +2089,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E102：PRESENT ATM逐候选断点恢复一致性门"
     if run_id == "i2_present_sbox4_r3_real_atm_runner_compatibility_20260720":
         return "创新2 E103：PRESENT S-box 4-bit三轮真实ATM兼容性门"
+    if run_id == "i2_present_r9_external_relation_source_readiness_20260721":
+        return "创新2 E106：PRESENT九轮外部关系来源新颖性就绪审计"
     if run_id == (
         "i2_present_r8_high_round_integral_bridge_262144_joint_"
         "seed0_seed1_20260716"

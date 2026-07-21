@@ -67,6 +67,28 @@ def test_result_index_includes_local_readiness_checkpoint_replay(
     )
 
 
+def test_result_index_labels_e106_external_source_readiness(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_present_r9_external_relation_source_readiness_20260721"
+    run_root = outputs / "local_audits" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation2_present_r9_external_relation_source_unavailable",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 E106：PRESENT九轮外部关系来源新颖性就绪审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "暂无满足同语义、零重合和至少32个新增维度的外部来源，停止E99坐标迁移"
+    )
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
