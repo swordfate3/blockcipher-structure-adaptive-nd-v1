@@ -30,7 +30,8 @@ neural training         = no
 sample classification   = no
 ```
 
-MSB-first位置`j`必须转换为整数内部bit `63-j`；内部bit模4给出对应的LSB-first S-box输出坐标。
+MSB-first位置`j`必须转换为整数内部bit `63-j`，再通过最后一轮inverse P-layer恢复该密文位置对应的
+S-box源bit；源bit模4才是LSB-first S-box输出坐标。禁止直接用密文内部bit模4替代inverse P-layer。
 
 ## 3. 裁决门
 
@@ -88,12 +89,14 @@ round1 cone width set = [4]
 round2 cone width set = [16]
 round3 cone width set = [64]
 selected S-box output coordinates, LSB-first = [1, 3]
+selected last-round S-box source bits = [63, 55, 31, 23, 61, 53, 29, 21]
 status = pass
 decision = innovation2_present_r3_selected_output_not_explained_by_coarse_structure_baselines
 ```
 
-PRESENT四个S-box输出坐标全部平衡，nonlinearity均为`4`；ANF degree依次为`[2,3,3,3]`，八个
-selected bit只使用坐标`1/3`，两者degree均为`3`，并不是唯一最低degree坐标。全部64个输出bit的
+通过最后一轮inverse P-layer回溯后，PRESENT四个S-box输出坐标全部平衡，nonlinearity均为`4`；
+ANF degree依次为`[2,3,3,3]`，八个selected bit只使用坐标`1/3`，两者degree均为`3`，并不是唯一
+最低degree坐标。全部64个输出bit的
 反向输入锥宽均按`4 -> 16 -> 64`增长，八个selected bit没有更小的三轮依赖范围。
 
 全部protocol、execution和coarse-baseline checks为真。`results.jsonl`为64行，manifest包含5个核心

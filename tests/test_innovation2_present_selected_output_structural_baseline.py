@@ -39,6 +39,16 @@ def test_structural_baseline_audits_all_bits_and_selected_positions() -> None:
     assert audit["gate"]["metrics"]["round1_input_cone_widths"] == [4]
     assert audit["gate"]["metrics"]["round2_input_cone_widths"] == [16]
     assert audit["gate"]["metrics"]["round3_input_cone_widths"] == [64]
+    assert audit["gate"]["metrics"]["selected_last_round_sbox_source_bits"] == [
+        63,
+        55,
+        31,
+        23,
+        61,
+        53,
+        29,
+        21,
+    ]
     assert audit["gate"]["metrics"]["selected_sbox_output_bits_lsb"] == [1, 3]
     assert audit["gate"]["next_action"]["opc1_unchanged"] is True
 

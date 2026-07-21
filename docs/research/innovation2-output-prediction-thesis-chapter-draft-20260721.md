@@ -379,7 +379,8 @@ ANF degree、nonlinearity和ANF term count。全部64个输出bit的锥宽均为
 三轮 = 64 bit
 ```
 
-八个selected位置对应LSB-first S-box输出坐标`1/3`。四个坐标全部平衡、nonlinearity均为`4`；ANF
+八个selected位置经最后一轮inverse P-layer回溯后对应LSB-first S-box输出坐标`1/3`。四个坐标全部
+平衡、nonlinearity均为`4`；ANF
 degree为`[2,3,3,3]`，selected坐标均为degree 3，并非唯一最低degree坐标。因此易预测位置没有更窄
 三轮输入依赖锥，也不落在明显更简单的单S-box坐标上。
 

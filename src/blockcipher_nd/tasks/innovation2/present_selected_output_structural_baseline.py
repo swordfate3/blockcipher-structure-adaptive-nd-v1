@@ -73,7 +73,9 @@ def audit_present_selected_output_structural_baseline(
     rows: list[dict[str, Any]] = []
     for msb_index in range(64):
         internal_bit = 63 - msb_index
-        coordinate = internal_bit % 4
+        source_mask = Present80.inverse_permutation_layer(1 << internal_bit)
+        source_bit = source_mask.bit_length() - 1
+        coordinate = source_bit % 4
         cone_widths = {
             rounds: len(
                 required_state_cone(
@@ -88,6 +90,7 @@ def audit_present_selected_output_structural_baseline(
                 "run_id": config.run_id,
                 "msb_index": msb_index,
                 "internal_bit": internal_bit,
+                "last_round_sbox_source_bit": source_bit,
                 "selected": msb_index in selected,
                 "sbox_output_bit_lsb": coordinate,
                 "round1_input_cone_bits": cone_widths[1],
@@ -141,6 +144,16 @@ def audit_present_selected_output_structural_baseline(
             int(row["internal_bit"]) for row in rows
         }
         == set(range(64)),
+        "inverse_player_sources_are_single_bits": all(
+            Present80.inverse_permutation_layer(1 << int(row["internal_bit"])).bit_count()
+            == 1
+            for row in rows
+        ),
+        "inverse_player_sources_round_trip": all(
+            Present80.permutation_layer(1 << int(row["last_round_sbox_source_bit"]))
+            == 1 << int(row["internal_bit"])
+            for row in rows
+        ),
         "all_output_positions_are_audited": len(rows) == 64,
         "labels_are_output_positions_not_sample_classes": True,
     }
@@ -212,6 +225,9 @@ def audit_present_selected_output_structural_baseline(
             "selected_msb_indices": list(config.selected_msb_indices),
             "selected_internal_bits": [
                 int(row["internal_bit"]) for row in selected_rows
+            ],
+            "selected_last_round_sbox_source_bits": [
+                int(row["last_round_sbox_source_bit"]) for row in selected_rows
             ],
             "selected_sbox_output_bits_lsb": sorted(selected_coordinates),
             "round1_input_cone_widths": sorted(
