@@ -30,6 +30,9 @@ def render_output_parity_independent_key(summary: dict[str, Any], output: Path) 
     gate = summary["gate"]
     rounds = int(summary.get("metadata", {}).get("config", {}).get("rounds", 1))
     round_text = {1: "一轮", 2: "二轮", 3: "三轮"}.get(rounds, f"{rounds}轮")
+    next_round_text = {2: "二轮", 3: "三轮", 4: "四轮"}.get(
+        rounds + 1, f"{rounds + 1}轮"
+    )
     seed_metrics = (gate["metrics"]["seed0"], gate["metrics"]["seed1"])
     values = tuple(
         (
@@ -138,8 +141,14 @@ def render_output_parity_independent_key(summary: dict[str, Any], output: Path) 
             gate["decision"] == "innovation2_output_parity_present_r2_two_key_supported"
         ):
             decision_text = "PRESENT二轮双密钥门通过；下一步只把轮数从二轮改为三轮。"
+        elif gate["status"] == "pass":
+            decision_text = f"PRESENT{round_text}双密钥门通过；下一步只把轮数改为{next_round_text}。"
         elif gate["status"] == "hold":
-            decision_text = "独立密钥未确认；停止扩轮与扩规模，转输出预测论文协议审计。"
+            decision_text = (
+                "独立密钥未确认；停止扩轮与扩规模，转输出预测论文协议审计。"
+                if rounds == 1
+                else f"PRESENT{round_text}未过双密钥门；停止机械扩轮，转SPN局部表示重设计。"
+            )
         else:
             decision_text = "anchor、密钥、明文独立性或输出预测协议无效；只修协议。"
         figure.text(

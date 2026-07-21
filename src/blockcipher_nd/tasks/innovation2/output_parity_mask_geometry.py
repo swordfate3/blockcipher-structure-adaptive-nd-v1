@@ -254,7 +254,11 @@ def adjudicate_mask_geometry(
         )
     else:
         status = "hold"
-        decision = "innovation2_output_parity_mask_geometry_not_calibrated"
+        decision = (
+            "innovation2_output_parity_mask_geometry_not_calibrated"
+            if config.rounds == 1
+            else f"innovation2_output_parity_present_r{config.rounds}_single_key_not_supported"
+        )
         next_adjudication = (
             "output_prediction_literature_protocol_audit"
             if config.rounds == 1

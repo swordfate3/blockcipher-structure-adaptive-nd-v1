@@ -1345,6 +1345,15 @@ DECISION_LABELS = {
     "innovation2_output_parity_present_r2_two_key_not_supported": (
         "PRESENT二轮结构对齐输出parity未通过，停止扩轮并做本地表示重设计"
     ),
+    "innovation2_output_parity_present_r3_two_key_supported": (
+        "PRESENT三轮结构对齐密文输出parity双密钥通过，只开放四轮同预算门"
+    ),
+    "innovation2_output_parity_present_r3_two_key_not_supported": (
+        "PRESENT三轮结构对齐输出parity未通过，停止机械扩轮并做本地表示重设计"
+    ),
+    "innovation2_output_parity_present_r3_single_key_not_supported": (
+        "PRESENT三轮seed0对齐输出parity未过门，仍执行seed1后停止机械扩轮"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -1760,6 +1769,12 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == "i2_output_parity_prediction_op5_present_r3_seed0_20260721":
+        return "创新2 OP5-A：PRESENT三轮结构对齐密文输出parity seed0门"
+    if run_id == (
+        "i2_output_parity_prediction_op5_present_r3_seed1_joint_20260721"
+    ):
+        return "创新2 OP5：PRESENT三轮结构对齐密文输出parity双密钥门"
     if run_id == "i2_output_parity_prediction_op4_present_r2_seed0_20260721":
         return "创新2 OP4-A：PRESENT二轮结构对齐密文输出parity seed0门"
     if run_id == (
