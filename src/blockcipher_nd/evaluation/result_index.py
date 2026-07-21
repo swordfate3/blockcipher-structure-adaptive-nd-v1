@@ -42,6 +42,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_present_full_state_next_round_criticality_not_identifiable": (
+        "完整PRESENT轮间状态一对即可恢复当轮子密钥，不能测量随机猜测临界轮"
+    ),
+    "innovation2_present_full_state_next_round_identifiability_protocol_invalid": (
+        "PRESENT轮边界、逆映射、密钥调度或可识别性审计产物无效"
+    ),
     "innovation2_topology_bottleneck_local_smoke_passed": (
         "PRESENT三轮低秩拓扑瓶颈四行实现门通过，开放第五密钥正式实验"
     ),
@@ -1907,6 +1913,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_present_next_round_full_state_identifiability_audit"
+    ):
+        return "创新2：PRESENT完整轮间状态预测的子密钥可识别性审计"
     if run_id.startswith("i2_output_prediction_opb1_present_r3_topology_bottleneck"):
         return "创新2 OPB1：PRESENT三轮低秩拓扑瓶颈真实密文输出预测"
     if run_id.startswith("i2_output_prediction_opa3_present_r3_selected8"):

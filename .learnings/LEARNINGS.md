@@ -1,3 +1,41 @@
+## [LRN-20260722-003] best_practice
+
+**Logged**: 2026-07-22T04:58:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Audit algebraic identifiability before training neural models on complete internal-state round transitions.
+
+### Details
+
+The opening proposal suggested using complete `state_r -> state_(r+1)` prediction to measure the round where diffusion reaches random guessing. For a regular PRESENT round, however, `Y = P(S(X xor K_r))`; because the public S-box and P-layer are bijective, one complete `(X, Y)` pair gives `K_r = X xor S_inverse(P_inverse(Y))`. A deterministic audit using the actual PRESENT-80 key schedule recovered `496/496` regular round keys and `16/16` final whitening keys, then exactly predicted `126976/126976` unseen next states and reconstructed `4096/4096` full encryptions. The complete-state benchmark therefore measures one-round subkey identifiability and cannot exhibit a cumulative-diffusion random-guessing critical round.
+
+### Suggested Action
+
+Before any neural round-transition experiment, derive the strongest deterministic inverse, key-recovery, lookup, and majority baselines from the exact visible fields. Reject a complete-state protocol when one pair identifies the hidden round parameter. Retain plaintext-to-multiround true-output prediction for cumulative diffusion; if round dynamics are still required, restrict state visibility or define strict cross-key generalization and rerun the identifiability gate before training.
+
+### Metadata
+
+- Source: handoff_audit, verified_local_experiment
+- Related Files: docs/experiments/innovation2-present-next-round-full-state-identifiability-audit-plan.md, src/blockcipher_nd/tasks/innovation2/present_next_round_identifiability.py
+- Tags: innovation2, output-prediction, identifiability, round-state, deterministic-baseline, present, key-recovery
+- See Also: LRN-20260715-006
+- Pattern-Key: research.output_prediction.full_state_round_transition_requires_identifiability_audit
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T04:58:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added and ran the 16-key, 31-round deterministic audit; updated the Innovation 2 thesis boundary and opening-proposal evidence matrix to reject the degenerate full-state critical-round protocol.
+
+---
+
 ## [LRN-20260722-002] correction
 
 **Logged**: 2026-07-22T12:00:00+08:00
