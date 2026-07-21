@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：OPA1已授权PRESENT-SPN候选 / 本地smoke通过 / 正式seed3远程运行中
+状态：正式seed3已完成 / verified result branch回收 / 独立架构确认通过
 
 ## 1. 启动条件
 
@@ -143,3 +143,48 @@ status = running
 `progress.jsonl`与磁盘缓存`data/cache_metadata.json`均已写入。旧的远程主克隆含历史修改，未被重置或
 用于启动；本次使用独立短路径干净克隆。后续结果等待本地tmux watcher
 `i2_opa2_pspn_k3_watch_20260722`自动回收，主线程不重复SSH轮询。
+
+## 9. 正式结果与裁决
+
+远程训练于`2026-07-22T02:46:17+08:00`完成，随后由本地watcher从verified result branch
+回收。来源和产物完整性为：
+
+```text
+source commit = 3ddd346e70fb68f5d143a3253639acf10f33f4b3
+result rows = 32/32
+history rows = 400/400
+checkpoint hashes = 4/4
+disk-cache completed rows = 196608/196608
+protocol checks = all true
+execution checks = all true
+OPA2 gate SHA256 = 97943c59a8d88f8bbc1b6845aa6372a8b91d5693e0abd3a23e63b41259601284
+```
+
+第四固定密钥的平均结果为：
+
+| 架构 | 真实输出平均AUC | 匹配shuffle平均AUC | true-shuffle | accuracy-majority | 通过bit |
+|---|---:|---:|---:|---:|---:|
+| MLP | 0.532262231 | 0.498853553 | +0.033408678 | +0.021852493 | 8/8 |
+| PRESENT-SPN-aware | 1.000000000 | 0.500839804 | +0.499160196 | +0.499097824 | 8/8 |
+
+候选相对MLP平均AUC增益为`+0.467737769`，扣除两种架构自身shuffle增益后的调整增益仍为
+`+0.465751518`；八个预注册位置全部满足候选相对MLP至少`+0.002`的逐bit门。最终：
+
+```text
+status = pass
+decision = innovation2_selected8_architecture_priority_independently_confirmed
+```
+
+允许的结论是：在PRESENT三轮、两把新增独立固定密钥、八个预注册真实密文输出bit和冻结预算下，
+PRESENT-SPN-aware架构相对同预算MLP及自身匹配标签打乱得到独立确认。它仍不是四轮、高轮、完整
+密文恢复、跨密钥总体统计或SOTA证据。
+
+正式`curves.svg`已经以1920像素宽度渲染并通过`visual-qa-redraw`检查；标题、热图数字、四个面板、
+坐标、`AUC=1.0000`标签和底部证据边界均无重叠、裁切或歧义。结果已刷新为
+`outputs/00_RECENT_RESULTS.md`的`001`。
+
+### 推荐下一步
+
+OPA2确认的是整个架构，不足以把增益归因给精确PRESENT拓扑。下一步只运行已预注册的OPA3：在
+同一第四密钥、同一数据、同一初始化和同一约388万参数预算下，比较精确P-layer、identity-P和固定
+错误P。OPA3通过才开放受控PRESENT四轮门；不通过则保留OPA2整体架构结果并停止拓扑与轮数扩展。

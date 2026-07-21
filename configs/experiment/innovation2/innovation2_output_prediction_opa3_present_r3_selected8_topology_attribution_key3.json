@@ -1,0 +1,63 @@
+{
+  "plan_id": "innovation2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3",
+  "question": "Does the exact PRESENT P-layer causally explain the independently confirmed PRESENT-SPN-aware selected-output prediction gain under the fourth fixed secret key?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_topology_attribution",
+  "opa2_authority": {
+    "run_id": "i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722",
+    "status": "pass",
+    "decision": "innovation2_selected8_architecture_priority_independently_confirmed",
+    "candidate": "present_spn",
+    "gate_sha256": "97943c59a8d88f8bbc1b6845aa6372a8b91d5693e0abd3a23e63b41259601284",
+    "retrieval_status": "verified_result_branch"
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 3,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "same_fourth_fixed_unknown_key_as_opa2",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "rows": [
+    {
+      "role": "exact_topology_candidate",
+      "model": "present_spn_exact_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_exact_p_layer_output8",
+      "topology": "exact_present_p_layer",
+      "parameters": 3879415
+    },
+    {
+      "role": "no_diffusion_control",
+      "model": "present_spn_identity_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_identity_p_layer_output8",
+      "topology": "identity_permutation",
+      "parameters": 3879415
+    },
+    {
+      "role": "wrong_topology_control",
+      "model": "present_spn_wrong_p_true_output",
+      "architecture": "present_spn_dim189_blocks3_wrong_p_layer_output8",
+      "topology": "exact_mapping_destination_roll_one",
+      "parameters": 3879415
+    }
+  ],
+  "final_gate": {
+    "minimum_exact_mean_auc": 0.51,
+    "minimum_exact_minus_best_control_mean_auc": 0.03,
+    "minimum_attributed_bits": 4,
+    "minimum_per_bit_exact_minus_each_control_auc": 0.02,
+    "maximum_exact_mean_auc_delta_from_opa2": 0.005
+  },
+  "next_action_on_pass": "Preregister the controlled PRESENT r4 selected-output gate with exact-P, wrong-P, MLP, and matched label-shuffle evidence.",
+  "stop_action": "If topology attribution fails, retain only the whole-architecture OPA2 result and stop topology search and round expansion."
+}
