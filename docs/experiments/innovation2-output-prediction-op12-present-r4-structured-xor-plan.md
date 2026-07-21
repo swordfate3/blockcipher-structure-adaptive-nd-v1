@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程正式门运行中
+状态：远程正式门完成 / hold / 四轮结构化XOR扩轮不支持
 
 ## 1. 唯一研究问题
 
@@ -181,17 +181,83 @@ bit频次匹配、训练标签打乱、26行结果、4行训练历史、四check
 面板上方纵轴留白后重新渲染，最终标题、图例、柱体、曲线、mask标签、门槛线和裁决无重叠、遮挡、
 裁切、缺字或歧义，记录`visual_qa_passed.marker`。
 
-## 10. 远程启动记录
+## 10. 远程正式结果
 
 ```text
 run_id        = i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721
 source commit = 97fd53e95dea9edbe7fcd4e21ab068a1823626c8
-remote state  = running
-started gate  = readiness.txt + started.marker + torch/GPU logs present
-local watcher = tmux:i2_op12_structured_xor_monitor
+remote state  = completed
+retrieval     = verified result branch
+gate status   = hold
+decision      = innovation2_r4_structured_xor_not_supported
 ```
 
 远程源代码位于run-owned干净克隆，启动提交在启动时与`origin/main`一致。第一次创建launcher的HTTPS
 clone被GitHub连接重置；未创建训练任务，随后使用已有专用GitHub SSH key在新的`G:\lxy` clean-clone
-路径成功同步同一提交。没有`scp`源码覆盖或dirty overlay。正式结果尚未回收，当前不得填写四轮mask
-通过数或OP13裁决。
+路径成功同步同一提交。没有`scp`源码覆盖或dirty overlay。正式结果由本地watcher从验证结果分支回收，
+规范化CRLF后的`SHA256SUMS`全部通过；固定提交、协议、执行、缓存与产物检查均成立：
+
+```text
+result rows          = 26 / 26
+history rows         = 400 / 400
+checkpoint hashes    = 4 / 4
+disk-cache rows      = 196608 / 196608
+protocol checks      = all true
+execution checks     = all true
+sample_classification = false
+```
+
+六个预注册mask的正式门如下。差值列均为`direct structured AUC - baseline AUC`：
+
+| mask | 直接AUC | 准确率-多数类 | -shuffle | -几何控制 | -派生parity | -最佳组成bit | 通过 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `0⊕32` | 0.502917533 | +0.002365112 | -0.001551650 | +0.002656740 | +0.004221954 | -0.000663199 | 否 |
+| `2⊕34` | 0.498873753 | -0.002655029 | -0.002568371 | -0.003399335 | -0.001944928 | -0.006558020 | 否 |
+| `8⊕40` | 0.497671918 | -0.004165649 | -0.000297186 | +0.000824416 | +0.003370649 | -0.011056572 | 否 |
+| `10⊕42` | 0.500414826 | +0.001312256 | -0.000258315 | -0.001037967 | +0.002387307 | -0.004665088 | 否 |
+| `0⊕2⊕8⊕10` | 0.500779890 | -0.000625610 | -0.001756679 | +0.000071366 | +0.002645932 | -0.007948600 | 否 |
+| `32⊕34⊕40⊕42` | 0.499000804 | -0.001464844 | +0.002416382 | -0.003300416 | -0.004722545 | -0.008537758 | 否 |
+
+家族与整体汇总：
+
+```text
+mean structured AUC       = 0.499943121
+mean geometry AUC         = 0.500640653
+mean matched-shuffle AUC  = 0.500612424
+mean derived-parity AUC   = 0.498950059
+mean best-component AUC   = 0.506514660
+passed masks              = 0 / 6
+same-S-box pair family    = 0 / 4, fail
+same-role four-bit family = 0 / 2, fail
+```
+
+最好的直接目标`0⊕32`仍只有`0.502917533`，未达到绝对AUC门，并且六项归因门全部失败。整体直接
+结构化XOR不仅没有超过最佳组成bit，也没有超过同重量几何控制或匹配标签打乱。因此本结果不支持
+“把多个易预测bit异或后可把PRESENT真实输出预测由三轮推进到四轮”。
+
+## 11. 裁决、证据边界与下一步
+
+```text
+OP12                           = hold
+OP13 seed0 cross-key confirm   = do not launch
+PRESENT r5 extension           = do not launch
+mask/data/epoch/model scaling  = stop
+retained positive result       = OP11 PRESENT r3 selected8 cross-key dedicated-head support
+next_adjudication              = innovation2_output_prediction_thesis_boundary
+```
+
+这不是“多个bit XOR永远不可预测”的数学证明，也不是五轮结果、广泛跨密钥统计或SOTA比较；它是单个
+固定秘密密钥、预注册六个结构化mask、与OP11相同的`2^17/2^16`数据预算下的受控四轮否定证据。
+证据支持的动作是收束论文边界：保留OP10/OP11的三轮真实输出bit发现、全新明文确认、独立密钥确认和
+专用头归因；把
+OP12作为扩轮边界实验。不得后验挑选新mask或用更多样本、epoch、层数、seed绕过冻结停止门。
+
+正式证据位于：
+
+```text
+outputs/remote_results/i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721/
+```
+
+最终`curves.svg`由相同`summary.json`重绘，收紧过宽纵轴并将XOR标签改为`⊕`；转为PNG后通过
+`visual-qa-redraw`真实像素检查，无文字重叠、裁切、图例遮挡、含糊标签或曲线压缩问题，并记录
+`visual_qa_passed.marker`。

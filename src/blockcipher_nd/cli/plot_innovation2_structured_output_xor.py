@@ -10,10 +10,10 @@ import numpy as np
 
 
 MASK_LABELS = (
-    "同S盒 0^32",
-    "同S盒 2^34",
-    "同S盒 8^40",
-    "同S盒 10^42",
+    "同S盒 0⊕32",
+    "同S盒 2⊕34",
+    "同S盒 8⊕40",
+    "同S盒 10⊕42",
     "同角色4位 A",
     "同角色4位 B",
 )
@@ -157,8 +157,8 @@ def render_structured_output_xor(
             float(row["auc"]) for row in structured + geometry + shuffled
         ]
         auc_axis.set_ylim(
-            max(0.0, min(auc_values + [0.5]) - 0.02),
-            min(1.0, max(auc_values + [0.51]) + 0.07),
+            max(0.0, min(auc_values + [0.5]) - 0.01),
+            min(1.0, max(auc_values + [0.51]) + 0.02),
         )
         auc_axis.set_xticks(x, MASK_LABELS, rotation=12, ha="right")
         auc_axis.set_ylabel("AUC")
@@ -200,8 +200,8 @@ def render_structured_output_xor(
             float(row[field]) for field, _, _ in margin_specs for row in structured
         ]
         margin_axis.set_ylim(
-            min(margin_values + [0.0]) - 0.025,
-            max(margin_values + [0.005]) + 0.09,
+            min(margin_values + [0.0]) - 0.008,
+            max(margin_values + [0.005]) + 0.03,
         )
         margin_axis.set_xticks(x, MASK_LABELS, rotation=12, ha="right")
         margin_axis.set_ylabel("AUC差值")
@@ -223,8 +223,8 @@ def render_structured_output_xor(
         bit_axis.axhline(0.51, color="#B91C1C", linestyle=":", linewidth=1.1)
         bit_auc = [float(row["auc"]) for row in selected]
         bit_axis.set_ylim(
-            max(0.0, min(bit_auc + [0.5]) - 0.02),
-            min(1.0, max(bit_auc + [0.51]) + 0.035),
+            max(0.0, min(bit_auc + [0.5]) - 0.01),
+            min(1.0, max(bit_auc + [0.51]) + 0.02),
         )
         bit_axis.set_xticks(
             bit_x, [f"bit {row['msb_index']}" for row in selected]
@@ -263,8 +263,8 @@ def render_structured_output_xor(
             for group in family_rows
         ]
         family_axis.set_ylim(
-            max(0.0, min(family_values + [0.5]) - 0.04),
-            min(1.0, max(family_values + [0.5]) + 0.15),
+            max(0.0, min(family_values + [0.5]) - 0.015),
+            min(1.0, max(family_values + [0.5]) + 0.025),
         )
         family_axis.set_xticks(family_x, family_names)
         family_axis.set_ylabel("家族平均AUC")
