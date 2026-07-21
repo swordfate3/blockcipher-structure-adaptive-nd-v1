@@ -1,0 +1,23 @@
+{
+  "bit_order": "msb_first",
+  "cache_version": 1,
+  "candidate_sha256": "c0dd8d2afe4095401071d728918ede41ad12ef6874e440726d7f15ff3e15c5f0",
+  "completed_rows": 65536,
+  "fresh_rows": 65536,
+  "rng_state": {
+    "bit_generator": "PCG64",
+    "has_uint32": 0,
+    "state": {
+      "inc": 316858096234498752293182738272637256669,
+      "state": 291248944767789199136395999440287660871
+    },
+    "uinteger": 4002036445
+  },
+  "rounds": 3,
+  "secret_key_hex": "6c4ed2f6546b08ac0b96",
+  "seed": 0,
+  "source_plaintext_rows": 196608,
+  "source_plaintexts_sha256": "c7627ce303efad42f568d06a5e1ff25dd084fee2dbd670160d4ce0d11a6735ee",
+  "source_run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "status": "complete"
+}

@@ -1,0 +1,30 @@
+{
+  "bit_order": "msb_first",
+  "candidate_sha256": "c0dd8d2afe4095401071d728918ede41ad12ef6874e440726d7f15ff3e15c5f0",
+  "cipher": "PRESENT-80",
+  "claim_scope": "single-fixed-key PRESENT r3 selected true-output-bit confirmation; not full-ciphertext recovery, sample classification, cross-key evidence, r4 evidence, or SOTA",
+  "config": {
+    "batch_size": 250,
+    "candidate_limit": 8,
+    "device": "cuda",
+    "fresh_chunk_rows": 4096,
+    "fresh_rows": 65536,
+    "minimum_accuracy_margin": 0.005,
+    "minimum_auc": 0.51,
+    "minimum_shuffle_auc_margin": 0.005,
+    "mode": "fresh_confirmation",
+    "run_id": "i2_output_prediction_op10_present_r3_easy_bit_confirm_gpu0_20260721",
+    "seed": 0
+  },
+  "experiment": "op10_present_r3_easy_output_bit_discovery",
+  "input": "64 MSB-first plaintext bits",
+  "mode": "fresh_confirmation",
+  "rounds": 3,
+  "run_id": "i2_output_prediction_op10_present_r3_easy_bit_confirm_gpu0_20260721",
+  "sample_classification": false,
+  "source_output_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721\\results",
+  "source_run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "target": "selected true ciphertext output bit values",
+  "task": "innovation2_output_prediction",
+  "training": false
+}

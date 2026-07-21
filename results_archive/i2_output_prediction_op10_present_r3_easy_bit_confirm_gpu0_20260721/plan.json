@@ -1,0 +1,26 @@
+{
+  "run_id": "i2_output_prediction_op10_present_r3_easy_bit_confirm_gpu0_20260721",
+  "question": "Which PRESENT r3 true ciphertext output bits are predictably above their majority baseline and an architecture-matched shuffled-label control on fresh plaintexts?",
+  "source_run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "cipher": "PRESENT-80",
+  "rounds": 3,
+  "seed": 0,
+  "bit_order": "msb_first",
+  "target": "selected_true_ciphertext_output_bits",
+  "sample_classification": false,
+  "training": false,
+  "discovery_total_rows": 65536,
+  "fresh_confirmation_total_rows": 65536,
+  "candidate_limit": 8,
+  "minimum_auc": 0.51,
+  "minimum_accuracy_margin": 0.005,
+  "minimum_shuffle_auc_margin": 0.005,
+  "models": [
+    "kimura_lstm_true_output",
+    "matched_mlp_true_output",
+    "kimura_lstm_label_shuffle"
+  ],
+  "advance_gate": "At least one discovery-selected (bit, stronger true-output model) pair passes the same AUC, accuracy-over-majority, and true-minus-shuffled AUC thresholds on 65536 fresh source-disjoint plaintexts; MLP-selected bits require a matched MLP shuffle control in OP11.",
+  "stop_gate": "Do not expand rounds or full-output training when no bit fresh-confirms; audit only a dedicated single-bit head as a multitask-interference diagnostic.",
+  "next_action_on_pass": "Train dedicated heads only for confirmed bits and repeat the same positions under one independent fixed secret key."
+}

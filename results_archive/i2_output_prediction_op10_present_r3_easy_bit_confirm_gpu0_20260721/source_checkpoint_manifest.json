@@ -1,0 +1,20 @@
+[
+  {
+    "config_hash": "b953b764d7be5e901de7fe77f3740f096869009ce91fdcba62800a1738464407",
+    "model": "kimura_lstm_true_output",
+    "path": "models\\kimura_lstm_true_output_final.pt",
+    "sha256": "521c9790f15d6af64c0710b0127d847c1d9df6addaeffb30519247e7bf59387b"
+  },
+  {
+    "config_hash": "dd2fffe4f004f5732dfb8b577a8a5daeeea8ed0d0602937bd86971da481cbf4b",
+    "model": "matched_mlp_true_output",
+    "path": "models\\matched_mlp_true_output_final.pt",
+    "sha256": "20b9fe9041c45f6ad7f1cd90b940bd72271aada6d89c85afb4645fd72f4c6e33"
+  },
+  {
+    "config_hash": "7668ede3f35a536ccdabece1f2e20efc076c64938718e09f8fdbb0e1f523e1bc",
+    "model": "kimura_lstm_label_shuffle",
+    "path": "models\\kimura_lstm_label_shuffle_final.pt",
+    "sha256": "5761d12d193547e24f378f6543e38b1725e7f38084a9a7e3c35acff526cfcf4a"
+  }
+]
