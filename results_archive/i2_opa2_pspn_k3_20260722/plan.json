@@ -1,0 +1,73 @@
+{
+  "plan_id": "innovation2_output_prediction_opa2_present_r3_selected8_present_spn_key3",
+  "question": "Does the OPA1-selected PRESENT-SPN-aware output predictor independently beat the MLP anchor and its own matched label-shuffle control under a fourth fixed secret key?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_architecture_confirmation",
+  "phase_a_authority": {
+    "run_id": "i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721",
+    "status": "pass",
+    "decision": "innovation2_selected8_architecture_candidate_requires_confirmation",
+    "candidate": "present_spn",
+    "gate_sha256": "9936d740f9af9c71e469edf4d23a2aa185776a8d3021335064e0a44cb79b7bd1",
+    "retrieval_status": "fallback_retrieved_validated"
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 3,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "fourth_independent_fixed_unknown_key",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "rows": [
+    {
+      "role": "anchor",
+      "model": "selected8_mlp_true_output",
+      "architecture": "mlp_64_1936_1936_8",
+      "train_labels_shuffled": false,
+      "parameters": 3891368
+    },
+    {
+      "role": "anchor_matched_control",
+      "model": "selected8_mlp_label_shuffle",
+      "architecture": "mlp_64_1936_1936_8",
+      "train_labels_shuffled": true,
+      "parameters": 3891368
+    },
+    {
+      "role": "phase_a_selected_candidate",
+      "model": "selected8_present_spn_true_output",
+      "architecture": "present_spn_dim189_blocks3_exact_p_layer_output8",
+      "train_labels_shuffled": false,
+      "parameters": 3879415
+    },
+    {
+      "role": "candidate_matched_control",
+      "model": "selected8_present_spn_label_shuffle",
+      "architecture": "present_spn_dim189_blocks3_exact_p_layer_output8",
+      "train_labels_shuffled": true,
+      "parameters": 3879415
+    }
+  ],
+  "final_gate": {
+    "minimum_candidate_viable_bits": 4,
+    "per_bit_minimum_auc": 0.51,
+    "per_bit_minimum_accuracy_minus_majority": 0.005,
+    "per_bit_minimum_true_minus_shuffle_auc": 0.005,
+    "minimum_mean_candidate_minus_mlp_auc": 0.003,
+    "minimum_adjusted_candidate_gain_auc": 0.003,
+    "minimum_candidate_gain_bits": 4,
+    "minimum_per_bit_candidate_gain_auc": 0.002
+  },
+  "next_action_on_pass": "Retain PRESENT-SPN-aware as the confirmed Innovation 2 architecture under the fixed-key PRESENT r3 selected-output contract; do not automatically reopen r4.",
+  "stop_action": "If any priority gate fails, retain MLP and stop architecture, seed, data, epoch, and round expansion."
+}

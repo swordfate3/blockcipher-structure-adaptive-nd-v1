@@ -1,0 +1,30 @@
+[
+  {
+    "architecture": "mlp",
+    "config_hash": "4927c93403d016b30666eb0258e00be37b7a80c0ad4167cef463613f9f900a2f",
+    "model": "selected8_mlp_true_output",
+    "path": "models\\selected8_mlp_true_output_final.pt",
+    "sha256": "d1a51670e0dcf648a42cde521e8f776ef5f65d154dd2e36b11ba4c39fd1d8be7"
+  },
+  {
+    "architecture": "mlp",
+    "config_hash": "6727a69ec2ffccf2987a32ed08eb55e96fbb66394fd5d2c56f1c71ce0e96d7ac",
+    "model": "selected8_mlp_label_shuffle",
+    "path": "models\\selected8_mlp_label_shuffle_final.pt",
+    "sha256": "beebb2127ff5a62670e8a4dac8264465304acb483f5a838a7f210af9112efa99"
+  },
+  {
+    "architecture": "present_spn",
+    "config_hash": "768692027e6552c99d5316b761da21c1cf04eb46244a210c07fb6ae06fb6d86b",
+    "model": "selected8_present_spn_true_output",
+    "path": "models\\selected8_present_spn_true_output_final.pt",
+    "sha256": "6cab61f01bb2970e220cbb2b07ffcc6830554d568b4696e41d027a2255b63495"
+  },
+  {
+    "architecture": "present_spn",
+    "config_hash": "650653e9b54d9e7709d96fb67d92d8a9fafb5d1d2d37db6cc4232765fb2a52ce",
+    "model": "selected8_present_spn_label_shuffle",
+    "path": "models\\selected8_present_spn_label_shuffle_final.pt",
+    "sha256": "8b62c72b5c898122c152ddce1187c56c5bbfcc6962e0e4fd224e611596197ad4"
+  }
+]

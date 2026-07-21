@@ -1,0 +1,637 @@
+{
+  "bit_gates": [
+    {
+      "accuracy_minus_majority": 0.019744873046875,
+      "architecture": "mlp",
+      "auc": 0.5299358770897825,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 0,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.02435302734375,
+      "architecture": "mlp",
+      "auc": 0.5334291757066947,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 2,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0220489501953125,
+      "architecture": "mlp",
+      "auc": 0.5307057537018937,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 8,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0218658447265625,
+      "architecture": "mlp",
+      "auc": 0.5325629045528519,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 10,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0220947265625,
+      "architecture": "mlp",
+      "auc": 0.5359460646034035,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 32,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0209197998046875,
+      "architecture": "mlp",
+      "auc": 0.5316332868020448,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 34,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0200958251953125,
+      "architecture": "mlp",
+      "auc": 0.5319658872791642,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 40,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.012542724609375,
+      "architecture": "mlp",
+      "auc": 0.5270754072527927,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 42,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": -9.1552734375e-05,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 0,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.00079345703125,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 2,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.000274658203125,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 8,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.0008544921875,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 10,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 32,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.001953125,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 34,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 40,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.010040283203125,
+      "architecture": "lstm",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 42,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0727691650390625,
+      "architecture": "rescnn",
+      "auc": 0.601956507114329,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 0,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0659942626953125,
+      "architecture": "rescnn",
+      "auc": 0.5910597630370407,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 2,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0613250732421875,
+      "architecture": "rescnn",
+      "auc": 0.5824531825992352,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 8,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0600433349609375,
+      "architecture": "rescnn",
+      "auc": 0.5807114888707243,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 10,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.06768798828125,
+      "architecture": "rescnn",
+      "auc": 0.6036199898834049,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 32,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.06512451171875,
+      "architecture": "rescnn",
+      "auc": 0.5914494447195209,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 34,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0569000244140625,
+      "architecture": "rescnn",
+      "auc": 0.5789057617431718,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 40,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0511322021484375,
+      "architecture": "rescnn",
+      "auc": 0.5769474011507332,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 42,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "transformer",
+      "auc": 0.4971250132416609,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 0,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.00079345703125,
+      "architecture": "transformer",
+      "auc": 0.49971411824854456,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 2,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "transformer",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 8,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "transformer",
+      "auc": 0.4982026336629547,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 10,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "transformer",
+      "auc": 0.4997318482336973,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 32,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.001953125,
+      "architecture": "transformer",
+      "auc": 0.5,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 34,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.0,
+      "architecture": "transformer",
+      "auc": 0.49988659034372496,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 40,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": -0.010040283203125,
+      "architecture": "transformer",
+      "auc": 0.5011568448674356,
+      "checks": {
+        "accuracy_margin_at_least_0_005": false,
+        "auc_at_least_0_510": false
+      },
+      "msb_index": 42,
+      "passed": false
+    },
+    {
+      "accuracy_minus_majority": 0.4999542236328125,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 0,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.499603271484375,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 2,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.4998626708984375,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 8,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.49957275390625,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 10,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.49383544921875,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 32,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.4990234375,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 34,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.4978790283203125,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 40,
+      "passed": true
+    },
+    {
+      "accuracy_minus_majority": 0.4949798583984375,
+      "architecture": "present_spn",
+      "auc": 1.0,
+      "checks": {
+        "accuracy_margin_at_least_0_005": true,
+        "auc_at_least_0_510": true
+      },
+      "msb_index": 42,
+      "passed": true
+    }
+  ],
+  "claim_scope": "third fixed secret key PRESENT r3 selected-eight-output five-model discovery screen; discovery only, not a final architecture claim, position reselection, r4 evidence, full-ciphertext recovery, sample classification, or SOTA",
+  "decision": "innovation2_selected8_architecture_candidate_requires_confirmation",
+  "execution_checks": {
+    "all_metrics_are_finite": true,
+    "five_checkpoint_hashes_present": true,
+    "five_models_complete": true,
+    "forty_result_rows_complete": true,
+    "history_rows_complete": true
+  },
+  "metrics": {
+    "architectures": {
+      "lstm": {
+        "mean_accuracy_minus_majority": -0.001750946044921875,
+        "mean_auc": 0.5,
+        "passed_bits": 0,
+        "passed_msb_indices": [],
+        "viability_passed": false
+      },
+      "mlp": {
+        "mean_accuracy_minus_majority": 0.020458221435546875,
+        "mean_auc": 0.5316567946235784,
+        "passed_bits": 8,
+        "passed_msb_indices": [
+          0,
+          2,
+          8,
+          10,
+          32,
+          34,
+          40,
+          42
+        ],
+        "viability_passed": true
+      },
+      "present_spn": {
+        "mean_accuracy_minus_majority": 0.4980888366699219,
+        "mean_auc": 1.0,
+        "passed_bits": 8,
+        "passed_msb_indices": [
+          0,
+          2,
+          8,
+          10,
+          32,
+          34,
+          40,
+          42
+        ],
+        "viability_passed": true
+      },
+      "rescnn": {
+        "mean_accuracy_minus_majority": 0.0626220703125,
+        "mean_auc": 0.58838794238977,
+        "passed_bits": 8,
+        "passed_msb_indices": [
+          0,
+          2,
+          8,
+          10,
+          32,
+          34,
+          40,
+          42
+        ],
+        "viability_passed": true
+      },
+      "transformer": {
+        "mean_accuracy_minus_majority": -0.001598358154296875,
+        "mean_auc": 0.4994771310747522,
+        "passed_bits": 0,
+        "passed_msb_indices": [],
+        "viability_passed": false
+      }
+    },
+    "candidate_gates": {
+      "lstm": {
+        "checks": {
+          "at_least_four_bits_gain_0_002": false,
+          "mean_auc_gain_at_least_0_003": false,
+          "viability_passed": false
+        },
+        "gain_bit_count": 0,
+        "mean_auc_gain_vs_mlp": -0.0316567946235784,
+        "passed": false,
+        "per_bit_auc_gain_vs_mlp": {
+          "0": -0.029935877089782514,
+          "10": -0.032562904552851935,
+          "2": -0.03342917570669468,
+          "32": -0.03594606460340355,
+          "34": -0.0316332868020448,
+          "40": -0.03196588727916416,
+          "42": -0.02707540725279267,
+          "8": -0.030705753701893657
+        }
+      },
+      "present_spn": {
+        "checks": {
+          "at_least_four_bits_gain_0_002": true,
+          "mean_auc_gain_at_least_0_003": true,
+          "viability_passed": true
+        },
+        "gain_bit_count": 8,
+        "mean_auc_gain_vs_mlp": 0.4683432053764216,
+        "passed": true,
+        "per_bit_auc_gain_vs_mlp": {
+          "0": 0.4700641229102175,
+          "10": 0.46743709544714807,
+          "2": 0.4665708242933053,
+          "32": 0.46405393539659645,
+          "34": 0.4683667131979552,
+          "40": 0.46803411272083584,
+          "42": 0.47292459274720733,
+          "8": 0.46929424629810634
+        }
+      },
+      "rescnn": {
+        "checks": {
+          "at_least_four_bits_gain_0_002": true,
+          "mean_auc_gain_at_least_0_003": true,
+          "viability_passed": true
+        },
+        "gain_bit_count": 8,
+        "mean_auc_gain_vs_mlp": 0.05673114776619159,
+        "passed": true,
+        "per_bit_auc_gain_vs_mlp": {
+          "0": 0.0720206300245465,
+          "10": 0.04814858431787239,
+          "2": 0.057630587330345984,
+          "32": 0.06767392528000138,
+          "34": 0.059816157917476076,
+          "40": 0.0469398744640076,
+          "42": 0.0498719938979405,
+          "8": 0.05174742889734152
+        }
+      },
+      "transformer": {
+        "checks": {
+          "at_least_four_bits_gain_0_002": false,
+          "mean_auc_gain_at_least_0_003": false,
+          "viability_passed": false
+        },
+        "gain_bit_count": 0,
+        "mean_auc_gain_vs_mlp": -0.032179663548826176,
+        "passed": false,
+        "per_bit_auc_gain_vs_mlp": {
+          "0": -0.032810863848121596,
+          "10": -0.03436027088989724,
+          "2": -0.03371505745815012,
+          "32": -0.03621421636970623,
+          "34": -0.0316332868020448,
+          "40": -0.032079296935439205,
+          "42": -0.025918562385357058,
+          "8": -0.030705753701893657
+        }
+      }
+    },
+    "leading_candidate": "present_spn",
+    "ranked_non_mlp_candidates": [
+      "present_spn",
+      "rescnn",
+      "transformer",
+      "lstm"
+    ],
+    "selected_candidate_for_phase_b": "present_spn"
+  },
+  "next_action": {
+    "action": "confirm present_spn against MLP and matched shuffles under seed3",
+    "next_adjudication": "opa2_seed3_winner_vs_mlp_matched_shuffle",
+    "phase_b_requires_matched_shuffle": true,
+    "reopens_op12": false,
+    "sample_classification": false,
+    "selected_candidate": "present_spn",
+    "target": "eight_preregistered_true_ciphertext_output_bits"
+  },
+  "protocol_checks": {
+    "all_architectures_within_three_percent_of_mlp": true,
+    "arrays_have_expected_shapes": true,
+    "cache_is_complete": true,
+    "features_are_msb_first": true,
+    "five_row_phase_a_matrix_is_frozen": true,
+    "labels_are_outputs_not_sample_classes": true,
+    "labels_are_true_output_bits_not_sample_classes": true,
+    "official_present_vector_matches": true,
+    "plaintexts_are_unique": true,
+    "present_p_layer_mapping_is_a_permutation": true,
+    "selected_positions_match_op10": true,
+    "targets_are_true_ciphertext_bits": true,
+    "third_fixed_key_differs_from_seed0_and_seed1": true,
+    "third_fixed_key_seed_is_two": true,
+    "train_test_plaintexts_are_disjoint": true
+  },
+  "run_id": "i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721",
+  "status": "pass"
+}
