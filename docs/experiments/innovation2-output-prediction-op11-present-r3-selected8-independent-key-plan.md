@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程正式确认待启动
+状态：本地实现门通过 / 远程正式确认运行中
 
 ## 1. 唯一研究问题
 
@@ -123,3 +123,16 @@ retrieval  = verified result branch + local tmux watcher
 远程不安装matplotlib、不生成图；验证结果分支回收并校验SHA-256后在本地绘图，再执行像素验收。正式
 结果回来后必须在本文件记录逐bit三门、确认位置、三模型平均AUC、专用头归因、claim scope和唯一下一
 动作。只有跨密钥门通过才允许预注册OP12；不允许把计划中尚未执行的四轮或结构化XOR写成结果。
+
+## 8. 远程启动记录
+
+```text
+source commit = be4b93bfbb0cc472aafd453958cc28a54e6b97bc
+remote state  = running
+started gate  = readiness.txt + started.marker + torch/GPU logs present
+local watcher = tmux:i2_op11_selected8_monitor
+```
+
+远程源代码位于run-owned干净克隆，启动提交与`origin/main`一致；本地watcher负责稀疏同步、失败标记
+识别、验证结果分支SHA-256回收、本地绘图和索引刷新。主线程不进行SSH轮询。正式结果尚未回收，
+因此当前不得填写跨密钥通过数、专用头增益或OP12裁决。
