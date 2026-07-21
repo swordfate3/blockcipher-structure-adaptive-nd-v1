@@ -112,6 +112,7 @@
 - Keep the project root clean of `tmp_*`; use `/tmp` for transient local markers and remove or ignore them when no longer needed.
 - Before remote launches, audit generated scripts for `cmd.exe /c`, absence of `cmd.exe /k`, and no generated project paths outside `G:\lxy`.
 - Generated Windows batch scripts that enable delayed expansion must contain no `!`, including inside quoted Python snippets; use an equivalent expression such as `not value == expected` and cover the generated text with a regression test.
+- When verifying a Windows-produced `SHA256SUMS` file on Linux, strip trailing CR characters from the manifest input stream before `sha256sum -c`; do not rewrite the archived manifest or payload files.
 - Before remote launches, audit generated-data paths: any dataset/feature generation for medium or larger remote jobs must write cache/progress under `G:\lxy` and must not wait until after full generation/training to emit the first durable artifact.
 - When searching for Windows paths such as `G:\lxy` with `rg`, use fixed-string mode (`rg -F`) or proper escaping to avoid regex backslash parse errors.
 - After any repository file modification, run the relevant verification, make a scoped git commit for the files just changed, and push when a remote is configured. This applies to code, config, scripts, tests, README/docs, `.learnings/`, `AGENTS.md`, generated project files, and memory-rule updates. Do not leave agent-authored completed work as an uncommitted pile.

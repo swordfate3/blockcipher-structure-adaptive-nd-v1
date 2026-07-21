@@ -605,7 +605,7 @@ has confirmed availability.
 
 **Logged**: 2026-07-15T03:10:00+08:00
 **Priority**: high
-**Status**: resolved
+**Status**: promoted
 **Area**: infra
 
 ### Summary
@@ -645,12 +645,13 @@ archived payload files.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: configs/remote/generated/run_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, configs/remote/generated/monitor_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.sh, configs/remote/generated/recover_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, tests/test_cross_spn_target_adaptation_gate.py
+- Related Files: configs/remote/generated/run_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, configs/remote/generated/monitor_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.sh, configs/remote/generated/recover_i1_gift64_cross_spn_target_adaptation_r4_65536_20260715.cmd, tests/test_cross_spn_target_adaptation_gate.py, outputs/remote_results/i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722/SHA256SUMS
 - See Also: ERR-20260714-001, ERR-20260714-002
 - Pattern-Key: remote.windows_result_archive_state_machine
-- Recurrence-Count: 2
+- Recurrence-Count: 3
 - First-Seen: 2026-07-15
-- Last-Seen: 2026-07-15
+- Last-Seen: 2026-07-22
+- Promoted: AGENTS.md
 
 ### Resolution
 - **Resolved**: 2026-07-15T03:10:00+08:00
@@ -658,7 +659,8 @@ archived payload files.
 - **Notes**: Recovered and pushed all three E4-R4 result branches without
   retraining. E4-R5 later reproduced the CRLF manifest-parser issue; streaming
   CR removal verified all `40 + 40 + 6` archive entries without modifying the
-  archives.
+  archives. OPA3 reproduced the same manifest-only CRLF behavior; normalized
+  stream verification passed all 20 archived files.
 
 ---
 
