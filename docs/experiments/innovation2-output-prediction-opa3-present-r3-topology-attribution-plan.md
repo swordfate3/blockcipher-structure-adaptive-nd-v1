@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：OPA2正式授权 / 本地smoke通过 / 正式seed3远程运行中
+状态：正式seed3完成 / verified result branch回收 / hold / OPA4与OPA5关闭
 
 ## 1. 研究问题
 
@@ -192,7 +192,7 @@ source commit = 1dc74e9d5cb703f22018f7e5fffff30e39e348db
 run_id = i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722
 remote run root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opa3_ptopo_k3_20260722
 physical GPU = 0
-status = running
+status = completed remotely / verified result branch retrieved
 ```
 
 启动使用run-owned短路径干净clone，没有修改或重置旧远程主克隆。一次性有界确认已经验证：远程
@@ -200,6 +200,52 @@ status = running
 存在、`data/cache_metadata.json`已经持久化，且磁盘缓存完成`196608/196608`条。`data_ready`事件中的
 所有数据、密钥、标签和三种P-layer协议检查均为真。
 
-后续由本地tmux会话`i2_opa3_ptopo_k3_watch_20260722`等待远程结果分支、自动回收、校验、绘图并
-刷新最近结果索引。主线程不进行重复SSH轮询；只有本地watcher健康异常或受控门允许时才恢复远程
-交互。
+本地tmux会话`i2_opa3_ptopo_k3_watch_20260722`随后完成了结果分支等待、自动回收、校验、绘图和
+最近结果索引刷新；主线程没有使用重复SSH轮询替代watcher。
+
+## 11. 正式结果与裁决
+
+OPA3已经从verified result branch完整回收。来源与产物检查为：
+
+```text
+source commit        = 1dc74e9d5cb703f22018f7e5fffff30e39e348db
+gate SHA256          = def55214d46acf0e199f465fda66e6ca394f094ceec78d419354357df1c50943
+results/history      = 24 / 300
+checkpoints          = 3，全部具有SHA256
+cache                = complete，196608 / 196608
+protocol checks      = all true
+execution checks     = all true
+```
+
+Windows生成的`SHA256SUMS`含CRLF；Linux端只对清单输入流去除行尾CR后执行`sha256sum -c`，20个归档
+文件全部通过，没有改写清单或载荷。正式平均AUC为：
+
+| 模型 | 八位置平均AUC | 平均accuracy-majority |
+|---|---:|---:|
+| exact-P | 1.000000000 | +0.499097824 |
+| identity-P | 0.531989557 | +0.030904770 |
+| fixed-wrong-P | 1.000000000 | +0.499097824 |
+
+exact-P在八个位置分别比identity高`0.463337294`至`0.473109524`，说明跨nibble扩散相对不扩散控制有
+明显作用；但exact-P与wrong-P在八个位置的AUC差值全部精确为`0.0`。因此：
+
+```text
+exact mean - best control mean AUC = +0.000000000
+attributed bits                      = 0 / 8
+exact reproduction delta vs OPA2    = 0.000000000
+status                               = hold
+decision = innovation2_selected8_present_topology_not_attributed
+```
+
+确定性感受野审计解释了控制结果：exact-P与wrong-P都按`1 -> 4 -> 16 -> 64`扩展，三个block后每个
+预注册输出位置都可接触全部64个明文bit；identity-P则保持`1 -> 4 -> 4 -> 4`。正式结果支持“分层
+跨nibble扩散骨架有效”，不支持“只有精确PRESENT连线才有效”。这不是协议失败，也不推翻OPA2的整体
+架构结果，但精确P-layer因果主张不成立。
+
+正式`curves.svg`经`visual-qa-redraw`渲染为1920×1279像素检查。标题、说明、热图、色条、坐标、
+数值、四个面板和底部裁决均无重叠、裁切、缺字、模糊尺度或误导性放大；pending标记已替换为
+`visual_qa_passed.marker`。`scripts/index-results`返回`status=pass`，OPA3正式结果为最近结果`001`。
+
+按第6节预注册裁决，OPA4与OPA5均保持关闭且从未实现或启动；不继续wrong-P搜索、seed扩展、四轮、
+五轮、加样本、加epoch或临时模型枚举。下一步是把OPA2整体架构正结果和OPA3“精确连线不唯一”的
+机制边界写入论文，而不是把OPA3改写成精确拓扑成功。
