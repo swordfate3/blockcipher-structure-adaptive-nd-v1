@@ -154,6 +154,114 @@ def test_formal_gate_requires_anchor_and_control_gains() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "aucs,failed_check",
+    [
+        (
+            (0.50, 0.549, 0.50, 0.50),
+            "candidate_mean_auc_at_least_0_550",
+        ),
+        (
+            (0.695, 0.70, 0.60, 0.50),
+            "candidate_minus_anchor_mean_auc_at_least_0_010",
+        ),
+        (
+            (0.60, 0.70, 0.69, 0.50),
+            "candidate_minus_wrong_mean_auc_at_least_0_020",
+        ),
+        (
+            (0.60, 0.70, 0.60, 0.68),
+            "candidate_minus_shuffle_mean_auc_at_least_0_030",
+        ),
+    ],
+)
+def test_formal_gate_holds_when_a_mean_gate_fails(
+    aucs: tuple[float, float, float, float],
+    failed_check: str,
+) -> None:
+    config = SpnResCnnHybridConfig.formal(device="cpu")
+    auc_by_model = {
+        model: auc for (model, _, _), auc in zip(MODEL_SPECS, aucs, strict=True)
+    }
+    rows = [
+        {
+            "model": model,
+            "msb_index": bit,
+            "threshold_accuracy": 0.70,
+            "majority_accuracy": 0.50,
+            "accuracy_minus_majority": 0.20,
+            "auc": auc_by_model[model],
+            "mse": 0.20,
+        }
+        for model, _, _ in MODEL_SPECS
+        for bit in config.selected_msb_indices
+    ]
+    training = {
+        "rows": rows,
+        "summaries": [{"model": model} for model in auc_by_model],
+        "history": [
+            {"model": model, "epoch": epoch}
+            for model in auc_by_model
+            for epoch in range(1, config.epochs + 1)
+        ],
+        "checkpoints": [{"sha256": "hash"} for _ in range(4)],
+    }
+
+    gate = adjudicate_hybrid(config, {"valid": True}, training)
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation2_spn_rescnn_hybrid_not_supported"
+    assert gate["metrics"]["formal_checks"][failed_check] is False
+
+
+def test_formal_gate_requires_at_least_four_jointly_passing_bits() -> None:
+    config = SpnResCnnHybridConfig.formal(device="cpu")
+    anchor_name, exact_name, wrong_name, shuffle_name = [
+        model for model, _, _ in MODEL_SPECS
+    ]
+    rows = []
+    for bit_index, bit in enumerate(config.selected_msb_indices):
+        control_auc = 0.60 if bit_index < 3 else 0.70
+        auc_by_model = {
+            anchor_name: control_auc,
+            exact_name: 0.70,
+            wrong_name: control_auc,
+            shuffle_name: 0.50,
+        }
+        rows.extend(
+            {
+                "model": model,
+                "msb_index": bit,
+                "threshold_accuracy": 0.70,
+                "majority_accuracy": 0.50,
+                "accuracy_minus_majority": 0.20,
+                "auc": auc_by_model[model],
+                "mse": 0.20,
+            }
+            for model, _, _ in MODEL_SPECS
+        )
+    training = {
+        "rows": rows,
+        "summaries": [{"model": model} for model, _, _ in MODEL_SPECS],
+        "history": [
+            {"model": model, "epoch": epoch}
+            for model, _, _ in MODEL_SPECS
+            for epoch in range(1, config.epochs + 1)
+        ],
+        "checkpoints": [{"sha256": "hash"} for _ in range(4)],
+    }
+
+    gate = adjudicate_hybrid(config, {"valid": True}, training)
+
+    formal_checks = gate["metrics"]["formal_checks"]
+    assert gate["status"] == "hold"
+    assert gate["metrics"]["passed_bit_count"] == 3
+    assert formal_checks["at_least_four_bits_pass"] is False
+    assert all(
+        passed for name, passed in formal_checks.items() if name != "at_least_four_bits_pass"
+    )
+
+
 def test_hybrid_plot_has_plain_chinese_scope(tmp_path: Path) -> None:
     config = _tiny_config()
     rows = [
@@ -253,6 +361,17 @@ def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
     assert plan["common"]["epochs"] == 100
     assert len(plan["rows"]) == 4
     assert len({row["parameters"] for row in plan["rows"]}) == 1
+    assert plan["final_gate"] == {
+        "minimum_candidate_mean_auc": 0.55,
+        "minimum_candidate_minus_anchor_mean_auc": 0.01,
+        "minimum_candidate_minus_wrong_mean_auc": 0.02,
+        "minimum_candidate_minus_shuffle_mean_auc": 0.03,
+        "minimum_joint_passed_bits": 4,
+        "minimum_per_bit_candidate_auc": 0.55,
+        "minimum_per_bit_candidate_minus_anchor_auc": 0.005,
+        "minimum_per_bit_candidate_minus_each_control_auc": 0.015,
+        "minimum_per_bit_accuracy_minus_majority": 0.005,
+    }
     assert {row["model"] for row in plan["rows"]} == set(remote_config["models"])
     assert remote_config["opb1_gate_sha256"] == expected_gate_sha
     assert remote_config["expected_result_rows"] == 32
