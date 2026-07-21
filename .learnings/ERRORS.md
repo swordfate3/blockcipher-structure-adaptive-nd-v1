@@ -587,8 +587,12 @@ has confirmed availability.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/gate.json
+- Related Files: outputs/local_diagnostic/i1_cross_spn_e5_target_8192_source_seed0/gate.json, outputs/remote_results/i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722/gate.json
 - See Also: ERR-20260706-001
+- Pattern-Key: infra.local_json_summary_requires_python_fallback_without_jq
+- Recurrence-Count: 2
+- First-Seen: 2026-07-15
+- Last-Seen: 2026-07-22
 
 ### Resolution
 - **Resolved**: 2026-07-15T07:10:00+08:00
