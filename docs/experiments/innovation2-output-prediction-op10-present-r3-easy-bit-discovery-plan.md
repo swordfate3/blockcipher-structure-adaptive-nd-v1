@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：已预注册 / 等待OP9模型完成
+状态：本地实现门通过 / 自动等待OP9模型完成
 
 ## 1. 唯一研究问题
 
@@ -113,3 +113,38 @@ curves.svg
 
 若没有bit确认，不把完整模型机械扩到更多数据、epoch、层数、seed或更高轮；先审计专用单bit头是否
 属于合理的多任务干扰诊断。不得退回真假样本分类、平衡性质分类或用完整exact-match替代逐bit裁决。
+
+## 8. 本地实现门结果
+
+使用OP9本地完整架构smoke的三个checkpoint完成OP10端到端实现门：
+
+```text
+run_id          = i2_output_prediction_op10_present_r3_easy_bit_smoke_20260721
+discovery       = 64条OP9未见明文
+fresh           = 64条新生成且与OP9全部明文不重合的明文
+result rows     = 64 bits x 3 models x 2 splits = 384
+protocol checks = 20/20 true
+status          = pass
+decision        = innovation2_output_bit_discovery_local_smoke_passed
+```
+
+候选文件及SHA-256在第一条fresh数据生成前写盘；三个checkpoint hash、MSB-first映射、真实PRESENT
+输出重放、发现/fresh拆分和结果行数全部通过。`64+64`小样本没有候选，不作性能结论。
+
+`curves.svg`经过两轮`visual-qa-redraw`像素检查：修正内部英文decision id和缺失的smoke边界后，最终
+标题、四面板、图例、bit方向、曲线缩放和中文裁决没有重叠、裁切或语义歧义。结果索引已刷新为
+`outputs/00_RECENT_RESULTS.md`的`001`。
+
+## 9. 远程依赖式执行
+
+OP10实现与远程包固定在已推送提交：
+
+```text
+source commit = d23d16a6e474e002be4a4f0d497d76404d1c4bec
+watcher       = tmux:i2-op10-bit-monitor
+watcher state = waiting_for_verified_op9_retrieval
+```
+
+watcher只有看到OP9从验证结果分支回收成功的本地marker后，才会调度OP10。远程OP10读取OP9保留在
+`G:\lxy`的三个最终checkpoint和数据缓存，生成`2^16`条fresh确认明文；完成后自动验证384行结果、
+候选hash、fresh缓存和结果分支，再回收并刷新索引。主线程不重复SSH轮询。
