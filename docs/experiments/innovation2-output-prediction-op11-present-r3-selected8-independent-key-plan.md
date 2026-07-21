@@ -133,6 +133,7 @@ started gate  = readiness.txt + started.marker + torch/GPU logs present
 local watcher = tmux:i2_op11_selected8_monitor
 ```
 
-远程源代码位于run-owned干净克隆，启动提交与`origin/main`一致；本地watcher负责稀疏同步、失败标记
-识别、验证结果分支SHA-256回收、本地绘图和索引刷新。主线程不进行SSH轮询。正式结果尚未回收，
-因此当前不得填写跨密钥通过数、专用头增益或OP12裁决。
+远程源代码位于run-owned干净克隆，启动提交在启动时与`origin/main`一致；其后的纯文档启动记录提交
+不改变运行代码。本地watcher负责稀疏同步、失败标记识别、验证结果分支SHA-256回收、本地绘图和索引
+刷新。主线程不进行SSH轮询。正式结果尚未回收，因此当前不得填写跨密钥通过数、专用头增益或OP12
+裁决。
