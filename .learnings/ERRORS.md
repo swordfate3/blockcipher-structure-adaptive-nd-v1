@@ -89,6 +89,51 @@ Generate a short wrapper such as `G:\lxy\scheduled-runs\i2_opa1_key2.cmd` that c
 
 ---
 
+## [ERR-20260721-003] scheduled_run_transient_dirty_source_gate
+
+**Logged**: 2026-07-21T23:24:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+The first OPA1 short-wrapper retry stopped at the run script's dirty-source gate even though a later read-only status showed the run-owned clone was clean.
+
+### Error
+
+```text
+Remote run-owned source clone is dirty.
+```
+
+### Context
+
+- The failure marker appeared before readiness, cache generation, or training.
+- A bounded post-failure `git status --short --branch` showed no modified or untracked files and exact HEAD `7ee17cf`.
+- No reset or cleanup was performed; the next pushed position-preserving source commit was fetched into the same clean run-owned clone.
+
+### Suggested Fix
+
+When the dirty-source gate fails, retrieve the marker first and perform one bounded read-only `git status` check. Never reset automatically. Retry only if the clone is currently clean and an exact pushed commit can be checked out.
+
+### Metadata
+
+- Reproducible: no
+- Related Files: configs/remote/generated/run_i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721.cmd
+- See Also: ERR-20260721-001, ERR-20260721-002
+- Pattern-Key: remote.run_owned_clone_transient_dirty_requires_readonly_gate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T23:27:00+08:00
+- **Commit/PR**: pending
+- **Notes**: The clone was verified clean without reset, updated to pushed commit `fdeb49d`, and the retry produced both the started marker and `readiness=status=pass`.
+
+---
+
 ## [ERR-20260716-008] iacr_pdf_cloudflare_and_browser_tool_unavailable
 
 **Logged**: 2026-07-16T15:42:57+08:00

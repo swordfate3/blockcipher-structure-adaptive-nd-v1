@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：本地实现门通过 / 远程Phase A已调度、启动尚未确认
+状态：本地位置保持实现门通过 / 远程Phase A运行中
 
 ## 1. 研究问题
 
@@ -161,13 +161,15 @@ shuffle确认，不开放四轮XOR、更多模型或机械扩样本。
 ```text
 initial source commit = 7d4e45de5a98aa297a585103e8b6542e1ce73e13
 repaired source commit = 7ee17cfb7befb4731663f28a2956795b0e4373d0
+final position-preserving source commit = fdeb49d3081b22f6cdf1770594dfc36e0dbf8d07
 remote run id = i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721
 remote path = G:\lxy\blockcipher-structure-adaptive-nd-runs\<run-id>
 initial launch = failed before task creation because Task Scheduler /TR exceeded 261 characters
 repair = short wrapper G:\lxy\scheduled-runs\i2_opa1_key2.cmd
-retry state = scheduled; bounded confirmation saw repaired pinned commit but not yet started/readiness markers
+first retry = failed before training on a transient dirty-source gate; later read-only status was clean
+final retry = started marker present; readiness status=pass
 local watcher = tmux i2_opa1_arch_screen_watch_20260721
 ```
 
-因此当前仍不得报告为`running`。watcher确认started/readiness或回收结果后，再将状态更新为`running`或
-`completed remotely`；主线程不重复SSH轮询。
+远程状态现为`running`。正式结果只在watcher回收verified result branch、40条结果、500条history和
+5个checkpoint后才算`completed remotely`；主线程不重复SSH轮询。
