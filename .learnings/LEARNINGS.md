@@ -1,3 +1,41 @@
+## [LRN-20260722-002] correction
+
+**Logged**: 2026-07-22T12:00:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Innovation 2 output prediction must compare and improve multiple architecture families; LSTM is a paper-protocol anchor, not the only admissible model.
+
+### Details
+
+The user clarified that ciphertext-output prediction should not be restricted to LSTM or MLP. The completed OPA1 screen already compared parameter-matched MLP, six-layer LSTM, position-preserving ResCNN, Transformer, and PRESENT-SPN-aware models on the same eight true ciphertext bits. Its result was architecture-specific: LSTM and Transformer were near chance, ResCNN retained signal, and the SPN-style model was strongest. Therefore a weak LSTM result does not establish an output-prediction ceiling. Conversely, after a controlled discovery screen, adding arbitrary model names or tuning against the same test key would create a model-selection problem rather than stronger evidence.
+
+### Suggested Action
+
+Use LSTM as the Kimura protocol baseline and keep MLP plus the strongest same-budget architecture as controls. Rank new models by a preregistered mechanism that addresses observed evidence, such as a topology-constrained SPN propagation bottleneck, an SPN-ResCNN hybrid, or a sparse topology GNN. Change one architectural hypothesis at a time, retain architecture-matched shuffled-label and wrong-topology controls, and require fresh-key confirmation before extending rounds.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: docs/experiments/innovation2-output-prediction-opa1-present-r3-selected8-architecture-screen-plan.md, docs/experiments/innovation2-output-prediction-opa3-present-r3-topology-attribution-plan.md
+- Tags: innovation2, output-prediction, architecture-screen, lstm, rescnn, transformer, spn-aware
+- See Also: LRN-20260721-003
+- Pattern-Key: research.innovation2.output_prediction_requires_controlled_multi_architecture_search
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T12:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Reconciled the correction with the completed OPA1 five-model screen and constrained future optimization to mechanism-driven, same-budget, independently confirmed architecture experiments.
+
+---
+
 ## [LRN-20260722-001] correction
 
 **Logged**: 2026-07-22T03:39:00+08:00
