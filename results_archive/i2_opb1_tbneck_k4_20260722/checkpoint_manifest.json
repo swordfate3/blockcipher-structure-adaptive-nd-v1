@@ -1,0 +1,30 @@
+[
+  {
+    "architecture": "present_spn_exact_p",
+    "config_hash": "7e61df832db27d2e9d1de500093098e1694d92596d8299b8af030d095a87470b",
+    "model": "selected8_present_spn_anchor_exact_p_true_output",
+    "path": "models\\selected8_present_spn_anchor_exact_p_true_output_final.pt",
+    "sha256": "82f65ee65db2935aee9a4d993c5d1b3889b8986fbf99f6ff26123a4a3f8c2067"
+  },
+  {
+    "architecture": "topology_bottleneck_exact_p",
+    "config_hash": "8d005671b51e0c7d72b80117365e3aeea4d208eb128d52de50b9f4337a8ea6d2",
+    "model": "selected8_topology_bottleneck_exact_p_true_output",
+    "path": "models\\selected8_topology_bottleneck_exact_p_true_output_final.pt",
+    "sha256": "631076cef427c0abc75501dcd54fd363c3d34ac3f5c696c1c570cd0f1a89114b"
+  },
+  {
+    "architecture": "topology_bottleneck_wrong_p",
+    "config_hash": "ac00db76d617da523dff1f2375b47ca346cb5422c8fded2276cb71f628ebf3a8",
+    "model": "selected8_topology_bottleneck_wrong_p_true_output",
+    "path": "models\\selected8_topology_bottleneck_wrong_p_true_output_final.pt",
+    "sha256": "0b4dbc7939c74873c53aa565150d43d1410ff0c31bb00dee09d4255fdaddd84c"
+  },
+  {
+    "architecture": "topology_bottleneck_exact_p",
+    "config_hash": "57e628652dcbf0bbd9760ca40535f740e933461bfc606e7195d26a3a7bc3f3e3",
+    "model": "selected8_topology_bottleneck_exact_p_label_shuffle",
+    "path": "models\\selected8_topology_bottleneck_exact_p_label_shuffle_final.pt",
+    "sha256": "ced5820bca675a97fe21a4e0ae77ef409b98896b25eeafa26c18e89005897c67"
+  }
+]
