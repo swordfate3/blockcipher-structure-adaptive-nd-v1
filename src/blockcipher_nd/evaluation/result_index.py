@@ -1318,6 +1318,9 @@ DECISION_LABELS = {
     "innovation2_present_r9_e99_checkpoint_replay_invalid": (
         "E99坐标模型重放未完全复现，禁止读取E104关系"
     ),
+    "innovation2_output_parity_prediction_readiness_passed": (
+        "固定密钥输出预测通路通过；连续nibble parity随机附近，只开放一轮mask几何校准"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -1733,6 +1736,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == "i2_output_parity_prediction_readiness_present_r1_seed0_20260721":
+        return "创新2 OP1：PRESENT一轮固定密钥密文输出parity预测就绪门"
     if run_id == "i1_feistel_balanced_round_relation_readiness_seed0":
         return "创新1 Feistel：SIMON/SIMECK 真实轮关系模型就绪检查"
     if run_id == "i1_feistel_balanced_round_relation_2048_seed0":

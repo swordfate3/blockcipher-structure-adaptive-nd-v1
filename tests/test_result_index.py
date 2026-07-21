@@ -89,6 +89,30 @@ def test_result_index_labels_e106_external_source_readiness(tmp_path: Path) -> N
     )
 
 
+def test_result_index_labels_innovation2_output_prediction_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_output_parity_prediction_readiness_present_r1_seed0_20260721"
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_output_parity_prediction_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP1：PRESENT一轮固定密钥密文输出parity预测就绪门"
+    )
+    assert entries[0]["decision_display"] == (
+        "固定密钥输出预测通路通过；连续nibble parity随机附近，只开放一轮mask几何校准"
+    )
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
