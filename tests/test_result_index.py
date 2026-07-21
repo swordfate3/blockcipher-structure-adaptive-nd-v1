@@ -274,6 +274,48 @@ def test_result_index_labels_innovation2_output_parity_present_r3_single_key(
     )
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_present_r3_spn_local_attributed",
+            "PRESENT三轮SPN局部网络真实P层增益过门，只开放独立固定密钥复验",
+        ),
+        (
+            "innovation2_output_parity_present_r3_spn_local_generic_gain_only",
+            "PRESENT三轮只有通用局部表示收益，先审计精确bit-role路由",
+        ),
+        (
+            "innovation2_output_parity_present_r3_spn_local_not_ready",
+            "PRESENT三轮nibble邻接网络未恢复信号，转精确bit-level SPN路由",
+        ),
+        (
+            "innovation2_output_parity_present_r3_spn_local_protocol_invalid",
+            "PRESENT三轮输出、token顺序、拓扑控制或训练协议无效",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_spn_local(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op6_present_r3_spn_local_"
+        "readiness_seed0_20260721"
+    )
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP6：PRESENT三轮真实密文输出parity SPN局部网络就绪门"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
