@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：OPA2正式授权 / 本地smoke通过 / 正式远程包已冻结
+状态：OPA2正式授权 / 本地smoke通过 / 正式seed3远程运行中
 
 ## 1. 研究问题
 
@@ -182,3 +182,24 @@ expected result/history/checkpoint/cache = 24/300/3/196608
 OPA2 gate哈希。运行只允许从已推送提交的run-owned干净clone启动，使用`cmd.exe /c`，所有数据、
 缓存、checkpoint、日志、归档和结果均位于`G:\lxy`。完成后优先从verified result branch回收，重新
 绘图、执行`visual-qa-redraw`和刷新最近结果索引。
+
+## 10. 正式远程启动
+
+OPA3于`2026-07-22`从已推送提交启动：
+
+```text
+source commit = 1dc74e9d5cb703f22018f7e5fffff30e39e348db
+run_id = i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722
+remote run root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opa3_ptopo_k3_20260722
+physical GPU = 0
+status = running
+```
+
+启动使用run-owned短路径干净clone，没有修改或重置旧远程主克隆。一次性有界确认已经验证：远程
+`source_expected_commit.txt`精确匹配上述提交、readiness=`pass`、started marker与`progress.jsonl`
+存在、`data/cache_metadata.json`已经持久化，且磁盘缓存完成`196608/196608`条。`data_ready`事件中的
+所有数据、密钥、标签和三种P-layer协议检查均为真。
+
+后续由本地tmux会话`i2_opa3_ptopo_k3_watch_20260722`等待远程结果分支、自动回收、校验、绘图并
+刷新最近结果索引。主线程不进行重复SSH轮询；只有本地watcher健康异常或受控门允许时才恢复远程
+交互。
