@@ -1,0 +1,22 @@
+{
+  "run_id": "i2_output_prediction_op10_present_r3_easy_bit_confirm_gpu0_20260721",
+  "source_run_id": "i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721",
+  "host": "lxy-a6000",
+  "gpu": 0,
+  "device": "cuda",
+  "source_commit": "launch_argument_must_match_pushed_commit",
+  "source_clone": "run_owned_clean_clone",
+  "remote_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs",
+  "source_output_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_output_prediction_op9_present_r3_kimura_lstm_2p17_seed0_gpu0_20260721\\results",
+  "fresh_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i2_output_prediction_op10_present_r3_easy_bit_confirm_gpu0_20260721\\results\\fresh_data",
+  "discovery_total_rows": 65536,
+  "fresh_confirmation_total_rows": 65536,
+  "expected_result_rows": 384,
+  "candidate_limit": 8,
+  "checkpoint_reuse": true,
+  "training": false,
+  "sample_classification": false,
+  "target": "selected_true_ciphertext_output_bits",
+  "result_sync": "verified_result_branch_then_local_tmux_retrieval",
+  "launch_policy": "Wait for the verified OP9 result branch and done marker; launch only from a pushed commit in a clean run-owned clone under G:\\lxy through cmd.exe /c; keep source, fresh disk cache, progress, logs, results, and curated archive under G:\\lxy."
+}

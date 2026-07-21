@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_output_bit_discovery_local_smoke_passed": (
+        "逐bit候选发现与独立fresh确认实现门通过，等待OP9远程checkpoint"
+    ),
+    "innovation2_true_output_bits_fresh_confirmed": (
+        "至少一个PRESENT三轮真实密文输出bit通过全新明文确认"
+    ),
+    "innovation2_no_true_output_bit_fresh_confirmed": (
+        "没有输出bit通过全新明文确认，停止完整输出机械扩展"
+    ),
+    "innovation2_output_bit_discovery_protocol_invalid": (
+        "逐bit发现的checkpoint、bit顺序、数据拆分或候选冻结协议无效"
+    ),
     "innovation2_output_prediction_kimura_lstm_local_smoke_passed": (
         "Kimura式完整输出LSTM本地实现门通过，只开放远程单密钥论文规模校准"
     ),
@@ -1817,6 +1829,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_op10_present_r3_easy_bit"):
+        return "创新2 OP10：PRESENT三轮易预测真实密文输出bit发现与独立确认"
     if run_id.startswith("i2_output_prediction_op9_present_r3_kimura_lstm"):
         return "创新2 OP9：PRESENT三轮Kimura式完整64-bit真实密文输出预测"
     if run_id == (

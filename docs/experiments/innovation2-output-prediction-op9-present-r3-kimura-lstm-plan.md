@@ -17,6 +17,10 @@ target = C的64个MSB-first真实bit
 
 网络预测64个输出值，没有真假样本、正负类别、积分平衡标签、kernel或ATM关系标签。
 
+用户于远程训练进行中明确：创新2不要求同一样本的64个bit全部同时命中，主目标是发现哪些真实密文
+输出bit容易预测。OP9-B因此保留为共享骨干的64位置扫描和Kimura论文族校准；完整64-bit exact-match
+降为文献参照，不能再单独裁决创新2成功或失败。逐bit候选必须进入OP10的独立fresh-holdout确认。
+
 ## 2. 文献锚点
 
 PRESENT r3 ciphertext prediction按Kimura 2022 Table 7与Table 12/C.2冻结：
@@ -84,6 +88,8 @@ progress和参数匹配复用；不得在训练前纯内存一次性生成全部
 
 ```text
 raw Dense output -> numpy.rint -> 64-bit exact match
+Kimura Table 12 PRESENT r3 CP reference = 2^-1.30 ≈ 0.406126
+reference count on 2^16 tests          ≈ 26616 complete matches
 ```
 
 支持指标：逐bit match、macro AUC、MSE、舍入到非`0/1`的cell比例、逐bit majority baseline、
@@ -98,7 +104,7 @@ raw Dense output -> numpy.rint -> 64-bit exact match
 三个最终checkpoint与manifest存在且hash匹配
 ```
 
-远程校准通过条件：
+远程路线继续门：
 
 ```text
 kimura_lstm exact-match至少观察到1个真实64-bit完整命中
@@ -107,15 +113,30 @@ kimura_lstm bit match - shuffled bit match >= +0.005
 kimura_lstm macro AUC - shuffled macro AUC >= +0.010
 ```
 
+上述门只裁决完整输出论文族是否存在信号，不裁决创新2的逐bit主目标，也不裁决论文水平。最终报告还必须列出：
+
+```text
+observed exact-match rate / count
+paper reference exact-match = 2^-1.30 ≈ 0.406126
+observed / paper-reference ratio
+observed与论文参考的log2差距（若observed非零）
+```
+
+Table 12是多把独立固定密钥模型的平均结果，而OP9-B只有一把固定密钥。即使路线继续门通过，若
+exact-match远低于`0.406126`，只能写“检测到单密钥真实输出信号但与论文报告有差距”，不能写成
+论文协议复现或论文水平校准通过。这一外部参照在远程结果揭盲前冻结，不改变正在运行的训练协议。
+
 参数量匹配MLP只用于说明LSTM是否带来序列架构增益，不作为论文协议有效性的必要条件。
 
 ## 6. 下一步与停止项
 
-若远程通过，下一步只用另一固定秘密密钥重复同一三行矩阵，确认不是单密钥偶然；在第二密钥前不扩到
-r4，不修改输出函数，不加入parity，不增加网络族。若未通过，停止Kimura-LSTM路线，不增加epoch、
-数据、层数或远程seed，并转向重新选择仍属于真实输出预测的输出表示。
+无论完整64-bit exact-match门是否通过，下一步先读取三行模型的64个逐bit指标：在OP9测试集上只做
+候选发现，再用同一固定密钥、全新且不重合的`2^16`明文确认冻结候选。只有确认bit才能进入专用输出头
+和第二固定秘密密钥复验；在此之前不扩到r4、不加入parity、不增加网络族。完整输出路线若未通过，
+只停止把“全64-bit同时命中”作为目标，不能据此宣布单bit输出预测失败。
 
-无论结果如何，OP9都不是100密钥论文复现、正式攻击轮数、PRESENT高轮突破或SOTA结果。
+无论结果如何，OP9都不是100密钥论文复现、正式攻击轮数、PRESENT高轮突破或SOTA结果。OP9也不直接
+给出“最容易bit”的无偏结论，因为从64个位置中选择最大值必须经过OP10独立holdout确认。
 
 ## 7. OP9-A本地实现门结果
 

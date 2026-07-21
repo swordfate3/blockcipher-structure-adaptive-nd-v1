@@ -439,6 +439,30 @@ def test_result_index_labels_innovation2_kimura_lstm_output_prediction(
     assert entries[0]["decision_display"] == expected_decision
 
 
+def test_result_index_labels_innovation2_easy_output_bit_discovery(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i2_output_prediction_op10_present_r3_easy_bit_smoke_20260721"
+    run_root = outputs / "local_smoke" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation2_output_bit_discovery_local_smoke_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP10：PRESENT三轮易预测真实密文输出bit发现与独立确认"
+    )
+    assert entries[0]["decision_display"] == (
+        "逐bit候选发现与独立fresh确认实现门通过，等待OP9远程checkpoint"
+    )
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:

@@ -1,3 +1,79 @@
+## [LRN-20260721-003] correction
+
+**Logged**: 2026-07-21T18:42:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Innovation 2 does not require simultaneous exact recovery of the full ciphertext; discovering and confirming individually predictable true ciphertext output bits is an admissible primary output-prediction objective.
+
+### Details
+
+OP9 aligned to Kimura's full-output protocol and therefore centered complete 64-bit exact match. The user clarified that the intended innovation is to identify which output positions are easy to predict, not require every ciphertext bit to be correct in the same sample. Full-output training can still serve as a 64-position shared scan, but full-block exact match must not decide the innovation. Selecting the best bit on the same test set and reporting it would introduce winner's-curse bias, so bit discovery and confirmation require disjoint plaintext sets.
+
+### Suggested Action
+
+Report per-bit true output value metrics with explicit MSB-first positions. Select candidate bits on a frozen discovery set using an architecture-matched label-shuffle control, then confirm only the frozen candidates on a fresh non-overlapping plaintext set under the same fixed key. Use per-bit accuracy above the bit-majority baseline and per-bit AUC/control deltas as primary gates; retain full-output exact match only as a Kimura literature anchor.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: AGENTS.md, docs/experiments/innovation2-output-prediction-op10-present-r3-easy-bit-discovery-plan.md, docs/experiments/innovation2-output-prediction-op9-present-r3-kimura-lstm-plan.md
+- Tags: innovation2, selected-bit, output-prediction, fresh-holdout, selection-bias
+- See Also: LRN-20260721-001, LRN-20260721-002
+- Pattern-Key: research.innovation2.selected_output_bits_are_primary_prediction
+- Recurrence-Count: 2
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T18:42:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Reframed OP9 as the shared 64-bit scan and preregistered OP10 disjoint discovery/fresh-confirmation analysis before reading final OP9 metrics.
+
+---
+
+## [LRN-20260721-002] knowledge_gap
+
+**Logged**: 2026-07-21T18:40:00+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Paper-protocol calibration must preregister the paper's reported outcome magnitude, not only copy its architecture and training budget or use a weak nonzero-signal gate.
+
+### Details
+
+The Innovation 2 OP9 audit correctly recovered Kimura's PRESENT r3 protocol but initially omitted the corresponding Table 12 result: ciphertext-prediction exact-match success probability `2^-1.30`, approximately `0.4061`, averaged over independently trained fixed-key models. With `2^16` test plaintexts this is about 26,616 complete 64-bit matches. OP9's route gate of at least one exact match plus bit-level control margins can decide whether any output signal exists, but it cannot establish paper-level calibration and would materially overstate alignment if reported without the external magnitude.
+
+### Suggested Action
+
+Before result reveal, freeze the paper reference separately from the route-continuation gate. Report observed exact-match rate and count, the `2^-1.30` reference and expected count, their ratio or log2 gap, and the scope mismatch between a single-key calibration and the paper's multi-key average. Do not label a merely nonzero result as paper-level reproduction.
+
+### Metadata
+
+- Source: self_correction, paper_source_reaudit
+- Related Files: docs/research/innovation2-output-prediction-paper-protocol-audit-20260721.md, docs/experiments/innovation2-output-prediction-op9-present-r3-kimura-lstm-plan.md, papers/innovation_two/text/2021_kimura_output_prediction_block_ciphers.txt
+- Tags: innovation2, output-prediction, paper-baseline, exact-match, claim-gate
+- See Also: LRN-20260721-001
+- Pattern-Key: research.paper_protocol_requires_outcome_reference
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T18:40:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added the Table 12 reference and a separate literature-alignment comparison to the OP9 audit and experiment plan before remote result reveal.
+
+---
+
 ## [LRN-20260716-009] correction
 
 **Logged**: 2026-07-16T15:42:57+08:00

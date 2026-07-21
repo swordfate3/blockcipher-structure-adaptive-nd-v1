@@ -32,6 +32,7 @@
 | epoch/batch | 100 / 250 | 100 / 250 | 100 / 250 | 5 / 128 |
 | PRESENT r3数据 | `2^17`训练、`2^16`测试 | 16-bit弱SPN为`2^15/2^15` | SIMON为`2^15/2^15` | 4096/1024/2048训练/验证/测试 |
 | 主指标 | 完整输出exact match成功概率 | 完整输出exact match | 平均逐bit match；32-bit exact近似 | parity macro AUC；完整bit AUC/accuracy为支持项 |
+| PRESENT r3论文结果 | CP exact-match `2^-1.30 ≈ 0.4061` | 沿用基础方法 | 非PRESENT主实验 | 尚无同协议结果 |
 | 跨密钥报告 | 独立固定密钥模型后对100把密钥取平均 | 100把密钥 | 10把密钥；附录审计多密钥退化 | 两把密钥，仅小规模诊断 |
 
 原文锚点：
@@ -42,6 +43,7 @@ Kimura 2022 lines 477--516: LSTM regression and complete-output exact match
 Kimura 2022 lines 552--580: 100 epochs, batch 250, independent fixed-key models
 Kimura 2022 Table 7: PRESENT r3 CP = hidden300, 6 layers, RMSprop, lr 0.001
 Kimura 2022 Table 12/C.2: PRESENT r3 = 2^17 train, 2^16 test
+Kimura 2022 Table 12: PRESENT r3 CP exact-match success probability = 2^-1.30
 Watanabe 2024 Sect. 3.2/Table 1: LSTM, MSE, 2^15/2^15, 100 epochs
 Watanabe 2024 Appendix A.2: one fixed key across train/test is the effective setting
 ```
@@ -90,6 +92,16 @@ OP9先用极小本地实现门验证MSB-first完整输出、LSTM/MSE/RMSprop、e
 推送提交启动远程单固定密钥`2^17/2^16/100 epochs`校准。远程矩阵只含论文LSTM、参数量匹配MLP、
 论文LSTM标签打乱三个必要行。若论文LSTM没有超过标签打乱控制，停止该论文族扩展；若通过，下一步
 只做第二独立固定密钥确认，不先扩四轮或宣称复现论文100密钥结果。
+
+结果裁决必须分成两层。OP9原冻结门中的“至少一次完整命中”和bit/AUC控制差值只回答当前实现是否
+恢复了非零真实输出信号；论文水平对照必须另外报告观察到的exact-match rate/count、Table 12的
+`2^-1.30 ≈ 0.4061`参考值，以及相对差距。对`2^16`测试集，论文均值对应约`26616`次完整命中。
+OP9只有一把密钥，因此即使接近该数值也只是论文族单密钥校准，不是100密钥复现；若仅有少量命中，
+不得因通过弱信号门而称为论文水平。
+
+用户随后冻结了创新2更窄且更实用的主目标：不要求完整64-bit同时命中，而是发现并预测容易的真实密文
+输出bit。Kimura完整输出协议继续作为共享64位置扫描器和外部文献锚点；创新2主裁决改为逐bit预测，
+且候选发现与fresh明文确认必须分离。完整exact-match为零不能推出所有单bit均不可预测。
 
 ## 5. 证据边界
 
