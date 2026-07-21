@@ -1,0 +1,20 @@
+[
+  {
+    "config_hash": "734d5722c71dc12da33fb09304204611e30b2a565d98f70256b873536e6973a4",
+    "model": "full64_mlp_true_output",
+    "path": "models\\full64_mlp_true_output_final.pt",
+    "sha256": "87d6f9e4205c1505539f03a4c00c64b35cbed9db77db9468563a9fd7ecb3198a"
+  },
+  {
+    "config_hash": "1d6cb8b106d95ec8f1c21cf47d091a3234efbce986abb64882124235f536ee39",
+    "model": "selected8_mlp_true_output",
+    "path": "models\\selected8_mlp_true_output_final.pt",
+    "sha256": "daa6ff197abbe4c9974c6a8f29c25adc060cc77ba13b350b1a7b91f451ce233c"
+  },
+  {
+    "config_hash": "e772f12f8687be92c1aae28ce2ca07740d61314762caab7a5bf7fc4204f7b36d",
+    "model": "selected8_mlp_label_shuffle",
+    "path": "models\\selected8_mlp_label_shuffle_final.pt",
+    "sha256": "84725d37d7946e1910f2cb3a8746f0f058212e3bb0cfc165d9ec018553c2b684"
+  }
+]

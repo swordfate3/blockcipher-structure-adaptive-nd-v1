@@ -1,0 +1,53 @@
+{
+  "plan_id": "innovation2_output_prediction_op11_present_r3_selected8_key1",
+  "question": "Do the eight PRESENT r3 true ciphertext output positions frozen on seed0 remain predictable under a second independent fixed secret key, and does an eight-output head reduce full-output multitask interference?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 1,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "second_independent_fixed_unknown_key",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch",
+    "primary_metric": "per_bit_auc_with_accuracy_over_majority"
+  },
+  "rows": [
+    {
+      "role": "same_key_full_output_anchor",
+      "model": "full64_mlp_true_output",
+      "architecture": "mlp_hidden1936_two_layers_output64",
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_mlp_true_output",
+      "architecture": "mlp_hidden1936_two_layers_output8",
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "architecture_matched_control",
+      "model": "selected8_mlp_label_shuffle",
+      "architecture": "mlp_hidden1936_two_layers_output8",
+      "train_labels_shuffled": true
+    }
+  ],
+  "per_bit_gate": {
+    "minimum_auc": 0.51,
+    "minimum_accuracy_minus_majority": 0.005,
+    "minimum_true_minus_shuffle_auc": 0.005
+  },
+  "cross_key_gate": "At least four of the eight preregistered positions pass all three per-bit gates.",
+  "dedicated_head_gate": "Mean selected8 AUC minus mean full64 AUC on the same eight positions is at least 0.002.",
+  "next_action_on_pass": "Advance the same positions and the stronger frozen anchor to a preregistered PRESENT r4 selected-bit and structured-XOR comparison without reselection.",
+  "stop_action": "If fewer than four positions confirm, stop seed, epoch, data, and round scaling and audit seed0 key conditioning."
+}

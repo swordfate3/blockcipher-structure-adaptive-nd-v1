@@ -1,0 +1,56 @@
+{
+  "cipher": "PRESENT-80",
+  "claim_scope": "second fixed secret key PRESENT r3 confirmation of eight preregistered true output bits; not full-ciphertext recovery, broad cross-key statistics, r4 evidence, sample classification, or SOTA",
+  "config": {
+    "batch_size": 250,
+    "data_chunk_rows": 4096,
+    "device": "cuda",
+    "epochs": 100,
+    "hidden_dim": 1936,
+    "learning_rate": 0.001,
+    "minimum_accuracy_margin": 0.005,
+    "minimum_auc": 0.51,
+    "minimum_cross_key_bits": 4,
+    "minimum_dedicated_auc_gain": 0.002,
+    "minimum_shuffle_auc_margin": 0.005,
+    "mode": "independent_key_confirmation",
+    "rounds": 3,
+    "run_id": "i2_output_prediction_op11_present_r3_selected8_key1_gpu0_20260721",
+    "seed": 1,
+    "selected_msb_indices": [
+      0,
+      2,
+      8,
+      10,
+      32,
+      34,
+      40,
+      42
+    ],
+    "test_rows": 65536,
+    "train_rows": 131072
+  },
+  "experiment": "op11_present_r3_selected8_independent_key",
+  "input": "64 MSB-first plaintext bits",
+  "key_protocol": "second independent fixed unknown key; disjoint plaintext train/test",
+  "mode": "independent_key_confirmation",
+  "parameter_counts": {
+    "full64_mlp": 3999840,
+    "selected8_mlp": 3891368
+  },
+  "run_id": "i2_output_prediction_op11_present_r3_selected8_key1_gpu0_20260721",
+  "sample_classification": false,
+  "secret_key_hex": "02d34f4595d439ed81b0",
+  "selected_msb_indices": [
+    0,
+    2,
+    8,
+    10,
+    32,
+    34,
+    40,
+    42
+  ],
+  "target": "eight preregistered MSB-first true ciphertext bits",
+  "task": "innovation2_output_prediction"
+}
