@@ -69,6 +69,7 @@ class OutputPredictionMlp(nn.Module):
 
 def generate_output_prediction_data(
     config: OutputParityPredictionConfig,
+    masks: tuple[int, ...] = MASKS,
 ) -> dict[str, Any]:
     key_rng = random.Random(910_000 + config.seed)
     secret_key = key_rng.getrandbits(80)
@@ -81,7 +82,7 @@ def generate_output_prediction_data(
     )
     features = _words_to_bits(plaintexts)
     full_targets = _words_to_bits(ciphertexts)
-    parity_targets = parity_targets_from_words(ciphertexts, MASKS)
+    parity_targets = parity_targets_from_words(ciphertexts, masks)
     boundaries = (
         config.train_rows,
         config.train_rows + config.validation_rows,
@@ -91,7 +92,7 @@ def generate_output_prediction_data(
     return {
         "secret_key": secret_key,
         "ciphertexts": ciphertexts,
-        "masks": MASKS,
+        "masks": masks,
         "train": OutputPredictionSplit(
             plaintexts[:train_end],
             features[:train_end],
@@ -152,7 +153,7 @@ def validate_output_prediction_contract(
     parity_replay = all(
         np.array_equal(
             split.parity_targets,
-            parity_targets_from_full_bits(split.full_targets),
+            parity_targets_from_full_bits(split.full_targets, data["masks"]),
         )
         for split in (train, validation, test)
     )
@@ -198,7 +199,7 @@ def train_output_prediction_matrix(
             ("direct_parity_label_shuffle", "parity", True),
         )
     ):
-        result = _train_row(
+        result = train_output_prediction_row(
             config,
             data,
             row_name=row_name,
@@ -211,7 +212,7 @@ def train_output_prediction_matrix(
     full_result = trained["full_output_mlp"]
     full_probabilities = full_result["test_probabilities"]
     derived_probabilities = parity_probabilities_from_bit_probabilities(
-        full_probabilities
+        full_probabilities, data["masks"]
     )
     derived_metrics = multilabel_metrics(
         derived_probabilities, data["test"].parity_targets
@@ -367,22 +368,40 @@ def parity_targets_from_words(
     )
 
 
-def parity_targets_from_full_bits(full_targets: np.ndarray) -> np.ndarray:
+def parity_targets_from_full_bits(
+    full_targets: np.ndarray, masks: tuple[int, ...] = MASKS
+) -> np.ndarray:
     targets = np.asarray(full_targets, dtype=np.float32)
     if targets.ndim != 2 or targets.shape[1] != 64:
         raise ValueError("full targets must have shape [rows, 64]")
-    return np.mod(targets.reshape(-1, 16, 4).sum(axis=2), 2).astype(np.float32)
+    if not masks:
+        raise ValueError("masks must be non-empty")
+    columns = []
+    for mask in masks:
+        bit_indices = [bit for bit in range(64) if (mask >> bit) & 1]
+        if not bit_indices:
+            raise ValueError("each parity mask must select at least one output bit")
+        columns.append(np.mod(targets[:, bit_indices].sum(axis=1), 2))
+    return np.column_stack(columns).astype(np.float32)
 
 
 def parity_probabilities_from_bit_probabilities(
     bit_probabilities: np.ndarray,
+    masks: tuple[int, ...] = MASKS,
 ) -> np.ndarray:
     probabilities = np.asarray(bit_probabilities, dtype=np.float64)
     if probabilities.ndim != 2 or probabilities.shape[1] != 64:
         raise ValueError("bit probabilities must have shape [rows, 64]")
-    signed = 1.0 - 2.0 * probabilities.reshape(-1, 16, 4)
-    odd = (1.0 - np.prod(signed, axis=2)) / 2.0
-    return np.clip(odd, 0.0, 1.0).astype(np.float32)
+    if not masks:
+        raise ValueError("masks must be non-empty")
+    columns = []
+    for mask in masks:
+        bit_indices = [bit for bit in range(64) if (mask >> bit) & 1]
+        if not bit_indices:
+            raise ValueError("each parity mask must select at least one output bit")
+        signed = 1.0 - 2.0 * probabilities[:, bit_indices]
+        columns.append((1.0 - np.prod(signed, axis=1)) / 2.0)
+    return np.clip(np.column_stack(columns), 0.0, 1.0).astype(np.float32)
 
 
 def multilabel_metrics(
@@ -415,7 +434,7 @@ def serializable_config(config: OutputParityPredictionConfig) -> dict[str, Any]:
     return asdict(config)
 
 
-def _train_row(
+def train_output_prediction_row(
     config: OutputParityPredictionConfig,
     data: dict[str, Any],
     *,
@@ -425,7 +444,9 @@ def _train_row(
     seed: int,
 ) -> dict[str, Any]:
     _seed_everything(seed)
-    output_dim = 64 if target_kind == "full" else 16
+    output_dim = (
+        64 if target_kind == "full" else data["train"].parity_targets.shape[1]
+    )
     model = OutputPredictionMlp(output_dim, config.hidden_dim).to(config.device)
     targets = {
         split_name: (

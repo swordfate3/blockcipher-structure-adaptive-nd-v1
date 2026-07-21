@@ -113,6 +113,43 @@ def test_result_index_labels_innovation2_output_prediction_readiness(
     )
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_mask_geometry_supported",
+            "S-box/P层对齐输出parity信号通过，只开放独立固定密钥复验",
+        ),
+        (
+            "innovation2_output_parity_mask_geometry_not_calibrated",
+            "对齐输出parity未过归因门，停止扩规模并转输出预测论文协议审计",
+        ),
+        (
+            "innovation2_output_parity_mask_geometry_protocol_invalid",
+            "固定密钥输出预测或配对mask协议无效，只修复协议",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_mask_geometry(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op2_mask_geometry_present_r1_seed0_20260721"
+    )
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP2：PRESENT一轮真实密文输出parity mask几何校准"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
