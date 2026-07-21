@@ -125,14 +125,19 @@ def render_topology_attribution(summary: dict[str, Any], output: Path) -> None:
         heat_axis.set_title("逐bit AUC", loc="left", fontweight="bold")
         for row_index in range(auc.shape[0]):
             for column_index in range(auc.shape[1]):
+                cell_value = auc[row_index, column_index]
                 heat_axis.text(
                     column_index,
                     row_index,
-                    f"{auc[row_index, column_index]:.3f}",
+                    f"{cell_value:.3f}",
                     ha="center",
                     va="center",
                     fontsize=8.0,
-                    color="#111827",
+                    color=(
+                        "#FFFFFF"
+                        if abs(float(cell_value) - 0.5) / max_deviation >= 0.72
+                        else "#111827"
+                    ),
                 )
         colorbar = figure.colorbar(image, ax=heat_axis, fraction=0.046, pad=0.035)
         colorbar.set_label("AUC")
@@ -148,14 +153,18 @@ def render_topology_attribution(summary: dict[str, Any], output: Path) -> None:
         high = min(1.0, float(max(means.max(), 0.5) + 0.04))
         mean_axis.set_ylim(low, high)
         mean_axis.grid(axis="y", color="#E5E7EB", linewidth=0.7)
+        mean_span = high - low
         for index, value in enumerate(means):
+            label_inside = value + mean_span * 0.035 >= high
             mean_axis.text(
                 index,
-                value + (high - low) * 0.035,
+                value + mean_span * (-0.035 if label_inside else 0.035),
                 f"{value:.4f}",
                 ha="center",
+                va="top" if label_inside else "bottom",
                 fontsize=8.8,
                 fontweight="bold",
+                color="#FFFFFF" if label_inside else "#111827",
             )
 
         identity_axis = axes[1, 0]
