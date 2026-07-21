@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：OP9--OPB1完成 / OPB1低秩未归因 / OPC1正式授权待启动 / 协议边界已审计 / 四轮关闭
+状态：OP9--OPB1完成 / OPB1低秩未归因 / OPC1正式远程运行中 / 协议边界已审计 / 四轮关闭
 
 ## 权威入口与阅读顺序
 
@@ -42,7 +42,7 @@
 | OPA2 | seed3，MLP与PRESENT-SPN-aware的true/shuffle四行匹配控制，同预算 | MLP true `0.532262`；SPN true `1.000000`、shuffle `0.500840`；调整增益`+0.465752` | verified result branch / pass |
 | OPA3 | seed3，exact-P / identity-P / fixed-wrong-P同参数归因 | exact `1.000000`，identity `0.531990`，wrong `1.000000`；exact-wrong `0.000000` | verified result branch / hold |
 | OPB1 | seed4，原SPN锚点/低秩拓扑瓶颈exact-P/wrong-P/shuffle四行，同预算 | anchor/exact/wrong均`1.0`，shuffle `0.499477`，exact-wrong `0`，`0/8`归因 | verified result branch / hold / route stopped |
-| OPC1 | seed6，ResCNN锚点/SPN-ResCNN exact-P/wrong-P/shuffle四行，同预算 | 本地readiness通过；OPB1 gate正式授权seed6远程四行矩阵 | formal launch authorized |
+| OPC1 | seed6，ResCNN锚点/SPN-ResCNN exact-P/wrong-P/shuffle四行，同预算 | 本地readiness通过；已从推送提交`286cd0c`在A6000 GPU0启动`2^17/2^16`、100 epochs正式矩阵 | remote running / result pending |
 | OPK1 | 1024个共享明文，256参考密钥与256零重合评估密钥，参考密钥逐明文频率预测未见密钥 | 平均AUC `0.500544`，方向化AUC均值`0.501220`、最大`0.502176`，accuracy-majority `-0.000466` | local deterministic audit / pass |
 | 轮间状态审计 | 16把真实PRESENT-80主密钥、31轮、每轮1个校准转移和256个未见转移 | `496/496`子密钥、`126976/126976`下一状态、`4096/4096`完整加密精确恢复 | local deterministic audit / pass |
 | 轮间八输出审计 | 完整当前状态、冻结八个下一状态bit、16把密钥、31轮、最多16个校准对 | 四个相关key nibble `1984/1984`唯一精确恢复；平均`3.1154`、最多11个校准对；未见八bit `126976/126976`精确预测 | local deterministic audit / pass |
@@ -64,8 +64,9 @@ seed4同时比较原锚点、exact-P、wrong-P和匹配shuffle。正式结果中
 为落实“不能只使用LSTM/MLP”的模型优化要求，OPC1已把OPA1中最强的非异常饱和模型ResCNN作为
 锚点，完成三阶段`3+3+4`残差块之间插入固定P-layer重排的SPN-ResCNN混合实现门。候选、普通
 ResCNN、错误P和标签打乱四行参数/预算匹配；本地readiness不作性能判断。正式模式被代码硬门控，
-OPB1现已有效裁决为低秩瓶颈未归因，因此OPC1已由冻结gate正式授权，下一步是seed6同预算远程矩阵，
-不是与OPB1并行选优。
+OPB1现已有效裁决为低秩瓶颈未归因，因此OPC1已由冻结gate正式授权，并从推送提交`286cd0c`在
+A6000 GPU0启动seed6同预算远程矩阵；本地tmux watcher已经接管完成检测和结果回收。它不是与
+OPB1并行选优，正式测试AUC和裁决仍待回收。
 
 OPK1进一步限定了“泛化”用语。即使参考与评估密钥使用完全相同的1024个明文，只用参考密钥逐明文
 频率预测256把未见密钥时，八bit平均AUC仍为`0.500544`。因此当前跨密钥证据是“冻结位置与协议在
@@ -217,10 +218,10 @@ OP9--OP12已经整理为可进入论文模板的实验章节初稿：
 docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md
 ```
 
-OPB1已经完成并确认低秩瓶颈仍不能使真实P超过错误P；该路线停止。当前唯一开放训练切换为OPC1：
-在第七固定密钥、相同`2^17/2^16`总数据与100 epochs下，检验真实P的SPN-ResCNN混合是否同时超过
-普通ResCNN、错误P和匹配shuffle。OPC1通过只开放新密钥确认，失败则保留ResCNN发现锚点并停止
-混合路线；任何分支都不得通过后验换bit、增加深度、数据或epoch绕过门。
+OPB1已经完成并确认低秩瓶颈仍不能使真实P超过错误P；该路线停止。当前唯一开放训练OPC1已在远程
+运行：在第七固定密钥、相同`2^17/2^16`总数据与100 epochs下，检验真实P的SPN-ResCNN混合是否
+同时超过普通ResCNN、错误P和匹配shuffle。OPC1通过只开放新密钥确认，失败则保留ResCNN发现锚点
+并停止混合路线；任何分支都不得通过后验换bit、增加深度、数据或epoch绕过门。
 
 开题提出的完整`state_r -> state_(r+1)`临界轮路线已经完成确定性审计。PRESENT完整状态一对即可
 恢复当轮子密钥，全部31轮未见转移均100%预测，因此该协议不能定义扩散到随机猜测的临界轮。当前

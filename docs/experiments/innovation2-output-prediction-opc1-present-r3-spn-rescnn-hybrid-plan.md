@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：本地readiness通过 / OPB1负归因正式授权 / 准备seed6远程启动
+状态：本地readiness通过 / OPB1负归因正式授权 / seed6远程正式矩阵运行中
 
 ## 1. 研究问题
 
@@ -163,3 +163,26 @@ gate SHA256 = 776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549
 因此OPC1正式seed6四行矩阵现已授权。下一动作是验证冻结远程包，范围提交并推送，从推送提交在A6000
 GPU0启动`131072/65536`、`100 epochs × 4`模型实验，并交由独立本地tmux watcher回收。该实验仍只
 是PRESENT三轮模型归因，不开放四轮或五轮。
+
+## 9. 正式远程启动状态
+
+正式矩阵已经从推送提交启动：
+
+```text
+run_id = i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722
+source commit = 286cd0cd44238c3ae7095461570c80146066659c
+remote device = lxy-a6000 physical GPU0
+train/test = 131072/65536 total plaintext-ciphertext pairs
+models/epochs = 4 models x 100 epochs
+remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opc1_hybrid_k6_20260722
+status = running
+```
+
+启动后的单次只读确认已经看到`readiness=status=pass`、started marker、`progress.jsonl`以及参数匹配的
+磁盘缓存`features.npy`、`full_targets.npy`、`plaintexts.npy`和`cache_metadata.json`。本地tmux
+会话`i2_opc1_hybrid_k6_watch_20260722`已接管稀疏监控、验证分支回收、hash与协议验证、绘图和结果
+索引刷新；主线程不再SSH轮询。
+
+当前只能称为“远程运行中”，不能提前填写正式AUC或裁决。结果回收后严格执行冻结分支：通过则仅做
+全新固定密钥原样确认；失败或hold则保留ResCNN发现锚点并停止SPN-ResCNN混合路线，不后验增加
+网络深度、数据、epoch、错误P或输出位置，也不直接开放四轮。
