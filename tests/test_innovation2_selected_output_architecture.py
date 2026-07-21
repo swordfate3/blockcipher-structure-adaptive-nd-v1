@@ -202,6 +202,11 @@ def test_remote_package_freezes_five_model_phase_a_and_windows_hygiene() -> None
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
     )
     assert "cmd.exe /c" in launch
+    assert "set SCHEDULE_ROOT=G:\\lxy\\scheduled-runs" in launch
+    assert "set SCHEDULE_CMD=%SCHEDULE_ROOT%\\i2_opa1_key2.cmd" in launch
+    assert '>>"%SCHEDULE_CMD%" echo call "%RUN_CMD%" 0' in launch
+    assert '/TR "cmd.exe /c %SCHEDULE_CMD%"' in launch
+    assert len("cmd.exe /c G:\\lxy\\scheduled-runs\\i2_opa1_key2.cmd") < 261
     assert "cmd.exe /k" not in launch + run
     assert "EnableDelayedExpansion" not in launch + run
     assert "!" not in launch + run

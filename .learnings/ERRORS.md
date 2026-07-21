@@ -44,6 +44,51 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 
 ---
 
+## [ERR-20260721-002] windows_schtasks_tr_path_limit
+
+**Logged**: 2026-07-21T23:12:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+The OPA1 source clone succeeded, but Windows Task Scheduler rejected the generated training command because the `/TR` value exceeded 261 characters.
+
+### Error
+
+```text
+ERROR: The value for the '/TR' option cannot be more than 261 character(s).
+```
+
+### Context
+
+- The descriptive run id was intentionally retained for experiment evidence and artifact ownership.
+- Its run-owned source path plus the long generated run-script filename made the scheduled `/TR` command too long.
+- No scheduled task, training process, cache, checkpoint, or result was created by the failed launch.
+
+### Suggested Fix
+
+Generate a short wrapper such as `G:\lxy\scheduled-runs\i2_opa1_key2.cmd` that calls the full run script, and give Task Scheduler only `cmd.exe /c <short-wrapper>`. Keep the descriptive run id and all project artifacts under `G:\lxy`.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: configs/remote/generated/launch_i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721.cmd, tests/test_innovation2_selected_output_architecture.py
+- See Also: ERR-20260721-001
+- Pattern-Key: remote.windows_schtasks_tr_requires_short_wrapper
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T23:15:00+08:00
+- **Commit/PR**: pending
+- **Notes**: The launcher now writes a short `G:\lxy` wrapper and tests freeze the short `/TR` form and the 261-character bound.
+
+---
+
 ## [ERR-20260716-008] iacr_pdf_cloudflare_and_browser_tool_unavailable
 
 **Logged**: 2026-07-16T15:42:57+08:00
