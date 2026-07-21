@@ -168,3 +168,12 @@ docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md
 契约下只把轮数从三轮改为四轮；OPA3不通过则立即收束到OPA2整体架构结论。OPA4即使通过也先做
 第五固定密钥的四轮独立确认，不直接进入五轮。仅换mask、seed、网络名称或扩大现有预算仍不能绕过
 这些冻结门。
+
+SPN-aware方法相对Kimura/Watanabe通用LSTM、Kimura普通Conv1D和Singh去密钥逐轮MLP的暂定创新
+边界见：
+
+```text
+docs/research/innovation2-spn-aware-output-prediction-novelty-audit-20260722.md
+```
+
+该审计只覆盖四篇已验证核心全文，不支持“首次”或穷尽性文献声明；精确拓扑贡献仍以OPA3为必要门。
