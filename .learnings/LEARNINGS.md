@@ -77,7 +77,7 @@ completeness.
 
 ### Summary
 
-An innovation claim must freeze one canonical sample, label, model output, and metric across its round ladder; related but incompatible tasks cannot be presented as one method trajectory.
+Innovation 2 must freeze a true output-prediction contract across its round ladder; a structured-versus-random classifier cannot replace prediction of cipher output values or output parities.
 
 ### Details
 
@@ -96,6 +96,15 @@ comparisons. Other tasks must be classified explicitly as literature anchors,
 diagnostic branches, negative evidence, or appendices instead of being used to
 patch gaps in the primary method claim.
 
+A second correction made the required semantics explicit. Innovation 2 is an
+output-prediction task, not a real-versus-random or structured-versus-random
+decision task. A target such as the XOR of four ciphertext positions is still
+output prediction even though its value is one bit and can be trained with
+BCE: the label is a function of the cipher output for that input, not the
+identity of the sample distribution. The Wu/Guo-style multiset classifier can
+serve only as an external high-round baseline and must not become the primary
+Innovation 2 contract.
+
 ### Suggested Action
 
 Before any further Innovation 2 experiment, choose and preregister exactly one
@@ -105,9 +114,12 @@ baseline. Rewrite the Innovation 2 synthesis around that contract, move
 incompatible H0/PG-NBPO/ATM branches out of the main trajectory, and do not
 resume training until the remaining experiment can answer the single frozen
 claim. If round reach is prioritized, use one literature-aligned r5--r8
-benchmark throughout; if strict output-property prediction is prioritized,
-accept the current r4 boundary rather than borrowing r8/r9 metrics from other
-tasks.
+output-prediction benchmark throughout. The most direct contract compares
+full-output prediction with direct prediction of preregistered output-parity
+masks on the same plaintext/ciphertext pairs, fixed-key attack setting, model
+budget, round ladder, and held-out plaintexts. H0 multiset classification,
+PG-NBPO whole-cube balance labels, and ATM relation ranking must remain outside
+that primary trajectory.
 
 ### Metadata
 
@@ -116,7 +128,7 @@ tasks.
 - Tags: innovation2, research-coherence, task-contract, round-ladder, metrics, thesis-claim
 - See Also: LRN-20260720-001
 - Pattern-Key: research.innovation.freeze_canonical_task_contract
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-21
 - Last-Seen: 2026-07-21
 
