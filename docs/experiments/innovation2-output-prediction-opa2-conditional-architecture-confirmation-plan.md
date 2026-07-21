@@ -2,7 +2,7 @@
 
 日期：2026-07-21
 
-状态：OPA1已授权PRESENT-SPN候选 / 本地smoke通过 / 正式seed3待启动
+状态：OPA1已授权PRESENT-SPN候选 / 本地smoke通过 / 正式seed3远程运行中
 
 ## 1. 启动条件
 
@@ -126,3 +126,20 @@ decision = innovation2_selected8_architecture_confirmation_local_smoke_passed
 smoke图已通过`visual-qa-redraw`像素检查；tiny AUC不作性能结论。正式下一步冻结为第四固定密钥
 `seed3`的四行`present_spn/MLP true/shuffle`远程确认。若PRESENT-SPN未同时通过自身shuffle和相对
 MLP增益门，则OPA1的AUC=1只保留为未复现的第三密钥发现，最终架构仍为MLP。
+
+## 8. 正式远程启动
+
+正式确认于`2026-07-22`从已推送提交启动：
+
+```text
+source commit = 3ddd346e70fb68f5d143a3253639acf10f33f4b3
+run_id = i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722
+remote run root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opa2_pspn_k3_20260722
+physical GPU = 0
+status = running
+```
+
+一次性启动确认已验证：source commit精确匹配、readiness=`pass`、started marker存在，且
+`progress.jsonl`与磁盘缓存`data/cache_metadata.json`均已写入。旧的远程主克隆含历史修改，未被重置或
+用于启动；本次使用独立短路径干净克隆。后续结果等待本地tmux watcher
+`i2_opa2_pspn_k3_watch_20260722`自动回收，主线程不重复SSH轮询。
