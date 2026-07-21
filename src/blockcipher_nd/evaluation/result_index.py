@@ -1366,6 +1366,18 @@ DECISION_LABELS = {
     "innovation2_output_parity_present_r3_spn_local_protocol_invalid": (
         "PRESENT三轮输出、token顺序、拓扑控制或训练协议无效"
     ),
+    "innovation2_output_parity_present_r3_bit_role_attributed": (
+        "PRESENT三轮精确bit-role真实P层增益过门，只开放独立固定密钥复验"
+    ),
+    "innovation2_output_parity_present_r3_bit_role_generic_gain_only": (
+        "PRESENT三轮只有通用bit-role收益，先复核错误P层拓扑控制"
+    ),
+    "innovation2_output_parity_present_r3_bit_role_not_ready": (
+        "PRESENT三轮精确bit-role网络仍未过门，转确定性依赖锥难度审计"
+    ),
+    "innovation2_output_parity_present_r3_bit_role_protocol_invalid": (
+        "PRESENT三轮bit路由、拓扑控制、输出或训练协议无效"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -1781,6 +1793,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == (
+        "i2_output_parity_prediction_op7_present_r3_bit_role_routing_seed0_20260721"
+    ):
+        return "创新2 OP7：PRESENT三轮真实密文输出parity精确bit-role路由门"
     if run_id == (
         "i2_output_parity_prediction_op6_present_r3_spn_local_readiness_seed0_20260721"
     ):

@@ -29,23 +29,34 @@ def main(argv: list[str] | None = None) -> int:
 def render_spn_local_readiness(summary: dict[str, Any], output: Path) -> None:
     gate = summary["gate"]
     metrics = gate["metrics"]
+    bit_role = "wrong_p_macro_auc" in metrics
+    control_name = "wrong_p" if bit_role else "shuffled_p"
     accuracy = (
         metrics["mlp_accuracy"],
         metrics["true_p_accuracy"],
-        metrics["shuffled_p_accuracy"],
+        metrics[f"{control_name}_accuracy"],
         metrics["label_shuffle_accuracy"],
     )
     auc = (
         metrics["mlp_macro_auc"],
         metrics["true_p_macro_auc"],
-        metrics["shuffled_p_macro_auc"],
+        metrics[f"{control_name}_macro_auc"],
         metrics["label_shuffle_macro_auc"],
     )
     labels = (
-        "全连接MLP\n真实输出",
-        "SPN局部网络\n真实P层",
-        "SPN局部网络\n错误P层",
-        "真实P层网络\n训练标签打乱",
+        (
+            "全连接MLP\n真实输出",
+            "精确bit-role\n真实P层",
+            "精确bit-role\n错误P层",
+            "真实P层网络\n训练标签打乱",
+        )
+        if bit_role
+        else (
+            "全连接MLP\n真实输出",
+            "SPN局部网络\n真实P层",
+            "SPN局部网络\n错误P层",
+            "真实P层网络\n训练标签打乱",
+        )
     )
     with plt.rc_context(
         {
@@ -65,7 +76,11 @@ def render_spn_local_readiness(summary: dict[str, Any], output: Path) -> None:
         figure.text(
             0.075,
             0.955,
-            "创新2 OP6：PRESENT三轮真实密文输出parity的SPN局部网络就绪门",
+            (
+                "创新2 OP7：PRESENT三轮真实密文输出parity的精确bit-role路由门"
+                if bit_role
+                else "创新2 OP6：PRESENT三轮真实密文输出parity的SPN局部网络就绪门"
+            ),
             ha="left",
             va="top",
             fontsize=14.8,
@@ -125,7 +140,7 @@ def render_spn_local_readiness(summary: dict[str, Any], output: Path) -> None:
             0.202,
             (
                 f"真实P-MLP={metrics['true_minus_mlp_macro_auc']:+.3f}；"
-                f"真实P-错误P={metrics['true_minus_shuffled_p_macro_auc']:+.3f}；"
+                f"真实P-错误P={metrics[f'true_minus_{control_name}_macro_auc']:+.3f}；"
                 f"真实P-标签打乱={metrics['true_minus_label_shuffle_macro_auc']:+.3f}。"
             ),
             ha="left",
@@ -133,16 +148,22 @@ def render_spn_local_readiness(summary: dict[str, Any], output: Path) -> None:
             fontsize=9.5,
             color="#334155",
         )
-        if gate["decision"] == (
-            "innovation2_output_parity_present_r3_spn_local_attributed"
-        ):
+        if gate["decision"] in {
+            "innovation2_output_parity_present_r3_spn_local_attributed",
+            "innovation2_output_parity_present_r3_bit_role_attributed",
+        }:
             decision_text = "真实P层局部表示通过归因门；下一步只做独立固定密钥复验。"
-        elif gate["decision"] == (
-            "innovation2_output_parity_present_r3_spn_local_generic_gain_only"
-        ):
+        elif gate["decision"] in {
+            "innovation2_output_parity_present_r3_spn_local_generic_gain_only",
+            "innovation2_output_parity_present_r3_bit_role_generic_gain_only",
+        }:
             decision_text = "只有通用局部表示收益；先审计精确bit-role路由，不扩轮。"
         elif gate["status"] == "hold":
-            decision_text = "nibble邻接网络未恢复三轮信号；转精确bit-level SPN路由。"
+            decision_text = (
+                "精确bit-role网络仍未过门；转确定性依赖锥与布尔函数难度审计。"
+                if bit_role
+                else "nibble邻接网络未恢复三轮信号；转精确bit-level SPN路由。"
+            )
         else:
             decision_text = "输出、token顺序、拓扑控制或训练协议无效；只修协议。"
         figure.text(

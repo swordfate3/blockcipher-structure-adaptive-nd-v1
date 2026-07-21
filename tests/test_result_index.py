@@ -316,6 +316,48 @@ def test_result_index_labels_innovation2_output_parity_spn_local(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_present_r3_bit_role_attributed",
+            "PRESENT三轮精确bit-role真实P层增益过门，只开放独立固定密钥复验",
+        ),
+        (
+            "innovation2_output_parity_present_r3_bit_role_generic_gain_only",
+            "PRESENT三轮只有通用bit-role收益，先复核错误P层拓扑控制",
+        ),
+        (
+            "innovation2_output_parity_present_r3_bit_role_not_ready",
+            "PRESENT三轮精确bit-role网络仍未过门，转确定性依赖锥难度审计",
+        ),
+        (
+            "innovation2_output_parity_present_r3_bit_role_protocol_invalid",
+            "PRESENT三轮bit路由、拓扑控制、输出或训练协议无效",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_bit_role(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op7_present_r3_bit_role_"
+        "routing_seed0_20260721"
+    )
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP7：PRESENT三轮真实密文输出parity精确bit-role路由门"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:

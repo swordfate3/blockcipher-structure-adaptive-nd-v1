@@ -17,6 +17,15 @@ from blockcipher_nd.tasks.innovation2.output_parity_prediction import (
     OutputParityPredictionConfig,
     serializable_config,
 )
+from blockcipher_nd.tasks.innovation2.output_parity_bit_role import (
+    BIT_CHANNELS,
+    HEAD_HIDDEN_DIM,
+    ROUTING_DEPTH,
+    adjudicate_bit_role_readiness,
+    build_bit_role_data,
+    train_bit_role_matrix,
+    validate_bit_role_contract,
+)
 from blockcipher_nd.tasks.innovation2.output_parity_spn_local import (
     MIXER_DEPTH,
     RUN_ID,
@@ -33,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Run Innovation 2 OP6 PRESENT r3 output-parity SPN-local readiness."
     )
     parser.add_argument("--run-id", default=RUN_ID)
+    parser.add_argument("--route", choices=("nibble", "bit_role"), default="nibble")
     parser.add_argument("--output-root", required=True, type=Path)
     return parser.parse_args(argv)
 
@@ -40,6 +50,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     config = OutputParityPredictionConfig(run_id=args.run_id, rounds=3, seed=0)
+    if args.route == "bit_role":
+        experiment = "op7_present_r3_bit_role_routing"
+        build_data = build_bit_role_data
+        validate_contract = validate_bit_role_contract
+        train_matrix = train_bit_role_matrix
+        adjudicate = adjudicate_bit_role_readiness
+        architecture_metadata = {
+            "bit_channels": BIT_CHANNELS,
+            "routing_depth": ROUTING_DEPTH,
+            "head_hidden_dim": HEAD_HIDDEN_DIM,
+        }
+    else:
+        experiment = "op6_present_r3_spn_local_readiness"
+        build_data = build_spn_local_data
+        validate_contract = validate_spn_local_contract
+        train_matrix = train_spn_local_matrix
+        adjudicate = adjudicate_spn_local_readiness
+        architecture_metadata = {
+            "token_dim": TOKEN_DIM,
+            "mixer_depth": MIXER_DEPTH,
+        }
     args.output_root.mkdir(parents=True, exist_ok=True)
     progress = args.output_root / "progress.jsonl"
     progress.write_text("", encoding="utf-8")
@@ -47,18 +78,18 @@ def main(argv: list[str] | None = None) -> int:
         progress,
         "run_start",
         {
-            "experiment": "op6_present_r3_spn_local_readiness",
+            "experiment": experiment,
             "training": True,
             "sample_classification": False,
             "rounds": config.rounds,
             "seed": config.seed,
         },
     )
-    datasets = build_spn_local_data(config)
-    protocol_checks = validate_spn_local_contract(config, datasets)
+    datasets = build_data(config)
+    protocol_checks = validate_contract(config, datasets)
     _write_progress(progress, "data_ready", protocol_checks)
-    training = train_spn_local_matrix(config, datasets)
-    gate = adjudicate_spn_local_readiness(config, protocol_checks, training)
+    training = train_matrix(config, datasets)
+    gate = adjudicate(config, protocol_checks, training)
     for row in training["rows"]:
         row["status"] = gate["status"]
         row["decision"] = gate["decision"]
@@ -66,14 +97,13 @@ def main(argv: list[str] | None = None) -> int:
     metadata = {
         "run_id": config.run_id,
         "task": "innovation2_output_parity_prediction",
-        "experiment": "op6_present_r3_spn_local_readiness",
+        "experiment": experiment,
         "config": serializable_config(config),
         "cipher": "PRESENT-80",
         "secret_key_hex": f"{int(aligned['secret_key']):020x}",
         "key_protocol": "one fixed unknown key; disjoint plaintext splits",
-        "only_changed_variable": "SPN-local neural representation",
-        "token_dim": TOKEN_DIM,
-        "mixer_depth": MIXER_DEPTH,
+        "only_changed_variable": "SPN neural representation and fixed topology buffer",
+        **architecture_metadata,
         "sample_classification": False,
         "remote_scale": False,
         "claim_scope": gate["claim_scope"],

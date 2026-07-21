@@ -123,7 +123,7 @@ def train_spn_local_matrix(
     history: list[dict[str, Any]] = []
     rows = []
     for row_name, model_factory, topology, shuffle_labels in specifications:
-        result = _train_model(
+        result = train_aligned_parity_model(
             config,
             aligned,
             row_name=row_name,
@@ -286,7 +286,7 @@ def _build_spn_model(topology: str) -> PresentOutputParityPredictor:
     )
 
 
-def _train_model(
+def train_aligned_parity_model(
     config: OutputParityPredictionConfig,
     split_data: dict[str, Any],
     *,
