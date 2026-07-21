@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：Freeze通过 / 12个E99 checkpoint已冻结 / Evaluate等待E104生成门
+状态：Freeze通过 / Evaluate来源独立性门失败 / 未进入神经评分
 
 ## 1. 研究问题
 
@@ -148,3 +148,59 @@ i2_present_r9_atm_e99_coordinate_checkpoint_replay_seed0_seed1_20260720/
 当前裁决只开放Evaluate readiness，不构成新的神经性能结果。下一步严格等待E104
 `generation_passed`及来源/模型/参数hash检索通过，再加载已冻结权重做零适配排序；E104若进入
 resource cap、hold或fail，Evaluate保持关闭。
+
+### 7.2 Evaluate阶段正式裁决
+
+2026-07-21，E104经本地完整性与计划对齐验证后，Evaluate从干净且已推送的提交
+`a2c44ee8675fc504835691dc7aeaa36afedaf3c3`启动。12个checkpoint的文件、SHA-256、payload模型、
+seed/fold身份、state dict、E99 summary/gate hash和冻结门全部通过；E104来源、模型和参数hash也
+全部通过。失败发生在任何模型评分之前：
+
+```text
+status                         = fail
+decision                       = innovation2_present_r9_split333_source_heldout_protocol_invalid
+public serialized relations    = 470
+public relation rank           = 468
+E104 relations                 = 321
+E104 relation rank             = 321
+exact public overlap           = 318
+exact novel relations          = 3
+public + E104 union rank       = 468
+new relation-space dimensions  = 0
+heldout span within public      = true
+evaluation relation identities = 16060
+maximum fold/eval overlap       = 13453
+maximum fold/positive overlap   = 268
+```
+
+因此，`(3,3,3)`是一个未公开结果文件来源，但不是一个关系身份或GF(2)关系空间独立的heldout来源。
+318条正关系与公开语料完全相同；剩余3条虽然文件身份新，但都可由公开468维关系空间线性生成。把这
+3条事后筛出并报告排名既达不到预注册的32条宽度，也不能恢复外部来源泛化含义。
+
+协议门按计划拒绝评分，故`results.jsonl`和`relation_ranks.csv`为空，没有Recall@1、Recall@5、MRR、
+Top-5 enrichment或规则基线指标。不能据此说神经模型预测成功或失败。绘图阶段没有启动，未生成
+`curves.svg`；`visual-qa-redraw`在检查目标产物前确认无图可验，因此不存在可声称通过的像素QA。
+
+本次裁决停止当前E99原始坐标身份的外部来源路线，不增加epoch、不扩大模型、不用E104调参，也不
+机械运行R10或其他R9 split。下一步推荐先执行一个本地CPU、零训练的独立来源新颖性审计：
+
+```text
+research question = 是否存在一个与公开PRESENT R9关系空间至少增加32个GF(2)维度的外部来源
+same-budget anchor = 公开8个split的470条序列化关系 / 468维联合秩
+required controls  = 精确身份、同步旋转轨道、支撑坐标、GF(2) span四重重合审计
+one variable       = 外部算法或密码来源；模型、训练预算和评分规则暂不改变
+scale              = readiness阶段0 epochs、无seed；只有新增维度>=32才开放2 seeds x 6 folds x 40 epochs
+execution          = 本地CPU审计；readiness未过时远程GPU保持关闭
+advance gate       = 来源hash可复核、至少32个span外独立正关系、所有训练候选身份零重合
+stop gate          = 新增维度<32、来源语义不一致或需要用heldout指标筛选来源
+```
+
+该审计要先解决的精确不匹配是“文件split留出不等于关系空间留出”。只有找到真正span外的确认集，
+才重新开放冻结checkpoint零适配评价；否则转向关系生成机制或表示学习，而不是继续坐标记忆路线。
+
+产物：
+
+```text
+outputs/local_diagnostic/
+i2_present_r9_atm_split333_source_heldout_ranking_seed0_seed1_20260720/
+```

@@ -2,7 +2,7 @@
 
 日期：2026-07-20
 
-状态：远程 Phase C `stage_001` 运行中 / 最终关系尚未回收
+状态：远程生成完成 / 本地完整性与计划对齐验证通过 / E105已裁决
 
 ## 1. 研究问题
 
@@ -194,7 +194,7 @@ outputs/remote_results/i2_present_r9_atm_split333_resumable_generation_20260720/
 
 ## 9. 正式结果
 
-待执行。
+生成与回收已经完成。下述启动和恢复记录保留为执行历史，最终裁决见9.2节。
 
 ### 9.1 Phase A 启动记录
 
@@ -281,3 +281,37 @@ internal oracle_call_sum = 0
 活动至少一项非零，同时继续要求恰好新增一个checksummed候选和已有缓存复用。该修复不改变split、
 轮数、SAT模型、候选集、参数hash或关系语义。修复推送并重新通过两个恢复探针后，才重新开放
 `stage_001`；现有962个候选继续复用。
+
+### 9.2 远程完成、回收与裁决
+
+2026-07-21 04:31:52+08:00，远程任务正常写出`pipeline_passed.marker`并结束：
+
+```text
+source commit       = 85fc73200c56730894522034f5819bf72e0cb792
+ATM commit          = b2ffbb2bf0ef8f2ffabe3203896006874aa1c40b
+rounds / split      = 9 / (3,3,3)
+key model           = independent 64-bit round keys
+candidate files     = 5278
+candidate bytes     = 34582479
+relations           = 321
+relation rank       = 321
+support coordinates = 333
+parameter hash      = 80dc254788654457d7be707c985e40feffe2ccd110c13a8c7c4c8256e7381e76
+```
+
+搜索实际到第6层终止：第4层基为80，第5层有68个候选和2个基向量，第6层候选为空。两个最新
+fresh-process恢复探针分别为`probe_963`和`probe_964`，累计候选复用事件为1926和2889。
+
+首次本地后处理因验证器错误要求不存在的`readiness_gate.json`而返回invalid；生产端从始至终写入
+的是`phase_a_gate.json`。提交`a2c44ee`对齐验证契约并增加回归测试后，在不修改raw产物的前提下
+重新验证通过：全部来源、模型、参数、候选缓存、完成结果、序列化关系和GF(2)关系空间检查均为真。
+验证副本位于：
+
+```text
+outputs/remote_results/i2_present_r9_atm_split333_resumable_generation_20260720/
+```
+
+E104因此裁决为`innovation2_present_r9_split333_retrieval_verified`。其严格结论只是：在独立轮密钥
+模型下，成功生成并完整回收了PRESENT九轮ATM `(3,3,3)`关系集。它不是PRESENT-80主密钥结果、
+神经区分器、攻击、论文复现或SOTA证据。E104按计划只开放E105来源留出门；E105随后发现该关系集
+没有提供独立于公开八个split的关系空间，详见E105记录。
