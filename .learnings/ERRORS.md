@@ -39,7 +39,7 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 ### Resolution
 
 - **Resolved**: 2026-07-21T21:20:00+08:00
-- **Commit/PR**: pending
+- **Commit/PR**: 599054b
 - **Notes**: New launcher clones under `G:\lxy` succeeded with the pre-existing scoped GitHub SSH key. OP12 used clean HEAD `97fd53e95dea9edbe7fcd4e21ab068a1823626c8`; OPA1 used clean HEAD `7d4e45de5a98aa297a585103e8b6542e1ce73e13`. No source overlay or alternate transfer route was used.
 
 ---
@@ -84,7 +84,7 @@ Generate a short wrapper such as `G:\lxy\scheduled-runs\i2_opa1_key2.cmd` that c
 ### Resolution
 
 - **Resolved**: 2026-07-21T23:15:00+08:00
-- **Commit/PR**: pending
+- **Commit/PR**: 7ee17cf
 - **Notes**: The launcher now writes a short `G:\lxy` wrapper and tests freeze the short `/TR` form and the 261-character bound.
 
 ---
