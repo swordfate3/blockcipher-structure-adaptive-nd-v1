@@ -1330,6 +1330,15 @@ DECISION_LABELS = {
     "innovation2_output_parity_mask_geometry_protocol_invalid": (
         "固定密钥输出预测或配对mask协议无效，只修复协议"
     ),
+    "innovation2_output_parity_mask_geometry_two_key_confirmed": (
+        "结构对齐密文输出parity双固定密钥确认，只开放PRESENT二轮同预算门"
+    ),
+    "innovation2_output_parity_mask_geometry_two_key_not_confirmed": (
+        "结构对齐输出parity未获独立密钥确认，停止扩轮并转论文协议审计"
+    ),
+    "innovation2_output_parity_two_key_protocol_invalid": (
+        "双密钥anchor、独立性或输出预测协议无效，只修复协议"
+    ),
     "innovation2_present_r9_identity_true_p_residual_attributed": (
         "九轮坐标身份主干上的真实P残差双seed归因通过，只开放独立来源确认设计"
     ),
@@ -1745,6 +1754,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id == (
+        "i2_output_parity_prediction_op3_independent_key_present_r1_seed1_20260721"
+    ):
+        return "创新2 OP3：PRESENT一轮结构对齐密文输出parity独立密钥确认"
     if run_id == (
         "i2_output_parity_prediction_op2_mask_geometry_present_r1_seed0_20260721"
     ):

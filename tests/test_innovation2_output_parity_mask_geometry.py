@@ -7,10 +7,14 @@ import numpy as np
 from blockcipher_nd.cli.plot_innovation2_output_parity_mask_geometry import (
     render_output_parity_mask_geometry,
 )
+from blockcipher_nd.cli.plot_innovation2_output_parity_independent_key import (
+    render_output_parity_independent_key,
+)
 from blockcipher_nd.tasks.innovation2.output_parity_mask_geometry import (
     ALIGNED_MASKS,
     CONTIGUOUS_MASKS,
     adjudicate_mask_geometry,
+    adjudicate_two_key_confirmation,
     build_mask_geometry_data,
     mask_positions,
     validate_mask_geometry_contract,
@@ -140,4 +144,83 @@ def test_mask_geometry_plot_explains_real_output_target(tmp_path: Path) -> None:
     assert "真实密文输出parity" in svg
     assert "没有real-vs-random" in svg
     assert "同一S-box对齐" in svg
+    assert "不是高轮攻击" in svg
+
+
+def test_two_key_confirmation_requires_both_supported_and_independent() -> None:
+    def gate(seed: int, *, supported: bool = True) -> dict[str, object]:
+        return {
+            "status": "pass" if supported else "hold",
+            "decision": (
+                "innovation2_output_parity_mask_geometry_supported"
+                if supported
+                else "innovation2_output_parity_mask_geometry_not_calibrated"
+            ),
+            "metrics": {
+                "aligned_parity_macro_auc": 0.95 - seed * 0.01,
+                "aligned_minus_contiguous_macro_auc": 0.44,
+                "aligned_minus_shuffled_macro_auc": 0.43,
+            },
+            "thresholds": {"aligned_macro_auc_min": 0.55},
+        }
+
+    passed = adjudicate_two_key_confirmation(
+        "op3",
+        gate(0),
+        gate(1),
+        {"keys_differ": True, "plaintexts_disjoint": True},
+    )
+    held = adjudicate_two_key_confirmation(
+        "op3",
+        gate(0),
+        gate(1, supported=False),
+        {"keys_differ": True, "plaintexts_disjoint": True},
+    )
+    invalid = adjudicate_two_key_confirmation(
+        "op3",
+        gate(0),
+        gate(1),
+        {"keys_differ": False, "plaintexts_disjoint": True},
+    )
+
+    assert passed["status"] == "pass"
+    assert passed["decision"] == (
+        "innovation2_output_parity_mask_geometry_two_key_confirmed"
+    )
+    assert passed["next_action"]["next_adjudication"] == (
+        "op4_present_r2_two_key_round_step"
+    )
+    assert held["status"] == "hold"
+    assert invalid["status"] == "fail"
+
+
+def test_independent_key_plot_preserves_output_prediction_scope(
+    tmp_path: Path,
+) -> None:
+    metrics = {
+        "contiguous_parity_macro_auc": 0.50,
+        "aligned_parity_macro_auc": 0.95,
+        "shuffled_aligned_parity_macro_auc": 0.51,
+    }
+    summary = {
+        "gate": {
+            "status": "pass",
+            "decision": "innovation2_output_parity_mask_geometry_two_key_confirmed",
+            "metrics": {
+                "seed0": metrics,
+                "seed1": {**metrics, "aligned_parity_macro_auc": 0.94},
+                "minimum_aligned_parity_macro_auc": 0.94,
+                "mean_aligned_parity_macro_auc": 0.945,
+                "aligned_parity_macro_auc_range": 0.01,
+            },
+        }
+    }
+    output = tmp_path / "curves.svg"
+
+    render_output_parity_independent_key(summary, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "独立固定密钥确认" in svg
+    assert "真实密文四位置异或输出" in svg
+    assert "不是真假或平衡类别" in svg
     assert "不是高轮攻击" in svg

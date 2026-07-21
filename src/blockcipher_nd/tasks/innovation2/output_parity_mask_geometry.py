@@ -293,5 +293,89 @@ def adjudicate_mask_geometry(
     }
 
 
+def adjudicate_two_key_confirmation(
+    run_id: str,
+    anchor_gate: dict[str, Any],
+    current_gate: dict[str, Any],
+    independence_checks: dict[str, bool],
+) -> dict[str, Any]:
+    anchor_supported = (
+        anchor_gate.get("status") == "pass"
+        and anchor_gate.get("decision")
+        == "innovation2_output_parity_mask_geometry_supported"
+    )
+    current_supported = (
+        current_gate.get("status") == "pass"
+        and current_gate.get("decision")
+        == "innovation2_output_parity_mask_geometry_supported"
+    )
+    protocol_valid = (
+        all(independence_checks.values())
+        and anchor_gate.get("status") != "fail"
+        and current_gate.get("status") != "fail"
+    )
+    if not protocol_valid:
+        status = "fail"
+        decision = "innovation2_output_parity_two_key_protocol_invalid"
+        next_adjudication = "repair_op3_protocol"
+        action = (
+            "repair only the anchor, key, plaintext-independence, or output contract"
+        )
+    elif anchor_supported and current_supported:
+        status = "pass"
+        decision = "innovation2_output_parity_mask_geometry_two_key_confirmed"
+        next_adjudication = "op4_present_r2_two_key_round_step"
+        action = (
+            "preregister OP4 changing only PRESENT rounds from r1 to r2 for both "
+            "fixed-key seeds under the same mask, model, data, and epoch budgets"
+        )
+    else:
+        status = "hold"
+        decision = "innovation2_output_parity_mask_geometry_two_key_not_confirmed"
+        next_adjudication = "output_prediction_literature_protocol_audit"
+        action = (
+            "stop round, sample, epoch, capacity, and key scaling; audit the closest "
+            "fixed-key ciphertext-output prediction protocol"
+        )
+    anchor_metrics = anchor_gate.get("metrics", {})
+    current_metrics = current_gate.get("metrics", {})
+    aligned_auc_values = [
+        float(anchor_metrics.get("aligned_parity_macro_auc", float("nan"))),
+        float(current_metrics.get("aligned_parity_macro_auc", float("nan"))),
+    ]
+    return {
+        "run_id": run_id,
+        "status": status,
+        "decision": decision,
+        "checks": {
+            **independence_checks,
+            "anchor_seed0_mask_geometry_supported": anchor_supported,
+            "current_seed1_mask_geometry_supported": current_supported,
+        },
+        "thresholds": current_gate.get("thresholds", {}),
+        "metrics": {
+            "seed0": anchor_metrics,
+            "seed1": current_metrics,
+            "minimum_aligned_parity_macro_auc": min(aligned_auc_values),
+            "mean_aligned_parity_macro_auc": float(np.mean(aligned_auc_values)),
+            "aligned_parity_macro_auc_range": max(aligned_auc_values)
+            - min(aligned_auc_values),
+        },
+        "claim_scope": (
+            "local PRESENT-80 one-round confirmation across two independently generated "
+            "fixed secret keys and disjoint plaintext sets; targets are true ciphertext "
+            "output parities rather than sample classes, and this is not a high-round "
+            "attack, paper reproduction, or SOTA result"
+        ),
+        "next_action": {
+            "action": action,
+            "next_adjudication": next_adjudication,
+            "remote_scale": False,
+            "high_round_training": False,
+            "sample_classification": False,
+        },
+    }
+
+
 def mask_positions(mask: int) -> tuple[int, ...]:
     return tuple(bit for bit in range(64) if (mask >> bit) & 1)

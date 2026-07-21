@@ -150,6 +150,43 @@ def test_result_index_labels_innovation2_output_parity_mask_geometry(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation2_output_parity_mask_geometry_two_key_confirmed",
+            "结构对齐密文输出parity双固定密钥确认，只开放PRESENT二轮同预算门",
+        ),
+        (
+            "innovation2_output_parity_mask_geometry_two_key_not_confirmed",
+            "结构对齐输出parity未获独立密钥确认，停止扩轮并转论文协议审计",
+        ),
+        (
+            "innovation2_output_parity_two_key_protocol_invalid",
+            "双密钥anchor、独立性或输出预测协议无效，只修复协议",
+        ),
+    ],
+)
+def test_result_index_labels_innovation2_output_parity_independent_key(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = (
+        "i2_output_parity_prediction_op3_independent_key_present_r1_seed1_20260721"
+    )
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新2 OP3：PRESENT一轮结构对齐密文输出parity独立密钥确认"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
