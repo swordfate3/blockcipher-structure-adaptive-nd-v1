@@ -134,6 +134,51 @@ When the dirty-source gate fails, retrieve the marker first and perform one boun
 
 ---
 
+## [ERR-20260721-004] remote_training_cli_eager_plot_dependency
+
+**Logged**: 2026-07-21T23:30:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+
+OPA1 passed remote CUDA/readiness checks but exited before data generation because the training CLI eagerly imported a Matplotlib plotting module unavailable in the remote torch environment.
+
+### Error
+
+```text
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+### Context
+
+- Formal remote plots are intentionally deferred until verified local retrieval.
+- The CLI nevertheless imported `plot_innovation2_selected_output_architecture` at module scope for local smoke rendering.
+- CUDA, the pinned source revision, and the experiment JSON readiness gate all passed; no cache or checkpoint was created before the import failure.
+
+### Suggested Fix
+
+Import the plotting module only inside the local `smoke` branch. Add a subprocess regression test that blocks every Matplotlib import and verifies the training CLI can still be imported.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/run_innovation2_selected_output_architecture.py, tests/test_innovation2_selected_output_architecture.py
+- See Also: ERR-20260721-002, ERR-20260721-003
+- Pattern-Key: remote.training_cli_must_not_eager_import_deferred_plot_dependencies
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+### Resolution
+
+- **Resolved**: 2026-07-21T23:32:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Plotting is now lazily imported only for local smoke, and the new test emulates the remote environment without Matplotlib.
+
+---
+
 ## [ERR-20260716-008] iacr_pdf_cloudflare_and_browser_tool_unavailable
 
 **Logged**: 2026-07-16T15:42:57+08:00

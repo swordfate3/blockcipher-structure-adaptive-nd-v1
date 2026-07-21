@@ -7,9 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from blockcipher_nd.cli.plot_innovation2_selected_output_architecture import (
-    render_selected_output_architecture,
-)
 from blockcipher_nd.tasks.innovation2.selected_output_architecture_gate import (
     REMOTE_RUN_ID,
     RUN_ID,
@@ -118,6 +115,10 @@ def main(argv: list[str] | None = None) -> int:
         training["checkpoints"],
     )
     if config.mode == "smoke":
+        from blockcipher_nd.cli.plot_innovation2_selected_output_architecture import (
+            render_selected_output_architecture,
+        )
+
         render_selected_output_architecture(
             summary,
             args.output_root / "curves.svg",

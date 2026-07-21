@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import torch
@@ -231,3 +233,27 @@ def test_remote_package_freezes_five_model_phase_a_and_windows_hygiene() -> None
         "C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519",
         "",
     )
+
+
+def test_training_cli_import_does_not_require_matplotlib() -> None:
+    code = """
+import builtins
+original_import = builtins.__import__
+def guarded_import(name, *args, **kwargs):
+    if name == 'matplotlib' or name.startswith('matplotlib.'):
+        raise ModuleNotFoundError('matplotlib intentionally unavailable')
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = guarded_import
+import blockcipher_nd.cli.run_innovation2_selected_output_architecture
+print('import=pass')
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "import=pass"
