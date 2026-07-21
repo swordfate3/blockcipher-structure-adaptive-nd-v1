@@ -68,6 +68,42 @@ def test_candidate_selection_and_fresh_gate_are_bitwise_not_full_exact() -> None
     assert "full-ciphertext recovery" in gate["claim_scope"]
 
 
+def test_candidate_selection_can_freeze_mlp_for_an_easy_bit() -> None:
+    config = OutputBitDiscoveryConfig()
+    discovery_rows = _synthetic_metric_rows(
+        "discovery", strong_bit=11, strong_model="matched_mlp_true_output"
+    )
+
+    candidates = select_discovery_candidates(
+        config, discovery_rows, source_run_id="source"
+    )
+
+    assert candidates["candidate_msb_indices"] == [11]
+    assert candidates["candidates"][0]["selector_model"] == (
+        "matched_mlp_true_output"
+    )
+    assert candidates["candidates"][0]["shuffle_control_scope"] == (
+        "cross_architecture_negative_control"
+    )
+    fresh_rows = _synthetic_metric_rows(
+        "fresh_confirmation",
+        strong_bit=11,
+        strong_model="matched_mlp_true_output",
+    )
+    gate = adjudicate_output_bit_discovery(
+        OutputBitDiscoveryConfig(mode="fresh_confirmation"),
+        {"source_valid": True},
+        {"fresh_valid": True},
+        discovery_rows,
+        fresh_rows,
+        candidates,
+    )
+    assert gate["metrics"]["fresh_confirmed_msb_indices"] == [11]
+    assert gate["candidate_confirmation"][0]["fresh_selector_model"] == (
+        "matched_mlp_true_output"
+    )
+
+
 def test_end_to_end_smoke_freezes_candidates_before_fresh_holdout(
     tmp_path: Path,
 ) -> None:
@@ -164,6 +200,7 @@ def test_plot_explains_bit_order_and_fresh_confirmation(tmp_path: Path) -> None:
             "candidate_confirmation": [
                 {
                     "msb_index": 7,
+                    "selector_model": "kimura_lstm_true_output",
                     "fresh_auc": 0.518,
                     "fresh_shuffle_auc": 0.5,
                 }
@@ -226,7 +263,12 @@ def test_remote_package_waits_for_op9_and_freezes_fresh_scale() -> None:
     assert "sleep 120" in monitor
 
 
-def _synthetic_metric_rows(split: str, *, strong_bit: int) -> list[dict[str, object]]:
+def _synthetic_metric_rows(
+    split: str,
+    *,
+    strong_bit: int,
+    strong_model: str = "kimura_lstm_true_output",
+) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for model in (
         "kimura_lstm_true_output",
@@ -234,7 +276,7 @@ def _synthetic_metric_rows(split: str, *, strong_bit: int) -> list[dict[str, obj
         "kimura_lstm_label_shuffle",
     ):
         for bit in range(64):
-            strong = model == "kimura_lstm_true_output" and bit == strong_bit
+            strong = model == strong_model and bit == strong_bit
             rows.append(
                 {
                     "split": split,

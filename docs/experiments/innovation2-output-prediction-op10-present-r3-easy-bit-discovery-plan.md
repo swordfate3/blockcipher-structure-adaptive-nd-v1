@@ -41,8 +41,11 @@ matched_mlp_true_output       同参数量非序列基线
 kimura_lstm_label_shuffle     架构匹配的标签打乱控制
 ```
 
-候选只按真实输出LSTM排序；MLP用于判断候选是否为通用容量信号，标签打乱LSTM用于排除位置边际和训练
-流程捷径。模型、阈值和候选数不得在fresh确认结果揭盲后修改。
+每个bit分别计算真实输出LSTM和真实输出MLP的冻结发现分数，并选择两者中分数更强的模型作为该bit的
+`selector_model`；最多8个候选bit，不会把同一位置按两个模型重复计数。标签打乱LSTM是LSTM候选的
+架构匹配控制，对MLP候选只能作为跨架构负控制。若MLP候选fresh确认，OP11必须补同预算
+`matched_mlp_label_shuffle`后才能作架构归因或跨密钥声明。模型、阈值和候选数不得在fresh确认结果
+揭盲后修改。
 
 ## 4. 两个严格分离的数据阶段
 
@@ -75,8 +78,9 @@ LSTM discovery accuracy - majority >= +0.005
 LSTM discovery AUC - shuffled-LSTM AUC >= +0.005
 ```
 
-按`min(AUC-0.5, accuracy-majority, AUC-shuffled_AUC)`降序，冻结最多8个候选；并始终输出64位完整排名，
-即使候选池为空。fresh阶段对冻结候选使用同样三个阈值，且AUC方向必须仍大于0.5。
+对LSTM和MLP分别计算`min(AUC-0.5, accuracy-majority, AUC-shuffled_AUC)`，每个bit冻结分数更强的
+模型，再按该分数降序冻结最多8个候选；并始终输出64位完整排名，即使候选池为空。fresh阶段对冻结
+的同一`(bit, selector_model)`使用同样三个阈值，且AUC方向必须仍大于0.5。
 
 主裁决：
 
@@ -109,7 +113,8 @@ curves.svg
 ## 7. 下一步和停止项
 
 若至少一个bit确认，通过OP11只对确认bit训练专用小输出头，并在第二把独立固定秘密密钥上复验同一
-位置；专用头必须与共享64输出头、MLP和标签打乱控制使用相同数据预算。第二密钥前不扩r4。
+位置；专用头必须与共享64输出头、MLP和各自架构匹配的标签打乱控制使用相同数据预算。第二密钥前
+不扩r4。
 
 若没有bit确认，不把完整模型机械扩到更多数据、epoch、层数、seed或更高轮；先审计专用单bit头是否
 属于合理的多任务干扰诊断。不得退回真假样本分类、平衡性质分类或用完整exact-match替代逐bit裁决。
@@ -119,7 +124,7 @@ curves.svg
 使用OP9本地完整架构smoke的三个checkpoint完成OP10端到端实现门：
 
 ```text
-run_id          = i2_output_prediction_op10_present_r3_easy_bit_smoke_20260721
+run_id          = i2_output_prediction_op10_present_r3_easy_bit_modelselect_smoke_20260721
 discovery       = 64条OP9未见明文
 fresh           = 64条新生成且与OP9全部明文不重合的明文
 result rows     = 64 bits x 3 models x 2 splits = 384
@@ -129,7 +134,8 @@ decision        = innovation2_output_bit_discovery_local_smoke_passed
 ```
 
 候选文件及SHA-256在第一条fresh数据生成前写盘；三个checkpoint hash、MSB-first映射、真实PRESENT
-输出重放、发现/fresh拆分和结果行数全部通过。`64+64`小样本没有候选，不作性能结论。
+输出重放、发现/fresh拆分、逐bit LSTM/MLP模型冻结选择和结果行数全部通过。`64+64`小样本没有候选，
+不作性能结论。
 
 `curves.svg`经过两轮`visual-qa-redraw`像素检查：修正内部英文decision id和缺失的smoke边界后，最终
 标题、四面板、图例、bit方向、曲线缩放和中文裁决没有重叠、裁切或语义歧义。结果索引已刷新为

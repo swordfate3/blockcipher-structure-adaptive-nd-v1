@@ -15,7 +15,7 @@ OP9 aligned to Kimura's full-output protocol and therefore centered complete 64-
 
 ### Suggested Action
 
-Report per-bit true output value metrics with explicit MSB-first positions. Select candidate bits on a frozen discovery set using an architecture-matched label-shuffle control, then confirm only the frozen candidates on a fresh non-overlapping plaintext set under the same fixed key. Use per-bit accuracy above the bit-majority baseline and per-bit AUC/control deltas as primary gates; retain full-output exact match only as a Kimura literature anchor.
+Report per-bit true output value metrics with explicit MSB-first positions. For each bit, freeze whichever preregistered true-output model is stronger on the discovery set, then confirm that same `(bit, model)` on a fresh non-overlapping plaintext set under the same fixed key. Use per-bit accuracy above the bit-majority baseline and per-bit AUC/control deltas as primary gates. State whether a shuffle control is architecture-matched; an MLP selected against only a shuffled LSTM needs a matched MLP-shuffle control before architecture or cross-key claims. Retain full-output exact match only as a Kimura literature anchor.
 
 ### Metadata
 
@@ -32,7 +32,7 @@ Report per-bit true output value metrics with explicit MSB-first positions. Sele
 
 - **Resolved**: 2026-07-21T18:42:00+08:00
 - **Commit/PR**: pending
-- **Notes**: Reframed OP9 as the shared 64-bit scan and preregistered OP10 disjoint discovery/fresh-confirmation analysis before reading final OP9 metrics.
+- **Notes**: Reframed OP9 as the shared 64-bit scan and preregistered OP10 disjoint discovery/fresh-confirmation analysis before reading final OP9 metrics; expanded the selector to both frozen true-output models when partial training evidence showed that an LSTM-only selector could miss MLP-predictable bits.
 
 ---
 

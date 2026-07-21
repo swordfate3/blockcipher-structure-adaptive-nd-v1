@@ -20,7 +20,7 @@
     "matched_mlp_true_output",
     "kimura_lstm_label_shuffle"
   ],
-  "advance_gate": "At least one discovery-selected bit passes the same AUC, accuracy-over-majority, and true-minus-shuffled AUC thresholds on 65536 fresh source-disjoint plaintexts.",
+  "advance_gate": "At least one discovery-selected (bit, stronger true-output model) pair passes the same AUC, accuracy-over-majority, and true-minus-shuffled AUC thresholds on 65536 fresh source-disjoint plaintexts; MLP-selected bits require a matched MLP shuffle control in OP11.",
   "stop_gate": "Do not expand rounds or full-output training when no bit fresh-confirms; audit only a dedicated single-bit head as a multitask-interference diagnostic.",
   "next_action_on_pass": "Train dedicated heads only for confirmed bits and repeat the same positions under one independent fixed secret key."
 }

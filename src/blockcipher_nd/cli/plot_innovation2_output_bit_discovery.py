@@ -181,7 +181,7 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
                 fresh_auc_values,
                 width=width,
                 color="#0F766E",
-                label="真实输出LSTM",
+                label="候选冻结的真实输出模型",
             )
             candidate_axis.bar(
                 positions + width / 2,
@@ -199,7 +199,18 @@ def render_output_bit_discovery(summary: dict[str, Any], output: Path) -> None:
             )
             candidate_axis.set_xticks(
                 positions,
-                [f"bit {int(row['msb_index'])}" for row in candidate_rows],
+                [
+                    (
+                        f"bit {int(row['msb_index'])}\n"
+                        + (
+                            "LSTM"
+                            if row["selector_model"]
+                            == "kimura_lstm_true_output"
+                            else "MLP"
+                        )
+                    )
+                    for row in candidate_rows
+                ],
             )
             candidate_axis.tick_params(axis="x", rotation=35)
             low = min(fresh_auc_values + shuffle_auc_values + [0.5]) - 0.01

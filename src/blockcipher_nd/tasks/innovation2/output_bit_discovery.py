@@ -205,19 +205,52 @@ def select_discovery_candidates(
     }
     ranked: list[dict[str, Any]] = []
     for msb_index in range(64):
-        true_row = indexed[("kimura_lstm_true_output", msb_index)]
         shuffled_row = indexed[("kimura_lstm_label_shuffle", msb_index)]
-        auc_margin = float(true_row["auc"]) - float(shuffled_row["auc"])
-        selection_score = min(
-            float(true_row["auc"]) - 0.5,
-            float(true_row["accuracy_minus_majority"]),
-            auc_margin,
-        )
-        eligible = (
-            float(true_row["auc"]) >= config.minimum_auc
-            and float(true_row["accuracy_minus_majority"])
-            >= config.minimum_accuracy_margin
-            and auc_margin >= config.minimum_shuffle_auc_margin
+        model_options: list[dict[str, Any]] = []
+        for model_name in (
+            "kimura_lstm_true_output",
+            "matched_mlp_true_output",
+        ):
+            true_row = indexed[(model_name, msb_index)]
+            auc_margin = float(true_row["auc"]) - float(shuffled_row["auc"])
+            selection_score = min(
+                float(true_row["auc"]) - 0.5,
+                float(true_row["accuracy_minus_majority"]),
+                auc_margin,
+            )
+            model_options.append(
+                {
+                    "selector_model": model_name,
+                    "eligible": (
+                        float(true_row["auc"]) >= config.minimum_auc
+                        and float(true_row["accuracy_minus_majority"])
+                        >= config.minimum_accuracy_margin
+                        and auc_margin >= config.minimum_shuffle_auc_margin
+                    ),
+                    "selection_score": selection_score,
+                    "discovery_auc": float(true_row["auc"]),
+                    "discovery_accuracy": float(true_row["threshold_accuracy"]),
+                    "discovery_majority_accuracy": float(
+                        true_row["majority_accuracy"]
+                    ),
+                    "discovery_accuracy_margin": float(
+                        true_row["accuracy_minus_majority"]
+                    ),
+                    "discovery_auc_minus_shuffle": auc_margin,
+                    "shuffle_control_scope": (
+                        "architecture_matched"
+                        if model_name == "kimura_lstm_true_output"
+                        else "cross_architecture_negative_control"
+                    ),
+                }
+            )
+        selected = max(
+            model_options,
+            key=lambda row: (
+                float(row["selection_score"]),
+                float(row["discovery_auc"]),
+                row["selector_model"] == "kimura_lstm_true_output",
+            ),
         )
         ranked.append(
             {
@@ -225,16 +258,18 @@ def select_discovery_candidates(
                 "integer_bit": 63 - msb_index,
                 "nibble_msb_index": msb_index // 4,
                 "bit_in_nibble_msb": msb_index % 4,
-                "eligible": eligible,
-                "selection_score": selection_score,
-                "discovery_auc": float(true_row["auc"]),
-                "discovery_accuracy": float(true_row["threshold_accuracy"]),
-                "discovery_majority_accuracy": float(true_row["majority_accuracy"]),
-                "discovery_accuracy_margin": float(
-                    true_row["accuracy_minus_majority"]
-                ),
+                **selected,
                 "discovery_shuffle_auc": float(shuffled_row["auc"]),
-                "discovery_auc_minus_shuffle": auc_margin,
+                "lstm_option": next(
+                    row
+                    for row in model_options
+                    if row["selector_model"] == "kimura_lstm_true_output"
+                ),
+                "mlp_option": next(
+                    row
+                    for row in model_options
+                    if row["selector_model"] == "matched_mlp_true_output"
+                ),
             }
         )
     ranked.sort(
@@ -253,6 +288,16 @@ def select_discovery_candidates(
         "selection_split": "op9_disjoint_test_discovery_only",
         "confirmation_split": "fresh_plaintexts_not_evaluated_when_frozen",
         "bit_order": "msb_first",
+        "selector_models": [
+            "kimura_lstm_true_output",
+            "matched_mlp_true_output",
+        ],
+        "shuffle_control_model": "kimura_lstm_label_shuffle",
+        "mlp_shuffle_control_boundary": (
+            "The available shuffled LSTM is a cross-architecture negative control for "
+            "MLP-selected bits; OP11 must add matched_mlp_label_shuffle before an "
+            "architecture-attribution or cross-key claim."
+        ),
         "candidate_limit": config.candidate_limit,
         "thresholds": {
             "minimum_auc": config.minimum_auc,
@@ -454,7 +499,8 @@ def adjudicate_output_bit_discovery(
     confirmed: list[dict[str, Any]] = []
     for candidate in candidates["candidates"]:
         bit = int(candidate["msb_index"])
-        true_row = fresh_index[("kimura_lstm_true_output", bit)]
+        selector_model = str(candidate["selector_model"])
+        true_row = fresh_index[(selector_model, bit)]
         shuffled_row = fresh_index[("kimura_lstm_label_shuffle", bit)]
         auc_margin = float(true_row["auc"]) - float(shuffled_row["auc"])
         checks = {
@@ -470,6 +516,7 @@ def adjudicate_output_bit_discovery(
         confirmed.append(
             {
                 **candidate,
+                "fresh_selector_model": selector_model,
                 "fresh_auc": float(true_row["auc"]),
                 "fresh_accuracy": float(true_row["threshold_accuracy"]),
                 "fresh_majority_accuracy": float(true_row["majority_accuracy"]),
@@ -503,6 +550,11 @@ def adjudicate_output_bit_discovery(
         <= config.candidate_limit,
         "candidate_selection_uses_discovery_only": candidates["selection_split"]
         == "op9_disjoint_test_discovery_only",
+        "candidate_selector_models_are_frozen": all(
+            row["selector_model"]
+            in {"kimura_lstm_true_output", "matched_mlp_true_output"}
+            for row in candidates["candidates"]
+        ),
     }
     confirmed_bits = [row for row in confirmed if row["confirmed"]]
     if not all(protocol_checks.values()):
@@ -569,6 +621,10 @@ def build_bit_ranking(
         int(row["msb_index"]): rank
         for rank, row in enumerate(candidates["all_64_discovery_ranking"], start=1)
     }
+    selection_by_bit = {
+        int(row["msb_index"]): row
+        for row in candidates["all_64_discovery_ranking"]
+    }
     candidate_bits = set(candidates["candidate_msb_indices"])
     confirmed_bits = set(gate["metrics"]["fresh_confirmed_msb_indices"])
     rows: list[dict[str, Any]] = []
@@ -579,6 +635,8 @@ def build_bit_ranking(
         fresh_true = fresh_index[("kimura_lstm_true_output", bit)]
         fresh_shuffle = fresh_index[("kimura_lstm_label_shuffle", bit)]
         fresh_mlp = fresh_index[("matched_mlp_true_output", bit)]
+        selection = selection_by_bit[bit]
+        fresh_selector = fresh_index[(selection["selector_model"], bit)]
         rows.append(
             {
                 "discovery_rank": rank_by_bit[bit],
@@ -588,6 +646,13 @@ def build_bit_ranking(
                 "bit_in_nibble_msb": bit % 4,
                 "selected_candidate": bit in candidate_bits,
                 "fresh_confirmed": bit in confirmed_bits,
+                "selector_model": selection["selector_model"],
+                "shuffle_control_scope": selection["shuffle_control_scope"],
+                "discovery_selector_auc": selection["discovery_auc"],
+                "fresh_selector_auc": fresh_selector["auc"],
+                "fresh_selector_accuracy_margin": fresh_selector[
+                    "accuracy_minus_majority"
+                ],
                 "discovery_lstm_auc": discovery_true["auc"],
                 "discovery_shuffle_auc": discovery_shuffle["auc"],
                 "discovery_mlp_auc": discovery_mlp["auc"],
