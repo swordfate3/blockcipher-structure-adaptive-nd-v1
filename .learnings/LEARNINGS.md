@@ -1,3 +1,41 @@
+## [LRN-20260722-001] correction
+
+**Logged**: 2026-07-22T03:39:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: backend
+
+### Summary
+
+Verify the actual task call path before claiming that a neighboring protocol validator blocks a new experiment round.
+
+### Details
+
+While preparing Innovation 2 OPA4, the nearby Kimura paper-calibration validator was found to freeze `rounds == 3`. I initially reported that this would reject the four-round selected-output experiment. Source tracing then showed that OPA2/OPA3 and the planned OPA4 data path use `validate_selected_output_contract`, which reconstructs `Present80(rounds=config.rounds, ...)` and supports round four. The hard-coded Kimura condition belongs only to the full-output paper-calibration CLI and is not on OPA4's execution path.
+
+### Suggested Action
+
+Before reporting a compatibility blocker, trace the concrete CLI-to-task-to-validator imports and confirm the suspected function is actually invoked. Treat similarly named or adjacent validation code as indirect evidence until the call path is verified.
+
+### Metadata
+
+- Source: self_correction, source_call_path_audit
+- Related Files: src/blockcipher_nd/tasks/innovation2/output_prediction_kimura_lstm.py, src/blockcipher_nd/tasks/innovation2/selected_output_bit_head.py, src/blockcipher_nd/tasks/innovation2/selected_output_architecture_confirmation.py
+- Tags: innovation2, output-prediction, validation, call-path, compatibility
+- See Also: LRN-20260721-001
+- Pattern-Key: research.verify_actual_call_path_before_compatibility_claim
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T03:39:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the claim in the same turn after tracing OPA4's selected-output validator path; no source change was needed.
+
+---
+
 ## [LRN-20260721-004] correction
 
 **Logged**: 2026-07-21T20:48:00+08:00
