@@ -86,6 +86,10 @@ mean[(candidate true - candidate shuffle) - (MLP true - MLP shuffle)] >= +0.003
 缓存、训练、checkpoint、32条结果和中文图，不作性能结论。正式实验只能在A6000运行，并沿用OPA1的
 磁盘缓存、断点和verified-result-branch回收规则。
 
+每个OPA2运行必须单独保存`phase_a_gate.json`，并在协议检查中要求该gate的全部`protocol_checks`和
+`execution_checks`为真。`summary.json`同时嵌入同一gate，确保候选身份、授权门和最终结果可以离线
+复核，不能只依赖命令行参数或聊天记录。
+
 禁止：
 
 - 手工覆盖OPA1候选；

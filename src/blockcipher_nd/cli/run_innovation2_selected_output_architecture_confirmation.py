@@ -121,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_jsonl(args.output_root / "results.jsonl", training["rows"])
     _write_csv(args.output_root / "history.csv", training["history"])
     _write_json(args.output_root / "metadata.json", metadata)
+    _write_json(args.output_root / "phase_a_gate.json", phase_a_gate)
     _write_json(args.output_root / "summary.json", summary)
     _write_json(args.output_root / "gate.json", gate)
     _write_json(

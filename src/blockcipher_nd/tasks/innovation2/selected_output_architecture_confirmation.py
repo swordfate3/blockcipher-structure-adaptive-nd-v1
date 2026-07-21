@@ -120,6 +120,10 @@ def candidate_from_phase_a_gate(gate: dict[str, Any]) -> str:
         "innovation2_selected8_architecture_candidate_requires_confirmation"
     ):
         raise ValueError("OPA1 did not authorize Phase B confirmation")
+    for check_group in ("protocol_checks", "execution_checks"):
+        checks = gate.get(check_group)
+        if not isinstance(checks, dict) or not checks or not all(checks.values()):
+            raise ValueError(f"OPA1 {check_group} did not fully pass")
     metrics = gate.get("metrics")
     if not isinstance(metrics, dict):
         raise ValueError("OPA1 gate is missing architecture metrics")

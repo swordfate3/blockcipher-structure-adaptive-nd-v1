@@ -30,6 +30,8 @@ def _phase_a_gate(candidate: str = "rescnn") -> dict[str, object]:
         "run_id": PHASE_A_REMOTE_RUN_ID,
         "status": "pass",
         "decision": "innovation2_selected8_architecture_candidate_requires_confirmation",
+        "protocol_checks": {"valid": True},
+        "execution_checks": {"complete": True},
         "metrics": {
             "selected_candidate_for_phase_b": candidate,
             "candidate_gates": {candidate: {"passed": True}},
@@ -72,6 +74,10 @@ def test_phase_a_gate_is_the_only_candidate_authority() -> None:
     failed_candidate["metrics"]["candidate_gates"]["rescnn"]["passed"] = False  # type: ignore[index]
     with pytest.raises(ValueError, match="did not pass"):
         candidate_from_phase_a_gate(failed_candidate)
+    invalid_protocol = _phase_a_gate()
+    invalid_protocol["protocol_checks"] = {"valid": False}
+    with pytest.raises(ValueError, match="protocol_checks"):
+        candidate_from_phase_a_gate(invalid_protocol)
 
 
 def test_confirmation_config_is_frozen_to_non_mlp_seed3() -> None:
