@@ -1,0 +1,26 @@
+[
+  {
+    "config_hash": "83bcdbd4dac098e3455b648fdf9fa150e701c7890f9b9fe69643c0968cd36489",
+    "model": "selected8_mlp_true_output",
+    "path": "models\\selected8_mlp_true_output_final.pt",
+    "sha256": "34dc3410cffa0a5d68544be75c0047b3f9216c326d8e2d4147008242bb7a4ec7"
+  },
+  {
+    "config_hash": "8d626fd1b23af3d21a35116817169163afd4e7f77fe035dfdb0fd20321f961a9",
+    "model": "structured6_mlp_true_xor",
+    "path": "models\\structured6_mlp_true_xor_final.pt",
+    "sha256": "4be0505a5cb99a928b96d96aee3a1e46f587475fe0913f012e5783a9b696578c"
+  },
+  {
+    "config_hash": "07667f998d80c87c5a7d10f1cb71eb3d737218cc80882845f98510d08e41dea8",
+    "model": "geometry6_mlp_true_xor",
+    "path": "models\\geometry6_mlp_true_xor_final.pt",
+    "sha256": "e6919757ddc35f661945420973a08c9f7ba22fcd575d7e8f87ec9301c3a300be"
+  },
+  {
+    "config_hash": "572cb3e910d5b18c73c5a125ea82d8b21aabb8bc0b9dcaa60e3577c98f51ff0e",
+    "model": "structured6_mlp_label_shuffle",
+    "path": "models\\structured6_mlp_label_shuffle_final.pt",
+    "sha256": "484d9108dc79085fcf0fe61f045ffde08570f9cc533a9429d8dd68e92c1ce7d6"
+  }
+]

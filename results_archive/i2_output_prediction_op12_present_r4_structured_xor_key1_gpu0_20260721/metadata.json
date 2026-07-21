@@ -1,0 +1,166 @@
+{
+  "cipher": "PRESENT-80",
+  "claim_scope": "single seed1 fixed-key PRESENT r4 direct prediction of six preregistered structured output-XOR functions; not sample classification, integral balance, broad cross-key statistics, r5 evidence, or SOTA",
+  "config": {
+    "batch_size": 250,
+    "data_chunk_rows": 4096,
+    "device": "cuda",
+    "epochs": 100,
+    "hidden_dim": 1936,
+    "learning_rate": 0.001,
+    "minimum_accuracy_margin": 0.005,
+    "minimum_auc": 0.51,
+    "minimum_component_auc_margin": 0.002,
+    "minimum_control_auc_margin": 0.005,
+    "minimum_derived_auc_margin": 0.005,
+    "minimum_pair_masks": 2,
+    "minimum_shuffle_auc_margin": 0.005,
+    "mode": "round_extension",
+    "rounds": 4,
+    "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+    "seed": 1,
+    "selected_msb_indices": [
+      0,
+      2,
+      8,
+      10,
+      32,
+      34,
+      40,
+      42
+    ],
+    "test_rows": 65536,
+    "train_rows": 131072
+  },
+  "experiment": "op12_present_r4_structured_output_xor",
+  "geometry_control_masks": [
+    {
+      "bits": [
+        0,
+        2
+      ],
+      "family": "output_nibble_pair",
+      "name": "output_nibble_pair_0_2"
+    },
+    {
+      "bits": [
+        8,
+        10
+      ],
+      "family": "output_nibble_pair",
+      "name": "output_nibble_pair_8_10"
+    },
+    {
+      "bits": [
+        32,
+        34
+      ],
+      "family": "output_nibble_pair",
+      "name": "output_nibble_pair_32_34"
+    },
+    {
+      "bits": [
+        40,
+        42
+      ],
+      "family": "output_nibble_pair",
+      "name": "output_nibble_pair_40_42"
+    },
+    {
+      "bits": [
+        0,
+        2,
+        32,
+        34
+      ],
+      "family": "mixed_role_four",
+      "name": "mixed_role4_0_2_32_34"
+    },
+    {
+      "bits": [
+        8,
+        10,
+        40,
+        42
+      ],
+      "family": "mixed_role_four",
+      "name": "mixed_role4_8_10_40_42"
+    }
+  ],
+  "input": "64 MSB-first plaintext bits",
+  "key_protocol": "same second fixed unknown key as OP11 seed1; disjoint plaintext train/test",
+  "mode": "round_extension",
+  "parameter_counts": {
+    "selected8_mlp": 3891368,
+    "xor6_mlp": 3887494
+  },
+  "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+  "sample_classification": false,
+  "secret_key_hex": "02d34f4595d439ed81b0",
+  "selected_msb_indices": [
+    0,
+    2,
+    8,
+    10,
+    32,
+    34,
+    40,
+    42
+  ],
+  "structured_masks": [
+    {
+      "bits": [
+        0,
+        32
+      ],
+      "family": "same_sbox_pair",
+      "name": "same_sbox_pair_0_32"
+    },
+    {
+      "bits": [
+        2,
+        34
+      ],
+      "family": "same_sbox_pair",
+      "name": "same_sbox_pair_2_34"
+    },
+    {
+      "bits": [
+        8,
+        40
+      ],
+      "family": "same_sbox_pair",
+      "name": "same_sbox_pair_8_40"
+    },
+    {
+      "bits": [
+        10,
+        42
+      ],
+      "family": "same_sbox_pair",
+      "name": "same_sbox_pair_10_42"
+    },
+    {
+      "bits": [
+        0,
+        2,
+        8,
+        10
+      ],
+      "family": "same_role_four",
+      "name": "same_role4_0_2_8_10"
+    },
+    {
+      "bits": [
+        32,
+        34,
+        40,
+        42
+      ],
+      "family": "same_role_four",
+      "name": "same_role4_32_34_40_42"
+    }
+  ],
+  "target": "six preregistered true ciphertext output-XOR values",
+  "task": "innovation2_output_prediction"
+}

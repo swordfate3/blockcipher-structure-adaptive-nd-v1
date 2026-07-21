@@ -1,0 +1,1110 @@
+{
+  "checkpoint_manifest": [
+    {
+      "config_hash": "83bcdbd4dac098e3455b648fdf9fa150e701c7890f9b9fe69643c0968cd36489",
+      "model": "selected8_mlp_true_output",
+      "path": "models\\selected8_mlp_true_output_final.pt",
+      "sha256": "34dc3410cffa0a5d68544be75c0047b3f9216c326d8e2d4147008242bb7a4ec7"
+    },
+    {
+      "config_hash": "8d626fd1b23af3d21a35116817169163afd4e7f77fe035dfdb0fd20321f961a9",
+      "model": "structured6_mlp_true_xor",
+      "path": "models\\structured6_mlp_true_xor_final.pt",
+      "sha256": "4be0505a5cb99a928b96d96aee3a1e46f587475fe0913f012e5783a9b696578c"
+    },
+    {
+      "config_hash": "07667f998d80c87c5a7d10f1cb71eb3d737218cc80882845f98510d08e41dea8",
+      "model": "geometry6_mlp_true_xor",
+      "path": "models\\geometry6_mlp_true_xor_final.pt",
+      "sha256": "e6919757ddc35f661945420973a08c9f7ba22fcd575d7e8f87ec9301c3a300be"
+    },
+    {
+      "config_hash": "572cb3e910d5b18c73c5a125ea82d8b21aabb8bc0b9dcaa60e3577c98f51ff0e",
+      "model": "structured6_mlp_label_shuffle",
+      "path": "models\\structured6_mlp_label_shuffle_final.pt",
+      "sha256": "484d9108dc79085fcf0fe61f045ffde08570f9cc533a9429d8dd68e92c1ce7d6"
+    }
+  ],
+  "gate": {
+    "claim_scope": "single seed1 fixed-key PRESENT r4 direct prediction of six preregistered structured output-XOR functions; not sample classification, integral balance, broad cross-key statistics, r5 evidence, or SOTA",
+    "decision": "innovation2_r4_structured_xor_not_supported",
+    "execution_checks": {
+      "all_metrics_are_finite": true,
+      "four_checkpoint_hashes_present": true,
+      "four_models_complete": true,
+      "history_rows_complete": true,
+      "structured_rows_have_all_comparisons": true,
+      "twenty_six_result_rows_complete": true
+    },
+    "mask_gates": [
+      {
+        "accuracy_minus_majority": 0.0023651123046875,
+        "auc": 0.5029175330807951,
+        "auc_minus_best_component": -0.0006631988880247963,
+        "auc_minus_derived": 0.004221953844833537,
+        "auc_minus_geometry": 0.0026567395738968935,
+        "auc_minus_shuffle": -0.0015516501433822105,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_sbox_pair",
+        "mask_bits": [
+          0,
+          32
+        ],
+        "mask_name": "same_sbox_pair_0_32",
+        "passed": false
+      },
+      {
+        "accuracy_minus_majority": -0.002655029296875,
+        "auc": 0.4988737526996594,
+        "auc_minus_best_component": -0.006558019814202232,
+        "auc_minus_derived": -0.0019449277181060598,
+        "auc_minus_geometry": -0.0033993349018055508,
+        "auc_minus_shuffle": -0.0025683710684945016,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_sbox_pair",
+        "mask_bits": [
+          2,
+          34
+        ],
+        "mask_name": "same_sbox_pair_2_34",
+        "passed": false
+      },
+      {
+        "accuracy_minus_majority": -0.0041656494140625,
+        "auc": 0.4976719178084903,
+        "auc_minus_best_component": -0.011056572409642196,
+        "auc_minus_derived": 0.003370649230958145,
+        "auc_minus_geometry": 0.0008244164167972579,
+        "auc_minus_shuffle": -0.00029718649564292043,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_sbox_pair",
+        "mask_bits": [
+          8,
+          40
+        ],
+        "mask_name": "same_sbox_pair_8_40",
+        "passed": false
+      },
+      {
+        "accuracy_minus_majority": 0.001312255859375,
+        "auc": 0.500414825751694,
+        "auc_minus_best_component": -0.0046650876203534475,
+        "auc_minus_derived": 0.0023873071112362476,
+        "auc_minus_geometry": -0.0010379669205955455,
+        "auc_minus_shuffle": -0.0002583150392834188,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_sbox_pair",
+        "mask_bits": [
+          10,
+          42
+        ],
+        "mask_name": "same_sbox_pair_10_42",
+        "passed": false
+      },
+      {
+        "accuracy_minus_majority": -0.0006256103515625,
+        "auc": 0.5007798902344394,
+        "auc_minus_best_component": -0.007948599983693128,
+        "auc_minus_derived": 0.0026459318862210313,
+        "auc_minus_geometry": 7.136584568157023e-05,
+        "auc_minus_shuffle": -0.0017566790227270257,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_role_four",
+        "mask_bits": [
+          0,
+          2,
+          8,
+          10
+        ],
+        "mask_name": "same_role4_0_2_8_10",
+        "passed": false
+      },
+      {
+        "accuracy_minus_majority": -0.00146484375,
+        "auc": 0.4990008044052254,
+        "auc_minus_best_component": -0.00853775844153698,
+        "auc_minus_derived": -0.004722544552269559,
+        "auc_minus_geometry": -0.0033004163112438367,
+        "auc_minus_shuffle": 0.002416382204181333,
+        "checks": {
+          "accuracy_margin_at_least_0_005": false,
+          "auc_at_least_0_510": false,
+          "auc_minus_best_component_at_least_0_002": false,
+          "auc_minus_derived_at_least_0_005": false,
+          "auc_minus_geometry_at_least_0_005": false,
+          "auc_minus_shuffle_at_least_0_005": false
+        },
+        "family": "same_role_four",
+        "mask_bits": [
+          32,
+          34,
+          40,
+          42
+        ],
+        "mask_name": "same_role4_32_34_40_42",
+        "passed": false
+      }
+    ],
+    "metrics": {
+      "mean_best_component_auc": 0.5065146601896261,
+      "mean_derived_auc": 0.4989500590295717,
+      "mean_geometry_auc": 0.5006406533795955,
+      "mean_shuffle_auc": 0.5006124239242754,
+      "mean_structured_auc": 0.4999431206633839,
+      "pair_family_pass_count": 0,
+      "pair_family_passed": false,
+      "passed_mask_count": 0,
+      "passed_mask_names": [],
+      "role4_family_pass_count": 0,
+      "role4_family_passed": false
+    },
+    "next_action": {
+      "action": "stop mask search, data, epoch, model, and round scaling; retain the OP11 r3 selected-bit result",
+      "next_adjudication": "innovation2_output_prediction_thesis_boundary",
+      "sample_classification": false,
+      "target": "preregistered_true_ciphertext_output_xor_values"
+    },
+    "protocol_checks": {
+      "all_masks_use_only_preregistered_bits": true,
+      "arrays_have_expected_shapes": true,
+      "cache_is_complete": true,
+      "features_are_msb_first": true,
+      "independent_key_seed_is_one": true,
+      "labels_are_outputs_not_sample_classes": true,
+      "labels_are_true_output_xors_not_sample_classes": true,
+      "mask_weights_are_pair4_pair4_role4_role4": true,
+      "official_present_vector_matches": true,
+      "pair_controls_do_not_share_inverse_p_sbox": true,
+      "pair_family_bit_frequency_is_matched": true,
+      "plaintexts_are_unique": true,
+      "primary_pairs_share_inverse_p_sbox": true,
+      "role4_family_bit_frequency_is_matched": true,
+      "role4_masks_have_one_inverse_p_role": true,
+      "selected_positions_match_op10": true,
+      "six_geometry_masks_are_unique": true,
+      "six_structured_masks_are_unique": true,
+      "targets_are_true_ciphertext_bits": true,
+      "train_test_plaintexts_are_disjoint": true
+    },
+    "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+    "status": "hold"
+  },
+  "metadata": {
+    "cipher": "PRESENT-80",
+    "claim_scope": "single seed1 fixed-key PRESENT r4 direct prediction of six preregistered structured output-XOR functions; not sample classification, integral balance, broad cross-key statistics, r5 evidence, or SOTA",
+    "config": {
+      "batch_size": 250,
+      "data_chunk_rows": 4096,
+      "device": "cuda",
+      "epochs": 100,
+      "hidden_dim": 1936,
+      "learning_rate": 0.001,
+      "minimum_accuracy_margin": 0.005,
+      "minimum_auc": 0.51,
+      "minimum_component_auc_margin": 0.002,
+      "minimum_control_auc_margin": 0.005,
+      "minimum_derived_auc_margin": 0.005,
+      "minimum_pair_masks": 2,
+      "minimum_shuffle_auc_margin": 0.005,
+      "mode": "round_extension",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "seed": 1,
+      "selected_msb_indices": [
+        0,
+        2,
+        8,
+        10,
+        32,
+        34,
+        40,
+        42
+      ],
+      "test_rows": 65536,
+      "train_rows": 131072
+    },
+    "experiment": "op12_present_r4_structured_output_xor",
+    "geometry_control_masks": [
+      {
+        "bits": [
+          0,
+          2
+        ],
+        "family": "output_nibble_pair",
+        "name": "output_nibble_pair_0_2"
+      },
+      {
+        "bits": [
+          8,
+          10
+        ],
+        "family": "output_nibble_pair",
+        "name": "output_nibble_pair_8_10"
+      },
+      {
+        "bits": [
+          32,
+          34
+        ],
+        "family": "output_nibble_pair",
+        "name": "output_nibble_pair_32_34"
+      },
+      {
+        "bits": [
+          40,
+          42
+        ],
+        "family": "output_nibble_pair",
+        "name": "output_nibble_pair_40_42"
+      },
+      {
+        "bits": [
+          0,
+          2,
+          32,
+          34
+        ],
+        "family": "mixed_role_four",
+        "name": "mixed_role4_0_2_32_34"
+      },
+      {
+        "bits": [
+          8,
+          10,
+          40,
+          42
+        ],
+        "family": "mixed_role_four",
+        "name": "mixed_role4_8_10_40_42"
+      }
+    ],
+    "input": "64 MSB-first plaintext bits",
+    "key_protocol": "same second fixed unknown key as OP11 seed1; disjoint plaintext train/test",
+    "mode": "round_extension",
+    "parameter_counts": {
+      "selected8_mlp": 3891368,
+      "xor6_mlp": 3887494
+    },
+    "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+    "sample_classification": false,
+    "secret_key_hex": "02d34f4595d439ed81b0",
+    "selected_msb_indices": [
+      0,
+      2,
+      8,
+      10,
+      32,
+      34,
+      40,
+      42
+    ],
+    "structured_masks": [
+      {
+        "bits": [
+          0,
+          32
+        ],
+        "family": "same_sbox_pair",
+        "name": "same_sbox_pair_0_32"
+      },
+      {
+        "bits": [
+          2,
+          34
+        ],
+        "family": "same_sbox_pair",
+        "name": "same_sbox_pair_2_34"
+      },
+      {
+        "bits": [
+          8,
+          40
+        ],
+        "family": "same_sbox_pair",
+        "name": "same_sbox_pair_8_40"
+      },
+      {
+        "bits": [
+          10,
+          42
+        ],
+        "family": "same_sbox_pair",
+        "name": "same_sbox_pair_10_42"
+      },
+      {
+        "bits": [
+          0,
+          2,
+          8,
+          10
+        ],
+        "family": "same_role_four",
+        "name": "same_role4_0_2_8_10"
+      },
+      {
+        "bits": [
+          32,
+          34,
+          40,
+          42
+        ],
+        "family": "same_role_four",
+        "name": "same_role4_32_34_40_42"
+      }
+    ],
+    "target": "six preregistered true ciphertext output-XOR values",
+    "task": "innovation2_output_prediction"
+  },
+  "model_summaries": [
+    {
+      "mean_accuracy_margin": 0.002506256103515625,
+      "mean_auc": 0.5053384993001673,
+      "model": "selected8_mlp_true_output",
+      "output_bits": 8,
+      "parameters": 3891368,
+      "target_mode": "selected8",
+      "train_labels_shuffled": false
+    },
+    {
+      "mean_accuracy_margin": -0.0008722941080729166,
+      "mean_auc": 0.4999431206633839,
+      "model": "structured6_mlp_true_xor",
+      "output_bits": 6,
+      "parameters": 3887494,
+      "target_mode": "structured6",
+      "train_labels_shuffled": false
+    },
+    {
+      "mean_accuracy_margin": -0.00194549560546875,
+      "mean_auc": 0.5006406533795955,
+      "model": "geometry6_mlp_true_xor",
+      "output_bits": 6,
+      "parameters": 3887494,
+      "target_mode": "geometry6",
+      "train_labels_shuffled": false
+    },
+    {
+      "mean_accuracy_margin": -0.0017801920572916667,
+      "mean_auc": 0.5006124239242754,
+      "model": "structured6_mlp_label_shuffle",
+      "output_bits": 6,
+      "parameters": 3887494,
+      "target_mode": "structured6",
+      "train_labels_shuffled": true
+    }
+  ],
+  "protocol_checks": {
+    "all_masks_use_only_preregistered_bits": true,
+    "arrays_have_expected_shapes": true,
+    "cache_is_complete": true,
+    "features_are_msb_first": true,
+    "independent_key_seed_is_one": true,
+    "labels_are_outputs_not_sample_classes": true,
+    "labels_are_true_output_xors_not_sample_classes": true,
+    "mask_weights_are_pair4_pair4_role4_role4": true,
+    "official_present_vector_matches": true,
+    "pair_controls_do_not_share_inverse_p_sbox": true,
+    "pair_family_bit_frequency_is_matched": true,
+    "plaintexts_are_unique": true,
+    "primary_pairs_share_inverse_p_sbox": true,
+    "role4_family_bit_frequency_is_matched": true,
+    "role4_masks_have_one_inverse_p_role": true,
+    "selected_positions_match_op10": true,
+    "six_geometry_masks_are_unique": true,
+    "six_structured_masks_are_unique": true,
+    "targets_are_true_ciphertext_bits": true,
+    "train_test_plaintexts_are_disjoint": true
+  },
+  "result_rows": [
+    {
+      "accuracy_minus_majority": -0.0007781982421875,
+      "auc": 0.5033855162400146,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 63,
+      "invalid_numpy_rint_rate": 0.0174102783203125,
+      "majority_accuracy": 0.5031890869140625,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 0,
+      "mse": 0.41833403100355976,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.502410888671875
+    },
+    {
+      "accuracy_minus_majority": 0.001617431640625,
+      "auc": 0.5045147917694172,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 61,
+      "invalid_numpy_rint_rate": 0.0188446044921875,
+      "majority_accuracy": 0.5015106201171875,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 2,
+      "mse": 0.41981739663775935,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.5031280517578125
+    },
+    {
+      "accuracy_minus_majority": 0.0037994384765625,
+      "auc": 0.5087284902181325,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 55,
+      "invalid_numpy_rint_rate": 0.0185089111328125,
+      "majority_accuracy": 0.501953125,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 8,
+      "mse": 0.41576737262028735,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.5057525634765625
+    },
+    {
+      "accuracy_minus_majority": 0.0026702880859375,
+      "auc": 0.5044482154722827,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 53,
+      "invalid_numpy_rint_rate": 0.0185699462890625,
+      "majority_accuracy": 0.50146484375,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 10,
+      "mse": 0.4189814239187535,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.5041351318359375
+    },
+    {
+      "accuracy_minus_majority": 0.0025787353515625,
+      "auc": 0.5035807319688199,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 31,
+      "invalid_numpy_rint_rate": 0.0190582275390625,
+      "majority_accuracy": 0.5001068115234375,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 32,
+      "mse": 0.41993845272785474,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.502685546875
+    },
+    {
+      "accuracy_minus_majority": 0.00335693359375,
+      "auc": 0.5054317725138616,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 29,
+      "invalid_numpy_rint_rate": 0.01837158203125,
+      "majority_accuracy": 0.50128173828125,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 34,
+      "mse": 0.4171744338644594,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.504638671875
+    },
+    {
+      "accuracy_minus_majority": 0.004730224609375,
+      "auc": 0.5075385628467624,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 23,
+      "invalid_numpy_rint_rate": 0.0195770263671875,
+      "majority_accuracy": 0.5002899169921875,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 40,
+      "mse": 0.41749804744096686,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.5050201416015625
+    },
+    {
+      "accuracy_minus_majority": 0.0020751953125,
+      "auc": 0.5050799133720475,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "integer_bit": 21,
+      "invalid_numpy_rint_rate": 0.018646240234375,
+      "majority_accuracy": 0.5013275146484375,
+      "model": "selected8_mlp_true_output",
+      "msb_index": 42,
+      "mse": 0.41882039847496527,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_bit",
+      "threshold_accuracy": 0.5034027099609375
+    },
+    {
+      "accuracy_minus_majority": 0.0023651123046875,
+      "auc": 0.5029175330807951,
+      "auc_minus_best_component": -0.0006631988880247963,
+      "auc_minus_derived": 0.004221953844833537,
+      "auc_minus_geometry": 0.0026567395738968935,
+      "auc_minus_shuffle": -0.0015516501433822105,
+      "best_component_auc": 0.5035807319688199,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.4986955792359616,
+      "derived_clip_rate": 0.22048187255859375,
+      "derived_threshold_accuracy": 0.4979248046875,
+      "family": "same_sbox_pair",
+      "geometry_auc": 0.5002607935068982,
+      "invalid_numpy_rint_rate": 0.0070953369140625,
+      "majority_accuracy": 0.500152587890625,
+      "mask_bits": [
+        0,
+        32
+      ],
+      "mask_name": "same_sbox_pair_0_32",
+      "mask_weight": 2,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3762365372453566,
+      "paired_geometry_control": "output_nibble_pair_0_2",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.5044691832241773,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5025177001953125
+    },
+    {
+      "accuracy_minus_majority": -0.002655029296875,
+      "auc": 0.4988737526996594,
+      "auc_minus_best_component": -0.006558019814202232,
+      "auc_minus_derived": -0.0019449277181060598,
+      "auc_minus_geometry": -0.0033993349018055508,
+      "auc_minus_shuffle": -0.0025683710684945016,
+      "best_component_auc": 0.5054317725138616,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.5008186804177654,
+      "derived_clip_rate": 0.2227325439453125,
+      "derived_threshold_accuracy": 0.4992523193359375,
+      "family": "same_sbox_pair",
+      "geometry_auc": 0.5022730876014649,
+      "invalid_numpy_rint_rate": 0.0077667236328125,
+      "majority_accuracy": 0.5031280517578125,
+      "mask_bits": [
+        2,
+        34
+      ],
+      "mask_name": "same_sbox_pair_2_34",
+      "mask_weight": 2,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3787966537903872,
+      "paired_geometry_control": "output_nibble_pair_8_10",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.5014421237681539,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5004730224609375
+    },
+    {
+      "accuracy_minus_majority": -0.0041656494140625,
+      "auc": 0.4976719178084903,
+      "auc_minus_best_component": -0.011056572409642196,
+      "auc_minus_derived": 0.003370649230958145,
+      "auc_minus_geometry": 0.0008244164167972579,
+      "auc_minus_shuffle": -0.00029718649564292043,
+      "best_component_auc": 0.5087284902181325,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.49430126857753215,
+      "derived_clip_rate": 0.22241973876953125,
+      "derived_threshold_accuracy": 0.495849609375,
+      "family": "same_sbox_pair",
+      "geometry_auc": 0.49684750139169304,
+      "invalid_numpy_rint_rate": 0.0069122314453125,
+      "majority_accuracy": 0.5029449462890625,
+      "mask_bits": [
+        8,
+        40
+      ],
+      "mask_name": "same_sbox_pair_8_40",
+      "mask_weight": 2,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3781314871858398,
+      "paired_geometry_control": "output_nibble_pair_32_34",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.4979691043041332,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.498779296875
+    },
+    {
+      "accuracy_minus_majority": 0.001312255859375,
+      "auc": 0.500414825751694,
+      "auc_minus_best_component": -0.0046650876203534475,
+      "auc_minus_derived": 0.0023873071112362476,
+      "auc_minus_geometry": -0.0010379669205955455,
+      "auc_minus_shuffle": -0.0002583150392834188,
+      "best_component_auc": 0.5050799133720475,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.4980275186404578,
+      "derived_clip_rate": 0.22016143798828125,
+      "derived_threshold_accuracy": 0.49859619140625,
+      "family": "same_sbox_pair",
+      "geometry_auc": 0.5014527926722896,
+      "invalid_numpy_rint_rate": 0.0074462890625,
+      "majority_accuracy": 0.5003814697265625,
+      "mask_bits": [
+        10,
+        42
+      ],
+      "mask_name": "same_sbox_pair_10_42",
+      "mask_weight": 2,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3781805603401329,
+      "paired_geometry_control": "output_nibble_pair_40_42",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.5006731407909775,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5016937255859375
+    },
+    {
+      "accuracy_minus_majority": -0.0006256103515625,
+      "auc": 0.5007798902344394,
+      "auc_minus_best_component": -0.007948599983693128,
+      "auc_minus_derived": 0.0026459318862210313,
+      "auc_minus_geometry": 7.136584568157023e-05,
+      "auc_minus_shuffle": -0.0017566790227270257,
+      "best_component_auc": 0.5087284902181325,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.49813395834821833,
+      "derived_clip_rate": 0.22119522094726562,
+      "derived_threshold_accuracy": 0.5001373291015625,
+      "family": "same_role_four",
+      "geometry_auc": 0.5007085243887578,
+      "invalid_numpy_rint_rate": 0.006927490234375,
+      "majority_accuracy": 0.501617431640625,
+      "mask_bits": [
+        0,
+        2,
+        8,
+        10
+      ],
+      "mask_name": "same_role4_0_2_8_10",
+      "mask_weight": 4,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3779079266723897,
+      "paired_geometry_control": "mixed_role4_0_2_32_34",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.5025365692571664,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5009918212890625
+    },
+    {
+      "accuracy_minus_majority": -0.00146484375,
+      "auc": 0.4990008044052254,
+      "auc_minus_best_component": -0.00853775844153698,
+      "auc_minus_derived": -0.004722544552269559,
+      "auc_minus_geometry": -0.0033004163112438367,
+      "auc_minus_shuffle": 0.002416382204181333,
+      "best_component_auc": 0.5075385628467624,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "derived_auc": 0.5037233489574949,
+      "derived_clip_rate": 0.22170257568359375,
+      "derived_threshold_accuracy": 0.503204345703125,
+      "family": "same_role_four",
+      "geometry_auc": 0.5023012207164692,
+      "invalid_numpy_rint_rate": 0.0066986083984375,
+      "majority_accuracy": 0.5015716552734375,
+      "mask_bits": [
+        32,
+        34,
+        40,
+        42
+      ],
+      "mask_name": "same_role4_32_34_40_42",
+      "mask_weight": 4,
+      "model": "structured6_mlp_true_xor",
+      "mse": 0.3780983190592969,
+      "paired_geometry_control": "mixed_role4_8_10_40_42",
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "shuffle_auc": 0.49658442220104404,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5001068115234375
+    },
+    {
+      "accuracy_minus_majority": -0.0036468505859375,
+      "auc": 0.5002607935068982,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "output_nibble_pair",
+      "invalid_numpy_rint_rate": 0.00531005859375,
+      "majority_accuracy": 0.502655029296875,
+      "mask_bits": [
+        0,
+        2
+      ],
+      "mask_name": "output_nibble_pair_0_2",
+      "mask_weight": 2,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.36472659283505426,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.4990081787109375
+    },
+    {
+      "accuracy_minus_majority": -0.000396728515625,
+      "auc": 0.5022730876014649,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "output_nibble_pair",
+      "invalid_numpy_rint_rate": 0.0050811767578125,
+      "majority_accuracy": 0.500152587890625,
+      "mask_bits": [
+        8,
+        10
+      ],
+      "mask_name": "output_nibble_pair_8_10",
+      "mask_weight": 2,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.36430643627741655,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.499755859375
+    },
+    {
+      "accuracy_minus_majority": -0.0022125244140625,
+      "auc": 0.49684750139169304,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "output_nibble_pair",
+      "invalid_numpy_rint_rate": 0.004669189453125,
+      "majority_accuracy": 0.5013885498046875,
+      "mask_bits": [
+        32,
+        34
+      ],
+      "mask_name": "output_nibble_pair_32_34",
+      "mask_weight": 2,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.36564810266829606,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.499176025390625
+    },
+    {
+      "accuracy_minus_majority": -0.0025787353515625,
+      "auc": 0.5014527926722896,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "output_nibble_pair",
+      "invalid_numpy_rint_rate": 0.0050048828125,
+      "majority_accuracy": 0.5040283203125,
+      "mask_bits": [
+        40,
+        42
+      ],
+      "mask_name": "output_nibble_pair_40_42",
+      "mask_weight": 2,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.3635483934749326,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5014495849609375
+    },
+    {
+      "accuracy_minus_majority": -0.004913330078125,
+      "auc": 0.5007085243887578,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "mixed_role_four",
+      "invalid_numpy_rint_rate": 0.0047607421875,
+      "majority_accuracy": 0.5041046142578125,
+      "mask_bits": [
+        0,
+        2,
+        32,
+        34
+      ],
+      "mask_name": "mixed_role4_0_2_32_34",
+      "mask_weight": 4,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.3614439793361251,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.4991912841796875
+    },
+    {
+      "accuracy_minus_majority": 0.0020751953125,
+      "auc": 0.5023012207164692,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "mixed_role_four",
+      "invalid_numpy_rint_rate": 0.0046844482421875,
+      "majority_accuracy": 0.5010986328125,
+      "mask_bits": [
+        8,
+        10,
+        40,
+        42
+      ],
+      "mask_name": "mixed_role4_8_10_40_42",
+      "mask_weight": 4,
+      "model": "geometry6_mlp_true_xor",
+      "mse": 0.3623911611602002,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.503173828125
+    },
+    {
+      "accuracy_minus_majority": 0.0030364990234375,
+      "auc": 0.5044691832241773,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_sbox_pair",
+      "invalid_numpy_rint_rate": 0.0068511962890625,
+      "majority_accuracy": 0.500152587890625,
+      "mask_bits": [
+        0,
+        32
+      ],
+      "mask_name": "same_sbox_pair_0_32",
+      "mask_weight": 2,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.3754105811382874,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5031890869140625
+    },
+    {
+      "accuracy_minus_majority": -0.003143310546875,
+      "auc": 0.5014421237681539,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_sbox_pair",
+      "invalid_numpy_rint_rate": 0.0064697265625,
+      "majority_accuracy": 0.5031280517578125,
+      "mask_bits": [
+        2,
+        34
+      ],
+      "mask_name": "same_sbox_pair_2_34",
+      "mask_weight": 2,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.37615055989614105,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.4999847412109375
+    },
+    {
+      "accuracy_minus_majority": -0.0052642822265625,
+      "auc": 0.4979691043041332,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_sbox_pair",
+      "invalid_numpy_rint_rate": 0.006927490234375,
+      "majority_accuracy": 0.5029449462890625,
+      "mask_bits": [
+        8,
+        40
+      ],
+      "mask_name": "same_sbox_pair_8_40",
+      "mask_weight": 2,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.37901211297244575,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.4976806640625
+    },
+    {
+      "accuracy_minus_majority": 0.00146484375,
+      "auc": 0.5006731407909775,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_sbox_pair",
+      "invalid_numpy_rint_rate": 0.006134033203125,
+      "majority_accuracy": 0.5003814697265625,
+      "mask_bits": [
+        10,
+        42
+      ],
+      "mask_name": "same_sbox_pair_10_42",
+      "mask_weight": 2,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.3764012577732619,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.5018463134765625
+    },
+    {
+      "accuracy_minus_majority": -0.0008544921875,
+      "auc": 0.5025365692571664,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_role_four",
+      "invalid_numpy_rint_rate": 0.0069427490234375,
+      "majority_accuracy": 0.501617431640625,
+      "mask_bits": [
+        0,
+        2,
+        8,
+        10
+      ],
+      "mask_name": "same_role4_0_2_8_10",
+      "mask_weight": 4,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.3746697663358471,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.500762939453125
+    },
+    {
+      "accuracy_minus_majority": -0.00592041015625,
+      "auc": 0.49658442220104404,
+      "decision": "innovation2_r4_structured_xor_not_supported",
+      "family": "same_role_four",
+      "invalid_numpy_rint_rate": 0.0068817138671875,
+      "majority_accuracy": 0.5015716552734375,
+      "mask_bits": [
+        32,
+        34,
+        40,
+        42
+      ],
+      "mask_name": "same_role4_32_34_40_42",
+      "mask_weight": 4,
+      "model": "structured6_mlp_label_shuffle",
+      "mse": 0.3776468940315205,
+      "rounds": 4,
+      "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721",
+      "sample_classification": false,
+      "seed": 1,
+      "status": "hold",
+      "target_kind": "preregistered_true_ciphertext_output_xor",
+      "test_target_identity": "true_ciphertext_output_xor_targets",
+      "threshold_accuracy": 0.4956512451171875
+    }
+  ],
+  "run_id": "i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721"
+}
