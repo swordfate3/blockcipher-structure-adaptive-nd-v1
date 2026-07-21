@@ -50,6 +50,14 @@ def test_all_phase_a_models_are_within_three_percent_of_mlp_budget() -> None:
     assert all(abs(count - counts["mlp"]) / counts["mlp"] <= 0.03 for count in counts.values())
 
 
+def test_rescnn_readout_preserves_absolute_bit_positions() -> None:
+    model = SelectedOutputResidualCnn(channels=4, blocks=1)
+
+    assert isinstance(model.head[0], torch.nn.Flatten)
+    assert isinstance(model.head[1], torch.nn.Linear)
+    assert model.head[1].in_features == 64 * 4
+
+
 def test_present_spn_uses_the_exact_msb_first_p_layer_mapping() -> None:
     source_for_destination = _present_source_for_destination().tolist()
 

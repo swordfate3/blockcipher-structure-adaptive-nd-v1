@@ -38,8 +38,8 @@
     {
       "role": "candidate",
       "model": "selected8_rescnn_true_output",
-      "architecture": "rescnn_channels256_blocks10_output8",
-      "parameters": 3951112
+      "architecture": "rescnn_channels252_blocks10_position_preserving_output8",
+      "parameters": 3955904
     },
     {
       "role": "candidate",

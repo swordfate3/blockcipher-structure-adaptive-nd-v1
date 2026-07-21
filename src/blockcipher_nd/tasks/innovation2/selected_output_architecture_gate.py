@@ -26,7 +26,7 @@ from blockcipher_nd.tasks.innovation2.selected_output_bit_head import (
 from blockcipher_nd.training.metrics import binary_auc
 
 
-RUN_ID = "i2_output_prediction_opa1_present_r3_selected8_architecture_screen_smoke_20260721"
+RUN_ID = "i2_output_prediction_opa1_present_r3_selected8_architecture_screen_position_preserving_smoke_20260721"
 REMOTE_RUN_ID = "i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721"
 MODEL_SPECS = (
     ("selected8_mlp_true_output", "mlp", False),
@@ -51,7 +51,7 @@ class SelectedOutputArchitectureConfig:
     mlp_hidden_dim: int = 1936
     lstm_hidden_dim: int = 300
     lstm_layers: int = 6
-    rescnn_channels: int = 256
+    rescnn_channels: int = 252
     rescnn_blocks: int = 10
     transformer_dim: int = 256
     transformer_heads: int = 8
@@ -167,7 +167,7 @@ class _OutputResidualBlock(nn.Module):
 
 
 class SelectedOutputResidualCnn(nn.Module):
-    def __init__(self, channels: int = 256, blocks: int = 10) -> None:
+    def __init__(self, channels: int = 252, blocks: int = 10) -> None:
         super().__init__()
         self.stem = nn.Sequential(
             nn.Conv1d(1, channels, kernel_size=3, padding=1),
@@ -178,9 +178,8 @@ class SelectedOutputResidualCnn(nn.Module):
             *(_OutputResidualBlock(channels) for _ in range(blocks))
         )
         self.head = nn.Sequential(
-            nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
-            nn.Linear(channels, 8),
+            nn.Linear(channels * 64, 8),
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:

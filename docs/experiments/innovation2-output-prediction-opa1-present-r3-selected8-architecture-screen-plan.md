@@ -46,7 +46,7 @@ remote device           = lxy-a6000 physical GPU0
 ```text
 selected8_mlp_true_output          64 -> 1936 -> 1936 -> 8 MLP anchor
 selected8_lstm_true_output         六层hidden300 Kimura式LSTM
-selected8_rescnn_true_output       10个残差块的一维bit序列CNN
+selected8_rescnn_true_output       10个残差块、保留绝对位置的一维bit序列CNN
 selected8_transformer_true_output  7层全局自注意力编码器
 selected8_present_spn_true_output  三个共享S-box局部块 + 精确P-layer token重排
 ```
@@ -126,7 +126,7 @@ watcher负责回收，主线程不重复SSH轮询。SVG必须通过`visual-qa-re
 本地运行：
 
 ```text
-run_id = i2_output_prediction_opa1_present_r3_selected8_architecture_screen_smoke_20260721
+run_id = i2_output_prediction_opa1_present_r3_selected8_architecture_screen_position_preserving_smoke_20260721
 train/test = 64/64 total pairs
 epochs = 1
 device = CPU
@@ -142,7 +142,7 @@ decision = innovation2_selected8_architecture_screen_local_smoke_passed
 ```text
 MLP          = 3,891,368
 LSTM         = 3,978,008  (+2.23%)
-ResCNN       = 3,951,112  (+1.54%)
+ResCNN       = 3,955,904  (+1.66%)
 Transformer  = 3,939,016  (+1.22%)
 PRESENT-SPN  = 3,879,415  (-0.31%)
 ```
