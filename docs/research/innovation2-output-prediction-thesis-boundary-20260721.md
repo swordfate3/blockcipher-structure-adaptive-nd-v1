@@ -166,8 +166,13 @@ docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md
 
 当前唯一开放训练是已经启动的OPA3同参数拓扑归因。OPA3通过后才实现条件式OPA4，在相同八输出
 契约下只把轮数从三轮改为四轮；OPA3不通过则立即收束到OPA2整体架构结论。OPA4即使通过也先做
-第五固定密钥的四轮独立确认，不直接进入五轮。仅换mask、seed、网络名称或扩大现有预算仍不能绕过
-这些冻结门。
+第五固定密钥的四轮独立确认，不直接进入五轮。
+
+模型路线并不局限于LSTM：OPA1已经同预算比较MLP、LSTM、ResCNN、Transformer和PRESENT-SPN-aware。
+LSTM与Transformer接近随机，ResCNN保留三轮信号，PRESENT-SPN-aware是当前独立确认的最强架构。
+因此若OPA4协议完整但性能未过门，只允许执行揭盲前预注册的OPA5：把三block/189维改为
+四block/164维，在参数差`+0.3806%`下检验“每轮一个SPN block”，并配套同架构shuffle与wrong-P。
+OPA5失败后停止网络枚举；仅换mask、seed、网络名称或扩大现有预算不能绕过冻结门。
 
 SPN-aware方法相对Kimura/Watanabe通用LSTM、Kimura普通Conv1D和Singh去密钥逐轮MLP的暂定创新
 边界见：

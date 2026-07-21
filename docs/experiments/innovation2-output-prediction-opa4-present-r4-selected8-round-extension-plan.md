@@ -119,12 +119,17 @@ exact-P true AUC - wrong-P true AUC >= +0.020
 独立确认与拓扑归因的PRESENT-SPN-aware网络把受控输出预测信号延伸到四轮。下一步不是直接五轮，
 而是使用第五固定未知密钥`seed4`、同一四轮五行矩阵做一次独立密钥确认。
 
-只有seed4复现同一主门，才允许预注册五轮readiness或在同一任务契约下比较一个结构改造候选。届时
-仍不得称为完整密文恢复、普遍跨密钥统计、主流最高轮次或SOTA。
+只有seed4复现同一主门，才允许预注册五轮readiness；届时仍不得称为完整密文恢复、普遍跨密钥
+统计、主流最高轮次或SOTA。OPA4已经通过时不运行结构救援实验。
 
-若OPA4未通过，停止当前SPN-aware路线的四轮/五轮、seed、数据、epoch和模型扩展。论文保留OPA2
-“三轮整体架构独立确认”和OPA3的拓扑归因结论（若成立），并把四轮作为经验边界。不得用后验bit
-筛选、结构化XOR、更多参数或不同任务补写为同一轮数轨迹。
+若OPA4协议与执行门完整、但性能门未通过，只开放揭盲前已冻结的OPA5单次结构救援：在参数差小于
+`1%`时把三个SPN block改成四个并缩窄token维度，比较同数据三block锚点、四block exact-P、匹配
+shuffle和wrong-P。OPA5以
+`docs/experiments/innovation2-output-prediction-opa5-present-r4-depth-matched-spn-plan.md`为唯一协议。
+
+除此之外，停止当前SPN-aware路线的四轮/五轮、seed、数据、epoch和模型扩展。不得用后验bit筛选、
+结构化XOR、更多参数、其他任务或临时网络枚举补写为同一轮数轨迹。OPA4若因协议/来源/完整性失败，
+OPA5保持关闭，必须先解决原实验有效性。
 
 ## 8. 执行与产物要求
 
