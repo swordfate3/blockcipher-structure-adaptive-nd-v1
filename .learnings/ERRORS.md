@@ -7,7 +7,7 @@
 
 ### Summary
 
-The OP12 remote launcher HTTPS clone was reset by GitHub before any scheduled training task was created.
+The OP12 and OPA1 remote launcher HTTPS clones were reset by GitHub before the corresponding scheduled training task was created.
 
 ### Error
 
@@ -18,7 +18,7 @@ Recv failure: Connection was reset
 
 ### Context
 
-- Operation: create an OP12 launcher-only clean clone under `G:\lxy` after the source commit was pushed.
+- Operations: create OP12 and OPA1 launcher-only clean clones under `G:\lxy` after each source commit was pushed.
 - The failure occurred before the run-owned experiment clone or Windows scheduled task existed.
 - No source overlay, remote training result, cache, or checkpoint was created by the failed attempt.
 
@@ -29,10 +29,10 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 ### Metadata
 
 - Reproducible: no
-- Related Files: configs/remote/generated/launch_i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721.cmd
+- Related Files: configs/remote/generated/launch_i2_output_prediction_op12_present_r4_structured_xor_key1_gpu0_20260721.cmd, configs/remote/generated/launch_i2_output_prediction_opa1_present_r3_selected8_architecture_screen_key2_gpu0_20260721.cmd
 - See Also: ERR-20260716-007
 - Pattern-Key: remote.git_https_reset_use_existing_scoped_ssh_key
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-21
 - Last-Seen: 2026-07-21
 
@@ -40,7 +40,7 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 
 - **Resolved**: 2026-07-21T21:20:00+08:00
 - **Commit/PR**: pending
-- **Notes**: A new launcher clone under `G:\lxy` succeeded with the pre-existing scoped GitHub SSH key; its clean HEAD matched `97fd53e95dea9edbe7fcd4e21ab068a1823626c8`, and OP12 then passed the bounded started/readiness gate.
+- **Notes**: New launcher clones under `G:\lxy` succeeded with the pre-existing scoped GitHub SSH key. OP12 used clean HEAD `97fd53e95dea9edbe7fcd4e21ab068a1823626c8`; OPA1 used clean HEAD `7d4e45de5a98aa297a585103e8b6542e1ce73e13`. No source overlay or alternate transfer route was used.
 
 ---
 
