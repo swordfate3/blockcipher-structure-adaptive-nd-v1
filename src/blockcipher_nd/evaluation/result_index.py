@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_spn_rescnn_hybrid_local_smoke_passed": (
+        "PRESENT三轮SPN-ResCNN混合模型四行实现门通过，等待OPB1裁决"
+    ),
+    "innovation2_spn_rescnn_hybrid_candidate_requires_confirmation": (
+        "SPN-ResCNN混合模型超过ResCNN、错误P与标签打乱，进入独立密钥确认"
+    ),
+    "innovation2_spn_rescnn_hybrid_not_supported": (
+        "SPN-ResCNN混合模型未通过同预算锚点与控制门，保留ResCNN锚点"
+    ),
+    "innovation2_spn_rescnn_hybrid_protocol_invalid": (
+        "SPN-ResCNN混合模型的数据、拓扑、控制、训练或产物协议无效"
+    ),
     "innovation2_present_full_state_next_round_criticality_not_identifiable": (
         "完整PRESENT轮间状态一对即可恢复当轮子密钥，不能测量随机猜测临界轮"
     ),
@@ -1919,6 +1931,8 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2：PRESENT完整轮间状态预测的子密钥可识别性审计"
     if run_id.startswith("i2_output_prediction_opb1_present_r3_topology_bottleneck"):
         return "创新2 OPB1：PRESENT三轮低秩拓扑瓶颈真实密文输出预测"
+    if run_id.startswith("i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid"):
+        return "创新2 OPC1：PRESENT三轮SPN-ResCNN混合真实密文输出预测"
     if run_id.startswith("i2_output_prediction_opa3_present_r3_selected8"):
         return "创新2 OPA3：PRESENT三轮真实P-layer与同容量错误拓扑归因"
     if run_id.startswith("i2_output_prediction_opa2_present_r3_selected8"):

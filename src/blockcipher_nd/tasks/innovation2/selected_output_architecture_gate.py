@@ -187,6 +187,54 @@ class SelectedOutputResidualCnn(nn.Module):
         return self.head(self.blocks(self.stem(features.float().unsqueeze(1))))
 
 
+class SelectedOutputSpnResidualCnn(nn.Module):
+    """Position-preserving ResCNN with fixed topology routing between stages."""
+
+    def __init__(
+        self,
+        channels: int = 252,
+        stage_blocks: tuple[int, ...] = (3, 3, 4),
+        source_for_destination: torch.Tensor | None = None,
+    ) -> None:
+        super().__init__()
+        if not stage_blocks or min(stage_blocks) <= 0:
+            raise ValueError("stage_blocks must contain positive block counts")
+        source_for_destination = (
+            _present_source_for_destination()
+            if source_for_destination is None
+            else source_for_destination.detach().clone().to(dtype=torch.long)
+        )
+        if source_for_destination.shape != (64,) or sorted(
+            source_for_destination.tolist()
+        ) != list(range(64)):
+            raise ValueError("source_for_destination must be a 64-position permutation")
+        self.register_buffer(
+            "source_for_destination",
+            source_for_destination,
+            persistent=False,
+        )
+        self.stem = nn.Sequential(
+            nn.Conv1d(1, channels, kernel_size=3, padding=1),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
+        self.stages = nn.ModuleList(
+            nn.Sequential(*(_OutputResidualBlock(channels) for _ in range(blocks)))
+            for blocks in stage_blocks
+        )
+        self.head = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(channels * 64, 8),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        _validate_feature_shape(features)
+        hidden = self.stem(features.float().unsqueeze(1))
+        for stage in self.stages:
+            hidden = stage(hidden).index_select(2, self.source_for_destination)
+        return self.head(hidden)
+
+
 class SelectedOutputTransformer(nn.Module):
     def __init__(
         self,
@@ -774,6 +822,16 @@ def _build_model(
             source_for_destination=_present_topology_mapping(
                 bottleneck_topology_mode
             ),
+        )
+    hybrid_topology_mode = {
+        "spn_rescnn_exact_p": "exact",
+        "spn_rescnn_wrong_p": "wrong",
+    }.get(architecture)
+    if hybrid_topology_mode is not None:
+        return SelectedOutputSpnResidualCnn(
+            channels=config.rescnn_channels,
+            stage_blocks=(3, 3, 4),
+            source_for_destination=_present_topology_mapping(hybrid_topology_mode),
         )
     raise ValueError(f"unknown architecture: {architecture}")
 

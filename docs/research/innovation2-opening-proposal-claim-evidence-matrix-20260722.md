@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：PDF原文复核完成 / OP9--OPA3与可识别性审计已映射 / OPB1正式训练中
+状态：PDF原文复核完成 / OP9--OPA3与可识别性审计已映射 / OPB1运行中 / OPC1 readiness待命
 
 ## 1. 使用方式
 
@@ -27,7 +27,7 @@ docs/24032307046_廖锡粤_开题附件.pdf
 | 开题报告承诺 | 精确来源 | 当前实现 | 权威证据 | 覆盖判断 | 论文安全表述 | 不能声称 | 下一动作 |
 |---|---|---|---|---|---|---|---|
 | 使用神经网络预测真实密文输出bit | PDF物理第3页/报告第1页：“预测分组密码的密文输出比特” | 固定未知秘密密钥；输入未见明文；目标为真实PRESENT三轮完整64-bit或冻结八bit | OP9、OP10、OP11 | **部分完成**：八个冻结bit完成；完整64-bit未恢复 | “建立PRESENT三轮真实密文输出bit预测流程，并确认八个易预测坐标” | 恢复完整密文；输出预测普遍成功 | 等待OPB1；保留selected-bit任务，不以后验换bit |
-| 比较ResNet、时间序列网络、Transformer等不同架构 | PDF物理第3页/报告第1页 | OPA1同预算比较MLP、六层LSTM、位置保持ResCNN、Transformer、PRESENT-SPN-aware | OPA1五模型结果；OPA2第四密钥确认 | **发现屏完成，独立确认部分完成** | “同预算发现屏显示架构归纳偏置显著影响八bit预测；SPN-aware在另一密钥上超过MLP和匹配shuffle” | 五类模型均已跨密钥确认；ResCNN/Transformer本身构成创新 | OPB1检验结构瓶颈；新的模型必须有机制和fresh-key确认 |
+| 比较ResNet、时间序列网络、Transformer等不同架构 | PDF物理第3页/报告第1页 | OPA1同预算比较MLP、六层LSTM、位置保持ResCNN、Transformer、PRESENT-SPN-aware；OPC1准备SPN-ResCNN机制改造 | OPA1五模型结果；OPA2第四密钥确认；OPC1 readiness | **发现屏完成，独立确认部分完成，混合改造实现就绪** | “同预算发现屏显示架构归纳偏置显著影响八bit预测；SPN-aware在另一密钥上超过MLP和匹配shuffle” | 五类模型均已跨密钥确认；ResCNN/Transformer本身构成创新；readiness AUC是性能证据 | OPB1优先；仅在其未归因时正式运行OPC1，并要求fresh-key确认 |
 | 比较预测精度 | PDF物理第3页/报告第1页 | 每bit AUC、阈值accuracy、majority baseline、MSE、完整输出exact match | OP9--OPA3正式结果 | **当前PRESENT三轮任务完成** | 报告每个输出bit和模型的AUC/accuracy/majority差值，并保留完整输出exact-match负结果 | 与神经区分器AUC或不同论文攻击轮数直接比较 | OPB1继续使用同一八bit和同一预算 |
 | 比较收敛速度 | PDF物理第3页/报告第1页 | 现有100-epoch运行保存逐epoch训练MSE和checkpoint | OP9、OPA1--OPA3 `history.csv` | **部分完成**：有训练历史，没有统一逐epoch held-out指标和time-to-threshold | “记录了训练损失演化，但尚未形成严格收敛速度排名” | 已证明某网络收敛更快；仅凭最终AUC推断收敛 | 后续跨模型矩阵增加不参与选模的统一epoch-time与held-out评估协议 |
 | 比较泛化能力 | PDF物理第3页/报告第1页 | 训练/测试明文严格不重合；seed0--3代表不同固定秘密密钥且各自重新训练 | OP10 fresh确认、OP11第二密钥、OPA1第三密钥、OPA2/OPA3第四密钥 | **部分完成**：未见明文和多固定密钥证据存在，但不是单模型跨密钥零适配 | “同一冻结输出位置在多把独立固定密钥的逐密钥训练协议下复现” | 一个模型泛化到未知新密钥；五模型都已跨密钥稳定 | OPB1使用第五密钥；正式通过后用第六密钥不改协议确认 |
