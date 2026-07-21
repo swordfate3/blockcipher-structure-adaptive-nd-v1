@@ -68,6 +68,60 @@ completeness.
 
 ---
 
+## [LRN-20260721-001] correction
+
+**Logged**: 2026-07-21T11:40:00+08:00
+**Priority**: critical
+**Status**: pending
+**Area**: research
+
+### Summary
+
+An innovation claim must freeze one canonical sample, label, model output, and metric across its round ladder; related but incompatible tasks cannot be presented as one method trajectory.
+
+### Details
+
+Innovation 2 accumulated exact state/output prediction, structured-multiset
+binary distinguishing, structure-conditioned unit-bit balance-profile
+prediction, finite-key context-mask rate prediction, and ATM relation ranking.
+These tasks use different data objects, targets, threat models, metrics, and
+claim scopes. Experiment numbering and shared integral terminology do not make
+them one coherent innovation, and mixing their round counts creates a
+misleading impression that a single method advanced from r4 to r9.
+
+The user correctly identified that this is a research-design defect rather
+than a documentation problem. A thesis contribution needs one primary task
+contract that remains fixed across low/high rounds and baseline/candidate
+comparisons. Other tasks must be classified explicitly as literature anchors,
+diagnostic branches, negative evidence, or appendices instead of being used to
+patch gaps in the primary method claim.
+
+### Suggested Action
+
+Before any further Innovation 2 experiment, choose and preregister exactly one
+canonical task contract: sample construction, input tensor, label semantics,
+network output, metric, key/split protocol, round ladder, and same-budget
+baseline. Rewrite the Innovation 2 synthesis around that contract, move
+incompatible H0/PG-NBPO/ATM branches out of the main trajectory, and do not
+resume training until the remaining experiment can answer the single frozen
+claim. If round reach is prioritized, use one literature-aligned r5--r8
+benchmark throughout; if strict output-property prediction is prioritized,
+accept the current r4 boundary rather than borrowing r8/r9 metrics from other
+tasks.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: docs/research/innovation2-thesis-consolidation-20260719.md, docs/experiments/innovation2-present-high-round-integral-neural-anchor-plan.md, docs/experiments/innovation2-present-r9-atm-support-component-pu-neural-ranking-plan.md
+- Tags: innovation2, research-coherence, task-contract, round-ladder, metrics, thesis-claim
+- See Also: LRN-20260720-001
+- Pattern-Key: research.innovation.freeze_canonical_task_contract
+- Recurrence-Count: 1
+- First-Seen: 2026-07-21
+- Last-Seen: 2026-07-21
+
+---
+
 ## [LRN-20260720-001] best_practice
 
 **Logged**: 2026-07-20T14:40:00+08:00
