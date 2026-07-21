@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_present_next_round_selected8_identifiability import (
+    main,
+)
+
+raise SystemExit(main())

@@ -42,6 +42,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_present_selected8_next_round_is_partial_subkey_recovery_not_diffusion_criticality": (
+        "完整当前状态加八个下一状态bit可恢复四个轮密钥nibble，不能测量扩散临界轮"
+    ),
+    "innovation2_present_selected8_next_round_partial_subkey_identifiability_protocol_invalid": (
+        "八输出轮间审计的P层几何、候选隔离、密钥调度、计数或产物协议无效"
+    ),
     "innovation2_spn_rescnn_hybrid_local_smoke_passed": (
         "PRESENT三轮SPN-ResCNN混合模型四行实现门通过，等待OPB1裁决"
     ),
@@ -1925,6 +1931,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_present_next_round_selected8_partial_subkey_identifiability_audit"
+    ):
+        return "创新2：PRESENT轮间八输出bit的部分子密钥可识别性审计"
     if run_id.startswith(
         "i2_present_next_round_full_state_identifiability_audit"
     ):
