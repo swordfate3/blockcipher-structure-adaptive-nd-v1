@@ -42,6 +42,21 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_selected8_independent_key_local_smoke_passed": (
+        "固定八输出bit独立密钥实现门通过，开放OP11远程正式确认"
+    ),
+    "innovation2_selected8_cross_key_and_dedicated_head_supported": (
+        "至少4/8个固定输出bit跨密钥确认，且专用八输出头优于完整输出anchor"
+    ),
+    "innovation2_selected8_cross_key_supported_without_head_gain": (
+        "至少4/8个固定输出bit跨密钥确认，但专用八输出头没有额外增益"
+    ),
+    "innovation2_selected8_not_cross_key_supported": (
+        "固定八输出bit未通过第二把秘密密钥确认，转密钥条件性审计"
+    ),
+    "innovation2_selected8_independent_key_protocol_invalid": (
+        "固定位置、独立密钥、数据拆分、匹配打乱或checkpoint协议无效"
+    ),
     "innovation2_output_bit_discovery_local_smoke_passed": (
         "逐bit候选发现与独立fresh确认实现门通过，等待OP9远程checkpoint"
     ),
@@ -1829,6 +1844,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i2_output_prediction_op11_present_r3_selected8"):
+        return "创新2 OP11：PRESENT三轮固定八个真实密文输出bit的独立密钥确认"
     if run_id.startswith("i2_output_prediction_op10_present_r3_easy_bit"):
         return "创新2 OP10：PRESENT三轮易预测真实密文输出bit发现与独立确认"
     if run_id.startswith("i2_output_prediction_op9_present_r3_kimura_lstm"):
