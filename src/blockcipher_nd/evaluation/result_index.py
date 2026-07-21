@@ -42,6 +42,15 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_present_r3_selected_output_not_explained_by_coarse_structure_baselines": (
+        "全部三轮输出位锥宽相同，单S-box坐标复杂度不足以解释八个易预测位"
+    ),
+    "innovation2_present_r3_selected_output_coarse_structure_candidate_requires_controlled_test": (
+        "易预测位出现粗粒度结构分离，需要冻结位置后做单变量匹配控制"
+    ),
+    "innovation2_present_r3_selected_output_structural_baseline_protocol_invalid": (
+        "易预测位结构基线的bit顺序、依赖锥、S-box指标或产物协议无效"
+    ),
     "innovation2_present_r3_key_blind_zero_shot_target_not_stable": (
         "无密钥或校准输入时，同一明文的三轮真实输出bit不能跨未见密钥稳定预测"
     ),
@@ -1940,6 +1949,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opm1_present_r3_selected_output_structural_baseline_audit"
+    ):
+        return "创新2 OPM1：PRESENT三轮易预测输出位粗粒度结构基线审计"
     if run_id.startswith(
         "i2_output_prediction_opk1_present_r3_key_blind_target_stability_audit"
     ):

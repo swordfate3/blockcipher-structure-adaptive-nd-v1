@@ -2,12 +2,13 @@
 
 日期：2026-07-21
 
-状态：OP9--OPB1证据已合入 / OPC1正式远程运行中 / 可作为当前论文章节底稿
+状态：OP9--OPB1与OPM1证据已合入 / OPC1正式远程运行中 / 可作为当前论文章节底稿
 
 > 2026-07-22更新：本文已经合入OPA1五模型屏、OPA2/OPA3确认归因、OPB1低秩瓶颈和OPK1跨密钥
 > 目标审计。OPA3与OPB1均为`hold`：exact-P与fixed-wrong-P均为`AUC=1.0`，所以本文只保留整体
 > SPN式架构与分层扩散结论，不主张精确P-layer因果贡献。OPC1 SPN-ResCNN四行正式矩阵正在远程
-> 运行，本文只记录其冻结协议，不提前填写结果。
+> 运行，本文只记录其冻结协议，不提前填写结果。OPM1已经排除“selected bit输入锥更窄”与“单S-box
+> 坐标明显更简单”这两个粗粒度解释。
 
 ## 1. 研究动机与章节定位
 
@@ -367,6 +368,24 @@ OPC1必须同时超过普通ResCNN、wrong-P和匹配shuffle，并至少使`4/8`
 全新固定密钥原样确认。失败或hold则保留ResCNN发现锚点并停止该混合路线，不通过增加深度、数据、
 epoch、错误P或输出位置绕过门，也不直接开放四轮。
 
+### 6.8 OPM1：易预测输出位粗粒度结构基线
+
+OPM1对全部64个PRESENT输出bit计算一至三轮精确反向输入依赖锥，并计算四个S-box输出坐标的balance、
+ANF degree、nonlinearity和ANF term count。全部64个输出bit的锥宽均为：
+
+```text
+一轮 = 4 bit
+二轮 = 16 bit
+三轮 = 64 bit
+```
+
+八个selected位置对应LSB-first S-box输出坐标`1/3`。四个坐标全部平衡、nonlinearity均为`4`；ANF
+degree为`[2,3,3,3]`，selected坐标均为degree 3，并非唯一最低degree坐标。因此易预测位置没有更窄
+三轮输入依赖锥，也不落在明显更简单的单S-box坐标上。
+
+该确定性结果只排除两个粗粒度充分解释，不能证明结构无关，也不能解释固定密钥函数谱或训练动力学。
+它不改变OPC1，不授权后验重选输出位或追加远程训练。
+
 ## 7. 结果讨论
 
 ### 7.1 完整输出失败不等于局部输出失败
@@ -395,7 +414,8 @@ OPA2的匹配shuffle和MLP控制排除了标签顺序及单纯参数量解释，
 wrong-P与exact-P完全同分，说明当前网络只需要相同的全局感受野扩展，不要求精确密码连线。论文应
 同时报告这两个结果，不能只展示exact-P的`AUC=1.0`。OPB1进一步压缩位置条件容量后exact-P和
 wrong-P仍完全同分，说明该负归因不是仅靠原模型的高维位置嵌入造成；OPC1正在检验把拓扑嵌入非饱和
-ResCNN能否同时保持输出能力并恢复精确拓扑差异。
+ResCNN能否同时保持输出能力并恢复精确拓扑差异。OPM1还表明八个selected bit与其他输出bit具有
+相同三轮锥宽，其S-box坐标也不是唯一低degree坐标；因此论文不能用这两个粗粒度量直接解释易预测性。
 
 ## 8. 创新点、证据边界与开题对齐
 
@@ -475,6 +495,7 @@ docs/experiments/innovation2-output-prediction-opa2-conditional-architecture-con
 docs/experiments/innovation2-output-prediction-opa3-present-r3-topology-attribution-plan.md
 docs/experiments/innovation2-output-prediction-opb1-present-r3-topology-bottleneck-plan.md
 docs/experiments/innovation2-output-prediction-opc1-present-r3-spn-rescnn-hybrid-plan.md
+docs/experiments/innovation2-output-prediction-opm1-present-r3-selected-output-structural-baseline-audit-plan.md
 ```
 
 正式结果：
@@ -488,6 +509,7 @@ outputs/remote_results_incomplete/i2_output_prediction_opa1_present_r3_selected8
 outputs/remote_results/i2_output_prediction_opa2_present_r3_selected8_present_spn_key3_gpu0_20260722/
 outputs/remote_results/i2_output_prediction_opa3_present_r3_selected8_topology_attribution_key3_gpu0_20260722/
 outputs/remote_results/i2_output_prediction_opb1_present_r3_topology_bottleneck_key4_gpu0_20260722/
+outputs/local_audits/i2_output_prediction_opm1_present_r3_selected_output_structural_baseline_audit_20260722/
 ```
 
 正文建议引用已通过像素检查的OP11、OP12、OPA2、OPA3与OPB1正式`curves.svg`。本初稿没有生成新图，
