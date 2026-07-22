@@ -70,13 +70,16 @@ invalid_numpy_rint_rate
 
 ## 5. 候选选择与确认门
 
-发现阶段每个bit必须同时满足才进入候选池：
+发现阶段对每个bit的LSTM和MLP模型选项分别应用同一资格门；一个模型选项必须同时满足：
 
 ```text
-LSTM discovery AUC >= 0.510
-LSTM discovery accuracy - majority >= +0.005
-LSTM discovery AUC - shuffled-LSTM AUC >= +0.005
+true-output model discovery AUC >= 0.510
+true-output model discovery accuracy - majority >= +0.005
+true-output model discovery AUC - shuffled-LSTM AUC >= +0.005
 ```
+
+其中LSTM选项使用架构匹配的shuffled-LSTM；MLP选项在OP10只能使用该shuffled-LSTM作为跨架构负
+控制，所以MLP候选即使通过本门，也必须在OP11补做匹配的shuffled-MLP后才能作架构或跨密钥归因。
 
 对LSTM和MLP分别计算`min(AUC-0.5, accuracy-majority, AUC-shuffled_AUC)`，每个bit冻结分数更强的
 模型，再按该分数降序冻结最多8个候选；并始终输出64位完整排名，即使候选池为空。fresh阶段对冻结
