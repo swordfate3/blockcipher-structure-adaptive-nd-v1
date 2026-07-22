@@ -1,0 +1,22 @@
+{
+  "bit_order": "msb_first",
+  "cache_version": 1,
+  "cipher": "PRESENT-80",
+  "completed_rows": 196608,
+  "rng_state": {
+    "bit_generator": "PCG64",
+    "has_uint32": 0,
+    "state": {
+      "inc": 52595174982125336511050962687976196863,
+      "state": 172385972132921662490061225122725010930
+    },
+    "uinteger": 3364475224
+  },
+  "rounds": 4,
+  "secret_key_hex": "ba48ad2b9c5e584afccf",
+  "seed": 7,
+  "status": "complete",
+  "test_rows": 65536,
+  "total_rows": 196608,
+  "train_rows": 131072
+}

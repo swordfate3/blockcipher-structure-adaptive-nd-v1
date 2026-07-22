@@ -1,0 +1,37 @@
+[
+  {
+    "architecture": "rescnn",
+    "config_hash": "22313b5f8d9cbe79293868c411b89bfcb6964761620b16ca47ea9d2704b51b25",
+    "model": "selected8_global_head_rescnn_anchor_true_output",
+    "path": "models\\selected8_global_head_rescnn_anchor_true_output_final.pt",
+    "sha256": "0df4d9a1d1b1496f9ee3398fa0bcfba2b3c74ecd900f372f2080ab9e41870dd0"
+  },
+  {
+    "architecture": "position_head_rescnn_no_p",
+    "config_hash": "5c2e62dbcb5bc54a3d5cd2877cc5af6df50ab819ead48a24f4381265ff01929d",
+    "model": "selected8_position_head_rescnn_no_p_true_output",
+    "path": "models\\selected8_position_head_rescnn_no_p_true_output_final.pt",
+    "sha256": "629a3829d1a5f322e50f0ce80cef1beeeb40ee027c80adf430e7a823b751dd6c"
+  },
+  {
+    "architecture": "position_head_spn_rescnn_exact_p",
+    "config_hash": "29b3070d8cb038b5b69387a8da6a67bd923e014ab5917d0af7bdcab97608470d",
+    "model": "selected8_position_head_spn_rescnn_exact_p_true_output",
+    "path": "models\\selected8_position_head_spn_rescnn_exact_p_true_output_final.pt",
+    "sha256": "7adeb26123af8dc2d631386a2c31432cad83db24ebb9cc9abb29bf5674a7e6f1"
+  },
+  {
+    "architecture": "position_head_spn_rescnn_wrong_p",
+    "config_hash": "0bf48a4e045a07ab49b3c66e9affd03042495d4a8484139542eaf79d8e9b9209",
+    "model": "selected8_position_head_spn_rescnn_wrong_p_true_output",
+    "path": "models\\selected8_position_head_spn_rescnn_wrong_p_true_output_final.pt",
+    "sha256": "1b7f1d4aa4c34d371a5a6644ecbba13738bfc64f5d3eecfdedde19ff17c9de70"
+  },
+  {
+    "architecture": "position_head_spn_rescnn_exact_p",
+    "config_hash": "6efcae3b3160bb30457414997c3e0c738f92184a61129a4dd65dedcba1802dcd",
+    "model": "selected8_position_head_spn_rescnn_exact_p_label_shuffle",
+    "path": "models\\selected8_position_head_spn_rescnn_exact_p_label_shuffle_final.pt",
+    "sha256": "ddc0cf54d2d3cc9acfb4e38badd30e15569241ebbe6f2da1eee905d09149475f"
+  }
+]
