@@ -1614,3 +1614,51 @@ run logs, exact started markers, and Python GPU processes. Never treat the
   readiness files, and advancing disk-cache progress JSONL.
 
 ---
+## [ERR-20260722-001] opd1_authority_reserialization_broke_archive_hash
+
+**Logged**: 2026-07-22T15:10:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+OPD1 completed all five models and 500 epochs, but its post-training archive gate rejected a semantically unchanged OPN1 authority because the training CLI rewrote parsed JSON instead of preserving the frozen source bytes.
+
+### Error
+
+```text
+expected OPN1 SHA256 = 887a7db3643e73bdda67958bcaae470881a09db25ab0ba5ff6c3d6bb0a2503d7
+result OPN1 SHA256   = 7948b1440d0a5b1a74ae168c0a84fe4072c961607bcd0c314d5dc99cd3efa8c9
+semantic JSON equality = true
+failed.marker = incomplete_results
+```
+
+### Context
+
+- Run ID: `i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722`.
+- The source authority passed its byte-level SHA256 readiness gate before training.
+- Results contained 40/40 bit rows, 500/500 history rows, 5/5 checkpoint hashes, and a complete 196608-row disk cache.
+- The CLI used `json.loads(...)` followed by sorted, indented `json.dumps(...)` for evidence copies, changing bytes while preserving all JSON values.
+
+### Suggested Fix
+
+Read frozen authorities once as bytes, validate their hashes and parsed semantics separately, and write the evidence copies with `Path.write_bytes(...)`. Never reserialize a byte-hash-owned authority before post-run archive verification.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/run_innovation2_selected_output_position_bound_spn_rescnn.py, configs/remote/generated/run_i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722.cmd, tests/test_innovation2_selected_output_position_bound_spn_rescnn.py
+- See Also: ERR-20260721-004, ERR-20260714-001
+- Pattern-Key: evidence.frozen_authority_copy_must_preserve_bytes
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T15:10:00+08:00
+- **Commit/PR**: pending
+- **Notes**: The OPD1 CLI now writes source-gate evidence from the already verified raw bytes. The completed remote result is recovered through the documented raw-fallback path without retraining.
+
+---

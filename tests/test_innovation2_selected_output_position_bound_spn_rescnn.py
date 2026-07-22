@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -262,6 +263,22 @@ print('import=pass')
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "import=pass"
+
+
+def test_training_cli_preserves_frozen_source_gate_bytes(tmp_path: Path) -> None:
+    from blockcipher_nd.cli import (
+        run_innovation2_selected_output_position_bound_spn_rescnn as cli,
+    )
+
+    source = b'{\r\n  "b": 2,\r\n  "a": 1\r\n}\r\n'
+    output = tmp_path / "gate.json"
+
+    cli._write_source_gate(output, source)
+
+    assert output.read_bytes() == source
+    assert hashlib.sha256(output.read_bytes()).digest() == hashlib.sha256(
+        source
+    ).digest()
 
 
 def test_result_index_names_opd1_in_plain_chinese() -> None:

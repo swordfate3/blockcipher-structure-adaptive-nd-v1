@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：远程正式任务运行中 / readiness通过 / 本地tmux watcher已接管
+状态：正式训练完成 / raw fallback已回收并验证 / hold / 位置绑定路线停止
 
 ## 1. 研究问题与来源门
 
@@ -238,7 +238,7 @@ G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
 source commit = 6a3f4fbbd7652c50be7e397c54f70f0a93dea6fe
 run_id = i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722
 remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
-remote state = running
+remote state = completed training / post-run archive failed
 readiness = status=pass
 started marker = present
 cache artifacts = plaintexts.npy / features.npy / full_targets.npy / cache_metadata.json present
@@ -250,9 +250,8 @@ local watcher = tmux:i2_opd1_poshead_k7_watch_20260722
 SSH轮询。本地watcher已完成首次同步并记录`running`，将等待精确失败或结果分支marker，再自动回收、
 校验SHA-256、绘图并刷新最近结果索引。
 
-当前没有正式AUC、完成结果或结果分支证据，因此不得把本状态写成实验完成，也不应把仍在运行的任务
-加入完成结果索引。结果回收后必须在本文件补充五模型平均与逐bit指标、全部门差值、裁决、证据边界和
-唯一下一动作，并对新生成SVG执行`visual-qa-redraw`。
+该启动记录是历史状态；最终训练与回收裁决见第13节。结果没有形成verified result branch，而是按
+归档失败后的raw fallback路径回收，因此证据状态必须保留为`fallback_retrieved`。
 
 ## 12. 运行中训练与恢复一致性审计
 
@@ -281,6 +280,69 @@ focused pytest          = 15 passed
 ```
 
 这个检查证明当前无dropout的OPD1训练路径在受控CPU条件下可一致恢复，也确认不兼容配置会由
-`config_hash`拒绝。它不额外声称Windows CUDA/cuDNN跨进程逐bit确定性；正式任务当前也没有失败或
-恢复证据。因而审计结论仅为“无协议阻断，继续等待冻结的五行正式矩阵完成”，不能替代最终测试AUC、
-五组门槛或结果分支归档。
+`config_hash`拒绝。它不额外声称Windows CUDA/cuDNN跨进程逐bit确定性；正式任务没有发生训练恢复，
+最终性能裁决以第13节回收的固定测试集结果为准。
+
+## 13. 正式结果、归档故障与裁决
+
+远程训练于`2026-07-22T14:20:22+08:00`完成全部五模型、`500/500`个epoch。原始回收验证为：
+
+```text
+source commit       = 6a3f4fbbd7652c50be7e397c54f70f0a93dea6fe
+results/history     = 40 / 500
+checkpoints         = 5/5，全部SHA-256与manifest一致
+disk cache          = complete / 196608 rows
+terminal event      = run_done / hold
+retrieval status    = fallback_retrieved
+```
+
+五模型八bit平均AUC：
+
+```text
+普通全局头ResCNN       = 0.570093368
+无P位置头              = 0.541337168
+exact-P位置头          = 0.999996158
+wrong-P位置头          = 0.999974160
+exact-P位置头标签打乱  = 0.500234930
+```
+
+候选差值：
+
+```text
+exact - global  = +0.429902791
+exact - no-P    = +0.458658991
+exact - shuffle = +0.499761228
+exact - wrong   = +0.000021998
+passed bits     = 0/8
+```
+
+位置绑定后，真实P和错误P都能几乎完美预测八个三轮输出bit，说明这个head结构本身大幅改变了任务
+可学习性；但是八个bit都没有通过`exact - wrong >= +0.015`，平均差也远低于`+0.020`。因此结果不能
+归因于精确PRESENT P-layer，正式裁决为：
+
+```text
+status   = hold
+decision = innovation2_position_bound_spn_rescnn_not_supported
+```
+
+训练后的结果分支归档失败不是性能失败。根因是CLI把冻结OPN1 authority解析后按排序缩进重新写出，
+JSON语义完全相同，但字节SHA-256从源文件的`887a7d...`变为`7948b1...`，导致post-run完整性脚本拒绝
+归档。训练前来源哈希门已经通过；本地raw fallback又逐项验证了来源提交、语义一致性、结果行、history、
+cache和checkpoint hash。CLI现已改为原始字节复制，防止后续同类故障；本次不重训，也不把fallback
+冒充verified result branch。
+
+正式图位于：
+
+```text
+outputs/remote_results_incomplete/
+  i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722_raw_fallback/
+  results/curves.svg
+```
+
+该图已按`visual-qa-redraw`检查`1920x1137`与`1280x758`像素渲染，标题、五行热图、四个差值轴、
+逐bit标签、裁决和证据边界均无重叠、裁切或结构歧义。
+
+证据支持的下一动作是停止OPD1位置绑定拓扑归因路线，不做fresh-key原样确认、不扩到四轮，也不增加
+head宽度、数据、epoch或错误排列。用户提出的八bit全XOR属于独立真实输出函数假设；它先使用同一
+冻结mask做三轮校准和四轮本地可行性门，必须同时超过label shuffle、同重量几何控制、单bit派生
+parity和最佳组成bit，才允许准备远程正式规模。

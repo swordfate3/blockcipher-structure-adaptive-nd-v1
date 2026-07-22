@@ -147,8 +147,8 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(args.output_root / "summary.json", summary)
     _write_json(args.output_root / "gate.json", gate)
     _write_json(args.output_root / "checkpoint_manifest.json", training["checkpoints"])
-    _write_json(args.output_root / "opc1_gate.json", source_gates[0])
-    _write_json(args.output_root / "opn1_gate.json", source_gates[1])
+    _write_source_gate(args.output_root / "opc1_gate.json", source_gate_bytes[0])
+    _write_source_gate(args.output_root / "opn1_gate.json", source_gate_bytes[1])
     if config.mode == "smoke":
         from blockcipher_nd.cli.plot_innovation2_selected_output_position_bound_spn_rescnn import (
             render_position_bound_spn_rescnn,
@@ -167,6 +167,10 @@ def _write_json(path: Path, payload: Any) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _write_source_gate(path: Path, payload: bytes) -> None:
+    path.write_bytes(payload)
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
