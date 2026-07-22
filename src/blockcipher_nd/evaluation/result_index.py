@@ -42,6 +42,15 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_position_bound_r4_scale_local_readiness_passed": (
+        "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
+    ),
+    "innovation2_position_bound_r4_scale_supported": (
+        "四轮2^20训练规模恢复八个真实输出bit信号，进入独立固定密钥确认"
+    ),
+    "innovation2_position_bound_r4_scale_not_supported": (
+        "四轮2^20训练规模仍未通过输出门，停止机械扩样并转新架构假设"
+    ),
     "innovation2_position_bound_r4_local_readiness_passed": (
         "四轮同协议位置绑定五模型、真实输出、磁盘缓存和产物实现门通过"
     ),
@@ -1994,6 +2003,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20"
+    ):
+        return "创新2 OPF2：PRESENT四轮位置绑定网络2^20训练规模真实密文输出预测"
     if run_id.startswith(
         "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn"
     ):

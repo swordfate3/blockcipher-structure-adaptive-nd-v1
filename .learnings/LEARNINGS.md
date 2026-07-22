@@ -1,3 +1,53 @@
+## [LRN-20260722-006] correction
+
+**Logged**: 2026-07-22T21:30:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Do not turn a matched `2^17` PRESENT r4 output-prediction failure into a data-scale ceiling when the closest paper explicitly leaves r4 unmeasured and identifies `>2^19` training pairs as the unresolved regime.
+
+### Details
+
+OPF1 is strong evidence for a same-network, same-target, same-key, same-test,
+same-`2^17/2^16`, 100-epoch boundary from PRESENT r3 to r4: exact-P mean AUC
+fell from `0.999996` to `0.513755`, with only `+0.012821` over label shuffle.
+It does not test whether the weak r4 signal is data-limited. Kimura et al.
+Table 12 empirically reports full-size PRESENT ciphertext prediction only
+through r3 (`2^17` training pairs, success probability `2^-1.30`); r4 is
+`N/A`, while the surrounding text explicitly states that additional rounds
+may require more than `2^19` pairs. Adjacent Jeong output-emulation protocols
+use `2^20--2^22` training pairs and up to 300 epochs, although not on PRESENT.
+
+### Suggested Action
+
+Before replacing the model or declaring the random-plaintext selected-output
+route capped at r3, run one preregistered r4 `2^20` training-scale gate that
+preserves OPF1's exact `2^16` test plaintexts, fixed key, eight output bits,
+five models, batch, optimizer, loss, and 100 epochs. If it still fails, stop
+mechanical scale-up and move to a separately controlled architecture hypothesis.
+
+### Metadata
+
+- Source: literature_reaudit, self_correction
+- Related Files: papers/innovation_two/text/2021_kimura_output_prediction_block_ciphers.txt, docs/experiments/innovation2-output-prediction-opf1-present-r4-position-bound-boundary-plan.md
+- Tags: innovation2, output-prediction, present, sample-scale, evidence-boundary
+- See Also: LRN-20260722-002, LRN-20260721-001
+- Pattern-Key: research.output_prediction.matched_budget_failure_not_scale_ceiling
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T21:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: OPF2 freezes a `2^20` r4 scale adjudication with the OPF1 test set preserved exactly.
+
+---
+
 ## [LRN-20260722-005] correction
 
 **Logged**: 2026-07-22T17:00:00+08:00

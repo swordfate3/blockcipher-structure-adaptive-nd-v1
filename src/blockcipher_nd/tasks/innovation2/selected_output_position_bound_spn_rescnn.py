@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import random
 from dataclasses import asdict, dataclass
@@ -32,6 +33,9 @@ RUN_ID_PREFIX = "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn"
 ROUND_EXTENSION_RUN_ID_PREFIX = (
     "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn"
 )
+SCALE_EXTENSION_RUN_ID_PREFIX = (
+    "i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20"
+)
 OPC1_RUN_ID = (
     "i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722"
 )
@@ -51,6 +55,21 @@ OPD1_RELEASE_DECISION = "innovation2_position_bound_spn_rescnn_not_supported"
 OPD1_GATE_SHA256 = "3d63163ab94e95b6c8c859be0867cc0a6b1f91382bd842e32dd3adbe04863579"
 OPD1_PLAINTEXTS_SHA256 = (
     "0f08d171c5b833ee1223da07bfc80e10d7ea99bbc0bef1b068547d3a7e8120e1"
+)
+OPF1_RUN_ID = (
+    "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn_"
+    "key7_gpu0_20260722"
+)
+OPF1_RELEASE_DECISION = "innovation2_position_bound_r4_boundary_observed"
+OPF1_GATE_SHA256 = "dad638c7180682074f134233e807ed0b58bb40d7d671f7a5d01540721e399354"
+OPF1_TRAIN_ROWS = 1 << 17
+OPF1_TEST_ROWS = 1 << 16
+OPF1_TOTAL_ROWS = OPF1_TRAIN_ROWS + OPF1_TEST_ROWS
+OPF1_TRAIN_PLAINTEXTS_RAW_SHA256 = (
+    "eca0f5705c2d9a6b4f0475bfb90e55d2bfa2d5e4d7b8c380b10ab55778a4555a"
+)
+OPF1_TEST_PLAINTEXTS_RAW_SHA256 = (
+    "5c5410d4c0761f729f5f705d43a7392bf90f6ae0bee65a57321760d515b82fec"
 )
 MODEL_SPECS = (
     ("selected8_global_head_rescnn_anchor_true_output", "rescnn", False),
@@ -115,9 +134,11 @@ class PositionBoundSpnResCnnConfig:
             "position_bound_head",
             "round_extension_smoke",
             "round_extension",
+            "scale_extension_smoke",
+            "scale_extension",
         }:
             raise ValueError("invalid OPD1 mode")
-        expected_rounds = 4 if self.mode.startswith("round_extension") else 3
+        expected_rounds = 4 if _is_r4_mode(self.mode) else 3
         if self.rounds != expected_rounds or self.seed != 7:
             raise ValueError(
                 "position-bound experiments require the mode-matched PRESENT "
@@ -187,6 +208,53 @@ class PositionBoundSpnResCnnConfig:
             device=device,
         )
 
+    @classmethod
+    def scale_extension(
+        cls,
+        *,
+        run_id: str | None = None,
+        device: str = "cuda",
+        smoke: bool = False,
+    ) -> PositionBoundSpnResCnnConfig:
+        if smoke:
+            return cls(
+                run_id=run_id
+                or f"{SCALE_EXTENSION_RUN_ID_PREFIX}_smoke_seed7_20260722",
+                mode="scale_extension_smoke",
+                rounds=4,
+                device=device,
+            )
+        return cls(
+            run_id=run_id
+            or f"{SCALE_EXTENSION_RUN_ID_PREFIX}_key7_gpu0_20260722",
+            mode="scale_extension",
+            rounds=4,
+            train_rows=1 << 20,
+            test_rows=1 << 16,
+            epochs=100,
+            batch_size=250,
+            data_chunk_rows=4096,
+            device=device,
+        )
+
+
+def _is_r4_mode(mode: str) -> bool:
+    return mode.startswith(("round_extension", "scale_extension"))
+
+
+def _is_scale_extension(mode: str) -> bool:
+    return mode.startswith("scale_extension")
+
+
+def _scale_split_boundaries(
+    config: PositionBoundSpnResCnnConfig,
+) -> tuple[int, int, int]:
+    total_rows = config.train_rows + config.test_rows
+    if config.mode == "scale_extension":
+        return OPF1_TRAIN_ROWS, OPF1_TOTAL_ROWS, total_rows
+    base_train_rows = config.train_rows // 2
+    return base_train_rows, base_train_rows + config.test_rows, total_rows
+
 
 def authorize_from_source_gates(
     opc1_gate: dict[str, Any],
@@ -238,6 +306,29 @@ def authorize_round_extension_from_opd1_gate(opd1_gate: dict[str, Any]) -> None:
         raise ValueError("OPD1 exact-P reference metric does not match")
 
 
+def authorize_scale_extension_from_opf1_gate(opf1_gate: dict[str, Any]) -> None:
+    if (
+        opf1_gate.get("run_id") != OPF1_RUN_ID
+        or opf1_gate.get("status") != "hold"
+        or opf1_gate.get("decision") != OPF1_RELEASE_DECISION
+    ):
+        raise ValueError("OPF2 requires the frozen completed OPF1 gate")
+    for group in ("protocol_checks", "execution_checks"):
+        checks = opf1_gate.get(group)
+        if not isinstance(checks, dict) or not checks or not all(checks.values()):
+            raise ValueError(f"OPF1 source gate {group} did not fully pass")
+    means = opf1_gate.get("metrics", {}).get("mean_auc_by_model", {})
+    exact = means.get("selected8_position_head_spn_rescnn_exact_p_true_output")
+    shuffled = means.get("selected8_position_head_spn_rescnn_exact_p_label_shuffle")
+    if (
+        exact is None
+        or shuffled is None
+        or not math.isclose(float(exact), 0.5137553581211971)
+        or not math.isclose(float(shuffled), 0.5009341432724128)
+    ):
+        raise ValueError("OPF1 scale-reference metrics do not match")
+
+
 def prepare_position_bound_data(
     config: PositionBoundSpnResCnnConfig,
     output_root: Path,
@@ -260,11 +351,34 @@ def prepare_position_bound_data(
         data_chunk_rows=config.data_chunk_rows,
         device=config.device,
     )
-    return prepare_disk_output_prediction_data(
+    data = prepare_disk_output_prediction_data(
         data_config,
         output_root,
         progress=progress,
     )
+    if _is_scale_extension(config.mode):
+        base_train_rows, base_total_rows, total_rows = _scale_split_boundaries(config)
+        split_layout = {
+            "name": "opf1_test_preserving_scale_extension_v1",
+            "train_index_segments": [
+                [0, base_train_rows],
+                [base_total_rows, total_rows],
+            ],
+            "test_index_segment": [base_train_rows, base_total_rows],
+            "opf1_train_plaintexts_raw_sha256": (
+                OPF1_TRAIN_PLAINTEXTS_RAW_SHA256
+            ),
+            "opf1_test_plaintexts_raw_sha256": OPF1_TEST_PLAINTEXTS_RAW_SHA256,
+        }
+        metadata = {**data["metadata"], "split_layout": split_layout}
+        metadata_path = Path(data["data_root"]) / "cache_metadata.json"
+        metadata_path.write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        data["metadata"] = metadata
+        data["split_layout"] = split_layout
+    return data
 
 
 def position_bound_parameter_counts(
@@ -361,7 +475,7 @@ def validate_position_bound_contract(
             "labels_are_true_outputs_not_sample_classes": True,
         }
     )
-    if config.mode.startswith("round_extension"):
+    if _is_r4_mode(config.mode):
         checks["round_extension_changes_only_cipher_rounds"] = (
             config.rounds == 4
             and config.seed == 7
@@ -378,6 +492,49 @@ def validate_position_bound_contract(
                 hashlib.sha256(plaintext_path.read_bytes()).hexdigest()
                 == OPD1_PLAINTEXTS_SHA256
             )
+    if _is_scale_extension(config.mode):
+        base_train_rows, base_total_rows, total_rows = _scale_split_boundaries(config)
+        plaintexts = data["plaintexts"]
+        layout = data.get("split_layout", {})
+        checks.update(
+            {
+                "scale_extension_changes_only_training_rows": config.rounds == 4
+                and config.seed == 7
+                and config.train_rows
+                in {64, 1 << 20}
+                and config.test_rows in {64, OPF1_TEST_ROWS},
+                "scale_split_layout_is_frozen": layout.get(
+                    "train_index_segments"
+                )
+                == [[0, base_train_rows], [base_total_rows, total_rows]]
+                and layout.get("test_index_segment")
+                == [base_train_rows, base_total_rows],
+                "scale_split_counts_match": base_train_rows
+                + (total_rows - base_total_rows)
+                == config.train_rows
+                and base_total_rows - base_train_rows == config.test_rows,
+                "opf1_train_plaintexts_are_preserved": (
+                    config.mode == "scale_extension_smoke"
+                    or hashlib.sha256(
+                        np.asarray(plaintexts[:OPF1_TRAIN_ROWS]).tobytes()
+                    ).hexdigest()
+                    == OPF1_TRAIN_PLAINTEXTS_RAW_SHA256
+                ),
+                "opf1_test_plaintexts_are_preserved": (
+                    config.mode == "scale_extension_smoke"
+                    or hashlib.sha256(
+                        np.asarray(
+                            plaintexts[OPF1_TRAIN_ROWS:OPF1_TOTAL_ROWS]
+                        ).tobytes()
+                    ).hexdigest()
+                    == OPF1_TEST_PLAINTEXTS_RAW_SHA256
+                ),
+                "actual_scale_train_test_indices_are_disjoint": (
+                    base_train_rows <= base_total_rows <= total_rows
+                    and checks["plaintexts_are_unique"]
+                ),
+            }
+        )
     return checks
 
 
@@ -388,15 +545,34 @@ def train_position_bound_matrix(
     *,
     progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    train_features = np.array(data["features"][: config.train_rows], copy=True)
-    test_features = np.array(data["features"][config.train_rows :], copy=True)
+    if _is_scale_extension(config.mode):
+        base_train_rows, base_total_rows, total_rows = _scale_split_boundaries(config)
+        train_features = np.concatenate(
+            (
+                np.asarray(data["features"][:base_train_rows]),
+                np.asarray(data["features"][base_total_rows:total_rows]),
+            )
+        )
+        test_features = np.array(
+            data["features"][base_train_rows:base_total_rows], copy=True
+        )
+        train_full_targets = np.concatenate(
+            (
+                np.asarray(data["full_targets"][:base_train_rows]),
+                np.asarray(data["full_targets"][base_total_rows:total_rows]),
+            )
+        )
+        test_full_targets = np.array(
+            data["full_targets"][base_train_rows:base_total_rows], copy=True
+        )
+    else:
+        train_features = np.array(data["features"][: config.train_rows], copy=True)
+        test_features = np.array(data["features"][config.train_rows :], copy=True)
+        train_full_targets = np.asarray(data["full_targets"][: config.train_rows])
+        test_full_targets = np.asarray(data["full_targets"][config.train_rows :])
     selected = np.asarray(config.selected_msb_indices, dtype=np.int64)
-    train_targets = np.array(
-        data["full_targets"][: config.train_rows, selected], copy=True
-    )
-    test_targets = np.array(
-        data["full_targets"][config.train_rows :, selected], copy=True
-    )
+    train_targets = np.array(train_full_targets[:, selected], copy=True)
+    test_targets = np.array(test_full_targets[:, selected], copy=True)
     shuffle = np.random.default_rng(2_050_000 + config.seed).permutation(
         config.train_rows
     )
@@ -573,20 +749,37 @@ def adjudicate_position_bound(
         and all(execution_checks.values())
     )
     is_round_extension = config.mode.startswith("round_extension")
-    if is_round_extension and reference_gate is None:
+    is_scale_extension = _is_scale_extension(config.mode)
+    is_r4 = _is_r4_mode(config.mode)
+    if is_r4 and reference_gate is None:
         valid = False
     if not valid:
         status = "fail"
         decision = "innovation2_position_bound_spn_rescnn_protocol_invalid"
         action = "repair only the frozen head, data, controls, or artifact protocol"
-    elif config.mode in {"smoke", "round_extension_smoke"}:
+    elif config.mode in {
+        "smoke",
+        "round_extension_smoke",
+        "scale_extension_smoke",
+    }:
         status = "pass"
-        if is_round_extension:
+        if is_scale_extension:
+            decision = "innovation2_position_bound_r4_scale_local_readiness_passed"
+            action = "launch the frozen seed7 2^20 scale matrix from a pushed commit"
+        elif is_round_extension:
             decision = "innovation2_position_bound_r4_local_readiness_passed"
             action = "launch the frozen seed7 round-four matrix from a pushed commit"
         else:
             decision = "innovation2_position_bound_spn_rescnn_local_readiness_passed"
             action = "prepare the frozen seed7 remote matrix from a pushed commit"
+    elif is_scale_extension and all(round_extension_checks.values()):
+        status = "pass"
+        decision = "innovation2_position_bound_r4_scale_supported"
+        action = "repeat the unchanged 2^20 round-four matrix under a fresh fixed key"
+    elif is_scale_extension:
+        status = "hold"
+        decision = "innovation2_position_bound_r4_scale_not_supported"
+        action = "stop mechanical scaling and preregister one new r4 architecture hypothesis"
     elif is_round_extension and all(round_extension_checks.values()):
         status = "pass"
         decision = "innovation2_position_bound_r4_output_supported"
@@ -609,13 +802,13 @@ def adjudicate_position_bound(
         action = (
             "retain the global-head ResCNN anchor and stop this position-head route"
         )
-    r3_exact_mean = None
-    r3_to_r4_drop = None
+    reference_exact_mean = None
+    candidate_minus_reference = None
     if reference_gate is not None:
-        r3_exact_mean = float(
+        reference_exact_mean = float(
             reference_gate["metrics"]["mean_auc_by_model"][exact_name]
         )
-        r3_to_r4_drop = means[exact_name] - r3_exact_mean
+        candidate_minus_reference = means[exact_name] - reference_exact_mean
     return {
         "run_id": config.run_id,
         "status": status,
@@ -635,32 +828,54 @@ def adjudicate_position_bound(
             "candidate_mean_accuracy_margin": exact_accuracy_margin,
             "formal_checks": formal_checks,
             "round_extension_checks": round_extension_checks,
-            "r3_reference_exact_p_mean_auc": r3_exact_mean,
-            "r4_minus_r3_exact_p_mean_auc": r3_to_r4_drop,
+            "reference_exact_p_mean_auc": reference_exact_mean,
+            "candidate_minus_reference_exact_p_mean_auc": (
+                candidate_minus_reference
+            ),
+            "r3_reference_exact_p_mean_auc": (
+                reference_exact_mean if is_round_extension else None
+            ),
+            "r4_minus_r3_exact_p_mean_auc": (
+                candidate_minus_reference if is_round_extension else None
+            ),
+            "opf1_reference_exact_p_mean_auc": (
+                reference_exact_mean if is_scale_extension else None
+            ),
+            "opf2_minus_opf1_exact_p_mean_auc": (
+                candidate_minus_reference if is_scale_extension else None
+            ),
         },
         "claim_scope": (
             "local implementation readiness"
-            if config.mode in {"smoke", "round_extension_smoke"}
+            if config.mode
+            in {"smoke", "round_extension_smoke", "scale_extension_smoke"}
             else (
-                "seed7 PRESENT r4 selected-eight-output position-bound SPN-ResCNN "
-                "matched round extension"
-                if is_round_extension
-                else "seed7 PRESENT r3 selected-eight-output position-bound SPN-ResCNN attribution"
+                (
+                    "seed7 PRESENT r4 selected-eight-output position-bound SPN-ResCNN "
+                    "2^20 training-scale adjudication"
+                    if is_scale_extension
+                    else "seed7 PRESENT r4 selected-eight-output position-bound "
+                    "SPN-ResCNN matched round extension"
+                )
+                if is_r4
+                else "seed7 PRESENT r3 selected-eight-output position-bound "
+                "SPN-ResCNN attribution"
             )
         )
         + (
             "; not cross-key confirmation, r5 evidence, full-ciphertext recovery, "
             "sample classification, or SOTA"
-            if is_round_extension
+            if is_r4
             else "; not r4 evidence, full-ciphertext recovery, sample classification, or SOTA"
         ),
         "next_action": {
             "action": action,
             "formal_launch_requires_opc1_hold_and_opn1_pass": True,
-            "round_extension_requires_completed_opd1": is_round_extension,
+            "round_extension_requires_completed_opd1": is_r4,
+            "scale_extension_requires_completed_opf1": is_scale_extension,
             "sample_classification": False,
             "target": "eight_preregistered_true_ciphertext_output_bits",
-            "reopens_r4": is_round_extension and status == "pass",
+            "reopens_r4": is_r4 and status == "pass",
         },
     }
 

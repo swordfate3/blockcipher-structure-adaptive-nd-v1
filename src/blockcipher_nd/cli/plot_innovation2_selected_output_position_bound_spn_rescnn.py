@@ -61,11 +61,17 @@ def render_position_bound_spn_rescnn(
     )
     mode = str(summary["metadata"]["mode"])
     is_round_extension = mode.startswith("round_extension")
+    is_scale_extension = mode.startswith("scale_extension")
+    is_r4 = is_round_extension or is_scale_extension
     rounds = int(
         summary["metadata"].get("config", {}).get(
-            "rounds", 4 if is_round_extension else 3
+            "rounds", 4 if is_r4 else 3
         )
     )
+    config = summary["metadata"].get("config", {})
+    train_rows = int(config.get("train_rows", 64))
+    test_rows = int(config.get("test_rows", 64))
+    epochs = int(config.get("epochs", 1))
     gate = summary["gate"]
     with plt.rc_context(
         {
@@ -94,9 +100,13 @@ def render_position_bound_spn_rescnn(
             0.105,
             0.955,
             (
-                "创新2 OPF1：PRESENT四轮位置绑定网络同协议输出预测"
-                if is_round_extension
-                else "创新2 OPD1：PRESENT三轮位置绑定 SPN-ResCNN 输出预测"
+                "创新2 OPF2：PRESENT四轮位置绑定网络 2^20 训练规模审判"
+                if is_scale_extension
+                else (
+                    "创新2 OPF1：PRESENT四轮位置绑定网络同协议输出预测"
+                    if is_round_extension
+                    else "创新2 OPD1：PRESENT三轮位置绑定 SPN-ResCNN 输出预测"
+                )
             ),
             ha="left",
             va="top",
@@ -108,9 +118,13 @@ def render_position_bound_spn_rescnn(
             0.105,
             0.900,
             (
-                "问题：保持OPD1的网络、八输出、密钥、明文划分和训练预算不变，只增加一轮后是否仍可预测？"
-                if is_round_extension
-                else "问题：把可吸收最后P重排的全局输出头换成参数匹配的位置绑定head，能否恢复真实P的可归因增益？"
+                "问题：保持OPF1的四轮网络、测试集、密钥、八输出和100 epochs不变，只增加训练数据能否恢复信号？"
+                if is_scale_extension
+                else (
+                    "问题：保持OPD1的网络、八输出、密钥、明文划分和训练预算不变，只增加一轮后是否仍可预测？"
+                    if is_round_extension
+                    else "问题：把可吸收最后P重排的全局输出头换成参数匹配的位置绑定head，能否恢复真实P的可归因增益？"
+                )
             ),
             ha="left",
             va="top",
@@ -131,9 +145,10 @@ def render_position_bound_spn_rescnn(
             0.800,
             (
                 "当前是64条训练/64条测试、1 epoch本地实现门；随机小样本AUC不作性能结论。"
-                if mode in {"smoke", "round_extension_smoke"}
+                if mode
+                in {"smoke", "round_extension_smoke", "scale_extension_smoke"}
                 else (
-                    f"当前是131072条训练、65536条测试、100 epochs的第八固定密钥PRESENT {rounds}轮结果。"
+                    f"当前是{train_rows}条训练、{test_rows}条测试、{epochs} epochs的第八固定密钥PRESENT {rounds}轮结果。"
                 )
             ),
             ha="left",
@@ -234,6 +249,15 @@ def render_position_bound_spn_rescnn(
             "innovation2_position_bound_r4_boundary_observed": (
                 "四轮同协议输出预测未通过；观察到三轮至四轮经验边界"
             ),
+            "innovation2_position_bound_r4_scale_local_readiness_passed": (
+                "四轮2^20规模切分、旧测试保留、五模型和产物实现门通过"
+            ),
+            "innovation2_position_bound_r4_scale_supported": (
+                "四轮2^20训练规模恢复真实输出预测信号；需新密钥确认"
+            ),
+            "innovation2_position_bound_r4_scale_not_supported": (
+                "四轮2^20训练规模仍未通过；停止机械扩样并转新架构假设"
+            ),
         }.get(gate["decision"], gate["decision"])
         figure.text(
             0.105,
@@ -251,7 +275,9 @@ def render_position_bound_spn_rescnn(
             0.105,
             0.045,
             (
-                "证据边界：PRESENT四轮、seed7、八个预注册真实输出bit；不是跨密钥确认、五轮、完整密文恢复或SOTA。"
+                "证据边界：PRESENT四轮、seed7、2^20训练、OPF1原测试集和八个预注册输出bit；不是跨密钥或五轮证据。"
+                if is_scale_extension
+                else "证据边界：PRESENT四轮、seed7、八个预注册真实输出bit；不是跨密钥确认、五轮、完整密文恢复或SOTA。"
                 if is_round_extension
                 else "证据边界：PRESENT三轮、八个预注册真实输出bit；不是四轮、完整密文恢复、真假样本分类或SOTA结果。"
             ),

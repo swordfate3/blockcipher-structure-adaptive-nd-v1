@@ -10,12 +10,14 @@ from typing import Any
 
 from blockcipher_nd.tasks.innovation2.selected_output_position_bound_spn_rescnn import (
     OPD1_GATE_SHA256,
+    OPF1_GATE_SHA256,
     OPC1_GATE_SHA256,
     OPN1_GATE_SHA256,
     PositionBoundSpnResCnnConfig,
     adjudicate_position_bound,
     authorize_from_source_gates,
     authorize_round_extension_from_opd1_gate,
+    authorize_scale_extension_from_opf1_gate,
     position_bound_parameter_counts,
     prepare_position_bound_data,
     serializable_position_bound_config,
@@ -35,12 +37,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "position_bound_head",
             "round_extension_smoke",
             "round_extension",
+            "scale_extension_smoke",
+            "scale_extension",
         ),
         default="smoke",
     )
     parser.add_argument("--opc1-gate", type=Path)
     parser.add_argument("--opn1-gate", type=Path)
     parser.add_argument("--opd1-gate", type=Path)
+    parser.add_argument("--opf1-gate", type=Path)
     parser.add_argument("--run-id")
     parser.add_argument("--device")
     parser.add_argument("--output-root", required=True, type=Path)
@@ -66,16 +71,29 @@ def main(argv: list[str] | None = None) -> int:
         == OPN1_GATE_SHA256,
     }
     is_round_extension = args.mode.startswith("round_extension")
+    is_scale_extension = args.mode.startswith("scale_extension")
+    is_r4 = is_round_extension or is_scale_extension
     opd1_gate_bytes = None
     opd1_gate = None
-    if is_round_extension:
+    if is_r4:
         if args.opd1_gate is None:
-            raise ValueError("OPF1 round extension requires --opd1-gate")
+            raise ValueError("PRESENT r4 extensions require --opd1-gate")
         opd1_gate_bytes = args.opd1_gate.read_bytes()
         opd1_gate = json.loads(opd1_gate_bytes)
         authorize_round_extension_from_opd1_gate(opd1_gate)
         source_gate_checks["opd1_gate_sha256_matches_frozen_source"] = (
             hashlib.sha256(opd1_gate_bytes).hexdigest() == OPD1_GATE_SHA256
+        )
+    opf1_gate_bytes = None
+    opf1_gate = None
+    if is_scale_extension:
+        if args.opf1_gate is None:
+            raise ValueError("OPF2 scale extension requires --opf1-gate")
+        opf1_gate_bytes = args.opf1_gate.read_bytes()
+        opf1_gate = json.loads(opf1_gate_bytes)
+        authorize_scale_extension_from_opf1_gate(opf1_gate)
+        source_gate_checks["opf1_gate_sha256_matches_frozen_source"] = (
+            hashlib.sha256(opf1_gate_bytes).hexdigest() == OPF1_GATE_SHA256
         )
     if args.mode == "position_bound_head":
         config = PositionBoundSpnResCnnConfig.formal(
@@ -89,6 +107,17 @@ def main(argv: list[str] | None = None) -> int:
         )
     elif args.mode == "round_extension_smoke":
         config = PositionBoundSpnResCnnConfig.round_extension(
+            run_id=args.run_id,
+            device=args.device or "cpu",
+            smoke=True,
+        )
+    elif args.mode == "scale_extension":
+        config = PositionBoundSpnResCnnConfig.scale_extension(
+            run_id=args.run_id,
+            device=args.device or "cuda",
+        )
+    elif args.mode == "scale_extension_smoke":
+        config = PositionBoundSpnResCnnConfig.scale_extension(
             run_id=args.run_id,
             device=args.device or "cpu",
             smoke=True,
@@ -138,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
         config,
         protocol_checks,
         training,
-        reference_gate=opd1_gate,
+        reference_gate=opf1_gate if is_scale_extension else opd1_gate,
     )
     for row in training["rows"]:
         row.update(
@@ -154,9 +183,13 @@ def main(argv: list[str] | None = None) -> int:
         "run_id": config.run_id,
         "task": "innovation2_output_prediction",
         "experiment": (
-            "opf1_present_r4_selected8_position_bound_spn_rescnn_round_extension"
-            if is_round_extension
-            else "opd1_present_r3_selected8_position_bound_spn_rescnn"
+            "opf2_present_r4_selected8_position_bound_spn_rescnn_2p20_scale"
+            if is_scale_extension
+            else (
+                "opf1_present_r4_selected8_position_bound_spn_rescnn_round_extension"
+                if is_round_extension
+                else "opd1_present_r3_selected8_position_bound_spn_rescnn"
+            )
         ),
         "mode": config.mode,
         "cipher": "PRESENT-80",
@@ -171,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
         "opc1_gate_decision": source_gates[0]["decision"],
         "opn1_gate_decision": source_gates[1]["decision"],
         "opd1_gate_decision": opd1_gate["decision"] if opd1_gate else None,
+        "opf1_gate_decision": opf1_gate["decision"] if opf1_gate else None,
+        "split_layout": data.get("split_layout"),
         "claim_scope": gate["claim_scope"],
     }
     summary = {
@@ -192,7 +227,13 @@ def main(argv: list[str] | None = None) -> int:
     _write_source_gate(args.output_root / "opn1_gate.json", source_gate_bytes[1])
     if opd1_gate_bytes is not None:
         _write_source_gate(args.output_root / "opd1_gate.json", opd1_gate_bytes)
-    if config.mode in {"smoke", "round_extension_smoke"}:
+    if opf1_gate_bytes is not None:
+        _write_source_gate(args.output_root / "opf1_gate.json", opf1_gate_bytes)
+    if config.mode in {
+        "smoke",
+        "round_extension_smoke",
+        "scale_extension_smoke",
+    }:
         from blockcipher_nd.cli.plot_innovation2_selected_output_position_bound_spn_rescnn import (
             render_position_bound_spn_rescnn,
         )
