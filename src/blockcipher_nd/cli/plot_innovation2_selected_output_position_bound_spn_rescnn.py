@@ -60,6 +60,12 @@ def render_position_bound_spn_rescnn(
         (auc[2] - auc[0], auc[2] - auc[1], auc[2] - auc[3], auc[2] - auc[4])
     )
     mode = str(summary["metadata"]["mode"])
+    is_round_extension = mode.startswith("round_extension")
+    rounds = int(
+        summary["metadata"].get("config", {}).get(
+            "rounds", 4 if is_round_extension else 3
+        )
+    )
     gate = summary["gate"]
     with plt.rc_context(
         {
@@ -87,7 +93,11 @@ def render_position_bound_spn_rescnn(
         figure.text(
             0.105,
             0.955,
-            "创新2 OPD1：PRESENT三轮位置绑定 SPN-ResCNN 输出预测",
+            (
+                "创新2 OPF1：PRESENT四轮位置绑定网络同协议输出预测"
+                if is_round_extension
+                else "创新2 OPD1：PRESENT三轮位置绑定 SPN-ResCNN 输出预测"
+            ),
             ha="left",
             va="top",
             fontsize=15,
@@ -97,7 +107,11 @@ def render_position_bound_spn_rescnn(
         figure.text(
             0.105,
             0.900,
-            "问题：把可吸收最后P重排的全局输出头换成参数匹配的位置绑定head，能否恢复真实P的可归因增益？",
+            (
+                "问题：保持OPD1的网络、八输出、密钥、明文划分和训练预算不变，只增加一轮后是否仍可预测？"
+                if is_round_extension
+                else "问题：把可吸收最后P重排的全局输出头换成参数匹配的位置绑定head，能否恢复真实P的可归因增益？"
+            ),
             ha="left",
             va="top",
             fontsize=9.8,
@@ -117,8 +131,10 @@ def render_position_bound_spn_rescnn(
             0.800,
             (
                 "当前是64条训练/64条测试、1 epoch本地实现门；随机小样本AUC不作性能结论。"
-                if mode == "smoke"
-                else "当前是131072条训练、65536条测试、100 epochs的第八固定密钥正式归因结果。"
+                if mode in {"smoke", "round_extension_smoke"}
+                else (
+                    f"当前是131072条训练、65536条测试、100 epochs的第八固定密钥PRESENT {rounds}轮结果。"
+                )
             ),
             ha="left",
             va="top",
@@ -209,6 +225,15 @@ def render_position_bound_spn_rescnn(
             "innovation2_position_bound_spn_rescnn_protocol_invalid": (
                 "输出头、模型、数据、控制、训练或产物协议无效"
             ),
+            "innovation2_position_bound_r4_local_readiness_passed": (
+                "四轮同协议五模型、数据缓存、真实输出和产物实现门通过"
+            ),
+            "innovation2_position_bound_r4_output_supported": (
+                "四轮真实输出预测超过标签打乱与准确率门；需新密钥确认"
+            ),
+            "innovation2_position_bound_r4_boundary_observed": (
+                "四轮同协议输出预测未通过；观察到三轮至四轮经验边界"
+            ),
         }.get(gate["decision"], gate["decision"])
         figure.text(
             0.105,
@@ -225,7 +250,11 @@ def render_position_bound_spn_rescnn(
         figure.text(
             0.105,
             0.045,
-            "证据边界：PRESENT三轮、八个预注册真实输出bit；不是四轮、完整密文恢复、真假样本分类或SOTA结果。",
+            (
+                "证据边界：PRESENT四轮、seed7、八个预注册真实输出bit；不是跨密钥确认、五轮、完整密文恢复或SOTA。"
+                if is_round_extension
+                else "证据边界：PRESENT三轮、八个预注册真实输出bit；不是四轮、完整密文恢复、真假样本分类或SOTA结果。"
+            ),
             ha="left",
             va="bottom",
             fontsize=8.8,

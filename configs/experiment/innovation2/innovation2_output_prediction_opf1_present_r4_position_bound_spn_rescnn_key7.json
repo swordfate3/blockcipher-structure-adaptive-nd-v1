@@ -1,0 +1,111 @@
+{
+  "plan_id": "innovation2_output_prediction_opf1_present_r4_position_bound_spn_rescnn_key7",
+  "question": "Does the OPD1 position-bound network still predict the same eight true ciphertext output bits when only PRESENT rounds changes from three to four?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_matched_round_extension",
+  "source_authorities": {
+    "opd1": {
+      "run_id": "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722",
+      "status": "hold",
+      "decision": "innovation2_position_bound_spn_rescnn_not_supported",
+      "gate_sha256": "3d63163ab94e95b6c8c859be0867cc0a6b1f91382bd842e32dd3adbe04863579",
+      "exact_p_mean_auc": 0.999996158392159,
+      "wrong_p_mean_auc": 0.9999741604132457,
+      "plaintexts_sha256": "0f08d171c5b833ee1223da07bfc80e10d7ea99bbc0bef1b068547d3a7e8120e1",
+      "retrieval_status": "fallback_retrieved_complete_raw_results"
+    },
+    "opc1": {
+      "run_id": "i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722",
+      "status": "hold",
+      "decision": "innovation2_spn_rescnn_hybrid_not_supported",
+      "gate_sha256": "ebb86a9feab6d2d9993937f5c0a7f4afe1bfe3597c8c1dff083956381e0310b4"
+    },
+    "opn1": {
+      "run_id": "i2_output_prediction_opn1_present_r3_spn_rescnn_head_permutation_identifiability_audit_20260722",
+      "status": "pass",
+      "decision": "innovation2_spn_rescnn_final_routing_absorbable_by_global_head",
+      "gate_sha256": "887a7db3643e73bdda67958bcaae470881a09db25ab0ba5ff6c3d6bb0a2503d7"
+    }
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 4,
+    "seed": 7,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "same_eighth_fixed_unknown_key_as_opd1",
+    "plaintext_protocol": "same_deterministic_plaintext_sequence_and_split_as_opd1",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "same_eight_preregistered_msb_first_true_ciphertext_bits_as_opd1",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "only_changed_variable": {
+    "field": "rounds",
+    "opd1_value": 3,
+    "opf1_value": 4
+  },
+  "rows": [
+    {
+      "role": "same_budget_global_head_rescnn_anchor",
+      "model": "selected8_global_head_rescnn_anchor_true_output",
+      "architecture": "rescnn_channels252_blocks10_global_flatten_output8",
+      "topology": "no_interstage_permutation",
+      "train_labels": "true",
+      "parameters": 3955904
+    },
+    {
+      "role": "position_head_no_routing_control",
+      "model": "selected8_position_head_rescnn_no_p_true_output",
+      "architecture": "rescnn_channels252_stages3_3_4_eight_local_heads_252_64_1",
+      "topology": "no_interstage_permutation",
+      "train_labels": "true",
+      "parameters": 3956928
+    },
+    {
+      "role": "matched_opd1_exact_p_candidate",
+      "model": "selected8_position_head_spn_rescnn_exact_p_true_output",
+      "architecture": "rescnn_channels252_stages3_3_4_exact_p_eight_local_heads_252_64_1",
+      "topology": "exact_present_p_layer_after_each_stage",
+      "train_labels": "true",
+      "parameters": 3956928
+    },
+    {
+      "role": "wrong_topology_attribution_control",
+      "model": "selected8_position_head_spn_rescnn_wrong_p_true_output",
+      "architecture": "rescnn_channels252_stages3_3_4_wrong_p_eight_local_heads_252_64_1",
+      "topology": "exact_mapping_destination_roll_one_after_each_stage",
+      "train_labels": "true",
+      "parameters": 3956928
+    },
+    {
+      "role": "matched_label_shuffle_control",
+      "model": "selected8_position_head_spn_rescnn_exact_p_label_shuffle",
+      "architecture": "rescnn_channels252_stages3_3_4_exact_p_eight_local_heads_252_64_1",
+      "topology": "exact_present_p_layer_after_each_stage",
+      "train_labels": "deterministically_shuffled",
+      "parameters": 3956928
+    }
+  ],
+  "output_prediction_gate": {
+    "minimum_candidate_mean_auc": 0.55,
+    "minimum_candidate_minus_shuffle_mean_auc": 0.03,
+    "minimum_candidate_mean_accuracy_minus_majority": 0.005,
+    "minimum_output_bits_passing": 4,
+    "minimum_per_bit_candidate_auc": 0.55,
+    "minimum_per_bit_candidate_minus_shuffle_auc": 0.015,
+    "minimum_per_bit_accuracy_minus_majority": 0.005
+  },
+  "topology_attribution_diagnostics": {
+    "minimum_candidate_minus_global_mean_auc": 0.01,
+    "minimum_candidate_minus_no_p_mean_auc": 0.01,
+    "minimum_candidate_minus_wrong_mean_auc": 0.02
+  },
+  "next_action_on_output_pass": "Repeat the unchanged round-four five-row matrix under a fresh fixed key before any round-five experiment.",
+  "next_action_on_output_hold": "Retain OPD1 as the three-round positive result and report a same-network, same-target, same-budget empirical boundary between rounds three and four."
+}

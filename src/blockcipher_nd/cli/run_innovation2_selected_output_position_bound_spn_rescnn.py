@@ -9,11 +9,13 @@ from pathlib import Path
 from typing import Any
 
 from blockcipher_nd.tasks.innovation2.selected_output_position_bound_spn_rescnn import (
+    OPD1_GATE_SHA256,
     OPC1_GATE_SHA256,
     OPN1_GATE_SHA256,
     PositionBoundSpnResCnnConfig,
     adjudicate_position_bound,
     authorize_from_source_gates,
+    authorize_round_extension_from_opd1_gate,
     position_bound_parameter_counts,
     prepare_position_bound_data,
     serializable_position_bound_config,
@@ -28,11 +30,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=("smoke", "position_bound_head"),
+        choices=(
+            "smoke",
+            "position_bound_head",
+            "round_extension_smoke",
+            "round_extension",
+        ),
         default="smoke",
     )
     parser.add_argument("--opc1-gate", type=Path)
     parser.add_argument("--opn1-gate", type=Path)
+    parser.add_argument("--opd1-gate", type=Path)
     parser.add_argument("--run-id")
     parser.add_argument("--device")
     parser.add_argument("--output-root", required=True, type=Path)
@@ -57,10 +65,33 @@ def main(argv: list[str] | None = None) -> int:
         ).hexdigest()
         == OPN1_GATE_SHA256,
     }
+    is_round_extension = args.mode.startswith("round_extension")
+    opd1_gate_bytes = None
+    opd1_gate = None
+    if is_round_extension:
+        if args.opd1_gate is None:
+            raise ValueError("OPF1 round extension requires --opd1-gate")
+        opd1_gate_bytes = args.opd1_gate.read_bytes()
+        opd1_gate = json.loads(opd1_gate_bytes)
+        authorize_round_extension_from_opd1_gate(opd1_gate)
+        source_gate_checks["opd1_gate_sha256_matches_frozen_source"] = (
+            hashlib.sha256(opd1_gate_bytes).hexdigest() == OPD1_GATE_SHA256
+        )
     if args.mode == "position_bound_head":
         config = PositionBoundSpnResCnnConfig.formal(
             run_id=args.run_id,
             device=args.device or "cuda",
+        )
+    elif args.mode == "round_extension":
+        config = PositionBoundSpnResCnnConfig.round_extension(
+            run_id=args.run_id,
+            device=args.device or "cuda",
+        )
+    elif args.mode == "round_extension_smoke":
+        config = PositionBoundSpnResCnnConfig.round_extension(
+            run_id=args.run_id,
+            device=args.device or "cpu",
+            smoke=True,
         )
     else:
         default = PositionBoundSpnResCnnConfig()
@@ -103,7 +134,12 @@ def main(argv: list[str] | None = None) -> int:
         args.output_root,
         progress=progress,
     )
-    gate = adjudicate_position_bound(config, protocol_checks, training)
+    gate = adjudicate_position_bound(
+        config,
+        protocol_checks,
+        training,
+        reference_gate=opd1_gate,
+    )
     for row in training["rows"]:
         row.update(
             {
@@ -117,7 +153,11 @@ def main(argv: list[str] | None = None) -> int:
     metadata = {
         "run_id": config.run_id,
         "task": "innovation2_output_prediction",
-        "experiment": "opd1_present_r3_selected8_position_bound_spn_rescnn",
+        "experiment": (
+            "opf1_present_r4_selected8_position_bound_spn_rescnn_round_extension"
+            if is_round_extension
+            else "opd1_present_r3_selected8_position_bound_spn_rescnn"
+        ),
         "mode": config.mode,
         "cipher": "PRESENT-80",
         "config": serializable_position_bound_config(config),
@@ -130,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         "parameter_counts": position_bound_parameter_counts(config),
         "opc1_gate_decision": source_gates[0]["decision"],
         "opn1_gate_decision": source_gates[1]["decision"],
+        "opd1_gate_decision": opd1_gate["decision"] if opd1_gate else None,
         "claim_scope": gate["claim_scope"],
     }
     summary = {
@@ -149,7 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(args.output_root / "checkpoint_manifest.json", training["checkpoints"])
     _write_source_gate(args.output_root / "opc1_gate.json", source_gate_bytes[0])
     _write_source_gate(args.output_root / "opn1_gate.json", source_gate_bytes[1])
-    if config.mode == "smoke":
+    if opd1_gate_bytes is not None:
+        _write_source_gate(args.output_root / "opd1_gate.json", opd1_gate_bytes)
+    if config.mode in {"smoke", "round_extension_smoke"}:
         from blockcipher_nd.cli.plot_innovation2_selected_output_position_bound_spn_rescnn import (
             render_position_bound_spn_rescnn,
         )

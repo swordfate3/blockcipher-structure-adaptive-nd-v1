@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import random
 from dataclasses import asdict, dataclass
@@ -28,6 +29,9 @@ from blockcipher_nd.tasks.innovation2.selected_output_bit_head import (
 
 
 RUN_ID_PREFIX = "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn"
+ROUND_EXTENSION_RUN_ID_PREFIX = (
+    "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn"
+)
 OPC1_RUN_ID = (
     "i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722"
 )
@@ -39,6 +43,15 @@ OPN1_RUN_ID = (
 OPN1_RELEASE_DECISION = "innovation2_spn_rescnn_final_routing_absorbable_by_global_head"
 OPC1_GATE_SHA256 = "ebb86a9feab6d2d9993937f5c0a7f4afe1bfe3597c8c1dff083956381e0310b4"
 OPN1_GATE_SHA256 = "887a7db3643e73bdda67958bcaae470881a09db25ab0ba5ff6c3d6bb0a2503d7"
+OPD1_RUN_ID = (
+    "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_"
+    "key7_gpu0_20260722"
+)
+OPD1_RELEASE_DECISION = "innovation2_position_bound_spn_rescnn_not_supported"
+OPD1_GATE_SHA256 = "3d63163ab94e95b6c8c859be0867cc0a6b1f91382bd842e32dd3adbe04863579"
+OPD1_PLAINTEXTS_SHA256 = (
+    "0f08d171c5b833ee1223da07bfc80e10d7ea99bbc0bef1b068547d3a7e8120e1"
+)
 MODEL_SPECS = (
     ("selected8_global_head_rescnn_anchor_true_output", "rescnn", False),
     (
@@ -97,10 +110,19 @@ class PositionBoundSpnResCnnConfig:
     device: str = "cpu"
 
     def __post_init__(self) -> None:
-        if self.mode not in {"smoke", "position_bound_head"}:
+        if self.mode not in {
+            "smoke",
+            "position_bound_head",
+            "round_extension_smoke",
+            "round_extension",
+        }:
             raise ValueError("invalid OPD1 mode")
-        if self.rounds != 3 or self.seed != 7:
-            raise ValueError("OPD1 is frozen to PRESENT round three and key seed7")
+        expected_rounds = 4 if self.mode.startswith("round_extension") else 3
+        if self.rounds != expected_rounds or self.seed != 7:
+            raise ValueError(
+                "position-bound experiments require the mode-matched PRESENT "
+                "round count and key seed7"
+            )
         if self.selected_msb_indices != SELECTED_MSB_INDICES:
             raise ValueError("OPD1 positions must match OP10 through OPC1")
         integer_values = (
@@ -128,6 +150,35 @@ class PositionBoundSpnResCnnConfig:
         return cls(
             run_id=run_id or f"{RUN_ID_PREFIX}_key7_gpu0_20260722",
             mode="position_bound_head",
+            train_rows=1 << 17,
+            test_rows=1 << 16,
+            epochs=100,
+            batch_size=250,
+            data_chunk_rows=4096,
+            device=device,
+        )
+
+    @classmethod
+    def round_extension(
+        cls,
+        *,
+        run_id: str | None = None,
+        device: str = "cuda",
+        smoke: bool = False,
+    ) -> PositionBoundSpnResCnnConfig:
+        if smoke:
+            return cls(
+                run_id=run_id
+                or f"{ROUND_EXTENSION_RUN_ID_PREFIX}_smoke_seed7_20260722",
+                mode="round_extension_smoke",
+                rounds=4,
+                device=device,
+            )
+        return cls(
+            run_id=run_id
+            or f"{ROUND_EXTENSION_RUN_ID_PREFIX}_key7_gpu0_20260722",
+            mode="round_extension",
+            rounds=4,
             train_rows=1 << 17,
             test_rows=1 << 16,
             epochs=100,
@@ -168,6 +219,23 @@ def authorize_from_source_gates(
             checks = gate.get(group)
             if not isinstance(checks, dict) or not checks or not all(checks.values()):
                 raise ValueError(f"source gate {group} did not fully pass")
+
+
+def authorize_round_extension_from_opd1_gate(opd1_gate: dict[str, Any]) -> None:
+    if (
+        opd1_gate.get("run_id") != OPD1_RUN_ID
+        or opd1_gate.get("status") != "hold"
+        or opd1_gate.get("decision") != OPD1_RELEASE_DECISION
+    ):
+        raise ValueError("OPF1 requires the frozen completed OPD1 gate")
+    for group in ("protocol_checks", "execution_checks"):
+        checks = opd1_gate.get(group)
+        if not isinstance(checks, dict) or not checks or not all(checks.values()):
+            raise ValueError(f"OPD1 source gate {group} did not fully pass")
+    means = opd1_gate.get("metrics", {}).get("mean_auc_by_model", {})
+    exact = means.get("selected8_position_head_spn_rescnn_exact_p_true_output")
+    if exact is None or not math.isclose(float(exact), 0.999996158392159):
+        raise ValueError("OPD1 exact-P reference metric does not match")
 
 
 def prepare_position_bound_data(
@@ -293,6 +361,23 @@ def validate_position_bound_contract(
             "labels_are_true_outputs_not_sample_classes": True,
         }
     )
+    if config.mode.startswith("round_extension"):
+        checks["round_extension_changes_only_cipher_rounds"] = (
+            config.rounds == 4
+            and config.seed == 7
+            and config.selected_msb_indices == SELECTED_MSB_INDICES
+        )
+        checks["plaintext_generator_matches_opd1_seed_protocol"] = (
+            int(data["metadata"]["seed"]) == 7
+            and int(data["metadata"]["train_rows"]) == config.train_rows
+            and int(data["metadata"]["test_rows"]) == config.test_rows
+        )
+        if config.mode == "round_extension":
+            plaintext_path = Path(data["data_root"]) / "plaintexts.npy"
+            checks["plaintext_file_sha256_matches_opd1"] = (
+                hashlib.sha256(plaintext_path.read_bytes()).hexdigest()
+                == OPD1_PLAINTEXTS_SHA256
+            )
     return checks
 
 
@@ -350,6 +435,8 @@ def adjudicate_position_bound(
     config: PositionBoundSpnResCnnConfig,
     protocol_checks: dict[str, bool],
     training: dict[str, Any],
+    *,
+    reference_gate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     indexed = {
         (str(row["model"]), int(row["msb_index"])): row for row in training["rows"]
@@ -368,6 +455,7 @@ def adjudicate_position_bound(
     }
     global_name, no_p_name, exact_name, wrong_name, shuffle_name = names
     bit_gates = []
+    output_bit_gates = []
     for bit in config.selected_msb_indices:
         global_anchor = indexed[(global_name, bit)]
         no_p = indexed[(no_p_name, bit)]
@@ -404,7 +492,27 @@ def adjudicate_position_bound(
                 "passed": all(checks.values()),
             }
         )
+        output_checks = {
+            "candidate_auc_at_least_0_550": float(exact["auc"])
+            >= config.minimum_per_bit_auc,
+            "candidate_minus_shuffle_at_least_0_015": float(exact["auc"])
+            - float(shuffled["auc"])
+            >= config.minimum_per_bit_control_margin,
+            "accuracy_margin_at_least_0_005": float(exact["accuracy_minus_majority"])
+            >= config.minimum_accuracy_margin,
+        }
+        output_bit_gates.append(
+            {
+                "msb_index": bit,
+                "candidate_auc": float(exact["auc"]),
+                "shuffle_auc": float(shuffled["auc"]),
+                "accuracy_minus_majority": float(exact["accuracy_minus_majority"]),
+                "checks": output_checks,
+                "passed": all(output_checks.values()),
+            }
+        )
     passed_bits = sum(row["passed"] for row in bit_gates)
+    passed_output_bits = sum(row["passed"] for row in output_bit_gates)
     formal_checks = {
         "candidate_mean_auc_at_least_0_550": means[exact_name]
         >= config.minimum_candidate_mean_auc,
@@ -421,6 +529,25 @@ def adjudicate_position_bound(
         - means[shuffle_name]
         >= config.minimum_mean_shuffle_margin,
         "at_least_four_bits_pass": passed_bits >= config.minimum_passed_bits,
+    }
+    exact_accuracy_margin = float(
+        np.mean(
+            [
+                float(indexed[(exact_name, bit)]["accuracy_minus_majority"])
+                for bit in config.selected_msb_indices
+            ]
+        )
+    )
+    round_extension_checks = {
+        "candidate_mean_auc_at_least_0_550": means[exact_name]
+        >= config.minimum_candidate_mean_auc,
+        "candidate_minus_shuffle_mean_auc_at_least_0_030": means[exact_name]
+        - means[shuffle_name]
+        >= config.minimum_mean_shuffle_margin,
+        "candidate_mean_accuracy_margin_at_least_0_005": exact_accuracy_margin
+        >= config.minimum_accuracy_margin,
+        "at_least_four_output_bits_pass": passed_output_bits
+        >= config.minimum_passed_bits,
     }
     execution_checks = {
         "five_models_complete": len(training["summaries"]) == 5,
@@ -445,14 +572,33 @@ def adjudicate_position_bound(
         and all(protocol_checks.values())
         and all(execution_checks.values())
     )
+    is_round_extension = config.mode.startswith("round_extension")
+    if is_round_extension and reference_gate is None:
+        valid = False
     if not valid:
         status = "fail"
         decision = "innovation2_position_bound_spn_rescnn_protocol_invalid"
         action = "repair only the frozen head, data, controls, or artifact protocol"
-    elif config.mode == "smoke":
+    elif config.mode in {"smoke", "round_extension_smoke"}:
         status = "pass"
-        decision = "innovation2_position_bound_spn_rescnn_local_readiness_passed"
-        action = "prepare the frozen seed7 remote matrix from a pushed commit"
+        if is_round_extension:
+            decision = "innovation2_position_bound_r4_local_readiness_passed"
+            action = "launch the frozen seed7 round-four matrix from a pushed commit"
+        else:
+            decision = "innovation2_position_bound_spn_rescnn_local_readiness_passed"
+            action = "prepare the frozen seed7 remote matrix from a pushed commit"
+    elif is_round_extension and all(round_extension_checks.values()):
+        status = "pass"
+        decision = "innovation2_position_bound_r4_output_supported"
+        action = (
+            "repeat the unchanged round-four matrix under a fresh fixed key before r5"
+        )
+    elif is_round_extension:
+        status = "hold"
+        decision = "innovation2_position_bound_r4_boundary_observed"
+        action = (
+            "retain the r3 positive result and report the matched r3-to-r4 boundary"
+        )
     elif all(formal_checks.values()):
         status = "pass"
         decision = "innovation2_position_bound_spn_rescnn_requires_confirmation"
@@ -463,6 +609,13 @@ def adjudicate_position_bound(
         action = (
             "retain the global-head ResCNN anchor and stop this position-head route"
         )
+    r3_exact_mean = None
+    r3_to_r4_drop = None
+    if reference_gate is not None:
+        r3_exact_mean = float(
+            reference_gate["metrics"]["mean_auc_by_model"][exact_name]
+        )
+        r3_to_r4_drop = means[exact_name] - r3_exact_mean
     return {
         "run_id": config.run_id,
         "status": status,
@@ -470,6 +623,7 @@ def adjudicate_position_bound(
         "protocol_checks": protocol_checks,
         "execution_checks": execution_checks,
         "bit_gates": bit_gates,
+        "output_bit_gates": output_bit_gates,
         "metrics": {
             "mean_auc_by_model": means,
             "candidate_minus_global_mean_auc": means[exact_name] - means[global_name],
@@ -477,20 +631,36 @@ def adjudicate_position_bound(
             "candidate_minus_wrong_mean_auc": means[exact_name] - means[wrong_name],
             "candidate_minus_shuffle_mean_auc": means[exact_name] - means[shuffle_name],
             "passed_bit_count": passed_bits,
+            "passed_output_bit_count": passed_output_bits,
+            "candidate_mean_accuracy_margin": exact_accuracy_margin,
             "formal_checks": formal_checks,
+            "round_extension_checks": round_extension_checks,
+            "r3_reference_exact_p_mean_auc": r3_exact_mean,
+            "r4_minus_r3_exact_p_mean_auc": r3_to_r4_drop,
         },
         "claim_scope": (
             "local implementation readiness"
-            if config.mode == "smoke"
-            else "seed7 PRESENT r3 selected-eight-output position-bound SPN-ResCNN attribution"
+            if config.mode in {"smoke", "round_extension_smoke"}
+            else (
+                "seed7 PRESENT r4 selected-eight-output position-bound SPN-ResCNN "
+                "matched round extension"
+                if is_round_extension
+                else "seed7 PRESENT r3 selected-eight-output position-bound SPN-ResCNN attribution"
+            )
         )
-        + "; not r4 evidence, full-ciphertext recovery, sample classification, or SOTA",
+        + (
+            "; not cross-key confirmation, r5 evidence, full-ciphertext recovery, "
+            "sample classification, or SOTA"
+            if is_round_extension
+            else "; not r4 evidence, full-ciphertext recovery, sample classification, or SOTA"
+        ),
         "next_action": {
             "action": action,
             "formal_launch_requires_opc1_hold_and_opn1_pass": True,
+            "round_extension_requires_completed_opd1": is_round_extension,
             "sample_classification": False,
             "target": "eight_preregistered_true_ciphertext_output_bits",
-            "reopens_r4": False,
+            "reopens_r4": is_round_extension and status == "pass",
         },
     }
 

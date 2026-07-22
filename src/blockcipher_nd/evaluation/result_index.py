@@ -42,6 +42,15 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_position_bound_r4_local_readiness_passed": (
+        "四轮同协议位置绑定五模型、真实输出、磁盘缓存和产物实现门通过"
+    ),
+    "innovation2_position_bound_r4_output_supported": (
+        "四轮位置绑定网络仍可预测八个真实输出bit，进入独立密钥确认"
+    ),
+    "innovation2_position_bound_r4_boundary_observed": (
+        "同网络同数据预算下四轮未通过输出门，形成三轮至四轮经验边界"
+    ),
     "innovation2_selected8_parity_local_readiness_passed": (
         "八个密文bit全异或预测的数据、模型、控制和产物实现门通过"
     ),
@@ -1985,6 +1994,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn"
+    ):
+        return "创新2 OPF1：PRESENT四轮位置绑定网络同协议真实密文输出预测"
     if run_id.startswith(
         "i2_output_prediction_ope1_present_r3_r4_selected8_parity"
     ):
