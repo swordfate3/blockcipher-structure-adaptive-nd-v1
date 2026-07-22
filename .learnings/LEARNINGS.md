@@ -1,3 +1,56 @@
+## [LRN-20260722-005] correction
+
+**Logged**: 2026-07-22T17:00:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Do not use a small direct-parity diagnostic to dismiss parity derived from a previously successful large-scale multi-output model.
+
+### Details
+
+OPD1 predicted the same eight PRESENT r3 ciphertext output bits with a
+position-bound head at `131072/65536` train/test rows and 100 epochs, reaching
+mean AUC `0.999996` for exact-P and `0.999974` for wrong-P. OPE1 instead trained
+small ordinary MLP/ResCNN parity models at `4096/4096` rows and 10 epochs; its
+component-bit baseline reached only `0.514--0.535` AUC and its direct parity
+candidate reached `0.493085`. Therefore OPE1 shows that this small direct-parity
+route did not calibrate, but it does not test whether thresholded or calibrated
+OPD1 position-head predictions can be XORed successfully. The exact-P versus
+wrong-P tie blocks precise topology attribution, not the empirical usefulness
+of the position-bound predictor itself.
+
+### Suggested Action
+
+Before closing a derived-output route, compare the same target using the
+strongest completed architecture and protocol anchor. For selected-eight
+parity, first evaluate parity derived from frozen OPD1 per-bit scores and hard
+predictions on the held-out set, including joint exact-eight accuracy and
+parity accuracy/AUC. If a new direct-parity model is needed, match OPD1's
+position-bound architecture, `2^17/2^16` data budget, 100 epochs, fixed-key
+protocol, and required label-shuffle/wrong-P controls.
+
+### Metadata
+
+- Source: user_feedback, protocol_comparison
+- Related Files: docs/experiments/innovation2-output-prediction-opd1-position-bound-spn-rescnn-plan.md, docs/experiments/innovation2-output-prediction-ope1-selected8-parity-feasibility-plan.md
+- Tags: innovation2, output-prediction, parity, position-head, same-budget-baseline, claim-scope
+- See Also: LRN-20260722-004, LRN-20260722-002
+- Pattern-Key: research.output_parity_requires_strongest_same_protocol_component_anchor
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T17:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the interpretation: OPD1 is a strong eight-output prediction result despite failed exact-P attribution; OPE1 only rejects its own small direct-parity configuration.
+
+---
+
 ## [LRN-20260722-004] best_practice
 
 **Logged**: 2026-07-22T08:05:00+08:00
