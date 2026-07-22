@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
+from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.tasks.innovation2.selected_output_architecture_gate import (
     _present_topology_mapping,
 )
@@ -66,6 +67,26 @@ def test_opf3_exact_and_identity_are_parameter_matched_but_route_differently() -
     )
     features = (torch.arange(128).reshape(2, 64) % 3 == 0).float()
     assert not torch.equal(exact(features), identity(features))
+
+
+def test_opf3_exact_round_route_matches_present_for_every_one_hot_bit() -> None:
+    model = build_round_recurrent_spn("exact", token_dim=1)
+    with torch.no_grad():
+        for module in (model.round_block.local_mlp, model.round_block.channel_mlp):
+            for parameter in module.parameters():
+                parameter.zero_()
+
+    for source_msb in range(64):
+        hidden = torch.zeros((1, 64, 1))
+        hidden[0, source_msb, 0] = 1.0
+
+        routed = model.round_block(hidden)[0, :, 0]
+        destinations = torch.nonzero(routed, as_tuple=False).flatten().tolist()
+        expected_state = Present80.permutation_layer(1 << (63 - source_msb))
+        expected_destination_msb = 63 - (expected_state.bit_length() - 1)
+
+        assert destinations == [expected_destination_msb]
+        assert routed[expected_destination_msb].item() == 1.0
 
 
 def test_opf3_preregistered_width_matches_opf2_capacity_band() -> None:
