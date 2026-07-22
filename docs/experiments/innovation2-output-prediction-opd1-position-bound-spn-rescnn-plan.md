@@ -277,7 +277,7 @@ checkpoint状态          = epoch / model / optimizer / history
 
 ```text
 opd1_resume_consistency = pass
-focused pytest          = 14 passed
+focused pytest          = 15 passed
 ```
 
 这个检查证明当前无dropout的OPD1训练路径在受控CPU条件下可一致恢复，也确认不兼容配置会由

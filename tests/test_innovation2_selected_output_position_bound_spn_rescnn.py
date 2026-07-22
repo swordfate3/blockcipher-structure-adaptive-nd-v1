@@ -164,6 +164,32 @@ def test_formal_gate_requires_all_anchors_and_controls() -> None:
     )
 
 
+def test_formal_gate_requires_four_bits_to_pass_every_joint_check() -> None:
+    config = PositionBoundSpnResCnnConfig.formal(device="cpu")
+    training = _formal_training(config, (0.60, 0.60, 0.70, 0.60, 0.50))
+    global_name = MODEL_SPECS[0][0]
+    for row in training["rows"]:
+        if (
+            row["model"] == global_name
+            and row["msb_index"] in config.selected_msb_indices[3:]
+        ):
+            row["auc"] = 0.697
+
+    gate = adjudicate_position_bound(config, {"valid": True}, training)
+
+    assert gate["metrics"]["passed_bit_count"] == 3
+    assert gate["metrics"]["formal_checks"] == {
+        "candidate_mean_auc_at_least_0_550": True,
+        "candidate_minus_global_mean_auc_at_least_0_010": True,
+        "candidate_minus_no_p_mean_auc_at_least_0_010": True,
+        "candidate_minus_wrong_mean_auc_at_least_0_020": True,
+        "candidate_minus_shuffle_mean_auc_at_least_0_030": True,
+        "at_least_four_bits_pass": False,
+    }
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation2_position_bound_spn_rescnn_not_supported"
+
+
 @pytest.mark.parametrize(
     "aucs",
     [
