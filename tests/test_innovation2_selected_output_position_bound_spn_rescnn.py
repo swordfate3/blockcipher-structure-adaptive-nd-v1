@@ -215,6 +215,29 @@ def test_formal_gate_holds_when_any_mean_gate_fails(
     assert gate["decision"] == "innovation2_position_bound_spn_rescnn_not_supported"
 
 
+def test_scale_extension_gate_uses_output_prediction_not_attribution_controls() -> None:
+    config = PositionBoundSpnResCnnConfig.scale_extension(device="cpu")
+    exact_name = MODEL_SPECS[2][0]
+    training = _formal_training(config, (0.697, 0.697, 0.70, 0.697, 0.50))
+    reference_gate = {
+        "metrics": {"mean_auc_by_model": {exact_name: 0.5137553581211971}}
+    }
+
+    gate = adjudicate_position_bound(
+        config,
+        {"valid": True},
+        training,
+        reference_gate=reference_gate,
+    )
+
+    assert gate["metrics"]["passed_bit_count"] == 0
+    assert gate["metrics"]["passed_output_bit_count"] == 8
+    assert not all(gate["metrics"]["formal_checks"].values())
+    assert all(gate["metrics"]["round_extension_checks"].values())
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation2_position_bound_r4_scale_supported"
+
+
 def test_position_bound_plot_has_plain_chinese_scope(tmp_path: Path) -> None:
     config = _tiny_config()
     rows = [
