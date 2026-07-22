@@ -169,7 +169,12 @@ class _OutputResidualBlock(nn.Module):
 
 
 class SelectedOutputResidualCnn(nn.Module):
-    def __init__(self, channels: int = 252, blocks: int = 10) -> None:
+    def __init__(
+        self,
+        channels: int = 252,
+        blocks: int = 10,
+        output_bits: int = 8,
+    ) -> None:
         super().__init__()
         self.stem = nn.Sequential(
             nn.Conv1d(1, channels, kernel_size=3, padding=1),
@@ -181,7 +186,7 @@ class SelectedOutputResidualCnn(nn.Module):
         )
         self.head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(channels * 64, 8),
+            nn.Linear(channels * 64, output_bits),
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:

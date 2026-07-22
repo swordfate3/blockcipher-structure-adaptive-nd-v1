@@ -42,6 +42,24 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_selected8_parity_local_readiness_passed": (
+        "八个密文bit全异或预测的数据、模型、控制和产物实现门通过"
+    ),
+    "innovation2_selected8_parity_r3_calibrated": (
+        "八bit全parity三轮同目标校准通过，只开放四轮本地控制门"
+    ),
+    "innovation2_selected8_parity_r3_not_calibrated": (
+        "八bit全parity三轮校准接近随机且未超过控制，停止四轮与远程扩展"
+    ),
+    "innovation2_selected8_parity_r4_local_supported": (
+        "八bit全parity四轮本地控制门通过，只允许准备正式规模计划"
+    ),
+    "innovation2_selected8_parity_r4_not_supported": (
+        "八bit全parity四轮未超过必要控制，停止远程与高轮扩展"
+    ),
+    "innovation2_selected8_parity_protocol_invalid": (
+        "八bit全parity的数据、目标、控制、训练、指标或产物协议无效"
+    ),
     "innovation2_position_bound_spn_rescnn_local_readiness_passed": (
         "位置绑定SPN-ResCNN五行实现与可识别性门通过，开放第八固定密钥正式矩阵"
     ),
@@ -1967,6 +1985,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_ope1_present_r3_r4_selected8_parity"
+    ):
+        return "创新2 OPE1：PRESENT三至四轮八个密文bit全异或真实值预测"
     if run_id.startswith(
         "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn"
     ):

@@ -1,0 +1,82 @@
+{
+  "plan_id": "innovation2_output_prediction_ope1_present_r3_r4_selected8_parity_seed1",
+  "question": "Can one directly predict the XOR of all eight frozen easy PRESENT ciphertext bits, and does that output function retain signal from r3 to r4 beyond matched controls?",
+  "task": "fixed_key_true_ciphertext_selected8_parity_prediction",
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": [3, 4],
+    "seed": 1,
+    "train_total_rows": 4096,
+    "test_total_rows": 4096,
+    "key_protocol": "same_second_fixed_unknown_key_as_op11_and_op12",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "xor_of_eight_preregistered_true_ciphertext_output_bits",
+    "selected8_mask": [0, 2, 8, 10, 32, 34, 40, 42],
+    "shifted_geometry_control_mask": [1, 3, 9, 11, 33, 35, 41, 43],
+    "sample_classification": false,
+    "epochs": 10,
+    "batch_size": 128,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch",
+    "device": "local_cpu",
+    "maximum_single_output_parameter_gap": 0.005
+  },
+  "models": [
+    {
+      "role": "component_and_derived_anchor",
+      "model": "selected8_mlp_true_output",
+      "output_bits": 8,
+      "hidden_dim": 256,
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "same_task_architecture_anchor",
+      "model": "selected8_parity_mlp_true_output",
+      "output_bits": 1,
+      "hidden_dim": 256,
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "candidate",
+      "model": "selected8_parity_rescnn_true_output",
+      "output_bits": 1,
+      "channels": 36,
+      "blocks": 10,
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "same_weight_shifted_geometry_control",
+      "model": "control8_parity_rescnn_true_output",
+      "output_bits": 1,
+      "channels": 36,
+      "blocks": 10,
+      "train_labels_shuffled": false
+    },
+    {
+      "role": "architecture_matched_label_shuffle",
+      "model": "selected8_parity_rescnn_label_shuffle",
+      "output_bits": 1,
+      "channels": 36,
+      "blocks": 10,
+      "train_labels_shuffled": true
+    }
+  ],
+  "r3_calibration_gate": {
+    "minimum_candidate_auc": 0.52,
+    "minimum_accuracy_minus_majority": 0.005,
+    "minimum_candidate_minus_shuffle_auc": 0.01
+  },
+  "r4_feasibility_gate": {
+    "minimum_candidate_auc": 0.51,
+    "minimum_accuracy_minus_majority": 0.005,
+    "minimum_candidate_minus_shuffle_auc": 0.005,
+    "minimum_candidate_minus_geometry_auc": 0.005,
+    "minimum_candidate_minus_derived_auc": 0.005,
+    "minimum_candidate_minus_best_component_auc": 0.002,
+    "minimum_candidate_minus_mlp_auc": 0.002
+  },
+  "next_action_on_pass": "Prepare, but do not yet launch, an A6000 2^17/2^16 and 100-epoch same-mask matrix with disk-backed cache and fresh confirmation reserved for a second gate.",
+  "stop_action": "If r3 calibration or r4 feasibility is near chance or explained by shuffle, shifted-mask, derived-parity, best-component, or MLP controls, stop this selected8 full-parity route without remote scale, mask search, more epochs, more models, or higher rounds."
+}
