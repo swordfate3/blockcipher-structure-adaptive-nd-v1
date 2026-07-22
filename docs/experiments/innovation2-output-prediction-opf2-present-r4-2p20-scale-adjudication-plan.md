@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：计划冻结 / 实现与本地readiness通过 / 远程待启动
+状态：计划冻结 / 实现与本地readiness通过 / 远程运行中
 
 ## 1. 为什么OPF1还不能关闭四轮
 
@@ -128,3 +128,21 @@ outputs/local_readiness/
 下一可执行动作保持不变：提交并推送冻结实现后，从精确推送提交在A6000 GPU0启动正式
 `2^20/2^16`、100 epochs五模型矩阵；启动后只做一次有界确认，随后交给本地tmux watcher监控、验证、
 回收、绘图和索引。正式结果未回收前不得把本地readiness写成四轮恢复信号。
+
+## 7. 远程启动
+
+正式矩阵已从冻结并推送的实现启动：
+
+```text
+source commit = 0d2670782f92aa4665b955fcaaf75dceed242f19
+run_id        = i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7_gpu0_20260722
+GPU           = A6000 physical GPU0
+remote root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opf2_r4_poshead_2p20_k7_20260722
+source clone  = 独立干净的run-owned clone
+local monitor = tmux i2_opf2_r4_2p20_monitor
+```
+
+旧的`G:\lxy\blockcipher-structure-adaptive-nd`克隆存在历史修改，本次没有重置或复用。启动后唯一一次有界
+远程确认已发现精确revision记录、GPU/torch日志、`started.marker`和`readiness=status=pass`。后续等待、
+失败检测、验证结果分支回收、SHA256校验、正式绘图和结果索引由本地tmux watcher负责；主任务不得用SSH
+循环轮询。当前状态仅为`running`，不是远程完成或已回收结果。
