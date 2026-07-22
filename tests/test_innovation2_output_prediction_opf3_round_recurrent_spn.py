@@ -113,6 +113,27 @@ def test_opf3_shared_route_composes_to_four_present_p_layers() -> None:
         assert routed[expected_destination_msb].item() == 1.0
 
 
+def test_opf3_local_mixer_cannot_cross_sbox_cells_before_routing() -> None:
+    torch.manual_seed(20260723)
+    model = build_round_recurrent_spn("identity", token_dim=4)
+    with torch.no_grad():
+        for parameter in model.round_block.channel_mlp.parameters():
+            parameter.zero_()
+
+    baseline = torch.zeros((1, 64, 4))
+    perturbed = baseline.clone()
+    perturbed[0, 5, 0] = 1.0
+    baseline_output = model.round_block(baseline)
+    perturbed_output = model.round_block(perturbed)
+    changed_positions = torch.nonzero(
+        (perturbed_output - baseline_output).abs().amax(dim=2)[0] > 1e-6,
+        as_tuple=False,
+    ).flatten()
+
+    assert 5 in changed_positions.tolist()
+    assert set(changed_positions.tolist()).issubset({4, 5, 6, 7})
+
+
 def test_opf3_preregistered_width_matches_opf2_capacity_band() -> None:
     count = round_recurrent_parameter_count()
 
