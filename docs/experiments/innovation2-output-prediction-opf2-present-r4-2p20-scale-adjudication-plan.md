@@ -146,3 +146,24 @@ local monitor = tmux i2_opf2_r4_2p20_monitor
 远程确认已发现精确revision记录、GPU/torch日志、`started.marker`和`readiness=status=pass`。后续等待、
 失败检测、验证结果分支回收、SHA256校验、正式绘图和结果索引由本地tmux watcher负责；主任务不得用SSH
 循环轮询。当前状态仅为`running`，不是远程完成或已回收结果。
+
+## 8. 结果未知时冻结的条件架构分支
+
+为避免在OPF2揭盲后根据指标临时挑模型，唯一允许的hold分支已经盲预注册：
+
+```text
+docs/experiments/
+  innovation2-output-prediction-opf3-present-r4-round-recurrent-spn-plan.md
+```
+
+OPF3只测试共享权重的四步SPN轮递推器：每步先做4-bit cell局部混合，再做公开P层路由，并以轮次位置
+上下文吸收固定未知轮密钥差异；数据、密钥、八个输出bit、`2^20/2^16`、100 epochs、RMSprop、MSE和
+final-epoch选择全部继承OPF2。它不是并行任务，当前没有实现或启动。
+
+```text
+OPF2通过 -> OPF3关闭；原样更换全新固定未知密钥确认OPF2
+OPF2未通过且完整来源门通过 -> 才实现并执行OPF3本地readiness
+```
+
+LSTM、Transformer、更多wrong-P、失败的全局头SPN-ResCNN混合、通用扩容、`2^22`和300 epochs均未被
+选为该条件分支，理由和完整停止门见OPF3计划。
