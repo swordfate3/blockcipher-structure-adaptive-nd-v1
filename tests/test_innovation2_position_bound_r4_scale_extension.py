@@ -197,11 +197,66 @@ def test_scale_gate_can_support_or_reject_training_scale() -> None:
 
     assert supported["status"] == "pass"
     assert supported["decision"] == "innovation2_position_bound_r4_scale_supported"
+    assert not supported["metrics"]["formal_checks"][
+        "candidate_minus_wrong_mean_auc_at_least_0_020"
+    ]
+    assert all(supported["metrics"]["round_extension_checks"].values())
     assert supported["metrics"]["opf1_reference_exact_p_mean_auc"] == pytest.approx(
         0.5137553581211971
     )
     assert held["status"] == "hold"
     assert held["decision"] == "innovation2_position_bound_r4_scale_not_supported"
+
+
+def test_scale_gate_requires_accuracy_margin_and_four_output_bits() -> None:
+    config = PositionBoundSpnResCnnConfig.scale_extension(device="cpu")
+    exact_name = MODEL_SPECS[2][0]
+
+    low_accuracy = _training(config, (0.51, 0.51, 0.60, 0.59, 0.50))
+    for row in low_accuracy["rows"]:
+        if row["model"] == exact_name:
+            row["accuracy_minus_majority"] = 0.004
+    low_accuracy_gate = adjudicate_position_bound(
+        config,
+        {"valid": True},
+        low_accuracy,
+        reference_gate=_opf1_gate(),
+    )
+
+    three_bits = _training(config, (0.51, 0.51, 0.60, 0.59, 0.50))
+    for row in three_bits["rows"]:
+        if row["model"] == exact_name and row["msb_index"] not in config.selected_msb_indices[:3]:
+            row["auc"] = 0.54
+    three_bits_gate = adjudicate_position_bound(
+        config,
+        {"valid": True},
+        three_bits,
+        reference_gate=_opf1_gate(),
+    )
+
+    assert low_accuracy_gate["status"] == "hold"
+    assert not low_accuracy_gate["metrics"]["round_extension_checks"][
+        "candidate_mean_accuracy_margin_at_least_0_005"
+    ]
+    assert three_bits_gate["status"] == "hold"
+    assert three_bits_gate["metrics"]["passed_output_bit_count"] == 3
+    assert not three_bits_gate["metrics"]["round_extension_checks"][
+        "at_least_four_output_bits_pass"
+    ]
+
+
+def test_scale_gate_treats_protocol_failure_as_invalid_not_negative() -> None:
+    config = PositionBoundSpnResCnnConfig.scale_extension(device="cpu")
+
+    gate = adjudicate_position_bound(
+        config,
+        {"data_contract": True, "source_contract": False},
+        _training(config, (0.51, 0.51, 0.60, 0.59, 0.50)),
+        reference_gate=_opf1_gate(),
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation2_position_bound_spn_rescnn_protocol_invalid"
 
 
 def test_scale_plot_and_result_index_are_plain_chinese(tmp_path: Path) -> None:
