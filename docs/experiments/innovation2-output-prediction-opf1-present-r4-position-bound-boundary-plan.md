@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：计划冻结 / 本地readiness通过 / 正式远程待启动
+状态：计划冻结 / 本地readiness通过 / 正式远程运行中
 
 本地readiness记录：
 
@@ -19,6 +19,22 @@ next        = 从推送提交启动A6000正式131072/65536、100 epochs五模型
 ```
 
 readiness中的随机小样本AUC不作性能判断；它只授权执行已经冻结的正式远程矩阵。
+
+正式远程启动记录：
+
+```text
+source commit = 3ad333ecd599e450159d464c2f474ccf49830113
+remote root   = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opf1_r4_poshead_k7_20260722
+GPU           = physical GPU0
+started       = 2026-07-22，started.marker已确认
+readiness     = status=pass
+progress      = progress.jsonl已开始持久化
+monitor       = local tmux i2_opf1_r4_poshead_monitor
+result state  = running；尚未完成或回收，不作四轮性能裁决
+```
+
+后续由tmux watcher等待远程完成并自动回收验证分支产物；主任务不再SSH轮询。只有本地回收、哈希验证、
+40/500/5产物门、结果索引刷新和最终SVG像素检查全部完成后，才允许写四轮支持或边界裁决。
 
 ## 1. 为什么必须补这个实验
 
