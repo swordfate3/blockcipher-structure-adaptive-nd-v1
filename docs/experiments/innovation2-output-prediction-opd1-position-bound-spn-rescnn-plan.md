@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：实现、本地readiness与远程正式包验证通过 / 待提交推送启动
+状态：远程正式任务运行中 / readiness通过 / 本地tmux watcher已接管
 
 ## 1. 研究问题与来源门
 
@@ -229,3 +229,27 @@ G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
 
 逻辑`run_id`、seed7、五模型矩阵、数据、epoch、门槛和结果分支名称不变；只改变远程物理目录与归档
 目录。首次失败目录保留为启动门诊断证据，不删除、不覆盖。
+
+## 11. retry1正式启动记录
+
+修复包从推送后的精确提交启动：
+
+```text
+source commit = 6a3f4fbbd7652c50be7e397c54f70f0a93dea6fe
+run_id = i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722
+remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
+remote state = running
+readiness = status=pass
+started marker = present
+cache artifacts = plaintexts.npy / features.npy / full_targets.npy / cache_metadata.json present
+local watcher = tmux:i2_opd1_poshead_k7_watch_20260722
+```
+
+启动前launcher克隆和新建run-owned源码克隆均为干净detached HEAD，且精确匹配上述提交；GPU检查记录
+为PyTorch `2.5.1+cu118`、CUDA `11.8`、单张可见A6000。启动后只做了一次只读确认，随后主线程停止
+SSH轮询。本地watcher已完成首次同步并记录`running`，将等待精确失败或结果分支marker，再自动回收、
+校验SHA-256、绘图并刷新最近结果索引。
+
+当前没有正式AUC、完成结果或结果分支证据，因此不得把本状态写成实验完成，也不应把仍在运行的任务
+加入完成结果索引。结果回收后必须在本文件补充五模型平均与逐bit指标、全部门差值、裁决、证据边界和
+唯一下一动作，并对新生成SVG执行`visual-qa-redraw`。
