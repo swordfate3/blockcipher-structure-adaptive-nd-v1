@@ -7969,3 +7969,56 @@ between verified remote results and raw fallback retrievals.
 - **Notes**: Added local readiness discovery and explicit unverified-fallback status; focused result-index tests and refreshed index passed.
 
 ---
+
+## [LRN-20260723-001] best_practice
+
+**Logged**: 2026-07-23T01:45:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Cross-key confirmation must separate the secret-key seed from data, model, label-shuffle, and batch-order seeds so the key is the only changed variable.
+
+### Details
+
+The Kimura-style fixed-key output-prediction configuration previously used one
+`seed` for the secret key, plaintext stream, model initialization, shuffled
+labels, and epoch batch order. Repeating OPF2 with `seed=8` after a seed7 pass
+would therefore change five experimental variables and could not establish
+that a four-round result generalized to a new fixed unknown key.
+
+The compatible correction adds an optional `key_seed`. Leaving it unset keeps
+the historical cache metadata and training-config hash unchanged. A controlled
+confirmation fixes `seed=7`, sets `key_seed=8`, reuses identical plaintexts,
+features, split, initialization, and ordering, and regenerates only the true
+ciphertext targets under the new key. A cache created for one explicit key must
+fail closed when reused for another.
+
+### Suggested Action
+
+For every fixed-key neural confirmation, list all random processes controlled
+by each seed before launch. Give the secret key an independent seed, freeze all
+other seeds, prove plaintext/features are identical and targets differ, and
+include both seeds in cache identity. Do not describe an all-purpose seed
+change as a single-variable cross-key confirmation.
+
+### Metadata
+
+- Source: protocol_audit
+- Related Files: src/blockcipher_nd/tasks/innovation2/output_prediction_kimura_lstm.py, tests/test_innovation2_output_prediction_kimura_lstm.py, docs/experiments/innovation2-output-prediction-opf2-c1-present-r4-key-confirmation-conditional-plan.md
+- Tags: innovation2, output-prediction, fixed-key, confirmation, seed-control, cache-identity
+- See Also: LRN-20260720-002
+- Pattern-Key: research.fixed_key_confirmation.separate_key_seed
+- Recurrence-Count: 1
+- First-Seen: 2026-07-23
+- Last-Seen: 2026-07-23
+
+### Resolution
+
+- **Resolved**: 2026-07-23T01:45:00+08:00
+- **Commit/PR**: a4f8527
+- **Notes**: Added backward-compatible `key_seed` data support, fail-closed cache tests, and the frozen OPF2-C1 conditional confirmation plan.
+
+---
