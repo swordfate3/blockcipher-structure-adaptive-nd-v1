@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_innovation2_spn_rescnn_head_identifiability import main
+
+raise SystemExit(main())

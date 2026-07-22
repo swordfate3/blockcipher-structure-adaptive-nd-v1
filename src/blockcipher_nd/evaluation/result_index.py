@@ -42,6 +42,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_spn_rescnn_final_routing_absorbable_by_global_head": (
+        "全局线性输出头可完全吸收最后一次P重排，OPC1拓扑差异只能来自前两个阶段间路由"
+    ),
+    "innovation2_spn_rescnn_head_identifiability_protocol_invalid": (
+        "SPN-ResCNN输出头形状、flatten顺序或位置重排等价性审计无效"
+    ),
     "innovation2_present_r3_selected_output_not_explained_by_coarse_structure_baselines": (
         "全部三轮输出位锥宽相同，单S-box坐标复杂度不足以解释八个易预测位"
     ),
@@ -1949,6 +1955,11 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opn1_present_r3_spn_rescnn_head_"
+        "permutation_identifiability_audit"
+    ):
+        return "创新2 OPN1：PRESENT三轮SPN-ResCNN全局输出头拓扑可识别性审计"
     if run_id.startswith(
         "i2_output_prediction_opm1_present_r3_selected_output_structural_baseline_audit"
     ):

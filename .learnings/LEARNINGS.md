@@ -1,3 +1,51 @@
+## [LRN-20260722-004] best_practice
+
+**Logged**: 2026-07-22T08:05:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Audit whether downstream heads can absorb fixed topology operators before attributing neural gains to those operators.
+
+### Details
+
+OPC1 inserts a fixed P-layer after each of three ResCNN stages, then applies a global
+`Flatten + Linear(252 * 64, 8)` head. OPN1 proved that the last permutation can be
+absorbed exactly by permuting the linear head columns: identity, exact PRESENT P,
+and fixed wrong P all had maximum float64 equivalence error `1.99e-13`. The first
+two routes remain followed by nonlinear residual stages and are not covered by
+that equivalence. Without this audit, a later exact-versus-wrong result could be
+overstated as evidence for all three routing sites.
+
+### Suggested Action
+
+Before training or interpreting topology-aware networks, identify every fixed
+permutation or graph operator followed by a flexible global head. Derive and
+numerically verify reparameterization equivalences. Attribute gains only to
+operators that remain identifiable after downstream symmetries; use position-bound
+or shared local heads when the final topology itself must be tested.
+
+### Metadata
+
+- Source: verified_local_experiment, self_improvement
+- Related Files: docs/experiments/innovation2-output-prediction-opn1-spn-rescnn-head-identifiability-audit-plan.md, src/blockcipher_nd/tasks/innovation2/spn_rescnn_head_identifiability.py
+- Tags: innovation2, output-prediction, topology-attribution, identifiability, global-head, permutation
+- See Also: LRN-20260722-003, LRN-20260722-002
+- Pattern-Key: research.neural_topology_operator_requires_downstream_reparameterization_audit
+- Recurrence-Count: 1
+- First-Seen: 2026-07-22
+- Last-Seen: 2026-07-22
+
+### Resolution
+
+- **Resolved**: 2026-07-22T08:05:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added and ran OPN1; all protocol, numerical equivalence, manifest, and validation checks passed.
+
+---
+
 ## [LRN-20260722-003] best_practice
 
 **Logged**: 2026-07-22T04:58:00+08:00
