@@ -6,6 +6,7 @@ SOURCE_COMMIT="${1:?pushed source commit is required}"
 RUN_ID="i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7_gpu0_20260722"
 REMOTE_DIR="i2_opf2_r4_poshead_2p20_k7_20260722"
 ARCHIVE_NAME="i2_opf2_r4_poshead_2p20_k7_20260722"
+RESULT_REF="refs/remotes/origin/results/${RUN_ID}"
 RUNS_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs"
 REMOTE_ROOT="${RUNS_ROOT}/${REMOTE_DIR}"
 MONITOR_ROOT="outputs/remote_results_incomplete/${RUN_ID}_monitor"
@@ -32,17 +33,23 @@ sync_live_artifacts() {
     >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || true
 }
 
-retrieve_archive() {
+retrieve_verified_branch() {
   local staging
   staging=$(mktemp -d /tmp/i2-opf2-r4-2p20-retrieval.XXXXXX) || return 1
-  if ! scp -r "${REMOTE}:${REMOTE_ROOT}/source/results_archive/${ARCHIVE_NAME}" \
-    "${staging}/" >> "${MONITOR_ROOT}/scp.log" \
-    2>> "${MONITOR_ROOT}/scp_stderr.log"; then
+  if ! git fetch origin "refs/heads/results/${RUN_ID}:${RESULT_REF}" \
+    >> "${MONITOR_ROOT}/git_fetch.log" \
+    2>> "${MONITOR_ROOT}/git_fetch_stderr.log"; then
+    rm -rf "${staging}"
+    return 1
+  fi
+  if ! git archive --format=tar "${RESULT_REF}" \
+    "results_archive/${ARCHIVE_NAME}" | tar -xf - -C "${staging}"; then
     rm -rf "${staging}"
     return 1
   fi
   mkdir -p "${DESTINATION}"
-  if ! cp -a "${staging}/${ARCHIVE_NAME}/." "${DESTINATION}/"; then
+  if ! cp -a "${staging}/results_archive/${ARCHIVE_NAME}/." \
+    "${DESTINATION}/"; then
     rm -rf "${staging}"
     return 1
   fi
@@ -59,13 +66,13 @@ while true; do
   fi
 
   if [[ -f "${MONITOR_ROOT}/${RUN_ID}/logs/${RUN_ID}_result_branch_pushed.marker" ]]; then
-    retrieve_archive || exit 2
+    retrieve_verified_branch || exit 2
     (
       cd "${DESTINATION}" || exit 1
       sha256sum -c <(sed 's/\r$//' SHA256SUMS)
     ) >> "${MONITOR_ROOT}/hash.log" 2>> "${MONITOR_ROOT}/hash_stderr.log" || exit 2
     UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
-      "import csv,hashlib,json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); meta=json.loads((root/'metadata.json').read_text()); cache=json.loads((root/'cache_metadata.json').read_text()); checkpoints=json.loads((root/'checkpoint_manifest.json').read_text()); source=[root/'opc1_gate.json',root/'opn1_gate.json',root/'opd1_gate.json',root/'opf1_gate.json']; history=list(csv.DictReader((root/'history.csv').open())); revision=(root/'git_revision.txt').read_text().strip(); assert revision=='${SOURCE_COMMIT}' and [hashlib.sha256(p.read_bytes()).hexdigest() for p in source]==['${OPC1_GATE_SHA256}','${OPN1_GATE_SHA256}','${OPD1_GATE_SHA256}','${OPF1_GATE_SHA256}'] and gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and all(gate['execution_checks'].values()) and meta['sample_classification'] is False and meta['config']['seed']==7 and meta['config']['rounds']==4 and meta['config']['mode']=='scale_extension' and cache['status']=='complete' and cache['completed_rows']==1114112 and cache['split_layout']['test_index_segment']==[131072,196608] and len(history)==500 and len(checkpoints)==5" \
+      "import csv,hashlib,json,pathlib; root=pathlib.Path(r'${DESTINATION}'); gate=json.loads((root/'gate.json').read_text()); meta=json.loads((root/'metadata.json').read_text()); cache=json.loads((root/'cache_metadata.json').read_text()); checkpoints=json.loads((root/'checkpoint_manifest.json').read_text()); results=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines() if line.strip()]; source=[root/'opc1_gate.json',root/'opn1_gate.json',root/'opd1_gate.json',root/'opf1_gate.json']; history=list(csv.DictReader((root/'history.csv').open())); revision=(root/'git_revision.txt').read_text().strip(); layout=cache['split_layout']; assert revision=='${SOURCE_COMMIT}' and [hashlib.sha256(p.read_bytes()).hexdigest() for p in source]==['${OPC1_GATE_SHA256}','${OPN1_GATE_SHA256}','${OPD1_GATE_SHA256}','${OPF1_GATE_SHA256}'] and gate['status'] in {'pass','hold'} and all(gate['protocol_checks'].values()) and all(gate['execution_checks'].values()) and meta['sample_classification'] is False and meta['config']['seed']==7 and meta['config']['rounds']==4 and meta['config']['mode']=='scale_extension' and cache['status']=='complete' and cache['completed_rows']==1114112 and layout['train_index_segments']==[[0,131072],[196608,1114112]] and layout['test_index_segment']==[131072,196608] and len(results)==40 and len(history)==500 and len(checkpoints)==5" \
       >> "${MONITOR_ROOT}/validation.log" 2>> "${MONITOR_ROOT}/validation_stderr.log" || exit 3
     MPLCONFIGDIR=/tmp/mplconfig UV_CACHE_DIR=/tmp/uv-cache uv run python \
       -m blockcipher_nd.cli.plot_innovation2_selected_output_position_bound_spn_rescnn \

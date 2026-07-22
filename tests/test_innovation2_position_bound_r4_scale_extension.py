@@ -292,5 +292,12 @@ def test_opf2_remote_package_is_cached_matched_and_windows_safe() -> None:
     assert "!" not in windows_scripts
     assert "G:\\lxy" in windows_scripts
     assert "split_layout" in run and "split_layout" in monitor
+    assert 'RESULT_REF="refs/remotes/origin/results/${RUN_ID}"' in monitor
+    assert 'git fetch origin "refs/heads/results/${RUN_ID}:${RESULT_REF}"' in monitor
+    assert 'git archive --format=tar "${RESULT_REF}"' in monitor
+    assert "retrieve_verified_branch || exit 2" in monitor
+    assert "source/results_archive" not in monitor
+    assert "layout['train_index_segments']==[[0,131072],[196608,1114112]]" in monitor
+    assert "len(results)==40 and len(history)==500 and len(checkpoints)==5" in monitor
     assert "git status --porcelain" in windows_scripts
     assert "source_expected_commit.txt" in windows_scripts
