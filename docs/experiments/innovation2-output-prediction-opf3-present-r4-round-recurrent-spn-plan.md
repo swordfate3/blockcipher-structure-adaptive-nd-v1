@@ -20,6 +20,8 @@ source commit、SHA256、切分hash、protocol和execution checks全部通过
 ```
 
 若OPF2主门通过，OPF3保持关闭；下一步必须是OPF2原样更换全新固定未知密钥确认，确认前不进入五轮。
+该通过分支由`innovation2-output-prediction-opf2-c1-present-r4-key-confirmation-conditional-plan.md`冻结；
+必须固定原`seed=7`控制的明文、初始化和训练顺序，只把独立`key_seed`改为8。
 
 ## 2. 为什么候选只能是逐轮SPN递推器
 

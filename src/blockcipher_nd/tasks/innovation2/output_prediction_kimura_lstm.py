@@ -36,6 +36,7 @@ class KimuraOutputPredictionConfig:
     mode: str = "smoke"
     rounds: int = 3
     seed: int = 0
+    key_seed: int | None = None
     train_rows: int = 64
     test_rows: int = 64
     hidden_dim: int = 300
@@ -140,7 +141,8 @@ def prepare_disk_output_prediction_data(
     data_root.mkdir(parents=True, exist_ok=True)
     metadata_path = data_root / "cache_metadata.json"
     total_rows = config.train_rows + config.test_rows
-    secret_key = random.Random(910_000 + config.seed).getrandbits(80)
+    resolved_key_seed = config.seed if config.key_seed is None else config.key_seed
+    secret_key = random.Random(910_000 + resolved_key_seed).getrandbits(80)
     expected = {
         "cache_version": CACHE_VERSION,
         "cipher": "PRESENT-80",
@@ -152,6 +154,8 @@ def prepare_disk_output_prediction_data(
         "bit_order": "msb_first",
         "secret_key_hex": f"{secret_key:020x}",
     }
+    if config.key_seed is not None:
+        expected["key_seed"] = config.key_seed
     paths = {
         "plaintexts": data_root / "plaintexts.npy",
         "features": data_root / "features.npy",
@@ -467,7 +471,10 @@ def adjudicate_kimura_output_prediction(
 
 
 def serializable_config(config: KimuraOutputPredictionConfig) -> dict[str, Any]:
-    return asdict(config)
+    payload = asdict(config)
+    if payload["key_seed"] is None:
+        payload.pop("key_seed")
+    return payload
 
 
 def parameter_counts(config: KimuraOutputPredictionConfig) -> dict[str, int]:

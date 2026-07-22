@@ -19,6 +19,7 @@ from blockcipher_nd.tasks.innovation2.output_prediction_kimura_lstm import (
     full_output_metrics,
     parameter_counts,
     prepare_disk_output_prediction_data,
+    serializable_config,
     train_kimura_output_matrix,
     validate_kimura_output_contract,
 )
@@ -89,12 +90,41 @@ def test_disk_cache_is_chunked_replayable_and_parameter_matched(
     assert sum(event == "cache_chunk" for event, _ in events) == 4
     assert reused["cache_reused"] is True
     assert first_hash == second_hash
+    assert "key_seed" not in data["metadata"]
+    assert "key_seed" not in serializable_config(config)
     with pytest.raises(ValueError, match="parameters do not match"):
         prepare_disk_output_prediction_data(
             KimuraOutputPredictionConfig(
                 **{**config.__dict__, "rounds": 2}
             ),
             tmp_path,
+        )
+
+
+def test_independent_key_seed_changes_only_key_and_ciphertext_targets(
+    tmp_path: Path,
+) -> None:
+    config = _tiny_config()
+    original = prepare_disk_output_prediction_data(config, tmp_path / "original")
+    new_key = prepare_disk_output_prediction_data(
+        KimuraOutputPredictionConfig(**{**config.__dict__, "key_seed": 1}),
+        tmp_path / "new-key",
+    )
+
+    assert np.array_equal(original["plaintexts"], new_key["plaintexts"])
+    assert np.array_equal(original["features"], new_key["features"])
+    assert original["secret_key"] != new_key["secret_key"]
+    assert not np.array_equal(original["full_targets"], new_key["full_targets"])
+    assert new_key["metadata"]["seed"] == config.seed
+    assert new_key["metadata"]["key_seed"] == 1
+    assert serializable_config(config)["seed"] == config.seed
+    assert serializable_config(
+        KimuraOutputPredictionConfig(**{**config.__dict__, "key_seed": 1})
+    )["key_seed"] == 1
+    with pytest.raises(ValueError, match="parameters do not match"):
+        prepare_disk_output_prediction_data(
+            KimuraOutputPredictionConfig(**{**config.__dict__, "key_seed": 1}),
+            tmp_path / "original",
         )
 
 

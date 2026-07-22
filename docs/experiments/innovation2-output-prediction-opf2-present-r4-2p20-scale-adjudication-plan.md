@@ -165,5 +165,13 @@ OPF2通过 -> OPF3关闭；原样更换全新固定未知密钥确认OPF2
 OPF2未通过且完整来源门通过 -> 才执行OPF3本地readiness；冻结模型代码可在OPF2指标未知时盲态准备
 ```
 
+“原样更换密钥”不得把统一`seed=7`整体改成`seed=8`，因为旧协议中的seed还控制明文、模型初始化、
+标签打乱和batch顺序。通过分支已单独冻结为`data/model seed=7, key_seed=8`的OPF2-C1条件计划：
+
+```text
+docs/experiments/
+  innovation2-output-prediction-opf2-c1-present-r4-key-confirmation-conditional-plan.md
+```
+
 LSTM、Transformer、更多wrong-P、失败的全局头SPN-ResCNN混合、通用扩容、`2^22`和300 epochs均未被
 选为该条件分支，理由和完整停止门见OPF3计划。
