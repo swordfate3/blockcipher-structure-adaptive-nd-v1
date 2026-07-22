@@ -5,8 +5,8 @@ set PHYSICAL_GPU=%~1
 if "%PHYSICAL_GPU%"=="" goto invalid_arguments
 
 set RUN_ID=i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722
-set REMOTE_DIR=i2_opd1_poshead_k7_20260722
-set ARCHIVE_NAME=i2_opd1_poshead_k7_20260722
+set REMOTE_DIR=i2_opd1_poshead_k7_retry1_20260722
+set ARCHIVE_NAME=i2_opd1_poshead_k7_retry1_20260722
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%REMOTE_DIR%
 set SOURCE_ROOT=%RUN_ROOT%\source

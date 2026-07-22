@@ -171,7 +171,7 @@ seed7正式包已经生成并通过冻结审计：
 
 ```text
 run_id = i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722
-remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_20260722
+remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
 expected results/history/checkpoints/cache = 40 / 500 / 5 / 196608
 source = exact pushed commit in a run-owned clean clone
 launch = Windows Task Scheduler, SYSTEM, cmd.exe /c, physical GPU0
@@ -219,5 +219,13 @@ training result = not produced
 修复不放宽哈希门：仓库新增`.gitattributes`，对
 `configs/experiment/innovation2/authorities/*.json`设置`-text`，确保Windows克隆保留冻结字节；
 同时让远程脚本把readiness失败写入明确的`failure_reason.txt`，并加入回归测试。修复提交推送后，
-允许在同一无训练结果run root更新干净源码克隆并重新调度；不得把首次失败记作模型性能结果或写入最近
-结果索引。
+不得把首次失败记作模型性能结果或写入最近结果索引。
+
+为避免复用首次checkout中已经发生换行转换的工作树，实际重试改用新的run-owned干净目录：
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opd1_poshead_k7_retry1_20260722
+```
+
+逻辑`run_id`、seed7、五模型矩阵、数据、epoch、门槛和结果分支名称不变；只改变远程物理目录与归档
+目录。首次失败目录保留为启动门诊断证据，不删除、不覆盖。

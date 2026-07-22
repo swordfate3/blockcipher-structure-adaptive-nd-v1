@@ -8,7 +8,7 @@ set SCHEDULE_ROOT=G:\lxy\scheduled-runs
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 set RUN_ID=i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn_key7_gpu0_20260722
-set REMOTE_DIR=i2_opd1_poshead_k7_20260722
+set REMOTE_DIR=i2_opd1_poshead_k7_retry1_20260722
 set TASK_NAME=I2_OPD1_POSHEAD_K7_GPU0
 set SOURCE_COMMIT=%~1
 if "%SOURCE_COMMIT%"=="" exit /b 2

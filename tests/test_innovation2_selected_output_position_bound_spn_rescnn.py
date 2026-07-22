@@ -318,8 +318,14 @@ def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
     assert remote_config["expected_history_rows"] == 500
     assert remote_config["expected_checkpoints"] == 5
     assert remote_config["expected_cache_rows"] == 196608
-    assert remote_config["remote_directory"] == "i2_opd1_poshead_k7_20260722"
-    assert remote_config["archive_directory"] == "i2_opd1_poshead_k7_20260722"
+    assert (
+        remote_config["remote_directory"]
+        == "i2_opd1_poshead_k7_retry1_20260722"
+    )
+    assert (
+        remote_config["archive_directory"]
+        == "i2_opd1_poshead_k7_retry1_20260722"
+    )
     assert remote_config["dataset_cache_root"].startswith("G:\\lxy\\")
     assert remote_config["checkpoint_root"].startswith("G:\\lxy\\")
     assert "--mode position_bound_head" in run
