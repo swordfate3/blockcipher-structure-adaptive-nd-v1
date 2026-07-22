@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：本地readiness通过 / OPB1负归因正式授权 / seed6远程正式矩阵运行中
+状态：seed6正式结果已回收 / hold / 保留ResCNN锚点并停止全局头混合路线
 
 ## 1. 研究问题
 
@@ -169,7 +169,7 @@ gate SHA256 = 776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549
 GPU0启动`131072/65536`、`100 epochs × 4`模型实验，并交由独立本地tmux watcher回收。该实验仍只
 是PRESENT三轮模型归因，不开放四轮或五轮。
 
-## 9. 正式远程启动状态
+## 9. 正式远程启动与回收状态
 
 正式矩阵已经从推送提交启动：
 
@@ -180,7 +180,7 @@ remote device = lxy-a6000 physical GPU0
 train/test = 131072/65536 total plaintext-ciphertext pairs
 models/epochs = 4 models x 100 epochs
 remote root = G:\lxy\blockcipher-structure-adaptive-nd-runs\i2_opc1_hybrid_k6_20260722
-status = running
+status = completed remotely / retrieved from verified result branch / plan-aligned
 ```
 
 启动后的单次只读确认已经看到`readiness=status=pass`、started marker、`progress.jsonl`以及参数匹配的
@@ -188,6 +188,62 @@ status = running
 会话`i2_opc1_hybrid_k6_watch_20260722`已接管稀疏监控、验证分支回收、hash与协议验证、绘图和结果
 索引刷新；主线程不再SSH轮询。
 
-当前只能称为“远程运行中”，不能提前填写正式AUC或裁决。结果回收后严格执行冻结分支：通过则仅做
-全新固定密钥原样确认；失败或hold则保留ResCNN发现锚点并停止SPN-ResCNN混合路线，不后验增加
-网络深度、数据、epoch、错误P或输出位置，也不直接开放四轮。
+正式结果随后由watcher从verified result branch回收；源提交、归档hash、协议门、计数和正式图像均
+已独立复核。裁决见下一节。
+
+## 10. 正式结果、裁决与下一动作
+
+正式归档：
+
+```text
+outputs/remote_results/
+  i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722/
+```
+
+完整性证据：
+
+```text
+source commit = 286cd0cd44238c3ae7095461570c80146066659c
+OPB1 gate SHA256 = 776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549
+results / history / checkpoints / cache rows = 32 / 400 / 4 / 196608
+cache status = complete
+all archive SHA256 = pass
+all protocol checks = pass
+all execution checks = pass
+stderr = only the known Windows expandable_segments warning
+```
+
+八位置平均AUC：
+
+| 模型 | 平均AUC | 平均accuracy-majority |
+|---|---:|---:|
+| 普通ResCNN锚点 | 0.573571593 | +0.051843643 |
+| SPN-ResCNN真实P | 0.546633861 | +0.031457901 |
+| SPN-ResCNN错误P | 0.545181187 | +0.030038834 |
+| SPN-ResCNN真实P标签打乱 | 0.500163496 | -0.000764847 |
+
+正式差值与门：
+
+```text
+真实P - ResCNN       = -0.026937731   required >= +0.010   fail
+真实P - 错误P        = +0.001452674   required >= +0.020   fail
+真实P - 标签打乱     = +0.046470365   required >= +0.030   pass
+真实P平均AUC          = 0.546633861    required >= 0.550    fail
+joint passed bits     = 0/8            required >= 4/8     fail
+status                = hold
+decision              = innovation2_spn_rescnn_hybrid_not_supported
+```
+
+真实P在八个位置都低于普通ResCNN；相对错误P的最大逐bit增益只有bit8的`+0.010069`，没有任何位置
+达到`+0.015`逐bit控制门。标签打乱接近随机，说明训练与评估流程正常，但不足以挽救候选相对锚点和
+错误拓扑的失败。
+
+正式`curves.svg`已按`visual-qa-redraw`在`1920x1039`和`1280x692`像素下检查。中文标题、热图、
+三组独立差值轴、阈值线、标签、裁决和证据边界均无重叠、裁切、遮挡、缺字或尺度歧义；
+`visual_qa_passed.marker`已写入正式目录。
+
+因此当前全局头SPN-ResCNN混合路线停止，不做seed7原样确认，不增加深度、样本、epoch、wrong-P或
+输出位置，也不开放四轮。保留普通ResCNN为当前非饱和锚点。结合OPN1已经证明最后一次P路由可被
+全局线性head吸收，下一项只允许单独预注册“参数匹配的位置绑定输出头”假设：保持ResCNN骨干、数据、
+目标和训练协议不变，只更换输出头，让最终路由可识别；先完成确定性参数/可识别性门和本地readiness，
+不得把它当作当前混合路线的机械续跑。
