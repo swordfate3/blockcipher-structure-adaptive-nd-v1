@@ -104,7 +104,9 @@ class SelectedOutputArchitectureConfig:
             self.minimum_candidate_gain_bits,
         )
         if min(integer_fields) <= 0:
-            raise ValueError("row, model, epoch, batch, and gate values must be positive")
+            raise ValueError(
+                "row, model, epoch, batch, and gate values must be positive"
+            )
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be positive")
 
@@ -232,6 +234,82 @@ class SelectedOutputSpnResidualCnn(nn.Module):
         hidden = self.stem(features.float().unsqueeze(1))
         for stage in self.stages:
             hidden = stage(hidden).index_select(2, self.source_for_destination)
+        return self.head(hidden)
+
+
+class _SelectedPositionOutputHead(nn.Module):
+    def __init__(
+        self,
+        channels: int,
+        hidden_dim: int = 64,
+        selected_msb_indices: tuple[int, ...] = SELECTED_MSB_INDICES,
+    ) -> None:
+        super().__init__()
+        self.selected_msb_indices = selected_msb_indices
+        self.heads = nn.ModuleList(
+            nn.Sequential(
+                nn.Linear(channels, hidden_dim),
+                nn.ReLU(),
+                nn.Linear(hidden_dim, 1),
+            )
+            for _ in selected_msb_indices
+        )
+
+    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+        selected = hidden[:, :, list(self.selected_msb_indices)].transpose(1, 2)
+        return torch.cat(
+            [head(selected[:, index, :]) for index, head in enumerate(self.heads)],
+            dim=1,
+        )
+
+
+class SelectedOutputPositionBoundResidualCnn(nn.Module):
+    """ResCNN whose eight output heads each read one frozen final bit position."""
+
+    def __init__(
+        self,
+        channels: int = 252,
+        stage_blocks: tuple[int, ...] = (3, 3, 4),
+        head_hidden_dim: int = 64,
+        source_for_destination: torch.Tensor | None = None,
+    ) -> None:
+        super().__init__()
+        if not stage_blocks or min(stage_blocks) <= 0:
+            raise ValueError("stage_blocks must contain positive block counts")
+        if source_for_destination is not None:
+            mapping = source_for_destination.detach().clone().to(dtype=torch.long)
+            if mapping.shape != (64,) or sorted(mapping.tolist()) != list(range(64)):
+                raise ValueError(
+                    "source_for_destination must be a 64-position permutation"
+                )
+            self.register_buffer(
+                "source_for_destination",
+                mapping,
+                persistent=False,
+            )
+        else:
+            self.source_for_destination = None
+        self.stem = nn.Sequential(
+            nn.Conv1d(1, channels, kernel_size=3, padding=1),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
+        self.stages = nn.ModuleList(
+            nn.Sequential(*(_OutputResidualBlock(channels) for _ in range(blocks)))
+            for blocks in stage_blocks
+        )
+        self.head = _SelectedPositionOutputHead(
+            channels,
+            hidden_dim=head_hidden_dim,
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        _validate_feature_shape(features)
+        hidden = self.stem(features.float().unsqueeze(1))
+        for stage in self.stages:
+            hidden = stage(hidden)
+            if self.source_for_destination is not None:
+                hidden = hidden.index_select(2, self.source_for_destination)
         return self.head(hidden)
 
 
@@ -399,9 +477,7 @@ def _present_source_for_destination() -> torch.Tensor:
     source_for_destination = [0] * 64
     for source_msb in range(64):
         source_integer = 63 - source_msb
-        destination_integer = (
-            63 if source_integer == 63 else (16 * source_integer) % 63
-        )
+        destination_integer = 63 if source_integer == 63 else (16 * source_integer) % 63
         destination_msb = 63 - destination_integer
         source_for_destination[destination_msb] = source_msb
     return torch.tensor(source_for_destination, dtype=torch.long)
@@ -468,10 +544,7 @@ def validate_architecture_contract(
     )
     checks = validate_selected_output_contract(base_config, data)
     checks.pop("independent_key_seed_is_one")
-    keys = {
-        seed: random.Random(910_000 + seed).getrandbits(80)
-        for seed in (0, 1, 2)
-    }
+    keys = {seed: random.Random(910_000 + seed).getrandbits(80) for seed in (0, 1, 2)}
     counts = parameter_counts(config)
     parameter_gaps = {
         architecture: abs(count - counts["mlp"]) / counts["mlp"]
@@ -480,12 +553,10 @@ def validate_architecture_contract(
     checks.update(
         {
             "third_fixed_key_seed_is_two": config.seed == 2,
-            "third_fixed_key_differs_from_seed0_and_seed1": len(set(keys.values()))
-            == 3
+            "third_fixed_key_differs_from_seed0_and_seed1": len(set(keys.values())) == 3
             and int(data["secret_key"]) == keys[2],
             "all_architectures_within_three_percent_of_mlp": all(
-                gap <= config.maximum_parameter_gap
-                for gap in parameter_gaps.values()
+                gap <= config.maximum_parameter_gap for gap in parameter_gaps.values()
             ),
             "five_row_phase_a_matrix_is_frozen": len(MODEL_SPECS) == 5
             and all(not shuffled for _, _, shuffled in MODEL_SPECS),
@@ -552,16 +623,13 @@ def adjudicate_architecture_gate(
     training: dict[str, Any],
 ) -> dict[str, Any]:
     indexed = {
-        (str(row["model"]), int(row["msb_index"])): row
-        for row in training["rows"]
+        (str(row["model"]), int(row["msb_index"])): row for row in training["rows"]
     }
     bit_gates: list[dict[str, Any]] = []
     architecture_metrics: dict[str, Any] = {}
     for architecture in ARCHITECTURES:
         true_name = f"selected8_{architecture}_true_output"
-        rows = [
-            indexed[(true_name, bit)] for bit in config.selected_msb_indices
-        ]
+        rows = [indexed[(true_name, bit)] for bit in config.selected_msb_indices]
         for bit in config.selected_msb_indices:
             true_row = indexed[(true_name, bit)]
             checks = {
@@ -576,9 +644,7 @@ def adjudicate_architecture_gate(
                     "architecture": architecture,
                     "msb_index": bit,
                     "auc": true_row["auc"],
-                    "accuracy_minus_majority": true_row[
-                        "accuracy_minus_majority"
-                    ],
+                    "accuracy_minus_majority": true_row["accuracy_minus_majority"],
                     "checks": checks,
                     "passed": all(checks.values()),
                 }
@@ -612,13 +678,10 @@ def adjudicate_architecture_gate(
             - architecture_metrics["mlp"]["mean_auc"]
         )
         gain_bits = sum(
-            gain >= config.minimum_candidate_bit_gain
-            for gain in per_bit_gain.values()
+            gain >= config.minimum_candidate_bit_gain for gain in per_bit_gain.values()
         )
         checks = {
-            "viability_passed": architecture_metrics[architecture][
-                "viability_passed"
-            ],
+            "viability_passed": architecture_metrics[architecture]["viability_passed"],
             "mean_auc_gain_at_least_0_003": mean_gain
             >= config.minimum_candidate_mean_auc_gain,
             "at_least_four_bits_gain_0_002": gain_bits
@@ -677,7 +740,9 @@ def adjudicate_architecture_gate(
     if not protocol_valid or not execution_valid:
         status = "fail"
         decision = "innovation2_selected8_architecture_protocol_invalid"
-        action = "repair only the frozen data, target, architecture, or artifact protocol"
+        action = (
+            "repair only the frozen data, target, architecture, or artifact protocol"
+        )
         next_adjudication = "opa1_protocol_repair"
     elif config.mode == "smoke":
         status = "pass"
@@ -819,9 +884,7 @@ def _build_model(
         return SelectedOutputTopologyBottleneckSpn(
             token_dim=config.present_spn_dim,
             blocks=config.present_spn_blocks,
-            source_for_destination=_present_topology_mapping(
-                bottleneck_topology_mode
-            ),
+            source_for_destination=_present_topology_mapping(bottleneck_topology_mode),
         )
     hybrid_topology_mode = {
         "spn_rescnn_exact_p": "exact",
@@ -832,6 +895,23 @@ def _build_model(
             channels=config.rescnn_channels,
             stage_blocks=(3, 3, 4),
             source_for_destination=_present_topology_mapping(hybrid_topology_mode),
+        )
+    if architecture == "position_head_rescnn_no_p":
+        return SelectedOutputPositionBoundResidualCnn(
+            channels=config.rescnn_channels,
+            stage_blocks=(3, 3, 4),
+        )
+    position_head_topology_mode = {
+        "position_head_spn_rescnn_exact_p": "exact",
+        "position_head_spn_rescnn_wrong_p": "wrong",
+    }.get(architecture)
+    if position_head_topology_mode is not None:
+        return SelectedOutputPositionBoundResidualCnn(
+            channels=config.rescnn_channels,
+            stage_blocks=(3, 3, 4),
+            source_for_destination=_present_topology_mapping(
+                position_head_topology_mode
+            ),
         )
     raise ValueError(f"unknown architecture: {architecture}")
 
@@ -879,9 +959,7 @@ def _train_one_model(
             TensorDataset(feature_tensor, target_tensor),
             batch_size=config.batch_size,
             shuffle=True,
-            generator=torch.Generator().manual_seed(
-                1_330_000 + config.seed + epoch
-            ),
+            generator=torch.Generator().manual_seed(1_330_000 + config.seed + epoch),
         )
         model.train()
         total_loss = 0.0

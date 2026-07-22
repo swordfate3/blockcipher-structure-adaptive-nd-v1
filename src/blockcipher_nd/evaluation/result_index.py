@@ -42,6 +42,18 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation2_position_bound_spn_rescnn_local_readiness_passed": (
+        "位置绑定SPN-ResCNN五行实现与可识别性门通过，开放第八固定密钥正式矩阵"
+    ),
+    "innovation2_position_bound_spn_rescnn_requires_confirmation": (
+        "位置绑定真实P候选超过全部锚点与控制，进入独立固定密钥确认"
+    ),
+    "innovation2_position_bound_spn_rescnn_not_supported": (
+        "位置绑定真实P候选未通过同预算锚点与控制门，保留全局头ResCNN"
+    ),
+    "innovation2_position_bound_spn_rescnn_protocol_invalid": (
+        "位置绑定输出头、拓扑、数据、控制、训练或产物协议无效"
+    ),
     "innovation2_spn_rescnn_final_routing_absorbable_by_global_head": (
         "全局线性输出头可完全吸收最后一次P重排，OPC1拓扑差异只能来自前两个阶段间路由"
     ),
@@ -1955,6 +1967,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn"
+    ):
+        return "创新2 OPD1：PRESENT三轮位置绑定SPN-ResCNN真实密文输出预测"
     if run_id.startswith(
         "i2_output_prediction_opn1_present_r3_spn_rescnn_head_"
         "permutation_identifiability_audit"

@@ -1,0 +1,41 @@
+{
+  "claim_scope": "deterministic identifiability audit of the final OPC1 position routing under its global dense head; not an OPC1 performance result, proof about the first two routes, r4 evidence, sample classification, or SOTA",
+  "decision": "innovation2_spn_rescnn_final_routing_absorbable_by_global_head",
+  "execution_checks": {
+    "all_equivalence_errors_are_finite": true,
+    "all_equivalence_errors_within_tolerance": true,
+    "all_mappings_are_complete_permutations": true,
+    "three_mapping_rows_complete": true
+  },
+  "metrics": {
+    "absorbable_routed_stage_indices_zero_based": [
+      2
+    ],
+    "head_connected_positions_per_output": 64,
+    "head_in_features": 16128,
+    "head_out_features": 8,
+    "maximum_absolute_equivalence_error": 1.9895196601282805e-13,
+    "not_proven_absorbable_routed_stage_indices_zero_based": [
+      0,
+      1
+    ]
+  },
+  "next_action": {
+    "action": "keep OPC1 unchanged; attribute any exact-versus-wrong gain only to the first two interstage routes, then follow the frozen OPC1 branch",
+    "new_output_position_search_authorized": false,
+    "opc1_unchanged": true,
+    "remote_training_authorized": false
+  },
+  "protocol_checks": {
+    "anchor_and_hybrids_use_same_head_type": true,
+    "every_output_connects_all_final_positions": true,
+    "exact_and_wrong_mappings_differ_at_all_positions": true,
+    "formal_opc1_head_dimensions_match": true,
+    "hybrid_has_three_routed_stages": true,
+    "labels_are_output_values_not_sample_classes": true,
+    "neural_training_is_not_used": true,
+    "selected_outputs_match_op10_through_opc1": true
+  },
+  "run_id": "i2_output_prediction_opn1_present_r3_spn_rescnn_head_permutation_identifiability_audit_20260722",
+  "status": "pass"
+}
