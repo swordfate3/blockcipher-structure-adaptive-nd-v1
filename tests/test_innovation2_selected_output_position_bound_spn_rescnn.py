@@ -247,6 +247,7 @@ def test_result_index_names_opd1_in_plain_chinese() -> None:
 
 def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
     root = Path(__file__).resolve().parents[1]
+    attributes_path = root / ".gitattributes"
     plan_path = root / (
         "configs/experiment/innovation2/"
         "innovation2_output_prediction_opd1_present_r3_position_bound_"
@@ -278,6 +279,7 @@ def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
     run = run_path.read_text(encoding="utf-8")
     launch = launch_path.read_text(encoding="utf-8")
     monitor = monitor_path.read_text(encoding="utf-8")
+    attributes = attributes_path.read_text(encoding="utf-8")
     windows_scripts = run + launch
     opc1_sha = "ebb86a9feab6d2d9993937f5c0a7f4afe1bfe3597c8c1dff083956381e0310b4"
     opn1_sha = "887a7db3643e73bdda67958bcaae470881a09db25ab0ba5ff6c3d6bb0a2503d7"
@@ -332,6 +334,9 @@ def test_formal_remote_package_is_gate_owned_cached_and_windows_safe() -> None:
     assert "G:\\lxy" in windows_scripts
     assert "source_expected_commit.txt" in windows_scripts
     assert "git status --porcelain" in windows_scripts
+    assert "goto readiness_failed" in run
+    assert "Frozen OPC1 or OPN1 readiness authority" in run
+    assert "configs/experiment/innovation2/authorities/*.json -text" in attributes
     assert opc1_sha in run and opc1_sha in monitor
     assert opn1_sha in run and opn1_sha in monitor
     assert "plot_innovation2_selected_output_position_bound_spn_rescnn" in monitor

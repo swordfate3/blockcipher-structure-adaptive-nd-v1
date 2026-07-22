@@ -197,3 +197,27 @@ remote package regression = pass
 当前环境未声明或安装`ruff`，因此`uv run ruff`无法启动；这不是测试失败，也没有为此修改项目依赖。
 下一动作保持唯一：范围提交并推送本计划、模型、runner、测试、配置和生成脚本，从推送后的精确HEAD
 启动A6000正式任务，然后只做一次只读启动确认并交给本地tmux watcher。
+
+## 10. 首次远程启动门失败与修复
+
+首次从推送提交`f04f7fe815f4a6f8899847711b8888f7db545a4d`启动后，Windows计划任务实际执行，GPU与
+PyTorch检查通过，但在训练和数据生成之前由readiness gate拒绝：
+
+```text
+started marker = absent
+failed marker = present
+readiness stderr = AssertionError
+cache artifacts = absent
+training result = not produced
+```
+
+根因是Windows Git checkout将提交中的OPN1 authority JSON从LF转换为CRLF。JSON内容没有改变，但
+冻结的字节SHA-256从`887a7db3643e73bdda67958bcaae470881a09db25ab0ba5ff6c3d6bb0a2503d7`
+变为`7948b1440d0a5b1a74ae168c0a84fe4072c961607bcd0c314d5dc99cd3efa8c9`，所以来源所有权门按设计
+失败。OPC1远程gate仍保持期望SHA-256，CUDA可用且只暴露一张A6000。
+
+修复不放宽哈希门：仓库新增`.gitattributes`，对
+`configs/experiment/innovation2/authorities/*.json`设置`-text`，确保Windows克隆保留冻结字节；
+同时让远程脚本把readiness失败写入明确的`failure_reason.txt`，并加入回归测试。修复提交推送后，
+允许在同一无训练结果run root更新干净源码克隆并重新调度；不得把首次失败记作模型性能结果或写入最近
+结果索引。
