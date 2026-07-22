@@ -27,6 +27,40 @@ def test_opf3_model_has_frozen_shape_contexts_and_local_heads() -> None:
     assert model(torch.zeros((2, 64))).shape == (2, 8)
 
 
+def test_opf3_heads_read_their_preregistered_final_positions() -> None:
+    torch.manual_seed(20260723)
+    model = SelectedOutputRoundRecurrentSpn(token_dim=8)
+    round_outputs: list[torch.Tensor] = []
+    head_inputs: list[torch.Tensor] = []
+
+    def capture_round(
+        _module: torch.nn.Module,
+        _inputs: object,
+        output: torch.Tensor,
+    ) -> None:
+        round_outputs.append(output.detach().clone())
+
+    def capture_head(
+        _module: torch.nn.Module,
+        inputs: tuple[torch.Tensor, ...],
+    ) -> None:
+        head_inputs.append(inputs[0].detach().clone())
+
+    handles = [model.round_block.register_forward_hook(capture_round)]
+    handles.extend(head.register_forward_pre_hook(capture_head) for head in model.heads)
+    try:
+        model((torch.arange(128).reshape(2, 64) % 3 == 0).float())
+    finally:
+        for handle in handles:
+            handle.remove()
+
+    assert len(round_outputs) == 4
+    assert len(head_inputs) == len(model.selected_msb_indices)
+    final_hidden = round_outputs[-1] + model.final_whitening_context.detach()
+    for index, msb_index in enumerate(model.selected_msb_indices):
+        assert torch.equal(head_inputs[index], final_hidden[:, msb_index, :])
+
+
 def test_opf3_uses_one_shared_round_block_exactly_four_times() -> None:
     model = SelectedOutputRoundRecurrentSpn(token_dim=8)
     calls = 0
