@@ -136,3 +136,70 @@ Eleftheriadis et al. (IEEE CSR 2025). A targeted Tavily check of the IEEE record
 and ResearchGate abstract identifies its task as all-in-one differential
 cryptanalysis of SIMON and SPECK, not true ciphertext-output prediction. It is
 therefore an architecture neighbor but not a matching task.
+
+## Full-text verification of the Jeong paper family
+
+The open-access publisher PDFs were retrieved from the MDPI resource host and
+verified by PDF metadata, title, authors, DOI, and full-text protocol:
+
+```text
+2024: https://mdpi-res.com/d_attachment/mathematics/mathematics-12-01936/
+      article_deploy/mathematics-12-01936-v2.pdf
+2026: https://mdpi-res.com/d_attachment/mathematics/mathematics-14-00373/
+      article_deploy/mathematics-14-00373.pdf
+```
+
+The 2024 paper's block-array Encryption Emulation task is full-output value
+prediction: plaintext bits are the input and the complete ciphertext bit array
+is the target. Plaintext Recovery reverses that mapping. Its two relevant model
+families are:
+
+```text
+FCNN    = 512 -> 1024 -> 512 -> block-size sigmoid output
+BiLSTM  = three bidirectional LSTM layers, hidden size 256,
+          followed by a block-size sigmoid output
+```
+
+For DES and SPECK, the BiLSTM receives the two block halves as a sequence of
+length two; this is a generic data-layout prior, not an S-box/P-layer topology.
+Block-array models use BCE, AdamW, learning rate `0.001`, batch `128`, and `300`
+epochs. Full-size-cipher training grows from `2^16` to `2^22` pairs; the
+architecture comparison uses `2^22` training pairs and `2^15` test pairs. The
+metric is average per-bit threshold accuracy (`BAPavg`) over the full output.
+For SPECK32/64 r3 EE, Table 3 reports `0.587` for FCNN and `0.883` for BiLSTM.
+
+The 2024 data-generation section does not state the key-freezing rule precisely
+enough to infer it in isolation. The 2026 follow-up explicitly defines both the
+centralized and federated attacks as fixed-unknown-secret-key KPA sessions and
+describes the 2024 work as its centralized predecessor. The 2026 protocol uses:
+
+```text
+train/test pairs = 2^20 / 2^15 total
+rounds           = 1, 2, 3, 4
+models           = FCNN and three-layer BiLSTM-256
+loss/optimizer   = BCE / Adam
+federated loop   = 10 global rounds x 10 local epochs
+batch/lr         = 4096 / 0.0001
+edge servers     = 2, 4, 8, 16, 32 with fixed total training rows
+```
+
+Neither paper evaluates PRESENT. Neither architecture explicitly implements a
+cipher S-box, the PRESENT P-layer, exact-versus-wrong topology, a position-bound
+selected-output head, or an architecture-matched label-shuffle attribution.
+Federated learning changes where model updates are trained and aggregated; it
+does not add a cipher-structure representation.
+
+## Consequence for Innovation 2
+
+The Jeong papers narrow the novelty statement. The project cannot claim novelty
+for generic plaintext-to-ciphertext prediction, per-bit output accuracy, FCNN,
+BiLSTM, or merely comparing several neural architectures. Their useful role is
+as an external full-output and larger-data architecture family.
+
+They do not displace the running OPD1 question. OPD1 tests a narrower mechanism
+not found in these papers: frozen easy ciphertext positions under PRESENT, a
+position-bound head, and same-parameter exact-P/no-P/wrong-P/label-shuffle
+controls. Because Jeong 2024 uses up to `2^22` training pairs and 300 epochs, an
+OPD1 failure at `2^17`/100 epochs may stop the current same-budget position-head
+route but cannot establish a universal output-prediction or architecture-family
+ceiling. No Jeong-derived run should be inserted before OPD1 completes.
