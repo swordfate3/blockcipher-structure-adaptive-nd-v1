@@ -89,6 +89,30 @@ def test_opf3_exact_round_route_matches_present_for_every_one_hot_bit() -> None:
         assert routed[expected_destination_msb].item() == 1.0
 
 
+def test_opf3_shared_route_composes_to_four_present_p_layers() -> None:
+    model = build_round_recurrent_spn("exact", token_dim=1)
+    with torch.no_grad():
+        for module in (model.round_block.local_mlp, model.round_block.channel_mlp):
+            for parameter in module.parameters():
+                parameter.zero_()
+
+    for source_msb in range(64):
+        hidden = torch.zeros((1, 64, 1))
+        hidden[0, source_msb, 0] = 1.0
+        expected_state = 1 << (63 - source_msb)
+
+        for _ in range(4):
+            hidden = model.round_block(hidden)
+            expected_state = Present80.permutation_layer(expected_state)
+
+        routed = hidden[0, :, 0]
+        expected_destination_msb = 63 - (expected_state.bit_length() - 1)
+        destinations = torch.nonzero(routed, as_tuple=False).flatten().tolist()
+
+        assert destinations == [expected_destination_msb]
+        assert routed[expected_destination_msb].item() == 1.0
+
+
 def test_opf3_preregistered_width_matches_opf2_capacity_band() -> None:
     count = round_recurrent_parameter_count()
 
