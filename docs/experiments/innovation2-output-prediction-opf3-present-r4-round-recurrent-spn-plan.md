@@ -2,11 +2,13 @@
 
 日期：2026-07-23
 
-状态：盲预注册 / 仅在OPF2正式门未通过时开放 / 未实现、未训练、未启动
+状态：盲预注册 / OPF2运行中仅开放实现准备 / readiness、训练和启动仍由OPF2正式hold授权
 
 ## 1. 条件授权
 
-OPF3不是与OPF2并行的模型搜索。只有本地回收并验证OPF2正式产物后，同时满足以下条件才开放实现：
+OPF3不是与OPF2并行的模型搜索。OPF2正式指标仍不可见时，只允许按照本计划已冻结的网络结构编写模型代码和
+结构单元测试；不得读取OPF2性能、生成OPF3数据、运行readiness、训练、调宽度或启动远程任务。只有本地回收
+并验证OPF2正式产物后，同时满足以下条件，才开放readiness和后续实验执行：
 
 ```text
 OPF2 run_id   = i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7_gpu0_20260722
@@ -153,9 +155,9 @@ exact-P - identity-P平均AUC
 
 ## 8. 实施与远程路径
 
-OPF2正式hold并通过来源门后才执行：
+模型实现和结构单元测试可以在OPF2指标未知时盲态准备。OPF2正式hold并通过来源门后才执行第2步及以后步骤：
 
-1. 实现共享逐轮block、exact/identity/shuffle三行runner和参数匹配测试。
+1. 实现共享逐轮block和参数匹配、共享权重、exact/identity路由的结构单元测试；三行runner仍保持关闭。
 2. 本地只跑`64/64`、1 epoch CPU readiness，验证真实输出回放、切分hash、初始化公平性、参数量、
    磁盘缓存、24条逐bit结果、3条history、3个checkpoint和中文SVG；小样本AUC不解释。
 3. readiness通过后范围提交并推送。
@@ -174,5 +176,6 @@ GPU         = physical GPU0
 
 ## 9. 当前停止状态
 
-本计划是在OPF2正式指标未知时盲预注册。当前只允许OPF2继续运行；OPF3没有代码、readiness、远程任务
-或性能结果，不得把本计划本身写成高轮进展或候选成功。
+本计划是在OPF2正式指标未知时盲预注册。当前允许OPF2继续运行并盲态准备冻结模型实现；OPF3仍没有readiness、
+数据、训练、远程任务或性能结果，不得把实现代码本身写成高轮进展或候选成功。若OPF2通过，OPF3实现保持休眠，
+不得据此绕过新固定密钥确认分支。
