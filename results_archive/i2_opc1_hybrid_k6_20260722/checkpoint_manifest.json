@@ -1,0 +1,30 @@
+[
+  {
+    "architecture": "rescnn",
+    "config_hash": "e9921b3d751c212208645435da31fd38f984f00247dda3c42efdb531d979d33f",
+    "model": "selected8_rescnn_anchor_true_output",
+    "path": "models\\selected8_rescnn_anchor_true_output_final.pt",
+    "sha256": "398a5a1809a36017ec9678e6802c9042b935096dafd1f917ee043321b236d36a"
+  },
+  {
+    "architecture": "spn_rescnn_exact_p",
+    "config_hash": "2114729a961d8d3fe862873f8935e9ffd32d4ff8e403ec889b5c71b8b1afcd56",
+    "model": "selected8_spn_rescnn_exact_p_true_output",
+    "path": "models\\selected8_spn_rescnn_exact_p_true_output_final.pt",
+    "sha256": "f040dd0c94e7ca9cb739bd7f168d12702b4a5d08ba789de8520baebc1c23e0aa"
+  },
+  {
+    "architecture": "spn_rescnn_wrong_p",
+    "config_hash": "7db6e6779580f889d02e56f3ce097d8b69e304b8786d79d8b81ff55e54857cf1",
+    "model": "selected8_spn_rescnn_wrong_p_true_output",
+    "path": "models\\selected8_spn_rescnn_wrong_p_true_output_final.pt",
+    "sha256": "8542594e99cdc434ce99d276ed0d7f764d08fa6d692382b19339b33923f27b92"
+  },
+  {
+    "architecture": "spn_rescnn_exact_p",
+    "config_hash": "f7e0f1038cf23bccf7edf22f8387ea5f00521e3189b49f446dd776e5a8eab667",
+    "model": "selected8_spn_rescnn_exact_p_label_shuffle",
+    "path": "models\\selected8_spn_rescnn_exact_p_label_shuffle_final.pt",
+    "sha256": "28ed1d637e8aff8eb487dd41be048258825ee27242bd77829ec79de75b37f6e4"
+  }
+]

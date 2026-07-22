@@ -1,0 +1,81 @@
+{
+  "plan_id": "innovation2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6",
+  "question": "Does inserting exact PRESENT P-layer routing between three parameter-matched ResCNN stages improve selected true-output prediction over plain ResCNN, a fixed wrong P-layer, and matched label shuffle on a fresh fixed key?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_spn_rescnn_hybrid",
+  "opb1_authority": {
+    "run_id": "i2_output_prediction_opb1_present_r3_topology_bottleneck_key4_gpu0_20260722",
+    "status": "hold",
+    "decision": "innovation2_topology_bottleneck_not_attributed",
+    "gate_sha256": "776a43a7e0b13e9db17d825ec20f83fc6ce54ca8a36408849d7007a8ec46a549",
+    "candidate_mean_auc": 1.0,
+    "wrong_mean_auc": 1.0,
+    "candidate_minus_wrong_mean_auc": 0.0,
+    "attributed_bits": 0,
+    "retrieval_status": "verified_result_branch"
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 3,
+    "seed": 6,
+    "train_total_rows": 131072,
+    "test_total_rows": 65536,
+    "key_protocol": "seventh_independent_fixed_unknown_key",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "eight_preregistered_msb_first_true_ciphertext_bits",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "rows": [
+    {
+      "role": "same_budget_plain_rescnn_anchor",
+      "model": "selected8_rescnn_anchor_true_output",
+      "architecture": "rescnn_channels252_blocks10_position_preserving_output8",
+      "topology": "no_interstage_permutation",
+      "train_labels": "true",
+      "parameters": 3955904
+    },
+    {
+      "role": "spn_rescnn_hybrid_candidate",
+      "model": "selected8_spn_rescnn_exact_p_true_output",
+      "architecture": "rescnn_channels252_stages3_3_4_exact_present_p_output8",
+      "topology": "exact_present_p_layer_after_each_stage",
+      "train_labels": "true",
+      "parameters": 3955904
+    },
+    {
+      "role": "wrong_topology_control",
+      "model": "selected8_spn_rescnn_wrong_p_true_output",
+      "architecture": "rescnn_channels252_stages3_3_4_wrong_p_output8",
+      "topology": "exact_mapping_destination_roll_one_after_each_stage",
+      "train_labels": "true",
+      "parameters": 3955904
+    },
+    {
+      "role": "matched_label_shuffle_control",
+      "model": "selected8_spn_rescnn_exact_p_label_shuffle",
+      "architecture": "rescnn_channels252_stages3_3_4_exact_present_p_output8",
+      "topology": "exact_present_p_layer_after_each_stage",
+      "train_labels": "deterministically_shuffled",
+      "parameters": 3955904
+    }
+  ],
+  "final_gate": {
+    "minimum_candidate_mean_auc": 0.55,
+    "minimum_candidate_minus_anchor_mean_auc": 0.01,
+    "minimum_candidate_minus_wrong_mean_auc": 0.02,
+    "minimum_candidate_minus_shuffle_mean_auc": 0.03,
+    "minimum_joint_passed_bits": 4,
+    "minimum_per_bit_candidate_auc": 0.55,
+    "minimum_per_bit_candidate_minus_anchor_auc": 0.005,
+    "minimum_per_bit_candidate_minus_each_control_auc": 0.015,
+    "minimum_per_bit_accuracy_minus_majority": 0.005
+  },
+  "next_action_on_pass": "Repeat the unchanged four-row matrix under a fresh fixed key before any round extension.",
+  "stop_action": "If exact-P does not beat plain ResCNN, wrong-P, and shuffle, retain ResCNN as the non-saturated anchor and stop this hybrid route; do not add depth, data, epochs, wrong permutations, or output positions."
+}
