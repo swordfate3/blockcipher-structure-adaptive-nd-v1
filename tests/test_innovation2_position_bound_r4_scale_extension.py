@@ -321,6 +321,11 @@ def test_opf2_remote_package_is_cached_matched_and_windows_safe() -> None:
         / "configs/remote/generated/monitor_i2_output_prediction_opf2_present_r4_"
         "position_bound_spn_rescnn_2p20_key7_gpu0_20260722.sh"
     ).read_text(encoding="utf-8")
+    fallback = (
+        root
+        / "configs/remote/generated/fallback_i2_output_prediction_opf2_present_r4_"
+        "position_bound_spn_rescnn_2p20_key7_gpu0_20260722.sh"
+    ).read_text(encoding="utf-8")
     windows_scripts = run + launch
 
     assert plan["only_changed_variable"] == {
@@ -354,5 +359,14 @@ def test_opf2_remote_package_is_cached_matched_and_windows_safe() -> None:
     assert "source/results_archive" not in monitor
     assert "layout['train_index_segments']==[[0,131072],[196608,1114112]]" in monitor
     assert "len(results)==40 and len(history)==500 and len(checkpoints)==5" in monitor
+    assert 'REMOTE_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs/' in fallback
+    assert '${REMOTE_ROOT}/logs' in fallback
+    assert '${REMOTE_ROOT}/results' in fallback
+    assert "RAW_RETRIEVAL_NOTICE.md" in fallback
+    assert "remote_failed_marker" in fallback
+    assert "verified_branch_retrieval_timeout" in fallback
+    assert "retrieved_from_verified_result_branch.marker" in fallback
+    assert '${RUN_ID}_raw_fallback' in fallback
+    assert "scripts/index-results" in fallback
     assert "git status --porcelain" in windows_scripts
     assert "source_expected_commit.txt" in windows_scripts
