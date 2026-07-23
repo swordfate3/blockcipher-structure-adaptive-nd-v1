@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution import (
     adjudicate_runtime_spn_r1,
+    adjudicate_runtime_spn_r1a_cell_token,
 )
 
 
@@ -104,3 +105,30 @@ def test_runtime_spn_r1_gate_fails_protocol_mismatch() -> None:
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["same_data_protocol_as_anchor"] is False
     assert gate["protocol_checks"]["encrypted_random_plaintext_negatives"] is False
+
+
+def test_cell_token_calibration_gate_rejects_random_misordered_candidate() -> None:
+    current = _row("gift64_runtime_spn_true", 0.5024)
+    cell_true = _row("gift64_runtime_cell_token_true", 0.5019)
+    cell_corrupted = _row("gift64_runtime_cell_token_corrupted", 0.5095)
+    for row in (current, cell_true, cell_corrupted):
+        row["samples_per_class"] = 2048
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    cell_true["parameter_count"] = 200
+    cell_corrupted["parameter_count"] = 200
+
+    gate = adjudicate_runtime_spn_r1a_cell_token(
+        run_id="r1a",
+        rows=[current, cell_true, cell_corrupted],
+        r1_gate={
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_r1_seed0_not_supported",
+        },
+    )
+
+    assert gate["status"] == "hold"
+    assert all(gate["protocol_checks"].values())
+    assert not any(gate["research_checks"].values())
+    assert "position-identifiability" in gate["next_action"]

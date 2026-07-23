@@ -57,6 +57,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_r1_protocol_invalid": (
         "运行时SPN归因协议或产物无效，修复前不解释性能"
     ),
+    "innovation1_runtime_spn_cell_token_calibration_supported": (
+        "GIFT小规模校准支持cell-token交互，返回完整运行时SPN归因门"
+    ),
+    "innovation1_runtime_spn_cell_token_calibration_not_supported": (
+        "cell-token未改善运行时SPN且正确拓扑低于打乱拓扑，转E4位置可识别性审计"
+    ),
+    "innovation1_runtime_spn_cell_token_calibration_protocol_invalid": (
+        "运行时SPN cell-token校准协议或产物无效，修复前不解释性能"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),

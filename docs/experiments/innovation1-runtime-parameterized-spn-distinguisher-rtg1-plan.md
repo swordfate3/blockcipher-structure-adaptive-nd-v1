@@ -385,3 +385,113 @@ A failed calibration discards the cell-token change and triggers a data-flow
 audit against E4 before another network design. Do not add absolute cipher IDs,
 fixed position embeddings, DDT/trail features, extra model families, more
 epochs, seed1, PRESENT training, or remote scale during RTG1-R1a.
+
+## Executed R1a Cell-Token Calibration Record
+
+R1a completed locally on 2026-07-23 with the frozen GIFT-64 r6 calibration
+protocol:
+
+```text
+run_id          = i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0_20260723
+train           = 2048/class, 4096 total
+validation      = 1024/class, 2048 total
+epochs          = 5
+seed            = 0
+negative mode   = encrypted_random_plaintexts
+checkpoint      = best validation AUC
+protocol gate   = 9/9 checks passed
+```
+
+Results:
+
+| Role | Validation AUC | Best epoch | Parameters |
+| --- | ---: | ---: | ---: |
+| old runtime correct topology | `0.502413273` | 1 | `163971` |
+| cell-token correct topology | `0.501928329` | 1 | `230787` |
+| cell-token corrupted topology | `0.509457111` | 1 | `230787` |
+
+Margins:
+
+```text
+cell-token true - old runtime true = -0.000484943
+cell-token true - corrupted        = -0.007528782
+```
+
+All three research checks failed: the candidate did not improve the old
+runtime backbone by `0.010`, did not exceed the corrupted-topology control by
+`0.005`, and did not reach `0.520` AUC. Decision:
+
+```text
+innovation1_runtime_spn_cell_token_calibration_not_supported
+```
+
+This is a GIFT-64 seed0 `2048/class` architecture calibration only. It is not
+the full R1 gate, multi-seed evidence, formal training, or evidence that runtime
+structure parameterization as a method class is impossible. It specifically
+rejects this cell-token pooling redesign at the frozen budget. Repeating it at
+`8192/class`, running PRESENT or seed1, and remote scale-up remain blocked.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0/curves.svg
+```
+
+The final SVG was rendered to 1989 x 993 pixels and passed the
+`visual-qa-redraw` pixel gate: Chinese text, titles, locally magnified AUC axis,
+negative margins, threshold lines, legends, and footer are readable without
+overlap or clipping.
+
+## Corrected E4 Data-Flow Audit And Next Action
+
+Source inspection corrected an earlier hypothesis. E4 does not separately
+inverse-transform `C0`, `C1`, and `DeltaC`. Its two views are:
+
+```text
+current view  = DeltaC
+previous view = InvP(DeltaC)
+```
+
+E4 then applies separate current/previous cell encoders, typed fusion, a
+learned absolute 16-cell position embedding, fixed 16-cell Token-Mixer blocks,
+and pair-set pooling. The runtime models already expose the current/inverse
+views, but deliberately omit learned absolute cell positions to preserve
+variable-width parameter sharing and cell-relabel equivariance. The next
+uncertainty is therefore position identifiability rather than separate
+processing of the two ciphertexts.
+
+The next gate is RTG1-R1b, a matched E4 position-identifiability audit:
+
+```text
+cipher          = GIFT-64 r6
+train           = 2048/class
+validation      = 1024/class
+epochs          = 5
+seed            = 0
+data protocol   = reuse the exact R1a disk-backed datasets
+anchor          = E4 typed-cell with learned 16-cell position embedding
+ablation        = the same E4 model with that embedding fixed to zero
+```
+
+The single changed variable is whether cell identity is visible through E4's
+learned position embedding. Keep all labels, negatives, keys, pairs, optimizer,
+loss, checkpoint rule, widths, encoders, Token-Mixer blocks, and heads fixed.
+The audit supports a runtime coordinate redesign only if:
+
+```text
+E4 position-enabled AUC                    >= 0.520
+E4 position-enabled - position-disabled    >= +0.010 AUC
+```
+
+If both pass, the next model change is a parameter-shape-independent runtime
+coordinate descriptor, such as fixed Fourier features of externally supplied
+cell coordinates followed by a shared encoder. If the ablation gap is below
+`0.010`, do not add coordinates; audit E4's current/previous typed fusion next.
+R1b does not authorize another generic architecture, PRESENT, seed1, more data,
+or remote execution.

@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.gate_runtime_spn_cell_token_calibration import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
