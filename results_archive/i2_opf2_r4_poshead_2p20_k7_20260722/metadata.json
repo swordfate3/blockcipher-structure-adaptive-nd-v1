@@ -1,0 +1,91 @@
+{
+  "cipher": "PRESENT-80",
+  "claim_scope": "seed7 PRESENT r4 selected-eight-output position-bound SPN-ResCNN 2^20 training-scale adjudication; not cross-key confirmation, r5 evidence, full-ciphertext recovery, sample classification, or SOTA",
+  "config": {
+    "batch_size": 250,
+    "data_chunk_rows": 4096,
+    "device": "cuda",
+    "epochs": 100,
+    "learning_rate": 0.001,
+    "lstm_hidden_dim": 300,
+    "lstm_layers": 6,
+    "maximum_parameter_gap": 0.001,
+    "minimum_accuracy_margin": 0.005,
+    "minimum_candidate_global_gain": 0.01,
+    "minimum_candidate_mean_auc": 0.55,
+    "minimum_candidate_no_p_gain": 0.01,
+    "minimum_mean_shuffle_margin": 0.03,
+    "minimum_mean_topology_margin": 0.02,
+    "minimum_passed_bits": 4,
+    "minimum_per_bit_anchor_gain": 0.005,
+    "minimum_per_bit_auc": 0.55,
+    "minimum_per_bit_control_margin": 0.015,
+    "mlp_hidden_dim": 1936,
+    "mode": "scale_extension",
+    "rescnn_blocks": 10,
+    "rescnn_channels": 252,
+    "rounds": 4,
+    "run_id": "i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7_gpu0_20260722",
+    "seed": 7,
+    "selected_msb_indices": [
+      0,
+      2,
+      8,
+      10,
+      32,
+      34,
+      40,
+      42
+    ],
+    "test_rows": 65536,
+    "train_rows": 1048576
+  },
+  "experiment": "opf2_present_r4_selected8_position_bound_spn_rescnn_2p20_scale",
+  "input": "64 MSB-first plaintext bits",
+  "key_protocol": "eighth independent fixed unknown key; disjoint plaintext train/test",
+  "mode": "scale_extension",
+  "opc1_gate_decision": "innovation2_spn_rescnn_hybrid_not_supported",
+  "opd1_gate_decision": "innovation2_position_bound_spn_rescnn_not_supported",
+  "opf1_gate_decision": "innovation2_position_bound_r4_boundary_observed",
+  "opn1_gate_decision": "innovation2_spn_rescnn_final_routing_absorbable_by_global_head",
+  "parameter_counts": {
+    "position_head_rescnn_no_p": 3956928,
+    "position_head_spn_rescnn_exact_p": 3956928,
+    "position_head_spn_rescnn_wrong_p": 3956928,
+    "rescnn": 3955904
+  },
+  "run_id": "i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7_gpu0_20260722",
+  "sample_classification": false,
+  "secret_key_hex": "ba48ad2b9c5e584afccf",
+  "selected_msb_indices": [
+    0,
+    2,
+    8,
+    10,
+    32,
+    34,
+    40,
+    42
+  ],
+  "split_layout": {
+    "name": "opf1_test_preserving_scale_extension_v1",
+    "opf1_test_plaintexts_raw_sha256": "5c5410d4c0761f729f5f705d43a7392bf90f6ae0bee65a57321760d515b82fec",
+    "opf1_train_plaintexts_raw_sha256": "eca0f5705c2d9a6b4f0475bfb90e55d2bfa2d5e4d7b8c380b10ab55778a4555a",
+    "test_index_segment": [
+      131072,
+      196608
+    ],
+    "train_index_segments": [
+      [
+        0,
+        131072
+      ],
+      [
+        196608,
+        1114112
+      ]
+    ]
+  },
+  "target": "eight preregistered MSB-first true ciphertext bits",
+  "task": "innovation2_output_prediction"
+}

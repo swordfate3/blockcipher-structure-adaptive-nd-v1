@@ -1,0 +1,41 @@
+{
+  "bit_order": "msb_first",
+  "cache_version": 1,
+  "cipher": "PRESENT-80",
+  "completed_rows": 1114112,
+  "rng_state": {
+    "bit_generator": "PCG64",
+    "has_uint32": 0,
+    "state": {
+      "inc": 52595174982125336511050962687976196863,
+      "state": 309834208742569783422391911547253333490
+    },
+    "uinteger": 1023153726
+  },
+  "rounds": 4,
+  "secret_key_hex": "ba48ad2b9c5e584afccf",
+  "seed": 7,
+  "split_layout": {
+    "name": "opf1_test_preserving_scale_extension_v1",
+    "opf1_test_plaintexts_raw_sha256": "5c5410d4c0761f729f5f705d43a7392bf90f6ae0bee65a57321760d515b82fec",
+    "opf1_train_plaintexts_raw_sha256": "eca0f5705c2d9a6b4f0475bfb90e55d2bfa2d5e4d7b8c380b10ab55778a4555a",
+    "test_index_segment": [
+      131072,
+      196608
+    ],
+    "train_index_segments": [
+      [
+        0,
+        131072
+      ],
+      [
+        196608,
+        1114112
+      ]
+    ]
+  },
+  "status": "complete",
+  "test_rows": 65536,
+  "total_rows": 1114112,
+  "train_rows": 1048576
+}

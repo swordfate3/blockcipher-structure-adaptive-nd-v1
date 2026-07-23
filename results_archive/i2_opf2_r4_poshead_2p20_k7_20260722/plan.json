@@ -1,0 +1,73 @@
+{
+  "plan_id": "innovation2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20_key7",
+  "question": "Does the weak OPF1 PRESENT-r4 selected-output signal become robust when only the training set grows from 2^17 to 2^20 pairs?",
+  "task": "fixed_key_selected_true_ciphertext_output_prediction_training_scale_adjudication",
+  "source_authorities": {
+    "opf1": {
+      "run_id": "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn_key7_gpu0_20260722",
+      "status": "hold",
+      "decision": "innovation2_position_bound_r4_boundary_observed",
+      "gate_sha256": "dad638c7180682074f134233e807ed0b58bb40d7d671f7a5d01540721e399354",
+      "exact_p_mean_auc": 0.5137553581211971,
+      "shuffle_mean_auc": 0.5009341432724128,
+      "exact_p_minus_shuffle": 0.01282121484878429,
+      "retrieval_status": "verified_result_branch_archive"
+    },
+    "literature": {
+      "kimura_table12_present_r3_training_pairs": 131072,
+      "kimura_table12_present_r4_status": "not_measured",
+      "kimura_text_unresolved_scale": "more_than_2^19_training_pairs",
+      "jeong_adjacent_training_scale": "2^20_to_2^22_pairs",
+      "claim": "scale motivation only; not a published PRESENT-r4 result"
+    }
+  },
+  "common": {
+    "cipher": "PRESENT-80",
+    "rounds": 4,
+    "seed": 7,
+    "train_total_rows": 1048576,
+    "test_total_rows": 65536,
+    "key_protocol": "same_eighth_fixed_unknown_key_as_opf1",
+    "input": "64_msb_first_plaintext_bits",
+    "target": "same_eight_preregistered_msb_first_true_ciphertext_bits_as_opf1",
+    "selected_msb_indices": [0, 2, 8, 10, 32, 34, 40, 42],
+    "sample_classification": false,
+    "epochs": 100,
+    "batch_size": 250,
+    "loss": "raw_output_mse",
+    "optimizer": "rmsprop",
+    "learning_rate": 0.001,
+    "selection": "final_epoch"
+  },
+  "split_layout": {
+    "generator": "same_unique_plaintext_rng_stream_as_opf1",
+    "train_index_segments": [[0, 131072], [196608, 1114112]],
+    "test_index_segment": [131072, 196608],
+    "test_identity": "exact_opf1_test_plaintexts",
+    "opf1_train_plaintexts_raw_sha256": "eca0f5705c2d9a6b4f0475bfb90e55d2bfa2d5e4d7b8c380b10ab55778a4555a",
+    "opf1_test_plaintexts_raw_sha256": "5c5410d4c0761f729f5f705d43a7392bf90f6ae0bee65a57321760d515b82fec"
+  },
+  "only_changed_variable": {
+    "field": "train_total_rows",
+    "opf1_value": 131072,
+    "opf2_value": 1048576
+  },
+  "rows": [
+    "selected8_global_head_rescnn_anchor_true_output",
+    "selected8_position_head_rescnn_no_p_true_output",
+    "selected8_position_head_spn_rescnn_exact_p_true_output",
+    "selected8_position_head_spn_rescnn_wrong_p_true_output",
+    "selected8_position_head_spn_rescnn_exact_p_label_shuffle"
+  ],
+  "output_prediction_gate": {
+    "minimum_candidate_mean_auc": 0.55,
+    "minimum_candidate_minus_shuffle_mean_auc": 0.03,
+    "minimum_candidate_mean_accuracy_minus_majority": 0.005,
+    "minimum_output_bits_passing": 4,
+    "minimum_per_bit_candidate_auc": 0.55,
+    "minimum_per_bit_candidate_minus_shuffle_auc": 0.015,
+    "minimum_per_bit_accuracy_minus_majority": 0.005
+  },
+  "next_action_on_pass": "Repeat the unchanged 2^20 round-four matrix under a fresh fixed key before any round-five experiment.",
+  "next_action_on_hold": "Stop mechanical scaling and preregister one new round-four architecture hypothesis against OPF2 as the same-scale anchor."
+}
