@@ -2,7 +2,7 @@
 
 日期：2026-07-23
 
-状态：条件计划冻结 / 数据适配器、Jeong通用锚点与确定性单元测试已实现 / 未训练、未启动
+状态：条件计划冻结 / 数据、模型、指标、A1/A2训练与CLI执行链已实现 / 未运行readiness、未训练、未启动
 
 ## 1. 条件授权与任务边界
 
@@ -427,18 +427,82 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
 47 passed
 ```
 
-仍未实现本计划需要的：
+现已实现A1/A2训练、checkpoint、来源与裁决统一执行链：
 
 ```text
-训练、checkpoint、来源与裁决统一runner
-ARX1来源门、SVG和远程包
+src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_training.py
+src/blockcipher_nd/cli/run_innovation2_speck32_output_prediction.py
+scripts/run-innovation2-speck32-output-prediction
+tests/test_innovation2_speck32_output_prediction_training.py
+tests/test_innovation2_speck32_output_prediction_cli.py
 ```
 
-本次仅完成计划允许的确定性数据协议、通用锚点与评估原语单元，没有运行readiness、性能screen或正式数据
-生成，因此没有可索引实验结果、SVG或可解释指标。下一动作是在不开放ARX1训练的前提下实现分阶段
-A1/A2训练、checkpoint恢复、固定shuffle和来源hash门；A1只训练三个true模型，A2必须复用A1正确候选
-checkpoint并只新增wrong rotation与matched shuffle。ARX1实际readiness仍必须等待PRESENT当前分支与
-GIFT条件分支按第1节闭环。
+执行链现在冻结并验证以下合同：
+
+```text
+A1仅训练FCNN、BiLSTM和正确rotation/carry三个true-output模型
+A2要求A1 bundle、来源manifest和final checkpoint逐项SHA256匹配
+A2复用A1正确候选结果/checkpoint，只新增wrong rotation和matched shuffle
+正确、错误和shuffle候选的initial state SHA256、参数量和batch schedule必须一致
+shuffle采用固定非identity训练标签置换；测试始终使用真实SPECK密文标签
+每个模型保存latest/final checkpoint、config/source/state/schedule hash
+中断恢复要求history epoch从1连续到最终epoch
+正式AdamW weight_decay显式冻结为0.01，并标记为论文未报告字段
+readiness缩小candidate channels只验证执行；正式channels=400参数门另行静态验证
+```
+
+统一命令支持`readiness`和冻结的`arx1_a`两种模式，输出`results.jsonl`、`history.csv`、`gate.json`、
+`metadata.json`、source/A1/A2 bundle、checkpoint manifest和模型协议。ARX1-A单密钥裁决预先实现输出门、
+最强通用锚点冻结、论文协议未校准分支和当前候选停止分支；随机readiness指标不参与性能判断。
+
+联合验证：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
+  tests/test_innovation2_speck32_output_prediction_data.py \
+  tests/test_innovation2_speck32_output_prediction_models.py \
+  tests/test_innovation2_speck32_output_prediction_metrics.py \
+  tests/test_innovation2_speck32_rotation_carry_model.py \
+  tests/test_innovation2_speck32_output_prediction_training.py \
+  tests/test_innovation2_speck32_output_prediction_cli.py \
+  tests/test_innovation2_speck_hwang_parity.py
+56 passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
+  src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_data.py \
+  src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_models.py \
+  src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_metrics.py \
+  src/blockcipher_nd/tasks/innovation2/speck32_rotation_carry_model.py \
+  src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_training.py \
+  src/blockcipher_nd/cli/run_innovation2_speck32_output_prediction.py \
+  tests/test_innovation2_speck32_output_prediction_data.py \
+  tests/test_innovation2_speck32_output_prediction_models.py \
+  tests/test_innovation2_speck32_output_prediction_metrics.py \
+  tests/test_innovation2_speck32_rotation_carry_model.py \
+  tests/test_innovation2_speck32_output_prediction_training.py \
+  tests/test_innovation2_speck32_output_prediction_cli.py
+All checks passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python \
+  scripts/run-innovation2-speck32-output-prediction --help
+exit 0
+```
+
+本次没有调用runner，没有生成readiness、性能screen或正式数据，因此没有可索引实验结果、SVG或可解释
+指标，也不触发结果索引和`visual-qa-redraw`。当前推荐动作仍是保持ARX1性能执行关闭：先回收并裁决
+PRESENT OPF2，再完成其唯一授权分支和GIFT GX1/GX2闭环；之后才运行本地`64/64、1 epoch` ARX1
+readiness。readiness全部协议门通过后，才从推送提交在远程A6000运行key_seed21的`2^20/2^15、100
+epochs`五行逻辑矩阵；单密钥通过后只更换`key_seed=22`确认。当前不得提前实现依赖A1性能选择的ARX1-B
+最终四行编排，不得生成正式SPECK数据或训练模型。
+
+仍未实现且当前未获执行授权的部分为：
+
+```text
+ARX1-B基于A1最强generic冻结结果的四行独立密钥runner
+ARX1-C 2^22/300论文规模条件runner
+正式远程启动/监控/回收包
+正式结果SVG及visual-qa-redraw
+```
 
 明确禁止：
 
