@@ -2,7 +2,7 @@
 
 日期：2026-07-23
 
-状态：条件计划冻结 / GIFT数据与发现裁决核心单元测试完成 / 未授权readiness、性能训练或远程启动
+状态：条件计划冻结 / GIFT数据、发现裁决核心与命令行编排单元测试完成 / 未授权readiness、性能训练或远程启动
 
 ## 1. 条件授权
 
@@ -304,5 +304,57 @@ All checks passed
 
 发现核心的微型训练测试只使用人工`8x64`数组，没有生成GIFT样本或解释指标。这些是数据与裁决核心的单元
 测试；候选SHA256由规范JSON内容重新计算，错误摘要和缺失初始化公平性证据均fail closed。这些不是GX0
-readiness或GX1性能结果。命令行编排、正式配置、SVG和远程启动包仍未实现；它们继续由本计划第1节的
-PRESENT分支闭环条件授权。
+readiness或GX1性能结果。
+
+已新增窄范围命令行编排和薄脚本入口：
+
+```text
+src/blockcipher_nd/cli/run_innovation2_gift64_output_prediction_discovery.py
+scripts/run-innovation2-gift64-output-prediction-discovery
+tests/test_innovation2_gift64_output_prediction_discovery_cli.py
+```
+
+编排顺序冻结为：
+
+```text
+准备并验证source
+-> 训练true/shuffle两行
+-> discovery逐bit与完整输出评估
+-> 确定候选并写candidates.json/candidates.sha256
+-> 记录candidates_frozen_before_fresh_generation
+-> 准备并验证绑定candidate SHA256的fresh数据
+-> fresh逐bit与完整输出评估
+-> 裁决
+-> 写results.jsonl/history.csv/ranking.csv/metadata.json/summary.json/
+   gate.json/checkpoint_manifest.json/progress.jsonl
+```
+
+正式模式分别调用数据配置和训练配置的`.formal()`，冻结`2^17/2^16/2^16`、100 epochs、batch 250、
+seed/key_seed 11；readiness使用64/64/64、1 epoch、batch 32。编排测试完全mock数据、训练和评估函数，
+不生成GIFT数据，并在fresh准备函数内部断言候选文件、SHA256及冻结progress事件已经持久化。无效source在
+训练和fresh生成前fail closed。
+
+联合验证：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
+  tests/test_innovation2_output_prediction_kimura_lstm.py \
+  tests/test_innovation2_output_bit_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_data.py \
+  tests/test_innovation2_gift64_output_prediction_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_discovery_cli.py
+28 passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
+  src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_data.py \
+  src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_discovery.py \
+  src/blockcipher_nd/cli/run_innovation2_gift64_output_prediction_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_data.py \
+  tests/test_innovation2_gift64_output_prediction_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_discovery_cli.py
+All checks passed
+```
+
+本次没有运行readiness或性能训练，没有产生可索引结果，因此不生成SVG、不刷新结果索引。SVG、远程启动包
+和实际执行继续由本计划第1节的PRESENT分支闭环条件授权。当前推荐下一动作仍是等待OPF2裁决并严格走其
+唯一条件分支；不得因为GX1已经可执行而越过PRESENT门并行启动GIFT。
