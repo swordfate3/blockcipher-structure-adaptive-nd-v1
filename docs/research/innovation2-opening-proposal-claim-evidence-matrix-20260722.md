@@ -2,7 +2,7 @@
 
 日期：2026-07-22
 
-状态：PDF原文复核完成 / OPC1、OPD1与OPE1均hold / 简单XOR组合路线停止
+状态：PDF原文复核完成 / PRESENT三轮正结果与OPF1四轮同协议边界已形成 / OPF2 `2^20`规模审判运行中
 
 ## 1. 使用方式
 
@@ -26,22 +26,22 @@ docs/24032307046_廖锡粤_开题附件.pdf
 
 | 开题报告承诺 | 精确来源 | 当前实现 | 权威证据 | 覆盖判断 | 论文安全表述 | 不能声称 | 下一动作 |
 |---|---|---|---|---|---|---|---|
-| 使用神经网络预测真实密文输出bit | PDF物理第3页/报告第1页：“预测分组密码的密文输出比特” | 固定未知秘密密钥；输入未见明文；目标为真实PRESENT三轮完整64-bit、冻结八bit或其全parity | OP9--OPE1 | **部分完成**：八个冻结bit完成；完整64-bit未恢复；八bit全parity三轮校准失败 | “建立PRESENT三轮真实密文输出bit预测流程，并确认八个易预测坐标” | 恢复完整密文；输出预测普遍成功；简单XOR一定增强信号 | 停止selected8全parity，保留单bit正结果 |
-| 比较ResNet、时间序列网络、Transformer等不同架构 | PDF物理第3页/报告第1页 | OPA1五模型；OPA2/OPA3确认归因；OPB1低秩瓶颈；OPC1 SPN-ResCNN；OPN1输出头审计；OPD1位置绑定head | OPA1--OPD1 verified/local/fallback evidence | **多架构筛选完成；OPD1 exact与wrong均近1.0，位置绑定有效但精确拓扑归因失败** | “架构归纳偏置显著影响八bit预测，但精确拓扑贡献尚未建立” | ResCNN/Transformer本身构成创新；OPC1是正结果；OPD1 exact单行即通过 | 停止位置绑定路线，不再枚举head或错误P |
-| 比较预测精度 | PDF物理第3页/报告第1页 | 每bit AUC、阈值accuracy、majority baseline、MSE、完整输出exact match | OP9--OPD1正式或fallback结果 | **当前PRESENT三轮结果已形成；OPD1 exact/wrong差仅+0.000022，0/8通过** | 报告每个输出bit和模型的AUC/accuracy/majority差值，并保留完整输出exact-match负结果 | 与神经区分器AUC或不同论文攻击轮数直接比较 | 新parity实验继续使用AUC、majority、shuffle和结构控制联合门 |
+| 使用神经网络预测真实密文输出bit | PDF物理第3页/报告第1页：“预测分组密码的密文输出比特” | 固定未知秘密密钥；输入未见明文；目标为真实PRESENT完整64-bit、八个预注册bit或确定性parity；OPF1/2保持同八bit进入四轮 | OP9--OPF1 verified结果；OPF2运行记录 | **部分完成**：三轮八bit正结果已确认；完整64-bit和简单八bit parity未通过；四轮`2^17`同协议未过门，`2^20`仍在审判 | “建立PRESENT固定密钥真实密文输出预测流程，确认三轮八个易预测坐标，并测量同目标进入四轮后的衰减” | 恢复完整密文；输出预测普遍成功；简单XOR一定增强信号；运行中OPF2已经成功 | 等待OPF2正式裁决，保持完整输出、选定位和组合输出三种标签边界 |
+| 比较ResNet、时间序列网络、Transformer等不同架构 | PDF物理第3页/报告第1页 | OPA1五模型；OPA2/OPA3确认归因；OPB1/OPC1/OPN1结构审计；OPD1位置绑定head；OPF1/2四轮同五模型尺度比较 | OPA1--OPF1 verified/local/fallback evidence；OPF2运行记录 | **多架构筛选完成且开始同架构轮数比较**：三轮位置绑定有效但exact/wrong持平；四轮`2^17`五模型均接近随机，OPF2只检验训练规模 | “架构归纳偏置显著影响PRESENT三轮八bit预测；精确拓扑贡献未建立，四轮规模效应仍待裁决” | ResCNN/Transformer本身构成创新；OPD1 exact单行证明精确P；OPF2中间训练损失支持成功 | 不再枚举无机制网络；OPF2 hold后只允许预注册OPF3共享轮SPN，pass则只换密钥确认 |
+| 比较预测精度 | PDF物理第3页/报告第1页 | 每bit AUC、阈值accuracy、majority baseline、MSE、完整输出exact match和模型/控制差值 | OP9--OPF1正式或fallback结果 | **三轮与四轮`2^17`结果已形成**：OPD1 exact/wrong差`+0.000022`，精确P归因失败；OPF1 exact平均AUC `0.513755`、对shuffle `+0.012821`、`0/8`过门 | “逐bit报告AUC、accuracy-majority、shuffle及错误结构差值；三轮正结果与四轮同协议hold分开表述” | 与神经区分器AUC或不同论文攻击轮数直接比较；把accuracy约0.51写成可预测成功 | OPF2完成后沿用冻结联合门；跨密码完整输出另报告BAPavg和exact match |
 | 比较收敛速度 | PDF物理第3页/报告第1页 | 现有100-epoch运行保存逐epoch训练MSE和checkpoint | OP9、OPA1--OPA3 `history.csv` | **部分完成**：有训练历史，没有统一逐epoch held-out指标和time-to-threshold | “记录了训练损失演化，但尚未形成严格收敛速度排名” | 已证明某网络收敛更快；仅凭最终AUC推断收敛 | 后续跨模型矩阵增加不参与选模的统一epoch-time与held-out评估协议 |
-| 比较泛化能力 | PDF物理第3页/报告第1页 | 训练/测试明文严格不重合；seed0--7逐实验固定密钥；OPK1用256参考/256未见密钥审计key-blind目标稳定性 | OP10/OP11、OPA1--OPD1、OPK1 | **边界已明确**：有未见明文和逐密钥重复性；key-blind零样本新密钥AUC `0.500544` | “冻结位置和协议在多把独立固定密钥上分别训练后复现；无密钥零适配任务没有稳定标签” | 一个模型已泛化到未知新密钥；五模型均跨密钥稳定 | OPD1 hold后不做fresh-key确认；更强泛化另设support-set协议 |
-| 建立“网络架构--随机猜测临界轮数”关系 | PDF物理第3页/报告第1页 | 当前主任务正式证据集中在PRESENT三轮；OP12四轮预测的是不同XOR目标 | OP9--OPA3、OP12 | **缺失** | “当前只建立三轮任务的架构比较和四轮XOR负边界，尚未形成同目标临界轮曲线” | 已达到PRESENT主流七至九轮；OP12等价于同八bit四轮结果 | 只有新架构通过fresh-key归因后，才预注册同目标四轮；不跳五轮 |
+| 比较泛化能力 | PDF物理第3页/报告第1页 | 训练/测试明文严格不重合；多把固定密钥分别训练；OPK1审计key-blind目标稳定性；OPF2-C1已拆分独立`key_seed` | OP10/OP11、OPA1--OPF1、OPK1；OPF2-C1条件计划 | **边界已明确但四轮新密钥待条件授权**：三轮有逐密钥重训复现；key-blind零样本新密钥AUC `0.500544`；OPF1仅单密钥hold | “同一冻结协议可在独立固定密钥上分别训练确认；这不是一个checkpoint零样本泛化任意密钥” | 一个模型已泛化到未知新密钥；OPF1单密钥hold已经构成跨密钥四轮边界 | OPF2 pass才只换`key_seed=8`确认；hold关闭C1并转OPF3 |
+| 建立“网络架构--随机猜测临界轮数”关系 | PDF物理第3页/报告第1页 | OPD1与OPF1保持同一seed7密钥、明文划分、八个输出bit、五模型和`2^17/2^16`预算，只把PRESENT轮数从3改为4；OPF2只把训练规模增至`2^20` | OPD1、OPF1 verified archives；OPF2运行记录 | **部分完成**：OPD1三轮候选AUC `0.999996`；OPF1四轮为`0.513755`、对shuffle `+0.012821`且`0/8`过门，形成单密钥同预算三至四轮经验边界；OPF2尚未揭盲 | “在seed7固定密钥和`2^17`训练预算下，同网络同目标从三轮到四轮信号显著衰减；`2^20`规模是否改变裁决仍待OPF2” | 四轮数学不可预测；所有网络上限为三轮；OPF2 readiness代表四轮恢复；达到主流七至九轮 | 回收并裁决OPF2；pass只换`key_seed=8`确认，hold才运行预注册OPF3，invalid只修协议；不跳五轮 |
 | 捕捉“上一轮密文 -> 下一轮密文”的动态 | PDF物理第7页/报告第5页 | 对完整64-bit内部状态建立确定性PRESENT可识别性审计 | 完整轮间状态可识别性审计，16 keys × 31 rounds | **协议不可识别为临界轮** | “完整状态对一对即可恢复当轮子密钥，故该协议测量子密钥可识别性而非累计扩散” | 神经网络在该协议上的高准确率表示结构脆弱；准确率会随轮数回到随机 | 不训练完整状态轮间模型；若保留轮间研究，先改成部分可见或严格跨密钥并重做确定性门 |
 | 将“明文--最终密文”重构为“中间轮状态--下一轮状态” | PDF物理第14页/报告第12页 | 已审计完整下一状态和冻结八个下一状态bit；当前有效主线仍为`P -> E_K^r(P)`真实输出 | 完整状态与selected8可识别性审计；OP9--OPB1 | **原细化方案需修订** | “完整当前状态版本会退化为全部或局部轮密钥恢复，因此保留多轮端到端真实输出；轮间动态必须采用更严格受限观测或跨密钥协议” | 已按原方案完成神经轮间预测；确定性审计否定所有部分状态或跨密钥研究 | 不训练当前状态可见的selected8网络；论文方法章节解释协议修订理由 |
 | 研究RNN/LSTM、门控Transformer等序列模型 | PDF物理第14页/报告第12页 | Kimura式LSTM与Transformer已在三轮输出任务评估，均近随机；不是唯一模型 | OP9、OPA1 | **基线覆盖完成，优化主张未完成** | “通用序列模型是论文/架构基线；当前数据支持结构感知和位置保持模型优先” | LSTM失败意味着输出预测失败；换更大Transformer必然扩轮 | 不重复无机制的大模型枚举；优先结构瓶颈或SPN-ResCNN |
-| 用输出预测增加分组密码安全评估维度 | PDF物理第19页/报告第17页，正式创新（2） | 真实输出任务、协议校准、易预测坐标、独立密钥、多架构与三级控制归因已形成闭环 | OP9--OPE1、OPN1、协议审计、论文边界文档 | **PRESENT三轮窄范围实质支持** | “在神经区分器之外建立真实密文输出值预测评估流程，并给出PRESENT三轮正结果、拓扑归因边界与简单XOR负边界” | 已形成通用分组密码安全边界；已达到SOTA攻击轮数；OPD1证明精确P | 停止位置绑定与简单XOR组合；新目标须先有机制依据 |
-| 跨密码/跨结构输出预测评估 | PDF物理第3页/报告第1页“分组密码”，物理第19页/报告第17页系统创新 | 当前权威真实输出值路线只覆盖PRESENT-80；GIFT优先级蓝图已冻结 | 当前无同协议GIFT/AES/SPECK/SM4真实输出预测结果 | **缺失** | “PRESENT作为SPN机制研究对象，跨密码有效性尚待验证” | 对所有SPN或所有分组密码成立 | 先裁决八bit全XOR；跨密码另行预注册，不能混入本门 |
-| 大规模实验形成安全边界 | PDF物理第3--4页/报告第1--2页 | OP9--OPC1使用`2^17`训练、`2^16`测试、100 epochs | 各正式实验计划和远程归档 | **部分完成**：达到Kimura单密钥样本预算，不是跨多轮/跨密码大规模边界 | “完成PRESENT三轮固定密钥论文协议量级实验” | paper-scale多密钥复现；百万/类；完整临界轮图 | 精确报告train/test totals、密钥数、epoch和目标，不使用`/class`术语 |
+| 用输出预测增加分组密码安全评估维度 | PDF物理第19页/报告第17页，正式创新（2） | 真实输出任务、协议校准、易预测坐标、独立密钥、多架构、错误结构、shuffle与轮数控制已形成PRESENT闭环 | OP9--OPF1、OPN1、协议审计、论文边界文档 | **PRESENT三轮窄范围实质支持，四轮边界正在重审** | “在神经区分器之外建立真实密文输出值预测流程，给出PRESENT三轮正结果、精确拓扑归因边界、简单XOR负边界及四轮同协议衰减” | 已形成通用分组密码安全边界；达到SOTA攻击轮数；OPD1证明精确P；OPF1证明所有四轮失败 | 回收OPF2后执行唯一分支，再用GIFT、SPECK、DES检验跨结构方法 |
+| 跨密码/跨结构输出预测评估 | PDF物理第3页/报告第1页“分组密码”，物理第19页/报告第17页系统创新 | 权威性能证据仍只覆盖PRESENT-80；GIFT数据/发现CLI、SPECK数据/模型/训练CLI、DES数据/模型已完成条件单元测试 | 多结构执行蓝图及GX1、ARX1、FEISTEL1条件计划；当前无同协议GIFT/SPECK/DES/AES/SM4性能结果 | **缺失性能证据但实现准备已推进** | “PRESENT作为SPN机制研究对象；GIFT、SPECK和DES已冻结同任务条件协议，跨结构性能有效性尚待依次验证” | 单元测试等于跨结构成功；对所有SPN、ARX、Feistel或所有分组密码成立 | 先闭环OPF2唯一分支，再依次执行GIFT、SPECK、DES；不并行占用GPU或跨门启动 |
+| 大规模实验形成安全边界 | PDF物理第3--4页/报告第1--2页 | OP9--OPF1使用`2^17`训练、`2^16`测试、100 epochs；OPF2正在运行`2^20`训练、`2^16`测试、100 epochs五模型矩阵 | 各正式实验计划、verified远程归档和OPF2 watcher记录 | **部分完成**：三轮与四轮`2^17`单密钥证据已形成；百万总训练行的OPF2尚未完成，不是结果或跨密码边界 | “完成PRESENT三轮论文协议量级实验和四轮同预算边界；四轮百万总训练行规模审判正在执行” | paper-scale多密钥复现；`2^20`是每类样本；运行中任务已经支持结论；完整跨密码临界轮图 | 精确报告train/test总量、密钥数、epoch和目标；等待OPF2正式gate，不使用`/class`术语 |
 
 ## 3. 当前论文级结论
 
-截至OPD1正式训练完成并按raw fallback验证后，创新2最稳妥的论文主张是：
+PRESENT三轮方法证据以OPD1及此前独立密钥实验为基础，最稳妥的论文主张是：
 
 > 本文在固定未知秘密密钥下建立真实密文输出值预测评估流程。通过论文协议校准、输出坐标发现、
 > fresh明文确认、独立密钥复现和同预算多架构控制，发现PRESENT三轮存在八个可预测输出bit；位置
@@ -52,16 +52,22 @@ docs/24032307046_廖锡粤_开题附件.pdf
 > 复现包装成零样本密钥泛化。OPC1全局头混合未过门，OPN1证明最后固定路由可被全局head吸收；
 > OPD1位置绑定使exact-P与wrong-P都近乎完美，但二者只差`+0.000022`，所以仍不支持精确拓扑归因。
 
-这段结论同时保留了创新2的正贡献和负边界，没有把协议修订写成方向失败。
+OPF1随后补齐了同一seed7密钥、同一明文划分、同八个输出bit、同五模型和同`2^17/2^16`预算下只增加
+一轮的比较：真实P位置头平均AUC从三轮`0.999996158`降到四轮`0.513755358`，对matched shuffle只有
+`+0.012821215`，且`0/8`输出bit过门。因此当前可增加“该单密钥预算下三至四轮经验边界”，但不能写成
+所有网络或所有四轮输出函数的上限。OPF2正在只把训练总行数扩到`2^20`进行规模审判；正式gate回收前，
+论文结论不得写入OPF2方向或数值。
+
+这些结论同时保留创新2的正贡献和负边界，没有把协议修订、精确拓扑归因失败或运行中实验写成方向失败。
 
 ## 4. 当前执行顺序
 
-1. OPB1低秩瓶颈与OPC1全局头混合路线均已停止，不再调整rank、深度、数据、epoch或错误P；
-2. 保留OPC1普通ResCNN `0.573572`为新矩阵锚点；
-3. OPN1已证明最后一次P重排可被全局head吸收；OPD1位置绑定五行矩阵已完成并因wrong-P控制hold；
-4. 停止OPD1位置绑定路线，不做fresh-key确认、四轮扩容或head枚举；
-5. 不训练完整`state_r -> state_(r+1)`多架构矩阵；
-6. OPE1八bit全XOR三轮校准`0/3`通过，停止r4与远程；跨密码计划不得继承该路线权限。
+1. 由本地watcher回收并裁决OPF2正式`2^20/2^16`五模型结果，不读取中间指标改门；
+2. OPF2 pass只开放OPF2-C1，保持data/model/shuffle seed7并只把`key_seed`改为8；
+3. OPF2 hold关闭C1，只开放已盲预注册的OPF3共享逐轮SPN本地readiness；
+4. OPF2 invalid只修复来源、缓存、切分或产物协议，不运行任何条件分支；
+5. PRESENT当前分支闭环后依次执行GIFT-64、SPECK32/64和DES真实输出预测，不并行占用远程GPU；
+6. 不恢复完整`state_r -> state_(r+1)`退化协议、简单八bit全XOR路线或无机制网络枚举，也不跳到五轮。
 
 ## 5. 权威证据入口
 
@@ -69,13 +75,17 @@ docs/24032307046_廖锡粤_开题附件.pdf
 docs/research/innovation2-output-prediction-thesis-boundary-20260721.md
 docs/research/innovation2-output-prediction-thesis-chapter-draft-20260721.md
 docs/research/innovation2-spn-aware-output-prediction-novelty-audit-20260722.md
+docs/research/innovation2-multistructure-output-prediction-execution-blueprint-20260723.md
 docs/experiments/innovation2-present-next-round-full-state-identifiability-audit-plan.md
 docs/experiments/innovation2-output-prediction-opb1-present-r3-topology-bottleneck-plan.md
 docs/experiments/innovation2-output-prediction-opc1-present-r3-spn-rescnn-hybrid-plan.md
 docs/experiments/innovation2-output-prediction-opn1-spn-rescnn-head-identifiability-audit-plan.md
 docs/experiments/innovation2-output-prediction-opd1-position-bound-spn-rescnn-plan.md
+docs/experiments/innovation2-output-prediction-opf1-present-r4-position-bound-boundary-plan.md
+docs/experiments/innovation2-output-prediction-opf2-present-r4-2p20-scale-adjudication-plan.md
 docs/research/innovation2-cross-cipher-output-prediction-route-ranking-20260722.md
 outputs/local_audits/i2_present_next_round_full_state_identifiability_audit_20260722/
 outputs/remote_results/i2_output_prediction_opb1_present_r3_topology_bottleneck_key4_gpu0_20260722/
 outputs/remote_results/i2_output_prediction_opc1_present_r3_spn_rescnn_hybrid_key6_gpu0_20260722/
+outputs/remote_results/i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn_key7_gpu0_20260722/
 ```
