@@ -20,6 +20,7 @@ from blockcipher_nd.ciphers import (
     ReducedRoundCipher,
     Simeck64_128,
     Simon64_128,
+    Skinny64,
     Sm4Reduced,
     Speck32_64,
     TripleDes,
@@ -108,6 +109,8 @@ def build_cipher(name: str, rounds: int, key: int | None = None) -> ReducedRound
         return Present80(rounds=rounds, key=0x00000000000000000000 if key is None else key)
     if name == "gift64":
         return Gift64(rounds=rounds, key=0x00000000000000000000000000000000 if key is None else key)
+    if name == "skinny64":
+        return Skinny64(rounds=rounds, key=0x0000000000000000 if key is None else key)
     if name == "sm4":
         return Sm4Reduced(rounds=rounds, key=0x0123456789ABCDEFFEDCBA9876543210 if key is None else key)
     raise ValueError(f"unsupported cipher: {name}")
@@ -137,7 +140,7 @@ def default_difference(name: str) -> int:
         return 0x0000000000000040
     if name in {"simon64", "simeck64"}:
         return 0x0000000000000040
-    if name in {"present80", "gift64"}:
+    if name in {"present80", "gift64", "skinny64"}:
         return 0x0000000000000040
     if name == "sm4":
         return 0x00000000000000000000000000000040

@@ -148,6 +148,12 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_present_transfer_protocol_invalid": (
         "PRESENT T1的数据、训练、模型几何或三控制协议无效"
     ),
+    "innovation1_runtime_spn_skinny_general_gf2_data_ready": (
+        "SKINNY密码、严格差分数据、磁盘缓存、参数几何和一般GF(2)正逆回放全部就绪"
+    ),
+    "innovation1_runtime_spn_skinny_general_gf2_data_not_ready": (
+        "SKINNY一般GF(2)数据通路仍有就绪检查未通过，禁止启动神经训练"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2154,6 +2160,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_skinny64_general_gf2_data_readiness_t2a"):
+        return "创新1 RTG1-T2-A：SKINNY-64/64一般GF(2)严格差分数据通路就绪审计"
     if run_id.startswith("i1_rtg1_present_runtime_e4_transfer_t1"):
         return "创新1 RTG1-T1：同一运行时E4主干迁移到PRESENT的拓扑三控制"
     if run_id.startswith("i1_rtg1_gift64_r1d_runtime_e4_semantic_equivalence_a1"):

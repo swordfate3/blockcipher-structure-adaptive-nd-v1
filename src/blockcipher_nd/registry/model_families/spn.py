@@ -90,6 +90,7 @@ from blockcipher_nd.models.structure.spn.runtime_parameterized import (
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     gift64_runtime_structure,
     present_runtime_structure,
+    skinny64_runtime_structure,
 )
 from blockcipher_nd.registry.model_options import (
     int_option,
@@ -165,6 +166,21 @@ def build_spn_model(
         ),
         "gift64_runtime_e4_equivariant_independent": (
             gift64_runtime_structure,
+            "independent",
+            False,
+        ),
+        "skinny64_runtime_e4_equivariant_true": (
+            skinny64_runtime_structure,
+            "true",
+            False,
+        ),
+        "skinny64_runtime_e4_equivariant_corrupted": (
+            skinny64_runtime_structure,
+            "true",
+            True,
+        ),
+        "skinny64_runtime_e4_equivariant_independent": (
+            skinny64_runtime_structure,
             "independent",
             False,
         ),

@@ -1536,3 +1536,145 @@ signal-bearing SKINNY round/difference protocol before preregistering a local
 repair only the adapter mismatch. Do not guess a difference, start neural
 training, reuse Innovation 2 balance labels, scale PRESENT/GIFT, or launch a
 remote run before T2-A passes.
+
+### Frozen T2-A Execution Record
+
+T2-A is preregistered as the following local, non-training readiness run:
+
+```text
+run_id          = i1_rtg1_skinny64_general_gf2_data_readiness_t2a_20260724
+cipher           = SKINNY-64/64, TK1 only
+rounds           = 7 (data-path fixture only; not a signal claim)
+input difference = 0x0000000000000040 (adapter fixture only)
+train fixture    = 64/class, seed0, key 0x0000000000000000
+validation       = 32/class, seed1, key 0x1111111111111111
+pairs/sample     = 4 independent ciphertext pairs
+negative         = encrypted random plaintexts
+feature          = raw ciphertext-pair bits
+cache            = disk-backed features.npy / labels.npy / metadata.json
+training         = none
+execution        = local CPU
+```
+
+The input difference is deliberately only a data-contract fixture. T2-A must
+not use its result to claim that SKINNY r7 is distinguishable. A later training
+plan needs a separately verified literature source or a preregistered
+same-budget difference/round screen.
+
+T2-A passes only if all of these categories pass:
+
+```text
+cipher factory:
+  Appendix-B 32-round vector and direct Skinny64/factory replays are exact
+
+strict dataset:
+  positive encryption calls preserve the frozen input XOR difference
+  negative rows invoke two real plaintext encryptions per pair
+  train/validation shapes, labels, keys, seeds and metadata are exact
+
+cache/replay:
+  disk arrays equal fresh in-memory generation bit-for-bit
+  parameter-matched second load reports cache_status=reused
+
+runtime model:
+  true/corrupted/no-topology models have identical parameter names/shapes/counts
+  all three accept the SKINNY fixture and produce finite logits
+  runtime structure and topology tensors remain outside state_dict
+
+general GF(2):
+  the runtime matrix exactly replays SKINNY ShiftRows+MixColumns
+  matrix/inverse products equal identity and round-trip random bit states exactly
+  at least one output bit depends on multiple input bits
+  deterministic corrupted topology changes edges without changing parameter geometry
+```
+
+Expected artifacts:
+
+```text
+outputs/local_readiness/i1_rtg1_skinny64_general_gf2_data_readiness_t2a_20260724/
+  results.jsonl
+  progress.jsonl
+  metadata.json
+  summary.json
+  gate.json
+  curves.svg
+  cache/train/{features.npy,labels.npy,metadata.json}
+  cache/validation/{features.npy,labels.npy,metadata.json}
+```
+
+If any check fails, repair only the failing adapter or representation contract.
+Do not train. If every check passes, perform the literature/protocol selection
+as a separate adjudication before creating the `2048/class` two-seed training
+matrix.
+
+### T2-A Result And Verdict
+
+T2-A completed locally and passed every frozen readiness check:
+
+| Category | Passed | Total |
+| --- | ---: | ---: |
+| cipher factory | 3 | 3 |
+| strict differential dataset | 11 | 11 |
+| disk cache and replay | 5 | 5 |
+| runtime model contract | 4 | 4 |
+| general GF(2) linear layer | 5 | 5 |
+| **Total** | **28** | **28** |
+
+The three runtime controls have the same `442466` trainable parameters, the
+same parameter names and shapes, and finite forward outputs. Structure tensors
+remain external runtime inputs and are absent from `state_dict`. The exact
+SKINNY ShiftRows+MixColumns matrix has row and column degrees up to `3`, so this
+fixture exercises a genuine many-source GF(2) layer rather than relabeling a
+one-to-one permutation. Its forward and inverse matrices replay the cipher
+layer and round-trip random bit states exactly.
+
+Decision:
+
+```text
+status   = pass
+decision = innovation1_runtime_spn_skinny_general_gf2_data_ready
+training = false
+empirical_topology_superiority_tested = false
+```
+
+Artifacts:
+
+```text
+outputs/local_readiness/i1_rtg1_skinny64_general_gf2_data_readiness_t2a_20260724/
+```
+
+This establishes only local implementation and data readiness. It contributes
+no AUC, no topology-superiority evidence, no formal-scale evidence, no attack,
+and no paper reproduction. In particular, the fixture's r7 and `0x40`
+difference are not registered as a signal-bearing protocol.
+
+### Recommended Next Action: T2-B Fixed-Key Signal-Anchor Selection
+
+The next research question is whether an ordinary fixed-key SKINNY-64/64
+strict differential task provides a learnable anchor for the unchanged runtime
+E4 backbone before topology attribution is attempted.
+
+Use one frozen, small candidate panel of externally justified single-cell input
+differences and adjacent round counts. Keep ciphertext-pair features, four
+independent pairs per sample, encrypted-random-plaintext negatives, validation
+construction, optimizer, model geometry, and budget fixed. Change only the
+round/difference protocol. Use one selection seed at a local diagnostic scale;
+then confirm the selected anchor with a fresh seed. Do not run corrupted or
+no-topology controls during selection, because a near-chance task cannot
+adjudicate topology.
+
+Only a signal-bearing, fresh-seed-confirmed anchor may open T2-C:
+
+```text
+scale      = 2048/class local diagnostic
+seeds      = 0, 1
+models     = correct topology / deterministic full-bit corrupted / no topology
+advance    = per seed: correct - corrupted >= +0.005
+             and correct - no topology >= +0.005
+controls   = identical data, training, parameter names, shapes and counts
+```
+
+If no frozen candidate survives fresh-seed confirmation, stop the SKINNY
+training branch and redesign the signal protocol or representation. Do not
+mechanically increase samples, guess a paper protocol, substitute a related-key
+benchmark, reuse Innovation 2 integral labels, or launch a remote job.
