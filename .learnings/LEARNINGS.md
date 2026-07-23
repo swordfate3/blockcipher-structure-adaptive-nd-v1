@@ -1,3 +1,55 @@
+## [LRN-20260723-002] correction
+
+**Logged**: 2026-07-23T12:16:20+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Do not narrow Innovation 2 to PRESENT or SPN; its method-level scope covers output prediction across multiple block-cipher structures, including SPN, Feistel, and ARX.
+
+### Details
+
+The current OPF2 adjudication uses PRESENT-80 because it is the active,
+plan-aligned SPN anchor, not because Innovation 2 is defined as an SPN-only
+study. The opening proposal and existing cross-cipher route require the output
+prediction methodology to support structurally different cipher families.
+Each family may need its own representation and architecture: S-box/P-layer
+coordinates for SPN, alternating branches or word recurrence for Feistel-like
+ciphers, and word/rotation/carry structure for ARX. Toy or modified ciphers may
+be used for controlled mechanism analysis, but the thesis scope must retain
+standard keyed cipher anchors and must not generalize one PRESENT result to all
+block ciphers.
+
+### Suggested Action
+
+Report PRESENT OPF2 as the current SPN experiment, while framing Innovation 2
+as a multi-structure output-prediction and critical-round methodology. Build
+cross-cipher evidence in staged, same-task protocols, preserving true-output
+labels, fixed-unknown-key semantics, matched baselines, and structure-specific
+controls. Do not force one SPN network onto Feistel or ARX, and do not substitute
+keyless emulation or sample classification for output prediction.
+
+### Metadata
+
+- Source: user_feedback
+- Related Files: docs/research/opening-proposal-innovation-alignment-2026-07-15.md, docs/research/innovation2-cross-cipher-output-prediction-route-ranking-20260722.md
+- Tags: innovation2, output-prediction, cross-cipher, spn, feistel, arx, research-scope
+- See Also: LRN-20260722-002
+- Pattern-Key: innovation2.scope.cross_structure_not_spn_only
+- Recurrence-Count: 1
+- First-Seen: 2026-07-23
+- Last-Seen: 2026-07-23
+
+### Resolution
+
+- **Resolved**: 2026-07-23T12:16:20+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the active reporting scope; PRESENT remains the current SPN anchor, not the definition of Innovation 2.
+
+---
+
 ## [LRN-20260722-006] correction
 
 **Logged**: 2026-07-22T21:30:00+08:00
