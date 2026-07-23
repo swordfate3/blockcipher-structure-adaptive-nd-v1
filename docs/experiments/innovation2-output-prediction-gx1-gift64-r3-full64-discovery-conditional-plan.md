@@ -2,7 +2,7 @@
 
 日期：2026-07-23
 
-状态：条件计划冻结 / GIFT数据适配器与单元测试完成 / 未授权readiness、性能训练或远程启动
+状态：条件计划冻结 / GIFT数据与发现裁决核心单元测试完成 / 未授权readiness、性能训练或远程启动
 
 ## 1. 条件授权
 
@@ -256,6 +256,13 @@ src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_data.py
 tests/test_innovation2_gift64_output_prediction_data.py
 ```
 
+并新增两行匹配MLP训练、逐bit发现、候选哈希冻结和fresh `4/8`裁决核心：
+
+```text
+src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_discovery.py
+tests/test_innovation2_gift64_output_prediction_discovery.py
+```
+
 已验证：
 
 ```text
@@ -279,7 +286,23 @@ UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
   src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_data.py \
   tests/test_innovation2_gift64_output_prediction_data.py
 All checks passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
+  tests/test_innovation2_output_prediction_kimura_lstm.py \
+  tests/test_innovation2_output_bit_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_data.py \
+  tests/test_innovation2_gift64_output_prediction_discovery.py
+26 passed
+
+UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
+  src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_data.py \
+  src/blockcipher_nd/tasks/innovation2/gift64_output_prediction_discovery.py \
+  tests/test_innovation2_gift64_output_prediction_data.py \
+  tests/test_innovation2_gift64_output_prediction_discovery.py
+All checks passed
 ```
 
-这些是数据合同单元测试，不是GX0 readiness或GX1性能结果。训练矩阵、候选runner、正式配置、SVG和远程
-启动包仍未实现；它们继续由本计划第1节的PRESENT分支闭环条件授权。
+发现核心的微型训练测试只使用人工`8x64`数组，没有生成GIFT样本或解释指标。这些是数据与裁决核心的单元
+测试；候选SHA256由规范JSON内容重新计算，错误摘要和缺失初始化公平性证据均fail closed。这些不是GX0
+readiness或GX1性能结果。命令行编排、正式配置、SVG和远程启动包仍未实现；它们继续由本计划第1节的
+PRESENT分支闭环条件授权。
