@@ -93,6 +93,48 @@ epochs / batch / optimizer / loss / checkpoint selection
 结构假设仍失败 -> 冻结最后通过轮/首个失败轮，不做机械扩样或追加epoch
 ```
 
+### 4.4 网络选择与临界轮汇总合同
+
+每个可比较证据单元冻结为：
+
+```text
+(structure, cipher, rounds, target_kind, target_spec,
+ train/test budget, epochs, protocol_version)
+```
+
+只有同一证据单元内的模型可以直接按数值排名。完整输出、选定位和确定性组合不能互相替代；不同密码、
+不同输出宽度或不同预算的AUC/BAPavg也不能直接排成“跨结构排行榜”。跨结构汇总只使用下列共同裁决字段：
+
+```text
+output_status            = confirmed / single_key_only / hold / invalid / not_run
+candidate_minus_shuffle  = 同任务主指标差值
+candidate_minus_generic  = 同预算最强通用锚点差值
+candidate_minus_wrong    = 匹配错误结构差值
+independent_keys_passed  = 0 / 1 / 2
+last_confirmed_round     = 两把密钥通过的最高相邻已测轮
+first_complete_hold      = 紧邻last_confirmed_round且基础候选和唯一预注册结构假设均未通过的首轮
+```
+
+推荐网络按以下顺序确定：
+
+1. 候选必须先在两把独立固定未知密钥上通过输出可预测门；单密钥通过只能记录条件结果；
+2. 在同密码、同轮数、同目标和同预算内，先按具体计划冻结的论文主指标，再按macro/mean AUC比较；
+3. 若结构候选通过结构增益门，推荐该密码结构对应的结构网络；
+4. 若输出门通过但正确/错误结构持平，只能推荐实测最强通用或“结构归因未定”网络；
+5. 若所有有效协议模型都未通过，填写“当前协议未建立可预测网络”，不能填写“密码不可预测”。
+
+临界轮只由相邻轮、同目标、同预算和两密钥证据组成。`last_confirmed_round`不能由低轮论文数值、单密钥、
+readiness或事后选bit填充；`first_complete_hold`必须在协议有效、控制完整且唯一预注册结构假设也未通过后填写。
+若中间轮未测，临界轮只能写区间，不能跨过缺口取最大轮数。
+
+最终论文表每个密码至少包含：
+
+```text
+结构 | 密码 | 输出目标 | 预算 | 独立密钥数 | 推荐网络
+最后确认通过轮 | 首个完整hold轮/区间 | generic差值 | wrong差值 | shuffle差值
+完整输出exact match或selected-vector exact match | 证据状态 | 产物路径
+```
+
 ## 5. 当前主干：PRESENT四轮
 
 当前唯一运行中的性能任务是：
