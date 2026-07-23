@@ -1,12 +1,19 @@
-# 分组密码结构适配神经差分区分器
+# 分组密码结构适配神经密码分析研究框架
 
-本项目面向毕业论文“创新一”，研究主题为：
+本项目承载毕业论文的两条研究主线：
 
 ```text
-面向分组密码结构与输入组织联合适配的神经差分区分器方法
+创新一：面向分组密码结构与输入组织联合适配的神经差分区分器
+创新二：固定未知秘密密钥下的多轮真实密文输出预测
 ```
 
-项目目标是构建一个可复现、可扩展、工程结构清晰的神经差分区分器实验框架。当前代码重点支持不同分组密码结构（ARX、SPN、Feistel-like）、不同输入组织方式（单对、多对、MCND、结构特征）、不同模型族之间的训练、评估和结果对齐。
+创新一研究真假/差分样本区分，支持ARX、SPN和Feistel-like密码的单对、多对、MCND和结构特征。
+创新二研究固定但不向网络提供的秘密密钥：输入未见明文，预测其经过指定轮数后的完整真实密文、预注册
+输出bit或确定性组合输出值。创新二中的二进制输出仍是输出值预测，不是正负样本分类，也不能替换为积分、
+cube、kernel或真假密文任务。
+
+两条主线共享密码实现、训练基础设施、磁盘缓存、结果验证和远程运行流程，但保留各自的数据语义、指标和
+证据门。项目目标是形成可复现、可扩展且工程边界清晰的分组密码神经分析框架。
 
 本仓库按深度学习项目的常见工程方式组织：
 
@@ -14,6 +21,8 @@
 - `src/blockcipher_nd/` 保存所有可复用源码、训练引擎和研究任务实现。
 - `scripts/` 只保留很薄的命令入口，不承载核心逻辑。
 - `outputs/`、`runs/` 等目录用于生成结果，已在 `.gitignore` 中忽略。
+- `docs/experiments/` 保存实验协议、裁决和下一步，`docs/research/` 保存文献与方法综合。
+- `sources/` 只保存有效原始检索材料，论文PDF和解析文本放在 `papers/`。
 
 仓库根目录刻意不保留 `experiments/` 源码目录。实验应该由“配置 + CLI + 输出产物”表达，核心实现应放在 `src/blockcipher_nd/` 中，避免实验脚本越长越乱。
 
@@ -48,7 +57,9 @@ uv run python scripts/train --help
 ```text
 configs/
   experiment/innovation1/       创新一实验矩阵、筛选配置和复现实验配置
+  experiment/innovation2/       创新二输出预测实验配置和冻结依据
   remote/                       远程 GPU 运行规格和启动配置
+    generated/                  唯一的生成式远程启动、监控和后处理脚本目录
 
 src/blockcipher_nd/
   ciphers/                      分组密码实现，按 ARX、SPN、Feistel-like 分类
@@ -56,20 +67,20 @@ src/blockcipher_nd/
     spn/                        PRESENT、GIFT、AES、ARIA 等 SPN 密码
     feistel/                    SIMON、SIMECK、DES、SM4、Camellia 等
 
-  data/                         差分数据集配置、生成和缓存
+  data/                         通用数据集配置、生成和缓存
     differential/               数据集 config、metadata、validation、row samplers、key helpers
     cache/                      磁盘缓存数据集，支持大规模生成、复用和进度记录
 
   features/                     密文对特征编码和结构感知特征
     encoders/                   bitwise、ARX、SPN/PRESENT、PRESENT matrix/SBox-DDT 编码器
 
-  models/                       神经区分器模型
+  models/                       通用网络和密码结构适配网络
     baseline/                   CNN、MLP、ResNet、Transformer、DBitNet 等基线模型
     common/                     模型共享组件、激活函数、归一化、池化等
     structure/                  结构适配模型
       arx/                      ARX carry、word、trail、round-stat 结构模型
       spn/                      SPN/PRESENT pair-set、trail、matrix、Inception-MCND 模型
-      feistel/                  Feistel-like 结构模型预留
+      feistel/                  DES分支、Feistel-like结构模型
 
   training/                     PyTorch 训练层
     types.py                    TrainingConfig、TrainingResult 等类型
@@ -105,6 +116,7 @@ src/blockcipher_nd/
       spn_active_pattern.py     PRESENT active-pattern 任务
       spn_feature_audit.py      SPN 特征分离审计
       zhang_wang_checkpoint.py  Zhang/Wang checkpoint 评估
+    innovation2/                固定未知密钥真实输出预测、结构控制和确定性审计
 
   planning/                     实验矩阵读取、任务构造和结果-计划对齐
   evaluation/                   结果摘要
@@ -123,8 +135,11 @@ scripts/
   evaluate-zhang-wang-checkpoint
 
 docs/
-  experiments/                  实验记录
-  research/                     文献和方法调研记录
+  experiments/                  正式实验计划、结果裁决和下一步
+  research/                     文献综合、理论说明和方法蓝图
+
+lessons/                        teach工作流生成的课程和交互材料
+sources/                        有效网页/API原始检索材料
 
 outputs/, runs/                 生成产物目录，不作为源码提交
 ```
@@ -168,7 +183,13 @@ flowchart TD
     U --> W[scripts/plot-results 生成训练曲线 SVG/CSV]
 ```
 
-PRESENT candidate-evidence 等专项路线也遵循相同原则：`scripts/` 只负责进入任务，核心数据集、模型和评估逻辑放在 `src/blockcipher_nd/tasks/innovation1/` 及其下游模块中。
+PRESENT candidate-evidence 等创新一专项路线也遵循相同原则：`scripts/` 只负责进入任务，核心数据集、模型和
+评估逻辑放在 `src/blockcipher_nd/tasks/innovation1/` 及其下游模块中。
+
+创新二的输出预测路线由 `src/blockcipher_nd/tasks/innovation2/` 中的专项数据、网络、训练和门控模块编排。
+每条样本的标签必须是同一输入真实密文的确定性函数；完整输出、选定bit和parity必须明确区分。通用网络、
+正确结构网络、错误结构控制和标签打乱使用同预算比较，并在独立固定密钥上确认。历史创新二模块暂时保持原
+路径；新增模块按`spn/`、`arx/`或`feistel/`子包组织，避免继续扩大单层目录。
 
 ## 常用命令
 
@@ -298,6 +319,10 @@ metadata.json
 
 ## 结果文件
 
+先查看 [`outputs/00_RECENT_RESULTS.md`](outputs/00_RECENT_RESULTS.md)。其中`001`始终表示最新完成结果，
+并链接到对应目录、曲线、门控、JSONL、history和进度记录。原始运行目录不增加序号，避免破坏配置和文档中
+的证据路径。
+
 训练结果一般写为 JSONL，每一行对应一个 task。常见字段包括：
 
 - `cipher`、`cipher_key`、`structure`
@@ -342,6 +367,9 @@ metadata.json
 - PRESENT-80 r7 的严格参考是 Zhang/Wang 2022 Case2 `m=16`，accuracy `0.7205`。如果本地没有复现，必须明确说明。
 - multi-query aggregation 是应用层证据，不等价于 raw single-sample SOTA。
 - fallback-retrieved 原始文件、不完整 archive、缺失 summary、临时路线决策都不能直接作为论文式结论。
+- 创新二必须保持“固定未知密钥、未见明文、真实输出标签”合同；输出bit的`0/1`不是样本类别。
+- 创新二的完整输出、预注册bit和确定性组合结果必须分开报告，不能从测试集事后挑选容易位置作为确认结果。
+- 密码结构增益必须同时比较通用网络、正确结构、错误结构和标签打乱；单把密钥结果不能外推跨密钥稳定性。
 
 ## 开发规范
 
@@ -349,6 +377,9 @@ metadata.json
 - 新的可复用实现放在 `src/blockcipher_nd/`。
 - 新实验定义放在 `configs/`，不要新增根目录 `experiments/` 源码树。
 - `scripts/` 只写薄入口，核心逻辑应放在 `src/blockcipher_nd/cli/`、`engine/` 或 `tasks/`。
+- 新增创新二任务按密码结构放入 `tasks/innovation2/spn/`、`arx/` 或 `feistel/`；旧平铺模块只在实际修改时
+  渐进迁移，不做一次性全仓库搬家。
+- 生成的远程脚本统一放在 `configs/remote/generated/`，不要重新创建 `scripts/generated/`。
 - 生成结果、缓存、checkpoint、日志放在 `outputs/`、`runs/` 或远程指定产物目录，不提交到源码。
 - 大规模远程训练必须具备磁盘缓存、metadata、进度 JSONL 和参数匹配复用能力。
 - 改完结构或训练逻辑后，至少运行：
@@ -373,4 +404,5 @@ uv run python scripts/plot-results --help
 - `training/` 是“通用 PyTorch 训练机制”。
 - `tasks/` 是“具体研究路线的任务实现”。
 
-这样后续继续加 SPN/PRESENT 路线、ARX 对照、Feistel-like 模型或远程 scale run 时，不需要把逻辑塞回脚本里。
+这样后续继续加SPN/PRESENT路线、ARX对照、Feistel-like模型、输出预测或远程scale run时，不需要把逻辑
+塞回脚本里，也不会混淆两种研究任务的标签语义。
