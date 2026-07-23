@@ -1049,3 +1049,67 @@ S-box-strength tuning. R2d never authorizes PRESENT, seed1, `8192/class`, remote
 execution, or a stable-topology claim by itself. Do not try additional scales,
 widen pair embeddings, increase epochs, or relax thresholds after observing
 the result.
+
+## Executed R2d Record And Decision
+
+R2d completed locally with its preregistered single candidate. The result row
+matched the CSV plan, reused the R2c disk cache, retained the repaired runtime
+bit-order adapter, and kept exactly `442466` trainable parameters:
+
+```text
+run_id          = i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0_20260724
+candidate AUC   = 0.533868790
+R2c scale 1.0  = 0.534461021
+R1d anchor      = 0.540863991
+candidate - R2c = -0.000592232
+candidate - R1d = -0.006995201
+```
+
+The candidate remained above the `0.520` signal floor but missed the R1d
+anchor tolerance by `0.001995201`. All eleven protocol checks passed; the only
+failed research check was anchor preservation. The decision is therefore:
+
+```text
+decision     = innovation1_runtime_spn_sbox_scale_calibration_not_supported
+status       = hold
+remote_scale = no
+```
+
+Reducing the early additive S-box residual did not recover the E4 anchor and
+slightly reduced AUC. Do not try more scalar values and do not run the three
+controls at scale `0.1`.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_sbox_scale_r2d_2048_seed0/curves.svg
+```
+
+The next candidate should test placement rather than another strength. R2e
+will preserve the R2c current/inverse-linear cell path through cell pooling and
+move the same external S-box descriptor to a late pair-level conditioning
+branch. The question is whether keeping cipher metadata out of the topology
+extractor preserves the R1d signal while still changing logits when the
+external S-box table changes.
+
+R2e must change only the S-box injection location, keep a nonzero fixed
+conditioning coefficient, and reuse R2c's data, seed, budget, optimizer, loss,
+checkpoint, bit order, and pair dimension. First train only the true-topology
+candidate at `2048/class`, seed0, five epochs. Require:
+
+```text
+candidate AUC >= 0.520
+candidate - R1d anchor >= -0.005
+external S-box table changes logits
+trainable parameter names and shapes are structure-independent
+```
+
+Only a pass may open the full true/full-bit-corrupted/no-topology matrix at the
+same budget. R2e must not add PRESENT, seed1, larger data, remote execution, or
+new scalar searches. A miss sends the route to a topology/S-box fusion design
+review rather than another training run.
