@@ -42,6 +42,12 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation1_runtime_spn_r0_readiness_passed": (
+        "运行时SPN结构契约15项实现门通过，开放两密码seed0本地归因"
+    ),
+    "innovation1_runtime_spn_r0_readiness_failed": (
+        "运行时SPN结构契约未通过，修复前禁止训练与扩规模"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),

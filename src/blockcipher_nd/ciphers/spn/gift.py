@@ -110,6 +110,9 @@ _ROUND_CONSTANTS = (
 )
 _MASK128 = (1 << 128) - 1
 
+GIFT64_SBOX = _SBOX
+GIFT64_PERMUTATION = tuple(_GIFT64_PERM)
+
 
 def _sub_cells(state: int) -> int:
     out = 0

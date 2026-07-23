@@ -80,6 +80,14 @@ from blockcipher_nd.models.structure import (
     SpnNibbleConvPairSetDistinguisher,
     SpnTokenMixerPairSetDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.runtime_parameterized import (
+    FixedRuntimeSpnProtocolAdapter,
+    RuntimeParameterizedSpnSpec,
+)
+from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
+    gift64_runtime_structure,
+    present_runtime_structure,
+)
 from blockcipher_nd.registry.model_options import (
     int_option,
     int_tuple_option,
@@ -94,6 +102,51 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    runtime_models = {
+        "present_runtime_spn_true": (present_runtime_structure, "true", False),
+        "present_runtime_spn_corrupted": (
+            present_runtime_structure,
+            "true",
+            True,
+        ),
+        "present_runtime_spn_independent": (
+            present_runtime_structure,
+            "independent",
+            False,
+        ),
+        "gift64_runtime_spn_true": (gift64_runtime_structure, "true", False),
+        "gift64_runtime_spn_corrupted": (
+            gift64_runtime_structure,
+            "true",
+            True,
+        ),
+        "gift64_runtime_spn_independent": (
+            gift64_runtime_structure,
+            "independent",
+            False,
+        ),
+    }
+    if name in runtime_models:
+        structure_factory, relation_mode, corrupt = runtime_models[name]
+        processor_steps = int_option(options, "processor_steps", 2) or 2
+        runtime_structure = structure_factory(processor_steps)
+        if corrupt:
+            runtime_structure = runtime_structure.corrupted()
+        return FixedRuntimeSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=128 if pair_bits is None else pair_bits,
+            structure=runtime_structure,
+            relation_mode=relation_mode,
+            spec=RuntimeParameterizedSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=(
+                    int_option(options, "pair_embedding_dim", hidden_bits * 2)
+                    or hidden_bits * 2
+                ),
+                processor_steps=processor_steps,
+                dropout=float(options.get("dropout", 0.0)),
+            ),
+        )
     cross_spn_typed_models = {
         "present_cross_spn_typed_cell_true": PresentCrossSpnTypedCellTrueDistinguisher,
         "present_cross_spn_typed_cell_shuffled": PresentCrossSpnTypedCellShuffledDistinguisher,

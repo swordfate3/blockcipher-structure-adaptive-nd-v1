@@ -127,8 +127,30 @@ from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
 )
+from blockcipher_nd.models.structure.spn.runtime_parameterized import (
+    FixedRuntimeSpnProtocolAdapter,
+    RuntimeParameterizedSpnDistinguisher,
+    RuntimeParameterizedSpnSpec,
+)
+from blockcipher_nd.models.structure.spn.runtime_structure import (
+    RuntimeSpnStructure,
+    apply_gf2,
+    gf2_inverse,
+    linear_matrix_from_callable,
+    permutation_matrix,
+    runtime_spn_structure,
+)
+from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
+    gift64_runtime_structure,
+    present_runtime_structure,
+    skinny64_runtime_structure,
+)
 
 __all__ = [
+    "FixedRuntimeSpnProtocolAdapter",
+    "RuntimeParameterizedSpnDistinguisher",
+    "RuntimeParameterizedSpnSpec",
+    "RuntimeSpnStructure",
     "CrossSpnTypedCellPairSetDistinguisher",
     "GiftAlignedTokenMixerRawInputDistinguisher",
     "GiftCrossSpnTypedCellE5Distinguisher",
@@ -216,4 +238,12 @@ __all__ = [
     "SpnTokenMixerBlock",
     "SpnTokenMixerPairSetDistinguisher",
     "cipher_inverse_permutation_indices",
+    "apply_gf2",
+    "gf2_inverse",
+    "gift64_runtime_structure",
+    "linear_matrix_from_callable",
+    "permutation_matrix",
+    "present_runtime_structure",
+    "runtime_spn_structure",
+    "skinny64_runtime_structure",
 ]

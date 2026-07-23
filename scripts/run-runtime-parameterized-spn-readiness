@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.run_runtime_parameterized_spn_readiness import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
