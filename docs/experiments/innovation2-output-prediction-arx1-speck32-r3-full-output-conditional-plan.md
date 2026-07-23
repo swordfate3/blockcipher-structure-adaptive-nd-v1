@@ -367,18 +367,42 @@ UV_CACHE_DIR=/tmp/uv-cache uv run ruff check \
 All checks passed
 ```
 
+现已新增独立的SPECK32概率输出评估原语：
+
+```text
+src/blockcipher_nd/tasks/innovation2/speck32_output_prediction_metrics.py
+tests/test_innovation2_speck32_output_prediction_metrics.py
+```
+
+它按论文公式冻结`p <= 0.5 -> 0, p > 0.5 -> 1`，而不是沿用其他分类器的`>= 0.5`规则。每个MSB
+索引`0..31`报告整数bit、`x_msw/y_lsw`字角色、accuracy、majority、accuracy-majority、AUC、BCE、MSE
+和非法概率率；完整输出摘要报告BAPavg、macro AUC、BCE/MSE、majority BAPavg及32-bit exact-match
+count/rate。标签必须是非空、有限的`[rows, 32]`二值真实输出数组，错误形状、NaN或非二值标签fail closed。
+
+数据、模型与指标联合验证：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
+  tests/test_innovation2_speck32_output_prediction_data.py \
+  tests/test_innovation2_speck32_output_prediction_models.py \
+  tests/test_innovation2_speck32_output_prediction_metrics.py \
+  tests/test_innovation2_speck_hwang_parity.py
+37 passed
+```
+
 仍未实现本计划需要的：
 
 ```text
 rotation/carry-aware共享递推模型及wrong rotation控制
-完整32-bit BAPavg/exact-match/逐bitAUC统一runner
+训练、checkpoint、来源与裁决统一runner
 ARX1来源门、SVG和远程包
 ```
 
-本次仅完成计划允许的确定性数据协议与通用锚点单元，没有运行readiness、性能screen或正式数据生成，因此
-没有可索引实验结果、SVG或可解释指标。下一动作是在不开放ARX1训练的前提下实现统一的32-bit逐bit、
-BAPavg、macro AUC、BCE和exact-match评估原语；随后才单独实现rotation/carry候选及错误旋转控制。ARX1
-实际readiness仍必须等待PRESENT当前分支与GIFT条件分支按第1节闭环。
+本次仅完成计划允许的确定性数据协议、通用锚点与评估原语单元，没有运行readiness、性能screen或正式数据
+生成，因此没有可索引实验结果、SVG或可解释指标。下一动作是在不开放ARX1训练的前提下单独实现
+rotation/carry候选与`ROR5/ROL6`错误旋转控制，并在任何训练前完成参数量`BiLSTM ±5%`和正确/错误行
+同初始化、仅旋转常数不同的静态审计。ARX1实际readiness仍必须等待PRESENT当前分支与GIFT条件分支按
+第1节闭环。
 
 明确禁止：
 
