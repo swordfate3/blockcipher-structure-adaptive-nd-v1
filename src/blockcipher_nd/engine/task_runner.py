@@ -4,33 +4,17 @@ import argparse
 from typing import Any
 
 from blockcipher_nd.engine.checkpoint_initialization import build_initialized_task_model
-from blockcipher_nd.engine.datasets import make_task_dataset
 from blockcipher_nd.engine.final_evaluation import run_final_evaluation
-from blockcipher_nd.engine.modeling import (
-    configure_structure_aware_model,
-    infer_pair_bits,
-    select_model_key,
-)
+from blockcipher_nd.engine.modeling import configure_structure_aware_model
 from blockcipher_nd.engine.pretraining import (
     dataset_size_metadata,
     resolve_optimizer_state_transition,
     run_optional_pretraining,
 )
-from blockcipher_nd.engine.progress import (
-    progress_callback,
-    task_progress_payload,
-    write_progress,
-)
+from blockcipher_nd.engine.progress import progress_callback
 from blockcipher_nd.engine.results import build_task_result
-from blockcipher_nd.engine.task_config import (
-    build_dataset_config,
-    build_training_config,
-    resolve_final_test_key,
-    resolve_task_keys,
-    target_epochs,
-)
-from blockcipher_nd.engine.task_config import validation_samples_per_class
-from blockcipher_nd.registry.cipher_factory import build_cipher
+from blockcipher_nd.engine.task_config import build_training_config, target_epochs
+from blockcipher_nd.engine.task_inputs import prepare_task_inputs
 from blockcipher_nd.training import OptimizerSession, train_binary_classifier
 
 
@@ -42,77 +26,21 @@ def run_task(
     index: int | None = None,
     total: int | None = None,
 ) -> dict[str, Any]:
-    train_key, validation_key = resolve_task_keys(task)
-    final_test_key = resolve_final_test_key(task)
-    train_cipher = build_cipher(task["cipher_key"], task["rounds"], key=train_key)
-    validation_cipher = build_cipher(
-        task["cipher_key"], task["rounds"], key=validation_key
-    )
-    final_test_cipher = build_cipher(
-        task["cipher_key"],
-        task["rounds"],
-        key=final_test_key,
-    )
-    model_key = select_model_key(
-        task["model_key"],
-        train_cipher.structure,
-        task["pairs_per_sample"],
-    )
-    pair_bits = infer_pair_bits(train_cipher.block_bits, task["feature_encoding"])
-
-    train_dataset = make_task_dataset(
-        build_dataset_config(
-            task,
-            cipher=train_cipher,
-            samples_per_class=task["samples_per_class"],
-            samples_total=task.get("train_samples_total"),
-            seed=task["seed"],
-            split="train",
-        ),
-        args,
+    inputs = prepare_task_inputs(
         task,
-        split="train",
+        args,
         progress_path=progress_path,
         index=index,
         total=total,
-    )
-    validation_dataset = make_task_dataset(
-        build_dataset_config(
-            task,
-            cipher=validation_cipher,
-            samples_per_class=validation_samples_per_class(task),
-            samples_total=task.get("validation_samples_total"),
-            seed=task["seed"] + 10_000,
-            split="validation",
-        ),
-        args,
-        task,
-        split="validation",
-        progress_path=progress_path,
-        index=index,
-        total=total,
-    )
-    write_progress(
-        progress_path,
-        "cache_ready",
-        {
-            "index": index,
-            "total": total,
-            "dataset_cache_enabled": bool(args.dataset_cache_root),
-            "train_rows": int(train_dataset.features.shape[0]),
-            "validation_rows": int(validation_dataset.features.shape[0]),
-            "input_bits": int(train_dataset.features.shape[1]),
-            **task_progress_payload(task),
-        },
     )
 
     model, initialization = build_initialized_task_model(
         task=task,
         args=args,
-        model_key=model_key,
-        input_bits=train_dataset.features.shape[1],
-        pair_bits=pair_bits,
-        structure=train_cipher.structure,
+        model_key=inputs.model_key,
+        input_bits=inputs.train_dataset.features.shape[1],
+        pair_bits=inputs.pair_bits,
+        structure=inputs.train_cipher.structure,
         progress_path=progress_path,
         index=index,
         total=total,
@@ -127,7 +55,7 @@ def run_task(
         model,
         task,
         args,
-        pair_bits=pair_bits,
+        pair_bits=inputs.pair_bits,
         progress_path=progress_path,
         index=index,
         total=total,
@@ -136,8 +64,8 @@ def run_task(
     configure_structure_aware_model(model, task["cipher_key"], task["rounds"])
     training_result = train_binary_classifier(
         model,
-        train_dataset,
-        validation_dataset,
+        inputs.train_dataset,
+        inputs.validation_dataset,
         build_training_config(
             task,
             args,
@@ -155,14 +83,14 @@ def run_task(
     )
     training_result.metadata["optimizer_state_transition"] = optimizer_state_transition
     training_result.metadata.update(
-        dataset_size_metadata(train_dataset, validation_dataset)
+        dataset_size_metadata(inputs.train_dataset, inputs.validation_dataset)
     )
     final_evaluation = run_final_evaluation(
         model,
         task,
         args,
-        cipher=final_test_cipher,
-        final_test_key=final_test_key,
+        cipher=inputs.final_test_cipher,
+        final_test_key=inputs.final_test_key,
         progress_path=progress_path,
         index=index,
         total=total,
@@ -170,15 +98,15 @@ def run_task(
     return build_task_result(
         task=task,
         args=args,
-        train_cipher=train_cipher,
-        validation_cipher=validation_cipher,
-        train_key=train_key,
-        validation_key=validation_key,
+        train_cipher=inputs.train_cipher,
+        validation_cipher=inputs.validation_cipher,
+        train_key=inputs.train_key,
+        validation_key=inputs.validation_key,
         model=model,
-        model_key=model_key,
-        pair_bits=pair_bits,
-        train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
+        model_key=inputs.model_key,
+        pair_bits=inputs.pair_bits,
+        train_dataset=inputs.train_dataset,
+        validation_dataset=inputs.validation_dataset,
         training_result=training_result,
         pretrain_result=pretrain_result,
         final_evaluation=final_evaluation,

@@ -9415,6 +9415,7 @@ def test_engine_task_runner_is_pipeline_orchestration():
     runner = Path("src/blockcipher_nd/engine/task_runner.py")
     expected_modules = [
         Path("src/blockcipher_nd/engine/task_config.py"),
+        Path("src/blockcipher_nd/engine/task_inputs.py"),
         Path("src/blockcipher_nd/engine/pretraining.py"),
         Path("src/blockcipher_nd/engine/results.py"),
     ]
