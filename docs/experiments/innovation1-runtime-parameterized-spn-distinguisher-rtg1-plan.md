@@ -1,6 +1,6 @@
 # Innovation 1 Runtime-Parameterized SPN Distinguisher Plan
 
-**Status:** R0 implementation readiness passed; R1 seed0 local attribution authorized
+**Status:** R1 GIFT seed0 not supported; redesign before PRESENT or scale
 
 **Date:** 2026-07-23
 **Experiment label:** RTG1
@@ -281,3 +281,107 @@ A miss of at most `0.002` on exactly one margin is a fragility repeat; a larger
 miss stops scaling and returns to a one-variable architecture redesign. Do not
 launch remote training, add extra model families, increase sample size, or
 claim stable topology superiority before the two-cipher, two-seed gate passes.
+
+## Executed R1 GIFT Seed0 Record
+
+The lower-cost GIFT-64 matrix was deliberately run first. It reused the exact
+E4 disk-backed r6 data protocol and completed locally on 2026-07-23:
+
+```text
+run_id          = i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0_20260723
+train           = 8192/class, 16384 total
+validation      = 4096/class, 8192 total
+epochs          = 10
+seed            = 0
+runtime params  = 163971 for every relation mode
+negative mode   = encrypted_random_plaintexts
+checkpoint      = best validation AUC
+protocol gate   = 11/11 checks passed
+```
+
+Results:
+
+| Role | Validation AUC | Best epoch |
+| --- | ---: | ---: |
+| fixed E4 typed-cell anchor | `0.551968932` | 6 |
+| runtime correct topology | `0.506132305` | 1 |
+| runtime degree-preserving corrupted | `0.507886916` | 1 |
+| runtime independent/no-topology | `0.507204831` | 10 |
+
+Margins:
+
+```text
+runtime true - E4 anchor  = -0.045836627
+runtime true - corrupted  = -0.001754612
+runtime true - independent = -0.001072526
+```
+
+All three research checks failed. This is a valid one-cipher seed0 local
+diagnostic, not evidence about multi-seed or multi-cipher stability. It rejects
+the current bit-to-pair global-pooling backbone at this budget; it does not
+reject runtime structure parameterization as a method class.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_parameterized_r1_8192_seed0/curves.svg
+```
+
+The SVG was rendered to 1776 x 896 pixels and passed visual QA: no overlap,
+clipping, missing Chinese glyphs, ambiguous zoom, or hidden negative margins.
+
+## R1 Verdict And Redesign Gate
+
+Decision:
+
+```text
+innovation1_runtime_spn_r1_seed0_not_supported
+```
+
+PRESENT R1, seed1, larger samples, and remote execution are stopped. The
+observed failure is not a small margin miss: the correct runtime model is
+`0.04584` AUC below E4 and is worse than both controls. Running the 16-pair
+PRESENT matrix would spend substantially more local CPU without being able to
+restore the required two-cipher gate.
+
+The next experiment is RTG1-R1a, a small GIFT-only architecture calibration.
+Its question is whether preserving cell tokens across pairs before global
+pooling recovers the typed-cell signal that the current bit-to-pair pooling
+lost. Change exactly one variable:
+
+```text
+current:    bit processor -> global node pooling -> pair pooling
+candidate:  bit processor -> runtime cell-token interaction -> pair pooling
+```
+
+The candidate must keep the same external runtime contract, shared parameter
+geometry across ciphers, exact GF(2) path, S-box encoder, training labels, GIFT
+r6 difference, encrypted-random-plaintext negatives, keys, loss, optimizer,
+and checkpoint rule. Freeze the local calibration at:
+
+```text
+train      = 2048/class
+validation = 1024/class
+epochs     = 5
+seed       = 0
+rows       = current runtime true, cell-token true, cell-token corrupted
+```
+
+Advance back to the full `8192/class` four-role gate only if:
+
+```text
+cell-token true >= current runtime true + 0.010 AUC
+cell-token true - cell-token corrupted >= +0.005 AUC
+cell-token true >= 0.520 AUC
+```
+
+A failed calibration discards the cell-token change and triggers a data-flow
+audit against E4 before another network design. Do not add absolute cipher IDs,
+fixed position embeddings, DDT/trail features, extra model families, more
+epochs, seed1, PRESENT training, or remote scale during RTG1-R1a.

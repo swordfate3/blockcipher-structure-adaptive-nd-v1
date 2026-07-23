@@ -48,6 +48,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_r0_readiness_failed": (
         "运行时SPN结构契约未通过，修复前禁止训练与扩规模"
     ),
+    "innovation1_runtime_spn_r1_seed0_supported": (
+        "运行时SPN在单密码seed0超过锚点容差和两个拓扑控制，继续第二密码"
+    ),
+    "innovation1_runtime_spn_r1_seed0_not_supported": (
+        "运行时SPN在GIFT seed0接近随机且未超过控制，先重设计cell-token交互"
+    ),
+    "innovation1_runtime_spn_r1_protocol_invalid": (
+        "运行时SPN归因协议或产物无效，修复前不解释性能"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),
