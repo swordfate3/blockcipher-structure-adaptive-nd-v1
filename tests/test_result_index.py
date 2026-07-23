@@ -3251,6 +3251,30 @@ def test_result_index_labels_runtime_spn_r2f_late_attribution(
     )
 
 
+def test_result_index_labels_runtime_spn_seed1_anchor_only_hold(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed1"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": (
+                "innovation1_runtime_spn_late_attribution_seed1_"
+                "anchor_tolerance_not_met"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["decision_display"] == (
+        "GIFT seed1真实拓扑超过两种控制，但相对同seed E4锚点超出容差0.002418"
+    )
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

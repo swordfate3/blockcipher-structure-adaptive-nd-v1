@@ -1285,3 +1285,78 @@ execution, and stable cross-cipher claims remain blocked until that transfer
 passes. A seed1 miss stops replication and returns to a non-training audit of
 seed sensitivity and topology/S-box fusion; it must not be repaired by tuning
 on seed1.
+
+## Executed Seed1 Replication Record
+
+The seed1 R1d anchor completed first and passed all protocol checks:
+
+```text
+fixed cell-mixer AUC       = 0.538514614
+equivariant E4 anchor AUC  = 0.553535461
+fixed - equivariant        = -0.015020847
+decision                   = innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported
+```
+
+The frozen R2f seed1 three-control matrix then completed with plan alignment
+and all twelve protocol checks passing:
+
+| Role | Validation AUC | Correct-minus-control |
+| --- | ---: | ---: |
+| correct runtime topology | `0.546117783` | reference |
+| deterministic full-bit corrupted topology | `0.503655910` | `+0.042461872` |
+| no linear topology | `0.516066074` | `+0.030051708` |
+| seed1 R1d equivariant anchor | `0.553535461` | `-0.007417679` |
+
+The true topology again exceeded both controls by far more than `+0.005`, so
+the topology-attribution ordering replicated across seed0 and seed1. The true
+row also remained above the `0.520` signal floor. However, it missed the
+same-seed R1d anchor tolerance by:
+
+```text
+required true - anchor >= -0.005000000
+observed true - anchor  = -0.007417679
+excess loss             =  0.002417679
+```
+
+Decision:
+
+```text
+innovation1_runtime_spn_late_attribution_seed1_anchor_tolerance_not_met
+status = hold
+```
+
+Claim boundary: GIFT-64 now has two-seed local diagnostic evidence that the
+correct external topology is better than deterministic corrupted topology and
+no topology. The full candidate still has not passed the preregistered
+same-seed backbone-preservation gate, and no second cipher has been tested.
+This is not formal, paper-scale, stable cross-cipher, or breakthrough evidence.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed1/
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed1/
+```
+
+Do not run PRESENT, increase data, add epochs, tune the anchor tolerance, or
+change S-box scale after seeing seed1. The next action is a non-training
+semantic-equivalence audit between the R1d equivariant anchor and runtime E4
+true-topology path. It must compare, on identical synthetic inputs and copied
+weights:
+
+```text
+project MSB bits -> runtime LSB coordinates
+R1d inverse-permutation view -> runtime exact GF(2) inverse view
+cell ordering and within-cell bit ordering
+shared current/previous encoder and typed fusion
+equivariant mixer, mean/max/activity pooling, and pair pooling
+late S-box constant injection
+```
+
+The audit must first zero the late S-box branch and use the R1d-matched
+`pair_embedding_dim=256`. If copied shared weights then yield identical tokens,
+pair embeddings, and logits, the representation is semantically aligned and
+the remaining gap is an optimization/capacity interaction; the next candidate
+must be justified without tuning on seed1. If equivalence fails, repair only
+the first divergent deterministic stage and rerun the same two-seed gate. This
+audit, not more training, is what decides whether PRESENT transfer can reopen.

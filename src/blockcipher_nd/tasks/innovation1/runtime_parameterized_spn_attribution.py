@@ -1409,11 +1409,29 @@ def adjudicate_runtime_spn_r2f_late_attribution(
             )
     else:
         gate["status"] = "hold"
-        gate["decision"] = "innovation1_runtime_spn_late_attribution_not_supported"
-        gate["next_action"] = (
-            "stop the late S-box conditioning branch and audit the remaining "
-            "topology-fusion mismatch before any more training"
+        controls_pass = (
+            gate["research_checks"]["true_exceeds_corrupted_by_0p005"]
+            and gate["research_checks"]["true_exceeds_independent_by_0p005"]
         )
+        if (
+            expected_seed == 1
+            and controls_pass
+            and not gate["research_checks"]["true_within_r1d_anchor_tolerance"]
+        ):
+            gate["decision"] = (
+                "innovation1_runtime_spn_late_attribution_seed1_anchor_tolerance_not_met"
+            )
+            gate["next_action"] = (
+                "audit the exact deterministic representation and pooling differences "
+                "between the seed1 R1d anchor and late-pair runtime model before any "
+                "more training; do not tune on seed1"
+            )
+        else:
+            gate["decision"] = "innovation1_runtime_spn_late_attribution_not_supported"
+            gate["next_action"] = (
+                "stop the late S-box conditioning branch and audit the remaining "
+                "topology-fusion mismatch before any more training"
+            )
     gate["claim_scope"] = (
         f"GIFT-64 seed{expected_seed} 2048/class late-conditioned runtime "
         "topology-attribution "

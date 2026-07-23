@@ -624,3 +624,26 @@ def test_r2f_late_attribution_accepts_matching_seed1_replication(tmp_path) -> No
     assert "两颗seed均支持真实拓扑优势" in svg
     assert "seed1" in svg
     assert "8192/class" not in svg
+
+
+def test_r2f_seed1_records_anchor_only_hold_separately() -> None:
+    rows = _r2f_rows(0.546, 0.504, 0.516)
+    for row in rows:
+        row["seed"] = 1
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id="i1_rtg1_r2f_seed1",
+        rows=rows,
+        r1d_gate={
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported",
+            "aucs": {"equivariant": 0.5535},
+        },
+        r2e_gate=_r2e_pass(),
+        expected_seed=1,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"].endswith("seed1_anchor_tolerance_not_met")
+    assert gate["research_checks"]["true_exceeds_corrupted_by_0p005"]
+    assert gate["research_checks"]["true_exceeds_independent_by_0p005"]
+    assert not gate["research_checks"]["true_within_r1d_anchor_tolerance"]

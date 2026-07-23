@@ -118,11 +118,20 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_late_attribution_seed0_supported": (
         "GIFT seed0晚期S盒模型同时保留E4信号并超过两种拓扑控制"
     ),
+    "innovation1_runtime_spn_late_attribution_seed1_supported": (
+        "GIFT seed1晚期S盒模型同时保留E4信号并超过两种拓扑控制"
+    ),
+    "innovation1_runtime_spn_late_attribution_seed1_anchor_tolerance_not_met": (
+        "GIFT seed1真实拓扑超过两种控制，但相对同seed E4锚点超出容差0.002418"
+    ),
     "innovation1_runtime_spn_late_attribution_not_supported": (
-        "GIFT seed0晚期S盒模型未同时通过锚点与两种拓扑控制"
+        "GIFT晚期S盒模型未同时通过锚点与两种拓扑控制"
     ),
     "innovation1_runtime_spn_late_attribution_protocol_invalid": (
         "R2f的R2e来源、晚期模式、数据、训练或产物协议无效"
+    ),
+    "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
+        "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
