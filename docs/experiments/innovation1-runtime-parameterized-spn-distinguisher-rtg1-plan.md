@@ -674,13 +674,328 @@ control   = same frontend/head with a permutation-equivariant cell mixer
 
 Use a parameter-matched or parameter-budget-matched control and verify cell
 permutation equivariance directly. Keep all data and training fields fixed.
-Advance only if the fixed mixer reaches `>= 0.520` and exceeds the equivariant
-control by `>= 0.010` AUC. If that passes, the research decision is substantive:
-strict cell-relabel equivariance removes useful positional interaction, so the
-runtime design needs externally supplied functional coordinates or graph
-positional encodings rather than absolute cipher IDs. If it fails, stop E4
-component peeling and redesign the runtime topology message-passing operator
-from first principles before any additional training.
+Use the following three-way gate:
+
+```text
+fixed mixer signal floor                  >= 0.520
+fixed mixer - equivariant mixer           >= +0.010
+equivariant mixer signal floor            >= 0.520
+```
+
+If the fixed row passes both of its gates, strict cell-relabel equivariance
+removes useful interaction; the runtime design then needs externally supplied
+functional coordinates or graph positional encodings rather than absolute
+cipher IDs. If the fixed advantage fails but the equivariant row reaches
+`0.520`, promote the equivariant E4-style frontend itself: port its per-pair
+`DeltaC`/exact-inverse cell tokenization, shared view encoder, equivariant mixer,
+activity pooling, and pair-set pooling into the runtime model, then rerun
+correct/corrupted/no-topology attribution. Only if neither row reaches the
+signal floor should E4 component peeling stop in favor of a from-first-principles
+runtime message-passing redesign.
 
 PRESENT, seed1, larger samples, and remote GPU scale remain blocked until a
 small local candidate beats both corrupted-topology and no-topology controls.
+
+## Executed R1d Cell-Mixer Record
+
+R1d completed locally on 2026-07-24 using the exact R1a/R1b/R1c GIFT-64 r6
+cache and training protocol:
+
+```text
+run_id          = i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0_20260724
+train           = 2048/class, 4096 total
+validation      = 1024/class, 2048 total
+epochs          = 5
+seed            = 0
+protocol gate   = 9/9 checks passed
+result validate = 2/2 rows, no errors
+```
+
+The fixed and equivariant mixers have exactly equal parameter counts. A direct
+numerical test also verifies that the equivariant mixer commutes with arbitrary
+cell relabeling and that every one of its parameters participates in forward
+computation.
+
+| Role | Validation AUC | Fixed-minus-equivariant |
+| --- | ---: | ---: |
+| fixed 16-cell Token-Mixer | `0.535630226` | `-0.005233765` |
+| cell-relabel-equivariant mixer | `0.540863991` | reference |
+
+The fixed-mixer dependency gate failed while the equivariant signal floor
+passed. Decision:
+
+```text
+innovation1_runtime_spn_equivariant_e4_backbone_supported
+```
+
+This is positive architecture evidence: strict cell-relabel equivariance does
+not explain the signal missing from the old runtime backbone. It is not yet
+topology attribution because R1d did not compare correct, corrupted, and absent
+runtime linear layers.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0/curves.svg
+```
+
+The R1d SVG was rendered to pixels and passed the visual QA gate without text
+overlap, clipping, missing glyphs, ambiguous scale, or incomplete labels.
+
+## R2a Runtime E4-Equivariant Attribution Plan
+
+Research question: can the runtime model preserve the R1d E4-equivariant signal
+while attributing it specifically to the externally supplied linear topology?
+
+R2a ports only the supported R1d data flow into the runtime contract:
+
+```text
+per pair DeltaC
+  -> exact inverse runtime GF(2) view
+  -> runtime cell ordering
+  -> shared cell encoder and external S-box context
+  -> cell-relabel-equivariant mixer
+  -> mean/max/activity pooling
+  -> pair-set attention/mean/max
+  -> classifier
+```
+
+The same runtime class and parameter geometry must support GIFT permutation
+layers, SKINNY-style general invertible GF(2) layers, and synthetic 128-bit SPNs.
+The calibration changes only the supplied linear relation:
+
+```text
+true        = exact external GIFT linear topology
+corrupted   = deterministic degree-preserving corruption of that topology
+independent = no linear topology; inverse view equals current DeltaC
+```
+
+The independent control still receives exactly the same cell partition and
+S-box truth table. It removes only the linear topology, avoiding the old
+confound where all structure metadata was zeroed.
+
+Freeze R2a at:
+
+```text
+cipher      = GIFT-64 r6
+train       = 2048/class, 4096 total
+validation  = 1024/class, 2048 total
+epochs      = 5
+seed        = 0
+pairs       = 4
+negative    = encrypted random plaintexts
+cache       = reuse outputs/local_cache/i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0
+rows        = runtime E4 true / corrupted / independent
+```
+
+Advance only if every gate passes:
+
+```text
+runtime true AUC                         >= 0.520
+runtime true - R1d equivariant anchor    >= -0.005
+runtime true - corrupted                 >= +0.005
+runtime true - independent               >= +0.005
+```
+
+If R2a passes, the next rung is the same three-control GIFT seed0 experiment at
+`8192/class`, 10 epochs. If it fails, redesign the runtime linear-topology
+interaction locally. PRESENT, seed1, remote execution, additional model
+families, larger samples, DDT/trail features, cipher IDs, and stable-topology
+claims remain blocked.
+
+## R2a First Execution: Protocol Invalid
+
+The first R2a execution completed all three training rows, but the post-result
+source audit found a coordinate-system mismatch before any scale decision:
+
+```text
+project ciphertext_pair_bits = MSB-first within each 64-bit block
+runtime GF(2) matrices        = integer LSB bit coordinates
+old adapter behavior          = applied the LSB matrix directly to MSB features
+```
+
+A deterministic one-hot comparison proved that the old runtime `true` inverse
+view was not equal to E4's verified GIFT inverse-P view. Its raw metrics were:
+
+```text
+true        = 0.530977726
+corrupted   = 0.533804417
+independent = 0.473210335
+```
+
+These numbers are retained only as protocol-invalid diagnostic history. They do
+not show that correct topology is worse than corrupted topology because the
+purported correct topology was expressed in the wrong bit coordinates.
+
+The repair changes only the fixed protocol adapter: reshape the project input
+into ciphertext blocks and reverse each block from MSB-first to the runtime
+structure's LSB coordinates before calling the unchanged runtime backbone. The
+result row must record:
+
+```text
+input_bit_order = project_msb_to_runtime_lsb
+```
+
+The repaired R2a repeats exactly the same config, cache, initialization seed,
+budget, and three controls in a new result directory. Its gates and blocked
+actions are unchanged. A regression test must first prove that the repaired
+runtime GIFT inverse view exactly equals the existing E4 inverse-P gather for
+all 64 one-hot inputs.
+
+## Executed Bit-Order-Repaired R2a Record
+
+The repaired R2a completed locally with all ten protocol checks and all three
+generic result rows valid:
+
+```text
+run_id          = i1_rtg1_gift64_runtime_e4_equivariant_r2a_bitorderfix_2048_seed0_20260724
+train           = 2048/class, 4096 total
+validation      = 1024/class, 2048 total
+epochs          = 5
+seed            = 0
+runtime params  = 442466 for every control
+input bit order = project_msb_to_runtime_lsb
+```
+
+Results:
+
+| Role | Validation AUC | True margin |
+| --- | ---: | ---: |
+| runtime correct topology | `0.534461021` | reference |
+| runtime corrupted topology | `0.522696018` | `+0.011765003` |
+| runtime no-linear-topology | `0.496503353` | `+0.037957668` |
+| R1d equivariant anchor | `0.540863991` | `-0.006402969` |
+
+The signal floor and both topology-attribution gates passed. The anchor
+preservation gate missed by only `0.001402969` beyond its allowed loss, so the
+overall decision remains:
+
+```text
+innovation1_runtime_spn_r2a_topology_attribution_not_supported
+```
+
+This is the first protocol-valid positive topology ordering for the runtime
+model, but it cannot yet authorize scale because the model was not capacity
+matched to R1d: R2a used a 128-dimensional pair embedding and `442466`
+parameters, while R1d used a 256-dimensional pair embedding and `733154`
+parameters.
+
+## R2b Same-Budget Pair-Embedding Gate
+
+R2b changes only `pair_embedding_dim: 128 -> 256`. The resulting runtime model
+has `738786` parameters, within one percent of the R1d anchor; the small excess
+is the externally supplied S-box encoder required by the runtime contract.
+Reuse the same GIFT cache, data, labels, keys, controls, seed, optimizer, loss,
+checkpoint rule, and five-epoch budget.
+
+Run exactly three rows:
+
+```text
+runtime E4 true topology, pair_dim=256
+runtime E4 corrupted topology, pair_dim=256
+runtime E4 no linear topology, pair_dim=256
+```
+
+R2b uses the unchanged R2a gates:
+
+```text
+runtime true AUC                         >= 0.520
+runtime true - R1d equivariant anchor    >= -0.005
+runtime true - corrupted                 >= +0.005
+runtime true - independent               >= +0.005
+```
+
+A full pass authorizes only the same GIFT seed0 `8192/class`, 10-epoch local
+gate. A failure stops capacity adjustment and returns to local architectural
+analysis. PRESENT, seed1, remote scale, and stable-topology claims remain
+blocked.
+
+## Executed R2b Record And Control Audit
+
+R2b completed with valid rows and equal `738786`-parameter controls:
+
+| Role | Validation AUC | True margin |
+| --- | ---: | ---: |
+| runtime correct topology | `0.524087429` | reference |
+| runtime corrupted topology | `0.524861336` | `-0.000773907` |
+| runtime no-linear-topology | `0.513041496` | `+0.011045933` |
+| R1d equivariant anchor | `0.540863991` | `-0.016776562` |
+
+Pair-embedding capacity did not recover the anchor and removed the earlier
+true-over-corrupted margin. The capacity hypothesis is rejected; do not widen
+the model again.
+
+The post-result control audit then found that `RuntimeSpnStructure.corrupted()`
+was not a genuine shuffled-topology control. It composed each linear matrix
+with a one-cell cyclic source shift while preserving the bit role of every
+source. For GIFT this retains nibble coherence and a highly regular alternative
+permutation, unlike the established E4 shuffled-P control that destroys both
+cell and bit-role alignment.
+
+## R2c Full-Bit Corruption Repair
+
+R2c changes only the deterministic corrupted-topology constructor. For each
+runtime structure, apply a fixed-seed full-bit source-column permutation to its
+own GF(2) matrix. This preserves invertibility, every row degree, and the sorted
+column-degree multiset for permutation and general GF(2) layers, while breaking
+cell and bit-role alignment. It does not replace a held-out cipher topology
+with a train-seen family.
+
+Before training, tests must verify:
+
+```text
+same structure + same seed -> identical corrupted matrix
+true matrix != corrupted matrix
+row degrees unchanged
+sorted column degrees unchanged
+GIFT source cell and bit-role alignment substantially broken
+```
+
+R2c returns to the smaller R2a `pair_embedding_dim=128`, because R2b rejected
+the capacity increase. Reuse the same three rows, cache, data, keys, seed,
+epochs, and gates. A pass authorizes only the `8192/class`, 10-epoch GIFT seed0
+gate. A failure blocks mechanical scaling and requires a new topology
+interaction architecture. PRESENT, seed1, remote execution, and stable claims
+remain blocked.
+
+## Executed R2c Record And Recommendation
+
+R2c completed with all generic rows valid and all ten protocol checks passing.
+The unchanged true and independent rows reproduced R2a exactly to the stored
+float, while only the repaired corrupted control changed:
+
+| Role | Validation AUC | True margin |
+| --- | ---: | ---: |
+| runtime correct topology | `0.534461021` | reference |
+| full-bit corrupted topology | `0.493224144` | `+0.041236877` |
+| runtime no-linear-topology | `0.496503353` | `+0.037957668` |
+| R1d equivariant anchor | `0.540863991` | `-0.006402969` |
+
+The correct topology clears the `0.520` signal floor and both `+0.005`
+attribution margins by a wide margin. The overall status remains `hold` because
+the anchor-preservation margin still misses its `-0.005` tolerance by
+`0.001402969`:
+
+```text
+decision = innovation1_runtime_spn_r2a_topology_attribution_not_supported
+remote_scale = no
+```
+
+R2c is therefore strong single-cipher, single-seed, `2048/class` positive
+topology-attribution evidence, not stable or formal evidence. It does not
+authorize GIFT `8192/class`, seed1, PRESENT, or remote execution.
+
+The next one-variable local audit should preserve the R2c architecture and
+controls while reducing only the additive external S-box context strength. In
+GIFT all cells share one S-box, so the current full-scale descriptor is a
+cell-constant residual absent from R1d and is the smallest remaining explanation
+for the `0.006403` anchor gap. Compare scale `1.0` against a preregistered small
+nonzero scale, retain S-box sensitivity, and rerun the full R2c controls only if
+the true-topology calibration enters the anchor tolerance. Do not widen the
+pair embedding again or relax the gate after observing results.

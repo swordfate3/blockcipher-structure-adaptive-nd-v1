@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from datetime import datetime
@@ -83,6 +84,18 @@ DECISION_LABELS = {
     ),
     "innovation1_runtime_spn_view_encoder_audit_protocol_invalid": (
         "E4双视图编码审计协议或产物无效，修复前不解释性能"
+    ),
+    "innovation1_runtime_spn_equivariant_e4_backbone_supported": (
+        "cell重标号等变的E4主干保留了GIFT小规模信号，可进入运行时拓扑归因"
+    ),
+    "innovation1_runtime_spn_r2a_protocol_invalid": (
+        "R2a的项目MSB输入与运行时LSB矩阵位序不一致，原始结果不可解释"
+    ),
+    "innovation1_runtime_spn_r2a_topology_attribution_not_supported": (
+        "运行时真拓扑未同时通过拓扑控制和E4锚点保留门，暂不扩规模"
+    ),
+    "innovation1_runtime_spn_r2a_seed0_supported": (
+        "GIFT seed0上运行时真拑扑超过全bit打乱与无拓扑控制"
     ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
@@ -1897,7 +1910,10 @@ def write_result_index(
         json.dumps(
             {
                 "generated_at": generated_at,
-                "sort_rule": "gate > validation > results; descending completion time",
+                "sort_rule": (
+                    "progress.jsonl latest run_done; otherwise gate > validation > "
+                    "results mtime; descending completion time"
+                ),
                 "retention": {
                     "minimum_entries": limit,
                     "days_from_latest_completion": retention_days,
@@ -1935,7 +1951,15 @@ def _index_run(
     if completion_key is None:
         return None
     completion_path = outputs_root / artifacts[completion_key]
-    completed_timestamp = completion_path.stat().st_mtime
+    progress_timestamp = _progress_run_done_timestamp(
+        outputs_root / artifacts["progress"]
+    ) if "progress" in artifacts else None
+    if progress_timestamp is None:
+        completed_timestamp = completion_path.stat().st_mtime
+        completion_source = completion_path.name
+    else:
+        completed_timestamp = progress_timestamp
+        completion_source = "progress.jsonl:run_done"
     decision_payload = _load_first_json(
         outputs_root,
         artifacts,
@@ -1963,10 +1987,41 @@ def _index_run(
         .astimezone()
         .isoformat(timespec="seconds"),
         "completed_timestamp": completed_timestamp,
-        "completion_source": completion_path.name,
+        "completion_source": completion_source,
         "path": run_root.relative_to(outputs_root).as_posix(),
         "artifacts": artifacts,
     }
+
+
+def _progress_run_done_timestamp(progress_path: Path) -> float | None:
+    try:
+        lines = progress_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    timestamps: list[float] = []
+    for line in lines:
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict) or payload.get("event") != "run_done":
+            continue
+        raw_time = payload.get("time")
+        if isinstance(raw_time, (int, float)) and not isinstance(raw_time, bool):
+            timestamp = float(raw_time)
+        else:
+            raw_timestamp = payload.get("timestamp")
+            if not isinstance(raw_timestamp, str):
+                continue
+            try:
+                timestamp = datetime.fromisoformat(
+                    raw_timestamp.replace("Z", "+00:00")
+                ).timestamp()
+            except ValueError:
+                continue
+        if math.isfinite(timestamp):
+            timestamps.append(timestamp)
+    return max(timestamps, default=None)
 
 
 def _find_artifacts(outputs_root: Path, run_root: Path) -> dict[str, str]:
@@ -2045,6 +2100,22 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_gift64_e4_cell_mixer_r1d"):
+        return "创新1 RTG1-R1d：GIFT-64 cell等变E4主干校准"
+    if run_id.startswith(
+        "i1_rtg1_gift64_runtime_e4_equivariant_r2c_fullbit_corruption"
+    ):
+        return "创新1 RTG1-R2c：GIFT-64运行时拓扑全bit打乱归因"
+    if run_id.startswith(
+        "i1_rtg1_gift64_runtime_e4_equivariant_r2b_pairdim256"
+    ):
+        return "创新1 RTG1-R2b：GIFT-64运行时拓扑容量匹配审计"
+    if run_id.startswith(
+        "i1_rtg1_gift64_runtime_e4_equivariant_r2a_bitorderfix"
+    ):
+        return "创新1 RTG1-R2a：GIFT-64运行时拓扑位序修复归因"
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_equivariant_r2a"):
+        return "创新1 RTG1-R2a：GIFT-64运行时拓扑初始归因（协议无效）"
     if run_id.startswith(
         "i2_output_prediction_opf2_present_r4_position_bound_spn_rescnn_2p20"
     ):
@@ -2642,7 +2713,7 @@ def _render_markdown(
     lines = [
         "# 最近实验结果",
         "",
-        "> `001` 永远表示最新完成的结果。排序优先使用门控、验证、结果文件的完成时间；重新生成曲线不会改变实验先后顺序。",
+        "> `001` 永远表示最新完成的结果。排序优先使用训练日志的 `run_done` 时间；缺失时再使用门控、验证或结果文件时间，重新绘图不会改变实验先后顺序。",
         "",
         retention_note,
         "",

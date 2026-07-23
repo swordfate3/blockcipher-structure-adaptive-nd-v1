@@ -3070,6 +3070,119 @@ def test_result_index_orders_by_decision_artifact_not_regenerated_plot(
     assert entries[1]["completion_source"] == "gate.json"
 
 
+def test_result_index_prefers_run_done_over_regenerated_gate_time(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    older = outputs / "local_diagnostic" / "older_training"
+    newer = outputs / "local_diagnostic" / "newer_training"
+    _write_json(older / "gate.json", {"status": "pass", "decision": "older"})
+    _write_json(newer / "gate.json", {"status": "pass", "decision": "newer"})
+    (older / "progress.jsonl").write_text(
+        '{"event":"run_done","time":100.0}\n',
+        encoding="utf-8",
+    )
+    (newer / "progress.jsonl").write_text(
+        '\n'.join(
+            (
+                "not-json",
+                '{"event":"run_done","timestamp":"1970-01-01T00:03:20Z"}',
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _set_mtime(older / "gate.json", 999.0)
+    _set_mtime(newer / "gate.json", 201.0)
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert [entry["run_id"] for entry in entries] == [
+        "newer_training",
+        "older_training",
+    ]
+    assert [entry["completed_timestamp"] for entry in entries] == [200.0, 100.0]
+    assert all(
+        entry["completion_source"] == "progress.jsonl:run_done"
+        for entry in entries
+    )
+
+
+def test_result_index_falls_back_when_progress_has_no_valid_run_done(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = outputs / "local_diagnostic" / "fallback_run"
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": "done"})
+    (run_root / "progress.jsonl").write_text(
+        '{"event":"epoch_done","time":10.0}\n'
+        '{"event":"run_done","time":"invalid"}\n',
+        encoding="utf-8",
+    )
+    _set_mtime(run_root / "gate.json", 300.0)
+
+    entries = build_result_index(
+        outputs,
+        roots=("local_diagnostic",),
+        limit=10,
+    )
+
+    assert entries[0]["completed_timestamp"] == 300.0
+    assert entries[0]["completion_source"] == "gate.json"
+
+
+@pytest.mark.parametrize(
+    ("run_id", "expected_name"),
+    [
+        (
+            "i1_rtg1_gift64_e4_cell_mixer_r1d_2048_seed0",
+            "创新1 RTG1-R1d：GIFT-64 cell等变E4主干校准",
+        ),
+        (
+            "i1_rtg1_gift64_runtime_e4_equivariant_r2a_2048_seed0",
+            "创新1 RTG1-R2a：GIFT-64运行时拓扑初始归因（协议无效）",
+        ),
+        (
+            "i1_rtg1_gift64_runtime_e4_equivariant_r2a_bitorderfix_2048_seed0",
+            "创新1 RTG1-R2a：GIFT-64运行时拓扑位序修复归因",
+        ),
+        (
+            "i1_rtg1_gift64_runtime_e4_equivariant_r2b_pairdim256_2048_seed0",
+            "创新1 RTG1-R2b：GIFT-64运行时拓扑容量匹配审计",
+        ),
+        (
+            "i1_rtg1_gift64_runtime_e4_equivariant_r2c_fullbit_corruption_2048_seed0",
+            "创新1 RTG1-R2c：GIFT-64运行时拓扑全bit打乱归因",
+        ),
+    ],
+)
+def test_result_index_labels_runtime_spn_rtg1_runs(
+    tmp_path: Path,
+    run_id: str,
+    expected_name: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_r2a_seed0_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == expected_name
+    assert entries[0]["decision_display"] == (
+        "GIFT seed0上运行时真拑扑超过全bit打乱与无拓扑控制"
+    )
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

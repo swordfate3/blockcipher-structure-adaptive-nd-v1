@@ -5,9 +5,13 @@ import torch
 
 from blockcipher_nd.ciphers.spn.gift import GIFT64_SBOX
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX
+from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
+    cipher_inverse_permutation_indices,
+)
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
     RuntimeCellTokenSpnDistinguisher,
+    RuntimeE4EquivariantSpnDistinguisher,
     RuntimeParameterizedSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
 )
@@ -122,6 +126,7 @@ def test_runtime_model_forward_backward_is_finite_for_sparse_gf2() -> None:
 def test_corrupted_topology_preserves_degrees_but_changes_edges_and_logits() -> None:
     structure = skinny64_runtime_structure(2)
     corrupted = structure.corrupted()
+    repeated = structure.corrupted()
     true_rows = structure.linear_matrices.sum(dim=2)
     corrupted_rows = corrupted.linear_matrices.sum(dim=2)
     true_columns = torch.sort(structure.linear_matrices.sum(dim=1), dim=1).values
@@ -130,6 +135,7 @@ def test_corrupted_topology_preserves_degrees_but_changes_edges_and_logits() -> 
     assert torch.equal(true_rows, corrupted_rows)
     assert torch.equal(true_columns, corrupted_columns)
     assert not torch.equal(structure.linear_matrices, corrupted.linear_matrices)
+    assert torch.equal(corrupted.linear_matrices, repeated.linear_matrices)
 
     model = _model().eval()
     pairs = _binary((2, 3, 2, 64), 6)
@@ -139,6 +145,17 @@ def test_corrupted_topology_preserves_degrees_but_changes_edges_and_logits() -> 
         independent_logits = model(pairs, structure, relation_mode="independent")
     assert float(torch.max(torch.abs(true_logits - corrupted_logits))) > 1e-6
     assert float(torch.max(torch.abs(true_logits - independent_logits))) > 1e-6
+
+
+def test_corrupted_permutation_breaks_cell_and_bit_role_alignment() -> None:
+    structure = gift64_runtime_structure()
+    corrupted = structure.corrupted()
+    true_sources = structure.inverse_linear_matrices[0].argmax(dim=1)
+    corrupted_sources = corrupted.inverse_linear_matrices[0].argmax(dim=1)
+
+    assert int((true_sources == corrupted_sources).sum()) < 4
+    assert int((true_sources % 4 == corrupted_sources % 4).sum()) < 32
+    assert int((true_sources // 4 == corrupted_sources // 4).sum()) < 16
 
 
 def test_runtime_sbox_descriptor_changes_logits_without_changing_graph() -> None:
@@ -242,6 +259,9 @@ def test_legacy_protocol_adapters_share_state_geometry_and_external_structure() 
         for name in names
     ]
     assert all(isinstance(model, FixedRuntimeSpnProtocolAdapter) for model in models)
+    assert all(
+        model.input_bit_order == "project_msb_to_runtime_lsb" for model in models
+    )
     geometries = [
         {name: tuple(value.shape) for name, value in model.state_dict().items()}
         for model in models
@@ -272,6 +292,29 @@ def test_legacy_protocol_adapters_share_state_geometry_and_external_structure() 
         },
     )
     assert sum(parameter.numel() for parameter in recorded_r1_model.parameters()) == 163971
+
+
+def test_gift_adapter_converts_project_msb_features_to_runtime_lsb_coordinates() -> None:
+    structure = gift64_runtime_structure()
+    adapter = build_model(
+        "gift64_runtime_e4_equivariant_true",
+        input_bits=128,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options={"processor_steps": 1, "pair_embedding_dim": 32},
+    )
+    msb_difference = torch.eye(64, dtype=torch.float32)
+    runtime_difference = adapter._to_runtime_coordinates(
+        torch.cat((msb_difference, torch.zeros_like(msb_difference)), dim=1)
+    )[:, 0, 0]
+    recovered_msb = structure.exact_inverse(runtime_difference).flip(-1)
+    expected = msb_difference.index_select(
+        1,
+        cipher_inverse_permutation_indices("gift64", "true"),
+    )
+
+    assert torch.equal(recovered_msb, expected)
 
 
 def test_runtime_cell_token_model_preserves_cells_across_pairs_and_widths() -> None:
@@ -356,3 +399,117 @@ def test_runtime_cell_token_controls_have_identical_parameter_geometry() -> None
         true_model.runtime_structure.linear_matrices,
         corrupted_model.runtime_structure.linear_matrices,
     )
+
+
+def test_runtime_e4_equivariant_backbone_supports_widths_and_general_gf2() -> None:
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=32,
+            pair_embedding_dim=64,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+    state_shapes = {
+        name: tuple(value.shape) for name, value in model.state_dict().items()
+    }
+    with torch.no_grad():
+        gift = model(
+            _binary((2, 4, 2, 64), 17), gift64_runtime_structure(2)
+        )
+        skinny = model(
+            _binary((2, 3, 2, 64), 18), skinny64_runtime_structure(2)
+        )
+        wide = model(
+            _binary((2, 5, 2, 128), 19), _synthetic_128_structure()
+        )
+
+    assert gift.shape == skinny.shape == wide.shape == (2, 1)
+    assert state_shapes == {
+        name: tuple(value.shape) for name, value in model.state_dict().items()
+    }
+
+
+def test_runtime_e4_equivariant_backbone_is_cell_relabel_invariant() -> None:
+    structure = skinny64_runtime_structure(2)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = _binary((2, 3, 2, 64), 20)
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(43)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=32,
+            pair_embedding_dim=64,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+
+    with torch.no_grad():
+        original = model(pairs, structure)
+        permuted = model(relabeled_pairs, relabeled)
+
+    torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
+
+
+def test_runtime_e4_controls_keep_cell_and_sbox_metadata_but_change_linear_view() -> None:
+    options = {"processor_steps": 2, "pair_embedding_dim": 128, "dropout": 0.0}
+    names = (
+        "gift64_runtime_e4_equivariant_true",
+        "gift64_runtime_e4_equivariant_corrupted",
+        "gift64_runtime_e4_equivariant_independent",
+    )
+    models = [
+        build_model(
+            name,
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=options,
+        )
+        for name in names
+    ]
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert all(model.aggregation_mode == "e4_equivariant" for model in models)
+    assert torch.equal(
+        models[0].runtime_structure.sbox_truth_bits,
+        models[2].runtime_structure.sbox_truth_bits,
+    )
+    assert not torch.equal(
+        models[0].runtime_structure.linear_matrices,
+        models[1].runtime_structure.linear_matrices,
+    )
+
+
+def test_runtime_e4_backbone_uses_external_sbox_descriptor() -> None:
+    present = present_runtime_structure(2)
+    gift_sbox = runtime_spn_structure(
+        cell_membership=present.cell_membership,
+        bit_role=present.bit_role,
+        sbox_tables=GIFT64_SBOX,
+        linear_matrices=present.linear_matrices,
+    )
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=32,
+            pair_embedding_dim=64,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+    pairs = _binary((2, 3, 2, 64), 21)
+
+    with torch.no_grad():
+        present_logits = model(pairs, present)
+        gift_logits = model(pairs, gift_sbox)
+
+    assert float(torch.max(torch.abs(present_logits - gift_logits))) > 1e-6

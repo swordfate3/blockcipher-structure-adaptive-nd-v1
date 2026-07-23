@@ -137,18 +137,16 @@ class RuntimeSpnStructure:
         index = round_index % self.rounds
         return apply_gf2(self.inverse_linear_matrices[index], values)
 
-    def corrupted(self, cell_shift: int = 1) -> RuntimeSpnStructure:
-        if self.cells < 2:
-            raise ValueError("topology corruption requires at least two cells")
-        shift = cell_shift % self.cells
-        if shift == 0:
-            raise ValueError("topology corruption must change source cells")
-        lookup = self._cell_role_lookup()
-        source_permutation = torch.empty(self.block_bits, dtype=torch.long)
-        for source in range(self.block_bits):
-            cell = int(self.cell_membership[source])
-            role = int(self.bit_role[source])
-            source_permutation[source] = lookup[((cell + shift) % self.cells, role)]
+    def corrupted(self, seed: int = 20260724) -> RuntimeSpnStructure:
+        if self.block_bits < 2:
+            raise ValueError("topology corruption requires at least two bits")
+        generator = torch.Generator().manual_seed(seed)
+        source_permutation = torch.randperm(
+            self.block_bits,
+            generator=generator,
+        )
+        if torch.equal(source_permutation, torch.arange(self.block_bits)):
+            raise ValueError("topology corruption must change source bits")
         corrupted = torch.empty_like(self.linear_matrices)
         corrupted[:, :, source_permutation] = self.linear_matrices
         return runtime_spn_structure_from_truth_bits(

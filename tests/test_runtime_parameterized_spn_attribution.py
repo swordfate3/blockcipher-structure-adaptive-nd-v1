@@ -7,6 +7,8 @@ from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution impo
     adjudicate_runtime_spn_r1a_cell_token,
     adjudicate_runtime_spn_r1b_position,
     adjudicate_runtime_spn_r1c_view_encoder,
+    adjudicate_runtime_spn_r1d_cell_mixer,
+    adjudicate_runtime_spn_r2a_e4_attribution,
 )
 
 
@@ -241,3 +243,131 @@ def test_view_encoder_audit_holds_without_separate_view_gain() -> None:
         "separate_view_exceeds_shared_by_0p010"
     ]
     assert "Token-Mixer" in gate["next_action"]
+
+
+def _r1d_rows(fixed_auc: float, equivariant_auc: float) -> list[dict]:
+    fixed = _row("gift_cross_spn_typed_cell_shared_view_encoder", fixed_auc)
+    equivariant = _row(
+        "gift_cross_spn_typed_cell_equivariant_mixer", equivariant_auc
+    )
+    for row in (fixed, equivariant):
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    return [fixed, equivariant]
+
+
+def _r1c_hold() -> dict:
+    return {
+        "status": "hold",
+        "decision": "innovation1_runtime_spn_typed_view_identity_not_supported",
+    }
+
+
+def test_cell_mixer_audit_supports_fixed_mixer_dependency() -> None:
+    gate = adjudicate_runtime_spn_r1d_cell_mixer(
+        run_id="r1d", rows=_r1d_rows(0.540, 0.525), r1c_gate=_r1c_hold()
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"].endswith("fixed_cell_mixer_dependency_supported")
+    assert all(gate["protocol_checks"].values())
+
+
+def test_cell_mixer_audit_promotes_strong_equivariant_backbone() -> None:
+    gate = adjudicate_runtime_spn_r1d_cell_mixer(
+        run_id="r1d", rows=_r1d_rows(0.536, 0.534), r1c_gate=_r1c_hold()
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"].endswith("equivariant_e4_backbone_supported")
+    assert "true/corrupted/independent" in gate["next_action"]
+
+
+def test_cell_mixer_audit_holds_when_both_mixers_lack_signal() -> None:
+    gate = adjudicate_runtime_spn_r1d_cell_mixer(
+        run_id="r1d", rows=_r1d_rows(0.511, 0.508), r1c_gate=_r1c_hold()
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"].endswith("cell_mixer_calibration_not_supported")
+
+
+def _r2a_rows(true_auc: float, corrupted_auc: float, independent_auc: float) -> list[dict]:
+    rows = [
+        _row("gift64_runtime_e4_equivariant_true", true_auc),
+        _row("gift64_runtime_e4_equivariant_corrupted", corrupted_auc),
+        _row("gift64_runtime_e4_equivariant_independent", independent_auc),
+    ]
+    for row in rows:
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["input_bit_order"] = "project_msb_to_runtime_lsb"
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    return rows
+
+
+def _r1d_equivariant_pass() -> dict:
+    return {
+        "status": "pass",
+        "decision": "innovation1_runtime_spn_equivariant_e4_backbone_supported",
+        "aucs": {"equivariant": 0.540},
+    }
+
+
+def test_r2a_gate_passes_only_signal_preserving_attributed_result() -> None:
+    gate = adjudicate_runtime_spn_r2a_e4_attribution(
+        run_id="r2a",
+        rows=_r2a_rows(0.542, 0.532, 0.530),
+        r1d_gate=_r1d_equivariant_pass(),
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+
+
+def test_r2a_gate_holds_when_true_topology_is_not_attributed() -> None:
+    gate = adjudicate_runtime_spn_r2a_e4_attribution(
+        run_id="r2a",
+        rows=_r2a_rows(0.539, 0.540, 0.537),
+        r1d_gate=_r1d_equivariant_pass(),
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["research_checks"]["true_auc_at_least_0p520"]
+    assert not gate["research_checks"]["true_exceeds_corrupted_by_0p005"]
+    assert "do not scale" in gate["next_action"]
+
+
+def test_r2a_gate_rejects_protocol_mismatch() -> None:
+    rows = _r2a_rows(0.542, 0.532, 0.530)
+    rows[2]["negative_mode"] = "random_ciphertext"
+    gate = adjudicate_runtime_spn_r2a_e4_attribution(
+        run_id="r2a",
+        rows=rows,
+        r1d_gate=_r1d_equivariant_pass(),
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["same_data_protocol"] is False
+    assert gate["protocol_checks"]["encrypted_random_plaintext_negatives"] is False
+
+
+def test_r2a_gate_rejects_unrecorded_runtime_bit_order() -> None:
+    rows = _r2a_rows(0.542, 0.532, 0.530)
+    rows[0].pop("input_bit_order")
+    gate = adjudicate_runtime_spn_r2a_e4_attribution(
+        run_id="r2a",
+        rows=rows,
+        r1d_gate=_r1d_equivariant_pass(),
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["runtime_bit_order_adapter_recorded"] is False

@@ -227,6 +227,8 @@ __all__ = [
     "adjudicate_runtime_spn_r1a_cell_token",
     "adjudicate_runtime_spn_r1b_position",
     "adjudicate_runtime_spn_r1c_view_encoder",
+    "adjudicate_runtime_spn_r1d_cell_mixer",
+    "adjudicate_runtime_spn_r2a_e4_attribution",
 ]
 
 
@@ -666,6 +668,334 @@ def adjudicate_runtime_spn_r1c_view_encoder(
             "run PRESENT",
             "run seed1",
             "increase samples or epochs",
+            "remote scale-up",
+            "claim stable topology superiority",
+        ],
+    }
+
+
+def adjudicate_runtime_spn_r1d_cell_mixer(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    r1c_gate: dict[str, Any],
+) -> dict[str, Any]:
+    expected_models = {
+        "fixed": "gift_cross_spn_typed_cell_shared_view_encoder",
+        "equivariant": "gift_cross_spn_typed_cell_equivariant_mixer",
+    }
+    by_model = {str(row.get("model")): row for row in rows}
+    missing = [model for model in expected_models.values() if model not in by_model]
+    if missing:
+        raise ValueError(f"missing RTG1-R1d rows: {missing}")
+    by_role = {role: by_model[model] for role, model in expected_models.items()}
+    reference = by_role["fixed"]
+    static_fields = (
+        "cipher",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "train_key",
+        "validation_key",
+    )
+    training_fields = (
+        "epochs",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "checkpoint_metric",
+        "restore_best_checkpoint",
+        "selected_checkpoint",
+        "train_rows",
+        "validation_rows",
+    )
+    protocol_checks = {
+        "source_r1c_was_valid_hold": r1c_gate.get("status") == "hold"
+        and r1c_gate.get("decision")
+        == "innovation1_runtime_spn_typed_view_identity_not_supported",
+        "two_cell_mixer_rows_complete": set(by_model)
+        == set(expected_models.values()),
+        "same_data_protocol": all(
+            all(row.get(field) == reference.get(field) for field in static_fields)
+            for row in by_role.values()
+        ),
+        "same_training_protocol": all(
+            all(
+                row.get("training", {}).get(field)
+                == reference.get("training", {}).get(field)
+                for field in training_fields
+            )
+            for row in by_role.values()
+        ),
+        "frozen_calibration_scale": all(
+            row.get("cipher") == "GIFT-64"
+            and row.get("rounds") == 6
+            and row.get("seed") == 0
+            and row.get("samples_per_class") == 2048
+            and row.get("training", {}).get("train_rows") == 4096
+            and row.get("training", {}).get("validation_rows") == 2048
+            and row.get("training", {}).get("epochs") == 5
+            for row in by_role.values()
+        ),
+        "encrypted_random_plaintext_negatives": all(
+            row.get("negative_mode") == "encrypted_random_plaintexts"
+            for row in by_role.values()
+        ),
+        "equal_parameter_budget": len(
+            {
+                (
+                    int(row.get("parameter_count", -1)),
+                    int(row.get("trainable_parameter_count", -1)),
+                )
+                for row in by_role.values()
+            }
+        )
+        == 1,
+        "finite_auc_metrics": all(
+            math.isfinite(float(row.get("metrics", {}).get("auc", math.nan)))
+            for row in by_role.values()
+        ),
+        "disk_backed_datasets": all(
+            row.get("training", {}).get("train_dataset_storage") == "disk"
+            and row.get("training", {}).get("validation_dataset_storage") == "disk"
+            for row in by_role.values()
+        ),
+    }
+    aucs = {
+        role: float(row["metrics"]["auc"]) for role, row in by_role.items()
+    }
+    margin = aucs["fixed"] - aucs["equivariant"]
+    research_checks = {
+        "fixed_mixer_auc_at_least_0p520": aucs["fixed"] >= 0.520,
+        "fixed_mixer_exceeds_equivariant_by_0p010": margin >= 0.010,
+        "equivariant_mixer_auc_at_least_0p520": aucs["equivariant"] >= 0.520,
+    }
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_runtime_spn_cell_mixer_audit_protocol_invalid"
+        next_action = "repair the R1d protocol or artifacts before interpretation"
+    elif (
+        research_checks["fixed_mixer_auc_at_least_0p520"]
+        and research_checks["fixed_mixer_exceeds_equivariant_by_0p010"]
+    ):
+        status = "pass"
+        decision = "innovation1_runtime_spn_fixed_cell_mixer_dependency_supported"
+        next_action = (
+            "design external topology-derived functional coordinates for the runtime "
+            "cell mixer, without cipher IDs or fixed trainable position tables"
+        )
+    elif research_checks["equivariant_mixer_auc_at_least_0p520"]:
+        status = "pass"
+        decision = "innovation1_runtime_spn_equivariant_e4_backbone_supported"
+        next_action = (
+            "port the E4 per-pair current/exact-inverse cell-token frontend and "
+            "equivariant mixer into the runtime model, then test true/corrupted/independent"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_runtime_spn_cell_mixer_calibration_not_supported"
+        next_action = (
+            "stop E4 component peeling and redesign the runtime topology message-passing "
+            "operator from first principles before additional training"
+        )
+    return {
+        "run_id": run_id,
+        "cipher": "GIFT-64",
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "aucs": aucs,
+        "margins": {"fixed_minus_equivariant": margin},
+        "thresholds": {
+            "fixed_auc": 0.520,
+            "fixed_minus_equivariant": 0.010,
+            "equivariant_auc": 0.520,
+        },
+        "claim_scope": (
+            "GIFT-64 seed0 2048/class E4 cell-mixer calibration only; not "
+            "runtime-topology superiority, multi-seed, formal, or paper-scale evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "run PRESENT",
+            "run seed1",
+            "increase samples or epochs",
+            "remote scale-up",
+            "claim stable topology superiority",
+        ],
+    }
+
+
+def adjudicate_runtime_spn_r2a_e4_attribution(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    r1d_gate: dict[str, Any],
+) -> dict[str, Any]:
+    expected_models = {
+        "true": "gift64_runtime_e4_equivariant_true",
+        "corrupted": "gift64_runtime_e4_equivariant_corrupted",
+        "independent": "gift64_runtime_e4_equivariant_independent",
+    }
+    by_model = {str(row.get("model")): row for row in rows}
+    missing = [model for model in expected_models.values() if model not in by_model]
+    if missing:
+        raise ValueError(f"missing RTG1-R2a rows: {missing}")
+    by_role = {role: by_model[model] for role, model in expected_models.items()}
+    reference = by_role["true"]
+    static_fields = (
+        "cipher",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "train_key",
+        "validation_key",
+    )
+    training_fields = (
+        "epochs",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "checkpoint_metric",
+        "restore_best_checkpoint",
+        "selected_checkpoint",
+        "train_rows",
+        "validation_rows",
+    )
+    protocol_checks = {
+        "source_r1d_supported_equivariant_backbone": r1d_gate.get("status")
+        == "pass"
+        and r1d_gate.get("decision")
+        == "innovation1_runtime_spn_equivariant_e4_backbone_supported",
+        "three_runtime_controls_complete": set(by_model)
+        == set(expected_models.values()),
+        "same_data_protocol": all(
+            all(row.get(field) == reference.get(field) for field in static_fields)
+            for row in by_role.values()
+        ),
+        "same_training_protocol": all(
+            all(
+                row.get("training", {}).get(field)
+                == reference.get("training", {}).get(field)
+                for field in training_fields
+            )
+            for row in by_role.values()
+        ),
+        "frozen_calibration_scale": all(
+            row.get("cipher") == "GIFT-64"
+            and row.get("rounds") == 6
+            and row.get("seed") == 0
+            and row.get("samples_per_class") == 2048
+            and row.get("training", {}).get("train_rows") == 4096
+            and row.get("training", {}).get("validation_rows") == 2048
+            and row.get("training", {}).get("epochs") == 5
+            for row in by_role.values()
+        ),
+        "encrypted_random_plaintext_negatives": all(
+            row.get("negative_mode") == "encrypted_random_plaintexts"
+            for row in by_role.values()
+        ),
+        "runtime_bit_order_adapter_recorded": all(
+            row.get("input_bit_order") == "project_msb_to_runtime_lsb"
+            for row in by_role.values()
+        ),
+        "equal_parameter_geometry": len(
+            {
+                (
+                    int(row.get("parameter_count", -1)),
+                    int(row.get("trainable_parameter_count", -1)),
+                )
+                for row in by_role.values()
+            }
+        )
+        == 1,
+        "finite_auc_metrics": all(
+            math.isfinite(float(row.get("metrics", {}).get("auc", math.nan)))
+            for row in by_role.values()
+        ),
+        "disk_backed_datasets": all(
+            row.get("training", {}).get("train_dataset_storage") == "disk"
+            and row.get("training", {}).get("validation_dataset_storage") == "disk"
+            for row in by_role.values()
+        ),
+    }
+    aucs = {
+        role: float(row["metrics"]["auc"]) for role, row in by_role.items()
+    }
+    r1d_anchor_auc = float(r1d_gate.get("aucs", {}).get("equivariant", math.nan))
+    margins = {
+        "true_minus_r1d_anchor": aucs["true"] - r1d_anchor_auc,
+        "true_minus_corrupted": aucs["true"] - aucs["corrupted"],
+        "true_minus_independent": aucs["true"] - aucs["independent"],
+    }
+    research_checks = {
+        "true_auc_at_least_0p520": aucs["true"] >= 0.520,
+        "true_within_r1d_anchor_tolerance": margins["true_minus_r1d_anchor"]
+        >= -0.005,
+        "true_exceeds_corrupted_by_0p005": margins["true_minus_corrupted"]
+        >= 0.005,
+        "true_exceeds_independent_by_0p005": margins["true_minus_independent"]
+        >= 0.005,
+    }
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_runtime_spn_r2a_protocol_invalid"
+        next_action = "repair the R2a protocol or artifacts before interpretation"
+    elif all(research_checks.values()):
+        status = "pass"
+        decision = "innovation1_runtime_spn_r2a_seed0_supported"
+        next_action = (
+            "repeat the same three-control GIFT gate at 8192/class and 10 epochs; "
+            "do not add PRESENT or seed1 until that same-cipher gate passes"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_runtime_spn_r2a_topology_attribution_not_supported"
+        next_action = (
+            "redesign the runtime linear-topology interaction locally while preserving "
+            "the E4-equivariant frontend; do not scale this candidate"
+        )
+    return {
+        "run_id": run_id,
+        "cipher": "GIFT-64",
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "aucs": aucs,
+        "reference_aucs": {"r1d_equivariant": r1d_anchor_auc},
+        "margins": margins,
+        "thresholds": {
+            "true_auc": 0.520,
+            "r1d_anchor_tolerance": 0.005,
+            "control_margin": 0.005,
+        },
+        "claim_scope": (
+            "GIFT-64 seed0 2048/class runtime topology-attribution calibration only; "
+            "not multi-seed, multi-cipher, formal, or paper-scale evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "run PRESENT",
+            "run seed1",
+            "increase beyond the conditional 8192/class gate",
             "remote scale-up",
             "claim stable topology superiority",
         ],

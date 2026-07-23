@@ -14,6 +14,7 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     GiftCrossSpnTypedCellE6FromPresentOffDistinguisher,
     GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher,
     GiftCrossSpnTypedCellE6ScratchDistinguisher,
+    GiftCrossSpnTypedCellEquivariantMixerDistinguisher,
     GiftCrossSpnTypedCellNoPositionDistinguisher,
     GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
@@ -126,12 +127,14 @@ from blockcipher_nd.models.structure.spn.present_same_input_dbitnet import (
     PresentShuffledPDBitNet2023Distinguisher,
 )
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
+    EquivariantSpnTokenMixerBlock,
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
 )
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
     RuntimeCellTokenSpnDistinguisher,
+    RuntimeE4EquivariantSpnDistinguisher,
     RuntimeParameterizedSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
 )
@@ -152,6 +155,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
 __all__ = [
     "FixedRuntimeSpnProtocolAdapter",
     "RuntimeCellTokenSpnDistinguisher",
+    "RuntimeE4EquivariantSpnDistinguisher",
     "RuntimeParameterizedSpnDistinguisher",
     "RuntimeParameterizedSpnSpec",
     "RuntimeSpnStructure",
@@ -167,6 +171,7 @@ __all__ = [
     "GiftCrossSpnTypedCellE6FromPresentOffDistinguisher",
     "GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher",
     "GiftCrossSpnTypedCellE6ScratchDistinguisher",
+    "GiftCrossSpnTypedCellEquivariantMixerDistinguisher",
     "GiftCrossSpnTypedCellNoPositionDistinguisher",
     "GiftCrossSpnTypedCellSharedViewEncoderDistinguisher",
     "GiftCrossSpnTypedCellRawDistinguisher",
@@ -242,6 +247,7 @@ __all__ = [
     "SpnCellPairSetDBitNetDistinguisher",
     "SpnNibbleConvPairSetDistinguisher",
     "SpnTokenMixerBlock",
+    "EquivariantSpnTokenMixerBlock",
     "SpnTokenMixerPairSetDistinguisher",
     "cipher_inverse_permutation_indices",
     "apply_gf2",

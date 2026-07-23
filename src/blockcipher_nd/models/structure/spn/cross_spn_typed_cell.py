@@ -10,6 +10,7 @@ from blockcipher_nd.models.common.components import (
     build_norm,
 )
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
+    EquivariantSpnTokenMixerBlock,
     SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
 )
@@ -73,6 +74,7 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         dropout: float = 0.0,
         position_mode: str = "learned",
         view_encoder_mode: str = "separate",
+        cell_mixer_mode: str = "fixed",
         topology_auxiliary_mode: str = "none",
         topology_auxiliary_scale: float = 0.1,
         topology_functional_margin: float = 0.01,
@@ -94,6 +96,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             raise ValueError(
                 f"unsupported view_encoder_mode: {view_encoder_mode}"
             )
+        if cell_mixer_mode not in {"fixed", "equivariant"}:
+            raise ValueError(f"unsupported cell_mixer_mode: {cell_mixer_mode}")
         if topology_auxiliary_mode not in {
             "none",
             "off",
@@ -120,6 +124,7 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         self.pooling = pooling
         self.position_mode = position_mode
         self.view_encoder_mode = view_encoder_mode
+        self.cell_mixer_mode = cell_mixer_mode
         self.embedding_bits = max(32, base_channels * 4)
         self.topology_auxiliary_mode = topology_auxiliary_mode
         self.topology_auxiliary_scale = topology_auxiliary_scale
@@ -151,7 +156,11 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         nn.init.trunc_normal_(self.position_embedding, std=0.02)
         self.mixer_blocks = nn.ModuleList(
             [
-                SpnTokenMixerBlock(
+                (
+                    SpnTokenMixerBlock
+                    if cell_mixer_mode == "fixed"
+                    else EquivariantSpnTokenMixerBlock
+                )(
                     nibbles_per_pair=16,
                     token_dim=self.token_dim,
                     token_mlp_ratio=token_mlp_ratio,
@@ -609,6 +618,20 @@ class GiftCrossSpnTypedCellSharedViewEncoderDistinguisher(
         super().__init__(*args, **kwargs)
 
 
+class GiftCrossSpnTypedCellEquivariantMixerDistinguisher(
+    GiftCrossSpnTypedCellSharedViewEncoderDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        requested_mode = kwargs.get("cell_mixer_mode", "equivariant")
+        if requested_mode != "equivariant":
+            raise ValueError(
+                "fixed cell mixer mode 'equivariant' received conflicting value "
+                f"{requested_mode!r}"
+            )
+        kwargs["cell_mixer_mode"] = "equivariant"
+        super().__init__(*args, **kwargs)
+
+
 class GiftCrossSpnTypedCellShuffledDistinguisher(
     CrossSpnTypedCellPairSetDistinguisher
 ):
@@ -796,6 +819,7 @@ __all__ = [
     "GiftCrossSpnTypedCellRawDistinguisher",
     "GiftCrossSpnTypedCellNoPositionDistinguisher",
     "GiftCrossSpnTypedCellSharedViewEncoderDistinguisher",
+    "GiftCrossSpnTypedCellEquivariantMixerDistinguisher",
     "GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellShuffledDistinguisher",
     "GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher",

@@ -12,6 +12,10 @@ from blockcipher_nd.models.common.components import (
 )
 
 
+def _linear_parameter_count(input_dim: int, output_dim: int) -> int:
+    return input_dim * output_dim + output_dim
+
+
 class SpnTokenMixerBlock(nn.Module):
     def __init__(
         self,
@@ -47,6 +51,101 @@ class SpnTokenMixerBlock(nn.Module):
         features = features + self.token_mixer(token_hidden).transpose(1, 2)
         features = features + self.channel_mixer(self.channel_norm(features))
         return features
+
+
+class EquivariantSpnTokenMixerBlock(nn.Module):
+    """Parameter-matched cell-permutation-equivariant token mixer."""
+
+    def __init__(
+        self,
+        nibbles_per_pair: int,
+        token_dim: int,
+        token_mlp_ratio: int = 2,
+        activation: str = "gelu",
+        norm: str = "layernorm",
+        dropout: float = 0.0,
+    ) -> None:
+        super().__init__()
+        if token_mlp_ratio < 1:
+            raise ValueError(
+                "EquivariantSpnTokenMixerBlock token_mlp_ratio must be >= 1"
+            )
+        token_hidden = max(nibbles_per_pair, nibbles_per_pair * token_mlp_ratio)
+        target_token_parameters = _linear_parameter_count(
+            nibbles_per_pair, token_hidden
+        ) + _linear_parameter_count(token_hidden, nibbles_per_pair)
+        denominator = 3 * token_dim + 1
+        equivariant_hidden = max(
+            1, (target_token_parameters - token_dim) // denominator
+        )
+        active_mlp_parameters = _linear_parameter_count(
+            token_dim * 2, equivariant_hidden
+        ) + _linear_parameter_count(equivariant_hidden, token_dim)
+        residual_parameters = target_token_parameters - active_mlp_parameters
+        if residual_parameters < 0:
+            raise ValueError(
+                "cannot parameter-match equivariant token mixer for the requested dimensions"
+            )
+
+        self.token_norm = build_norm(norm, token_dim)
+        self.equivariant_mixer = nn.Sequential(
+            nn.Linear(token_dim * 2, equivariant_hidden),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(equivariant_hidden, token_dim),
+        )
+        self.equivariant_residual = nn.Parameter(
+            torch.zeros(residual_parameters)
+        )
+        channel_hidden = max(token_dim, token_dim * token_mlp_ratio)
+        self.channel_norm = build_norm(norm, token_dim)
+        self.channel_mixer = nn.Sequential(
+            nn.Linear(token_dim, channel_hidden),
+            build_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(channel_hidden, token_dim),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        normalized = self.token_norm(features)
+        global_mean = normalized.mean(dim=1, keepdim=True)
+        mixed = self.equivariant_mixer(
+            torch.cat([normalized, global_mean.expand_as(normalized)], dim=2)
+        )
+        mixed = mixed + self._residual_update(normalized, global_mean)
+        features = features + mixed
+        return features + self.channel_mixer(self.channel_norm(features))
+
+    def _residual_update(
+        self,
+        normalized: torch.Tensor,
+        global_mean: torch.Tensor,
+    ) -> torch.Tensor:
+        token_dim = normalized.shape[2]
+        expanded_mean = global_mean.expand_as(normalized)
+        bases = (
+            normalized,
+            expanded_mean,
+            normalized.square(),
+            expanded_mean.square(),
+            normalized * expanded_mean,
+            normalized.abs(),
+        )
+        result = torch.zeros_like(normalized)
+        offset = 0
+        group = 0
+        while offset < self.equivariant_residual.numel():
+            count = min(token_dim, self.equivariant_residual.numel() - offset)
+            update = (
+                bases[group % len(bases)][..., :count]
+                * self.equivariant_residual[offset : offset + count]
+            )
+            result = result + torch.nn.functional.pad(
+                update, (0, token_dim - count)
+            )
+            offset += count
+            group += 1
+        return result
 
 
 class SpnTokenMixerPairSetDistinguisher(nn.Module):
@@ -223,4 +322,8 @@ class SpnTokenMixerPairSetDistinguisher(nn.Module):
 
 
 
-__all__ = ["SpnTokenMixerBlock", "SpnTokenMixerPairSetDistinguisher"]
+__all__ = [
+    "EquivariantSpnTokenMixerBlock",
+    "SpnTokenMixerBlock",
+    "SpnTokenMixerPairSetDistinguisher",
+]

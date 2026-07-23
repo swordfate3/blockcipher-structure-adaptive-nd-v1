@@ -12,6 +12,7 @@ from blockcipher_nd.models.structure import (
     GiftCrossSpnTypedCellE6FromPresentOffDistinguisher,
     GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher,
     GiftCrossSpnTypedCellE6ScratchDistinguisher,
+    GiftCrossSpnTypedCellEquivariantMixerDistinguisher,
     GiftCrossSpnTypedCellNoPositionDistinguisher,
     GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
@@ -137,6 +138,21 @@ def build_spn_model(
             "true",
             True,
         ),
+        "gift64_runtime_e4_equivariant_true": (
+            gift64_runtime_structure,
+            "true",
+            False,
+        ),
+        "gift64_runtime_e4_equivariant_corrupted": (
+            gift64_runtime_structure,
+            "true",
+            True,
+        ),
+        "gift64_runtime_e4_equivariant_independent": (
+            gift64_runtime_structure,
+            "independent",
+            False,
+        ),
     }
     if name in runtime_models:
         structure_factory, relation_mode, corrupt = runtime_models[name]
@@ -159,7 +175,11 @@ def build_spn_model(
                 dropout=float(options.get("dropout", 0.0)),
             ),
             aggregation_mode=(
-                "cell_pair" if "runtime_cell_token" in name else "bit_pair"
+                "e4_equivariant"
+                if "runtime_e4_equivariant" in name
+                else "cell_pair"
+                if "runtime_cell_token" in name
+                else "bit_pair"
             ),
         )
     cross_spn_typed_models = {
@@ -169,6 +189,7 @@ def build_spn_model(
         "gift_cross_spn_typed_cell_true": GiftCrossSpnTypedCellTrueDistinguisher,
         "gift_cross_spn_typed_cell_no_position": GiftCrossSpnTypedCellNoPositionDistinguisher,
         "gift_cross_spn_typed_cell_shared_view_encoder": GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
+        "gift_cross_spn_typed_cell_equivariant_mixer": GiftCrossSpnTypedCellEquivariantMixerDistinguisher,
         "gift_cross_spn_typed_cell_shuffled": GiftCrossSpnTypedCellShuffledDistinguisher,
         "gift_cross_spn_typed_cell_raw": GiftCrossSpnTypedCellRawDistinguisher,
         "gift_cross_spn_typed_cell_true_from_present_true": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
@@ -211,6 +232,7 @@ def build_spn_model(
                     in {
                         "gift_cross_spn_typed_cell_no_position",
                         "gift_cross_spn_typed_cell_shared_view_encoder",
+                        "gift_cross_spn_typed_cell_equivariant_mixer",
                     }
                     else "learned",
                 )
@@ -220,7 +242,16 @@ def build_spn_model(
                     "view_encoder_mode",
                     "shared_current"
                     if name == "gift_cross_spn_typed_cell_shared_view_encoder"
+                    or name == "gift_cross_spn_typed_cell_equivariant_mixer"
                     else "separate",
+                )
+            ),
+            cell_mixer_mode=str(
+                options.get(
+                    "cell_mixer_mode",
+                    "equivariant"
+                    if name == "gift_cross_spn_typed_cell_equivariant_mixer"
+                    else "fixed",
                 )
             ),
             topology_auxiliary_scale=float(

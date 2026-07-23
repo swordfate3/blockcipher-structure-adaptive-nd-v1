@@ -34,6 +34,7 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "output_width",
         "output_channels",
         "flattened_width",
+        "input_bit_order",
         "l2_coefficient",
     ):
         if hasattr(model, field):

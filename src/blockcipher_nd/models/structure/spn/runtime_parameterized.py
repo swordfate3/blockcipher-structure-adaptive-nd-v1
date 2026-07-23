@@ -9,6 +9,9 @@ from blockcipher_nd.models.common.components import AttentionPooling
 from blockcipher_nd.models.structure.spn.runtime_structure import (
     RuntimeSpnStructure,
 )
+from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
+    EquivariantSpnTokenMixerBlock,
+)
 
 
 @dataclass(frozen=True)
@@ -381,8 +384,148 @@ class RuntimeCellTokenSpnDistinguisher(_RuntimeSpnEncoderBase):
         return torch.einsum("cs,bpsh->bpch", normalized, cell_tokens)
 
 
+class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
+    """Runtime-width E4-style frontend with cell-permutation-equivariant mixing."""
+
+    def __init__(self, spec: RuntimeParameterizedSpnSpec) -> None:
+        super().__init__()
+        self.spec = spec
+        token_dim = max(16, spec.hidden_dim * 2)
+        pair_dim = spec.pair_embedding_dim
+        self.token_dim = token_dim
+        self.cell_encoder = nn.Sequential(
+            nn.Linear(4, token_dim),
+            nn.ReLU(),
+            nn.LayerNorm(token_dim),
+        )
+        self.typed_fusion = nn.Sequential(
+            nn.Linear(token_dim * 2, token_dim),
+            nn.ReLU(),
+            nn.LayerNorm(token_dim),
+        )
+        self.sbox_encoder = nn.Sequential(
+            nn.Linear(64, token_dim),
+            nn.ReLU(),
+            nn.LayerNorm(token_dim),
+        )
+        self.mixer_blocks = nn.ModuleList(
+            [
+                EquivariantSpnTokenMixerBlock(
+                    nibbles_per_pair=16,
+                    token_dim=token_dim,
+                    token_mlp_ratio=2,
+                    activation="relu",
+                    norm="layernorm",
+                    dropout=spec.dropout,
+                )
+                for _ in range(spec.processor_steps)
+            ]
+        )
+        self.sequence_norm = nn.LayerNorm(token_dim)
+        self.pair_projection = nn.Sequential(
+            nn.Linear(token_dim * 3, pair_dim),
+            nn.ReLU(),
+            nn.Dropout(spec.dropout),
+        )
+        self.pair_attention = AttentionPooling(
+            pair_dim,
+            hidden_bits=pair_dim,
+            activation="relu",
+            norm="layernorm",
+        )
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(pair_dim * 3),
+            nn.Linear(pair_dim * 3, spec.hidden_dim * 8),
+            nn.ReLU(),
+            nn.Dropout(spec.dropout),
+            nn.Linear(spec.hidden_dim * 8, 1),
+        )
+        self.last_pair_attention: torch.Tensor | None = None
+
+    def forward(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str = "true",
+    ) -> torch.Tensor:
+        pairs = _RuntimeSpnEncoderBase._normalize_pairs(
+            ciphertext_pairs, structure.block_bits
+        )
+        if relation_mode not in {"true", "independent"}:
+            raise ValueError("relation_mode must be true or independent")
+        if not torch.all((pairs == 0) | (pairs == 1)):
+            raise ValueError("ciphertext pair tensors must be binary")
+        pairs = pairs.to(dtype=self.cell_encoder[0].weight.dtype)
+        difference = torch.remainder(pairs[:, :, 0] + pairs[:, :, 1], 2.0)
+        previous = (
+            structure.exact_inverse(difference, -1)
+            if relation_mode == "true"
+            else difference
+        )
+        current_cells = self._ordered_cell_values(difference, structure)
+        previous_cells = self._ordered_cell_values(previous, structure)
+        current_hidden = self.cell_encoder(current_cells)
+        previous_hidden = self.cell_encoder(previous_cells)
+        hidden = self.typed_fusion(
+            torch.cat((current_hidden, previous_hidden), dim=-1)
+        )
+        sbox_context = self.sbox_encoder(
+            structure.sbox_truth_bits[-1].to(
+                device=hidden.device, dtype=hidden.dtype
+            )
+        )
+        hidden = hidden + sbox_context[None, None, :, :]
+        batch, pair_count, cell_count, token_dim = hidden.shape
+        sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
+        for block in self.mixer_blocks:
+            sequence = block(sequence)
+        sequence = self.sequence_norm(sequence)
+        current_activity = current_cells.mean(dim=-1, keepdim=True).reshape(
+            batch * pair_count, cell_count, 1
+        )
+        mean_embedding = sequence.mean(dim=1)
+        max_embedding = sequence.max(dim=1).values
+        active_embedding = torch.sum(sequence * current_activity, dim=1) / (
+            current_activity.sum(dim=1).clamp_min(1.0)
+        )
+        pair_embeddings = self.pair_projection(
+            torch.cat((mean_embedding, max_embedding, active_embedding), dim=-1)
+        ).reshape(batch, pair_count, self.spec.pair_embedding_dim)
+        attended_pairs, pair_attention = self.pair_attention(pair_embeddings)
+        self.last_pair_attention = pair_attention.detach()
+        return self.classifier(
+            torch.cat(
+                (
+                    attended_pairs,
+                    pair_embeddings.mean(dim=1),
+                    pair_embeddings.max(dim=1).values,
+                ),
+                dim=-1,
+            )
+        )
+
+    @staticmethod
+    def _ordered_cell_values(
+        values: torch.Tensor,
+        structure: RuntimeSpnStructure,
+    ) -> torch.Tensor:
+        indices = torch.empty(
+            structure.cells,
+            4,
+            dtype=torch.long,
+            device=values.device,
+        )
+        bit_indices = torch.arange(structure.block_bits, device=values.device)
+        indices[
+            structure.cell_membership.to(values.device),
+            structure.bit_role.to(values.device),
+        ] = bit_indices
+        return values[:, :, indices]
+
+
 class FixedRuntimeSpnProtocolAdapter(nn.Module):
-    """Bind an external runtime structure for legacy single-input trainers."""
+    """Bind an external runtime structure to the project's MSB-first features."""
 
     def __init__(
         self,
@@ -405,24 +548,39 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
             self.backbone = RuntimeParameterizedSpnDistinguisher(spec)
         elif aggregation_mode == "cell_pair":
             self.backbone = RuntimeCellTokenSpnDistinguisher(spec)
+        elif aggregation_mode == "e4_equivariant":
+            self.backbone = RuntimeE4EquivariantSpnDistinguisher(spec)
         else:
-            raise ValueError("aggregation_mode must be bit_pair or cell_pair")
+            raise ValueError(
+                "aggregation_mode must be bit_pair, cell_pair, or e4_equivariant"
+            )
         self.runtime_structure = structure
         self.relation_mode = relation_mode
         self.mapping_mode = relation_mode
         self.aggregation_mode = aggregation_mode
+        self.input_bit_order = "project_msb_to_runtime_lsb"
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         return self.backbone(
-            features,
+            self._to_runtime_coordinates(features),
             self.runtime_structure,
             relation_mode=self.relation_mode,
         )
+
+    def _to_runtime_coordinates(self, features: torch.Tensor) -> torch.Tensor:
+        batch = features.shape[0]
+        return features.reshape(
+            batch,
+            -1,
+            2,
+            self.runtime_structure.block_bits,
+        ).flip(-1)
 
 
 __all__ = [
     "FixedRuntimeSpnProtocolAdapter",
     "RuntimeCellTokenSpnDistinguisher",
+    "RuntimeE4EquivariantSpnDistinguisher",
     "RuntimeParameterizedSpnDistinguisher",
     "RuntimeParameterizedSpnSpec",
 ]

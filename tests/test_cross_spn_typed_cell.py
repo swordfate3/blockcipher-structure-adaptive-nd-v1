@@ -11,6 +11,7 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     GiftAlignedTokenMixerRawInputDistinguisher,
     GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
     GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
+    GiftCrossSpnTypedCellEquivariantMixerDistinguisher,
     GiftCrossSpnTypedCellNoPositionDistinguisher,
     GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
@@ -31,6 +32,8 @@ from blockcipher_nd.models.structure.spn.present_nibble_paligned_mcnd import (
     present_inverse_p_indices,
 )
 from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
+    EquivariantSpnTokenMixerBlock,
+    SpnTokenMixerBlock,
     SpnTokenMixerPairSetDistinguisher,
 )
 from blockcipher_nd.registry.model_factory import build_model
@@ -180,6 +183,59 @@ def test_gift_shared_view_ablation_keeps_dormant_encoder_geometry() -> None:
         separate_after = separate(features)
     torch.testing.assert_close(shared_before, shared_after)
     assert not torch.allclose(shared_before, separate_after)
+
+
+def test_equivariant_token_mixer_matches_fixed_parameter_budget() -> None:
+    fixed = SpnTokenMixerBlock(
+        nibbles_per_pair=16, token_dim=128, token_mlp_ratio=2
+    )
+    equivariant = EquivariantSpnTokenMixerBlock(
+        nibbles_per_pair=16, token_dim=128, token_mlp_ratio=2
+    )
+
+    assert sum(parameter.numel() for parameter in fixed.parameters()) == sum(
+        parameter.numel() for parameter in equivariant.parameters()
+    )
+
+
+def test_equivariant_token_mixer_commutes_with_cell_permutation() -> None:
+    torch.manual_seed(37)
+    model = EquivariantSpnTokenMixerBlock(
+        nibbles_per_pair=16,
+        token_dim=32,
+        token_mlp_ratio=2,
+        dropout=0.0,
+    ).eval()
+    features = torch.randn(3, 16, 32)
+    permutation = torch.randperm(16, generator=torch.Generator().manual_seed(41))
+
+    with torch.no_grad():
+        original = model(features)
+        permuted = model(features.index_select(1, permutation))
+
+    torch.testing.assert_close(
+        permuted,
+        original.index_select(1, permutation),
+        rtol=0.0,
+        atol=1e-6,
+    )
+
+
+def test_gift_equivariant_mixer_matches_anchor_parameter_count() -> None:
+    anchor = GiftCrossSpnTypedCellSharedViewEncoderDistinguisher(
+        input_bits=4 * 128, base_channels=64, mixer_depth=2
+    )
+    control = GiftCrossSpnTypedCellEquivariantMixerDistinguisher(
+        input_bits=4 * 128, base_channels=64, mixer_depth=2
+    )
+
+    assert sum(parameter.numel() for parameter in anchor.parameters()) == sum(
+        parameter.numel() for parameter in control.parameters()
+    )
+    assert all(
+        isinstance(block, EquivariantSpnTokenMixerBlock)
+        for block in control.mixer_blocks
+    )
 
 
 def test_cross_spn_typed_variants_have_identical_trainable_state() -> None:
@@ -526,6 +582,10 @@ REGISTERED_MODELS: tuple[tuple[str, type[nn.Module]], ...] = (
     (
         "gift_cross_spn_typed_cell_shared_view_encoder",
         GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
+    ),
+    (
+        "gift_cross_spn_typed_cell_equivariant_mixer",
+        GiftCrossSpnTypedCellEquivariantMixerDistinguisher,
     ),
     (
         "gift_cross_spn_typed_cell_shuffled",
