@@ -2,7 +2,7 @@
 
 日期：2026-07-23
 
-状态：条件计划冻结 / 数据配置支持准备中 / 未授权readiness、训练或远程启动
+状态：条件计划冻结 / 底层独立key_seed与缓存兼容支持已完成 / 未授权readiness、训练或远程启动
 
 ## 1. 条件授权
 
@@ -101,6 +101,18 @@ OPF2揭盲前只允许：
 1. 在Kimura数据配置中增加默认关闭的独立`key_seed`，保持旧缓存和默认训练hash兼容。
 2. 单元测试相同数据seed下明文/特征相同、密钥/真实输出不同，以及旧默认缓存可复用。
 3. 保留本条件计划，不生成正式数据、不跑readiness、不实现远程启动包。
+
+截至2026-07-23，上述揭盲前允许的底层准备已经完成：
+
+```text
+implementation = output_prediction_kimura_lstm.KimuraOutputPredictionConfig.key_seed
+default         = None，继续使用seed派生密钥并保持旧metadata/cache兼容
+conditional     = key_seed=8时只改变秘密密钥与真实密文targets
+tests           = independent key seed + OPF2 scale/split regression passed
+```
+
+这只证明数据配置能够表达“明文、初始化和训练顺序不变，仅更换秘密密钥”。PositionBound三行/五行runner、
+OPF2-C1 readiness、正式缓存、远程配置和启动脚本均未实现，也不得在OPF2正式pass前实现或运行。
 
 OPF2正式通过后才允许补齐PositionBound runner的`key_seed=8`传播、五模型readiness、缓存与来源门、
 远程配置和启动脚本。readiness必须先验证`40/5/5`小规模产物、初始化逐参数相同、目标逐值回放和中文SVG；

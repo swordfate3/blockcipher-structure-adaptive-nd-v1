@@ -2,7 +2,7 @@
 
 日期：2026-07-23
 
-状态：盲预注册 / OPF2运行中仅开放实现准备 / readiness、训练和启动仍由OPF2正式hold授权
+状态：盲预注册 / 共享逐轮模型与结构测试已完成 / readiness、训练和启动仍由OPF2正式hold授权
 
 ## 1. 条件授权
 
@@ -176,8 +176,25 @@ GPU         = physical GPU0
 6. 回收后验证来源OPF2 gate SHA256、源提交、缓存、`24/300/3`产物门，生成SVG并执行
    `visual-qa-redraw`像素检查，刷新`outputs/00_RECENT_RESULTS.md/json`，更新本记录并给出证据支持的下一步。
 
+### 8.1 盲态实现准备完成
+
+在没有读取OPF2正式性能指标的条件下，步骤1已经完成：
+
+```text
+model = src/blockcipher_nd/tasks/innovation2/selected_output_round_recurrent_spn.py
+tests = tests/test_innovation2_output_prediction_opf3_round_recurrent_spn.py
+result = 9 passed
+parameter_count = 3884356
+OPF2 exact-P parameter_count = 3956928
+relative_difference = 1.83% <= 3%
+```
+
+测试逐项锁定四轮共享权重、八个预注册输出位置、exact/identity相同初始化和参数量、PRESENT每个
+one-hot bit的公开P层路由、四次P层组合、S-box cell内局部混合边界以及协议漂移拒绝。当前没有三行
+runner、OPF3数据、readiness产物、训练配置或远程启动脚本；这些内容仍由OPF2正式hold结果授权。
+
 ## 9. 当前停止状态
 
-本计划是在OPF2正式指标未知时盲预注册。当前允许OPF2继续运行并盲态准备冻结模型实现；OPF3仍没有readiness、
-数据、训练、远程任务或性能结果，不得把实现代码本身写成高轮进展或候选成功。若OPF2通过，OPF3实现保持休眠，
-不得据此绕过新固定密钥确认分支。
+本计划是在OPF2正式指标未知时盲预注册。冻结模型实现与结构测试已经完成；OPF3仍没有readiness、数据、训练、
+远程任务或性能结果，不得把实现代码本身写成高轮进展或候选成功。若OPF2通过，OPF3实现保持休眠，不得据此
+绕过新固定密钥确认分支。
