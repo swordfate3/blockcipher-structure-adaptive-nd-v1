@@ -157,6 +157,13 @@ GX1在fresh标签读取前冻结最多八个位置；至少四个位置通过输
 混合、ShiftRows和MixColumns扩散；通用byte-ResCNN为同预算锚点，identity/wrong ShiftRows或错误扩散
 顺序为归因控制，另有匹配标签打乱。
 
+冻结条件协议见：
+
+```text
+docs/experiments/
+  innovation2-output-prediction-aes1-aes128-r1-r2-full-output-conditional-plan.md
+```
+
 AES先以`2^17/2^16、100 epochs`定位低轮正控制和边界区间；只在最后通过轮与首个失败轮使用完整结构
 矩阵。若边界存在可信数据稀缺解释，才另行预注册`2^20/2^16`单变量规模审判。
 
@@ -192,7 +199,15 @@ DES真假区分结果当作本任务输出预测证据。
 
 SM4必须按四个32-bit字和`X_(i+4)=X_i xor F(X_(i+1),X_(i+2),X_(i+3),rk_i)`组织，不能复用DES
 左右两半映射。候选为四字共享轮递推网络；通用word-ResCNN为锚点；错误字序、错误递推依赖和标签打乱
-为控制。先`2^17/2^16、100 epochs`校准，再按统一轮数推进门决定是否进行`2^20`边界审判。
+为控制。一至三轮分别保留96、64、32个原始明文直通bit，因此不计作神经输出预测正证据；从首个零直通的
+r4开始，以`2^17/2^16、100 epochs`校准，再按统一轮数推进门决定是否进行`2^20`边界审判。
+
+冻结条件协议见：
+
+```text
+docs/experiments/
+  innovation2-output-prediction-sm4-1-r4-r5-full-output-conditional-plan.md
+```
 
 ## 8. ARX分支：SPECK32/64
 
