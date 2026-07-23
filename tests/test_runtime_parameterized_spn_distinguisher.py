@@ -461,6 +461,7 @@ def test_runtime_e4_controls_keep_cell_and_sbox_metadata_but_change_linear_view(
         "pair_embedding_dim": 128,
         "dropout": 0.0,
         "sbox_context_scale": 0.1,
+        "sbox_context_mode": "late_pair",
     }
     names = (
         "gift64_runtime_e4_equivariant_true",
@@ -486,6 +487,9 @@ def test_runtime_e4_controls_keep_cell_and_sbox_metadata_but_change_linear_view(
     assert all(geometry == geometries[0] for geometry in geometries)
     assert all(model.aggregation_mode == "e4_equivariant" for model in models)
     assert all(model.backbone.spec.sbox_context_scale == 0.1 for model in models)
+    assert all(
+        model.backbone.spec.sbox_context_mode == "late_pair" for model in models
+    )
     assert torch.equal(
         models[0].runtime_structure.sbox_truth_bits,
         models[2].runtime_structure.sbox_truth_bits,
@@ -572,3 +576,66 @@ def test_runtime_e4_sbox_scale_does_not_change_parameter_geometry() -> None:
 def test_runtime_spn_spec_rejects_negative_sbox_context_scale() -> None:
     with pytest.raises(ValueError, match="sbox_context_scale"):
         RuntimeParameterizedSpnSpec(sbox_context_scale=-0.1)
+
+
+def test_runtime_spn_spec_rejects_unknown_sbox_context_mode() -> None:
+    with pytest.raises(ValueError, match="sbox_context_mode"):
+        RuntimeParameterizedSpnSpec(sbox_context_mode="unknown")  # type: ignore[arg-type]
+
+
+def test_runtime_e4_late_sbox_conditioning_preserves_topology_extractor() -> None:
+    present = present_runtime_structure(2)
+    gift_sbox = runtime_spn_structure(
+        cell_membership=present.cell_membership,
+        bit_role=present.bit_role,
+        sbox_tables=GIFT64_SBOX,
+        linear_matrices=present.linear_matrices,
+    )
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="late_pair",
+        )
+    ).eval()
+    pairs = _binary((2, 3, 2, 64), 45)
+    mixer_inputs: list[torch.Tensor] = []
+
+    def capture_input(
+        _module: torch.nn.Module,
+        args: tuple[torch.Tensor, ...],
+    ) -> None:
+        mixer_inputs.append(args[0].detach().clone())
+
+    hook = model.mixer_blocks[0].register_forward_pre_hook(capture_input)
+    with torch.no_grad():
+        present_logits = model(pairs, present)
+        gift_logits = model(pairs, gift_sbox)
+    hook.remove()
+
+    assert len(mixer_inputs) == 2
+    torch.testing.assert_close(mixer_inputs[0], mixer_inputs[1], rtol=0.0, atol=0.0)
+    assert float(torch.max(torch.abs(present_logits - gift_logits))) > 1e-6
+
+
+def test_runtime_e4_sbox_location_keeps_parameter_geometry() -> None:
+    common = {
+        "hidden_dim": 16,
+        "pair_embedding_dim": 24,
+        "processor_steps": 2,
+        "dropout": 0.0,
+    }
+    early = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="early_add")
+    )
+    late = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_pair")
+    )
+
+    assert {
+        name: tuple(parameter.shape) for name, parameter in early.named_parameters()
+    } == {
+        name: tuple(parameter.shape) for name, parameter in late.named_parameters()
+    }

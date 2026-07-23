@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import torch
 from torch import nn
@@ -21,6 +22,7 @@ class RuntimeParameterizedSpnSpec:
     processor_steps: int = 2
     dropout: float = 0.10
     sbox_context_scale: float = 1.0
+    sbox_context_mode: Literal["early_add", "late_pair"] = "early_add"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -29,6 +31,8 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError("dropout must be in [0, 1)")
         if self.sbox_context_scale < 0.0:
             raise ValueError("sbox_context_scale must be non-negative")
+        if self.sbox_context_mode not in {"early_add", "late_pair"}:
+            raise ValueError("sbox_context_mode must be early_add or late_pair")
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -478,9 +482,10 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 device=hidden.device, dtype=hidden.dtype
             )
         )
-        hidden = hidden + self.spec.sbox_context_scale * sbox_context[
-            None, None, :, :
-        ]
+        if self.spec.sbox_context_mode == "early_add":
+            hidden = hidden + self.spec.sbox_context_scale * sbox_context[
+                None, None, :, :
+            ]
         batch, pair_count, cell_count, token_dim = hidden.shape
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
         for block in self.mixer_blocks:
@@ -497,6 +502,17 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         pair_embeddings = self.pair_projection(
             torch.cat((mean_embedding, max_embedding, active_embedding), dim=-1)
         ).reshape(batch, pair_count, self.spec.pair_embedding_dim)
+        if self.spec.sbox_context_mode == "late_pair":
+            late_context = sbox_context.mean(dim=0)
+            if late_context.shape[0] != self.spec.pair_embedding_dim:
+                late_context = torch.nn.functional.adaptive_avg_pool1d(
+                    late_context.reshape(1, 1, -1),
+                    self.spec.pair_embedding_dim,
+                ).reshape(-1)
+            pair_embeddings = (
+                pair_embeddings
+                + self.spec.sbox_context_scale * late_context[None, None, :]
+            )
         attended_pairs, pair_attention = self.pair_attention(pair_embeddings)
         self.last_pair_attention = pair_attention.detach()
         return self.classifier(

@@ -10,6 +10,7 @@ from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution impo
     adjudicate_runtime_spn_r1d_cell_mixer,
     adjudicate_runtime_spn_r2a_e4_attribution,
     adjudicate_runtime_spn_r2d_sbox_scale,
+    adjudicate_runtime_spn_r2e_sbox_location,
 )
 
 
@@ -447,3 +448,69 @@ def test_r2d_sbox_scale_gate_rejects_post_hoc_scale() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["preregistered_nonzero_scale"] is False
+
+
+def _r2e_inputs(candidate_auc: float) -> tuple[list[dict], list[dict], dict, dict, dict]:
+    candidate, baseline, r2c_gate, r1d_gate = _r2d_inputs(candidate_auc)
+    candidate[0]["training"]["model_options"].pop("sbox_context_scale")
+    candidate[0]["training"]["model_options"]["sbox_context_mode"] = "late_pair"
+    r2d_gate = {
+        "status": "hold",
+        "decision": "innovation1_runtime_spn_sbox_scale_calibration_not_supported",
+        "protocol_checks": {"valid": True},
+    }
+    return candidate, baseline, r2c_gate, r2d_gate, r1d_gate
+
+
+def test_r2e_sbox_location_gate_supports_anchor_recovery() -> None:
+    candidate, baseline, r2c_gate, r2d_gate, r1d_gate = _r2e_inputs(0.536)
+
+    gate = adjudicate_runtime_spn_r2e_sbox_location(
+        run_id="r2e",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r2d_gate=r2d_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "true/corrupted/no-topology" in gate["next_action"]
+
+
+def test_r2e_sbox_location_gate_holds_below_anchor_tolerance() -> None:
+    candidate, baseline, r2c_gate, r2d_gate, r1d_gate = _r2e_inputs(0.534)
+
+    gate = adjudicate_runtime_spn_r2e_sbox_location(
+        run_id="r2e",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r2d_gate=r2d_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["research_checks"]["candidate_auc_at_least_0p520"]
+    assert not gate["research_checks"][
+        "candidate_within_r1d_anchor_tolerance"
+    ]
+
+
+def test_r2e_sbox_location_gate_rejects_scale_change() -> None:
+    candidate, baseline, r2c_gate, r2d_gate, r1d_gate = _r2e_inputs(0.536)
+    candidate[0]["training"]["model_options"]["sbox_context_scale"] = 0.1
+
+    gate = adjudicate_runtime_spn_r2e_sbox_location(
+        run_id="r2e",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r2d_gate=r2d_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["only_sbox_location_option_changed"] is False

@@ -1113,3 +1113,51 @@ Only a pass may open the full true/full-bit-corrupted/no-topology matrix at the
 same budget. R2e must not add PRESENT, seed1, larger data, remote execution, or
 new scalar searches. A miss sends the route to a topology/S-box fusion design
 review rather than another training run.
+
+## Preregistered R2e Late S-Box Conditioning Calibration
+
+R2e freezes the conditioning coefficient at `1.0` and changes only its
+location:
+
+```text
+R2c = add encoded S-box context to every cell before the equivariant mixer
+R2e = keep the mixer input S-box-free and add the same context after pair pooling
+```
+
+For the frozen `hidden_dim=64`, `token_dim=128`, and
+`pair_embedding_dim=128`, the late context requires no trainable projection.
+For other legal dimensions, a deterministic adaptive average projection keeps
+the parameter geometry independent of width and structure. Early and late
+modes must have identical trainable parameter names and shapes.
+
+The implementation gate must prove that two structures differing only in their
+external S-box truth table produce identical inputs to the first topology
+mixer in `late_pair` mode but different final logits. This directly verifies
+that R2e preserves the topology extractor while still consuming the S-box.
+
+Train exactly one row:
+
+```text
+run id          = i1_rtg1_gift64_runtime_e4_sbox_location_r2e_2048_seed0
+cipher / rounds = GIFT-64 / 6
+topology         = correct runtime topology
+S-box mode       = late_pair
+S-box scale      = 1.0
+train / val      = 2048/class / 1024/class
+epochs / seed    = 5 / 0
+pairs            = 4
+cache            = reuse the exact R2c disk cache
+```
+
+Advance only if:
+
+```text
+candidate AUC >= 0.520
+candidate - R1d anchor >= -0.005
+all source, data, training, bit-order, cache, and parameter-geometry checks pass
+```
+
+A pass opens only the same-budget GIFT seed0 true/full-bit-corrupted/no-linear
+matrix with frozen `late_pair` conditioning. A miss stops S-box placement
+experiments. PRESENT, seed1, `8192/class`, remote execution, and stable claims
+remain blocked until the full matrix passes.

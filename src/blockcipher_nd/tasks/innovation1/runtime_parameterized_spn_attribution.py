@@ -230,6 +230,7 @@ __all__ = [
     "adjudicate_runtime_spn_r1d_cell_mixer",
     "adjudicate_runtime_spn_r2a_e4_attribution",
     "adjudicate_runtime_spn_r2d_sbox_scale",
+    "adjudicate_runtime_spn_r2e_sbox_location",
 ]
 
 
@@ -1150,6 +1151,176 @@ def adjudicate_runtime_spn_r2d_sbox_scale(
         "claim_scope": (
             "GIFT-64 seed0 2048/class S-box residual calibration only; not full "
             "topology attribution, multi-seed, multi-cipher, formal, or paper-scale evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "run PRESENT",
+            "run seed1",
+            "increase samples or epochs",
+            "remote scale-up",
+            "claim stable topology superiority",
+        ],
+    }
+
+
+def adjudicate_runtime_spn_r2e_sbox_location(
+    *,
+    run_id: str,
+    candidate_rows: list[dict[str, Any]],
+    r2c_rows: list[dict[str, Any]],
+    r2c_gate: dict[str, Any],
+    r2d_gate: dict[str, Any],
+    r1d_gate: dict[str, Any],
+) -> dict[str, Any]:
+    model = "gift64_runtime_e4_equivariant_true"
+    candidate_matches = [row for row in candidate_rows if row.get("model") == model]
+    baseline_matches = [row for row in r2c_rows if row.get("model") == model]
+    if len(candidate_matches) != 1 or len(baseline_matches) != 1:
+        raise ValueError("R2e requires one candidate and one R2c true-topology row")
+    candidate = candidate_matches[0]
+    baseline = baseline_matches[0]
+    static_fields = (
+        "cipher",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "train_key",
+        "validation_key",
+    )
+    training_fields = (
+        "epochs",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "checkpoint_metric",
+        "restore_best_checkpoint",
+        "selected_checkpoint",
+        "train_rows",
+        "validation_rows",
+        "dataset_cache_root",
+    )
+    candidate_options = candidate.get("training", {}).get("model_options", {})
+    baseline_options = baseline.get("training", {}).get("model_options", {})
+    candidate_mode = str(candidate_options.get("sbox_context_mode", "early_add"))
+    baseline_mode = str(baseline_options.get("sbox_context_mode", "early_add"))
+    candidate_scale = float(candidate_options.get("sbox_context_scale", 1.0))
+    baseline_scale = float(baseline_options.get("sbox_context_scale", 1.0))
+    candidate_other_options = {
+        key: value
+        for key, value in candidate_options.items()
+        if key != "sbox_context_mode"
+    }
+    baseline_other_options = {
+        key: value
+        for key, value in baseline_options.items()
+        if key != "sbox_context_mode"
+    }
+    protocol_checks = {
+        "source_r2c_was_valid_hold": r2c_gate.get("status") == "hold"
+        and r2c_gate.get("decision")
+        == "innovation1_runtime_spn_r2a_topology_attribution_not_supported"
+        and all(r2c_gate.get("protocol_checks", {}).values()),
+        "source_r2d_rejected_scale_tuning": r2d_gate.get("status") == "hold"
+        and r2d_gate.get("decision")
+        == "innovation1_runtime_spn_sbox_scale_calibration_not_supported"
+        and all(r2d_gate.get("protocol_checks", {}).values()),
+        "source_r1d_supported_equivariant_backbone": r1d_gate.get("status")
+        == "pass"
+        and r1d_gate.get("decision")
+        == "innovation1_runtime_spn_equivariant_e4_backbone_supported",
+        "one_true_topology_candidate": len(candidate_rows) == 1,
+        "same_data_protocol": all(
+            candidate.get(field) == baseline.get(field) for field in static_fields
+        ),
+        "same_training_protocol": all(
+            candidate.get("training", {}).get(field)
+            == baseline.get("training", {}).get(field)
+            for field in training_fields
+        ),
+        "only_sbox_location_option_changed": candidate_other_options
+        == baseline_other_options,
+        "preregistered_location_change": candidate_mode == "late_pair"
+        and baseline_mode == "early_add"
+        and math.isclose(candidate_scale, 1.0)
+        and math.isclose(baseline_scale, 1.0),
+        "same_parameter_geometry": (
+            int(candidate.get("parameter_count", -1)),
+            int(candidate.get("trainable_parameter_count", -1)),
+        )
+        == (
+            int(baseline.get("parameter_count", -1)),
+            int(baseline.get("trainable_parameter_count", -1)),
+        ),
+        "runtime_bit_order_adapter_recorded": candidate.get("input_bit_order")
+        == "project_msb_to_runtime_lsb",
+        "finite_auc_metrics": math.isfinite(
+            float(candidate.get("metrics", {}).get("auc", math.nan))
+        ),
+        "disk_backed_dataset_reused": candidate.get("training", {}).get(
+            "train_dataset_storage"
+        )
+        == "disk"
+        and candidate.get("training", {}).get("validation_dataset_storage")
+        == "disk",
+    }
+    candidate_auc = float(candidate.get("metrics", {}).get("auc", math.nan))
+    baseline_auc = float(baseline.get("metrics", {}).get("auc", math.nan))
+    anchor_auc = float(r1d_gate.get("aucs", {}).get("equivariant", math.nan))
+    margins = {
+        "candidate_minus_early_baseline": candidate_auc - baseline_auc,
+        "candidate_minus_r1d_anchor": candidate_auc - anchor_auc,
+    }
+    research_checks = {
+        "candidate_auc_at_least_0p520": candidate_auc >= 0.520,
+        "candidate_within_r1d_anchor_tolerance": margins[
+            "candidate_minus_r1d_anchor"
+        ]
+        >= -0.005,
+    }
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_runtime_spn_sbox_location_protocol_invalid"
+        next_action = "repair the R2e protocol before interpreting the calibration"
+    elif all(research_checks.values()):
+        status = "pass"
+        decision = "innovation1_runtime_spn_sbox_location_calibration_supported"
+        next_action = (
+            "rerun the full R2c true/corrupted/no-topology matrix with frozen "
+            "late pair-level S-box conditioning at the same 2048/class seed0 budget"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_runtime_spn_sbox_location_calibration_not_supported"
+        next_action = (
+            "stop S-box placement experiments and audit topology/S-box fusion before "
+            "any further training; do not scale or add seeds"
+        )
+    return {
+        "run_id": run_id,
+        "cipher": "GIFT-64",
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "aucs": {
+            "late_pair_candidate": candidate_auc,
+            "early_add_baseline": baseline_auc,
+            "r1d_equivariant_anchor": anchor_auc,
+        },
+        "margins": margins,
+        "thresholds": {"candidate_auc": 0.520, "r1d_anchor_tolerance": 0.005},
+        "claim_scope": (
+            "GIFT-64 seed0 2048/class S-box injection-location calibration only; "
+            "not full topology attribution, multi-seed, multi-cipher, formal, or "
+            "paper-scale evidence"
         ),
         "next_action": next_action,
         "blocked_actions": [

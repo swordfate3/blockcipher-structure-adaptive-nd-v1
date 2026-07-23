@@ -3205,6 +3205,28 @@ def test_result_index_labels_runtime_spn_r2d_sbox_scale(tmp_path: Path) -> None:
     )
 
 
+def test_result_index_labels_runtime_spn_r2e_sbox_location(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg1_gift64_runtime_e4_sbox_location_r2e_2048_seed0"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_sbox_location_calibration_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 RTG1-R2e：GIFT-64运行时S盒注入位置校准"
+    )
+    assert entries[0]["decision_display"] == (
+        "S盒晚期条件化恢复E4锚点容差，下一步同预算重跑三拓扑控制"
+    )
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

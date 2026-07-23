@@ -106,6 +106,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_sbox_scale_protocol_invalid": (
         "R2d的数据、训练、S盒强度或来源锚点协议无效"
     ),
+    "innovation1_runtime_spn_sbox_location_calibration_supported": (
+        "S盒晚期条件化恢复E4锚点容差，下一步同预算重跑三拓扑控制"
+    ),
+    "innovation1_runtime_spn_sbox_location_calibration_not_supported": (
+        "S盒晚期条件化仍未恢复E4锚点，停止位置实验并审计融合机制"
+    ),
+    "innovation1_runtime_spn_sbox_location_protocol_invalid": (
+        "R2e的数据、训练、S盒注入位置或来源锚点协议无效"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),
@@ -2109,6 +2118,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_location_r2e"):
+        return "创新1 RTG1-R2e：GIFT-64运行时S盒注入位置校准"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_scale_r2d"):
         return "创新1 RTG1-R2d：GIFT-64运行时S盒上下文强度校准"
     if run_id.startswith("i1_rtg1_gift64_e4_cell_mixer_r1d"):

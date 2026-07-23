@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.gate_runtime_spn_sbox_scale import main_location
+
+
+if __name__ == "__main__":
+    raise SystemExit(main_location())
