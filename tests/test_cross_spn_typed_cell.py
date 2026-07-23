@@ -11,6 +11,8 @@ from blockcipher_nd.models.structure.spn.cross_spn_typed_cell import (
     GiftAlignedTokenMixerRawInputDistinguisher,
     GiftCrossSpnTypedCellE5FromPresentTrueShuffledDistinguisher,
     GiftCrossSpnTypedCellE6FromPresentFunctionalMarginDistinguisher,
+    GiftCrossSpnTypedCellNoPositionDistinguisher,
+    GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
     GiftCrossSpnTypedCellTrueDistinguisher,
@@ -115,6 +117,69 @@ def test_cross_spn_typed_cell_view_has_exact_current_and_previous_cells(
     assert current.shape == previous.shape == (2, 4, 16, 4)
     torch.testing.assert_close(current, expected_current)
     torch.testing.assert_close(previous, expected_previous)
+
+
+def test_gift_position_ablation_keeps_geometry_and_removes_position_effect() -> None:
+    torch.manual_seed(17)
+    learned = GiftCrossSpnTypedCellTrueDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+        token_dim=16,
+        mixer_depth=1,
+        dropout=0.0,
+    ).eval()
+    torch.manual_seed(17)
+    zero = GiftCrossSpnTypedCellNoPositionDistinguisher(
+        input_bits=4 * 128,
+        base_channels=8,
+        token_dim=16,
+        mixer_depth=1,
+        dropout=0.0,
+    ).eval()
+    assert {
+        name: tuple(value.shape) for name, value in learned.state_dict().items()
+    } == {name: tuple(value.shape) for name, value in zero.state_dict().items()}
+    assert sum(parameter.numel() for parameter in learned.parameters()) == sum(
+        parameter.numel() for parameter in zero.parameters()
+    )
+    features = _raw_features()
+    distinct_positions = torch.randn(
+        learned.position_embedding.shape,
+        generator=torch.Generator().manual_seed(29),
+    )
+    with torch.no_grad():
+        zero_before = zero(features)
+        zero.position_embedding.copy_(distinct_positions)
+        zero_after = zero(features)
+        learned.position_embedding.copy_(distinct_positions)
+        learned_after = learned(features)
+    torch.testing.assert_close(zero_before, zero_after)
+    assert not torch.allclose(zero_before, learned_after)
+
+
+def test_gift_shared_view_ablation_keeps_dormant_encoder_geometry() -> None:
+    torch.manual_seed(31)
+    separate = GiftCrossSpnTypedCellNoPositionDistinguisher(
+        input_bits=4 * 128, base_channels=8, token_dim=16, mixer_depth=1
+    ).eval()
+    torch.manual_seed(31)
+    shared = GiftCrossSpnTypedCellSharedViewEncoderDistinguisher(
+        input_bits=4 * 128, base_channels=8, token_dim=16, mixer_depth=1
+    ).eval()
+    assert {
+        name: tuple(value.shape) for name, value in separate.state_dict().items()
+    } == {name: tuple(value.shape) for name, value in shared.state_dict().items()}
+    features = _raw_features()
+    with torch.no_grad():
+        shared_before = shared(features)
+        for parameter in shared.previous_cell_encoder.parameters():
+            parameter.fill_(100.0)
+        shared_after = shared(features)
+        for parameter in separate.previous_cell_encoder.parameters():
+            parameter.fill_(100.0)
+        separate_after = separate(features)
+    torch.testing.assert_close(shared_before, shared_after)
+    assert not torch.allclose(shared_before, separate_after)
 
 
 def test_cross_spn_typed_variants_have_identical_trainable_state() -> None:
@@ -454,6 +519,14 @@ REGISTERED_MODELS: tuple[tuple[str, type[nn.Module]], ...] = (
         PresentCrossSpnTypedCellRawDistinguisher,
     ),
     ("gift_cross_spn_typed_cell_true", GiftCrossSpnTypedCellTrueDistinguisher),
+    (
+        "gift_cross_spn_typed_cell_no_position",
+        GiftCrossSpnTypedCellNoPositionDistinguisher,
+    ),
+    (
+        "gift_cross_spn_typed_cell_shared_view_encoder",
+        GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
+    ),
     (
         "gift_cross_spn_typed_cell_shuffled",
         GiftCrossSpnTypedCellShuffledDistinguisher,

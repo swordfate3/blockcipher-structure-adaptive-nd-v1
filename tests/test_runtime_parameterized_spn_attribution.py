@@ -5,6 +5,8 @@ from copy import deepcopy
 from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution import (
     adjudicate_runtime_spn_r1,
     adjudicate_runtime_spn_r1a_cell_token,
+    adjudicate_runtime_spn_r1b_position,
+    adjudicate_runtime_spn_r1c_view_encoder,
 )
 
 
@@ -132,3 +134,110 @@ def test_cell_token_calibration_gate_rejects_random_misordered_candidate() -> No
     assert all(gate["protocol_checks"].values())
     assert not any(gate["research_checks"].values())
     assert "position-identifiability" in gate["next_action"]
+
+
+def test_position_audit_supports_coordinate_redesign_only_with_matched_gap() -> None:
+    learned = _row("gift_cross_spn_typed_cell_true", 0.536)
+    zero = _row("gift_cross_spn_typed_cell_no_position", 0.521)
+    for row in (learned, zero):
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    gate = adjudicate_runtime_spn_r1b_position(
+        run_id="r1b",
+        rows=[learned, zero],
+        r1a_gate={
+            "status": "hold",
+            "decision": (
+                "innovation1_runtime_spn_cell_token_calibration_not_supported"
+            ),
+        },
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "coordinate" in gate["next_action"]
+
+
+def test_position_audit_holds_when_position_gap_is_small() -> None:
+    learned = _row("gift_cross_spn_typed_cell_true", 0.523)
+    zero = _row("gift_cross_spn_typed_cell_no_position", 0.519)
+    for row in (learned, zero):
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    gate = adjudicate_runtime_spn_r1b_position(
+        run_id="r1b",
+        rows=[learned, zero],
+        r1a_gate={
+            "status": "hold",
+            "decision": (
+                "innovation1_runtime_spn_cell_token_calibration_not_supported"
+            ),
+        },
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["research_checks"]["learned_position_auc_at_least_0p520"]
+    assert not gate["research_checks"][
+        "learned_position_exceeds_zero_by_0p010"
+    ]
+    assert "typed fusion" in gate["next_action"]
+
+
+def test_view_encoder_audit_requires_matched_separate_view_gain() -> None:
+    separate = _row("gift_cross_spn_typed_cell_no_position", 0.535)
+    shared = _row("gift_cross_spn_typed_cell_shared_view_encoder", 0.520)
+    for row in (separate, shared):
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    gate = adjudicate_runtime_spn_r1c_view_encoder(
+        run_id="r1c",
+        rows=[separate, shared],
+        r1b_gate={
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_position_identity_not_supported",
+        },
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "view-role" in gate["next_action"]
+
+
+def test_view_encoder_audit_holds_without_separate_view_gain() -> None:
+    separate = _row("gift_cross_spn_typed_cell_no_position", 0.526)
+    shared = _row("gift_cross_spn_typed_cell_shared_view_encoder", 0.524)
+    for row in (separate, shared):
+        row["samples_per_class"] = 2048
+        row["parameter_count"] = 200
+        row["trainable_parameter_count"] = 200
+        row["training"]["epochs"] = 5
+        row["training"]["train_rows"] = 4096
+        row["training"]["validation_rows"] = 2048
+    gate = adjudicate_runtime_spn_r1c_view_encoder(
+        run_id="r1c",
+        rows=[separate, shared],
+        r1b_gate={
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_position_identity_not_supported",
+        },
+    )
+
+    assert gate["status"] == "hold"
+    assert not gate["research_checks"][
+        "separate_view_exceeds_shared_by_0p010"
+    ]
+    assert "Token-Mixer" in gate["next_action"]

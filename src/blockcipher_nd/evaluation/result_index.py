@@ -66,6 +66,24 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_cell_token_calibration_protocol_invalid": (
         "运行时SPN cell-token校准协议或产物无效，修复前不解释性能"
     ),
+    "innovation1_runtime_spn_position_identity_supported": (
+        "E4绝对位置嵌入有独立贡献，下一步设计参数形状无关的运行时坐标描述"
+    ),
+    "innovation1_runtime_spn_position_identity_not_supported": (
+        "E4绝对位置嵌入没有独立贡献，转当前/逆线性层双视图编码审计"
+    ),
+    "innovation1_runtime_spn_position_audit_protocol_invalid": (
+        "E4位置可识别性审计协议或产物无效，修复前不解释性能"
+    ),
+    "innovation1_runtime_spn_typed_view_identity_supported": (
+        "E4双视图独立编码有贡献，下一步给运行时共享编码器加入固定view-role描述"
+    ),
+    "innovation1_runtime_spn_typed_view_identity_not_supported": (
+        "E4双视图独立编码没有贡献，转固定cell Token-Mixer归因审计"
+    ),
+    "innovation1_runtime_spn_view_encoder_audit_protocol_invalid": (
+        "E4双视图编码审计协议或产物无效，修复前不解释性能"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),

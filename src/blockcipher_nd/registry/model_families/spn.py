@@ -12,6 +12,8 @@ from blockcipher_nd.models.structure import (
     GiftCrossSpnTypedCellE6FromPresentOffDistinguisher,
     GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher,
     GiftCrossSpnTypedCellE6ScratchDistinguisher,
+    GiftCrossSpnTypedCellNoPositionDistinguisher,
+    GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
     GiftCrossSpnTypedCellRawDistinguisher,
     GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher,
     GiftCrossSpnTypedCellShuffledDistinguisher,
@@ -165,6 +167,8 @@ def build_spn_model(
         "present_cross_spn_typed_cell_shuffled": PresentCrossSpnTypedCellShuffledDistinguisher,
         "present_cross_spn_typed_cell_raw": PresentCrossSpnTypedCellRawDistinguisher,
         "gift_cross_spn_typed_cell_true": GiftCrossSpnTypedCellTrueDistinguisher,
+        "gift_cross_spn_typed_cell_no_position": GiftCrossSpnTypedCellNoPositionDistinguisher,
+        "gift_cross_spn_typed_cell_shared_view_encoder": GiftCrossSpnTypedCellSharedViewEncoderDistinguisher,
         "gift_cross_spn_typed_cell_shuffled": GiftCrossSpnTypedCellShuffledDistinguisher,
         "gift_cross_spn_typed_cell_raw": GiftCrossSpnTypedCellRawDistinguisher,
         "gift_cross_spn_typed_cell_true_from_present_true": GiftCrossSpnTypedCellTrueFromPresentTrueDistinguisher,
@@ -199,6 +203,26 @@ def build_spn_model(
             norm=str(options.get("norm", "layernorm")),
             pooling=str(options.get("pooling", "attention_mean_max")),
             dropout=float(options.get("dropout", 0.0)),
+            position_mode=str(
+                options.get(
+                    "position_mode",
+                    "zero"
+                    if name
+                    in {
+                        "gift_cross_spn_typed_cell_no_position",
+                        "gift_cross_spn_typed_cell_shared_view_encoder",
+                    }
+                    else "learned",
+                )
+            ),
+            view_encoder_mode=str(
+                options.get(
+                    "view_encoder_mode",
+                    "shared_current"
+                    if name == "gift_cross_spn_typed_cell_shared_view_encoder"
+                    else "separate",
+                )
+            ),
             topology_auxiliary_scale=float(
                 options.get("topology_auxiliary_scale", 0.1)
             ),

@@ -495,3 +495,192 @@ cell coordinates followed by a shared encoder. If the ablation gap is below
 `0.010`, do not add coordinates; audit E4's current/previous typed fusion next.
 R1b does not authorize another generic architecture, PRESENT, seed1, more data,
 or remote execution.
+
+## Executed R1b E4 Position-Identifiability Record
+
+R1b completed locally on 2026-07-23 with the exact frozen protocol above:
+
+```text
+run_id          = i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0_20260723
+train           = 2048/class, 4096 total
+validation      = 1024/class, 2048 total
+epochs          = 5
+seed            = 0
+data            = reused R1a disk-backed train/validation cache
+protocol gate   = 9/9 checks passed
+result validate = 2/2 rows, no errors
+```
+
+The two models retained identical parameter names, shapes, total count, and
+trainable count. The zero-position model retains `position_embedding` in its
+parameter geometry and optimizer table but multiplies its contribution by zero
+in the forward pass. Therefore the one changed variable is whether the learned
+16-cell position tensor reaches the E4 Token-Mixer.
+
+Results:
+
+| Role | Validation AUC | Position margin |
+| --- | ---: | ---: |
+| E4 learned position | `0.527669907` | `-0.000684261` |
+| same E4, position fixed to zero | `0.528354168` | reference |
+
+The signal floor passed (`0.527670 >= 0.520`), but the position contribution
+gate failed decisively: the learned-position row was slightly worse, not
+`+0.010` better. Decision:
+
+```text
+innovation1_runtime_spn_position_identity_not_supported
+```
+
+This rejects the hypothesis that E4's learned absolute cell positions explain
+the runtime-equivariant model's missing signal at this budget. It does not show
+that positions can never matter at larger scales, and it is not evidence that
+the runtime model has achieved topology attribution. Adding Fourier coordinates
+or another runtime coordinate encoder is therefore blocked by current evidence.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_position_identifiability_r1b_2048_seed0/curves.svg
+```
+
+The final SVG passed `visual-qa-redraw` after rendering to 2012 x 967 pixels.
+The Chinese title and conclusion, local AUC zoom, negative contribution,
+threshold line, and claim boundary are readable without overlap or clipping.
+
+## R1c Executable Next Action
+
+R1c asks whether E4's separate encoders for `DeltaC` and `InvP(DeltaC)` are
+responsible for the signal lost by the runtime model. Use the same GIFT-64 r6
+cache and budget:
+
+```text
+train           = 2048/class
+validation      = 1024/class
+epochs          = 5
+seed            = 0
+anchor          = E4 zero-position with separate current/previous encoders
+ablation        = E4 zero-position with one shared encoder for both views
+```
+
+Absolute position remains fixed to zero in both rows so R1c changes exactly one
+factor. Preserve typed fusion, Token-Mixer, pooling, labels, keys, negatives,
+optimizer, checkpoint selection, parameter dimensions, and data. The shared
+control must retain the second encoder and all of its parameters in the
+`state_dict` and optimizer but bypass it in the forward pass. This keeps both
+rows exactly parameter-matched while testing only whether distinct current and
+previous view functions are needed.
+
+The initial screening gate is:
+
+```text
+separate-encoder AUC                       >= 0.520
+separate-encoder - shared-encoder AUC      >= +0.010
+```
+
+If the gap passes, the runtime redesign should preserve typed view identity
+with a shared parameterized encoder plus an external two-value view-role token,
+which keeps parameter shapes independent of cipher and block width. If it does
+not pass, audit the fixed 16-cell Token-Mixer versus a permutation-equivariant
+cell mixer next. Do not run PRESENT, seed1, larger data, or remote training
+before this representation mismatch is localized.
+
+## Executed R1c E4 View-Encoder Record
+
+R1c completed locally on 2026-07-24:
+
+```text
+run_id          = i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0_20260724
+train           = 2048/class, 4096 total
+validation      = 1024/class, 2048 total
+epochs          = 5
+seed            = 0
+data            = reused R1a disk-backed train/validation cache
+position        = fixed to zero in both rows
+protocol gate   = 9/9 checks passed
+result validate = 2/2 rows, no errors
+```
+
+Both rows retain identical parameter names, shapes, total count, and trainable
+count. The shared-view control keeps the unused previous-view encoder in its
+`state_dict` and optimizer, so capacity geometry is not a confound.
+
+Results:
+
+| Role | Validation AUC | Separate-view margin |
+| --- | ---: | ---: |
+| zero-position E4, separate view encoders | `0.528354168` | `-0.007276058` |
+| zero-position E4, shared view encoder | `0.535630226` | reference |
+
+The separate-view anchor cleared `0.520`, but it was worse than the shared
+control rather than `+0.010` better. Decision:
+
+```text
+innovation1_runtime_spn_typed_view_identity_not_supported
+```
+
+The result rejects a second plausible explanation for the runtime model's
+failure: E4 does not need separate current and inverse-layer cell encoders to
+retain this small-budget GIFT signal. A runtime view-role token is not justified
+by the observed evidence. This remains a one-cipher, one-seed, `2048/class`
+architecture audit, not topology-attribution or formal evidence.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_e4_view_encoder_r1c_2048_seed0/curves.svg
+```
+
+The final SVG passed `visual-qa-redraw` after pixel rendering. The Chinese
+title, local AUC scale, negative margin, threshold, and evidence boundary are
+readable without overlap or clipping.
+
+## Current RTG1 Verdict And R1d Recommendation
+
+The runtime contract itself remains implemented and verified across PRESENT,
+GIFT, SKINNY, permutation layers, general GF(2) layers, 64/128-bit widths, and
+variable pair counts. Empirical topology attribution has not passed:
+
+```text
+R1  runtime true vs E4 / corrupted / independent       failed
+R1a runtime cell-token redesign                         failed
+R1b E4 absolute-position contribution                   not supported
+R1c E4 separate-view-encoder contribution               not supported
+```
+
+The strongest small-budget E4 variant is now the simpler zero-position,
+shared-view model at `0.535630` AUC. The next bounded question is whether E4's
+fixed 16-cell Token-Mixer, which learns an explicit `16 -> hidden -> 16` map,
+retains signal that a permutation-equivariant cell mixer loses.
+
+R1d should compare, on the same frozen GIFT cache and `2048/class`, exactly:
+
+```text
+anchor    = zero-position, shared-view E4 with fixed 16-cell Token-Mixer
+control   = same frontend/head with a permutation-equivariant cell mixer
+```
+
+Use a parameter-matched or parameter-budget-matched control and verify cell
+permutation equivariance directly. Keep all data and training fields fixed.
+Advance only if the fixed mixer reaches `>= 0.520` and exceeds the equivariant
+control by `>= 0.010` AUC. If that passes, the research decision is substantive:
+strict cell-relabel equivariance removes useful positional interaction, so the
+runtime design needs externally supplied functional coordinates or graph
+positional encodings rather than absolute cipher IDs. If it fails, stop E4
+component peeling and redesign the runtime topology message-passing operator
+from first principles before any additional training.
+
+PRESENT, seed1, larger samples, and remote GPU scale remain blocked until a
+small local candidate beats both corrupted-topology and no-topology controls.

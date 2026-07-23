@@ -225,6 +225,8 @@ __all__ = [
     "CONTROL_MARGIN",
     "adjudicate_runtime_spn_r1",
     "adjudicate_runtime_spn_r1a_cell_token",
+    "adjudicate_runtime_spn_r1b_position",
+    "adjudicate_runtime_spn_r1c_view_encoder",
 ]
 
 
@@ -376,5 +378,295 @@ def adjudicate_runtime_spn_r1a_cell_token(
             "run seed1",
             "remote scale-up",
             "add another neural architecture before the E4 position audit",
+        ],
+    }
+
+
+def adjudicate_runtime_spn_r1b_position(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    r1a_gate: dict[str, Any],
+) -> dict[str, Any]:
+    expected_models = {
+        "learned": "gift_cross_spn_typed_cell_true",
+        "zero": "gift_cross_spn_typed_cell_no_position",
+    }
+    by_model = {str(row.get("model")): row for row in rows}
+    missing = [model for model in expected_models.values() if model not in by_model]
+    if missing:
+        raise ValueError(f"missing RTG1-R1b rows: {missing}")
+    by_role = {role: by_model[model] for role, model in expected_models.items()}
+    reference = by_role["learned"]
+    static_fields = (
+        "cipher",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "train_key",
+        "validation_key",
+    )
+    training_fields = (
+        "epochs",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "checkpoint_metric",
+        "restore_best_checkpoint",
+        "selected_checkpoint",
+        "train_rows",
+        "validation_rows",
+    )
+    protocol_checks = {
+        "source_r1a_was_valid_hold": r1a_gate.get("status") == "hold"
+        and r1a_gate.get("decision")
+        == "innovation1_runtime_spn_cell_token_calibration_not_supported",
+        "two_position_rows_complete": set(by_model) == set(expected_models.values()),
+        "same_data_protocol": all(
+            all(row.get(field) == reference.get(field) for field in static_fields)
+            for row in by_role.values()
+        ),
+        "same_training_protocol": all(
+            all(
+                row.get("training", {}).get(field)
+                == reference.get("training", {}).get(field)
+                for field in training_fields
+            )
+            for row in by_role.values()
+        ),
+        "frozen_calibration_scale": all(
+            row.get("cipher") == "GIFT-64"
+            and row.get("rounds") == 6
+            and row.get("seed") == 0
+            and row.get("samples_per_class") == 2048
+            and row.get("training", {}).get("train_rows") == 4096
+            and row.get("training", {}).get("validation_rows") == 2048
+            and row.get("training", {}).get("epochs") == 5
+            for row in by_role.values()
+        ),
+        "encrypted_random_plaintext_negatives": all(
+            row.get("negative_mode") == "encrypted_random_plaintexts"
+            for row in by_role.values()
+        ),
+        "equal_parameter_geometry": len(
+            {
+                (
+                    int(row.get("parameter_count", -1)),
+                    int(row.get("trainable_parameter_count", -1)),
+                )
+                for row in by_role.values()
+            }
+        )
+        == 1,
+        "finite_auc_metrics": all(
+            math.isfinite(float(row.get("metrics", {}).get("auc", math.nan)))
+            for row in by_role.values()
+        ),
+        "disk_backed_datasets": all(
+            row.get("training", {}).get("train_dataset_storage") == "disk"
+            and row.get("training", {}).get("validation_dataset_storage") == "disk"
+            for row in by_role.values()
+        ),
+    }
+    aucs = {
+        role: float(row["metrics"]["auc"]) for role, row in by_role.items()
+    }
+    margin = aucs["learned"] - aucs["zero"]
+    research_checks = {
+        "learned_position_auc_at_least_0p520": aucs["learned"] >= 0.520,
+        "learned_position_exceeds_zero_by_0p010": margin >= 0.010,
+    }
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_runtime_spn_position_audit_protocol_invalid"
+        next_action = "repair the R1b protocol or artifacts before interpretation"
+    elif all(research_checks.values()):
+        status = "pass"
+        decision = "innovation1_runtime_spn_position_identity_supported"
+        next_action = (
+            "add fixed runtime cell-coordinate descriptors followed by a shared encoder; "
+            "keep trainable parameter shapes independent of cell count and cipher"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_runtime_spn_position_identity_not_supported"
+        next_action = (
+            "do not add runtime coordinates; audit E4 current/previous typed fusion "
+            "against a shared-encoder ablation at the same budget"
+        )
+    return {
+        "run_id": run_id,
+        "cipher": "GIFT-64",
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "aucs": aucs,
+        "margins": {"learned_minus_zero": margin},
+        "thresholds": {"learned_auc": 0.520, "learned_minus_zero": 0.010},
+        "claim_scope": (
+            "GIFT-64 seed0 2048/class E4 position-identifiability calibration only; "
+            "not runtime-topology superiority, multi-seed, formal, or paper-scale evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "run PRESENT",
+            "run seed1",
+            "increase samples or epochs",
+            "remote scale-up",
+            "claim stable topology superiority",
+        ],
+    }
+
+
+def adjudicate_runtime_spn_r1c_view_encoder(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    r1b_gate: dict[str, Any],
+) -> dict[str, Any]:
+    expected_models = {
+        "separate": "gift_cross_spn_typed_cell_no_position",
+        "shared": "gift_cross_spn_typed_cell_shared_view_encoder",
+    }
+    by_model = {str(row.get("model")): row for row in rows}
+    missing = [model for model in expected_models.values() if model not in by_model]
+    if missing:
+        raise ValueError(f"missing RTG1-R1c rows: {missing}")
+    by_role = {role: by_model[model] for role, model in expected_models.items()}
+    reference = by_role["separate"]
+    static_fields = (
+        "cipher",
+        "rounds",
+        "seed",
+        "samples_per_class",
+        "dataset_label_mode",
+        "pairs_per_sample",
+        "feature_encoding",
+        "negative_mode",
+        "sample_structure",
+        "difference_profile",
+        "difference_member",
+        "train_key",
+        "validation_key",
+    )
+    training_fields = (
+        "epochs",
+        "loss",
+        "optimizer",
+        "learning_rate",
+        "weight_decay",
+        "checkpoint_metric",
+        "restore_best_checkpoint",
+        "selected_checkpoint",
+        "train_rows",
+        "validation_rows",
+    )
+    protocol_checks = {
+        "source_r1b_was_valid_hold": r1b_gate.get("status") == "hold"
+        and r1b_gate.get("decision")
+        == "innovation1_runtime_spn_position_identity_not_supported",
+        "two_view_rows_complete": set(by_model) == set(expected_models.values()),
+        "same_data_protocol": all(
+            all(row.get(field) == reference.get(field) for field in static_fields)
+            for row in by_role.values()
+        ),
+        "same_training_protocol": all(
+            all(
+                row.get("training", {}).get(field)
+                == reference.get("training", {}).get(field)
+                for field in training_fields
+            )
+            for row in by_role.values()
+        ),
+        "frozen_calibration_scale": all(
+            row.get("cipher") == "GIFT-64"
+            and row.get("rounds") == 6
+            and row.get("seed") == 0
+            and row.get("samples_per_class") == 2048
+            and row.get("training", {}).get("train_rows") == 4096
+            and row.get("training", {}).get("validation_rows") == 2048
+            and row.get("training", {}).get("epochs") == 5
+            for row in by_role.values()
+        ),
+        "encrypted_random_plaintext_negatives": all(
+            row.get("negative_mode") == "encrypted_random_plaintexts"
+            for row in by_role.values()
+        ),
+        "equal_parameter_geometry": len(
+            {
+                (
+                    int(row.get("parameter_count", -1)),
+                    int(row.get("trainable_parameter_count", -1)),
+                )
+                for row in by_role.values()
+            }
+        )
+        == 1,
+        "finite_auc_metrics": all(
+            math.isfinite(float(row.get("metrics", {}).get("auc", math.nan)))
+            for row in by_role.values()
+        ),
+        "disk_backed_datasets": all(
+            row.get("training", {}).get("train_dataset_storage") == "disk"
+            and row.get("training", {}).get("validation_dataset_storage") == "disk"
+            for row in by_role.values()
+        ),
+    }
+    aucs = {
+        role: float(row["metrics"]["auc"]) for role, row in by_role.items()
+    }
+    margin = aucs["separate"] - aucs["shared"]
+    research_checks = {
+        "separate_view_auc_at_least_0p520": aucs["separate"] >= 0.520,
+        "separate_view_exceeds_shared_by_0p010": margin >= 0.010,
+    }
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_runtime_spn_view_encoder_audit_protocol_invalid"
+        next_action = "repair the R1c protocol or artifacts before interpretation"
+    elif all(research_checks.values()):
+        status = "pass"
+        decision = "innovation1_runtime_spn_typed_view_identity_supported"
+        next_action = (
+            "add a fixed two-value current/previous view-role descriptor to the "
+            "runtime shared encoder, then rerun a small topology-attribution calibration"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_runtime_spn_typed_view_identity_not_supported"
+        next_action = (
+            "audit E4 fixed-cell Token-Mixer against a parameter-matched "
+            "permutation-equivariant cell mixer before another runtime redesign"
+        )
+    return {
+        "run_id": run_id,
+        "cipher": "GIFT-64",
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "aucs": aucs,
+        "margins": {"separate_minus_shared": margin},
+        "thresholds": {"separate_auc": 0.520, "separate_minus_shared": 0.010},
+        "claim_scope": (
+            "GIFT-64 seed0 2048/class E4 view-encoder calibration only; not "
+            "runtime-topology superiority, multi-seed, formal, or paper-scale evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "run PRESENT",
+            "run seed1",
+            "increase samples or epochs",
+            "remote scale-up",
+            "claim stable topology superiority",
         ],
     }

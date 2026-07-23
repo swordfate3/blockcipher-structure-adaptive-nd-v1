@@ -71,6 +71,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         norm: str = "layernorm",
         pooling: str = "attention_mean_max",
         dropout: float = 0.0,
+        position_mode: str = "learned",
+        view_encoder_mode: str = "separate",
         topology_auxiliary_mode: str = "none",
         topology_auxiliary_scale: float = 0.1,
         topology_functional_margin: float = 0.01,
@@ -86,6 +88,12 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             raise ValueError("mixer_depth must be >= 1")
         if pooling not in {"attention", "attention_mean_max", "mean_max"}:
             raise ValueError(f"unsupported pooling: {pooling}")
+        if position_mode not in {"learned", "zero"}:
+            raise ValueError(f"unsupported position_mode: {position_mode}")
+        if view_encoder_mode not in {"separate", "shared_current"}:
+            raise ValueError(
+                f"unsupported view_encoder_mode: {view_encoder_mode}"
+            )
         if topology_auxiliary_mode not in {
             "none",
             "off",
@@ -110,6 +118,8 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         self.mapping_mode = mapping_mode
         self.token_dim = token_dim or max(16, base_channels * 2)
         self.pooling = pooling
+        self.position_mode = position_mode
+        self.view_encoder_mode = view_encoder_mode
         self.embedding_bits = max(32, base_channels * 4)
         self.topology_auxiliary_mode = topology_auxiliary_mode
         self.topology_auxiliary_scale = topology_auxiliary_scale
@@ -268,11 +278,20 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
         current = current.reshape(batch * self.pairs_per_sample, 16, 4)
         previous = previous.reshape(batch * self.pairs_per_sample, 16, 4)
         current_hidden = self.current_cell_encoder(current)
-        previous_hidden = self.previous_cell_encoder(previous)
+        previous_hidden = (
+            self.previous_cell_encoder(previous)
+            if self.view_encoder_mode == "separate"
+            else self.current_cell_encoder(previous)
+        )
         hidden = self.typed_fusion(
             torch.cat([current_hidden, previous_hidden], dim=2)
         )
-        hidden = hidden + self.position_embedding
+        position_embedding = (
+            self.position_embedding
+            if self.position_mode == "learned"
+            else self.position_embedding * 0.0
+        )
+        hidden = hidden + position_embedding
         for block in self.mixer_blocks:
             hidden = block(hidden)
         hidden = self.sequence_norm(hidden)
@@ -562,6 +581,34 @@ class GiftCrossSpnTypedCellTrueDistinguisher(
         super().__init__(*args, **kwargs)
 
 
+class GiftCrossSpnTypedCellNoPositionDistinguisher(
+    GiftCrossSpnTypedCellTrueDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        requested_mode = kwargs.get("position_mode", "zero")
+        if requested_mode != "zero":
+            raise ValueError(
+                "fixed position mode 'zero' received conflicting value "
+                f"{requested_mode!r}"
+            )
+        kwargs["position_mode"] = "zero"
+        super().__init__(*args, **kwargs)
+
+
+class GiftCrossSpnTypedCellSharedViewEncoderDistinguisher(
+    GiftCrossSpnTypedCellNoPositionDistinguisher
+):
+    def __init__(self, *args, **kwargs) -> None:
+        requested_mode = kwargs.get("view_encoder_mode", "shared_current")
+        if requested_mode != "shared_current":
+            raise ValueError(
+                "fixed view encoder mode 'shared_current' received conflicting value "
+                f"{requested_mode!r}"
+            )
+        kwargs["view_encoder_mode"] = "shared_current"
+        super().__init__(*args, **kwargs)
+
+
 class GiftCrossSpnTypedCellShuffledDistinguisher(
     CrossSpnTypedCellPairSetDistinguisher
 ):
@@ -747,6 +794,8 @@ __all__ = [
     "GiftCrossSpnTypedCellE6FromPresentShuffledPlaceboDistinguisher",
     "GiftCrossSpnTypedCellE6ScratchDistinguisher",
     "GiftCrossSpnTypedCellRawDistinguisher",
+    "GiftCrossSpnTypedCellNoPositionDistinguisher",
+    "GiftCrossSpnTypedCellSharedViewEncoderDistinguisher",
     "GiftCrossSpnTypedCellShuffledFromPresentTrueDistinguisher",
     "GiftCrossSpnTypedCellShuffledDistinguisher",
     "GiftCrossSpnTypedCellTrueFromPresentShuffledDistinguisher",
