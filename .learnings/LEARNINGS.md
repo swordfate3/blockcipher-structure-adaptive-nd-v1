@@ -2461,11 +2461,21 @@ The E1 result rows also distinguish training and validation scale:
 `samples_per_class = 8192` for training and
 `validation.samples_per_class = 4096` for validation.
 
+This recurred on 2026-07-23 when a question about the earlier Innovation 1
+PRESENT r8 result was answered with AUC `0.554962712376` from the separate
+Zhang/Wang 16-pair baseline. The requested E1 route uses
+`pairs_per_sample = 4`; its historical 8192/class true-route AUCs are
+`0.503246903` and `0.517796367`. Those historical E1 values were later
+superseded for topology adjudication by the corrected semantic-layout E1-R1
+gate, so both pair count and verdict status must be named when reporting them.
+
 ### Suggested Action
 For "latest experiment" status questions, first identify the newest completed
-commit/run and read its result artifact. Report next-route evidence separately,
-and always label both training and validation `samples_per_class` when they
-differ.
+commit/run and read its result artifact. Before quoting a metric, verify and
+state the exact run, `pairs_per_sample`, sample structure, and whether the row
+is the innovation candidate or a literature baseline. Report next-route and
+superseded evidence separately, and always label both training and validation
+`samples_per_class` when they differ.
 
 ### Metadata
 - Source: user_feedback
@@ -2473,9 +2483,9 @@ differ.
 - Tags: innovation1, latest-status, chronology, auc, train-validation-scale, reporting
 - See Also: LRN-20260709-029, LRN-20260709-028, LRN-20260625-002
 - Pattern-Key: reporting.latest_experiment_from_completed_artifact_chronology
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-10
-- Last-Seen: 2026-07-10
+- Last-Seen: 2026-07-23
 
 ---
 
