@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 
 from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution import (
     adjudicate_runtime_spn_r2a_e4_attribution,
+    adjudicate_runtime_spn_r2f_late_attribution,
 )
 
 
@@ -81,6 +82,65 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if gate["status"] == "fail" else 0
 
 
+def parse_late_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Adjudicate RTG1-R2f late-conditioned topology attribution."
+    )
+    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument("--r1d-root", type=Path, required=True)
+    parser.add_argument("--r2e-root", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main_late(argv: list[str] | None = None) -> int:
+    args = parse_late_args(argv)
+    rows = _read_jsonl(args.run_root / "results.jsonl")
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id=args.run_id,
+        rows=rows,
+        r1d_gate=_read_json(args.r1d_root / "gate.json"),
+        r2e_gate=_read_json(args.r2e_root / "gate.json"),
+    )
+    validation = {
+        "run_id": args.run_id,
+        "status": "pass" if all(gate["protocol_checks"].values()) else "fail",
+        "checks": gate["protocol_checks"],
+        "source_paths": {
+            "results": str(args.run_root / "results.jsonl"),
+            "r1d_gate": str(args.r1d_root / "gate.json"),
+            "r2e_gate": str(args.r2e_root / "gate.json"),
+        },
+    }
+    summary = {
+        "run_id": args.run_id,
+        "task": "innovation1_runtime_spn_late_attribution_r2f",
+        "cipher": "GIFT-64",
+        "training_performed": True,
+        "samples_per_class": 2048,
+        "validation_samples_per_class": 1024,
+        "epochs": 5,
+        "seed": 0,
+        "gate": gate,
+    }
+    _write_json(args.run_root / "validation.json", validation)
+    _write_json(args.run_root / "gate.json", gate)
+    _write_json(args.run_root / "summary.json", summary)
+    _write_history(args.run_root / "history.csv", rows)
+    render_runtime_e4_attribution_svg(gate, args.run_root / "curves.svg")
+    _append_progress(
+        args.run_root / "progress.jsonl",
+        "gate_done",
+        {
+            "run_id": args.run_id,
+            "status": gate["status"],
+            "decision": gate["decision"],
+        },
+    )
+    print(json.dumps(gate, ensure_ascii=False, sort_keys=True))
+    return 1 if gate["status"] == "fail" else 0
+
+
 def render_runtime_e4_attribution_svg(
     gate: dict[str, Any],
     output_path: Path,
@@ -98,6 +158,8 @@ def render_runtime_e4_attribution_svg(
     run_id = str(gate["run_id"])
     if "r2c" in run_id:
         stage = "R2c 全bit打乱控制"
+    elif "r2f" in run_id:
+        stage = "R2f 晚期S盒三控制"
     elif "r2b" in run_id:
         stage = "R2b 同预算容量"
     elif "bitorderfix" in run_id:

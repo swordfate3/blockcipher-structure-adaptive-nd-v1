@@ -3227,6 +3227,30 @@ def test_result_index_labels_runtime_spn_r2e_sbox_location(tmp_path: Path) -> No
     )
 
 
+def test_result_index_labels_runtime_spn_r2f_late_attribution(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_late_attribution_seed0_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 RTG1-R2f：GIFT-64晚期S盒运行时拓扑三控制归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "GIFT seed0晚期S盒模型同时保留E4信号并超过两种拓扑控制"
+    )
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

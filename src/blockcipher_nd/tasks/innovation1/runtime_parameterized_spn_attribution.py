@@ -231,6 +231,7 @@ __all__ = [
     "adjudicate_runtime_spn_r2a_e4_attribution",
     "adjudicate_runtime_spn_r2d_sbox_scale",
     "adjudicate_runtime_spn_r2e_sbox_location",
+    "adjudicate_runtime_spn_r2f_late_attribution",
 ]
 
 
@@ -1331,3 +1332,66 @@ def adjudicate_runtime_spn_r2e_sbox_location(
             "claim stable topology superiority",
         ],
     }
+
+
+def adjudicate_runtime_spn_r2f_late_attribution(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    r1d_gate: dict[str, Any],
+    r2e_gate: dict[str, Any],
+) -> dict[str, Any]:
+    gate = adjudicate_runtime_spn_r2a_e4_attribution(
+        run_id=run_id,
+        rows=rows,
+        r1d_gate=r1d_gate,
+    )
+    late_modes = {
+        str(
+            row.get("training", {})
+            .get("model_options", {})
+            .get("sbox_context_mode", "early_add")
+        )
+        for row in rows
+    }
+    gate["protocol_checks"]["source_r2e_supported_late_conditioning"] = (
+        r2e_gate.get("status") == "pass"
+        and r2e_gate.get("decision")
+        == "innovation1_runtime_spn_sbox_location_calibration_supported"
+        and all(r2e_gate.get("protocol_checks", {}).values())
+    )
+    gate["protocol_checks"]["all_rows_use_frozen_late_pair_mode"] = late_modes == {
+        "late_pair"
+    }
+    if not all(gate["protocol_checks"].values()):
+        gate["status"] = "fail"
+        gate["decision"] = "innovation1_runtime_spn_late_attribution_protocol_invalid"
+        gate["next_action"] = (
+            "repair the R2f source, model-option, data, or artifact protocol before "
+            "interpreting topology attribution"
+        )
+    elif all(gate["research_checks"].values()):
+        gate["status"] = "pass"
+        gate["decision"] = "innovation1_runtime_spn_late_attribution_seed0_supported"
+        gate["next_action"] = (
+            "run a matching seed1 R1d equivariant anchor and then repeat the frozen "
+            "late-pair three-control matrix at 2048/class; do not increase scale"
+        )
+    else:
+        gate["status"] = "hold"
+        gate["decision"] = "innovation1_runtime_spn_late_attribution_not_supported"
+        gate["next_action"] = (
+            "stop the late S-box conditioning branch and audit the remaining "
+            "topology-fusion mismatch before any more training"
+        )
+    gate["claim_scope"] = (
+        "GIFT-64 seed0 2048/class late-conditioned runtime topology-attribution "
+        "calibration only; not multi-seed, multi-cipher, formal, or paper-scale evidence"
+    )
+    gate["blocked_actions"] = [
+        "run PRESENT",
+        "increase samples or epochs before seed1 replication",
+        "remote scale-up",
+        "claim stable topology superiority",
+    ]
+    return gate

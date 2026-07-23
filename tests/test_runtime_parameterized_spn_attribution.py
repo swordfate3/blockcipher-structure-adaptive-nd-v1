@@ -11,6 +11,7 @@ from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution impo
     adjudicate_runtime_spn_r2a_e4_attribution,
     adjudicate_runtime_spn_r2d_sbox_scale,
     adjudicate_runtime_spn_r2e_sbox_location,
+    adjudicate_runtime_spn_r2f_late_attribution,
 )
 
 
@@ -514,3 +515,63 @@ def test_r2e_sbox_location_gate_rejects_scale_change() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["only_sbox_location_option_changed"] is False
+
+
+def _r2e_pass() -> dict:
+    return {
+        "status": "pass",
+        "decision": "innovation1_runtime_spn_sbox_location_calibration_supported",
+        "protocol_checks": {"valid": True},
+    }
+
+
+def _r2f_rows(true_auc: float, corrupted_auc: float, independent_auc: float) -> list[dict]:
+    rows = _r2a_rows(true_auc, corrupted_auc, independent_auc)
+    for row in rows:
+        row["training"]["model_options"] = {
+            "processor_steps": 2,
+            "pair_embedding_dim": 128,
+            "dropout": 0.0,
+            "sbox_context_mode": "late_pair",
+        }
+    return rows
+
+
+def test_r2f_late_attribution_passes_full_seed0_matrix() -> None:
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id="r2f",
+        rows=_r2f_rows(0.538, 0.520, 0.518),
+        r1d_gate=_r1d_equivariant_pass(),
+        r2e_gate=_r2e_pass(),
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "seed1" in gate["next_action"]
+
+
+def test_r2f_late_attribution_holds_when_control_margin_fails() -> None:
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id="r2f",
+        rows=_r2f_rows(0.538, 0.536, 0.518),
+        r1d_gate=_r1d_equivariant_pass(),
+        r2e_gate=_r2e_pass(),
+    )
+
+    assert gate["status"] == "hold"
+    assert not gate["research_checks"]["true_exceeds_corrupted_by_0p005"]
+
+
+def test_r2f_late_attribution_rejects_early_add_control() -> None:
+    rows = _r2f_rows(0.538, 0.520, 0.518)
+    rows[1]["training"]["model_options"]["sbox_context_mode"] = "early_add"
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id="r2f",
+        rows=rows,
+        r1d_gate=_r1d_equivariant_pass(),
+        r2e_gate=_r2e_pass(),
+    )
+
+    assert gate["status"] == "fail"
+    assert not gate["protocol_checks"]["all_rows_use_frozen_late_pair_mode"]

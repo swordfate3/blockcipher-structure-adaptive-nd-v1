@@ -1161,3 +1161,46 @@ A pass opens only the same-budget GIFT seed0 true/full-bit-corrupted/no-linear
 matrix with frozen `late_pair` conditioning. A miss stops S-box placement
 experiments. PRESENT, seed1, `8192/class`, remote execution, and stable claims
 remain blocked until the full matrix passes.
+
+## Executed R2e Record And R2f Attribution Plan
+
+R2e completed with all twelve protocol checks and both research checks passing:
+
+```text
+run_id             = i1_rtg1_gift64_runtime_e4_sbox_location_r2e_2048_seed0_20260724
+late-pair AUC      = 0.537684441
+R2c early-add AUC = 0.534461021
+R1d anchor AUC     = 0.540863991
+late - early       = +0.003223419
+late - R1d         = -0.003179550
+decision           = innovation1_runtime_spn_sbox_location_calibration_supported
+```
+
+Moving S-box conditioning after topology extraction recovered the frozen R1d
+anchor tolerance without changing the `442466` parameter geometry. This is a
+supported architecture calibration, not topology attribution by itself.
+
+R2f now changes no architecture or benchmark field. It trains exactly three
+rows at the same GIFT-64 r6, `2048/class`, seed0, five-epoch budget:
+
+```text
+late_pair + correct runtime topology
+late_pair + deterministic full-bit corrupted topology
+late_pair + no linear topology, retaining cell and S-box metadata
+```
+
+All rows must use identical data, keys, optimizer, loss, checkpoint rule,
+parameter geometry, and `project_msb_to_runtime_lsb` input conversion. Advance
+only if all four research checks pass:
+
+```text
+true AUC >= 0.520
+true - R1d anchor >= -0.005
+true - corrupted >= +0.005
+true - independent >= +0.005
+```
+
+A pass authorizes a matching R1d seed1 anchor followed by the same frozen
+three-control seed1 matrix at `2048/class`. It does not authorize larger data,
+PRESENT, remote execution, or stable claims. A miss closes late S-box
+conditioning and returns to a non-training fusion audit.

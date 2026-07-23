@@ -115,6 +115,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_sbox_location_protocol_invalid": (
         "R2e的数据、训练、S盒注入位置或来源锚点协议无效"
     ),
+    "innovation1_runtime_spn_late_attribution_seed0_supported": (
+        "GIFT seed0晚期S盒模型同时保留E4信号并超过两种拓扑控制"
+    ),
+    "innovation1_runtime_spn_late_attribution_not_supported": (
+        "GIFT seed0晚期S盒模型未同时通过锚点与两种拓扑控制"
+    ),
+    "innovation1_runtime_spn_late_attribution_protocol_invalid": (
+        "R2f的R2e来源、晚期模式、数据、训练或产物协议无效"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),
@@ -2118,6 +2127,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_late_attribution_r2f"):
+        return "创新1 RTG1-R2f：GIFT-64晚期S盒运行时拓扑三控制归因"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_location_r2e"):
         return "创新1 RTG1-R2e：GIFT-64运行时S盒注入位置校准"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_scale_r2d"):
