@@ -97,6 +97,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_r2a_seed0_supported": (
         "GIFT seed0上运行时真拑扑超过全bit打乱与无拓扑控制"
     ),
+    "innovation1_runtime_spn_sbox_scale_calibration_supported": (
+        "S盒上下文强度0.1恢复E4锚点容差，下一步同预算重跑三拓扑控制"
+    ),
+    "innovation1_runtime_spn_sbox_scale_calibration_not_supported": (
+        "S盒上下文强度0.1仍未恢复E4锚点，停止调强度且不扩样本"
+    ),
+    "innovation1_runtime_spn_sbox_scale_protocol_invalid": (
+        "R2d的数据、训练、S盒强度或来源锚点协议无效"
+    ),
     "innovation2_position_bound_r4_scale_local_readiness_passed": (
         "四轮2^20规模切分、OPF1旧测试集、五模型、缓存和产物实现门通过"
     ),
@@ -2100,6 +2109,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_scale_r2d"):
+        return "创新1 RTG1-R2d：GIFT-64运行时S盒上下文强度校准"
     if run_id.startswith("i1_rtg1_gift64_e4_cell_mixer_r1d"):
         return "创新1 RTG1-R1d：GIFT-64 cell等变E4主干校准"
     if run_id.startswith(

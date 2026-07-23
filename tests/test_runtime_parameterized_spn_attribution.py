@@ -9,6 +9,7 @@ from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution impo
     adjudicate_runtime_spn_r1c_view_encoder,
     adjudicate_runtime_spn_r1d_cell_mixer,
     adjudicate_runtime_spn_r2a_e4_attribution,
+    adjudicate_runtime_spn_r2d_sbox_scale,
 )
 
 
@@ -371,3 +372,78 @@ def test_r2a_gate_rejects_unrecorded_runtime_bit_order() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["runtime_bit_order_adapter_recorded"] is False
+
+
+def _r2d_inputs(candidate_auc: float) -> tuple[list[dict], list[dict], dict, dict]:
+    candidate = _r2a_rows(candidate_auc, 0.0, 0.0)[0]
+    baseline_rows = _r2a_rows(0.534461, 0.493224, 0.496503)
+    common_options = {
+        "processor_steps": 2,
+        "pair_embedding_dim": 128,
+        "dropout": 0.0,
+    }
+    candidate["training"]["model_options"] = {
+        **common_options,
+        "sbox_context_scale": 0.1,
+    }
+    for row in baseline_rows:
+        row["training"]["model_options"] = dict(common_options)
+    r2c_gate = {
+        "status": "hold",
+        "decision": "innovation1_runtime_spn_r2a_topology_attribution_not_supported",
+        "protocol_checks": {"valid": True},
+    }
+    r1d_gate = _r1d_equivariant_pass()
+    return [candidate], baseline_rows, r2c_gate, r1d_gate
+
+
+def test_r2d_sbox_scale_gate_supports_anchor_recovery() -> None:
+    candidate, baseline, r2c_gate, r1d_gate = _r2d_inputs(0.536)
+
+    gate = adjudicate_runtime_spn_r2d_sbox_scale(
+        run_id="r2d",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "pass"
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "true/corrupted/no-topology" in gate["next_action"]
+
+
+def test_r2d_sbox_scale_gate_holds_below_anchor_tolerance() -> None:
+    candidate, baseline, r2c_gate, r1d_gate = _r2d_inputs(0.534)
+
+    gate = adjudicate_runtime_spn_r2d_sbox_scale(
+        run_id="r2d",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["research_checks"]["candidate_auc_at_least_0p520"]
+    assert not gate["research_checks"][
+        "candidate_within_r1d_anchor_tolerance"
+    ]
+    assert "do not scale" in gate["next_action"]
+
+
+def test_r2d_sbox_scale_gate_rejects_post_hoc_scale() -> None:
+    candidate, baseline, r2c_gate, r1d_gate = _r2d_inputs(0.536)
+    candidate[0]["training"]["model_options"]["sbox_context_scale"] = 0.2
+
+    gate = adjudicate_runtime_spn_r2d_sbox_scale(
+        run_id="r2d",
+        candidate_rows=candidate,
+        r2c_rows=baseline,
+        r2c_gate=r2c_gate,
+        r1d_gate=r1d_gate,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["preregistered_nonzero_scale"] is False

@@ -999,3 +999,53 @@ for the `0.006403` anchor gap. Compare scale `1.0` against a preregistered small
 nonzero scale, retain S-box sensitivity, and rerun the full R2c controls only if
 the true-topology calibration enters the anchor tolerance. Do not widen the
 pair embedding again or relax the gate after observing results.
+
+## Preregistered R2d External S-Box Context Calibration
+
+Research question: is the small R2c-to-R1d anchor gap caused by adding the
+full-scale, cell-constant external S-box descriptor before the equivariant
+E4 mixer?
+
+R2d changes exactly one forward-pass constant:
+
+```text
+R2c S-box context scale = 1.0
+R2d candidate scale     = 0.1
+```
+
+The candidate remains nonzero so the model still consumes the externally
+supplied S-box truth table. `sbox_context_scale` is not a parameter or buffer;
+it must not change any trainable parameter name or shape. A deterministic test
+must show that changing only the external S-box truth table still changes the
+candidate logits at scale `0.1`.
+
+Freeze all other fields to the valid R2c true-topology row:
+
+```text
+cipher / rounds      = GIFT-64 / 6
+train / validation   = 2048/class / 1024/class
+epochs / seed        = 5 / 0
+pairs per sample     = 4
+negative definition = encrypted random plaintexts
+keys                 = train 0x00..00, validation 0x11..11
+model                = runtime E4 equivariant true topology
+pair embedding       = 128
+processor steps      = 2
+cache                = reuse i1_rtg1_gift64_runtime_cell_token_r1a_2048_seed0
+```
+
+Train only the scale-`0.1` candidate. The scale-`1.0` baseline is the exactly
+reproduced R2c true row, so retraining it would add no information. Advance only
+if both checks pass:
+
+```text
+candidate true AUC >= 0.520
+candidate true - R1d equivariant anchor >= -0.005
+```
+
+A pass authorizes only a same-budget `2048/class`, seed0 rerun of the complete
+true/full-bit-corrupted/no-linear-topology matrix with scale `0.1`. A miss ends
+S-box-strength tuning. R2d never authorizes PRESENT, seed1, `8192/class`, remote
+execution, or a stable-topology claim by itself. Do not try additional scales,
+widen pair embeddings, increase epochs, or relax thresholds after observing
+the result.

@@ -20,12 +20,15 @@ class RuntimeParameterizedSpnSpec:
     pair_embedding_dim: int = 128
     processor_steps: int = 2
     dropout: float = 0.10
+    sbox_context_scale: float = 1.0
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
             raise ValueError("runtime SPN model dimensions must be positive")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("dropout must be in [0, 1)")
+        if self.sbox_context_scale < 0.0:
+            raise ValueError("sbox_context_scale must be non-negative")
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -475,7 +478,9 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 device=hidden.device, dtype=hidden.dtype
             )
         )
-        hidden = hidden + sbox_context[None, None, :, :]
+        hidden = hidden + self.spec.sbox_context_scale * sbox_context[
+            None, None, :, :
+        ]
         batch, pair_count, cell_count, token_dim = hidden.shape
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
         for block in self.mixer_blocks:

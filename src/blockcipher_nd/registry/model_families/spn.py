@@ -173,6 +173,7 @@ def build_spn_model(
                 ),
                 processor_steps=processor_steps,
                 dropout=float(options.get("dropout", 0.0)),
+                sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
             ),
             aggregation_mode=(
                 "e4_equivariant"
