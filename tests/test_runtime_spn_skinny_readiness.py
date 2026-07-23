@@ -7,6 +7,10 @@ import numpy as np
 from blockcipher_nd.cli import audit_runtime_spn_skinny_readiness as cli
 from blockcipher_nd.planning.matrix import cipher_key_from_name
 from blockcipher_nd.registry.cipher_factory import build_cipher, default_difference
+from blockcipher_nd.registry.difference_profiles import (
+    difference_for_profile,
+    literature_difference_profiles,
+)
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_readiness import (
     SkinnyRuntimeReadinessConfig,
     run_skinny_runtime_readiness,
@@ -19,6 +23,15 @@ def test_skinny_is_registered_in_standard_cipher_and_plan_factories() -> None:
     assert cipher.encrypt(0x06034F957724D19D) == 0xBB39DFB2429B8AC7
     assert cipher_key_from_name("SKINNY-64/64") == "skinny64"
     assert default_difference("skinny64") == 0x40
+
+
+def test_skinny_fixed_key_literature_difference_is_registered() -> None:
+    profile = literature_difference_profiles()["skinny64_gohr2022_single_key"]
+
+    assert profile.cipher == "skinny64"
+    assert profile.kind == "fixed"
+    assert difference_for_profile(profile.name) == 0x2000
+    assert "fixed-key" in profile.source
 
 
 def test_skinny_general_gf2_readiness_passes_every_frozen_gate(tmp_path) -> None:

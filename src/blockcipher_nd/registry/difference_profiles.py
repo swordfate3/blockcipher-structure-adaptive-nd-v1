@@ -149,6 +149,22 @@ def literature_difference_profiles() -> dict[str, DifferenceProfile]:
             source="Shen/Song/Lu/Long/Tian 2024 GIFT neural distinguisher screening profile",
             note="Fixed xor input difference for first GIFT-64 SPN structure-alignment screening; refine after literature-specific reproduction.",
         ),
+        "skinny64_gohr2022_single_key": DifferenceProfile(
+            name="skinny64_gohr2022_single_key",
+            cipher="skinny64",
+            kind="fixed",
+            differences=(0x0000000000002000,),
+            source=(
+                "Gohr/Leander/Neumann 2022 ordinary fixed-key SKINNY-64/64 "
+                "differential-neural distinguisher"
+            ),
+            word_difference=("0x0000", "0x0000", "0x0000", "0x2000"),
+            note=(
+                "Single-key input difference used for the reported seven-round "
+                "SKINNY-64/64 neural distinguisher; Liu et al. 2026 reuse the same "
+                "difference for their SPN inverse-feature framework."
+            ),
+        ),
         "sm4_yu2023_conv_resnet": DifferenceProfile(
             name="sm4_yu2023_conv_resnet",
             cipher="sm4",

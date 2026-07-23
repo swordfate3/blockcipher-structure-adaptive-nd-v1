@@ -1678,3 +1678,47 @@ If no frozen candidate survives fresh-seed confirmation, stop the SKINNY
 training branch and redesign the signal protocol or representation. Do not
 mechanically increase samples, guess a paper protocol, substitute a related-key
 benchmark, reuse Innovation 2 integral labels, or launch a remote job.
+
+### Frozen T2-B Literature Anchor Screen
+
+The ordinary fixed-key protocol is now grounded in two checked local full-text
+sources rather than the related-key Ge/Wang 2026 result:
+
+- Gohr, Leander and Neumann 2022 use SKINNY-64/64 input difference
+  `0x0000000000002000` and report seven-round accuracy `0.937`, evaluated on
+  `10^7` samples.
+- Liu et al. 2026 reuse the same input difference with inverse
+  ShiftRows/MixColumns and selective inverse S-box features. They report
+  seven-round accuracies `0.976` and `0.992` for their two feature/network
+  improvements and eight-round accuracy `0.541` for the full method.
+
+T2-B does not reproduce either paper's model, feature tensor, sample scale, or
+epoch budget. It uses their verified input difference only to avoid an
+arbitrary protocol guess.
+
+```text
+run_id       = i1_rtg1_skinny64_fixed_key_signal_screen_t2b_512_seed0_20260724
+cipher       = SKINNY-64/64, TK1 ordinary fixed key
+difference   = 0x0000000000002000
+rounds       = 6, 7, 8
+model        = unchanged runtime E4 correct-topology model only
+scale        = 512/class train and validation, seed0
+pairs        = 4 independent ciphertext pairs per sample
+negative     = encrypted random plaintexts
+epochs       = 5
+optimizer    = Adam, lr 1e-4, MSE, weight decay 1e-5
+checkpoint   = best validation AUC
+execution    = local CPU diagnostic
+```
+
+The only changed variable among the three rows is the cipher round count. The
+selection rule is the deepest round with validation AUC at least `0.55`. If a
+row passes, repeat only that row at the same `512/class` budget with fresh
+seed1. The fresh seed must also reach AUC `>= 0.55`; otherwise no topology
+matrix is opened. This signal floor is a route-selection threshold, not a
+publication or attack threshold.
+
+T2-B must not include corrupted/no-topology rows, tune the difference after
+seeing results, use related keys, change features, increase scale, or claim
+topology superiority. Only fresh-seed confirmation opens the frozen T2-C
+`2048/class` two-seed three-control attribution gate.
