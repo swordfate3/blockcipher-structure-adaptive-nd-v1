@@ -1204,3 +1204,84 @@ A pass authorizes a matching R1d seed1 anchor followed by the same frozen
 three-control seed1 matrix at `2048/class`. It does not authorize larger data,
 PRESENT, remote execution, or stable claims. A miss closes late S-box
 conditioning and returns to a non-training fusion audit.
+
+## Executed R2f Seed0 Record And Seed1 Replication Plan
+
+R2f completed locally on 2026-07-24. The three planned rows, plan alignment,
+disk-backed data protocol, equal parameter geometry, frozen `late_pair` mode,
+and all twelve protocol checks passed:
+
+| Role | Validation AUC | Correct-minus-control |
+| --- | ---: | ---: |
+| correct runtime topology | `0.537684441` | reference |
+| deterministic full-bit corrupted topology | `0.519806862` | `+0.017877579` |
+| no linear topology | `0.467815876` | `+0.069868565` |
+| R1d equivariant anchor | `0.540863991` | `-0.003179550` |
+
+The signal floor, R1d tolerance, corrupted-topology margin, and no-topology
+margin all passed. Decision:
+
+```text
+innovation1_runtime_spn_late_attribution_seed0_supported
+```
+
+This is the first valid late-conditioned seed0 attribution result: the model
+benefits from the correct externally supplied GIFT linear topology, rather
+than merely from cell partition or S-box metadata. It remains a single-seed,
+single-cipher, `2048/class` local diagnostic. It is not stable, cross-cipher,
+formal, paper-scale, or breakthrough evidence.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/results.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/validation.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/summary.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/gate.json
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/history.csv
+outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_late_attribution_r2f_2048_seed0/curves.svg
+```
+
+The next research question is whether the attribution survives a new random
+seed without changing architecture, data definition, sample budget, optimizer,
+loss, checkpoint selection, or gates. The only experimental variable is
+`seed0 -> seed1`.
+
+First run the exact two-row R1d backbone calibration at seed1:
+
+```text
+plan       = innovation1_spn_gift64_e4_cell_mixer_r1d_2048_seed1.csv
+train/val  = 2048/class / 1024/class
+epochs     = 5
+pairs      = 4
+execution  = local CPU diagnostic with a separate seed1 disk cache
+advance    = equivariant R1d seed1 AUC >= 0.520 and all protocol checks pass
+stop       = no R2f seed1 matrix if the equivariant anchor misses 0.520
+```
+
+If the anchor passes, run exactly three R2f rows at the same seed1 budget:
+
+```text
+correct runtime topology
+deterministic full-bit corrupted topology
+no linear topology, retaining cell and S-box metadata
+```
+
+Use the seed1 R1d equivariant row as the same-seed anchor. Advance only if:
+
+```text
+true AUC >= 0.520
+true - seed1 R1d anchor >= -0.005
+true - corrupted >= +0.005
+true - independent >= +0.005
+```
+
+A full seed1 pass authorizes only a same-budget second-SPN transfer gate. The
+preferred next cipher is PRESENT because its one-to-one P layer directly tests
+the other required linear-topology family while preserving the runtime model's
+trainable parameter names and shapes. Larger samples, more epochs, remote GPU
+execution, and stable cross-cipher claims remain blocked until that transfer
+passes. A seed1 miss stops replication and returns to a non-training audit of
+seed sensitivity and topology/S-box fusion; it must not be repaired by tuning
+on seed1.

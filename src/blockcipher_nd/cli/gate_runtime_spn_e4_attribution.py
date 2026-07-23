@@ -96,11 +96,13 @@ def parse_late_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main_late(argv: list[str] | None = None) -> int:
     args = parse_late_args(argv)
     rows = _read_jsonl(args.run_root / "results.jsonl")
+    seed = _single_seed(rows)
     gate = adjudicate_runtime_spn_r2f_late_attribution(
         run_id=args.run_id,
         rows=rows,
         r1d_gate=_read_json(args.r1d_root / "gate.json"),
         r2e_gate=_read_json(args.r2e_root / "gate.json"),
+        expected_seed=seed,
     )
     validation = {
         "run_id": args.run_id,
@@ -120,7 +122,7 @@ def main_late(argv: list[str] | None = None) -> int:
         "samples_per_class": 2048,
         "validation_samples_per_class": 1024,
         "epochs": 5,
-        "seed": 0,
+        "seed": seed,
         "gate": gate,
     }
     _write_json(args.run_root / "validation.json", validation)
@@ -156,6 +158,7 @@ def render_runtime_e4_attribution_svg(
     ]
     passed = gate["status"] == "pass"
     run_id = str(gate["run_id"])
+    seed = int(gate.get("seed", 0))
     if "r2c" in run_id:
         stage = "R2c 全bit打乱控制"
     elif "r2f" in run_id:
@@ -168,8 +171,12 @@ def render_runtime_e4_attribution_svg(
         stage = "R2a 初次执行"
     if gate["status"] == "fail":
         conclusion = "协议检查未通过；结果不得用于拓扑归因，必须先修复并原预算重跑。"
+    elif passed and "r2f" in run_id and seed == 0:
+        conclusion = "正确拓扑超过两种控制且保留主干信号；下一步只做同预算seed1复验。"
+    elif passed and "r2f" in run_id:
+        conclusion = "两颗seed均支持真实拓扑优势；下一步只做同预算第二种SPN迁移。"
     elif passed:
-        conclusion = "正确拓扑同时保留主干信号并超过两种控制，可进入同密码 8192/class 门。"
+        conclusion = "正确拓扑同时保留主干信号并超过两种控制，可进入下一预注册门。"
     elif (
         gate["research_checks"]["true_exceeds_corrupted_by_0p005"]
         and gate["research_checks"]["true_exceeds_independent_by_0p005"]
@@ -214,7 +221,7 @@ def render_runtime_e4_attribution_svg(
         figure.text(
             0.075,
             0.89,
-            "GIFT-64 r6，2048/class训练，1024/class验证，5 epochs，seed0；cell与S盒元数据保持不变。",
+            f"GIFT-64 r6，2048/class训练，1024/class验证，5 epochs，seed{seed}；cell与S盒元数据保持不变。",
             ha="left",
             va="top",
             color="#475569",
@@ -256,7 +263,7 @@ def render_runtime_e4_attribution_svg(
         auc_axis.set_xticks(x, labels=labels)
         auc_axis.set_ylim(min(0.49, min(values) - 0.005), max(0.525, max(values) + 0.006))
         auc_axis.grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
-        auc_axis.legend(loc="upper left", frameon=False)
+        auc_axis.legend(loc="upper right", frameon=False)
 
         y = np.arange(len(margins), dtype=np.float64)
         colors = [
@@ -332,6 +339,13 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _single_seed(rows: list[dict[str, Any]]) -> int:
+    seeds = {int(row["seed"]) for row in rows}
+    if len(seeds) != 1:
+        raise ValueError(f"expected one seed across all rows, got {sorted(seeds)}")
+    return seeds.pop()
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:

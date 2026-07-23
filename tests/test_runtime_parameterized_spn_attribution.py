@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from blockcipher_nd.cli.gate_runtime_spn_e4_attribution import (
+    render_runtime_e4_attribution_svg,
+)
 from blockcipher_nd.tasks.innovation1.runtime_parameterized_spn_attribution import (
     adjudicate_runtime_spn_r1,
     adjudicate_runtime_spn_r1a_cell_token,
@@ -299,6 +302,23 @@ def test_cell_mixer_audit_holds_when_both_mixers_lack_signal() -> None:
     assert gate["decision"].endswith("cell_mixer_calibration_not_supported")
 
 
+def test_cell_mixer_audit_accepts_matching_seed1_equivariant_anchor() -> None:
+    rows = _r1d_rows(0.545, 0.532)
+    for row in rows:
+        row["seed"] = 1
+    gate = adjudicate_runtime_spn_r1d_cell_mixer(
+        run_id="r1d_seed1",
+        rows=rows,
+        r1c_gate=_r1c_hold(),
+        expected_seed=1,
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["seed"] == 1
+    assert gate["decision"].endswith("equivariant_e4_seed1_anchor_supported")
+    assert "seed1" in gate["next_action"]
+
+
 def _r2a_rows(true_auc: float, corrupted_auc: float, independent_auc: float) -> list[dict]:
     rows = [
         _row("gift64_runtime_e4_equivariant_true", true_auc),
@@ -575,3 +595,32 @@ def test_r2f_late_attribution_rejects_early_add_control() -> None:
 
     assert gate["status"] == "fail"
     assert not gate["protocol_checks"]["all_rows_use_frozen_late_pair_mode"]
+
+
+def test_r2f_late_attribution_accepts_matching_seed1_replication(tmp_path) -> None:
+    rows = _r2f_rows(0.538, 0.520, 0.518)
+    for row in rows:
+        row["seed"] = 1
+    gate = adjudicate_runtime_spn_r2f_late_attribution(
+        run_id="i1_rtg1_r2f_seed1",
+        rows=rows,
+        r1d_gate={
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported",
+            "aucs": {"equivariant": 0.540},
+        },
+        r2e_gate=_r2e_pass(),
+        expected_seed=1,
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["seed"] == 1
+    assert gate["decision"].endswith("late_attribution_seed1_supported")
+    assert "PRESENT" in gate["next_action"]
+
+    output = tmp_path / "curves.svg"
+    render_runtime_e4_attribution_svg(gate, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "两颗seed均支持真实拓扑优势" in svg
+    assert "seed1" in svg
+    assert "8192/class" not in svg

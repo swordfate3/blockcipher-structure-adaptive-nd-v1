@@ -37,10 +37,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows = _read_jsonl(args.run_root / "results.jsonl")
+    seed = _single_seed(rows)
     gate = adjudicate_runtime_spn_r1d_cell_mixer(
         run_id=args.run_id,
         rows=rows,
         r1c_gate=_read_json(args.r1c_root / "gate.json"),
+        expected_seed=seed,
     )
     validation = {
         "run_id": args.run_id,
@@ -55,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         "samples_per_class": 2048,
         "validation_samples_per_class": 1024,
         "epochs": 5,
-        "seed": 0,
+        "seed": seed,
         "gate": gate,
     }
     _write_json(args.run_root / "validation.json", validation)
@@ -76,11 +78,16 @@ def render_cell_mixer_audit_svg(gate: dict[str, Any], output_path: Path) -> None
     values = [float(gate["aucs"][role]) for role in ("fixed", "equivariant")]
     margin = float(gate["margins"]["fixed_minus_equivariant"])
     decision = str(gate["decision"])
+    seed = int(gate.get("seed", 0))
     if decision.endswith("fixed_cell_mixer_dependency_supported"):
         conclusion = "固定cell交互有独立贡献；下一步设计拓扑功能坐标。"
         conclusion_color = "#166534"
-    elif decision.endswith("equivariant_e4_backbone_supported"):
-        conclusion = "等变E4主干保留信号；下一步移植到运行时三控制归因。"
+    elif "equivariant_e4" in decision and decision.endswith("supported"):
+        conclusion = (
+            "等变E4主干保留信号；下一步移植到运行时三控制归因。"
+            if seed == 0
+            else f"seed{seed}等变E4锚点有效；下一步复验晚期S盒三控制。"
+        )
         conclusion_color = "#166534"
     else:
         conclusion = "两种cell mixer均未校准；停止拆E4并重设计消息传递。"
@@ -112,7 +119,7 @@ def render_cell_mixer_audit_svg(gate: dict[str, Any], output_path: Path) -> None
         figure.text(
             0.075,
             0.89,
-            "GIFT-64 r6，2048/class训练，1024/class验证，5 epochs，seed0；两行参数数目完全相同。",
+            f"GIFT-64 r6，2048/class训练，1024/class验证，5 epochs，seed{seed}；两行参数数目完全相同。",
             ha="left",
             va="top",
             color="#475569",
@@ -186,6 +193,13 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _single_seed(rows: list[dict[str, Any]]) -> int:
+    seeds = {int(row["seed"]) for row in rows}
+    if len(seeds) != 1:
+        raise ValueError(f"expected one seed across all rows, got {sorted(seeds)}")
+    return seeds.pop()
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:

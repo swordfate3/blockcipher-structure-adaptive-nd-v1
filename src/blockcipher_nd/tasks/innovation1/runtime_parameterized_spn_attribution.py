@@ -682,6 +682,7 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
     run_id: str,
     rows: list[dict[str, Any]],
     r1c_gate: dict[str, Any],
+    expected_seed: int = 0,
 ) -> dict[str, Any]:
     expected_models = {
         "fixed": "gift_cross_spn_typed_cell_shared_view_encoder",
@@ -741,7 +742,7 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
         "frozen_calibration_scale": all(
             row.get("cipher") == "GIFT-64"
             and row.get("rounds") == 6
-            and row.get("seed") == 0
+            and row.get("seed") == expected_seed
             and row.get("samples_per_class") == 2048
             and row.get("training", {}).get("train_rows") == 4096
             and row.get("training", {}).get("validation_rows") == 2048
@@ -785,7 +786,7 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
         status = "fail"
         decision = "innovation1_runtime_spn_cell_mixer_audit_protocol_invalid"
         next_action = "repair the R1d protocol or artifacts before interpretation"
-    elif (
+    elif expected_seed == 0 and (
         research_checks["fixed_mixer_auc_at_least_0p520"]
         and research_checks["fixed_mixer_exceeds_equivariant_by_0p010"]
     ):
@@ -797,11 +798,21 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
         )
     elif research_checks["equivariant_mixer_auc_at_least_0p520"]:
         status = "pass"
-        decision = "innovation1_runtime_spn_equivariant_e4_backbone_supported"
-        next_action = (
-            "port the E4 per-pair current/exact-inverse cell-token frontend and "
-            "equivariant mixer into the runtime model, then test true/corrupted/independent"
-        )
+        if expected_seed == 0:
+            decision = "innovation1_runtime_spn_equivariant_e4_backbone_supported"
+            next_action = (
+                "port the E4 per-pair current/exact-inverse cell-token frontend and "
+                "equivariant mixer into the runtime model, then test "
+                "true/corrupted/independent"
+            )
+        else:
+            decision = (
+                f"innovation1_runtime_spn_equivariant_e4_seed{expected_seed}_anchor_supported"
+            )
+            next_action = (
+                f"repeat the frozen late-pair three-control matrix at seed{expected_seed} "
+                "and 2048/class; do not increase scale"
+            )
     else:
         status = "hold"
         decision = "innovation1_runtime_spn_cell_mixer_calibration_not_supported"
@@ -812,6 +823,7 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
     return {
         "run_id": run_id,
         "cipher": "GIFT-64",
+        "seed": expected_seed,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -824,7 +836,8 @@ def adjudicate_runtime_spn_r1d_cell_mixer(
             "equivariant_auc": 0.520,
         },
         "claim_scope": (
-            "GIFT-64 seed0 2048/class E4 cell-mixer calibration only; not "
+            f"GIFT-64 seed{expected_seed} 2048/class E4 cell-mixer calibration only; "
+            "not "
             "runtime-topology superiority, multi-seed, formal, or paper-scale evidence"
         ),
         "next_action": next_action,
@@ -843,6 +856,7 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
     run_id: str,
     rows: list[dict[str, Any]],
     r1d_gate: dict[str, Any],
+    expected_seed: int = 0,
 ) -> dict[str, Any]:
     expected_models = {
         "true": "gift64_runtime_e4_equivariant_true",
@@ -882,11 +896,15 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
         "train_rows",
         "validation_rows",
     )
+    expected_r1d_decision = (
+        "innovation1_runtime_spn_equivariant_e4_backbone_supported"
+        if expected_seed == 0
+        else f"innovation1_runtime_spn_equivariant_e4_seed{expected_seed}_anchor_supported"
+    )
     protocol_checks = {
         "source_r1d_supported_equivariant_backbone": r1d_gate.get("status")
         == "pass"
-        and r1d_gate.get("decision")
-        == "innovation1_runtime_spn_equivariant_e4_backbone_supported",
+        and r1d_gate.get("decision") == expected_r1d_decision,
         "three_runtime_controls_complete": set(by_model)
         == set(expected_models.values()),
         "same_data_protocol": all(
@@ -904,7 +922,7 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
         "frozen_calibration_scale": all(
             row.get("cipher") == "GIFT-64"
             and row.get("rounds") == 6
-            and row.get("seed") == 0
+            and row.get("seed") == expected_seed
             and row.get("samples_per_class") == 2048
             and row.get("training", {}).get("train_rows") == 4096
             and row.get("training", {}).get("validation_rows") == 2048
@@ -963,7 +981,7 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
         next_action = "repair the R2a protocol or artifacts before interpretation"
     elif all(research_checks.values()):
         status = "pass"
-        decision = "innovation1_runtime_spn_r2a_seed0_supported"
+        decision = f"innovation1_runtime_spn_r2a_seed{expected_seed}_supported"
         next_action = (
             "repeat the same three-control GIFT gate at 8192/class and 10 epochs; "
             "do not add PRESENT or seed1 until that same-cipher gate passes"
@@ -978,6 +996,7 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
     return {
         "run_id": run_id,
         "cipher": "GIFT-64",
+        "seed": expected_seed,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -991,7 +1010,8 @@ def adjudicate_runtime_spn_r2a_e4_attribution(
             "control_margin": 0.005,
         },
         "claim_scope": (
-            "GIFT-64 seed0 2048/class runtime topology-attribution calibration only; "
+            f"GIFT-64 seed{expected_seed} 2048/class runtime topology-attribution "
+            "calibration only; "
             "not multi-seed, multi-cipher, formal, or paper-scale evidence"
         ),
         "next_action": next_action,
@@ -1340,11 +1360,13 @@ def adjudicate_runtime_spn_r2f_late_attribution(
     rows: list[dict[str, Any]],
     r1d_gate: dict[str, Any],
     r2e_gate: dict[str, Any],
+    expected_seed: int = 0,
 ) -> dict[str, Any]:
     gate = adjudicate_runtime_spn_r2a_e4_attribution(
         run_id=run_id,
         rows=rows,
         r1d_gate=r1d_gate,
+        expected_seed=expected_seed,
     )
     late_modes = {
         str(
@@ -1372,11 +1394,19 @@ def adjudicate_runtime_spn_r2f_late_attribution(
         )
     elif all(gate["research_checks"].values()):
         gate["status"] = "pass"
-        gate["decision"] = "innovation1_runtime_spn_late_attribution_seed0_supported"
-        gate["next_action"] = (
-            "run a matching seed1 R1d equivariant anchor and then repeat the frozen "
-            "late-pair three-control matrix at 2048/class; do not increase scale"
+        gate["decision"] = (
+            f"innovation1_runtime_spn_late_attribution_seed{expected_seed}_supported"
         )
+        if expected_seed == 0:
+            gate["next_action"] = (
+                "run a matching seed1 R1d equivariant anchor and then repeat the frozen "
+                "late-pair three-control matrix at 2048/class; do not increase scale"
+            )
+        else:
+            gate["next_action"] = (
+                "prepare a same-budget PRESENT P-layer transfer gate with the frozen "
+                "late-pair backbone and true/corrupted/no-topology controls; do not scale"
+            )
     else:
         gate["status"] = "hold"
         gate["decision"] = "innovation1_runtime_spn_late_attribution_not_supported"
@@ -1385,13 +1415,18 @@ def adjudicate_runtime_spn_r2f_late_attribution(
             "topology-fusion mismatch before any more training"
         )
     gate["claim_scope"] = (
-        "GIFT-64 seed0 2048/class late-conditioned runtime topology-attribution "
+        f"GIFT-64 seed{expected_seed} 2048/class late-conditioned runtime "
+        "topology-attribution "
         "calibration only; not multi-seed, multi-cipher, formal, or paper-scale evidence"
     )
-    gate["blocked_actions"] = [
-        "run PRESENT",
-        "increase samples or epochs before seed1 replication",
-        "remote scale-up",
-        "claim stable topology superiority",
-    ]
+    gate["blocked_actions"] = ["remote scale-up", "claim stable topology superiority"]
+    if expected_seed == 0:
+        gate["blocked_actions"][:0] = [
+            "run PRESENT",
+            "increase samples or epochs before seed1 replication",
+        ]
+    else:
+        gate["blocked_actions"][:0] = [
+            "increase samples or epochs before second-SPN transfer",
+        ]
     return gate
