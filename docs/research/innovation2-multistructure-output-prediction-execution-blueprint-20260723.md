@@ -132,6 +132,13 @@ OPF3共享轮模型与独立`key_seed`数据合同可以盲态实现和测试，
 
 研究问题：PRESENT形成的“输出位置发现、位置保持表示和结构控制”流程能否在另一种64-bit真实SPN上复现？
 
+GX1的冻结条件协议见：
+
+```text
+docs/experiments/
+  innovation2-output-prediction-gx1-gift64-r3-full64-discovery-conditional-plan.md
+```
+
 ```text
 GX0 local readiness：64/64/64，1 epoch，只验证实现
 GX1 discovery：GIFT-64 r3，2^17训练、2^16发现、2^16 fresh
