@@ -7,6 +7,7 @@ from blockcipher_nd.ciphers.spn.gift import GIFT64_SBOX
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
+    RuntimeCellTokenSpnDistinguisher,
     RuntimeParameterizedSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
 )
@@ -257,3 +258,101 @@ def test_legacy_protocol_adapters_share_state_geometry_and_external_structure() 
     )
     output = models[-1](_binary((2, 512), 13))
     assert output.shape == (2, 1)
+
+    recorded_r1_model = build_model(
+        "gift64_runtime_spn_true",
+        input_bits=512,
+        hidden_bits=64,
+        pair_bits=128,
+        structure="SPN",
+        model_options={
+            "processor_steps": 2,
+            "pair_embedding_dim": 128,
+            "dropout": 0.0,
+        },
+    )
+    assert sum(parameter.numel() for parameter in recorded_r1_model.parameters()) == 163971
+
+
+def test_runtime_cell_token_model_preserves_cells_across_pairs_and_widths() -> None:
+    torch.manual_seed(29)
+    model = RuntimeCellTokenSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+    with torch.no_grad():
+        gift_output = model(
+            _binary((2, 4, 2, 64), 14),
+            gift64_runtime_structure(2),
+        )
+        wide_output = model(
+            _binary((2, 3, 2, 128), 15),
+            _synthetic_128_structure(),
+        )
+
+    assert gift_output.shape == (2, 1)
+    assert wide_output.shape == (2, 1)
+    assert model.last_pair_within_cell_attention is not None
+    assert model.last_pair_within_cell_attention.shape == (2, 32, 3)
+    assert model.last_cell_attention is not None
+    assert model.last_cell_attention.shape == (2, 32)
+
+
+def test_runtime_cell_token_model_is_cell_relabel_equivariant() -> None:
+    structure = skinny64_runtime_structure(2)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = _binary((2, 3, 2, 64), 16)
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(31)
+    model = RuntimeCellTokenSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+    with torch.no_grad():
+        original = model(pairs, structure)
+        permuted = model(relabeled_pairs, relabeled)
+
+    assert torch.allclose(original, permuted, atol=1e-6, rtol=0.0)
+
+
+def test_runtime_cell_token_controls_have_identical_parameter_geometry() -> None:
+    options = {"processor_steps": 2, "pair_embedding_dim": 32, "dropout": 0.0}
+    true_model = build_model(
+        "gift64_runtime_cell_token_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options=options,
+    )
+    corrupted_model = build_model(
+        "gift64_runtime_cell_token_corrupted",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options=options,
+    )
+
+    assert {
+        name: tuple(value.shape) for name, value in true_model.state_dict().items()
+    } == {
+        name: tuple(value.shape) for name, value in corrupted_model.state_dict().items()
+    }
+    assert true_model.aggregation_mode == "cell_pair"
+    assert corrupted_model.aggregation_mode == "cell_pair"
+    assert not torch.equal(
+        true_model.runtime_structure.linear_matrices,
+        corrupted_model.runtime_structure.linear_matrices,
+    )

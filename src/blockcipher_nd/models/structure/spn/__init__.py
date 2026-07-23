@@ -129,6 +129,7 @@ from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
 )
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
+    RuntimeCellTokenSpnDistinguisher,
     RuntimeParameterizedSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
 )
@@ -148,6 +149,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
 
 __all__ = [
     "FixedRuntimeSpnProtocolAdapter",
+    "RuntimeCellTokenSpnDistinguisher",
     "RuntimeParameterizedSpnDistinguisher",
     "RuntimeParameterizedSpnSpec",
     "RuntimeSpnStructure",

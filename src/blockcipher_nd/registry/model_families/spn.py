@@ -125,6 +125,16 @@ def build_spn_model(
             "independent",
             False,
         ),
+        "gift64_runtime_cell_token_true": (
+            gift64_runtime_structure,
+            "true",
+            False,
+        ),
+        "gift64_runtime_cell_token_corrupted": (
+            gift64_runtime_structure,
+            "true",
+            True,
+        ),
     }
     if name in runtime_models:
         structure_factory, relation_mode, corrupt = runtime_models[name]
@@ -145,6 +155,9 @@ def build_spn_model(
                 ),
                 processor_steps=processor_steps,
                 dropout=float(options.get("dropout", 0.0)),
+            ),
+            aggregation_mode=(
+                "cell_pair" if "runtime_cell_token" in name else "bit_pair"
             ),
         )
     cross_spn_typed_models = {
