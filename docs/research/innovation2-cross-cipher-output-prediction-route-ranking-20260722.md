@@ -2,7 +2,17 @@
 
 日期：2026-07-22
 
-状态：条件研究蓝图 / OPD1完成前不实现、不训练、不启动
+状态：历史条件排名 / 已由2026-07-23多结构执行蓝图接管当前顺序
+
+当前方法级目标、OPF2条件分支以及SPN/Feistel/ARX完整执行顺序见：
+
+```text
+docs/research/
+  innovation2-multistructure-output-prediction-execution-blueprint-20260723.md
+```
+
+本文保留OPD1阶段形成的候选证据和GIFT协议细节，不再作为当前执行顺序的唯一依据；尤其不能继续把
+Feistel和ARX视为可有可无的附加路线。
 
 ## 1. 决策问题
 
