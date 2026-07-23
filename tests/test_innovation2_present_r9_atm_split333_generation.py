@@ -89,7 +89,7 @@ def test_windows_py310_runtime_lock_is_exact_and_complete() -> None:
 
 
 def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
-    root = Path("scripts/generated/remote")
+    root = Path("configs/remote/generated")
     setup = (root / "setup_innovation2_present_r9_atm_split333_20260720.cmd").read_text(
         encoding="utf-8"
     )
@@ -158,7 +158,7 @@ def test_e104_remote_scripts_use_run_owned_paths_and_bounded_stages() -> None:
 
 
 def test_e104_windows_scripts_preserve_remote_and_scheduler_contract() -> None:
-    roots = Path("scripts/generated/remote")
+    roots = Path("configs/remote/generated")
     names = (
         "setup_innovation2_present_r9_atm_split333_20260720.cmd",
         "run_innovation2_present_r9_atm_split333_pipeline_20260720.cmd",
