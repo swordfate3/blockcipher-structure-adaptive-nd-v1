@@ -9,6 +9,8 @@ from torch import nn
 FCNN_MODEL_NAME = "speck32_full32_fcnn_true_output"
 BILSTM_MODEL_NAME = "speck32_full32_bilstm_true_output"
 JEONG_2024_DOI = "10.3390/math12131936"
+FCNN_PARAMETER_COUNT = 1_087_520
+BILSTM_PARAMETER_COUNT = 3_731_488
 
 
 class Speck32JeongFcnn(nn.Module):
@@ -143,7 +145,9 @@ def _validate_flat_features(features: torch.Tensor) -> None:
 
 
 __all__ = [
+    "BILSTM_PARAMETER_COUNT",
     "BILSTM_MODEL_NAME",
+    "FCNN_PARAMETER_COUNT",
     "FCNN_MODEL_NAME",
     "JEONG_2024_DOI",
     "Speck32JeongBiLstm",

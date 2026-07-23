@@ -163,6 +163,11 @@ identity控制带来的明显混合强度差异。错误行与正确行参数量
 候选总参数量在实现时预注册并限制为BiLSTM锚点的`±5%`；若精确结构无法在该范围内实现，先更新计划解释
 容量差异，不得根据性能揭盲后调宽度。
 
+当前静态实现采用`channels=400`。每轮先对MSB-first `x` token执行公开ROR，再把`ROR(x) || y`按
+LSB到MSB顺序送入共享单层GRU carry-scan；加法融合器读取`ROR(x)、y、carry`，三轮各自只有16个x位置
+context用于吸收固定未知轮密钥差异。随后对y执行公开ROL，并用共享XOR融合器与新x结合。三步复用同一组
+carry/addition/XOR权重，最终使用32组位置绑定输出权重。模型不读取秘密密钥或真实中间状态。
+
 ## 6. 分阶段精简矩阵
 
 ### ARX1-A1：三行true架构screen
@@ -390,19 +395,50 @@ UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
 37 passed
 ```
 
+现已实现正确/错误rotation/carry静态模型合同：
+
+```text
+src/blockcipher_nd/tasks/innovation2/speck32_rotation_carry_model.py
+tests/test_innovation2_speck32_rotation_carry_model.py
+
+channels                     = 400
+candidate parameters         = 3,732,032
+BiLSTM anchor parameters     = 3,731,488
+candidate / BiLSTM ratio     = 1.0001457863
+within BiLSTM +/-5%          = true
+correct rotations            = ROR7 / ROL2
+wrong rotations              = ROR5 / ROL6
+```
+
+正确与错误模型在相同seed下所有参数和buffer逐值相同，旋转常数不进入state dict；错误行只替换两个公开旋转
+常数。匹配shuffle行复用正确结构，只在训练时固定置换训练标签，测试仍使用真实SPECK输出。测试还把
+`0x1234`的MSB-first token旋转结果还原为整数，并与项目标量`ror/rol`逐值比较，避免张量方向自洽但密码
+语义写反。
+
+全部ARX1静态单元联合验证：
+
+```text
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest -q \
+  tests/test_innovation2_speck32_output_prediction_data.py \
+  tests/test_innovation2_speck32_output_prediction_models.py \
+  tests/test_innovation2_speck32_output_prediction_metrics.py \
+  tests/test_innovation2_speck32_rotation_carry_model.py \
+  tests/test_innovation2_speck_hwang_parity.py
+47 passed
+```
+
 仍未实现本计划需要的：
 
 ```text
-rotation/carry-aware共享递推模型及wrong rotation控制
 训练、checkpoint、来源与裁决统一runner
 ARX1来源门、SVG和远程包
 ```
 
 本次仅完成计划允许的确定性数据协议、通用锚点与评估原语单元，没有运行readiness、性能screen或正式数据
-生成，因此没有可索引实验结果、SVG或可解释指标。下一动作是在不开放ARX1训练的前提下单独实现
-rotation/carry候选与`ROR5/ROL6`错误旋转控制，并在任何训练前完成参数量`BiLSTM ±5%`和正确/错误行
-同初始化、仅旋转常数不同的静态审计。ARX1实际readiness仍必须等待PRESENT当前分支与GIFT条件分支按
-第1节闭环。
+生成，因此没有可索引实验结果、SVG或可解释指标。下一动作是在不开放ARX1训练的前提下实现分阶段
+A1/A2训练、checkpoint恢复、固定shuffle和来源hash门；A1只训练三个true模型，A2必须复用A1正确候选
+checkpoint并只新增wrong rotation与matched shuffle。ARX1实际readiness仍必须等待PRESENT当前分支与
+GIFT条件分支按第1节闭环。
 
 明确禁止：
 
