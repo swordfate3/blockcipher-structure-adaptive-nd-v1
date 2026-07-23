@@ -117,6 +117,21 @@ def build_spn_model(
             "independent",
             False,
         ),
+        "present_runtime_e4_equivariant_true": (
+            present_runtime_structure,
+            "true",
+            False,
+        ),
+        "present_runtime_e4_equivariant_corrupted": (
+            present_runtime_structure,
+            "true",
+            True,
+        ),
+        "present_runtime_e4_equivariant_independent": (
+            present_runtime_structure,
+            "independent",
+            False,
+        ),
         "gift64_runtime_spn_true": (gift64_runtime_structure, "true", False),
         "gift64_runtime_spn_corrupted": (
             gift64_runtime_structure,

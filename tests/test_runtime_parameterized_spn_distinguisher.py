@@ -57,6 +57,13 @@ def _synthetic_128_structure() -> object:
     )
 
 
+def test_standard_runtime_cells_preserve_project_msb_role_order() -> None:
+    membership, roles = standard_four_bit_cells(8)
+
+    assert membership == (0, 0, 0, 0, 1, 1, 1, 1)
+    assert roles == (3, 2, 1, 0, 3, 2, 1, 0)
+
+
 def test_runtime_structure_supports_permutations_and_general_gf2() -> None:
     present = present_runtime_structure(rounds=2)
     gift = gift64_runtime_structure(rounds=2)
@@ -490,6 +497,46 @@ def test_runtime_e4_controls_keep_cell_and_sbox_metadata_but_change_linear_view(
     assert all(
         model.backbone.spec.sbox_context_mode == "late_pair" for model in models
     )
+    assert torch.equal(
+        models[0].runtime_structure.sbox_truth_bits,
+        models[2].runtime_structure.sbox_truth_bits,
+    )
+    assert not torch.equal(
+        models[0].runtime_structure.linear_matrices,
+        models[1].runtime_structure.linear_matrices,
+    )
+
+
+def test_present_runtime_e4_controls_share_geometry_and_external_metadata() -> None:
+    options = {
+        "processor_steps": 2,
+        "pair_embedding_dim": 128,
+        "dropout": 0.0,
+        "sbox_context_mode": "late_pair",
+    }
+    models = [
+        build_model(
+            name,
+            input_bits=2048,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=options,
+        )
+        for name in (
+            "present_runtime_e4_equivariant_true",
+            "present_runtime_e4_equivariant_corrupted",
+            "present_runtime_e4_equivariant_independent",
+        )
+    ]
+
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert all(model.aggregation_mode == "e4_equivariant" for model in models)
+    assert all(model.input_bit_order == "project_msb_to_runtime_lsb" for model in models)
     assert torch.equal(
         models[0].runtime_structure.sbox_truth_bits,
         models[2].runtime_structure.sbox_truth_bits,

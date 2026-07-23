@@ -161,6 +161,8 @@ def render_runtime_e4_attribution_svg(
     seed = int(gate.get("seed", 0))
     if "r2c" in run_id:
         stage = "R2c 全bit打乱控制"
+    elif "r2g" in run_id:
+        stage = "R2g cell内bit角色对齐修复"
     elif "r2f" in run_id:
         stage = "R2f 晚期S盒三控制"
     elif "r2b" in run_id:
@@ -171,6 +173,10 @@ def render_runtime_e4_attribution_svg(
         stage = "R2a 初次执行"
     if gate["status"] == "fail":
         conclusion = "协议检查未通过；结果不得用于拓扑归因，必须先修复并原预算重跑。"
+    elif passed and "r2g" in run_id and seed == 0:
+        conclusion = "修复后正确拓扑超过两种控制并保住主干；下一步只做同预算seed1复验。"
+    elif passed and "r2g" in run_id:
+        conclusion = "修复后两颗seed均通过四门；下一步只做同预算PRESENT迁移。"
     elif passed and "r2f" in run_id and seed == 0:
         conclusion = "正确拓扑超过两种控制且保留主干信号；下一步只做同预算seed1复验。"
     elif passed and "r2f" in run_id:

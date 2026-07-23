@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.audit_runtime_spn_semantic_equivalence import main
+
+raise SystemExit(main())

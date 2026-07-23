@@ -23,7 +23,7 @@ def standard_four_bit_cells(block_bits: int) -> tuple[tuple[int, ...], tuple[int
         raise ValueError("block_bits must be a positive multiple of 4")
     return (
         tuple(index // 4 for index in range(block_bits)),
-        tuple(index % 4 for index in range(block_bits)),
+        tuple(3 - index % 4 for index in range(block_bits)),
     )
 
 

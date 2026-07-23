@@ -130,6 +130,24 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_late_attribution_protocol_invalid": (
         "R2f的R2e来源、晚期模式、数据、训练或产物协议无效"
     ),
+    "innovation1_runtime_spn_deterministic_semantics_equivalent": (
+        "修复cell内bit角色后，GIFT专用R1d与运行时E4的14个确定性阶段同权重等价"
+    ),
+    "innovation1_runtime_spn_deterministic_semantics_diverge": (
+        "GIFT专用R1d与运行时E4存在确定性阶段偏差，只修首个偏差后再复验"
+    ),
+    "innovation1_runtime_spn_present_transfer_seed0_supported": (
+        "同一运行时E4主干迁移到PRESENT seed0后，正确P层明显超过打乱与无拓扑控制"
+    ),
+    "innovation1_runtime_spn_present_transfer_seed1_supported": (
+        "同一运行时E4主干迁移到PRESENT seed1后，正确P层再次明显超过两种控制"
+    ),
+    "innovation1_runtime_spn_present_transfer_not_supported": (
+        "PRESENT运行时拓扑迁移未同时通过信号与两种拓扑控制门"
+    ),
+    "innovation1_runtime_spn_present_transfer_protocol_invalid": (
+        "PRESENT T1的数据、训练、模型几何或三控制协议无效"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2136,6 +2154,12 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_present_runtime_e4_transfer_t1"):
+        return "创新1 RTG1-T1：同一运行时E4主干迁移到PRESENT的拓扑三控制"
+    if run_id.startswith("i1_rtg1_gift64_r1d_runtime_e4_semantic_equivalence_a1"):
+        return "创新1 RTG1-A1：GIFT专用主干与运行时主干逐阶段语义等价审计"
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_role_aligned_r2g"):
+        return "创新1 RTG1-R2g：GIFT-64 cell内bit角色对齐后拓扑三控制复验"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_late_attribution_r2f"):
         return "创新1 RTG1-R2f：GIFT-64晚期S盒运行时拓扑三控制归因"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_sbox_location_r2e"):

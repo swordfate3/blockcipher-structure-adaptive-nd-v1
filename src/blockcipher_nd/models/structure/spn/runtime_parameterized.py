@@ -472,11 +472,16 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         )
         current_cells = self._ordered_cell_values(difference, structure)
         previous_cells = self._ordered_cell_values(previous, structure)
-        current_hidden = self.cell_encoder(current_cells)
-        previous_hidden = self.cell_encoder(previous_cells)
+        batch, pair_count, cell_count, _ = current_cells.shape
+        current_hidden = self.cell_encoder(
+            current_cells.reshape(batch * pair_count, cell_count, 4)
+        )
+        previous_hidden = self.cell_encoder(
+            previous_cells.reshape(batch * pair_count, cell_count, 4)
+        )
         hidden = self.typed_fusion(
             torch.cat((current_hidden, previous_hidden), dim=-1)
-        )
+        ).reshape(batch, pair_count, cell_count, self.token_dim)
         sbox_context = self.sbox_encoder(
             structure.sbox_truth_bits[-1].to(
                 device=hidden.device, dtype=hidden.dtype
@@ -486,7 +491,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             hidden = hidden + self.spec.sbox_context_scale * sbox_context[
                 None, None, :, :
             ]
-        batch, pair_count, cell_count, token_dim = hidden.shape
+        token_dim = hidden.shape[-1]
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
         for block in self.mixer_blocks:
             sequence = block(sequence)

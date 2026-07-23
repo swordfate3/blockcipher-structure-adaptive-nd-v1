@@ -262,7 +262,7 @@ class CrossSpnTypedCellPairSetDistinguisher(nn.Module):
             raise ValueError(
                 f"expected {self.input_bits} input bits, got {tuple(features.shape)}"
             )
-        pairs = features.float().reshape(
+        pairs = features.to(dtype=self.current_cell_encoder[0].weight.dtype).reshape(
             features.shape[0], self.pairs_per_sample, 2, 64
         )
         difference = (pairs[:, :, 0] - pairs[:, :, 1]).abs()

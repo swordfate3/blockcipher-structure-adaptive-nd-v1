@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from blockcipher_nd.cli.gate_runtime_spn_present_transfer import main
+
+raise SystemExit(main())

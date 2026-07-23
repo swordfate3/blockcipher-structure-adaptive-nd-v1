@@ -1360,3 +1360,179 @@ the remaining gap is an optimization/capacity interaction; the next candidate
 must be justified without tuning on seed1. If equivalence fails, repair only
 the first divergent deterministic stage and rerun the same two-seed gate. This
 audit, not more training, is what decides whether PRESENT transfer can reopen.
+
+## Executed A1 Semantic-Equivalence Audit And Frozen R2g Repair Gate
+
+The non-training A1 audit first confirmed exact MSB/LSB conversion and exact
+GIFT inverse-P behavior, then found its first deterministic mismatch at
+`current_delta_cells`: runtime cells used LSB-first bit roles while the R1d
+anchor's shared cell encoder received project MSB-first roles. Only this first
+divergent representation stage was repaired. The runtime cell factory now
+orders roles consistently with the project input, and the runtime E4 forward
+uses the same flattened cell-encoder evaluation order as R1d.
+
+After the repair, the audit copied all shared R1d weights into runtime E4,
+zeroed the late S-box encoder, and compared fourteen stages in float64. Every
+shape matched and every maximum absolute error was below the frozen `1e-6`
+tolerance:
+
+```text
+maximum stage error = 3.552713678800501e-15
+final-logit error   = 2.636779683484747e-16
+decision            = innovation1_runtime_spn_deterministic_semantics_equivalent
+```
+
+Artifact root:
+
+```text
+outputs/local_audits/i1_rtg1_gift64_r1d_runtime_e4_semantic_equivalence_a1_20260724/
+```
+
+The result is a deterministic same-weight equivalence proof, not training,
+AUC, cross-cipher, scale, or SOTA evidence. Because the repair changes the
+runtime training input role order, the pre-repair R2f metrics cannot adjudicate
+the repaired model. PRESENT transfer therefore remains blocked pending R2g.
+
+R2g changes exactly one variable relative to R2f: corrected within-cell bit
+role ordering. It reuses the existing seed-specific disk-backed datasets and
+R1d anchors. Run locally, separately for seed0 and seed1:
+
+```text
+models      = correct topology / deterministic full-bit corrupted / no topology
+train/val   = 2048/class / 1024/class
+pairs       = 4
+epochs      = 5
+seeds       = 0, 1
+negative    = encrypted random plaintexts
+checkpoint  = best validation AUC
+```
+
+For each seed, all four frozen gates remain unchanged:
+
+```text
+correct AUC >= 0.520
+correct - same-seed R1d anchor >= -0.005
+correct - corrupted >= +0.005
+correct - no topology >= +0.005
+```
+
+Advance only if both seeds pass. A two-seed pass authorizes one same-budget
+PRESENT transfer with the same three controls. Any seed miss keeps the route
+on hold and requires a new hypothesis about late S-box/capacity/optimization
+interaction; do not increase samples, epochs, relax gates, tune on seed1, or
+launch remote training.
+
+## Executed R2g Record And PRESENT T1 Transfer Plan
+
+Both repaired R2g seed gates completed locally with plan-aligned disk-backed
+datasets and all protocol checks passing:
+
+| Seed | Correct AUC | Corrupted AUC | No-topology AUC | Correct - R1d |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.538176537` | `0.486937046` | `0.514234066` | `-0.002687454` |
+| 1 | `0.548832417` | `0.509042740` | `0.504164219` | `-0.004703045` |
+
+Correct-minus-corrupted was `+0.051239491` and `+0.039789677`; correct-minus-
+no-topology was `+0.023942471` and `+0.044668198`. Both seeds therefore passed
+the signal floor, same-seed R1d tolerance, corrupted-topology margin, and
+no-topology margin. These remain two local `2048/class` GIFT diagnostics, not
+formal or paper-scale evidence.
+
+T1 now asks whether the unchanged runtime E4 parameter geometry transfers to
+PRESENT when only the externally supplied cipher description and dataset are
+changed. It uses PRESENT-80 r7 because it is the established local PRESENT
+signal-bearing round, not to claim a new round record. The three equal-parameter
+rows are correct PRESENT topology, deterministic full-bit corrupted topology,
+and no linear topology.
+
+```text
+train/val   = 2048/class / 1024/class
+pairs       = 16
+epochs      = 5
+seed        = 0
+input       = raw ciphertext-pair bits
+sample      = Zhang/Wang Case2 official MCND organization
+negative    = encrypted random plaintexts
+execution   = local CPU diagnostic with disk-backed cache
+```
+
+Advance to a seed1 PRESENT replication only if:
+
+```text
+correct AUC >= 0.520
+correct - corrupted >= +0.005
+correct - no topology >= +0.005
+all protocol and equal-geometry checks pass
+```
+
+A miss blocks PRESENT replication and all scale-up. Do not switch features,
+rounds, pair count, loss, epochs, negatives, or topology corruption after
+seeing T1 seed0. A pass authorizes only the identical seed1 local replication,
+not remote training or a stable cross-cipher claim.
+
+## Executed PRESENT T1 Two-Seed Record
+
+Both PRESENT T1 seeds completed locally. Plan validation returned `3/3` rows
+for each seed, all equal-geometry and protocol checks passed, and the frozen
+signal/control gates passed:
+
+| Seed | Correct AUC | Corrupted AUC | No-topology AUC | Correct - corrupted | Correct - no topology |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.664596081` | `0.570662022` | `0.554435253` | `+0.093934059` | `+0.110160828` |
+| 1 | `0.676282406` | `0.561504364` | `0.571587086` | `+0.114778042` | `+0.104695320` |
+
+Decisions:
+
+```text
+innovation1_runtime_spn_present_transfer_seed0_supported
+innovation1_runtime_spn_present_transfer_seed1_supported
+```
+
+Together with repaired GIFT R2g, the current evidence supports this limited
+claim: one unchanged runtime E4 parameter geometry produced `correct topology
+> corrupted topology` and `correct topology > no topology` on two real
+permutation-layer SPNs, with two local seeds per cipher. The network consumes
+external cell roles, S-box truth descriptors, and linear maps; it does not use
+cipher IDs, keys, DDTs, trails, beam scores, or label-derived features.
+
+This is still local diagnostic evidence. GIFT used r6, 4 pairs and independent
+pairs; PRESENT used r7, 16 pairs and Case2 MCND organization. T1 therefore
+demonstrates runtime architectural adaptation and topology attribution, not
+same-task zero-shot weight transfer, formal scale, a published-protocol
+reproduction, SOTA, or universal SPN performance.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_present_runtime_e4_transfer_t1_2048_seed0/
+outputs/local_diagnostic/i1_rtg1_present_runtime_e4_transfer_t1_2048_seed1/
+```
+
+## Recommended Next Action: T2-A General-GF(2) Data Readiness
+
+The model contract already accepts and tests SKINNY-64's sparse general GF(2)
+linear layer, but the Innovation 1 standard cipher factory and differential
+dataset path do not yet expose keyed SKINNY-64/64. That missing data adapter,
+not neural capacity, is the next concrete blocker.
+
+T2-A is a non-training local readiness task:
+
+```text
+question       = can keyed SKINNY-64/64 enter the standard strict differential dataset without semantic drift?
+one variable   = add only the SKINNY cipher/data adapter
+anchor         = existing standalone SKINNY implementation plus official 32-round public vector
+controls       = exact encrypt replay, deterministic seed replay, encrypted-random-plaintext negatives
+data gate      = 64/class train and 32/class validation disk-cache fixture
+model gate     = true/corrupted/no-topology runtime E4 parameter names and shapes identical
+linear gate    = sparse general GF(2) inverse and forward replay exact
+execution      = local CPU readiness; no neural training
+```
+
+Advance only if the public vector, key schedule, MSB/LSB contract, strict
+negative semantics, cache/reuse metadata, deterministic replay, parameter
+geometry, and exact GF(2) checks all pass. Then select one literature-backed,
+signal-bearing SKINNY round/difference protocol before preregistering a local
+`2048/class`, two-seed, three-control T2 training gate. If readiness fails,
+repair only the adapter mismatch. Do not guess a difference, start neural
+training, reuse Innovation 2 balance labels, scale PRESENT/GIFT, or launch a
+remote run before T2-A passes.
