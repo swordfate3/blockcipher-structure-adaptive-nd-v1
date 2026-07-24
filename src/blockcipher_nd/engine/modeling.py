@@ -44,6 +44,10 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "runtime_structure_loaded_rounds",
         "runtime_round_window_mode",
         "runtime_structure_window_control",
+        "runtime_structure_transition_sha256s",
+        "runtime_structure_window_sha256",
+        "runtime_structure_unique_transition_count",
+        "runtime_structure_homogeneous",
         "runtime_structure_mode",
     ):
         if hasattr(model, field):

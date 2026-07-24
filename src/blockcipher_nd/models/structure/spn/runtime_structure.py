@@ -134,6 +134,47 @@ class RuntimeSpnStructure:
     def rounds(self) -> int:
         return int(self.linear_matrices.shape[0])
 
+    def transition_sha256s(self) -> tuple[str, ...]:
+        common = {
+            "schema_version": 1,
+            "cell_membership": self.cell_membership.tolist(),
+            "bit_role": self.bit_role.tolist(),
+        }
+        fingerprints: list[str] = []
+        for round_index in range(self.rounds):
+            payload = {
+                **common,
+                "sbox_truth_bits": self.sbox_truth_bits[round_index].tolist(),
+                "linear_matrix": self.linear_matrices[round_index].tolist(),
+            }
+            canonical = json.dumps(
+                payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            fingerprints.append(hashlib.sha256(canonical).hexdigest())
+        return tuple(fingerprints)
+
+    def window_sha256(self) -> str:
+        payload = {
+            "schema_version": 1,
+            "transition_sha256s": self.transition_sha256s(),
+        }
+        canonical = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+
+    @property
+    def unique_transition_count(self) -> int:
+        return len(set(self.transition_sha256s()))
+
+    @property
+    def is_homogeneous(self) -> bool:
+        return self.unique_transition_count == 1
+
     def exact_inverse(
         self, values: torch.Tensor, round_index: int = -1
     ) -> torch.Tensor:

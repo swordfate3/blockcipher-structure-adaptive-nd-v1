@@ -228,3 +228,9 @@ same as repeated-final. They can test recurrent structure-processing depth but
 not distinct earlier-round topology use. uKNIT is the current real-cipher
 heterogeneous anchor for that claim. No recurrent-window training result or AUC
 exists yet, and every prior Runtime-E4 result remains last-transition evidence.
+
+The transformed runtime object now contributes canonical per-transition
+SHA256 values, an ordered window SHA256, a unique-transition count and a
+homogeneous-window flag to model metadata. This makes the full, corrupted,
+S-box-shuffled and repeated-final structures directly auditable from future
+result rows instead of relying on model names or source-descriptor hashes.

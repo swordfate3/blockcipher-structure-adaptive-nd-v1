@@ -962,6 +962,12 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.runtime_structure_loaded_rounds = structure.rounds
         self.runtime_round_window_mode = spec.round_window_mode
         self.runtime_structure_window_control = runtime_structure_window_control
+        transition_sha256s = structure.transition_sha256s()
+        unique_transition_count = len(set(transition_sha256s))
+        self.runtime_structure_transition_sha256s = transition_sha256s
+        self.runtime_structure_window_sha256 = structure.window_sha256()
+        self.runtime_structure_unique_transition_count = unique_transition_count
+        self.runtime_structure_homogeneous = unique_transition_count == 1
         if descriptor_name is not None:
             self.runtime_structure_descriptor_name = descriptor_name
         if descriptor_path is not None:

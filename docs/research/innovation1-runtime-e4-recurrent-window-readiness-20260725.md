@@ -38,6 +38,22 @@ linear descriptor with the final transition. It is an equal-recursion-depth
 control for a genuinely heterogeneous runtime window. On homogeneous
 PRESENT/GIFT/SKINNY windows it is intentionally an exact no-op.
 
+Every constructed model records the transformed structure actually received
+by the backbone, not only the source descriptor identity:
+
+```text
+runtime_structure_transition_sha256s
+runtime_structure_window_sha256
+runtime_structure_unique_transition_count
+runtime_structure_homogeneous
+```
+
+Each transition hash uses canonical JSON over cell membership, bit roles, that
+round's S-box truth descriptors and its GF(2) linear matrix. The window hash is
+order-sensitive. Corruption, S-box shuffling and repeated-final controls are
+therefore distinguishable from the source descriptor and reproducible across
+Linux and Windows.
+
 ## Processor Semantics
 
 For each loaded transition, in reverse order, the processor:
@@ -88,6 +104,10 @@ heterogeneous-window control
 homogeneous-window boundary
     PRESENT, GIFT and SKINNY full windows are byte-identical to repeated-final
     windows; repeated-final therefore produces bit-exact equal logits
+
+result evidence identity
+    transformed per-transition hashes, ordered window hash, unique-transition
+    count and homogeneous flag are JSON-serializable model metadata
 
 cell relabeling
     jointly relabeling input cells and runtime structure preserves logits

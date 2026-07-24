@@ -771,11 +771,36 @@ def test_repeat_last_transition_distinguishes_heterogeneous_runtime_windows() ->
             repeated.inverse_linear_matrices,
             homogeneous.inverse_linear_matrices,
         )
+        assert homogeneous.unique_transition_count == 1
+        assert homogeneous.is_homogeneous is True
+        assert homogeneous.transition_sha256s() == repeated.transition_sha256s()
+        assert homogeneous.window_sha256() == repeated.window_sha256()
 
     heterogeneous = uknit64_runtime_structure(3, round_start=2)
     repeated = heterogeneous.repeat_last_transition()
 
     assert repeated.rounds == heterogeneous.rounds == 3
+    assert heterogeneous.unique_transition_count > 1
+    assert heterogeneous.is_homogeneous is False
+    assert repeated.unique_transition_count == 1
+    assert repeated.is_homogeneous is True
+    assert heterogeneous.window_sha256() != repeated.window_sha256()
+    assert all(len(value) == 64 for value in heterogeneous.transition_sha256s())
+    reversed_window = runtime_spn_structure(
+        cell_membership=heterogeneous.cell_membership,
+        bit_role=heterogeneous.bit_role,
+        sbox_tables=torch.stack(
+            [
+                heterogeneous.sbox_tables(round_index)
+                for round_index in reversed(range(heterogeneous.rounds))
+            ]
+        ),
+        linear_matrices=heterogeneous.linear_matrices.flip(0),
+    )
+    assert reversed_window.transition_sha256s() == tuple(
+        reversed(heterogeneous.transition_sha256s())
+    )
+    assert reversed_window.window_sha256() != heterogeneous.window_sha256()
     assert not torch.equal(repeated.sbox_truth_bits, heterogeneous.sbox_truth_bits)
     assert not torch.equal(repeated.linear_matrices, heterogeneous.linear_matrices)
     for round_index in range(repeated.rounds):
@@ -834,6 +859,21 @@ def test_recurrent_repeat_last_control_is_equal_compute_and_recorded() -> None:
     assert model_metadata(repeated)["runtime_structure_window_control"] == (
         "repeat_last"
     )
+    full_metadata = model_metadata(full)
+    repeated_metadata = model_metadata(repeated)
+    assert full_metadata["runtime_structure_unique_transition_count"] > 1
+    assert full_metadata["runtime_structure_homogeneous"] is False
+    assert repeated_metadata["runtime_structure_unique_transition_count"] == 1
+    assert repeated_metadata["runtime_structure_homogeneous"] is True
+    assert (
+        full_metadata["runtime_structure_transition_sha256s"][-1]
+        == repeated_metadata["runtime_structure_transition_sha256s"][-1]
+    )
+    assert (
+        full_metadata["runtime_structure_window_sha256"]
+        != repeated_metadata["runtime_structure_window_sha256"]
+    )
+    json.dumps(repeated_metadata)
     assert torch.equal(
         full.runtime_structure.linear_matrices[-1],
         repeated.runtime_structure.linear_matrices[-1],
@@ -886,6 +926,12 @@ def test_recurrent_repeat_last_is_exact_noop_for_homogeneous_skinny() -> None:
     assert torch.equal(
         full.runtime_structure.sbox_truth_bits,
         repeated.runtime_structure.sbox_truth_bits,
+    )
+    assert full.runtime_structure_unique_transition_count == 1
+    assert full.runtime_structure_homogeneous is True
+    assert (
+        full.runtime_structure_window_sha256
+        == repeated.runtime_structure_window_sha256
     )
     with torch.no_grad():
         torch.testing.assert_close(full(pairs), repeated(pairs), rtol=0.0, atol=0.0)
