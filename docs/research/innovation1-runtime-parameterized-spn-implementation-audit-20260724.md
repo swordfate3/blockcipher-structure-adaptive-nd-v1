@@ -15,11 +15,11 @@ budget.
 
 | Requirement | Implementation | Current evidence | Status |
 | --- | --- | --- | --- |
-| External cell partition and bit roles | `RuntimeSpnStructure.cell_membership` and `bit_role` | invalid partitions rejected; cell relabeling tests pass | implemented |
+| External cell partition and bit roles | `RuntimeSpnStructure.cell_membership` and `bit_role` | invalid partitions rejected; cell relabeling tests pass; RECTANGLE column cells prove non-contiguous physical-bit membership | implemented |
 | External S-box type | per-round, per-cell 4-bit truth descriptors | changing PRESENT/GIFT descriptors changes logits with fixed weights | implemented for 4-bit cells |
 | External linear topology | runtime GF(2) matrices plus exact inverses | PRESENT/GIFT permutations and SKINNY sparse GF(2) pass exact inverse tests | implemented |
 | Fixed backbone geometry | runtime tensors are not parameters or state entries | one model instance handles 64-bit and synthetic 128-bit structures without state-shape changes | implemented |
-| External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT/GIFT permutations and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
+| External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT/GIFT/RECTANGLE permutations and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed | replicated medium evidence supported |
@@ -53,25 +53,57 @@ matrix must be invertible over GF(2). Unknown fields, non-integer arrays,
 malformed permutations, duplicate or out-of-range GF(2) sources, round-count
 mismatches and singular matrices are rejected before model construction.
 
-Four production descriptors are available:
+Five production descriptors are available:
 
 ```text
 configs/runtime/spn/present64.json  = one-to-one PRESENT P-layer
 configs/runtime/spn/gift64.json     = one-to-one GIFT-64 P-layer
+configs/runtime/spn/rectangle64.json = RECTANGLE non-contiguous column cells + row rotations
 configs/runtime/spn/skinny64.json   = SKINNY ShiftRows + MixColumns GF(2) layer
 configs/runtime/spn/uknit64.json    = 11 distinct uKNIT-BC transition layers
 ```
 
-Tests compare all four descriptors against their Python factories for cell
+Tests compare all five descriptors against their Python factories for cell
 membership, bit roles, S-box truth bits, forward linear matrices and exact
-inverse matrices. GIFT additionally completes a forward pass through the
-generic `runtime_spn_e4_equivariant_true` entry without a GIFT-specific model
-name. The generic correct, corrupted and independent controls also
+inverse matrices. GIFT and RECTANGLE additionally complete forward passes
+through the generic `runtime_spn_e4_equivariant_true` entry without
+cipher-specific model names. The generic correct, corrupted and independent controls also
 share identical state geometry, complete a forward pass and expose the
 descriptor name, resolved path, raw-file SHA-256 and control mode through result
 metadata. This closes the cipher-name-free training-entry gap for supported
 4-bit-cell SPNs. It is an implementation result only: it adds no training run,
 AUC evidence, cross-cipher generalization result or scale decision.
+
+## Non-Contiguous Real Cell Layout
+
+PRESENT, GIFT, SKINNY and uKNIT store each four-bit S-box cell in four
+consecutive physical bit positions. That evidence did not prove that the
+runtime object could describe a bitsliced SPN whose S-box inputs are spread
+across the state. RECTANGLE-80 closes this implementation gap without adding a
+new model family.
+
+For physical bit index `16 * row + column`, the production RECTANGLE descriptor
+uses:
+
+```text
+cell_membership[index] = column
+bit_role[index]        = 3 - row
+cell column c          = [c, 16+c, 32+c, 48+c]
+```
+
+The descriptor therefore groups one bit from each 16-bit row into each S-box
+cell. Its external S-box table is the actual `RECTANGLE_SBOX`; its one-to-one
+linear topology is the actual row-rotation map `(0, 1, 12, 13)`. Deterministic
+tests prove that runtime S-box application equals `rectangle_sub_columns` and
+runtime GF(2) application equals `rectangle_shift_rows` on concrete 64-bit
+states. The JSON descriptor matches the Python factory field by field, and the
+same generic RuntimeE4 entry retains exactly the PRESENT parameter geometry.
+
+RECTANGLE is also registered in the standard cipher factory, plan-name mapping,
+structure profile and differential-data path. A strict encrypted-random-
+plaintext diagnostic produces the expected 4-pair, 512-bit rows. These are
+implementation and data-path checks only; no RECTANGLE neural training, AUC,
+topology-attribution or transfer evidence is claimed.
 
 ## Cell-Specific S-Box Ownership Gap
 

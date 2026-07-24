@@ -17,6 +17,7 @@ from blockcipher_nd.ciphers import (
     Lea192,
     Lea256,
     Present80,
+    Rectangle80,
     ReducedRoundCipher,
     Simeck64_128,
     Simon64_128,
@@ -110,6 +111,8 @@ def build_cipher(name: str, rounds: int, key: int | None = None) -> ReducedRound
         return Present80(rounds=rounds, key=0x00000000000000000000 if key is None else key)
     if name == "gift64":
         return Gift64(rounds=rounds, key=0x00000000000000000000000000000000 if key is None else key)
+    if name == "rectangle80":
+        return Rectangle80(rounds=rounds, key=0x00000000000000000000 if key is None else key)
     if name == "skinny64":
         return Skinny64(rounds=rounds, key=0x0000000000000000 if key is None else key)
     if name == "uknit64":
@@ -146,7 +149,7 @@ def default_difference(name: str) -> int:
         return 0x0000000000000040
     if name in {"simon64", "simeck64"}:
         return 0x0000000000000040
-    if name in {"present80", "gift64", "skinny64", "uknit64"}:
+    if name in {"present80", "gift64", "rectangle80", "skinny64", "uknit64"}:
         return 0x0000000000000040
     if name == "sm4":
         return 0x00000000000000000000000000000040

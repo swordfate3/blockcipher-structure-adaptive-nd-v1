@@ -99,6 +99,7 @@ def cipher_profile(cipher_key: str) -> CipherProfile:
         "speck32": CipherProfile.speck32_64,
         "present80": CipherProfile.present80,
         "gift64": CipherProfile.gift64,
+        "rectangle80": CipherProfile.rectangle80,
         "uknit64": CipherProfile.uknit64,
         "des": CipherProfile.des,
         "sm4": CipherProfile.sm4,

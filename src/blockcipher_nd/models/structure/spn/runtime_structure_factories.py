@@ -4,6 +4,10 @@ import torch
 
 from blockcipher_nd.ciphers.spn.gift import GIFT64_SBOX, Gift64
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX, Present80
+from blockcipher_nd.ciphers.spn.rectangle import (
+    RECTANGLE_SBOX,
+    rectangle_shift_rows,
+)
 from blockcipher_nd.ciphers.spn.skinny import (
     SKINNY64_SBOX,
     cells_to_int,
@@ -47,6 +51,20 @@ def gift64_runtime_structure(rounds: int = 1) -> RuntimeSpnStructure:
         rounds=rounds,
         sbox=GIFT64_SBOX,
         linear=linear_matrix_from_callable(64, Gift64.permutation_layer),
+    )
+
+
+def rectangle80_runtime_structure(rounds: int = 1) -> RuntimeSpnStructure:
+    if rounds <= 0:
+        raise ValueError("rounds must be positive")
+    membership = tuple(index % 16 for index in range(64))
+    roles = tuple(3 - index // 16 for index in range(64))
+    linear = linear_matrix_from_callable(64, rectangle_shift_rows)
+    return runtime_spn_structure(
+        cell_membership=membership,
+        bit_role=roles,
+        sbox_tables=RECTANGLE_SBOX,
+        linear_matrices=linear.unsqueeze(0).repeat(rounds, 1, 1),
     )
 
 
@@ -111,6 +129,7 @@ def _repeated_structure(
 __all__ = [
     "gift64_runtime_structure",
     "present_runtime_structure",
+    "rectangle80_runtime_structure",
     "skinny64_runtime_structure",
     "standard_four_bit_cells",
     "uknit64_runtime_structure",

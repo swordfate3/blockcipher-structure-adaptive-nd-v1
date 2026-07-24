@@ -62,6 +62,26 @@ class CipherProfile:
         )
 
     @staticmethod
+    def rectangle80() -> "CipherProfile":
+        return CipherProfile(
+            name="RECTANGLE-80",
+            structure="SPN",
+            block_bits=64,
+            key_bits=80,
+            traits=(
+                "sbox_layer",
+                "permutation_layer",
+                "sbox_locality",
+                "bit_permutation",
+                "rotation",
+                "non_contiguous_sbox_cells",
+                "bitsliced_columns",
+                "row_rotation",
+                "lightweight_spn",
+            ),
+        )
+
+    @staticmethod
     def uknit64() -> "CipherProfile":
         return CipherProfile(
             name="uKNIT-BC",
