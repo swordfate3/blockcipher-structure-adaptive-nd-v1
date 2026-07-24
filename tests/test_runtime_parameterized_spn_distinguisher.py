@@ -57,6 +57,23 @@ def _synthetic_128_structure() -> object:
     )
 
 
+def _heterogeneous_sbox_structures() -> tuple[object, object]:
+    base = present_runtime_structure()
+    tables = torch.empty((1, base.cells, 16), dtype=torch.long)
+    tables[:, 0::2] = torch.tensor(PRESENT_SBOX)
+    tables[:, 1::2] = torch.tensor(GIFT64_SBOX)
+    swapped = tables.roll(1, dims=1)
+    common = {
+        "cell_membership": base.cell_membership,
+        "bit_role": base.bit_role,
+        "linear_matrices": base.linear_matrices,
+    }
+    return (
+        runtime_spn_structure(sbox_tables=tables, **common),
+        runtime_spn_structure(sbox_tables=swapped, **common),
+    )
+
+
 def test_standard_runtime_cells_preserve_project_msb_role_order() -> None:
     membership, roles = standard_four_bit_cells(8)
 
@@ -680,9 +697,73 @@ def test_runtime_e4_sbox_location_keeps_parameter_geometry() -> None:
     late = RuntimeE4EquivariantSpnDistinguisher(
         RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_pair")
     )
+    late_cell = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_cell")
+    )
 
-    assert {
+    geometry = {
         name: tuple(parameter.shape) for name, parameter in early.named_parameters()
-    } == {
+    }
+    assert geometry == {
         name: tuple(parameter.shape) for name, parameter in late.named_parameters()
     }
+    assert geometry == {
+        name: tuple(parameter.shape) for name, parameter in late_cell.named_parameters()
+    }
+
+
+def test_runtime_e4_late_cell_preserves_cell_specific_sbox_assignment() -> None:
+    first, swapped = _heterogeneous_sbox_structures()
+    common = {
+        "hidden_dim": 16,
+        "pair_embedding_dim": 32,
+        "processor_steps": 2,
+        "dropout": 0.0,
+        "sbox_context_scale": 1.0,
+    }
+    torch.manual_seed(53)
+    late_pair = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_pair")
+    ).eval()
+    late_cell = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_cell")
+    ).eval()
+    late_cell.load_state_dict(late_pair.state_dict())
+    pairs = _binary((3, 4, 2, 64), 54)
+
+    with torch.no_grad():
+        pair_first = late_pair(pairs, first)
+        pair_swapped = late_pair(pairs, swapped)
+        cell_first = late_cell(pairs, first)
+        cell_swapped = late_cell(pairs, swapped)
+
+    pair_delta = float(torch.max(torch.abs(pair_first - pair_swapped)))
+    cell_delta = float(torch.max(torch.abs(cell_first - cell_swapped)))
+    assert pair_delta <= 1e-6
+    assert cell_delta > max(1e-6, pair_delta * 100.0)
+
+
+def test_runtime_e4_late_cell_is_cell_relabel_invariant() -> None:
+    structure, _ = _heterogeneous_sbox_structures()
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = _binary((2, 3, 2, 64), 55)
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(56)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="late_cell",
+        )
+    ).eval()
+
+    with torch.no_grad():
+        original = model(pairs, structure)
+        permuted = model(relabeled_pairs, relabeled)
+
+    torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)

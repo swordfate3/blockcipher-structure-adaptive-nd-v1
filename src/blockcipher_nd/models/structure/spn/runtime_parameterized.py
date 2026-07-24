@@ -22,7 +22,7 @@ class RuntimeParameterizedSpnSpec:
     processor_steps: int = 2
     dropout: float = 0.10
     sbox_context_scale: float = 1.0
-    sbox_context_mode: Literal["early_add", "late_pair"] = "early_add"
+    sbox_context_mode: Literal["early_add", "late_pair", "late_cell"] = "early_add"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -31,8 +31,10 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError("dropout must be in [0, 1)")
         if self.sbox_context_scale < 0.0:
             raise ValueError("sbox_context_scale must be non-negative")
-        if self.sbox_context_mode not in {"early_add", "late_pair"}:
-            raise ValueError("sbox_context_mode must be early_add or late_pair")
+        if self.sbox_context_mode not in {"early_add", "late_pair", "late_cell"}:
+            raise ValueError(
+                "sbox_context_mode must be early_add, late_pair, or late_cell"
+            )
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -495,6 +497,10 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
         for block in self.mixer_blocks:
             sequence = block(sequence)
+        if self.spec.sbox_context_mode == "late_cell":
+            sequence = (
+                sequence + self.spec.sbox_context_scale * sbox_context[None, :, :]
+            )
         sequence = self.sequence_norm(sequence)
         current_activity = current_cells.mean(dim=-1, keepdim=True).reshape(
             batch * pair_count, cell_count, 1
