@@ -23,7 +23,7 @@ budget.
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed `65536/class` medium attribution passed | medium two-seed supported |
-| General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed0 `0.643591`, seed1 `0.644613`; both control margins pass the joint gate | RTG2-B preparation authorized |
+| General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed0 `0.643591`, seed1 `0.644613`; both control margins pass the joint gate | RTG2-B running at `262144/class` seed0 |
 
 The claim boundary remains narrow. These facts prove a runtime-parameterized
 4-bit-cell implementation and controlled diagnostic evidence. They do not prove
@@ -118,32 +118,37 @@ and the repaired capability targets a different structural question.
 
 ## Recommended Next Action
 
-After the RTG2-A watcher returns, preserve its decision first. Independently,
-uKNIT-BC is now implemented as the real 4-bit-cell SPN with genuinely
-cell-dependent S-box assignments. Before training, create a lean local plan
-with the same dataset and budget for:
+The implementation question and the empirical question are now separate. The
+runtime object, generic registry entry, permutation/GF(2) operators, variable
+cell count, S-box descriptors and invariant geometry are implemented. Do not
+add another cipher-specific frontend while the supported general-GF(2) scale
+replication is unresolved.
+
+The current priority is the already-running RTG2-B seed0 matrix:
 
 ```text
-candidate = late_cell
-anchor    = late_pair
-control   = S-box assignment deterministically shuffled while linear topology stays exact
+question       = does the RTG2-A topology advantage survive 262144/class?
+anchor         = frozen RTG2-A correct/corrupted/no-topology protocol
+changed field  = train samples_per_class 65536 -> 262144 only
+source         = 061fd9a3c30cd1089a24e9df241f63964d147d6c
+execution      = remote A6000 GPU0 with disk-backed cache
+status         = running; bounded started.marker confirmation passed
 ```
 
-The mechanism reproduction, exact source boundary, prefix-round semantics and
-the executable local gate are recorded in:
+If seed0 passes all three frozen gates, prepare but do not automatically launch
+an identical `262144/class` seed1 confirmation. If seed0 holds, stop mechanical
+scale-up and inspect cache identity, complete five-epoch dynamics and the two
+topology margins without changing the network, data protocol or control
+semantics. Neither outcome authorizes `1000000/class` before an independent
+seed at this scale.
 
-```text
-docs/research/innovation1-uknit-runtime-spn-mechanism-reproduction-20260724.md
-```
-
-Change only the S-box injection/assignment variable. The readiness gate must
-first prove identical parameters, identical initialization, identical data and
-labels, exact runtime descriptors, nonzero assignment sensitivity and cell
-relabeling invariance. Run only a sub-medium local diagnostic initially. Advance
-to remote scale only if the correct assignment beats both the global-mean anchor
-and shuffled-assignment control under the frozen gate. Do not add DDT/trail
-features, change the negative definition or combine this attribution with the
-RTG2-A sample-scale ladder.
+The uKNIT S-box-assignment route has already completed its bounded local loop.
+U2-F and the U2-G same-checkpoint audit supported one prefix-r4 delta-U query
+mechanism, but U2-H changed only to prefix-r5 and failed to reproduce it on
+both seeds. Preserve U2-F/U2-G as narrow single-window mechanism evidence and
+close the current cross-window, remote-scale and mechanical-sample extensions.
+Do not run the cancelled U2-I or revive `late_cell`/edge-gate/triplet variants
+without a new mechanism that directly explains the r4-to-r5 failure.
 
 ## Post-RTG2-A Evidence Update
 
@@ -155,11 +160,30 @@ general-GF(2) branch from local implementation evidence to repeatable
 `65536/class` medium architecture/protocol evidence; it remains non-formal and
 does not establish an attack, SOTA or universal-SPN claim.
 
-The highest-priority remote action is now an RTG2-B `262144/class` seed0 plan
-that changes sample scale only and preserves the same three roles, r7
+The highest-priority remote action was therefore RTG2-B at `262144/class`
+seed0, changing sample scale only while preserving the same three roles, r7
 `0x2000` data protocol, four pairs, five epochs, strict encrypted-random-
-plaintext negatives and `442466`-parameter geometry. It must pass a fresh
-disk-cache/readiness gate before launch. The uKNIT S-box-assignment branch may
-continue with bounded local representation diagnostics, but its successive
-`2048/class` holds do not take priority over this already-supported scale
-replication and do not authorize remote GPU use.
+plaintext negatives and `442466`-parameter geometry. Its fresh disk-cache,
+readiness and exact-published-source gates passed, and the run is now active.
+The separate uKNIT sequence has since reached a cross-window stop decision, as
+recorded below; it is no longer an open local representation route.
+
+## Post-uKNIT And RTG2-B Startup Update
+
+The uKNIT diagnostic sequence is now complete. U2-F reached correct delta-U
+query AUCs `0.543139/0.554935` on seeds `0/1` and exceeded both controls. U2-G
+confirmed with the same candidate checkpoint that changing only the query
+S-box ownership changes the logits in the expected direction. U2-H then tested
+the same hypothesis at prefix-r5 and returned correct AUCs `0.490057/0.500100`,
+below both required controls. Its decision is:
+
+```text
+innovation1_uknit_delta_u_cross_window_not_replicated
+```
+
+RTG2-B subsequently passed its exact-source launch gate and produced real
+remote startup evidence at `2026-07-24 20:23:46 +08:00`. The synchronized logs
+show source `061fd9a3c30cd1089a24e9df241f63964d147d6c`, clean detached status,
+readiness `pass`, PyTorch `2.5.1+cu118`, CUDA `11.8` and one visible A6000. This
+is launch evidence only. No RTG2-B AUC, result decision or scale conclusion
+exists until the verified result branch is retrieved and re-adjudicated.
