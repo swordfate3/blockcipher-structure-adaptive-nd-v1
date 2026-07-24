@@ -489,6 +489,8 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         structure: RuntimeSpnStructure,
         *,
         relation_mode: str = "true",
+        query_input_mode: Literal["delta_v", "delta_u"] | None = None,
+        query_structure: RuntimeSpnStructure | None = None,
     ) -> torch.Tensor:
         pairs = _RuntimeSpnEncoderBase._normalize_pairs(
             ciphertext_pairs, structure.block_bits
@@ -499,6 +501,17 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             raise ValueError("ciphertext pair tensors must be binary")
         pairs = pairs.to(dtype=self.cell_encoder[0].weight.dtype)
         difference = torch.remainder(pairs[:, :, 0] + pairs[:, :, 1], 2.0)
+        configured_query_mode = {
+            "state_triplet_delta_v_query": "delta_v",
+            "state_triplet_delta_u_query": "delta_u",
+        }.get(self.spec.cell_input_mode)
+        if query_input_mode is not None and configured_query_mode is None:
+            raise ValueError("query overrides require a three-input delta-query model")
+        active_query_mode = query_input_mode or configured_query_mode
+        if query_structure is not None:
+            if active_query_mode != "delta_u":
+                raise ValueError("query_structure is valid only for a delta_u query")
+            self._validate_query_structure(structure, query_structure)
         previous = (
             structure.exact_inverse(difference, -1)
             if relation_mode == "true"
@@ -564,17 +577,12 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 previous_cells.reshape(batch * pair_count, cell_count, 4)
             )
         fusion_inputs = [current_hidden, previous_hidden]
-        if self.spec.cell_input_mode in {
-            "state_triplet_delta_v_query",
-            "state_triplet_delta_u_query",
-        }:
+        if active_query_mode is not None:
             query_difference = previous
-            if (
-                self.spec.cell_input_mode == "state_triplet_delta_u_query"
-                and relation_mode == "true"
-            ):
-                inverse_left = structure.apply_inverse_sboxes(previous_left, -1)
-                inverse_right = structure.apply_inverse_sboxes(previous_right, -1)
+            if active_query_mode == "delta_u" and relation_mode == "true":
+                query_runtime = query_structure or structure
+                inverse_left = query_runtime.apply_inverse_sboxes(previous_left, -1)
+                inverse_right = query_runtime.apply_inverse_sboxes(previous_right, -1)
                 query_difference = torch.remainder(
                     inverse_left + inverse_right,
                     2.0,
@@ -643,6 +651,24 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 dim=-1,
             )
         )
+
+    @staticmethod
+    def _validate_query_structure(
+        main: RuntimeSpnStructure,
+        query: RuntimeSpnStructure,
+    ) -> None:
+        if not (
+            torch.equal(main.cell_membership, query.cell_membership)
+            and torch.equal(main.bit_role, query.bit_role)
+            and torch.equal(main.linear_matrices, query.linear_matrices)
+            and torch.equal(
+                main.inverse_linear_matrices,
+                query.inverse_linear_matrices,
+            )
+        ):
+            raise ValueError(
+                "query_structure may change only per-cell S-box ownership"
+            )
 
     @staticmethod
     def _ordered_cell_values(
@@ -763,11 +789,28 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         if runtime_structure_mode is not None:
             self.runtime_structure_mode = runtime_structure_mode
 
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        features: torch.Tensor,
+        *,
+        query_input_mode: Literal["delta_v", "delta_u"] | None = None,
+        query_structure: RuntimeSpnStructure | None = None,
+    ) -> torch.Tensor:
+        runtime_features = self._to_runtime_coordinates(features)
+        if query_input_mode is None and query_structure is None:
+            return self.backbone(
+                runtime_features,
+                self.runtime_structure,
+                relation_mode=self.relation_mode,
+            )
+        if not isinstance(self.backbone, RuntimeE4EquivariantSpnDistinguisher):
+            raise ValueError("query overrides require the E4-equivariant backbone")
         return self.backbone(
-            self._to_runtime_coordinates(features),
+            runtime_features,
             self.runtime_structure,
             relation_mode=self.relation_mode,
+            query_input_mode=query_input_mode,
+            query_structure=query_structure,
         )
 
     def _to_runtime_coordinates(self, features: torch.Tensor) -> torch.Tensor:
