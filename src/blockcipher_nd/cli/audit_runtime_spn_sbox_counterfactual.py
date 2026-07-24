@@ -194,7 +194,11 @@ def render_counterfactual_svg(gate: dict[str, Any], output_path: Path) -> None:
             color="#D97706",
         )
         axes[0].bar_label(left, labels=[f"{value:.4f}" for value in correct], padding=4)
-        axes[0].bar_label(right, labels=[f"{value:.4f}" for value in shuffled], padding=4)
+        axes[0].bar_label(
+            right,
+            labels=[f"{value:.4f}" for value in shuffled],
+            padding=15,
+        )
         axes[0].set_title("同 checkpoint 验证 AUC", loc="left", fontweight="bold")
         axes[0].set_ylabel("AUC")
         axes[0].set_xticks(x, labels)

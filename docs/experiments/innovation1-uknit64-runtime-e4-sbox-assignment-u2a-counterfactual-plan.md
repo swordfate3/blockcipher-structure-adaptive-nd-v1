@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = preregistered
+stage    = completed
 run_id   = i1_rtg1_uknit64_runtime_e4_sbox_assignment_u2a_same_checkpoint_20260724
 training = none
-decision = pending
+decision = innovation1_uknit_additive_late_cell_ownership_not_used
 ```
 
 ## Question
@@ -134,3 +134,62 @@ Do not change the `late_cell` candidate path, checkpoints, validation arrays,
 shuffle, metrics, thresholds, or eight-row panel. Retain the invalid attempt as
 debug evidence and rerun to a fresh output directory before interpreting any
 candidate result.
+
+## Completed Result
+
+The repaired run produced exactly eight rows and passed all 13 protocol checks.
+Both `late_pair` anchors were bitwise invariant after the finite-precision
+repair:
+
+| Pair | Correct AUC | Shuffled AUC | AUC margin | Max probability delta |
+| --- | ---: | ---: | ---: | ---: |
+| seed0 candidate | 0.534949303 | 0.534731865 | +0.000217438 | 0.027509123 |
+| seed0 anchor | 0.520134926 | 0.520134926 | 0.000000000 | 0.000000000 |
+| seed1 candidate | 0.520783424 | 0.500794888 | +0.019988537 | 0.025458753 |
+| seed1 anchor | 0.539116859 | 0.539116859 | 0.000000000 | 0.000000000 |
+
+Seed1 passed the candidate `+0.005` margin gate, but seed0 missed it by a wide
+margin. The joint gate therefore returned `hold`: the U1 `late_cell` weights
+can react to assignment, but additive post-mixer injection did not make correct
+ownership a stable two-seed advantage. This is an inference-time mechanism
+diagnostic, not training-scale, attack, cross-cipher or breakthrough evidence.
+
+The valid artifacts are under the declared `outputs/local_audits/` path. The
+invalid first attempt is retained separately at:
+
+```text
+outputs/local_audits_invalid/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u2a_same_checkpoint_protocol_invalid_pre_fix_20260724
+```
+
+The final SVG was rendered at `1242 x 549` and passed `visual-qa-redraw` after
+staggering near-equal bar labels. No title, subtitle, decision text, legend,
+axis, threshold, value label or Chinese glyph overlaps or clips.
+
+## Executable Next Action
+
+Preregister U2-B as a local edge-conditioned S-box/topology interaction gate:
+
+```text
+question       = can one learned interaction between per-cell S-box identity
+                 and the exact runtime linear graph make ownership stable?
+anchor         = frozen U1 late_pair architecture and protocol
+candidate      = one edge-conditioned residual before the E4 mixer
+control        = same candidate with deterministic shuffled S-box ownership
+one variable   = replace additive post-mixer late_cell injection with the
+                 S-box-conditioned linear-edge residual
+train scale    = 2048/class
+validation     = 1024/class
+seeds          = 0,1
+epochs         = 10
+pairs/sample   = 4
+negative       = encrypted_random_plaintexts
+execution      = local CPU diagnostic after a tiny implementation smoke gate
+advance gate   = correct > anchor and correct - shuffled >= +0.005 on both seeds
+stop gate      = either seed misses attribution or candidate fails the anchor
+```
+
+The interaction must consume the runtime cell membership, per-round S-box
+truth tables and exact GF(2) linear adjacency without changing backbone
+parameter shapes. Do not add DDT/trail/partial-decryption inputs, change the
+uKNIT round window, increase data or epochs, launch remote GPU, or combine
+multiple architecture ideas in U2-B.
