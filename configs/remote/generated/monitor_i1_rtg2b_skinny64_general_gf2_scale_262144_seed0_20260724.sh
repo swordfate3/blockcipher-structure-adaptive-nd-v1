@@ -35,8 +35,10 @@ timestamp() {
 }
 
 launch_remote() {
+  local remote_command
+  remote_command="cmd.exe /d /s /c \"if exist ${REMOTE_LAUNCH_ROOT} (exit /b 9) else (set GIT_SSH_COMMAND=ssh -i C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new&& git clone --no-checkout ${REPO_URL} ${REMOTE_LAUNCH_ROOT} && cd /d ${REMOTE_LAUNCH_ROOT} && git checkout --detach ${SOURCE_COMMIT} && call ${LAUNCH_SCRIPT} ${SOURCE_COMMIT} 0)\""
   ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
-    "cmd.exe /c \"if exist ${REMOTE_LAUNCH_ROOT} exit /b 9 & set \"GIT_SSH_COMMAND=ssh -i C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\"&& git clone --no-checkout ${REPO_URL} ${REMOTE_LAUNCH_ROOT} && cd /d ${REMOTE_LAUNCH_ROOT} && git checkout --detach ${SOURCE_COMMIT} && call ${LAUNCH_SCRIPT} ${SOURCE_COMMIT} 0\"" \
+    "${remote_command}" \
     >> "${MONITOR_ROOT}/launch.log" 2>> "${MONITOR_ROOT}/launch_stderr.log"
 }
 
