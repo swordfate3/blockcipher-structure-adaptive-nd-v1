@@ -40,6 +40,12 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg3a_launch import (
     JOINT_RUN_ID as RTG3A_JOINT_RUN_ID,
     adjudicate_runtime_spn_skinny_rtg3a_launch,
 )
+from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg3a_seed1_launch import (
+    EXPECTED_CHECKPOINTS as RTG3A_EXPECTED_CHECKPOINTS,
+    SEED0_DECISION as RTG3A_SEED0_DECISION,
+    SEED0_RUN_ID as RTG3A_SEED0_RUN_ID,
+    adjudicate_runtime_spn_skinny_rtg3a_seed1_launch,
+)
 from blockcipher_nd.registry.model_factory import build_model
 
 
@@ -915,6 +921,220 @@ def test_rtg3a_formal_plan_and_remote_assets_are_ready() -> None:
     ).read_text(encoding="utf-8")
     assert "status     = pass" in route
     assert "decision   = select_route_a_formal_skinny_scale" in route
+
+
+def _rtg3a_seed1_launch_evidence() -> dict[str, object]:
+    results = [
+        {
+            "model": model,
+            "seed": 0,
+            "samples_per_class": 1_000_000,
+        }
+        for model in (
+            "skinny64_runtime_e4_equivariant_true",
+            "skinny64_runtime_e4_equivariant_corrupted",
+            "skinny64_runtime_e4_equivariant_independent",
+        )
+    ]
+    history = [
+        {"model": model, "seed": "0", "epoch": str(epoch)}
+        for model in (
+            "skinny64_runtime_e4_equivariant_true",
+            "skinny64_runtime_e4_equivariant_corrupted",
+            "skinny64_runtime_e4_equivariant_independent",
+        )
+        for epoch in range(1, 6)
+    ]
+    checkpoints = []
+    for filename, model in zip(
+        sorted(RTG3A_EXPECTED_CHECKPOINTS),
+        (
+            "skinny64_runtime_e4_equivariant_true",
+            "skinny64_runtime_e4_equivariant_corrupted",
+            "skinny64_runtime_e4_equivariant_independent",
+        ),
+        strict=True,
+    ):
+        checkpoints.append(
+            {
+                "filename": filename,
+                "model": model,
+                "sha256": "a" * 64,
+                "checks": {
+                    "strict_state_dict_load": True,
+                    "history_exact": True,
+                    "final_metrics_exact": True,
+                    "selected_best_checkpoint": True,
+                },
+            }
+        )
+    seed0_gate = _rtg3a_seed_gate(0)
+    assert seed0_gate["run_id"] == RTG3A_SEED0_RUN_ID
+    assert seed0_gate["decision"] == RTG3A_SEED0_DECISION
+    return {
+        "source_commit": "a" * 40,
+        "upstream_ref": "origin/main",
+        "artifact_names": {
+            "checkpoint-verification.local.json",
+            "curves.svg",
+            "gate.local.json",
+            "history.local.csv",
+            "results.jsonl",
+            "retrieved_from_verified_result_branch.marker",
+            "validation.local.json",
+            "visual_qa_passed.marker",
+        },
+        "seed0_gate": seed0_gate,
+        "seed0_validation": {
+            "status": "pass",
+            "expected_rows": 3,
+            "result_rows": 3,
+            "errors": [],
+        },
+        "checkpoint_verification": {
+            "status": "pass",
+            "file_set_exact": True,
+            "errors": [],
+            "actual_files": sorted(RTG3A_EXPECTED_CHECKPOINTS),
+            "expected_files": sorted(RTG3A_EXPECTED_CHECKPOINTS),
+            "entries": checkpoints,
+        },
+        "results": results,
+        "history": history,
+        "readiness_status": "pass",
+        "source_commit_valid": True,
+        "source_commit_exists": True,
+        "training_commit_exists": True,
+        "protected_changes": [],
+        "source_assets_committed": True,
+        "source_assets_match": True,
+        "plans_match_seed_only": True,
+    }
+
+
+def test_rtg3a_seed1_launch_requires_complete_seed0_and_publication() -> None:
+    common = _rtg3a_seed1_launch_evidence()
+
+    held = adjudicate_runtime_spn_skinny_rtg3a_seed1_launch(
+        **common,
+        source_commit_published=False,
+    )
+    passed = adjudicate_runtime_spn_skinny_rtg3a_seed1_launch(
+        **common,
+        source_commit_published=True,
+    )
+
+    assert held["status"] == "hold"
+    assert held["should_ssh"] is True
+    assert held["ssh_allowed"] is False
+    assert passed["status"] == "pass"
+    assert passed["decision"] == "innovation1_rtg3a_seed1_remote_launch_authorized"
+    assert passed["launch_authorized"] is True
+    assert all(passed["evidence_checks"].values())
+
+
+@pytest.mark.parametrize(
+    ("mutation", "failed_check"),
+    [
+        ("missing_visual_qa", "verified_seed0_artifacts_complete"),
+        ("short_history", "seed0_history_exact_fifteen_rows"),
+        ("bad_checkpoint", "seed0_checkpoint_replay_exact_three"),
+    ],
+)
+def test_rtg3a_seed1_launch_fails_closed_on_incomplete_seed0_evidence(
+    mutation: str,
+    failed_check: str,
+) -> None:
+    common = _rtg3a_seed1_launch_evidence()
+    if mutation == "missing_visual_qa":
+        common["artifact_names"].remove("visual_qa_passed.marker")  # type: ignore[union-attr]
+    elif mutation == "short_history":
+        common["history"] = common["history"][:-1]  # type: ignore[index]
+    else:
+        checkpoint = common["checkpoint_verification"]  # type: ignore[assignment]
+        checkpoint["entries"][0]["checks"]["strict_state_dict_load"] = False
+
+    gate = adjudicate_runtime_spn_skinny_rtg3a_seed1_launch(
+        **common,
+        source_commit_published=True,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["launch_authorized"] is False
+    assert gate["evidence_checks"][failed_check] is False
+
+
+def test_rtg3a_seed1_plan_remote_and_successor_assets_are_ready() -> None:
+    seed0_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_formal_rtg3a_1000000_seed0.csv"
+    )
+    seed1_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_formal_rtg3a_1000000_seed1.csv"
+    )
+    with seed0_path.open(newline="", encoding="utf-8") as handle:
+        seed0_rows = list(csv.DictReader(handle))
+    with seed1_path.open(newline="", encoding="utf-8") as handle:
+        seed1_rows = list(csv.DictReader(handle))
+
+    ignored = {"network", "family", "seed", "evidence", "literature"}
+    assert len(seed1_rows) == 3
+    assert {row["seed"] for row in seed1_rows} == {"1"}
+    assert {row["samples_per_class"] for row in seed1_rows} == {"1000000"}
+    for seed0, seed1 in zip(seed0_rows, seed1_rows, strict=True):
+        fields = set(seed0) | set(seed1)
+        assert all(seed0[field] == seed1[field] for field in fields - ignored)
+
+    config_path = ROOT / (
+        "configs/remote/"
+        "innovation1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_gpu0_20260725.json"
+    )
+    report = remote_readiness_report(config_path)
+    assert report["status"] == "pass", report["errors"]
+    assert report["max_samples_per_class"] == 1_000_000
+
+    generated = ROOT / "configs/remote/generated"
+    run_script = (
+        generated
+        / "run_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725.cmd"
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        generated
+        / "launch_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_path = (
+        generated
+        / "monitor_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725.sh"
+    )
+    monitor_script = monitor_path.read_text(encoding="utf-8")
+    successor_path = generated / "monitor_i1_rtg3a_seed1_after_seed0_20260725.sh"
+    successor_script = successor_path.read_text(encoding="utf-8")
+    combined_cmd = run_script + launch_script
+
+    assert "--seed 1" in run_script
+    assert "--phase rtg3a" in run_script
+    assert '--dataset-cache-root "%CACHE_ROOT%"' in run_script
+    assert "--dataset-cache-chunk-size 1024" in run_script
+    assert "--dataset-cache-workers 1" in run_script
+    assert "cmd.exe /c" in launch_script
+    assert "cmd.exe /k" not in combined_cmd
+    assert "EnableDelayedExpansion" not in combined_cmd
+    assert "!" not in combined_cmd
+    assert RTG3A_SEED0_DECISION in launch_script
+    assert "innovation1_rtg3a_seed1_remote_launch_authorized" in monitor_script
+    assert "checkpoint-verification.local.json" in monitor_script
+    assert "retrieved_waiting_for_visual_qa" in monitor_script
+    assert "--phase rtg3a" in monitor_script
+    assert "visual_qa_passed.marker" in monitor_script
+    assert "scripts/index-results" in monitor_script
+    assert "scripts/check-runtime-spn-skinny-rtg3a-seed1-launch" in successor_script
+    assert "visual_qa_passed.marker" in successor_script
+    assert "tmux new-session" in successor_script
+    assert "lxy-a6000" not in successor_script
+    assert "cmd.exe" not in successor_script
+    subprocess.run(["bash", "-n", str(monitor_path)], check=True)
+    subprocess.run(["bash", "-n", str(successor_path)], check=True)
 
 
 def test_medium_joint_gate_fails_closed_on_duplicate_seed_sources() -> None:

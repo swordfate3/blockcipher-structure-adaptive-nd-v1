@@ -244,6 +244,15 @@ DECISION_LABELS = {
     "innovation1_rtg3a_seed0_launch_evidence_invalid": (
         "SKINNY正式规模seed0的路线、协议、缓存或源码证据无效，修复前禁止SSH"
     ),
+    "innovation1_rtg3a_seed1_remote_launch_authorized": (
+        "SKINNY正式规模seed0的结果、检查点、视觉门和seed等价性全部通过，可启动seed1原样复验"
+    ),
+    "innovation1_rtg3a_seed1_source_not_published": (
+        "SKINNY正式规模seed1已通过本地证据门，但精确源码提交尚未发布，禁止远程启动"
+    ),
+    "innovation1_rtg3a_seed1_launch_evidence_invalid": (
+        "SKINNY正式规模seed1的前置结果、检查点、视觉门或协议等价性无效，禁止远程启动"
+    ),
     "innovation1_rtg3a_skinny_formal_seed0_supported": (
         "SKINNY 1000000/class seed0正确拓扑通过信号与两种控制门，只开放同协议seed1复验"
     ),
@@ -2290,6 +2299,10 @@ def display_name_for_run(run_id: str) -> str:
         "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_launch_gate"
     ):
         return "创新1 RTG3-A：SKINNY 1000000/class seed0远程启动门"
+    if run_id.startswith(
+        "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_launch_gate"
+    ):
+        return "创新1 RTG3-A：SKINNY 1000000/class seed1严格条件发布门"
     if run_id.startswith("i1_rtg3a_skinny64_general_gf2_formal_1000000"):
         return "创新1 RTG3-A：SKINNY-64/64 1000000/class运行时拓扑正式规模复验"
     if run_id.startswith(

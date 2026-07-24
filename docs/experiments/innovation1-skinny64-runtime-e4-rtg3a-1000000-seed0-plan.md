@@ -13,6 +13,7 @@ source      = 131e6387e164fb8679b1bcb9bf46887cf049fca0 (verified origin/main)
 launch gate = pass / innovation1_rtg3a_seed0_remote_launch_authorized
 started     = 2026-07-25 00:42:34 +08:00
 monitor     = local tmux i1_rtg3a_skinny64_formal_monitor
+successor   = conditional seed1 package prepared; local-only watcher waits for full seed0 evidence
 claim scope = single-seed project-formal scale evidence only
 ```
 
@@ -121,7 +122,8 @@ Decisions:
 ```text
 pass:
   decision    = innovation1_rtg3a_skinny_formal_seed0_supported
-  next_action = prepare the identical conditional seed1 plan and publication gate
+  next_action = release the prepared identical seed1 package through its strict
+                local checkpoint, visual-QA and publication gate
 
 hold:
   decision    = innovation1_rtg3a_skinny_formal_not_supported
@@ -136,6 +138,23 @@ protocol fail:
 A seed0 pass is single-seed project-formal evidence. It does not authorize a
 two-seed formal conclusion until the identical seed1 result passes and a joint
 gate is retrieved, validated, indexed and visually checked.
+
+## Prepared Conditional Seed1 Successor
+
+The seed1 matrix, remote configuration, Windows run/launch scripts, result
+monitor and a separate local-only successor watcher are prepared under run id
+`i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725`. Preparation is
+not launch authorization. The successor consumes only local seed0 artifacts
+and cannot contact `lxy-a6000` itself.
+
+It stops without launching when seed0 reports a research hold or protocol
+failure. A supported seed0 must additionally supply exactly three locally
+validated result rows, fifteen ordered history rows, three strictly replayed
+checkpoints, verified-result-branch provenance and
+`visual_qa_passed.marker`. Only then does it generate the seed1 publication
+gate. That gate must also prove seed-only plan equivalence, unchanged protected
+training paths, passing remote readiness and exact source publication before
+it starts the independent seed1 tmux monitor.
 
 ## Required Artifacts
 
