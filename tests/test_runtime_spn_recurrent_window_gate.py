@@ -45,6 +45,20 @@ def _row(seed: int, role: str, auc: float) -> dict[str, object]:
     }
     if role == "corrupted":
         options["topology_corruption_seed"] = 20260724
+    transition_hashes = {
+        "anchor": ("a" * 64, "b" * 64),
+        "candidate": ("a" * 64, "b" * 64),
+        "repeat_last": ("b" * 64, "b" * 64),
+        "corrupted": ("c" * 64, "d" * 64),
+        "no_topology": ("a" * 64, "b" * 64),
+    }[role]
+    window_hash = {
+        "anchor": "1" * 64,
+        "candidate": "1" * 64,
+        "repeat_last": "2" * 64,
+        "corrupted": "3" * 64,
+        "no_topology": "1" * 64,
+    }[role]
     history = [
         {"epoch": float(epoch), "val_auc": auc - (10 - epoch) * 0.001}
         for epoch in range(1, 11)
@@ -73,6 +87,12 @@ def _row(seed: int, role: str, auc: float) -> dict[str, object]:
         "runtime_structure_round_start": 3,
         "runtime_structure_loaded_rounds": 2,
         "runtime_structure_available_rounds": 11,
+        "runtime_structure_descriptor_name": "uKNIT-BC 64-bit transition structure",
+        "runtime_structure_descriptor_sha256": "e" * 64,
+        "runtime_structure_transition_sha256s": transition_hashes,
+        "runtime_structure_window_sha256": window_hash,
+        "runtime_structure_unique_transition_count": len(set(transition_hashes)),
+        "runtime_structure_homogeneous": len(set(transition_hashes)) == 1,
         "metrics": {"auc": auc},
         "history": history,
         "validation": {"samples_per_class": 1024},
@@ -167,6 +187,32 @@ def test_recurrent_window_gate_fails_closed_on_role_protocol_drift() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["role_contracts_match_frozen_plan"] is False
+
+
+def test_recurrent_window_gate_fails_closed_on_runtime_fingerprint_drift() -> None:
+    rows = deepcopy(_passing_rows())
+    candidate = next(
+        row
+        for row in rows
+        if row["seed"] == 1
+        and row["training"]["model_options"]["round_window_mode"]  # type: ignore[index]
+        == "recurrent_window"
+        and row["model"] == "runtime_spn_e4_equivariant_true"
+        and row["training"]["model_options"][  # type: ignore[index]
+            "runtime_structure_window_control"
+        ]
+        == "full"
+    )
+    candidate["runtime_structure_window_sha256"] = "f" * 64
+
+    gate = adjudicate_runtime_spn_recurrent_window(
+        run_id="fingerprint-drift",
+        rows=rows,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["anchor_candidate_structure_equal"] is False
+    assert gate["protocol_checks"]["structure_evidence_seed_invariant"] is False
 
 
 def test_recurrent_window_cli_writes_gate_validation_and_summary(

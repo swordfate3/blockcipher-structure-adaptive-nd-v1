@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from typing import Any, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 
 EXPECTED_SEEDS = (0, 1)
@@ -76,13 +77,94 @@ def adjudicate_runtime_spn_recurrent_window(
         and all(
             row.get("runtime_structure_round_start") == 3
             and row.get("runtime_structure_loaded_rounds") == 2
-            and row.get("runtime_structure_available_rounds", 0) >= 5
+            and _integer_at_least(row.get("runtime_structure_available_rounds"), 5)
             for row in rows
         ),
+        "source_descriptor_identity_preserved": bool(rows)
+        and len(
+            {
+                (
+                    row.get("runtime_structure_descriptor_sha256"),
+                    row.get("runtime_structure_descriptor_name"),
+                )
+                for row in rows
+            }
+        )
+        == 1
+        and all(
+            _is_sha256(row.get("runtime_structure_descriptor_sha256")) for row in rows
+        ),
+        "structure_fingerprints_well_formed": bool(rows)
+        and all(_well_formed_structure_fingerprints(row) for row in rows),
         "role_contracts_match_frozen_plan": complete
         and all(
             _role_contract(grouped[seed][role][0], role)
             for seed in EXPECTED_SEEDS
+            for role in EXPECTED_ROLES
+        ),
+        "candidate_window_is_heterogeneous": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                _integer_at_least(
+                    seed_rows["candidate"].get(
+                        "runtime_structure_unique_transition_count"
+                    ),
+                    2,
+                )
+                and seed_rows["candidate"].get("runtime_structure_homogeneous") is False
+            ),
+        ),
+        "repeat_last_window_is_homogeneous": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                seed_rows["repeat_last"].get(
+                    "runtime_structure_unique_transition_count"
+                )
+                == 1
+                and seed_rows["repeat_last"].get("runtime_structure_homogeneous")
+                is True
+            ),
+        ),
+        "candidate_repeat_last_final_transition_equal": complete
+        and _all_seed_rows(grouped, _candidate_repeat_last_final_equal),
+        "candidate_repeat_last_window_distinct": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                _window_hash(seed_rows["candidate"])
+                != _window_hash(seed_rows["repeat_last"])
+            ),
+        ),
+        "anchor_candidate_structure_equal": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                _structure_identity(seed_rows["anchor"])
+                == _structure_identity(seed_rows["candidate"])
+            ),
+        ),
+        "candidate_no_topology_structure_equal": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                _structure_identity(seed_rows["candidate"])
+                == _structure_identity(seed_rows["no_topology"])
+            ),
+        ),
+        "candidate_corrupted_structure_distinct": complete
+        and _all_seed_rows(
+            grouped,
+            lambda seed_rows: (
+                _window_hash(seed_rows["candidate"])
+                != _window_hash(seed_rows["corrupted"])
+            ),
+        ),
+        "structure_evidence_seed_invariant": complete
+        and all(
+            _structure_identity(grouped[0][role][0])
+            == _structure_identity(grouped[1][role][0])
             for role in EXPECTED_ROLES
         ),
         "ten_epoch_best_checkpoint_integrity": bool(rows)
@@ -335,6 +417,65 @@ def _same_within_seed(
     return True
 
 
+def _all_seed_rows(
+    grouped: dict[int, dict[str, list[dict[str, Any]]]],
+    predicate: Callable[[dict[str, dict[str, Any]]], bool],
+) -> bool:
+    return all(
+        predicate({role: grouped[seed][role][0] for role in EXPECTED_ROLES})
+        for seed in EXPECTED_SEEDS
+    )
+
+
+def _candidate_repeat_last_final_equal(
+    seed_rows: dict[str, dict[str, Any]],
+) -> bool:
+    candidate = seed_rows["candidate"].get("runtime_structure_transition_sha256s")
+    repeated = seed_rows["repeat_last"].get("runtime_structure_transition_sha256s")
+    return bool(
+        isinstance(candidate, (list, tuple))
+        and isinstance(repeated, (list, tuple))
+        and candidate
+        and repeated
+        and candidate[-1] == repeated[-1]
+    )
+
+
+def _structure_identity(row: dict[str, Any]) -> tuple[Any, ...]:
+    transitions = row.get("runtime_structure_transition_sha256s")
+    return (
+        tuple(transitions) if isinstance(transitions, (list, tuple)) else (),
+        _window_hash(row),
+        row.get("runtime_structure_unique_transition_count"),
+        row.get("runtime_structure_homogeneous"),
+    )
+
+
+def _window_hash(row: dict[str, Any]) -> object:
+    return row.get("runtime_structure_window_sha256")
+
+
+def _well_formed_structure_fingerprints(row: dict[str, Any]) -> bool:
+    transitions = row.get("runtime_structure_transition_sha256s")
+    return bool(
+        isinstance(transitions, (list, tuple))
+        and len(transitions) == 2
+        and all(_is_sha256(value) for value in transitions)
+        and _is_sha256(row.get("runtime_structure_window_sha256"))
+        and row.get("runtime_structure_unique_transition_count")
+        == len(set(transitions))
+        and row.get("runtime_structure_homogeneous") is (len(set(transitions)) == 1)
+    )
+
+
+def _is_sha256(value: object) -> bool:
+    return bool(
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
 def _checkpoint_integrity(row: dict[str, Any]) -> bool:
     history = row.get("history")
     training = row.get("training", {})
@@ -397,6 +538,10 @@ def _close(left: object, right: float, tolerance: float = 1e-7) -> bool:
 
 def _at_least(value: float | None, threshold: float) -> bool:
     return value is not None and value >= threshold
+
+
+def _integer_at_least(value: object, threshold: int) -> bool:
+    return type(value) is int and value >= threshold
 
 
 __all__ = [
