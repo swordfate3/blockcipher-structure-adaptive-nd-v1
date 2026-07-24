@@ -22,6 +22,8 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_cross_cipher_zero_step import 
     FROZEN_MODEL_OPTIONS,
 )
 
+ROOT = Path(__file__).resolve().parents[1]
+
 
 def _row(seed: int, role: str, auc: float) -> dict[str, object]:
     source_role, target_mode = {
@@ -274,3 +276,18 @@ def test_x2_plot_uses_plain_language_labels(tmp_path: Path) -> None:
     assert "冻结 GIFT 结构主干，只训练 SKINNY 输出头" in svg
     assert "正确源=GIFT正确拓扑最佳主干" in svg
     assert "全量目标锚点" in svg
+
+
+def test_x2_successor_monitor_waits_for_joint_and_visual_gates() -> None:
+    script = (
+        ROOT
+        / "configs/remote/generated/monitor_i1_runtime_spn_x2_after_rtg2b_20260724.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "innovation1_rtg2b_skinny_scale_two_seed_supported" in script
+    assert 'while [[ ! -f "$SEED1_VISUAL_GATE" ]]' in script
+    assert script.index("seed1_visual_qa_passed") < script.index("x2_started")
+    assert '--dependency-gate "$JOINT_GATE"' in script
+    assert "scripts/index-results" in script
+    assert "visual_qa_pending.marker" in script
+    assert "ssh " not in script

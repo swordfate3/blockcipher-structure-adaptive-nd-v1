@@ -9,6 +9,8 @@ stage       = implementation/readiness preparation only
 run_id      = i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2_seed0_seed1_20260724
 execution   = local diagnostic after RTG2-B two-seed adjudication
 dependency  = RTG2-B seed1 retrieved, validated, visually checked and jointly adjudicated
+monitor     = local tmux i1_runtime_spn_x2_after_rtg2b
+script      = configs/remote/generated/monitor_i1_runtime_spn_x2_after_rtg2b_20260724.sh
 claim scope = small cross-cipher representation diagnostic only
 ```
 
@@ -19,7 +21,8 @@ tests the narrowest remaining explanation: the cipher-name-free backbone may
 be reusable while the final binary output orientation remains target-specific.
 
 X2 must not alter or supervise the running RTG2-B seed1 experiment. Its
-performance run is closed until the RTG2-B two-seed gate exists locally.
+performance run is closed until the RTG2-B two-seed gate exists locally and
+the retrieved seed1 chart has a pixel-inspected `visual_qa_passed.marker`.
 
 ## Research Question
 
