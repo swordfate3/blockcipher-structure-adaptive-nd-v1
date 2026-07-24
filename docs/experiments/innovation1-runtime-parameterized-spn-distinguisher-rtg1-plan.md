@@ -1855,3 +1855,90 @@ fails, stop RTG2-A and audit whether the local margin was sample variance or a
 training-dynamics mismatch. Do not change topology corruption, add DDT/trail
 features, switch to a related-key protocol, increase epochs, or run a broad
 multi-cipher remote matrix as a rescue.
+
+### RTG2-A Implementation And Remote Execution Record
+
+RTG2-A now has a separate fail-closed medium-scale adjudicator. The historical
+T2-C gate remains unchanged and continues to require its original local
+`2048/class` rows. The new gate additionally locks the exact remote row counts,
+batch size, training-evaluation cadence, cache root, cache chunk size and cache
+worker count so that a medium result cannot be accepted under a silently
+changed training protocol.
+
+Frozen matrices:
+
+```text
+configs/experiment/innovation1/innovation1_spn_skinny64_runtime_e4_medium_rtg2a_65536_seed0.csv
+configs/experiment/innovation1/innovation1_spn_skinny64_runtime_e4_medium_rtg2a_65536_seed1.csv
+```
+
+Remote run ids:
+
+```text
+seed0 = i1_rtg2a_skinny64_general_gf2_medium_65536_seed0_20260724
+seed1 = i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724
+```
+
+The seed1 matrix is prepared for reproducibility but is not independently
+authorized. The launcher verifies the archived seed0 `gate.json` and refuses
+seed1 unless `status == pass`. The local tmux monitor retrieves and verifies the
+seed0 result branch, re-adjudicates it locally, refreshes the result index and
+only then conditionally launches seed1 from the same source commit. A seed0
+`hold` or `fail` terminates the ladder without a seed1 rescue run.
+
+Remote assets:
+
+```text
+configs/remote/innovation1_rtg2a_skinny64_general_gf2_medium_65536_seed{0,1}_gpu0_20260724.json
+configs/remote/generated/run_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.cmd
+configs/remote/generated/launch_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.cmd
+configs/remote/generated/monitor_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.sh
+```
+
+Execution invariants:
+
+```text
+train rows              = 131072 total = 65536/class
+validation rows         = 65536 total = 32768/class
+input                    = 4 independent ciphertext pairs = 512 raw bits/sample
+model rows               = correct / corrupted / no topology
+parameter count          = 442466 per row
+epochs / batch           = 5 / 64
+optimizer                = Adam, lr 1e-4, MSE, weight decay 1e-5
+checkpoint               = best validation AUC
+cache                    = features.npy + labels.npy + metadata.json
+cache generation         = 1024 rows/chunk, 1 worker, parameter-matched reuse
+negative                 = encrypted random plaintexts
+source                   = clean run-owned clone at the pushed commit
+remote storage           = G:\\lxy only
+Windows launch           = cmd.exe /c through a short scheduled wrapper
+retrieval                = verified result branch plus SHA256SUMS validation
+plot                     = deferred to verified local retrieval
+visual completion        = visual-qa-redraw inspection required before report
+```
+
+Readiness evidence completed before launch:
+
+```text
+both remote JSON configs: check-remote-readiness status = pass
+plan rows: 3 per seed
+max samples_per_class: 65536
+medium-scale disk-cache invariant: checked
+RTG2-A plus historical SKINNY tests: 13 passed
+Windows monitor shell syntax: pass
+git diff --check: pass
+```
+
+The final RTG2-A chart template was rendered to pixels for both a clear-pass
+fixture and a near-threshold hold fixture. Titles, Chinese text, legends, bar
+labels, axes and captions were not clipped or overlapping. The AUC-margin panel
+uses a dynamic range so a sub-`0.01` margin remains legible. This template check
+does not replace the required inspection of each retrieved result image.
+
+Current state at asset freeze:
+
+```text
+seed0 = prepared and readiness-passed; launch requires the scoped pushed commit
+seed1 = prepared but conditionally locked behind verified seed0 pass
+result = none yet; no AUC claim is made by readiness
+```
