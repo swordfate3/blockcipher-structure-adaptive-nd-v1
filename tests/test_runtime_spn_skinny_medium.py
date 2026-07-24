@@ -17,6 +17,7 @@ from blockcipher_nd.cli.gate_runtime_spn_skinny_medium import (
 )
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_attribution import MODELS
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
+    RTG2B_RUN_STEM,
     adjudicate_runtime_spn_skinny_medium,
     adjudicate_runtime_spn_skinny_medium_joint,
 )
@@ -557,6 +558,20 @@ def _seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
     )
 
 
+def _rtg2b_seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
+    aucs = (
+        {"true": 0.64, "corrupted": 0.60, "independent": 0.51}
+        if supported
+        else {"true": 0.552, "corrupted": 0.550, "independent": 0.51}
+    )
+    return adjudicate_runtime_spn_skinny_medium(
+        run_id=f"{RTG2B_RUN_STEM}_seed{seed}_20260724",
+        rows=_rows(seed, aucs, samples_per_class=262_144),
+        expected_seed=seed,
+        phase="rtg2b",
+    )
+
+
 def test_medium_joint_gate_requires_both_seeds_to_pass() -> None:
     gate = adjudicate_runtime_spn_skinny_medium_joint(
         run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
@@ -582,6 +597,36 @@ def test_medium_joint_gate_holds_when_seed1_is_not_supported() -> None:
     )
     assert all(gate["protocol_checks"].values())
     assert gate["research_checks"]["both_medium_seeds_supported"] is False
+
+
+def test_rtg2b_joint_gate_requires_two_scaled_seed_passes() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RTG2B_RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_rtg2b_seed_gate(0), _rtg2b_seed_gate(1)],
+        phase="rtg2b",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == ("innovation1_rtg2b_skinny_scale_two_seed_supported")
+    assert gate["phase"] == "rtg2b"
+    assert gate["samples_per_class"] == 262_144
+    assert gate["protocol_checks"]["source_run_ids_match_frozen_rtg2b"] is True
+    assert all(gate["protocol_checks"].values())
+    assert "target-head cross-cipher adaptation" in gate["next_action"]
+    assert any("1000000/class" in action for action in gate["blocked_actions"])
+
+
+def test_rtg2b_joint_gate_rejects_rtg2a_sources() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RTG2B_RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_seed_gate(0), _seed_gate(1)],
+        phase="rtg2b",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == ("innovation1_rtg2b_skinny_scale_joint_protocol_invalid")
+    assert gate["protocol_checks"]["source_run_ids_match_frozen_rtg2b"] is False
+    assert gate["protocol_checks"]["source_phases_match_joint_phase"] is False
 
 
 def test_medium_joint_gate_fails_closed_on_duplicate_seed_sources() -> None:
@@ -672,6 +717,43 @@ def test_medium_joint_gate_cli_writes_hashed_source_evidence(tmp_path: Path) -> 
     assert all(len(source["sha256"]) == 64 for source in validation["sources"])
     assert summary["training_performed"] is False
     assert (output_root / "progress.jsonl").is_file()
+
+
+def test_rtg2b_joint_gate_cli_writes_scaled_synthesis(tmp_path: Path) -> None:
+    source_paths = []
+    for seed in (0, 1):
+        path = tmp_path / f"seed{seed}" / "gate.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(_rtg2b_seed_gate(seed), sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        source_paths.append(path)
+    output_root = tmp_path / "joint"
+
+    status = joint_gate_main(
+        [
+            "--run-id",
+            f"{RTG2B_RUN_STEM}_joint_seed0_seed1_20260724",
+            "--seed0-gate",
+            str(source_paths[0]),
+            "--seed1-gate",
+            str(source_paths[1]),
+            "--phase",
+            "rtg2b",
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    summary = json.loads((output_root / "summary.json").read_text(encoding="utf-8"))
+    assert gate["status"] == "pass"
+    assert gate["phase"] == "rtg2b"
+    assert summary["task"] == (
+        "innovation1_rtg2b_skinny_general_gf2_scale_two_seed_synthesis"
+    )
 
 
 def test_medium_plans_change_only_scale_seed_and_descriptive_fields() -> None:

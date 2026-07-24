@@ -14,12 +14,13 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Jointly adjudicate the two RTG2-A SKINNY medium seed gates."
+        description="Jointly adjudicate two SKINNY runtime-topology seed gates."
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--seed0-gate", required=True, type=Path)
     parser.add_argument("--seed1-gate", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--phase", choices=("rtg2a", "rtg2b"), default="rtg2a")
     parser.add_argument("--progress", type=Path, default=None)
     return parser.parse_args(argv)
 
@@ -31,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     gate = adjudicate_runtime_spn_skinny_medium_joint(
         run_id=args.run_id,
         gates=gates,
+        phase=args.phase,
     )
     source_evidence = [
         {
@@ -47,7 +49,11 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": "innovation1_rtg2a_skinny_general_gf2_medium_two_seed_synthesis",
+        "task": (
+            "innovation1_rtg2a_skinny_general_gf2_medium_two_seed_synthesis"
+            if args.phase == "rtg2a"
+            else "innovation1_rtg2b_skinny_general_gf2_scale_two_seed_synthesis"
+        ),
         "training_performed": False,
         "source_evidence": source_evidence,
         "gate": gate,

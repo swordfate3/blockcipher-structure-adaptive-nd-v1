@@ -12,6 +12,7 @@ VALIDATION_ROWS = 65_536
 SIGNAL_FLOOR = 0.55
 CONTROL_MARGIN = 0.005
 RUN_STEM = "i1_rtg2a_skinny64_general_gf2_medium_65536"
+RTG2B_RUN_STEM = "i1_rtg2b_skinny64_general_gf2_scale_262144"
 HISTORY_EPOCHS = 5
 RTG2B_SAMPLES_PER_CLASS = 262_144
 RTG2B_TRAIN_ROWS = 524_288
@@ -365,7 +366,21 @@ def adjudicate_runtime_spn_skinny_medium_joint(
     *,
     run_id: str,
     gates: list[dict[str, Any]],
+    phase: str = "rtg2a",
 ) -> dict[str, Any]:
+    if phase not in {"rtg2a", "rtg2b"}:
+        raise ValueError("SKINNY joint scale phase must be rtg2a or rtg2b")
+    if phase == "rtg2a":
+        run_stem = RUN_STEM
+        samples_per_class = SAMPLES_PER_CLASS
+        decision_stem = "innovation1_rtg2a_skinny_medium"
+        run_id_check = "source_run_ids_match_frozen_rtg2a"
+    else:
+        run_stem = RTG2B_RUN_STEM
+        samples_per_class = RTG2B_SAMPLES_PER_CLASS
+        decision_stem = "innovation1_rtg2b_skinny_scale"
+        run_id_check = "source_run_ids_match_frozen_rtg2b"
+
     by_seed = {
         int(gate.get("seed", -1)): gate
         for gate in gates
@@ -375,9 +390,9 @@ def adjudicate_runtime_spn_skinny_medium_joint(
 
     expected_decisions = {
         seed: {
-            "pass": f"innovation1_rtg2a_skinny_medium_seed{seed}_supported",
-            "hold": "innovation1_rtg2a_skinny_medium_not_supported",
-            "fail": "innovation1_rtg2a_skinny_medium_protocol_invalid",
+            "pass": f"{decision_stem}_seed{seed}_supported",
+            "hold": f"{decision_stem}_not_supported",
+            "fail": f"{decision_stem}_protocol_invalid",
         }
         for seed in (0, 1)
     }
@@ -386,11 +401,13 @@ def adjudicate_runtime_spn_skinny_medium_joint(
     }
     protocol_checks = {
         "two_distinct_seed_gates_complete": complete,
-        "source_run_ids_match_frozen_rtg2a": complete
+        run_id_check: complete
         and all(
-            str(by_seed[seed].get("run_id", "")).startswith(f"{RUN_STEM}_seed{seed}_")
+            str(by_seed[seed].get("run_id", "")).startswith(f"{run_stem}_seed{seed}_")
             for seed in (0, 1)
         ),
+        "source_phases_match_joint_phase": complete
+        and all(by_seed[seed].get("phase") == phase for seed in (0, 1)),
         "source_protocol_checks_passed": complete
         and all(
             isinstance(by_seed[seed].get("protocol_checks"), dict)
@@ -431,23 +448,30 @@ def adjudicate_runtime_spn_skinny_medium_joint(
 
     if not all(protocol_checks.values()):
         status = "fail"
-        decision = "innovation1_rtg2a_skinny_medium_joint_protocol_invalid"
+        decision = f"{decision_stem}_joint_protocol_invalid"
         next_action = (
             "repair only the missing or inconsistent seed gate evidence; do not "
             "interpret the pair or prepare a larger run"
         )
     elif all(research_checks.values()):
         status = "pass"
-        decision = "innovation1_rtg2a_skinny_medium_two_seed_supported"
-        next_action = (
-            "freeze an RTG2-B 262144/class seed0 plan that changes only sample scale, "
-            "then pass remote disk-cache readiness before launch"
-        )
+        decision = f"{decision_stem}_two_seed_supported"
+        if phase == "rtg2a":
+            next_action = (
+                "freeze an RTG2-B 262144/class seed0 plan that changes only sample scale, "
+                "then pass remote disk-cache readiness before launch"
+            )
+        else:
+            next_action = (
+                "run a separate route-decision audit comparing formal SKINNY scale with "
+                "frozen-backbone target-head cross-cipher adaptation; do not launch either "
+                "route automatically"
+            )
     else:
         status = "hold"
-        decision = "innovation1_rtg2a_skinny_medium_two_seed_not_supported"
+        decision = f"{decision_stem}_two_seed_not_supported"
         next_action = (
-            "stop RTG2-A scale-up and audit sample variance versus training dynamics "
+            f"stop {phase.upper()} scale-up and audit sample variance versus training dynamics "
             "without changing the frozen model or data protocol"
         )
 
@@ -465,6 +489,8 @@ def adjudicate_runtime_spn_skinny_medium_joint(
     ]
     return {
         "run_id": run_id,
+        "phase": phase,
+        "samples_per_class": samples_per_class,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -475,7 +501,7 @@ def adjudicate_runtime_spn_skinny_medium_joint(
         },
         "sources": source_summaries,
         "claim_scope": (
-            "SKINNY-64/64 r7 two-seed remote medium 65536/class general-GF(2) "
+            f"SKINNY-64/64 r7 two-seed remote medium {samples_per_class}/class general-GF(2) "
             "runtime-topology replication synthesis; architecture/protocol diagnostic "
             "only, not formal scale, paper reproduction, attack, SOTA, breakthrough, "
             "or universal-SPN evidence"
@@ -483,7 +509,11 @@ def adjudicate_runtime_spn_skinny_medium_joint(
         "next_action": next_action,
         "blocked_actions": [
             "claim formal, paper-scale, attack, SOTA, breakthrough, or universal-SPN evidence",
-            "launch 262144/class unless this joint gate passes",
+            (
+                "launch 262144/class unless this joint gate passes"
+                if phase == "rtg2a"
+                else "launch 1000000/class without a separate formal-scale plan and gate"
+            ),
             "change difference, pairs, epochs, negatives, topology corruption, or model geometry",
             "add DDT or trail features, switch to related keys, or launch a broad cipher matrix",
         ],
@@ -494,6 +524,7 @@ __all__ = [
     "CONTROL_MARGIN",
     "HISTORY_EPOCHS",
     "RUN_STEM",
+    "RTG2B_RUN_STEM",
     "SAMPLES_PER_CLASS",
     "SIGNAL_FLOOR",
     "TRAIN_ROWS",

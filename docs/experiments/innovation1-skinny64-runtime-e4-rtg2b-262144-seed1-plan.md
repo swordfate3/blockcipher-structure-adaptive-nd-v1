@@ -136,6 +136,13 @@ retrieval, redraw the chart, run `visual-qa-redraw`, write
 `visual_qa_passed.marker`, refresh both recent-result indexes, and update the
 seed0 and seed1 experiment records with the two-seed recommendation.
 
+The seed1 watcher must then run the shared joint gate with `--phase rtg2b`,
+write the derived synthesis under
+`outputs/remote_results_incomplete/i1_rtg2b_skinny64_general_gf2_scale_262144_joint_seed0_seed1_20260724/`,
+and refresh the recent-result index again. The joint gate must reject RTG2-A
+source gates, duplicate seeds, mismatched phases, altered thresholds and
+non-finite metrics.
+
 ## Blocked Routes
 
 Do not launch seed1 before seed0 passes. Do not rescue a weak result by changing

@@ -3,6 +3,8 @@ set -u
 
 REMOTE="lxy-a6000"
 RUN_ID="i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724"
+SEED0_ID="i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724"
+JOINT_ID="i1_rtg2b_skinny64_general_gf2_scale_262144_joint_seed0_seed1_20260724"
 RUNS_ROOT="G:/lxy/blockcipher-structure-adaptive-nd-runs"
 REMOTE_LAUNCH_ROOT="G:\\lxy\\launcher-clones\\${RUN_ID}"
 REPO_URL="git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git"
@@ -10,6 +12,7 @@ LAUNCH_SCRIPT="configs\\remote\\generated\\launch_i1_rtg2b_skinny64_general_gf2_
 MONITOR_ROOT="outputs/remote_results_incomplete/${RUN_ID}_monitor"
 RESULT_ROOT="outputs/remote_results"
 DESTINATION="${RESULT_ROOT}/${RUN_ID}"
+JOINT_DESTINATION="outputs/remote_results_incomplete/${JOINT_ID}"
 SOURCE_COMMIT="${1:-}"
 LAUNCH_GATE_PATH="${2:-outputs/local_readiness/i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_launch_gate_20260724/gate.json}"
 LAUNCHED_MARKER="${MONITOR_ROOT}/remote_launch_completed.marker"
@@ -114,7 +117,26 @@ retrieve_and_readjudicate() {
   return 0
 }
 
+adjudicate_joint() {
+  if [[ -e "${JOINT_DESTINATION}" ]]; then
+    [[ -f "${JOINT_DESTINATION}/gate.json" ]] || return 1
+    echo "$(timestamp) joint_destination_reused" >> "${MONITOR_ROOT}/monitor.log"
+    return 0
+  fi
+  UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-runtime-spn-skinny-medium-joint \
+    --run-id "${JOINT_ID}" \
+    --seed0-gate "${RESULT_ROOT}/${SEED0_ID}/gate.json" \
+    --seed1-gate "${DESTINATION}/gate.json" \
+    --phase rtg2b \
+    --output-root "${JOINT_DESTINATION}" \
+    >> "${MONITOR_ROOT}/joint.log" 2>> "${MONITOR_ROOT}/joint_stderr.log" || return 1
+  UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
+    >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || return 1
+}
+
 if [[ -f "${DESTINATION}/gate.json" ]]; then
+  adjudicate_joint || exit 5
+  touch "${MONITOR_ROOT}/two_seed_complete.marker"
   echo "$(timestamp) result_already_retrieved" >> "${MONITOR_ROOT}/monitor.log"
   exit 0
 fi
@@ -132,8 +154,10 @@ while true; do
   sync_logs
   if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
     retrieve_and_readjudicate || exit 2
+    adjudicate_joint || exit 5
     touch "${MONITOR_ROOT}/result_retrieved.marker"
-    echo "$(timestamp) verified_result_retrieved_readjudicated_and_indexed" >> "${MONITOR_ROOT}/monitor.log"
+    touch "${MONITOR_ROOT}/two_seed_complete.marker"
+    echo "$(timestamp) verified_result_retrieved_readjudicated_joint_adjudicated_and_indexed" >> "${MONITOR_ROOT}/monitor.log"
     exit 0
   fi
   if compgen -G "${MONITOR_ROOT}/${RUN_ID}/logs/*failed.marker" > /dev/null; then
