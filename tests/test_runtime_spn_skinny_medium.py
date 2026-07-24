@@ -7,12 +7,15 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.gate_runtime_spn_skinny_medium_joint import (
     main as joint_gate_main,
 )
 from blockcipher_nd.cli.gate_runtime_spn_skinny_medium import (
+    _verify_checkpoint_payloads,
+    main as single_gate_main,
     render_skinny_medium_svg,
 )
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_attribution import MODELS
@@ -149,6 +152,112 @@ def test_medium_seed0_pass_authorizes_only_identical_seed1() -> None:
         "first_to_best_val_auc_gain": pytest.approx(0.04),
         "best_to_final_val_auc_change": pytest.approx(0.0),
     }
+
+
+def test_single_gate_can_read_immutable_source_and_write_local_outputs(
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "remote_archive"
+    output_root = tmp_path / "local_readjudication"
+    source_root.mkdir()
+    results_path = source_root / "results.jsonl"
+    results_path.write_text(
+        "\n".join(
+            json.dumps(row, ensure_ascii=False)
+            for row in _rows(
+                0,
+                {"true": 0.61, "corrupted": 0.56, "independent": 0.53},
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    source_before = {
+        path.relative_to(source_root): path.read_bytes()
+        for path in source_root.rglob("*")
+        if path.is_file()
+    }
+
+    exit_code = single_gate_main(
+        [
+            "--run-id",
+            "immutable-source",
+            "--run-root",
+            str(source_root),
+            "--output-root",
+            str(output_root),
+            "--seed",
+            "0",
+            "--no-plot",
+        ]
+    )
+
+    source_after = {
+        path.relative_to(source_root): path.read_bytes()
+        for path in source_root.rglob("*")
+        if path.is_file()
+    }
+    assert exit_code == 0
+    assert source_after == source_before
+    assert (output_root / "gate.json").is_file()
+    assert (output_root / "summary.json").is_file()
+    assert (output_root / "validation.json").is_file()
+    assert (output_root / "history.csv").is_file()
+    assert (output_root / "progress.jsonl").is_file()
+
+
+def test_retrieved_checkpoints_strictly_replay_result_rows(tmp_path: Path) -> None:
+    checkpoint_dir = tmp_path / "checkpoints"
+    checkpoint_dir.mkdir()
+    rows = _rows(
+        1,
+        {"true": 0.61, "corrupted": 0.56, "independent": 0.53},
+        samples_per_class=262_144,
+    )
+    for index, row in enumerate(rows, start=1):
+        filename = f"row{index:04d}_{row['model']}_seed1.pt"
+        row["training"]["checkpoint_output"] = f"G:\\lxy\\runs\\{filename}"
+        row["training"].update(
+            {
+                "device": "cuda",
+                "lr_scheduler": "none",
+                "seed": 1,
+            }
+        )
+        model = build_model(
+            row["model"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=row["training"]["model_options"],
+        )
+        torch.save(
+            {
+                "state_dict": model.state_dict(),
+                "history": row["history"],
+                "final_metrics": row["metrics"],
+                "metadata": row["training"],
+            },
+            checkpoint_dir / filename,
+        )
+
+    report = _verify_checkpoint_payloads(rows, checkpoint_dir)
+
+    assert report["status"] == "pass"
+    assert report["file_set_exact"] is True
+    assert len(report["entries"]) == 3
+    assert all(all(entry["checks"].values()) for entry in report["entries"])
+
+    payload_path = checkpoint_dir / report["actual_files"][0]
+    payload = torch.load(payload_path, map_location="cpu", weights_only=True)
+    payload["final_metrics"]["auc"] = 0.5
+    torch.save(payload, payload_path)
+
+    failed = _verify_checkpoint_payloads(rows, checkpoint_dir)
+
+    assert failed["status"] == "fail"
+    assert any("final_metrics_exact" in error for error in failed["errors"])
 
 
 def test_medium_seed0_hold_blocks_seed1_and_larger_scale() -> None:

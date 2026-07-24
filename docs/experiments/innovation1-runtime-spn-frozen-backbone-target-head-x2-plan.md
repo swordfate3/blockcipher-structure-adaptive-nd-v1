@@ -5,13 +5,17 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = implementation/readiness preparation only
+stage       = completed local diagnostic
 run_id      = i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2_seed0_seed1_20260724
 execution   = local diagnostic after RTG2-B two-seed adjudication
 dependency  = RTG2-B seed1 retrieved, validated, visually checked and jointly adjudicated
-monitor     = local tmux i1_runtime_spn_x2_after_rtg2b
+result      = pass / runtime_spn_frozen_backbone_target_head_supported
 script      = configs/remote/generated/monitor_i1_runtime_spn_x2_after_rtg2b_20260724.sh
 claim scope = small cross-cipher representation diagnostic only
+started     = 2026-07-24 23:54:01 +08:00
+completed   = 2026-07-24 23:55:23 +08:00
+visual QA   = pass / 2304x1308 rendered-pixel inspection
+index       = outputs/00_RECENT_RESULTS.md entry 001 at completion
 ```
 
 X1 proved that a GIFT-trained Runtime-E4 checkpoint reacts to a new SKINNY
@@ -23,6 +27,60 @@ be reusable while the final binary output orientation remains target-specific.
 X2 must not alter or supervise the running RTG2-B seed1 experiment. Its
 performance run is closed until the RTG2-B two-seed gate exists locally and
 the retrieved seed1 chart has a pixel-inspected `visual_qa_passed.marker`.
+
+## Completed Result
+
+| Seed | Correct source + correct target | Corrupted source | Corrupted target | Random frozen backbone | Full-target anchor |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.552013397 | 0.537303925 | 0.523563862 | 0.527775764 | 0.612733364 |
+| 1 | 0.598568439 | 0.569044113 | 0.523379803 | 0.542519569 | 0.614543915 |
+
+Candidate attribution margins:
+
+```text
+seed0 candidate-corrupted-source = +0.014709473
+seed0 candidate-corrupted-target = +0.028449535
+seed0 candidate-random-backbone  = +0.024237633
+
+seed1 candidate-corrupted-source = +0.029524326
+seed1 candidate-corrupted-target = +0.075188637
+seed1 candidate-random-backbone  = +0.056048870
+```
+
+All eight rows, forty epoch histories, eight best checkpoints, data and source
+hashes, strict state-dict loads, parameter ownership, frozen-backbone hashes,
+classifier updates, and best-checkpoint replays passed validation. Both seeds
+therefore pass the preregistered `AUC >= 0.55` and `+0.005` attribution gates.
+
+The supported claim is narrow: a GIFT-trained Runtime-E4 backbone retains
+SKINNY-useful information after only the SKINNY classifier is retrained, and
+the result depends on both the source and target topology. It does not match
+the same-data end-to-end SKINNY anchors: the deficits are `-0.060720` for
+seed0 and `-0.015975` for seed1. Seed0 is also only `+0.002013` above the
+absolute AUC gate, so this remains a small, fragile transfer diagnostic rather
+than evidence for universal or scale-ready adaptation.
+
+## Recommended Next Action
+
+Run a document-only route-decision audit before assigning another training
+slot. The exact unresolved comparison is whether the next evidence budget is
+better spent on:
+
+```text
+A. formal SKINNY confirmation at >=1000000/class with multiple seeds,
+   anchored to the completed RTG2-B 262144/class correct/corrupted/no-topology
+   panel; or
+B. medium frozen-backbone target-head adaptation, anchored to this X2 panel
+   and its same-data end-to-end SKINNY controls.
+```
+
+The audit must compare evidence gain, compute cost, control completeness, and
+thesis relevance. X2 alone does not authorize B: its seed0 absolute margin is
+fragile and both seeds remain below end-to-end target training. RTG2-B has the
+stronger present evidence for A, but the route decision must explicitly weigh
+formal within-cipher confirmation against the cross-cipher adaptation claim.
+Do not mechanically enlarge X2, unfreeze its backbone, or launch either route
+until that decision is recorded in a separate experiment plan.
 
 ## Research Question
 

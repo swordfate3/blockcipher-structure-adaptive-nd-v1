@@ -13,6 +13,7 @@ MONITOR_ROOT="outputs/remote_results_incomplete/${RUN_ID}_monitor"
 RESULT_ROOT="outputs/remote_results"
 DESTINATION="${RESULT_ROOT}/${RUN_ID}"
 JOINT_DESTINATION="outputs/remote_results_incomplete/${JOINT_ID}"
+LOCAL_READJUDICATION_ROOT="${MONITOR_ROOT}/local_readjudication"
 SOURCE_COMMIT="${1:-}"
 LAUNCH_GATE_PATH="${2:-outputs/local_readiness/i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_launch_gate_20260724/gate.json}"
 LAUNCHED_MARKER="${MONITOR_ROOT}/remote_launch_completed.marker"
@@ -94,6 +95,8 @@ retrieve_and_readjudicate() {
     sed 's/\r$//' SHA256SUMS | sha256sum -c -
   ) >> "${MONITOR_ROOT}/sha256.log" 2>> "${MONITOR_ROOT}/sha256_stderr.log" || return 1
   cp -a "${staging}/${RUN_ID}" "${DESTINATION}" || return 1
+  scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/checkpoints" "${DESTINATION}/" \
+    >> "${MONITOR_ROOT}/scp.log" 2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
   touch "${DESTINATION}/retrieved_from_verified_result_branch.marker"
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/validate-results \
     --plan "${DESTINATION}/plan.csv" \
@@ -105,12 +108,20 @@ retrieve_and_readjudicate() {
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-runtime-spn-skinny-medium \
     --run-id "${RUN_ID}" \
     --run-root "${DESTINATION}" \
+    --output-root "${LOCAL_READJUDICATION_ROOT}" \
+    --checkpoint-dir "${DESTINATION}/checkpoints" \
     --seed 1 \
     --phase rtg2b \
-    --progress "${DESTINATION}/progress.jsonl" \
+    --progress "${LOCAL_READJUDICATION_ROOT}/progress.jsonl" \
     >> "${MONITOR_ROOT}/readjudication.log" \
     2>> "${MONITOR_ROOT}/readjudication_stderr.log" || true
-  [[ -f "${DESTINATION}/gate.json" ]] || return 1
+  [[ -f "${LOCAL_READJUDICATION_ROOT}/gate.json" ]] || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/gate.json" "${DESTINATION}/gate.local.json" || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/summary.json" "${DESTINATION}/summary.local.json" || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/validation.json" "${DESTINATION}/validation.gate.local.json" || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/history.csv" "${DESTINATION}/history.local.csv" || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/curves.svg" "${DESTINATION}/curves.svg" || return 1
+  cp "${LOCAL_READJUDICATION_ROOT}/checkpoint-verification.json" "${DESTINATION}/checkpoint-verification.local.json" || return 1
   touch "${DESTINATION}/visual_qa_pending.marker"
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/index-results \
     >> "${MONITOR_ROOT}/index.log" 2>> "${MONITOR_ROOT}/index_stderr.log" || return 1
@@ -125,8 +136,8 @@ adjudicate_joint() {
   fi
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-runtime-spn-skinny-medium-joint \
     --run-id "${JOINT_ID}" \
-    --seed0-gate "${RESULT_ROOT}/${SEED0_ID}/gate.json" \
-    --seed1-gate "${DESTINATION}/gate.json" \
+    --seed0-gate "${RESULT_ROOT}/${SEED0_ID}/gate.local.json" \
+    --seed1-gate "${DESTINATION}/gate.local.json" \
     --phase rtg2b \
     --output-root "${JOINT_DESTINATION}" \
     >> "${MONITOR_ROOT}/joint.log" 2>> "${MONITOR_ROOT}/joint_stderr.log" || return 1

@@ -5,7 +5,7 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = running remotely; bounded startup evidence verified
+stage       = completed; verified-branch retrieval, immutable replay and visual QA passed
 run_id      = i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724
 execution   = remote lxy-a6000 only
 dependency  = satisfied by exact plan-aligned RTG2-B seed0 pass
@@ -13,7 +13,11 @@ seed0 gate  = pass / innovation1_rtg2b_skinny_scale_seed0_supported
 launch gate = pass / innovation1_rtg2b_seed1_remote_launch_authorized
 source      = de159f5fb7e989eb4d49da9d350f0497068c361c (published origin/main)
 started     = 2026-07-24 22:12:20 +08:00
+retrieved   = 2026-07-24 23:38:15 +08:00
 monitor     = local tmux i1_rtg2b_skinny64_seed1_scale_monitor
+result gate = pass / innovation1_rtg2b_skinny_scale_seed1_supported
+joint gate  = pass / innovation1_rtg2b_skinny_scale_two_seed_supported
+visual QA   = pass / visual-qa-redraw / 2304x1188 rendered pixels
 claim scope = medium architecture/protocol diagnostic only
 ```
 
@@ -26,7 +30,8 @@ seed1 protocol. Before remote contact, the gate was rerun against the final
 pushed source commit so the launch SHA includes the completed seed0 result
 record. The watcher then observed the exact remote source revision, readiness
 `status=pass`, the expected three-row plan and the remote `started.marker`
-before writing its local launch marker. No seed1 result exists yet.
+before writing its local launch marker. The run then completed all three models,
+pushed a verified result branch, and was retrieved and locally re-adjudicated.
 
 Startup evidence is synchronized under:
 
@@ -34,6 +39,74 @@ Startup evidence is synchronized under:
 outputs/remote_results_incomplete/
   i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724_monitor/
 ```
+
+## Completed Result And Joint Decision
+
+The exact three-row result is:
+
+| Role | Best validation AUC | Best epoch | Final epoch AUC |
+| --- | ---: | ---: | ---: |
+| correct general-GF(2) topology | 0.647782881 | 5 | 0.647782881 |
+| deterministic corrupted topology | 0.602584307 | 3 | 0.601551883 |
+| no linear topology | 0.513038491 | 5 | 0.513038491 |
+
+Frozen margins:
+
+```text
+correct - corrupted = +0.045198574
+correct - no topology = +0.134744390
+```
+
+All research gates passed. Local validation found exactly three result rows and
+15 history rows with no missing, unexpected, duplicate or mismatched plan
+keys. The remote archive's `SHA256SUMS` was verified after CR stripping. A
+retrieval audit found that the historical watcher had then overwritten four
+manifest-owned files during local re-adjudication. Both seed archives were
+restored byte-for-byte from their already verified staging copies, and the
+workflow was repaired so local gate, summary, validation, history, progress and
+chart files are written separately as local evidence. Both restored archives
+now pass every original SHA-256 entry.
+
+The three seed1 checkpoint files were separately retrieved from the completed
+`G:\lxy` run. Each payload strictly loaded into its corresponding Runtime-E4
+model, retained `442466` parameters, and matched the result row's complete
+history, final metrics, core training metadata, selected best epoch and best
+validation AUC. The strengthened local gate therefore adds and passes:
+
+```text
+retrieved_checkpoint_payloads_match_results = true
+```
+
+The chart was rendered with Inkscape at `2304x1188` and inspected through
+`visual-qa-redraw`. Chinese glyphs, titles, conclusion, axes, thresholds,
+legends, values, spacing and export bounds had no overlap, clipping, ambiguity
+or unreadable content. `visual_qa_passed.marker` released the preregistered X2
+successor at `2026-07-24 23:54:01 +08:00`.
+
+The strengthened two-seed synthesis remains:
+
+| Seed | Correct | Corrupted | No topology | Correct - corrupted | Correct - no topology |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.649229395 | 0.603561698 | 0.510189938 | +0.045667696 | +0.139039457 |
+| 1 | 0.647782881 | 0.602584307 | 0.513038491 | +0.045198574 | +0.134744390 |
+
+```text
+status      = pass
+decision    = innovation1_rtg2b_skinny_scale_two_seed_supported
+next_action = X2 later passed; compare adaptation against separately planned
+              formal SKINNY scale in a route-decision audit
+```
+
+This establishes replicated medium-scale architecture/protocol evidence for
+runtime general-GF(2) topology under SKINNY-64/64 r7. It does not establish
+formal scale, paper reproduction, an attack, SOTA, a breakthrough or a
+universal-SPN result, and it does not authorize `1000000/class` automatically.
+
+The released X2 successor completed at `2026-07-24 23:55:23 +08:00` and passed
+its two-seed source-topology, target-topology and random-backbone controls. It
+remains a small diagnostic below the same-data end-to-end SKINNY anchors, so
+the combined RTG2-B/X2 evidence opens a route audit rather than an automatic
+medium adaptation run or formal-scale launch.
 
 ## Research Question
 

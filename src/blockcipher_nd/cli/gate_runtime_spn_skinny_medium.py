@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import os
 import tempfile
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
+import torch
+
+from blockcipher_nd.registry.model_factory import build_model
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
     adjudicate_runtime_spn_skinny_medium,
 )
@@ -21,7 +25,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-root", required=True, type=Path)
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Directory for local adjudication artifacts. Defaults to RUN_ROOT for "
+            "backward compatibility; use a separate directory for immutable remote archives."
+        ),
+    )
     parser.add_argument("--seed", required=True, type=int, choices=(0, 1))
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Optional retrieved checkpoint directory. When supplied, all three "
+            "checkpoint payloads must strictly replay the result rows."
+        ),
+    )
     parser.add_argument(
         "--phase",
         choices=("rtg2a", "rtg2b"),
@@ -44,6 +66,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    output_root = args.output_root or args.run_root
+    output_root.mkdir(parents=True, exist_ok=True)
     results_path = args.run_root / "results.jsonl"
     rows = _read_jsonl(results_path)
     gate = adjudicate_runtime_spn_skinny_medium(
@@ -52,6 +76,28 @@ def main(argv: list[str] | None = None) -> int:
         expected_seed=args.seed,
         phase=args.phase,
     )
+    checkpoint_verification = None
+    if args.checkpoint_dir is not None:
+        checkpoint_verification = _verify_checkpoint_payloads(
+            rows,
+            args.checkpoint_dir,
+        )
+        checkpoint_passed = checkpoint_verification["status"] == "pass"
+        gate["protocol_checks"][
+            "retrieved_checkpoint_payloads_match_results"
+        ] = checkpoint_passed
+        gate["checkpoint_evidence"] = checkpoint_verification
+        if not checkpoint_passed:
+            gate["status"] = "fail"
+            gate["decision"] = (
+                "innovation1_rtg2b_skinny_scale_protocol_invalid"
+                if args.phase == "rtg2b"
+                else "innovation1_rtg2a_skinny_medium_protocol_invalid"
+            )
+            gate["next_action"] = (
+                "repair retrieved checkpoint evidence without changing data, "
+                "training, models, or thresholds"
+            )
     train_samples_per_class = int(gate["samples_per_class"])
     validation_rows = int(gate["validation_rows"])
     validation = {
@@ -73,14 +119,19 @@ def main(argv: list[str] | None = None) -> int:
         "seed": args.seed,
         "gate": gate,
     }
-    _write_json(args.run_root / "validation.json", validation)
-    _write_json(args.run_root / "gate.json", gate)
-    _write_json(args.run_root / "summary.json", summary)
-    _write_history_csv(rows, args.run_root / "history.csv")
+    _write_json(output_root / "validation.json", validation)
+    _write_json(output_root / "gate.json", gate)
+    _write_json(output_root / "summary.json", summary)
+    if checkpoint_verification is not None:
+        _write_json(
+            output_root / "checkpoint-verification.json",
+            checkpoint_verification,
+        )
+    _write_history_csv(rows, output_root / "history.csv")
     if not args.no_plot:
-        render_skinny_medium_svg(gate, args.run_root / "curves.svg")
+        render_skinny_medium_svg(gate, output_root / "curves.svg")
     _append_progress(
-        args.progress or args.run_root / "progress.jsonl",
+        args.progress or output_root / "progress.jsonl",
         "gate_done",
         {
             "run_id": args.run_id,
@@ -91,6 +142,118 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(json.dumps(gate, ensure_ascii=False, sort_keys=True))
     return 1 if gate["status"] == "fail" else 0
+
+
+def _verify_checkpoint_payloads(
+    rows: list[dict[str, Any]],
+    checkpoint_dir: Path,
+) -> dict[str, Any]:
+    expected_names: list[str] = []
+    entries: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for row in rows:
+        model_name = str(row.get("model", ""))
+        raw_path = row.get("training", {}).get("checkpoint_output")
+        if not isinstance(raw_path, str) or not raw_path:
+            errors.append(f"{model_name}: missing checkpoint_output")
+            continue
+        filename = PureWindowsPath(raw_path).name
+        expected_names.append(filename)
+        path = checkpoint_dir / filename
+        checks: dict[str, bool] = {"file_exists": path.is_file()}
+        entry: dict[str, Any] = {
+            "model": model_name,
+            "filename": filename,
+            "checks": checks,
+        }
+        if not path.is_file():
+            errors.append(f"{model_name}: missing {filename}")
+            entries.append(entry)
+            continue
+        entry["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        try:
+            payload = torch.load(path, map_location="cpu", weights_only=True)
+            state_dict = payload.get("state_dict") if isinstance(payload, dict) else None
+            checks["payload_shape"] = bool(
+                isinstance(payload, dict) and isinstance(state_dict, dict)
+            )
+            if not checks["payload_shape"]:
+                raise ValueError("checkpoint payload lacks state_dict")
+            model = build_model(
+                model_name,
+                input_bits=int(row.get("training", {}).get("input_bits", 512)),
+                hidden_bits=64,
+                pair_bits=int(row.get("training", {}).get("pair_bits", 128)),
+                structure=str(row.get("structure", "SPN")),
+                model_options=row.get("training", {}).get("model_options", {}),
+            )
+            model.load_state_dict(state_dict, strict=True)
+            checks["strict_state_dict_load"] = True
+            checks["parameter_count"] = (
+                sum(parameter.numel() for parameter in model.parameters())
+                == row.get("parameter_count")
+            )
+            checks["history_exact"] = payload.get("history") == row.get("history")
+            checks["final_metrics_exact"] = (
+                payload.get("final_metrics") == row.get("metrics")
+            )
+            checkpoint_metadata = payload.get("metadata", {})
+            result_metadata = row.get("training", {})
+            required_checkpoint_metadata = {
+                "epochs",
+                "batch_size",
+                "learning_rate",
+                "optimizer",
+                "weight_decay",
+                "lr_scheduler",
+                "checkpoint_metric",
+                "restore_best_checkpoint",
+                "train_eval_interval",
+                "loss",
+                "best_epoch",
+                "best_checkpoint_metric",
+                "selected_checkpoint",
+                "epochs_ran",
+                "seed",
+                "device",
+                "checkpoint_output",
+            }
+            checks["metadata_core_complete"] = required_checkpoint_metadata.issubset(
+                checkpoint_metadata
+            )
+            checks["metadata_payload_is_result_subset"] = all(
+                result_metadata.get(key) == value
+                for key, value in checkpoint_metadata.items()
+            )
+            checks["selected_best_checkpoint"] = bool(
+                payload.get("metadata", {}).get("selected_checkpoint") == "best"
+                and payload.get("metadata", {}).get("best_checkpoint_metric")
+                == row.get("metrics", {}).get("auc")
+            )
+        except Exception as exc:
+            checks.setdefault("strict_state_dict_load", False)
+            errors.append(f"{model_name}: {type(exc).__name__}: {exc}")
+        failed_checks = [name for name, passed in checks.items() if not passed]
+        if failed_checks:
+            errors.append(f"{model_name}: failed checks {failed_checks}")
+        entries.append(entry)
+
+    actual_names = sorted(path.name for path in checkpoint_dir.glob("*.pt"))
+    file_set_exact = sorted(expected_names) == actual_names and len(actual_names) == 3
+    if not file_set_exact:
+        errors.append(
+            f"checkpoint file set mismatch: expected={sorted(expected_names)} "
+            f"actual={actual_names}"
+        )
+    return {
+        "status": "pass" if len(entries) == 3 and file_set_exact and not errors else "fail",
+        "checkpoint_dir": str(checkpoint_dir),
+        "expected_files": sorted(expected_names),
+        "actual_files": actual_names,
+        "file_set_exact": file_set_exact,
+        "entries": entries,
+        "errors": errors,
+    }
 
 
 def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:

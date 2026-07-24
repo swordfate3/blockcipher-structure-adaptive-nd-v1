@@ -14,6 +14,7 @@ started     = 2026-07-24 20:23:46 +08:00
 retrieved   = 2026-07-24 21:50:35 +08:00
 monitor     = local tmux i1_rtg2b_skinny64_scale_monitor
 result gate = pass / innovation1_rtg2b_skinny_scale_seed0_supported
+joint gate  = pass / innovation1_rtg2b_skinny_scale_two_seed_supported
 visual QA   = pass / visual-qa-redraw / 1976x1019 rendered pixels
 claim scope = medium architecture/protocol diagnostic only
 ```
@@ -50,10 +51,13 @@ correct - corrupted = +0.045667696
 correct - no topology = +0.139039457
 ```
 
-All eleven protocol checks and all three research checks passed. Each row has
+All original protocol checks and all three research checks passed. Each row has
 five complete epochs, equal `442466`-parameter geometry, parameter-matched
 disk-backed train/validation data, strict encrypted-random-plaintext negatives,
-and metrics replayed from the selected best validation-AUC checkpoint.
+and metrics replayed from the selected best validation-AUC checkpoint. The
+three actual checkpoint payloads were subsequently retrieved, strictly loaded,
+and matched against their result histories, final metrics, core metadata and
+selected best epochs; the strengthened local checkpoint check also passed.
 
 The locally generated `curves.svg` was rendered at `1976x1019` and inspected
 through `visual-qa-redraw`. Titles, Chinese glyphs, labels, legends, thresholds,
@@ -66,12 +70,25 @@ Decision:
 ```text
 status      = pass
 decision    = innovation1_rtg2b_skinny_scale_seed0_supported
-next_action = run the already frozen, identical 262144/class seed1 confirmation
+next_action = X2 later passed; run the separate formal-scale-versus-adaptation route audit
 ```
 
 This is one-seed medium diagnostic evidence. It supports the runtime-topology
 architecture under this SKINNY protocol but is not formal scale, paper
 reproduction, an attack, SOTA, a breakthrough or universal-SPN evidence.
+
+Seed1 later passed at `0.647782881` AUC with margins `+0.045198574` and
+`+0.134744390`. The two-seed RTG2-B decision is therefore
+`innovation1_rtg2b_skinny_scale_two_seed_supported`. A retrieval audit also
+restored the manifest-owned seed0 files after historical local re-adjudication
+had overwritten them; every original SHA-256 entry now passes, while local
+re-adjudication lives in separate `*.local.*` evidence files.
+
+The successor X2 diagnostic then passed both seeds after freezing the GIFT
+backbone and training only the SKINNY classifier. Because X2 remains below the
+same-data end-to-end SKINNY anchor and seed0 is close to its absolute gate,
+neither X2 scale-up nor formal SKINNY scale is automatic; the next action is a
+separate route-decision audit.
 
 ## Evidence That Opens This Plan
 
