@@ -169,3 +169,31 @@ margin labels, legends, thresholds, axes and evidence caption have no
 unintended overlap, clipping, missing glyph or ambiguous association. This is
 a template check only; the retrieved real result must undergo a fresh rendered
 pixel inspection before `visual_qa_passed.marker` is created.
+
+Remote assets are prepared:
+
+```text
+configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_20260725.json
+configs/remote/generated/run_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
+configs/remote/generated/launch_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
+configs/remote/generated/monitor_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.sh
+```
+
+Verified readiness:
+
+```text
+remote config / plan rows       = pass, 3 / 3
+maximum samples_per_class       = 65536
+medium disk-cache invariant     = pass
+Windows cmd.exe /c invariant    = pass
+generated delayed-! invariant   = pass
+monitor shell syntax            = pass
+RECTANGLE implementation tests  = 17 passed
+ruff / git diff --check         = pass
+```
+
+The watcher preserves the remote archive, verifies CRLF-normalized
+`SHA256SUMS` and the exact source commit, then writes local re-adjudication
+under `local_adjudication/`. It copies only `gate.local.json` and `curves.svg`
+to the result root, refreshes the index, and leaves
+`visual_qa_pending.marker`; it cannot self-assert the visual-QA pass.
