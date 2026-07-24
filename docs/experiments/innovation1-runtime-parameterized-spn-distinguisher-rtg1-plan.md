@@ -1702,7 +1702,7 @@ cipher       = SKINNY-64/64, TK1 ordinary fixed key
 difference   = 0x0000000000002000
 rounds       = 6, 7, 8
 model        = unchanged runtime E4 correct-topology model only
-scale        = 512/class train and validation, seed0
+scale        = 512/class train, 256/class validation, seed0
 pairs        = 4 independent ciphertext pairs per sample
 negative     = encrypted random plaintexts
 epochs       = 5
@@ -1722,3 +1722,25 @@ T2-B must not include corrupted/no-topology rows, tune the difference after
 seeing results, use related keys, change features, increase scale, or claim
 topology superiority. Only fresh-seed confirmation opens the frozen T2-C
 `2048/class` two-seed three-control attribution gate.
+
+T2-B seed0 selected r7 under the frozen rule:
+
+| Rounds | Validation AUC | Signal floor | Result |
+| ---: | ---: | ---: | --- |
+| 6 | `1.000000000` | `0.55` | pass, but shallower |
+| 7 | `0.566665649` | `0.55` | pass and selected |
+| 8 | `0.512908936` | `0.55` | fail |
+
+The seed0 screen therefore opens exactly one confirmation row:
+
+```text
+run_id     = i1_rtg1_skinny64_fixed_key_signal_confirm_t2b_512_seed1_20260724
+rounds     = 7
+seed       = 1
+scale      = 512/class train, 256/class validation
+all other fields identical to the selected seed0 row
+advance    = validation AUC >= 0.55
+```
+
+No r6/r8 repeat, topology control, protocol tuning, or scale increase is
+allowed during this confirmation.

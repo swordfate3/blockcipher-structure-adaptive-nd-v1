@@ -154,6 +154,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_skinny_general_gf2_data_not_ready": (
         "SKINNY一般GF(2)数据通路仍有就绪检查未通过，禁止启动神经训练"
     ),
+    "innovation1_runtime_spn_skinny_signal_anchor_selected": (
+        "SKINNY固定密钥筛选已选出最深过线信号锚点，只开放独立seed复验"
+    ),
+    "innovation1_runtime_spn_skinny_signal_anchor_confirmed": (
+        "SKINNY固定密钥信号锚点通过独立seed复验，可进入一般GF(2)拓扑三控制"
+    ),
+    "innovation1_runtime_spn_skinny_signal_anchor_not_supported": (
+        "SKINNY固定密钥候选未通过冻结信号门，不启动拓扑三控制"
+    ),
+    "innovation1_runtime_spn_skinny_signal_protocol_invalid": (
+        "SKINNY固定密钥信号筛选或复验协议无效，结果不可解释"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2160,6 +2172,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_skinny64_fixed_key_signal_confirm_t2b"):
+        return "创新1 RTG1-T2-B：SKINNY-64/64固定密钥r7信号独立seed确认"
+    if run_id.startswith("i1_rtg1_skinny64_fixed_key_signal_screen_t2b"):
+        return "创新1 RTG1-T2-B：SKINNY-64/64固定密钥r6-r8信号锚点筛选"
     if run_id.startswith("i1_rtg1_skinny64_general_gf2_data_readiness_t2a"):
         return "创新1 RTG1-T2-A：SKINNY-64/64一般GF(2)严格差分数据通路就绪审计"
     if run_id.startswith("i1_rtg1_present_runtime_e4_transfer_t1"):
