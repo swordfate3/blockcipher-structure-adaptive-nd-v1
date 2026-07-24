@@ -25,6 +25,11 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg2b_launch import (
     JOINT_RUN_ID,
     adjudicate_runtime_spn_skinny_rtg2b_launch,
 )
+from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg2b_seed1_launch import (
+    SEED0_DECISION as RTG2B_SEED0_DECISION,
+    SEED0_RUN_ID as RTG2B_SEED0_RUN_ID,
+    adjudicate_runtime_spn_skinny_rtg2b_seed1_launch,
+)
 from blockcipher_nd.registry.model_factory import build_model
 
 
@@ -265,9 +270,7 @@ def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
     assert len(rows) == 3
     assert {row["seed"] for row in rows} == {"0"}
     assert {row["samples_per_class"] for row in rows} == {"262144"}
-    assert {row["negative_mode"] for row in rows} == {
-        "encrypted_random_plaintexts"
-    }
+    assert {row["negative_mode"] for row in rows} == {"encrypted_random_plaintexts"}
     assert {row["pairs_per_sample"] for row in rows} == {"4"}
     parameter_counts = set()
     for row in rows:
@@ -296,8 +299,7 @@ def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
 
     generated = ROOT / "configs/remote/generated"
     run_script = (
-        generated
-        / "run_i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724.cmd"
+        generated / "run_i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724.cmd"
     ).read_text(encoding="utf-8")
     launch_script = (
         generated
@@ -313,7 +315,7 @@ def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
     assert "cmd.exe /k" not in combined
     assert "EnableDelayedExpansion" not in combined
     assert "!" not in combined
-    assert "--dataset-cache-root \"%CACHE_ROOT%\"" in run_script
+    assert '--dataset-cache-root "%CACHE_ROOT%"' in run_script
     assert "--dataset-cache-chunk-size 1024" in run_script
     assert "--dataset-cache-workers 1" in run_script
     assert "--phase rtg2b" in run_script
@@ -333,6 +335,178 @@ def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
     launched_marker = monitor_script.index('touch "${LAUNCHED_MARKER}"')
     assert launch_returned < start_confirmed < launched_marker
     assert "retrieved_from_verified_result_branch.marker" in monitor_script
+    assert "scripts/index-results" in monitor_script
+    subprocess.run(["bash", "-n", str(monitor_path)], check=True)
+
+
+def test_rtg2b_seed1_launch_requires_verified_seed0_and_publication() -> None:
+    seed0_gate = {
+        "run_id": RTG2B_SEED0_RUN_ID,
+        "phase": "rtg2b",
+        "seed": 0,
+        "status": "pass",
+        "decision": RTG2B_SEED0_DECISION,
+        "protocol_checks": {"complete": True},
+        "research_checks": {"supported": True},
+        "aucs": {"true": 0.64, "corrupted": 0.60, "independent": 0.51},
+        "margins": {
+            "true_minus_corrupted": 0.04,
+            "true_minus_independent": 0.13,
+        },
+    }
+    common = {
+        "source_commit": "a" * 40,
+        "upstream_ref": "origin/main",
+        "artifact_names": {
+            "gate.json",
+            "results.jsonl",
+            "retrieved_from_verified_result_branch.marker",
+            "validation.local.json",
+            "visual_qa_passed.marker",
+        },
+        "seed0_gate": seed0_gate,
+        "seed0_validation": {
+            "status": "pass",
+            "expected_rows": 3,
+            "result_rows": 3,
+            "errors": [],
+        },
+        "readiness_status": "pass",
+        "source_commit_valid": True,
+        "source_commit_exists": True,
+        "training_commit_exists": True,
+        "protected_changes": [],
+        "source_assets_committed": True,
+        "source_assets_match": True,
+        "plans_match_seed_only": True,
+    }
+
+    held = adjudicate_runtime_spn_skinny_rtg2b_seed1_launch(
+        **common,
+        source_commit_published=False,
+    )
+    passed = adjudicate_runtime_spn_skinny_rtg2b_seed1_launch(
+        **common,
+        source_commit_published=True,
+    )
+
+    assert held["status"] == "hold"
+    assert held["should_ssh"] is True
+    assert held["ssh_allowed"] is False
+    assert passed["status"] == "pass"
+    assert passed["decision"] == "innovation1_rtg2b_seed1_remote_launch_authorized"
+    assert passed["launch_authorized"] is True
+
+
+def test_rtg2b_seed1_launch_fails_closed_without_visual_qa() -> None:
+    gate = adjudicate_runtime_spn_skinny_rtg2b_seed1_launch(
+        source_commit="a" * 40,
+        upstream_ref="origin/main",
+        artifact_names={
+            "gate.json",
+            "results.jsonl",
+            "retrieved_from_verified_result_branch.marker",
+            "validation.local.json",
+        },
+        seed0_gate={
+            "run_id": RTG2B_SEED0_RUN_ID,
+            "phase": "rtg2b",
+            "seed": 0,
+            "status": "pass",
+            "decision": RTG2B_SEED0_DECISION,
+            "protocol_checks": {"complete": True},
+            "research_checks": {"supported": True},
+            "aucs": {"true": 0.64, "corrupted": 0.60, "independent": 0.51},
+            "margins": {
+                "true_minus_corrupted": 0.04,
+                "true_minus_independent": 0.13,
+            },
+        },
+        seed0_validation={
+            "status": "pass",
+            "expected_rows": 3,
+            "result_rows": 3,
+            "errors": [],
+        },
+        readiness_status="pass",
+        source_commit_valid=True,
+        source_commit_exists=True,
+        source_commit_published=True,
+        training_commit_exists=True,
+        protected_changes=[],
+        source_assets_committed=True,
+        source_assets_match=True,
+        plans_match_seed_only=True,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["evidence_checks"]["verified_seed0_artifacts_complete"] is False
+    assert gate["launch_authorized"] is False
+
+
+def test_rtg2b_seed1_plan_and_remote_assets_are_ready() -> None:
+    seed0_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_scale_rtg2b_262144_seed0.csv"
+    )
+    seed1_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_scale_rtg2b_262144_seed1.csv"
+    )
+    with seed0_path.open(newline="", encoding="utf-8") as handle:
+        seed0_rows = list(csv.DictReader(handle))
+    with seed1_path.open(newline="", encoding="utf-8") as handle:
+        seed1_rows = list(csv.DictReader(handle))
+
+    ignored = {"network", "family", "seed", "evidence", "literature"}
+    assert len(seed1_rows) == 3
+    assert {row["seed"] for row in seed1_rows} == {"1"}
+    assert {row["samples_per_class"] for row in seed1_rows} == {"262144"}
+    parameter_counts = set()
+    for seed0, seed1 in zip(seed0_rows, seed1_rows, strict=True):
+        fields = set(seed0) | set(seed1)
+        assert all(seed0[field] == seed1[field] for field in fields - ignored)
+        model = build_model(
+            seed1["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            model_options=json.loads(seed1["model_options"]),
+        )
+        parameter_counts.add(sum(parameter.numel() for parameter in model.parameters()))
+    assert parameter_counts == {442466}
+
+    config_path = ROOT / (
+        "configs/remote/"
+        "innovation1_rtg2b_skinny64_general_gf2_scale_262144_seed1_gpu0_20260724.json"
+    )
+    report = remote_readiness_report(config_path)
+    assert report["status"] == "pass", report["errors"]
+
+    generated = ROOT / "configs/remote/generated"
+    run_script = (
+        generated / "run_i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724.cmd"
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        generated
+        / "launch_i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_path = (
+        generated
+        / "monitor_i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724.sh"
+    )
+    monitor_script = monitor_path.read_text(encoding="utf-8")
+    combined = run_script + launch_script
+    assert "--seed 1" in run_script
+    assert "--phase rtg2b" in run_script
+    assert "cmd.exe /c" in launch_script
+    assert "cmd.exe /k" not in combined
+    assert "EnableDelayedExpansion" not in combined
+    assert "!" not in combined
+    assert "innovation1_rtg2b_skinny_scale_seed0_supported" in launch_script
+    assert "innovation1_rtg2b_seed1_remote_launch_authorized" in monitor_script
+    assert '--dataset-cache-root "%CACHE_ROOT%"' in run_script
+    assert "visual_qa_pending.marker" in run_script + monitor_script
     assert "scripts/index-results" in monitor_script
     subprocess.run(["bash", "-n", str(monitor_path)], check=True)
 
