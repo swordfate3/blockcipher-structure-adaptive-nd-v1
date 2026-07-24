@@ -137,14 +137,43 @@ different cells is invisible to the global-mean `late_pair` path within
 The correct, linear-corrupted, S-box-shuffled and independent adapters retain
 identical state-dict geometry and complete forward passes.
 
+## Neural Consumption Boundary
+
+The descriptor and generic runtime structure preserve every round in the
+selected window, but the current `RuntimeE4EquivariantSpnDistinguisher` does
+not recurrently consume that full window. Its active feature path uses the
+last loaded inverse linear matrix and the last loaded S-box descriptors. This
+is distinct from the earlier `RuntimeParameterizedSpnDistinguisher`, which
+walks backward through up to `processor_steps` loaded rounds.
+
+A deterministic counterfactual held the final uKNIT S-box and linear layer
+byte-identical while changing only the earlier linear layer in a two-round
+window. With the same input tensor and fixed weights:
+
+```text
+last linear layer equal       = true
+last S-box descriptors equal  = true
+earlier linear layer changed  = true
+Runtime-E4 max logit delta    = 0.0
+round-wise Runtime max delta  = 0.005227193236351013
+```
+
+Therefore this reproduction proves full-window representation and validation,
+but current Runtime-E4 neural evidence must be described as last-transition
+conditioning. A future multi-round equivariant processor is a separate model
+hypothesis; it must not be retroactively attributed to existing E4 results or
+introduced into a frozen E4 protocol.
+
 ## Claim Boundary
 
 This is a mechanism reproduction and readiness result. It proves that the
-current 4-bit runtime SPN implementation can load and distinguish a real
-non-round-aligned structure. It does not provide a trained distinguisher, AUC,
-cryptanalytic attack, cross-cipher transfer result, paper-scale result or
-breakthrough. No result index entry is created because no result-producing
-training run was executed.
+current 4-bit runtime SPN representation can load and validate a real
+non-round-aligned structure, and that Runtime-E4 can condition on its final
+loaded transition without changing parameter geometry. It does not prove that
+Runtime-E4 consumes the complete multi-round window, nor does it provide a
+trained distinguisher, AUC, cryptanalytic attack, cross-cipher transfer result,
+paper-scale result or breakthrough. No result index entry is created because
+no result-producing training run was executed.
 
 ## Recommended Next Action
 
