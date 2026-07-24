@@ -43,6 +43,7 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "runtime_structure_available_rounds",
         "runtime_structure_loaded_rounds",
         "runtime_round_window_mode",
+        "runtime_structure_window_control",
         "runtime_structure_mode",
     ):
         if hasattr(model, field):

@@ -931,6 +931,7 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         descriptor_round_start: int | None = None,
         descriptor_available_rounds: int | None = None,
         runtime_structure_mode: str | None = None,
+        runtime_structure_window_control: str = "full",
     ) -> None:
         super().__init__()
         if pair_bits != 2 * structure.block_bits:
@@ -939,6 +940,10 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
             raise ValueError("input_bits must contain complete ciphertext pairs")
         if relation_mode not in {"true", "independent"}:
             raise ValueError("relation_mode must be true or independent")
+        if runtime_structure_window_control not in {"full", "repeat_last"}:
+            raise ValueError(
+                "runtime_structure_window_control must be full or repeat_last"
+            )
         if aggregation_mode == "bit_pair":
             self.backbone = RuntimeParameterizedSpnDistinguisher(spec)
         elif aggregation_mode == "cell_pair":
@@ -956,6 +961,7 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.input_bit_order = "project_msb_to_runtime_lsb"
         self.runtime_structure_loaded_rounds = structure.rounds
         self.runtime_round_window_mode = spec.round_window_mode
+        self.runtime_structure_window_control = runtime_structure_window_control
         if descriptor_name is not None:
             self.runtime_structure_descriptor_name = descriptor_name
         if descriptor_path is not None:

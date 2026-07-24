@@ -242,6 +242,17 @@ class RuntimeSpnStructure:
             self.linear_matrices,
         )
 
+    def repeat_last_transition(self) -> RuntimeSpnStructure:
+        """Repeat the final S-box and linear descriptors across this window."""
+        truth = self.sbox_truth_bits[-1:].repeat(self.rounds, 1, 1)
+        linear = self.linear_matrices[-1:].repeat(self.rounds, 1, 1)
+        return runtime_spn_structure_from_truth_bits(
+            self.cell_membership,
+            self.bit_role,
+            truth,
+            linear,
+        )
+
     def relabel_cells(
         self, cell_permutation: Sequence[int]
     ) -> tuple[RuntimeSpnStructure, torch.Tensor]:

@@ -25,12 +25,18 @@ The new candidate is selected explicitly:
 round_window_mode = recurrent_window
 runtime_rounds    = number of runtime descriptor transitions to load
 processor_steps   = number of shared E4 token-mixer blocks
+runtime_structure_window_control = full | repeat_last
 ```
 
 `runtime_rounds` is now separate from `processor_steps`. Changing the loaded
 runtime window therefore does not change any trainable tensor shape. Existing
 plans that omit both new options retain their previous structure window,
 parameter count, checkpoint keys and forward path.
+
+`repeat_last` preserves the loaded window length but replaces every S-box and
+linear descriptor with the final transition. It is an equal-recursion-depth
+control for a genuinely heterogeneous runtime window. On homogeneous
+PRESENT/GIFT/SKINNY windows it is intentionally an exact no-op.
 
 ## Processor Semantics
 
@@ -75,6 +81,14 @@ earlier-S-box counterfactual
     changing only an earlier S-box descriptor leaves last_transition logits
     equal but changes recurrent_window logits
 
+heterogeneous-window control
+    a uKNIT full window and same-length repeated-final window have equal model
+    geometry and final descriptors but different earlier descriptors/logits
+
+homogeneous-window boundary
+    PRESENT, GIFT and SKINNY full windows are byte-identical to repeated-final
+    windows; repeated-final therefore produces bit-exact equal logits
+
 cell relabeling
     jointly relabeling input cells and runtime structure preserves logits
     within 1e-6
@@ -115,26 +129,35 @@ change must not be retroactively attributed to RTG2/RTG3 checkpoints.
 First complete and jointly adjudicate RTG3-A seed0 and conditional seed1. Do
 not launch recurrent-window training while that formal replication is active.
 
+The built-in PRESENT, GIFT and SKINNY descriptors repeat the same S-box and
+linear topology in every loaded round. A recurrent SKINNY experiment could
+measure repeated structure-processing depth, but it cannot establish that the
+network used distinct earlier-round topology. Do not use SKINNY full-window
+versus repeated-final as that attribution claim.
+
 If RTG3-A confirms the existing E4 topology margin, preregister one local
-sub-medium attribution gate that changes only `round_window_mode`. Freeze
-SKINNY r7, difference `0x2000`, four pairs, strict encrypted-random-plaintext
-negatives, dataset hashes, seeds, epochs, optimizer and checkpoint rule. The
-matrix must include:
+sub-medium uKNIT attribution gate. This is a new mechanism that directly
+addresses the stopped U2-H route's documented last-transition limitation; it
+does not revive the old delta-U query unchanged. Freeze uKNIT prefix r5,
+difference `0x40`, four pairs, strict encrypted-random-plaintext negatives,
+runtime window S3/L3 through S4/L4, dataset hashes, seeds, epochs, optimizer
+and checkpoint rule. Use the two-input state-triplet geometry because
+final-transition-only delta-query semantics remain prohibited in recurrent
+mode. The matrix may use five rows because it is an attribution phase gate:
 
 ```text
-same-protocol anchor       = last_transition + correct topology
-candidate                  = recurrent_window + correct full window
-topology control           = recurrent_window + deterministic corrupted window
+same-geometry anchor       = last_transition + correct heterogeneous window
+candidate                  = recurrent_window + correct heterogeneous window
+equal-depth control        = recurrent_window + repeated-final window
+topology control           = recurrent_window + corrupted heterogeneous window
 no-topology control        = recurrent_window + linear topology disabled
-equal-compute depth control= recurrent recurrence with only the final
-                             transition repeated across the loaded window
 ```
 
-The equal-compute depth control is required because recurrent processing
-applies the shared mixer stack once per loaded transition. Without it, an AUC
-gain over the old anchor could be caused by extra recurrent computation rather
-than earlier-round structure. Advance beyond the local gate only if both seeds
-show that the correct full window beats the repeated-final, corrupted and
+The repeated-final control is required because recurrent processing applies
+the shared mixer stack once per loaded transition. Without it, an AUC gain over
+the old anchor could be caused by extra recurrent computation rather than
+earlier-round structure. Advance beyond the local gate only if both seeds show
+that the correct heterogeneous window beats the repeated-final, corrupted and
 no-topology controls, while retaining a useful absolute AUC relative to the
-frozen last-transition anchor. A weak or control-invalidated local result must
-trigger redesign, not remote scale-up.
+last-transition anchor. A weak or control-invalidated local result must trigger
+redesign, not remote scale-up.

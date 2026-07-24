@@ -210,3 +210,21 @@ single next remote slot. RTG3-A freezes all RTG2-B fields and changes only
 conditional. X2 remains supported small mechanism evidence and is held, not
 discarded. No DDT, trail, related-key, partial-decryption or broad-cipher
 matrix route is reopened by this decision.
+
+## Post-RTG3-Launch Multi-Round Processor Readiness
+
+An opt-in Runtime-E4 recurrent-window path is now implemented without changing
+the frozen RTG3 protocol. It separates loaded `runtime_rounds` from trainable
+`processor_steps`, reuses one parameter geometry across runtime window lengths,
+and consumes each round's inverse GF(2) map and per-cell S-box descriptors.
+Earlier-linear and earlier-S-box fixed-weight counterfactuals, cell relabeling,
+64/128-bit width, general-GF(2), supported cell views and finite-gradient tests
+pass.
+
+The implementation also records a `full|repeat_last` runtime-window control.
+This exposed an important attribution boundary: PRESENT, GIFT and SKINNY use
+homogeneous repeated structure tensors, so their full windows are exactly the
+same as repeated-final. They can test recurrent structure-processing depth but
+not distinct earlier-round topology use. uKNIT is the current real-cipher
+heterogeneous anchor for that claim. No recurrent-window training result or AUC
+exists yet, and every prior Runtime-E4 result remains last-transition evidence.

@@ -8084,3 +8084,58 @@ change as a single-variable cross-key confirmation.
 - **Notes**: Added backward-compatible `key_seed` data support, fail-closed cache tests, and the frozen OPF2-C1 conditional confirmation plan.
 
 ---
+
+## [LRN-20260725-001] correction
+
+**Logged**: 2026-07-25T01:42:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A recurrent runtime window cannot establish earlier-round topology use on a cipher whose loaded S-box and linear descriptors are identical in every round.
+
+### Details
+
+The initial Runtime-E4 recurrent-window readiness plan proposed a
+`repeat-last` equal-compute control on SKINNY. The built-in PRESENT, GIFT and
+SKINNY runtime factories repeat one S-box layer and one linear layer across the
+loaded window, so their full window is already byte-identical to repeating the
+last transition. A recurrent model may still gain from extra shared depth on
+those ciphers, but that comparison cannot attribute the gain to distinct
+earlier-round structure.
+
+uKNIT provides the required attribution surface because its per-round,
+per-cell S-box assignments and general GF(2) linear layers change across the
+window. A full-window versus repeated-final comparison is meaningful there and
+directly addresses the prior E4 limitation that made earlier uKNIT descriptor
+changes invisible.
+
+### Suggested Action
+
+Before claiming complete multi-round topology consumption, hash or compare
+every loaded S-box and linear descriptor by round. Report homogeneous windows
+as repeated-structure depth evidence only. Use a genuinely heterogeneous
+window plus a same-length repeated-final control to isolate earlier-round
+structure from recurrent compute, while retaining corrupted and no-topology
+controls.
+
+### Metadata
+
+- Source: implementation_audit, self_correction
+- Related Files: src/blockcipher_nd/models/structure/spn/runtime_structure.py, src/blockcipher_nd/models/structure/spn/runtime_parameterized.py, docs/research/innovation1-runtime-e4-recurrent-window-readiness-20260725.md
+- Tags: innovation1, runtime-spn, recurrent-window, topology-attribution, uknit, control
+- See Also: none
+- Pattern-Key: research.runtime_spn.multiround_requires_heterogeneous_descriptor_control
+- Recurrence-Count: 1
+- First-Seen: 2026-07-25
+- Last-Seen: 2026-07-25
+
+### Resolution
+
+- **Resolved**: 2026-07-25T01:42:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added a repeated-final runtime-structure control and corrected the readiness route to require a heterogeneous uKNIT window before training claims.
+
+---

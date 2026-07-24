@@ -203,3 +203,21 @@ control on both seeds with a nontrivial margin. If it is near chance or does
 not beat the shuffled control, redesign locally. Do not launch remote scale,
 add DDT/trail features, change negative construction, or mix this attribution
 with the active watcher-managed SKINNY RTG2-A run.
+
+## Post-Recurrent-Window Implementation Update
+
+The neural-consumption boundary above remains authoritative for every recorded
+U1/U2 Runtime-E4 result: those checkpoints used the default
+`last_transition` path and cannot be relabeled as multi-round evidence.
+
+The later implementation readiness work adds an opt-in
+`round_window_mode=recurrent_window` path. It walks every loaded uKNIT
+transition with shared parameters and includes a same-length
+`runtime_structure_window_control=repeat_last` control. Fixed-weight tests now
+show that a full heterogeneous uKNIT window differs from repeated-final, while
+PRESENT/GIFT/SKINNY repeated-round windows collapse exactly to that control.
+
+This new mechanism directly addresses the earlier-layer invisibility proven
+in this record, but it has no trained AUC yet. Any resumed uKNIT study must be
+a separately preregistered recurrent-window attribution gate and must not
+reuse the final-transition delta-query claim unchanged.

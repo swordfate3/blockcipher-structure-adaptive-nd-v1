@@ -93,6 +93,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     skinny64_runtime_structure,
 )
 from blockcipher_nd.models.structure.spn.runtime_structure import (
+    RuntimeSpnStructure,
     load_runtime_spn_descriptor,
 )
 from blockcipher_nd.registry.model_options import (
@@ -100,6 +101,20 @@ from blockcipher_nd.registry.model_options import (
     int_tuple_option,
     matrix_kernel_size_option,
 )
+
+
+def _apply_runtime_structure_window_control(
+    structure: RuntimeSpnStructure,
+    options: dict[str, object],
+) -> tuple[RuntimeSpnStructure, str]:
+    control = str(options.get("runtime_structure_window_control", "full"))
+    if control == "full":
+        return structure, control
+    if control == "repeat_last":
+        return structure.repeat_last_transition(), control
+    raise ValueError(
+        "runtime_structure_window_control must be full or repeat_last"
+    )
 
 
 def build_spn_model(
@@ -163,6 +178,10 @@ def build_spn_model(
             runtime_structure = runtime_structure.shuffled_sbox_assignments(
                 shuffle_seed
             )
+        runtime_structure, window_control = _apply_runtime_structure_window_control(
+            runtime_structure,
+            options,
+        )
         pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
         assert pair_embedding_dim is not None
         return FixedRuntimeSpnProtocolAdapter(
@@ -191,6 +210,7 @@ def build_spn_model(
             descriptor_round_start=descriptor.round_start,
             descriptor_available_rounds=descriptor.available_rounds,
             runtime_structure_mode=structure_mode,
+            runtime_structure_window_control=window_control,
         )
     runtime_models = {
         "present_runtime_spn_true": (present_runtime_structure, "true", False),
@@ -281,6 +301,10 @@ def build_spn_model(
         runtime_structure = structure_factory(runtime_rounds)
         if corrupt:
             runtime_structure = runtime_structure.corrupted()
+        runtime_structure, window_control = _apply_runtime_structure_window_control(
+            runtime_structure,
+            options,
+        )
         return FixedRuntimeSpnProtocolAdapter(
             input_bits=input_bits,
             pair_bits=128 if pair_bits is None else pair_bits,
@@ -308,6 +332,7 @@ def build_spn_model(
                 if "runtime_cell_token" in name
                 else "bit_pair"
             ),
+            runtime_structure_window_control=window_control,
         )
     cross_spn_typed_models = {
         "present_cross_spn_typed_cell_true": PresentCrossSpnTypedCellTrueDistinguisher,

@@ -30,6 +30,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     present_runtime_structure,
     skinny64_runtime_structure,
     standard_four_bit_cells,
+    uknit64_runtime_structure,
 )
 from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.registry.model_factory import build_model
@@ -753,6 +754,152 @@ def test_runtime_e4_recurrent_window_rejects_final_transition_query_modes() -> N
         model(
             _binary((2, 2, 2, 64), 214),
             skinny64_runtime_structure(2),
+        )
+
+
+def test_repeat_last_transition_distinguishes_heterogeneous_runtime_windows() -> None:
+    for factory in (
+        present_runtime_structure,
+        gift64_runtime_structure,
+        skinny64_runtime_structure,
+    ):
+        homogeneous = factory(3)
+        repeated = homogeneous.repeat_last_transition()
+        assert torch.equal(repeated.sbox_truth_bits, homogeneous.sbox_truth_bits)
+        assert torch.equal(repeated.linear_matrices, homogeneous.linear_matrices)
+        assert torch.equal(
+            repeated.inverse_linear_matrices,
+            homogeneous.inverse_linear_matrices,
+        )
+
+    heterogeneous = uknit64_runtime_structure(3, round_start=2)
+    repeated = heterogeneous.repeat_last_transition()
+
+    assert repeated.rounds == heterogeneous.rounds == 3
+    assert not torch.equal(repeated.sbox_truth_bits, heterogeneous.sbox_truth_bits)
+    assert not torch.equal(repeated.linear_matrices, heterogeneous.linear_matrices)
+    for round_index in range(repeated.rounds):
+        assert torch.equal(
+            repeated.sbox_truth_bits[round_index],
+            heterogeneous.sbox_truth_bits[-1],
+        )
+        assert torch.equal(
+            repeated.linear_matrices[round_index],
+            heterogeneous.linear_matrices[-1],
+        )
+
+
+def test_recurrent_repeat_last_control_is_equal_compute_and_recorded() -> None:
+    descriptor_path = ROOT / "configs/runtime/spn/uknit64.json"
+    options = {
+        "runtime_structure_path": str(descriptor_path),
+        "runtime_round_start": 2,
+        "runtime_rounds": 2,
+        "processor_steps": 2,
+        "pair_embedding_dim": 32,
+        "dropout": 0.0,
+        "sbox_context_mode": "late_cell",
+        "round_window_mode": "recurrent_window",
+    }
+    torch.manual_seed(215)
+    full = build_model(
+        "runtime_spn_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options=options,
+    ).eval()
+    repeated = build_model(
+        "runtime_spn_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options={
+            **options,
+            "runtime_structure_window_control": "repeat_last",
+        },
+    ).eval()
+    repeated.load_state_dict(full.state_dict(), strict=True)
+    pairs = _binary((2, 512), 216)
+
+    assert {
+        name: tuple(value.shape) for name, value in full.state_dict().items()
+    } == {name: tuple(value.shape) for name, value in repeated.state_dict().items()}
+    assert full.runtime_structure_loaded_rounds == 2
+    assert repeated.runtime_structure_loaded_rounds == 2
+    assert full.runtime_structure_window_control == "full"
+    assert repeated.runtime_structure_window_control == "repeat_last"
+    assert model_metadata(repeated)["runtime_structure_window_control"] == (
+        "repeat_last"
+    )
+    assert torch.equal(
+        full.runtime_structure.linear_matrices[-1],
+        repeated.runtime_structure.linear_matrices[-1],
+    )
+    assert not torch.equal(
+        full.runtime_structure.linear_matrices[0],
+        repeated.runtime_structure.linear_matrices[0],
+    )
+    with torch.no_grad():
+        full_logits = full(pairs)
+        repeated_logits = repeated(pairs)
+    assert float(torch.max(torch.abs(full_logits - repeated_logits))) > 1e-6
+
+
+def test_recurrent_repeat_last_is_exact_noop_for_homogeneous_skinny() -> None:
+    options = {
+        "runtime_rounds": 3,
+        "processor_steps": 2,
+        "pair_embedding_dim": 32,
+        "dropout": 0.0,
+        "round_window_mode": "recurrent_window",
+    }
+    torch.manual_seed(217)
+    full = build_model(
+        "skinny64_runtime_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options=options,
+    ).eval()
+    repeated = build_model(
+        "skinny64_runtime_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options={
+            **options,
+            "runtime_structure_window_control": "repeat_last",
+        },
+    ).eval()
+    repeated.load_state_dict(full.state_dict(), strict=True)
+    pairs = _binary((2, 512), 218)
+
+    assert torch.equal(
+        full.runtime_structure.linear_matrices,
+        repeated.runtime_structure.linear_matrices,
+    )
+    assert torch.equal(
+        full.runtime_structure.sbox_truth_bits,
+        repeated.runtime_structure.sbox_truth_bits,
+    )
+    with torch.no_grad():
+        torch.testing.assert_close(full(pairs), repeated(pairs), rtol=0.0, atol=0.0)
+
+
+def test_runtime_structure_window_control_rejects_unknown_mode() -> None:
+    with pytest.raises(ValueError, match="runtime_structure_window_control"):
+        build_model(
+            "skinny64_runtime_e4_equivariant_true",
+            input_bits=128,
+            hidden_bits=16,
+            pair_bits=128,
+            structure="SPN",
+            model_options={"runtime_structure_window_control": "unknown"},
         )
 
 
