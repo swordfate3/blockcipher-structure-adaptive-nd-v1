@@ -287,6 +287,7 @@ def _load_validation_dataset(
         features=np.load(feature_path, mmap_mode="r"),
         labels=np.load(label_path, mmap_mode="r"),
         metadata=metadata,
+        cache_dir=cache_dir,
     )
     return dataset, feature_path, label_path
 

@@ -7,6 +7,9 @@ import numpy as np
 import pytest
 import torch
 
+from blockcipher_nd.cli.audit_runtime_spn_delta_query_counterfactual import (
+    _load_validation_dataset,
+)
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     uknit64_runtime_structure,
@@ -208,3 +211,22 @@ def test_same_checkpoint_delta_query_evaluator_uses_one_checkpoint(
         "query_sbox_truth_sha256"
     ]
     assert rows[2]["query_sbox_truth_sha256"] == "not_used"
+
+
+def test_delta_query_audit_loads_the_exact_disk_cache(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "uknit64" / "r4" / "validation" / "seed-10000_test"
+    cache_dir.mkdir(parents=True)
+    np.save(cache_dir / "features.npy", np.zeros((8, 512), dtype=np.uint8))
+    np.save(cache_dir / "labels.npy", np.array([0, 1] * 4, dtype=np.uint8))
+    (cache_dir / "metadata.json").write_text("{}\n", encoding="utf-8")
+    source = {
+        "seed": 0,
+        "training": {"dataset_cache_root": str(tmp_path)},
+    }
+
+    dataset, feature_path, label_path = _load_validation_dataset(source)
+
+    assert dataset.cache_dir == cache_dir
+    assert feature_path == cache_dir / "features.npy"
+    assert label_path == cache_dir / "labels.npy"
+    assert len(dataset.labels) == 8
