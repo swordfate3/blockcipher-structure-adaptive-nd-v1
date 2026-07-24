@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
+from blockcipher_nd.data.differential import DifferentialDataset
+from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.evaluation import (
     FrozenRuntimeE4HeadAdapter,
     RuntimeE4RepresentationBatch,
@@ -26,6 +30,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     skinny64_runtime_structure,
     standard_four_bit_cells,
 )
+from blockcipher_nd.training import TrainingConfig, train_binary_classifier
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX
 
 
@@ -295,3 +300,79 @@ def test_frozen_head_adapter_rejects_parameter_aliasing_and_empty_heads() -> Non
         FrozenRuntimeE4HeadAdapter(extractor, extractor.backbone.classifier)
     with pytest.raises(ValueError, match="must own trainable parameters"):
         FrozenRuntimeE4HeadAdapter(extractor, torch.nn.Identity())
+
+
+def test_frozen_head_adapter_standard_training_checkpoint_contract(
+    tmp_path: Path,
+) -> None:
+    torch.manual_seed(89)
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.2,
+    )
+    extractor = _adapter(present_runtime_structure(2), spec, pairs=2)
+    model = FrozenRuntimeE4HeadAdapter(extractor, _target_head(72))
+    extractor_before = {
+        name: value.clone() for name, value in extractor.state_dict().items()
+    }
+    rng = np.random.default_rng(90)
+    features = rng.integers(0, 2, size=(16, 256), dtype=np.uint8)
+    labels = np.bitwise_xor(features[:, 0], features[:, 1]).astype(np.uint8)
+    dataset = DifferentialDataset(
+        features=features,
+        labels=labels,
+        metadata={"feature_encoding": "ciphertext_pair_bits"},
+    )
+    checkpoint = tmp_path / "frozen_runtime_e4_head.pt"
+
+    result = train_binary_classifier(
+        model,
+        dataset,
+        dataset,
+        TrainingConfig(
+            epochs=2,
+            batch_size=4,
+            learning_rate=1e-3,
+            seed=91,
+            device="cpu",
+            loss="mse",
+            checkpoint_metric="val_auc",
+            restore_best_checkpoint=True,
+            checkpoint_output=checkpoint,
+        ),
+    )
+
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    assert result.metadata["selected_checkpoint"] == "best"
+    assert result.metadata["checkpoint_output"] == str(checkpoint)
+    assert payload["metadata"] == result.metadata
+    assert payload["final_metrics"] == result.final_metrics
+    assert set(payload["state_dict"]) == set(model.state_dict())
+    assert all(
+        torch.equal(payload["state_dict"][name], value)
+        for name, value in model.state_dict().items()
+    )
+    assert all(
+        torch.equal(extractor.state_dict()[name], value)
+        for name, value in extractor_before.items()
+    )
+
+    restored = FrozenRuntimeE4HeadAdapter(
+        _adapter(gift64_runtime_structure(3), spec, pairs=2),
+        _target_head(72),
+    )
+    restored.load_state_dict(payload["state_dict"], strict=True)
+    metadata = model_metadata(restored)
+    assert metadata["trainable_parameter_count"] == sum(
+        parameter.numel() for parameter in restored.target_head.parameters()
+    )
+    assert metadata["runtime_structure_loaded_rounds"] == 3
+    assert metadata["runtime_round_window_mode"] == "last_transition"
+    assert metadata["runtime_structure_transition_sha256s"] == list(
+        restored.feature_extractor.runtime_structure_transition_sha256s
+    )
+    assert restored.adapter_mode == "frozen_runtime_e4_target_head"
+    assert restored.feature_extractor_frozen is True
+    assert restored.source_classifier_preserved is True

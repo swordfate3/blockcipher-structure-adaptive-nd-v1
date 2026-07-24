@@ -337,3 +337,14 @@ RuntimeE4 specification and target-head geometry match; only target-head
 parameters receive gradients. This is reusable infrastructure for a future
 cross-cipher adaptation matrix, not evidence that such a matrix has already
 passed.
+
+The frozen-head adapter is compatible with the ordinary binary trainer rather
+than requiring a second training loop. A real two-epoch integration test now
+proves target-head-only optimization, best-validation-checkpoint restoration,
+serialized state equality and strict reload onto a different runtime SPN
+structure. The wrapper mirrors the bound target structure's descriptor,
+transition-window and input-order metadata, so standard result construction
+retains the runtime topology identity instead of reporting only aggregate
+parameter counts. Adapter-specific ownership flags remain available to a
+future experiment gate. No `engine/`, `training/` or frozen RuntimeE4 source
+path changed while RECTANGLE RCT2 is queued.

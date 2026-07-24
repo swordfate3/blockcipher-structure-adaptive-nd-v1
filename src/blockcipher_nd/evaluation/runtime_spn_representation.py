@@ -13,6 +13,24 @@ from blockcipher_nd.models.structure.spn.runtime_parameterized import (
 from blockcipher_nd.models.structure.spn.runtime_structure import RuntimeSpnStructure
 
 
+_RUNTIME_METADATA_FIELDS = (
+    "input_bit_order",
+    "runtime_structure_descriptor_name",
+    "runtime_structure_descriptor_path",
+    "runtime_structure_descriptor_sha256",
+    "runtime_structure_round_start",
+    "runtime_structure_available_rounds",
+    "runtime_structure_loaded_rounds",
+    "runtime_round_window_mode",
+    "runtime_structure_window_control",
+    "runtime_structure_transition_sha256s",
+    "runtime_structure_window_sha256",
+    "runtime_structure_unique_transition_count",
+    "runtime_structure_homogeneous",
+    "runtime_structure_mode",
+)
+
+
 @dataclass(frozen=True)
 class RuntimeE4RepresentationBatch:
     """RuntimeE4 logits paired with the exact pre-classifier representation."""
@@ -51,10 +69,31 @@ class FrozenRuntimeE4HeadAdapter(nn.Module):
         for parameter in self.target_head.parameters():
             parameter.requires_grad_(True)
         self.feature_extractor.eval()
+        for field in _RUNTIME_METADATA_FIELDS:
+            if hasattr(self.feature_extractor, field):
+                setattr(self, field, getattr(self.feature_extractor, field))
+        self.adapter_mode = "frozen_runtime_e4_target_head"
+        self.feature_extractor_frozen = True
+        self.source_classifier_preserved = True
+        self.target_head_parameter_count = sum(
+            parameter.numel() for parameter in self.target_head.parameters()
+        )
 
     @property
     def representation_width(self) -> int:
         return 3 * self.feature_extractor.backbone.spec.pair_embedding_dim
+
+    @property
+    def runtime_structure(self) -> RuntimeSpnStructure:
+        return self.feature_extractor.runtime_structure
+
+    @property
+    def relation_mode(self) -> str:
+        return self.feature_extractor.relation_mode
+
+    @property
+    def aggregation_mode(self) -> str:
+        return self.feature_extractor.aggregation_mode
 
     def train(self, mode: bool = True) -> FrozenRuntimeE4HeadAdapter:
         super().train(mode)
