@@ -305,3 +305,37 @@ def test_real_uknit_assignment_is_visible_only_to_cell_preserving_sbox_mode() ->
     cell_delta = float(torch.max(torch.abs(cell_true - cell_shuffled)))
     assert pair_delta <= 1e-6
     assert cell_delta > max(1e-6, pair_delta * 100.0)
+
+
+def test_uknit_edge_gate_is_assignment_sensitive_and_cell_relabel_equivariant() -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    shuffled = structure.shuffled_sbox_assignments(20260724)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = torch.randint(0, 2, (3, 4, 2, 64), dtype=torch.float32)
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(20260725)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="edge_gate",
+        )
+    )
+
+    original = model(pairs, structure)
+    shuffled_logits = model(pairs, shuffled)
+    relabeled_logits = model(relabeled_pairs, relabeled)
+    original.square().mean().backward()
+
+    assert torch.isfinite(original).all()
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in model.parameters()
+    )
+    assert float(torch.max(torch.abs(original - shuffled_logits)).detach()) > 1e-6
+    torch.testing.assert_close(original, relabeled_logits, rtol=0.0, atol=1e-6)

@@ -709,6 +709,9 @@ def test_runtime_e4_sbox_location_keeps_parameter_geometry() -> None:
     late_cell = RuntimeE4EquivariantSpnDistinguisher(
         RuntimeParameterizedSpnSpec(**common, sbox_context_mode="late_cell")
     )
+    edge_gate = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, sbox_context_mode="edge_gate")
+    )
 
     geometry = {
         name: tuple(parameter.shape) for name, parameter in early.named_parameters()
@@ -718,6 +721,9 @@ def test_runtime_e4_sbox_location_keeps_parameter_geometry() -> None:
     }
     assert geometry == {
         name: tuple(parameter.shape) for name, parameter in late_cell.named_parameters()
+    }
+    assert geometry == {
+        name: tuple(parameter.shape) for name, parameter in edge_gate.named_parameters()
     }
 
 

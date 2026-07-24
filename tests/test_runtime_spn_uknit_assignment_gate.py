@@ -111,5 +111,25 @@ def test_uknit_assignment_gate_rejects_protocol_drift() -> None:
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_uknit_sbox_assignment_protocol_invalid"
     assert (
-        gate["protocol_checks"]["strict_encrypted_random_plaintext_negatives"] is False
+        gate["protocol_checks"]["strict_encrypted_random_plaintext_negatives"]
+        is False
     )
+
+
+def test_uknit_edge_gate_uses_the_same_two_seed_protocol() -> None:
+    rows = _passing_rows()
+    for row in rows:
+        options = row["training"]["model_options"]
+        if options["sbox_context_mode"] == "late_cell":
+            options["sbox_context_mode"] = "edge_gate"
+
+    gate = adjudicate_uknit_sbox_assignment(
+        run_id="u2b",
+        rows=rows,
+        candidate_context="edge_gate",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["task"] == "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
+    assert gate["decision"] == "innovation1_uknit_sbox_edge_gate_two_seed_supported"
+    assert all(gate["protocol_checks"].values())

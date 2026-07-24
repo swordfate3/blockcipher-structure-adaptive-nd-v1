@@ -19,13 +19,18 @@ def adjudicate_uknit_sbox_assignment(
     *,
     run_id: str,
     rows: Iterable[dict[str, Any]],
+    candidate_context: str = "late_cell",
 ) -> dict[str, Any]:
+    if candidate_context not in {"late_cell", "edge_gate"}:
+        raise ValueError("candidate_context must be late_cell or edge_gate")
     rows = list(rows)
     grouped: dict[int, dict[str, list[dict[str, Any]]]] = defaultdict(
         lambda: defaultdict(list)
     )
     for row in rows:
-        grouped[int(row.get("seed", -1))][_role(row)].append(row)
+        grouped[int(row.get("seed", -1))][
+            _role(row, candidate_context=candidate_context)
+        ].append(row)
 
     complete_roles = all(
         len(grouped[seed].get(role, ())) == 1
@@ -59,7 +64,11 @@ def adjudicate_uknit_sbox_assignment(
         "exact_descriptor_window": _exact_descriptor_window(rows),
         "role_contracts_match_plan": complete_roles
         and all(
-            _role_contract(grouped[seed][role][0], role)
+            _role_contract(
+                grouped[seed][role][0],
+                role,
+                candidate_context=candidate_context,
+            )
             for seed in EXPECTED_SEEDS
             for role in EXPECTED_MODELS
         ),
@@ -87,23 +96,39 @@ def adjudicate_uknit_sbox_assignment(
 
     protocol_passed = all(protocol_checks.values())
     research_passed = all(research_checks.values())
+    edge_gate = candidate_context == "edge_gate"
     if not protocol_passed:
         status = "fail"
-        decision = "innovation1_uknit_sbox_assignment_protocol_invalid"
+        decision = (
+            "innovation1_uknit_sbox_edge_gate_protocol_invalid"
+            if edge_gate
+            else "innovation1_uknit_sbox_assignment_protocol_invalid"
+        )
         next_action = (
             "repair the protocol mismatch and rerun the unchanged local U1 matrix; "
             "do not interpret the AUCs"
         )
     elif research_passed:
         status = "pass"
-        decision = "innovation1_uknit_sbox_assignment_two_seed_supported"
-        next_action = (
-            "preregister one unchanged-budget replication on a different valid uKNIT "
-            "transition window; do not increase scale yet"
-        )
+        if edge_gate:
+            decision = "innovation1_uknit_sbox_edge_gate_two_seed_supported"
+            next_action = (
+                "audit both best candidate checkpoints with a same-checkpoint "
+                "correct-versus-shuffled ownership swap before any scale increase"
+            )
+        else:
+            decision = "innovation1_uknit_sbox_assignment_two_seed_supported"
+            next_action = (
+                "preregister one unchanged-budget replication on a different valid "
+                "uKNIT transition window; do not increase scale yet"
+            )
     else:
         status = "hold"
-        decision = "innovation1_uknit_sbox_assignment_hold_redesign_local"
+        decision = (
+            "innovation1_uknit_sbox_edge_gate_hold"
+            if edge_gate
+            else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+        )
         passing_seeds = sum(
             all(
                 research_checks[key]
@@ -115,16 +140,26 @@ def adjudicate_uknit_sbox_assignment(
             )
             for seed in EXPECTED_SEEDS
         )
-        next_action = (
-            "run a deterministic activation/gradient attribution audit without more "
-            "training data"
-            if passing_seeds == 1
-            else "redesign the local S-box/topology interaction without scale-up"
-        )
+        if edge_gate:
+            next_action = (
+                "close this parameter-free edge-gate design and review a distinct "
+                "runtime representation hypothesis without scale-up"
+            )
+        else:
+            next_action = (
+                "run a deterministic activation/gradient attribution audit without "
+                "more training data"
+                if passing_seeds == 1
+                else "redesign the local S-box/topology interaction without scale-up"
+            )
 
     return {
         "run_id": run_id,
-        "task": "innovation1_uknit_runtime_e4_sbox_assignment_u1",
+        "task": (
+            "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
+            if edge_gate
+            else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+        ),
         "cipher": "uKNIT-BC",
         "status": status,
         "decision": decision,
@@ -137,9 +172,9 @@ def adjudicate_uknit_sbox_assignment(
         "protocol_checks": protocol_checks,
         "research_checks": research_checks,
         "claim_scope": (
-            "uKNIT-BC prefix-r4 two-seed 2048/class local S-box-assignment "
-            "diagnostic only; not formal, paper-scale, attack, cross-cipher, or "
-            "breakthrough evidence"
+            f"uKNIT-BC prefix-r4 two-seed 2048/class local {candidate_context} "
+            "S-box-assignment diagnostic only; not formal, paper-scale, attack, "
+            "cross-cipher, or breakthrough evidence"
         ),
         "next_action": next_action,
         "blocked_actions": [
@@ -151,15 +186,15 @@ def adjudicate_uknit_sbox_assignment(
     }
 
 
-def _role(row: dict[str, Any]) -> str:
+def _role(row: dict[str, Any], *, candidate_context: str) -> str:
     mode = row.get("runtime_structure_mode")
     options = row.get("training", {}).get("model_options", {})
     context = options.get("sbox_context_mode")
-    if mode == "true" and context == "late_cell":
+    if mode == "true" and context == candidate_context:
         return "candidate"
     if mode == "true" and context == "late_pair":
         return "anchor"
-    if mode == "sbox_shuffled" and context == "late_cell":
+    if mode == "sbox_shuffled" and context == candidate_context:
         return "shuffled"
     return "unknown"
 
@@ -280,14 +315,19 @@ def _exact_descriptor_window(rows: list[dict[str, Any]]) -> bool:
     )
 
 
-def _role_contract(row: dict[str, Any], role: str) -> bool:
+def _role_contract(
+    row: dict[str, Any],
+    role: str,
+    *,
+    candidate_context: str,
+) -> bool:
     options = row.get("training", {}).get("model_options", {})
     if row.get("model") != EXPECTED_MODELS[role]:
         return False
     if role == "candidate":
         return (
             row.get("runtime_structure_mode") == "true"
-            and options.get("sbox_context_mode") == "late_cell"
+            and options.get("sbox_context_mode") == candidate_context
         )
     if role == "anchor":
         return (
@@ -296,7 +336,7 @@ def _role_contract(row: dict[str, Any], role: str) -> bool:
         )
     return (
         row.get("runtime_structure_mode") == "sbox_shuffled"
-        and options.get("sbox_context_mode") == "late_cell"
+        and options.get("sbox_context_mode") == candidate_context
         and options.get("sbox_assignment_shuffle_seed") == 20260724
     )
 

@@ -754,6 +754,10 @@ def _compact_label(item: dict[str, Any]) -> str:
             return f"seed{seed}：全局 S盒锚点"
         if mode == "sbox_shuffled" and context == "late_cell":
             return f"seed{seed}：S盒归属打乱控制"
+        if mode == "true" and context == "edge_gate":
+            return f"seed{seed}：正确 S盒-拓扑门控"
+        if mode == "sbox_shuffled" and context == "edge_gate":
+            return f"seed{seed}：打乱 S盒-拓扑门控"
     aliases = {
         "linear_same_input": "同输入线性基线",
         "structure_mlp": "结构交互 MLP",

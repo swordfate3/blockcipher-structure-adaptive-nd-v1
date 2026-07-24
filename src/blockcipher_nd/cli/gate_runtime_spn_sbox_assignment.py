@@ -16,13 +16,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument(
+        "--candidate-context",
+        choices=("late_cell", "edge_gate"),
+        default="late_cell",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows = _read_jsonl(args.run_root / "results.jsonl")
-    gate = adjudicate_uknit_sbox_assignment(run_id=args.run_id, rows=rows)
+    gate = adjudicate_uknit_sbox_assignment(
+        run_id=args.run_id,
+        rows=rows,
+        candidate_context=args.candidate_context,
+    )
     validation = {
         "run_id": args.run_id,
         "status": "pass" if all(gate["protocol_checks"].values()) else "fail",

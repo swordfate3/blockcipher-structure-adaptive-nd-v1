@@ -196,10 +196,16 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
     role_rows = (
         ("runtime_spn_e4_equivariant_true", "true", "late_cell"),
         ("runtime_spn_e4_equivariant_true", "true", "late_pair"),
+        ("runtime_spn_e4_equivariant_true", "true", "edge_gate"),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "late_cell",
+        ),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "edge_gate",
         ),
     )
     rows = [
@@ -237,13 +243,15 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         validation_only=True,
     )
 
-    assert report["series"] == 6
+    assert report["series"] == 10
     assert report["validation_only"] is True
     visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
     for seed in (0, 1):
         assert f"seed{seed}：正确归属（逐 cell）" in visible_text
         assert f"seed{seed}：全局 S盒锚点" in visible_text
         assert f"seed{seed}：S盒归属打乱控制" in visible_text
+        assert f"seed{seed}：正确 S盒-拓扑门控" in visible_text
+        assert f"seed{seed}：打乱 S盒-拓扑门控" in visible_text
     assert "训练集（虚线）" not in visible_text
     assert "最终准确率" not in visible_text
     assert "最终 AUC" in visible_text

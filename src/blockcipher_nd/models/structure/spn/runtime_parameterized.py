@@ -22,7 +22,9 @@ class RuntimeParameterizedSpnSpec:
     processor_steps: int = 2
     dropout: float = 0.10
     sbox_context_scale: float = 1.0
-    sbox_context_mode: Literal["early_add", "late_pair", "late_cell"] = "early_add"
+    sbox_context_mode: Literal[
+        "early_add", "late_pair", "late_cell", "edge_gate"
+    ] = "early_add"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -31,9 +33,14 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError("dropout must be in [0, 1)")
         if self.sbox_context_scale < 0.0:
             raise ValueError("sbox_context_scale must be non-negative")
-        if self.sbox_context_mode not in {"early_add", "late_pair", "late_cell"}:
+        if self.sbox_context_mode not in {
+            "early_add",
+            "late_pair",
+            "late_cell",
+            "edge_gate",
+        }:
             raise ValueError(
-                "sbox_context_mode must be early_add, late_pair, or late_cell"
+                "sbox_context_mode must be early_add, late_pair, late_cell, or edge_gate"
             )
 
 
@@ -495,6 +502,12 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             ]
         token_dim = hidden.shape[-1]
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
+        if self.spec.sbox_context_mode == "edge_gate":
+            sequence = self._apply_sbox_edge_gate(
+                sequence,
+                sbox_context,
+                structure,
+            )
         for block in self.mixer_blocks:
             sequence = block(sequence)
         if self.spec.sbox_context_mode == "late_cell":
@@ -554,6 +567,30 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             structure.bit_role.to(values.device),
         ] = bit_indices
         return values[:, :, indices]
+
+    def _apply_sbox_edge_gate(
+        self,
+        sequence: torch.Tensor,
+        sbox_context: torch.Tensor,
+        structure: RuntimeSpnStructure,
+    ) -> torch.Tensor:
+        membership = torch.nn.functional.one_hot(
+            structure.cell_membership.to(sequence.device),
+            num_classes=structure.cells,
+        ).to(sequence.dtype)
+        bit_adjacency = structure.inverse_linear_matrices[-1].to(
+            device=sequence.device,
+            dtype=sequence.dtype,
+        )
+        cell_adjacency = membership.transpose(0, 1) @ bit_adjacency @ membership
+        normalized = cell_adjacency / cell_adjacency.sum(
+            dim=1,
+            keepdim=True,
+        ).clamp_min(1.0)
+        graph_message = torch.einsum("ts,bsd->btd", normalized, sequence)
+        neighbor_sbox = torch.einsum("ts,sd->td", normalized, sbox_context)
+        gate = torch.sigmoid(0.5 * (sbox_context + neighbor_sbox))
+        return sequence + self.spec.sbox_context_scale * gate[None, :, :] * graph_message
 
 
 class FixedRuntimeSpnProtocolAdapter(nn.Module):
