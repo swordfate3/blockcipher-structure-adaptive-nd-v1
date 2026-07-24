@@ -194,18 +194,33 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
     results = tmp_path / "uknit-results.jsonl"
     output = tmp_path / "uknit-curves.svg"
     role_rows = (
-        ("runtime_spn_e4_equivariant_true", "true", "late_cell"),
-        ("runtime_spn_e4_equivariant_true", "true", "late_pair"),
-        ("runtime_spn_e4_equivariant_true", "true", "edge_gate"),
+        ("runtime_spn_e4_equivariant_true", "true", "late_cell", None),
+        ("runtime_spn_e4_equivariant_true", "true", "late_pair", None),
+        ("runtime_spn_e4_equivariant_true", "true", "edge_gate", None),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "late_cell",
+            None,
         ),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "edge_gate",
+            None,
+        ),
+        ("runtime_spn_e4_equivariant_true", "true", "edge_gate", "state_triplet"),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "difference_only",
+        ),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "edge_gate",
+            "state_triplet",
         ),
     )
     rows = [
@@ -219,7 +234,12 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             "samples_per_class": 2048,
             "pairs_per_sample": 4,
             "validation": {"samples_per_class": 1024},
-            "training": {"model_options": {"sbox_context_mode": context}},
+            "training": {
+                "model_options": {
+                    "sbox_context_mode": context,
+                    "cell_input_mode": cell_input,
+                }
+            },
             "history": [
                 {
                     "epoch": 1,
@@ -229,7 +249,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             ],
         }
         for seed in (0, 1)
-        for role_index, (model, mode, context) in enumerate(role_rows)
+        for role_index, (model, mode, context, cell_input) in enumerate(role_rows)
     ]
     results.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
@@ -243,7 +263,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         validation_only=True,
     )
 
-    assert report["series"] == 10
+    assert report["series"] == 16
     assert report["validation_only"] is True
     visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
     for seed in (0, 1):
@@ -252,6 +272,9 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         assert f"seed{seed}：S盒归属打乱控制" in visible_text
         assert f"seed{seed}：正确 S盒-拓扑门控" in visible_text
         assert f"seed{seed}：打乱 S盒-拓扑门控" in visible_text
+        assert f"seed{seed}：正确归属（三元组）" in visible_text
+        assert f"seed{seed}：差分单通道锚点" in visible_text
+        assert f"seed{seed}：打乱归属（三元组）" in visible_text
     assert "训练集（虚线）" not in visible_text
     assert "最终准确率" not in visible_text
     assert "最终 AUC" in visible_text

@@ -131,6 +131,9 @@ def training_curve_series(
                             "sbox_context_mode": row.get("training", {})
                             .get("model_options", {})
                             .get("sbox_context_mode", ""),
+                            "cell_input_mode": row.get("training", {})
+                            .get("model_options", {})
+                            .get("cell_input_mode", ""),
                             "samples_per_class": row.get("samples_per_class", ""),
                             "train_structures": row.get("train_structures", ""),
                             "train_keys_per_structure": row.get(
@@ -748,6 +751,17 @@ def _compact_label(item: dict[str, Any]) -> str:
         seed = item.get("seed", "")
         mode = item.get("runtime_structure_mode")
         context = item.get("sbox_context_mode")
+        cell_input = item.get("cell_input_mode")
+        if mode == "true" and context == "edge_gate" and cell_input == "state_triplet":
+            return f"seed{seed}：正确归属（三元组）"
+        if mode == "true" and context == "edge_gate" and cell_input == "difference_only":
+            return f"seed{seed}：差分单通道锚点"
+        if (
+            mode == "sbox_shuffled"
+            and context == "edge_gate"
+            and cell_input == "state_triplet"
+        ):
+            return f"seed{seed}：打乱归属（三元组）"
         if mode == "true" and context == "late_cell":
             return f"seed{seed}：正确归属（逐 cell）"
         if mode == "true" and context == "late_pair":

@@ -25,6 +25,7 @@ class RuntimeParameterizedSpnSpec:
     sbox_context_mode: Literal[
         "early_add", "late_pair", "late_cell", "edge_gate"
     ] = "early_add"
+    cell_input_mode: Literal["difference_only", "state_triplet"] = "difference_only"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -41,6 +42,10 @@ class RuntimeParameterizedSpnSpec:
         }:
             raise ValueError(
                 "sbox_context_mode must be early_add, late_pair, late_cell, or edge_gate"
+            )
+        if self.cell_input_mode not in {"difference_only", "state_triplet"}:
+            raise ValueError(
+                "cell_input_mode must be difference_only or state_triplet"
             )
 
 
@@ -482,12 +487,38 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         current_cells = self._ordered_cell_values(difference, structure)
         previous_cells = self._ordered_cell_values(previous, structure)
         batch, pair_count, cell_count, _ = current_cells.shape
-        current_hidden = self.cell_encoder(
-            current_cells.reshape(batch * pair_count, cell_count, 4)
-        )
-        previous_hidden = self.cell_encoder(
-            previous_cells.reshape(batch * pair_count, cell_count, 4)
-        )
+        if self.spec.cell_input_mode == "state_triplet":
+            left = pairs[:, :, 0]
+            right = pairs[:, :, 1]
+            previous_left = (
+                structure.exact_inverse(left, -1)
+                if relation_mode == "true"
+                else left
+            )
+            previous_right = (
+                structure.exact_inverse(right, -1)
+                if relation_mode == "true"
+                else right
+            )
+            current_hidden = self._state_triplet_cell_hidden(
+                left,
+                right,
+                difference,
+                structure,
+            )
+            previous_hidden = self._state_triplet_cell_hidden(
+                previous_left,
+                previous_right,
+                previous,
+                structure,
+            )
+        else:
+            current_hidden = self.cell_encoder(
+                current_cells.reshape(batch * pair_count, cell_count, 4)
+            )
+            previous_hidden = self.cell_encoder(
+                previous_cells.reshape(batch * pair_count, cell_count, 4)
+            )
         hidden = self.typed_fusion(
             torch.cat((current_hidden, previous_hidden), dim=-1)
         ).reshape(batch, pair_count, cell_count, self.token_dim)
@@ -567,6 +598,25 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             structure.bit_role.to(values.device),
         ] = bit_indices
         return values[:, :, indices]
+
+    def _state_triplet_cell_hidden(
+        self,
+        left: torch.Tensor,
+        right: torch.Tensor,
+        difference: torch.Tensor,
+        structure: RuntimeSpnStructure,
+    ) -> torch.Tensor:
+        cell_values = tuple(
+            self._ordered_cell_values(values, structure)
+            for values in (left, right, difference)
+        )
+        batch, pair_count, cell_count, _ = cell_values[0].shape
+        encoded = tuple(
+            self.cell_encoder(values.reshape(batch * pair_count, cell_count, 4))
+            for values in cell_values
+        )
+        endpoint_mean = 0.5 * (encoded[0] + encoded[1])
+        return 0.5 * (endpoint_mean + encoded[2])
 
     def _apply_sbox_edge_gate(
         self,

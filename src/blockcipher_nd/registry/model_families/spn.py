@@ -175,6 +175,7 @@ def build_spn_model(
                 dropout=float(options.get("dropout", 0.0)),
                 sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
                 sbox_context_mode=str(options.get("sbox_context_mode", "early_add")),
+                cell_input_mode=str(options.get("cell_input_mode", "difference_only")),
             ),
             aggregation_mode="e4_equivariant",
             descriptor_name=descriptor.name,
@@ -284,6 +285,7 @@ def build_spn_model(
                 dropout=float(options.get("dropout", 0.0)),
                 sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
                 sbox_context_mode=str(options.get("sbox_context_mode", "early_add")),
+                cell_input_mode=str(options.get("cell_input_mode", "difference_only")),
             ),
             aggregation_mode=(
                 "e4_equivariant"

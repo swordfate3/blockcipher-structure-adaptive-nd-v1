@@ -21,6 +21,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=("late_cell", "edge_gate"),
         default="late_cell",
     )
+    parser.add_argument(
+        "--candidate-cell-input-mode",
+        choices=("difference_only", "state_triplet"),
+        default=None,
+    )
+    parser.add_argument(
+        "--anchor-context",
+        choices=("late_pair", "edge_gate"),
+        default="late_pair",
+    )
+    parser.add_argument(
+        "--anchor-cell-input-mode",
+        choices=("difference_only", "state_triplet"),
+        default=None,
+    )
     return parser.parse_args(argv)
 
 
@@ -31,6 +46,9 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         rows=rows,
         candidate_context=args.candidate_context,
+        candidate_cell_input_mode=args.candidate_cell_input_mode,
+        anchor_context=args.anchor_context,
+        anchor_cell_input_mode=args.anchor_cell_input_mode,
     )
     validation = {
         "run_id": args.run_id,

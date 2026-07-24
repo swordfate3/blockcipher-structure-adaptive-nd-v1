@@ -20,16 +20,32 @@ def adjudicate_uknit_sbox_assignment(
     run_id: str,
     rows: Iterable[dict[str, Any]],
     candidate_context: str = "late_cell",
+    candidate_cell_input_mode: str | None = None,
+    anchor_context: str = "late_pair",
+    anchor_cell_input_mode: str | None = None,
 ) -> dict[str, Any]:
     if candidate_context not in {"late_cell", "edge_gate"}:
         raise ValueError("candidate_context must be late_cell or edge_gate")
+    if anchor_context not in {"late_pair", "edge_gate"}:
+        raise ValueError("anchor_context must be late_pair or edge_gate")
+    for value in (candidate_cell_input_mode, anchor_cell_input_mode):
+        if value not in {None, "difference_only", "state_triplet"}:
+            raise ValueError(
+                "cell input mode must be difference_only, state_triplet, or None"
+            )
     rows = list(rows)
     grouped: dict[int, dict[str, list[dict[str, Any]]]] = defaultdict(
         lambda: defaultdict(list)
     )
     for row in rows:
         grouped[int(row.get("seed", -1))][
-            _role(row, candidate_context=candidate_context)
+            _role(
+                row,
+                candidate_context=candidate_context,
+                candidate_cell_input_mode=candidate_cell_input_mode,
+                anchor_context=anchor_context,
+                anchor_cell_input_mode=anchor_cell_input_mode,
+            )
         ].append(row)
 
     complete_roles = all(
@@ -68,6 +84,9 @@ def adjudicate_uknit_sbox_assignment(
                 grouped[seed][role][0],
                 role,
                 candidate_context=candidate_context,
+                candidate_cell_input_mode=candidate_cell_input_mode,
+                anchor_context=anchor_context,
+                anchor_cell_input_mode=anchor_cell_input_mode,
             )
             for seed in EXPECTED_SEEDS
             for role in EXPECTED_MODELS
@@ -96,13 +115,18 @@ def adjudicate_uknit_sbox_assignment(
 
     protocol_passed = all(protocol_checks.values())
     research_passed = all(research_checks.values())
-    edge_gate = candidate_context == "edge_gate"
+    state_triplet = candidate_cell_input_mode == "state_triplet"
+    edge_gate = candidate_context == "edge_gate" and not state_triplet
     if not protocol_passed:
         status = "fail"
         decision = (
-            "innovation1_uknit_sbox_edge_gate_protocol_invalid"
-            if edge_gate
-            else "innovation1_uknit_sbox_assignment_protocol_invalid"
+            "innovation1_uknit_state_triplet_protocol_invalid"
+            if state_triplet
+            else (
+                "innovation1_uknit_sbox_edge_gate_protocol_invalid"
+                if edge_gate
+                else "innovation1_uknit_sbox_assignment_protocol_invalid"
+            )
         )
         next_action = (
             "repair the protocol mismatch and rerun the unchanged local U1 matrix; "
@@ -110,7 +134,13 @@ def adjudicate_uknit_sbox_assignment(
         )
     elif research_passed:
         status = "pass"
-        if edge_gate:
+        if state_triplet:
+            decision = "innovation1_uknit_state_triplet_two_seed_supported"
+            next_action = (
+                "audit both best state-triplet checkpoints with a same-checkpoint "
+                "correct-versus-shuffled ownership swap before any scale increase"
+            )
+        elif edge_gate:
             decision = "innovation1_uknit_sbox_edge_gate_two_seed_supported"
             next_action = (
                 "audit both best candidate checkpoints with a same-checkpoint "
@@ -125,9 +155,13 @@ def adjudicate_uknit_sbox_assignment(
     else:
         status = "hold"
         decision = (
-            "innovation1_uknit_sbox_edge_gate_hold"
-            if edge_gate
-            else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+            "innovation1_uknit_state_triplet_hold"
+            if state_triplet
+            else (
+                "innovation1_uknit_sbox_edge_gate_hold"
+                if edge_gate
+                else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+            )
         )
         passing_seeds = sum(
             all(
@@ -140,7 +174,12 @@ def adjudicate_uknit_sbox_assignment(
             )
             for seed in EXPECTED_SEEDS
         )
-        if edge_gate:
+        if state_triplet:
+            next_action = (
+                "close this state-triplet-plus-edge-gate design and review a "
+                "distinct runtime representation hypothesis without scale-up"
+            )
+        elif edge_gate:
             next_action = (
                 "close this parameter-free edge-gate design and review a distinct "
                 "runtime representation hypothesis without scale-up"
@@ -156,9 +195,13 @@ def adjudicate_uknit_sbox_assignment(
     return {
         "run_id": run_id,
         "task": (
-            "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
-            if edge_gate
-            else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+            "innovation1_uknit_runtime_e4_state_triplet_u2c"
+            if state_triplet
+            else (
+                "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
+                if edge_gate
+                else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+            )
         ),
         "cipher": "uKNIT-BC",
         "status": status,
@@ -172,7 +215,8 @@ def adjudicate_uknit_sbox_assignment(
         "protocol_checks": protocol_checks,
         "research_checks": research_checks,
         "claim_scope": (
-            f"uKNIT-BC prefix-r4 two-seed 2048/class local {candidate_context} "
+            f"uKNIT-BC prefix-r4 two-seed 2048/class local "
+            f"{candidate_cell_input_mode or candidate_context} "
             "S-box-assignment diagnostic only; not formal, paper-scale, attack, "
             "cross-cipher, or breakthrough evidence"
         ),
@@ -186,15 +230,33 @@ def adjudicate_uknit_sbox_assignment(
     }
 
 
-def _role(row: dict[str, Any], *, candidate_context: str) -> str:
+def _role(
+    row: dict[str, Any],
+    *,
+    candidate_context: str,
+    candidate_cell_input_mode: str | None,
+    anchor_context: str,
+    anchor_cell_input_mode: str | None,
+) -> str:
     mode = row.get("runtime_structure_mode")
     options = row.get("training", {}).get("model_options", {})
     context = options.get("sbox_context_mode")
-    if mode == "true" and context == candidate_context:
+    cell_input = options.get("cell_input_mode", "difference_only")
+    candidate_input_matches = (
+        candidate_cell_input_mode is None or cell_input == candidate_cell_input_mode
+    )
+    anchor_input_matches = (
+        anchor_cell_input_mode is None or cell_input == anchor_cell_input_mode
+    )
+    if mode == "true" and context == candidate_context and candidate_input_matches:
         return "candidate"
-    if mode == "true" and context == "late_pair":
+    if mode == "true" and context == anchor_context and anchor_input_matches:
         return "anchor"
-    if mode == "sbox_shuffled" and context == candidate_context:
+    if (
+        mode == "sbox_shuffled"
+        and context == candidate_context
+        and candidate_input_matches
+    ):
         return "shuffled"
     return "unknown"
 
@@ -320,23 +382,38 @@ def _role_contract(
     role: str,
     *,
     candidate_context: str,
+    candidate_cell_input_mode: str | None,
+    anchor_context: str,
+    anchor_cell_input_mode: str | None,
 ) -> bool:
     options = row.get("training", {}).get("model_options", {})
+    cell_input = options.get("cell_input_mode", "difference_only")
     if row.get("model") != EXPECTED_MODELS[role]:
         return False
     if role == "candidate":
         return (
             row.get("runtime_structure_mode") == "true"
             and options.get("sbox_context_mode") == candidate_context
+            and (
+                candidate_cell_input_mode is None
+                or cell_input == candidate_cell_input_mode
+            )
         )
     if role == "anchor":
         return (
             row.get("runtime_structure_mode") == "true"
-            and options.get("sbox_context_mode") == "late_pair"
+            and options.get("sbox_context_mode") == anchor_context
+            and (
+                anchor_cell_input_mode is None or cell_input == anchor_cell_input_mode
+            )
         )
     return (
         row.get("runtime_structure_mode") == "sbox_shuffled"
         and options.get("sbox_context_mode") == candidate_context
+        and (
+            candidate_cell_input_mode is None
+            or cell_input == candidate_cell_input_mode
+        )
         and options.get("sbox_assignment_shuffle_seed") == 20260724
     )
 

@@ -133,3 +133,27 @@ def test_uknit_edge_gate_uses_the_same_two_seed_protocol() -> None:
     assert gate["task"] == "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
     assert gate["decision"] == "innovation1_uknit_sbox_edge_gate_two_seed_supported"
     assert all(gate["protocol_checks"].values())
+
+
+def test_uknit_state_triplet_gate_uses_difference_only_edge_anchor() -> None:
+    rows = _passing_rows()
+    for index, row in enumerate(rows):
+        options = row["training"]["model_options"]
+        options["sbox_context_mode"] = "edge_gate"
+        options["cell_input_mode"] = (
+            "difference_only" if index % 3 == 1 else "state_triplet"
+        )
+
+    gate = adjudicate_uknit_sbox_assignment(
+        run_id="u2c",
+        rows=rows,
+        candidate_context="edge_gate",
+        candidate_cell_input_mode="state_triplet",
+        anchor_context="edge_gate",
+        anchor_cell_input_mode="difference_only",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["task"] == "innovation1_uknit_runtime_e4_state_triplet_u2c"
+    assert gate["decision"] == "innovation1_uknit_state_triplet_two_seed_supported"
+    assert all(gate["protocol_checks"].values())

@@ -339,3 +339,66 @@ def test_uknit_edge_gate_is_assignment_sensitive_and_cell_relabel_equivariant() 
     )
     assert float(torch.max(torch.abs(original - shuffled_logits)).detach()) > 1e-6
     torch.testing.assert_close(original, relabeled_logits, rtol=0.0, atol=1e-6)
+
+
+def test_uknit_state_triplet_preserves_endpoints_and_pair_symmetry() -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = torch.randint(0, 2, (3, 4, 2, 64), dtype=torch.float32)
+    shifted = pairs.clone()
+    shifted[..., :8] = 1.0 - shifted[..., :8]
+    swapped = pairs.flip(dims=(2,))
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.testing.assert_close(
+        torch.remainder(pairs[:, :, 0] + pairs[:, :, 1], 2.0),
+        torch.remainder(shifted[:, :, 0] + shifted[:, :, 1], 2.0),
+    )
+
+    common = dict(
+        hidden_dim=16,
+        pair_embedding_dim=32,
+        processor_steps=2,
+        dropout=0.0,
+        sbox_context_mode="edge_gate",
+    )
+    torch.manual_seed(20260726)
+    difference_only = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common)
+    ).eval()
+    state_triplet = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(**common, cell_input_mode="state_triplet")
+    ).eval()
+    state_triplet.load_state_dict(difference_only.state_dict())
+
+    difference_original = difference_only(pairs, structure)
+    difference_shifted = difference_only(shifted, structure)
+    triplet_original = state_triplet(pairs, structure)
+    triplet_shifted = state_triplet(shifted, structure)
+    triplet_swapped = state_triplet(swapped, structure)
+    triplet_relabeled = state_triplet(relabeled_pairs, relabeled)
+    triplet_original.square().mean().backward()
+
+    torch.testing.assert_close(
+        difference_original,
+        difference_shifted,
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert (
+        float(torch.max(torch.abs(triplet_original - triplet_shifted)).detach())
+        > 1e-6
+    )
+    torch.testing.assert_close(triplet_original, triplet_swapped, rtol=0.0, atol=1e-6)
+    torch.testing.assert_close(
+        triplet_original,
+        triplet_relabeled,
+        rtol=0.0,
+        atol=1e-6,
+    )
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in state_triplet.parameters()
+    )
