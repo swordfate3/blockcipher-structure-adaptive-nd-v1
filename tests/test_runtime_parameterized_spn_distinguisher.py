@@ -1483,6 +1483,7 @@ def test_external_runtime_descriptor_rejects_invalid_structure(
     ("filename", "factory"),
     [
         ("present64.json", present_runtime_structure),
+        ("gift64.json", gift64_runtime_structure),
         ("skinny64.json", skinny64_runtime_structure),
     ],
 )
@@ -1504,6 +1505,46 @@ def test_production_runtime_descriptors_match_builtin_structures(
         "inverse_linear_matrices",
     ):
         assert torch.equal(getattr(loaded, field), getattr(expected, field))
+
+
+def test_generic_runtime_entry_loads_gift_without_cipher_specific_model_name() -> None:
+    descriptor_path = ROOT / "configs/runtime/spn/gift64.json"
+    options = {
+        "runtime_structure_path": str(descriptor_path),
+        "runtime_rounds": 2,
+        "processor_steps": 2,
+        "pair_embedding_dim": 32,
+        "dropout": 0.0,
+        "sbox_context_mode": "late_pair",
+    }
+    model = build_model(
+        "runtime_spn_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options=options,
+    ).eval()
+    expected = gift64_runtime_structure(2)
+
+    for field in (
+        "cell_membership",
+        "bit_role",
+        "sbox_truth_bits",
+        "linear_matrices",
+        "inverse_linear_matrices",
+    ):
+        assert torch.equal(getattr(model.runtime_structure, field), getattr(expected, field))
+    metadata = model_metadata(model)
+    assert metadata["runtime_structure_descriptor_name"] == (
+        "GIFT-64 runtime SPN structure"
+    )
+    assert metadata["runtime_structure_descriptor_path"] == str(
+        descriptor_path.resolve()
+    )
+    assert metadata["runtime_structure_mode"] == "true"
+    with torch.no_grad():
+        assert model(_binary((2, 512), 59)).shape == (2, 1)
 
 
 def test_generic_runtime_models_share_geometry_metadata_and_forward() -> None:

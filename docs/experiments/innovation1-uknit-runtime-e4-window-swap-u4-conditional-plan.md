@@ -126,8 +126,10 @@ checkpoint's computation. They do not replace the AUC margins.
 ```text
 pass:
   decision    = innovation1_runtime_spn_window_same_checkpoint_attribution_supported
-  next_action = preregister one cross-cipher same-backbone checkpoint-reuse gate;
-                do not scale uKNIT samples or epochs
+  next_action = preregister X3: freeze the U3 recurrent uKNIT backbone, train
+                only the SKINNY output head on the exact X2 target caches and
+                budget, and compare full-window/repeat-last/corrupted/random
+                source controls; do not scale uKNIT samples or epochs
 
 hold:
   decision    = innovation1_runtime_spn_window_same_checkpoint_attribution_not_supported
@@ -173,6 +175,68 @@ refreshes the result index, and stops at the visual-QA marker. A U3 hold,
 authorization failure, training failure, validation failure or visual failure
 records an explicit stop marker instead of trying to rescue the route.
 
+## Conditional Post-U4 X3 Contract
+
+X3 remains unimplemented and unauthorized unless U4 passes both seeds and its
+own rendered visual gate. Its research question is whether the heterogeneous-
+window representation learned on uKNIT transfers to SKINNY better than the
+already completed homogeneous GIFT-source X2 anchor when only the target
+classifier is adapted.
+
+The same-budget anchor is X2, not a new scratch run:
+
+```text
+seed0 X2 GIFT-source candidate AUC = 0.552013397
+seed1 X2 GIFT-source candidate AUC = 0.598568439
+seed0 full-target SKINNY AUC       = 0.612733364
+seed1 full-target SKINNY AUC       = 0.614543915
+```
+
+Freeze five roles per seed:
+
+| Role | Frozen source backbone | SKINNY target structure | Purpose |
+| --- | --- | --- | --- |
+| candidate | U3 full recurrent-window best checkpoint | correct | X3 hypothesis |
+| repeat-source | U3 repeat-last best checkpoint | correct | earlier-window source control |
+| corrupted-source | U3 corrupted best checkpoint | correct | source-topology control |
+| random-source | deterministic random frozen backbone | correct | learned-source control |
+| corrupted-target | U3 full recurrent checkpoint | corrupted | target-topology control |
+
+The single hypothesis variable relative to X2 is the source representation;
+reuse X2's exact SKINNY r7 `0x2000` train/validation caches, target keys,
+four-pair `512-bit` inputs, encrypted-random-plaintext negatives, deterministic
+classifier initialization and training code:
+
+```text
+seeds                    = 0, 1
+train                    = 2048/class, 4096 total per seed
+validation               = 1024/class, 2048 total per seed
+trainable parameters     = classifier only, 198401
+frozen total geometry    = 442466
+epochs                   = 5
+batch                    = 256
+optimizer                = Adam, lr 1e-4, weight decay 1e-5
+loss                     = MSE
+checkpoint               = best validation AUC
+execution                = local CPU diagnostic
+```
+
+Both seeds must satisfy all preregistered advance checks:
+
+```text
+candidate AUC >= 0.55
+candidate - repeat-source AUC >= +0.005
+candidate - corrupted-source AUC >= +0.005
+candidate - random-source AUC >= +0.005
+candidate - corrupted-target AUC >= +0.005
+candidate - same-seed X2 GIFT-source candidate AUC >= +0.005
+```
+
+If any check misses, retain U4 only as within-uKNIT window-attribution evidence
+and stop recurrent cross-cipher adaptation. Even an X3 pass remains a local
+mechanism result; it does not authorize medium scale, a remote run or a
+universal-SPN claim.
+
 ## Blocked Routes
 
 - Do not execute U4 from a U3 hold, partial panel or copied decision string.
@@ -186,5 +250,10 @@ records an explicit stop marker instead of trying to rescue the route.
 
 Keep U4 blocked while RTG3 and U3 are unresolved. Once the verified U3 pass
 exists, run this unchanged eight-row audit. A pass advances to a separately
-preregistered cross-cipher checkpoint-reuse experiment; a hold closes the
-recurrent-window scale route and returns to a local interaction redesign.
+preregistered X3 recurrent-source head-adaptation experiment. X3 must reuse the
+completed X2 SKINNY train/validation caches, deterministic classifier
+initialization, five-epoch head-only budget and full-target anchor. Its single
+new hypothesis is the source backbone: U3 full recurrent uKNIT versus the
+repeat-last, corrupted and random-source controls. This does not repeat X1
+zero-step transfer or X2 GIFT-source adaptation. A U4 hold closes the recurrent-
+window scale/transfer route and returns to a local interaction redesign.

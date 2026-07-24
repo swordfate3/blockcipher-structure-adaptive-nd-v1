@@ -19,7 +19,7 @@ budget.
 | External S-box type | per-round, per-cell 4-bit truth descriptors | changing PRESENT/GIFT descriptors changes logits with fixed weights | implemented for 4-bit cells |
 | External linear topology | runtime GF(2) matrices plus exact inverses | PRESENT/GIFT permutations and SKINNY sparse GF(2) pass exact inverse tests | implemented |
 | Fixed backbone geometry | runtime tensors are not parameters or state entries | one model instance handles 64-bit and synthetic 128-bit structures without state-shape changes | implemented |
-| External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT permutation and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
+| External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT/GIFT permutations and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed | replicated medium evidence supported |
@@ -53,17 +53,20 @@ matrix must be invertible over GF(2). Unknown fields, non-integer arrays,
 malformed permutations, duplicate or out-of-range GF(2) sources, round-count
 mismatches and singular matrices are rejected before model construction.
 
-Three production descriptors are available:
+Four production descriptors are available:
 
 ```text
 configs/runtime/spn/present64.json  = one-to-one PRESENT P-layer
+configs/runtime/spn/gift64.json     = one-to-one GIFT-64 P-layer
 configs/runtime/spn/skinny64.json   = SKINNY ShiftRows + MixColumns GF(2) layer
 configs/runtime/spn/uknit64.json    = 11 distinct uKNIT-BC transition layers
 ```
 
-Tests compare all three descriptors against their Python factories for cell
+Tests compare all four descriptors against their Python factories for cell
 membership, bit roles, S-box truth bits, forward linear matrices and exact
-inverse matrices. The generic correct, corrupted and independent controls also
+inverse matrices. GIFT additionally completes a forward pass through the
+generic `runtime_spn_e4_equivariant_true` entry without a GIFT-specific model
+name. The generic correct, corrupted and independent controls also
 share identical state geometry, complete a forward pass and expose the
 descriptor name, resolved path, raw-file SHA-256 and control mode through result
 metadata. This closes the cipher-name-free training-entry gap for supported
