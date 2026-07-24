@@ -274,6 +274,24 @@ DECISION_LABELS = {
     "innovation1_rtg3a_skinny_formal_joint_protocol_invalid": (
         "SKINNY 1000000/class双seed来源或协议证据不完整，禁止正式规模联合解释"
     ),
+    "innovation1_runtime_spn_recurrent_window_two_seed_supported": (
+        "uKNIT五轮异构双窗口在两颗seed超过同预算锚点和三种结构控制，进入同权重窗口反事实审计"
+    ),
+    "innovation1_runtime_spn_recurrent_window_not_supported": (
+        "uKNIT五轮异构双窗口未稳定超过全部控制，停止扩样并返回本地结构交互重设计"
+    ),
+    "innovation1_runtime_spn_recurrent_window_protocol_invalid": (
+        "uKNIT双窗口实验的数据、检查点或结构指纹协议无效，AUC不可解释"
+    ),
+    "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
+        "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
+    ),
+    "innovation1_runtime_spn_window_same_checkpoint_attribution_not_supported": (
+        "同一U3权重未稳定依赖完整窗口，关闭双窗口扩样路线并重设计局部交互"
+    ),
+    "innovation1_runtime_spn_window_same_checkpoint_protocol_invalid": (
+        "U4同权重窗口审计的来源回放、缓存或检查点协议无效，指标不可解释"
+    ),
     "runtime_spn_frozen_backbone_target_head_supported": (
         "冻结GIFT结构主干后，仅训练SKINNY输出头在双seed超过三个控制，可进入路线比较"
     ),
