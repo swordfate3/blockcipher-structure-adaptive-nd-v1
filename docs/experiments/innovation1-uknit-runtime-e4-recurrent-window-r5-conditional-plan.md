@@ -5,11 +5,12 @@ Date: 2026-07-25
 ## Status
 
 ```text
-phase = deterministic readiness only
+phase = deterministic readiness plus fail-closed execution authorization
 readiness = pass; re-adjudicated after strict no-topology edge-gate repair
+authorization_gate = implemented and verified; awaiting terminal RTG3 evidence
 training = not started
 execution_authorized = no
-blocking_decision = RTG3-A seed0 and conditional seed1 adjudication
+blocking_decision = verified RTG3-A seed0 plus conditional two-seed joint adjudication
 result_gate = implemented and preregistered; no U3 AUC has been read
 ```
 
@@ -81,6 +82,37 @@ Readiness passes only if the full candidate is heterogeneous, repeat-last is
 homogeneous, both share the same final transition but not the same ordered
 window hash, all roles share parameter shapes, and every data/training field
 matches the frozen contract. This gate has no AUC threshold.
+
+## Fail-Closed Execution Authorization
+
+The U3 training command is guarded by a separate machine-readable authorization
+gate. It does not trust file existence or a copied decision string. It:
+
+1. validates the terminal RTG3-A seed0 identity, scale, thresholds, metrics and
+   protocol/research state;
+2. requires the conditional RTG3-A seed1 result and recomputes the two-seed
+   joint gate from its two SHA256-verified source gates;
+3. re-adjudicates the ten persisted U3 readiness manifest rows;
+4. binds authorization to the exact frozen CSV SHA256
+   `060805c3e1e6793aa11b3e9758ddef738d646c77df596150032c8486b7bbd87f`.
+
+After the verified RTG3 joint artifacts are local, run:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python \
+  scripts/check-runtime-spn-uknit-u3-launch \
+  --seed0-root outputs/remote_results/i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725 \
+  --rtg3-joint-root <verified-local-rtg3-joint-root> \
+  --readiness-root outputs/local_readiness/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_readiness_20260725 \
+  --plan configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1.csv \
+  --repository . \
+  --output-root outputs/local_readiness/i1_uknit64_runtime_e4_recurrent_window_r5_u3_authorization_20260725
+```
+
+Exit status `0` and `execution_authorized=true` require a verified RTG3-A
+two-seed pass. Seed0 pass without a joint gate returns hold; a seed0 hold or a
+joint hold stops U3; protocol, source-hash, readiness-replay or CSV-identity
+drift fails closed. Exit status `4` never authorizes training.
 
 ## Conditional Local Execution
 

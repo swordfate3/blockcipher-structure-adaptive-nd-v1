@@ -395,7 +395,7 @@ def _frozen_protocol(row: dict[str, Any]) -> bool:
         and training.get("early_stopping_min_delta") == 0.0
         and training.get("target_epochs") == 10
         and training.get("pretrain_rounds") is None
-        and training.get("pretrain_round_sequence") in {None, ()}
+        and training.get("pretrain_round_sequence") in (None, (), [])
         and training.get("pretrain_epochs") == 0
     )
 

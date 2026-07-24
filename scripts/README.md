@@ -416,6 +416,13 @@ checkpoint as an independent score-aggregation control over multi-pair samples.
 It does not train or update the scorer; it slices each pair-set sample into
 single-pair views, aggregates logits/log-odds, and writes a JSON summary.
 
+Use `scripts/check-runtime-spn-uknit-u3-launch` before the conditional uKNIT
+Runtime-E4 recurrent-window U3 diagnostic. It fails closed unless RTG3-A has a
+verified two-seed joint pass, the joint source-gate hashes replay exactly, the
+persisted U3 readiness manifest re-adjudicates successfully, and the frozen
+ten-row plan SHA256 is unchanged. It writes authorization artifacts only and
+never starts training itself.
+
 Use `scripts/gate-pairset-aggregation` after learned pair-set and frozen
 single-pair aggregation artifacts are available. It compares AUC margins against
 the predeclared InvP anchor and frozen aggregation control, then emits the

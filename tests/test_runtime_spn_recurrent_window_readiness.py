@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
@@ -123,6 +124,23 @@ def test_recurrent_window_readiness_accepts_the_real_frozen_plan() -> None:
         row["data_protocol"]["validation_key"] == UKNIT_VALIDATION_KEY
         for row in manifests
     )
+
+
+def test_recurrent_window_readiness_replays_json_persisted_manifests() -> None:
+    manifests, initial = build_recurrent_window_readiness(
+        run_id="in-memory",
+        tasks=_tasks(),
+    )
+    persisted = json.loads(json.dumps(manifests))
+
+    replayed = adjudicate_recurrent_window_readiness(
+        run_id="persisted",
+        manifests=persisted,
+    )
+
+    assert initial["status"] == "pass"
+    assert replayed["status"] == "pass"
+    assert replayed["protocol_checks"] == initial["protocol_checks"]
 
 
 @pytest.mark.parametrize(
