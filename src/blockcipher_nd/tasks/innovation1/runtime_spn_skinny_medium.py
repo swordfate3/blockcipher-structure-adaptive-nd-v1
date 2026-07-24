@@ -13,6 +13,9 @@ SIGNAL_FLOOR = 0.55
 CONTROL_MARGIN = 0.005
 RUN_STEM = "i1_rtg2a_skinny64_general_gf2_medium_65536"
 HISTORY_EPOCHS = 5
+RTG2B_SAMPLES_PER_CLASS = 262_144
+RTG2B_TRAIN_ROWS = 524_288
+RTG2B_VALIDATION_ROWS = 262_144
 
 
 def _is_finite_number(value: object) -> bool:
@@ -114,9 +117,22 @@ def adjudicate_runtime_spn_skinny_medium(
     run_id: str,
     rows: list[dict[str, Any]],
     expected_seed: int,
+    phase: str = "rtg2a",
 ) -> dict[str, Any]:
+    if phase not in {"rtg2a", "rtg2b"}:
+        raise ValueError("SKINNY scale phase must be rtg2a or rtg2b")
     if expected_seed not in {0, 1}:
-        raise ValueError("RTG2-A supports only seed0 and conditional seed1")
+        raise ValueError(f"{phase.upper()} supports only seed0 and conditional seed1")
+    if phase == "rtg2a":
+        samples_per_class = SAMPLES_PER_CLASS
+        train_rows = TRAIN_ROWS
+        validation_rows = VALIDATION_ROWS
+        scale_check = "frozen_rtg2a_scale_and_task"
+    else:
+        samples_per_class = RTG2B_SAMPLES_PER_CLASS
+        train_rows = RTG2B_TRAIN_ROWS
+        validation_rows = RTG2B_VALIDATION_ROWS
+        scale_check = "frozen_rtg2b_scale_and_task"
 
     by_model = {str(row.get("model")): row for row in rows}
     by_role = {
@@ -182,17 +198,17 @@ def adjudicate_runtime_spn_skinny_medium(
             )
             for row in by_role.values()
         ),
-        "frozen_rtg2a_scale_and_task": len(by_role) == 3
+        scale_check: len(by_role) == 3
         and all(
             row.get("cipher") == "SKINNY-64/64"
             and row.get("rounds") == 7
             and row.get("seed") == expected_seed
-            and row.get("samples_per_class") == SAMPLES_PER_CLASS
+            and row.get("samples_per_class") == samples_per_class
             and row.get("pairs_per_sample") == 4
             and row.get("difference_profile") == "skinny64_gohr2022_single_key"
             and row.get("input_difference") == 0x2000
-            and row.get("training", {}).get("train_rows") == TRAIN_ROWS
-            and row.get("training", {}).get("validation_rows") == VALIDATION_ROWS
+            and row.get("training", {}).get("train_rows") == train_rows
+            and row.get("training", {}).get("validation_rows") == validation_rows
             and row.get("training", {}).get("epochs") == 5
             and row.get("training", {}).get("batch_size") == 64
             and row.get("training", {}).get("train_eval_interval") == 1
@@ -266,21 +282,40 @@ def adjudicate_runtime_spn_skinny_medium(
     }
     if not all(protocol_checks.values()):
         status = "fail"
-        decision = "innovation1_rtg2a_skinny_medium_protocol_invalid"
-        next_action = "repair only the failed RTG2-A protocol check; do not interpret or rerun at larger scale"
+        decision = (
+            "innovation1_rtg2a_skinny_medium_protocol_invalid"
+            if phase == "rtg2a"
+            else "innovation1_rtg2b_skinny_scale_protocol_invalid"
+        )
+        next_action = (
+            f"repair only the failed {phase.upper()} protocol check; do not "
+            "interpret or rerun at larger scale"
+        )
     elif all(research_checks.values()):
         status = "pass"
-        decision = f"innovation1_rtg2a_skinny_medium_seed{expected_seed}_supported"
-        next_action = (
-            "run the identical conditional seed1 RTG2-A matrix"
-            if expected_seed == 0
-            else "synthesize the two-seed medium evidence before considering 262144/class"
-        )
+        if phase == "rtg2a":
+            decision = f"innovation1_rtg2a_skinny_medium_seed{expected_seed}_supported"
+            next_action = (
+                "run the identical conditional seed1 RTG2-A matrix"
+                if expected_seed == 0
+                else "synthesize the two-seed medium evidence before considering 262144/class"
+            )
+        else:
+            decision = f"innovation1_rtg2b_skinny_scale_seed{expected_seed}_supported"
+            next_action = (
+                "prepare an identical 262144/class seed1 RTG2-B confirmation without launching it automatically"
+                if expected_seed == 0
+                else "synthesize the two-seed 262144/class evidence before any formal-scale decision"
+            )
     else:
         status = "hold"
-        decision = "innovation1_rtg2a_skinny_medium_not_supported"
+        decision = (
+            "innovation1_rtg2a_skinny_medium_not_supported"
+            if phase == "rtg2a"
+            else "innovation1_rtg2b_skinny_scale_not_supported"
+        )
         next_action = (
-            "stop RTG2-A scale-up and audit whether the local margin was sample variance or a "
+            f"stop {phase.upper()} scale-up and audit whether the prior margin was sample variance or a "
             "training-dynamics mismatch; do not rescue it by changing the frozen protocol"
         )
 
@@ -288,7 +323,11 @@ def adjudicate_runtime_spn_skinny_medium(
         "claim formal, paper-scale, attack, SOTA, breakthrough, or universal-SPN evidence",
         "change difference, pairs, epochs, negatives, topology corruption, or model geometry",
         "add DDT or trail features, switch to related keys, or launch a broad cipher matrix",
-        "launch 262144/class before both RTG2-A medium seeds pass",
+        (
+            "launch 262144/class before both RTG2-A medium seeds pass"
+            if phase == "rtg2a"
+            else "launch seed1 or formal scale before RTG2-B seed0 passes"
+        ),
     ]
     if expected_seed == 0 and status != "pass":
         blocked_actions.append("launch seed1 after a seed0 hold or protocol failure")
@@ -296,7 +335,11 @@ def adjudicate_runtime_spn_skinny_medium(
     return {
         "run_id": run_id,
         "cipher": "SKINNY-64/64",
+        "phase": phase,
         "seed": expected_seed,
+        "samples_per_class": samples_per_class,
+        "train_rows": train_rows,
+        "validation_rows": validation_rows,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -309,7 +352,7 @@ def adjudicate_runtime_spn_skinny_medium(
             "control_margin": CONTROL_MARGIN,
         },
         "claim_scope": (
-            f"SKINNY-64/64 r7 seed{expected_seed} remote medium 65536/class general-GF(2) "
+            f"SKINNY-64/64 r7 seed{expected_seed} remote medium {samples_per_class}/class general-GF(2) "
             "runtime-topology replication; architecture/protocol diagnostic only, not formal "
             "scale, paper reproduction, attack, SOTA, breakthrough, or universal-SPN evidence"
         ),

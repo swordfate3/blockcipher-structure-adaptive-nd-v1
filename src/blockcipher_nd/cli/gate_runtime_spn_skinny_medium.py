@@ -23,6 +23,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--seed", required=True, type=int, choices=(0, 1))
     parser.add_argument(
+        "--phase",
+        choices=("rtg2a", "rtg2b"),
+        default="rtg2a",
+        help="Frozen SKINNY sample-scale phase; defaults to historical RTG2-A.",
+    )
+    parser.add_argument(
         "--progress",
         type=Path,
         default=None,
@@ -44,7 +50,10 @@ def main(argv: list[str] | None = None) -> int:
         run_id=args.run_id,
         rows=rows,
         expected_seed=args.seed,
+        phase=args.phase,
     )
+    train_samples_per_class = int(gate["samples_per_class"])
+    validation_rows = int(gate["validation_rows"])
     validation = {
         "run_id": args.run_id,
         "status": "pass" if all(gate["protocol_checks"].values()) else "fail",
@@ -53,12 +62,12 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": "innovation1_rtg2a_skinny_general_gf2_medium_replication",
+        "task": f"innovation1_{args.phase}_skinny_general_gf2_scale_replication",
         "training_performed": True,
-        "train_samples_per_class": 65_536,
-        "train_samples_total": 131_072,
-        "validation_samples_per_class": 32_768,
-        "validation_samples_total": 65_536,
+        "train_samples_per_class": train_samples_per_class,
+        "train_samples_total": int(gate["train_rows"]),
+        "validation_samples_per_class": validation_rows // 2,
+        "validation_samples_total": validation_rows,
         "pairs_per_sample": 4,
         "epochs": 5,
         "seed": args.seed,
@@ -102,12 +111,29 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
         float(gate["margins"]["true_minus_independent"]),
     ]
     seed = int(gate["seed"])
+    phase = str(gate.get("phase", "rtg2a"))
+    phase_label = phase.upper()
+    samples_per_class = int(gate.get("samples_per_class", 65_536))
+    validation_per_class = int(gate.get("validation_rows", 65_536)) // 2
     status = str(gate["status"])
-    conclusion = {
-        "pass": "正确拓扑同时通过信号门和两项归因门；可按计划推进下一颗种子。",
-        "hold": "中等规模优势未满足冻结门槛；停止扩样并审计方差或训练动态。",
-        "fail": "协议证据不完整或不一致；仅修复失败检查，不解释 AUC。",
-    }[status]
+    if status == "pass":
+        if phase == "rtg2a":
+            conclusion = (
+                "正确拓扑同时通过信号门和两项归因门；可进入相同协议的 seed1 复验。"
+                if seed == 0
+                else "正确拓扑再次通过信号门和两项归因门；下一步汇总两颗种子后裁决扩样。"
+            )
+        else:
+            conclusion = (
+                "正确拓扑在 262144/类再次通过三门；可准备相同协议的 seed1 复验。"
+                if seed == 0
+                else "正确拓扑在 262144/类两颗种子通过；下一步汇总后再裁决正式规模。"
+            )
+    else:
+        conclusion = {
+            "hold": "中等规模优势未满足冻结门槛；停止扩样并审计方差或训练动态。",
+            "fail": "协议证据不完整或不一致；仅修复失败检查，不解释 AUC。",
+        }[status]
     status_color = {"pass": "#047857", "hold": "#B45309", "fail": "#B42318"}[status]
     finite_values = [value for value in values if math.isfinite(value)] or [0.5]
     finite_margins = [value for value in margins if math.isfinite(value)] or [0.0]
@@ -130,7 +156,7 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
             left=0.075, right=0.97, top=0.72, bottom=0.18, wspace=0.32
         )
         figure.suptitle(
-            "创新1 RTG2-A：SKINNY 中等规模 GF(2) 拓扑复验",
+            f"创新1 {phase_label}：SKINNY 中等规模 GF(2) 拓扑复验",
             x=0.075,
             y=0.96,
             ha="left",
@@ -142,7 +168,7 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
             0.895,
             (
                 f"seed{seed}；7轮；差分 0x2000；每条样本 4 个密文对；"
-                "训练 65536/class，验证 32768/class，5 epochs。"
+                f"训练 {samples_per_class}/class，验证 {validation_per_class}/class，5 epochs。"
             ),
             ha="left",
             va="top",
@@ -231,7 +257,7 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
             0.075,
             0.055,
             (
-                "证据范围：SKINNY-64/64 7轮、65536/class 中等规模架构/协议复验；"
+                f"证据范围：SKINNY-64/64 7轮、{samples_per_class}/class 中等规模架构/协议复验；"
                 "不是正式规模、论文复现、攻击、SOTA 或突破。"
             ),
             ha="left",

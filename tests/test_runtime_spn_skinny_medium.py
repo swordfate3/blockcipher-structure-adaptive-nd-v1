@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import subprocess
 import sys
@@ -11,18 +12,32 @@ from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
 from blockcipher_nd.cli.gate_runtime_spn_skinny_medium_joint import (
     main as joint_gate_main,
 )
+from blockcipher_nd.cli.gate_runtime_spn_skinny_medium import (
+    render_skinny_medium_svg,
+)
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_attribution import MODELS
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
     adjudicate_runtime_spn_skinny_medium,
     adjudicate_runtime_spn_skinny_medium_joint,
 )
+from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg2b_launch import (
+    JOINT_DECISION,
+    JOINT_RUN_ID,
+    adjudicate_runtime_spn_skinny_rtg2b_launch,
+)
+from blockcipher_nd.registry.model_factory import build_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_STEM = "i1_rtg2a_skinny64_general_gf2_medium_65536"
 
 
-def _rows(seed: int, aucs: dict[str, float]) -> list[dict[str, object]]:
+def _rows(
+    seed: int,
+    aucs: dict[str, float],
+    *,
+    samples_per_class: int = 65_536,
+) -> list[dict[str, object]]:
     cache_root = (
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
         f"{RUN_STEM}_seed{seed}_20260724\\cache"
@@ -38,8 +53,8 @@ def _rows(seed: int, aucs: dict[str, float]) -> list[dict[str, object]]:
         "checkpoint_metric": "val_auc",
         "restore_best_checkpoint": True,
         "selected_checkpoint": "best",
-        "train_rows": 131072,
-        "validation_rows": 65536,
+        "train_rows": samples_per_class * 2,
+        "validation_rows": samples_per_class,
         "model_options": {
             "processor_steps": 2,
             "pair_embedding_dim": 128,
@@ -83,7 +98,7 @@ def _rows(seed: int, aucs: dict[str, float]) -> list[dict[str, object]]:
                 "model": model,
                 "rounds": 7,
                 "seed": seed,
-                "samples_per_class": 65536,
+                "samples_per_class": samples_per_class,
                 "dataset_label_mode": "balanced_per_class",
                 "pairs_per_sample": 4,
                 "feature_encoding": "ciphertext_pair_bits",
@@ -140,6 +155,176 @@ def test_medium_seed0_hold_blocks_seed1_and_larger_scale() -> None:
     assert gate["status"] == "hold"
     assert "launch seed1" in gate["blocked_actions"][-1]
     assert any("262144/class" in action for action in gate["blocked_actions"])
+
+
+def test_medium_seed1_plot_recommends_two_seed_synthesis(tmp_path: Path) -> None:
+    gate = adjudicate_runtime_spn_skinny_medium(
+        run_id="seed1",
+        rows=_rows(1, {"true": 0.61, "corrupted": 0.56, "independent": 0.53}),
+        expected_seed=1,
+    )
+    output = tmp_path / "curves.svg"
+
+    render_skinny_medium_svg(gate, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "下一步汇总两颗种子后裁决扩样" in svg
+    assert "推进下一颗种子" not in svg
+
+
+def test_rtg2b_seed0_pass_preserves_scaled_protocol(tmp_path: Path) -> None:
+    gate = adjudicate_runtime_spn_skinny_medium(
+        run_id="rtg2b-seed0",
+        rows=_rows(
+            0,
+            {"true": 0.64, "corrupted": 0.60, "independent": 0.51},
+            samples_per_class=262_144,
+        ),
+        expected_seed=0,
+        phase="rtg2b",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_rtg2b_skinny_scale_seed0_supported"
+    assert gate["protocol_checks"]["frozen_rtg2b_scale_and_task"] is True
+    assert gate["samples_per_class"] == 262_144
+    assert gate["train_rows"] == 524_288
+    assert gate["validation_rows"] == 262_144
+    assert "without launching it automatically" in gate["next_action"]
+
+    output = tmp_path / "rtg2b.svg"
+    render_skinny_medium_svg(gate, output)
+    svg = output.read_text(encoding="utf-8")
+    assert "创新1 RTG2B" in svg
+    assert "训练 262144/class，验证 131072/class" in svg
+    assert "可准备相同协议的 seed1 复验" in svg
+
+
+def test_rtg2b_rejects_unscaled_rtg2a_rows() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium(
+        run_id="rtg2b-wrong-scale",
+        rows=_rows(0, {"true": 0.64, "corrupted": 0.60, "independent": 0.51}),
+        expected_seed=0,
+        phase="rtg2b",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["frozen_rtg2b_scale_and_task"] is False
+
+
+def test_rtg2b_launch_gate_holds_until_exact_source_is_published() -> None:
+    common = {
+        "source_commit": "a" * 40,
+        "upstream_ref": "origin/main",
+        "joint_gate": {
+            "run_id": JOINT_RUN_ID,
+            "status": "pass",
+            "decision": JOINT_DECISION,
+            "protocol_checks": {"complete": True},
+            "research_checks": {"supported": True},
+        },
+        "joint_validation": {"status": "pass"},
+        "readiness_status": "pass",
+        "source_commit_valid": True,
+        "source_commit_exists": True,
+        "source_assets_committed": True,
+        "source_assets_match": True,
+        "plans_match_scale_only": True,
+    }
+
+    held = adjudicate_runtime_spn_skinny_rtg2b_launch(
+        **common,
+        source_commit_published=False,
+    )
+    passed = adjudicate_runtime_spn_skinny_rtg2b_launch(
+        **common,
+        source_commit_published=True,
+    )
+
+    assert held["status"] == "hold"
+    assert held["should_ssh"] is True
+    assert held["ssh_allowed"] is False
+    assert held["launch_authorized"] is False
+    assert passed["status"] == "pass"
+    assert passed["decision"] == "innovation1_rtg2b_seed0_remote_launch_authorized"
+    assert passed["launch_authorized"] is True
+
+
+def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
+    plan_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_scale_rtg2b_262144_seed0.csv"
+    )
+    config_path = ROOT / (
+        "configs/remote/"
+        "innovation1_rtg2b_skinny64_general_gf2_scale_262144_seed0_gpu0_20260724.json"
+    )
+    with plan_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert len(rows) == 3
+    assert {row["seed"] for row in rows} == {"0"}
+    assert {row["samples_per_class"] for row in rows} == {"262144"}
+    assert {row["negative_mode"] for row in rows} == {
+        "encrypted_random_plaintexts"
+    }
+    assert {row["pairs_per_sample"] for row in rows} == {"4"}
+    parameter_counts = set()
+    for row in rows:
+        model = build_model(
+            row["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            model_options=json.loads(row["model_options"]),
+        )
+        parameter_counts.add(sum(parameter.numel() for parameter in model.parameters()))
+    assert parameter_counts == {442466}
+
+    report = remote_readiness_report(config_path)
+    assert report["status"] == "pass", report["errors"]
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    assert config["expected_rows"] == 3
+    assert config["epochs"] == 5
+    assert config["batch_size"] == 64
+    assert config["dataset_cache"] is True
+    assert config["dataset_cache_chunk_size"] == 1024
+    assert config["dataset_cache_workers"] == 1
+    assert config["dataset_cache_root"].startswith(
+        "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+    )
+
+    generated = ROOT / "configs/remote/generated"
+    run_script = (
+        generated
+        / "run_i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724.cmd"
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        generated
+        / "launch_i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_path = (
+        generated
+        / "monitor_i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724.sh"
+    )
+    monitor_script = monitor_path.read_text(encoding="utf-8")
+    combined = run_script + launch_script
+    assert "cmd.exe /c" in launch_script
+    assert "cmd.exe /k" not in combined
+    assert "EnableDelayedExpansion" not in combined
+    assert "!" not in combined
+    assert "--dataset-cache-root \"%CACHE_ROOT%\"" in run_script
+    assert "--dataset-cache-chunk-size 1024" in run_script
+    assert "--dataset-cache-workers 1" in run_script
+    assert "--phase rtg2b" in run_script
+    assert "visual_qa_pending.marker" in run_script + monitor_script
+    assert "innovation1_rtg2b_seed0_remote_launch_authorized" in monitor_script
+    assert "bounded_start_confirmation_passed" in monitor_script
+    assert "retrieved_from_verified_result_branch.marker" in monitor_script
+    assert "scripts/index-results" in monitor_script
+    assert 'set \\"GIT_SSH_COMMAND=ssh -i ' in monitor_script
+    assert 'StrictHostKeyChecking=accept-new\\"&& git clone' in monitor_script
+    subprocess.run(["bash", "-n", str(monitor_path)], check=True)
 
 
 def test_medium_protocol_mismatch_fails_closed() -> None:

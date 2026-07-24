@@ -22,8 +22,8 @@ budget.
 | External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT permutation and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
-| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed local attribution and seed0 `65536/class` passed | medium replication incomplete |
-| General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed1 remote run is active under watcher control | running |
+| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed `65536/class` medium attribution passed | medium two-seed supported |
+| General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed0 `0.643591`, seed1 `0.644613`; both control margins pass the joint gate | RTG2-B preparation authorized |
 
 The claim boundary remains narrow. These facts prove a runtime-parameterized
 4-bit-cell implementation and controlled diagnostic evidence. They do not prove
@@ -144,3 +144,22 @@ to remote scale only if the correct assignment beats both the global-mean anchor
 and shuffled-assignment control under the frozen gate. Do not add DDT/trail
 features, change the negative definition or combine this attribution with the
 RTG2-A sample-scale ladder.
+
+## Post-RTG2-A Evidence Update
+
+RTG2-A seed1 subsequently completed and was retrieved from its verified result
+branch. Correct topology reached `0.644612943` AUC versus `0.597460402`
+corrupted and `0.513995145` no-topology controls. Together with seed0
+`0.643590577`, the frozen two-seed joint gate passed. This upgrades the
+general-GF(2) branch from local implementation evidence to repeatable
+`65536/class` medium architecture/protocol evidence; it remains non-formal and
+does not establish an attack, SOTA or universal-SPN claim.
+
+The highest-priority remote action is now an RTG2-B `262144/class` seed0 plan
+that changes sample scale only and preserves the same three roles, r7
+`0x2000` data protocol, four pairs, five epochs, strict encrypted-random-
+plaintext negatives and `442466`-parameter geometry. It must pass a fresh
+disk-cache/readiness gate before launch. The uKNIT S-box-assignment branch may
+continue with bounded local representation diagnostics, but its successive
+`2048/class` holds do not take priority over this already-supported scale
+replication and do not authorize remote GPU use.

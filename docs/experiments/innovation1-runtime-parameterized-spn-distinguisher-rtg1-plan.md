@@ -2162,3 +2162,95 @@ actual chart still requires `visual-qa-redraw` before the seed1 result is called
 complete. A joint pass is required before any `262144/class` preparation; a
 joint hold stops mechanical scale-up, and a protocol failure permits only
 evidence repair.
+
+### RTG2-A Seed1 Verified Result And Joint Decision
+
+The seed1 run completed remotely from the frozen pushed training commit
+`9120a1ff96815975f31f1f461342bb7831e2d035`. It was retrieved from the verified
+result branch
+`results/i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724`, not through
+raw fallback. Local plan/result validation passed with three expected and
+observed rows, no missing, unexpected or duplicate keys, and no field
+mismatches. The re-adjudicated gate passed every protocol and research check.
+
+| Model role | Best epoch | First validation AUC | Best validation AUC | Final validation AUC | Train - validation at best |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| correct GF(2) topology | 5 | `0.642951873` | `0.644612943` | `0.644612943` | `+0.003413672` |
+| deterministic corrupted topology | 5 | `0.584865457` | `0.597460402` | `0.597460402` | `+0.009927749` |
+| no linear topology | 4 | `0.511691202` | `0.513995145` | `0.512792945` | `+0.001258964` |
+
+Frozen seed1 research gates:
+
+```text
+correct AUC >= 0.55                    = pass (0.644612943)
+correct - corrupted >= +0.005          = pass (+0.047152541)
+correct - no topology >= +0.005        = pass (+0.130617798)
+decision = innovation1_rtg2a_skinny_medium_seed1_supported
+```
+
+The retrieved chart initially contained the stale conclusion "advance to the
+next seed" even though it represented seed1. `visual-qa-redraw` caught this
+factual ambiguity. The renderer now emits a seed-aware recommendation, covered
+by a regression test, and the exact regenerated SVG passed a second pixel
+inspection at `1977 x 1019`: no text overlap, clipping, missing glyphs,
+threshold/label collision or stale next action remains. The result root now
+contains `visual_qa_passed.marker` rather than `visual_qa_pending.marker`.
+
+The separate joint gate then synthesized the fallback-retrieved seed0 gate and
+verified-branch seed1 gate. All source identities, frozen thresholds, protocol
+contracts and finite metrics matched. Both seeds passed:
+
+| Seed | Correct | Corrupted | No topology | Correct - corrupted | Correct - no topology |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.643590577` | `0.600012660` | `0.510271238` | `+0.043577916` | `+0.133319339` |
+| 1 | `0.644612943` | `0.597460402` | `0.513995145` | `+0.047152541` | `+0.130617798` |
+
+```text
+joint status   = pass
+joint decision = innovation1_rtg2a_skinny_medium_two_seed_supported
+claim scope    = SKINNY-64/64 r7 two-seed 65536/class medium architecture/protocol diagnostic
+```
+
+This is meaningful two-seed medium evidence that the same runtime E4 backbone
+uses a general GF(2) linear topology, beyond a one-to-one P layer. It is not
+formal scale, a paper reproduction, an attack, SOTA, a breakthrough or evidence
+for arbitrary SPNs. Seed0 remains explicitly fallback-retrieved; the successful
+joint gate does not upgrade its provenance.
+
+Evidence roots:
+
+```text
+outputs/remote_results_incomplete/i1_rtg2a_skinny64_general_gf2_medium_65536_seed0_20260724
+outputs/remote_results/i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724
+outputs/remote_results_incomplete/i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1_20260724
+```
+
+### Executable Next Action: RTG2-B Sample-Scale Replication
+
+The joint gate authorizes preparation, but not automatic launch, of one
+`262144/class` seed0 experiment. RTG2-B must change only sample scale from
+RTG2-A:
+
+```text
+question                 = does the two-seed 65536/class topology advantage survive 262144/class?
+same-budget roles        = correct / deterministic corrupted / no linear topology
+one changed variable     = train samples_per_class 65536 -> 262144
+cipher / rounds / delta  = SKINNY-64/64 / 7 / 0x2000
+validation               = 131072/class
+seed / epochs / batch    = 0 / 5 / 64
+pairs/sample             = 4 independent ciphertext pairs
+optimizer / loss         = Adam 1e-4, weight decay 1e-5 / MSE
+checkpoint               = best validation AUC
+negative                 = encrypted random plaintexts
+model geometry           = unchanged 442466 parameters per role
+execution                = remote lxy-a6000 only, clean pushed commit
+cache                    = parameter-matched disk cache with chunk progress and resume
+```
+
+Before launch, preregister a separate RTG2-B plan, validate the three-row CSV,
+verify the exact joint-pass artifact, and pass remote disk-cache/readiness plus
+Windows-path checks. The research gate remains `correct AUC >= 0.55`,
+`correct-corrupted >= +0.005`, and `correct-independent >= +0.005`. A pass may
+open an independent `262144/class` seed1 confirmation; a hold stops mechanical
+scale-up. Do not change the difference, pairs, epochs, negatives, topology
+corruption, model geometry or add DDT/trail features as a rescue.
