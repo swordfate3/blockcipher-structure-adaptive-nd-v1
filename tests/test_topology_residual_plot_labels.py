@@ -188,6 +188,68 @@ def test_case3_plot_uses_distinct_visible_role_labels(tmp_path: Path) -> None:
         assert label in visible_text
 
 
+def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
+    tmp_path: Path,
+) -> None:
+    results = tmp_path / "uknit-results.jsonl"
+    output = tmp_path / "uknit-curves.svg"
+    role_rows = (
+        ("runtime_spn_e4_equivariant_true", "true", "late_cell"),
+        ("runtime_spn_e4_equivariant_true", "true", "late_pair"),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "late_cell",
+        ),
+    )
+    rows = [
+        {
+            "cipher": "uKNIT-BC",
+            "model": model,
+            "selected_model": model,
+            "runtime_structure_mode": mode,
+            "rounds": 4,
+            "seed": seed,
+            "samples_per_class": 2048,
+            "pairs_per_sample": 4,
+            "validation": {"samples_per_class": 1024},
+            "training": {"model_options": {"sbox_context_mode": context}},
+            "history": [
+                {
+                    "epoch": 1,
+                    "train_auc": 0.70,
+                    "val_auc": 0.52 + role_index * 0.005 + seed * 0.001,
+                }
+            ],
+        }
+        for seed in (0, 1)
+        for role_index, (model, mode, context) in enumerate(role_rows)
+    ]
+    results.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+
+    report = plot_jsonl_training_curves(
+        results,
+        output,
+        metrics=("auc",),
+        validation_only=True,
+    )
+
+    assert report["series"] == 6
+    assert report["validation_only"] is True
+    visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
+    for seed in (0, 1):
+        assert f"seed{seed}：正确归属（逐 cell）" in visible_text
+        assert f"seed{seed}：全局 S盒锚点" in visible_text
+        assert f"seed{seed}：S盒归属打乱控制" in visible_text
+    assert "训练集（虚线）" not in visible_text
+    assert "最终准确率" not in visible_text
+    assert "最终 AUC" in visible_text
+    assert "spn e4 equivariant true" not in visible_text
+
+
 def test_r0_like_endpoint_labels_keep_svg_aspect_ratio_bounded(tmp_path: Path) -> None:
     results = tmp_path / "r0-results.jsonl"
     output = tmp_path / "r0-curves.svg"

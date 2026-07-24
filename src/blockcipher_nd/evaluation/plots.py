@@ -50,9 +50,12 @@ def plot_jsonl_training_curves(
     *,
     metrics: tuple[str, ...] = DEFAULT_METRICS,
     title: str | None = None,
+    validation_only: bool = False,
 ) -> dict[str, Any]:
     rows = load_jsonl_rows(results_path)
     series = training_curve_series(rows, metrics=metrics)
+    if validation_only:
+        series = [item for item in series if item["split"] == "val"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     render_training_curves_svg(series, output_path, title=title or results_path.name)
     return {
@@ -60,6 +63,7 @@ def plot_jsonl_training_curves(
         "series": len(series),
         "output": str(output_path),
         "metrics": list(metrics),
+        "validation_only": validation_only,
     }
 
 
@@ -121,6 +125,12 @@ def training_curve_series(
                             "cipher": row.get("cipher", ""),
                             "rounds": row.get("rounds", ""),
                             "seed": row.get("seed", ""),
+                            "runtime_structure_mode": row.get(
+                                "runtime_structure_mode", ""
+                            ),
+                            "sbox_context_mode": row.get("training", {})
+                            .get("model_options", {})
+                            .get("sbox_context_mode", ""),
                             "samples_per_class": row.get("samples_per_class", ""),
                             "train_structures": row.get("train_structures", ""),
                             "train_keys_per_structure": row.get(
@@ -234,7 +244,7 @@ def render_training_curves_svg(
         axes[-1].set_xlabel("训练轮次 Epoch")
         _render_summary_strip(summary_axis, series)
         _render_model_legend(fig, series)
-        _render_style_legend(fig)
+        _render_style_legend(fig, series)
         fig.savefig(output_path, format="svg", bbox_inches="tight")
         plt.close(fig)
 
@@ -372,21 +382,34 @@ def _annotate_validation_best(
     )
 
 
-def _render_style_legend(fig) -> None:
-    split_items = [
-        Line2D(
-            [0], [0], color="#475569", lw=2.1, linestyle="-", label="验证集（实线）"
-        ),
-        Line2D(
-            [0],
-            [0],
-            color="#475569",
-            lw=1.25,
-            linestyle=PLOT_LINESTYLES["train"],
-            alpha=0.45,
-            label="训练集（虚线）",
-        ),
-    ]
+def _render_style_legend(fig, series: list[dict[str, Any]]) -> None:
+    splits = {item["split"] for item in series}
+    split_items = []
+    if "val" in splits:
+        split_items.append(
+            Line2D(
+                [0],
+                [0],
+                color="#475569",
+                lw=2.1,
+                linestyle="-",
+                label="验证集（实线）",
+            )
+        )
+    if "train" in splits:
+        split_items.append(
+            Line2D(
+                [0],
+                [0],
+                color="#475569",
+                lw=1.25,
+                linestyle=PLOT_LINESTYLES["train"],
+                alpha=0.45,
+                label="训练集（虚线）",
+            )
+        )
+    if not split_items:
+        return
     fig.legend(
         handles=split_items,
         loc="upper left",
@@ -444,36 +467,42 @@ def _render_summary_strip(axis, series: list[dict[str, Any]]) -> None:
         color="#0F172A",
         va="top",
     )
-    columns = [
-        "模型 / 对照角色",
-        "最终准确率",
-        "最佳准确率",
-        "最终 AUC",
-        "最佳 AUC",
-        "最低损失",
+    available_metrics = [
+        metric
+        for metric in ("accuracy", "auc", "loss")
+        if any(row.get(f"{metric}_final") is not None for row in rows)
     ]
-    table_rows = [
-        [
-            row["label"],
-            _format_metric_value("accuracy", row.get("accuracy_final"))
-            if row.get("accuracy_final") is not None
-            else "-",
-            _format_best_cell("accuracy", row),
-            _format_metric_value("auc", row.get("auc_final"))
-            if row.get("auc_final") is not None
-            else "-",
-            _format_best_cell("auc", row),
-            _format_best_cell("loss", row),
-        ]
-        for row in rows
-    ]
+    columns = ["模型 / 对照角色"]
+    for metric in available_metrics:
+        if metric == "accuracy":
+            columns.extend(("最终准确率", "最佳准确率"))
+        elif metric == "auc":
+            columns.extend(("最终 AUC", "最佳 AUC"))
+        else:
+            columns.append("最低损失")
+    table_rows = []
+    for row in rows:
+        cells = [row["label"]]
+        for metric in available_metrics:
+            if metric in {"accuracy", "auc"}:
+                cells.extend(
+                    (
+                        _format_metric_value(metric, row[f"{metric}_final"]),
+                        _format_best_cell(metric, row),
+                    )
+                )
+            else:
+                cells.append(_format_best_cell(metric, row))
+        table_rows.append(cells)
+    role_width = 0.40 if len(columns) > 1 else 1.0
+    metric_width = (1.0 - role_width) / max(1, len(columns) - 1)
     table = axis.table(
         cellText=table_rows,
         colLabels=columns,
         cellLoc="left",
         colLoc="left",
         bbox=[0.0, 0.02, 1.0, 0.76],
-        colWidths=[0.35, 0.12, 0.15, 0.11, 0.15, 0.12],
+        colWidths=[role_width] + [metric_width] * (len(columns) - 1),
     )
     table.auto_set_font_size(False)
     table.set_fontsize(8.0)
@@ -715,6 +744,16 @@ def _series_marker(item: dict[str, Any]) -> str:
 
 def _compact_label(item: dict[str, Any]) -> str:
     model = str(item.get("model") or item.get("label") or "")
+    if item.get("cipher") == "uKNIT-BC" and model.startswith("runtime_spn_e4_"):
+        seed = item.get("seed", "")
+        mode = item.get("runtime_structure_mode")
+        context = item.get("sbox_context_mode")
+        if mode == "true" and context == "late_cell":
+            return f"seed{seed}：正确归属（逐 cell）"
+        if mode == "true" and context == "late_pair":
+            return f"seed{seed}：全局 S盒锚点"
+        if mode == "sbox_shuffled" and context == "late_cell":
+            return f"seed{seed}：S盒归属打乱控制"
     aliases = {
         "linear_same_input": "同输入线性基线",
         "structure_mlp": "结构交互 MLP",

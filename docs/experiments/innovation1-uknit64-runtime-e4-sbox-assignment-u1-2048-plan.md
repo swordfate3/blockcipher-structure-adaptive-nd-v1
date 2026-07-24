@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = preregistered
+stage    = completed local diagnostic
 run_id   = i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724
-result   = not run
-decision = pending
+result   = six rows completed and plan-aligned
+decision = hold / redesign-local
 ```
 
 ## Research Question
@@ -137,3 +137,83 @@ After result validation and visual QA, refresh both recent-result indexes.
 - If neither seed passes or both candidate AUCs are near chance: discard this
   direct late-cell injection and redesign the S-box/topology interaction
   locally; do not mechanically try 8192/class or remote execution.
+
+## Executed Result
+
+The six-row local run completed on 2026-07-24. All eleven protocol checks in
+the frozen gate passed: exact row count and roles, two seeds, uKNIT prefix-r4,
+strict encrypted-random-plaintext negatives, matched data and training
+protocols, disk-backed datasets, equal `442466`-parameter geometry, exact
+descriptor window, role contracts and finite AUCs.
+
+The first plan-alignment check exposed one metadata-only preregistration typo:
+`difference_member` was written as `0` while `difference_profile` was empty.
+The runner correctly emitted an empty member. The CSV member was corrected to
+empty and validation then passed with six expected rows and no mismatches. This
+did not change or rerun data generation, model construction, training,
+checkpoint selection, metrics or any research threshold.
+
+| Seed | Correct `late_cell` | Correct `late_pair` anchor | Shuffled assignment | Correct - anchor | Correct - shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.534949303` | `0.520134926` | `0.537723064` | `+0.014814377` | `-0.002773762` |
+| 1 | `0.520783424` | `0.539116859` | `0.524281502` | `-0.018333435` | `-0.003498077` |
+
+Both candidate rows clear the preregistered `0.520` AUC floor. However, seed0
+does not beat the shuffled-assignment control, and seed1 beats neither anchor
+nor shuffled control. None of the two seeds passes all three research gates.
+
+```text
+status   = hold
+decision = innovation1_uknit_sbox_assignment_hold_redesign_local
+remote   = no
+scale-up = no
+```
+
+This result does not show that S-box ownership is generally useless. It shows
+that the current additive `late_cell` injection does not convert correct uKNIT
+ownership into a stable validation advantage under the frozen U1 protocol.
+The valid control outcome specifically blocks a mechanical data or epoch
+increase.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/results.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/gate.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/summary.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/history.csv
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u1_2048_seed0_seed1_20260724/curves.svg
+```
+
+The final SVG uses validation-only curves, Chinese seed/role labels and a
+metric-aware summary table. It passed the required render-to-pixels
+`visual-qa-redraw` inspection for overlap, clipping, title clarity, curve
+separation, legends and export bounds.
+
+## Evidence-backed Next Action
+
+Run a no-retraining U2-A same-checkpoint counterfactual audit before changing
+the architecture:
+
+```text
+question       = does each trained candidate rely on the supplied S-box ownership at inference time?
+source models  = U1 seed0 and seed1 correct-late_cell best checkpoints
+source data    = the exact cached U1 validation arrays
+candidate      = checkpoint evaluated with correct S2/L2,S3/L3 assignment
+control        = the same checkpoint and samples with only S-box ownership shuffled
+anchor         = late_pair same-checkpoint correct-vs-shuffled invariance check
+training       = none
+execution      = local deterministic audit
+advance        = correct-minus-shuffled AUC >= +0.005 on both candidate checkpoints and late_pair logit delta <= 1e-6
+stop/redesign  = either candidate checkpoint lacks the margin or the invariance control fails
+```
+
+This audit changes one inference-time variable while holding weights and data
+fixed. A pass would show that U1's separately trained control comparison was
+masked by optimization variance and would justify paired structure-swap
+training. A miss would establish that the current trained representation
+ignores ownership, unlocking a local edge-conditioned/gated S-box-topology
+interaction redesign. Do not train that redesign, increase U1 scale, add DDT or
+use remote GPU until U2-A resolves this mismatch.

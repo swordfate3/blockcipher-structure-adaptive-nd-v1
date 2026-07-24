@@ -25,6 +25,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Metrics to plot. Each metric uses train_* and val_* history fields when present.",
     )
     parser.add_argument("--title", default=None, help="Optional plot title.")
+    parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="Plot validation curves only so close control results remain readable.",
+    )
     return parser.parse_args(argv)
 
 
@@ -35,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         args.output,
         metrics=tuple(args.metrics),
         title=args.title,
+        validation_only=args.validation_only,
     )
     if args.history_csv is not None:
         report["history_csv"] = write_history_csv(args.results, args.history_csv)
