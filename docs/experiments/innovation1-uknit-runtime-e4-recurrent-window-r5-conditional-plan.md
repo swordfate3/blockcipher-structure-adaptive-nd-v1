@@ -10,6 +10,7 @@ readiness = pass
 training = not started
 execution_authorized = no
 blocking_decision = RTG3-A seed0 and conditional seed1 adjudication
+result_gate = implemented and preregistered; no U3 AUC has been read
 ```
 
 ## Research Question
@@ -87,11 +88,37 @@ Do not train this matrix until RTG3-A has a completed local adjudication. If
 RTG3-A seed0 stops its conditional seed1, use that explicit route decision
 instead of waiting for a nonexistent second result.
 
-Once authorized, the empirical advance rule must be preregistered before
-reading AUCs. It must require both seeds to keep useful absolute signal and the
-candidate to beat repeat-last, corrupted and no-topology controls. The exact
-thresholds will be set from the frozen same-budget last-transition anchor and
-RTG3 evidence, not from this future matrix's observed values.
+The empirical advance rule is now preregistered before training or reading any
+U3 AUC. Both seeds must satisfy all five checks:
+
+```text
+candidate AUC >= 0.520
+candidate - anchor AUC >= +0.005
+candidate - repeat-last AUC >= +0.005
+candidate - corrupted AUC >= +0.005
+candidate - no-topology AUC >= +0.005
+```
+
+The `0.520` absolute floor comes from the completed same-budget uKNIT U2-C
+state-triplet evidence, where both candidates retained AUC above `0.535`. The
+`+0.005` attribution margin is the already frozen project convention used by
+the uKNIT and Runtime-E4 control gates. RTG3-A determines whether the general
+GF(2) runtime route is credible enough to authorize U3; its SKINNY AUC does not
+tune a threshold for a different cipher after the fact.
+
+After training, run:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run python \
+  scripts/gate-runtime-spn-recurrent-window \
+  --run-id i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725 \
+  --run-root outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725
+```
+
+The gate fails closed unless all ten rows preserve the frozen data, optimizer,
+checkpoint, disk-cache, runtime-window and role contracts. It also checks all
+ten ordered epoch histories and requires each reported AUC to equal the best
+restored validation checkpoint.
 
 Stop and redesign locally if either seed is near chance, if repeat-last matches
 the candidate, or if corrupted/no-topology controls invalidate attribution.
@@ -164,6 +191,8 @@ only. It adds no AUC evidence and does not change
 
 ## Recommended Next Action
 
-Complete deterministic readiness now and keep training held. When RTG3-A is
-adjudicated, record whether its decision authorizes this local mechanism test;
-only then freeze the AUC gate and execute the unchanged ten-row CSV.
+Keep training held while RTG3-A is unresolved. Its completed local decision
+must explicitly authorize or stop this route. If authorized, execute the
+unchanged ten-row CSV and apply the already frozen result gate without changing
+thresholds. A pass advances only to a same-checkpoint window-swap attribution
+audit; a hold stops scale-up and returns to local redesign.
