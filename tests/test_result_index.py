@@ -3615,6 +3615,12 @@ def test_result_index_ignores_monitor_staging_copies(tmp_path: Path) -> None:
             "创新1 X2：冻结GIFT运行时SPN主干，仅训练SKINNY目标输出头",
             "冻结GIFT结构主干后，仅训练SKINNY输出头在双seed超过三个控制，可进入路线比较",
         ),
+        (
+            "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725",
+            "innovation1_rtg3a_skinny_formal_seed0_supported",
+            "创新1 RTG3-A：SKINNY-64/64 1000000/class运行时拓扑正式规模复验",
+            "SKINNY 1000000/class seed0正确拓扑通过信号与两种控制门，只开放同协议seed1复验",
+        ),
     ],
 )
 def test_result_index_labels_current_runtime_spn_route(

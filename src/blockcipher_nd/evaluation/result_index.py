@@ -235,6 +235,36 @@ DECISION_LABELS = {
     "innovation1_rtg2b_skinny_scale_joint_protocol_invalid": (
         "SKINNY 262144/class双seed来源或单seed证据不完整，禁止联合解释"
     ),
+    "innovation1_rtg3a_seed0_remote_launch_authorized": (
+        "SKINNY 1000000/class正式规模seed0的路线、缓存、源码和发布门通过，可启动远程GPU"
+    ),
+    "innovation1_rtg3a_seed0_source_not_published": (
+        "SKINNY正式规模实验已就绪，但精确源码提交尚未发布验证，禁止远程启动"
+    ),
+    "innovation1_rtg3a_seed0_launch_evidence_invalid": (
+        "SKINNY正式规模seed0的路线、协议、缓存或源码证据无效，修复前禁止SSH"
+    ),
+    "innovation1_rtg3a_skinny_formal_seed0_supported": (
+        "SKINNY 1000000/class seed0正确拓扑通过信号与两种控制门，只开放同协议seed1复验"
+    ),
+    "innovation1_rtg3a_skinny_formal_seed1_supported": (
+        "SKINNY 1000000/class seed1再次通过三门，可形成双seed项目正式规模裁决"
+    ),
+    "innovation1_rtg3a_skinny_formal_not_supported": (
+        "SKINNY 1000000/class未同时通过信号与两种控制门，停止正式规模扩展并审计固定协议"
+    ),
+    "innovation1_rtg3a_skinny_formal_protocol_invalid": (
+        "SKINNY 1000000/class数据、训练、缓存、检查点或模型几何协议无效，指标不可解释"
+    ),
+    "innovation1_rtg3a_skinny_formal_two_seed_supported": (
+        "SKINNY 1000000/class正确拓扑优势通过两颗seed，形成项目正式规模双seed证据"
+    ),
+    "innovation1_rtg3a_skinny_formal_two_seed_not_supported": (
+        "SKINNY 1000000/class拓扑优势未通过双seed联合门，停止扩展并审计方差"
+    ),
+    "innovation1_rtg3a_skinny_formal_joint_protocol_invalid": (
+        "SKINNY 1000000/class双seed来源或协议证据不完整，禁止正式规模联合解释"
+    ),
     "runtime_spn_frozen_backbone_target_head_supported": (
         "冻结GIFT结构主干后，仅训练SKINNY输出头在双seed超过三个控制，可进入路线比较"
     ),
@@ -2252,6 +2282,16 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_rtg3a_skinny64_general_gf2_formal_1000000_joint_seed0_seed1"
+    ):
+        return "创新1 RTG3-A：SKINNY-64/64 1000000/class双seed正式规模裁决"
+    if run_id.startswith(
+        "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_launch_gate"
+    ):
+        return "创新1 RTG3-A：SKINNY 1000000/class seed0远程启动门"
+    if run_id.startswith("i1_rtg3a_skinny64_general_gf2_formal_1000000"):
+        return "创新1 RTG3-A：SKINNY-64/64 1000000/class运行时拓扑正式规模复验"
     if run_id.startswith(
         "i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2"
     ):

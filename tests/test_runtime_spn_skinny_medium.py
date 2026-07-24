@@ -21,6 +21,7 @@ from blockcipher_nd.cli.gate_runtime_spn_skinny_medium import (
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_attribution import MODELS
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
     RTG2B_RUN_STEM,
+    RTG3A_RUN_STEM,
     adjudicate_runtime_spn_skinny_medium,
     adjudicate_runtime_spn_skinny_medium_joint,
 )
@@ -33,6 +34,11 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg2b_seed1_launch impo
     SEED0_DECISION as RTG2B_SEED0_DECISION,
     SEED0_RUN_ID as RTG2B_SEED0_RUN_ID,
     adjudicate_runtime_spn_skinny_rtg2b_seed1_launch,
+)
+from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_rtg3a_launch import (
+    JOINT_DECISION as RTG3A_JOINT_DECISION,
+    JOINT_RUN_ID as RTG3A_JOINT_RUN_ID,
+    adjudicate_runtime_spn_skinny_rtg3a_launch,
 )
 from blockcipher_nd.registry.model_factory import build_model
 
@@ -681,6 +687,20 @@ def _rtg2b_seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
     )
 
 
+def _rtg3a_seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
+    aucs = (
+        {"true": 0.65, "corrupted": 0.60, "independent": 0.51}
+        if supported
+        else {"true": 0.552, "corrupted": 0.550, "independent": 0.51}
+    )
+    return adjudicate_runtime_spn_skinny_medium(
+        run_id=f"{RTG3A_RUN_STEM}_seed{seed}_20260725",
+        rows=_rows(seed, aucs, samples_per_class=1_000_000),
+        expected_seed=seed,
+        phase="rtg3a",
+    )
+
+
 def test_medium_joint_gate_requires_both_seeds_to_pass() -> None:
     gate = adjudicate_runtime_spn_skinny_medium_joint(
         run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
@@ -736,6 +756,165 @@ def test_rtg2b_joint_gate_rejects_rtg2a_sources() -> None:
     assert gate["decision"] == ("innovation1_rtg2b_skinny_scale_joint_protocol_invalid")
     assert gate["protocol_checks"]["source_run_ids_match_frozen_rtg2b"] is False
     assert gate["protocol_checks"]["source_phases_match_joint_phase"] is False
+
+
+def test_rtg3a_seed0_gate_is_single_seed_project_formal_evidence() -> None:
+    gate = _rtg3a_seed_gate(0)
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_rtg3a_skinny_formal_seed0_supported"
+    assert gate["samples_per_class"] == 1_000_000
+    assert gate["train_rows"] == 2_000_000
+    assert gate["validation_rows"] == 1_000_000
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "single-seed evidence only" in gate["claim_scope"]
+    assert "conditional 1000000/class seed1" in gate["next_action"]
+
+
+def test_rtg3a_joint_gate_requires_two_formal_seed_passes() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RTG3A_RUN_STEM}_joint_seed0_seed1_20260725",
+        gates=[_rtg3a_seed_gate(0), _rtg3a_seed_gate(1)],
+        phase="rtg3a",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_rtg3a_skinny_formal_two_seed_supported"
+    assert gate["samples_per_class"] == 1_000_000
+    assert gate["protocol_checks"]["source_run_ids_match_frozen_rtg3a"] is True
+    assert gate["research_checks"]["both_formal_seeds_supported"] is True
+    assert "project-formal" in gate["claim_scope"]
+
+
+def test_rtg3a_launch_gate_requires_route_a_and_exact_publication() -> None:
+    common = {
+        "source_commit": "a" * 40,
+        "upstream_ref": "origin/main",
+        "joint_gate": {
+            "run_id": RTG3A_JOINT_RUN_ID,
+            "status": "pass",
+            "decision": RTG3A_JOINT_DECISION,
+            "protocol_checks": {"complete": True},
+            "research_checks": {"supported": True},
+        },
+        "joint_validation": {"status": "pass"},
+        "readiness_status": "pass",
+        "route_selects_formal": True,
+        "source_commit_valid": True,
+        "source_commit_exists": True,
+        "source_assets_committed": True,
+        "source_assets_match": True,
+        "plans_match_scale_only": True,
+    }
+
+    held = adjudicate_runtime_spn_skinny_rtg3a_launch(
+        **common,
+        source_commit_published=False,
+    )
+    passed = adjudicate_runtime_spn_skinny_rtg3a_launch(
+        **common,
+        source_commit_published=True,
+    )
+    wrong_route = adjudicate_runtime_spn_skinny_rtg3a_launch(
+        **{**common, "route_selects_formal": False},
+        source_commit_published=True,
+    )
+
+    assert held["status"] == "hold"
+    assert held["should_ssh"] is True
+    assert held["ssh_allowed"] is False
+    assert passed["status"] == "pass"
+    assert passed["decision"] == "innovation1_rtg3a_seed0_remote_launch_authorized"
+    assert passed["launch_authorized"] is True
+    assert wrong_route["status"] == "fail"
+    assert wrong_route["should_ssh"] is False
+
+
+def test_rtg3a_formal_plan_and_remote_assets_are_ready() -> None:
+    base_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_scale_rtg2b_262144_seed0.csv"
+    )
+    formal_path = ROOT / (
+        "configs/experiment/innovation1/"
+        "innovation1_spn_skinny64_runtime_e4_formal_rtg3a_1000000_seed0.csv"
+    )
+    with base_path.open(newline="", encoding="utf-8") as handle:
+        base_rows = list(csv.DictReader(handle))
+    with formal_path.open(newline="", encoding="utf-8") as handle:
+        formal_rows = list(csv.DictReader(handle))
+
+    ignored = {"network", "family", "samples_per_class", "evidence", "literature"}
+    assert len(formal_rows) == 3
+    assert {row["seed"] for row in formal_rows} == {"0"}
+    assert {row["samples_per_class"] for row in formal_rows} == {"1000000"}
+    assert {row["negative_mode"] for row in formal_rows} == {
+        "encrypted_random_plaintexts"
+    }
+    assert {row["pairs_per_sample"] for row in formal_rows} == {"4"}
+    parameter_counts = set()
+    for base, formal in zip(base_rows, formal_rows, strict=True):
+        fields = set(base) | set(formal)
+        assert all(base[field] == formal[field] for field in fields - ignored)
+        model = build_model(
+            formal["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            model_options=json.loads(formal["model_options"]),
+        )
+        parameter_counts.add(sum(parameter.numel() for parameter in model.parameters()))
+    assert parameter_counts == {442466}
+
+    config_path = ROOT / (
+        "configs/remote/"
+        "innovation1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_gpu0_20260725.json"
+    )
+    report = remote_readiness_report(config_path)
+    assert report["status"] == "pass", report["errors"]
+    assert report["max_samples_per_class"] == 1_000_000
+
+    generated = ROOT / "configs/remote/generated"
+    run_script = (
+        generated
+        / "run_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725.cmd"
+    ).read_text(encoding="utf-8")
+    launch_script = (
+        generated
+        / "launch_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725.cmd"
+    ).read_text(encoding="utf-8")
+    monitor_path = (
+        generated
+        / "monitor_i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725.sh"
+    )
+    monitor_script = monitor_path.read_text(encoding="utf-8")
+    combined = run_script + launch_script
+    assert "--phase rtg3a" in run_script
+    assert '--dataset-cache-root "%CACHE_ROOT%"' in run_script
+    assert "--dataset-cache-chunk-size 1024" in run_script
+    assert "--dataset-cache-workers 1" in run_script
+    assert 'progress.jsonl"' in run_script
+    assert "cmd.exe /c" in launch_script
+    assert "cmd.exe /k" not in combined
+    assert "EnableDelayedExpansion" not in combined
+    assert "!" not in combined
+    assert "innovation1_rtg2b_skinny_scale_seed0_supported" in launch_script
+    assert "innovation1_rtg2b_skinny_scale_seed1_supported" in launch_script
+    assert "innovation1_rtg3a_seed0_remote_launch_authorized" in monitor_script
+    assert "confirm_started_bounded" in monitor_script
+    assert "retrieved_from_verified_result_branch.marker" in monitor_script
+    assert "checkpoint-verification.local.json" in monitor_script
+    assert "visual_qa_pending.marker" in monitor_script
+    assert "scripts/index-results" in monitor_script
+    subprocess.run(["bash", "-n", str(monitor_path)], check=True)
+
+    route = (
+        ROOT
+        / "docs/experiments/innovation1-runtime-spn-post-rtg2b-route-decision-plan.md"
+    ).read_text(encoding="utf-8")
+    assert "status     = pass" in route
+    assert "decision   = select_route_a_formal_skinny_scale" in route
 
 
 def test_medium_joint_gate_fails_closed_on_duplicate_seed_sources() -> None:

@@ -21,7 +21,7 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Adjudicate RTG2-A SKINNY medium general-GF(2) topology replication."
+        description="Adjudicate a frozen SKINNY general-GF(2) topology scale phase."
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-root", required=True, type=Path)
@@ -46,7 +46,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--phase",
-        choices=("rtg2a", "rtg2b"),
+        choices=("rtg2a", "rtg2b", "rtg3a"),
         default="rtg2a",
         help="Frozen SKINNY sample-scale phase; defaults to historical RTG2-A.",
     )
@@ -89,11 +89,11 @@ def main(argv: list[str] | None = None) -> int:
         gate["checkpoint_evidence"] = checkpoint_verification
         if not checkpoint_passed:
             gate["status"] = "fail"
-            gate["decision"] = (
-                "innovation1_rtg2b_skinny_scale_protocol_invalid"
-                if args.phase == "rtg2b"
-                else "innovation1_rtg2a_skinny_medium_protocol_invalid"
-            )
+            gate["decision"] = {
+                "rtg2a": "innovation1_rtg2a_skinny_medium_protocol_invalid",
+                "rtg2b": "innovation1_rtg2b_skinny_scale_protocol_invalid",
+                "rtg3a": "innovation1_rtg3a_skinny_formal_protocol_invalid",
+            }[args.phase]
             gate["next_action"] = (
                 "repair retrieved checkpoint evidence without changing data, "
                 "training, models, or thresholds"

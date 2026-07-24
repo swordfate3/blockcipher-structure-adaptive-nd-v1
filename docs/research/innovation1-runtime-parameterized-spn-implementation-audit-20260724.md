@@ -22,8 +22,9 @@ budget.
 | External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT permutation and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
-| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed `65536/class` medium attribution passed | medium two-seed supported |
-| General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed0 `0.643591`, seed1 `0.644613`; both control margins pass the joint gate | RTG2-B running at `262144/class` seed0 |
+| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed | replicated medium evidence supported |
+| General-GF(2) scale replication | frozen SKINNY r7 RTG2-A/RTG2-B protocol | RTG2-B correct AUC `0.649229/0.647783`; corrupted `0.603562/0.602584`; no topology `0.510190/0.513038` | formal RTG3-A seed0 prepared |
+| Frozen cross-cipher representation | GIFT Runtime-E4 backbone with only a SKINNY target head trained | X2 candidate `0.552013/0.598568` exceeds source, target and random controls but trails full-target `0.612733/0.614544` | small mechanism supported; scale held |
 
 The claim boundary remains narrow. These facts prove a runtime-parameterized
 4-bit-cell implementation and controlled diagnostic evidence. They do not prove
@@ -124,23 +125,22 @@ cell count, S-box descriptors and invariant geometry are implemented. Do not
 add another cipher-specific frontend while the supported general-GF(2) scale
 replication is unresolved.
 
-The current priority is the already-running RTG2-B seed0 matrix:
+The current priority is the post-X2 selected RTG3-A seed0 matrix:
 
 ```text
-question       = does the RTG2-A topology advantage survive 262144/class?
-anchor         = frozen RTG2-A correct/corrupted/no-topology protocol
-changed field  = train samples_per_class 65536 -> 262144 only
-source         = 061fd9a3c30cd1089a24e9df241f63964d147d6c
+question       = does the RTG2-B topology advantage survive project-formal scale?
+anchor         = frozen RTG2-B correct/corrupted/no-topology protocol
+changed field  = train samples_per_class 262144 -> 1000000 only
 execution      = remote A6000 GPU0 with disk-backed cache
-status         = running; bounded started.marker confirmation passed
+status         = plan, config, gate and watcher implementation in readiness
 ```
 
-If seed0 passes all three frozen gates, prepare but do not automatically launch
-an identical `262144/class` seed1 confirmation. If seed0 holds, stop mechanical
-scale-up and inspect cache identity, complete five-epoch dynamics and the two
-topology margins without changing the network, data protocol or control
-semantics. Neither outcome authorizes `1000000/class` before an independent
-seed at this scale.
+If seed0 passes all three frozen gates, prepare the identical conditional
+`1000000/class` seed1 confirmation. If seed0 holds, stop mechanical scale-up
+and inspect cache identity, complete five-epoch dynamics and the two topology
+margins without changing the network, data protocol or control semantics. A
+single-seed pass is project-formal evidence but is not a multi-seed formal
+conclusion.
 
 The uKNIT S-box-assignment route has already completed its bounded local loop.
 U2-F and the U2-G same-checkpoint audit supported one prefix-r4 delta-U query
@@ -187,3 +187,26 @@ show source `061fd9a3c30cd1089a24e9df241f63964d147d6c`, clean detached status,
 readiness `pass`, PyTorch `2.5.1+cu118`, CUDA `11.8` and one visible A6000. This
 is launch evidence only. No RTG2-B AUC, result decision or scale conclusion
 exists until the verified result branch is retrieved and re-adjudicated.
+
+## Post-RTG2-B And X2 Route Update
+
+RTG2-B later completed on both seeds. Correct runtime topology reached
+`0.649229395/0.647782881`, exceeding deterministic corrupted topology by
+`+0.045667696/+0.045198574` and no topology by
+`+0.139039457/+0.134744390`. Both remote archives, checkpoint payloads and the
+joint gate passed after immutable local re-adjudication.
+
+The lower-cost X2 branch then froze the GIFT Runtime-E4 backbone and trained
+only the SKINNY output head. Its candidate AUCs `0.552013397/0.598568439`
+passed all three controls, supporting limited cross-cipher representation
+reuse. They remained below same-data end-to-end SKINNY anchors by
+`0.060719967/0.015975475`; the source GIFT checkpoints were also trained at
+only `2048/class`. A medium X2 enlargement would therefore leave source scale
+confounded or require changing source and target training together.
+
+The completed route audit selects formal within-SKINNY confirmation as the
+single next remote slot. RTG3-A freezes all RTG2-B fields and changes only
+`samples_per_class` from `262144` to `1000000`, with seed0 first and seed1
+conditional. X2 remains supported small mechanism evidence and is held, not
+discarded. No DDT, trail, related-key, partial-decryption or broad-cipher
+matrix route is reopened by this decision.

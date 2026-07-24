@@ -20,7 +20,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed0-gate", required=True, type=Path)
     parser.add_argument("--seed1-gate", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
-    parser.add_argument("--phase", choices=("rtg2a", "rtg2b"), default="rtg2a")
+    parser.add_argument(
+        "--phase", choices=("rtg2a", "rtg2b", "rtg3a"), default="rtg2a"
+    )
     parser.add_argument("--progress", type=Path, default=None)
     return parser.parse_args(argv)
 
@@ -49,11 +51,11 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": (
-            "innovation1_rtg2a_skinny_general_gf2_medium_two_seed_synthesis"
-            if args.phase == "rtg2a"
-            else "innovation1_rtg2b_skinny_general_gf2_scale_two_seed_synthesis"
-        ),
+        "task": {
+            "rtg2a": "innovation1_rtg2a_skinny_general_gf2_medium_two_seed_synthesis",
+            "rtg2b": "innovation1_rtg2b_skinny_general_gf2_scale_two_seed_synthesis",
+            "rtg3a": "innovation1_rtg3a_skinny_general_gf2_formal_two_seed_synthesis",
+        }[args.phase],
         "training_performed": False,
         "source_evidence": source_evidence,
         "gate": gate,

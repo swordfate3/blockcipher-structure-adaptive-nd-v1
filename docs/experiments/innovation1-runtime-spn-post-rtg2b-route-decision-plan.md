@@ -5,9 +5,12 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage      = preregistered decision audit; no new training
+stage      = completed decision audit; Route A selected
 dependency = RTG2-B seed1 verified retrieval and two-seed joint gate
 open slot  = exactly one next experiment route
+status     = pass
+decision   = select_route_a_formal_skinny_scale
+selected   = RTG3-A SKINNY 1000000/class seed0, then conditional seed1
 ```
 
 This audit prevents a passing `262144/class` result from automatically turning
@@ -97,6 +100,35 @@ The preference for X2 after a joint pass is an information-per-cost decision,
 not a claim that cross-cipher adaptation has already succeeded. X1 currently
 shows only active topology sensitivity, not zero-step discrimination.
 
+## Completed Post-X2 Adjudication
+
+X2 completed with the following candidate and same-data full-target AUCs:
+
+| Seed | Frozen GIFT backbone + SKINNY head | Full SKINNY training | Deficit |
+| ---: | ---: | ---: | ---: |
+| 0 | 0.552013397 | 0.612733364 | -0.060719967 |
+| 1 | 0.598568439 | 0.614543915 | -0.015975475 |
+
+Both candidates passed the frozen source-topology, target-topology and random-
+backbone margins. This supports a reusable cross-cipher representation at
+small scale. It does not yet make Route B the better remote experiment:
+
+1. The source GIFT checkpoints were themselves trained at only `2048/class`.
+2. Scaling only the SKINNY head would leave source-representation scale as an
+   unresolved confound; scaling both would change more than one variable.
+3. Seed0 is only `+0.002013` above the absolute AUC gate and remains `0.060720`
+   below the same-data end-to-end target anchor.
+4. RTG2-B already provides two stable `262144/class` seeds near `0.648`, with
+   correct topology ahead of corrupted topology by about `0.045` and ahead of
+   no topology by about `0.137`.
+
+The single next remote slot is therefore Route A. RTG3-A changes only
+`samples_per_class` from `262144` to `1000000`; seed0 runs first and seed1 is
+conditional on the exact seed0 gate. Route B is held as a supported small
+mechanism result, not discarded. It may reopen only after a separate plan
+freezes a medium GIFT source-backbone anchor without mixing source training,
+target-head training and model changes.
+
 ## Claim Boundaries
 
 RTG2-B remains medium evidence. X2 remains a small local diagnostic. Route A
@@ -107,7 +139,8 @@ own complete multi-seed evidence and controls.
 
 ## Blocked Actions
 
-- Do not launch `1000000/class` merely because seed0 or both RTG2-B seeds pass.
+- Do not launch `1000000/class` without the completed post-X2 decision above,
+  a committed RTG3-A plan, remote disk-cache readiness and publication gate.
 - Do not run X2 before the RTG2-B joint gate passes.
 - Do not run Route A and a medium Route B simultaneously.
 - Do not change the difference, keys, negatives, pair count, topology controls,
