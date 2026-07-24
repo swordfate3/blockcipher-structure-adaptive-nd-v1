@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "complete_five_epoch_checkpoint_replay": true,
+    "disk_backed_parameter_matched_cache": true,
+    "equal_parameter_geometry": true,
+    "finite_auc_metrics": true,
+    "frozen_rtg3a_formal_scale_and_task": true,
+    "raw_independent_ciphertext_pairs": true,
+    "runtime_bit_order_adapter_recorded": true,
+    "same_data_protocol": true,
+    "same_training_protocol": true,
+    "strict_encrypted_random_plaintext_negatives": true,
+    "three_runtime_controls_complete": true
+  },
+  "results": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725\\results\\results.jsonl",
+  "run_id": "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725",
+  "status": "pass"
+}
