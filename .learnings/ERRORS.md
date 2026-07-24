@@ -948,6 +948,12 @@ Latest recurrence after commit 48cced7:
 Rejected because the environment forbids escalated-permission requests under
 `approval policy: never`, after the ordinary push failed with
 `Couldn't connect to server`.
+
+Latest recurrence after commit a77d00f8:
+Rejected because the reviewer classified the configured GitHub remote as an
+unverified external destination whose ownership/privacy was not established.
+The ordinary push first failed with `Couldn't connect to server`; the required
+escalated retry was then denied as an unacceptable outbound-transfer risk.
 ```
 
 ### Context
@@ -962,18 +968,22 @@ Rejected because the environment forbids escalated-permission requests under
   `65536/class` remote package. Ordinary network access failed; the escalated
   request was rejected. The remote run
   `i1_feistel_simeck_curriculum_65k_seed0` was correctly not launched.
+- 2026-07-24 recurrence: push of `a77d00f8` containing the RTG2-A fallback-aware
+  seed1 watcher, unchanged-protocol source-revision gate, chart overlap fix and
+  regression tests. The conditional SKINNY seed1 remote run was correctly not
+  launched from unpublished code.
 
 ### Suggested Fix
 Do not work around this by dirty overlay, alternate push commands, or SSH remote launch from unpublished code. Either obtain explicit user approval for the exact external push of 48 commits to `origin/main`, or continue with local diagnostics/watchers until a safer publication path exists.
 
 ### Metadata
 - Reproducible: yes
-- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/experiments/innovation1-feistel-simeck-curriculum-65k-scale-plan.md, scripts/check-launch-source
+- Related Files: docs/experiments/innovation1-present-r8-trail-position-beamstats-smoke-plan.md, docs/experiments/innovation1-feistel-simeck-curriculum-65k-scale-plan.md, docs/experiments/innovation1-runtime-parameterized-spn-distinguisher-rtg1-plan.md, configs/remote/generated/monitor_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.sh, scripts/check-launch-source
 - See Also: ERR-20260622-001, ERR-20260624-003, ERR-20260705-001, LRN-20260706-022
 - Pattern-Key: infra.git_push.external_reviewer_unavailable_or_rejected
-- Recurrence-Count: 3
+- Recurrence-Count: 4
 - First-Seen: 2026-07-06
-- Last-Seen: 2026-07-16
+- Last-Seen: 2026-07-24
 
 ---
 

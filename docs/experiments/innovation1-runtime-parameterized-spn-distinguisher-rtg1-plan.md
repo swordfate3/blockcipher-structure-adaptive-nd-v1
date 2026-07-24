@@ -2002,3 +2002,94 @@ remote result branch was never created, recovery must remain explicitly
 fallback-retrieved under `outputs/remote_results_incomplete/`, with a raw
 retrieval notice and separate local re-adjudication. Seed1 remains blocked until
 that local seed0 gate is complete and passes all frozen research checks.
+
+### RTG2-A Seed0 Fallback Recovery And Result
+
+The raw seed0 evidence was retrieved without a verified result branch and kept
+under the incomplete-results boundary:
+
+```text
+run id        = i1_rtg2a_skinny64_general_gf2_medium_65536_seed0_20260724
+evidence root = outputs/remote_results_incomplete/i1_rtg2a_skinny64_general_gf2_medium_65536_seed0_20260724
+training rev  = 81d0a67ff93385083ea71c1b030831809971ded3
+results sha   = 5b2f443ea229e743e884e1905f41575725b0c5243b74701921aef45472a9ab5c
+retrieval     = raw fallback; no verified result branch
+index         = 001, status fallback_retrieved
+```
+
+The root retains the original nested `results/results.jsonl` and adds a copied
+top-level result, frozen plan, complete remote `progress.jsonl`, source
+revision, `RAW_RETRIEVAL_NOTICE.txt`, and separate local validation. The local
+plan/result validator passed with three expected rows and `errors=[]`. The
+fixed medium gate then passed every protocol check, including all three exact
+five-epoch histories and best-checkpoint replay:
+
+| Model role | Best epoch | First validation AUC | Best validation AUC | Final validation AUC | Train - validation at best |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| correct GF(2) topology | 5 | `0.639365271` | `0.643590577` | `0.643590577` | `+0.007224247` |
+| deterministic corrupted topology | 5 | `0.588081197` | `0.600012660` | `0.600012660` | `+0.009630183` |
+| no linear topology | 1 | `0.510271238` | `0.510271238` | `0.504989931` | `+0.009641669` |
+
+Frozen research gates:
+
+```text
+correct AUC >= 0.55                    = pass (0.643590577)
+correct - corrupted >= +0.005          = pass (+0.043577916)
+correct - no topology >= +0.005        = pass (+0.133319339)
+decision = innovation1_rtg2a_skinny_medium_seed0_supported
+```
+
+This is meaningful medium-scale seed0 evidence that the general-GF(2) runtime
+topology signal survived the move from `2048/class` to `65536/class`. It is not
+formal scale, a paper reproduction, an attack, SOTA, a breakthrough, or proof
+for arbitrary SPNs. The result remains fallback-retrieved even though its local
+plan validation, gate replay and chart inspection passed; local recovery does
+not retroactively create a verified remote result branch.
+
+The actual `curves.svg` was rendered at `1977 x 1019` pixels. The first render
+showed the right-panel threshold legend overlapping the `+0.133319` bar label.
+The legend was moved to the upper-left whitespace and the final render passed
+`visual-qa-redraw` for Chinese glyphs, titles, labels, legends, thresholds,
+axis ranges, caption and export bounds. The result root records
+`visual_qa_passed.marker`.
+
+### Executable Next Action: Conditional Seed1
+
+The next research question is only whether the seed0 topology advantage
+replicates under an independent seed. The same-budget anchor and both required
+controls remain the three seed0 rows above; the only experimental variable is
+`seed=1`:
+
+```text
+cipher / rounds / difference = SKINNY-64/64 / 7 / 0x2000
+models                       = correct / corrupted / no topology
+train / validation           = 65536/class / 32768/class
+pairs / epochs / batch       = 4 / 5 / 64
+optimizer / loss             = Adam 1e-4 / MSE
+negative                     = encrypted random plaintexts
+execution                    = remote lxy-a6000 GPU0, clean run-owned clone
+advance per seed             = correct AUC >= 0.55 and both margins >= +0.005
+advance after seed1          = joint gate must pass before preparing 262144/class
+stop                         = seed1 hold stops mechanical scale-up
+forbidden rescue             = change difference, pairs, epochs, negative mode,
+                               topology corruption, model geometry, or add DDT/trail features
+```
+
+The seed0 training commit and the seed1 recovery commit are allowed to differ
+only because the latter adds gate/bootstrap, result-index, watcher, chart,
+test and documentation changes. The diff from `81d0a67f` through `a6ca783d`
+contains no changes under the frozen data, model, engine or seed0/seed1 plan
+paths. Commit `a77d00f8` adds the fallback-aware watcher and chart-layout fix;
+it does not change training semantics. Both remote source revisions must be
+recorded in the final joint evidence.
+
+Seed1 is not yet running. The normal push of local head `a77d00f8` first failed
+to connect, and the required escalated retry was rejected because the platform
+classified the configured GitHub remote as an unverified external destination.
+Repository policy forbids an `scp` source overlay or another workaround, so no
+remote launch may use this unpublished commit. Once that exact head or a later
+equivalent recovery head is available on `origin/main`, start the committed
+watcher with the pushed 40-character SHA. It will stage only the marked seed0
+fallback gate as launch authorization, prepare seed1 from a separate clean
+clone, retrieve the verified seed1 result branch, re-adjudicate it locally and
+write the mixed-boundary joint result under `outputs/remote_results_incomplete/`.
