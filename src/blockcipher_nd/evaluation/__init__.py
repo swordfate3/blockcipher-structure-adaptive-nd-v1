@@ -9,9 +9,15 @@ _EXPORT_MODULES = {
     "INNOVATION_ONE_METRIC_FIELDS": "blockcipher_nd.evaluation.summary",
     "EnsembleScoreArtifact": "blockcipher_nd.evaluation.neural_ensemble",
     "PairSetAggregationConfig": "blockcipher_nd.evaluation.pairset_aggregation",
+    "RuntimeE4RepresentationBatch": (
+        "blockcipher_nd.evaluation.runtime_spn_representation"
+    ),
     "aggregate_pair_logits": "blockcipher_nd.evaluation.pairset_aggregation",
     "assess_diverse_expert_pool": "blockcipher_nd.evaluation.neural_ensemble",
     "evaluate_frozen_score_ensemble": "blockcipher_nd.evaluation.neural_ensemble",
+    "extract_runtime_e4_representation": (
+        "blockcipher_nd.evaluation.runtime_spn_representation"
+    ),
     "hparam_summary_row": "blockcipher_nd.evaluation.summary",
     "hparam_summary_rows": "blockcipher_nd.evaluation.summary",
     "innovation_one_summary_fields": "blockcipher_nd.evaluation.summary",

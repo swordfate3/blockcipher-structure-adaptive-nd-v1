@@ -294,3 +294,34 @@ only the runtime linear graph leaves `independent` logits bit-exact. This
 extends the regression contract beyond the repaired `state_triplet + edge_gate`
 path to every currently supported Runtime-E4 view without changing model
 behavior or training geometry.
+
+## Formal-Scale Seed0 And Stable Representation API
+
+RTG3-A seed0 subsequently completed at the project formal evidence floor of
+`1000000/class` training rows and `500000/class` validation rows. The frozen
+SKINNY-64/64 r7 RuntimeE4 protocol produced AUC `0.653191631304` for correct
+GF(2) topology, `0.607162432806` for deterministic corrupted topology and
+`0.511826118586` for no topology. The correct-topology margins were therefore
+`+0.046029198498` and `+0.141365512718`. Result validation, strict best-
+checkpoint replay and rendered-figure visual QA passed. This is one-seed
+formal-scale structure-attribution evidence, not yet a multi-seed conclusion,
+paper-scale reproduction, attack, SOTA result or universal-SPN claim. The
+identical seed1 confirmation is active under the remote watcher.
+
+Cross-cipher X2 previously accessed `backbone.classifier` directly to obtain a
+frozen RuntimeE4 representation. Evaluation code now exposes
+`extract_runtime_e4_representation`, which returns both the logits and the
+exact tensor received by the classifier. The interface uses a temporary
+pre-forward hook so it does not alter the frozen model path, learnable
+parameters, state-dict keys or checkpoint compatibility. It fails closed for
+non-E4 adapters and removes the hook on both successful and exceptional
+forwards.
+
+Deterministic tests prove that the returned representation has fixed width
+`3 * pair_embedding_dim`, exactly replays the classifier logits, and retains
+the same state dictionary across PRESENT, GIFT, SKINNY, RECTANGLE and a
+synthetic 128-bit SPN while block width, pair count and recurrent window length
+change. This is an implementation and evaluation-interface result only; it
+does not add a new trained model or AUC. A native model `encode()` method
+remains deferred until the frozen RECTANGLE RCT2 source handoff no longer
+depends on an unchanged RuntimeE4 model file.
