@@ -3275,6 +3275,45 @@ def test_result_index_labels_runtime_spn_seed1_anchor_only_hold(
     )
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation1_rtg2a_skinny_medium_seed0_supported",
+            "SKINNY中等规模一般GF(2)正确拓扑在seed0通过信号与两种控制门，只开放seed1原样复验",
+        ),
+        (
+            "innovation1_rtg2a_skinny_medium_seed1_supported",
+            "SKINNY中等规模一般GF(2)正确拓扑在seed1再次通过三门，可汇总两seed后裁决下一规模",
+        ),
+        (
+            "innovation1_rtg2a_skinny_medium_not_supported",
+            "SKINNY中等规模一般GF(2)复验未同时通过信号与两种控制门，停止扩样",
+        ),
+        (
+            "innovation1_rtg2a_skinny_medium_protocol_invalid",
+            "SKINNY中等规模一般GF(2)复验的数据、训练、模型几何或缓存协议无效",
+        ),
+    ],
+)
+def test_result_index_labels_rtg2a_skinny_medium_replication(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg2a_skinny64_general_gf2_medium_65536_seed0_20260724"
+    run_root = outputs / "remote_results" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 RTG2-A：SKINNY-64/64中等规模一般GF(2)运行时拓扑复验"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

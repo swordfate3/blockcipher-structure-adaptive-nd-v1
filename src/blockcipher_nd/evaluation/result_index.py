@@ -178,6 +178,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_skinny_attribution_protocol_invalid": (
         "SKINNY一般GF(2)拓扑归因协议无效，结果不可解释"
     ),
+    "innovation1_rtg2a_skinny_medium_seed0_supported": (
+        "SKINNY中等规模一般GF(2)正确拓扑在seed0通过信号与两种控制门，只开放seed1原样复验"
+    ),
+    "innovation1_rtg2a_skinny_medium_seed1_supported": (
+        "SKINNY中等规模一般GF(2)正确拓扑在seed1再次通过三门，可汇总两seed后裁决下一规模"
+    ),
+    "innovation1_rtg2a_skinny_medium_not_supported": (
+        "SKINNY中等规模一般GF(2)复验未同时通过信号与两种控制门，停止扩样"
+    ),
+    "innovation1_rtg2a_skinny_medium_protocol_invalid": (
+        "SKINNY中等规模一般GF(2)复验的数据、训练、模型几何或缓存协议无效"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2184,6 +2196,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg2a_skinny64_general_gf2_medium_65536"):
+        return "创新1 RTG2-A：SKINNY-64/64中等规模一般GF(2)运行时拓扑复验"
     if run_id.startswith("i1_rtg1_skinny64_general_gf2_attribution_t2c"):
         return "创新1 RTG1-T2-C：SKINNY-64/64一般GF(2)运行时拓扑三控制归因"
     if run_id.startswith("i1_rtg1_skinny64_fixed_key_signal_confirm_t2b"):
