@@ -5,12 +5,29 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = preregistered before implementation and launch
+stage       = running remotely; bounded startup evidence verified
 run_id      = i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724
 execution   = remote lxy-a6000 only
-launch      = blocked until assets, readiness and pushed-commit gates pass
+source      = 061fd9a3c30cd1089a24e9df241f63964d147d6c (published origin/main)
+launch gate = pass / innovation1_rtg2b_seed0_remote_launch_authorized
+started     = 2026-07-24 20:23:46 +08:00
+monitor     = local tmux i1_rtg2b_skinny64_scale_monitor
 claim scope = medium architecture/protocol diagnostic only
 ```
+
+The watcher records `remote_launcher_returned`, waits for the remote
+`started.marker`, and only then writes its local launch marker. The verified
+startup evidence is under:
+
+```text
+outputs/remote_results_incomplete/i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724_monitor/
+```
+
+The first synchronized logs show the exact pinned source revision, a clean
+detached source checkout, readiness `status=pass`, PyTorch `2.5.1+cu118`, CUDA
+`11.8`, one visible device, and `NVIDIA RTX A6000`. No result or research
+decision exists yet; the tmux watcher owns sparse synchronization, verified
+retrieval, local re-adjudication, plot generation, visual QA, and index refresh.
 
 ## Evidence That Opens This Plan
 
