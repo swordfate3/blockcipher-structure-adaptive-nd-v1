@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Push Recovery"
+  short_description: "Diagnose and recover transient GitHub push failures"
+  default_prompt: "Use $github-push-recovery to publish my committed branch safely and verify the remote commit."
