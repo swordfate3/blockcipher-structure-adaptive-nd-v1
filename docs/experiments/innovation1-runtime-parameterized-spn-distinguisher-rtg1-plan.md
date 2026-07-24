@@ -2083,16 +2083,12 @@ paths. Commit `a77d00f8` adds the fallback-aware watcher and chart-layout fix;
 it does not change training semantics. Both remote source revisions must be
 recorded in the final joint evidence.
 
-Seed1 is not yet running. The normal push of local head `a77d00f8` first failed
-to connect, and the required escalated retry was rejected because the platform
-classified the configured GitHub remote as an unverified external destination.
-Repository policy forbids an `scp` source overlay or another workaround, so no
-remote launch may use this unpublished commit. Once that exact head or a later
-equivalent recovery head is available on `origin/main`, start the committed
-watcher with the pushed 40-character SHA. It will stage only the marked seed0
-fallback gate as launch authorization, prepare seed1 from a separate clean
-clone, retrieve the verified seed1 result branch, re-adjudicate it locally and
-write the mixed-boundary joint result under `outputs/remote_results_incomplete/`.
+The earlier push of local head `a77d00f8` failed, and the required escalated
+retry was rejected because the platform classified the configured GitHub
+remote as an unverified external destination. Repository policy correctly
+forbade an `scp` source overlay or another workaround. Normal GitHub publication
+subsequently succeeded, so the frozen candidate `9120a1ff` became an ancestor
+of `origin/main` without changing the candidate or its training protocol.
 
 ### RTG2-A Seed1 Controlled Launch Gate
 
@@ -2104,11 +2100,11 @@ run id      = i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260
 output      = outputs/local_readiness/i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260724
 candidate   = 9120a1ff96815975f31f1f461342bb7831e2d035
 upstream    = origin/main
-status      = hold
-decision    = innovation1_rtg2a_seed1_source_not_published
+status      = pass
+decision    = innovation1_rtg2a_seed1_remote_launch_authorized
 should_ssh  = true
-ssh_allowed = false
-authorized  = false
+ssh_allowed = true
+authorized  = true
 ```
 
 All seed0 evidence checks passed: the fallback notice, result, local validation,
@@ -2117,23 +2113,52 @@ protocol checks and research checks are exact. All source-equivalence checks
 also passed: the seed0 training commit and candidate exist, the two seed1 plans
 are byte-identical across revisions, the remote training protocol is identical
 apart from launch-policy text, and no protected train CLI, engine, data, model,
-training, registry, SKINNY cipher or plan path changed. The only failed check is:
+training, registry, SKINNY cipher or plan path changed. After publication, the
+previously failed check changed to:
 
 ```text
-source_commit_published_to_upstream = false
+source_commit_published_to_upstream = true
 ```
 
 The watcher requires this gate to report `status=pass`,
 `decision=innovation1_rtg2a_seed1_remote_launch_authorized`,
 `should_ssh=true`, `ssh_allowed=true`, `launch_authorized=true`, and an exact
-source-commit match before executing any `scp` or `ssh`. A controlled invocation
-against the hold gate exited locally with code `7` and
-`launch gate does not authorize remote contact`; no tmux session or remote
-operation was started. The readiness result is current index entry `001`, with
-a Chinese decision explaining that only source publication remains blocked.
+source-commit match before executing any `scp` or `ssh`. The earlier controlled
+invocation against the hold gate exited locally with code `7` and made no remote
+contact. The gate was then rerun unchanged after publication and exited `0` with
+all authorization fields true. The refreshed readiness result is current index
+entry `001`. This launch gate is operational readiness evidence only and does
+not add a neural result.
 
-After the candidate is present on `origin/main`, rerun the same local gate with
-the same 40-character commit. Only its publication check may change. If the
-result becomes fully authorized, pass that exact gate and commit to the watcher;
-otherwise continue to forbid remote contact. This launch gate is operational
-readiness evidence only and does not add a neural result.
+### RTG2-A Seed1 Remote Launch
+
+The committed watcher was started with the exact authorized SHA and gate:
+
+```text
+local tmux   = i1_rtg2a_skinny_seed1_monitor
+source       = 9120a1ff96815975f31f1f461342bb7831e2d035
+remote run   = i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724
+remote root  = G:\lxy\blockcipher-structure-adaptive-nd-runs\<remote run>
+GPU          = physical GPU0
+launch state = running; no result or research decision yet
+```
+
+The watcher used the marked fallback seed0 gate only as launch authorization,
+then created a separate run-owned clone. The launcher log records exact checkout
+of `9120a1ff`. The single bounded post-launch confirmation found the source
+revision, clean-status, GPU, torch and readiness evidence together with:
+
+```text
+i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724_started.marker
+i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724_train_stdout.txt
+i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_20260724_train_stderr.txt
+progress.jsonl
+```
+
+The local watcher now owns sparse monitoring, verified result-branch retrieval,
+local validation, the seed1 medium gate, result-index refresh and the two-seed
+joint gate. The main thread must not SSH-poll the run. After retrieval, the
+actual chart still requires `visual-qa-redraw` before the seed1 result is called
+complete. A joint pass is required before any `262144/class` preparation; a
+joint hold stops mechanical scale-up, and a protocol failure permits only
+evidence repair.
