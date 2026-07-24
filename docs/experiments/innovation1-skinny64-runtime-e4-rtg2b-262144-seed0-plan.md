@@ -5,29 +5,73 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = running remotely; bounded startup evidence verified
+stage       = completed; retrieved from verified result branch and locally re-adjudicated
 run_id      = i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724
 execution   = remote lxy-a6000 only
 source      = 061fd9a3c30cd1089a24e9df241f63964d147d6c (published origin/main)
 launch gate = pass / innovation1_rtg2b_seed0_remote_launch_authorized
 started     = 2026-07-24 20:23:46 +08:00
+retrieved   = 2026-07-24 21:50:35 +08:00
 monitor     = local tmux i1_rtg2b_skinny64_scale_monitor
+result gate = pass / innovation1_rtg2b_skinny_scale_seed0_supported
+visual QA   = pass / visual-qa-redraw / 1976x1019 rendered pixels
 claim scope = medium architecture/protocol diagnostic only
 ```
 
-The watcher records `remote_launcher_returned`, waits for the remote
-`started.marker`, and only then writes its local launch marker. The verified
+The watcher recorded `remote_launcher_returned`, waited for the remote
+`started.marker`, and only then wrote its local launch marker. The verified
 startup evidence is under:
 
 ```text
 outputs/remote_results_incomplete/i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724_monitor/
 ```
 
-The first synchronized logs show the exact pinned source revision, a clean
+The synchronized logs show the exact pinned source revision, a clean
 detached source checkout, readiness `status=pass`, PyTorch `2.5.1+cu118`, CUDA
-`11.8`, one visible device, and `NVIDIA RTX A6000`. No result or research
-decision exists yet; the tmux watcher owns sparse synchronization, verified
-retrieval, local re-adjudication, plot generation, visual QA, and index refresh.
+`11.8`, one visible device, and `NVIDIA RTX A6000`. The tmux watcher completed
+sparse synchronization, verified retrieval, local re-adjudication and index
+refresh; pixel-level visual QA was completed locally after retrieval.
+
+## Completed Result
+
+The verified result branch archive passed its Windows SHA-256 manifest after
+CR stripping, local plan/result validation, and local gate replay:
+
+| Role | Best validation AUC | Best epoch | Final epoch AUC |
+| --- | ---: | ---: | ---: |
+| correct topology | 0.649229395 | 5 | 0.649229395 |
+| deterministic corrupted topology | 0.603561698 | 4 | 0.601912146 |
+| no linear topology | 0.510189938 | 1 | 0.510081566 |
+
+Control margins:
+
+```text
+correct - corrupted = +0.045667696
+correct - no topology = +0.139039457
+```
+
+All eleven protocol checks and all three research checks passed. Each row has
+five complete epochs, equal `442466`-parameter geometry, parameter-matched
+disk-backed train/validation data, strict encrypted-random-plaintext negatives,
+and metrics replayed from the selected best validation-AUC checkpoint.
+
+The locally generated `curves.svg` was rendered at `1976x1019` and inspected
+through `visual-qa-redraw`. Titles, Chinese glyphs, labels, legends, thresholds,
+bar values, axes, caption and export bounds had no overlap, clipping,
+ambiguity or unreadable content. The original archive remains unchanged and a
+local `visual_qa_passed.marker` records the visual gate.
+
+Decision:
+
+```text
+status      = pass
+decision    = innovation1_rtg2b_skinny_scale_seed0_supported
+next_action = run the already frozen, identical 262144/class seed1 confirmation
+```
+
+This is one-seed medium diagnostic evidence. It supports the runtime-topology
+architecture under this SKINNY protocol but is not formal scale, paper
+reproduction, an attack, SOTA, a breakthrough or universal-SPN evidence.
 
 ## Evidence That Opens This Plan
 

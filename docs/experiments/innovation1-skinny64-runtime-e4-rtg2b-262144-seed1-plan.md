@@ -5,17 +5,22 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = preregistered; remote launch forbidden until seed0 passes
+stage       = local launch authorization passed; remote launch pending republished source gate
 run_id      = i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724
 execution   = remote lxy-a6000 only
-dependency  = exact plan-aligned RTG2-B seed0 pass
+dependency  = satisfied by exact plan-aligned RTG2-B seed0 pass
+seed0 gate  = pass / innovation1_rtg2b_skinny_scale_seed0_supported
+launch gate = pass / innovation1_rtg2b_seed1_remote_launch_authorized
 claim scope = medium architecture/protocol diagnostic only
 ```
 
-This plan prepares the second-seed confirmation while seed0 is running. It does
-not interpret partial seed0 metrics and does not authorize remote contact. The
-launch gate must consume the completed, locally validated, visually checked
-seed0 result retrieved from its verified result branch.
+This plan prepared the second-seed confirmation while seed0 was running. Seed0
+has now completed and passed at `0.649229395` AUC with margins `+0.045667696`
+over corrupted topology and `+0.139039457` over no topology. The local launch
+gate consumed the completed, locally validated, visually checked seed0 result
+retrieved from its verified result branch and authorized the exact unchanged
+seed1 protocol. Before remote contact, the gate is rerun against the final
+pushed source commit so the launch SHA includes this completed-result record.
 
 ## Research Question
 
