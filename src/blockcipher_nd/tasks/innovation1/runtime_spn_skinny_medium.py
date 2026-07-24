@@ -12,6 +12,7 @@ VALIDATION_ROWS = 65_536
 SIGNAL_FLOOR = 0.55
 CONTROL_MARGIN = 0.005
 RUN_STEM = "i1_rtg2a_skinny64_general_gf2_medium_65536"
+HISTORY_EPOCHS = 5
 
 
 def _is_finite_number(value: object) -> bool:
@@ -32,6 +33,82 @@ def _has_finite_metric_map(
     )
 
 
+def _tightly_equal(left: object, right: object, *, tolerance: float = 1e-7) -> bool:
+    return (
+        _is_finite_number(left)
+        and _is_finite_number(right)
+        and abs(float(left) - float(right)) <= tolerance
+    )
+
+
+def _checkpoint_dynamics(row: dict[str, Any]) -> dict[str, Any] | None:
+    history = row.get("history")
+    training = row.get("training")
+    metrics = row.get("metrics")
+    if (
+        not isinstance(history, list)
+        or len(history) != HISTORY_EPOCHS
+        or not isinstance(training, dict)
+        or not isinstance(metrics, dict)
+    ):
+        return None
+
+    required_metrics = (
+        "learning_rate",
+        "train_loss",
+        "train_eval_loss",
+        "train_accuracy",
+        "train_auc",
+        "val_loss",
+        "val_accuracy",
+        "val_auc",
+    )
+    for expected_epoch, item in enumerate(history, start=1):
+        if not isinstance(item, dict) or item.get("epoch") != expected_epoch:
+            return None
+        if any(not _is_finite_number(item.get(field)) for field in required_metrics):
+            return None
+
+    best_index = max(
+        range(HISTORY_EPOCHS),
+        key=lambda index: float(history[index]["val_auc"]),
+    )
+    best_epoch = best_index + 1
+    best_row = history[best_index]
+    if (
+        type(training.get("epochs_ran")) is not int
+        or training["epochs_ran"] != HISTORY_EPOCHS
+        or type(training.get("best_epoch")) is not int
+        or training["best_epoch"] != best_epoch
+        or training.get("checkpoint_metric") != "val_auc"
+        or training.get("restore_best_checkpoint") is not True
+        or training.get("selected_checkpoint") != "best"
+        or training.get("stopped_epoch") != 0
+        or not _tightly_equal(
+            training.get("best_checkpoint_metric"), best_row["val_auc"]
+        )
+        or not _tightly_equal(metrics.get("auc"), best_row["val_auc"])
+    ):
+        return None
+
+    first_val_auc = float(history[0]["val_auc"])
+    best_val_auc = float(best_row["val_auc"])
+    final_val_auc = float(history[-1]["val_auc"])
+    best_train_auc = float(best_row["train_auc"])
+    return {
+        "model": row.get("model"),
+        "best_epoch": best_epoch,
+        "epochs_ran": HISTORY_EPOCHS,
+        "first_val_auc": first_val_auc,
+        "best_val_auc": best_val_auc,
+        "final_val_auc": final_val_auc,
+        "best_train_auc": best_train_auc,
+        "train_minus_val_auc_at_best": best_train_auc - best_val_auc,
+        "first_to_best_val_auc_gain": best_val_auc - first_val_auc,
+        "best_to_final_val_auc_change": final_val_auc - best_val_auc,
+    }
+
+
 def adjudicate_runtime_spn_skinny_medium(
     *,
     run_id: str,
@@ -43,9 +120,7 @@ def adjudicate_runtime_spn_skinny_medium(
 
     by_model = {str(row.get("model")): row for row in rows}
     by_role = {
-        role: by_model[model]
-        for role, model in MODELS.items()
-        if model in by_model
+        role: by_model[model] for role, model in MODELS.items() if model in by_model
     }
     reference = by_role.get("true", {})
     static_fields = (
@@ -85,6 +160,9 @@ def adjudicate_runtime_spn_skinny_medium(
     cache_roots = {
         str(row.get("training", {}).get("dataset_cache_root") or "")
         for row in by_role.values()
+    }
+    training_dynamics = {
+        role: _checkpoint_dynamics(row) for role, row in by_role.items()
     }
     protocol_checks = {
         "three_runtime_controls_complete": (
@@ -164,6 +242,8 @@ def adjudicate_runtime_spn_skinny_medium(
             math.isfinite(float(row.get("metrics", {}).get("auc", math.nan)))
             for row in by_role.values()
         ),
+        "complete_five_epoch_checkpoint_replay": len(training_dynamics) == 3
+        and all(summary is not None for summary in training_dynamics.values()),
     }
     aucs = {
         role: float(row.get("metrics", {}).get("auc", math.nan))
@@ -223,6 +303,7 @@ def adjudicate_runtime_spn_skinny_medium(
         "research_checks": research_checks,
         "aucs": aucs,
         "margins": margins,
+        "training_dynamics": training_dynamics,
         "thresholds": {
             "true_auc": SIGNAL_FLOOR,
             "control_margin": CONTROL_MARGIN,
@@ -258,9 +339,7 @@ def adjudicate_runtime_spn_skinny_medium_joint(
         for seed in (0, 1)
     }
     source_statuses = {
-        seed: str(by_seed[seed].get("status", ""))
-        for seed in (0, 1)
-        if seed in by_seed
+        seed: str(by_seed[seed].get("status", "")) for seed in (0, 1) if seed in by_seed
     }
     protocol_checks = {
         "two_distinct_seed_gates_complete": complete,
@@ -370,6 +449,7 @@ def adjudicate_runtime_spn_skinny_medium_joint(
 
 __all__ = [
     "CONTROL_MARGIN",
+    "HISTORY_EPOCHS",
     "RUN_STEM",
     "SAMPLES_PER_CLASS",
     "SIGNAL_FLOOR",

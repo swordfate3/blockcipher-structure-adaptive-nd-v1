@@ -52,31 +52,57 @@ def _rows(seed: int, aucs: dict[str, float]) -> list[dict[str, object]]:
         "train_dataset_storage": "disk",
         "validation_dataset_storage": "disk",
     }
-    return [
-        {
-            "cipher": "SKINNY-64/64",
-            "model": model,
-            "rounds": 7,
-            "seed": seed,
-            "samples_per_class": 65536,
-            "dataset_label_mode": "balanced_per_class",
-            "pairs_per_sample": 4,
-            "feature_encoding": "ciphertext_pair_bits",
-            "negative_mode": "encrypted_random_plaintexts",
-            "sample_structure": "independent_pairs",
-            "difference_profile": "skinny64_gohr2022_single_key",
-            "difference_member": 0,
-            "input_difference": 0x2000,
-            "train_key": 0,
-            "validation_key": 0x1111111111111111,
-            "parameter_count": 442466,
-            "trainable_parameter_count": 442466,
-            "input_bit_order": "project_msb_to_runtime_lsb",
-            "metrics": {"auc": aucs[role]},
-            "training": common_training.copy(),
+    rows = []
+    for role, model in MODELS.items():
+        auc = aucs[role]
+        history = [
+            {
+                "epoch": float(epoch),
+                "learning_rate": 0.0001,
+                "train_loss": 0.25,
+                "train_eval_loss": 0.693,
+                "train_accuracy": 0.5,
+                "train_auc": auc - 0.03 + 0.01 * epoch,
+                "val_loss": 0.693,
+                "val_accuracy": 0.5,
+                "val_auc": auc - 0.05 + 0.01 * epoch,
+            }
+            for epoch in range(1, 6)
+        ]
+        training = {
+            **common_training,
+            "epochs_ran": 5,
+            "best_epoch": 5,
+            "best_checkpoint_metric": auc,
+            "selected_checkpoint": "best",
+            "stopped_epoch": 0,
         }
-        for role, model in MODELS.items()
-    ]
+        rows.append(
+            {
+                "cipher": "SKINNY-64/64",
+                "model": model,
+                "rounds": 7,
+                "seed": seed,
+                "samples_per_class": 65536,
+                "dataset_label_mode": "balanced_per_class",
+                "pairs_per_sample": 4,
+                "feature_encoding": "ciphertext_pair_bits",
+                "negative_mode": "encrypted_random_plaintexts",
+                "sample_structure": "independent_pairs",
+                "difference_profile": "skinny64_gohr2022_single_key",
+                "difference_member": 0,
+                "input_difference": 0x2000,
+                "train_key": 0,
+                "validation_key": 0x1111111111111111,
+                "parameter_count": 442466,
+                "trainable_parameter_count": 442466,
+                "input_bit_order": "project_msb_to_runtime_lsb",
+                "metrics": {"auc": auc},
+                "history": history,
+                "training": training,
+            }
+        )
+    return rows
 
 
 def test_medium_seed0_pass_authorizes_only_identical_seed1() -> None:
@@ -90,6 +116,18 @@ def test_medium_seed0_pass_authorizes_only_identical_seed1() -> None:
     assert gate["decision"] == "innovation1_rtg2a_skinny_medium_seed0_supported"
     assert gate["next_action"] == "run the identical conditional seed1 RTG2-A matrix"
     assert all(gate["protocol_checks"].values())
+    assert gate["training_dynamics"]["true"] == {
+        "model": MODELS["true"],
+        "best_epoch": 5,
+        "epochs_ran": 5,
+        "first_val_auc": pytest.approx(0.57),
+        "best_val_auc": pytest.approx(0.61),
+        "final_val_auc": pytest.approx(0.61),
+        "best_train_auc": pytest.approx(0.63),
+        "train_minus_val_auc_at_best": pytest.approx(0.02),
+        "first_to_best_val_auc_gain": pytest.approx(0.04),
+        "best_to_final_val_auc_change": pytest.approx(0.0),
+    }
 
 
 def test_medium_seed0_hold_blocks_seed1_and_larger_scale() -> None:
@@ -116,6 +154,25 @@ def test_medium_protocol_mismatch_fails_closed() -> None:
 
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_rtg2a_skinny_medium_protocol_invalid"
+
+
+@pytest.mark.parametrize("malformation", ["missing_history", "wrong_best_epoch"])
+def test_medium_checkpoint_history_mismatch_fails_closed(malformation: str) -> None:
+    rows = _rows(0, {"true": 0.61, "corrupted": 0.56, "independent": 0.53})
+    if malformation == "missing_history":
+        rows[0]["history"] = rows[0]["history"][:-1]
+    else:
+        rows[0]["training"]["best_epoch"] = 4
+
+    gate = adjudicate_runtime_spn_skinny_medium(
+        run_id="invalid-history",
+        rows=rows,
+        expected_seed=0,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_rtg2a_skinny_medium_protocol_invalid"
+    assert gate["protocol_checks"]["complete_five_epoch_checkpoint_replay"] is False
 
 
 def _seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
@@ -283,9 +340,10 @@ def test_medium_plans_change_only_scale_seed_and_descriptive_fields() -> None:
         "pretrain_epochs",
         "model_options",
     }
-    with (ROOT / "configs/experiment/innovation1/innovation1_spn_skinny64_runtime_e4_attribution_t2c_2048_seed0.csv").open(
-        newline="", encoding="utf-8"
-    ) as handle:
+    with (
+        ROOT
+        / "configs/experiment/innovation1/innovation1_spn_skinny64_runtime_e4_attribution_t2c_2048_seed0.csv"
+    ).open(newline="", encoding="utf-8") as handle:
         anchor = list(csv.DictReader(handle))
 
     for seed in (0, 1):
@@ -343,7 +401,7 @@ def test_medium_remote_assets_are_ready_and_windows_safe() -> None:
     assert "cmd.exe /k" not in combined
     assert "EnableDelayedExpansion" not in combined
     assert "!" not in combined
-    assert "--dataset-cache-root \"%CACHE_ROOT%\"" in run_script
+    assert '--dataset-cache-root "%CACHE_ROOT%"' in run_script
     assert "--dataset-cache-chunk-size 1024" in run_script
     assert "--dataset-cache-workers 1" in run_script
     assert '--progress "%LOG_DIR%\\progress.jsonl"' in run_script
@@ -365,7 +423,14 @@ def test_medium_remote_assets_are_ready_and_windows_safe() -> None:
     assert "launch_i1_rtg2a" in monitor_script
     assert "medium_pair_complete.marker" in monitor_script
     subprocess.run(
-        ["bash", "-n", str(ROOT / "configs/remote/generated/monitor_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.sh")],
+        [
+            "bash",
+            "-n",
+            str(
+                ROOT
+                / "configs/remote/generated/monitor_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.sh"
+            ),
+        ],
         check=True,
     )
     assert "C:\\Users" not in combined.replace(

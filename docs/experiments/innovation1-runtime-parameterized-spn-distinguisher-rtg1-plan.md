@@ -1906,6 +1906,8 @@ parameter count          = 442466 per row
 epochs / batch           = 5 / 64
 optimizer                = Adam, lr 1e-4, MSE, weight decay 1e-5
 checkpoint               = best validation AUC
+history/checkpoint replay = exactly 5 sequential finite epochs; reported best_epoch,
+                            best_checkpoint_metric and final AUC must match max val AUC
 cache                    = features.npy + labels.npy + metadata.json
 cache generation         = 1024 rows/chunk, 1 worker, parameter-matched reuse
 negative                 = encrypted random plaintexts
@@ -1934,6 +1936,13 @@ fixture and a near-threshold hold fixture. Titles, Chinese text, legends, bar
 labels, axes and captions were not clipped or overlapping. The AUC-margin panel
 uses a dynamic range so a sub-`0.01` margin remains legible. This template check
 does not replace the required inspection of each retrieved result image.
+
+Local re-adjudication also emits a per-model training-dynamics summary with the
+first, best and final validation AUC, best epoch, best-epoch training AUC,
+train-minus-validation gap, first-to-best gain and post-best drift. Missing or
+non-sequential history, non-finite epoch metrics, a mismatched best epoch, or a
+final AUC that does not replay the selected best checkpoint invalidates the
+protocol instead of being treated as weak research signal.
 
 The two retrieved seed gates must additionally pass a separate fail-closed
 joint adjudicator before `262144/class` is authorized:
