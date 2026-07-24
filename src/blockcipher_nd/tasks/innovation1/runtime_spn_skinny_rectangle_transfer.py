@@ -24,6 +24,9 @@ from blockcipher_nd.training import TrainingConfig, train_binary_classifier
 
 
 RUN_ID = "i1_skinny_formal_to_rectangle_frozen_representation_x3a_2048_seed0_20260725"
+SEED1_REPLICATION_RUN_ID = (
+    "i1_skinny_formal_to_rectangle_frozen_representation_x3a2_2048_seed1_20260725"
+)
 EXPECTED_ROLES = (
     "true_source_true_target",
     "corrupted_source_true_target",
@@ -60,7 +63,13 @@ SOURCE_AUCS = {
     "true": 0.653191631304,
     "corrupted": 0.607162432806,
 }
-TARGET_ANCHOR_AUC = 0.791468620300293
+TARGET_ANCHOR_AUCS = {
+    0: 0.791468620300293,
+    1: 0.7656726837158203,
+}
+TARGET_ANCHOR_AUC = TARGET_ANCHOR_AUCS[0]
+SEED0_TRANSFER_CANDIDATE_AUC = 0.7848939895629883
+SEED1_MAX_CANDIDATE_AUC_DRIFT = 0.05
 HEAD_INITIALIZATION_SEED = 25_070_301
 RANDOM_EXTRACTOR_SEED = 25_070_302
 EXTRACTOR_PARAMETER_COUNT = 442_466
@@ -122,12 +131,19 @@ def train_transfer_panel(
     train_paths: Mapping[str, Path],
     validation_paths: Mapping[str, Path],
     checkpoint_dir: Path,
+    target_seed: int = 0,
+    validation_seed: int = 10_000,
     device: str = "cpu",
     progress_callback: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
     _validate_source_rows(source_rows)
-    target_anchor = _validate_target_rows(target_rows)
-    _validate_target_datasets(train_dataset, validation_dataset)
+    target_anchor = _validate_target_rows(target_rows, target_seed=target_seed)
+    _validate_target_datasets(
+        train_dataset,
+        validation_dataset,
+        target_seed=target_seed,
+        validation_seed=validation_seed,
+    )
     _validate_dataset_paths(train_paths, validation_paths)
 
     source_payloads: dict[str, dict[str, Any]] = {}
@@ -171,13 +187,18 @@ def train_transfer_panel(
         target_head_initial = tensor_mapping_sha256(model.target_head.state_dict())
         if target_head_initial != head_initial_sha256:
             raise ValueError("target-head initialization changed across roles")
-        checkpoint_path = checkpoint_dir / f"seed0_{role}.pt"
+        checkpoint_path = checkpoint_dir / f"seed{target_seed}_{role}.pt"
 
         def emit(event: str, payload: dict[str, Any]) -> None:
             if progress_callback is not None:
                 progress_callback(
                     event,
-                    {"seed": 0, "role": role, "row_index": row_index, **payload},
+                    {
+                        "seed": target_seed,
+                        "role": role,
+                        "row_index": row_index,
+                        **payload,
+                    },
                 )
 
         result = train_binary_classifier(
@@ -188,7 +209,7 @@ def train_transfer_panel(
                 epochs=EPOCHS,
                 batch_size=BATCH_SIZE,
                 learning_rate=LEARNING_RATE,
-                seed=0,
+                seed=target_seed,
                 device=device,
                 optimizer="adam",
                 weight_decay=WEIGHT_DECAY,
@@ -228,7 +249,7 @@ def train_transfer_panel(
         )
         rows.append(
             {
-                "seed": 0,
+                "seed": target_seed,
                 "role": role,
                 "source_role": source_role,
                 "target_mode": target_mode,
@@ -302,6 +323,7 @@ def train_transfer_panel(
                 "validation_label_sha256": file_sha256(validation_paths["labels"]),
                 "validation_metadata_sha256": file_sha256(validation_paths["metadata"]),
                 "source_cipher": "SKINNY-64/64",
+                "source_seed": 0,
                 "source_rounds": 7,
                 "source_samples_per_class": 1_000_000,
                 "target_cipher": "RECTANGLE-80",
@@ -309,6 +331,8 @@ def train_transfer_panel(
                 "target_difference": TARGET_INPUT_DIFFERENCE,
                 "target_train_key": 0,
                 "target_validation_key": 0x11111111111111111111,
+                "target_train_seed": target_seed,
+                "target_validation_seed": validation_seed,
                 "train_rows": 4096,
                 "validation_rows": 2048,
                 "pairs_per_sample": 4,
@@ -330,8 +354,10 @@ def adjudicate_transfer_panel(
     *,
     run_id: str,
     rows: Iterable[dict[str, Any]],
+    expected_target_seed: int = 0,
 ) -> dict[str, Any]:
     rows = list(rows)
+    target_anchor_auc = _target_anchor_auc(expected_target_seed)
     grouped = {str(row.get("role")): row for row in rows}
     complete = len(rows) == 4 and set(grouped) == set(EXPECTED_ROLES)
     candidate = grouped.get("true_source_true_target", {})
@@ -385,7 +411,7 @@ def adjudicate_transfer_panel(
         ),
         "rectangle_rct1_anchor_exact": complete
         and all(
-            row.get("full_target_anchor_auc") == TARGET_ANCHOR_AUC for row in all_rows
+            row.get("full_target_anchor_auc") == target_anchor_auc for row in all_rows
         ),
         "feature_extractors_frozen": complete
         and all(
@@ -422,7 +448,22 @@ def adjudicate_transfer_panel(
         ),
         "frozen_target_protocol": complete
         and all(
-            row.get("seed") == 0
+            row.get("seed") == expected_target_seed
+            and row.get("source_seed", 0) == 0
+            and row.get("target_train_seed", row.get("seed")) == expected_target_seed
+            and row.get("target_validation_seed", expected_target_seed + 10_000)
+            == expected_target_seed + 10_000
+            and (
+                expected_target_seed == 0
+                or all(
+                    field in row
+                    for field in (
+                        "source_seed",
+                        "target_train_seed",
+                        "target_validation_seed",
+                    )
+                )
+            )
             and row.get("target_cipher") == "RECTANGLE-80"
             and row.get("target_rounds") == 6
             and row.get("train_rows") == 4096
@@ -447,7 +488,10 @@ def adjudicate_transfer_panel(
         "candidate_minus_corrupted_target": _difference(candidate_auc, target_auc),
         "candidate_minus_random_source": _difference(candidate_auc, random_auc),
         "candidate_minus_full_target_anchor": _difference(
-            candidate_auc, TARGET_ANCHOR_AUC
+            candidate_auc, target_anchor_auc
+        ),
+        "candidate_minus_seed0_candidate": _difference(
+            candidate_auc, SEED0_TRANSFER_CANDIDATE_AUC
         ),
     }
     research_checks = {
@@ -464,6 +508,12 @@ def adjudicate_transfer_panel(
             margins["candidate_minus_random_source"]
         ),
     }
+    if expected_target_seed == 1:
+        research_checks["candidate_within_0p05_of_seed0_candidate"] = bool(
+            candidate_auc is not None
+            and abs(candidate_auc - SEED0_TRANSFER_CANDIDATE_AUC)
+            <= SEED1_MAX_CANDIDATE_AUC_DRIFT
+        )
 
     if not all(protocol_checks.values()):
         status = "fail"
@@ -472,7 +522,9 @@ def adjudicate_transfer_panel(
     elif all(research_checks.values()):
         status = "pass"
         decision = (
-            "innovation1_skinny_rectangle_frozen_representation_readiness_supported"
+            "innovation1_skinny_rectangle_frozen_representation_seed1_replication_supported"
+            if expected_target_seed == 1
+            else "innovation1_skinny_rectangle_frozen_representation_readiness_supported"
         )
         next_action = (
             "wait for RECTANGLE RCT2; if its same-protocol medium anchor passes, "
@@ -481,7 +533,9 @@ def adjudicate_transfer_panel(
     else:
         status = "hold"
         decision = (
-            "innovation1_skinny_rectangle_frozen_representation_readiness_not_supported"
+            "innovation1_skinny_rectangle_frozen_representation_seed1_replication_not_supported"
+            if expected_target_seed == 1
+            else "innovation1_skinny_rectangle_frozen_representation_readiness_not_supported"
         )
         next_action = (
             "stop SKINNY-to-RECTANGLE frozen transfer scaling; retain the reusable "
@@ -490,16 +544,28 @@ def adjudicate_transfer_panel(
 
     return {
         "run_id": run_id,
-        "task": "innovation1_skinny_formal_to_rectangle_frozen_representation_x3a",
+        "task": (
+            "innovation1_skinny_formal_to_rectangle_frozen_representation_x3a2"
+            if expected_target_seed == 1
+            else "innovation1_skinny_formal_to_rectangle_frozen_representation_x3a"
+        ),
+        "target_seed": expected_target_seed,
         "status": status,
         "decision": decision,
-        "thresholds": {"candidate_auc": AUC_FLOOR, "auc_margin": MARGIN_FLOOR},
+        "thresholds": {
+            "candidate_auc": AUC_FLOOR,
+            "auc_margin": MARGIN_FLOOR,
+            "seed1_max_candidate_auc_drift": (
+                SEED1_MAX_CANDIDATE_AUC_DRIFT if expected_target_seed == 1 else None
+            ),
+        },
         "aucs": {
             "candidate": candidate_auc,
             "corrupted_source": source_auc,
             "corrupted_target": target_auc,
             "random_source": random_auc,
-            "full_target_anchor": TARGET_ANCHOR_AUC,
+            "full_target_anchor": target_anchor_auc,
+            "seed0_transfer_candidate": SEED0_TRANSFER_CANDIDATE_AUC,
         },
         "margins": margins,
         "protocol_checks": protocol_checks,
@@ -574,29 +640,40 @@ def _validate_source_rows(rows: list[dict[str, Any]]) -> None:
             raise ValueError(f"formal SKINNY {role} source authority changed")
 
 
-def _validate_target_rows(rows: list[dict[str, Any]]) -> float:
+def _validate_target_rows(
+    rows: list[dict[str, Any]],
+    *,
+    target_seed: int = 0,
+) -> float:
+    expected_auc = _target_anchor_auc(target_seed)
     matches = [
         row
         for row in rows
-        if row.get("model") == TARGET_MODELS["true"] and row.get("seed") == 0
+        if row.get("model") == TARGET_MODELS["true"] and row.get("seed") == target_seed
     ]
     if len(matches) != 1:
-        raise ValueError("expected one RECTANGLE RCT1 seed0 target anchor")
+        raise ValueError(f"expected one RECTANGLE RCT1 seed{target_seed} target anchor")
     row = matches[0]
     auc = float(row.get("metrics", {}).get("auc", math.nan))
     if (
         row.get("samples_per_class") != 2048
         or row.get("rounds") != 6
-        or auc != TARGET_ANCHOR_AUC
+        or auc != expected_auc
     ):
-        raise ValueError("RECTANGLE RCT1 seed0 target anchor changed")
+        raise ValueError(f"RECTANGLE RCT1 seed{target_seed} target anchor changed")
     return auc
 
 
 def _validate_target_datasets(
     train_dataset: DifferentialDataset,
     validation_dataset: DifferentialDataset,
+    *,
+    target_seed: int = 0,
+    validation_seed: int = 10_000,
 ) -> None:
+    _target_anchor_auc(target_seed)
+    if validation_seed != target_seed + 10_000:
+        raise ValueError("X3-A validation seed must equal target seed plus 10000")
     expected_common = {
         "cipher": "RECTANGLE-80",
         "rounds": 6,
@@ -608,8 +685,8 @@ def _validate_target_datasets(
         "structure": "SPN",
     }
     for dataset, seed, total, per_class in (
-        (train_dataset, 0, 4096, 2048),
-        (validation_dataset, 10000, 2048, 1024),
+        (train_dataset, target_seed, 4096, 2048),
+        (validation_dataset, validation_seed, 2048, 1024),
     ):
         metadata = dataset.metadata
         if any(
@@ -626,6 +703,13 @@ def _validate_target_datasets(
             or dataset.labels.shape != (total,)
         ):
             raise ValueError("X3-A target dataset split geometry changed")
+
+
+def _target_anchor_auc(target_seed: int) -> float:
+    try:
+        return TARGET_ANCHOR_AUCS[target_seed]
+    except KeyError as exc:
+        raise ValueError(f"unsupported X3-A target seed: {target_seed}") from exc
 
 
 def _validate_dataset_paths(
@@ -671,6 +755,7 @@ def _is_sha256(value: Any) -> bool:
 __all__ = [
     "EXPECTED_ROLES",
     "RUN_ID",
+    "SEED1_REPLICATION_RUN_ID",
     "adjudicate_transfer_panel",
     "deterministic_target_head",
     "prepare_transfer_model",

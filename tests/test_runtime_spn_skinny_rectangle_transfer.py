@@ -19,7 +19,7 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_cross_cipher_head_adaptation i
 )
 
 
-def _gate_row(role: str, auc: float) -> dict[str, object]:
+def _gate_row(role: str, auc: float, *, seed: int = 0) -> dict[str, object]:
     source_role, target_mode = transfer.ROLE_SPECS[role]
     source_hash = {
         "true": transfer.SOURCE_CHECKPOINT_SHA256S["true"],
@@ -32,7 +32,7 @@ def _gate_row(role: str, auc: float) -> dict[str, object]:
         "random": None,
     }[source_role]
     return {
-        "seed": 0,
+        "seed": seed,
         "role": role,
         "source_role": source_role,
         "target_mode": target_mode,
@@ -58,7 +58,7 @@ def _gate_row(role: str, auc: float) -> dict[str, object]:
         "feature_extractor_frozen": True,
         "source_classifier_preserved": True,
         "auc": auc,
-        "full_target_anchor_auc": transfer.TARGET_ANCHOR_AUC,
+        "full_target_anchor_auc": transfer.TARGET_ANCHOR_AUCS[seed],
         "train_feature_sha256": "8" * 64,
         "train_label_sha256": "9" * 64,
         "train_metadata_sha256": "a" * 64,
@@ -67,6 +67,9 @@ def _gate_row(role: str, auc: float) -> dict[str, object]:
         "validation_metadata_sha256": "d" * 64,
         "target_cipher": "RECTANGLE-80",
         "target_rounds": 6,
+        "source_seed": 0,
+        "target_train_seed": seed,
+        "target_validation_seed": seed + 10_000,
         "train_rows": 4096,
         "validation_rows": 2048,
         "pairs_per_sample": 4,
@@ -87,14 +90,14 @@ def _gate_row(role: str, auc: float) -> dict[str, object]:
     }
 
 
-def _passing_rows() -> list[dict[str, object]]:
+def _passing_rows(*, seed: int = 0) -> list[dict[str, object]]:
     aucs = {
         "true_source_true_target": 0.62,
         "corrupted_source_true_target": 0.59,
         "true_source_corrupted_target": 0.58,
         "random_source_true_target": 0.54,
     }
-    return [_gate_row(role, aucs[role]) for role in transfer.EXPECTED_ROLES]
+    return [_gate_row(role, aucs[role], seed=seed) for role in transfer.EXPECTED_ROLES]
 
 
 def _source_states() -> dict[str, dict[str, torch.Tensor]]:
@@ -166,6 +169,66 @@ def test_x3a_gate_passes_complete_control_panel() -> None:
     )
     assert all(gate["protocol_checks"].values())
     assert all(gate["research_checks"].values())
+
+
+def test_x3a2_seed1_gate_uses_seed1_anchor_and_stability_control() -> None:
+    rows = _passing_rows(seed=1)
+    rows[0]["auc"] = 0.77
+
+    gate = transfer.adjudicate_transfer_panel(
+        run_id="x3a2-pass",
+        rows=rows,
+        expected_target_seed=1,
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == (
+        "innovation1_skinny_rectangle_frozen_representation_seed1_replication_supported"
+    )
+    assert gate["target_seed"] == 1
+    assert gate["aucs"]["full_target_anchor"] == transfer.TARGET_ANCHOR_AUCS[1]
+    assert gate["research_checks"]["candidate_within_0p05_of_seed0_candidate"] is True
+
+
+def test_x3a2_seed1_gate_holds_on_candidate_drift() -> None:
+    rows = _passing_rows(seed=1)
+    rows[0]["auc"] = 0.70
+
+    gate = transfer.adjudicate_transfer_panel(
+        run_id="x3a2-hold",
+        rows=rows,
+        expected_target_seed=1,
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["research_checks"]["candidate_within_0p05_of_seed0_candidate"] is False
+
+
+def test_seed0_legacy_rows_retain_backward_compatible_adjudication() -> None:
+    rows = _passing_rows()
+    for row in rows:
+        row.pop("source_seed")
+        row.pop("target_train_seed")
+        row.pop("target_validation_seed")
+
+    gate = transfer.adjudicate_transfer_panel(run_id="legacy-x3a", rows=rows)
+
+    assert gate["status"] == "pass"
+    assert gate["protocol_checks"]["frozen_target_protocol"] is True
+
+
+def test_seed1_rows_require_explicit_source_and_target_seed_identity() -> None:
+    rows = _passing_rows(seed=1)
+    rows[0].pop("source_seed")
+
+    gate = transfer.adjudicate_transfer_panel(
+        run_id="invalid-x3a2",
+        rows=rows,
+        expected_target_seed=1,
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["frozen_target_protocol"] is False
 
 
 @pytest.mark.parametrize(
@@ -364,6 +427,46 @@ def test_cache_paths_and_metadata_are_validated_exactly(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="split geometry changed"):
         transfer._validate_target_datasets(train, invalid)
+
+
+def test_seed1_target_rows_and_caches_use_exact_rct1_authorities() -> None:
+    rows = [
+        {
+            "model": transfer.TARGET_MODELS["true"],
+            "seed": 1,
+            "samples_per_class": 2048,
+            "rounds": 6,
+            "metrics": {"auc": transfer.TARGET_ANCHOR_AUCS[1]},
+        }
+    ]
+    train = DifferentialDataset(
+        features=np.zeros((4096, 512), dtype=np.uint8),
+        labels=np.zeros(4096, dtype=np.uint8),
+        metadata=_target_metadata(seed=1, total=4096, per_class=2048),
+    )
+    validation = DifferentialDataset(
+        features=np.zeros((2048, 512), dtype=np.uint8),
+        labels=np.zeros(2048, dtype=np.uint8),
+        metadata=_target_metadata(seed=10001, total=2048, per_class=1024),
+    )
+
+    assert (
+        transfer._validate_target_rows(rows, target_seed=1)
+        == (transfer.TARGET_ANCHOR_AUCS[1])
+    )
+    transfer._validate_target_datasets(
+        train,
+        validation,
+        target_seed=1,
+        validation_seed=10001,
+    )
+    with pytest.raises(ValueError, match="plus 10000"):
+        transfer._validate_target_datasets(
+            train,
+            validation,
+            target_seed=1,
+            validation_seed=10000,
+        )
 
 
 def test_train_panel_preserves_frozen_hashes_and_head_initialization(

@@ -38,7 +38,6 @@ DEFAULT_TARGET_ROOT = Path(
     "outputs/local_diagnostic/"
     "i1_rct1_rectangle80_runtime_e4_noncontiguous_attribution_2048_seed0_seed1_20260725"
 )
-DEFAULT_OUTPUT_ROOT = Path("outputs/local_diagnostic") / RUN_ID
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -51,18 +50,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-id", default=RUN_ID)
     parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
     parser.add_argument("--target-root", type=Path, default=DEFAULT_TARGET_ROOT)
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--output-root", type=Path)
+    parser.add_argument("--target-seed", type=int, default=0)
+    parser.add_argument("--validation-seed", type=int)
     parser.add_argument("--device", default="cpu")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    output_root = args.output_root or Path("outputs/local_diagnostic") / args.run_id
+    validation_seed = (
+        args.validation_seed
+        if args.validation_seed is not None
+        else args.target_seed + 10_000
+    )
     authority = validate_authorities(args.source_root, args.target_root)
-    if args.output_root.exists():
-        raise ValueError(f"X3-A output root already exists: {args.output_root}")
-    args.output_root.mkdir(parents=True)
-    progress_path = args.output_root / "progress.jsonl"
+    if output_root.exists():
+        raise ValueError(f"X3-A output root already exists: {output_root}")
+    output_root.mkdir(parents=True)
+    progress_path = output_root / "progress.jsonl"
     _append_progress(
         progress_path,
         "run_start",
@@ -70,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
             "run_id": args.run_id,
             "source_root": str(args.source_root),
             "target_root": str(args.target_root),
+            "target_seed": args.target_seed,
+            "validation_seed": validation_seed,
             "authority": authority,
         },
     )
@@ -79,12 +88,12 @@ def main(argv: list[str] | None = None) -> int:
     train_dataset, train_paths = _load_target_split(
         args.target_root,
         split="train",
-        expected_seed=0,
+        expected_seed=args.target_seed,
     )
     validation_dataset, validation_paths = _load_target_split(
         args.target_root,
         split="validation",
-        expected_seed=10000,
+        expected_seed=validation_seed,
     )
     source_checkpoint_paths = {
         "true": args.source_root
@@ -104,11 +113,17 @@ def main(argv: list[str] | None = None) -> int:
         validation_dataset=validation_dataset,
         train_paths=train_paths,
         validation_paths=validation_paths,
-        checkpoint_dir=args.output_root / "checkpoints",
+        checkpoint_dir=output_root / "checkpoints",
+        target_seed=args.target_seed,
+        validation_seed=validation_seed,
         device=args.device,
         progress_callback=emit,
     )
-    gate = adjudicate_transfer_panel(run_id=args.run_id, rows=rows)
+    gate = adjudicate_transfer_panel(
+        run_id=args.run_id,
+        rows=rows,
+        expected_target_seed=args.target_seed,
+    )
     validation = {
         "run_id": args.run_id,
         "status": "pass" if all(gate["protocol_checks"].values()) else "fail",
@@ -121,10 +136,13 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": "innovation1_skinny_formal_to_rectangle_frozen_representation_x3a",
+        "task": gate["task"],
         "authority": authority,
         "source": "SKINNY-64/64 r7 RTG3-A seed0 formal-scale best checkpoints",
-        "target": "RECTANGLE-80 r6 RCT1 seed0 exact disk caches",
+        "target": (
+            f"RECTANGLE-80 r6 RCT1 seed{args.target_seed} train and "
+            f"seed{validation_seed} validation disk caches"
+        ),
         "train": "4096 total = 2048/class",
         "validation": "2048 total = 1024/class",
         "training": (
@@ -132,13 +150,13 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "gate": gate,
     }
-    _write_jsonl(args.output_root / "results.jsonl", rows)
-    _write_history_csv(args.output_root / "history.csv", rows)
-    _write_json(args.output_root / "validation.json", validation)
-    _write_json(args.output_root / "gate.json", gate)
-    _write_json(args.output_root / "summary.json", summary)
-    render_transfer_svg(gate, rows, args.output_root / "curves.svg")
-    (args.output_root / "visual_qa_pending.marker").touch()
+    _write_jsonl(output_root / "results.jsonl", rows)
+    _write_history_csv(output_root / "history.csv", rows)
+    _write_json(output_root / "validation.json", validation)
+    _write_json(output_root / "gate.json", gate)
+    _write_json(output_root / "summary.json", summary)
+    render_transfer_svg(gate, rows, output_root / "curves.svg")
+    (output_root / "visual_qa_pending.marker").touch()
     _append_progress(
         progress_path,
         "run_done",
@@ -285,8 +303,10 @@ def render_transfer_svg(
             bottom=0.20,
             wspace=0.28,
         )
+        target_seed = int(gate.get("target_seed", 0))
+        phase = "X3-A2 独立复验" if target_seed == 1 else "X3-A"
         figure.suptitle(
-            "创新1 X3-A：正式 SKINNY 结构表示迁移到 RECTANGLE",
+            f"创新1 {phase}：正式 SKINNY 结构表示迁移到 RECTANGLE",
             x=0.075,
             y=0.965,
             ha="left",
@@ -298,7 +318,8 @@ def render_transfer_svg(
             0.905,
             (
                 "目标为 RECTANGLE-80 6轮；训练 2048/class、验证 1024/class；"
-                "每条样本含4对密文；只训练独立目标头，5 epochs。"
+                f"目标数据 seed{target_seed}；每条样本含4对密文；"
+                "只训练独立目标头，5 epochs。"
             ),
             ha="left",
             va="top",
