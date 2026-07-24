@@ -422,6 +422,12 @@ verified two-seed joint pass, the joint source-gate hashes replay exactly, the
 persisted U3 readiness manifest re-adjudicates successfully, and the frozen
 ten-row plan SHA256 is unchanged. It writes authorization artifacts only and
 never starts training itself.
+The paired local successor
+`configs/remote/generated/monitor_i1_uknit_u3_after_rtg3a_20260725.sh`
+waits for the retrieved RTG3-A joint evidence, runs that authorization gate,
+and starts the frozen CPU-only U3 chain only after authorization. It contains
+no remote contact and leaves generated SVG evidence pending until the required
+visual QA marker is written.
 
 Use `scripts/gate-pairset-aggregation` after learned pair-set and frozen
 single-pair aggregation artifacts are available. It compares AUC margins against

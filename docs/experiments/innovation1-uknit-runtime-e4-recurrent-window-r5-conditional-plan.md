@@ -8,6 +8,7 @@ Date: 2026-07-25
 phase = deterministic readiness plus fail-closed execution authorization
 readiness = pass; re-adjudicated after strict no-topology edge-gate repair
 authorization_gate = implemented and verified; awaiting terminal RTG3 evidence
+conditional_successor = implemented; runtime state is recorded by local monitor markers
 training = not started
 execution_authorized = no
 blocking_decision = verified RTG3-A seed0 plus conditional two-seed joint adjudication
@@ -113,6 +114,20 @@ Exit status `0` and `execution_authorized=true` require a verified RTG3-A
 two-seed pass. Seed0 pass without a joint gate returns hold; a seed0 hold or a
 joint hold stops U3; protocol, source-hash, readiness-replay or CSV-identity
 drift fails closed. Exit status `4` never authorizes training.
+
+The local-only conditional successor is:
+
+```text
+configs/remote/generated/monitor_i1_uknit_u3_after_rtg3a_20260725.sh
+```
+
+It accepts one exact pushed source commit, refuses protected committed or dirty
+source drift, and waits only on locally retrieved RTG3 artifacts. It contains no
+SSH, SCP, Windows launcher or remote-GPU command. After authorization it runs
+the unchanged local command chain, validates exactly ten rows, applies the
+frozen U3 result gate, refreshes the recent-results index, and waits at
+`visual_qa_pending.marker`. It cannot mark U3 complete until
+`visual-qa-redraw` has produced `visual_qa_passed.marker`.
 
 ## Conditional Local Execution
 

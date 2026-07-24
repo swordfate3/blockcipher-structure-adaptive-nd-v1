@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -311,3 +312,27 @@ def test_u3_plan_identity_and_script_are_frozen() -> None:
     assert _sha256(plan) == U3_PLAN_SHA256
     assert script.exists()
     assert RTG3_SEED0_RUN_ID == f"{RTG3A_RUN_STEM}_seed0_20260725"
+
+
+def test_u3_successor_waits_for_joint_then_runs_frozen_local_chain() -> None:
+    successor = ROOT / (
+        "configs/remote/generated/monitor_i1_uknit_u3_after_rtg3a_20260725.sh"
+    )
+    text = successor.read_text(encoding="utf-8")
+
+    assert "check-runtime-spn-uknit-u3-launch" in text
+    assert "innovation1_runtime_spn_uknit_u3_execution_authorized" in text
+    assert "gate-runtime-spn-recurrent-window" in text
+    assert "--expected-rows 10" in text
+    assert "scripts/index-results" in text
+    assert "visual_qa_pending.marker" in text
+    assert "visual_qa_passed.marker" in text
+    assert "--device cpu" in text
+    assert "lxy-a6000" not in text
+    assert "ssh " not in text
+    assert "scp " not in text
+    assert "cmd.exe" not in text
+    assert "rm -" not in text
+    assert "source_is_frozen" in text
+    assert "git status --porcelain" in text
+    subprocess.run(["bash", "-n", str(successor)], check=True)
