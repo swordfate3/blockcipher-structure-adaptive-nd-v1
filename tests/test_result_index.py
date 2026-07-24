@@ -3568,6 +3568,72 @@ def test_result_index_marks_raw_remote_fallback_as_unverified(tmp_path: Path) ->
     assert entries[0]["decision"] == "raw_fallback_incomplete"
 
 
+def test_result_index_ignores_monitor_staging_copies(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724"
+    verified = outputs / "remote_results" / run_id
+    monitor = outputs / "remote_results_incomplete" / f"{run_id}_monitor"
+    _write_json(
+        verified / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_rtg2b_skinny_scale_seed0_supported",
+        },
+    )
+    _write_json(
+        monitor / "staging_123" / run_id / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_rtg2b_skinny_scale_seed0_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert [entry["run_id"] for entry in entries] == [run_id]
+    assert entries[0]["scope"] == "remote_results"
+
+
+@pytest.mark.parametrize(
+    ("run_id", "decision", "expected_name", "expected_decision"),
+    [
+        (
+            "i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724",
+            "innovation1_rtg2b_skinny_scale_seed1_supported",
+            "创新1 RTG2-B：SKINNY-64/64 262144/class运行时拓扑三控制复验",
+            "SKINNY 262144/class seed1再次通过信号与两种拓扑控制门，可形成双seed裁决",
+        ),
+        (
+            "i1_rtg2b_skinny64_general_gf2_scale_262144_joint_seed0_seed1_20260724",
+            "innovation1_rtg2b_skinny_scale_two_seed_supported",
+            "创新1 RTG2-B：SKINNY-64/64 262144/class双seed联合裁决",
+            "SKINNY 262144/class正确拓扑优势通过两颗seed复验；仍属中等架构证据，不自动上正式规模",
+        ),
+        (
+            "i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2_seed0_seed1_20260724",
+            "runtime_spn_frozen_backbone_target_head_supported",
+            "创新1 X2：冻结GIFT运行时SPN主干，仅训练SKINNY目标输出头",
+            "冻结GIFT结构主干后，仅训练SKINNY输出头在双seed超过三个控制，可进入路线比较",
+        ),
+    ],
+)
+def test_result_index_labels_current_runtime_spn_route(
+    tmp_path: Path,
+    run_id: str,
+    decision: str,
+    expected_name: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = outputs / "local_diagnostic" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == expected_name
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_supports_r3_local_diagnostic_chinese_names(
     tmp_path: Path,
 ) -> None:

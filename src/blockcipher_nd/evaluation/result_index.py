@@ -208,6 +208,42 @@ DECISION_LABELS = {
     "innovation1_rtg2a_seed1_launch_evidence_invalid": (
         "seed1启动证据或训练等价性检查失败，修复前禁止SSH和远程启动"
     ),
+    "innovation1_rtg2b_seed0_remote_launch_authorized": (
+        "SKINNY 262144/class seed0源码、远程缓存和三控制协议通过，可启动GPU复验"
+    ),
+    "innovation1_rtg2b_seed1_remote_launch_authorized": (
+        "seed0规模门通过且seed1保持同一协议，可启动第二颗seed远程复验"
+    ),
+    "innovation1_rtg2b_skinny_scale_seed0_supported": (
+        "SKINNY 262144/class seed0正确拓扑同时超过错误拓扑和无拓扑控制，只开放seed1原样复验"
+    ),
+    "innovation1_rtg2b_skinny_scale_seed1_supported": (
+        "SKINNY 262144/class seed1再次通过信号与两种拓扑控制门，可形成双seed裁决"
+    ),
+    "innovation1_rtg2b_skinny_scale_not_supported": (
+        "SKINNY 262144/class未同时通过信号与两种拓扑控制门，停止机械扩样"
+    ),
+    "innovation1_rtg2b_skinny_scale_protocol_invalid": (
+        "SKINNY 262144/class数据、训练、模型几何或缓存协议无效，指标不可解释"
+    ),
+    "innovation1_rtg2b_skinny_scale_two_seed_supported": (
+        "SKINNY 262144/class正确拓扑优势通过两颗seed复验；仍属中等架构证据，不自动上正式规模"
+    ),
+    "innovation1_rtg2b_skinny_scale_two_seed_not_supported": (
+        "SKINNY 262144/class拓扑优势未通过双seed联合门，停止机械扩样并审计方差"
+    ),
+    "innovation1_rtg2b_skinny_scale_joint_protocol_invalid": (
+        "SKINNY 262144/class双seed来源或单seed证据不完整，禁止联合解释"
+    ),
+    "runtime_spn_frozen_backbone_target_head_supported": (
+        "冻结GIFT结构主干后，仅训练SKINNY输出头在双seed超过三个控制，可进入路线比较"
+    ),
+    "runtime_spn_target_head_signal_unstable": (
+        "冻结主干的SKINNY输出头未稳定超过全部控制，停止扩大目标头适配"
+    ),
+    "runtime_spn_target_head_protocol_invalid": (
+        "X2冻结边界、数据、检查点或控制协议无效，只修复证据"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -1946,6 +1982,8 @@ def build_result_index(
         if not scope_root.is_dir():
             continue
         for run_root in sorted(path for path in scope_root.iterdir() if path.is_dir()):
+            if run_root.name.endswith("_monitor"):
+                continue
             if (run_root / "index_excluded.marker").is_file():
                 continue
             entry = _index_run(outputs_root, scope, run_root)
@@ -2214,6 +2252,24 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2"
+    ):
+        return "创新1 X2：冻结GIFT运行时SPN主干，仅训练SKINNY目标输出头"
+    if run_id.startswith(
+        "i1_rtg2b_skinny64_general_gf2_scale_262144_joint_seed0_seed1"
+    ):
+        return "创新1 RTG2-B：SKINNY-64/64 262144/class双seed联合裁决"
+    if run_id.startswith(
+        "i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_launch_gate"
+    ):
+        return "创新1 RTG2-B：SKINNY 262144/class seed1远程启动门"
+    if run_id.startswith(
+        "i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_launch_gate"
+    ):
+        return "创新1 RTG2-B：SKINNY 262144/class seed0远程启动门"
+    if run_id.startswith("i1_rtg2b_skinny64_general_gf2_scale_262144"):
+        return "创新1 RTG2-B：SKINNY-64/64 262144/class运行时拓扑三控制复验"
     if run_id.startswith(
         "i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate"
     ):
