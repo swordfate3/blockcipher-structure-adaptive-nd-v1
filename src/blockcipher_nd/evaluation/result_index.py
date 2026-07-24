@@ -166,6 +166,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_skinny_signal_protocol_invalid": (
         "SKINNY固定密钥信号筛选或复验协议无效，结果不可解释"
     ),
+    "innovation1_runtime_spn_skinny_attribution_seed0_supported": (
+        "SKINNY一般GF(2)正确拓扑在seed0优于打乱和无拓扑，只开放seed1原样复验"
+    ),
+    "innovation1_runtime_spn_skinny_attribution_seed1_supported": (
+        "SKINNY一般GF(2)正确拓扑在seed1再次优于两控制，可汇总两seed证据"
+    ),
+    "innovation1_runtime_spn_skinny_attribution_not_supported": (
+        "SKINNY一般GF(2)拓扑归因未通过冻结门，停止扩样"
+    ),
+    "innovation1_runtime_spn_skinny_attribution_protocol_invalid": (
+        "SKINNY一般GF(2)拓扑归因协议无效，结果不可解释"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2172,6 +2184,8 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_rtg1_skinny64_general_gf2_attribution_t2c"):
+        return "创新1 RTG1-T2-C：SKINNY-64/64一般GF(2)运行时拓扑三控制归因"
     if run_id.startswith("i1_rtg1_skinny64_fixed_key_signal_confirm_t2b"):
         return "创新1 RTG1-T2-B：SKINNY-64/64固定密钥r7信号独立seed确认"
     if run_id.startswith("i1_rtg1_skinny64_fixed_key_signal_screen_t2b"):

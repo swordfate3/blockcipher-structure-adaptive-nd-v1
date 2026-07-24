@@ -1744,3 +1744,47 @@ advance    = validation AUC >= 0.55
 
 No r6/r8 repeat, topology control, protocol tuning, or scale increase is
 allowed during this confirmation.
+
+T2-B seed1 completed with r7 validation AUC `0.578765869`, so the selected
+fixed-key signal anchor passed both seed0 (`0.566665649`) and seed1
+(`0.578765869`) at the same small budget. This remains signal-readiness only;
+the correct topology has not yet been compared with either control.
+
+### Frozen T2-C General-GF(2) Topology Attribution
+
+T2-C asks the remaining implementation-level research question: on the
+confirmed SKINNY r7 fixed-key task, does the exact externally supplied general
+GF(2) linear layer outperform a deterministic corrupted layer and an
+equal-parameter no-linear-topology control?
+
+```text
+run ids       = i1_rtg1_skinny64_general_gf2_attribution_t2c_2048_seed{0,1}_20260724
+cipher        = SKINNY-64/64, TK1 ordinary fixed key
+rounds        = 7
+difference    = 0x0000000000002000
+scale         = 2048/class train, 1024/class validation
+seeds         = 0, 1 in separate frozen matrices
+pairs         = 4 independent ciphertext pairs per sample
+negative      = encrypted random plaintexts
+models        = correct / deterministic full-bit corrupted / no linear topology
+parameters    = identical names, shapes and counts across all three rows
+epochs        = 5
+optimizer     = Adam, lr 1e-4, MSE, weight decay 1e-5
+checkpoint    = best validation AUC
+execution     = local CPU diagnostic
+```
+
+Per-seed pass gates:
+
+```text
+correct AUC >= 0.55
+correct - corrupted >= +0.005
+correct - no topology >= +0.005
+all protocol and equal-geometry checks pass
+```
+
+Both seeds must pass. A one-seed pass is provisional and cannot support stable
+general-GF(2) topology attribution. A miss stops T2-C without changing epochs,
+pair count, loss, difference, negative definition, corruption, or sample scale.
+This local gate does not authorize a remote run, formal-scale claim, paper
+reproduction, attack claim, SOTA claim, or universal-SPN claim.
