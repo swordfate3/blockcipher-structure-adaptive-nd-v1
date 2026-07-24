@@ -74,6 +74,12 @@ def _rows(
         "checkpoint_metric": "val_auc",
         "restore_best_checkpoint": True,
         "selected_checkpoint": "best",
+        "key_schedule": "fixed",
+        "input_bits": 512,
+        "pair_bits": 128,
+        "samples_total": samples_per_class * 2,
+        "positive_rows": samples_per_class,
+        "negative_rows": samples_per_class,
         "train_rows": samples_per_class * 2,
         "validation_rows": samples_per_class,
         "model_options": {
@@ -130,12 +136,30 @@ def _rows(
                 "input_difference": 0x2000,
                 "train_key": 0,
                 "validation_key": 0x1111111111111111,
+                "key_rotation_interval": 0,
                 "parameter_count": 442466,
                 "trainable_parameter_count": 442466,
+                "runtime_structure_loaded_rounds": 2,
                 "input_bit_order": "project_msb_to_runtime_lsb",
                 "metrics": {"auc": auc},
                 "history": history,
                 "training": training,
+                "validation": {
+                    "cipher": "SKINNY-64/64",
+                    "structure": "SPN",
+                    "rounds": 7,
+                    "feature_encoding": "ciphertext_pair_bits",
+                    "negative_mode": "encrypted_random_plaintexts",
+                    "pairs_per_sample": 4,
+                    "samples_per_class": samples_per_class // 2,
+                    "samples_total": samples_per_class,
+                    "positive_rows": samples_per_class // 2,
+                    "negative_rows": samples_per_class // 2,
+                    "dataset_label_mode": "balanced_per_class",
+                    "key_schedule": "fixed",
+                    "key_rotation_interval": 0,
+                    "sample_structure": "independent_pairs",
+                },
             }
         )
     return rows
@@ -645,6 +669,50 @@ def test_medium_protocol_mismatch_fails_closed() -> None:
 
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_rtg2a_skinny_medium_protocol_invalid"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "train_key",
+        "learning_rate",
+        "parameter_count",
+        "model_options",
+        "validation_rows",
+    ),
+)
+def test_rtg3a_frozen_protocol_drift_fails_closed(mutation: str) -> None:
+    rows = _rows(
+        0,
+        {"true": 0.65, "corrupted": 0.60, "independent": 0.51},
+        samples_per_class=1_000_000,
+    )
+    if mutation == "train_key":
+        rows[0]["train_key"] = 1
+    elif mutation == "learning_rate":
+        rows[0]["training"]["learning_rate"] = 0.001  # type: ignore[index]
+    elif mutation == "parameter_count":
+        rows[0]["parameter_count"] = 442_467
+    elif mutation == "model_options":
+        rows[0]["training"]["model_options"]["processor_steps"] = 3  # type: ignore[index]
+    else:
+        rows[0]["validation"]["samples_total"] = 999_999  # type: ignore[index]
+
+    gate = adjudicate_runtime_spn_skinny_medium(
+        run_id=f"{RTG3A_RUN_STEM}_seed0_invalid",
+        rows=rows,
+        expected_seed=0,
+        phase="rtg3a",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_rtg3a_skinny_formal_protocol_invalid"
+    assert (
+        gate["protocol_checks"][
+            "frozen_runtime_e4_model_data_optimizer_contract"
+        ]
+        is False
+    )
 
 
 @pytest.mark.parametrize("malformation", ["missing_history", "wrong_best_epoch"])

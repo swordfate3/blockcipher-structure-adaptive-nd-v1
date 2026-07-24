@@ -109,6 +109,17 @@ Protocol failure if any of the three rows, sample totals, cache ownership,
 five-epoch histories, strict negatives, equal geometry, source revision,
 checkpoint replay or immutable archive checks fail.
 
+The result gate now enforces both cross-role equality and an absolute frozen
+contract. All three rows must report the exact train/validation keys, balanced
+labels, four-pair raw ciphertext input, `442466` trainable parameters, two
+loaded runtime transitions, `late_pair` model options, fixed-key schedule,
+Adam/MSE optimization fields, `2000000` training rows and `1000000`
+validation rows. Validation metadata must independently account for
+`500000/class`. This prevents three consistently drifted rows from passing
+merely because they agree with one another. Replaying the stronger gate on both
+completed RTG2-B result files preserves both prior pass decisions with no failed
+protocol checks.
+
 Research pass requires:
 
 ```text

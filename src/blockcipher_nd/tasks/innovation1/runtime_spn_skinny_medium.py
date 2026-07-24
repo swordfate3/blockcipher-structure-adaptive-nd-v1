@@ -21,6 +21,13 @@ RTG3A_RUN_STEM = "i1_rtg3a_skinny64_general_gf2_formal_1000000"
 RTG3A_SAMPLES_PER_CLASS = 1_000_000
 RTG3A_TRAIN_ROWS = 2_000_000
 RTG3A_VALIDATION_ROWS = 1_000_000
+RUNTIME_E4_PARAMETER_COUNT = 442_466
+RUNTIME_E4_MODEL_OPTIONS = {
+    "dropout": 0.0,
+    "pair_embedding_dim": 128,
+    "processor_steps": 2,
+    "sbox_context_mode": "late_pair",
+}
 
 
 def _is_finite_number(value: object) -> bool:
@@ -115,6 +122,75 @@ def _checkpoint_dynamics(row: dict[str, Any]) -> dict[str, Any] | None:
         "first_to_best_val_auc_gain": best_val_auc - first_val_auc,
         "best_to_final_val_auc_change": final_val_auc - best_val_auc,
     }
+
+
+def _matches_frozen_runtime_e4_protocol(
+    row: dict[str, Any],
+    *,
+    expected_seed: int,
+    samples_per_class: int,
+    train_rows: int,
+    validation_rows: int,
+) -> bool:
+    training = row.get("training")
+    validation = row.get("validation")
+    if not isinstance(training, dict) or not isinstance(validation, dict):
+        return False
+    validation_per_class = validation_rows // 2
+    return (
+        row.get("cipher") == "SKINNY-64/64"
+        and row.get("rounds") == 7
+        and row.get("seed") == expected_seed
+        and row.get("samples_per_class") == samples_per_class
+        and row.get("dataset_label_mode") == "balanced_per_class"
+        and row.get("pairs_per_sample") == 4
+        and row.get("feature_encoding") == "ciphertext_pair_bits"
+        and row.get("negative_mode") == "encrypted_random_plaintexts"
+        and row.get("sample_structure") == "independent_pairs"
+        and row.get("difference_profile") == "skinny64_gohr2022_single_key"
+        and row.get("difference_member") == 0
+        and row.get("input_difference") == 0x2000
+        and row.get("train_key") == 0
+        and row.get("validation_key") == 0x1111111111111111
+        and row.get("key_rotation_interval", 0) == 0
+        and row.get("parameter_count") == RUNTIME_E4_PARAMETER_COUNT
+        and row.get("trainable_parameter_count") == RUNTIME_E4_PARAMETER_COUNT
+        and row.get("runtime_structure_loaded_rounds") == 2
+        and row.get("input_bit_order") == "project_msb_to_runtime_lsb"
+        and training.get("epochs") == 5
+        and training.get("loss") == "mse"
+        and training.get("optimizer") == "adam"
+        and training.get("learning_rate") == 0.0001
+        and training.get("weight_decay") == 0.00001
+        and training.get("batch_size") == 64
+        and training.get("train_eval_interval") == 1
+        and training.get("checkpoint_metric") == "val_auc"
+        and training.get("restore_best_checkpoint") is True
+        and training.get("selected_checkpoint") == "best"
+        and training.get("key_schedule") == "fixed"
+        and training.get("input_bits") == 512
+        and training.get("pair_bits") == 128
+        and training.get("samples_total") == train_rows
+        and training.get("positive_rows") == samples_per_class
+        and training.get("negative_rows") == samples_per_class
+        and training.get("train_rows") == train_rows
+        and training.get("validation_rows") == validation_rows
+        and training.get("model_options") == RUNTIME_E4_MODEL_OPTIONS
+        and validation.get("cipher") == "SKINNY-64/64"
+        and validation.get("structure") == "SPN"
+        and validation.get("rounds") == 7
+        and validation.get("feature_encoding") == "ciphertext_pair_bits"
+        and validation.get("negative_mode") == "encrypted_random_plaintexts"
+        and validation.get("pairs_per_sample") == 4
+        and validation.get("samples_per_class") == validation_per_class
+        and validation.get("samples_total") == validation_rows
+        and validation.get("positive_rows") == validation_per_class
+        and validation.get("negative_rows") == validation_per_class
+        and validation.get("dataset_label_mode") == "balanced_per_class"
+        and validation.get("key_schedule") == "fixed"
+        and validation.get("key_rotation_interval") == 0
+        and validation.get("sample_structure") == "independent_pairs"
+    )
 
 
 def adjudicate_runtime_spn_skinny_medium(
@@ -222,6 +298,17 @@ def adjudicate_runtime_spn_skinny_medium(
             and row.get("training", {}).get("epochs") == 5
             and row.get("training", {}).get("batch_size") == 64
             and row.get("training", {}).get("train_eval_interval") == 1
+            for row in by_role.values()
+        ),
+        "frozen_runtime_e4_model_data_optimizer_contract": len(by_role) == 3
+        and all(
+            _matches_frozen_runtime_e4_protocol(
+                row,
+                expected_seed=expected_seed,
+                samples_per_class=samples_per_class,
+                train_rows=train_rows,
+                validation_rows=validation_rows,
+            )
             for row in by_role.values()
         ),
         "strict_encrypted_random_plaintext_negatives": len(by_role) == 3
