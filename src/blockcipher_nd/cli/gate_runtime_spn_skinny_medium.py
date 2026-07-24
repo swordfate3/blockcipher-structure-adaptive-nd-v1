@@ -226,7 +226,7 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
         axes[1].set_ylabel("AUC 差值")
         axes[1].set_title("正确拓扑相对控制组的优势", loc="left", fontweight="bold")
         axes[1].grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
-        axes[1].legend(loc="upper right", frameon=False)
+        axes[1].legend(loc="upper left", frameon=False)
         figure.text(
             0.075,
             0.055,

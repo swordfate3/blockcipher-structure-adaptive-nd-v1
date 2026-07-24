@@ -9,7 +9,15 @@ JOINT_ID="i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1_20260724"
 LAUNCH_SCRIPT="launch_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.cmd"
 MONITOR_ROOT="outputs/remote_results_incomplete/i1_rtg2a_skinny64_general_gf2_medium_65536_monitor"
 RESULT_ROOT="outputs/remote_results"
+FALLBACK_RESULT_ROOT="outputs/remote_results_incomplete"
+JOINT_RESULT_ROOT="outputs/remote_results_incomplete"
 SEED1_LAUNCHED_MARKER="${MONITOR_ROOT}/conditional_seed1_launched.marker"
+SEED1_SOURCE_COMMIT="${1:-}"
+
+if [[ ! "${SEED1_SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "usage: $0 <pushed-seed1-source-commit>" >&2
+  exit 6
+fi
 
 mkdir -p "${MONITOR_ROOT}" "${RESULT_ROOT}"
 touch "${MONITOR_ROOT}/monitor.log"
@@ -82,30 +90,75 @@ retrieve_and_readjudicate() {
   return "${gate_exit}"
 }
 
-gate_status() {
-  local run_id="$1"
-  python -c "import json,pathlib; print(json.loads((pathlib.Path(r'${RESULT_ROOT}/${run_id}')/'gate.json').read_text(encoding='utf-8'))['status'])"
+gate_status_path() {
+  local gate_path="$1"
+  python -c "import json,pathlib; print(json.loads(pathlib.Path(r'${gate_path}').read_text(encoding='utf-8'))['status'])"
+}
+
+seed0_gate_path() {
+  local verified="${RESULT_ROOT}/${SEED0_ID}"
+  local fallback="${FALLBACK_RESULT_ROOT}/${SEED0_ID}"
+  if [[ -f "${verified}/retrieved_from_verified_result_branch.marker" \
+    && -f "${verified}/validation.local.json" \
+    && -f "${verified}/gate.json" ]]; then
+    echo "${verified}/gate.json"
+    return 0
+  fi
+  if [[ -f "${fallback}/RAW_RETRIEVAL_NOTICE.txt" \
+    && -f "${fallback}/validation.local.json" \
+    && -f "${fallback}/visual_qa_passed.marker" \
+    && -f "${fallback}/gate.json" ]]; then
+    echo "${fallback}/gate.json"
+    return 0
+  fi
+  return 1
+}
+
+stage_fallback_seed0_authorization() {
+  local fallback="${FALLBACK_RESULT_ROOT}/${SEED0_ID}"
+  local remote_archive="${RUNS_ROOT}/${SEED0_ID}/source/results_archive/${SEED0_ID}"
+  local required
+  for required in gate.json validation.local.json RAW_RETRIEVAL_NOTICE.txt visual_qa_passed.marker; do
+    [[ -f "${fallback}/${required}" ]] || return 1
+  done
+  ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
+    "cmd.exe /c if not exist ${remote_archive//\//\\} mkdir ${remote_archive//\//\\}" \
+    >> "${MONITOR_ROOT}/seed0_authorization.log" \
+    2>> "${MONITOR_ROOT}/seed0_authorization_stderr.log" || return 1
+  scp \
+    "${fallback}/gate.json" \
+    "${fallback}/validation.local.json" \
+    "${fallback}/RAW_RETRIEVAL_NOTICE.txt" \
+    "${fallback}/visual_qa_passed.marker" \
+    "${REMOTE}:${remote_archive}/" \
+    >> "${MONITOR_ROOT}/seed0_authorization.log" \
+    2>> "${MONITOR_ROOT}/seed0_authorization_stderr.log"
 }
 
 launch_seed1() {
-  local revision
-  revision="$(tr -d '\r\n' < "${RESULT_ROOT}/${SEED0_ID}/git_revision.txt")"
+  local seed0_gate
+  seed0_gate="$(seed0_gate_path)" || return 1
+  if [[ "${seed0_gate}" == "${FALLBACK_RESULT_ROOT}/"* ]]; then
+    stage_fallback_seed0_authorization || return 1
+  fi
   ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
-    "cmd.exe /c ${RUNS_ROOT}\\${SEED0_ID}\\source\\configs\\remote\\generated\\${LAUNCH_SCRIPT} ${revision} 1 0" \
+    "cmd.exe /c ${RUNS_ROOT}\\${SEED0_ID}\\source\\configs\\remote\\generated\\${LAUNCH_SCRIPT} ${SEED1_SOURCE_COMMIT} 1 0" \
     >> "${MONITOR_ROOT}/seed1_launch.log" \
     2>> "${MONITOR_ROOT}/seed1_launch_stderr.log"
 }
 
 adjudicate_joint() {
-  local destination="${RESULT_ROOT}/${JOINT_ID}"
+  local destination="${JOINT_RESULT_ROOT}/${JOINT_ID}"
+  local seed0_gate
   local gate_exit=0
+  seed0_gate="$(seed0_gate_path)" || return 1
   if [[ -e "${destination}" ]]; then
     echo "$(timestamp) joint_destination_exists" >> "${MONITOR_ROOT}/monitor.log"
     return 1
   fi
   UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/gate-runtime-spn-skinny-medium-joint \
     --run-id "${JOINT_ID}" \
-    --seed0-gate "${RESULT_ROOT}/${SEED0_ID}/gate.json" \
+    --seed0-gate "${seed0_gate}" \
     --seed1-gate "${RESULT_ROOT}/${SEED1_ID}/gate.json" \
     --output-root "${destination}" \
     >> "${MONITOR_ROOT}/joint.log" \
@@ -120,6 +173,7 @@ adjudicate_joint() {
 
 seed0_handled=false
 seed1_launched=false
+seed0_gate=""
 
 if grep -q "conditional_seed1_launched" "${MONITOR_ROOT}/monitor.log"; then
   touch "${SEED1_LAUNCHED_MARKER}"
@@ -127,9 +181,10 @@ fi
 if [[ -f "${SEED1_LAUNCHED_MARKER}" ]]; then
   seed1_launched=true
 fi
-if [[ -f "${RESULT_ROOT}/${SEED0_ID}/gate.json" ]]; then
+seed0_gate="$(seed0_gate_path 2>/dev/null || true)"
+if [[ -n "${seed0_gate}" ]]; then
   seed0_handled=true
-  if [[ "$(gate_status "${SEED0_ID}")" == "pass" ]]; then
+  if [[ "$(gate_status_path "${seed0_gate}")" == "pass" ]]; then
     if [[ "${seed1_launched}" != true ]]; then
       launch_seed1 || exit 4
       seed1_launched=true
@@ -143,7 +198,7 @@ if [[ -f "${RESULT_ROOT}/${SEED0_ID}/gate.json" ]]; then
   fi
 fi
 if [[ -f "${RESULT_ROOT}/${SEED1_ID}/gate.json" ]]; then
-  if [[ ! -f "${RESULT_ROOT}/${JOINT_ID}/gate.json" ]]; then
+  if [[ ! -f "${JOINT_RESULT_ROOT}/${JOINT_ID}/gate.json" ]]; then
     adjudicate_joint || exit 5
   fi
   touch "${MONITOR_ROOT}/medium_pair_complete.marker"
@@ -161,7 +216,8 @@ while true; do
   if [[ "${seed0_handled}" != true ]] && compgen -G "${MONITOR_ROOT}/${SEED0_ID}/logs/*result_branch_pushed.marker" > /dev/null; then
     retrieve_and_readjudicate "${SEED0_ID}" 0 || exit 2
     seed0_handled=true
-    if [[ "$(gate_status "${SEED0_ID}")" == "pass" ]]; then
+    seed0_gate="$(seed0_gate_path)" || exit 2
+    if [[ "$(gate_status_path "${seed0_gate}")" == "pass" ]]; then
       launch_seed1 || exit 4
       seed1_launched=true
       touch "${SEED1_LAUNCHED_MARKER}"

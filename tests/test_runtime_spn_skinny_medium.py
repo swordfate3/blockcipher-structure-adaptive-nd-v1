@@ -420,6 +420,15 @@ def test_medium_remote_assets_are_ready_and_windows_safe() -> None:
     assert "conditional_seed1_launched.marker" in monitor_script
     assert "conditional_seed1_launched_after_resume" in monitor_script
     assert "resumed_medium_pair_joint_adjudicated_and_indexed" in monitor_script
+    assert 'SEED1_SOURCE_COMMIT="${1:-}"' in monitor_script
+    assert "pushed-seed1-source-commit" in monitor_script
+    assert "stage_fallback_seed0_authorization" in monitor_script
+    assert "RAW_RETRIEVAL_NOTICE.txt" in monitor_script
+    assert "validation.local.json" in monitor_script
+    assert "visual_qa_passed.marker" in monitor_script
+    assert 'JOINT_RESULT_ROOT="outputs/remote_results_incomplete"' in monitor_script
+    assert "${SEED1_SOURCE_COMMIT} 1 0" in monitor_script
+    assert 'revision="$(tr -d' not in monitor_script
     assert "launch_i1_rtg2a" in monitor_script
     assert "medium_pair_complete.marker" in monitor_script
     subprocess.run(
