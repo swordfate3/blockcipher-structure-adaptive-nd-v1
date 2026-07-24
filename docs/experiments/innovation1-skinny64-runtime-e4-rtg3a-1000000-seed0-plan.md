@@ -120,6 +120,13 @@ merely because they agree with one another. Replaying the stronger gate on both
 completed RTG2-B result files preserves both prior pass decisions with no failed
 protocol checks.
 
+The later two-seed joint gate also revalidates each source gate instead of
+trusting its status string. It requires exact per-seed train and validation
+totals, recomputes both topology margins from the three AUCs, and verifies that
+all research booleans match the frozen `0.55/+0.005` thresholds. Replaying this
+joint contract on the two completed RTG2-B source gates preserves the existing
+two-seed pass with both new checks true.
+
 Research pass requires:
 
 ```text

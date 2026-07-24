@@ -56,6 +56,46 @@ def _tightly_equal(left: object, right: object, *, tolerance: float = 1e-7) -> b
     )
 
 
+def _source_gate_research_is_consistent(gate: dict[str, Any]) -> bool:
+    aucs = gate.get("aucs")
+    margins = gate.get("margins")
+    checks = gate.get("research_checks")
+    if (
+        not isinstance(aucs, dict)
+        or not isinstance(margins, dict)
+        or not isinstance(checks, dict)
+    ):
+        return False
+    if not all(
+        _is_finite_number(aucs.get(role))
+        for role in ("true", "corrupted", "independent")
+    ):
+        return False
+    true_auc = float(aucs["true"])
+    true_minus_corrupted = true_auc - float(aucs["corrupted"])
+    true_minus_independent = true_auc - float(aucs["independent"])
+    return (
+        _tightly_equal(
+            margins.get("true_minus_corrupted"),
+            true_minus_corrupted,
+        )
+        and _tightly_equal(
+            margins.get("true_minus_independent"),
+            true_minus_independent,
+        )
+        and checks
+        == {
+            "true_auc_at_least_0p55": true_auc >= SIGNAL_FLOOR,
+            "true_exceeds_corrupted_by_0p005": (
+                true_minus_corrupted >= CONTROL_MARGIN
+            ),
+            "true_exceeds_independent_by_0p005": (
+                true_minus_independent >= CONTROL_MARGIN
+            ),
+        }
+    )
+
+
 def _checkpoint_dynamics(row: dict[str, Any]) -> dict[str, Any] | None:
     history = row.get("history")
     training = row.get("training")
@@ -482,18 +522,24 @@ def adjudicate_runtime_spn_skinny_medium_joint(
     if phase == "rtg2a":
         run_stem = RUN_STEM
         samples_per_class = SAMPLES_PER_CLASS
+        train_rows = TRAIN_ROWS
+        validation_rows = VALIDATION_ROWS
         decision_stem = "innovation1_rtg2a_skinny_medium"
         run_id_check = "source_run_ids_match_frozen_rtg2a"
         research_check = "both_medium_seeds_supported"
     elif phase == "rtg2b":
         run_stem = RTG2B_RUN_STEM
         samples_per_class = RTG2B_SAMPLES_PER_CLASS
+        train_rows = RTG2B_TRAIN_ROWS
+        validation_rows = RTG2B_VALIDATION_ROWS
         decision_stem = "innovation1_rtg2b_skinny_scale"
         run_id_check = "source_run_ids_match_frozen_rtg2b"
         research_check = "both_medium_seeds_supported"
     else:
         run_stem = RTG3A_RUN_STEM
         samples_per_class = RTG3A_SAMPLES_PER_CLASS
+        train_rows = RTG3A_TRAIN_ROWS
+        validation_rows = RTG3A_VALIDATION_ROWS
         decision_stem = "innovation1_rtg3a_skinny_formal"
         run_id_check = "source_run_ids_match_frozen_rtg3a"
         research_check = "both_formal_seeds_supported"
@@ -545,6 +591,13 @@ def adjudicate_runtime_spn_skinny_medium_joint(
             == {"true_auc": SIGNAL_FLOOR, "control_margin": CONTROL_MARGIN}
             for seed in (0, 1)
         ),
+        "source_scale_contracts_exact": complete
+        and all(
+            by_seed[seed].get("samples_per_class") == samples_per_class
+            and by_seed[seed].get("train_rows") == train_rows
+            and by_seed[seed].get("validation_rows") == validation_rows
+            for seed in (0, 1)
+        ),
         "finite_source_metrics": complete
         and all(
             _has_finite_metric_map(
@@ -555,6 +608,11 @@ def adjudicate_runtime_spn_skinny_medium_joint(
                 "margins",
                 ("true_minus_corrupted", "true_minus_independent"),
             )
+            for seed in (0, 1)
+        ),
+        "source_metric_contracts_consistent": complete
+        and all(
+            _source_gate_research_is_consistent(by_seed[seed])
             for seed in (0, 1)
         ),
     }

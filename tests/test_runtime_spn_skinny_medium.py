@@ -876,6 +876,40 @@ def test_rtg3a_joint_gate_requires_two_formal_seed_passes() -> None:
     assert "project-formal" in gate["claim_scope"]
 
 
+@pytest.mark.parametrize(
+    ("mutation", "failed_check"),
+    (
+        ("scale", "source_scale_contracts_exact"),
+        ("margin", "source_metric_contracts_consistent"),
+        ("research", "source_metric_contracts_consistent"),
+    ),
+)
+def test_rtg3a_joint_gate_recomputes_source_contracts(
+    mutation: str,
+    failed_check: str,
+) -> None:
+    seed0 = _rtg3a_seed_gate(0)
+    seed1 = json.loads(json.dumps(_rtg3a_seed_gate(1)))
+    if mutation == "scale":
+        seed1["train_rows"] = 1_999_999
+    elif mutation == "margin":
+        seed1["margins"]["true_minus_corrupted"] = 0.5
+    else:
+        seed1["research_checks"]["true_auc_at_least_0p55"] = False
+
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RTG3A_RUN_STEM}_joint_seed0_seed1_invalid",
+        gates=[seed0, seed1],
+        phase="rtg3a",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == (
+        "innovation1_rtg3a_skinny_formal_joint_protocol_invalid"
+    )
+    assert gate["protocol_checks"][failed_check] is False
+
+
 def test_rtg3a_launch_gate_requires_route_a_and_exact_publication() -> None:
     common = {
         "source_commit": "a" * 40,
