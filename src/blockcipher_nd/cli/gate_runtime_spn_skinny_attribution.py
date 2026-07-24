@@ -157,6 +157,7 @@ def render_skinny_attribution_svg(gate: dict[str, Any], output: Path) -> None:
         axes[1].bar_label(margin_bars, labels=[f"{value:+.6f}" for value in margins], padding=5)
         axes[1].axhline(0.005, color="#1D4ED8", linestyle="--", linewidth=1.4, label="归因门 +0.005")
         axes[1].axhline(0.0, color="#334155", linewidth=1.0)
+        axes[1].set_ylim(min(-0.005, min(margins) - 0.01), max(0.13, max(margins) + 0.025))
         axes[1].set_xticks(margin_x, labels=("正确 - 打乱", "正确 - 无拓扑"))
         axes[1].set_ylabel("AUC 差值")
         axes[1].set_title("拓扑归因边际", loc="left", fontweight="bold")

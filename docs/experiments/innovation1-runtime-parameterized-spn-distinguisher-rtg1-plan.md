@@ -1788,3 +1788,70 @@ general-GF(2) topology attribution. A miss stops T2-C without changing epochs,
 pair count, loss, difference, negative definition, corruption, or sample scale.
 This local gate does not authorize a remote run, formal-scale claim, paper
 reproduction, attack claim, SOTA claim, or universal-SPN claim.
+
+### T2-C Results And RTG1 Verdict
+
+Both frozen SKINNY matrices completed and passed plan alignment, equal-geometry,
+strict-negative, signal-floor, and topology-margin checks:
+
+| Seed | Correct AUC | Corrupted AUC | No-topology AUC | Correct - corrupted | Correct - no topology |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.612733364` | `0.531115532` | `0.504094601` | `+0.081617832` | `+0.108638763` |
+| 1 | `0.614543915` | `0.525171757` | `0.512288094` | `+0.089372158` | `+0.102255821` |
+
+Decisions:
+
+```text
+innovation1_runtime_spn_skinny_attribution_seed0_supported
+innovation1_runtime_spn_skinny_attribution_seed1_supported
+```
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_skinny64_general_gf2_attribution_t2c_2048_seed0_20260724/
+outputs/local_diagnostic/i1_rtg1_skinny64_general_gf2_attribution_t2c_2048_seed1_20260724/
+```
+
+RTG1 now supports the requested implementation-level claim at local diagnostic
+scale. One runtime-parameterized E4 backbone accepts external cell membership,
+within-cell bit roles, S-box truth descriptors, and per-round linear matrices.
+Its parameter names and tensor shapes do not change when the runtime structure
+changes. The same geometry has produced stable `correct > corrupted` and
+`correct > no topology` ordering on:
+
+- one-to-one P layers: GIFT-64 r6 and PRESENT-80 r7, two seeds each;
+- a genuine general GF(2) layer: SKINNY-64/64 r7, two seeds, with row/column
+  degrees up to `3` and exact forward/inverse replay.
+
+The claim remains bounded. These are local `2048/class` diagnostics using
+cipher-specific signal-bearing round/difference protocols, not same-task
+zero-shot weight transfer, medium/formal scale, paper reproduction, an attack,
+SOTA, or proof for every SPN.
+
+### Recommended Next Action: RTG2-A Medium General-GF(2) Replication
+
+The next question is whether the newly observed SKINNY topology margins survive
+a medium data regime without changing the model or task. Use the T2-C seed0
+matrix as the same-protocol anchor and change only training/validation sample
+scale:
+
+```text
+cipher        = SKINNY-64/64 r7, fixed-key difference 0x2000
+models        = correct / deterministic corrupted / no linear topology
+scale         = 65536/class train, 32768/class validation
+seeds         = seed0 first; seed1 only if seed0 passes
+pairs         = 4 independent ciphertext pairs
+epochs        = 5
+all other     = identical to T2-C
+execution     = remote lxy-a6000 only, from a pushed commit
+cache         = parameter-matched disk cache, progress JSONL and resumable reuse
+advance       = correct AUC >= 0.55 and both margins >= +0.005 per seed
+```
+
+If both medium seeds pass, the next scale is `262144/class`; only after that
+should a `>=1000000/class` multi-seed formal claim be considered. If seed0
+fails, stop RTG2-A and audit whether the local margin was sample variance or a
+training-dynamics mismatch. Do not change topology corruption, add DDT/trail
+features, switch to a related-key protocol, increase epochs, or run a broad
+multi-cipher remote matrix as a rescue.
