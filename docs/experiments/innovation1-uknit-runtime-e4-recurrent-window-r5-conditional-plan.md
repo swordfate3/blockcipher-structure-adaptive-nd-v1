@@ -82,6 +82,45 @@ homogeneous, both share the same final transition but not the same ordered
 window hash, all roles share parameter shapes, and every data/training field
 matches the frozen contract. This gate has no AUC threshold.
 
+## Conditional Local Execution
+
+The following command chain is frozen but remains unauthorized until the
+RTG3-A decision described below is available locally. It preserves the ten-row
+CSV as the only source of model/data/optimizer fields and adds only execution
+paths, CPU selection and disk-cache controls:
+
+```bash
+RUN_ID=i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725
+RUN_ROOT=outputs/local_diagnostic/${RUN_ID}
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/train \
+  --plan configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1.csv \
+  --device cpu \
+  --dataset-cache-root "${RUN_ROOT}/cache" \
+  --dataset-cache-chunk-size 1024 \
+  --dataset-cache-workers 1 \
+  --checkpoint-output-dir "${RUN_ROOT}/checkpoints" \
+  --progress-output "${RUN_ROOT}/progress.jsonl" \
+  --output "${RUN_ROOT}/results.jsonl"
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/plot-results \
+  --results "${RUN_ROOT}/results.jsonl" \
+  --output "${RUN_ROOT}/curves.svg" \
+  --history-csv "${RUN_ROOT}/history.csv" \
+  --title "创新1 U3：uKNIT 五轮异构双窗口运行时 SPN 复验" \
+  --validation-only
+
+UV_CACHE_DIR=/tmp/uv-cache uv run python \
+  scripts/gate-runtime-spn-recurrent-window \
+  --run-id "${RUN_ID}" \
+  --run-root "${RUN_ROOT}"
+```
+
+After the gate, invoke `visual-qa-redraw` on the rendered `curves.svg` and
+refresh `outputs/00_RECENT_RESULTS.md` plus its JSON companion with
+`scripts/index-results`. A training, plotting, gate, visual-QA or index failure
+leaves U3 incomplete and must not be converted into a research hold.
+
 ## Conditional Execution And Decision
 
 Do not train this matrix until RTG3-A has a completed local adjudication. If
