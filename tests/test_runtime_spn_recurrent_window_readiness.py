@@ -2,15 +2,25 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
+from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.tasks.innovation1.runtime_spn_recurrent_window_readiness import (
     EXPECTED_ROLES,
     ROLE_MODEL_OPTIONS,
     ROLE_MODELS,
+    UKNIT_VALIDATION_KEY,
     adjudicate_recurrent_window_readiness,
     build_recurrent_window_readiness,
+)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1.csv"
 )
 
 
@@ -34,7 +44,7 @@ def _task(seed: int, role: str) -> dict[str, object]:
         "difference_profile": "",
         "difference_member": "",
         "train_key": 0,
-        "validation_key": 0x1111111111111111,
+        "validation_key": UKNIT_VALIDATION_KEY,
         "loss": "mse",
         "learning_rate": 0.0001,
         "optimizer": "adam",
@@ -82,6 +92,28 @@ def test_recurrent_window_readiness_passes_exact_heterogeneous_panel() -> None:
     assert (
         candidate["runtime_structure_window_sha256"]
         != repeated["runtime_structure_window_sha256"]
+    )
+
+
+def test_recurrent_window_readiness_accepts_the_real_frozen_plan() -> None:
+    tasks = tasks_from_plan(
+        PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=4,
+        difference_profile=None,
+        difference_member=0,
+    )
+
+    manifests, gate = build_recurrent_window_readiness(
+        run_id="real-plan",
+        tasks=tasks,
+    )
+
+    assert gate["status"] == "pass"
+    assert len(manifests) == 10
+    assert all(
+        row["data_protocol"]["validation_key"] == UKNIT_VALIDATION_KEY
+        for row in manifests
     )
 
 

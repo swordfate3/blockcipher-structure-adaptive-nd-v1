@@ -13,6 +13,7 @@ from blockcipher_nd.registry.model_factory import build_model
 
 
 EXPECTED_SEEDS = (0, 1)
+UKNIT_VALIDATION_KEY = int("11" * 16, 16)
 EXPECTED_ROLES = (
     "anchor",
     "candidate",
@@ -340,7 +341,7 @@ def _frozen_protocol(row: dict[str, Any]) -> bool:
         and data.get("feature_encoding") == "ciphertext_pair_bits"
         and data.get("negative_mode") == "encrypted_random_plaintexts"
         and data.get("train_key") == 0
-        and data.get("validation_key") == 0x1111111111111111
+        and data.get("validation_key") == UKNIT_VALIDATION_KEY
         and data.get("key_rotation_interval") == 0
         and data.get("sample_structure") == "independent_pairs"
         and data.get("input_difference") == 0x40
@@ -476,6 +477,7 @@ __all__ = [
     "EXPECTED_SEEDS",
     "ROLE_MODEL_OPTIONS",
     "ROLE_MODELS",
+    "UKNIT_VALIDATION_KEY",
     "adjudicate_recurrent_window_readiness",
     "build_recurrent_window_readiness",
 ]

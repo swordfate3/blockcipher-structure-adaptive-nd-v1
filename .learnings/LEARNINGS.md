@@ -1,3 +1,50 @@
+## [LRN-20260725-002] correction
+
+**Logged**: 2026-07-25T02:30:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Runtime-SPN readiness fixtures must preserve the target cipher's real key width instead of copying a shorter fixed-key convention from another SPN.
+
+### Details
+
+The first uKNIT recurrent-window readiness gate used
+`0x1111111111111111` as its validation key. uKNIT-BC has a 128-bit key, and
+all frozen U1/U2 plans use `0x11111111111111111111111111111111`.
+Model-construction tests passed because they did not parse a real experiment
+CSV, so the incorrect 64-bit fixture would have rejected a valid uKNIT plan or
+encouraged an unintended protocol change.
+
+### Suggested Action
+
+Before freezing a cross-cipher or runtime-parameterized plan, derive key width,
+fixed keys and default difference from the cipher profile and the strongest
+same-cipher plan. Add an integration test that parses the real CSV and runs the
+readiness gate; pure hand-built task dictionaries are not sufficient evidence
+of plan compatibility.
+
+### Metadata
+
+- Source: self_correction, protocol_audit
+- Related Files: src/blockcipher_nd/tasks/innovation1/runtime_spn_recurrent_window_readiness.py, tests/test_runtime_spn_recurrent_window_readiness.py, configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1.csv
+- Tags: innovation1, runtime-spn, uknit, key-width, readiness, integration-test
+- See Also: LRN-20260725-001
+- Pattern-Key: research.runtime_spn.readiness_preserves_cipher_key_width
+- Recurrence-Count: 1
+- First-Seen: 2026-07-25
+- Last-Seen: 2026-07-25
+
+### Resolution
+
+- **Resolved**: 2026-07-25T02:30:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Corrected the frozen key and added real-plan parsing coverage before any dataset generation.
+
+---
+
 ## [LRN-20260723-002] correction
 
 **Logged**: 2026-07-23T12:16:20+08:00
