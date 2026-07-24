@@ -141,8 +141,5 @@ def test_same_checkpoint_evaluation_keeps_anchor_assignment_invariant(
     )
 
     assert rows[0]["auc"] == rows[1]["auc"]
-    assert rows[0]["pair_max_abs_probability_delta"] <= 1e-6
-    assert (
-        rows[0]["pair_max_abs_probability_delta"]
-        == rows[1]["pair_max_abs_probability_delta"]
-    )
+    assert rows[0]["pair_max_abs_probability_delta"] == 0.0
+    assert rows[0]["probability_sha256"] == rows[1]["probability_sha256"]

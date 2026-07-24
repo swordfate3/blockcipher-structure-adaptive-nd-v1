@@ -117,3 +117,20 @@ outputs/local_audits/i1_rtg1_uknit64_runtime_e4_sbox_assignment_u2a_same_checkpo
 
 The final chart must pass `visual-qa-redraw`, and the completed audit must become
 the newest entry in both recent-result indexes.
+
+## Protocol Repair Amendment
+
+The first execution on 2026-07-24 was protocol-invalid before research
+adjudication. The `late_pair` anchor's S-box context used a float32 row mean.
+Correct and shuffled assignments contain the same 16 encoded S boxes, but their
+different row order changed the finite-precision reduction by at most
+`1.1920928955078125e-07`. That preserved the probability gate but perturbed AUC
+by `4.76837158203125e-07` to `9.5367431640625e-07`, violating the preregistered
+exact anchor-AUC gate.
+
+Repair only the `late_pair` reduction by accumulating the already encoded
+float32 rows in float64 and casting the invariant mean back to the model dtype.
+Do not change the `late_cell` candidate path, checkpoints, validation arrays,
+shuffle, metrics, thresholds, or eight-row panel. Retain the invalid attempt as
+debug evidence and rerun to a fresh output directory before interpreting any
+candidate result.

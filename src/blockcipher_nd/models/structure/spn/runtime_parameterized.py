@@ -514,7 +514,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             torch.cat((mean_embedding, max_embedding, active_embedding), dim=-1)
         ).reshape(batch, pair_count, self.spec.pair_embedding_dim)
         if self.spec.sbox_context_mode == "late_pair":
-            late_context = sbox_context.mean(dim=0)
+            late_context = sbox_context.to(torch.float64).mean(dim=0).to(hidden.dtype)
             if late_context.shape[0] != self.spec.pair_embedding_dim:
                 late_context = torch.nn.functional.adaptive_avg_pool1d(
                     late_context.reshape(1, 1, -1),
