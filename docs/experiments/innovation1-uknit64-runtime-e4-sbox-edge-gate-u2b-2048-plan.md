@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = preregistered
+stage    = completed
 run_id   = i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724
 training = local diagnostic
-decision = pending
+decision = hold / close parameter-free edge gate
 ```
 
 ## Question
@@ -124,3 +124,92 @@ Do not add DDT, trails, partial decryption, extra S-box losses, paired training,
 another window, more seeds, more epochs, larger data, remote GPU, or a second
 new architecture mechanism in U2-B. Those are separate hypotheses and would
 make the result unattributable.
+
+## Completed Result
+
+The six-row run completed locally from pushed commit `69b99aec`. Plan
+alignment passed with six expected and six observed rows, no missing or
+unexpected rows, no duplicate keys and no field mismatches. All protocol
+checks passed, including exact descriptor window, strict encrypted-random-
+plaintext negatives, disk-backed datasets, equal parameter geometry and the
+three required roles for both seeds.
+
+| Seed | Correct edge gate | `late_pair` anchor | Shuffled edge gate | Candidate - anchor | Candidate - shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.532396317 | 0.518405437 | 0.526177406 | +0.013990879 | +0.006218910 |
+| 1 | 0.521487236 | 0.538745403 | 0.530868053 | -0.017258167 | -0.009380817 |
+
+Seed0 passed all three preregistered research checks. Seed1 reached the
+absolute `0.520` AUC floor but lost to both the unchanged anchor and shuffled
+ownership control. The joint decision is therefore:
+
+```text
+status   = hold
+decision = innovation1_uknit_sbox_edge_gate_hold
+claim    = local 2048/class mechanism diagnostic only
+```
+
+The result does not show that the runtime SPN backbone is ineffective. The
+same backbone already has positive correct-versus-corrupted topology evidence
+on PRESENT, GIFT and general-GF(2) SKINNY. It shows specifically that this
+parameter-free use of truth-table embeddings as a linear-edge gate does not
+make uKNIT cell-specific S-box ownership stable across two seeds. Do not tune,
+scale or launch this exact edge-gate design remotely.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/results.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/gate.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/summary.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/history.csv
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/curves.svg
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_sbox_edge_gate_u2b_2048_seed0_seed1_20260724/visual_qa_passed.marker
+```
+
+`visual-qa-redraw` first found that training-set dashed curves competed with
+the close validation controls. The final SVG uses validation-only curves and
+passed a `2312 x 1646` rendered-pixel inspection: no overlap, clipping,
+missing glyphs or ambiguous legend; the AUC range exposes the close controls.
+
+## Evidence-Backed Next Action: U2-C State-Triplet Tokens
+
+The next question is whether the ownership instability comes from E4
+discarding the two ciphertext values and retaining only their XOR difference.
+Liu et al. 2026 explicitly use the SPN state format
+`(C_bar, C_bar_prime, delta_C_bar)` and a `3 x 4 x n/4` Conv2D tensor so the
+network sees both state values and the penultimate-round-aligned difference.
+U2-C should preserve that information while retaining runtime cell and linear
+topology instead of introducing a cipher-sized Conv2D layout.
+
+Freeze U2-C as follows before implementation:
+
+```text
+question          = do runtime state-triplet cell tokens stabilize true uKNIT S-box ownership?
+one variable      = difference-only cell token -> shared (C, C', C xor C') cell token
+candidate         = correct topology + state-triplet token + edge gate
+same-budget anchor= correct topology + difference-only edge gate
+required control  = shuffled S-box ownership + state-triplet token + edge gate
+cipher/window     = uKNIT-BC prefix r4, round_start 2, processor_steps 2
+scale             = 2048/class train, 1024/class validation
+seeds/epochs      = 0,1 / 10
+pairs/sample      = 4
+negative          = encrypted_random_plaintexts
+execution         = local CPU diagnostic
+```
+
+Reuse the same `cell_encoder`, `typed_fusion`, E4 blocks, pooling and
+classifier so all U2-C roles retain the same parameter geometry. Apply the
+runtime inverse linear operator separately to the two ciphertext values and
+their XOR difference, encode the three cell values with the shared encoder,
+and combine them symmetrically so swapping the pair order cannot change the
+logit. Reuse the exact U2-B cache and validation arrays.
+
+For each seed require candidate AUC `>= 0.520`, candidate-minus-anchor
+`>= +0.005`, and candidate-minus-shuffled `>= +0.005`. Both seeds must pass
+before any same-checkpoint audit. A miss closes this state-triplet-plus-edge-
+gate combination. Do not add Conv2D, DDT, trails, partial decryption, more
+pairs, more epochs, a new difference, another window, larger data or remote
+GPU inside U2-C.
