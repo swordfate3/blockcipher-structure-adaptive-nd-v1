@@ -181,3 +181,28 @@ that the correct heterogeneous window beats the repeated-final, corrupted and
 no-topology controls, while retaining a useful absolute AUC relative to the
 last-transition anchor. A weak or control-invalidated local result must trigger
 redesign, not remote scale-up.
+
+## Fail-Closed Pre-Training Gate
+
+The deterministic command
+`scripts/check-runtime-spn-recurrent-window-readiness` now constructs every
+model in a proposed two-seed panel before any dataset generation. It records
+the transformed transition hashes, ordered window hash, unique-transition
+count, parameter count and a full named-parameter shape fingerprint. The gate
+requires exactly these five equal-budget roles per seed:
+
+```text
+last_transition correct anchor
+recurrent_window correct full-window candidate
+recurrent_window repeated-final equal-depth control
+recurrent_window corrupted-topology control
+recurrent_window no-topology control
+```
+
+It fails closed unless uKNIT r5 uses the frozen two-transition S3/L3--S4/L4
+window, four ciphertext pairs, `2048/class`, two seeds, ten epochs and strict
+encrypted-random-plaintext negatives. It also rejects homogeneous candidate
+windows, non-homogeneous repeated-final controls, unequal final transitions,
+equal full/repeated window hashes, parameter-geometry drift, wrong role modes,
+or any data/training protocol drift. The gate contains no AUC threshold and
+does not authorize training while RTG3-A remains unresolved.
