@@ -110,10 +110,22 @@ def build_spn_model(
     options: dict[str, object],
 ) -> nn.Module | None:
     external_runtime_models = {
-        "runtime_spn_e4_equivariant_true": ("true", False, "true"),
-        "runtime_spn_e4_equivariant_corrupted": ("true", True, "corrupted"),
+        "runtime_spn_e4_equivariant_true": ("true", False, False, "true"),
+        "runtime_spn_e4_equivariant_corrupted": (
+            "true",
+            True,
+            False,
+            "corrupted",
+        ),
+        "runtime_spn_e4_equivariant_sbox_shuffled": (
+            "true",
+            False,
+            True,
+            "sbox_shuffled",
+        ),
         "runtime_spn_e4_equivariant_independent": (
             "independent",
+            False,
             False,
             "independent",
         ),
@@ -126,21 +138,28 @@ def build_spn_model(
             )
         processor_steps = int_option(options, "processor_steps", 2)
         assert processor_steps is not None
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_round_start is not None
         descriptor = load_runtime_spn_descriptor(
             descriptor_path,
             rounds=processor_steps,
+            round_start=runtime_round_start,
         )
-        relation_mode, corrupt, structure_mode = external_runtime_models[name]
+        relation_mode, corrupt, shuffle_sboxes, structure_mode = (
+            external_runtime_models[name]
+        )
         runtime_structure = descriptor.structure
         if corrupt:
-            corruption_seed = int_option(
-                options, "topology_corruption_seed", 20260724
-            )
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260724)
             assert corruption_seed is not None
             runtime_structure = runtime_structure.corrupted(corruption_seed)
-        pair_embedding_dim = int_option(
-            options, "pair_embedding_dim", hidden_bits * 2
-        )
+        if shuffle_sboxes:
+            shuffle_seed = int_option(options, "sbox_assignment_shuffle_seed", 20260724)
+            assert shuffle_seed is not None
+            runtime_structure = runtime_structure.shuffled_sbox_assignments(
+                shuffle_seed
+            )
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
         assert pair_embedding_dim is not None
         return FixedRuntimeSpnProtocolAdapter(
             input_bits=input_bits,
@@ -161,6 +180,8 @@ def build_spn_model(
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),
             descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
             runtime_structure_mode=structure_mode,
         )
     runtime_models = {

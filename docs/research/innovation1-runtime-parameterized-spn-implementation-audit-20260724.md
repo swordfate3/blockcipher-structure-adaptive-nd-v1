@@ -20,6 +20,7 @@ budget.
 | External linear topology | runtime GF(2) matrices plus exact inverses | PRESENT/GIFT permutations and SKINNY sparse GF(2) pass exact inverse tests | implemented |
 | Fixed backbone geometry | runtime tensors are not parameters or state entries | one model instance handles 64-bit and synthetic 128-bit structures without state-shape changes | implemented |
 | External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT permutation and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
+| Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed local attribution and seed0 `65536/class` passed | medium replication incomplete |
 | General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed1 remote run is active under watcher control | running |
@@ -51,14 +52,15 @@ matrix must be invertible over GF(2). Unknown fields, non-integer arrays,
 malformed permutations, duplicate or out-of-range GF(2) sources, round-count
 mismatches and singular matrices are rejected before model construction.
 
-Two production descriptors are available:
+Three production descriptors are available:
 
 ```text
 configs/runtime/spn/present64.json  = one-to-one PRESENT P-layer
 configs/runtime/spn/skinny64.json   = SKINNY ShiftRows + MixColumns GF(2) layer
+configs/runtime/spn/uknit64.json    = 11 distinct uKNIT-BC transition layers
 ```
 
-Tests compare both descriptors against their existing Python factories for cell
+Tests compare all three descriptors against their Python factories for cell
 membership, bit roles, S-box truth bits, forward linear matrices and exact
 inverse matrices. The generic correct, corrupted and independent controls also
 share identical state geometry, complete a forward pass and expose the
@@ -117,14 +119,21 @@ and the repaired capability targets a different structural question.
 ## Recommended Next Action
 
 After the RTG2-A watcher returns, preserve its decision first. Independently,
-identify one implemented or implementable 4-bit-cell SPN with genuinely
-cell-dependent S-box assignments. Before training, create a lean local plan with
-the same dataset and budget for:
+uKNIT-BC is now implemented as the real 4-bit-cell SPN with genuinely
+cell-dependent S-box assignments. Before training, create a lean local plan
+with the same dataset and budget for:
 
 ```text
 candidate = late_cell
 anchor    = late_pair
 control   = S-box assignment deterministically shuffled while linear topology stays exact
+```
+
+The mechanism reproduction, exact source boundary, prefix-round semantics and
+the executable local gate are recorded in:
+
+```text
+docs/research/innovation1-uknit-runtime-spn-mechanism-reproduction-20260724.md
 ```
 
 Change only the S-box injection/assignment variable. The readiness gate must

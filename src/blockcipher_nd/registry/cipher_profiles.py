@@ -62,6 +62,23 @@ class CipherProfile:
         )
 
     @staticmethod
+    def uknit64() -> "CipherProfile":
+        return CipherProfile(
+            name="uKNIT-BC",
+            structure="SPN",
+            block_bits=64,
+            key_bits=128,
+            traits=(
+                "sbox_layer",
+                "cell_specific_sboxes",
+                "round_specific_sboxes",
+                "general_gf2_diffusion",
+                "round_specific_diffusion",
+                "non_aligned_spn",
+            ),
+        )
+
+    @staticmethod
     def sm4() -> "CipherProfile":
         return CipherProfile(
             name="SM4",

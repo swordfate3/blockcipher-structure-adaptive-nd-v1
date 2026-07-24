@@ -159,6 +159,35 @@ class RuntimeSpnStructure:
             corrupted,
         )
 
+    def shuffled_sbox_assignments(self, seed: int = 20260724) -> RuntimeSpnStructure:
+        if self.cells < 2:
+            raise ValueError("S-box assignment shuffle requires at least two cells")
+        generator = torch.Generator().manual_seed(seed)
+        permutation = torch.randperm(self.cells, generator=generator)
+        shuffled = self.sbox_truth_bits[:, permutation]
+        if torch.equal(shuffled, self.sbox_truth_bits):
+            distinct_cell = next(
+                (
+                    cell
+                    for cell in range(1, self.cells)
+                    if not torch.equal(
+                        self.sbox_truth_bits[:, 0], self.sbox_truth_bits[:, cell]
+                    )
+                ),
+                None,
+            )
+            if distinct_cell is None:
+                raise ValueError("S-box assignments are identical across all cells")
+            permutation = torch.arange(self.cells)
+            permutation[[0, distinct_cell]] = permutation[[distinct_cell, 0]]
+            shuffled = self.sbox_truth_bits[:, permutation]
+        return runtime_spn_structure_from_truth_bits(
+            self.cell_membership,
+            self.bit_role,
+            shuffled,
+            self.linear_matrices,
+        )
+
     def relabel_cells(
         self, cell_permutation: Sequence[int]
     ) -> tuple[RuntimeSpnStructure, torch.Tensor]:
@@ -250,6 +279,8 @@ class LoadedRuntimeSpnDescriptor:
     name: str
     path: Path
     sha256: str
+    round_start: int
+    available_rounds: int
     structure: RuntimeSpnStructure
 
 
@@ -307,6 +338,7 @@ def load_runtime_spn_descriptor(
     path: str | Path,
     *,
     rounds: int | None = None,
+    round_start: int = 0,
 ) -> LoadedRuntimeSpnDescriptor:
     descriptor_path = Path(path)
     try:
@@ -342,7 +374,9 @@ def load_runtime_spn_descriptor(
 
     layer_payloads = payload.get("linear_layers")
     if not isinstance(layer_payloads, list) or not layer_payloads:
-        raise ValueError("runtime SPN descriptor linear_layers must be a non-empty list")
+        raise ValueError(
+            "runtime SPN descriptor linear_layers must be a non-empty list"
+        )
     matrices = torch.stack(
         [
             _descriptor_linear_matrix(layer, len(membership), index)
@@ -351,25 +385,48 @@ def load_runtime_spn_descriptor(
     )
     if rounds is not None and type(rounds) is not int:
         raise ValueError("runtime SPN descriptor rounds must be an integer")
-    requested_rounds = len(layer_payloads) if rounds is None else rounds
+    if type(round_start) is not int:
+        raise ValueError("runtime SPN descriptor round_start must be an integer")
+    if round_start < 0:
+        raise ValueError("runtime SPN descriptor round_start must be non-negative")
+    available_rounds = len(layer_payloads)
+    requested_rounds = available_rounds - round_start if rounds is None else rounds
     if requested_rounds <= 0:
         raise ValueError("runtime SPN descriptor rounds must be positive")
     repeat_single = payload.get("repeat_single_round", False)
     if not isinstance(repeat_single, bool):
         raise ValueError("runtime SPN descriptor repeat_single_round must be boolean")
-    if requested_rounds != len(layer_payloads):
-        if len(layer_payloads) != 1 or not repeat_single:
+    if repeat_single:
+        if available_rounds != 1:
             raise ValueError(
-                "runtime SPN descriptor round count does not match requested rounds"
+                "runtime SPN descriptor repeat_single_round requires one linear layer"
+            )
+        if round_start != 0:
+            raise ValueError(
+                "runtime SPN repeated single round does not support round_start"
             )
         matrices = matrices.repeat(requested_rounds, 1, 1)
-
-    tables = _descriptor_sbox_tables(
-        payload.get("sbox_tables"),
-        rounds=requested_rounds,
-        cells=max(membership) + 1,
-        repeat_single_round=repeat_single,
-    )
+        tables = _descriptor_sbox_tables(
+            payload.get("sbox_tables"),
+            rounds=requested_rounds,
+            cells=max(membership) + 1,
+            repeat_single_round=True,
+        )
+    else:
+        round_stop = round_start + requested_rounds
+        if round_start >= available_rounds or round_stop > available_rounds:
+            raise ValueError(
+                "runtime SPN descriptor round count/window exceeds available rounds"
+            )
+        matrices = matrices[round_start:round_stop]
+        tables = _descriptor_sbox_tables(
+            payload.get("sbox_tables"),
+            rounds=available_rounds,
+            cells=max(membership) + 1,
+            repeat_single_round=False,
+        )
+        if tables.ndim == 3:
+            tables = tables[round_start:round_stop]
     structure = runtime_spn_structure(
         cell_membership=membership,
         bit_role=roles,
@@ -380,6 +437,8 @@ def load_runtime_spn_descriptor(
         name=name.strip(),
         path=descriptor_path.resolve(),
         sha256=hashlib.sha256(raw).hexdigest(),
+        round_start=round_start,
+        available_rounds=available_rounds,
         structure=structure,
     )
 
@@ -398,7 +457,9 @@ def _descriptor_linear_matrix(
     index: int,
 ) -> torch.Tensor:
     if not isinstance(value, dict):
-        raise ValueError(f"runtime SPN descriptor linear layer {index} must be an object")
+        raise ValueError(
+            f"runtime SPN descriptor linear layer {index} must be an object"
+        )
     kind = value.get("kind")
     if kind == "permutation":
         unknown = sorted(set(value) - {"kind", "source_to_target"})
@@ -453,7 +514,9 @@ def _descriptor_sbox_tables(
     try:
         tables = torch.as_tensor(value, dtype=torch.long)
     except (TypeError, ValueError) as exc:
-        raise ValueError("runtime SPN descriptor sbox_tables must be integer arrays") from exc
+        raise ValueError(
+            "runtime SPN descriptor sbox_tables must be integer arrays"
+        ) from exc
     if tables.ndim == 1:
         if tables.shape != (16,):
             raise ValueError("runtime SPN shared S-box must contain 16 values")
@@ -473,7 +536,9 @@ def _descriptor_sbox_tables(
             return tables
         if tables.shape[0] == 1 and repeat_single_round:
             return tables.expand(rounds, -1, -1).clone()
-        raise ValueError("runtime SPN S-box round count does not match requested rounds")
+        raise ValueError(
+            "runtime SPN S-box round count does not match requested rounds"
+        )
     raise ValueError("runtime SPN descriptor sbox_tables has unsupported dimensions")
 
 

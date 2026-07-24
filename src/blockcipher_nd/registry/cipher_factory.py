@@ -24,6 +24,7 @@ from blockcipher_nd.ciphers import (
     Sm4Reduced,
     Speck32_64,
     TripleDes,
+    UknitBc,
 )
 
 
@@ -111,6 +112,11 @@ def build_cipher(name: str, rounds: int, key: int | None = None) -> ReducedRound
         return Gift64(rounds=rounds, key=0x00000000000000000000000000000000 if key is None else key)
     if name == "skinny64":
         return Skinny64(rounds=rounds, key=0x0000000000000000 if key is None else key)
+    if name == "uknit64":
+        return UknitBc(
+            rounds=rounds,
+            key=0x00000000000000000000000000000000 if key is None else key,
+        )
     if name == "sm4":
         return Sm4Reduced(rounds=rounds, key=0x0123456789ABCDEFFEDCBA9876543210 if key is None else key)
     raise ValueError(f"unsupported cipher: {name}")
@@ -140,7 +146,7 @@ def default_difference(name: str) -> int:
         return 0x0000000000000040
     if name in {"simon64", "simeck64"}:
         return 0x0000000000000040
-    if name in {"present80", "gift64", "skinny64"}:
+    if name in {"present80", "gift64", "skinny64", "uknit64"}:
         return 0x0000000000000040
     if name == "sm4":
         return 0x00000000000000000000000000000040

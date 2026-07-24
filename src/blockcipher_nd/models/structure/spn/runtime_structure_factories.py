@@ -11,6 +11,11 @@ from blockcipher_nd.ciphers.spn.skinny import (
     mix_columns,
     shift_rows,
 )
+from blockcipher_nd.ciphers.spn.uknit import (
+    UKNIT_LINEAR_TARGET_SOURCES,
+    UKNIT_SBOX_TABLES,
+    UKNIT_TRANSITION_ROUNDS,
+)
 from blockcipher_nd.models.structure.spn.runtime_structure import (
     RuntimeSpnStructure,
     linear_matrix_from_callable,
@@ -57,6 +62,33 @@ def skinny64_runtime_structure(rounds: int = 1) -> RuntimeSpnStructure:
     )
 
 
+def uknit64_runtime_structure(
+    rounds: int = 1,
+    *,
+    round_start: int = 0,
+) -> RuntimeSpnStructure:
+    if rounds <= 0:
+        raise ValueError("rounds must be positive")
+    if round_start < 0 or round_start + rounds > UKNIT_TRANSITION_ROUNDS:
+        raise ValueError("uKNIT runtime round window must stay within rounds 0..10")
+    membership, roles = standard_four_bit_cells(64)
+    matrices = torch.zeros(rounds, 64, 64, dtype=torch.uint8)
+    for local_round, sources_by_target in enumerate(
+        UKNIT_LINEAR_TARGET_SOURCES[round_start : round_start + rounds]
+    ):
+        for target, sources in enumerate(sources_by_target):
+            matrices[local_round, target, list(sources)] = 1
+    return runtime_spn_structure(
+        cell_membership=membership,
+        bit_role=roles,
+        sbox_tables=torch.tensor(
+            UKNIT_SBOX_TABLES[round_start : round_start + rounds],
+            dtype=torch.long,
+        ),
+        linear_matrices=matrices,
+    )
+
+
 def _repeated_structure(
     *,
     block_bits: int,
@@ -81,4 +113,5 @@ __all__ = [
     "present_runtime_structure",
     "skinny64_runtime_structure",
     "standard_four_bit_cells",
+    "uknit64_runtime_structure",
 ]

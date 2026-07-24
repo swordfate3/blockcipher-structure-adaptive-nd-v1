@@ -571,6 +571,8 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         descriptor_name: str | None = None,
         descriptor_path: str | None = None,
         descriptor_sha256: str | None = None,
+        descriptor_round_start: int | None = None,
+        descriptor_available_rounds: int | None = None,
         runtime_structure_mode: str | None = None,
     ) -> None:
         super().__init__()
@@ -595,12 +597,17 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.mapping_mode = relation_mode
         self.aggregation_mode = aggregation_mode
         self.input_bit_order = "project_msb_to_runtime_lsb"
+        self.runtime_structure_loaded_rounds = structure.rounds
         if descriptor_name is not None:
             self.runtime_structure_descriptor_name = descriptor_name
         if descriptor_path is not None:
             self.runtime_structure_descriptor_path = descriptor_path
         if descriptor_sha256 is not None:
             self.runtime_structure_descriptor_sha256 = descriptor_sha256
+        if descriptor_round_start is not None:
+            self.runtime_structure_round_start = descriptor_round_start
+        if descriptor_available_rounds is not None:
+            self.runtime_structure_available_rounds = descriptor_available_rounds
         if runtime_structure_mode is not None:
             self.runtime_structure_mode = runtime_structure_mode
 
