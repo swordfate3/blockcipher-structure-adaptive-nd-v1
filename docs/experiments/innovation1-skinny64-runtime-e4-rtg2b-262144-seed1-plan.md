@@ -5,12 +5,15 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage       = local launch authorization passed; remote launch pending republished source gate
+stage       = running remotely; bounded startup evidence verified
 run_id      = i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724
 execution   = remote lxy-a6000 only
 dependency  = satisfied by exact plan-aligned RTG2-B seed0 pass
 seed0 gate  = pass / innovation1_rtg2b_skinny_scale_seed0_supported
 launch gate = pass / innovation1_rtg2b_seed1_remote_launch_authorized
+source      = de159f5fb7e989eb4d49da9d350f0497068c361c (published origin/main)
+started     = 2026-07-24 22:12:20 +08:00
+monitor     = local tmux i1_rtg2b_skinny64_seed1_scale_monitor
 claim scope = medium architecture/protocol diagnostic only
 ```
 
@@ -19,8 +22,18 @@ has now completed and passed at `0.649229395` AUC with margins `+0.045667696`
 over corrupted topology and `+0.139039457` over no topology. The local launch
 gate consumed the completed, locally validated, visually checked seed0 result
 retrieved from its verified result branch and authorized the exact unchanged
-seed1 protocol. Before remote contact, the gate is rerun against the final
-pushed source commit so the launch SHA includes this completed-result record.
+seed1 protocol. Before remote contact, the gate was rerun against the final
+pushed source commit so the launch SHA includes the completed seed0 result
+record. The watcher then observed the exact remote source revision, readiness
+`status=pass`, the expected three-row plan and the remote `started.marker`
+before writing its local launch marker. No seed1 result exists yet.
+
+Startup evidence is synchronized under:
+
+```text
+outputs/remote_results_incomplete/
+  i1_rtg2b_skinny64_general_gf2_scale_262144_seed1_20260724_monitor/
+```
 
 ## Research Question
 
