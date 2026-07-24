@@ -2093,3 +2093,47 @@ watcher with the pushed 40-character SHA. It will stage only the marked seed0
 fallback gate as launch authorization, prepare seed1 from a separate clean
 clone, retrieve the verified seed1 result branch, re-adjudicate it locally and
 write the mixed-boundary joint result under `outputs/remote_results_incomplete/`.
+
+### RTG2-A Seed1 Controlled Launch Gate
+
+The recovery watcher is now guarded by a separate local-only launch gate:
+
+```text
+script      = scripts/check-runtime-spn-skinny-seed1-launch
+run id      = i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260724
+output      = outputs/local_readiness/i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260724
+candidate   = 9120a1ff96815975f31f1f461342bb7831e2d035
+upstream    = origin/main
+status      = hold
+decision    = innovation1_rtg2a_seed1_source_not_published
+should_ssh  = true
+ssh_allowed = false
+authorized  = false
+```
+
+All seed0 evidence checks passed: the fallback notice, result, local validation,
+visual-QA marker and gate are complete; the gate identity, finite metrics,
+protocol checks and research checks are exact. All source-equivalence checks
+also passed: the seed0 training commit and candidate exist, the two seed1 plans
+are byte-identical across revisions, the remote training protocol is identical
+apart from launch-policy text, and no protected train CLI, engine, data, model,
+training, registry, SKINNY cipher or plan path changed. The only failed check is:
+
+```text
+source_commit_published_to_upstream = false
+```
+
+The watcher requires this gate to report `status=pass`,
+`decision=innovation1_rtg2a_seed1_remote_launch_authorized`,
+`should_ssh=true`, `ssh_allowed=true`, `launch_authorized=true`, and an exact
+source-commit match before executing any `scp` or `ssh`. A controlled invocation
+against the hold gate exited locally with code `7` and
+`launch gate does not authorize remote contact`; no tmux session or remote
+operation was started. The readiness result is current index entry `001`, with
+a Chinese decision explaining that only source publication remains blocked.
+
+After the candidate is present on `origin/main`, rerun the same local gate with
+the same 40-character commit. Only its publication check may change. If the
+result becomes fully authorized, pass that exact gate and commit to the watcher;
+otherwise continue to forbid remote contact. This launch gate is operational
+readiness evidence only and does not add a neural result.
