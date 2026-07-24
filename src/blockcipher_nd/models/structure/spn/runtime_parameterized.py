@@ -22,14 +22,16 @@ class RuntimeParameterizedSpnSpec:
     processor_steps: int = 2
     dropout: float = 0.10
     sbox_context_scale: float = 1.0
-    sbox_context_mode: Literal[
-        "early_add", "late_pair", "late_cell", "edge_gate"
-    ] = "early_add"
+    sbox_context_mode: Literal["early_add", "late_pair", "late_cell", "edge_gate"] = (
+        "early_add"
+    )
     cell_input_mode: Literal[
         "difference_only",
         "state_triplet",
         "inverse_sbox_triplet",
         "dual_view_triplet",
+        "state_triplet_delta_v_query",
+        "state_triplet_delta_u_query",
     ] = "difference_only"
 
     def __post_init__(self) -> None:
@@ -53,10 +55,13 @@ class RuntimeParameterizedSpnSpec:
             "state_triplet",
             "inverse_sbox_triplet",
             "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
         }:
             raise ValueError(
                 "cell_input_mode must be difference_only, state_triplet, "
-                "inverse_sbox_triplet, or dual_view_triplet"
+                "inverse_sbox_triplet, dual_view_triplet, "
+                "state_triplet_delta_v_query, or state_triplet_delta_u_query"
             )
 
 
@@ -374,9 +379,7 @@ class RuntimeCellTokenSpnDistinguisher(_RuntimeSpnEncoderBase):
         self.last_cell_attention = cell_attention.detach()
         cell_mean = cell_embeddings.mean(dim=1)
         cell_max = cell_embeddings.max(dim=1).values
-        return self.classifier(
-            torch.cat((attended_cells, cell_mean, cell_max), dim=-1)
-        )
+        return self.classifier(torch.cat((attended_cells, cell_mean, cell_max), dim=-1))
 
     def _ordered_cell_tokens(
         self,
@@ -430,8 +433,14 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             nn.ReLU(),
             nn.LayerNorm(token_dim),
         )
+        fusion_views = (
+            3
+            if spec.cell_input_mode
+            in {"state_triplet_delta_v_query", "state_triplet_delta_u_query"}
+            else 2
+        )
         self.typed_fusion = nn.Sequential(
-            nn.Linear(token_dim * 2, token_dim),
+            nn.Linear(token_dim * fusion_views, token_dim),
             nn.ReLU(),
             nn.LayerNorm(token_dim),
         )
@@ -502,18 +511,16 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             "state_triplet",
             "inverse_sbox_triplet",
             "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
         }:
             left = pairs[:, :, 0]
             right = pairs[:, :, 1]
             previous_left = (
-                structure.exact_inverse(left, -1)
-                if relation_mode == "true"
-                else left
+                structure.exact_inverse(left, -1) if relation_mode == "true" else left
             )
             previous_right = (
-                structure.exact_inverse(right, -1)
-                if relation_mode == "true"
-                else right
+                structure.exact_inverse(right, -1) if relation_mode == "true" else right
             )
             current_hidden = self._state_triplet_cell_hidden(
                 left,
@@ -556,18 +563,37 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             previous_hidden = self.cell_encoder(
                 previous_cells.reshape(batch * pair_count, cell_count, 4)
             )
-        hidden = self.typed_fusion(
-            torch.cat((current_hidden, previous_hidden), dim=-1)
-        ).reshape(batch, pair_count, cell_count, self.token_dim)
-        sbox_context = self.sbox_encoder(
-            structure.sbox_truth_bits[-1].to(
-                device=hidden.device, dtype=hidden.dtype
+        fusion_inputs = [current_hidden, previous_hidden]
+        if self.spec.cell_input_mode in {
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
+        }:
+            query_difference = previous
+            if (
+                self.spec.cell_input_mode == "state_triplet_delta_u_query"
+                and relation_mode == "true"
+            ):
+                inverse_left = structure.apply_inverse_sboxes(previous_left, -1)
+                inverse_right = structure.apply_inverse_sboxes(previous_right, -1)
+                query_difference = torch.remainder(
+                    inverse_left + inverse_right,
+                    2.0,
+                )
+            query_cells = self._ordered_cell_values(query_difference, structure)
+            query_hidden = self.cell_encoder(
+                query_cells.reshape(batch * pair_count, cell_count, 4)
             )
+            fusion_inputs.append(query_hidden)
+        hidden = self.typed_fusion(torch.cat(fusion_inputs, dim=-1)).reshape(
+            batch, pair_count, cell_count, self.token_dim
+        )
+        sbox_context = self.sbox_encoder(
+            structure.sbox_truth_bits[-1].to(device=hidden.device, dtype=hidden.dtype)
         )
         if self.spec.sbox_context_mode == "early_add":
-            hidden = hidden + self.spec.sbox_context_scale * sbox_context[
-                None, None, :, :
-            ]
+            hidden = (
+                hidden + self.spec.sbox_context_scale * sbox_context[None, None, :, :]
+            )
         token_dim = hidden.shape[-1]
         sequence = hidden.reshape(batch * pair_count, cell_count, token_dim)
         if self.spec.sbox_context_mode == "edge_gate":
@@ -677,7 +703,9 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         graph_message = torch.einsum("ts,bsd->btd", normalized, sequence)
         neighbor_sbox = torch.einsum("ts,sd->td", normalized, sbox_context)
         gate = torch.sigmoid(0.5 * (sbox_context + neighbor_sbox))
-        return sequence + self.spec.sbox_context_scale * gate[None, :, :] * graph_message
+        return (
+            sequence + self.spec.sbox_context_scale * gate[None, :, :] * graph_message
+        )
 
 
 class FixedRuntimeSpnProtocolAdapter(nn.Module):

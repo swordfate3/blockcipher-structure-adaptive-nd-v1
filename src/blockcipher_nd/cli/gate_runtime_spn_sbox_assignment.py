@@ -28,6 +28,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "state_triplet",
             "inverse_sbox_triplet",
             "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
         ),
         default=None,
     )
@@ -43,6 +45,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "state_triplet",
             "inverse_sbox_triplet",
             "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
         ),
         default=None,
     )

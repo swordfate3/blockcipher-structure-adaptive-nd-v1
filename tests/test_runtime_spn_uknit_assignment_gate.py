@@ -111,8 +111,7 @@ def test_uknit_assignment_gate_rejects_protocol_drift() -> None:
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_uknit_sbox_assignment_protocol_invalid"
     assert (
-        gate["protocol_checks"]["strict_encrypted_random_plaintext_negatives"]
-        is False
+        gate["protocol_checks"]["strict_encrypted_random_plaintext_negatives"] is False
     )
 
 
@@ -189,8 +188,7 @@ def test_uknit_inverse_sbox_triplet_gate_passes_two_seed_panel() -> None:
     assert gate["status"] == "pass"
     assert gate["task"] == "innovation1_uknit_runtime_e4_inverse_sbox_triplet_u2d"
     assert (
-        gate["decision"]
-        == "innovation1_uknit_inverse_sbox_triplet_two_seed_supported"
+        gate["decision"] == "innovation1_uknit_inverse_sbox_triplet_two_seed_supported"
     )
     assert all(gate["protocol_checks"].values())
 
@@ -213,10 +211,7 @@ def test_uknit_inverse_sbox_triplet_gate_rejects_protocol_drift() -> None:
     gate = _inverse_sbox_triplet_gate(rows)
 
     assert gate["status"] == "fail"
-    assert (
-        gate["decision"]
-        == "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
-    )
+    assert gate["decision"] == "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
 
 
 def _dual_view_triplet_rows() -> list[dict[str, object]]:
@@ -271,3 +266,59 @@ def test_uknit_dual_view_triplet_gate_rejects_protocol_drift() -> None:
 
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_uknit_dual_view_triplet_protocol_invalid"
+
+
+def _delta_u_query_rows() -> list[dict[str, object]]:
+    rows = _passing_rows()
+    for index, row in enumerate(rows):
+        options = row["training"]["model_options"]
+        options["sbox_context_mode"] = "edge_gate"
+        options["cell_input_mode"] = (
+            "state_triplet_delta_v_query"
+            if index % 3 == 1
+            else "state_triplet_delta_u_query"
+        )
+        row["parameter_count"] = 458850
+        row["trainable_parameter_count"] = 458850
+    return rows
+
+
+def _delta_u_query_gate(rows: list[dict[str, object]]) -> dict[str, object]:
+    return adjudicate_uknit_sbox_assignment(
+        run_id="u2f",
+        rows=rows,
+        candidate_context="edge_gate",
+        candidate_cell_input_mode="state_triplet_delta_u_query",
+        anchor_context="edge_gate",
+        anchor_cell_input_mode="state_triplet_delta_v_query",
+    )
+
+
+def test_uknit_delta_u_query_gate_passes_two_seed_panel() -> None:
+    gate = _delta_u_query_gate(_delta_u_query_rows())
+
+    assert gate["status"] == "pass"
+    assert gate["task"] == "innovation1_uknit_runtime_e4_delta_u_query_u2f"
+    assert gate["decision"] == "innovation1_uknit_delta_u_query_two_seed_supported"
+    assert all(gate["protocol_checks"].values())
+
+
+def test_uknit_delta_u_query_gate_holds_failed_margin() -> None:
+    rows = _delta_u_query_rows()
+    rows[3]["metrics"]["auc"] = 0.538  # type: ignore[index]
+
+    gate = _delta_u_query_gate(rows)
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation1_uknit_delta_u_query_hold"
+    assert gate["research_checks"]["seed1_candidate_beats_anchor_by_0p005"] is False
+
+
+def test_uknit_delta_u_query_gate_rejects_protocol_drift() -> None:
+    rows = _delta_u_query_rows()
+    rows[2]["negative_mode"] = "random_ciphertext"
+
+    gate = _delta_u_query_gate(rows)
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_uknit_delta_u_query_protocol_invalid"

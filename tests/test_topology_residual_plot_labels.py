@@ -55,16 +55,16 @@ def test_e6_plot_titles_and_roles_are_explained_in_chinese() -> None:
     assert "源 seed 0，目标 seed 3" in _display_title(
         "i1_cross_spn_e6_target_8192_source_seed0_target_seed3"
     )
-    assert _compact_label(
-        {"model": "present_cross_spn_typed_cell_e6_functional_margin"}
-    ) == "候选：真拓扑功能边际"
-    assert _compact_label(
-        {
-            "model": (
-                "gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo"
-            )
-        }
-    ) == "安慰剂迁移：源打乱功能边际"
+    assert (
+        _compact_label({"model": "present_cross_spn_typed_cell_e6_functional_margin"})
+        == "候选：真拓扑功能边际"
+    )
+    assert (
+        _compact_label(
+            {"model": ("gift_cross_spn_typed_cell_e6_from_present_shuffled_placebo")}
+        )
+        == "安慰剂迁移：源打乱功能边际"
+    )
 
 
 def _visible_svg_text(root: ElementTree.Element) -> str:
@@ -274,6 +274,27 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             "dual_view_triplet",
             "uKNIT64-RuntimeE4-DualViewTriplet-Shuffled-U2E",
         ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "state_triplet_delta_u_query",
+            "uKNIT64-RuntimeE4-DeltaUQuery-Correct-U2F",
+        ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "state_triplet_delta_v_query",
+            "uKNIT64-RuntimeE4-DeltaVQuery-Anchor-U2F",
+        ),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "edge_gate",
+            "state_triplet_delta_u_query",
+            "uKNIT64-RuntimeE4-DeltaUQuery-Shuffled-U2F",
+        ),
     )
     rows = [
         {
@@ -318,7 +339,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         validation_only=True,
     )
 
-    assert report["series"] == 28
+    assert report["series"] == 34
     assert report["validation_only"] is True
     visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
     for seed in (0, 1):
@@ -335,6 +356,9 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         assert f"seed{seed}：打乱逆S盒三元组" in visible_text
         assert f"seed{seed}：正确双视图三元组" in visible_text
         assert f"seed{seed}：打乱双视图三元组" in visible_text
+        assert f"seed{seed}：正确 ΔU 查询 token" in visible_text
+        assert f"seed{seed}：ΔV 身份查询锚点" in visible_text
+        assert f"seed{seed}：打乱 ΔU 查询 token" in visible_text
     assert "训练集（虚线）" not in visible_text
     assert "最终准确率" not in visible_text
     assert "最终 AUC" in visible_text

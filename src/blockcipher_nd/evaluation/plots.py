@@ -757,6 +757,24 @@ def _compact_label(item: dict[str, Any]) -> str:
         if (
             mode == "true"
             and context == "edge_gate"
+            and cell_input == "state_triplet_delta_u_query"
+        ):
+            return f"seed{seed}：正确 ΔU 查询 token"
+        if (
+            mode == "sbox_shuffled"
+            and context == "edge_gate"
+            and cell_input == "state_triplet_delta_u_query"
+        ):
+            return f"seed{seed}：打乱 ΔU 查询 token"
+        if (
+            mode == "true"
+            and context == "edge_gate"
+            and cell_input == "state_triplet_delta_v_query"
+        ):
+            return f"seed{seed}：ΔV 身份查询锚点"
+        if (
+            mode == "true"
+            and context == "edge_gate"
             and cell_input == "dual_view_triplet"
         ):
             return f"seed{seed}：正确双视图三元组"
@@ -794,7 +812,11 @@ def _compact_label(item: dict[str, Any]) -> str:
             return f"seed{seed}：状态三元组锚点"
         if mode == "true" and context == "edge_gate" and cell_input == "state_triplet":
             return f"seed{seed}：正确归属（三元组）"
-        if mode == "true" and context == "edge_gate" and cell_input == "difference_only":
+        if (
+            mode == "true"
+            and context == "edge_gate"
+            and cell_input == "difference_only"
+        ):
             return f"seed{seed}：差分单通道锚点"
         if (
             mode == "sbox_shuffled"
@@ -819,9 +841,7 @@ def _compact_label(item: dict[str, Any]) -> str:
         "wu_guo_paper_family_mbconv": "论文族锚点：Wu/Guo MBConv",
         "present_integral_structured_residual": "创新2候选：结构积分残差网络",
         "same_input_flat_linear": "同输入线性基线",
-        "present_integral_structured_residual_shuffled": (
-            "标签打乱控制（候选同架构）"
-        ),
+        "present_integral_structured_residual_shuffled": ("标签打乱控制（候选同架构）"),
         "present_zhang_wang_keras_mcnd": "Zhang-Wang MCND",
         "present_nibble_paligned_mcnd": "I1 nibble-P MCND",
         "present_nibble_invp_only_spn_only": "InvP token mixer",

@@ -43,6 +43,10 @@ U2E_PLAN = (
     ROOT
     / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_dual_view_triplet_u2e_2048_seed0_seed1.csv"
 )
+U2F_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1.csv"
+)
 
 
 def _runtime_bits(value: int) -> torch.Tensor:
@@ -449,8 +453,7 @@ def test_uknit_state_triplet_preserves_endpoints_and_pair_symmetry() -> None:
         atol=0.0,
     )
     assert (
-        float(torch.max(torch.abs(triplet_original - triplet_shifted)).detach())
-        > 1e-6
+        float(torch.max(torch.abs(triplet_original - triplet_shifted)).detach()) > 1e-6
     )
     torch.testing.assert_close(triplet_original, triplet_swapped, rtol=0.0, atol=1e-6)
     torch.testing.assert_close(
@@ -576,6 +579,7 @@ def test_uknit_dual_view_triplet_is_exact_mean_and_preserves_symmetries() -> Non
     fusion_inputs: dict[str, torch.Tensor] = {}
 
     for mode, model in models.items():
+
         def capture(
             _module: torch.nn.Module,
             args: tuple[torch.Tensor, ...],
@@ -590,11 +594,7 @@ def test_uknit_dual_view_triplet_is_exact_mean_and_preserves_symmetries() -> Non
 
     torch.testing.assert_close(
         fusion_inputs["dual_view_triplet"],
-        0.5
-        * (
-            fusion_inputs["state_triplet"]
-            + fusion_inputs["inverse_sbox_triplet"]
-        ),
+        0.5 * (fusion_inputs["state_triplet"] + fusion_inputs["inverse_sbox_triplet"]),
         rtol=0.0,
         atol=0.0,
     )
@@ -644,6 +644,159 @@ def test_uknit_dual_view_independent_mode_bypasses_runtime_inverse_operators(
     assert output.shape == (2, 1)
 
 
+def test_uknit_delta_u_query_preserves_state_views_and_runtime_symmetries() -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    shuffled = structure.shuffled_sbox_assignments(20260724)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = torch.randint(0, 2, (3, 4, 2, 64), dtype=torch.float32)
+    swapped = pairs.flip(dims=(2,))
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    common = dict(
+        hidden_dim=16,
+        pair_embedding_dim=32,
+        processor_steps=2,
+        dropout=0.0,
+        sbox_context_mode="edge_gate",
+    )
+    torch.manual_seed(20260729)
+    anchor = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            **common,
+            cell_input_mode="state_triplet_delta_v_query",
+        )
+    ).eval()
+    candidate = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            **common,
+            cell_input_mode="state_triplet_delta_u_query",
+        )
+    ).eval()
+    candidate.load_state_dict(anchor.state_dict())
+    fusion_inputs: dict[str, torch.Tensor] = {}
+
+    for name, model in (("anchor", anchor), ("candidate", candidate)):
+
+        def capture(
+            _module: torch.nn.Module,
+            args: tuple[torch.Tensor, ...],
+            *,
+            key: str = name,
+        ) -> None:
+            fusion_inputs[key] = args[0].detach().clone()
+
+        hook = model.typed_fusion.register_forward_pre_hook(capture)
+        model(pairs, structure)
+        hook.remove()
+
+    token_dim = anchor.token_dim
+    torch.testing.assert_close(
+        fusion_inputs["anchor"][..., : 2 * token_dim],
+        fusion_inputs["candidate"][..., : 2 * token_dim],
+        rtol=0.0,
+        atol=0.0,
+    )
+    left = pairs[:, :, 0]
+    right = pairs[:, :, 1]
+    previous_left = structure.exact_inverse(left, -1)
+    previous_right = structure.exact_inverse(right, -1)
+    delta_v = torch.remainder(previous_left + previous_right, 2.0)
+    delta_u = torch.remainder(
+        structure.apply_inverse_sboxes(previous_left, -1)
+        + structure.apply_inverse_sboxes(previous_right, -1),
+        2.0,
+    )
+    batch, pair_count, cell_count, _ = anchor._ordered_cell_values(
+        delta_v, structure
+    ).shape
+    expected_delta_v = anchor.cell_encoder(
+        anchor._ordered_cell_values(delta_v, structure).reshape(
+            batch * pair_count, cell_count, 4
+        )
+    )
+    expected_delta_u = candidate.cell_encoder(
+        candidate._ordered_cell_values(delta_u, structure).reshape(
+            batch * pair_count, cell_count, 4
+        )
+    )
+    torch.testing.assert_close(
+        fusion_inputs["anchor"][..., 2 * token_dim :],
+        expected_delta_v,
+        rtol=0.0,
+        atol=0.0,
+    )
+    torch.testing.assert_close(
+        fusion_inputs["candidate"][..., 2 * token_dim :],
+        expected_delta_u,
+        rtol=0.0,
+        atol=0.0,
+    )
+
+    correct = candidate(pairs, structure)
+    shuffled_logits = candidate(pairs, shuffled)
+    swapped_logits = candidate(swapped, structure)
+    relabeled_logits = candidate(relabeled_pairs, relabeled)
+    correct.square().mean().backward()
+
+    assert float(torch.max(torch.abs(correct - shuffled_logits)).detach()) > 1e-6
+    torch.testing.assert_close(correct, swapped_logits, rtol=0.0, atol=1e-6)
+    torch.testing.assert_close(correct, relabeled_logits, rtol=0.0, atol=1e-6)
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in candidate.parameters()
+    )
+
+
+def test_uknit_delta_query_modes_bypass_unneeded_runtime_operators(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    anchor = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            cell_input_mode="state_triplet_delta_v_query",
+        )
+    ).eval()
+
+    def reject_sbox(*_args: object, **_kwargs: object) -> torch.Tensor:
+        raise AssertionError("deltaV identity query must not execute inverse S-boxes")
+
+    monkeypatch.setattr(type(structure), "apply_inverse_sboxes", reject_sbox)
+    with torch.no_grad():
+        anchor(
+            torch.randint(0, 2, (2, 4, 2, 64), dtype=torch.float32),
+            structure,
+        )
+
+    candidate = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            cell_input_mode="state_triplet_delta_u_query",
+        )
+    ).eval()
+
+    def reject_inverse(*_args: object, **_kwargs: object) -> torch.Tensor:
+        raise AssertionError("independent mode must bypass runtime inverse operators")
+
+    monkeypatch.setattr(type(structure), "exact_inverse", reject_inverse)
+    with torch.no_grad():
+        output = candidate(
+            torch.randint(0, 2, (2, 4, 2, 64), dtype=torch.float32),
+            structure,
+            relation_mode="independent",
+        )
+
+    assert output.shape == (2, 1)
+
+
 def test_uknit_u2d_plan_builds_equal_geometry_six_row_matrix() -> None:
     tasks = build_tasks(parse_train_args(["--plan", str(U2D_PLAN)]))
     models = [
@@ -664,9 +817,7 @@ def test_uknit_u2d_plan_builds_equal_geometry_six_row_matrix() -> None:
 
     assert len(tasks) == 6
     assert [task["seed"] for task in tasks] == [0, 0, 0, 1, 1, 1]
-    assert [
-        task["model_options"]["cell_input_mode"] for task in tasks
-    ] == [
+    assert [task["model_options"]["cell_input_mode"] for task in tasks] == [
         "inverse_sbox_triplet",
         "state_triplet",
         "inverse_sbox_triplet",
@@ -675,7 +826,10 @@ def test_uknit_u2d_plan_builds_equal_geometry_six_row_matrix() -> None:
         "inverse_sbox_triplet",
     ]
     assert all(geometry == geometries[0] for geometry in geometries)
-    assert all(sum(parameter.numel() for parameter in model.parameters()) == 442466 for model in models)
+    assert all(
+        sum(parameter.numel() for parameter in model.parameters()) == 442466
+        for model in models
+    )
 
 
 def test_uknit_u2e_plan_builds_equal_geometry_six_row_matrix() -> None:
@@ -709,5 +863,40 @@ def test_uknit_u2e_plan_builds_equal_geometry_six_row_matrix() -> None:
     assert all(geometry == geometries[0] for geometry in geometries)
     assert all(
         sum(parameter.numel() for parameter in model.parameters()) == 442466
+        for model in models
+    )
+
+
+def test_uknit_u2f_plan_builds_equal_geometry_six_row_query_matrix() -> None:
+    tasks = build_tasks(parse_train_args(["--plan", str(U2F_PLAN)]))
+    models = [
+        build_model(
+            task["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=task["model_options"],
+        )
+        for task in tasks
+    ]
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+
+    assert len(tasks) == 6
+    assert [task["seed"] for task in tasks] == [0, 0, 0, 1, 1, 1]
+    assert [task["model_options"]["cell_input_mode"] for task in tasks] == [
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_v_query",
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_v_query",
+        "state_triplet_delta_u_query",
+    ]
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert all(
+        sum(parameter.numel() for parameter in model.parameters()) == 458850
         for model in models
     )

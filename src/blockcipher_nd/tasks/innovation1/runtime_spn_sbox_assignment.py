@@ -35,10 +35,13 @@ def adjudicate_uknit_sbox_assignment(
             "state_triplet",
             "inverse_sbox_triplet",
             "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
         }:
             raise ValueError(
                 "cell input mode must be difference_only, state_triplet, "
-                "inverse_sbox_triplet, dual_view_triplet, or None"
+                "inverse_sbox_triplet, dual_view_triplet, "
+                "state_triplet_delta_v_query, state_triplet_delta_u_query, or None"
             )
     rows = list(rows)
     grouped: dict[int, dict[str, list[dict[str, Any]]]] = defaultdict(
@@ -125,27 +128,33 @@ def adjudicate_uknit_sbox_assignment(
     dual_view_triplet = candidate_cell_input_mode == "dual_view_triplet"
     inverse_sbox_triplet = candidate_cell_input_mode == "inverse_sbox_triplet"
     state_triplet = candidate_cell_input_mode == "state_triplet"
+    delta_u_query = candidate_cell_input_mode == "state_triplet_delta_u_query"
     edge_gate = (
         candidate_context == "edge_gate"
         and not state_triplet
         and not inverse_sbox_triplet
         and not dual_view_triplet
+        and not delta_u_query
     )
     if not protocol_passed:
         status = "fail"
         decision = (
-            "innovation1_uknit_dual_view_triplet_protocol_invalid"
-            if dual_view_triplet
+            "innovation1_uknit_delta_u_query_protocol_invalid"
+            if delta_u_query
             else (
-                "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
-                if inverse_sbox_triplet
+                "innovation1_uknit_dual_view_triplet_protocol_invalid"
+                if dual_view_triplet
                 else (
-                    "innovation1_uknit_state_triplet_protocol_invalid"
-                    if state_triplet
+                    "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
+                    if inverse_sbox_triplet
                     else (
-                        "innovation1_uknit_sbox_edge_gate_protocol_invalid"
-                        if edge_gate
-                        else "innovation1_uknit_sbox_assignment_protocol_invalid"
+                        "innovation1_uknit_state_triplet_protocol_invalid"
+                        if state_triplet
+                        else (
+                            "innovation1_uknit_sbox_edge_gate_protocol_invalid"
+                            if edge_gate
+                            else "innovation1_uknit_sbox_assignment_protocol_invalid"
+                        )
                     )
                 )
             )
@@ -156,7 +165,13 @@ def adjudicate_uknit_sbox_assignment(
         )
     elif research_passed:
         status = "pass"
-        if dual_view_triplet:
+        if delta_u_query:
+            decision = "innovation1_uknit_delta_u_query_two_seed_supported"
+            next_action = (
+                "audit both best deltaU-query checkpoints with a same-checkpoint "
+                "correct-versus-shuffled query swap before any scale increase"
+            )
+        elif dual_view_triplet:
             decision = "innovation1_uknit_dual_view_triplet_two_seed_supported"
             next_action = (
                 "audit both best dual-view checkpoints with a same-checkpoint "
@@ -190,18 +205,22 @@ def adjudicate_uknit_sbox_assignment(
     else:
         status = "hold"
         decision = (
-            "innovation1_uknit_dual_view_triplet_hold"
-            if dual_view_triplet
+            "innovation1_uknit_delta_u_query_hold"
+            if delta_u_query
             else (
-                "innovation1_uknit_inverse_sbox_triplet_hold"
-                if inverse_sbox_triplet
+                "innovation1_uknit_dual_view_triplet_hold"
+                if dual_view_triplet
                 else (
-                    "innovation1_uknit_state_triplet_hold"
-                    if state_triplet
+                    "innovation1_uknit_inverse_sbox_triplet_hold"
+                    if inverse_sbox_triplet
                     else (
-                        "innovation1_uknit_sbox_edge_gate_hold"
-                        if edge_gate
-                        else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+                        "innovation1_uknit_state_triplet_hold"
+                        if state_triplet
+                        else (
+                            "innovation1_uknit_sbox_edge_gate_hold"
+                            if edge_gate
+                            else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+                        )
                     )
                 )
             )
@@ -217,7 +236,12 @@ def adjudicate_uknit_sbox_assignment(
             )
             for seed in EXPECTED_SEEDS
         )
-        if dual_view_triplet:
+        if delta_u_query:
+            next_action = (
+                "close this explicit deltaU query-token design and return to the "
+                "stronger state-triplet anchor without scale-up"
+            )
+        elif dual_view_triplet:
             next_action = (
                 "close this parameter-free dual-view fusion and review a distinct "
                 "runtime representation hypothesis without scale-up"
@@ -248,18 +272,22 @@ def adjudicate_uknit_sbox_assignment(
     return {
         "run_id": run_id,
         "task": (
-            "innovation1_uknit_runtime_e4_dual_view_triplet_u2e"
-            if dual_view_triplet
+            "innovation1_uknit_runtime_e4_delta_u_query_u2f"
+            if delta_u_query
             else (
-                "innovation1_uknit_runtime_e4_inverse_sbox_triplet_u2d"
-                if inverse_sbox_triplet
+                "innovation1_uknit_runtime_e4_dual_view_triplet_u2e"
+                if dual_view_triplet
                 else (
-                    "innovation1_uknit_runtime_e4_state_triplet_u2c"
-                    if state_triplet
+                    "innovation1_uknit_runtime_e4_inverse_sbox_triplet_u2d"
+                    if inverse_sbox_triplet
                     else (
-                        "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
-                        if edge_gate
-                        else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+                        "innovation1_uknit_runtime_e4_state_triplet_u2c"
+                        if state_triplet
+                        else (
+                            "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
+                            if edge_gate
+                            else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+                        )
                     )
                 )
             )
@@ -464,16 +492,13 @@ def _role_contract(
         return (
             row.get("runtime_structure_mode") == "true"
             and options.get("sbox_context_mode") == anchor_context
-            and (
-                anchor_cell_input_mode is None or cell_input == anchor_cell_input_mode
-            )
+            and (anchor_cell_input_mode is None or cell_input == anchor_cell_input_mode)
         )
     return (
         row.get("runtime_structure_mode") == "sbox_shuffled"
         and options.get("sbox_context_mode") == candidate_context
         and (
-            candidate_cell_input_mode is None
-            or cell_input == candidate_cell_input_mode
+            candidate_cell_input_mode is None or cell_input == candidate_cell_input_mode
         )
         and options.get("sbox_assignment_shuffle_seed") == 20260724
     )
