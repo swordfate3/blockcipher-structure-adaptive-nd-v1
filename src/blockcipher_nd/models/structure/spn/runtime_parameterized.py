@@ -568,6 +568,10 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         relation_mode: str,
         spec: RuntimeParameterizedSpnSpec,
         aggregation_mode: str = "bit_pair",
+        descriptor_name: str | None = None,
+        descriptor_path: str | None = None,
+        descriptor_sha256: str | None = None,
+        runtime_structure_mode: str | None = None,
     ) -> None:
         super().__init__()
         if pair_bits != 2 * structure.block_bits:
@@ -591,6 +595,14 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.mapping_mode = relation_mode
         self.aggregation_mode = aggregation_mode
         self.input_bit_order = "project_msb_to_runtime_lsb"
+        if descriptor_name is not None:
+            self.runtime_structure_descriptor_name = descriptor_name
+        if descriptor_path is not None:
+            self.runtime_structure_descriptor_path = descriptor_path
+        if descriptor_sha256 is not None:
+            self.runtime_structure_descriptor_sha256 = descriptor_sha256
+        if runtime_structure_mode is not None:
+            self.runtime_structure_mode = runtime_structure_mode
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         return self.backbone(

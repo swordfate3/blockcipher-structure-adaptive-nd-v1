@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+
 import pytest
 import torch
 
@@ -17,6 +21,7 @@ from blockcipher_nd.models.structure.spn.runtime_parameterized import (
 )
 from blockcipher_nd.models.structure.spn.runtime_structure import (
     apply_gf2,
+    load_runtime_spn_descriptor,
     permutation_matrix,
     runtime_spn_structure,
 )
@@ -26,7 +31,11 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     skinny64_runtime_structure,
     standard_four_bit_cells,
 )
+from blockcipher_nd.engine.modeling import model_metadata
 from blockcipher_nd.registry.model_factory import build_model
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _model() -> RuntimeParameterizedSpnDistinguisher:
@@ -767,3 +776,232 @@ def test_runtime_e4_late_cell_is_cell_relabel_invariant() -> None:
         permuted = model(relabeled_pairs, relabeled)
 
     torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
+
+
+def _minimal_runtime_descriptor() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "name": "test-spn-8",
+        "cell_membership": [0, 0, 0, 0, 1, 1, 1, 1],
+        "bit_role": [3, 2, 1, 0, 3, 2, 1, 0],
+        "sbox_tables": list(PRESENT_SBOX),
+        "linear_layers": [
+            {
+                "kind": "permutation",
+                "source_to_target": list(range(8)),
+            }
+        ],
+        "repeat_single_round": True,
+    }
+
+
+def _write_runtime_descriptor(
+    tmp_path: Path,
+    payload: dict[str, object],
+) -> Path:
+    path = tmp_path / "runtime-spn.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_external_runtime_permutation_descriptor_repeats_and_hashes_raw_file(
+    tmp_path: Path,
+) -> None:
+    path = _write_runtime_descriptor(tmp_path, _minimal_runtime_descriptor())
+
+    descriptor = load_runtime_spn_descriptor(path, rounds=2)
+
+    assert descriptor.name == "test-spn-8"
+    assert descriptor.path == path.resolve()
+    assert descriptor.sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert descriptor.structure.rounds == 2
+    assert torch.equal(
+        descriptor.structure.linear_matrices,
+        torch.eye(8, dtype=torch.uint8).repeat(2, 1, 1),
+    )
+
+
+def test_external_runtime_sparse_gf2_descriptor_is_invertible(
+    tmp_path: Path,
+) -> None:
+    payload = _minimal_runtime_descriptor()
+    payload["linear_layers"] = [
+        {
+            "kind": "gf2",
+            "target_sources": [
+                [0, 4],
+                [1],
+                [2],
+                [3],
+                [4],
+                [5],
+                [6],
+                [7],
+            ],
+        }
+    ]
+    descriptor = load_runtime_spn_descriptor(
+        _write_runtime_descriptor(tmp_path, payload)
+    )
+    structure = descriptor.structure
+
+    assert int(structure.linear_matrices[0, 0].sum()) == 2
+    product = torch.remainder(
+        structure.linear_matrices[0].to(torch.int64)
+        @ structure.inverse_linear_matrices[0].to(torch.int64),
+        2,
+    )
+    assert torch.equal(product, torch.eye(8, dtype=torch.int64))
+
+
+@pytest.mark.parametrize(
+    ("case", "message"),
+    [
+        ("unknown_field", "unknown fields"),
+        ("round_mismatch", "round count"),
+        ("duplicate_permutation", "permutation"),
+        ("duplicate_gf2_source", "must be unique"),
+        ("out_of_range_gf2_source", "out of range"),
+        ("singular_gf2", "must be invertible"),
+        ("float_sbox", "integer arrays"),
+        ("boolean_sbox", "integer arrays"),
+    ],
+)
+def test_external_runtime_descriptor_rejects_invalid_structure(
+    tmp_path: Path,
+    case: str,
+    message: str,
+) -> None:
+    payload = _minimal_runtime_descriptor()
+    requested_rounds = 1
+    if case == "unknown_field":
+        payload["unexpected"] = True
+    elif case == "round_mismatch":
+        payload["repeat_single_round"] = False
+        requested_rounds = 2
+    elif case == "duplicate_permutation":
+        payload["linear_layers"] = [
+            {"kind": "permutation", "source_to_target": [0, 0, 2, 3, 4, 5, 6, 7]}
+        ]
+    elif case in {
+        "duplicate_gf2_source",
+        "out_of_range_gf2_source",
+        "singular_gf2",
+    }:
+        sources = [[index] for index in range(8)]
+        if case == "duplicate_gf2_source":
+            sources[0] = [0, 0]
+        elif case == "out_of_range_gf2_source":
+            sources[0] = [8]
+        else:
+            sources[1] = [0]
+        payload["linear_layers"] = [
+            {"kind": "gf2", "target_sources": sources}
+        ]
+    elif case == "float_sbox":
+        payload["sbox_tables"] = [float(value) for value in PRESENT_SBOX]
+    elif case == "boolean_sbox":
+        payload["sbox_tables"] = [False, *list(PRESENT_SBOX)[1:]]
+    else:
+        raise AssertionError(f"unhandled case: {case}")
+
+    with pytest.raises(ValueError, match=message):
+        load_runtime_spn_descriptor(
+            _write_runtime_descriptor(tmp_path, payload),
+            rounds=requested_rounds,
+        )
+
+
+@pytest.mark.parametrize(
+    ("filename", "factory"),
+    [
+        ("present64.json", present_runtime_structure),
+        ("skinny64.json", skinny64_runtime_structure),
+    ],
+)
+def test_production_runtime_descriptors_match_builtin_structures(
+    filename: str,
+    factory,
+) -> None:
+    loaded = load_runtime_spn_descriptor(
+        ROOT / "configs/runtime/spn" / filename,
+        rounds=2,
+    ).structure
+    expected = factory(2)
+
+    for field in (
+        "cell_membership",
+        "bit_role",
+        "sbox_truth_bits",
+        "linear_matrices",
+        "inverse_linear_matrices",
+    ):
+        assert torch.equal(getattr(loaded, field), getattr(expected, field))
+
+
+def test_generic_runtime_models_share_geometry_metadata_and_forward() -> None:
+    descriptor_path = ROOT / "configs/runtime/spn/present64.json"
+    options = {
+        "runtime_structure_path": str(descriptor_path),
+        "processor_steps": 2,
+        "pair_embedding_dim": 32,
+        "dropout": 0.0,
+        "sbox_context_mode": "late_pair",
+        "topology_corruption_seed": 0,
+    }
+    names = (
+        "runtime_spn_e4_equivariant_true",
+        "runtime_spn_e4_equivariant_corrupted",
+        "runtime_spn_e4_equivariant_independent",
+    )
+    models = [
+        build_model(
+            name,
+            input_bits=512,
+            hidden_bits=24,
+            pair_bits=128,
+            structure="SPN",
+            model_options=options,
+        ).eval()
+        for name in names
+    ]
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert torch.equal(
+        models[1].runtime_structure.linear_matrices,
+        load_runtime_spn_descriptor(descriptor_path, rounds=2)
+        .structure.corrupted(0)
+        .linear_matrices,
+    )
+    assert not torch.equal(
+        models[0].runtime_structure.linear_matrices,
+        models[1].runtime_structure.linear_matrices,
+    )
+    expected_sha = hashlib.sha256(descriptor_path.read_bytes()).hexdigest()
+    for model, mode in zip(models, ("true", "corrupted", "independent"), strict=True):
+        metadata = model_metadata(model)
+        assert metadata["runtime_structure_descriptor_name"] == (
+            "PRESENT-64 runtime SPN structure"
+        )
+        assert metadata["runtime_structure_descriptor_path"] == str(
+            descriptor_path.resolve()
+        )
+        assert metadata["runtime_structure_descriptor_sha256"] == expected_sha
+        assert metadata["runtime_structure_mode"] == mode
+        with torch.no_grad():
+            assert model(_binary((2, 512), 57)).shape == (2, 1)
+
+
+def test_generic_runtime_model_requires_descriptor_path() -> None:
+    with pytest.raises(ValueError, match="runtime_structure_path"):
+        build_model(
+            "runtime_spn_e4_equivariant_true",
+            input_bits=128,
+            hidden_bits=16,
+            pair_bits=128,
+            structure="SPN",
+        )

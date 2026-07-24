@@ -19,6 +19,7 @@ budget.
 | External S-box type | per-round, per-cell 4-bit truth descriptors | changing PRESENT/GIFT descriptors changes logits with fixed weights | implemented for 4-bit cells |
 | External linear topology | runtime GF(2) matrices plus exact inverses | PRESENT/GIFT permutations and SKINNY sparse GF(2) pass exact inverse tests | implemented |
 | Fixed backbone geometry | runtime tensors are not parameters or state entries | one model instance handles 64-bit and synthetic 128-bit structures without state-shape changes | implemented |
+| External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT permutation and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY two-seed local attribution and seed0 `65536/class` passed | medium replication incomplete |
 | General-GF(2) medium replication | frozen SKINNY r7 RTG2-A protocol | seed1 remote run is active under watcher control | running |
@@ -27,6 +28,44 @@ The claim boundary remains narrow. These facts prove a runtime-parameterized
 4-bit-cell implementation and controlled diagnostic evidence. They do not prove
 arbitrary cell widths, universal transfer, paper-scale performance, an attack,
 SOTA or a breakthrough.
+
+## External Descriptor Training Entry
+
+The runtime backbone previously accepted `forward(features, structure)`, but the
+ordinary training registry still selected PRESENT, GIFT or SKINNY through
+cipher-specific Python model names and structure factories. A new generic entry
+now loads the structure from `model_options.runtime_structure_path` without
+changing the backbone parameter geometry:
+
+```text
+runtime_spn_e4_equivariant_true
+runtime_spn_e4_equivariant_corrupted
+runtime_spn_e4_equivariant_independent
+```
+
+The versioned JSON schema records the cell membership, bit role, 4-bit S-box
+tables and one or more linear layers. Linear layers may be either a
+`source_to_target` permutation or a sparse GF(2) `target_sources` relation. A
+single round may be repeated only when `repeat_single_round=true`; every loaded
+matrix must be invertible over GF(2). Unknown fields, non-integer arrays,
+malformed permutations, duplicate or out-of-range GF(2) sources, round-count
+mismatches and singular matrices are rejected before model construction.
+
+Two production descriptors are available:
+
+```text
+configs/runtime/spn/present64.json  = one-to-one PRESENT P-layer
+configs/runtime/spn/skinny64.json   = SKINNY ShiftRows + MixColumns GF(2) layer
+```
+
+Tests compare both descriptors against their existing Python factories for cell
+membership, bit roles, S-box truth bits, forward linear matrices and exact
+inverse matrices. The generic correct, corrupted and independent controls also
+share identical state geometry, complete a forward pass and expose the
+descriptor name, resolved path, raw-file SHA-256 and control mode through result
+metadata. This closes the cipher-name-free training-entry gap for supported
+4-bit-cell SPNs. It is an implementation result only: it adds no training run,
+AUC evidence, cross-cipher generalization result or scale decision.
 
 ## Cell-Specific S-Box Ownership Gap
 

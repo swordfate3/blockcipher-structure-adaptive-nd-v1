@@ -92,6 +92,9 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     present_runtime_structure,
     skinny64_runtime_structure,
 )
+from blockcipher_nd.models.structure.spn.runtime_structure import (
+    load_runtime_spn_descriptor,
+)
 from blockcipher_nd.registry.model_options import (
     int_option,
     int_tuple_option,
@@ -106,6 +109,60 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    external_runtime_models = {
+        "runtime_spn_e4_equivariant_true": ("true", False, "true"),
+        "runtime_spn_e4_equivariant_corrupted": ("true", True, "corrupted"),
+        "runtime_spn_e4_equivariant_independent": (
+            "independent",
+            False,
+            "independent",
+        ),
+    }
+    if name in external_runtime_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(
+                f"model {name} requires non-empty model option runtime_structure_path"
+            )
+        processor_steps = int_option(options, "processor_steps", 2)
+        assert processor_steps is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=processor_steps,
+        )
+        relation_mode, corrupt, structure_mode = external_runtime_models[name]
+        runtime_structure = descriptor.structure
+        if corrupt:
+            corruption_seed = int_option(
+                options, "topology_corruption_seed", 20260724
+            )
+            assert corruption_seed is not None
+            runtime_structure = runtime_structure.corrupted(corruption_seed)
+        pair_embedding_dim = int_option(
+            options, "pair_embedding_dim", hidden_bits * 2
+        )
+        assert pair_embedding_dim is not None
+        return FixedRuntimeSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+            ),
+            structure=runtime_structure,
+            relation_mode=relation_mode,
+            spec=RuntimeParameterizedSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=pair_embedding_dim,
+                processor_steps=processor_steps,
+                dropout=float(options.get("dropout", 0.0)),
+                sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
+                sbox_context_mode=str(options.get("sbox_context_mode", "early_add")),
+            ),
+            aggregation_mode="e4_equivariant",
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            runtime_structure_mode=structure_mode,
+        )
     runtime_models = {
         "present_runtime_spn_true": (present_runtime_structure, "true", False),
         "present_runtime_spn_corrupted": (

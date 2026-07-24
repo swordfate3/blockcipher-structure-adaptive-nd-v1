@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 
@@ -242,6 +245,14 @@ class RuntimeSpnStructure:
                 )
 
 
+@dataclass(frozen=True)
+class LoadedRuntimeSpnDescriptor:
+    name: str
+    path: Path
+    sha256: str
+    structure: RuntimeSpnStructure
+
+
 def runtime_spn_structure(
     *,
     cell_membership: Sequence[int] | torch.Tensor,
@@ -292,11 +303,195 @@ def runtime_spn_structure_from_truth_bits(
     )
 
 
+def load_runtime_spn_descriptor(
+    path: str | Path,
+    *,
+    rounds: int | None = None,
+) -> LoadedRuntimeSpnDescriptor:
+    descriptor_path = Path(path)
+    try:
+        raw = descriptor_path.read_bytes()
+        payload = json.loads(raw)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"runtime SPN descriptor unreadable: {descriptor_path}: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ValueError("runtime SPN descriptor must be a JSON object")
+    allowed = {
+        "schema_version",
+        "name",
+        "cell_membership",
+        "bit_role",
+        "sbox_tables",
+        "linear_layers",
+        "repeat_single_round",
+    }
+    unknown = sorted(set(payload) - allowed)
+    if unknown:
+        raise ValueError(f"runtime SPN descriptor has unknown fields: {unknown}")
+    if payload.get("schema_version") != 1:
+        raise ValueError("runtime SPN descriptor schema_version must be 1")
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("runtime SPN descriptor name must be a non-empty string")
+    membership = _descriptor_int_list(payload.get("cell_membership"), "cell_membership")
+    roles = _descriptor_int_list(payload.get("bit_role"), "bit_role")
+    if len(membership) != len(roles):
+        raise ValueError("runtime SPN descriptor cell and bit-role widths differ")
+
+    layer_payloads = payload.get("linear_layers")
+    if not isinstance(layer_payloads, list) or not layer_payloads:
+        raise ValueError("runtime SPN descriptor linear_layers must be a non-empty list")
+    matrices = torch.stack(
+        [
+            _descriptor_linear_matrix(layer, len(membership), index)
+            for index, layer in enumerate(layer_payloads)
+        ]
+    )
+    if rounds is not None and type(rounds) is not int:
+        raise ValueError("runtime SPN descriptor rounds must be an integer")
+    requested_rounds = len(layer_payloads) if rounds is None else rounds
+    if requested_rounds <= 0:
+        raise ValueError("runtime SPN descriptor rounds must be positive")
+    repeat_single = payload.get("repeat_single_round", False)
+    if not isinstance(repeat_single, bool):
+        raise ValueError("runtime SPN descriptor repeat_single_round must be boolean")
+    if requested_rounds != len(layer_payloads):
+        if len(layer_payloads) != 1 or not repeat_single:
+            raise ValueError(
+                "runtime SPN descriptor round count does not match requested rounds"
+            )
+        matrices = matrices.repeat(requested_rounds, 1, 1)
+
+    tables = _descriptor_sbox_tables(
+        payload.get("sbox_tables"),
+        rounds=requested_rounds,
+        cells=max(membership) + 1,
+        repeat_single_round=repeat_single,
+    )
+    structure = runtime_spn_structure(
+        cell_membership=membership,
+        bit_role=roles,
+        sbox_tables=tables,
+        linear_matrices=matrices,
+    )
+    return LoadedRuntimeSpnDescriptor(
+        name=name.strip(),
+        path=descriptor_path.resolve(),
+        sha256=hashlib.sha256(raw).hexdigest(),
+        structure=structure,
+    )
+
+
+def _descriptor_int_list(value: object, field: str) -> list[int]:
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"runtime SPN descriptor {field} must be a non-empty list")
+    if not all(type(item) is int for item in value):
+        raise ValueError(f"runtime SPN descriptor {field} must contain integers")
+    return list(value)
+
+
+def _descriptor_linear_matrix(
+    value: object,
+    block_bits: int,
+    index: int,
+) -> torch.Tensor:
+    if not isinstance(value, dict):
+        raise ValueError(f"runtime SPN descriptor linear layer {index} must be an object")
+    kind = value.get("kind")
+    if kind == "permutation":
+        unknown = sorted(set(value) - {"kind", "source_to_target"})
+        if unknown:
+            raise ValueError(
+                f"runtime SPN descriptor permutation layer has unknown fields: {unknown}"
+            )
+        permutation = _descriptor_int_list(
+            value.get("source_to_target"),
+            f"linear_layers[{index}].source_to_target",
+        )
+        if len(permutation) != block_bits:
+            raise ValueError("runtime SPN permutation width does not match cell layout")
+        return permutation_matrix(permutation)
+    if kind == "gf2":
+        unknown = sorted(set(value) - {"kind", "target_sources"})
+        if unknown:
+            raise ValueError(
+                f"runtime SPN descriptor GF(2) layer has unknown fields: {unknown}"
+            )
+        target_sources = value.get("target_sources")
+        if not isinstance(target_sources, list) or len(target_sources) != block_bits:
+            raise ValueError(
+                "runtime SPN GF(2) target_sources must contain one list per target bit"
+            )
+        matrix = torch.zeros(block_bits, block_bits, dtype=torch.uint8)
+        for target, sources in enumerate(target_sources):
+            source_list = _descriptor_int_list(
+                sources,
+                f"linear_layers[{index}].target_sources[{target}]",
+            )
+            if len(set(source_list)) != len(source_list):
+                raise ValueError("runtime SPN GF(2) target source lists must be unique")
+            if any(source < 0 or source >= block_bits for source in source_list):
+                raise ValueError("runtime SPN GF(2) source index is out of range")
+            matrix[target, source_list] = 1
+        return matrix
+    raise ValueError(
+        f"runtime SPN descriptor linear layer {index} kind must be permutation or gf2"
+    )
+
+
+def _descriptor_sbox_tables(
+    value: object,
+    *,
+    rounds: int,
+    cells: int,
+    repeat_single_round: bool,
+) -> torch.Tensor:
+    if not _descriptor_contains_only_integers(value):
+        raise ValueError("runtime SPN descriptor sbox_tables must be integer arrays")
+    try:
+        tables = torch.as_tensor(value, dtype=torch.long)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("runtime SPN descriptor sbox_tables must be integer arrays") from exc
+    if tables.ndim == 1:
+        if tables.shape != (16,):
+            raise ValueError("runtime SPN shared S-box must contain 16 values")
+        return tables
+    if tables.ndim == 2:
+        if tables.shape != (cells, 16):
+            raise ValueError(
+                "runtime SPN per-cell S-box tables must have shape cells x 16"
+            )
+        return tables[None, :, :].expand(rounds, -1, -1).clone()
+    if tables.ndim == 3:
+        if tables.shape[1:] != (cells, 16):
+            raise ValueError(
+                "runtime SPN S-box tables must have shape rounds x cells x 16"
+            )
+        if tables.shape[0] == rounds:
+            return tables
+        if tables.shape[0] == 1 and repeat_single_round:
+            return tables.expand(rounds, -1, -1).clone()
+        raise ValueError("runtime SPN S-box round count does not match requested rounds")
+    raise ValueError("runtime SPN descriptor sbox_tables has unsupported dimensions")
+
+
+def _descriptor_contains_only_integers(value: object) -> bool:
+    if isinstance(value, list):
+        return bool(value) and all(
+            _descriptor_contains_only_integers(item) for item in value
+        )
+    return type(value) is int
+
+
 __all__ = [
+    "LoadedRuntimeSpnDescriptor",
     "RuntimeSpnStructure",
     "apply_gf2",
     "gf2_inverse",
     "linear_matrix_from_callable",
+    "load_runtime_spn_descriptor",
     "permutation_matrix",
     "runtime_spn_structure",
     "runtime_spn_structure_from_truth_bits",

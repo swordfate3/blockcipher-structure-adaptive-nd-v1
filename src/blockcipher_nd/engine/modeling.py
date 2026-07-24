@@ -36,6 +36,10 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "flattened_width",
         "input_bit_order",
         "l2_coefficient",
+        "runtime_structure_descriptor_name",
+        "runtime_structure_descriptor_path",
+        "runtime_structure_descriptor_sha256",
+        "runtime_structure_mode",
     ):
         if hasattr(model, field):
             value = getattr(model, field)
