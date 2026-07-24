@@ -52,6 +52,24 @@ def test_failure_classification_prioritizes_permanent_failures() -> None:
     )
 
 
+def test_failure_classification_covers_common_github_transport_failures() -> None:
+    module = load_module()
+
+    failures = (
+        "fatal: unable to access 'https://github.com/o/r': Failed to connect to "
+        "github.com port 443 after 21067 ms: Couldn't connect to server",
+        "fatal: unable to access: getaddrinfo() thread failed to start",
+        "error: RPC failed; curl 92 HTTP/2 stream 5 was not closed cleanly",
+        "fetch-pack: unexpected disconnect while reading sideband packet",
+        "fatal: unable to access: OpenSSL SSL_connect: SSL_ERROR_SYSCALL",
+        "fatal: unable to access: Proxy CONNECT aborted",
+    )
+
+    assert {module.classify(message) for message in failures} == {
+        "transient_network"
+    }
+
+
 def test_sanitize_redacts_url_credentials_and_tokens() -> None:
     module = load_module()
 

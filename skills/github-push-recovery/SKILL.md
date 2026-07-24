@@ -39,6 +39,10 @@ python skills/github-push-recovery/scripts/retry_push.py \
   --json-out /tmp/github-push-recovery.json
 ```
 
+The command retries DNS, proxy, connection-reset, timeout, TLS, HTTP/2, and
+retryable GitHub HTTP failures. It stops early as soon as the exact destination
+ref is verified. Do not manually launch a second retry loop while it is active.
+
 6. If the environment requires approval for network access, request it for the direct recovery command. If approval is rejected, stop. Do not wrap or transform the command to bypass review.
 7. On exit `0`, compare the verified remote SHA with the captured local SHA and report both. On any other exit, report the category, attempt count, exact local SHA, and the next legitimate remedy.
 
