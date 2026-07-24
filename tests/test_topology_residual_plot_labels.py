@@ -253,6 +253,27 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             "inverse_sbox_triplet",
             "uKNIT64-RuntimeE4-InverseSBoxTriplet-Shuffled-U2D",
         ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "dual_view_triplet",
+            "uKNIT64-RuntimeE4-DualViewTriplet-Correct-U2E",
+        ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "state_triplet",
+            "uKNIT64-RuntimeE4-StateTriplet-Anchor-U2E",
+        ),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "edge_gate",
+            "dual_view_triplet",
+            "uKNIT64-RuntimeE4-DualViewTriplet-Shuffled-U2E",
+        ),
     )
     rows = [
         {
@@ -297,7 +318,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         validation_only=True,
     )
 
-    assert report["series"] == 22
+    assert report["series"] == 28
     assert report["validation_only"] is True
     visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
     for seed in (0, 1):
@@ -312,6 +333,8 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         assert f"seed{seed}：正确逆S盒三元组" in visible_text
         assert f"seed{seed}：状态三元组锚点" in visible_text
         assert f"seed{seed}：打乱逆S盒三元组" in visible_text
+        assert f"seed{seed}：正确双视图三元组" in visible_text
+        assert f"seed{seed}：打乱双视图三元组" in visible_text
     assert "训练集（虚线）" not in visible_text
     assert "最终准确率" not in visible_text
     assert "最终 AUC" in visible_text

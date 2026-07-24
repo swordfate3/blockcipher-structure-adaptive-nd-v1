@@ -217,3 +217,57 @@ def test_uknit_inverse_sbox_triplet_gate_rejects_protocol_drift() -> None:
         gate["decision"]
         == "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
     )
+
+
+def _dual_view_triplet_rows() -> list[dict[str, object]]:
+    rows = _passing_rows()
+    for index, row in enumerate(rows):
+        options = row["training"]["model_options"]
+        options["sbox_context_mode"] = "edge_gate"
+        options["cell_input_mode"] = (
+            "state_triplet" if index % 3 == 1 else "dual_view_triplet"
+        )
+    return rows
+
+
+def _dual_view_triplet_gate(
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    return adjudicate_uknit_sbox_assignment(
+        run_id="u2e",
+        rows=rows,
+        candidate_context="edge_gate",
+        candidate_cell_input_mode="dual_view_triplet",
+        anchor_context="edge_gate",
+        anchor_cell_input_mode="state_triplet",
+    )
+
+
+def test_uknit_dual_view_triplet_gate_passes_two_seed_panel() -> None:
+    gate = _dual_view_triplet_gate(_dual_view_triplet_rows())
+
+    assert gate["status"] == "pass"
+    assert gate["task"] == "innovation1_uknit_runtime_e4_dual_view_triplet_u2e"
+    assert gate["decision"] == "innovation1_uknit_dual_view_triplet_two_seed_supported"
+    assert all(gate["protocol_checks"].values())
+
+
+def test_uknit_dual_view_triplet_gate_holds_failed_margin() -> None:
+    rows = _dual_view_triplet_rows()
+    rows[3]["metrics"]["auc"] = 0.538  # type: ignore[index]
+
+    gate = _dual_view_triplet_gate(rows)
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation1_uknit_dual_view_triplet_hold"
+    assert gate["research_checks"]["seed1_candidate_beats_anchor_by_0p005"] is False
+
+
+def test_uknit_dual_view_triplet_gate_rejects_protocol_drift() -> None:
+    rows = _dual_view_triplet_rows()
+    rows[2]["negative_mode"] = "random_ciphertext"
+
+    gate = _dual_view_triplet_gate(rows)
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_uknit_dual_view_triplet_protocol_invalid"

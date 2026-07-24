@@ -23,7 +23,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--candidate-cell-input-mode",
-        choices=("difference_only", "state_triplet", "inverse_sbox_triplet"),
+        choices=(
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+            "dual_view_triplet",
+        ),
         default=None,
     )
     parser.add_argument(
@@ -33,7 +38,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--anchor-cell-input-mode",
-        choices=("difference_only", "state_triplet", "inverse_sbox_triplet"),
+        choices=(
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+            "dual_view_triplet",
+        ),
         default=None,
     )
     return parser.parse_args(argv)

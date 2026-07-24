@@ -757,6 +757,25 @@ def _compact_label(item: dict[str, Any]) -> str:
         if (
             mode == "true"
             and context == "edge_gate"
+            and cell_input == "dual_view_triplet"
+        ):
+            return f"seed{seed}：正确双视图三元组"
+        if (
+            mode == "sbox_shuffled"
+            and context == "edge_gate"
+            and cell_input == "dual_view_triplet"
+        ):
+            return f"seed{seed}：打乱双视图三元组"
+        if (
+            mode == "true"
+            and context == "edge_gate"
+            and cell_input == "state_triplet"
+            and "StateTriplet-Anchor-U2E" in architecture
+        ):
+            return f"seed{seed}：状态三元组锚点"
+        if (
+            mode == "true"
+            and context == "edge_gate"
             and cell_input == "inverse_sbox_triplet"
         ):
             return f"seed{seed}：正确逆S盒三元组"
