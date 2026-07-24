@@ -626,6 +626,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 sequence,
                 sbox_context,
                 structure,
+                relation_mode=relation_mode,
             )
         for block in self.mixer_blocks:
             sequence = block(sequence)
@@ -760,6 +761,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                     sequence,
                     sbox_context,
                     structure,
+                    relation_mode=relation_mode,
                     round_index=round_index,
                 )
             for block in self.mixer_blocks:
@@ -890,17 +892,27 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         sbox_context: torch.Tensor,
         structure: RuntimeSpnStructure,
         *,
+        relation_mode: str,
         round_index: int = -1,
     ) -> torch.Tensor:
         membership = torch.nn.functional.one_hot(
             structure.cell_membership.to(sequence.device),
             num_classes=structure.cells,
         ).to(sequence.dtype)
-        bit_adjacency = structure.inverse_linear_matrices[round_index].to(
-            device=sequence.device,
-            dtype=sequence.dtype,
-        )
-        cell_adjacency = membership.transpose(0, 1) @ bit_adjacency @ membership
+        if relation_mode == "true":
+            bit_adjacency = structure.inverse_linear_matrices[round_index].to(
+                device=sequence.device,
+                dtype=sequence.dtype,
+            )
+            cell_adjacency = membership.transpose(0, 1) @ bit_adjacency @ membership
+        elif relation_mode == "independent":
+            cell_adjacency = torch.eye(
+                structure.cells,
+                device=sequence.device,
+                dtype=sequence.dtype,
+            )
+        else:
+            raise ValueError("relation_mode must be true or independent")
         normalized = cell_adjacency / cell_adjacency.sum(
             dim=1,
             keepdim=True,

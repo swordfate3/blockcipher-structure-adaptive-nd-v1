@@ -6,7 +6,7 @@ Date: 2026-07-25
 
 ```text
 phase = deterministic readiness only
-readiness = pass
+readiness = pass; re-adjudicated after strict no-topology edge-gate repair
 training = not started
 execution_authorized = no
 blocking_decision = RTG3-A seed0 and conditional seed1 adjudication
@@ -33,7 +33,7 @@ The same five roles are repeated at seeds 0 and 1:
 | candidate | `recurrent_window` | correct heterogeneous descriptor | multi-round hypothesis |
 | repeat-last | `recurrent_window` | final transition repeated twice | equal-depth control |
 | corrupted | `recurrent_window` | deterministic corrupted topology | topology control |
-| no-topology | `recurrent_window` | correct descriptor, relation disabled | no-topology control |
+| no-topology | `recurrent_window` | correct descriptor, identity cell adjacency | no-linear-topology control with S-box self-gating retained |
 
 Frozen protocol:
 
@@ -160,20 +160,33 @@ The corrupted window is separately fingerprinted as
 The re-adjudicated readiness also executes a fixed `512-bit` forward/backward
 probe for every model. All outputs have shape `[2, 1]` and are finite. Every
 model has finite gradients for all `54/54` trainable parameter tensors and all
-`442466/442466` trainable parameter elements. The five seed0 output hashes are:
+`442466/442466` trainable parameter elements. The five seed0 output hashes,
+after repairing the edge-gate no-topology semantics, are:
 
 ```text
 anchor       = 972e46a9524703d21c01fc3f55a56e96138ff55bf3df5d738ef01284ca396c41
 candidate    = 78e4f6d56d6cee1741e418a5e1154ccf53a30e10df633428245de30115e67add
 repeat_last  = ae765da771c122502c08bf208671d2db6ddf727e9136ebab2c83c86c357ad91f
 corrupted    = 90fc5c8172fe8bf546e6005d137372f03021f114413bbd83b933bba1e59fe1cc
-no_topology  = 6c4f0088adb6689c0c2a7ed32ea5146fcf7095d7ae522fea3ce63c878bde6adb
+no_topology  = eb3ff3369d716ed8c3aba0dfa6064889a4d05f8383dbacf990c8bbf1b8452397
 ```
 
 The same role hashes reproduce at seed1 because the readiness probe freezes
 model and input initialization independently of the future training seed.
 Their separation proves that each planned intervention reaches the computation
 graph; it does not rank the roles or provide performance evidence.
+
+The previous no-topology probe hash
+`6c4f0088adb6689c0c2a7ed32ea5146fcf7095d7ae522fea3ce63c878bde6adb`
+is superseded. That path disabled exact inverse-linear views but still read the
+runtime linear graph inside `edge_gate`, so it was not a strict no-topology
+control. The repaired control uses identity cell adjacency: it keeps the same
+S-box self-gating operation and parameter geometry but cannot read cross-cell
+linear edges. End-to-end regression tests require both last-transition and
+recurrent-window independent logits to remain bit-exact when only the runtime
+linear topology is changed, while the corresponding true-topology logits must
+change. No U3 training had started, so no AUC result was invalidated or needs
+reproduction.
 
 Artifacts:
 

@@ -234,3 +234,21 @@ SHA256 values, an ordered window SHA256, a unique-transition count and a
 homogeneous-window flag to model metadata. This makes the full, corrupted,
 S-box-shuffled and repeated-final structures directly auditable from future
 result rows instead of relying on model names or source-descriptor hashes.
+
+## Strict Edge-Gate No-Topology Semantics
+
+A post-readiness audit found that the E4 `independent` relation mode disabled
+the exact inverse-linear state view but still passed the real inverse-linear
+adjacency into `edge_gate`. That implementation was therefore not a strict
+no-linear-topology control whenever `sbox_context_mode=edge_gate`.
+
+The control now replaces the cell graph with identity adjacency while keeping
+the S-box self-gate, parameter geometry and compute path. End-to-end tests cover
+both `last_transition` and `recurrent_window`: independent logits are bit-exact
+under a correct-versus-corrupted linear-graph swap, while true-relation logits
+change. This change does not affect the completed GIFT/SKINNY attribution or
+active RTG3-A evidence because those frozen protocols use `late_pair`, not
+`edge_gate`. The only affected artifact was the untrained uKNIT recurrent
+readiness probe; it was rerun before U3 training, passed all checks, and replaced
+the no-topology output hash with
+`eb3ff3369d716ed8c3aba0dfa6064889a4d05f8383dbacf990c8bbf1b8452397`.

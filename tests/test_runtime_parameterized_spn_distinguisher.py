@@ -694,6 +694,45 @@ def test_runtime_e4_recurrent_window_keeps_geometry_across_loaded_rounds() -> No
         ).shape == (2, 1)
 
 
+@pytest.mark.parametrize("round_window_mode", ("last_transition", "recurrent_window"))
+def test_runtime_e4_edge_gate_independent_control_ignores_linear_topology(
+    round_window_mode: str,
+) -> None:
+    torch.manual_seed(219)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="edge_gate",
+            cell_input_mode="state_triplet",
+            round_window_mode=round_window_mode,
+        )
+    ).eval()
+    structure = present_runtime_structure(2)
+    corrupted = structure.corrupted(219)
+    pairs = _binary((3, 4, 2, 64), 220)
+
+    with torch.no_grad():
+        independent_true = model(pairs, structure, relation_mode="independent")
+        independent_corrupted = model(
+            pairs,
+            corrupted,
+            relation_mode="independent",
+        )
+        topology_true = model(pairs, structure, relation_mode="true")
+        topology_corrupted = model(pairs, corrupted, relation_mode="true")
+
+    torch.testing.assert_close(
+        independent_true,
+        independent_corrupted,
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert float(torch.max(torch.abs(topology_true - topology_corrupted))) > 1e-6
+
+
 @pytest.mark.parametrize(
     ("cell_input_mode", "sbox_context_mode"),
     [
