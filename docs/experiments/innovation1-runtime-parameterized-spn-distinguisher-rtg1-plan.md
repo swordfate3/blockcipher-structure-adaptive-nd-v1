@@ -1935,6 +1935,33 @@ labels, axes and captions were not clipped or overlapping. The AUC-margin panel
 uses a dynamic range so a sub-`0.01` margin remains legible. This template check
 does not replace the required inspection of each retrieved result image.
 
+The two retrieved seed gates must additionally pass a separate fail-closed
+joint adjudicator before `262144/class` is authorized:
+
+```text
+scripts/gate-runtime-spn-skinny-medium-joint
+joint run id = i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1_20260724
+inputs       = verified local seed0/gate.json and seed1/gate.json
+source proof = SHA-256 recorded for both gate files
+pass         = both distinct, protocol-valid seed gates have status=pass
+hold         = both source protocols are valid but either research gate did not pass
+fail         = missing/duplicate seed, wrong run id, threshold drift, non-finite metric,
+               inconsistent decision, or failed single-seed protocol evidence
+```
+
+A joint pass authorizes preparation of an RTG2-B `262144/class` seed0 plan that
+changes only sample scale. It is not itself launch permission: the new plan must
+still pass the remote disk-cache/readiness audit before execution. A joint hold
+stops mechanical scale-up; a joint failure permits only evidence repair.
+The local watcher invokes this joint gate automatically after verified seed1
+retrieval and refreshes the recent-results index with the joint decision before
+writing `medium_pair_complete.marker`. Its conditional seed1 launch state is
+persisted locally, and a restart reuses only destinations that already contain
+the verified-branch marker, local validation and single-seed gate; incomplete
+destinations still fail closed. A protocol-invalid single or joint gate is
+written and indexed before the watcher exits nonzero, so negative evidence is
+not silently omitted from the recent-results ledger.
+
 Current state at asset freeze:
 
 ```text

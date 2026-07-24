@@ -11,6 +11,25 @@ TRAIN_ROWS = 131_072
 VALIDATION_ROWS = 65_536
 SIGNAL_FLOOR = 0.55
 CONTROL_MARGIN = 0.005
+RUN_STEM = "i1_rtg2a_skinny64_general_gf2_medium_65536"
+
+
+def _is_finite_number(value: object) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _has_finite_metric_map(
+    gate: dict[str, Any],
+    field: str,
+    keys: tuple[str, ...],
+) -> bool:
+    values = gate.get(field)
+    return isinstance(values, dict) and all(
+        _is_finite_number(values.get(key)) for key in keys
+    )
 
 
 def adjudicate_runtime_spn_skinny_medium(
@@ -218,11 +237,144 @@ def adjudicate_runtime_spn_skinny_medium(
     }
 
 
+def adjudicate_runtime_spn_skinny_medium_joint(
+    *,
+    run_id: str,
+    gates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    by_seed = {
+        int(gate.get("seed", -1)): gate
+        for gate in gates
+        if isinstance(gate.get("seed"), int)
+    }
+    complete = len(gates) == 2 and set(by_seed) == {0, 1}
+
+    expected_decisions = {
+        seed: {
+            "pass": f"innovation1_rtg2a_skinny_medium_seed{seed}_supported",
+            "hold": "innovation1_rtg2a_skinny_medium_not_supported",
+            "fail": "innovation1_rtg2a_skinny_medium_protocol_invalid",
+        }
+        for seed in (0, 1)
+    }
+    source_statuses = {
+        seed: str(by_seed[seed].get("status", ""))
+        for seed in (0, 1)
+        if seed in by_seed
+    }
+    protocol_checks = {
+        "two_distinct_seed_gates_complete": complete,
+        "source_run_ids_match_frozen_rtg2a": complete
+        and all(
+            str(by_seed[seed].get("run_id", "")).startswith(f"{RUN_STEM}_seed{seed}_")
+            for seed in (0, 1)
+        ),
+        "source_protocol_checks_passed": complete
+        and all(
+            isinstance(by_seed[seed].get("protocol_checks"), dict)
+            and bool(by_seed[seed]["protocol_checks"])
+            and all(bool(value) for value in by_seed[seed]["protocol_checks"].values())
+            for seed in (0, 1)
+        ),
+        "source_gate_contracts_consistent": complete
+        and all(
+            source_statuses[seed] in expected_decisions[seed]
+            and str(by_seed[seed].get("decision", ""))
+            == expected_decisions[seed][source_statuses[seed]]
+            for seed in (0, 1)
+        ),
+        "frozen_thresholds_preserved": complete
+        and all(
+            by_seed[seed].get("thresholds")
+            == {"true_auc": SIGNAL_FLOOR, "control_margin": CONTROL_MARGIN}
+            for seed in (0, 1)
+        ),
+        "finite_source_metrics": complete
+        and all(
+            _has_finite_metric_map(
+                by_seed[seed], "aucs", ("true", "corrupted", "independent")
+            )
+            and _has_finite_metric_map(
+                by_seed[seed],
+                "margins",
+                ("true_minus_corrupted", "true_minus_independent"),
+            )
+            for seed in (0, 1)
+        ),
+    }
+    research_checks = {
+        "both_medium_seeds_supported": complete
+        and all(source_statuses[seed] == "pass" for seed in (0, 1))
+    }
+
+    if not all(protocol_checks.values()):
+        status = "fail"
+        decision = "innovation1_rtg2a_skinny_medium_joint_protocol_invalid"
+        next_action = (
+            "repair only the missing or inconsistent seed gate evidence; do not "
+            "interpret the pair or prepare a larger run"
+        )
+    elif all(research_checks.values()):
+        status = "pass"
+        decision = "innovation1_rtg2a_skinny_medium_two_seed_supported"
+        next_action = (
+            "freeze an RTG2-B 262144/class seed0 plan that changes only sample scale, "
+            "then pass remote disk-cache readiness before launch"
+        )
+    else:
+        status = "hold"
+        decision = "innovation1_rtg2a_skinny_medium_two_seed_not_supported"
+        next_action = (
+            "stop RTG2-A scale-up and audit sample variance versus training dynamics "
+            "without changing the frozen model or data protocol"
+        )
+
+    source_summaries = [
+        {
+            "seed": seed,
+            "run_id": by_seed[seed].get("run_id"),
+            "status": by_seed[seed].get("status"),
+            "decision": by_seed[seed].get("decision"),
+            "aucs": by_seed[seed].get("aucs"),
+            "margins": by_seed[seed].get("margins"),
+        }
+        for seed in (0, 1)
+        if seed in by_seed
+    ]
+    return {
+        "run_id": run_id,
+        "status": status,
+        "decision": decision,
+        "protocol_checks": protocol_checks,
+        "research_checks": research_checks,
+        "thresholds": {
+            "true_auc": SIGNAL_FLOOR,
+            "control_margin": CONTROL_MARGIN,
+        },
+        "sources": source_summaries,
+        "claim_scope": (
+            "SKINNY-64/64 r7 two-seed remote medium 65536/class general-GF(2) "
+            "runtime-topology replication synthesis; architecture/protocol diagnostic "
+            "only, not formal scale, paper reproduction, attack, SOTA, breakthrough, "
+            "or universal-SPN evidence"
+        ),
+        "next_action": next_action,
+        "blocked_actions": [
+            "claim formal, paper-scale, attack, SOTA, breakthrough, or universal-SPN evidence",
+            "launch 262144/class unless this joint gate passes",
+            "change difference, pairs, epochs, negatives, topology corruption, or model geometry",
+            "add DDT or trail features, switch to related keys, or launch a broad cipher matrix",
+        ],
+    }
+
+
 __all__ = [
     "CONTROL_MARGIN",
+    "RUN_STEM",
     "SAMPLES_PER_CLASS",
     "SIGNAL_FLOOR",
     "TRAIN_ROWS",
     "VALIDATION_ROWS",
     "adjudicate_runtime_spn_skinny_medium",
+    "adjudicate_runtime_spn_skinny_medium_joint",
 ]

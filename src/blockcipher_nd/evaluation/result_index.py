@@ -190,6 +190,15 @@ DECISION_LABELS = {
     "innovation1_rtg2a_skinny_medium_protocol_invalid": (
         "SKINNY中等规模一般GF(2)复验的数据、训练、模型几何或缓存协议无效"
     ),
+    "innovation1_rtg2a_skinny_medium_two_seed_supported": (
+        "SKINNY中等规模一般GF(2)拓扑优势通过两颗seed复验，可准备262144/class单变量扩样"
+    ),
+    "innovation1_rtg2a_skinny_medium_two_seed_not_supported": (
+        "SKINNY中等规模一般GF(2)拓扑优势未通过两颗seed联合门，停止扩样并审计方差"
+    ),
+    "innovation1_rtg2a_skinny_medium_joint_protocol_invalid": (
+        "SKINNY中等规模两seed来源、单seed协议门或阈值证据不完整，禁止联合解释"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2196,6 +2205,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1"
+    ):
+        return "创新1 RTG2-A：SKINNY-64/64中等规模一般GF(2)两seed联合裁决"
     if run_id.startswith("i1_rtg2a_skinny64_general_gf2_medium_65536"):
         return "创新1 RTG2-A：SKINNY-64/64中等规模一般GF(2)运行时拓扑复验"
     if run_id.startswith("i1_rtg1_skinny64_general_gf2_attribution_t2c"):

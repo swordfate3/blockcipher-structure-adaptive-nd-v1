@@ -3314,6 +3314,41 @@ def test_result_index_labels_rtg2a_skinny_medium_replication(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation1_rtg2a_skinny_medium_two_seed_supported",
+            "SKINNY中等规模一般GF(2)拓扑优势通过两颗seed复验，可准备262144/class单变量扩样",
+        ),
+        (
+            "innovation1_rtg2a_skinny_medium_two_seed_not_supported",
+            "SKINNY中等规模一般GF(2)拓扑优势未通过两颗seed联合门，停止扩样并审计方差",
+        ),
+        (
+            "innovation1_rtg2a_skinny_medium_joint_protocol_invalid",
+            "SKINNY中等规模两seed来源、单seed协议门或阈值证据不完整，禁止联合解释",
+        ),
+    ],
+)
+def test_result_index_labels_rtg2a_skinny_medium_joint_gate(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1_20260724"
+    run_root = outputs / "remote_results" / run_id
+    _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 RTG2-A：SKINNY-64/64中等规模一般GF(2)两seed联合裁决"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:

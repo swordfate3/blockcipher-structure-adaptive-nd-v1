@@ -5,10 +5,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from blockcipher_nd.cli.check_remote_readiness import remote_readiness_report
+from blockcipher_nd.cli.gate_runtime_spn_skinny_medium_joint import (
+    main as joint_gate_main,
+)
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_attribution import MODELS
 from blockcipher_nd.tasks.innovation1.runtime_spn_skinny_medium import (
     adjudicate_runtime_spn_skinny_medium,
+    adjudicate_runtime_spn_skinny_medium_joint,
 )
 
 
@@ -110,6 +116,136 @@ def test_medium_protocol_mismatch_fails_closed() -> None:
 
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_rtg2a_skinny_medium_protocol_invalid"
+
+
+def _seed_gate(seed: int, *, supported: bool = True) -> dict[str, object]:
+    aucs = (
+        {"true": 0.61, "corrupted": 0.56, "independent": 0.53}
+        if supported
+        else {"true": 0.552, "corrupted": 0.550, "independent": 0.51}
+    )
+    return adjudicate_runtime_spn_skinny_medium(
+        run_id=f"{RUN_STEM}_seed{seed}_20260724",
+        rows=_rows(seed, aucs),
+        expected_seed=seed,
+    )
+
+
+def test_medium_joint_gate_requires_both_seeds_to_pass() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_seed_gate(0), _seed_gate(1)],
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_rtg2a_skinny_medium_two_seed_supported"
+    assert all(gate["protocol_checks"].values())
+    assert gate["research_checks"]["both_medium_seeds_supported"] is True
+    assert "262144/class" in gate["next_action"]
+
+
+def test_medium_joint_gate_holds_when_seed1_is_not_supported() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_seed_gate(0), _seed_gate(1, supported=False)],
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == (
+        "innovation1_rtg2a_skinny_medium_two_seed_not_supported"
+    )
+    assert all(gate["protocol_checks"].values())
+    assert gate["research_checks"]["both_medium_seeds_supported"] is False
+
+
+def test_medium_joint_gate_fails_closed_on_duplicate_seed_sources() -> None:
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_seed_gate(0), _seed_gate(0)],
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == (
+        "innovation1_rtg2a_skinny_medium_joint_protocol_invalid"
+    )
+    assert gate["protocol_checks"]["two_distinct_seed_gates_complete"] is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "failed_check"),
+    [
+        ("run_id", "wrong-run", "source_run_ids_match_frozen_rtg2a"),
+        (
+            "thresholds",
+            {"true_auc": 0.54, "control_margin": 0.005},
+            "frozen_thresholds_preserved",
+        ),
+        (
+            "aucs",
+            {"true": "not-a-number", "corrupted": 0.56, "independent": 0.53},
+            "finite_source_metrics",
+        ),
+        ("protocol_checks", [True], "source_protocol_checks_passed"),
+        ("decision", "inconsistent", "source_gate_contracts_consistent"),
+    ],
+)
+def test_medium_joint_gate_fails_closed_on_malformed_source_evidence(
+    field: str,
+    value: object,
+    failed_check: str,
+) -> None:
+    seed1 = _seed_gate(1)
+    seed1[field] = value
+
+    gate = adjudicate_runtime_spn_skinny_medium_joint(
+        run_id=f"{RUN_STEM}_joint_seed0_seed1_20260724",
+        gates=[_seed_gate(0), seed1],
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == (
+        "innovation1_rtg2a_skinny_medium_joint_protocol_invalid"
+    )
+    assert gate["protocol_checks"][failed_check] is False
+
+
+def test_medium_joint_gate_cli_writes_hashed_source_evidence(tmp_path: Path) -> None:
+    source_paths = []
+    for seed in (0, 1):
+        path = tmp_path / f"seed{seed}" / "gate.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(_seed_gate(seed), sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        source_paths.append(path)
+    output_root = tmp_path / "joint"
+
+    status = joint_gate_main(
+        [
+            "--run-id",
+            f"{RUN_STEM}_joint_seed0_seed1_20260724",
+            "--seed0-gate",
+            str(source_paths[0]),
+            "--seed1-gate",
+            str(source_paths[1]),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0
+    gate = json.loads((output_root / "gate.json").read_text(encoding="utf-8"))
+    validation = json.loads(
+        (output_root / "validation.json").read_text(encoding="utf-8")
+    )
+    summary = json.loads((output_root / "summary.json").read_text(encoding="utf-8"))
+    assert gate["status"] == "pass"
+    assert validation["status"] == "pass"
+    assert len(validation["sources"]) == 2
+    assert all(len(source["sha256"]) == 64 for source in validation["sources"])
+    assert summary["training_performed"] is False
+    assert (output_root / "progress.jsonl").is_file()
 
 
 def test_medium_plans_change_only_scale_seed_and_descriptive_fields() -> None:
@@ -217,8 +353,21 @@ def test_medium_remote_assets_are_ready_and_windows_safe() -> None:
     assert "if errorlevel 1 (" in launch_script
     assert "scripts/index-results" in monitor_script
     assert "gate-runtime-spn-skinny-medium" in monitor_script
+    assert "gate-runtime-spn-skinny-medium-joint" in monitor_script
+    assert f'{RUN_STEM}_joint_seed0_seed1_20260724"' in monitor_script
+    assert "adjudicate_joint || exit 5" in monitor_script
+    assert "validated_destination_reused" in monitor_script
+    assert monitor_script.count('if [[ ! -f "${destination}/gate.json" ]]') == 2
+    assert monitor_script.count('return "${gate_exit}"') == 2
+    assert "conditional_seed1_launched.marker" in monitor_script
+    assert "conditional_seed1_launched_after_resume" in monitor_script
+    assert "resumed_medium_pair_joint_adjudicated_and_indexed" in monitor_script
     assert "launch_i1_rtg2a" in monitor_script
     assert "medium_pair_complete.marker" in monitor_script
+    subprocess.run(
+        ["bash", "-n", str(ROOT / "configs/remote/generated/monitor_i1_rtg2a_skinny64_general_gf2_medium_65536_20260724.sh")],
+        check=True,
+    )
     assert "C:\\Users" not in combined.replace(
         "C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519",
         "",
