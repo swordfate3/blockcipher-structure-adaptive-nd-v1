@@ -138,11 +138,15 @@ def build_spn_model(
             )
         processor_steps = int_option(options, "processor_steps", 2)
         assert processor_steps is not None
+        runtime_rounds = int_option(options, "runtime_rounds", processor_steps)
+        assert runtime_rounds is not None
+        if runtime_rounds <= 0:
+            raise ValueError("runtime_rounds must be positive")
         runtime_round_start = int_option(options, "runtime_round_start", 0)
         assert runtime_round_start is not None
         descriptor = load_runtime_spn_descriptor(
             descriptor_path,
-            rounds=processor_steps,
+            rounds=runtime_rounds,
             round_start=runtime_round_start,
         )
         relation_mode, corrupt, shuffle_sboxes, structure_mode = (
@@ -176,6 +180,9 @@ def build_spn_model(
                 sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
                 sbox_context_mode=str(options.get("sbox_context_mode", "early_add")),
                 cell_input_mode=str(options.get("cell_input_mode", "difference_only")),
+                round_window_mode=str(
+                    options.get("round_window_mode", "last_transition")
+                ),
             ),
             aggregation_mode="e4_equivariant",
             descriptor_name=descriptor.name,
@@ -267,7 +274,11 @@ def build_spn_model(
     if name in runtime_models:
         structure_factory, relation_mode, corrupt = runtime_models[name]
         processor_steps = int_option(options, "processor_steps", 2) or 2
-        runtime_structure = structure_factory(processor_steps)
+        runtime_rounds = int_option(options, "runtime_rounds", processor_steps)
+        assert runtime_rounds is not None
+        if runtime_rounds <= 0:
+            raise ValueError("runtime_rounds must be positive")
+        runtime_structure = structure_factory(runtime_rounds)
         if corrupt:
             runtime_structure = runtime_structure.corrupted()
         return FixedRuntimeSpnProtocolAdapter(
@@ -286,6 +297,9 @@ def build_spn_model(
                 sbox_context_scale=float(options.get("sbox_context_scale", 1.0)),
                 sbox_context_mode=str(options.get("sbox_context_mode", "early_add")),
                 cell_input_mode=str(options.get("cell_input_mode", "difference_only")),
+                round_window_mode=str(
+                    options.get("round_window_mode", "last_transition")
+                ),
             ),
             aggregation_mode=(
                 "e4_equivariant"

@@ -488,6 +488,274 @@ def test_runtime_e4_equivariant_backbone_is_cell_relabel_invariant() -> None:
     torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
 
 
+def test_runtime_e4_recurrent_window_consumes_earlier_runtime_transition() -> None:
+    present = present_runtime_structure(1)
+    gift = gift64_runtime_structure(1)
+    identity = torch.eye(64, dtype=torch.uint8)
+    final_linear = present.linear_matrices[0]
+    tables = torch.tensor(PRESENT_SBOX).repeat(2, present.cells, 1)
+    common = {
+        "cell_membership": present.cell_membership,
+        "bit_role": present.bit_role,
+        "sbox_tables": tables,
+    }
+    first_identity = runtime_spn_structure(
+        linear_matrices=torch.stack((identity, final_linear)),
+        **common,
+    )
+    first_gift = runtime_spn_structure(
+        linear_matrices=torch.stack((gift.linear_matrices[0], final_linear)),
+        **common,
+    )
+    pairs = _binary((2, 3, 2, 64), 201)
+
+    torch.manual_seed(202)
+    last_only = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+        )
+    ).eval()
+    recurrent = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            round_window_mode="recurrent_window",
+        )
+    ).eval()
+    recurrent.load_state_dict(last_only.state_dict(), strict=True)
+
+    with torch.no_grad():
+        last_identity = last_only(pairs, first_identity)
+        last_gift = last_only(pairs, first_gift)
+        recurrent_identity = recurrent(pairs, first_identity)
+        recurrent_gift = recurrent(pairs, first_gift)
+
+    torch.testing.assert_close(last_identity, last_gift, rtol=0.0, atol=0.0)
+    assert float(torch.max(torch.abs(recurrent_identity - recurrent_gift))) > 1e-6
+    assert {
+        name: tuple(value.shape) for name, value in recurrent.state_dict().items()
+    } == {name: tuple(value.shape) for name, value in last_only.state_dict().items()}
+
+
+def test_runtime_e4_recurrent_window_consumes_earlier_sbox_assignment() -> None:
+    present = present_runtime_structure(2)
+    present_tables = torch.tensor(PRESENT_SBOX).repeat(2, present.cells, 1)
+    changed_tables = present_tables.clone()
+    changed_tables[0] = torch.tensor(GIFT64_SBOX).repeat(present.cells, 1)
+    common = {
+        "cell_membership": present.cell_membership,
+        "bit_role": present.bit_role,
+        "linear_matrices": present.linear_matrices,
+    }
+    all_present = runtime_spn_structure(
+        sbox_tables=present_tables,
+        **common,
+    )
+    earlier_gift = runtime_spn_structure(
+        sbox_tables=changed_tables,
+        **common,
+    )
+    pairs = _binary((2, 3, 2, 64), 209)
+
+    torch.manual_seed(210)
+    last_only = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="early_add",
+        )
+    ).eval()
+    recurrent = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="early_add",
+            round_window_mode="recurrent_window",
+        )
+    ).eval()
+    recurrent.load_state_dict(last_only.state_dict(), strict=True)
+
+    with torch.no_grad():
+        last_present = last_only(pairs, all_present)
+        last_changed = last_only(pairs, earlier_gift)
+        recurrent_present = recurrent(pairs, all_present)
+        recurrent_changed = recurrent(pairs, earlier_gift)
+
+    torch.testing.assert_close(last_present, last_changed, rtol=0.0, atol=0.0)
+    assert float(torch.max(torch.abs(recurrent_present - recurrent_changed))) > 1e-6
+
+
+def test_runtime_e4_recurrent_window_matches_last_mode_for_one_round() -> None:
+    torch.manual_seed(207)
+    last_only = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="late_pair",
+        )
+    ).eval()
+    recurrent = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="late_pair",
+            round_window_mode="recurrent_window",
+        )
+    ).eval()
+    recurrent.load_state_dict(last_only.state_dict(), strict=True)
+    pairs = _binary((2, 3, 2, 64), 208)
+    structure = skinny64_runtime_structure(1)
+
+    with torch.no_grad():
+        expected = last_only(pairs, structure)
+        actual = recurrent(pairs, structure)
+
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+
+
+def test_runtime_e4_recurrent_window_is_cell_relabel_invariant() -> None:
+    structure = skinny64_runtime_structure(3)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = _binary((2, 3, 2, 64), 203)
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(204)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            round_window_mode="recurrent_window",
+        )
+    ).eval()
+
+    with torch.no_grad():
+        original = model(pairs, structure)
+        permuted = model(relabeled_pairs, relabeled)
+
+    torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
+
+
+def test_runtime_e4_recurrent_window_keeps_geometry_across_loaded_rounds() -> None:
+    common_options = {
+        "processor_steps": 2,
+        "pair_embedding_dim": 32,
+        "dropout": 0.0,
+        "round_window_mode": "recurrent_window",
+    }
+    one_round = build_model(
+        "skinny64_runtime_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options={**common_options, "runtime_rounds": 1},
+    ).eval()
+    three_rounds = build_model(
+        "skinny64_runtime_e4_equivariant_true",
+        input_bits=512,
+        hidden_bits=24,
+        pair_bits=128,
+        structure="SPN",
+        model_options={**common_options, "runtime_rounds": 3},
+    ).eval()
+
+    assert {
+        name: tuple(value.shape) for name, value in one_round.state_dict().items()
+    } == {name: tuple(value.shape) for name, value in three_rounds.state_dict().items()}
+    assert one_round.runtime_structure_loaded_rounds == 1
+    assert three_rounds.runtime_structure_loaded_rounds == 3
+    assert model_metadata(three_rounds)["runtime_round_window_mode"] == (
+        "recurrent_window"
+    )
+    with torch.no_grad():
+        assert one_round(_binary((2, 512), 205)).shape == (2, 1)
+        assert three_rounds(_binary((2, 512), 206)).shape == (2, 1)
+        assert three_rounds.backbone(
+            _binary((2, 3, 2, 128), 211),
+            _synthetic_128_structure(),
+        ).shape == (2, 1)
+
+
+@pytest.mark.parametrize(
+    ("cell_input_mode", "sbox_context_mode"),
+    [
+        ("difference_only", "edge_gate"),
+        ("state_triplet", "early_add"),
+        ("inverse_sbox_triplet", "late_cell"),
+        ("dual_view_triplet", "late_pair"),
+    ],
+)
+def test_runtime_e4_recurrent_window_supported_views_are_differentiable(
+    cell_input_mode: str,
+    sbox_context_mode: str,
+) -> None:
+    torch.manual_seed(212)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=24,
+            processor_steps=2,
+            dropout=0.0,
+            cell_input_mode=cell_input_mode,
+            sbox_context_mode=sbox_context_mode,
+            round_window_mode="recurrent_window",
+        )
+    ).train()
+    output = model(
+        _binary((2, 2, 2, 64), 213),
+        skinny64_runtime_structure(2),
+    )
+    loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        output.squeeze(1),
+        torch.tensor([0.0, 1.0]),
+    )
+    loss.backward()
+
+    assert output.shape == (2, 1)
+    assert torch.isfinite(output).all()
+    assert torch.isfinite(loss)
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in model.parameters()
+    )
+
+
+def test_runtime_e4_recurrent_window_rejects_final_transition_query_modes() -> None:
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=24,
+            processor_steps=2,
+            dropout=0.0,
+            cell_input_mode="state_triplet_delta_u_query",
+            round_window_mode="recurrent_window",
+        )
+    )
+
+    with pytest.raises(ValueError, match="final-transition delta queries"):
+        model(
+            _binary((2, 2, 2, 64), 214),
+            skinny64_runtime_structure(2),
+        )
+
+
 def test_runtime_e4_controls_keep_cell_and_sbox_metadata_but_change_linear_view() -> None:
     options = {
         "processor_steps": 2,

@@ -33,6 +33,9 @@ class RuntimeParameterizedSpnSpec:
         "state_triplet_delta_v_query",
         "state_triplet_delta_u_query",
     ] = "difference_only"
+    round_window_mode: Literal["last_transition", "recurrent_window"] = (
+        "last_transition"
+    )
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -62,6 +65,10 @@ class RuntimeParameterizedSpnSpec:
                 "cell_input_mode must be difference_only, state_triplet, "
                 "inverse_sbox_triplet, dual_view_triplet, "
                 "state_triplet_delta_v_query, or state_triplet_delta_u_query"
+            )
+        if self.round_window_mode not in {"last_transition", "recurrent_window"}:
+            raise ValueError(
+                "round_window_mode must be last_transition or recurrent_window"
             )
 
 
@@ -512,6 +519,16 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             if active_query_mode != "delta_u":
                 raise ValueError("query_structure is valid only for a delta_u query")
             self._validate_query_structure(structure, query_structure)
+        if self.spec.round_window_mode == "recurrent_window":
+            if active_query_mode is not None or query_structure is not None:
+                raise ValueError(
+                    "recurrent_window does not support final-transition delta queries"
+                )
+            return self._forward_recurrent_window(
+                pairs,
+                structure,
+                relation_mode=relation_mode,
+            )
         previous = (
             structure.exact_inverse(difference, -1)
             if relation_mode == "true"
@@ -617,6 +634,166 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 sequence + self.spec.sbox_context_scale * sbox_context[None, :, :]
             )
         sequence = self.sequence_norm(sequence)
+        return self._pool_sequence(
+            sequence,
+            current_cells=current_cells,
+            sbox_context=sbox_context,
+            batch=batch,
+            pair_count=pair_count,
+        )
+
+    def _forward_recurrent_window(
+        self,
+        pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str,
+    ) -> torch.Tensor:
+        """Consume every loaded transition with one shared E4 parameter stack."""
+        left = pairs[:, :, 0]
+        right = pairs[:, :, 1]
+        difference = torch.remainder(left + right, 2.0)
+        output_cells = self._ordered_cell_values(difference, structure)
+        batch, pair_count, cell_count, _ = output_cells.shape
+        sequence: torch.Tensor | None = None
+        round_sbox_contexts: list[torch.Tensor] = []
+
+        for round_index in reversed(range(structure.rounds)):
+            previous_left = (
+                structure.exact_inverse(left, round_index)
+                if relation_mode == "true"
+                else left
+            )
+            previous_right = (
+                structure.exact_inverse(right, round_index)
+                if relation_mode == "true"
+                else right
+            )
+            previous_difference = torch.remainder(
+                previous_left + previous_right,
+                2.0,
+            )
+            current_cells = self._ordered_cell_values(difference, structure)
+            previous_cells = self._ordered_cell_values(
+                previous_difference,
+                structure,
+            )
+
+            if self.spec.cell_input_mode in {
+                "state_triplet",
+                "inverse_sbox_triplet",
+                "dual_view_triplet",
+            }:
+                current_hidden = self._state_triplet_cell_hidden(
+                    left,
+                    right,
+                    difference,
+                    structure,
+                )
+                previous_hidden = self._state_triplet_cell_hidden(
+                    previous_left,
+                    previous_right,
+                    previous_difference,
+                    structure,
+                )
+                if (
+                    self.spec.cell_input_mode
+                    in {"inverse_sbox_triplet", "dual_view_triplet"}
+                    and relation_mode == "true"
+                ):
+                    inverse_left = structure.apply_inverse_sboxes(
+                        previous_left,
+                        round_index,
+                    )
+                    inverse_right = structure.apply_inverse_sboxes(
+                        previous_right,
+                        round_index,
+                    )
+                    inverse_difference = torch.remainder(
+                        inverse_left + inverse_right,
+                        2.0,
+                    )
+                    inverse_hidden = self._state_triplet_cell_hidden(
+                        inverse_left,
+                        inverse_right,
+                        inverse_difference,
+                        structure,
+                    )
+                    previous_hidden = (
+                        inverse_hidden
+                        if self.spec.cell_input_mode == "inverse_sbox_triplet"
+                        else 0.5 * (previous_hidden + inverse_hidden)
+                    )
+            elif self.spec.cell_input_mode == "difference_only":
+                current_hidden = self.cell_encoder(
+                    current_cells.reshape(batch * pair_count, cell_count, 4)
+                )
+                previous_hidden = self.cell_encoder(
+                    previous_cells.reshape(batch * pair_count, cell_count, 4)
+                )
+            else:
+                raise ValueError(
+                    "recurrent_window supports difference_only, state_triplet, "
+                    "inverse_sbox_triplet, or dual_view_triplet"
+                )
+
+            transition = self.typed_fusion(
+                torch.cat((current_hidden, previous_hidden), dim=-1)
+            )
+            sbox_context = self.sbox_encoder(
+                structure.sbox_truth_bits[round_index].to(
+                    device=transition.device,
+                    dtype=transition.dtype,
+                )
+            )
+            round_sbox_contexts.append(sbox_context)
+            if self.spec.sbox_context_mode == "early_add":
+                transition = (
+                    transition + self.spec.sbox_context_scale * sbox_context[None, :, :]
+                )
+            if sequence is None:
+                sequence = transition
+            else:
+                sequence = self.sequence_norm(sequence + transition)
+            if self.spec.sbox_context_mode == "edge_gate":
+                sequence = self._apply_sbox_edge_gate(
+                    sequence,
+                    sbox_context,
+                    structure,
+                    round_index=round_index,
+                )
+            for block in self.mixer_blocks:
+                sequence = block(sequence)
+            if self.spec.sbox_context_mode == "late_cell":
+                sequence = (
+                    sequence + self.spec.sbox_context_scale * sbox_context[None, :, :]
+                )
+            sequence = self.sequence_norm(sequence)
+            left = previous_left
+            right = previous_right
+            difference = previous_difference
+
+        if sequence is None:
+            raise ValueError("runtime SPN structure must contain at least one round")
+        aggregate_sbox_context = torch.stack(round_sbox_contexts, dim=0).mean(dim=0)
+        return self._pool_sequence(
+            sequence,
+            current_cells=output_cells,
+            sbox_context=aggregate_sbox_context,
+            batch=batch,
+            pair_count=pair_count,
+        )
+
+    def _pool_sequence(
+        self,
+        sequence: torch.Tensor,
+        *,
+        current_cells: torch.Tensor,
+        sbox_context: torch.Tensor,
+        batch: int,
+        pair_count: int,
+    ) -> torch.Tensor:
+        cell_count = current_cells.shape[2]
         current_activity = current_cells.mean(dim=-1, keepdim=True).reshape(
             batch * pair_count, cell_count, 1
         )
@@ -629,7 +806,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             torch.cat((mean_embedding, max_embedding, active_embedding), dim=-1)
         ).reshape(batch, pair_count, self.spec.pair_embedding_dim)
         if self.spec.sbox_context_mode == "late_pair":
-            late_context = sbox_context.to(torch.float64).mean(dim=0).to(hidden.dtype)
+            late_context = sbox_context.to(torch.float64).mean(dim=0).to(sequence.dtype)
             if late_context.shape[0] != self.spec.pair_embedding_dim:
                 late_context = torch.nn.functional.adaptive_avg_pool1d(
                     late_context.reshape(1, 1, -1),
@@ -712,12 +889,14 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         sequence: torch.Tensor,
         sbox_context: torch.Tensor,
         structure: RuntimeSpnStructure,
+        *,
+        round_index: int = -1,
     ) -> torch.Tensor:
         membership = torch.nn.functional.one_hot(
             structure.cell_membership.to(sequence.device),
             num_classes=structure.cells,
         ).to(sequence.dtype)
-        bit_adjacency = structure.inverse_linear_matrices[-1].to(
+        bit_adjacency = structure.inverse_linear_matrices[round_index].to(
             device=sequence.device,
             dtype=sequence.dtype,
         )
@@ -776,6 +955,7 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.aggregation_mode = aggregation_mode
         self.input_bit_order = "project_msb_to_runtime_lsb"
         self.runtime_structure_loaded_rounds = structure.rounds
+        self.runtime_round_window_mode = spec.round_window_mode
         if descriptor_name is not None:
             self.runtime_structure_descriptor_name = descriptor_name
         if descriptor_path is not None:
