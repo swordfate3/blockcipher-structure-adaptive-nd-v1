@@ -122,6 +122,7 @@ def training_curve_series(
                             "label": label,
                             "run_index": run_index,
                             "model": row.get("model", row.get("selected_model", "")),
+                            "architecture": row.get("architecture", ""),
                             "cipher": row.get("cipher", ""),
                             "rounds": row.get("rounds", ""),
                             "seed": row.get("seed", ""),
@@ -752,6 +753,26 @@ def _compact_label(item: dict[str, Any]) -> str:
         mode = item.get("runtime_structure_mode")
         context = item.get("sbox_context_mode")
         cell_input = item.get("cell_input_mode")
+        architecture = str(item.get("architecture") or "")
+        if (
+            mode == "true"
+            and context == "edge_gate"
+            and cell_input == "inverse_sbox_triplet"
+        ):
+            return f"seed{seed}：正确逆S盒三元组"
+        if (
+            mode == "sbox_shuffled"
+            and context == "edge_gate"
+            and cell_input == "inverse_sbox_triplet"
+        ):
+            return f"seed{seed}：打乱逆S盒三元组"
+        if (
+            mode == "true"
+            and context == "edge_gate"
+            and cell_input == "state_triplet"
+            and "StateTriplet-Anchor-U2D" in architecture
+        ):
+            return f"seed{seed}：状态三元组锚点"
         if mode == "true" and context == "edge_gate" and cell_input == "state_triplet":
             return f"seed{seed}：正确归属（三元组）"
         if mode == "true" and context == "edge_gate" and cell_input == "difference_only":

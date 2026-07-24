@@ -29,9 +29,15 @@ def adjudicate_uknit_sbox_assignment(
     if anchor_context not in {"late_pair", "edge_gate"}:
         raise ValueError("anchor_context must be late_pair or edge_gate")
     for value in (candidate_cell_input_mode, anchor_cell_input_mode):
-        if value not in {None, "difference_only", "state_triplet"}:
+        if value not in {
+            None,
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+        }:
             raise ValueError(
-                "cell input mode must be difference_only, state_triplet, or None"
+                "cell input mode must be difference_only, state_triplet, "
+                "inverse_sbox_triplet, or None"
             )
     rows = list(rows)
     grouped: dict[int, dict[str, list[dict[str, Any]]]] = defaultdict(
@@ -115,17 +121,26 @@ def adjudicate_uknit_sbox_assignment(
 
     protocol_passed = all(protocol_checks.values())
     research_passed = all(research_checks.values())
+    inverse_sbox_triplet = candidate_cell_input_mode == "inverse_sbox_triplet"
     state_triplet = candidate_cell_input_mode == "state_triplet"
-    edge_gate = candidate_context == "edge_gate" and not state_triplet
+    edge_gate = (
+        candidate_context == "edge_gate"
+        and not state_triplet
+        and not inverse_sbox_triplet
+    )
     if not protocol_passed:
         status = "fail"
         decision = (
-            "innovation1_uknit_state_triplet_protocol_invalid"
-            if state_triplet
+            "innovation1_uknit_inverse_sbox_triplet_protocol_invalid"
+            if inverse_sbox_triplet
             else (
-                "innovation1_uknit_sbox_edge_gate_protocol_invalid"
-                if edge_gate
-                else "innovation1_uknit_sbox_assignment_protocol_invalid"
+                "innovation1_uknit_state_triplet_protocol_invalid"
+                if state_triplet
+                else (
+                    "innovation1_uknit_sbox_edge_gate_protocol_invalid"
+                    if edge_gate
+                    else "innovation1_uknit_sbox_assignment_protocol_invalid"
+                )
             )
         )
         next_action = (
@@ -134,7 +149,14 @@ def adjudicate_uknit_sbox_assignment(
         )
     elif research_passed:
         status = "pass"
-        if state_triplet:
+        if inverse_sbox_triplet:
+            decision = "innovation1_uknit_inverse_sbox_triplet_two_seed_supported"
+            next_action = (
+                "audit both best inverse-S-box-triplet checkpoints with a "
+                "same-checkpoint correct-versus-shuffled operator swap before any "
+                "scale increase"
+            )
+        elif state_triplet:
             decision = "innovation1_uknit_state_triplet_two_seed_supported"
             next_action = (
                 "audit both best state-triplet checkpoints with a same-checkpoint "
@@ -155,12 +177,16 @@ def adjudicate_uknit_sbox_assignment(
     else:
         status = "hold"
         decision = (
-            "innovation1_uknit_state_triplet_hold"
-            if state_triplet
+            "innovation1_uknit_inverse_sbox_triplet_hold"
+            if inverse_sbox_triplet
             else (
-                "innovation1_uknit_sbox_edge_gate_hold"
-                if edge_gate
-                else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+                "innovation1_uknit_state_triplet_hold"
+                if state_triplet
+                else (
+                    "innovation1_uknit_sbox_edge_gate_hold"
+                    if edge_gate
+                    else "innovation1_uknit_sbox_assignment_hold_redesign_local"
+                )
             )
         )
         passing_seeds = sum(
@@ -174,7 +200,12 @@ def adjudicate_uknit_sbox_assignment(
             )
             for seed in EXPECTED_SEEDS
         )
-        if state_triplet:
+        if inverse_sbox_triplet:
+            next_action = (
+                "close this inverse-S-box-triplet operator design and review a "
+                "distinct runtime representation hypothesis without scale-up"
+            )
+        elif state_triplet:
             next_action = (
                 "close this state-triplet-plus-edge-gate design and review a "
                 "distinct runtime representation hypothesis without scale-up"
@@ -195,12 +226,16 @@ def adjudicate_uknit_sbox_assignment(
     return {
         "run_id": run_id,
         "task": (
-            "innovation1_uknit_runtime_e4_state_triplet_u2c"
-            if state_triplet
+            "innovation1_uknit_runtime_e4_inverse_sbox_triplet_u2d"
+            if inverse_sbox_triplet
             else (
-                "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
-                if edge_gate
-                else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+                "innovation1_uknit_runtime_e4_state_triplet_u2c"
+                if state_triplet
+                else (
+                    "innovation1_uknit_runtime_e4_sbox_edge_gate_u2b"
+                    if edge_gate
+                    else "innovation1_uknit_runtime_e4_sbox_assignment_u1"
+                )
             )
         ),
         "cipher": "uKNIT-BC",

@@ -8,11 +8,14 @@ import torch
 from blockcipher_nd.ciphers.spn.uknit import (
     UKNIT_SBOX_TABLES,
     UknitBc,
+    uknit_linear_layer,
     uknit_round_keys,
+    uknit_substitution_layer,
 )
 from blockcipher_nd.data.differential import DifferentialDatasetConfig
 from blockcipher_nd.data.differential.generator import make_differential_dataset
 from blockcipher_nd.engine.modeling import cipher_profile, model_metadata
+from blockcipher_nd.engine.matrix_runner import parse_args as parse_train_args
 from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     RuntimeE4EquivariantSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
@@ -25,13 +28,28 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     present_runtime_structure,
     uknit64_runtime_structure,
 )
-from blockcipher_nd.planning.matrix import cipher_key_from_name
+from blockcipher_nd.planning.matrix import build_tasks, cipher_key_from_name
 from blockcipher_nd.registry.cipher_factory import build_cipher, default_difference
 from blockcipher_nd.registry.model_factory import build_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DESCRIPTOR = ROOT / "configs/runtime/spn/uknit64.json"
+U2D_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1.csv"
+)
+
+
+def _runtime_bits(value: int) -> torch.Tensor:
+    return torch.tensor(
+        [[(value >> bit) & 1 for bit in range(64)]],
+        dtype=torch.float32,
+    )
+
+
+def _runtime_int(bits: torch.Tensor) -> int:
+    return sum(int(bits[0, bit]) << bit for bit in range(64))
 
 
 @pytest.mark.parametrize(
@@ -201,6 +219,45 @@ def test_all_uknit_sboxes_are_permutations_and_linear_layers_are_invertible() ->
             torch.remainder(linear.to(torch.int64) @ inverse.to(torch.int64), 2),
             identity,
         )
+
+
+def test_runtime_sbox_operators_match_uknit_and_invert_every_cell_table() -> None:
+    structure = uknit64_runtime_structure(11)
+
+    for round_index in range(11):
+        assert torch.equal(
+            structure.sbox_tables(round_index),
+            torch.tensor(UKNIT_SBOX_TABLES[round_index]),
+        )
+        for cell_value in range(16):
+            state = sum(cell_value << (4 * cell) for cell in range(16))
+            values = _runtime_bits(state)
+            substituted = structure.apply_sboxes(values, round_index)
+
+            assert _runtime_int(substituted) == uknit_substitution_layer(
+                state, round_index
+            )
+            torch.testing.assert_close(
+                structure.apply_inverse_sboxes(substituted, round_index),
+                values,
+                rtol=0.0,
+                atol=0.0,
+            )
+
+
+def test_runtime_inverse_linear_and_sbox_recover_known_pre_sbox_state() -> None:
+    actual_round = 3
+    structure = uknit64_runtime_structure(2, round_start=2)
+    pre_sbox = 0x0123456789ABCDEF
+    substituted = uknit_substitution_layer(pre_sbox, actual_round)
+    observed = uknit_linear_layer(substituted, actual_round)
+
+    recovered = structure.apply_inverse_sboxes(
+        structure.exact_inverse(_runtime_bits(observed), -1),
+        -1,
+    )
+
+    assert _runtime_int(recovered) == pre_sbox
 
 
 def test_generic_runtime_models_load_uknit_window_with_equal_geometry() -> None:
@@ -402,3 +459,114 @@ def test_uknit_state_triplet_preserves_endpoints_and_pair_symmetry() -> None:
         parameter.grad is None or torch.isfinite(parameter.grad).all()
         for parameter in state_triplet.parameters()
     )
+
+
+def test_uknit_inverse_sbox_triplet_is_operator_sensitive_and_equivariant() -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    shuffled = structure.shuffled_sbox_assignments(20260724)
+    relabeled, bit_permutation = structure.relabel_cells(
+        tuple(reversed(range(structure.cells)))
+    )
+    pairs = torch.randint(0, 2, (3, 4, 2, 64), dtype=torch.float32)
+    swapped = pairs.flip(dims=(2,))
+    relabeled_pairs = torch.empty_like(pairs)
+    relabeled_pairs[..., bit_permutation] = pairs
+    torch.manual_seed(20260727)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="edge_gate",
+            cell_input_mode="inverse_sbox_triplet",
+        )
+    )
+    fusion_inputs: list[torch.Tensor] = []
+
+    def capture_fusion_input(
+        _module: torch.nn.Module,
+        args: tuple[torch.Tensor, ...],
+    ) -> None:
+        fusion_inputs.append(args[0].detach().clone())
+
+    hook = model.typed_fusion.register_forward_pre_hook(capture_fusion_input)
+    correct = model(pairs, structure)
+    shuffled_logits = model(pairs, shuffled)
+    swapped_logits = model(swapped, structure)
+    relabeled_logits = model(relabeled_pairs, relabeled)
+    hook.remove()
+    correct.square().mean().backward()
+
+    assert len(fusion_inputs) == 4
+    assert float(torch.max(torch.abs(fusion_inputs[0] - fusion_inputs[1]))) > 1e-6
+    assert float(torch.max(torch.abs(correct - shuffled_logits)).detach()) > 1e-6
+    torch.testing.assert_close(correct, swapped_logits, rtol=0.0, atol=1e-6)
+    torch.testing.assert_close(correct, relabeled_logits, rtol=0.0, atol=1e-6)
+    assert torch.isfinite(correct).all()
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in model.parameters()
+    )
+
+
+def test_uknit_inverse_sbox_triplet_independent_mode_bypasses_inverse_operator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    structure = uknit64_runtime_structure(2, round_start=2)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=16,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            cell_input_mode="inverse_sbox_triplet",
+        )
+    ).eval()
+
+    def reject_inverse(*_args: object, **_kwargs: object) -> torch.Tensor:
+        raise AssertionError("independent mode must not execute inverse S-boxes")
+
+    monkeypatch.setattr(type(structure), "apply_inverse_sboxes", reject_inverse)
+    with torch.no_grad():
+        output = model(
+            torch.randint(0, 2, (2, 4, 2, 64), dtype=torch.float32),
+            structure,
+            relation_mode="independent",
+        )
+
+    assert output.shape == (2, 1)
+
+
+def test_uknit_u2d_plan_builds_equal_geometry_six_row_matrix() -> None:
+    tasks = build_tasks(parse_train_args(["--plan", str(U2D_PLAN)]))
+    models = [
+        build_model(
+            task["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=task["model_options"],
+        )
+        for task in tasks
+    ]
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+
+    assert len(tasks) == 6
+    assert [task["seed"] for task in tasks] == [0, 0, 0, 1, 1, 1]
+    assert [
+        task["model_options"]["cell_input_mode"] for task in tasks
+    ] == [
+        "inverse_sbox_triplet",
+        "state_triplet",
+        "inverse_sbox_triplet",
+        "inverse_sbox_triplet",
+        "state_triplet",
+        "inverse_sbox_triplet",
+    ]
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert all(sum(parameter.numel() for parameter in model.parameters()) == 442466 for model in models)

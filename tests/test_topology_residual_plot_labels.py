@@ -194,33 +194,64 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
     results = tmp_path / "uknit-results.jsonl"
     output = tmp_path / "uknit-curves.svg"
     role_rows = (
-        ("runtime_spn_e4_equivariant_true", "true", "late_cell", None),
-        ("runtime_spn_e4_equivariant_true", "true", "late_pair", None),
-        ("runtime_spn_e4_equivariant_true", "true", "edge_gate", None),
+        ("runtime_spn_e4_equivariant_true", "true", "late_cell", None, ""),
+        ("runtime_spn_e4_equivariant_true", "true", "late_pair", None, ""),
+        ("runtime_spn_e4_equivariant_true", "true", "edge_gate", None, ""),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "late_cell",
             None,
+            "",
         ),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "edge_gate",
             None,
+            "",
         ),
-        ("runtime_spn_e4_equivariant_true", "true", "edge_gate", "state_triplet"),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "state_triplet",
+            "uKNIT64-RuntimeE4-StateTriplet-EdgeGate-Correct-U2C",
+        ),
         (
             "runtime_spn_e4_equivariant_true",
             "true",
             "edge_gate",
             "difference_only",
+            "",
         ),
         (
             "runtime_spn_e4_equivariant_sbox_shuffled",
             "sbox_shuffled",
             "edge_gate",
             "state_triplet",
+            "",
+        ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "inverse_sbox_triplet",
+            "uKNIT64-RuntimeE4-InverseSBoxTriplet-Correct-U2D",
+        ),
+        (
+            "runtime_spn_e4_equivariant_true",
+            "true",
+            "edge_gate",
+            "state_triplet",
+            "uKNIT64-RuntimeE4-StateTriplet-Anchor-U2D",
+        ),
+        (
+            "runtime_spn_e4_equivariant_sbox_shuffled",
+            "sbox_shuffled",
+            "edge_gate",
+            "inverse_sbox_triplet",
+            "uKNIT64-RuntimeE4-InverseSBoxTriplet-Shuffled-U2D",
         ),
     )
     rows = [
@@ -228,6 +259,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             "cipher": "uKNIT-BC",
             "model": model,
             "selected_model": model,
+            "architecture": architecture,
             "runtime_structure_mode": mode,
             "rounds": 4,
             "seed": seed,
@@ -249,7 +281,9 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
             ],
         }
         for seed in (0, 1)
-        for role_index, (model, mode, context, cell_input) in enumerate(role_rows)
+        for role_index, (model, mode, context, cell_input, architecture) in enumerate(
+            role_rows
+        )
     ]
     results.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
@@ -263,7 +297,7 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         validation_only=True,
     )
 
-    assert report["series"] == 16
+    assert report["series"] == 22
     assert report["validation_only"] is True
     visible_text = _visible_svg_text(ElementTree.parse(output).getroot())
     for seed in (0, 1):
@@ -275,6 +309,9 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
         assert f"seed{seed}：正确归属（三元组）" in visible_text
         assert f"seed{seed}：差分单通道锚点" in visible_text
         assert f"seed{seed}：打乱归属（三元组）" in visible_text
+        assert f"seed{seed}：正确逆S盒三元组" in visible_text
+        assert f"seed{seed}：状态三元组锚点" in visible_text
+        assert f"seed{seed}：打乱逆S盒三元组" in visible_text
     assert "训练集（虚线）" not in visible_text
     assert "最终准确率" not in visible_text
     assert "最终 AUC" in visible_text

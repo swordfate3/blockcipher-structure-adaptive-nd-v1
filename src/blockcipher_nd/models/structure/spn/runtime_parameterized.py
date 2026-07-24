@@ -25,7 +25,9 @@ class RuntimeParameterizedSpnSpec:
     sbox_context_mode: Literal[
         "early_add", "late_pair", "late_cell", "edge_gate"
     ] = "early_add"
-    cell_input_mode: Literal["difference_only", "state_triplet"] = "difference_only"
+    cell_input_mode: Literal[
+        "difference_only", "state_triplet", "inverse_sbox_triplet"
+    ] = "difference_only"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -43,9 +45,14 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError(
                 "sbox_context_mode must be early_add, late_pair, late_cell, or edge_gate"
             )
-        if self.cell_input_mode not in {"difference_only", "state_triplet"}:
+        if self.cell_input_mode not in {
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+        }:
             raise ValueError(
-                "cell_input_mode must be difference_only or state_triplet"
+                "cell_input_mode must be difference_only, state_triplet, "
+                "or inverse_sbox_triplet"
             )
 
 
@@ -487,7 +494,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         current_cells = self._ordered_cell_values(difference, structure)
         previous_cells = self._ordered_cell_values(previous, structure)
         batch, pair_count, cell_count, _ = current_cells.shape
-        if self.spec.cell_input_mode == "state_triplet":
+        if self.spec.cell_input_mode in {"state_triplet", "inverse_sbox_triplet"}:
             left = pairs[:, :, 0]
             right = pairs[:, :, 1]
             previous_left = (
@@ -500,6 +507,13 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 if relation_mode == "true"
                 else right
             )
+            if (
+                self.spec.cell_input_mode == "inverse_sbox_triplet"
+                and relation_mode == "true"
+            ):
+                previous_left = structure.apply_inverse_sboxes(previous_left, -1)
+                previous_right = structure.apply_inverse_sboxes(previous_right, -1)
+                previous = torch.remainder(previous_left + previous_right, 2.0)
             current_hidden = self._state_triplet_cell_hidden(
                 left,
                 right,

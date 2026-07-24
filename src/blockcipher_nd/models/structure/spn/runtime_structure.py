@@ -140,6 +140,60 @@ class RuntimeSpnStructure:
         index = round_index % self.rounds
         return apply_gf2(self.inverse_linear_matrices[index], values)
 
+    def sbox_tables(self, round_index: int = -1) -> torch.Tensor:
+        index = round_index % self.rounds
+        bits = self.sbox_truth_bits[index].reshape(self.cells, 16, 4).to(torch.long)
+        weights = 1 << torch.arange(4, dtype=torch.long)
+        return torch.sum(bits * weights, dim=-1)
+
+    def inverse_sbox_tables(self, round_index: int = -1) -> torch.Tensor:
+        tables = self.sbox_tables(round_index)
+        inverse = torch.empty_like(tables)
+        inputs = torch.arange(16, dtype=torch.long).expand(self.cells, -1)
+        inverse.scatter_(1, tables, inputs)
+        return inverse
+
+    def apply_sboxes(
+        self, values: torch.Tensor, round_index: int = -1
+    ) -> torch.Tensor:
+        return self._apply_cell_tables(values, self.sbox_tables(round_index))
+
+    def apply_inverse_sboxes(
+        self, values: torch.Tensor, round_index: int = -1
+    ) -> torch.Tensor:
+        return self._apply_cell_tables(values, self.inverse_sbox_tables(round_index))
+
+    def _apply_cell_tables(
+        self,
+        values: torch.Tensor,
+        tables: torch.Tensor,
+    ) -> torch.Tensor:
+        if values.shape[-1] != self.block_bits:
+            raise ValueError("S-box values do not match runtime block width")
+        if not torch.all((values == 0) | (values == 1)):
+            raise ValueError("S-box values must be binary")
+        indices = torch.empty(
+            self.cells,
+            4,
+            dtype=torch.long,
+            device=values.device,
+        )
+        bit_indices = torch.arange(self.block_bits, device=values.device)
+        indices[
+            self.cell_membership.to(values.device),
+            self.bit_role.to(values.device),
+        ] = bit_indices
+        cell_bits = values[..., indices].to(torch.long)
+        bit_roles = torch.arange(3, -1, -1, dtype=torch.long, device=values.device)
+        weights = 1 << bit_roles
+        cell_values = torch.sum(cell_bits * weights, dim=-1)
+        cell_ids = torch.arange(self.cells, device=values.device)
+        mapped = tables.to(values.device)[cell_ids, cell_values]
+        mapped_bits = ((mapped[..., None] >> bit_roles) & 1).to(values.dtype)
+        result = torch.empty_like(values)
+        result[..., indices] = mapped_bits
+        return result
+
     def corrupted(self, seed: int = 20260724) -> RuntimeSpnStructure:
         if self.block_bits < 2:
             raise ValueError("topology corruption requires at least two bits")
