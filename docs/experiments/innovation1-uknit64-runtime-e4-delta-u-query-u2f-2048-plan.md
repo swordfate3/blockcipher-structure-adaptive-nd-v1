@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = planned local diagnostic
+stage    = completed local diagnostic
 run_id   = i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724
-training = not started
-decision = pending
+training = completed from local source commit ee99661f
+decision = innovation1_uknit_delta_u_query_two_seed_supported
 ```
 
 ## Research Question
@@ -145,3 +145,75 @@ evidence.
   uKNIT state-input anchor.
 - Fail: repair only the protocol/readiness mismatch and rerun the unchanged
   six-row matrix; do not interpret its AUC values.
+
+## Completed Result
+
+The six-row local CPU diagnostic completed from local source commit
+`ee99661f`. The exact plan/result validator reported six planned and six
+observed rows with no missing, unexpected, duplicate, or mismatched keys. All
+protocol checks passed, including strict encrypted-random-plaintext negatives,
+the exact two-round descriptor window, disk-cache reuse, equal `458850`
+parameter geometry, and the frozen data/training protocols.
+
+| Seed | Correct delta-U query | Delta-V identity anchor | Shuffled delta-U query | Candidate - anchor | Candidate - shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.543138981 | 0.529586315 | 0.534625053 | +0.013552666 | +0.008513927 |
+| 1 | 0.554934978 | 0.515623569 | 0.519526958 | +0.039311409 | +0.035408020 |
+
+Both seeds passed all three preregistered research checks. The candidate AUC
+exceeded `0.520`; the correct delta-U query exceeded the capacity-matched
+delta-V identity query by more than `+0.005`; and it exceeded the shuffled
+S-box-ownership delta-U control by more than `+0.005`.
+
+```text
+status   = pass
+decision = innovation1_uknit_delta_u_query_two_seed_supported
+keep     = unchanged U2-C state triplets plus an explicit runtime delta-U query token
+claim    = supported local uKNIT query-representation mechanism only
+```
+
+This is stronger than U2-E at the same diagnostic budget because it retains
+the state representation instead of averaging it away. It is still not
+formal, paper-scale, an attack, cross-cipher evidence, SOTA, or a breakthrough.
+Do not increase samples, epochs, pairs, seeds, or move it to the remote GPU
+from this result alone.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/results.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/plan_validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/gate.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/summary.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/history.csv
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/curves.svg
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1_20260724/visual_qa_passed.marker
+```
+
+The exact SVG was rendered to `2167 x 986` pixels and passed the
+`visual-qa-redraw` gate. Its Chinese title and protocol subtitle, six-series
+legend, zoomed AUC axis, curves, and validation summary table are readable
+without overlap, clipping, missing glyphs, or ambiguous scale.
+
+## Evidence-Backed Next Action: U2-G Same-Checkpoint Query Swap
+
+Before any new training or scale increase, freeze each seed's best U2-F
+candidate checkpoint and exact validation cache. Evaluate the same weights and
+same examples under three inference-only query conditions while keeping the
+correct edge-gate context and both state-triplet inputs unchanged:
+
+```text
+reference = correct runtime deltaU query
+control 1 = deltaU computed with shuffled per-cell S-box ownership only
+control 2 = deltaV identity query with no inverse-S-box lookup
+```
+
+No training is allowed. Require identical checkpoint, feature, label, runtime
+window, parameter geometry and non-query activations within each seed panel.
+Advance only if both seeds retain at least `+0.005` AUC over both controls and
+the probability vectors change under the query swap. If the same-checkpoint
+margin disappears, classify U2-F as a training-distribution effect and close
+this query route without scale-up. This audit resolves whether the third token
+itself carries the supported ownership-sensitive mechanism.
