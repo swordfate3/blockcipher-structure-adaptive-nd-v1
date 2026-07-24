@@ -23,6 +23,9 @@ def adjudicate_uknit_sbox_assignment(
     candidate_cell_input_mode: str | None = None,
     anchor_context: str = "late_pair",
     anchor_cell_input_mode: str | None = None,
+    expected_rounds: int = 4,
+    expected_round_start: int = 2,
+    experiment_stage: str = "u2f",
 ) -> dict[str, Any]:
     if candidate_context not in {"late_cell", "edge_gate"}:
         raise ValueError("candidate_context must be late_cell or edge_gate")
@@ -43,6 +46,17 @@ def adjudicate_uknit_sbox_assignment(
                 "inverse_sbox_triplet, dual_view_triplet, "
                 "state_triplet_delta_v_query, state_triplet_delta_u_query, or None"
             )
+    if expected_rounds < 1:
+        raise ValueError("expected_rounds must be positive")
+    if expected_round_start < 0:
+        raise ValueError("expected_round_start must be non-negative")
+    if experiment_stage not in {"u2f", "u2h"}:
+        raise ValueError("experiment_stage must be u2f or u2h")
+    if experiment_stage == "u2h" and (
+        candidate_cell_input_mode != "state_triplet_delta_u_query"
+        or anchor_cell_input_mode != "state_triplet_delta_v_query"
+    ):
+        raise ValueError("u2h is reserved for the delta-U cross-window replication")
     rows = list(rows)
     grouped: dict[int, dict[str, list[dict[str, Any]]]] = defaultdict(
         lambda: defaultdict(list)
@@ -68,7 +82,10 @@ def adjudicate_uknit_sbox_assignment(
         "six_rows_complete": len(rows) == 6,
         "two_expected_seeds": set(grouped) == set(EXPECTED_SEEDS),
         "three_unique_roles_per_seed": complete_roles,
-        "uknit_prefix_r4_protocol": _all_rows_match_uknit_protocol(rows),
+        f"uknit_prefix_r{expected_rounds}_protocol": _all_rows_match_uknit_protocol(
+            rows,
+            expected_rounds=expected_rounds,
+        ),
         "strict_encrypted_random_plaintext_negatives": all(
             row.get("negative_mode") == "encrypted_random_plaintexts" for row in rows
         ),
@@ -87,7 +104,10 @@ def adjudicate_uknit_sbox_assignment(
             for row in rows
         ),
         "equal_parameter_geometry": _equal_parameter_geometry(rows),
-        "exact_descriptor_window": _exact_descriptor_window(rows),
+        "exact_descriptor_window": _exact_descriptor_window(
+            rows,
+            expected_round_start=expected_round_start,
+        ),
         "role_contracts_match_plan": complete_roles
         and all(
             _role_contract(
@@ -129,6 +149,7 @@ def adjudicate_uknit_sbox_assignment(
     inverse_sbox_triplet = candidate_cell_input_mode == "inverse_sbox_triplet"
     state_triplet = candidate_cell_input_mode == "state_triplet"
     delta_u_query = candidate_cell_input_mode == "state_triplet_delta_u_query"
+    cross_window = experiment_stage == "u2h"
     edge_gate = (
         candidate_context == "edge_gate"
         and not state_triplet
@@ -139,7 +160,11 @@ def adjudicate_uknit_sbox_assignment(
     if not protocol_passed:
         status = "fail"
         decision = (
-            "innovation1_uknit_delta_u_query_protocol_invalid"
+            (
+                "innovation1_uknit_delta_u_cross_window_protocol_invalid"
+                if cross_window
+                else "innovation1_uknit_delta_u_query_protocol_invalid"
+            )
             if delta_u_query
             else (
                 "innovation1_uknit_dual_view_triplet_protocol_invalid"
@@ -166,11 +191,18 @@ def adjudicate_uknit_sbox_assignment(
     elif research_passed:
         status = "pass"
         if delta_u_query:
-            decision = "innovation1_uknit_delta_u_query_two_seed_supported"
-            next_action = (
-                "audit both best deltaU-query checkpoints with a same-checkpoint "
-                "correct-versus-shuffled query swap before any scale increase"
-            )
+            if cross_window:
+                decision = "innovation1_uknit_delta_u_cross_window_supported"
+                next_action = (
+                    "audit both r5-window best deltaU-query checkpoints with the "
+                    "same-checkpoint query-only counterfactual before any scale increase"
+                )
+            else:
+                decision = "innovation1_uknit_delta_u_query_two_seed_supported"
+                next_action = (
+                    "audit both best deltaU-query checkpoints with a same-checkpoint "
+                    "correct-versus-shuffled query swap before any scale increase"
+                )
         elif dual_view_triplet:
             decision = "innovation1_uknit_dual_view_triplet_two_seed_supported"
             next_action = (
@@ -205,7 +237,11 @@ def adjudicate_uknit_sbox_assignment(
     else:
         status = "hold"
         decision = (
-            "innovation1_uknit_delta_u_query_hold"
+            (
+                "innovation1_uknit_delta_u_cross_window_not_replicated"
+                if cross_window
+                else "innovation1_uknit_delta_u_query_hold"
+            )
             if delta_u_query
             else (
                 "innovation1_uknit_dual_view_triplet_hold"
@@ -238,8 +274,13 @@ def adjudicate_uknit_sbox_assignment(
         )
         if delta_u_query:
             next_action = (
-                "close this explicit deltaU query-token design and return to the "
-                "stronger state-triplet anchor without scale-up"
+                "classify the supported deltaU mechanism as window-specific and stop "
+                "cross-window or scale advancement"
+                if cross_window
+                else (
+                    "close this explicit deltaU query-token design and return to the "
+                    "stronger state-triplet anchor without scale-up"
+                )
             )
         elif dual_view_triplet:
             next_action = (
@@ -272,7 +313,11 @@ def adjudicate_uknit_sbox_assignment(
     return {
         "run_id": run_id,
         "task": (
-            "innovation1_uknit_runtime_e4_delta_u_query_u2f"
+            (
+                "innovation1_uknit_runtime_e4_delta_u_query_u2h"
+                if cross_window
+                else "innovation1_uknit_runtime_e4_delta_u_query_u2f"
+            )
             if delta_u_query
             else (
                 "innovation1_uknit_runtime_e4_dual_view_triplet_u2e"
@@ -304,7 +349,7 @@ def adjudicate_uknit_sbox_assignment(
         "protocol_checks": protocol_checks,
         "research_checks": research_checks,
         "claim_scope": (
-            f"uKNIT-BC prefix-r4 two-seed 2048/class local "
+            f"uKNIT-BC prefix-r{expected_rounds} two-seed 2048/class local "
             f"{candidate_cell_input_mode or candidate_context} "
             "S-box-assignment diagnostic only; not formal, paper-scale, attack, "
             "cross-cipher, or breakthrough evidence"
@@ -376,12 +421,16 @@ def _seed_result(group: dict[str, list[dict[str, Any]]]) -> dict[str, float | No
     }
 
 
-def _all_rows_match_uknit_protocol(rows: list[dict[str, Any]]) -> bool:
+def _all_rows_match_uknit_protocol(
+    rows: list[dict[str, Any]],
+    *,
+    expected_rounds: int,
+) -> bool:
     return len(rows) == 6 and all(
         row.get("cipher") == "uKNIT-BC"
         and row.get("cipher_key") == "uknit64"
         and row.get("structure") == "SPN"
-        and row.get("rounds") == 4
+        and row.get("rounds") == expected_rounds
         and row.get("samples_per_class") == 2048
         and row.get("validation", {}).get("samples_per_class") == 1024
         and row.get("pairs_per_sample") == 4
@@ -447,14 +496,18 @@ def _equal_parameter_geometry(rows: list[dict[str, Any]]) -> bool:
     return len(rows) == 6 and len(counts) == 1 and None not in next(iter(counts), ())
 
 
-def _exact_descriptor_window(rows: list[dict[str, Any]]) -> bool:
+def _exact_descriptor_window(
+    rows: list[dict[str, Any]],
+    *,
+    expected_round_start: int,
+) -> bool:
     hashes = {row.get("runtime_structure_descriptor_sha256") for row in rows}
     return (
         len(rows) == 6
         and len(hashes) == 1
         and None not in hashes
         and all(
-            row.get("runtime_structure_round_start") == 2
+            row.get("runtime_structure_round_start") == expected_round_start
             and row.get("runtime_structure_available_rounds") == 11
             and row.get("runtime_structure_loaded_rounds") == 2
             and row.get("training", {})

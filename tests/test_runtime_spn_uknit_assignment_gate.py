@@ -322,3 +322,66 @@ def test_uknit_delta_u_query_gate_rejects_protocol_drift() -> None:
 
     assert gate["status"] == "fail"
     assert gate["decision"] == "innovation1_uknit_delta_u_query_protocol_invalid"
+
+
+def _delta_u_cross_window_gate(
+    rows: list[dict[str, object]],
+) -> dict[str, object]:
+    for row in rows:
+        row["rounds"] = 5
+        row["runtime_structure_round_start"] = 3
+        row["training"]["model_options"]["runtime_round_start"] = 3
+    return adjudicate_uknit_sbox_assignment(
+        run_id="u2h",
+        rows=rows,
+        candidate_context="edge_gate",
+        candidate_cell_input_mode="state_triplet_delta_u_query",
+        anchor_context="edge_gate",
+        anchor_cell_input_mode="state_triplet_delta_v_query",
+        expected_rounds=5,
+        expected_round_start=3,
+        experiment_stage="u2h",
+    )
+
+
+def test_uknit_delta_u_cross_window_gate_passes_r5_panel() -> None:
+    gate = _delta_u_cross_window_gate(_delta_u_query_rows())
+
+    assert gate["status"] == "pass"
+    assert gate["task"] == "innovation1_uknit_runtime_e4_delta_u_query_u2h"
+    assert gate["decision"] == "innovation1_uknit_delta_u_cross_window_supported"
+    assert gate["protocol_checks"]["uknit_prefix_r5_protocol"] is True
+    assert all(gate["protocol_checks"].values())
+
+
+def test_uknit_delta_u_cross_window_gate_holds_nonreplication() -> None:
+    rows = _delta_u_query_rows()
+    rows[3]["metrics"]["auc"] = 0.538  # type: ignore[index]
+
+    gate = _delta_u_cross_window_gate(rows)
+
+    assert gate["status"] == "hold"
+    assert gate["decision"] == "innovation1_uknit_delta_u_cross_window_not_replicated"
+    assert "window-specific" in gate["next_action"]
+
+
+def test_uknit_delta_u_cross_window_gate_rejects_r4_window() -> None:
+    rows = _delta_u_query_rows()
+    for row in rows:
+        row["rounds"] = 5
+
+    gate = adjudicate_uknit_sbox_assignment(
+        run_id="u2h",
+        rows=rows,
+        candidate_context="edge_gate",
+        candidate_cell_input_mode="state_triplet_delta_u_query",
+        anchor_context="edge_gate",
+        anchor_cell_input_mode="state_triplet_delta_v_query",
+        expected_rounds=5,
+        expected_round_start=3,
+        experiment_stage="u2h",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_uknit_delta_u_cross_window_protocol_invalid"
+    assert gate["protocol_checks"]["exact_descriptor_window"] is False

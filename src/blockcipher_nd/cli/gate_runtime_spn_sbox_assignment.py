@@ -50,6 +50,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
         default=None,
     )
+    parser.add_argument("--expected-rounds", type=int, default=4)
+    parser.add_argument("--expected-round-start", type=int, default=2)
+    parser.add_argument(
+        "--experiment-stage",
+        choices=("u2f", "u2h"),
+        default="u2f",
+    )
     return parser.parse_args(argv)
 
 
@@ -63,6 +70,9 @@ def main(argv: list[str] | None = None) -> int:
         candidate_cell_input_mode=args.candidate_cell_input_mode,
         anchor_context=args.anchor_context,
         anchor_cell_input_mode=args.anchor_cell_input_mode,
+        expected_rounds=args.expected_rounds,
+        expected_round_start=args.expected_round_start,
+        experiment_stage=args.experiment_stage,
     )
     validation = {
         "run_id": args.run_id,

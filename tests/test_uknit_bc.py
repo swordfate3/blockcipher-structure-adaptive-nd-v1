@@ -47,6 +47,10 @@ U2F_PLAN = (
     ROOT
     / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_delta_u_query_u2f_2048_seed0_seed1.csv"
 )
+U2H_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1.csv"
+)
 
 
 def _runtime_bits(value: int) -> torch.Tensor:
@@ -895,6 +899,49 @@ def test_uknit_u2f_plan_builds_equal_geometry_six_row_query_matrix() -> None:
         "state_triplet_delta_v_query",
         "state_triplet_delta_u_query",
     ]
+    assert all(geometry == geometries[0] for geometry in geometries)
+    assert all(
+        sum(parameter.numel() for parameter in model.parameters()) == 458850
+        for model in models
+    )
+
+
+def test_uknit_u2h_plan_changes_only_to_r5_aligned_window() -> None:
+    u2f_tasks = build_tasks(parse_train_args(["--plan", str(U2F_PLAN)]))
+    tasks = build_tasks(parse_train_args(["--plan", str(U2H_PLAN)]))
+    models = [
+        build_model(
+            task["model_key"],
+            input_bits=512,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=task["model_options"],
+        )
+        for task in tasks
+    ]
+    geometries = [
+        {name: tuple(value.shape) for name, value in model.state_dict().items()}
+        for model in models
+    ]
+
+    assert len(tasks) == 6
+    assert [task["rounds"] for task in tasks] == [5] * 6
+    assert [task["seed"] for task in tasks] == [0, 0, 0, 1, 1, 1]
+    assert [task["model_options"]["runtime_round_start"] for task in tasks] == [3] * 6
+    assert [task["model_options"]["cell_input_mode"] for task in tasks] == [
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_v_query",
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_u_query",
+        "state_triplet_delta_v_query",
+        "state_triplet_delta_u_query",
+    ]
+    for u2f, u2h in zip(u2f_tasks, tasks):
+        assert u2f["samples_per_class"] == u2h["samples_per_class"] == 2048
+        assert u2f["pairs_per_sample"] == u2h["pairs_per_sample"] == 4
+        assert u2f["target_epochs"] == u2h["target_epochs"] == 10
+        assert u2f["model_key"] == u2h["model_key"]
     assert all(geometry == geometries[0] for geometry in geometries)
     assert all(
         sum(parameter.numel() for parameter in model.parameters()) == 458850
