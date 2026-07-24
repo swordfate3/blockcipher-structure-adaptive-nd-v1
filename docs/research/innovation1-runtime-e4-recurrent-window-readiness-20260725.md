@@ -206,3 +206,12 @@ windows, non-homogeneous repeated-final controls, unequal final transitions,
 equal full/repeated window hashes, parameter-geometry drift, wrong role modes,
 or any data/training protocol drift. The gate contains no AUC threshold and
 does not authorize training while RTG3-A remains unresolved.
+
+The gate now uses fixed, seed-independent model initialization and a fixed
+`512-bit` binary probe to execute forward and backward passes for all ten
+planned models. It requires finite `[2, 1]` logits, finite full parameter-gradient
+coverage, seed-invariant role output hashes, and distinct candidate logits from
+the last-transition, repeated-final, corrupted and no-topology interventions.
+This closes the gap between model construction and actual computation-graph
+readiness. Different untrained logits prove only that the interventions are
+active; they are not accuracy, AUC or evidence that one role is superior.

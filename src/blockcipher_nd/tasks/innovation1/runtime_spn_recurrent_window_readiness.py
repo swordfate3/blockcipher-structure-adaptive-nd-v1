@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable
 from typing import Any
 
+import torch
 from torch import nn
 
 from blockcipher_nd.engine.modeling import model_metadata
@@ -14,6 +15,9 @@ from blockcipher_nd.registry.model_factory import build_model
 
 EXPECTED_SEEDS = (0, 1)
 UKNIT_VALIDATION_KEY = int("11" * 16, 16)
+PROBE_MODEL_SEED = 20260725
+PROBE_INPUT_SEED = 20260726
+PROBE_BATCH_SIZE = 2
 EXPECTED_ROLES = (
     "anchor",
     "candidate",
@@ -190,6 +194,29 @@ def adjudicate_recurrent_window_readiness(
         and _structure_evidence_seed_invariant(grouped),
         "structure_hashes_well_formed": bool(rows)
         and all(_well_formed_structure_hashes(row) for row in rows),
+        "fixed_probe_input_consistent": bool(rows)
+        and len({row.get("probe_input_sha256") for row in rows}) == 1
+        and all(_is_sha256(row.get("probe_input_sha256")) for row in rows),
+        "forward_probe_shape_and_finiteness": bool(rows)
+        and all(
+            row.get("probe_output_shape") == [PROBE_BATCH_SIZE, 1]
+            and row.get("probe_output_finite") is True
+            and _is_sha256(row.get("probe_output_sha256"))
+            for row in rows
+        ),
+        "backward_probe_finite_with_full_coverage": bool(rows)
+        and all(
+            row.get("probe_gradients_finite") is True
+            and row.get("probe_gradient_tensor_count")
+            == row.get("trainable_parameter_tensor_count")
+            and row.get("probe_gradient_parameter_count")
+            == row.get("trainable_parameter_count")
+            for row in rows
+        ),
+        "probe_outputs_seed_invariant": complete
+        and _probe_outputs_seed_invariant(grouped),
+        "probe_interventions_change_candidate_logits": complete
+        and _all_seed_rows(grouped, _probe_interventions_are_distinct),
     }
     passed = all(protocol_checks.values())
     return {
@@ -230,14 +257,18 @@ def _build_manifest(task: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("model_options must be a dictionary")
     role = _task_role(task)
     pairs_per_sample = int(task.get("pairs_per_sample", 0))
-    model = build_model(
-        str(task.get("model_key", "")),
-        input_bits=pairs_per_sample * 128,
-        hidden_bits=64,
-        pair_bits=128,
-        structure="SPN",
-        model_options=options,
-    )
+    input_bits = pairs_per_sample * 128
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(PROBE_MODEL_SEED)
+        model = build_model(
+            str(task.get("model_key", "")),
+            input_bits=input_bits,
+            hidden_bits=64,
+            pair_bits=128,
+            structure="SPN",
+            model_options=options,
+        )
+        probe_evidence = _probe_model(model, input_bits=input_bits)
     return {
         "architecture": str(task.get("architecture", "")),
         "model": str(task.get("model_key", "")),
@@ -247,6 +278,10 @@ def _build_manifest(task: dict[str, Any]) -> dict[str, Any]:
         "data_protocol": _data_protocol(task),
         "training_protocol": _training_protocol(task),
         "parameter_shape_sha256": _parameter_shape_sha256(model),
+        "trainable_parameter_tensor_count": sum(
+            1 for parameter in model.parameters() if parameter.requires_grad
+        ),
+        **probe_evidence,
         **model_metadata(model),
     }
 
@@ -438,6 +473,29 @@ def _structure_evidence_seed_invariant(
     )
 
 
+def _probe_outputs_seed_invariant(
+    grouped: dict[int, dict[str, list[dict[str, Any]]]],
+) -> bool:
+    return all(
+        grouped[0][role][0].get("probe_output_sha256")
+        == grouped[1][role][0].get("probe_output_sha256")
+        for role in EXPECTED_ROLES
+    )
+
+
+def _probe_interventions_are_distinct(
+    seed_rows: dict[str, dict[str, Any]],
+) -> bool:
+    candidate = seed_rows["candidate"].get("probe_output_sha256")
+    return bool(
+        _is_sha256(candidate)
+        and all(
+            candidate != seed_rows[role].get("probe_output_sha256")
+            for role in ("anchor", "repeat_last", "corrupted", "no_topology")
+        )
+    )
+
+
 def _well_formed_structure_hashes(row: dict[str, Any]) -> bool:
     transitions = row.get("runtime_structure_transition_sha256s")
     window = row.get("runtime_structure_window_sha256")
@@ -467,6 +525,48 @@ def _parameter_shape_sha256(model: nn.Module) -> str:
     ).hexdigest()
 
 
+def _probe_model(model: nn.Module, *, input_bits: int) -> dict[str, Any]:
+    generator = torch.Generator().manual_seed(PROBE_INPUT_SEED)
+    features = torch.randint(
+        0,
+        2,
+        (PROBE_BATCH_SIZE, input_bits),
+        generator=generator,
+        dtype=torch.float32,
+    )
+    model.eval()
+    model.zero_grad(set_to_none=True)
+    logits = model(features)
+    logits.square().mean().backward()
+    gradients = [
+        parameter.grad
+        for parameter in model.parameters()
+        if parameter.requires_grad and parameter.grad is not None
+    ]
+    return {
+        "probe_model_seed": PROBE_MODEL_SEED,
+        "probe_input_seed": PROBE_INPUT_SEED,
+        "probe_input_sha256": _tensor_sha256(features),
+        "probe_output_shape": list(logits.shape),
+        "probe_output_sha256": _tensor_sha256(logits),
+        "probe_output_finite": bool(torch.isfinite(logits).all()),
+        "probe_gradient_tensor_count": len(gradients),
+        "probe_gradient_parameter_count": sum(
+            int(gradient.numel()) for gradient in gradients
+        ),
+        "probe_gradients_finite": bool(
+            gradients
+            and all(bool(torch.isfinite(gradient).all()) for gradient in gradients)
+        ),
+    }
+
+
+def _tensor_sha256(value: torch.Tensor) -> str:
+    return hashlib.sha256(
+        value.detach().cpu().contiguous().numpy().tobytes()
+    ).hexdigest()
+
+
 def _canonical(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
@@ -475,6 +575,9 @@ __all__ = [
     "BASE_MODEL_OPTIONS",
     "EXPECTED_ROLES",
     "EXPECTED_SEEDS",
+    "PROBE_BATCH_SIZE",
+    "PROBE_INPUT_SEED",
+    "PROBE_MODEL_SEED",
     "ROLE_MODEL_OPTIONS",
     "ROLE_MODELS",
     "UKNIT_VALIDATION_KEY",

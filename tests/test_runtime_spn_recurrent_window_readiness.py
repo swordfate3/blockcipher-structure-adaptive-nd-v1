@@ -93,6 +93,14 @@ def test_recurrent_window_readiness_passes_exact_heterogeneous_panel() -> None:
         candidate["runtime_structure_window_sha256"]
         != repeated["runtime_structure_window_sha256"]
     )
+    assert candidate["probe_output_shape"] == [2, 1]
+    assert candidate["probe_output_finite"] is True
+    assert candidate["probe_gradients_finite"] is True
+    assert (
+        candidate["probe_gradient_tensor_count"]
+        == candidate["trainable_parameter_tensor_count"]
+    )
+    assert candidate["probe_output_sha256"] != repeated["probe_output_sha256"]
 
 
 def test_recurrent_window_readiness_accepts_the_real_frozen_plan() -> None:
@@ -236,6 +244,24 @@ def test_recurrent_window_readiness_rejects_final_transition_hash_drift() -> Non
                 {"runtime_structure_loaded_rounds": 3}
             ),
             "runtime_rounds_equal_two",
+        ),
+        (
+            lambda candidate, repeated: candidate.update(
+                {"probe_output_finite": False}
+            ),
+            "forward_probe_shape_and_finiteness",
+        ),
+        (
+            lambda candidate, repeated: candidate.update(
+                {"probe_gradients_finite": False}
+            ),
+            "backward_probe_finite_with_full_coverage",
+        ),
+        (
+            lambda candidate, repeated: repeated.update(
+                {"probe_output_sha256": candidate["probe_output_sha256"]}
+            ),
+            "probe_interventions_change_candidate_logits",
         ),
     ),
 )

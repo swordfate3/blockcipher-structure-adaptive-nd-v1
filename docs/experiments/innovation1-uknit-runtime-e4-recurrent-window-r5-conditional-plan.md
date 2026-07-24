@@ -130,6 +130,24 @@ Both end in transition
 The corrupted window is separately fingerprinted as
 `889818870924236f6a0536c01f8ef3f10f930bf271db1f90b92166a06a445029`.
 
+The re-adjudicated readiness also executes a fixed `512-bit` forward/backward
+probe for every model. All outputs have shape `[2, 1]` and are finite. Every
+model has finite gradients for all `54/54` trainable parameter tensors and all
+`442466/442466` trainable parameter elements. The five seed0 output hashes are:
+
+```text
+anchor       = 972e46a9524703d21c01fc3f55a56e96138ff55bf3df5d738ef01284ca396c41
+candidate    = 78e4f6d56d6cee1741e418a5e1154ccf53a30e10df633428245de30115e67add
+repeat_last  = ae765da771c122502c08bf208671d2db6ddf727e9136ebab2c83c86c357ad91f
+corrupted    = 90fc5c8172fe8bf546e6005d137372f03021f114413bbd83b933bba1e59fe1cc
+no_topology  = 6c4f0088adb6689c0c2a7ed32ea5146fcf7095d7ae522fea3ce63c878bde6adb
+```
+
+The same role hashes reproduce at seed1 because the readiness probe freezes
+model and input initialization independently of the future training seed.
+Their separation proves that each planned intervention reaches the computation
+graph; it does not rank the roles or provide performance evidence.
+
 Artifacts:
 
 ```text
@@ -140,8 +158,9 @@ outputs/local_readiness/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_see
 outputs/local_readiness/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_readiness_20260725/progress.jsonl
 ```
 
-This proves plan/model construction readiness only. It adds no AUC evidence
-and does not change `execution_authorized = no`.
+This proves plan/model construction plus finite forward/backward readiness
+only. It adds no AUC evidence and does not change
+`execution_authorized = no`.
 
 ## Recommended Next Action
 
