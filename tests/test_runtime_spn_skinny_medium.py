@@ -422,6 +422,13 @@ def test_medium_remote_assets_are_ready_and_windows_safe() -> None:
     assert "resumed_medium_pair_joint_adjudicated_and_indexed" in monitor_script
     assert 'SEED1_SOURCE_COMMIT="${1:-}"' in monitor_script
     assert "pushed-seed1-source-commit" in monitor_script
+    assert 'LAUNCH_GATE_PATH="${2:-outputs/local_readiness/' in monitor_script
+    assert "innovation1_rtg2a_seed1_remote_launch_authorized" in monitor_script
+    assert "g.get('should_ssh') is True" in monitor_script
+    assert "g.get('ssh_allowed') is True" in monitor_script
+    assert "g.get('launch_authorized') is True" in monitor_script
+    assert "g.get('source_commit') == '${SEED1_SOURCE_COMMIT}'" in monitor_script
+    assert "launch gate does not authorize remote contact" in monitor_script
     assert "stage_fallback_seed0_authorization" in monitor_script
     assert "RAW_RETRIEVAL_NOTICE.txt" in monitor_script
     assert "validation.local.json" in monitor_script

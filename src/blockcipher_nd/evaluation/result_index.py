@@ -199,6 +199,15 @@ DECISION_LABELS = {
     "innovation1_rtg2a_skinny_medium_joint_protocol_invalid": (
         "SKINNY中等规模两seed来源、单seed协议门或阈值证据不完整，禁止联合解释"
     ),
+    "innovation1_rtg2a_seed1_remote_launch_authorized": (
+        "seed0证据、训练等价性和源码发布门全部通过，可启动seed1原样远程复验"
+    ),
+    "innovation1_rtg2a_seed1_source_not_published": (
+        "seed0证据与训练等价性均通过，但目标提交尚未发布，禁止SSH和远程启动"
+    ),
+    "innovation1_rtg2a_seed1_launch_evidence_invalid": (
+        "seed1启动证据或训练等价性检查失败，修复前禁止SSH和远程启动"
+    ),
     "innovation1_runtime_spn_equivariant_e4_seed1_anchor_supported": (
         "GIFT seed1等变E4主干锚点通过，可复验晚期S盒三控制"
     ),
@@ -2205,6 +2214,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate"
+    ):
+        return "创新1 RTG2-A：SKINNY seed1远程启动前证据与源码发布门"
     if run_id.startswith(
         "i1_rtg2a_skinny64_general_gf2_medium_65536_joint_seed0_seed1"
     ):

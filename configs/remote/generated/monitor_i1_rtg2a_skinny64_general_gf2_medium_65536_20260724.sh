@@ -13,11 +13,20 @@ FALLBACK_RESULT_ROOT="outputs/remote_results_incomplete"
 JOINT_RESULT_ROOT="outputs/remote_results_incomplete"
 SEED1_LAUNCHED_MARKER="${MONITOR_ROOT}/conditional_seed1_launched.marker"
 SEED1_SOURCE_COMMIT="${1:-}"
+LAUNCH_GATE_PATH="${2:-outputs/local_readiness/i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260724/gate.json}"
 
 if [[ ! "${SEED1_SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "usage: $0 <pushed-seed1-source-commit>" >&2
+  echo "usage: $0 <pushed-seed1-source-commit> [launch-gate.json]" >&2
   exit 6
 fi
+if [[ ! -f "${LAUNCH_GATE_PATH}" ]]; then
+  echo "missing launch gate: ${LAUNCH_GATE_PATH}" >&2
+  exit 7
+fi
+python -c "import json,pathlib,sys; g=json.loads(pathlib.Path(r'${LAUNCH_GATE_PATH}').read_text(encoding='utf-8')); ok=g.get('status') == 'pass' and g.get('decision') == 'innovation1_rtg2a_seed1_remote_launch_authorized' and g.get('should_ssh') is True and g.get('ssh_allowed') is True and g.get('launch_authorized') is True and g.get('source_commit') == '${SEED1_SOURCE_COMMIT}'; sys.exit(0 if ok else 1)" || {
+  echo "launch gate does not authorize remote contact" >&2
+  exit 7
+}
 
 mkdir -p "${MONITOR_ROOT}" "${RESULT_ROOT}"
 touch "${MONITOR_ROOT}/monitor.log"

@@ -3349,6 +3349,41 @@ def test_result_index_labels_rtg2a_skinny_medium_joint_gate(
     assert entries[0]["decision_display"] == expected_decision
 
 
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    [
+        (
+            "innovation1_rtg2a_seed1_remote_launch_authorized",
+            "seed0证据、训练等价性和源码发布门全部通过，可启动seed1原样远程复验",
+        ),
+        (
+            "innovation1_rtg2a_seed1_source_not_published",
+            "seed0证据与训练等价性均通过，但目标提交尚未发布，禁止SSH和远程启动",
+        ),
+        (
+            "innovation1_rtg2a_seed1_launch_evidence_invalid",
+            "seed1启动证据或训练等价性检查失败，修复前禁止SSH和远程启动",
+        ),
+    ],
+)
+def test_result_index_labels_rtg2a_seed1_launch_gate(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_rtg2a_skinny64_general_gf2_medium_65536_seed1_launch_gate_20260724"
+    run_root = outputs / "local_readiness" / run_id
+    _write_json(run_root / "gate.json", {"status": "hold", "decision": decision})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 RTG2-A：SKINNY seed1远程启动前证据与源码发布门"
+    )
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_writes_numbered_chinese_markdown_with_artifact_links(
     tmp_path: Path,
 ) -> None:
