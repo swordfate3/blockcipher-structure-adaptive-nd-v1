@@ -460,3 +460,17 @@ print('import=pass')
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "import=pass"
+
+
+def test_medium_gate_scripts_bootstrap_src_for_uninstalled_remote_python() -> None:
+    for name in (
+        "gate-runtime-spn-skinny-medium",
+        "gate-runtime-spn-skinny-medium-joint",
+    ):
+        script = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        assert "from pathlib import Path" in script
+        assert "import sys" in script
+        assert (
+            'sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))'
+            in script
+        )

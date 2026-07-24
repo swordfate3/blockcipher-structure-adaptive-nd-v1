@@ -1971,10 +1971,34 @@ destinations still fail closed. A protocol-invalid single or joint gate is
 written and indexed before the watcher exits nonzero, so negative evidence is
 not silently omitted from the recent-results ledger.
 
-Current state at asset freeze:
+Initial state at asset freeze:
 
 ```text
 seed0 = prepared and readiness-passed; launch requires the scoped pushed commit
 seed1 = prepared but conditionally locked behind verified seed0 pass
 result = none yet; no AUC claim is made by readiness
 ```
+
+### RTG2-A Seed0 Post-Training Gate Incident
+
+The remote seed0 run completed all three five-epoch model rows and wrote the
+three-row `results.jsonl`. Its independent plan/result validator passed with
+`errors=[]`, but the subsequent gate process exited before reading the result:
+
+```text
+ModuleNotFoundError: No module named 'blockcipher_nd'
+```
+
+The cause was isolated to the new thin script
+`scripts/gate-runtime-spn-skinny-medium`: unlike established project scripts,
+it did not add the repository `src/` directory to `sys.path` for the uninstalled
+remote `torch310` Python. The same omission existed in the not-yet-used joint
+gate wrapper. This is a post-training infrastructure failure, not a failed
+research gate, CUDA failure, cache failure or incomplete training result.
+
+Both wrappers now bootstrap `src/`, with a regression test and direct execution
+under `/usr/bin/python3` outside the project virtual environment. Because the
+remote result branch was never created, recovery must remain explicitly
+fallback-retrieved under `outputs/remote_results_incomplete/`, with a raw
+retrieval notice and separate local re-adjudication. Seed1 remains blocked until
+that local seed0 gate is complete and passes all frozen research checks.
