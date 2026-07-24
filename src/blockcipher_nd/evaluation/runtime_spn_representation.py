@@ -21,6 +21,64 @@ class RuntimeE4RepresentationBatch:
     logits: torch.Tensor
 
 
+class FrozenRuntimeE4HeadAdapter(nn.Module):
+    """Train a target head on a frozen RuntimeE4 representation extractor."""
+
+    def __init__(
+        self,
+        feature_extractor: FixedRuntimeSpnProtocolAdapter,
+        target_head: nn.Module,
+    ) -> None:
+        super().__init__()
+        extractor = _require_runtime_e4_adapter(feature_extractor)
+        extractor_parameter_ids = {
+            id(parameter) for parameter in extractor.parameters()
+        }
+        target_parameters = tuple(target_head.parameters())
+        if not target_parameters:
+            raise ValueError("RuntimeE4 target head must own trainable parameters")
+        if any(
+            id(parameter) in extractor_parameter_ids for parameter in target_parameters
+        ):
+            raise ValueError(
+                "RuntimeE4 target head must not share extractor parameters"
+            )
+
+        self.feature_extractor = extractor
+        self.target_head = target_head
+        for parameter in self.feature_extractor.parameters():
+            parameter.requires_grad_(False)
+        for parameter in self.target_head.parameters():
+            parameter.requires_grad_(True)
+        self.feature_extractor.eval()
+
+    @property
+    def representation_width(self) -> int:
+        return 3 * self.feature_extractor.backbone.spec.pair_embedding_dim
+
+    def train(self, mode: bool = True) -> FrozenRuntimeE4HeadAdapter:
+        super().train(mode)
+        self.feature_extractor.eval()
+        self.target_head.train(mode)
+        return self
+
+    def forward(
+        self,
+        features: torch.Tensor,
+        *,
+        query_input_mode: Literal["delta_v", "delta_u"] | None = None,
+        query_structure: RuntimeSpnStructure | None = None,
+    ) -> torch.Tensor:
+        with torch.no_grad():
+            batch = extract_runtime_e4_representation(
+                self.feature_extractor,
+                features,
+                query_input_mode=query_input_mode,
+                query_structure=query_structure,
+            )
+        return self.target_head(batch.representation)
+
+
 def extract_runtime_e4_representation(
     model: nn.Module,
     features: torch.Tensor,
@@ -86,6 +144,7 @@ def _require_runtime_e4_adapter(
 
 
 __all__ = [
+    "FrozenRuntimeE4HeadAdapter",
     "RuntimeE4RepresentationBatch",
     "extract_runtime_e4_representation",
 ]

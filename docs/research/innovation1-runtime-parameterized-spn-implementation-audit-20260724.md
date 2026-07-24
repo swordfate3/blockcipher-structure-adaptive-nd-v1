@@ -325,3 +325,15 @@ change. This is an implementation and evaluation-interface result only; it
 does not add a new trained model or AUC. A native model `encode()` method
 remains deferred until the frozen RECTANGLE RCT2 source handoff no longer
 depends on an unchanged RuntimeE4 model file.
+
+The public representation boundary now also provides
+`FrozenRuntimeE4HeadAdapter`. It keeps the complete target-structure-bound
+RuntimeE4 extractor, including its original source classifier, frozen and in
+evaluation mode while an independent target head trains on the pooled
+representation. The adapter therefore does not overwrite a source checkpoint
+component or let dropout drift inside a nominally frozen extractor. Its state
+dictionary loads strictly across supported runtime structures when the shared
+RuntimeE4 specification and target-head geometry match; only target-head
+parameters receive gradients. This is reusable infrastructure for a future
+cross-cipher adaptation matrix, not evidence that such a matrix has already
+passed.

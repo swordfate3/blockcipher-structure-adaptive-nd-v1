@@ -8,6 +8,9 @@ _EXPORT_MODULES = {
     "INNOVATION_ONE_GROUP_FIELDS": "blockcipher_nd.evaluation.summary",
     "INNOVATION_ONE_METRIC_FIELDS": "blockcipher_nd.evaluation.summary",
     "EnsembleScoreArtifact": "blockcipher_nd.evaluation.neural_ensemble",
+    "FrozenRuntimeE4HeadAdapter": (
+        "blockcipher_nd.evaluation.runtime_spn_representation"
+    ),
     "PairSetAggregationConfig": "blockcipher_nd.evaluation.pairset_aggregation",
     "RuntimeE4RepresentationBatch": (
         "blockcipher_nd.evaluation.runtime_spn_representation"

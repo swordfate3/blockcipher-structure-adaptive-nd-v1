@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from blockcipher_nd.evaluation import (
+    FrozenRuntimeE4HeadAdapter,
     RuntimeE4RepresentationBatch,
     extract_runtime_e4_representation,
 )
@@ -167,3 +168,130 @@ def test_extraction_rejects_non_e4_models() -> None:
         extract_runtime_e4_representation(non_e4_adapter, _binary(2, 256, 81))
     with pytest.raises(TypeError, match="FixedRuntimeSpnProtocolAdapter"):
         extract_runtime_e4_representation(torch.nn.Identity(), _binary(2, 256, 82))
+
+
+def _target_head(width: int) -> torch.nn.Module:
+    return torch.nn.Sequential(
+        torch.nn.LayerNorm(width),
+        torch.nn.Linear(width, 1),
+    )
+
+
+def test_frozen_head_adapter_trains_only_independent_target_head() -> None:
+    torch.manual_seed(83)
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.2,
+    )
+    extractor = _adapter(skinny64_runtime_structure(2), spec, pairs=4)
+    model = FrozenRuntimeE4HeadAdapter(extractor, _target_head(72))
+    extractor_before = {
+        name: value.clone() for name, value in extractor.state_dict().items()
+    }
+    head_before = {
+        name: value.clone() for name, value in model.target_head.state_dict().items()
+    }
+
+    model.train()
+    optimizer = torch.optim.Adam(
+        [parameter for parameter in model.parameters() if parameter.requires_grad],
+        lr=1e-2,
+    )
+    logits = model(_binary(4, 512, 84)).squeeze(1)
+    loss = torch.nn.functional.mse_loss(
+        torch.sigmoid(logits),
+        torch.tensor([0.0, 1.0, 0.0, 1.0]),
+    )
+    loss.backward()
+    optimizer.step()
+
+    assert model.training is True
+    assert model.feature_extractor.training is False
+    assert model.target_head.training is True
+    assert model.representation_width == 72
+    assert all(
+        parameter.requires_grad is False and parameter.grad is None
+        for parameter in model.feature_extractor.parameters()
+    )
+    assert all(
+        parameter.requires_grad is True and parameter.grad is not None
+        for parameter in model.target_head.parameters()
+    )
+    assert all(
+        torch.equal(extractor.state_dict()[name], value)
+        for name, value in extractor_before.items()
+    )
+    assert any(
+        not torch.equal(model.target_head.state_dict()[name], value)
+        for name, value in head_before.items()
+    )
+
+
+def test_frozen_head_adapter_replays_public_representation_path() -> None:
+    torch.manual_seed(85)
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.2,
+    )
+    extractor = _adapter(rectangle80_runtime_structure(2), spec, pairs=3)
+    model = FrozenRuntimeE4HeadAdapter(extractor, _target_head(72)).eval()
+    features = _binary(3, 384, 86)
+
+    with torch.no_grad():
+        expected = model.target_head(
+            extract_runtime_e4_representation(extractor, features).representation
+        )
+        actual = model(features)
+
+    assert torch.equal(actual, expected)
+    assert model.feature_extractor.training is False
+    assert model.target_head.training is False
+
+
+def test_frozen_head_checkpoint_loads_strictly_across_runtime_structures() -> None:
+    torch.manual_seed(87)
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.0,
+        round_window_mode="recurrent_window",
+    )
+    source = FrozenRuntimeE4HeadAdapter(
+        _adapter(gift64_runtime_structure(1), spec, pairs=2),
+        _target_head(72),
+    )
+    target = FrozenRuntimeE4HeadAdapter(
+        _adapter(_synthetic_128_structure(3), spec, pairs=3),
+        _target_head(72),
+    )
+
+    target.load_state_dict(source.state_dict(), strict=True)
+    with torch.no_grad():
+        logits = target(_binary(2, 768, 88))
+
+    assert logits.shape == (2, 1)
+    assert tuple(target.state_dict()) == tuple(source.state_dict())
+    assert all(
+        torch.equal(target.state_dict()[name], value)
+        for name, value in source.state_dict().items()
+    )
+
+
+def test_frozen_head_adapter_rejects_parameter_aliasing_and_empty_heads() -> None:
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.0,
+    )
+    extractor = _adapter(present_runtime_structure(), spec, pairs=2)
+
+    with pytest.raises(ValueError, match="must not share"):
+        FrozenRuntimeE4HeadAdapter(extractor, extractor.backbone.classifier)
+    with pytest.raises(ValueError, match="must own trainable parameters"):
+        FrozenRuntimeE4HeadAdapter(extractor, torch.nn.Identity())
