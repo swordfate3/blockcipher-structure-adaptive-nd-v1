@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = planned local diagnostic
+stage    = completed local diagnostic
 run_id   = i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724
-training = pending readiness gate
-decision = pending
+training = completed from local source commit 9c73e2a9
+decision = innovation1_uknit_delta_u_cross_window_not_replicated
 ```
 
 ## Research Question
@@ -130,3 +130,80 @@ a visual-QA marker. Refresh both recent-result indexes after completion.
 Do not change samples, epochs, pairs, difference, architecture, loss,
 optimizer, keys, controls, or thresholds inside U2-H. Do not add DDT/trail
 features, guessed subkeys, partial decryption, extra seeds, or remote execution.
+
+## Completed Result
+
+The six-row local CPU replication completed from source commit `9c73e2a9`.
+The exact plan/result validator found six planned and six observed rows with no
+missing, unexpected, duplicate, or mismatched keys. Every protocol check
+passed, including prefix r5, descriptor `round_start=3`, two loaded rounds,
+strict encrypted-random-plaintext negatives, new disk-backed train/validation
+caches, same within-seed data/training protocols, and equal `458850` parameter
+geometry.
+
+| Seed | Correct delta-U query | Delta-V identity anchor | Shuffled delta-U query | Candidate - anchor | Candidate - shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.490056992 | 0.520309448 | 0.504012585 | -0.030252457 | -0.013955593 |
+| 1 | 0.500100136 | 0.511524200 | 0.505267620 | -0.011424065 | -0.005167484 |
+
+Both seeds missed all three preregistered research checks. The correct delta-U
+candidate stayed below `0.520` and underperformed both the capacity-matched
+delta-V anchor and shuffled S-box-ownership query. This is a valid negative
+result rather than a protocol or implementation failure.
+
+```text
+status   = hold
+decision = innovation1_uknit_delta_u_cross_window_not_replicated
+keep     = U2-F/U2-G as prefix-r4 mechanism evidence only
+discard  = cross-window or scaled advancement of this exact delta-U query design
+claim    = the current delta-U support is window-specific at local diagnostic scale
+```
+
+This result does not invalidate U2-G's same-checkpoint finding on prefix r4,
+but it prevents promoting that finding to a stable uKNIT representation. Do
+not run an r5 same-checkpoint U2-I audit because the trained candidate itself
+did not pass the prerequisite performance gates.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/results.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/plan_validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/gate.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/summary.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/history.csv
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/curves.svg
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_delta_u_query_u2h_r5_2048_seed0_seed1_20260724/visual_qa_passed.marker
+```
+
+The exact SVG was rendered to `1156 x 526` pixels and passed
+`visual-qa-redraw`. Its Chinese title and protocol subtitle, six-series legend,
+zoomed AUC axis, validation curves, and final/best AUC summary table are
+readable without overlap, clipping, missing glyphs, or ambiguous scale.
+
+## Evidence-Backed Next Action
+
+Close the uKNIT delta-U query branch at U2-H. Do not increase its samples,
+epochs, pairs, seeds, rounds, or move it to the remote GPU. Innovation 1's
+next training priority remains the separately supported SKINNY RTG2-B scale
+replication:
+
+```text
+cipher          = SKINNY-64/64 r7
+candidate       = correct general-GF(2) runtime topology
+anchor/control  = no topology / corrupted topology
+train           = 262144/class
+validation      = 131072/class
+seed/epochs     = 0 / 5
+pairs/sample    = 4
+execution       = remote A6000 GPU0 only
+```
+
+RTG2-B is already plan- and readiness-aligned, but launch remains forbidden
+until source commit `4a44f5fc` and its dependent local commits are published to
+GitHub. SSH access to `lxy-a6000` is healthy; the current blocker is local
+GitHub push connectivity, not the remote workstation. While publication is
+blocked, do not substitute another unmotivated uKNIT training run or launch an
+unpublished dirty overlay.
