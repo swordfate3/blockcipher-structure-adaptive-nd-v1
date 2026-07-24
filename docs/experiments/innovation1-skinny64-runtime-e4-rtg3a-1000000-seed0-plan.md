@@ -5,12 +5,22 @@ Date: 2026-07-25
 ## Status
 
 ```text
-stage       = implementation and local readiness preparation
+stage       = running remotely; bounded startup evidence verified
 run_id      = i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725
 execution   = remote lxy-a6000 GPU0 only
 dependency  = RTG2-B 262144/class two-seed pass plus completed post-X2 route audit
+source      = 131e6387e164fb8679b1bcb9bf46887cf049fca0 (verified origin/main)
+launch gate = pass / innovation1_rtg3a_seed0_remote_launch_authorized
+started     = 2026-07-25 00:42:34 +08:00
+monitor     = local tmux i1_rtg3a_skinny64_formal_monitor
 claim scope = single-seed project-formal scale evidence only
 ```
+
+The watcher observed the remote launcher return, then confirmed the exact
+run-owned `started.marker` inside its bounded 30-attempt window. It now owns
+log synchronization, completion detection, immutable archive retrieval,
+checkpoint retrieval, local re-adjudication and result indexing. No AUC or
+research decision exists until those result artifacts are retrieved locally.
 
 ## Research Question
 
