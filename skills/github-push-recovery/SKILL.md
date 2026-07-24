@@ -11,6 +11,7 @@ Publish an already committed branch without changing repository history, credent
 
 - Push only the current committed `HEAD`; never stage, commit, amend, rebase, merge, reset, or force-push as part of recovery.
 - Use the configured remote and target branch. Do not silently switch HTTPS to SSH, add another remote, use `scp`, or export a source archive.
+- Run at most one recovery process for the same repository, remote, and branch. The program enforces this with an exclusive lock so concurrent invocations cannot overwrite diagnostic evidence.
 - Never print credential-helper output, tokens, private keys, or credential-bearing URLs.
 - Allow unrelated dirty files to remain because they are not part of the committed push. Report them and leave them untouched.
 - Treat platform approval/reviewer rejection as final for the current attempt. Do not hide the command in another shell or retry through an equivalent transfer path.
@@ -76,9 +77,11 @@ Useful options:
 --max-elapsed SEC      overall time ceiling; default 600
 --command-timeout SEC  timeout for one Git command; default 120
 --json-out PATH        atomic structured diagnostic output
+--lock-file PATH       optional explicit process-lock path
 ```
 
 Do not set extreme time limits in an interactive agent turn. For longer recovery, use an approved monitor/automation facility and keep the same safety contract.
+If a stale lock remains after a killed process, inspect the PID recorded in the lock and confirm that process is absent before deleting the lock. Never remove a lock belonging to a live recovery process.
 
 ## Completion Report
 

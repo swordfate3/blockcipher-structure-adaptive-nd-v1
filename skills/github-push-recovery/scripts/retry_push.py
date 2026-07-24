@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import atexit
+import hashlib
 import json
 import os
 import re
@@ -97,6 +99,47 @@ class Attempt:
 
 class RecoveryError(RuntimeError):
     pass
+
+
+class RecoveryLock:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.fd: int | None = None
+
+    def acquire(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.fd = os.open(
+                self.path,
+                os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                0o600,
+            )
+        except FileExistsError as exc:
+            try:
+                owner = sanitize(self.path.read_text(encoding="utf-8"), limit=1000)
+            except OSError:
+                owner = "owner metadata unavailable"
+            raise RecoveryError(
+                f"another recovery process holds {self.path}: {owner}"
+            ) from exc
+        payload = json.dumps(
+            {"pid": os.getpid(), "started_at": now_iso(), "path": str(self.path)},
+            sort_keys=True,
+        )
+        os.write(self.fd, f"{payload}\n".encode())
+        os.fsync(self.fd)
+        atexit.register(self.release)
+
+    def release(self) -> None:
+        if self.fd is None:
+            return
+        os.close(self.fd)
+        self.fd = None
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
+        atexit.unregister(self.release)
 
 
 def now_iso() -> str:
@@ -232,6 +275,12 @@ def sleep_with_deadline(delay: float, deadline: float) -> bool:
     return time.monotonic() < deadline
 
 
+def default_lock_path(repo: Path, remote: str, branch: str) -> Path:
+    identity = f"{repo}\0{remote}\0{branch}".encode()
+    digest = hashlib.sha256(identity).hexdigest()[:20]
+    return Path(tempfile.gettempdir()) / f"github-push-recovery-{digest}.lock"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path("."))
@@ -246,6 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-elapsed", type=float, default=600.0)
     parser.add_argument("--command-timeout", type=float, default=120.0)
     parser.add_argument("--json-out", type=Path)
+    parser.add_argument("--lock-file", type=Path)
     parser.add_argument("--git-bin", default="git", help=argparse.SUPPRESS)
     return parser
 
@@ -339,6 +389,21 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     expected_ref = f"refs/heads/{branch}"
     refspec = f"HEAD:{expected_ref}"
+    lock = RecoveryLock(
+        args.lock_file.resolve()
+        if args.lock_file is not None
+        else default_lock_path(top, args.remote, branch)
+    )
+    try:
+        lock.acquire()
+    except RecoveryError as exc:
+        print(f"recovery already running: {sanitize(str(exc))}", file=sys.stderr)
+        return 7
+
+    def finish(exit_code: int) -> int:
+        lock.release()
+        return exit_code
+
     deadline = time.monotonic() + args.max_elapsed
     delay = args.initial_delay
     push_reported_success = False
@@ -366,7 +431,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dirty=dirty,
             )
             write_json(args.json_out, payload)
-            return 3
+            return finish(3)
 
         if push_reported_success:
             phase = "verify"
@@ -408,7 +473,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 write_json(args.json_out, payload)
                 print(f"published and verified: {remote_sha}")
-                return 0
+                return finish(0)
             write_json(
                 args.json_out,
                 result_payload(
@@ -424,7 +489,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             )
             print(f"stopped: {category}", file=sys.stderr)
-            return 3
+            return finish(3)
         else:
             category = classify(completed.stdout)
             if phase == "verify" and category == "transient_network":
@@ -464,7 +529,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(
                 f"stopped: permanent or unknown failure ({category})", file=sys.stderr
             )
-            return 5 if category == "platform_policy" else 3
+            return finish(5 if category == "platform_policy" else 3)
 
         if category == "push_reported_success":
             continue
@@ -491,7 +556,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     print(f"stopped after bounded retries: {status} ({last_category})", file=sys.stderr)
-    return 6 if push_reported_success else 4
+    return finish(6 if push_reported_success else 4)
 
 
 if __name__ == "__main__":

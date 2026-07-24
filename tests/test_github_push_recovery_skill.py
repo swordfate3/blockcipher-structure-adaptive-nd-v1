@@ -223,3 +223,32 @@ def test_authentication_failure_stops_without_retry(
 
     assert exit_code == 3
     assert sleeps == []
+
+
+def test_existing_lock_prevents_concurrent_recovery(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = load_module()
+    runner, _ = fake_git_runner(
+        module,
+        tmp_path,
+        [(0, "push must not be reached")],
+    )
+    monkeypatch.setattr(module, "run_git", runner)
+    lock_path = tmp_path / "recovery.lock"
+    lock_path.write_text('{"pid": 123, "started_at": "test"}\n', encoding="utf-8")
+
+    exit_code = module.main(
+        [
+            "--repo",
+            str(tmp_path),
+            "--remote",
+            "origin",
+            "--execute",
+            "--lock-file",
+            str(lock_path),
+        ]
+    )
+
+    assert exit_code == 7
+    assert lock_path.exists()
