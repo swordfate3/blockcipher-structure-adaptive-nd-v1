@@ -252,3 +252,10 @@ active RTG3-A evidence because those frozen protocols use `late_pair`, not
 readiness probe; it was rerun before U3 training, passed all checks, and replaced
 the no-topology output hash with
 `eb3ff3369d716ed8c3aba0dfa6064889a4d05f8383dbacf990c8bbf1b8452397`.
+
+A follow-up leakage audit now exercises all `40` legal combinations of window
+mode, cell-input view and S-box-context mode. For every combination, changing
+only the runtime linear graph leaves `independent` logits bit-exact. This
+extends the regression contract beyond the repaired `state_triplet + edge_gate`
+path to every currently supported Runtime-E4 view without changing model
+behavior or training geometry.

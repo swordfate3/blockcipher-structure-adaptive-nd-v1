@@ -694,9 +694,37 @@ def test_runtime_e4_recurrent_window_keeps_geometry_across_loaded_rounds() -> No
         ).shape == (2, 1)
 
 
-@pytest.mark.parametrize("round_window_mode", ("last_transition", "recurrent_window"))
-def test_runtime_e4_edge_gate_independent_control_ignores_linear_topology(
+@pytest.mark.parametrize(
+    ("round_window_mode", "cell_input_mode"),
+    [
+        ("last_transition", mode)
+        for mode in (
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+            "dual_view_triplet",
+            "state_triplet_delta_v_query",
+            "state_triplet_delta_u_query",
+        )
+    ]
+    + [
+        ("recurrent_window", mode)
+        for mode in (
+            "difference_only",
+            "state_triplet",
+            "inverse_sbox_triplet",
+            "dual_view_triplet",
+        )
+    ],
+)
+@pytest.mark.parametrize(
+    "sbox_context_mode",
+    ("early_add", "late_pair", "late_cell", "edge_gate"),
+)
+def test_runtime_e4_independent_control_ignores_linear_topology_for_all_views(
     round_window_mode: str,
+    cell_input_mode: str,
+    sbox_context_mode: str,
 ) -> None:
     torch.manual_seed(219)
     model = RuntimeE4EquivariantSpnDistinguisher(
@@ -705,8 +733,8 @@ def test_runtime_e4_edge_gate_independent_control_ignores_linear_topology(
             pair_embedding_dim=32,
             processor_steps=2,
             dropout=0.0,
-            sbox_context_mode="edge_gate",
-            cell_input_mode="state_triplet",
+            sbox_context_mode=sbox_context_mode,
+            cell_input_mode=cell_input_mode,
             round_window_mode=round_window_mode,
         )
     ).eval()
