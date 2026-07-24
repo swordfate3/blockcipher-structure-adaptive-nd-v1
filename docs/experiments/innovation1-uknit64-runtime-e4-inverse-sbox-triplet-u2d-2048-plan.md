@@ -5,10 +5,10 @@ Date: 2026-07-24
 ## Status
 
 ```text
-stage    = preregistered
+stage    = completed
 run_id   = i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724
 training = local diagnostic
-decision = pending
+decision = hold / correct ownership identified, no anchor improvement
 ```
 
 ## Question
@@ -133,3 +133,95 @@ Require `results.jsonl`, `progress.jsonl`, checkpoints, `validation.json`,
 Do not add DDT, trail features, guessed partial decryption, Conv2D, auxiliary
 losses, more pairs, another difference/window, more seeds/epochs, larger data
 or remote GPU inside U2-D. Do not compare its AUC directly with Liu et al.
+
+## Completed Result
+
+The six-row local run completed from local commit `6a309dd7`. The normal
+GitHub push first failed because the sandbox could not reach the server; the
+required elevated push was then rejected by the platform reviewer because the
+external repository ownership/privacy could not be established. No alternate
+transfer route or remote execution was used.
+
+Plan alignment passed with six expected and observed rows, no missing,
+unexpected or duplicate keys, and no field mismatches. Every protocol check
+passed, including disk-backed cache reuse, strict encrypted-random-plaintext
+negatives, the exact uKNIT descriptor window, and equal `442466`-parameter
+geometry.
+
+| Seed | Correct inverse-S-box triplet | State-triplet anchor | Shuffled inverse-S-box triplet | Candidate - anchor | Candidate - shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.523654938 | 0.535902977 | 0.514563084 | -0.012248039 | +0.009091854 |
+| 1 | 0.540867805 | 0.538259983 | 0.500539780 | +0.002607822 | +0.040328026 |
+
+Both candidates exceeded the absolute `0.520` floor, and correct ownership
+beat shuffled ownership by more than `+0.005` on both seeds. This is the first
+uKNIT local panel in this route where executing the correct runtime S box made
+the assignment direction stable across both seeds. However, neither seed met
+the required `+0.005` improvement over the frozen state-triplet anchor: seed0
+lost `0.012248039`, while seed1 gained only `0.002607822`. The joint decision
+is therefore:
+
+```text
+status   = hold
+decision = innovation1_uknit_inverse_sbox_triplet_hold
+keep     = runtime inverse-S-box execution as a real ownership-sensitive mechanism
+reject   = replacing the state-triplet previous token with this inverse view
+```
+
+This local `2048/class` mechanism diagnostic supports correct S-box ownership
+attribution only inside the frozen uKNIT prefix-r4 panel. It is not formal,
+paper-scale, an attack, cross-cipher evidence, SOTA, or a breakthrough. Close
+this exact replacement design; do not increase samples, epochs, seeds or use a
+remote GPU.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/results.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/progress.jsonl
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/validation.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/gate.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/summary.json
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/history.csv
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/curves.svg
+outputs/local_diagnostic/i1_rtg1_uknit64_runtime_e4_inverse_sbox_triplet_u2d_2048_seed0_seed1_20260724/visual_qa_passed.marker
+```
+
+The validation-only SVG passed `visual-qa-redraw` after an exact
+`2167 x 986` pixel render. The Chinese title and six role labels are readable;
+the legend, AUC curves, 50% reference line and summary table have no overlap,
+clipping, missing glyphs or ambiguous axes.
+
+## Evidence-Backed Next Action: U2-E Dual-View Triplet Fusion
+
+U2-C retained stronger raw state-triplet performance, while U2-D made correct
+S-box ownership consistently identifiable. The next bounded hypothesis is to
+retain both signals rather than replacing one with the other:
+
+```text
+question          = can a parameter-free dual view retain U2-C signal and U2-D ownership attribution?
+one variable      = previous state triplet -> symmetric mean of state and inverse-S-box triplets
+candidate         = correct topology + dual-view triplet + unchanged edge gate
+same-budget anchor= correct topology + U2-C state triplet + unchanged edge gate
+required control  = shuffled S-box ownership + dual-view triplet + unchanged edge gate
+cipher/window     = uKNIT-BC prefix r4, round_start 2, processor_steps 2
+scale             = 2048/class train, 1024/class validation
+seeds/epochs      = 0,1 / 10
+pairs/sample      = 4
+negative          = encrypted_random_plaintexts
+execution         = local CPU diagnostic with the existing disk cache
+```
+
+Use the same shared cell encoder for both previous views and average their
+embeddings before the unchanged typed fusion, so candidate, anchor and control
+retain identical parameter geometry. Before training, require exact U2-C and
+U2-D branch compatibility, finite forward/backward, pair-swap invariance,
+joint cell-relabel equivariance, correct-versus-shuffled token sensitivity and
+a six-row plan-alignment check.
+
+For each seed require candidate AUC `>= 0.520`, candidate-minus-state-triplet
+anchor `>= +0.005`, and candidate-minus-shuffled dual-view `>= +0.005`. Both
+seeds must pass before any checkpoint audit or scale discussion. A miss closes
+the dual-view design. Do not add learned fusion parameters, DDT/trail features,
+partial-decryption guesses, more pairs, another window, additional epochs,
+larger data or remote GPU inside U2-E.
