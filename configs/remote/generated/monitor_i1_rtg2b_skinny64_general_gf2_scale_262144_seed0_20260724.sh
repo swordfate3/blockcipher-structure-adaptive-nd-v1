@@ -36,15 +36,24 @@ timestamp() {
 
 launch_remote() {
   ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
-    "cmd.exe /c \"if exist ${REMOTE_LAUNCH_ROOT} exit /b 9 && set \"GIT_SSH_COMMAND=ssh -i C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\"&& git clone --no-checkout ${REPO_URL} ${REMOTE_LAUNCH_ROOT} && cd /d ${REMOTE_LAUNCH_ROOT} && git checkout --detach ${SOURCE_COMMIT} && call ${LAUNCH_SCRIPT} ${SOURCE_COMMIT} 0\"" \
+    "cmd.exe /c \"if exist ${REMOTE_LAUNCH_ROOT} exit /b 9 & set \"GIT_SSH_COMMAND=ssh -i C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\"&& git clone --no-checkout ${REPO_URL} ${REMOTE_LAUNCH_ROOT} && cd /d ${REMOTE_LAUNCH_ROOT} && git checkout --detach ${SOURCE_COMMIT} && call ${LAUNCH_SCRIPT} ${SOURCE_COMMIT} 0\"" \
     >> "${MONITOR_ROOT}/launch.log" 2>> "${MONITOR_ROOT}/launch_stderr.log"
 }
 
-confirm_started_once() {
-  ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
-    "cmd.exe /c if exist G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\${RUN_ID}\\logs\\${RUN_ID}_started.marker (type G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\${RUN_ID}\\logs\\${RUN_ID}_started.marker) else exit /b 8" \
-    >> "${MONITOR_ROOT}/start_confirmation.log" \
-    2>> "${MONITOR_ROOT}/start_confirmation_stderr.log"
+confirm_started_bounded() {
+  local attempt
+  for attempt in $(seq 1 30); do
+    if ssh -o BatchMode=yes -o ConnectTimeout=8 "${REMOTE}" \
+      "cmd.exe /c if exist G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\${RUN_ID}\\logs\\${RUN_ID}_started.marker (type G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\${RUN_ID}\\logs\\${RUN_ID}_started.marker) else exit /b 8" \
+      >> "${MONITOR_ROOT}/start_confirmation.log" \
+      2>> "${MONITOR_ROOT}/start_confirmation_stderr.log"; then
+      return 0
+    fi
+    echo "$(timestamp) start_confirmation_pending attempt=${attempt}/30" \
+      >> "${MONITOR_ROOT}/monitor.log"
+    sleep 2
+  done
+  return 1
 }
 
 sync_logs() {
@@ -110,9 +119,9 @@ fi
 
 if [[ ! -f "${LAUNCHED_MARKER}" ]]; then
   launch_remote || exit 4
-  touch "${LAUNCHED_MARKER}"
   echo "$(timestamp) remote_launcher_returned" >> "${MONITOR_ROOT}/monitor.log"
-  confirm_started_once || exit 8
+  confirm_started_bounded || exit 8
+  touch "${LAUNCHED_MARKER}"
   echo "$(timestamp) bounded_start_confirmation_passed" >> "${MONITOR_ROOT}/monitor.log"
 fi
 

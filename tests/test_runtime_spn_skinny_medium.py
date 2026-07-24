@@ -320,6 +320,15 @@ def test_rtg2b_plan_models_and_remote_assets_are_ready() -> None:
     assert "visual_qa_pending.marker" in run_script + monitor_script
     assert "innovation1_rtg2b_seed0_remote_launch_authorized" in monitor_script
     assert "bounded_start_confirmation_passed" in monitor_script
+    assert "exit /b 9 && set" not in monitor_script
+    assert "exit /b 9 & set" in monitor_script
+    assert "confirm_started_bounded" in monitor_script
+    assert "for attempt in $(seq 1 30)" in monitor_script
+    assert "sleep 2" in monitor_script
+    launch_returned = monitor_script.index("remote_launcher_returned")
+    start_confirmed = monitor_script.index("confirm_started_bounded || exit 8")
+    launched_marker = monitor_script.index('touch "${LAUNCHED_MARKER}"')
+    assert launch_returned < start_confirmed < launched_marker
     assert "retrieved_from_verified_result_branch.marker" in monitor_script
     assert "scripts/index-results" in monitor_script
     assert 'set \\"GIT_SSH_COMMAND=ssh -i ' in monitor_script
