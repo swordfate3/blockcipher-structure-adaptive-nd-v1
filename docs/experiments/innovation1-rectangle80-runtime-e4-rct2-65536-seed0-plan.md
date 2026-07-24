@@ -8,7 +8,7 @@ Date: 2026-07-25
 stage             = protocol and adjudicator frozen before training
 run_id            = i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725
 execution         = remote GPU only
-launch status     = held behind pushed-SHA verification and active remote lane
+launch status     = queued behind exact pushed-SHA verification and the RTG3 remote lane
 result            = none
 claim scope       = single-seed medium topology confirmation only
 ```
@@ -151,6 +151,37 @@ running result. Launch assets and the local retrieval watcher must be verified
 after the exact source commit is published and the active remote lane becomes
 available.
 
+The queue handoff is now fail-closed. Its local authorization gate recomputes
+the six-row RCT1 result instead of trusting the stored status string, requires
+the stored gate and validation to match that recomputation, checks the RCT1
+rendered visual-QA marker, verifies that RCT2 changes only scale and descriptive
+identity, re-runs remote-config readiness, and proves the exact source assets
+are committed, unchanged and published. The gate records:
+
+```text
+should_ssh
+ssh_allowed
+launch_authorized
+source_commit
+remote_config_readiness
+rct1_authority
+rtg3_session_count
+```
+
+The local successor waits until every tmux session whose name begins with
+`i1_rtg3a` has exited. It does not SSH while that count is nonzero. Once the
+lane is released, it runs the authorization gate, creates a new run-owned
+clean clone directly from the exact GitHub commit under the frozen RCT2 run
+root, verifies clean status and exact HEAD, calls the tracked Windows launcher,
+performs one bounded started-marker confirmation, and starts the existing
+local result-retrieval monitor. Any pre-existing remote RCT2 run directory,
+source drift, missing publication, failed authority check or invalid launch
+payload stops the successor without deleting or overwriting remote state.
+
+This bootstrap never reads or modifies the historical dirty clone at
+`G:\lxy\blockcipher-structure-adaptive-nd`, and it does not use `scp` or a
+dirty source overlay.
+
 ## Implementation Readiness
 
 The frozen matrix parses as exactly three seed0 rows with the required model
@@ -177,6 +208,8 @@ configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_2
 configs/remote/generated/run_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
 configs/remote/generated/launch_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
 configs/remote/generated/monitor_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.sh
+configs/remote/generated/monitor_i1_rct2_after_rtg3a_20260725.sh
+scripts/check-runtime-spn-rectangle-rct2-launch
 ```
 
 Verified readiness:
@@ -192,8 +225,20 @@ RECTANGLE implementation tests  = 17 passed
 ruff / git diff --check         = pass
 ```
 
+The 17 focused checks cover the RCT1/RCT2 adjudicators, the remote cache and
+archive workflow, scale-only plan equivalence, busy-lane and unpublished-source
+holds, invalid-authority fail-closed behavior, clean-clone bootstrap text,
+bounded startup confirmation and result-monitor handoff. Queue preparation is
+not a result and must not enter the recent-results index.
+
 The watcher preserves the remote archive, verifies CRLF-normalized
 `SHA256SUMS` and the exact source commit, then writes local re-adjudication
 under `local_adjudication/`. It copies only `gate.local.json` and `curves.svg`
 to the result root, refreshes the index, and leaves
 `visual_qa_pending.marker`; it cannot self-assert the visual-QA pass.
+
+After the queue assets are committed and the exact SHA is verified on GitHub,
+start only the local successor. Do not manually launch RCT2 or repeatedly poll
+the workstation. The successor and result monitor own the later remote start,
+retrieval and re-adjudication. A real retrieved `curves.svg` still requires a
+fresh `visual-qa-redraw` inspection before the result can be called complete.
