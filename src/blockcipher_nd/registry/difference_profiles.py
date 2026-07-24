@@ -149,6 +149,22 @@ def literature_difference_profiles() -> dict[str, DifferenceProfile]:
             source="Shen/Song/Lu/Long/Tian 2024 GIFT neural distinguisher screening profile",
             note="Fixed xor input difference for first GIFT-64 SPN structure-alignment screening; refine after literature-specific reproduction.",
         ),
+        "rectangle80_weng_repo_best_trail_r6": DifferenceProfile(
+            name="rectangle80_weng_repo_best_trail_r6",
+            cipher="rectangle80",
+            kind="fixed",
+            differences=(0x0000002100010020,),
+            source=(
+                "Weng/Zhang/Peng/Ding public bit-permutation trail-search "
+                "supplement, commit df0dac1"
+            ),
+            note=(
+                "Rotational normalization of the published RECTANGLE six-round "
+                "best-trail input: cell 0 has difference 0x6 and cell 5 has "
+                "difference 0x5 under physical bit index 16*row+column. The "
+                "reported single-trail weight is 18."
+            ),
+        ),
         "skinny64_gohr2022_single_key": DifferenceProfile(
             name="skinny64_gohr2022_single_key",
             cipher="skinny64",

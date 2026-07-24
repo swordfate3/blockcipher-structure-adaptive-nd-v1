@@ -26,6 +26,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
 )
 from blockcipher_nd.planning.matrix import cipher_key_from_name
 from blockcipher_nd.registry.cipher_factory import build_cipher, default_difference
+from blockcipher_nd.registry.difference_profiles import difference_for_profile
 from blockcipher_nd.registry.model_factory import build_model
 
 
@@ -150,6 +151,23 @@ def test_rectangle_is_available_to_standard_cipher_data_and_profile_paths() -> N
     )
     assert dataset.metadata["negative_mode"] == "encrypted_random_plaintexts"
     assert dataset.metadata["pairs_per_sample"] == 4
+
+
+def test_rectangle_six_round_best_trail_profile_uses_physical_row_bits() -> None:
+    cells = [0] * 16
+    cells[0] = 0x6
+    cells[5] = 0x5
+    expected = sum(
+        ((cells[column] >> row) & 1) << (16 * row + column)
+        for column in range(16)
+        for row in range(4)
+    )
+
+    assert expected == 0x0000002100010020
+    assert (
+        difference_for_profile("rectangle80_weng_repo_best_trail_r6")
+        == expected
+    )
 
 
 def test_generic_runtime_model_loads_rectangle_without_new_parameter_geometry() -> None:

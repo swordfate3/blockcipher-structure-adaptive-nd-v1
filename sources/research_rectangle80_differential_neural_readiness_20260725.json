@@ -1,0 +1,174 @@
+{
+  "captured_at": "2026-07-25T05:33:08+08:00",
+  "purpose": "Freeze a reproducible RECTANGLE-80 input difference before RuntimeE4 topology attribution.",
+  "search_backend": {
+    "primary": "research-lookup parallel-cli",
+    "primary_status": "unavailable: parallel-cli not installed",
+    "fallback": "web-search-plus Tavily advanced"
+  },
+  "queries": [
+    {
+      "query": "RECTANGLE block cipher 16-round differential characteristic input difference output difference 2^-62.13",
+      "results": [
+        {
+          "title": "RECTANGLE: A Bit-slice Lightweight Block Cipher Suitable for Multiple Platforms",
+          "url": "https://csrc.nist.gov/csrc/media/events/lightweight-cryptography-workshop-2015/documents/papers/session8-wentao-paper.pdf",
+          "score": 0.808,
+          "finding": "Confirms the 16-round propagation probability and the best-trail weights, but does not publish a concrete input difference in the NIST copy."
+        },
+        {
+          "title": "RECTANGLE: A Bit-slice Lightweight Block Cipher Suitable for Multiple Platforms",
+          "url": "https://eprint.iacr.org/2014/084.pdf",
+          "score": 0.806,
+          "finding": "Canonical ePrint PDF; indexed excerpts mention the same probability results and a 14-round propagation appendix."
+        },
+        {
+          "title": "RECTANGLE: A Bit-slice Ultra-Lightweight Block Cipher",
+          "url": "https://csrc.nist.gov/csrc/media/events/lightweight-cryptography-workshop-2015/documents/presentations/session8-huang-wentao.pdf",
+          "score": 0.53,
+          "finding": "Confirms the 4 x 16 state, row rotations (0, 1, 12, 13), and full dependency after four rounds."
+        },
+        {
+          "title": "Block Ciphers - Focus On The Linear Layer (feat. PRIDE)",
+          "url": "https://eprint.iacr.org/2014/453.pdf",
+          "score": 0.527,
+          "finding": "Off-topic comparison returned by the search backend."
+        },
+        {
+          "title": "Differentials for 16-round PRESENT",
+          "url": "https://www.researchgate.net/figure/Differentials-for-16-round-PRESENT-with-D16-00000900x00000900x_tbl1_289824518",
+          "score": 0.507,
+          "finding": "Off-topic PRESENT result returned by the search backend."
+        },
+        {
+          "title": "Related-Key Rectangle Attack on Round-reduced Khudra",
+          "url": "https://eprint.iacr.org/2015/533.pdf",
+          "score": 0.479,
+          "finding": "The word rectangle refers to an attack type; this is not the RECTANGLE cipher."
+        },
+        {
+          "title": "Extended c-differential distinguishers of full 9 and reduced-round ciphers",
+          "url": "https://arxiv.org/pdf/2507.02181",
+          "score": 0.469,
+          "finding": "General differential background; no RECTANGLE input difference."
+        },
+        {
+          "title": "Computing the Differential Probability of a Word-Based Block Cipher",
+          "url": "https://www.mdpi.com/2410-387X/9/2/42",
+          "score": 0.404,
+          "finding": "General differential-probability methodology; no RECTANGLE input difference."
+        },
+        {
+          "title": "Block cipher",
+          "url": "https://en.wikipedia.org/wiki/Block_cipher",
+          "score": 0.338,
+          "finding": "General background; not used as experiment evidence."
+        }
+      ]
+    },
+    {
+      "query": "GitHub RECTANGLE cipher differential trail search",
+      "results": [
+        {
+          "title": "RECTANGLE: A Bit-slice Lightweight Block Cipher Suitable for Multiple Platforms",
+          "url": "https://csrc.nist.gov/csrc/media/events/lightweight-cryptography-workshop-2015/documents/papers/session8-wentao-paper.pdf",
+          "score": 0.774,
+          "finding": "Design-paper security analysis."
+        },
+        {
+          "title": "RECTANGLE: A Bit-slice Lightweight Block Cipher Suitable for Multiple Platforms",
+          "url": "https://eprint.iacr.org/2014/084.pdf",
+          "score": 0.763,
+          "finding": "Canonical ePrint record."
+        },
+        {
+          "title": "RECTANGLE: A Bit-slice Ultra-Lightweight Block Cipher",
+          "url": "https://csrc.nist.gov/csrc/media/events/lightweight-cryptography-workshop-2015/documents/presentations/session8-huang-wentao.pdf",
+          "score": 0.526,
+          "finding": "Design presentation."
+        },
+        {
+          "title": "The Search Algorithm for Bit-Permutation-Based Ciphers",
+          "url": "https://github.com/weng-js/The-Search-Algorithm-for-Bit-Permutation-Based-Ciphers",
+          "score": 0.442,
+          "finding": "Public source, supplementary PDF, and exact best-trail artifacts for RECTANGLE."
+        },
+        {
+          "title": "Rotational-XOR Differential Rectangle Cryptanalysis on Simon-like Ciphers",
+          "url": "https://eprint.iacr.org/2023/178",
+          "score": 0.419,
+          "finding": "The word rectangle refers to an attack type; not used."
+        },
+        {
+          "title": "Differential Trail Search in Cryptographic Primitives with Big-Circle Chi",
+          "url": "https://tosc.iacr.org/index.php/ToSC/article/download/9721/9248/8070",
+          "score": 0.368,
+          "finding": "Different primitive family; not used."
+        },
+        {
+          "title": "Automatic Search for Differential Trails in ARX Ciphers",
+          "url": "https://eprint.iacr.org/2013/853",
+          "score": 0.31,
+          "finding": "ARX methodology; not used for the SPN input difference."
+        },
+        {
+          "title": "Trail-Estimator: An Automated Verifier for Differential Trails in Block Ciphers",
+          "url": "https://eprint.iacr.org/2025/396",
+          "score": 0.229,
+          "finding": "General trail verification; no RECTANGLE artifact used here."
+        }
+      ]
+    }
+  ],
+  "verified_sources": [
+    {
+      "title": "RECTANGLE: A Bit-slice Lightweight Block Cipher Suitable for Multiple Platforms",
+      "authors": [
+        "Wentao Zhang",
+        "Zhenzhen Bao",
+        "Dongdai Lin",
+        "Vincent Rijmen",
+        "Bohan Yang",
+        "Ingrid Verbauwhede"
+      ],
+      "eprint": "2014/084",
+      "doi": "10.1007/s11432-015-5459-7",
+      "url": "https://eprint.iacr.org/2014/084",
+      "nist_pdf": "https://csrc.nist.gov/csrc/media/events/lightweight-cryptography-workshop-2015/documents/papers/session8-wentao-paper.pdf",
+      "nist_pdf_sha256": "b3ca4e6403024bea16f84588dbc08b44f9983813cf2f8e9ca360afe499df6382",
+      "verified_facts": [
+        "The final revised S-box is [6,5,c,a,1,e,7,9,b,0,3,d,8,f,4,2].",
+        "The row rotations are (0,1,12,13).",
+        "The best six-round single differential trail has weight 18 according to the design paper table."
+      ]
+    },
+    {
+      "title": "Improving the Search Algorithm for the Best Differential/Linear Trails of Bit-Permutation-Based Ciphers - Supplementary Information",
+      "authors": ["Jingsui Weng", "Wentao Zhang", "Ting Peng", "Tianyou Ding"],
+      "repository": "https://github.com/weng-js/The-Search-Algorithm-for-Bit-Permutation-Based-Ciphers",
+      "commit": "df0dac19726350838c43d7a254575f2f0f6ba18a",
+      "artifact": "Experimental result/BestTrails/RECTANGLE/DiffTrail_64.txt",
+      "artifact_sha256": "46247df28e81155e8ac5eeb650d5239415595d64e54fdae904bc0c6aa965d7d6",
+      "verified_facts": [
+        "RNUM_6 is reported with Bn=18.",
+        "The first-round input has cell 14 difference 0x6 and cell 3 difference 0x5 in the artifact's internal cell order.",
+        "The source uses the final revised RECTANGLE S-box and row rotations (0,1,12,13)."
+      ]
+    }
+  ],
+  "mapping": {
+    "artifact_print_order": "cells 15 down to 0",
+    "rotation_normalization": "cell 14 -> cell 0, therefore cell 3 -> cell 5",
+    "normalized_cells": {"0": "0x6", "5": "0x5"},
+    "project_physical_bit_rule": "bit index = 16 * row + column; nibble bit row is the bit value used by rectangle_sub_columns",
+    "project_input_difference_hex": "0x0000002100010020",
+    "project_input_difference_decimal": 141733986336,
+    "mapping_status": "verified against the repository print loop, final S-box table, and project ShiftRow implementation"
+  },
+  "decision": {
+    "use_for_readiness": true,
+    "profile_name": "rectangle80_weng_repo_best_trail_r6",
+    "rounds": 6,
+    "warning": "This freezes data construction only. It is not evidence that RuntimeE4 uses the correct topology; that requires correct/corrupted/no-topology controls."
+  }
+}
