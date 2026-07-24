@@ -5,23 +5,25 @@ Date: 2026-07-25
 ## Status
 
 ```text
-stage       = running remotely; bounded startup evidence verified
+stage       = completed remotely, verified-branch retrieved, locally re-adjudicated
 run_id      = i1_rtg3a_skinny64_general_gf2_formal_1000000_seed0_20260725
 execution   = remote lxy-a6000 GPU0 only
 dependency  = RTG2-B 262144/class two-seed pass plus completed post-X2 route audit
 source      = 131e6387e164fb8679b1bcb9bf46887cf049fca0 (verified origin/main)
 launch gate = pass / innovation1_rtg3a_seed0_remote_launch_authorized
 started     = 2026-07-25 00:42:34 +08:00
-monitor     = local tmux i1_rtg3a_skinny64_formal_monitor
-successor   = conditional seed1 package prepared; local-only watcher waits for full seed0 evidence
+retrieved   = 2026-07-25 06:16:04 +08:00
+visual QA   = pass / visual-qa-redraw / 2026-07-25 06:28:33 +08:00
+result      = pass / innovation1_rtg3a_skinny_formal_seed0_supported
+successor   = seed1 launch gate passed; local monitor started at 06:30 +08:00
 claim scope = single-seed project-formal scale evidence only
 ```
 
-The watcher observed the remote launcher return, then confirmed the exact
-run-owned `started.marker` inside its bounded 30-attempt window. It now owns
-log synchronization, completion detection, immutable archive retrieval,
-checkpoint retrieval, local re-adjudication and result indexing. No AUC or
-research decision exists until those result artifacts are retrieved locally.
+The watcher observed the remote launcher return, confirmed the exact run-owned
+`started.marker`, retrieved the immutable verified result branch, verified the
+CRLF-normalized archive manifest, replayed all three selected checkpoints,
+re-adjudicated the result locally and refreshed the result index. The retrieved
+SVG then passed rendered-pixel `visual-qa-redraw` inspection.
 
 ## Research Question
 
@@ -157,6 +159,64 @@ A seed0 pass is single-seed project-formal evidence. It does not authorize a
 two-seed formal conclusion until the identical seed1 result passes and a joint
 gate is retrieved, validated, indexed and visually checked.
 
+## Completed Seed0 Result
+
+All three frozen rows completed five epochs with the required disk-backed
+cache, strict encrypted-random-plaintext negatives, four independent ciphertext
+pairs, equal `442466`-parameter geometry and exact RuntimeE4 model options.
+Plan validation, absolute protocol checks, checkpoint replay and the research
+gate all report `status = pass`.
+
+| Role | Best validation AUC | Best epoch | Difference from correct |
+| --- | ---: | ---: | ---: |
+| Correct GF(2) topology | 0.653191631304 | 5 | - |
+| Deterministically corrupted topology | 0.607162432806 | 4 | +0.046029198498 |
+| No linear topology | 0.511826118586 | 5 | +0.141365512718 |
+
+Relative to the same-protocol RTG2-B seed0 anchor at `262144/class`, the
+correct-topology AUC changed from `0.649229395` to `0.653191631304`. More
+importantly, its margins remained stable rather than collapsing when only the
+sample scale increased: correct-minus-corrupted changed from approximately
+`+0.045668` to `+0.046029`, and correct-minus-no-topology changed from
+approximately `+0.139039` to `+0.141366`.
+
+The reported AUCs replay the selected best-validation-AUC checkpoints exactly.
+All three checkpoint files exist, load strictly into the frozen model geometry,
+match the recorded history and final metrics, and have exact archived SHA-256
+evidence. The correct model's train-minus-validation AUC at its best epoch is
+only `+0.004272`, so the formal-scale advantage is not explained by a large
+train/validation gap.
+
+The final chart was rendered to approximately `1976 x 1019` pixels. Chinese
+glyphs, title, subtitle, green decision line, legends, value labels, axes,
+`0.50` random baseline, `0.55` signal threshold, `+0.005` attribution threshold
+and evidence-scope caption are readable with no overlap, clipping or misleading
+axis truncation. No redraw was required; `visual_qa_pending.marker` was replaced
+by `visual_qa_passed.marker`.
+
+This supports one narrow conclusion: for SKINNY-64/64 r7 and seed0, the same
+cipher-name-free RuntimeE4 backbone retains a substantial advantage from the
+correct externally supplied general-GF(2) topology at the project's formal
+sample floor. It is not yet a two-seed formal conclusion, cross-cipher weight
+reuse result, paper reproduction, attack, paper-scale comparison, SOTA or
+universal-SPN evidence.
+
+Evidence-backed next action:
+
+```text
+next question = does the same formal-scale topology advantage replicate at seed1?
+anchor        = this seed0 result plus the completed RTG2-B two-seed matrix
+change        = seed only: 0 -> 1
+fixed         = cipher, r7, difference, keys, 1000000/class train,
+                500000/class validation, 4 pairs, three controls, RuntimeE4,
+                442466 parameters, 5 epochs, optimizer, loss and checkpoint rule
+execution     = prepared remote GPU seed1 successor from its exact pushed commit
+advance gate  = valid archive and checkpoints; correct >= 0.55; both margins >= 0.005
+stop gate     = hold on a research miss; repair evidence only on protocol failure
+blocked       = no architecture rescue, no extra epochs/pairs, no broad cipher
+                matrix and no universal claim before the two-seed joint gate
+```
+
 ## Prepared Conditional Seed1 Successor
 
 The seed1 matrix, remote configuration, Windows run/launch scripts, result
@@ -164,6 +224,16 @@ monitor and a separate local-only successor watcher are prepared under run id
 `i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725`. Preparation is
 not launch authorization. The successor consumes only local seed0 artifacts
 and cannot contact `lxy-a6000` itself.
+
+After seed0 retrieval and visual QA, the successor generated the strict seed1
+launch gate. It passed source publication, seed-only plan equivalence,
+unchanged protected training paths, remote disk-cache readiness and complete
+seed0 evidence, then started local tmux session
+`i1_rtg3a_skinny64_formal_seed1_monitor` at 06:30 +08:00. That monitor owns the
+remote launch, bounded started-marker confirmation and later result retrieval;
+the main thread does not poll the workstation. Until its start artifact is
+confirmed, seed1 is launch-authorized/monitor-started rather than a reported
+training result.
 
 It stops without launching when seed0 reports a research hold or protocol
 failure. A supported seed0 must additionally supply exactly three locally
