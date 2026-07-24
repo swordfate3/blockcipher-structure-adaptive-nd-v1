@@ -322,7 +322,7 @@ def test_rtg2b_seed0_pass_preserves_scaled_protocol(tmp_path: Path) -> None:
     output = tmp_path / "rtg2b.svg"
     render_skinny_medium_svg(gate, output)
     svg = output.read_text(encoding="utf-8")
-    assert "创新1 RTG2B" in svg
+    assert "创新1 RTG2-B" in svg
     assert "训练 262144/class，验证 131072/class" in svg
     assert "可准备相同协议的 seed1 复验" in svg
 
@@ -776,6 +776,21 @@ def test_rtg3a_seed0_gate_is_single_seed_project_formal_evidence() -> None:
     assert all(gate["research_checks"].values())
     assert "single-seed evidence only" in gate["claim_scope"]
     assert "conditional 1000000/class seed1" in gate["next_action"]
+
+
+def test_rtg3a_plot_uses_formal_scale_language(tmp_path: Path) -> None:
+    output = tmp_path / "rtg3a.svg"
+
+    render_skinny_medium_svg(_rtg3a_seed_gate(0), output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "创新1 RTG3-A：SKINNY 项目正式规模 GF(2) 拓扑复验" in svg
+    assert "训练 1000000/class，验证 500000/class" in svg
+    assert "正确拓扑在 1000000/类通过三门" in svg
+    assert "项目正式规模单颗种子架构/协议复验" in svg
+    assert "不是论文规模、论文复现、攻击" in svg
+    assert "262144/类" not in svg
+    assert "不是正式规模" not in svg
 
 
 def test_rtg3a_joint_gate_requires_two_formal_seed_passes() -> None:

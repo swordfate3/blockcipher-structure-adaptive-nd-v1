@@ -74,10 +74,12 @@ REQUIRED_SOURCE_ASSETS = (
         "monitor_i1_rtg3a_seed1_after_seed0_20260725.sh"
     ),
     Path("scripts/check-runtime-spn-skinny-rtg3a-seed1-launch"),
+    Path("scripts/gate-runtime-spn-skinny-medium"),
     Path(
         "src/blockcipher_nd/cli/"
         "check_runtime_spn_skinny_rtg3a_seed1_launch.py"
     ),
+    Path("src/blockcipher_nd/cli/gate_runtime_spn_skinny_medium.py"),
     Path(
         "src/blockcipher_nd/tasks/innovation1/"
         "runtime_spn_skinny_rtg3a_seed1_launch.py"
@@ -85,9 +87,7 @@ REQUIRED_SOURCE_ASSETS = (
 )
 PROTECTED_TRAINING_PATHS = (
     "scripts/train",
-    "scripts/gate-runtime-spn-skinny-medium",
     "src/blockcipher_nd/cli/train.py",
-    "src/blockcipher_nd/cli/gate_runtime_spn_skinny_medium.py",
     "src/blockcipher_nd/engine",
     "src/blockcipher_nd/data",
     "src/blockcipher_nd/models",

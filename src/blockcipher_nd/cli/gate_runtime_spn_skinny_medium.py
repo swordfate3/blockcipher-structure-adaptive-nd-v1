@@ -275,10 +275,19 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
     ]
     seed = int(gate["seed"])
     phase = str(gate.get("phase", "rtg2a"))
-    phase_label = phase.upper()
+    phase_label = {
+        "rtg2a": "RTG2-A",
+        "rtg2b": "RTG2-B",
+        "rtg3a": "RTG3-A",
+    }.get(phase, phase.upper())
     samples_per_class = int(gate.get("samples_per_class", 65_536))
     validation_per_class = int(gate.get("validation_rows", 65_536)) // 2
     status = str(gate["status"])
+    scale_label = {
+        "rtg2a": "中等规模",
+        "rtg2b": "中等规模扩样",
+        "rtg3a": "项目正式规模",
+    }.get(phase, "样本规模")
     if status == "pass":
         if phase == "rtg2a":
             conclusion = (
@@ -286,17 +295,27 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
                 if seed == 0
                 else "正确拓扑再次通过信号门和两项归因门；下一步汇总两颗种子后裁决扩样。"
             )
-        else:
+        elif phase == "rtg2b":
             conclusion = (
                 "正确拓扑在 262144/类再次通过三门；可准备相同协议的 seed1 复验。"
                 if seed == 0
                 else "正确拓扑在 262144/类两颗种子通过；下一步汇总后再裁决正式规模。"
             )
+        else:
+            conclusion = (
+                "正确拓扑在 1000000/类通过三门；完整复裁和视觉检查后开放 seed1 原样复验。"
+                if seed == 0
+                else "正确拓扑在 1000000/类的第二颗种子通过三门；下一步进行双种子正式规模裁决。"
+            )
     else:
-        conclusion = {
-            "hold": "中等规模优势未满足冻结门槛；停止扩样并审计方差或训练动态。",
-            "fail": "协议证据不完整或不一致；仅修复失败检查，不解释 AUC。",
-        }[status]
+        if status == "hold":
+            conclusion = (
+                "项目正式规模优势未满足冻结门槛；停止机械扩样并审计固定协议训练动态。"
+                if phase == "rtg3a"
+                else "中等规模优势未满足冻结门槛；停止扩样并审计方差或训练动态。"
+            )
+        else:
+            conclusion = "协议证据不完整或不一致；仅修复失败检查，不解释 AUC。"
     status_color = {"pass": "#047857", "hold": "#B45309", "fail": "#B42318"}[status]
     finite_values = [value for value in values if math.isfinite(value)] or [0.5]
     finite_margins = [value for value in margins if math.isfinite(value)] or [0.0]
@@ -319,7 +338,7 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
             left=0.075, right=0.97, top=0.72, bottom=0.18, wspace=0.32
         )
         figure.suptitle(
-            f"创新1 {phase_label}：SKINNY 中等规模 GF(2) 拓扑复验",
+            f"创新1 {phase_label}：SKINNY {scale_label} GF(2) 拓扑复验",
             x=0.075,
             y=0.96,
             ha="left",
@@ -416,13 +435,22 @@ def render_skinny_medium_svg(gate: dict[str, Any], output: Path) -> None:
         axes[1].set_title("正确拓扑相对控制组的优势", loc="left", fontweight="bold")
         axes[1].grid(True, axis="y", color="#E5E7EB", linewidth=0.8)
         axes[1].legend(loc="upper left", frameon=False)
+        evidence_scope = (
+            (
+                f"证据范围：SKINNY-64/64 7轮、{samples_per_class}/class "
+                "项目正式规模单颗种子架构/协议复验；不是论文规模、论文复现、攻击、"
+                "SOTA、突破或通用 SPN 结论。"
+            )
+            if phase == "rtg3a"
+            else (
+                f"证据范围：SKINNY-64/64 7轮、{samples_per_class}/class "
+                "中等规模架构/协议复验；不是正式规模、论文复现、攻击、SOTA 或突破。"
+            )
+        )
         figure.text(
             0.075,
             0.055,
-            (
-                f"证据范围：SKINNY-64/64 7轮、{samples_per_class}/class 中等规模架构/协议复验；"
-                "不是正式规模、论文复现、攻击、SOTA 或突破。"
-            ),
+            evidence_scope,
             ha="left",
             va="bottom",
             color="#334155",
