@@ -929,7 +929,7 @@ For GitHub-pushed formal or medium remote runs, do not assume a historical remot
 
 **Logged**: 2026-07-06T13:40:00+08:00
 **Priority**: high
-**Status**: pending
+**Status**: resolved
 **Area**: infra
 
 ### Summary
@@ -984,6 +984,18 @@ Do not work around this by dirty overlay, alternate push commands, or SSH remote
 - Recurrence-Count: 4
 - First-Seen: 2026-07-06
 - Last-Seen: 2026-07-24
+
+### Resolution
+- **Resolved**: 2026-07-24T21:11:20+08:00
+- **Commit/PR**: resolution-record commit containing this entry
+- **Notes**: The user explicitly approved normal publication to the configured
+  `origin/main`. Persistent command approvals were established for the exact
+  `git push origin main` operation and the read-only
+  `git ls-remote origin refs/heads/main` verification. A normal push completed,
+  and the verified remote SHA matched local `HEAD`
+  `7198d3af30ac626953cdf34fc4c4356ffe7f6fb4`. Future scoped commits must use
+  this fixed push-and-verify path automatically; transient failures still use
+  the bounded recovery skill, while permanent Git failures remain non-retryable.
 
 ---
 
