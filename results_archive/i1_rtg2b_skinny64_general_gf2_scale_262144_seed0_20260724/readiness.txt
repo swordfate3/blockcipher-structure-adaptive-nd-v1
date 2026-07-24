@@ -1,0 +1,21 @@
+{
+  "checked_invariants": [
+    "plan_exists",
+    "expected_rows_matches_plan",
+    "run_id_task_archive_alignment",
+    "github_ssh_repo",
+    "cmd_exe_c_only_policy",
+    "g_lxy_artifact_policy",
+    "training_protocol_matches_plan",
+    "medium_scale_dataset_cache"
+  ],
+  "config": "configs\\remote\\innovation1_rtg2b_skinny64_general_gf2_scale_262144_seed0_gpu0_20260724.json",
+  "errors": [],
+  "expected_rows": 3,
+  "max_samples_per_class": 262144,
+  "plan": "configs\\experiment\\innovation1\\innovation1_spn_skinny64_runtime_e4_scale_rtg2b_262144_seed0.csv",
+  "plan_rows": 3,
+  "run_id": "i1_rtg2b_skinny64_general_gf2_scale_262144_seed0_20260724",
+  "status": "pass",
+  "warnings": []
+}
