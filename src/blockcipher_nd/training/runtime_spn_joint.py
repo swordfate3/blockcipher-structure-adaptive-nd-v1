@@ -173,8 +173,8 @@ def train_runtime_spn_joint(
             "val_macro_auc": macro_auc,
         }
         for task in tasks:
-            row[f"train_loss_{task.name}"] = (
-                epoch_loss_sums[task.name] / max(1, epoch_rows[task.name])
+            row[f"train_loss_{task.name}"] = epoch_loss_sums[task.name] / max(
+                1, epoch_rows[task.name]
             )
             row[f"val_auc_{task.name}"] = validation_metrics[task.name]["auc"]
         history.append(row)
@@ -261,7 +261,9 @@ def evaluate_runtime_spn_joint(
     loss: str,
 ) -> dict[str, dict[str, float]]:
     if split not in {"train", "validation"}:
-        raise ValueError("joint Runtime-SPN evaluation split must be train or validation")
+        raise ValueError(
+            "joint Runtime-SPN evaluation split must be train or validation"
+        )
     loss_fn = make_loss(loss)
     model.eval()
     result: dict[str, dict[str, float]] = {}
@@ -288,8 +290,7 @@ def evaluate_runtime_spn_joint(
                 loss_sum += float(batch_loss.detach().cpu()) * len(labels)
                 labels_all.extend(float(value) for value in labels.detach().cpu())
                 probabilities.extend(
-                    float(value)
-                    for value in torch.sigmoid(logits).detach().cpu()
+                    float(value) for value in torch.sigmoid(logits).detach().cpu()
                 )
             label_array = np.asarray(labels_all, dtype=np.float32)
             probability_array = np.asarray(probabilities, dtype=np.float32)
@@ -331,7 +332,9 @@ def _accumulate_gradient_diagnostics(
 ) -> bool:
     finite = True
     for name, parameter in model.named_parameters():
-        if "primitive_adapter" not in name or parameter.grad is None:
+        if (
+            "primitive_adapter" not in name and "primitive_film" not in name
+        ) or parameter.grad is None:
             continue
         group = ".".join(name.split(".")[:2])
         gradient = parameter.grad.detach()

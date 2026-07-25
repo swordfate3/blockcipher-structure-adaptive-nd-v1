@@ -414,18 +414,35 @@ def render_joint_margin_svg(
         "stress_macro_auc",
         "five_macro_auc",
     )
-    controls = [
-        ("dense", "普通稠密锚点", "#0072B2", "o"),
-        ("uniform", "均匀混合控制", "#D55E00", "s"),
-        ("shuffled", "打乱原语路由", "#009E73", "^"),
-    ]
-    has_additive_source = bool(
+    has_gated_source = bool(
         gate
         and all(
             "gated_minus_additive_by_cipher"
             in gate.get("per_seed", {}).get(str(seed), {})
             for seed in EXPECTED_SEEDS
         )
+    )
+    has_film_source = bool(
+        gate
+        and all(
+            "film_minus_additive" in gate.get("per_seed", {}).get(str(seed), {})
+            for seed in EXPECTED_SEEDS
+        )
+    )
+    has_additive_source = has_gated_source or has_film_source
+    axis_subject = "正确局部结构描述" if has_film_source else "正确路由"
+    controls = (
+        [
+            ("dense", "固定条件稠密锚点", "#0072B2", "o"),
+            ("uniform", "全cell均值描述控制", "#D55E00", "s"),
+            ("shuffled", "特征打乱描述控制", "#009E73", "^"),
+        ]
+        if has_film_source
+        else [
+            ("dense", "普通稠密锚点", "#0072B2", "o"),
+            ("uniform", "均匀混合控制", "#D55E00", "s"),
+            ("shuffled", "打乱原语路由", "#009E73", "^"),
+        ]
     )
     if has_additive_source:
         controls.append(("additive_source", "旧加法正确路由", "#CC79A7", "D"))
@@ -438,14 +455,23 @@ def render_joint_margin_svg(
             if control == "additive_source":
                 assert gate is not None
                 seed_gate = gate["per_seed"][seed_key]
-                values = dict(seed_gate["gated_minus_additive_by_cipher"])
-                values["core_macro_auc"] = seed_gate["gated_minus_additive_core_macro"]
-                values["stress_macro_auc"] = seed_gate[
-                    "gated_minus_additive_stress_macro"
-                ]
-                values["five_macro_auc"] = float(
-                    np.mean([values[cipher] for cipher in EXPECTED_CIPHERS])
-                )
+                if has_film_source:
+                    source = seed_gate["film_minus_additive"]
+                    values = dict(source["by_cipher"])
+                    values["core_macro_auc"] = source["core_macro"]
+                    values["stress_macro_auc"] = source["stress_macro"]
+                    values["five_macro_auc"] = source["five_macro"]
+                else:
+                    values = dict(seed_gate["gated_minus_additive_by_cipher"])
+                    values["core_macro_auc"] = seed_gate[
+                        "gated_minus_additive_core_macro"
+                    ]
+                    values["stress_macro_auc"] = seed_gate[
+                        "gated_minus_additive_stress_macro"
+                    ]
+                    values["five_macro_auc"] = float(
+                        np.mean([values[cipher] for cipher in EXPECTED_CIPHERS])
+                    )
             else:
                 values = {}
                 for cipher in EXPECTED_CIPHERS:
@@ -493,27 +519,36 @@ def render_joint_margin_svg(
             axis.scatter(
                 values,
                 y + offset,
-                label=f"正确路由减{label}",
+                label=f"{axis_subject}减{label}",
                 color=color,
                 marker=marker,
                 s=58,
                 zorder=3,
             )
         axis.set_title(f"随机种子 seed{seed}", fontsize=13, pad=10)
-        axis.set_xlabel("验证集 AUC 差值（正确路由 - 对照）", fontsize=11)
+        axis.set_xlabel(f"验证集 AUC 差值（{axis_subject} - 对照）", fontsize=11)
         axis.set_xlim(low - padding, high + padding)
         axis.grid(axis="x", color="#D9D9D9", linewidth=0.8, alpha=0.8)
         axis.tick_params(axis="both", labelsize=10)
     axes[0].set_yticks(y, [labels[category] for category in categories])
     axes[0].invert_yaxis()
-    experiment_title = (
-        "创新1：五密码共享 Runtime-E4 结构原语乘法门控归因结果"
-        if has_additive_source
-        else "创新1：五密码共享 Runtime-E4 结构原语适配器归因结果"
-    )
+    if has_film_source:
+        experiment_title = "创新1：五密码共享 Runtime-E4 局部结构 True FiLM 归因结果"
+    elif has_gated_source:
+        experiment_title = "创新1：五密码共享 Runtime-E4 结构原语乘法门控归因结果"
+    else:
+        experiment_title = "创新1：五密码共享 Runtime-E4 结构原语适配器归因结果"
+    decision_caption = ""
+    if gate and has_film_source:
+        decision_caption = (
+            "\n本次裁决：通过，可进入整密码留出"
+            if gate.get("status") == "pass"
+            else "\n本次裁决：暂缓，不进入整密码留出"
+        )
     fig.suptitle(
         f"{experiment_title}\n"
-        "正值表示正确原语路由优于同预算对照；紫色虚线是 +0.005 推进门槛",
+        f"正值表示{axis_subject}优于同预算对照；紫色虚线是 +0.005 推进门槛"
+        f"{decision_caption}",
         fontsize=16,
         y=0.985,
     )
@@ -628,6 +663,7 @@ def _make_tasks(
 
 
 def _model_spec(model: dict[str, Any], mode: str) -> RuntimeParameterizedSpnSpec:
+    true_film = model.get("primitive_conditioning") == "true_film"
     return RuntimeParameterizedSpnSpec(
         hidden_dim=int(model["hidden_dim"]),
         pair_embedding_dim=int(model["pair_embedding_dim"]),
@@ -636,10 +672,13 @@ def _model_spec(model: dict[str, Any], mode: str) -> RuntimeParameterizedSpnSpec
         sbox_context_mode=model["sbox_context_mode"],
         cell_input_mode=model["cell_input_mode"],
         round_window_mode=model["round_window_mode"],
-        primitive_adapter_mode=mode,
+        primitive_adapter_mode="none" if true_film else mode,
         primitive_adapter_rank=int(model["primitive_adapter_rank"]),
         primitive_adapter_scale=float(model["primitive_adapter_scale"]),
         primitive_adapter_effect=model.get("primitive_adapter_effect", "additive"),
+        primitive_film_mode=mode if true_film else "none",
+        primitive_film_rank=int(model.get("primitive_film_rank", 10)),
+        primitive_film_scale=float(model.get("primitive_film_scale", 0.1)),
     )
 
 

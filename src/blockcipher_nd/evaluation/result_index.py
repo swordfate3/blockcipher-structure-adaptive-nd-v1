@@ -345,6 +345,21 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_primitive_gated_modulation_protocol_invalid": (
         "原语乘法门控readiness或旧加法源锚点无效，修复前不解释AUC"
     ),
+    "innovation1_runtime_spn_primitive_true_film_readiness_passed": (
+        "五密码局部S盒与GF(2)描述True FiLM十一项实现门通过，可执行同预算双seed诊断"
+    ),
+    "innovation1_runtime_spn_primitive_true_film_supported": (
+        "局部结构True FiLM通过双seed三控制与旧加法锚点门，可进入整密码留出"
+    ),
+    "innovation1_runtime_spn_primitive_true_film_core_supported_stress_hold": (
+        "局部结构True FiLM只通过核心组，新算法压力组未通过，禁止进入整密码留出"
+    ),
+    "innovation1_runtime_spn_primitive_true_film_not_supported": (
+        "局部结构True FiLM未稳定超过三控制和旧加法锚点，停止Adapter/FiLM/MoE机械扩展"
+    ),
+    "innovation1_runtime_spn_primitive_true_film_protocol_invalid": (
+        "局部结构True FiLM的readiness、参数、缓存或旧加法源锚点无效，修复前不解释AUC"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2374,6 +2389,12 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith("i1_runtime_spn_primitive_true_film_five_cipher_readiness"):
+        return "创新1：五密码局部S盒与GF(2)结构True FiLM实现门"
+    if run_id.startswith(
+        "i1_runtime_spn_primitive_true_film_five_cipher_joint_2048_seed0_seed1"
+    ):
+        return "创新1：五密码局部结构True FiLM 2048/class双seed联合归因"
     if run_id.startswith(
         "i1_rtg3a_skinny64_general_gf2_formal_1000000_joint_seed0_seed1"
     ):

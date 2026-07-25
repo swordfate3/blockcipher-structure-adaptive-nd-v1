@@ -46,6 +46,15 @@ class RuntimeParameterizedSpnSpec:
     primitive_adapter_rank: int = 8
     primitive_adapter_scale: float = 0.1
     primitive_adapter_effect: Literal["additive", "multiplicative_gate"] = "additive"
+    primitive_film_mode: Literal[
+        "none",
+        "dense",
+        "correct",
+        "uniform",
+        "shuffled",
+    ] = "none"
+    primitive_film_rank: int = 10
+    primitive_film_scale: float = 0.1
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -99,6 +108,22 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError(
                 "primitive_adapter_effect must be additive or multiplicative_gate"
             )
+        if self.primitive_film_mode not in {
+            "none",
+            "dense",
+            "correct",
+            "uniform",
+            "shuffled",
+        }:
+            raise ValueError(
+                "primitive_film_mode must be none, dense, correct, uniform, or shuffled"
+            )
+        if self.primitive_film_rank <= 0:
+            raise ValueError("primitive_film_rank must be positive")
+        if self.primitive_film_scale < 0.0:
+            raise ValueError("primitive_film_scale must be non-negative")
+        if self.primitive_adapter_mode != "none" and self.primitive_film_mode != "none":
+            raise ValueError("primitive Adapter and True FiLM are mutually exclusive")
 
 
 class _LowRankResidualAdapter(nn.Module):
@@ -110,6 +135,18 @@ class _LowRankResidualAdapter(nn.Module):
 
     def forward(self, hidden: torch.Tensor) -> torch.Tensor:
         return self.up(self.activation(self.down(hidden)))
+
+
+class _PrimitiveTrueFiLM(nn.Module):
+    def __init__(self, descriptor_dim: int, hidden_dim: int, rank: int) -> None:
+        super().__init__()
+        self.down = nn.Linear(descriptor_dim, rank, bias=False)
+        self.activation = nn.GELU()
+        self.affine = nn.Linear(rank, hidden_dim * 2, bias=True)
+
+    def forward(self, descriptor: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        gamma, beta = self.affine(self.activation(self.down(descriptor))).chunk(2, -1)
+        return gamma, beta
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -529,6 +566,13 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                     ),
                 }
             )
+        self.primitive_film_conditioner: _PrimitiveTrueFiLM | None = None
+        if spec.primitive_film_mode != "none":
+            self.primitive_film_conditioner = _PrimitiveTrueFiLM(
+                descriptor_dim=128,
+                hidden_dim=token_dim,
+                rank=spec.primitive_film_rank,
+            )
         self.sequence_norm = nn.LayerNorm(token_dim)
         self.pair_projection = nn.Sequential(
             nn.Linear(token_dim * 3, pair_dim),
@@ -710,6 +754,11 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 structure,
                 relation_mode=relation_mode,
             )
+        sequence = self._apply_primitive_film(
+            sequence,
+            structure,
+            round_index=-1,
+        )
         for block in self.mixer_blocks:
             sequence = block(sequence)
         sequence = self._apply_primitive_adapter(
@@ -851,6 +900,11 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                     relation_mode=relation_mode,
                     round_index=round_index,
                 )
+            sequence = self._apply_primitive_film(
+                sequence,
+                structure,
+                round_index=round_index,
+            )
             for block in self.mixer_blocks:
                 sequence = block(sequence)
             sequence = self._apply_primitive_adapter(
@@ -922,6 +976,107 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             )
         return self._combine_primitive_effect(sequence, residual)
 
+    def _apply_primitive_film(
+        self,
+        sequence: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        round_index: int,
+    ) -> torch.Tensor:
+        mode = self.spec.primitive_film_mode
+        if mode == "none":
+            return sequence
+        if self.primitive_film_conditioner is None:
+            raise RuntimeError("primitive True FiLM was not initialized")
+        descriptor = self.primitive_film_descriptor(
+            structure,
+            round_index=round_index,
+            mode=mode,
+            device=sequence.device,
+            dtype=sequence.dtype,
+        )
+        gamma, beta = self.primitive_film_conditioner(descriptor)
+        scale = self.spec.primitive_film_scale
+        self.last_primitive_adapter_traffic["film"] = (
+            self.last_primitive_adapter_traffic.get("film", 0.0)
+            + float(sequence.shape[0] * sequence.shape[1])
+        )
+        return sequence * (1.0 + scale * torch.tanh(gamma)[None, :, :]) + (
+            scale * torch.tanh(beta)[None, :, :]
+        )
+
+    @staticmethod
+    def primitive_film_descriptor(
+        structure: RuntimeSpnStructure,
+        *,
+        round_index: int,
+        mode: Literal["dense", "correct", "uniform", "shuffled"],
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if mode not in {"dense", "correct", "uniform", "shuffled"}:
+            raise ValueError(
+                "primitive True FiLM mode must be dense, correct, uniform, or shuffled"
+            )
+        if mode == "dense":
+            fixed = torch.linspace(-1.0, 1.0, 128, device=device, dtype=dtype)
+            return fixed[None, :].expand(structure.cells, -1)
+
+        membership = structure.cell_membership.to(device=device)
+        bit_role = structure.bit_role.to(device=device)
+        bit_indices = torch.arange(structure.block_bits, device=device)
+        cell_role_indices = torch.empty(
+            structure.cells,
+            4,
+            dtype=torch.long,
+            device=device,
+        )
+        cell_role_indices[membership, bit_role] = bit_indices
+
+        inverse = structure.inverse_linear_matrices[round_index].to(
+            device=device,
+            dtype=dtype,
+        )
+        target_rows = inverse[cell_role_indices]
+        source_roles = torch.nn.functional.one_hot(bit_role, num_classes=4).to(dtype)
+        edge_counts = torch.einsum("ctb,bs->cts", target_rows, source_roles)
+        normalized_counts = edge_counts / float(structure.cells)
+        count_parity = torch.remainder(edge_counts, 2.0)
+        same_cell = inverse[
+            cell_role_indices[:, :, None],
+            cell_role_indices[:, None, :],
+        ]
+        source_fanout = inverse.sum(dim=0) / float(structure.block_bits)
+        fanout_sum = torch.einsum(
+            "ctb,b,bs->cts",
+            target_rows,
+            source_fanout,
+            source_roles,
+        )
+        mean_source_fanout = fanout_sum / edge_counts.clamp_min(1.0)
+        diffusion = torch.stack(
+            (
+                normalized_counts,
+                count_parity,
+                same_cell,
+                mean_source_fanout,
+            ),
+            dim=-1,
+        ).reshape(structure.cells, 64)
+        sbox = structure.sbox_truth_bits[round_index].to(device=device, dtype=dtype)
+        descriptor = torch.cat((sbox, diffusion), dim=-1)
+        if mode == "uniform":
+            return descriptor.mean(dim=0, keepdim=True).expand_as(descriptor)
+        if mode == "shuffled":
+            return torch.cat(
+                (
+                    torch.roll(descriptor[:, :64], shifts=1, dims=-1),
+                    torch.roll(descriptor[:, 64:], shifts=1, dims=-1),
+                ),
+                dim=-1,
+            )
+        return descriptor
+
     def _combine_primitive_effect(
         self,
         sequence: torch.Tensor,
@@ -974,6 +1129,18 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 else 1
                 if self.spec.primitive_adapter_mode == "dense"
                 else 2
+            ),
+            "traffic": dict(self.last_primitive_adapter_traffic),
+        }
+
+    def primitive_film_summary(self) -> dict[str, object]:
+        return {
+            "mode": self.spec.primitive_film_mode,
+            "rank": self.spec.primitive_film_rank,
+            "scale": self.spec.primitive_film_scale,
+            "descriptor_dim": 128,
+            "active_conditioner_evaluations": (
+                0 if self.spec.primitive_film_mode == "none" else 1
             ),
             "traffic": dict(self.last_primitive_adapter_traffic),
         }

@@ -3627,6 +3627,56 @@ def test_result_index_supports_r4_readiness_chinese_name(tmp_path: Path) -> None
     assert "目标 seed 2" in entries[0]["display_name"]
 
 
+def test_result_index_labels_runtime_spn_true_film_readiness(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_readiness"
+        / "i1_runtime_spn_primitive_true_film_five_cipher_readiness_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_primitive_true_film_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1：五密码局部S盒与GF(2)结构True FiLM实现门"
+    )
+    assert entries[0]["decision_display"] == (
+        "五密码局部S盒与GF(2)描述True FiLM十一项实现门通过，可执行同预算双seed诊断"
+    )
+
+
+def test_result_index_labels_runtime_spn_true_film_joint_hold(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_primitive_true_film_five_cipher_joint_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_primitive_true_film_not_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1：五密码局部结构True FiLM 2048/class双seed联合归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "局部结构True FiLM未稳定超过三控制和旧加法锚点，停止Adapter/FiLM/MoE机械扩展"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:

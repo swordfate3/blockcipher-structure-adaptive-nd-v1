@@ -258,40 +258,39 @@ audits have now completed.
 4. A parameter-matched multiplicative gate passed all readiness checks but
    failed the same five-cipher two-seed research gate. It did not consistently
    beat its dense/uniform/shuffled controls or the additive source.
+5. A 4096-parameter True FiLM conditioner used a 128-dimensional local
+   descriptor containing S-box truth bits and GF(2) diffusion statistics. It
+   exactly matched the old additive model at 446562 total parameters, passed
+   11/11 readiness checks, distinguished both known descriptor-collision
+   pairs, preserved cell relabeling and received nonzero gradients. The real
+   two-seed joint diagnostic still held: core macro deltas versus dense were
+   only `+0.001635` and `+0.002331`, while correct-versus-shuffled core deltas
+   were `-0.003714` and `-0.000405`. It also failed the old additive source on
+   the core macro in both seeds.
 
-This evidence down-ranks deterministic low-rank additive and multiplicative
-gates. It does not reject the method-level runtime-parameterized SPN objective:
-the shared Runtime-E4 topology path remains supported on SKINNY at formal
-project scale, while this local joint gate only rejects two small conditional
-effects.
+This evidence closes deterministic low-rank additive, multiplicative and local
+True FiLM effects under the current five-cipher joint protocol. It does not
+reject the method-level runtime-parameterized SPN objective: the shared
+Runtime-E4 topology path remains supported on SKINNY at formal project scale,
+while these local joint gates reject the tested differentiated side paths.
 
 ### Updated Technology Ranking
 
 | Rank | Route after executed evidence | Status | Reason |
 | ---: | --- | --- | --- |
-| 1 | Parameter-matched dense conditional basis or true FiLM inside the transition update | next design audit | Can modulate a shared computation more directly than the two failed low-rank effects while retaining local structure conditioning |
-| 2 | Typed R-GCN/GNN-FiLM path around the exact GF(2) view | held alternative | Structurally natural, but higher implementation and XOR-semantics risk |
-| 3 | Refined deterministic primitive descriptor | conditional | Collisions exist, but current same-bucket gradients did not conflict |
-| 4 | Sparse Top-2 Adapter MoE | closed | No deterministic joint or holdout pass; learned routing is not authorized |
-| 5 | Larger generic recurrent/Transformer processor | closed | Does not target the observed conditional-effect weakness |
+| 1 | Typed R-GCN/GNN-FiLM path around the exact GF(2) view | design-audit only | Structurally natural, but must prove it preserves XOR semantics and adds more than the exact Runtime-E4 path |
+| 2 | Consolidate the supported shared Runtime-E4 method without differentiated side modules | active alternative | Stronger evidence and lower thesis risk than continuing architecture enumeration |
+| 3 | Refined deterministic primitive descriptor | closed for Adapter/FiLM | True FiLM already used a collision-distinguishing local descriptor without stable gain |
+| 4 | Sparse Top-2 Adapter MoE | closed | Additive, multiplicative and True FiLM all failed the joint gate; learned routing is not authorized |
+| 5 | Larger generic recurrent/Transformer processor | closed | Does not target the observed attribution failure |
 
-The next design review must compare one dense conditional basis/FiLM candidate
-against stopping this differentiated branch. It must not silently turn into a
-larger model, cipher-ID router, rank increase or remote scale-up.
-
-If this gate passes, the next experiments are whole-cipher holdouts. Retrain
-without Dialga first to test 64-to-128-bit structural transfer, then retrain
-without uKNIT to test unseen heterogeneous round/S-box ownership. RECTANGLE
-remains the non-contiguous-cell holdout. Each omitted cipher is absent from
-training, validation, checkpoint selection and router statistics. If the gate
-holds, stop adapter/MoE scaling and inspect whether the primitive descriptor,
-parameter matching or joint sampler failed. Do not add experts, samples,
-epochs or remote compute as a rescue.
-
-Only after a joint-training pass and a whole-cipher holdout pass should the
-route add a third heterogeneous-S-box/round-transition adapter and return to
-uKNIT. Sparse learned Top-2 routing is a later ablation, not the method's
-starting point.
+The next design review must compare one typed relation-specific message path
+against consolidating the supported shared Runtime-E4 method. The candidate
+must wrap the exact GF(2) view rather than replace XOR propagation with generic
+real-valued neighbor averaging. It must remain parameter matched, cell
+relabeling equivariant, cipher-ID-free and local-only before training. No
+whole-cipher holdout is authorized because the required joint gate did not
+pass.
 
 ## New-Algorithm Family Boundary
 
@@ -312,15 +311,15 @@ remain a distinct family panel.
 
 ## Final Recommendation
 
-Keep MoE as a constrained component of the design, not as the architecture
-name or the immediate experiment. The evidence-backed priority is:
+MoE is closed for the current differentiated branch. The evidence-backed
+priority is now:
 
 ```text
-1. deterministic primitive routing + low-rank FiLM/adapters
-2. same-capacity dense and routing controls
-3. joint five-SPN local gate, including uKNIT and Dialga stress tasks
-4. whole-cipher holdout
-5. only then learned soft/Top-2 structural MoE
+1. audit one typed relation-specific message operator around exact GF(2)
+2. compare its complexity and identifiability against supported Runtime-E4
+3. only if that design audit passes, run the same five-SPN local control gate
+4. only after a full two-seed joint pass, run whole-cipher holdouts
+5. do not reopen learned soft/Top-2 MoE without new joint and holdout evidence
 ```
 
 This route directly addresses the observed failure mode: the shared backbone
