@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -14,10 +15,98 @@ TRUE_AUC_FLOOR = 0.520
 CONTROL_MARGIN = 0.005
 
 
+@dataclass(frozen=True)
+class _DialgaPanelSpec:
+    stage: str
+    rounds: int
+    runtime_round_start: int
+    pass_decision: str
+    hold_decision: str
+    claim_scope: str
+    pass_next_action: str
+    hold_next_action: str
+    blocked_scale_action: str
+
+
+_D1_SPEC = _DialgaPanelSpec(
+    stage="d1",
+    rounds=4,
+    runtime_round_start=2,
+    pass_decision="innovation1_dialga_runtime_e4_d1_two_seed_supported",
+    hold_decision="innovation1_dialga_runtime_e4_d1_not_supported",
+    claim_scope=(
+        "Dialga-128 prefix-r4 two-seed local 2048/class runtime-topology "
+        "diagnostic only; not formal scale, attack, paper reproduction, SOTA, or "
+        "universal-SPN evidence"
+    ),
+    pass_next_action=(
+        "freeze both correct best checkpoints and run same-checkpoint swaps to "
+        "corrupted and no-topology Dialga structures before any scale increase"
+    ),
+    hold_next_action=(
+        "keep the Runtime-E4 architecture fixed and run only a tiny Dialga input-"
+        "difference screen if all roles are near chance; otherwise diagnose the "
+        "failed topology control without increasing samples"
+    ),
+    blocked_scale_action="increase samples, pairs, epochs, or rounds before the D1 gate",
+)
+
+_D3_SPEC = _DialgaPanelSpec(
+    stage="d3",
+    rounds=5,
+    runtime_round_start=3,
+    pass_decision=("innovation1_dialga_runtime_e4_d3_adjacent_window_supported"),
+    hold_decision=("innovation1_dialga_runtime_e4_d3_adjacent_window_not_replicated"),
+    claim_scope=(
+        "Dialga-128 prefix-r5 adjacent-window two-seed local 2048/class "
+        "runtime-topology diagnostic only; not formal scale, attack, paper "
+        "reproduction, SOTA, or universal-SPN evidence"
+    ),
+    pass_next_action=(
+        "freeze both D3 correct best checkpoints and run same-checkpoint swaps to "
+        "corrupted and no-topology Dialga structures before any scale increase"
+    ),
+    hold_next_action=(
+        "run a training-free 2x2 D1-checkpoint audit crossing D1/D3 validation "
+        "data with runtime round_start 2/3 to isolate fifth-round data loss from "
+        "runtime-window incompatibility before changing the network"
+    ),
+    blocked_scale_action=(
+        "increase samples, pairs, epochs, or rounds before the D4 cross-window "
+        "factorial audit"
+    ),
+)
+
+
 def adjudicate_runtime_spn_dialga_d1(
     *,
     run_id: str,
     rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return _adjudicate_runtime_spn_dialga_panel(
+        run_id=run_id,
+        rows=rows,
+        spec=_D1_SPEC,
+    )
+
+
+def adjudicate_runtime_spn_dialga_d3(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return _adjudicate_runtime_spn_dialga_panel(
+        run_id=run_id,
+        rows=rows,
+        spec=_D3_SPEC,
+    )
+
+
+def _adjudicate_runtime_spn_dialga_panel(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    spec: _DialgaPanelSpec,
 ) -> dict[str, Any]:
     by_key = {
         (int(row.get("seed", -1)), str(row.get("model"))): row for row in rows
@@ -79,10 +168,10 @@ def adjudicate_runtime_spn_dialga_d1(
             )
             for row in flat_rows
         ),
-        "frozen_d1_task_and_scale": all(
+        f"frozen_{spec.stage}_task_and_scale": all(
             row.get("cipher") == "Dialga-128"
             and row.get("cipher_key") == "dialga128"
-            and row.get("rounds") == 4
+            and row.get("rounds") == spec.rounds
             and row.get("samples_per_class") == 2048
             and row.get("pairs_per_sample") == 4
             and row.get("input_difference") == 0x40
@@ -114,7 +203,10 @@ def adjudicate_runtime_spn_dialga_d1(
             }
         )
         == 1,
-        "runtime_descriptor_contract": _runtime_descriptor_contract(groups),
+        "runtime_descriptor_contract": _runtime_descriptor_contract(
+            groups,
+            expected_round_start=spec.runtime_round_start,
+        ),
         "runtime_topology_controls_distinct": _topology_controls_distinct(groups),
         "best_validation_checkpoints_restored": all(
             row.get("training", {}).get("checkpoint_metric") == "val_auc"
@@ -177,23 +269,18 @@ def adjudicate_runtime_spn_dialga_d1(
 
     if not all(protocol_checks.values()):
         status = "fail"
-        decision = "innovation1_dialga_runtime_e4_d1_protocol_invalid"
-        next_action = "repair only the failed frozen protocol check before interpretation"
+        decision = f"innovation1_dialga_runtime_e4_{spec.stage}_protocol_invalid"
+        next_action = (
+            "repair only the failed frozen protocol check before interpretation"
+        )
     elif all(research_checks.values()):
         status = "pass"
-        decision = "innovation1_dialga_runtime_e4_d1_two_seed_supported"
-        next_action = (
-            "freeze both correct best checkpoints and run same-checkpoint swaps to "
-            "corrupted and no-topology Dialga structures before any scale increase"
-        )
+        decision = spec.pass_decision
+        next_action = spec.pass_next_action
     else:
         status = "hold"
-        decision = "innovation1_dialga_runtime_e4_d1_not_supported"
-        next_action = (
-            "keep the Runtime-E4 architecture fixed and run only a tiny Dialga input-"
-            "difference screen if all roles are near chance; otherwise diagnose the "
-            "failed topology control without increasing samples"
-        )
+        decision = spec.hold_decision
+        next_action = spec.hold_next_action
 
     return {
         "run_id": run_id,
@@ -208,15 +295,11 @@ def adjudicate_runtime_spn_dialga_d1(
             "correct_auc": TRUE_AUC_FLOOR,
             "control_margin": CONTROL_MARGIN,
         },
-        "claim_scope": (
-            "Dialga-128 prefix-r4 two-seed local 2048/class runtime-topology "
-            "diagnostic only; not formal scale, attack, paper reproduction, SOTA, or "
-            "universal-SPN evidence"
-        ),
+        "claim_scope": spec.claim_scope,
         "next_action": next_action,
         "blocked_actions": [
             "remote scale-up",
-            "increase samples, pairs, epochs, or rounds before the D1 gate",
+            spec.blocked_scale_action,
             "claim topology attribution from correct AUC without both controls",
             "claim a Dialga attack or formal cross-cipher result",
         ],
@@ -225,6 +308,8 @@ def adjudicate_runtime_spn_dialga_d1(
 
 def _runtime_descriptor_contract(
     groups: dict[int, dict[str, dict[str, Any]]],
+    *,
+    expected_round_start: int,
 ) -> bool:
     expected_modes = {
         "correct": "true",
@@ -242,7 +327,7 @@ def _runtime_descriptor_contract(
                 and str(row.get("runtime_structure_descriptor_path", "")).endswith(
                     "configs/runtime/spn/dialga128.json"
                 )
-                and row.get("runtime_structure_round_start") == 2
+                and row.get("runtime_structure_round_start") == expected_round_start
                 and row.get("runtime_structure_available_rounds") == 20
                 and row.get("runtime_structure_loaded_rounds") == 2
                 and row.get("runtime_structure_unique_transition_count") == 2
@@ -290,4 +375,5 @@ __all__ = [
     "SEEDS",
     "TRUE_AUC_FLOOR",
     "adjudicate_runtime_spn_dialga_d1",
+    "adjudicate_runtime_spn_dialga_d3",
 ]

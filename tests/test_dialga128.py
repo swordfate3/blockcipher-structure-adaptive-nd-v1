@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,10 @@ DESCRIPTOR = ROOT / "configs/runtime/spn/dialga128.json"
 PLAN = (
     ROOT
     / "configs/experiment/innovation1/innovation1_spn_dialga128_runtime_e4_d1_r4_2048_seed0_seed1.csv"
+)
+D3_PLAN = (
+    ROOT
+    / "configs/experiment/innovation1/innovation1_spn_dialga128_runtime_e4_d3_r5_2048_seed0_seed1.csv"
 )
 
 
@@ -418,6 +423,78 @@ def test_dialga_d1_plan_parses_the_frozen_six_role_protocol() -> None:
         assert task["model_options"]["runtime_round_start"] == 2
         assert task["model_options"]["runtime_rounds"] == 2
         assert task["model_options"]["round_window_mode"] == "recurrent_window"
+
+
+def test_dialga_d3_plan_changes_only_the_adjacent_round_window() -> None:
+    with D3_PLAN.open(encoding="utf-8", newline="") as handle:
+        csv_rows = list(csv.DictReader(handle))
+    assert {row["family"] for row in csv_rows} == {"dialga128_runtime_e4_d3_r5_2048"}
+
+    d1_tasks = tasks_from_plan(
+        PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+    d3_tasks = tasks_from_plan(
+        D3_PLAN,
+        feature_encoding="ciphertext_pair_bits",
+        pairs_per_sample=1,
+        difference_profile=None,
+        difference_member=0,
+    )
+
+    assert len(d3_tasks) == 6
+    parameter_counts: set[int] = set()
+    for d1, d3 in zip(d1_tasks, d3_tasks, strict=True):
+        assert d3["rounds"] == 5
+        assert d3["model_options"]["runtime_round_start"] == 3
+
+        frozen_fields = (
+            "cipher_key",
+            "seed",
+            "samples_per_class",
+            "dataset_label_mode",
+            "pairs_per_sample",
+            "feature_encoding",
+            "negative_mode",
+            "train_key",
+            "validation_key",
+            "sample_structure",
+            "input_difference",
+            "loss",
+            "learning_rate",
+            "optimizer",
+            "weight_decay",
+            "checkpoint_metric",
+            "restore_best_checkpoint",
+            "target_epochs",
+            "model_key",
+        )
+        assert all(d3[field] == d1[field] for field in frozen_fields)
+
+        d1_options = dict(d1["model_options"])
+        d3_options = dict(d3["model_options"])
+        assert d1_options.pop("runtime_round_start") == 2
+        assert d3_options.pop("runtime_round_start") == 3
+        assert d3_options == d1_options
+
+        model = build_model(
+            d3["model_key"],
+            input_bits=1024,
+            hidden_bits=64,
+            pair_bits=256,
+            structure="SPN",
+            model_options=d3["model_options"],
+        )
+        metadata = model_metadata(model)
+        parameter_counts.add(sum(value.numel() for value in model.parameters()))
+        assert metadata["runtime_structure_round_start"] == 3
+        assert metadata["runtime_structure_loaded_rounds"] == 2
+        assert metadata["runtime_structure_unique_transition_count"] == 2
+
+    assert parameter_counts == {442466}
 
 
 @pytest.mark.parametrize(

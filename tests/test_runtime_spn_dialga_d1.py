@@ -5,13 +5,19 @@ from copy import deepcopy
 from blockcipher_nd.tasks.innovation1.runtime_spn_dialga_d1 import (
     MODELS,
     adjudicate_runtime_spn_dialga_d1,
+    adjudicate_runtime_spn_dialga_d3,
 )
 
 
-def _rows(aucs: dict[int, dict[str, float]]) -> list[dict[str, object]]:
+def _rows(
+    aucs: dict[int, dict[str, float]],
+    *,
+    rounds: int = 4,
+    runtime_round_start: int = 2,
+) -> list[dict[str, object]]:
     common_options = {
         "runtime_structure_path": "configs/runtime/spn/dialga128.json",
-        "runtime_round_start": 2,
+        "runtime_round_start": runtime_round_start,
         "runtime_rounds": 2,
         "processor_steps": 2,
         "pair_embedding_dim": 128,
@@ -38,7 +44,7 @@ def _rows(aucs: dict[int, dict[str, float]]) -> list[dict[str, object]]:
                     "cipher": "Dialga-128",
                     "cipher_key": "dialga128",
                     "model": model,
-                    "rounds": 4,
+                    "rounds": rounds,
                     "seed": seed,
                     "samples_per_class": 2048,
                     "dataset_label_mode": "balanced_per_class",
@@ -60,7 +66,7 @@ def _rows(aucs: dict[int, dict[str, float]]) -> list[dict[str, object]]:
                         "/repo/configs/runtime/spn/dialga128.json"
                     ),
                     "runtime_structure_descriptor_sha256": "c" * 64,
-                    "runtime_structure_round_start": 2,
+                    "runtime_structure_round_start": runtime_round_start,
                     "runtime_structure_available_rounds": 20,
                     "runtime_structure_loaded_rounds": 2,
                     "runtime_structure_unique_transition_count": 2,
@@ -162,3 +168,64 @@ def test_dialga_d1_fails_closed_when_history_does_not_match_best_auc() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["complete_best_checkpoint_histories"] is False
+
+
+def test_dialga_d3_passes_only_on_the_frozen_adjacent_window() -> None:
+    gate = adjudicate_runtime_spn_dialga_d3(
+        run_id="d3-pass",
+        rows=_rows(
+            {
+                0: {"correct": 0.60, "corrupted": 0.57, "no_topology": 0.55},
+                1: {"correct": 0.58, "corrupted": 0.56, "no_topology": 0.54},
+            },
+            rounds=5,
+            runtime_round_start=3,
+        ),
+    )
+
+    assert gate["status"] == "pass"
+    assert (
+        gate["decision"] == "innovation1_dialga_runtime_e4_d3_adjacent_window_supported"
+    )
+    assert all(gate["protocol_checks"].values())
+    assert all(gate["research_checks"].values())
+    assert "prefix-r5 adjacent-window" in gate["claim_scope"]
+
+
+def test_dialga_d3_holds_when_the_adjacent_window_does_not_replicate() -> None:
+    gate = adjudicate_runtime_spn_dialga_d3(
+        run_id="d3-hold",
+        rows=_rows(
+            {
+                0: {"correct": 0.60, "corrupted": 0.57, "no_topology": 0.55},
+                1: {"correct": 0.51, "corrupted": 0.50, "no_topology": 0.50},
+            },
+            rounds=5,
+            runtime_round_start=3,
+        ),
+    )
+
+    assert gate["status"] == "hold"
+    assert (
+        gate["decision"]
+        == "innovation1_dialga_runtime_e4_d3_adjacent_window_not_replicated"
+    )
+
+
+def test_dialga_d3_fails_closed_on_d1_round_or_window_metadata() -> None:
+    rows = _rows(
+        {
+            0: {"correct": 0.60, "corrupted": 0.57, "no_topology": 0.55},
+            1: {"correct": 0.58, "corrupted": 0.56, "no_topology": 0.54},
+        },
+        rounds=5,
+        runtime_round_start=3,
+    )
+    invalid = deepcopy(rows)
+    invalid[0]["runtime_structure_round_start"] = 2
+
+    gate = adjudicate_runtime_spn_dialga_d3(run_id="d3-invalid", rows=invalid)
+
+    assert gate["status"] == "fail"
+    assert gate["decision"] == "innovation1_dialga_runtime_e4_d3_protocol_invalid"
+    assert gate["protocol_checks"]["runtime_descriptor_contract"] is False
