@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1",
+  "run_id": "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726",
+  "readiness": {
+    "gate_path": "outputs/local_readiness/i1_runtime_spn_rectangle_whole_cipher_holdout_h1_readiness_20260726/gate.json",
+    "required_decision": "innovation1_runtime_spn_rectangle_holdout_readiness_passed"
+  },
+  "holdout_cipher": "rectangle80",
+  "source_ciphers": ["gift64", "skinny64", "uknit64", "dialga128"],
+  "protocols": [
+    {
+      "name": "gift64",
+      "display_name": "GIFT-64 r6",
+      "cipher_key": "gift64",
+      "rounds": 6,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/gift64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "skinny64",
+      "display_name": "SKINNY-64/64 r7",
+      "cipher_key": "skinny64",
+      "rounds": 7,
+      "input_difference": "0x2000",
+      "train_key": "0x0",
+      "validation_key": "0x1111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/skinny64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "rectangle80",
+      "display_name": "RECTANGLE-80 r6（整密码留出）",
+      "cipher_key": "rectangle80",
+      "rounds": 6,
+      "input_difference": "0x2100010020",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/rectangle64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "uknit64",
+      "display_name": "uKNIT-BC prefix-r5",
+      "cipher_key": "uknit64",
+      "rounds": 5,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/uknit64.json",
+      "runtime_round_start": 3
+    },
+    {
+      "name": "dialga128",
+      "display_name": "Dialga-128 prefix-r4",
+      "cipher_key": "dialga128",
+      "rounds": 4,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/dialga128.json",
+      "runtime_round_start": 2
+    }
+  ],
+  "model": {
+    "backbone": "RuntimeE4EquivariantSpnDistinguisher",
+    "hidden_dim": 64,
+    "pair_embedding_dim": 128,
+    "processor_steps": 2,
+    "dropout": 0.0,
+    "sbox_context_mode": "edge_gate",
+    "cell_input_mode": "state_triplet",
+    "round_window_mode": "recurrent_window",
+    "runtime_rounds": 2,
+    "conditioner": "none",
+    "expected_parameter_count": 442466
+  },
+  "training": {
+    "seeds": [0, 1],
+    "roles": {
+      "correct": {"structure": "correct", "relation_mode": "true"},
+      "corrupted": {"structure": "corrupted", "relation_mode": "true"},
+      "no_topology": {"structure": "correct", "relation_mode": "independent"}
+    },
+    "samples_per_class": 2048,
+    "validation_samples_per_class": 1024,
+    "pairs_per_sample": 4,
+    "negative_mode": "encrypted_random_plaintexts",
+    "feature_encoding": "ciphertext_pair_bits",
+    "sample_structure": "independent_pairs",
+    "key_rotation_interval": 0,
+    "epochs": 10,
+    "batch_size": 256,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "lr_scheduler": "none",
+    "checkpoint_metric": "val_macro_auc",
+    "restore_best_checkpoint": true,
+    "device": "cpu",
+    "cache_source_root": "outputs/local_diagnostic/i1_runtime_spn_primitive_adapter_five_cipher_joint_2048_seed0_seed1_20260725/cache"
+  },
+  "target_evaluations": {
+    "candidate_correct": {"source_role": "correct", "structure": "correct", "relation_mode": "true"},
+    "candidate_corrupted_target": {"source_role": "correct", "structure": "corrupted", "relation_mode": "true"},
+    "candidate_no_topology_target": {"source_role": "correct", "structure": "correct", "relation_mode": "independent"},
+    "corrupted_source_control": {"source_role": "corrupted", "structure": "corrupted", "relation_mode": "true"},
+    "no_topology_source_control": {"source_role": "no_topology", "structure": "correct", "relation_mode": "independent"}
+  },
+  "gate": {
+    "absolute_target_auc_floor": 0.55,
+    "margin": 0.005,
+    "seen_macro_margin": 0.005,
+    "required_seeds": [0, 1]
+  }
+}

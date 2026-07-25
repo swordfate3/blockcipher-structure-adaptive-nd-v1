@@ -375,6 +375,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_typed_relation_protocol_invalid": (
         "Typed GF(2)关系实验的readiness、参数、缓存或历史锚点无效，修复前不解释AUC"
     ),
+    "innovation1_runtime_spn_rectangle_holdout_readiness_passed": (
+        "RECTANGLE整密码留出十一项零泄漏实现门通过，可执行2048/class/source双seed诊断"
+    ),
+    "innovation1_runtime_spn_rectangle_holdout_supported": (
+        "RECTANGLE整密码零微调留出双seed通过正确结构与全部控制门，可设计第二独立留出"
+    ),
+    "innovation1_runtime_spn_rectangle_holdout_not_supported": (
+        "RECTANGLE零微调存在绝对信号但结构归因未跨seed稳定，先审计源任务梯度主导与冲突"
+    ),
+    "innovation1_runtime_spn_rectangle_holdout_protocol_invalid": (
+        "RECTANGLE整密码留出的数据隔离、检查点、参数或同权重反事实协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2404,6 +2416,14 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_readiness"
+    ):
+        return "创新1 H1：RECTANGLE整密码零微调留出实现门"
+    if run_id.startswith(
+        "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1"
+    ):
+        return "创新1 H1：RECTANGLE整密码零微调留出2048/class/source双seed诊断"
     if run_id.startswith(
         "i1_runtime_spn_typed_relation_gnn_film_five_cipher_readiness"
     ):

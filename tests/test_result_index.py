@@ -3731,6 +3731,60 @@ def test_result_index_labels_runtime_spn_typed_relation_joint_hold(
     )
 
 
+def test_result_index_labels_runtime_spn_rectangle_holdout_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_readiness"
+        / "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_readiness_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_rectangle_holdout_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1：RECTANGLE整密码零微调留出实现门"
+    )
+    assert entries[0]["decision_display"] == (
+        "RECTANGLE整密码留出十一项零泄漏实现门通过，可执行2048/class/source双seed诊断"
+    )
+
+
+def test_result_index_labels_runtime_spn_rectangle_holdout(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_rectangle_holdout_not_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1：RECTANGLE整密码零微调留出2048/class/source双seed诊断"
+    )
+    assert entries[0]["decision_display"] == (
+        "RECTANGLE零微调存在绝对信号但结构归因未跨seed稳定，先审计源任务梯度主导与冲突"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:
