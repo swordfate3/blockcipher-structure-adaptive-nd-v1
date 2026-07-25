@@ -28,6 +28,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure import (
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     gift64_runtime_structure,
     present_runtime_structure,
+    rectangle80_runtime_structure,
     skinny64_runtime_structure,
     standard_four_bit_cells,
     uknit64_runtime_structure,
@@ -651,6 +652,40 @@ def test_runtime_e4_recurrent_window_is_cell_relabel_invariant() -> None:
         permuted = model(relabeled_pairs, relabeled)
 
     torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
+
+
+def test_runtime_e4_recurrent_window_relabels_production_layouts() -> None:
+    structures = (
+        rectangle80_runtime_structure(2),
+        skinny64_runtime_structure(3),
+        uknit64_runtime_structure(3, round_start=4),
+    )
+    torch.manual_seed(221)
+    model = RuntimeE4EquivariantSpnDistinguisher(
+        RuntimeParameterizedSpnSpec(
+            hidden_dim=24,
+            pair_embedding_dim=32,
+            processor_steps=2,
+            dropout=0.0,
+            sbox_context_mode="edge_gate",
+            cell_input_mode="dual_view_triplet",
+            round_window_mode="recurrent_window",
+        )
+    ).eval()
+
+    for index, structure in enumerate(structures):
+        relabeled, bit_permutation = structure.relabel_cells(
+            tuple(reversed(range(structure.cells)))
+        )
+        pairs = _binary((2, 3, 2, 64), 222 + index)
+        relabeled_pairs = torch.empty_like(pairs)
+        relabeled_pairs[..., bit_permutation] = pairs
+
+        with torch.no_grad():
+            original = model(pairs, structure)
+            permuted = model(relabeled_pairs, relabeled)
+
+        torch.testing.assert_close(original, permuted, rtol=0.0, atol=1e-6)
 
 
 def test_runtime_e4_recurrent_window_keeps_geometry_across_loaded_rounds() -> None:
