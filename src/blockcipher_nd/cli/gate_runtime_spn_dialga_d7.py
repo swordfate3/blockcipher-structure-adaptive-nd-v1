@@ -20,23 +20,26 @@ matplotlib.use("Agg")
 import numpy as np
 from matplotlib import pyplot as plt
 
+from blockcipher_nd.cli.gate_runtime_spn_dialga_d6 import (
+    audit_source_cache_reuse,
+)
 from blockcipher_nd.evaluation.plots import write_history_csv
 from blockcipher_nd.tasks.innovation1.runtime_spn_dialga_d1 import (
-    adjudicate_runtime_spn_dialga_d3,
+    adjudicate_runtime_spn_dialga_d1,
 )
-from blockcipher_nd.tasks.innovation1.runtime_spn_dialga_d6 import (
-    SEEDS,
-    adjudicate_runtime_spn_dialga_d6,
+from blockcipher_nd.tasks.innovation1.runtime_spn_dialga_d6 import SEEDS
+from blockcipher_nd.tasks.innovation1.runtime_spn_dialga_d7 import (
+    adjudicate_runtime_spn_dialga_d7,
 )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Adjudicate Dialga-128 Runtime-E5 D6 gated residuals."
+        description="Adjudicate Dialga-128 Runtime-E5 D7 r4 regression."
     )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-root", required=True, type=Path)
-    parser.add_argument("--d3-root", required=True, type=Path)
+    parser.add_argument("--d1-root", required=True, type=Path)
     return parser.parse_args(argv)
 
 
@@ -44,31 +47,32 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     results_path = args.run_root / "results.jsonl"
     progress_path = args.run_root / "progress.jsonl"
-    d3_results_path = args.d3_root / "results.jsonl"
-    d3_gate_path = args.d3_root / "gate.json"
-    d3_validation_path = args.d3_root / "validation.json"
+    d1_results_path = args.d1_root / "results.jsonl"
+    d1_gate_path = args.d1_root / "gate.json"
+    d1_validation_path = args.d1_root / "validation.json"
 
     rows = _read_jsonl(results_path)
     progress_rows = _read_jsonl(progress_path)
-    d3_rows = _read_jsonl(d3_results_path)
-    persisted_d3_gate = _read_json(d3_gate_path)
-    d3_validation = _read_json(d3_validation_path)
-    replayed_d3_gate = adjudicate_runtime_spn_dialga_d3(
-        run_id=str(persisted_d3_gate.get("run_id", "")),
-        rows=d3_rows,
+    d1_rows = _read_jsonl(d1_results_path)
+    persisted_d1_gate = _read_json(d1_gate_path)
+    d1_validation = _read_json(d1_validation_path)
+    replayed_d1_gate = adjudicate_runtime_spn_dialga_d1(
+        run_id=str(persisted_d1_gate.get("run_id", "")),
+        rows=d1_rows,
     )
-    expected_cache_root = args.d3_root / "cache"
+    expected_cache_root = args.d1_root / "cache"
     cache_audit = audit_source_cache_reuse(
         progress_rows=progress_rows,
         expected_cache_root=expected_cache_root,
+        source_label="d1",
     )
-    gate = adjudicate_runtime_spn_dialga_d6(
+    gate = adjudicate_runtime_spn_dialga_d7(
         run_id=args.run_id,
         rows=rows,
-        d3_rows=d3_rows,
-        persisted_d3_gate=persisted_d3_gate,
-        replayed_d3_gate=replayed_d3_gate,
-        d3_validation=d3_validation,
+        d1_rows=d1_rows,
+        persisted_d1_gate=persisted_d1_gate,
+        replayed_d1_gate=replayed_d1_gate,
+        d1_validation=d1_validation,
         expected_cache_root=expected_cache_root,
         cache_audit=cache_audit,
     )
@@ -77,11 +81,11 @@ def main(argv: list[str] | None = None) -> int:
         "status": "pass" if all(gate["protocol_checks"].values()) else "fail",
         "checks": gate["protocol_checks"],
         "results": str(results_path),
-        "source_d3": {
-            "root": str(args.d3_root),
-            "results_sha256": _sha256(d3_results_path),
-            "gate_sha256": _sha256(d3_gate_path),
-            "validation_sha256": _sha256(d3_validation_path),
+        "source_d1": {
+            "root": str(args.d1_root),
+            "results_sha256": _sha256(d1_results_path),
+            "gate_sha256": _sha256(d1_gate_path),
+            "validation_sha256": _sha256(d1_validation_path),
         },
     }
     summary = {
@@ -94,14 +98,14 @@ def main(argv: list[str] | None = None) -> int:
         "validation_samples_per_class": 1024,
         "epochs": 10,
         "seeds": list(SEEDS),
-        "source_d3_root": str(args.d3_root),
+        "source_d1_root": str(args.d1_root),
         "gate": gate,
     }
     _write_json(args.run_root / "validation.json", validation)
     _write_json(args.run_root / "gate.json", gate)
     _write_json(args.run_root / "summary.json", summary)
     write_history_csv(results_path, args.run_root / "history.csv")
-    render_dialga_d6_svg(gate, args.run_root / "curves.svg")
+    render_dialga_d7_svg(gate, args.run_root / "curves.svg")
     _append_progress(
         progress_path,
         "gate_done",
@@ -115,83 +119,26 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if gate["status"] == "fail" else 0
 
 
-def audit_source_cache_reuse(
-    *,
-    progress_rows: list[dict[str, Any]],
-    expected_cache_root: Path,
-    source_label: str = "d3",
-) -> dict[str, Any]:
-    if source_label not in {"d1", "d3"}:
-        raise ValueError(f"unsupported Dialga source label: {source_label}")
-    expected_root = expected_cache_root.resolve()
-    expected_cache_paths = {
-        path.parent.resolve() for path in expected_cache_root.rglob("metadata.json")
-    }
-    cache_events = [
-        row for row in progress_rows if row.get("stage") == "dataset_cache"
-    ]
-    reuse_events = [row for row in cache_events if row.get("event") == "cache_reuse"]
-    generation_events = [
-        row for row in cache_events if row.get("event") != "cache_reuse"
-    ]
-    observed_paths: set[Path] = set()
-    malformed_paths = 0
-    for event in reuse_events:
-        value = event.get("cache_path")
-        if not isinstance(value, str) or not value:
-            malformed_paths += 1
-            continue
-        observed_paths.add(Path(value).resolve())
-    index_split_pairs = {
-        (int(row.get("index", -1)), str(row.get("split", "")))
-        for row in reuse_events
-    }
-    expected_index_split_pairs = {
-        (index, split) for index in range(1, 7) for split in ("train", "validation")
-    }
-    checks = {
-        f"four_{source_label}_cache_directories_present": (
-            len(expected_cache_paths) == 4
-        ),
-        "twelve_reuse_events_complete": len(reuse_events) == 12,
-        "six_rows_both_splits_reused": index_split_pairs
-        == expected_index_split_pairs,
-        "no_dataset_generation_events": not generation_events,
-        "all_reuse_paths_well_formed": malformed_paths == 0,
-        f"reuse_paths_are_exact_{source_label}_cache_leaves": observed_paths
-        == expected_cache_paths,
-        f"reuse_paths_stay_under_{source_label}_cache_root": all(
-            path.is_relative_to(expected_root) for path in observed_paths
-        ),
-    }
-    return {
-        "status": "pass" if all(checks.values()) else "fail",
-        "checks": checks,
-        "expected_cache_root": str(expected_cache_root),
-        "expected_cache_paths": sorted(str(path) for path in expected_cache_paths),
-        "observed_cache_paths": sorted(str(path) for path in observed_paths),
-        "reuse_event_count": len(reuse_events),
-        "generation_event_count": len(generation_events),
-    }
-
-
-audit_d3_cache_reuse = audit_source_cache_reuse
-
-
-def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
+def render_dialga_d7_svg(gate: dict[str, Any], output_path: Path) -> None:
     roles = ("correct", "corrupted", "no_topology")
-    role_labels = ("正确拓扑", "错误拓扑", "无拓扑")
+    role_labels = ("E5 正确拓扑", "E5 错误拓扑", "E5 无拓扑")
     role_colors = ("#059669", "#DC2626", "#64748B")
-    auc_values = {
-        seed: [float(gate["aucs"][f"seed{seed}"][role]) for role in roles]
-        for seed in SEEDS
+    x = np.arange(2, dtype=np.float64)
+    auc_series = {
+        "D1 E4 正确锚点": [
+            float(gate["d1_correct_anchors"][f"seed{seed}"]) for seed in SEEDS
+        ],
+        **{
+            label: [float(gate["aucs"][f"seed{seed}"][role]) for seed in SEEDS]
+            for role, label in zip(roles, role_labels, strict=True)
+        },
     }
     margin_keys = (
         "correct_minus_corrupted",
         "correct_minus_no_topology",
-        "correct_minus_d3",
+        "correct_minus_d1",
     )
-    margin_labels = ("正确 - 错误", "正确 - 无拓扑", "正确 - 旧D3")
+    margin_labels = ("正确 - 错误", "正确 - 无拓扑", "正确 - D1锚点")
     margin_values = {
         seed: [
             float(gate["margins"][f"seed{seed}"][key]) for key in margin_keys
@@ -224,10 +171,10 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
     ):
         figure, axes = plt.subplots(1, 3, figsize=(17.2, 7.0))
         figure.subplots_adjust(
-            left=0.055, right=0.985, top=0.70, bottom=0.17, wspace=0.28
+            left=0.055, right=0.985, top=0.70, bottom=0.22, wspace=0.28
         )
         figure.suptitle(
-            "创新1 D6：Dialga 五轮门控拓扑残差诊断",
+            "创新1 D7：Dialga 四轮 E5 强信号回归",
             x=0.055,
             y=0.965,
             ha="left",
@@ -237,7 +184,7 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
         figure.text(
             0.055,
             0.89,
-            "固定 D3 数据、密钥、差分和训练预算；仅把网络改为“独立主干 + 有界拓扑修正”。",
+            "复用 D1 四轮数据和预算，仅将 Runtime-E4 换成 Runtime-E5；检验 E5 是否保留已知机制。",
             ha="left",
             color="#475569",
             fontsize=10.5,
@@ -252,43 +199,44 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
             fontsize=10.4,
         )
 
-        x = np.arange(3, dtype=np.float64)
-        width = 0.34
-        for seed, offset, alpha in ((0, -width / 2, 1.0), (1, width / 2, 0.68)):
-            bars = axes[0].bar(
-                x + offset,
-                auc_values[seed],
-                width,
-                label=f"seed{seed}",
-                color=role_colors,
-                alpha=alpha,
-                edgecolor="#FFFFFF",
-            )
+        width = 0.19
+        colors = ("#2563EB", *role_colors)
+        for index, ((label, values), color) in enumerate(
+            zip(auc_series.items(), colors, strict=True)
+        ):
+            offset = (index - 1.5) * width
+            bars = axes[0].bar(x + offset, values, width, label=label, color=color)
             axes[0].bar_label(
                 bars,
-                labels=[f"{value:.4f}" for value in auc_values[seed]],
+                labels=[f"{value:.4f}" for value in values],
                 padding=3,
-                fontsize=8.0,
+                fontsize=7.7,
                 rotation=90,
             )
-        auc_flat = auc_values[0] + auc_values[1] + [0.5, 0.52]
-        axes[0].axhline(0.5, color="#475569", linestyle=":", linewidth=1.1)
-        axes[0].axhline(
-            0.52, color="#2563EB", linestyle="--", linewidth=1.2, label="正确拓扑门槛 0.52"
-        )
-        axes[0].set_ylim(max(0.45, min(auc_flat) - 0.03), min(1.0, max(auc_flat) + 0.07))
-        axes[0].set_xticks(x, role_labels)
+        auc_flat = [value for values in auc_series.values() for value in values]
+        axes[0].set_ylim(max(0.45, min(auc_flat) - 0.05), min(1.0, max(auc_flat) + 0.04))
+        axes[0].set_xticks(x, ("seed0", "seed1"))
         axes[0].set_ylabel("最佳验证 AUC")
-        axes[0].set_title("同预算三种拓扑角色", loc="left", fontweight="bold")
+        axes[0].set_title("E5 与 D1 E4 锚点", loc="left", fontweight="bold")
         axes[0].grid(axis="y", color="#E2E8F0", linewidth=0.8)
-        axes[0].legend(frameon=False, loc="upper right", fontsize=8.2)
+        axes[0].legend(
+            frameon=False,
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.15),
+            ncol=2,
+            fontsize=7.8,
+        )
 
         margin_x = np.arange(3, dtype=np.float64)
-        for seed, offset, color in ((0, -width / 2, "#2563EB"), (1, width / 2, "#D97706")):
+        pair_width = 0.34
+        for seed, offset, color in (
+            (0, -pair_width / 2, "#2563EB"),
+            (1, pair_width / 2, "#D97706"),
+        ):
             bars = axes[1].bar(
                 margin_x + offset,
                 margin_values[seed],
-                width,
+                pair_width,
                 label=f"seed{seed}",
                 color=color,
             )
@@ -301,25 +249,37 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
             )
         axes[1].axhline(0.0, color="#334155", linewidth=1.0)
         axes[1].axhline(
-            0.005, color="#059669", linestyle="--", linewidth=1.2, label="控制差门槛 +0.005"
+            0.005,
+            color="#059669",
+            linestyle="--",
+            linewidth=1.2,
+            label="控制差门槛 +0.005",
         )
         axes[1].axhline(
-            0.010, color="#7C3AED", linestyle=":", linewidth=1.3, label="超过旧D3 +0.010"
+            -0.010,
+            color="#7C3AED",
+            linestyle=":",
+            linewidth=1.3,
+            label="D1 保留门槛 -0.010",
         )
-        margin_flat = margin_values[0] + margin_values[1] + [0.0, 0.005, 0.01]
+        margin_flat = margin_values[0] + margin_values[1] + [0.0, 0.005, -0.01]
         span = max(0.02, max(margin_flat) - min(margin_flat))
         axes[1].set_ylim(min(margin_flat) - 0.25 * span, max(margin_flat) + 0.45 * span)
         axes[1].set_xticks(margin_x, margin_labels)
         axes[1].set_ylabel("AUC 差值")
-        axes[1].set_title("必须逐 seed 同时通过的边际", loc="left", fontweight="bold")
+        axes[1].set_title("保留与拓扑控制边际", loc="left", fontweight="bold")
         axes[1].grid(axis="y", color="#E2E8F0", linewidth=0.8)
-        axes[1].legend(frameon=False, loc="upper left", fontsize=8.2)
+        axes[1].legend(frameon=False, loc="upper right", fontsize=8.0)
 
-        for seed, offset, alpha in ((0, -width / 2, 1.0), (1, width / 2, 0.68)):
+        role_x = np.arange(3, dtype=np.float64)
+        for seed, offset, alpha in (
+            (0, -pair_width / 2, 1.0),
+            (1, pair_width / 2, 0.68),
+        ):
             bars = axes[2].bar(
-                x + offset,
+                role_x + offset,
                 gate_values[seed],
-                width,
+                pair_width,
                 label=f"seed{seed}",
                 color=role_colors,
                 alpha=alpha,
@@ -339,7 +299,7 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
             min(gate_flat) - 0.35 * gate_span,
             max(gate_flat) + 0.55 * gate_span,
         )
-        axes[2].set_xticks(x, role_labels)
+        axes[2].set_xticks(role_x, ("正确拓扑", "错误拓扑", "无拓扑"))
         axes[2].set_ylabel("tanh(门控参数)")
         axes[2].set_title("训练后拓扑修正强度", loc="left", fontweight="bold")
         axes[2].grid(axis="y", color="#E2E8F0", linewidth=0.8)
@@ -347,8 +307,8 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
 
         figure.text(
             0.055,
-            0.055,
-            "本结果是 Dialga-128 prefix-r5、2048/class 的本地架构诊断，不是正式规模或攻击结果。",
+            0.035,
+            "本结果只裁决 E5 是否保留 Dialga 四轮机制；无论通过与否，都不重新开放五轮 E5。",
             ha="left",
             color="#334155",
             fontsize=9.8,
@@ -360,13 +320,11 @@ def render_dialga_d6_svg(gate: dict[str, Any], output_path: Path) -> None:
 
 def _decision_text(gate: dict[str, Any]) -> str:
     decision = str(gate.get("decision", ""))
-    if decision.endswith("gated_residual_supported"):
-        return "通过：正确拓扑逐 seed 优于两种控制，并超过旧 D3。"
-    if decision.endswith("base_improvement_without_topology_attribution"):
-        return "暂留：独立主干有所改善，但拓扑归因边际不完整。"
+    if decision.endswith("r4_regression_supported"):
+        return "通过：E5 保留四轮强信号和两种正确拓扑优势；仅保留架构实现。"
     if decision.endswith("protocol_invalid"):
-        return "协议无效：先修复冻结检查，当前数值不可解释。"
-    return "未通过：五轮正确拓扑未在两颗 seed 上形成稳定优势。"
+        return "协议无效：修复冻结检查前，当前数值不可解释。"
+    return "未通过：E5 未稳定保留四轮 D1 机制，停止后续 E5 实验。"
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -409,13 +367,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-__all__ = [
-    "audit_d3_cache_reuse",
-    "audit_source_cache_reuse",
-    "main",
-    "parse_args",
-    "render_dialga_d6_svg",
-]
+__all__ = ["main", "parse_args", "render_dialga_d7_svg"]
 
 
 if __name__ == "__main__":
