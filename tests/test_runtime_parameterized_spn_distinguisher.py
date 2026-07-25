@@ -721,10 +721,19 @@ def test_runtime_e4_recurrent_window_keeps_geometry_across_loaded_rounds() -> No
     "sbox_context_mode",
     ("early_add", "late_pair", "late_cell", "edge_gate"),
 )
+@pytest.mark.parametrize(
+    "structure_factory",
+    (
+        pytest.param(present_runtime_structure, id="permutation"),
+        pytest.param(skinny64_runtime_structure, id="general-gf2"),
+        pytest.param(uknit64_runtime_structure, id="heterogeneous-gf2"),
+    ),
+)
 def test_runtime_e4_independent_control_ignores_linear_topology_for_all_views(
     round_window_mode: str,
     cell_input_mode: str,
     sbox_context_mode: str,
+    structure_factory,
 ) -> None:
     torch.manual_seed(219)
     model = RuntimeE4EquivariantSpnDistinguisher(
@@ -738,7 +747,7 @@ def test_runtime_e4_independent_control_ignores_linear_topology_for_all_views(
             round_window_mode=round_window_mode,
         )
     ).eval()
-    structure = present_runtime_structure(2)
+    structure = structure_factory(2)
     corrupted = structure.corrupted(219)
     pairs = _binary((3, 4, 2, 64), 220)
 
