@@ -943,6 +943,95 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         )
 
 
+class RuntimeE5GatedResidualSpnDistinguisher(nn.Module):
+    """Preserve an independent E4 prediction and add bounded topology residuals."""
+
+    def __init__(self, spec: RuntimeParameterizedSpnSpec) -> None:
+        super().__init__()
+        self.spec = spec
+        self.encoder = RuntimeE4EquivariantSpnDistinguisher(spec)
+        representation_dim = spec.pair_embedding_dim * 3
+        self.topology_residual_head = nn.Sequential(
+            nn.LayerNorm(representation_dim),
+            nn.Linear(representation_dim, spec.hidden_dim * 2),
+            nn.ReLU(),
+            nn.Dropout(spec.dropout),
+            nn.Linear(spec.hidden_dim * 2, 1),
+        )
+        self.topology_gate = nn.Parameter(torch.zeros(()))
+        self.last_base_logit: torch.Tensor | None = None
+        self.last_topology_residual_logit: torch.Tensor | None = None
+
+    def forward(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str = "true",
+        topology_gate_override: float | torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        base, topology_residual = self.encode_components(
+            ciphertext_pairs,
+            structure,
+            relation_mode=relation_mode,
+        )
+        base_logit = self.encoder.classifier(base)
+        residual_logit = (
+            torch.zeros_like(base_logit)
+            if relation_mode == "independent"
+            else self.topology_residual_head(topology_residual)
+        )
+        gate_source = (
+            self.topology_gate
+            if topology_gate_override is None
+            else torch.as_tensor(
+                topology_gate_override,
+                device=base_logit.device,
+                dtype=base_logit.dtype,
+            )
+        )
+        gate = torch.tanh(gate_source)
+        self.last_base_logit = base_logit.detach()
+        self.last_topology_residual_logit = residual_logit.detach()
+        return base_logit + gate * torch.tanh(residual_logit)
+
+    def base_logits(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+    ) -> torch.Tensor:
+        base = self.encoder.encode(
+            ciphertext_pairs,
+            structure,
+            relation_mode="independent",
+        )
+        return self.encoder.classifier(base)
+
+    def encode_components(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        if relation_mode not in {"true", "independent"}:
+            raise ValueError("relation_mode must be true or independent")
+        base = self.encoder.encode(
+            ciphertext_pairs,
+            structure,
+            relation_mode="independent",
+        )
+        if relation_mode == "independent":
+            topology = base
+        else:
+            topology = self.encoder.encode(
+                ciphertext_pairs,
+                structure,
+                relation_mode="true",
+            )
+        return base, topology - base
+
+
 class FixedRuntimeSpnProtocolAdapter(nn.Module):
     """Bind an external runtime structure to the project's MSB-first features."""
 
@@ -980,9 +1069,12 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
             self.backbone = RuntimeCellTokenSpnDistinguisher(spec)
         elif aggregation_mode == "e4_equivariant":
             self.backbone = RuntimeE4EquivariantSpnDistinguisher(spec)
+        elif aggregation_mode == "e5_gated_residual":
+            self.backbone = RuntimeE5GatedResidualSpnDistinguisher(spec)
         else:
             raise ValueError(
-                "aggregation_mode must be bit_pair, cell_pair, or e4_equivariant"
+                "aggregation_mode must be bit_pair, cell_pair, e4_equivariant, "
+                "or e5_gated_residual"
             )
         self.runtime_structure = structure
         self.relation_mode = relation_mode
@@ -998,6 +1090,11 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
         self.runtime_structure_window_sha256 = structure.window_sha256()
         self.runtime_structure_unique_transition_count = unique_transition_count
         self.runtime_structure_homogeneous = unique_transition_count == 1
+        if aggregation_mode == "e5_gated_residual":
+            self.topology_residual_mode = (
+                "independent_base_plus_bounded_topology_logit_residual"
+            )
+            self.topology_gate_initial = 0.0
         if descriptor_name is not None:
             self.runtime_structure_descriptor_name = descriptor_name
         if descriptor_path is not None:
@@ -1066,6 +1163,7 @@ __all__ = [
     "FixedRuntimeSpnProtocolAdapter",
     "RuntimeCellTokenSpnDistinguisher",
     "RuntimeE4EquivariantSpnDistinguisher",
+    "RuntimeE5GatedResidualSpnDistinguisher",
     "RuntimeParameterizedSpnDistinguisher",
     "RuntimeParameterizedSpnSpec",
 ]

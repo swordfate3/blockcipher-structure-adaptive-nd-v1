@@ -144,6 +144,19 @@ def build_spn_model(
             False,
             "independent",
         ),
+        "runtime_spn_e5_gated_residual_true": ("true", False, False, "true"),
+        "runtime_spn_e5_gated_residual_corrupted": (
+            "true",
+            True,
+            False,
+            "corrupted",
+        ),
+        "runtime_spn_e5_gated_residual_independent": (
+            "independent",
+            False,
+            False,
+            "independent",
+        ),
     }
     if name in external_runtime_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -184,6 +197,11 @@ def build_spn_model(
         )
         pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
         assert pair_embedding_dim is not None
+        aggregation_mode = (
+            "e5_gated_residual"
+            if name.startswith("runtime_spn_e5_gated_residual_")
+            else "e4_equivariant"
+        )
         return FixedRuntimeSpnProtocolAdapter(
             input_bits=input_bits,
             pair_bits=(
@@ -203,7 +221,7 @@ def build_spn_model(
                     options.get("round_window_mode", "last_transition")
                 ),
             ),
-            aggregation_mode="e4_equivariant",
+            aggregation_mode=aggregation_mode,
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),
             descriptor_sha256=descriptor.sha256,

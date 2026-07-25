@@ -49,10 +49,20 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "runtime_structure_unique_transition_count",
         "runtime_structure_homogeneous",
         "runtime_structure_mode",
+        "topology_residual_mode",
+        "topology_gate_initial",
     ):
         if hasattr(model, field):
             value = getattr(model, field)
             metadata[field] = list(value) if isinstance(value, tuple) else value
+    backbone = getattr(model, "backbone", None)
+    topology_gate = getattr(backbone, "topology_gate", None)
+    if isinstance(topology_gate, torch.Tensor):
+        raw_gate = float(topology_gate.detach().cpu())
+        metadata["topology_gate_final_raw"] = raw_gate
+        metadata["topology_gate_final_bounded"] = float(
+            torch.tanh(topology_gate.detach()).cpu()
+        )
     if not hasattr(model, "gate_summary"):
         return metadata
     summary = model.gate_summary()

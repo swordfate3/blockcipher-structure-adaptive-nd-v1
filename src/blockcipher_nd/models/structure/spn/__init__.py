@@ -135,6 +135,7 @@ from blockcipher_nd.models.structure.spn.runtime_parameterized import (
     FixedRuntimeSpnProtocolAdapter,
     RuntimeCellTokenSpnDistinguisher,
     RuntimeE4EquivariantSpnDistinguisher,
+    RuntimeE5GatedResidualSpnDistinguisher,
     RuntimeParameterizedSpnDistinguisher,
     RuntimeParameterizedSpnSpec,
 )
@@ -156,6 +157,7 @@ __all__ = [
     "FixedRuntimeSpnProtocolAdapter",
     "RuntimeCellTokenSpnDistinguisher",
     "RuntimeE4EquivariantSpnDistinguisher",
+    "RuntimeE5GatedResidualSpnDistinguisher",
     "RuntimeParameterizedSpnDistinguisher",
     "RuntimeParameterizedSpnSpec",
     "RuntimeSpnStructure",
