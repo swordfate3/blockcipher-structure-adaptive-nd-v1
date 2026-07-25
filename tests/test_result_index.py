@@ -3785,6 +3785,35 @@ def test_result_index_labels_runtime_spn_rectangle_holdout(
     )
 
 
+def test_result_index_labels_runtime_spn_h1_source_gradient_audit(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_audit"
+        / "i1_runtime_spn_h1_source_gradient_alignment_a1_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation1_runtime_spn_h1_source_gradient_imbalance_supported"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A1：四源共享Runtime-E4梯度主导与冲突审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "Dialga占共享表示梯度69.9%/85.8%且存在稳定冲突，开放同预算每任务梯度归一化门"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_h1_source_gradient_alignment_a1",
+  "run_id": "i1_runtime_spn_h1_source_gradient_alignment_a1_seed0_seed1_20260726",
+  "source": {
+    "config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "output_root": "outputs/local_diagnostic/i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726",
+    "required_decision": "innovation1_runtime_spn_rectangle_holdout_not_supported",
+    "checkpoint_role": "correct",
+    "expected_failing_seeds": [1]
+  },
+  "audit": {
+    "seeds": [0, 1],
+    "source_ciphers": ["gift64", "skinny64", "uknit64", "dialga128"],
+    "split": "train",
+    "rows_per_cipher": 4096,
+    "batch_size": 256,
+    "loss": "mse",
+    "device": "cpu",
+    "gradient_views": ["representation_backbone", "classifier", "all_parameters"]
+  },
+  "gate": {
+    "primary_gradient_view": "representation_backbone",
+    "maximum_task_gradient_share": 0.5,
+    "maximum_norm_to_other_median_ratio": 2.0,
+    "conflict_cosine": -0.1,
+    "stable_conflict_cosine": 0.0,
+    "source_auc_range_floor": 0.3,
+    "weak_source_auc_ceiling": 0.5
+  }
+}

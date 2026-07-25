@@ -387,6 +387,21 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_rectangle_holdout_protocol_invalid": (
         "RECTANGLE整密码留出的数据隔离、检查点、参数或同权重反事实协议无效"
     ),
+    "innovation1_runtime_spn_h1_source_gradient_imbalance_supported": (
+        "Dialga占共享表示梯度69.9%/85.8%且存在稳定冲突，开放同预算每任务梯度归一化门"
+    ),
+    "innovation1_runtime_spn_h1_stable_source_gradient_conflict_supported": (
+        "四源共享表示存在跨seed稳定梯度冲突，开放同预算参数匹配冲突处理门"
+    ),
+    "innovation1_runtime_spn_h1_seed_specific_gradient_conflict_only": (
+        "仅H1失败seed出现源梯度冲突，先做无训练表示对齐审计"
+    ),
+    "innovation1_runtime_spn_h1_representation_alignment_priority": (
+        "H1端点梯度未支持主导或冲突机制，转逐密码表示几何与共享分类器可达性审计"
+    ),
+    "innovation1_runtime_spn_h1_source_gradient_audit_invalid": (
+        "H1源梯度审计的检查点、缓存、来源指标或零训练协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2416,6 +2431,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_h1_source_gradient_alignment_a1_seed0_seed1"
+    ):
+        return "创新1 H1-A1：四源共享Runtime-E4梯度主导与冲突审计"
     if run_id.startswith(
         "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_readiness"
     ):
