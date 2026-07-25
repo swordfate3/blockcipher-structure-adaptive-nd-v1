@@ -606,6 +606,9 @@ def _assemble_payload(
                     "observations": diagnostics[
                         "task_gradient_scale_observations"
                     ][task],
+                    "conflict_projections": diagnostics[
+                        "task_conflict_projection_counts"
+                    ][task],
                 }
             )
     checkpoint_hashes_match = all(

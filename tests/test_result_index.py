@@ -3841,6 +3841,33 @@ def test_result_index_labels_runtime_spn_h1_gradient_equalization(
     )
 
 
+def test_result_index_labels_runtime_spn_h1_equalized_pcgrad(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_h1_equalized_pcgrad_partial",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A3：等化后固定顺序PCGrad的RECTANGLE整密码留出"
+    )
+    assert entries[0]["decision_display"] == (
+        "双seed目标归因保留且SKINNY部分恢复但未全过，停止训练并转表示可达性审计"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:

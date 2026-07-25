@@ -9,6 +9,7 @@ from torch import nn
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.training.runtime_spn_joint import (
     RuntimeSpnJointTask,
+    _apply_representation_l2_equalized_gradients,
     train_runtime_spn_joint,
 )
 from blockcipher_nd.training.types import TrainingConfig
@@ -83,6 +84,30 @@ def test_mean_loss_remains_the_default_gradient_combination() -> None:
     assert result.gradient_diagnostics["task_gradient_scale_observations"] == {
         "only": 0
     }
+
+
+def test_fixed_order_projection_removes_opposed_representation_gradients() -> None:
+    model = _OpposedGradientModel()
+    positive = model.representation
+    negative = -model.representation
+
+    result = _apply_representation_l2_equalized_gradients(
+        model,
+        ["positive", "negative"],
+        [positive, negative],
+        project_conflicts=True,
+    )
+
+    assert result["conflict_projections"] == {"positive": 1, "negative": 1}
+    assert model.representation.grad is not None
+    torch.testing.assert_close(model.representation.grad, torch.zeros_like(positive))
+
+
+class _OpposedGradientModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.representation = nn.Parameter(torch.tensor(1.0))
+        self.classifier = nn.Linear(1, 1)
 
 
 def _dataset(*, scale: float) -> DifferentialDataset:

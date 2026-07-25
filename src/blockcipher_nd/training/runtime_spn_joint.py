@@ -55,7 +55,11 @@ def train_runtime_spn_joint(
         raise ValueError("joint Runtime-SPN training currently requires Adam")
     if config.lr_scheduler != "none":
         raise ValueError("joint Runtime-SPN training currently requires no scheduler")
-    if gradient_combination not in {"mean_loss", "representation_l2_equalized"}:
+    if gradient_combination not in {
+        "mean_loss",
+        "representation_l2_equalized",
+        "representation_l2_equalized_pcgrad_fixed_order",
+    }:
         raise ValueError("unsupported joint Runtime-SPN gradient combination")
 
     torch.manual_seed(config.seed)
@@ -86,6 +90,7 @@ def train_runtime_spn_joint(
     task_representation_norm_sums = {task.name: 0.0 for task in tasks}
     task_gradient_scale_sums = {task.name: 0.0 for task in tasks}
     task_gradient_scale_observations = {task.name: 0 for task in tasks}
+    task_conflict_projection_counts = {task.name: 0 for task in tasks}
 
     _emit(
         progress_callback,
@@ -146,6 +151,10 @@ def train_runtime_spn_joint(
                     model,
                     [task.name for task in tasks],
                     losses,
+                    project_conflicts=(
+                        gradient_combination
+                        == "representation_l2_equalized_pcgrad_fixed_order"
+                    ),
                 )
                 for task in tasks:
                     task_representation_norm_sums[task.name] += combination[
@@ -155,6 +164,9 @@ def train_runtime_spn_joint(
                         task.name
                     ]
                     task_gradient_scale_observations[task.name] += 1
+                    task_conflict_projection_counts[task.name] += combination[
+                        "conflict_projections"
+                    ][task.name]
                 all_gradients_finite = (
                     all_gradients_finite and combination["all_gradients_finite"]
                 )
@@ -286,6 +298,7 @@ def train_runtime_spn_joint(
                 for name in task_gradient_scale_sums
             },
             "task_gradient_scale_observations": task_gradient_scale_observations,
+            "task_conflict_projection_counts": task_conflict_projection_counts,
         },
     )
 
@@ -294,6 +307,8 @@ def _apply_representation_l2_equalized_gradients(
     model: nn.Module,
     task_names: list[str],
     losses: list[torch.Tensor],
+    *,
+    project_conflicts: bool = False,
 ) -> dict[str, Any]:
     if len(task_names) != len(losses) or not losses:
         raise ValueError("task names and losses must form a non-empty matched panel")
@@ -326,6 +341,43 @@ def _apply_representation_l2_equalized_gradients(
         mean_norm / norm.clamp_min(torch.finfo(norm.dtype).eps)
         for norm in representation_norms
     ]
+    representation_gradients = [
+        torch.cat(
+            [
+                (
+                    torch.zeros_like(named_parameters[index][1])
+                    if gradients[index] is None
+                    else gradients[index].detach()
+                ).reshape(-1)
+                for index in representation_indices
+            ]
+        )
+        * scale.detach()
+        for gradients, scale in zip(task_gradients, scales, strict=True)
+    ]
+    projected_gradients = []
+    conflict_counts = []
+    for task_index, gradient in enumerate(representation_gradients):
+        projected = gradient.clone()
+        conflicts = 0
+        if project_conflicts:
+            for other_index, other in enumerate(representation_gradients):
+                if task_index == other_index:
+                    continue
+                dot = torch.dot(projected, other)
+                if float(dot.detach().cpu()) < 0.0:
+                    projected = projected - dot * other / other.square().sum().clamp_min(
+                        torch.finfo(other.dtype).eps
+                    )
+                    conflicts += 1
+        projected_gradients.append(projected)
+        conflict_counts.append(conflicts)
+    representation_offsets: dict[int, tuple[int, int]] = {}
+    offset = 0
+    for index in representation_indices:
+        size = named_parameters[index][1].numel()
+        representation_offsets[index] = (offset, offset + size)
+        offset += size
     all_finite = True
     for index, (name, parameter) in enumerate(named_parameters):
         gradients = [task[index] for task in task_gradients]
@@ -343,15 +395,10 @@ def _apply_representation_l2_equalized_gradients(
                 for gradient in gradients
             ) / len(gradients)
         else:
-            combined = sum(
-                scale.detach()
-                * (
-                    torch.zeros_like(parameter)
-                    if gradient is None
-                    else gradient.detach()
-                )
-                for scale, gradient in zip(scales, gradients, strict=True)
-            ) / len(gradients)
+            start, stop = representation_offsets[index]
+            combined = torch.stack(
+                [gradient[start:stop] for gradient in projected_gradients]
+            ).mean(dim=0).reshape_as(parameter)
         parameter.grad = combined
         all_finite = all_finite and bool(torch.isfinite(combined).all())
     return {
@@ -364,6 +411,10 @@ def _apply_representation_l2_equalized_gradients(
             for name, scale in zip(task_names, scales, strict=True)
         },
         "all_gradients_finite": all_finite,
+        "conflict_projections": {
+            name: count
+            for name, count in zip(task_names, conflict_counts, strict=True)
+        },
     }
 
 

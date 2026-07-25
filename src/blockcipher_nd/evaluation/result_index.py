@@ -414,6 +414,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_h1_gradient_equalization_protocol_invalid": (
         "H1梯度归一化的来源、缓存、检查点、缩放或零目标训练协议无效"
     ),
+    "innovation1_runtime_spn_h1_equalized_pcgrad_supported": (
+        "固定顺序PCGrad保留双seed目标拓扑归因并修复SKINNY与源保持门，可设计第二独立留出"
+    ),
+    "innovation1_runtime_spn_h1_equalized_pcgrad_partial": (
+        "双seed目标归因保留且SKINNY部分恢复但未全过，停止训练并转表示可达性审计"
+    ),
+    "innovation1_runtime_spn_h1_equalized_pcgrad_not_supported": (
+        "固定顺序PCGrad未修复源保持，关闭优化器改动并转逐密码表示可达性审计"
+    ),
+    "innovation1_runtime_spn_h1_equalized_pcgrad_protocol_invalid": (
+        "H1-A3冲突投影的来源、缓存、检查点、投影计数或零目标训练协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2443,6 +2455,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1"
+    ):
+        return "创新1 H1-A3：等化后固定顺序PCGrad的RECTANGLE整密码留出"
     if run_id.startswith(
         "i1_runtime_spn_h1_representation_gradient_equalization_a2_2048_seed0_seed1"
     ):
