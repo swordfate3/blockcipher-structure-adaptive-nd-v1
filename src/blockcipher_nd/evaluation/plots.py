@@ -748,6 +748,16 @@ def _series_marker(item: dict[str, Any]) -> str:
 
 def _compact_label(item: dict[str, Any]) -> str:
     model = str(item.get("model") or item.get("label") or "")
+    if item.get("cipher") == "Dialga-128" and model.startswith("runtime_spn_e4_"):
+        seed = item.get("seed", "")
+        mode = item.get("runtime_structure_mode")
+        labels = {
+            "true": "正确运行时拓扑",
+            "corrupted": "损坏拓扑控制",
+            "independent": "无拓扑控制",
+        }
+        if mode in labels:
+            return f"seed{seed}：{labels[mode]}"
     if item.get("cipher") == "uKNIT-BC" and model.startswith("runtime_spn_e4_"):
         seed = item.get("seed", "")
         mode = item.get("runtime_structure_mode")

@@ -365,6 +365,27 @@ def test_uknit_validation_only_plot_uses_seed_and_assignment_roles(
     assert "spn e4 equivariant true" not in visible_text
 
 
+def test_dialga_runtime_plot_labels_identify_seed_and_control_role() -> None:
+    roles = {
+        "true": "seed1：正确运行时拓扑",
+        "corrupted": "seed1：损坏拓扑控制",
+        "independent": "seed1：无拓扑控制",
+    }
+
+    for mode, expected in roles.items():
+        assert (
+            _compact_label(
+                {
+                    "cipher": "Dialga-128",
+                    "model": f"runtime_spn_e4_equivariant_{mode}",
+                    "runtime_structure_mode": mode,
+                    "seed": 1,
+                }
+            )
+            == expected
+        )
+
+
 def test_r0_like_endpoint_labels_keep_svg_aspect_ratio_bounded(tmp_path: Path) -> None:
     results = tmp_path / "r0-results.jsonl"
     output = tmp_path / "r0-curves.svg"
