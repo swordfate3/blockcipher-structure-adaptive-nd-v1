@@ -8,11 +8,11 @@ Can a mixture-of-experts or another conditional architecture preserve one
 cipher-name-free SPN backbone while allowing different SPN diffusion and S-box
 primitives to receive different learned computations?
 
-The target is not a bank of PRESENT, SKINNY, GIFT and uKNIT networks. The target
-remains one runtime-parameterized model whose parameter geometry does not depend
-on the cipher name, block width, cell count or linear-layer shape. Routing must
-be derived from the supplied cell/S-box/GF(2) descriptor and must remain
-meaningful on an unseen cipher.
+The target is not a bank of PRESENT, GIFT, SKINNY, RECTANGLE, uKNIT and Dialga
+networks. The target remains one runtime-parameterized model whose parameter
+geometry does not depend on the cipher name, block width, cell count or linear-
+layer shape. Routing must be derived from the supplied cell/S-box/GF(2)
+descriptor and must remain meaningful on an unseen cipher.
 
 ## Evidence That Constrains The Design
 
@@ -29,6 +29,12 @@ Two completed results point in different but compatible directions.
    seed0 was below the last-transition anchor, corrupted topology and no
    topology. Candidate final train AUCs `0.644991/0.626094` versus validation
    AUCs `0.501017/0.527083` also show a substantial generalization gap.
+3. Dialga supplies a real 128-bit heterogeneous-width stress case. Its
+   prefix-r4 Runtime-E4 candidates reached `0.958417/0.958679` on seeds 0/1 and
+   passed the local correct-versus-corrupted/no-topology training gate, while
+   the later GIFT-to-Dialga frozen transfer remained attribution-incomplete.
+   This makes Dialga useful in joint end-to-end training, not as evidence that
+   an existing 64-bit source checkpoint already transfers universally.
 
 The conclusion is therefore not "replace Runtime-E4 with a larger model." The
 supported exact inverse-linear/state-view path should stay shared, while the
@@ -190,7 +196,8 @@ question       = does deterministic structure-primitive routing of two small
                  adapters improve a jointly trained Runtime-E4 model?
 anchor         = parameter-matched dense Runtime-E4
 one variable   = primitive-conditioned adapter update
-source tasks   = GIFT-64 r6, SKINNY-64/64 r7, RECTANGLE-80 r6
+core tasks     = GIFT-64 r6, SKINNY-64/64 r7, RECTANGLE-80 r6
+stress tasks   = uKNIT-BC prefix-r5, Dialga-128 prefix-r4
 train scale    = 2048/class/cipher
 validation     = 1024/class/cipher
 pairs/sample   = 4
@@ -198,29 +205,45 @@ seeds          = 0, 1
 epochs         = 10
 execution      = local sub-medium diagnostic
 negatives      = encrypted random plaintext pairs
-sampling       = balanced by cipher and class within joint training
+sampling       = one batch per cipher per optimizer step; mean the five task
+                 losses before one shared-parameter update
 models         = dense anchor, correct routing, uniform mixture,
                  shuffled primitive routing
 ```
+
+All five tasks use one shared parameter state per model role and seed. They do
+not produce five independently optimized backbones. Separate per-cipher
+protocol adapters are allowed only to bind different block widths and runtime
+descriptors to that same shared backbone. No cipher-specific trainable head is
+allowed in this first gate.
 
 The active trainable-parameter difference between anchor and candidate should
 be at most one percent. If necessary, shrink the shared candidate update or
 width-match the anchor; do not credit extra parameters as structural gain.
 
-Advance only if both seeds satisfy all of the following preregistered checks:
+The gate is stratified so Dialga's high absolute AUC cannot hide a weak uKNIT
+or core task. Advance only if both seeds satisfy all of the following
+preregistered checks:
 
 ```text
 candidate macro-AUC - dense anchor     >= +0.005
 candidate macro-AUC - uniform mixture  >= +0.005
 candidate macro-AUC - shuffled routing >= +0.005
-no per-cipher candidate-anchor margin  <  -0.005
+core three-cipher candidate-anchor       >= -0.005 per cipher
+uKNIT/Dialga candidate-anchor            >= -0.005 per cipher
+new-cipher stress macro versus all three >= +0.005
 both primitive adapters receive traffic and nonzero gradients
 ```
 
-If this gate passes, the next experiment is a whole-cipher holdout with a
-frozen shared backbone and the already established low-capacity target-head
-protocol. RECTANGLE is the preferred first holdout because it has
-non-contiguous cells and existing Runtime-E4 transfer evidence. If the gate
+Report three separate aggregates: the core three-cipher macro AUC, the two-new-
+cipher stress macro AUC and the five-cipher macro AUC. The five-cipher average
+is descriptive only; it cannot override a failed core or stress check.
+
+If this gate passes, the next experiments are whole-cipher holdouts. Retrain
+without Dialga first to test 64-to-128-bit structural transfer, then retrain
+without uKNIT to test unseen heterogeneous round/S-box ownership. RECTANGLE
+remains the non-contiguous-cell holdout. Each omitted cipher is absent from
+training, validation, checkpoint selection and router statistics. If the gate
 holds, stop adapter/MoE scaling and inspect whether the primitive descriptor,
 parameter matching or joint sampler failed. Do not add experts, samples,
 epochs or remote compute as a rescue.
@@ -230,6 +253,23 @@ route add a third heterogeneous-S-box/round-transition adapter and return to
 uKNIT. Sparse learned Top-2 routing is a later ablation, not the method's
 starting point.
 
+## New-Algorithm Family Boundary
+
+The three uploaded algorithm papers do not all belong to this Runtime-SPN
+experiment:
+
+| Paper algorithm | Structural family | Decision |
+| --- | --- | --- |
+| uKNIT | non-round-aligned 4-bit-cell SPN | include in the five-cipher stress panel |
+| Dialga | heterogeneous 4-bit-cell tweakable SPN, 128-bit state | include in the five-cipher stress panel with fixed zero tweak |
+| MSX | generalized Feistel with addition, rotation, XOR and 32-bit integer multiplication; no S box | exclude from the SPN adapter gate |
+
+MSX is not evidence against Runtime-SPN and must not be coerced into a GF(2)
+linear descriptor. A later cross-structure method may reuse the shared
+multi-task shell but needs Feistel-branch, word-rotation, carry and
+multiplication descriptors plus separate primitive modules. Its metrics must
+remain a distinct family panel.
+
 ## Final Recommendation
 
 Keep MoE as a constrained component of the design, not as the architecture
@@ -238,7 +278,7 @@ name or the immediate experiment. The evidence-backed priority is:
 ```text
 1. deterministic primitive routing + low-rank FiLM/adapters
 2. same-capacity dense and routing controls
-3. joint multi-SPN local gate
+3. joint five-SPN local gate, including uKNIT and Dialga stress tasks
 4. whole-cipher holdout
 5. only then learned soft/Top-2 structural MoE
 ```
