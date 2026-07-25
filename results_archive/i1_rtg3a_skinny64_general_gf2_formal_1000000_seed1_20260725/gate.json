@@ -1,0 +1,88 @@
+{
+  "aucs": {
+    "corrupted": 0.606953760244,
+    "independent": 0.515817817548,
+    "true": 0.653623657884
+  },
+  "blocked_actions": [
+    "claim formal, paper-scale, attack, SOTA, breakthrough, or universal-SPN evidence",
+    "change difference, pairs, epochs, negatives, topology corruption, or model geometry",
+    "add DDT or trail features, switch to related keys, or launch a broad cipher matrix",
+    "launch RTG3-A seed1 before the project-formal seed0 gate passes"
+  ],
+  "cipher": "SKINNY-64/64",
+  "claim_scope": "SKINNY-64/64 r7 seed1 remote project-formal 1000000/class general-GF(2) runtime-topology replication; single-seed evidence only, not a paper reproduction, attack, SOTA, breakthrough, universal-SPN, or multi-seed formal conclusion",
+  "decision": "innovation1_rtg3a_skinny_formal_seed1_supported",
+  "margins": {
+    "true_minus_corrupted": 0.04666989763999996,
+    "true_minus_independent": 0.13780584033599996
+  },
+  "next_action": "synthesize the two-seed project-formal evidence before any cross-cipher generalization claim",
+  "phase": "rtg3a",
+  "protocol_checks": {
+    "complete_five_epoch_checkpoint_replay": true,
+    "disk_backed_parameter_matched_cache": true,
+    "equal_parameter_geometry": true,
+    "finite_auc_metrics": true,
+    "frozen_rtg3a_formal_scale_and_task": true,
+    "raw_independent_ciphertext_pairs": true,
+    "runtime_bit_order_adapter_recorded": true,
+    "same_data_protocol": true,
+    "same_training_protocol": true,
+    "strict_encrypted_random_plaintext_negatives": true,
+    "three_runtime_controls_complete": true
+  },
+  "research_checks": {
+    "true_auc_at_least_0p55": true,
+    "true_exceeds_corrupted_by_0p005": true,
+    "true_exceeds_independent_by_0p005": true
+  },
+  "run_id": "i1_rtg3a_skinny64_general_gf2_formal_1000000_seed1_20260725",
+  "samples_per_class": 1000000,
+  "seed": 1,
+  "status": "pass",
+  "thresholds": {
+    "control_margin": 0.005,
+    "true_auc": 0.55
+  },
+  "train_rows": 2000000,
+  "training_dynamics": {
+    "corrupted": {
+      "best_epoch": 4,
+      "best_to_final_val_auc_change": -9.007154000095774e-06,
+      "best_train_auc": 0.608243123537,
+      "best_val_auc": 0.606953760244,
+      "epochs_ran": 5,
+      "final_val_auc": 0.60694475309,
+      "first_to_best_val_auc_gain": 0.004030091696000104,
+      "first_val_auc": 0.602923668548,
+      "model": "skinny64_runtime_e4_equivariant_corrupted",
+      "train_minus_val_auc_at_best": 0.001289363293000001
+    },
+    "independent": {
+      "best_epoch": 5,
+      "best_to_final_val_auc_change": 0.0,
+      "best_train_auc": 0.514897581664,
+      "best_val_auc": 0.515817817548,
+      "epochs_ran": 5,
+      "final_val_auc": 0.515817817548,
+      "first_to_best_val_auc_gain": 0.003608839204000014,
+      "first_val_auc": 0.512208978344,
+      "model": "skinny64_runtime_e4_equivariant_independent",
+      "train_minus_val_auc_at_best": -0.0009202358840000313
+    },
+    "true": {
+      "best_epoch": 5,
+      "best_to_final_val_auc_change": 0.0,
+      "best_train_auc": 0.6567713111605,
+      "best_val_auc": 0.653623657884,
+      "epochs_ran": 5,
+      "final_val_auc": 0.653623657884,
+      "first_to_best_val_auc_gain": 0.006202258800000027,
+      "first_val_auc": 0.647421399084,
+      "model": "skinny64_runtime_e4_equivariant_true",
+      "train_minus_val_auc_at_best": 0.0031476532765000176
+    }
+  },
+  "validation_rows": 1000000
+}
