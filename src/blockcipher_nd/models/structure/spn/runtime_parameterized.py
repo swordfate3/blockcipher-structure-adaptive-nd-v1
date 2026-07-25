@@ -499,6 +499,26 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         query_input_mode: Literal["delta_v", "delta_u"] | None = None,
         query_structure: RuntimeSpnStructure | None = None,
     ) -> torch.Tensor:
+        return self.classifier(
+            self.encode(
+                ciphertext_pairs,
+                structure,
+                relation_mode=relation_mode,
+                query_input_mode=query_input_mode,
+                query_structure=query_structure,
+            )
+        )
+
+    def encode(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str = "true",
+        query_input_mode: Literal["delta_v", "delta_u"] | None = None,
+        query_structure: RuntimeSpnStructure | None = None,
+    ) -> torch.Tensor:
+        """Return the invariant pooled representation consumed by the classifier."""
         pairs = _RuntimeSpnEncoderBase._normalize_pairs(
             ciphertext_pairs, structure.block_bits
         )
@@ -820,15 +840,13 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             )
         attended_pairs, pair_attention = self.pair_attention(pair_embeddings)
         self.last_pair_attention = pair_attention.detach()
-        return self.classifier(
-            torch.cat(
-                (
-                    attended_pairs,
-                    pair_embeddings.mean(dim=1),
-                    pair_embeddings.max(dim=1).values,
-                ),
-                dim=-1,
-            )
+        return torch.cat(
+            (
+                attended_pairs,
+                pair_embeddings.mean(dim=1),
+                pair_embeddings.max(dim=1).values,
+            ),
+            dim=-1,
         )
 
     @staticmethod
@@ -1011,6 +1029,23 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
             raise ValueError("query overrides require the E4-equivariant backbone")
         return self.backbone(
             runtime_features,
+            self.runtime_structure,
+            relation_mode=self.relation_mode,
+            query_input_mode=query_input_mode,
+            query_structure=query_structure,
+        )
+
+    def encode(
+        self,
+        features: torch.Tensor,
+        *,
+        query_input_mode: Literal["delta_v", "delta_u"] | None = None,
+        query_structure: RuntimeSpnStructure | None = None,
+    ) -> torch.Tensor:
+        if not isinstance(self.backbone, RuntimeE4EquivariantSpnDistinguisher):
+            raise TypeError("RuntimeE4 encoding requires the E4-equivariant backbone")
+        return self.backbone.encode(
+            self._to_runtime_coordinates(features),
             self.runtime_structure,
             relation_mode=self.relation_mode,
             query_input_mode=query_input_mode,

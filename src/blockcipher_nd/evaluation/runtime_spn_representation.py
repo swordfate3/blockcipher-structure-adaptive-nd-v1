@@ -127,31 +127,12 @@ def extract_runtime_e4_representation(
 ) -> RuntimeE4RepresentationBatch:
     """Run a fixed RuntimeE4 adapter and expose its invariant pooled embedding."""
     adapter = _require_runtime_e4_adapter(model)
-    captured: list[torch.Tensor] = []
-
-    def capture_classifier_input(
-        _module: nn.Module,
-        inputs: tuple[object, ...],
-    ) -> None:
-        if len(inputs) != 1 or not isinstance(inputs[0], torch.Tensor):
-            raise RuntimeError("RuntimeE4 classifier must receive one tensor")
-        captured.append(inputs[0])
-
-    handle = adapter.backbone.classifier.register_forward_pre_hook(
-        capture_classifier_input
+    representation = adapter.encode(
+        features,
+        query_input_mode=query_input_mode,
+        query_structure=query_structure,
     )
-    try:
-        logits = adapter(
-            features,
-            query_input_mode=query_input_mode,
-            query_structure=query_structure,
-        )
-    finally:
-        handle.remove()
-
-    if len(captured) != 1:
-        raise RuntimeError("RuntimeE4 classifier must run exactly once per extraction")
-    representation = captured[0]
+    logits = adapter.backbone.classifier(representation)
     expected_width = 3 * adapter.backbone.spec.pair_embedding_dim
     if representation.ndim != 2 or representation.shape != (
         features.shape[0],

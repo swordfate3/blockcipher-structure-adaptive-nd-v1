@@ -317,20 +317,24 @@ identical seed1 confirmation is active under the remote watcher.
 Cross-cipher X2 previously accessed `backbone.classifier` directly to obtain a
 frozen RuntimeE4 representation. Evaluation code now exposes
 `extract_runtime_e4_representation`, which returns both the logits and the
-exact tensor received by the classifier. The interface uses a temporary
-pre-forward hook so it does not alter the frozen model path, learnable
-parameters, state-dict keys or checkpoint compatibility. It fails closed for
-non-E4 adapters and removes the hook on both successful and exceptional
-forwards.
+exact tensor received by the classifier. RuntimeE4 now provides a native
+`encode()` boundary on both the cipher-name-free backbone and its fixed
+protocol adapter; `forward()` applies the unchanged classifier to that returned
+tensor. Representation extraction therefore no longer installs a temporary
+classifier hook. The refactor adds no learnable module, parameter or state-dict
+key and remains strictly compatible with existing RuntimeE4 checkpoints. It
+fails closed for non-E4 adapters. All three retrieved RTG3-A seed0 formal
+checkpoints strictly load through the refactored code and replay their stored
+five-epoch histories, selected metrics and `442466`-parameter geometry.
 
 Deterministic tests prove that the returned representation has fixed width
 `3 * pair_embedding_dim`, exactly replays the classifier logits, and retains
 the same state dictionary across PRESENT, GIFT, SKINNY, RECTANGLE and a
 synthetic 128-bit SPN while block width, pair count and recurrent window length
 change. This is an implementation and evaluation-interface result only; it
-does not add a new trained model or AUC. A native model `encode()` method
-remains deferred until the frozen RECTANGLE RCT2 source handoff no longer
-depends on an unchanged RuntimeE4 model file.
+does not add a new trained model or AUC. Finite-gradient coverage proves the
+native representation remains usable for future end-to-end objectives while
+the frozen target-head adapter continues to block extractor gradients.
 
 The public representation boundary now also provides
 `FrozenRuntimeE4HeadAdapter`. It keeps the complete target-structure-bound

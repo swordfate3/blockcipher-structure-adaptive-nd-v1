@@ -89,12 +89,16 @@ def test_extraction_returns_exact_classifier_input_and_logits() -> None:
 
     with torch.no_grad():
         output = extract_runtime_e4_representation(model, features)
+        native = model.encode(features)
         replayed_logits = model.backbone.classifier(output.representation)
+        forward_logits = model(features)
 
     assert isinstance(output, RuntimeE4RepresentationBatch)
     assert output.representation.shape == (3, 3 * spec.pair_embedding_dim)
     assert output.logits.shape == (3, 1)
+    assert torch.equal(output.representation, native)
     assert torch.equal(output.logits, replayed_logits)
+    assert torch.equal(output.logits, forward_logits)
 
 
 @pytest.mark.parametrize(
@@ -139,7 +143,7 @@ def test_same_state_dict_and_representation_width_cross_runtime_structures(
     )
 
 
-def test_extraction_removes_hook_when_forward_raises() -> None:
+def test_native_extraction_does_not_install_classifier_hooks() -> None:
     spec = RuntimeParameterizedSpnSpec(
         hidden_dim=16,
         pair_embedding_dim=24,
@@ -153,6 +157,34 @@ def test_extraction_removes_hook_when_forward_raises() -> None:
         extract_runtime_e4_representation(model, torch.full((2, 256), 0.5))
 
     assert tuple(model.backbone.classifier._forward_pre_hooks) == hooks_before
+
+
+def test_native_encode_preserves_gradients_and_state_dict_geometry() -> None:
+    torch.manual_seed(79)
+    spec = RuntimeParameterizedSpnSpec(
+        hidden_dim=16,
+        pair_embedding_dim=24,
+        processor_steps=1,
+        dropout=0.0,
+        round_window_mode="recurrent_window",
+    )
+    model = _adapter(skinny64_runtime_structure(3), spec, pairs=3).train()
+    before = {name: value.clone() for name, value in model.state_dict().items()}
+
+    representation = model.encode(_binary(4, 384, 80))
+    logits = model.backbone.classifier(representation)
+    logits.square().mean().backward()
+
+    assert representation.shape == (4, 72)
+    assert tuple(model.state_dict()) == tuple(before)
+    assert all(
+        torch.equal(model.state_dict()[name], value) for name, value in before.items()
+    )
+    assert all(
+        parameter.grad is None or torch.isfinite(parameter.grad).all()
+        for parameter in model.parameters()
+    )
+    assert any(parameter.grad is not None for parameter in model.parameters())
 
 
 def test_extraction_rejects_non_e4_models() -> None:
