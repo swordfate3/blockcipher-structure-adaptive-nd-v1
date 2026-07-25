@@ -402,6 +402,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_h1_source_gradient_audit_invalid": (
         "H1源梯度审计的检查点、缓存、来源指标或零训练协议无效"
     ),
+    "innovation1_runtime_spn_h1_gradient_equalization_supported": (
+        "每任务表示梯度归一化通过双seed整密码留出与源保持门，可设计第二独立留出"
+    ),
+    "innovation1_runtime_spn_h1_gradient_equalization_partial": (
+        "双seed目标拓扑归因已通过但seed0源宏略超退化门，保留归一化并只开放冲突处理"
+    ),
+    "innovation1_runtime_spn_h1_gradient_equalization_not_supported": (
+        "每任务表示梯度归一化未修复整密码泛化，停止优化器改动并转表示对齐审计"
+    ),
+    "innovation1_runtime_spn_h1_gradient_equalization_protocol_invalid": (
+        "H1梯度归一化的来源、缓存、检查点、缩放或零目标训练协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2431,6 +2443,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_h1_representation_gradient_equalization_a2_2048_seed0_seed1"
+    ):
+        return "创新1 H1-A2：四源表示梯度归一化RECTANGLE整密码留出"
     if run_id.startswith(
         "i1_runtime_spn_h1_source_gradient_alignment_a1_seed0_seed1"
     ):

@@ -42,6 +42,8 @@ def train_runtime_spn_joint(
     tasks: list[RuntimeSpnJointTask],
     config: TrainingConfig,
     progress_callback: ProgressCallback | None = None,
+    *,
+    gradient_combination: str = "mean_loss",
 ) -> RuntimeSpnJointTrainingResult:
     if not tasks:
         raise ValueError("joint Runtime-SPN training requires at least one task")
@@ -53,6 +55,8 @@ def train_runtime_spn_joint(
         raise ValueError("joint Runtime-SPN training currently requires Adam")
     if config.lr_scheduler != "none":
         raise ValueError("joint Runtime-SPN training currently requires no scheduler")
+    if gradient_combination not in {"mean_loss", "representation_l2_equalized"}:
+        raise ValueError("unsupported joint Runtime-SPN gradient combination")
 
     torch.manual_seed(config.seed)
     device = select_device(config.device)
@@ -79,12 +83,16 @@ def train_runtime_spn_joint(
     gradient_observations: dict[str, int] = {}
     all_gradients_finite = True
     optimizer_steps = 0
+    task_representation_norm_sums = {task.name: 0.0 for task in tasks}
+    task_gradient_scale_sums = {task.name: 0.0 for task in tasks}
+    task_gradient_scale_observations = {task.name: 0 for task in tasks}
 
     _emit(
         progress_callback,
         "joint_train_start",
         tasks=[task.name for task in tasks],
         task_weights=task_weights,
+        gradient_combination=gradient_combination,
         epochs=config.epochs,
         device=str(device),
     )
@@ -131,7 +139,25 @@ def train_runtime_spn_joint(
                     getattr(model, "last_primitive_adapter_traffic", {}),
                 )
             joint_loss = torch.stack(losses).mean()
-            joint_loss.backward()
+            if gradient_combination == "mean_loss":
+                joint_loss.backward()
+            else:
+                combination = _apply_representation_l2_equalized_gradients(
+                    model,
+                    [task.name for task in tasks],
+                    losses,
+                )
+                for task in tasks:
+                    task_representation_norm_sums[task.name] += combination[
+                        "representation_norms"
+                    ][task.name]
+                    task_gradient_scale_sums[task.name] += combination["scales"][
+                        task.name
+                    ]
+                    task_gradient_scale_observations[task.name] += 1
+                all_gradients_finite = (
+                    all_gradients_finite and combination["all_gradients_finite"]
+                )
             finite = _accumulate_gradient_diagnostics(
                 model,
                 gradient_sums,
@@ -147,6 +173,7 @@ def train_runtime_spn_joint(
                 step=step,
                 steps=steps,
                 joint_loss=float(joint_loss.detach().cpu()),
+                gradient_combination=gradient_combination,
             )
 
         validation_metrics = evaluate_runtime_spn_joint(
@@ -241,14 +268,107 @@ def train_runtime_spn_joint(
             "weight_decay": config.weight_decay,
             "seed": config.seed,
             "device": str(device),
+            "gradient_combination": gradient_combination,
         },
         router_traffic=total_router_traffic,
         gradient_diagnostics={
             "all_gradients_finite": all_gradients_finite,
             "adapter_gradient_mean_abs_sum": adapter_gradient_means,
             "adapter_gradient_observations": gradient_observations,
+            "task_representation_gradient_mean_l2": {
+                name: task_representation_norm_sums[name]
+                / max(1, task_gradient_scale_observations[name])
+                for name in task_representation_norm_sums
+            },
+            "task_gradient_scale_mean": {
+                name: task_gradient_scale_sums[name]
+                / max(1, task_gradient_scale_observations[name])
+                for name in task_gradient_scale_sums
+            },
+            "task_gradient_scale_observations": task_gradient_scale_observations,
         },
     )
+
+
+def _apply_representation_l2_equalized_gradients(
+    model: nn.Module,
+    task_names: list[str],
+    losses: list[torch.Tensor],
+) -> dict[str, Any]:
+    if len(task_names) != len(losses) or not losses:
+        raise ValueError("task names and losses must form a non-empty matched panel")
+    named_parameters = [
+        (name, parameter)
+        for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    ]
+    parameters = [parameter for _, parameter in named_parameters]
+    task_gradients = [
+        torch.autograd.grad(loss, parameters, allow_unused=True) for loss in losses
+    ]
+    representation_indices = [
+        index
+        for index, (name, _) in enumerate(named_parameters)
+        if not _is_classifier_parameter(name)
+    ]
+    if not representation_indices:
+        raise ValueError("gradient normalization found no representation parameters")
+    representation_norms = []
+    for gradients in task_gradients:
+        squared = torch.zeros((), device=losses[0].device)
+        for index in representation_indices:
+            gradient = gradients[index]
+            if gradient is not None:
+                squared = squared + gradient.detach().square().sum()
+        representation_norms.append(torch.sqrt(squared))
+    mean_norm = torch.stack(representation_norms).mean()
+    scales = [
+        mean_norm / norm.clamp_min(torch.finfo(norm.dtype).eps)
+        for norm in representation_norms
+    ]
+    all_finite = True
+    for index, (name, parameter) in enumerate(named_parameters):
+        gradients = [task[index] for task in task_gradients]
+        present = [gradient for gradient in gradients if gradient is not None]
+        if not present:
+            parameter.grad = None
+            continue
+        if _is_classifier_parameter(name):
+            combined = sum(
+                (
+                    torch.zeros_like(parameter)
+                    if gradient is None
+                    else gradient.detach()
+                )
+                for gradient in gradients
+            ) / len(gradients)
+        else:
+            combined = sum(
+                scale.detach()
+                * (
+                    torch.zeros_like(parameter)
+                    if gradient is None
+                    else gradient.detach()
+                )
+                for scale, gradient in zip(scales, gradients, strict=True)
+            ) / len(gradients)
+        parameter.grad = combined
+        all_finite = all_finite and bool(torch.isfinite(combined).all())
+    return {
+        "representation_norms": {
+            name: float(norm.detach().cpu())
+            for name, norm in zip(task_names, representation_norms, strict=True)
+        },
+        "scales": {
+            name: float(scale.detach().cpu())
+            for name, scale in zip(task_names, scales, strict=True)
+        },
+        "all_gradients_finite": all_finite,
+    }
+
+
+def _is_classifier_parameter(name: str) -> bool:
+    return name.startswith("classifier.") or ".classifier." in name
 
 
 def evaluate_runtime_spn_joint(

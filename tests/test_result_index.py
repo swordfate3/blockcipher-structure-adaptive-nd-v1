@@ -3814,6 +3814,33 @@ def test_result_index_labels_runtime_spn_h1_source_gradient_audit(
     )
 
 
+def test_result_index_labels_runtime_spn_h1_gradient_equalization(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_h1_representation_gradient_equalization_a2_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_h1_gradient_equalization_partial",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A2：四源表示梯度归一化RECTANGLE整密码留出"
+    )
+    assert entries[0]["decision_display"] == (
+        "双seed目标拓扑归因已通过但seed0源宏略超退化门，保留归一化并只开放冲突处理"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:
