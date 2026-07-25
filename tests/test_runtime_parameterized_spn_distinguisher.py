@@ -1547,6 +1547,52 @@ def test_generic_runtime_entry_loads_gift_without_cipher_specific_model_name() -
         assert model(_binary((2, 512), 59)).shape == (2, 1)
 
 
+def test_generic_runtime_entry_reuses_one_weight_set_across_all_descriptors() -> None:
+    cases = (
+        ("present64.json", 0),
+        ("gift64.json", 0),
+        ("skinny64.json", 0),
+        ("rectangle64.json", 0),
+        ("uknit64.json", 4),
+    )
+    models = []
+    for filename, round_start in cases:
+        model = build_model(
+            "runtime_spn_e4_equivariant_true",
+            input_bits=512,
+            hidden_bits=24,
+            pair_bits=128,
+            structure="SPN",
+            model_options={
+                "runtime_structure_path": str(ROOT / "configs/runtime/spn" / filename),
+                "runtime_rounds": 2,
+                "runtime_round_start": round_start,
+                "processor_steps": 2,
+                "pair_embedding_dim": 32,
+                "dropout": 0.0,
+                "sbox_context_mode": "late_pair",
+            },
+        ).eval()
+        models.append(model)
+
+    shared_state = models[0].state_dict()
+    shared_geometry = {name: tuple(value.shape) for name, value in shared_state.items()}
+    descriptor_hashes = set()
+    for index, model in enumerate(models):
+        model.load_state_dict(shared_state, strict=True)
+        assert {
+            name: tuple(value.shape) for name, value in model.state_dict().items()
+        } == shared_geometry
+        descriptor_hashes.add(
+            model_metadata(model)["runtime_structure_descriptor_sha256"]
+        )
+        with torch.no_grad():
+            assert model(_binary((2, 512), 160 + index)).shape == (2, 1)
+
+    assert len({type(model) for model in models}) == 1
+    assert len(descriptor_hashes) == len(cases)
+
+
 def test_generic_runtime_models_share_geometry_metadata_and_forward() -> None:
     descriptor_path = ROOT / "configs/runtime/spn/present64.json"
     options = {

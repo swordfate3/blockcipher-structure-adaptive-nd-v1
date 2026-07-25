@@ -66,14 +66,17 @@ configs/runtime/spn/uknit64.json    = 11 distinct uKNIT-BC transition layers
 
 Tests compare all five descriptors against their Python factories for cell
 membership, bit roles, S-box truth bits, forward linear matrices and exact
-inverse matrices. GIFT and RECTANGLE additionally complete forward passes
-through the generic `runtime_spn_e4_equivariant_true` entry without
-cipher-specific model names. The generic correct, corrupted and independent controls also
-share identical state geometry, complete a forward pass and expose the
-descriptor name, resolved path, raw-file SHA-256 and control mode through result
-metadata. This closes the cipher-name-free training-entry gap for supported
-4-bit-cell SPNs. It is an implementation result only: it adds no training run,
-AUC evidence, cross-cipher generalization result or scale decision.
+inverse matrices. One shared generic RuntimeE4 state dictionary now loads
+strictly across PRESENT, GIFT, SKINNY, RECTANGLE and an internal uKNIT window;
+all five complete finite forward passes through
+`runtime_spn_e4_equivariant_true` without cipher-specific model names or
+parameter-shape changes. The generic correct, corrupted and independent
+controls also share identical state geometry, complete a forward pass and
+expose the descriptor name, resolved path, raw-file SHA-256 and control mode
+through result metadata. This closes the cipher-name-free training-entry gap
+for supported 4-bit-cell SPNs. It is an implementation result only: it adds no
+training run, AUC evidence, cross-cipher generalization result or scale
+decision.
 
 ## Non-Contiguous Real Cell Layout
 
