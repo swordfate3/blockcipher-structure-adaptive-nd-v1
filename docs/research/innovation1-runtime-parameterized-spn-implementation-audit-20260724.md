@@ -1,6 +1,6 @@
 # Innovation 1 Runtime-Parameterized SPN Implementation Audit
 
-Date: 2026-07-24
+Date: 2026-07-24; updated 2026-07-25
 
 ## Method Objective
 
@@ -22,9 +22,10 @@ budget.
 | External training descriptor | strict JSON loader plus cipher-name-free registry entries | production PRESENT/GIFT/RECTANGLE permutations and SKINNY GF(2) descriptors match built-in structures exactly | implemented |
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | GIFT/SKINNY and heterogeneous-S-box relabeling tests pass | implemented |
-| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed | replicated medium evidence supported |
-| General-GF(2) scale replication | frozen SKINNY r7 RTG2-A/RTG2-B protocol | RTG2-B correct AUC `0.649229/0.647783`; corrupted `0.603562/0.602584`; no topology `0.510190/0.513038` | formal RTG3-A seed0 prepared |
-| Frozen cross-cipher representation | GIFT Runtime-E4 backbone with only a SKINNY target head trained | X2 candidate `0.552013/0.598568` exceeds source, target and random controls but trails full-target `0.612733/0.614544` | small mechanism supported; scale held |
+| Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed; RECTANGLE RCT1 `2048/class` passed on both seeds | replicated multi-cipher diagnostic evidence supported |
+| General-GF(2) scale replication | frozen SKINNY r7 RTG2-A/RTG2-B/RTG3-A protocol | RTG3-A seed0 at `1000000/class`: correct `0.653192`, corrupted `0.607162`, no topology `0.511826`; seed1 is active under the remote watcher | one-seed formal evidence supported; second seed pending |
+| Frozen cross-cipher representation | formal SKINNY Runtime-E4 extractor rebound to RECTANGLE with only an independent target head trained | X3-A/X3-A2 candidate `0.784894/0.753170` exceeds corrupted-source, corrupted-target and random-source controls on both target seeds | local dual-seed mechanism supported; medium transfer blocked on RCT2 |
+| Low-capacity cross-cipher readout | frozen formal SKINNY Runtime-E4 representation with `Linear(384,1)` target probe | X4 candidate `0.791652/0.761355`; all three control margins pass on both seeds with only `385` trainable parameters | direct linear accessibility supported locally |
 
 The claim boundary remains narrow. These facts prove a runtime-parameterized
 4-bit-cell implementation and controlled diagnostic evidence. They do not prove
@@ -348,3 +349,90 @@ retains the runtime topology identity instead of reporting only aggregate
 parameter counts. Adapter-specific ownership flags remain available to a
 future experiment gate. No `engine/`, `training/` or frozen RuntimeE4 source
 path changed while RECTANGLE RCT2 is queued.
+
+## Cross-Cipher RECTANGLE Attribution And Linear Readout
+
+RECTANGLE RCT1 subsequently supplied a non-contiguous-cell target with two
+independent target-data seeds under the same four-pair, strict encrypted-
+random-plaintext protocol. Rebinding the formal SKINNY seed0 RuntimeE4
+extractor to the correct RECTANGLE descriptor while freezing the complete
+extractor and original source classifier produced the following X3 target-head
+results:
+
+```text
+target seed0 candidate AUC = 0.784893989563
+target seed1 candidate AUC = 0.753169536591
+```
+
+Both candidates exceeded a corrupted SKINNY source checkpoint, a corrupted
+RECTANGLE target topology and a deterministic random source extractor by at
+least `0.088696`. They remained within `0.012504` of the same-data end-to-end
+RECTANGLE anchors. The target head had `198401` trainable parameters, so X3
+established frozen-representation usefulness but did not by itself show that
+the source representation exposed a simple reusable decision direction.
+
+X4 therefore froze the same eight source/target/seed roles and replaced the
+nonlinear target head with one affine `Linear(384,1)` probe containing only
+`385` trainable parameters. The candidate results were:
+
+```text
+target seed0 candidate AUC = 0.791651725769
+target seed1 candidate AUC = 0.761355400085
+
+minimum candidate-control margin = +0.046437263489
+absolute candidate seed drift    = 0.030296325684
+```
+
+All preregistered source-topology, target-topology, random-source and seed-
+stability gates passed. Independent artifact verification reopened all eight
+best checkpoints and all 16 disk-backed representation caches, checking file
+sets, SHA-256 identities, tensor geometry, final metrics, histories and
+metadata. The result supports the narrow statement that the formal SKINNY
+RuntimeE4 representation exposes linearly accessible RECTANGLE signal under
+the local RCT1 protocol. It does not establish medium or formal cross-cipher
+transfer, universal SPN adaptation, an attack, SOTA or a breakthrough. The
+100-epoch linear-probe schedule is also not a same-compute superiority claim
+over the five-epoch nonlinear X3 head.
+
+## Remaining Completion Gaps
+
+The implementation objective and the empirical method objective must remain
+separate. Runtime structure loading, fixed parameter geometry, permutation and
+general-GF(2) support, heterogeneous recurrent windows, frozen representation
+extraction and low-capacity adaptation are implemented. The full method-level
+goal remains incomplete until the following evidence is available:
+
+1. **Formal general-GF(2) replication.** Retrieve and jointly adjudicate the
+   active SKINNY RTG3-A `1000000/class` seed1 panel. One formal seed is not a
+   multi-seed formal conclusion.
+2. **Second-cipher medium topology anchor.** Complete RECTANGLE RCT2 at
+   `65536/class` with correct, corrupted and no-topology controls. RCT1 is only
+   a local diagnostic and cannot authorize a medium transfer claim.
+3. **Heterogeneous multi-transition use.** Complete the queued local uKNIT U3
+   dual-seed recurrent-window panel. The candidate must beat repeat-last,
+   corrupted and no-topology controls; otherwise recurrent depth cannot be
+   attributed to earlier runtime structure.
+4. **Controlled medium cross-cipher confirmation.** Only if RCT2 passes,
+   perform one unchanged SKINNY-to-RECTANGLE X3-B medium confirmation and keep
+   the `385`-parameter probe as the low-capacity mechanism control.
+5. **Breadth before universality.** A universal-SPN or broadly reusable-weight
+   statement requires another preregistered source-target direction or real
+   cipher beyond the current SKINNY-to-RECTANGLE pair, with the same control
+   logic and multiple seeds. Implementation compatibility alone is not that
+   evidence.
+
+The current execution order is therefore fixed:
+
+```text
+RTG3-A seed1 retrieval and joint gate
+    -> RECTANGLE RCT2 medium anchor
+    -> conditional X3-B medium transfer
+
+RTG3-A joint gate
+    -> local uKNIT U3 heterogeneous-window attribution
+```
+
+Do not fill remote idle time with another architecture family, DDT/trail
+features, related-key data, changed negatives or a broad cipher matrix. The
+missing evidence is controlled replication and scale alignment of the same
+runtime method.
