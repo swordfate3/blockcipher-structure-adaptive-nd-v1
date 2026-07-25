@@ -426,6 +426,18 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_h1_equalized_pcgrad_protocol_invalid": (
         "H1-A3冲突投影的来源、缓存、检查点、投影计数或零目标训练协议无效"
     ),
+    "innovation1_runtime_spn_h1_shared_classifier_bottleneck_supported": (
+        "SKINNY表示可线性读取但共享头未利用，下一步设计无密码ID的结构条件共享读出"
+    ),
+    "innovation1_runtime_spn_h1_shared_representation_weak": (
+        "双seed SKINNY闭式探针均未过0.55，停止优化器与大分类头并重设计共享结构原语"
+    ),
+    "innovation1_runtime_spn_h1_accessibility_mixed": (
+        "SKINNY表示可达性跨seed不一致，先做确定性表示模式审计再选择架构路线"
+    ),
+    "innovation1_runtime_spn_h1_representation_accessibility_invalid": (
+        "H1-A4检查点、源缓存、闭式探针折分或零目标数据协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2455,6 +2467,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_h1_representation_accessibility_a4_seed0_seed1"
+    ):
+        return "创新1 H1-A4：冻结Runtime-E4表示与共享分类头可达性审计"
     if run_id.startswith(
         "i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1"
     ):

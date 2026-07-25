@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_h1_representation_accessibility_a4",
+  "run_id": "i1_runtime_spn_h1_representation_accessibility_a4_seed0_seed1_20260726",
+  "source": {
+    "h1_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "h1_config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "checkpoints": {
+      "h1": {
+        "output_root": "outputs/local_diagnostic/i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726",
+        "required_decision": "innovation1_runtime_spn_rectangle_holdout_not_supported",
+        "config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+        "role": "correct",
+        "gradient_combination": "mean_loss",
+        "files": {"0": "checkpoints/seed0-correct.pt", "1": "checkpoints/seed1-correct.pt"},
+        "sha256": {"0": "079bbe4d742db570dd84330b8ea4d0ffdfe10a8446a8e44b8a34eb24dd602869", "1": "254d37a942351df796fd69ef2007fbb5fcdc0ca35c6c8c17c0f459b962179d57"}
+      },
+      "a2": {
+        "output_root": "outputs/local_diagnostic/i1_runtime_spn_h1_representation_gradient_equalization_a2_2048_seed0_seed1_20260726",
+        "required_decision": "innovation1_runtime_spn_h1_gradient_equalization_partial",
+        "config_sha256": "a0907471a1726038e17142467597517338d7c94d0f29eb9fd19798d5ead4bf9c",
+        "role": "candidate",
+        "gradient_combination": "representation_l2_equalized",
+        "files": {"0": "checkpoints/seed0-candidate.pt", "1": "checkpoints/seed1-candidate.pt"},
+        "sha256": {"0": "a4ca2eb13c2940331d64de216f7e6529389fb6b030a682623043f32b14c750aa", "1": "b10bd2d4722a255c5fae162ffb3fdd2a6ac55a0823662f65fecb03a9a42b7603"}
+      },
+      "a3": {
+        "output_root": "outputs/local_diagnostic/i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1_20260726",
+        "required_decision": "innovation1_runtime_spn_h1_equalized_pcgrad_partial",
+        "config_sha256": "1d7377e0837963ac708127af0a65b09cb312ca7f76eafcbf6a20e008e202fc19",
+        "role": "candidate",
+        "gradient_combination": "representation_l2_equalized_pcgrad_fixed_order",
+        "files": {"0": "checkpoints/seed0-candidate.pt", "1": "checkpoints/seed1-candidate.pt"},
+        "sha256": {"0": "e13ff160d855a2a1d77da4b7c2f3e2041ed609d65b1203dc8ebc2fad52cab59e", "1": "a5e05f8e5bd240a5c1d7ff49c1fdd112ff0f9c4b841d923c71cc8a452762b19c"}
+      }
+    }
+  },
+  "audit": {
+    "checkpoint_roles": ["h1", "a2", "a3"],
+    "seeds": [0, 1],
+    "source_ciphers": ["gift64", "skinny64", "uknit64", "dialga128"],
+    "split": "validation",
+    "rows_per_cipher": 2048,
+    "rows_per_class": 1024,
+    "representation_width": 384,
+    "extraction_batch_size": 256,
+    "device": "cpu",
+    "probe": "stratified_two_fold_closed_form_ridge",
+    "ridge_lambda": 0.01,
+    "probe_label_encoding": "minus_one_plus_one",
+    "probe_standardization": "fit_fold_only",
+    "label_shuffle_control": "a3_skinny_only_deterministic_fit_label_permutation",
+    "label_shuffle_seed": 260726
+  },
+  "gate": {
+    "probe_auc_floor": 0.55,
+    "classifier_gap_floor": 0.02,
+    "label_shuffle_auc_tolerance": 0.05,
+    "required_seeds": [0, 1]
+  }
+}

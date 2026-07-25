@@ -3868,6 +3868,33 @@ def test_result_index_labels_runtime_spn_h1_equalized_pcgrad(
     )
 
 
+def test_result_index_labels_runtime_spn_h1_representation_accessibility(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_audit"
+        / "i1_runtime_spn_h1_representation_accessibility_a4_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_h1_shared_representation_weak",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A4：冻结Runtime-E4表示与共享分类头可达性审计"
+    )
+    assert entries[0]["decision_display"] == (
+        "双seed SKINNY闭式探针均未过0.55，停止优化器与大分类头并重设计共享结构原语"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:
