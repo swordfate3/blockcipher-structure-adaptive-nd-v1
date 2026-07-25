@@ -333,7 +333,9 @@ def _accumulate_gradient_diagnostics(
     finite = True
     for name, parameter in model.named_parameters():
         if (
-            "primitive_adapter" not in name and "primitive_film" not in name
+            "primitive_adapter" not in name
+            and "primitive_film" not in name
+            and "typed_relation" not in name
         ) or parameter.grad is None:
             continue
         group = ".".join(name.split(".")[:2])

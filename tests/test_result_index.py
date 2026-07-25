@@ -3677,6 +3677,60 @@ def test_result_index_labels_runtime_spn_true_film_joint_hold(tmp_path: Path) ->
     )
 
 
+def test_result_index_labels_runtime_spn_typed_relation_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_readiness"
+        / "i1_runtime_spn_typed_relation_gnn_film_five_cipher_readiness_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": "innovation1_runtime_spn_typed_relation_readiness_passed",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1：五密码16类GF(2)关系消息实现门"
+    )
+    assert entries[0]["decision_display"] == (
+        "五密码16类GF(2)关系消息十一项实现门通过，可执行同预算双seed联合归因"
+    )
+
+
+def test_result_index_labels_runtime_spn_typed_relation_joint_hold(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_typed_relation_gnn_film_five_cipher_joint_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_typed_relation_not_supported",
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1：五密码Typed GF(2)关系消息2048/class双seed联合归因"
+    )
+    assert entries[0]["decision_display"] == (
+        "Typed GF(2)关系消息未稳定超过三控制和历史锚点，关闭差异化残差分支并收束Runtime-E4"
+    )
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:

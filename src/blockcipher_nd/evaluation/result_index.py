@@ -360,6 +360,21 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_primitive_true_film_protocol_invalid": (
         "局部结构True FiLM的readiness、参数、缓存或旧加法源锚点无效，修复前不解释AUC"
     ),
+    "innovation1_runtime_spn_typed_relation_readiness_passed": (
+        "五密码16类GF(2)关系消息十一项实现门通过，可执行同预算双seed联合归因"
+    ),
+    "innovation1_runtime_spn_typed_relation_supported": (
+        "正确GF(2)关系类型通过双seed三控制和两项历史锚点门，可预注册整密码留出"
+    ),
+    "innovation1_runtime_spn_typed_relation_core_only_stress_hold": (
+        "Typed GF(2)关系消息只通过核心组，新算法压力组未通过，禁止进入整密码留出"
+    ),
+    "innovation1_runtime_spn_typed_relation_not_supported": (
+        "Typed GF(2)关系消息未稳定超过三控制和历史锚点，关闭差异化残差分支并收束Runtime-E4"
+    ),
+    "innovation1_runtime_spn_typed_relation_protocol_invalid": (
+        "Typed GF(2)关系实验的readiness、参数、缓存或历史锚点无效，修复前不解释AUC"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2389,6 +2404,14 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_typed_relation_gnn_film_five_cipher_readiness"
+    ):
+        return "创新1：五密码16类GF(2)关系消息实现门"
+    if run_id.startswith(
+        "i1_runtime_spn_typed_relation_gnn_film_five_cipher_joint_2048_seed0_seed1"
+    ):
+        return "创新1：五密码Typed GF(2)关系消息2048/class双seed联合归因"
     if run_id.startswith("i1_runtime_spn_primitive_true_film_five_cipher_readiness"):
         return "创新1：五密码局部S盒与GF(2)结构True FiLM实现门"
     if run_id.startswith(

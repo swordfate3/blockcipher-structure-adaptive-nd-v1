@@ -267,10 +267,22 @@ audits have now completed.
    only `+0.001635` and `+0.002331`, while correct-versus-shuffled core deltas
    were `-0.003714` and `-0.000405`. It also failed the old additive source on
    the core macro in both seeds.
+6. The final typed GNN-FiLM audit preserved all 16
+   `target_bit_role x source_bit_role` GF(2) relation channels around the exact
+   inverse-linear view. All four roles exactly matched `446562` parameters,
+   reconstructed the five inverse matrices, preserved cell-relabeling
+   equivariance and received nonzero finite relation gradients. The completed
+   two-seed joint diagnostic still held. Seed0 correct-minus-control core macro
+   deltas were `-0.000871/-0.002684/-0.000339` versus
+   dense/uniform/shuffled; seed1 deltas were
+   `+0.001596/+0.004312/+0.003563`. Neither seed reached `+0.005`, and the
+   stress macro failed every control on both seeds except seed1 dense at only
+   `+0.000211`. uKNIT also regressed by `-0.015956` versus shuffled on seed1.
 
-This evidence closes deterministic low-rank additive, multiplicative and local
-True FiLM effects under the current five-cipher joint protocol. It does not
-reject the method-level runtime-parameterized SPN objective: the shared
+This evidence closes deterministic low-rank additive, multiplicative, local
+True FiLM and typed GNN-FiLM residual effects under the current five-cipher
+joint protocol. It does not reject the method-level runtime-parameterized SPN
+objective: the shared
 Runtime-E4 topology path remains supported on SKINNY at formal project scale,
 while these local joint gates reject the tested differentiated side paths.
 
@@ -278,19 +290,19 @@ while these local joint gates reject the tested differentiated side paths.
 
 | Rank | Route after executed evidence | Status | Reason |
 | ---: | --- | --- | --- |
-| 1 | Typed R-GCN/GNN-FiLM path around the exact GF(2) view | design-audit only | Structurally natural, but must prove it preserves XOR semantics and adds more than the exact Runtime-E4 path |
-| 2 | Consolidate the supported shared Runtime-E4 method without differentiated side modules | active alternative | Stronger evidence and lower thesis risk than continuing architecture enumeration |
-| 3 | Refined deterministic primitive descriptor | closed for Adapter/FiLM | True FiLM already used a collision-distinguishing local descriptor without stable gain |
-| 4 | Sparse Top-2 Adapter MoE | closed | Additive, multiplicative and True FiLM all failed the joint gate; learned routing is not authorized |
+| 1 | Consolidate the supported shared Runtime-E4 method without differentiated side modules | active | Formal SKINNY topology attribution and local cross-cipher representation evidence are stronger than every tested differentiated branch |
+| 2 | Typed R-GCN/GNN-FiLM path around the exact GF(2) view | closed | Exact 16-relation implementation was active and valid but failed the two-seed joint control gate |
+| 3 | Refined deterministic primitive descriptor | closed | True FiLM already used a collision-distinguishing local descriptor without stable gain |
+| 4 | Sparse Top-2 Adapter MoE | prohibited | Additive, multiplicative, True FiLM and typed message paths all failed; learned routing would add an unidentifiable degree of freedom |
 | 5 | Larger generic recurrent/Transformer processor | closed | Does not target the observed attribution failure |
 
-The next design review must compare one typed relation-specific message path
-against consolidating the supported shared Runtime-E4 method. The candidate
-must wrap the exact GF(2) view rather than replace XOR propagation with generic
-real-valued neighbor averaging. It must remain parameter matched, cell
-relabeling equivariant, cipher-ID-free and local-only before training. No
-whole-cipher holdout is authorized because the required joint gate did not
-pass.
+The typed relation-specific comparison is now complete. It confirms that the
+exact Runtime-E4 GF(2) path should be retained, but does not justify another
+learned residual around that path. No whole-cipher holdout is authorized for
+the differentiated candidate because the required joint gate did not pass.
+The next work item is evidence consolidation and a requirement-by-requirement
+audit of the supported Runtime-E4 method before any new method hypothesis is
+preregistered.
 
 ## New-Algorithm Family Boundary
 
@@ -311,22 +323,24 @@ remain a distinct family panel.
 
 ## Final Recommendation
 
-MoE is closed for the current differentiated branch. The evidence-backed
-priority is now:
+MoE and typed residual message passing are closed for the current
+differentiated branch. The evidence-backed priority is now:
 
 ```text
-1. audit one typed relation-specific message operator around exact GF(2)
-2. compare its complexity and identifiability against supported Runtime-E4
-3. only if that design audit passes, run the same five-SPN local control gate
-4. only after a full two-seed joint pass, run whole-cipher holdouts
-5. do not reopen learned soft/Top-2 MoE without new joint and holdout evidence
+1. freeze the supported Runtime-E4 architecture and exact runtime descriptor contract
+2. consolidate formal SKINNY, local GIFT/RECTANGLE/Dialga and frozen-representation evidence
+3. retain additive, gate, True FiLM and typed GNN-FiLM as closed matched ablations
+4. audit the remaining gap between current evidence and a legitimate whole-cipher holdout
+5. preregister a new method hypothesis only if it addresses that exact gap
+6. do not reopen learned soft/Top-2 MoE or mechanically scale a closed residual branch
 ```
 
-This route directly addresses the observed failure mode: the shared backbone
-can exploit general GF(2) topology, but a single recurrent update does not
-stably interpret every heterogeneous transition. It also preserves the thesis
-claim boundary: one shared runtime-parameterized SPN model with differentiated
-structure primitives, rather than a lookup table of cipher-specific networks.
+This route preserves what the evidence actually supports: one shared,
+cipher-name-free runtime-parameterized SPN backbone can exploit exact GF(2)
+topology, while the tested differentiated residual modules have not yet made
+that backbone uniformly effective across heterogeneous structures. The
+unseen-cipher claim remains open and must not be replaced by a lookup table of
+cipher-specific networks or inferred from within-cipher controls.
 
 ## Verified Web Sources
 

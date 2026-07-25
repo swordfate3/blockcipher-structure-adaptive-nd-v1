@@ -55,6 +55,14 @@ class RuntimeParameterizedSpnSpec:
     ] = "none"
     primitive_film_rank: int = 10
     primitive_film_scale: float = 0.1
+    typed_relation_mode: Literal[
+        "none",
+        "dense",
+        "correct",
+        "agnostic",
+        "shuffled",
+    ] = "none"
+    typed_relation_scale: float = 0.1
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -122,8 +130,32 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError("primitive_film_rank must be positive")
         if self.primitive_film_scale < 0.0:
             raise ValueError("primitive_film_scale must be non-negative")
-        if self.primitive_adapter_mode != "none" and self.primitive_film_mode != "none":
-            raise ValueError("primitive Adapter and True FiLM are mutually exclusive")
+        if self.typed_relation_mode not in {
+            "none",
+            "dense",
+            "correct",
+            "agnostic",
+            "shuffled",
+        }:
+            raise ValueError(
+                "typed_relation_mode must be none, dense, correct, agnostic, "
+                "or shuffled"
+            )
+        if self.typed_relation_scale < 0.0:
+            raise ValueError("typed_relation_scale must be non-negative")
+        active_conditioners = sum(
+            mode != "none"
+            for mode in (
+                self.primitive_adapter_mode,
+                self.primitive_film_mode,
+                self.typed_relation_mode,
+            )
+        )
+        if active_conditioners > 1:
+            raise ValueError(
+                "primitive Adapter, True FiLM, and typed relation conditioning "
+                "are mutually exclusive"
+            )
 
 
 class _LowRankResidualAdapter(nn.Module):
@@ -147,6 +179,36 @@ class _PrimitiveTrueFiLM(nn.Module):
     def forward(self, descriptor: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         gamma, beta = self.affine(self.activation(self.down(descriptor))).chunk(2, -1)
         return gamma, beta
+
+
+class _TypedRelationGnnFiLM(nn.Module):
+    """Feature-wise affine messages for the 16 target/source bit-role pairs."""
+
+    RELATION_TYPES = 16
+
+    def __init__(self, hidden_dim: int) -> None:
+        super().__init__()
+        self.gamma = nn.Parameter(torch.empty(self.RELATION_TYPES, hidden_dim))
+        self.beta = nn.Parameter(torch.empty(self.RELATION_TYPES, hidden_dim))
+        nn.init.normal_(self.gamma, mean=0.0, std=0.02)
+        nn.init.normal_(self.beta, mean=0.0, std=0.02)
+
+    def forward(
+        self,
+        hidden: torch.Tensor,
+        adjacency: torch.Tensor,
+    ) -> torch.Tensor:
+        if adjacency.shape != (
+            self.RELATION_TYPES,
+            hidden.shape[1],
+            hidden.shape[1],
+        ):
+            raise ValueError("typed relation adjacency does not match cell tokens")
+        messages = hidden[:, None, :, :] * torch.tanh(self.gamma)[None, :, None, :]
+        messages = messages + torch.tanh(self.beta)[None, :, None, :]
+        incoming = torch.einsum("rts,brsd->btd", adjacency, messages)
+        degree = adjacency.sum(dim=(0, 2)).clamp_min(1.0)
+        return incoming / degree[None, :, None]
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -573,6 +635,9 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 hidden_dim=token_dim,
                 rank=spec.primitive_film_rank,
             )
+        self.typed_relation_message: _TypedRelationGnnFiLM | None = None
+        if spec.typed_relation_mode != "none":
+            self.typed_relation_message = _TypedRelationGnnFiLM(token_dim)
         self.sequence_norm = nn.LayerNorm(token_dim)
         self.pair_projection = nn.Sequential(
             nn.Linear(token_dim * 3, pair_dim),
@@ -754,6 +819,12 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 structure,
                 relation_mode=relation_mode,
             )
+        sequence = self._apply_typed_relation_message(
+            sequence,
+            structure,
+            relation_mode=relation_mode,
+            round_index=-1,
+        )
         sequence = self._apply_primitive_film(
             sequence,
             structure,
@@ -900,6 +971,12 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                     relation_mode=relation_mode,
                     round_index=round_index,
                 )
+            sequence = self._apply_typed_relation_message(
+                sequence,
+                structure,
+                relation_mode=relation_mode,
+                round_index=round_index,
+            )
             sequence = self._apply_primitive_film(
                 sequence,
                 structure,
@@ -1004,6 +1081,79 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         return sequence * (1.0 + scale * torch.tanh(gamma)[None, :, :]) + (
             scale * torch.tanh(beta)[None, :, :]
         )
+
+    def _apply_typed_relation_message(
+        self,
+        sequence: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str,
+        round_index: int,
+    ) -> torch.Tensor:
+        mode = self.spec.typed_relation_mode
+        if mode == "none" or relation_mode == "independent":
+            return sequence
+        if self.typed_relation_message is None:
+            raise RuntimeError("typed relation message module was not initialized")
+        adjacency = self.typed_relation_adjacency(
+            structure,
+            round_index=round_index,
+            mode=mode,
+            device=sequence.device,
+            dtype=sequence.dtype,
+        )
+        residual = self.typed_relation_message(sequence, adjacency)
+        self.last_primitive_adapter_traffic["typed_relation"] = (
+            self.last_primitive_adapter_traffic.get("typed_relation", 0.0)
+            + float(adjacency.sum().detach().cpu()) * float(sequence.shape[0])
+        )
+        return sequence + self.spec.typed_relation_scale * residual
+
+    @staticmethod
+    def typed_relation_adjacency(
+        structure: RuntimeSpnStructure,
+        *,
+        round_index: int,
+        mode: Literal["dense", "correct", "agnostic", "shuffled"],
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if mode not in {"dense", "correct", "agnostic", "shuffled"}:
+            raise ValueError(
+                "typed relation mode must be dense, correct, agnostic, or shuffled"
+            )
+        cells = structure.cells
+        if mode == "dense":
+            return torch.full(
+                (16, cells, cells),
+                1.0 / 16.0,
+                device=device,
+                dtype=dtype,
+            )
+
+        membership = structure.cell_membership.to(device=device)
+        bit_role = structure.bit_role.to(device=device)
+        bit_indices = torch.arange(structure.block_bits, device=device)
+        cell_role_indices = torch.empty(
+            cells,
+            4,
+            dtype=torch.long,
+            device=device,
+        )
+        cell_role_indices[membership, bit_role] = bit_indices
+        inverse = structure.inverse_linear_matrices[round_index].to(
+            device=device,
+            dtype=dtype,
+        )
+        relation = inverse[
+            cell_role_indices[:, :, None, None],
+            cell_role_indices[None, None, :, :],
+        ].permute(1, 3, 0, 2).reshape(16, cells, cells)
+        if mode == "agnostic":
+            return relation.sum(dim=0, keepdim=True).expand_as(relation) / 16.0
+        if mode == "shuffled":
+            return torch.roll(relation, shifts=1, dims=0)
+        return relation
 
     @staticmethod
     def primitive_film_descriptor(
@@ -1141,6 +1291,17 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             "descriptor_dim": 128,
             "active_conditioner_evaluations": (
                 0 if self.spec.primitive_film_mode == "none" else 1
+            ),
+            "traffic": dict(self.last_primitive_adapter_traffic),
+        }
+
+    def typed_relation_summary(self) -> dict[str, object]:
+        return {
+            "mode": self.spec.typed_relation_mode,
+            "scale": self.spec.typed_relation_scale,
+            "relation_types": 16,
+            "active_message_evaluations": (
+                0 if self.spec.typed_relation_mode == "none" else 1
             ),
             "traffic": dict(self.last_primitive_adapter_traffic),
         }
