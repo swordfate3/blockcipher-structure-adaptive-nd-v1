@@ -1432,6 +1432,54 @@ def test_external_runtime_permutation_descriptor_repeats_and_hashes_raw_file(
     )
 
 
+def test_external_runtime_descriptor_repeats_a_heterogeneous_round_cycle(
+    tmp_path: Path,
+) -> None:
+    payload = _minimal_runtime_descriptor()
+    payload["repeat_single_round"] = False
+    payload["repeat_round_cycle"] = 3
+    payload["linear_layers"] = [
+        {"kind": "permutation", "source_to_target": list(range(8))},
+        {"kind": "permutation", "source_to_target": list(range(1, 8)) + [0]},
+    ]
+    descriptor = load_runtime_spn_descriptor(
+        _write_runtime_descriptor(tmp_path, payload),
+        rounds=4,
+        round_start=1,
+    )
+
+    assert descriptor.available_rounds == 6
+    assert descriptor.round_start == 1
+    assert descriptor.structure.rounds == 4
+    expected_cycle = permutation_matrix(list(range(1, 8)) + [0])
+    identity = torch.eye(8, dtype=torch.uint8)
+    assert torch.equal(descriptor.structure.linear_matrices[0], expected_cycle)
+    assert torch.equal(descriptor.structure.linear_matrices[1], identity)
+    assert torch.equal(descriptor.structure.linear_matrices[2], expected_cycle)
+    assert torch.equal(descriptor.structure.linear_matrices[3], identity)
+
+
+@pytest.mark.parametrize("value", [0, -1, 1.5, True])
+def test_external_runtime_descriptor_rejects_invalid_round_cycle(
+    tmp_path: Path,
+    value: object,
+) -> None:
+    payload = _minimal_runtime_descriptor()
+    payload["repeat_single_round"] = False
+    payload["repeat_round_cycle"] = value
+
+    with pytest.raises(ValueError, match="repeat_round_cycle"):
+        load_runtime_spn_descriptor(_write_runtime_descriptor(tmp_path, payload))
+
+
+def test_external_runtime_descriptor_rejects_two_repeat_modes(tmp_path: Path) -> None:
+    payload = _minimal_runtime_descriptor()
+    payload["repeat_round_cycle"] = 2
+
+    with pytest.raises(ValueError, match="cannot combine"):
+        load_runtime_spn_descriptor(_write_runtime_descriptor(tmp_path, payload))
+
+
 def test_external_runtime_sparse_gf2_descriptor_is_invertible(
     tmp_path: Path,
 ) -> None:

@@ -99,6 +99,23 @@ class CipherProfile:
         )
 
     @staticmethod
+    def dialga128() -> "CipherProfile":
+        return CipherProfile(
+            name="Dialga-128",
+            structure="SPN",
+            block_bits=128,
+            key_bits=256,
+            traits=(
+                "sbox_layer",
+                "non_contiguous_sbox_cells",
+                "general_gf2_diffusion",
+                "round_specific_diffusion",
+                "multiple_linear_layers",
+                "tweakable_block_cipher",
+            ),
+        )
+
+    @staticmethod
     def sm4() -> "CipherProfile":
         return CipherProfile(
             name="SM4",

@@ -9,6 +9,7 @@ from blockcipher_nd.ciphers.feistel.simon import Simon64_128
 from blockcipher_nd.ciphers.feistel.sm4 import Sm4Reduced
 from blockcipher_nd.ciphers.spn.aes import Aes128, Aes192, Aes256
 from blockcipher_nd.ciphers.spn.aria import Aria, Aria128, Aria192, Aria256
+from blockcipher_nd.ciphers.spn.dialga import Dialga128
 from blockcipher_nd.ciphers.spn.gift import Gift64
 from blockcipher_nd.ciphers.spn.present import Present80
 from blockcipher_nd.ciphers.spn.rectangle import Rectangle80
@@ -29,6 +30,7 @@ __all__ = [
     "Camellia256",
     "Cham64_128",
     "Des",
+    "Dialga128",
     "Gift64",
     "Lea",
     "Lea128",

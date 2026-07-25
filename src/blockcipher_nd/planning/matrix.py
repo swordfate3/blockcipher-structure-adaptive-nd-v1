@@ -281,6 +281,7 @@ def cipher_key_from_name(cipher_name: str) -> str:
         "RECTANGLE-80": "rectangle80",
         "SKINNY-64/64": "skinny64",
         "uKNIT-BC": "uknit64",
+        "Dialga-128": "dialga128",
         "DES": "des",
         "SM4": "sm4",
         "SIMON64/128": "simon64",

@@ -12,6 +12,7 @@ from blockcipher_nd.ciphers import (
     Camellia256,
     Cham64_128,
     Des,
+    Dialga128,
     Gift64,
     Lea128,
     Lea192,
@@ -120,6 +121,13 @@ def build_cipher(name: str, rounds: int, key: int | None = None) -> ReducedRound
             rounds=rounds,
             key=0x00000000000000000000000000000000 if key is None else key,
         )
+    if name == "dialga128":
+        return Dialga128(
+            rounds=rounds,
+            key=0 if key is None else key,
+            tweak=0,
+            variant_rounds=20,
+        )
     if name == "sm4":
         return Sm4Reduced(rounds=rounds, key=0x0123456789ABCDEFFEDCBA9876543210 if key is None else key)
     raise ValueError(f"unsupported cipher: {name}")
@@ -139,6 +147,7 @@ def default_difference(name: str) -> int:
         "lea128",
         "lea192",
         "lea256",
+        "dialga128",
     }:
         return 0x00000000000000000000000000000040
     if name in {"des", "3des"}:

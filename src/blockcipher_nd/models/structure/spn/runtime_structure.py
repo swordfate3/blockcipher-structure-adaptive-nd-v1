@@ -463,6 +463,7 @@ def load_runtime_spn_descriptor(
         "bit_role",
         "sbox_tables",
         "linear_layers",
+        "repeat_round_cycle",
         "repeat_single_round",
     }
     unknown = sorted(set(payload) - allowed)
@@ -495,15 +496,24 @@ def load_runtime_spn_descriptor(
         raise ValueError("runtime SPN descriptor round_start must be an integer")
     if round_start < 0:
         raise ValueError("runtime SPN descriptor round_start must be non-negative")
-    available_rounds = len(layer_payloads)
-    requested_rounds = available_rounds - round_start if rounds is None else rounds
-    if requested_rounds <= 0:
-        raise ValueError("runtime SPN descriptor rounds must be positive")
+    base_rounds = len(layer_payloads)
     repeat_single = payload.get("repeat_single_round", False)
     if not isinstance(repeat_single, bool):
         raise ValueError("runtime SPN descriptor repeat_single_round must be boolean")
+    repeat_cycle = payload.get("repeat_round_cycle", 1)
+    if type(repeat_cycle) is not int or repeat_cycle <= 0:
+        raise ValueError("runtime SPN descriptor repeat_round_cycle must be positive")
+    if repeat_single and repeat_cycle != 1:
+        raise ValueError(
+            "runtime SPN descriptor cannot combine repeat_single_round and "
+            "repeat_round_cycle"
+        )
     if repeat_single:
-        if available_rounds != 1:
+        available_rounds = base_rounds
+        requested_rounds = available_rounds - round_start if rounds is None else rounds
+        if requested_rounds <= 0:
+            raise ValueError("runtime SPN descriptor rounds must be positive")
+        if base_rounds != 1:
             raise ValueError(
                 "runtime SPN descriptor repeat_single_round requires one linear layer"
             )
@@ -519,6 +529,11 @@ def load_runtime_spn_descriptor(
             repeat_single_round=True,
         )
     else:
+        available_rounds = base_rounds * repeat_cycle
+        requested_rounds = available_rounds - round_start if rounds is None else rounds
+        if requested_rounds <= 0:
+            raise ValueError("runtime SPN descriptor rounds must be positive")
+        matrices = matrices.repeat(repeat_cycle, 1, 1)
         round_stop = round_start + requested_rounds
         if round_start >= available_rounds or round_stop > available_rounds:
             raise ValueError(
@@ -527,11 +542,12 @@ def load_runtime_spn_descriptor(
         matrices = matrices[round_start:round_stop]
         tables = _descriptor_sbox_tables(
             payload.get("sbox_tables"),
-            rounds=available_rounds,
+            rounds=base_rounds,
             cells=max(membership) + 1,
             repeat_single_round=False,
         )
         if tables.ndim == 3:
+            tables = tables.repeat(repeat_cycle, 1, 1)
             tables = tables[round_start:round_stop]
     structure = runtime_spn_structure(
         cell_membership=membership,

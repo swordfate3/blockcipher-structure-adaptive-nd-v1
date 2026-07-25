@@ -101,6 +101,7 @@ def cipher_profile(cipher_key: str) -> CipherProfile:
         "gift64": CipherProfile.gift64,
         "rectangle80": CipherProfile.rectangle80,
         "uknit64": CipherProfile.uknit64,
+        "dialga128": CipherProfile.dialga128,
         "des": CipherProfile.des,
         "sm4": CipherProfile.sm4,
         "simon64": CipherProfile.simon64_128,

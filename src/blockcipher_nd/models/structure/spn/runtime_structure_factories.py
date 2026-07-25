@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import torch
 
+from blockcipher_nd.ciphers.spn.dialga import (
+    DIALGA_BIT_PERMUTATIONS,
+    DIALGA_SBOX,
+    dialga_linear_layer,
+)
 from blockcipher_nd.ciphers.spn.gift import GIFT64_SBOX, Gift64
 from blockcipher_nd.ciphers.spn.present import PRESENT_SBOX, Present80
 from blockcipher_nd.ciphers.spn.rectangle import (
@@ -107,6 +112,44 @@ def uknit64_runtime_structure(
     )
 
 
+def dialga128_runtime_structure(
+    rounds: int = 1,
+    *,
+    round_start: int = 0,
+) -> RuntimeSpnStructure:
+    if rounds <= 0:
+        raise ValueError("rounds must be positive")
+    if round_start < 0 or round_start + rounds > 20:
+        raise ValueError("Dialga-128 runtime round window must stay within rounds 0..19")
+
+    membership = [-1] * 128
+    roles = [-1] * 128
+    for byte_index in range(16):
+        permutation = DIALGA_BIT_PERMUTATIONS[byte_index % 4]
+        for permuted_position, physical_position in enumerate(permutation):
+            integer_bit = 127 - (8 * byte_index + physical_position)
+            membership[integer_bit] = 2 * byte_index + permuted_position // 4
+            roles[integer_bit] = permuted_position % 4
+
+    matrices = torch.stack(
+        [
+            linear_matrix_from_callable(
+                128,
+                lambda state, round_type=(round_start + index) % 4: (
+                    dialga_linear_layer(state, round_type)
+                ),
+            )
+            for index in range(rounds)
+        ]
+    )
+    return runtime_spn_structure(
+        cell_membership=membership,
+        bit_role=roles,
+        sbox_tables=DIALGA_SBOX,
+        linear_matrices=matrices,
+    )
+
+
 def _repeated_structure(
     *,
     block_bits: int,
@@ -127,6 +170,7 @@ def _repeated_structure(
 
 
 __all__ = [
+    "dialga128_runtime_structure",
     "gift64_runtime_structure",
     "present_runtime_structure",
     "rectangle80_runtime_structure",
