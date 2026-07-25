@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_primitive_adapter_five_cipher_joint",
+  "run_id": "i1_runtime_spn_primitive_adapter_five_cipher_joint_2048_seed0_seed1_20260725",
+  "readiness": {
+    "gate_path": "outputs/local_readiness/i1_runtime_spn_primitive_adapter_five_cipher_readiness_20260725/gate.json",
+    "required_decision": "innovation1_runtime_spn_primitive_adapter_readiness_passed"
+  },
+  "protocols": [
+    {
+      "name": "gift64",
+      "display_name": "GIFT-64 r6",
+      "group": "core",
+      "cipher_key": "gift64",
+      "rounds": 6,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/gift64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "skinny64",
+      "display_name": "SKINNY-64/64 r7",
+      "group": "core",
+      "cipher_key": "skinny64",
+      "rounds": 7,
+      "input_difference": "0x2000",
+      "train_key": "0x0",
+      "validation_key": "0x1111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/skinny64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "rectangle80",
+      "display_name": "RECTANGLE-80 r6",
+      "group": "core",
+      "cipher_key": "rectangle80",
+      "rounds": 6,
+      "input_difference": "0x2100010020",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/rectangle64.json",
+      "runtime_round_start": 0
+    },
+    {
+      "name": "uknit64",
+      "display_name": "uKNIT-BC prefix-r5",
+      "group": "stress",
+      "cipher_key": "uknit64",
+      "rounds": 5,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x11111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/uknit64.json",
+      "runtime_round_start": 3
+    },
+    {
+      "name": "dialga128",
+      "display_name": "Dialga-128 prefix-r4",
+      "group": "stress",
+      "cipher_key": "dialga128",
+      "rounds": 4,
+      "input_difference": "0x40",
+      "train_key": "0x0",
+      "validation_key": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "runtime_structure_path": "configs/runtime/spn/dialga128.json",
+      "runtime_round_start": 2
+    }
+  ],
+  "model": {
+    "backbone": "RuntimeE4EquivariantSpnDistinguisher",
+    "hidden_dim": 64,
+    "pair_embedding_dim": 128,
+    "processor_steps": 2,
+    "dropout": 0.0,
+    "sbox_context_mode": "edge_gate",
+    "cell_input_mode": "state_triplet",
+    "round_window_mode": "recurrent_window",
+    "runtime_rounds": 2,
+    "primitive_adapter_rank": 8,
+    "primitive_adapter_scale": 0.1
+  },
+  "training": {
+    "seeds": [0, 1],
+    "roles": {
+      "dense": "dense",
+      "correct": "correct",
+      "uniform": "uniform",
+      "shuffled": "shuffled"
+    },
+    "samples_per_class": 2048,
+    "validation_samples_per_class": 1024,
+    "pairs_per_sample": 4,
+    "negative_mode": "encrypted_random_plaintexts",
+    "feature_encoding": "ciphertext_pair_bits",
+    "sample_structure": "independent_pairs",
+    "key_rotation_interval": 0,
+    "epochs": 10,
+    "batch_size": 256,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "lr_scheduler": "none",
+    "checkpoint_metric": "val_macro_auc",
+    "restore_best_checkpoint": true,
+    "device": "cpu"
+  },
+  "gate": {
+    "margin": 0.005,
+    "per_cipher_floor": -0.005,
+    "candidate_role": "correct",
+    "control_roles": ["dense", "uniform", "shuffled"],
+    "required_seeds": [0, 1]
+  }
+}

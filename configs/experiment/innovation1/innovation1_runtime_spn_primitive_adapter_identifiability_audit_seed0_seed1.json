@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_primitive_adapter_identifiability_audit",
+  "run_id": "i1_runtime_spn_primitive_adapter_identifiability_audit_seed0_seed1_20260725",
+  "source": {
+    "config_path": "configs/experiment/innovation1/innovation1_runtime_spn_primitive_adapter_five_cipher_joint_2048_seed0_seed1.json",
+    "config_sha256": "38996b0a399121d0c24fc2de77e8befd96c6a0c8fff4639f85b039e79d2ffac7",
+    "output_root": "outputs/local_diagnostic/i1_runtime_spn_primitive_adapter_five_cipher_joint_2048_seed0_seed1_20260725",
+    "required_decision": "innovation1_runtime_spn_primitive_adapter_joint_not_supported",
+    "role": "correct",
+    "mode": "correct"
+  },
+  "audit": {
+    "seeds": [0, 1],
+    "split": "train",
+    "rows_per_cipher": 4096,
+    "batch_size": 256,
+    "loss": "mse",
+    "device": "cpu",
+    "probes": {
+      "disabled": {"mode": "correct", "scale": 0.0, "reference": "disabled"},
+      "source": {"mode": "correct", "scale": 0.1, "reference": "disabled"},
+      "uniform": {"mode": "uniform", "scale": 0.1, "reference": "source"},
+      "shuffled": {"mode": "shuffled", "scale": 0.1, "reference": "source"},
+      "amplified": {"mode": "correct", "scale": 0.5, "reference": "source"}
+    }
+  },
+  "gate": {
+    "active_median_relative_rms": 0.1,
+    "active_task_relative_rms": 0.05,
+    "active_task_count": 4,
+    "route_median_relative_rms": 0.05,
+    "rank_collapse_effective_rank": 2.0,
+    "scale_macro_auc_gain": 0.005,
+    "scale_per_task_auc_floor": -0.005
+  }
+}

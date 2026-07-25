@@ -33,10 +33,32 @@ def test_default_result_roots_cover_local_and_remote_result_runs() -> None:
         "local_readiness",
         "local_diagnostic",
         "local_audits",
+        "local_audit",
         "smoke",
         "remote_results",
         "remote_results_incomplete",
     )
+
+
+def test_result_index_includes_singular_local_audit_root(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    run_id = "i1_runtime_spn_primitive_descriptor_gradient_audit_seed0_seed1"
+    run_root = outputs / "local_audit" / run_id
+    _write_json(
+        run_root / "gate.json",
+        {
+            "run_id": run_id,
+            "status": "hold",
+            "decision": "innovation1_runtime_spn_adapter_identifiability_audit_required",
+        },
+    )
+    _write_json(run_root / "validation.json", {"status": "pass"})
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert len(entries) == 1
+    assert entries[0]["scope"] == "local_audit"
+    assert entries[0]["run_id"] == run_id
 
 
 def test_result_index_includes_local_readiness_checkpoint_replay(
@@ -136,9 +158,7 @@ def test_result_index_labels_innovation2_output_parity_mask_geometry(
     expected_decision: str,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_output_parity_prediction_op2_mask_geometry_present_r1_seed0_20260721"
-    )
+    run_id = "i2_output_parity_prediction_op2_mask_geometry_present_r1_seed0_20260721"
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
 
@@ -173,9 +193,7 @@ def test_result_index_labels_innovation2_output_parity_independent_key(
     expected_decision: str,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_output_parity_prediction_op3_independent_key_present_r1_seed1_20260721"
-    )
+    run_id = "i2_output_parity_prediction_op3_independent_key_present_r1_seed1_20260721"
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
 
@@ -206,9 +224,7 @@ def test_result_index_labels_innovation2_output_parity_present_r2(
     expected_decision: str,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_output_parity_prediction_op4_present_r2_seed1_joint_20260721"
-    )
+    run_id = "i2_output_parity_prediction_op4_present_r2_seed1_joint_20260721"
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
 
@@ -239,9 +255,7 @@ def test_result_index_labels_innovation2_output_parity_present_r3(
     expected_decision: str,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_output_parity_prediction_op5_present_r3_seed1_joint_20260721"
-    )
+    run_id = "i2_output_parity_prediction_op5_present_r3_seed1_joint_20260721"
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
 
@@ -302,8 +316,7 @@ def test_result_index_labels_innovation2_output_parity_spn_local(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_output_parity_prediction_op6_present_r3_spn_local_"
-        "readiness_seed0_20260721"
+        "i2_output_parity_prediction_op6_present_r3_spn_local_readiness_seed0_20260721"
     )
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
@@ -344,8 +357,7 @@ def test_result_index_labels_innovation2_output_parity_bit_role(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_output_parity_prediction_op7_present_r3_bit_role_"
-        "routing_seed0_20260721"
+        "i2_output_parity_prediction_op7_present_r3_bit_role_routing_seed0_20260721"
     )
     run_root = outputs / "local_readiness" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
@@ -386,8 +398,7 @@ def test_result_index_labels_innovation2_output_parity_exact_anf(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_"
-        "difficulty_20260721"
+        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_difficulty_20260721"
     )
     run_root = outputs / "local_audits" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
@@ -467,18 +478,14 @@ def test_result_index_includes_innovation2_local_output_property_audit(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_present_r6_output_property_transition_"
-        "width1_width2_seed0_20260717"
-    )
+    run_id = "i2_present_r6_output_property_transition_width1_width2_seed0_20260717"
     run_root = outputs / "local_audits" / run_id
     _write_json(
         run_root / "gate.json",
         {
             "status": "hold",
             "decision": (
-                "innovation2_r6_two_nibble_"
-                "output_prediction_benchmark_not_ready"
+                "innovation2_r6_two_nibble_output_prediction_benchmark_not_ready"
             ),
         },
     )
@@ -591,9 +598,7 @@ def test_result_index_labels_innovation2_hwang_high16_control(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
-    )
+    run_id = "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
     run_root = outputs / "local_audits" / run_id
     _write_json(
         run_root / "gate.json",
@@ -620,9 +625,7 @@ def test_result_index_labels_innovation2_active_block_diversity(
         run_root / "gate.json",
         {
             "status": "pass",
-            "decision": (
-                "innovation2_present_r7_active_block_kernel_diversity_ready"
-            ),
+            "decision": ("innovation2_present_r7_active_block_kernel_diversity_ready"),
         },
     )
 
@@ -840,9 +843,7 @@ def test_result_index_labels_innovation2_small_spn_round_shared_reasoner(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E34：共享轮处理器两seed拓扑归因"
-    )
+    assert entries[0]["display_name"] == ("创新2 E34：共享轮处理器两seed拓扑归因")
     assert entries[0]["decision_display"] == (
         "共享轮处理器未过冻结门，停止合成GraphGPS/looped家族"
     )
@@ -909,9 +910,7 @@ def test_result_index_labels_innovation2_small_spn_topology_identifiability(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E36：小状态SPN拓扑标签可识别性审计"
-    )
+    assert entries[0]["display_name"] == ("创新2 E36：小状态SPN拓扑标签可识别性审计")
     assert entries[0]["decision_display"] == (
         "P-layer条件标签宽度或类平衡不足，停止当前合成标签路线"
     )
@@ -981,9 +980,7 @@ def test_result_index_labels_innovation2_small_spn_pair_relation_reasoner(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E39：有向bit-pair路径推理器两seed筛选"
-    )
+    assert entries[0]["display_name"] == ("创新2 E39：有向bit-pair路径推理器两seed筛选")
     assert entries[0]["decision_display"] == (
         "有向bit-pair路径推理器未稳定超过扩展benchmark的ID边际"
     )
@@ -1029,9 +1026,7 @@ def test_result_index_labels_innovation2_small_spn_no_triangle_ablation(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E40：SPN-PRR同预算no-triangle路径归因"
-    )
+    assert entries[0]["display_name"] == ("创新2 E40：SPN-PRR同预算no-triangle路径归因")
     assert entries[0]["decision_display"] == (
         "triangle路径组合稳定领先同预算局部pair更新"
     )
@@ -1041,9 +1036,7 @@ def test_result_index_labels_innovation2_pair_state_topology_control(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_small_spn_pair_relation_no_triangle_fair_control_seed0_seed1_20260718"
-    )
+    run_id = "i2_small_spn_pair_relation_no_triangle_fair_control_seed0_seed1_20260718"
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(
         run_root / "gate.json",
@@ -1055,9 +1048,7 @@ def test_result_index_labels_innovation2_pair_state_topology_control(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E41：局部pair-state公平拓扑归因"
-    )
+    assert entries[0]["display_name"] == ("创新2 E41：局部pair-state公平拓扑归因")
     assert entries[0]["decision_display"] == (
         "局部pair-state稳定领先公平错误P-layer控制"
     )
@@ -1175,9 +1166,7 @@ def test_result_index_labels_innovation2_present_mspn_readiness(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E46：PRESENT四轮MSPN训练就绪smoke"
-    )
+    assert entries[0]["display_name"] == ("创新2 E46：PRESENT四轮MSPN训练就绪smoke")
     assert entries[0]["decision_display"] == (
         "单项式支撑传播网络实现与两轮训练readiness通过"
     )
@@ -1199,9 +1188,7 @@ def test_result_index_labels_innovation2_present_mspn_attribution(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E47：PRESENT四轮MSPN正式神经归因"
-    )
+    assert entries[0]["display_name"] == ("创新2 E47：PRESENT四轮MSPN正式神经归因")
     assert entries[0]["decision_display"] == (
         "MSPN在严格PRESENT四轮标签上超过pair-state并通过正确P-layer归因"
     )
@@ -1223,9 +1210,7 @@ def test_result_index_labels_innovation2_present_support_identity_collision(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E48：PRESENT四轮support身份碰撞审计"
-    )
+    assert entries[0]["display_name"] == ("创新2 E48：PRESENT四轮support身份碰撞审计")
     assert entries[0]["decision_display"] == (
         "变量身份未超过degree-only，关闭identity网络并转向中间degree谱学习问题"
     )
@@ -1361,9 +1346,7 @@ def test_result_index_labels_innovation2_present_open_3sdp_glpk_gate(
         run_root / "gate.json",
         {
             "status": "hold",
-            "decision": (
-                "innovation2_present_r5_open_3sdp_glpk_blocking_not_scalable"
-            ),
+            "decision": ("innovation2_present_r5_open_3sdp_glpk_blocking_not_scalable"),
         },
     )
 
@@ -1518,9 +1501,7 @@ def test_result_index_labels_innovation2_atm_native_sat_phase_a(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E58-A：ATM原生PySAT见证机制校准"
-    )
+    assert entries[0]["display_name"] == ("创新2 E58-A：ATM原生PySAT见证机制校准")
     assert entries[0]["decision_display"] == (
         "原生SAT机制低轮校准通过，进入单个九轮relation硬cap探针"
     )
@@ -1590,9 +1571,7 @@ def test_result_index_labels_innovation2_atm_r2_cone_panel(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计"
-    )
+    assert entries[0]["display_name"] == ("创新2 E60：PRESENT两轮ATM依赖锥匹配标签审计")
     assert entries[0]["decision_display"] == (
         "依赖锥内外16条单坐标查询全部constant，关闭RCCA并转多坐标GF(2)消去关系"
     )
@@ -1614,9 +1593,7 @@ def test_result_index_labels_innovation2_atm_multicoordinate_support(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门"
-    )
+    assert entries[0]["display_name"] == ("创新2 E61-A：PRESENT两轮ATM多坐标消去支撑门")
     assert entries[0]["decision_display"] == (
         "完整key-polynomial支撑60秒仅完成8/240，关闭该exact支撑路线"
     )
@@ -1662,9 +1639,7 @@ def test_result_index_labels_innovation2_small_spn_rcca_readiness(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E63：DeepSets/RCCA训练readiness"
-    )
+    assert entries[0]["display_name"] == ("创新2 E63：DeepSets/RCCA训练readiness")
     assert entries[0]["decision_display"] == (
         "DeepSets/RCCA不变量与四行训练流程通过，进入正式双seed矩阵"
     )
@@ -1686,9 +1661,7 @@ def test_result_index_labels_innovation2_small_spn_relation_decomposition(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E64：多坐标relation非平凡消去分解"
-    )
+    assert entries[0]["display_name"] == ("创新2 E64：多坐标relation非平凡消去分解")
     assert entries[0]["decision_display"] == (
         "非平凡消去正类极窄，停止多坐标神经网络路线"
     )
@@ -1722,9 +1695,7 @@ def test_result_index_labels_innovation2_present_profile_operator_readiness(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_present_r4_prefix_guided_profile_operator_readiness_seed0_20260718"
-    )
+    run_id = "i2_present_r4_prefix_guided_profile_operator_readiness_seed0_20260718"
     run_root = outputs / "local_smoke" / run_id
     _write_json(
         run_root / "gate.json",
@@ -1748,9 +1719,7 @@ def test_result_index_labels_innovation2_present_profile_operator_attribution(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_present_r4_prefix_guided_profile_operator_attribution_seed0_20260718"
-    )
+    run_id = "i2_present_r4_prefix_guided_profile_operator_attribution_seed0_20260718"
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(
         run_root / "gate.json",
@@ -1861,9 +1830,7 @@ def test_result_index_labels_innovation2_present_round_recurrent_readiness(
     assert entries[0]["display_name"] == (
         "创新2 E71：PRESENT四轮显式轮序平衡谱算子readiness"
     )
-    assert entries[0]["decision_display"] == (
-        "显式轮序或正确P增益未过门，停止RR-PGPO"
-    )
+    assert entries[0]["decision_display"] == ("显式轮序或正确P增益未过门，停止RR-PGPO")
 
 
 def test_result_index_labels_innovation2_present_round_slice_direction(
@@ -2139,10 +2106,7 @@ def test_result_index_labels_innovation2_skinny_sparse_profile_readiness(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_skinny64_r5_r4_only_sparse_profile_operator_"
-        "readiness_seed0_20260719"
-    )
+    run_id = "i2_skinny64_r5_r4_only_sparse_profile_operator_readiness_seed0_20260719"
     run_root = outputs / "local_smoke" / run_id
     _write_json(
         run_root / "gate.json",
@@ -2166,10 +2130,7 @@ def test_result_index_labels_innovation2_skinny_true_ridge_residual(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_skinny64_r5_true_ridge_sparse_residual_"
-        "readiness_seed0_20260719"
-    )
+    run_id = "i2_skinny64_r5_true_ridge_sparse_residual_readiness_seed0_20260719"
     run_root = outputs / "local_smoke" / run_id
     _write_json(
         run_root / "gate.json",
@@ -2374,17 +2335,14 @@ def test_result_index_labels_innovation2_post_e95_portfolio(
         {
             "status": "pass",
             "decision": (
-                "innovation2_architecture_portfolio_"
-                "converged_no_new_training_budget"
+                "innovation2_architecture_portfolio_converged_no_new_training_budget"
             ),
         },
     )
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E96：E95后神经架构候选组合边界复核"
-    )
+    assert entries[0]["display_name"] == ("创新2 E96：E95后神经架构候选组合边界复核")
     assert entries[0]["decision_display"] == (
         "当前无合格新架构训练候选，停止枚举并转严格provider研究或论文收束"
     )
@@ -2516,8 +2474,7 @@ def test_result_index_labels_innovation2_e99_pu_neural_ranking(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_present_r9_atm_support_component_pu_neural_ranking_"
-        "seed0_seed1_20260720"
+        "i2_present_r9_atm_support_component_pu_neural_ranking_seed0_seed1_20260720"
     )
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(
@@ -2540,10 +2497,7 @@ def test_result_index_labels_innovation2_e100_identity_topology_residual(
     tmp_path: Path,
 ) -> None:
     outputs = tmp_path / "outputs"
-    run_id = (
-        "i2_present_r9_identity_topology_residual_attribution_"
-        "seed0_seed1_20260720"
-    )
+    run_id = "i2_present_r9_identity_topology_residual_attribution_seed0_seed1_20260720"
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(
         run_root / "gate.json",
@@ -2718,9 +2672,7 @@ def test_result_index_labels_innovation2_architecture_boundary(
 
     entries = build_result_index(outputs, limit=10)
 
-    assert entries[0]["display_name"] == (
-        "创新2 E93：跨SPN神经结构证据与边界综合"
-    )
+    assert entries[0]["display_name"] == ("创新2 E93：跨SPN神经结构证据与边界综合")
     assert entries[0]["decision_display"] == (
         "PRESENT/GIFT独立算子保持正式第一，第三SPN神经尚未确认"
     )
@@ -2743,9 +2695,7 @@ def test_result_index_labels_innovation2_inactive_context(tmp_path: Path) -> Non
     assert entries[0]["display_name"] == (
         "创新2 E16：PRESENT 7轮高16位固定上下文 kernel 审计"
     )
-    assert entries[0]["decision_display"] == (
-        "固定上下文的输出 kernel 多样性不足"
-    )
+    assert entries[0]["decision_display"] == ("固定上下文的输出 kernel 多样性不足")
 
 
 def test_result_index_labels_innovation2_context_label(tmp_path: Path) -> None:
@@ -3083,7 +3033,7 @@ def test_result_index_prefers_run_done_over_regenerated_gate_time(
         encoding="utf-8",
     )
     (newer / "progress.jsonl").write_text(
-        '\n'.join(
+        "\n".join(
             (
                 "not-json",
                 '{"event":"run_done","timestamp":"1970-01-01T00:03:20Z"}',
@@ -3107,8 +3057,7 @@ def test_result_index_prefers_run_done_over_regenerated_gate_time(
     ]
     assert [entry["completed_timestamp"] for entry in entries] == [200.0, 100.0]
     assert all(
-        entry["completion_source"] == "progress.jsonl:run_done"
-        for entry in entries
+        entry["completion_source"] == "progress.jsonl:run_done" for entry in entries
     )
 
 
@@ -3119,8 +3068,7 @@ def test_result_index_falls_back_when_progress_has_no_valid_run_done(
     run_root = outputs / "local_diagnostic" / "fallback_run"
     _write_json(run_root / "gate.json", {"status": "pass", "decision": "done"})
     (run_root / "progress.jsonl").write_text(
-        '{"event":"epoch_done","time":10.0}\n'
-        '{"event":"run_done","time":"invalid"}\n',
+        '{"event":"epoch_done","time":10.0}\n{"event":"run_done","time":"invalid"}\n',
         encoding="utf-8",
     )
     _set_mtime(run_root / "gate.json", 300.0)
@@ -3679,7 +3627,9 @@ def test_result_index_supports_r4_readiness_chinese_name(tmp_path: Path) -> None
     assert "目标 seed 2" in entries[0]["display_name"]
 
 
-def test_result_index_supports_e4_final_synthesis_chinese_labels(tmp_path: Path) -> None:
+def test_result_index_supports_e4_final_synthesis_chinese_labels(
+    tmp_path: Path,
+) -> None:
     outputs = tmp_path / "outputs"
     run_id = "i1_cross_spn_e4_final_synthesis_20260715"
     run_root = outputs / "local_diagnostic" / run_id
@@ -3688,8 +3638,7 @@ def test_result_index_supports_e4_final_synthesis_chinese_labels(tmp_path: Path)
         {
             "status": "pass",
             "decision": (
-                "e4_typed_topology_attribution_robust_"
-                "scratch_efficiency_conditional"
+                "e4_typed_topology_attribution_robust_scratch_efficiency_conditional"
             ),
         },
     )
@@ -3865,8 +3814,7 @@ def test_result_index_supports_innovation2_high_round_joint_bridge_labels(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_present_r8_high_round_integral_bridge_262144_joint_"
-        "seed0_seed1_20260716"
+        "i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716"
     )
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
@@ -3915,8 +3863,7 @@ def test_result_index_supports_innovation2_paper_reference_labels(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_present_r8_high_round_integral_paper_reference_"
-        "2pow21_seed0_gpu0_20260716"
+        "i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716"
     )
     run_root = outputs / "remote_results" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})
@@ -3964,8 +3911,7 @@ def test_result_index_supports_innovation2_joint_paper_reference_labels(
 ) -> None:
     outputs = tmp_path / "outputs"
     run_id = (
-        "i2_present_r8_high_round_integral_paper_reference_"
-        "2pow21_joint_seed0_seed1"
+        "i2_present_r8_high_round_integral_paper_reference_2pow21_joint_seed0_seed1"
     )
     run_root = outputs / "local_diagnostic" / run_id
     _write_json(run_root / "gate.json", {"status": "pass", "decision": decision})

@@ -36,6 +36,16 @@ class RuntimeParameterizedSpnSpec:
     round_window_mode: Literal["last_transition", "recurrent_window"] = (
         "last_transition"
     )
+    primitive_adapter_mode: Literal[
+        "none",
+        "dense",
+        "correct",
+        "uniform",
+        "shuffled",
+    ] = "none"
+    primitive_adapter_rank: int = 8
+    primitive_adapter_scale: float = 0.1
+    primitive_adapter_effect: Literal["additive", "multiplicative_gate"] = "additive"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -70,6 +80,36 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError(
                 "round_window_mode must be last_transition or recurrent_window"
             )
+        if self.primitive_adapter_mode not in {
+            "none",
+            "dense",
+            "correct",
+            "uniform",
+            "shuffled",
+        }:
+            raise ValueError(
+                "primitive_adapter_mode must be none, dense, correct, uniform, "
+                "or shuffled"
+            )
+        if self.primitive_adapter_rank <= 0:
+            raise ValueError("primitive_adapter_rank must be positive")
+        if self.primitive_adapter_scale < 0.0:
+            raise ValueError("primitive_adapter_scale must be non-negative")
+        if self.primitive_adapter_effect not in {"additive", "multiplicative_gate"}:
+            raise ValueError(
+                "primitive_adapter_effect must be additive or multiplicative_gate"
+            )
+
+
+class _LowRankResidualAdapter(nn.Module):
+    def __init__(self, hidden_dim: int, rank: int) -> None:
+        super().__init__()
+        self.down = nn.Linear(hidden_dim, rank, bias=False)
+        self.activation = nn.GELU()
+        self.up = nn.Linear(rank, hidden_dim, bias=False)
+
+    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+        return self.up(self.activation(self.down(hidden)))
 
 
 class _RuntimeSpnBlock(nn.Module):
@@ -469,6 +509,26 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 for _ in range(spec.processor_steps)
             ]
         )
+        self.primitive_adapters: nn.ModuleDict | None = None
+        self.dense_primitive_adapter: _LowRankResidualAdapter | None = None
+        if spec.primitive_adapter_mode == "dense":
+            self.dense_primitive_adapter = _LowRankResidualAdapter(
+                token_dim,
+                2 * spec.primitive_adapter_rank,
+            )
+        elif spec.primitive_adapter_mode != "none":
+            self.primitive_adapters = nn.ModuleDict(
+                {
+                    "fan_in_1": _LowRankResidualAdapter(
+                        token_dim,
+                        spec.primitive_adapter_rank,
+                    ),
+                    "multi_source": _LowRankResidualAdapter(
+                        token_dim,
+                        spec.primitive_adapter_rank,
+                    ),
+                }
+            )
         self.sequence_norm = nn.LayerNorm(token_dim)
         self.pair_projection = nn.Sequential(
             nn.Linear(token_dim * 3, pair_dim),
@@ -489,6 +549,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             nn.Linear(spec.hidden_dim * 8, 1),
         )
         self.last_pair_attention: torch.Tensor | None = None
+        self.last_primitive_adapter_traffic: dict[str, float] = {}
 
     def forward(
         self,
@@ -527,6 +588,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         if not torch.all((pairs == 0) | (pairs == 1)):
             raise ValueError("ciphertext pair tensors must be binary")
         pairs = pairs.to(dtype=self.cell_encoder[0].weight.dtype)
+        self.last_primitive_adapter_traffic = {}
         difference = torch.remainder(pairs[:, :, 0] + pairs[:, :, 1], 2.0)
         configured_query_mode = {
             "state_triplet_delta_v_query": "delta_v",
@@ -650,6 +712,11 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             )
         for block in self.mixer_blocks:
             sequence = block(sequence)
+        sequence = self._apply_primitive_adapter(
+            sequence,
+            structure,
+            round_index=-1,
+        )
         if self.spec.sbox_context_mode == "late_cell":
             sequence = (
                 sequence + self.spec.sbox_context_scale * sbox_context[None, :, :]
@@ -786,6 +853,11 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 )
             for block in self.mixer_blocks:
                 sequence = block(sequence)
+            sequence = self._apply_primitive_adapter(
+                sequence,
+                structure,
+                round_index=round_index,
+            )
             if self.spec.sbox_context_mode == "late_cell":
                 sequence = (
                     sequence + self.spec.sbox_context_scale * sbox_context[None, :, :]
@@ -805,6 +877,106 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             batch=batch,
             pair_count=pair_count,
         )
+
+    def _apply_primitive_adapter(
+        self,
+        sequence: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        round_index: int,
+    ) -> torch.Tensor:
+        mode = self.spec.primitive_adapter_mode
+        if mode == "none":
+            return sequence
+        if mode == "dense":
+            if self.dense_primitive_adapter is None:
+                raise RuntimeError("dense primitive adapter was not initialized")
+            self.last_primitive_adapter_traffic["dense"] = (
+                self.last_primitive_adapter_traffic.get("dense", 0.0)
+                + float(sequence.shape[0] * sequence.shape[1])
+            )
+            return self._combine_primitive_effect(
+                sequence,
+                self.dense_primitive_adapter(sequence),
+            )
+        if self.primitive_adapters is None:
+            raise RuntimeError("routed primitive adapters were not initialized")
+
+        weights = self.primitive_routing_weights(
+            structure,
+            round_index=round_index,
+            mode=mode,
+            device=sequence.device,
+            dtype=sequence.dtype,
+        )
+        fan_in_1 = self.primitive_adapters["fan_in_1"](sequence)
+        multi_source = self.primitive_adapters["multi_source"](sequence)
+        residual = (
+            weights[None, :, 0:1] * fan_in_1 + weights[None, :, 1:2] * multi_source
+        )
+        token_multiplier = float(sequence.shape[0])
+        for name, index in (("fan_in_1", 0), ("multi_source", 1)):
+            self.last_primitive_adapter_traffic[name] = (
+                self.last_primitive_adapter_traffic.get(name, 0.0)
+                + float(weights[:, index].sum().detach().cpu()) * token_multiplier
+            )
+        return self._combine_primitive_effect(sequence, residual)
+
+    def _combine_primitive_effect(
+        self,
+        sequence: torch.Tensor,
+        residual: torch.Tensor,
+    ) -> torch.Tensor:
+        scale = self.spec.primitive_adapter_scale
+        if self.spec.primitive_adapter_effect == "additive":
+            return sequence + scale * residual
+        return sequence * (1.0 + scale * torch.tanh(residual))
+
+    @staticmethod
+    def primitive_routing_weights(
+        structure: RuntimeSpnStructure,
+        *,
+        round_index: int,
+        mode: Literal["correct", "uniform", "shuffled"],
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if mode == "uniform":
+            return torch.full(
+                (structure.cells, 2),
+                0.5,
+                device=device,
+                dtype=dtype,
+            )
+        if mode not in {"correct", "shuffled"}:
+            raise ValueError(
+                "routed primitive mode must be correct, uniform, or shuffled"
+            )
+
+        inverse = structure.inverse_linear_matrices[round_index].to(device=device)
+        row_fan_in = inverse.sum(dim=1)
+        membership = structure.cell_membership.to(device=device)
+        fan_in_1_cells = torch.ones(structure.cells, dtype=torch.bool, device=device)
+        for cell in range(structure.cells):
+            fan_in_1_cells[cell] = torch.all(row_fan_in[membership == cell] == 1)
+        weights = torch.stack((fan_in_1_cells, ~fan_in_1_cells), dim=-1).to(dtype)
+        return weights.flip(-1) if mode == "shuffled" else weights
+
+    def primitive_adapter_summary(self) -> dict[str, object]:
+        return {
+            "mode": self.spec.primitive_adapter_mode,
+            "rank": self.spec.primitive_adapter_rank,
+            "scale": self.spec.primitive_adapter_scale,
+            "effect": self.spec.primitive_adapter_effect,
+            "active_adapter_evaluations": (
+                0
+                if self.spec.primitive_adapter_mode == "none"
+                else 1
+                if self.spec.primitive_adapter_mode == "dense"
+                else 2
+            ),
+            "traffic": dict(self.last_primitive_adapter_traffic),
+        }
 
     def _pool_sequence(
         self,
@@ -863,9 +1035,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 query.inverse_linear_matrices,
             )
         ):
-            raise ValueError(
-                "query_structure may change only per-cell S-box ownership"
-            )
+            raise ValueError("query_structure may change only per-cell S-box ownership")
 
     @staticmethod
     def _ordered_cell_values(

@@ -5,11 +5,12 @@ Date: 2026-07-25
 ## Status
 
 ```text
-phase = preregistered design
-implementation = not started
-training = not started
-execution = local sub-medium diagnostic only
-remote_scale = prohibited before the local gate passes
+phase = completed local sub-medium diagnostic
+implementation = complete
+training = complete
+status = hold
+decision = innovation1_runtime_spn_primitive_adapter_joint_not_supported
+remote_scale = prohibited
 ```
 
 ## Research Question
@@ -200,6 +201,57 @@ cipher_hold`, not as a universal pass.
   task balancing, descriptor fan-in classification and gradient flow. Do not
   add experts, epochs, samples or remote compute.
 - Protocol failure: fix and rerun readiness only; no metric interpretation.
+
+## Completed Result
+
+The readiness gate passed all ten frozen checks, including one shared state
+dictionary across 64-bit and 128-bit tasks, equal `0.2` task weights,
+parameter/compute matching, nonzero traffic and gradients for both adapters,
+cell-relabeling invariance and the existing Runtime-E4/uKNIT/Dialga
+regressions. The four roles each contain `446562` trainable parameters.
+
+The two-seed `2048/class/cipher` diagnostic then completed with a valid
+40-row result matrix. Correct routing relative to the three controls was:
+
+| Seed | Panel | vs dense | vs uniform | vs shuffled |
+| ---: | --- | ---: | ---: | ---: |
+| 0 | core macro | +0.001279 | +0.000538 | +0.002904 |
+| 0 | new-cipher stress macro | -0.008984 | +0.002856 | -0.004763 |
+| 1 | core macro | -0.000281 | +0.005509 | +0.006215 |
+| 1 | new-cipher stress macro | -0.000862 | +0.001267 | -0.004780 |
+
+Neither seed passed the frozen core or stress gate. The largest individual
+regression was uKNIT seed0, where correct routing was `-0.017501` below the
+parameter-matched dense anchor. This is a local diagnostic hold, not a failure
+of the method-level runtime-parameterized SPN objective and not a scale
+ceiling.
+
+The embedded audits exclude inactive adapters, unequal task weights, unequal
+optimizer step counts and parameter mismatch as immediate explanations. The
+remaining leading mismatch is descriptor granularity: GIFT and RECTANGLE are
+both routed entirely to `fan_in_1`, while uKNIT and Dialga are both routed
+entirely to `multi_source`. The two-bin fan-in classifier therefore cannot
+express their heterogeneous S-box, transition and round semantics.
+
+Completed evidence:
+
+```text
+readiness = outputs/local_readiness/i1_runtime_spn_primitive_adapter_five_cipher_readiness_20260725/
+diagnostic = outputs/local_diagnostic/i1_runtime_spn_primitive_adapter_five_cipher_joint_2048_seed0_seed1_20260725/
+validation = pass, 40/40 rows, 8/8 checkpoints, parameter matched
+visual QA = pass
+```
+
+### Evidence-Backed Next Action
+
+Freeze both correct checkpoints and the existing five-cipher caches. Compute
+per-task full-training-split gradient cosines for the shared backbone and each
+active adapter, and enumerate collisions between the current two-bin router
+signature and the full runtime structure descriptor. This audit changes no
+data, model, loss or checkpoint. It decides whether the next single-variable
+redesign should refine the primitive descriptor or address shared multi-task
+optimization conflict. Do not add experts, epochs, samples or remote compute
+before this audit is adjudicated.
 
 Only a full joint pass plus at least one whole-cipher holdout pass authorizes a
 learned soft-routing comparison. Sparse Top-2 MoE requires both Dialga and

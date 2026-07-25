@@ -14,6 +14,7 @@ DEFAULT_RESULT_ROOTS = (
     "local_readiness",
     "local_diagnostic",
     "local_audits",
+    "local_audit",
     "smoke",
     "remote_results",
     "remote_results_incomplete",
@@ -29,8 +30,9 @@ _SCOPE_PRIORITY = {
     "local_diagnostic": 2,
     "local_readiness": 3,
     "local_audits": 4,
-    "local_smoke": 5,
-    "smoke": 6,
+    "local_audit": 5,
+    "local_smoke": 6,
+    "smoke": 7,
 }
 
 ARTIFACT_LABELS = {
@@ -282,6 +284,66 @@ DECISION_LABELS = {
     ),
     "innovation1_runtime_spn_recurrent_window_protocol_invalid": (
         "uKNIT双窗口实验的数据、检查点或结构指纹协议无效，AUC不可解释"
+    ),
+    "innovation1_runtime_spn_primitive_adapter_readiness_passed": (
+        "五密码共享Runtime-E4原语Adapter十项实现门通过，可执行2048/class双seed本地诊断"
+    ),
+    "innovation1_runtime_spn_primitive_adapter_five_cipher_supported": (
+        "五密码共享Runtime-E4正确原语路由通过双seed核心组、压力组和三控制门，可进入整密码留出"
+    ),
+    "innovation1_runtime_spn_primitive_adapter_core_supported_new_cipher_hold": (
+        "核心三密码支持结构原语Adapter，但新算法压力组未通过，先补异构S盒或轮原语"
+    ),
+    "innovation1_runtime_spn_primitive_adapter_joint_not_supported": (
+        "五密码联合原语Adapter未通过核心双seed归因门，停止扩样并审计任务平衡与路由"
+    ),
+    "innovation1_runtime_spn_primitive_adapter_protocol_invalid": (
+        "五密码联合原语Adapter的数据、参数、缓存、梯度或检查点协议无效，指标不可解释"
+    ),
+    "innovation1_runtime_spn_adapter_identifiability_audit_required": (
+        "粗粒度路由存在结构碰撞但梯度不冲突，下一步审计Adapter功能贡献与低秩可辨识性"
+    ),
+    "innovation1_runtime_spn_primitive_descriptor_refinement_priority": (
+        "同一路由结构碰撞伴随弱或冲突梯度，优先细化一个局部原语描述符"
+    ),
+    "innovation1_runtime_spn_descriptor_and_shared_gradient_conflict": (
+        "结构描述符与共享梯度冲突同时成立，先细化最差碰撞并保留优化冲突控制"
+    ),
+    "innovation1_runtime_spn_shared_gradient_conflict_priority": (
+        "共享主干梯度冲突成立，冻结描述符并测试一个同参数冲突处理方法"
+    ),
+    "innovation1_runtime_spn_additive_adapter_functionally_weak": (
+        "加法Adapter在双seed未稳定产生足够功能贡献，转同参数结构条件调制"
+    ),
+    "innovation1_runtime_spn_adapter_rank_collapsed": (
+        "原语Adapter低秩权重坍缩，增加rank前先测试秩约束"
+    ),
+    "innovation1_runtime_spn_adapter_active_not_route_specialized": (
+        "Adapter有功能贡献但未形成路由专门化，优先细化局部描述符或专门化目标"
+    ),
+    "innovation1_runtime_spn_adapter_scale05_training_gate_open": (
+        "冻结反事实支持0.5比例，可执行同预算比例单变量训练门"
+    ),
+    "innovation1_runtime_spn_additive_adapter_replace_with_film": (
+        "加法Adapter有作用但无增益，转同参数结构条件FiLM或门控调制"
+    ),
+    "innovation1_runtime_spn_adapter_identifiability_invalid": (
+        "Adapter可辨识性审计的检查点、缓存或指标无效，修复前不解释"
+    ),
+    "innovation1_runtime_spn_primitive_gated_modulation_readiness_passed": (
+        "五密码共享原语乘法门控十项实现门通过，可执行同预算双seed本地诊断"
+    ),
+    "innovation1_runtime_spn_primitive_gated_modulation_supported": (
+        "原语乘法门控通过双seed控制与旧加法锚点门，可进入整密码留出"
+    ),
+    "innovation1_runtime_spn_primitive_gated_core_supported_stress_hold": (
+        "原语乘法门控只通过核心组，新算法压力组暂缓并需局部异构描述符"
+    ),
+    "innovation1_runtime_spn_primitive_gated_modulation_not_supported": (
+        "原语乘法门控未稳定超过同预算控制和旧加法锚点，丢弃并禁止机械扩样"
+    ),
+    "innovation1_runtime_spn_primitive_gated_modulation_protocol_invalid": (
+        "原语乘法门控readiness或旧加法源锚点无效，修复前不解释AUC"
     ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
@@ -2160,9 +2222,11 @@ def _index_run(
     if completion_key is None:
         return None
     completion_path = outputs_root / artifacts[completion_key]
-    progress_timestamp = _progress_run_done_timestamp(
-        outputs_root / artifacts["progress"]
-    ) if "progress" in artifacts else None
+    progress_timestamp = (
+        _progress_run_done_timestamp(outputs_root / artifacts["progress"])
+        if "progress" in artifacts
+        else None
+    )
     if progress_timestamp is None:
         completed_timestamp = completion_path.stat().st_mtime
         completion_source = completion_path.name
@@ -2177,9 +2241,10 @@ def _index_run(
     status = str(decision_payload.get("status") or "results_available")
     decision = str(decision_payload.get("decision") or "")
     claim_scope = str(decision_payload.get("claim_scope") or "")
-    if scope == "remote_results_incomplete" and (
-        run_root / "RAW_RETRIEVAL_NOTICE.txt"
-    ).is_file():
+    if (
+        scope == "remote_results_incomplete"
+        and (run_root / "RAW_RETRIEVAL_NOTICE.txt").is_file()
+    ):
         status = "fallback_retrieved"
         if not decision:
             decision = "raw_fallback_incomplete"
@@ -2323,9 +2388,7 @@ def display_name_for_run(run_id: str) -> str:
         return "创新1 RTG3-A：SKINNY 1000000/class seed1严格条件发布门"
     if run_id.startswith("i1_rtg3a_skinny64_general_gf2_formal_1000000"):
         return "创新1 RTG3-A：SKINNY-64/64 1000000/class运行时拓扑正式规模复验"
-    if run_id.startswith(
-        "i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2"
-    ):
+    if run_id.startswith("i1_rtg1_gift_to_skinny_frozen_backbone_target_head_x2"):
         return "创新1 X2：冻结GIFT运行时SPN主干，仅训练SKINNY目标输出头"
     if run_id.startswith(
         "i1_rtg2b_skinny64_general_gf2_scale_262144_joint_seed0_seed1"
@@ -2377,13 +2440,9 @@ def display_name_for_run(run_id: str) -> str:
         "i1_rtg1_gift64_runtime_e4_equivariant_r2c_fullbit_corruption"
     ):
         return "创新1 RTG1-R2c：GIFT-64运行时拓扑全bit打乱归因"
-    if run_id.startswith(
-        "i1_rtg1_gift64_runtime_e4_equivariant_r2b_pairdim256"
-    ):
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_equivariant_r2b_pairdim256"):
         return "创新1 RTG1-R2b：GIFT-64运行时拓扑容量匹配审计"
-    if run_id.startswith(
-        "i1_rtg1_gift64_runtime_e4_equivariant_r2a_bitorderfix"
-    ):
+    if run_id.startswith("i1_rtg1_gift64_runtime_e4_equivariant_r2a_bitorderfix"):
         return "创新1 RTG1-R2a：GIFT-64运行时拓扑位序修复归因"
     if run_id.startswith("i1_rtg1_gift64_runtime_e4_equivariant_r2a"):
         return "创新1 RTG1-R2a：GIFT-64运行时拓扑初始归因（协议无效）"
@@ -2395,9 +2454,7 @@ def display_name_for_run(run_id: str) -> str:
         "i2_output_prediction_opf1_present_r4_position_bound_spn_rescnn"
     ):
         return "创新2 OPF1：PRESENT四轮位置绑定网络同协议真实密文输出预测"
-    if run_id.startswith(
-        "i2_output_prediction_ope1_present_r3_r4_selected8_parity"
-    ):
+    if run_id.startswith("i2_output_prediction_ope1_present_r3_r4_selected8_parity"):
         return "创新2 OPE1：PRESENT三至四轮八个密文bit全异或真实值预测"
     if run_id.startswith(
         "i2_output_prediction_opd1_present_r3_position_bound_spn_rescnn"
@@ -2420,9 +2477,7 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_next_round_selected8_partial_subkey_identifiability_audit"
     ):
         return "创新2：PRESENT轮间八输出bit的部分子密钥可识别性审计"
-    if run_id.startswith(
-        "i2_present_next_round_full_state_identifiability_audit"
-    ):
+    if run_id.startswith("i2_present_next_round_full_state_identifiability_audit"):
         return "创新2：PRESENT完整轮间状态预测的子密钥可识别性审计"
     if run_id.startswith("i2_output_prediction_opb1_present_r3_topology_bottleneck"):
         return "创新2 OPB1：PRESENT三轮低秩拓扑瓶颈真实密文输出预测"
@@ -2445,8 +2500,7 @@ def display_name_for_run(run_id: str) -> str:
     if run_id.startswith("i2_output_prediction_op9_present_r3_kimura_lstm"):
         return "创新2 OP9：PRESENT三轮Kimura式完整64-bit真实密文输出预测"
     if run_id == (
-        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_"
-        "difficulty_20260721"
+        "i2_output_parity_prediction_op8_present_r1_r3_exact_anf_difficulty_20260721"
     ):
         return "创新2 OP8：PRESENT r1--r3真实密文输出parity精确ANF难度审计"
     if run_id == (
@@ -2459,15 +2513,11 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 OP6：PRESENT三轮真实密文输出parity SPN局部网络就绪门"
     if run_id == "i2_output_parity_prediction_op5_present_r3_seed0_20260721":
         return "创新2 OP5-A：PRESENT三轮结构对齐密文输出parity seed0门"
-    if run_id == (
-        "i2_output_parity_prediction_op5_present_r3_seed1_joint_20260721"
-    ):
+    if run_id == ("i2_output_parity_prediction_op5_present_r3_seed1_joint_20260721"):
         return "创新2 OP5：PRESENT三轮结构对齐密文输出parity双密钥门"
     if run_id == "i2_output_parity_prediction_op4_present_r2_seed0_20260721":
         return "创新2 OP4-A：PRESENT二轮结构对齐密文输出parity seed0门"
-    if run_id == (
-        "i2_output_parity_prediction_op4_present_r2_seed1_joint_20260721"
-    ):
+    if run_id == ("i2_output_parity_prediction_op4_present_r2_seed1_joint_20260721"):
         return "创新2 OP4：PRESENT二轮结构对齐密文输出parity双密钥门"
     if run_id == (
         "i2_output_parity_prediction_op3_independent_key_present_r1_seed1_20260721"
@@ -2514,17 +2564,12 @@ def display_name_for_run(run_id: str) -> str:
     if run_id == "i2_present_r5_integral_parity_ranking_utility_joint_seed0_seed1":
         return "创新2 E3：PRESENT 5轮积分输出候选排序双 seed 联合裁决"
     if run_id == (
-        "i2_present_r6_output_property_transition_"
-        "width1_width2_seed0_20260717"
+        "i2_present_r6_output_property_transition_width1_width2_seed0_20260717"
     ):
         return "创新2 E7：PRESENT 6轮积分输出性质活动宽度过渡审计"
-    if run_id == (
-        "i2_present_r6_output_property_active_bits5_6_7_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r6_output_property_active_bits5_6_7_seed0_20260717"):
         return "创新2 E8：PRESENT 6轮积分输出性质细粒度活动 bit 审计"
-    if run_id == (
-        "i2_present_stable_balance_subspace_r5_r6_bits5_6_7_seed0_20260717"
-    ):
+    if run_id == ("i2_present_stable_balance_subspace_r5_r6_bits5_6_7_seed0_20260717"):
         return "创新2 E9：PRESENT 输出平衡 mask 子空间稳定性审计"
     if run_id == (
         "i2_present_r7_hwang_kernel_last16_bitorder_readiness_seed0_20260717"
@@ -2536,9 +2581,7 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_hwang_kernel_convergence_high16_128keys_seed0_20260717"
     ):
         return "创新2 E11b：PRESENT 7轮高16位论文 kernel 同预算对照"
-    if run_id == (
-        "i2_present_r7_active_block_kernel_diversity_128keys_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r7_active_block_kernel_diversity_128keys_seed0_20260717"):
         return "创新2 E12：PRESENT 7轮活动块输出 kernel 多样性 readiness"
     if run_id == "i2_present_r7_structure_mask_label_readiness_seed0_20260717":
         return "创新2 E13：PRESENT 7轮结构-mask输出标签边际捷径审计"
@@ -2554,25 +2597,17 @@ def display_name_for_run(run_id: str) -> str:
         "i2_present_r7_inactive_context_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E16：PRESENT 7轮高16位固定上下文 kernel 审计"
-    if run_id == (
-        "i2_present_r7_context_mask_label_readiness_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r7_context_mask_label_readiness_seed0_20260717"):
         return "创新2 E17：PRESENT 7轮context-mask输出标签捷径审计"
     if run_id == (
         "i2_present_r7_equal_prevalence_context_mask_readiness_seed0_20260717"
     ):
         return "创新2 E17b：PRESENT 7轮等流行率翻转-mask标签审计"
-    if run_id == (
-        "i2_present_r7_context_mask_group_disjoint_readiness_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r7_context_mask_group_disjoint_readiness_seed0_20260717"):
         return "创新2 E17c：PRESENT 7轮context/mask双轴组外捷径审计"
-    if run_id == (
-        "i2_present_r7_fresh_expanded_context_kernel_128keys_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r7_fresh_expanded_context_kernel_128keys_seed0_20260717"):
         return "创新2 E18：PRESENT 7轮64-context fresh-key kernel扩展"
-    if run_id == (
-        "i2_present_r7_context_mask_balance_rate_128keys_seed0_20260717"
-    ):
+    if run_id == ("i2_present_r7_context_mask_balance_rate_128keys_seed0_20260717"):
         return "创新2 E19：PRESENT 7轮跨密钥输出平衡概率审计"
     if run_id == "i2_skinny64_r7_hwang_kernel_readiness_768keys_seed0_20260717":
         return "创新2 E20：SKINNY-64/64 7轮 Hwang exact-kernel 就绪审计"
@@ -2582,13 +2617,9 @@ def display_name_for_run(run_id: str) -> str:
         "i2_skinny64_r8_adjacent_pair_kernel_diversity_128keys_seed0_20260717"
     ):
         return "创新2 E22：SKINNY-64/64 8轮相邻活动pair kernel多样性审计"
-    if run_id == (
-        "i2_skinny64_r8_bottom_row_pair_closure_128keys_seed0_20260717"
-    ):
+    if run_id == ("i2_skinny64_r8_bottom_row_pair_closure_128keys_seed0_20260717"):
         return "创新2 E23：SKINNY-64/64 8轮底行活动pair kernel闭合审判"
-    if run_id == (
-        "i2_skinny64_r7_single_cell_geometry_128keys_seed0_20260717"
-    ):
+    if run_id == ("i2_skinny64_r7_single_cell_geometry_128keys_seed0_20260717"):
         return "创新2 E24：SKINNY-64/64 7轮单活动cell kernel多样性审计"
     if run_id == "i2_speck32_hwang_phase_b_singlekey_gpu0_20260717":
         return "创新2 E25 Phase B：SPECK32/64精确2^30单key GPU计时门"
@@ -2602,7 +2633,10 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E28：SPECK32/64位置×mask标签宽度与组外捷径审计"
     if run_id == "i2_speck32_hwang_topology_pairs_gpu0_20260717":
         return "创新2 E27-N：SPECK32/64 ROR7模加对齐与错位控制"
-    if run_id == "i2_present_r7_linear_subspace_kernel_diversity_128keys_seed0_20260717":
+    if (
+        run_id
+        == "i2_present_r7_linear_subspace_kernel_diversity_128keys_seed0_20260717"
+    ):
         return "创新2 E30：PRESENT-80 7轮16维线性子空间kernel多样性"
     if run_id == "i2_present_r9_deterministic_provider_contract_20260718":
         return "创新2 E31：PRESENT高轮确定性积分标签提供者契约审计"
@@ -2755,14 +2789,10 @@ def display_name_for_run(run_id: str) -> str:
     if run_id == "i2_skinny64_r5_unit_balance_profile_transition_20260719":
         return "创新2 E82：SKINNY-64五轮严格单位输出平衡谱标签过渡"
     if run_id == (
-        "i2_skinny64_r5_r4_only_sparse_profile_operator_"
-        "readiness_seed0_20260719"
+        "i2_skinny64_r5_r4_only_sparse_profile_operator_readiness_seed0_20260719"
     ):
         return "创新2 E83：SKINNY-64五轮r4-only稀疏线性层算子readiness"
-    if run_id == (
-        "i2_skinny64_r5_true_ridge_sparse_residual_"
-        "readiness_seed0_20260719"
-    ):
+    if run_id == ("i2_skinny64_r5_true_ridge_sparse_residual_readiness_seed0_20260719"):
         return "创新2 E84：SKINNY-64五轮真实拓扑ridge引导稀疏残差readiness"
     if run_id == (
         "i2_present_gift_r4_topology_parameterized_shared_profile_operator_"
@@ -2788,9 +2818,7 @@ def display_name_for_run(run_id: str) -> str:
         return "创新2 E90：RECTANGLE-80四轮r3-only平衡谱算子30轮seed0归因"
     if run_id == "i2_rectangle80_row_typed_shift_representation_audit_20260719":
         return "创新2 E91：RECTANGLE row-typed ShiftRow表示无训练审计"
-    if run_id == (
-        "i2_rectangle80_row_typed_shift_operator_readiness_seed0_20260719"
-    ):
+    if run_id == ("i2_rectangle80_row_typed_shift_operator_readiness_seed0_20260719"):
         return "创新2 E92：RECTANGLE参数零增量Row-Typed Shift Operator readiness"
     if run_id == "i2_neural_architecture_boundary_synthesis_20260719":
         return "创新2 E93：跨SPN神经结构证据与边界综合"
@@ -2811,25 +2839,20 @@ def display_name_for_run(run_id: str) -> str:
     if run_id == "i2_present_r9_atm_support_rotation_orbit_pu_readiness_20260720":
         return "创新2 E98-C：PRESENT九轮ATM支撑与旋转轨道双互斥PU就绪门"
     if run_id == (
-        "i2_present_r9_atm_support_component_pu_neural_ranking_"
-        "seed0_seed1_20260720"
+        "i2_present_r9_atm_support_component_pu_neural_ranking_seed0_seed1_20260720"
     ):
         return "创新2 E99：PRESENT九轮ATM轨道互斥PU神经排序双seed门"
     if run_id == (
-        "i2_present_r9_identity_topology_residual_attribution_"
-        "seed0_seed1_20260720"
+        "i2_present_r9_identity_topology_residual_attribution_seed0_seed1_20260720"
     ):
         return "创新2 E100：PRESENT九轮坐标身份保持拓扑残差归因"
     if run_id == (
-        "i2_present_r9_atm_e99_coordinate_checkpoint_replay_"
-        "seed0_seed1_20260720"
+        "i2_present_r9_atm_e99_coordinate_checkpoint_replay_seed0_seed1_20260720"
     ):
         return "创新2 E105-F：PRESENT九轮E99坐标模型权重冻结重放"
     if run_id == "i2_present_r9_atm_split333_resumable_generation_20260720":
         return "创新2 E104：PRESENT九轮ATM缺失(3,3,3) split可恢复生成"
-    if run_id == (
-        "i2_present_r9_r10_atm_source_generation_resume_readiness_20260720"
-    ):
+    if run_id == ("i2_present_r9_r10_atm_source_generation_resume_readiness_20260720"):
         return "创新2 E101：PRESENT九/十轮ATM新来源生成与恢复就绪审计"
     if run_id == "i2_present_atm_resumable_search_runner_fixture_20260720":
         return "创新2 E102：PRESENT ATM逐候选断点恢复一致性门"
@@ -2838,18 +2861,15 @@ def display_name_for_run(run_id: str) -> str:
     if run_id == "i2_present_r9_external_relation_source_readiness_20260721":
         return "创新2 E106：PRESENT九轮外部关系来源新颖性就绪审计"
     if run_id == (
-        "i2_present_r8_high_round_integral_bridge_262144_joint_"
-        "seed0_seed1_20260716"
+        "i2_present_r8_high_round_integral_bridge_262144_joint_seed0_seed1_20260716"
     ):
         return "创新2：PRESENT-80 8轮 262144-total 双 seed bridge 联合裁决"
     if run_id == (
-        "i2_present_r8_high_round_integral_paper_reference_"
-        "2pow21_seed0_gpu0_20260716"
+        "i2_present_r8_high_round_integral_paper_reference_2pow21_seed0_gpu0_20260716"
     ):
         return "创新2：PRESENT-80 8轮 2^21-total / 50轮训练论文参考规模近似"
     if run_id == (
-        "i2_present_r8_high_round_integral_paper_reference_"
-        "2pow21_joint_seed0_seed1"
+        "i2_present_r8_high_round_integral_paper_reference_2pow21_joint_seed0_seed1"
     ):
         return "创新2：PRESENT-80 8轮论文参考规模双 seed 联合裁决"
     ranking_seed = re.fullmatch(

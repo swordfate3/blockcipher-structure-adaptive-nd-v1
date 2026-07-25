@@ -239,6 +239,46 @@ Report three separate aggregates: the core three-cipher macro AUC, the two-new-
 cipher stress macro AUC and the five-cipher macro AUC. The five-cipher average
 is descriptive only; it cannot override a failed core or stress check.
 
+## Executed Evidence Update
+
+The recommended deterministic two-Adapter experiment and its two post-hold
+audits have now completed.
+
+1. The additive `fan_in_1`/`multi_source` joint candidate did not pass either
+   seed's core or stress gate. Its most severe individual regression was uKNIT
+   seed0 at `-0.017501` versus the dense anchor.
+2. Descriptor collisions are real, but same-bucket Adapter gradients were
+   positively aligned: uKNIT/Dialga mean cosine `0.562826` and
+   GIFT/RECTANGLE `0.177383`. Shared-backbone gradients were also positive on
+   average. Immediate descriptor splitting or multi-task conflict correction
+   is therefore not the strongest next explanation.
+3. Frozen counterfactuals found that the additive Adapter was functionally
+   weak on seed1 despite route sensitivity and nearly full effective rank.
+   Simply amplifying its scale reduced training macro AUC.
+4. A parameter-matched multiplicative gate passed all readiness checks but
+   failed the same five-cipher two-seed research gate. It did not consistently
+   beat its dense/uniform/shuffled controls or the additive source.
+
+This evidence down-ranks deterministic low-rank additive and multiplicative
+gates. It does not reject the method-level runtime-parameterized SPN objective:
+the shared Runtime-E4 topology path remains supported on SKINNY at formal
+project scale, while this local joint gate only rejects two small conditional
+effects.
+
+### Updated Technology Ranking
+
+| Rank | Route after executed evidence | Status | Reason |
+| ---: | --- | --- | --- |
+| 1 | Parameter-matched dense conditional basis or true FiLM inside the transition update | next design audit | Can modulate a shared computation more directly than the two failed low-rank effects while retaining local structure conditioning |
+| 2 | Typed R-GCN/GNN-FiLM path around the exact GF(2) view | held alternative | Structurally natural, but higher implementation and XOR-semantics risk |
+| 3 | Refined deterministic primitive descriptor | conditional | Collisions exist, but current same-bucket gradients did not conflict |
+| 4 | Sparse Top-2 Adapter MoE | closed | No deterministic joint or holdout pass; learned routing is not authorized |
+| 5 | Larger generic recurrent/Transformer processor | closed | Does not target the observed conditional-effect weakness |
+
+The next design review must compare one dense conditional basis/FiLM candidate
+against stopping this differentiated branch. It must not silently turn into a
+larger model, cipher-ID router, rank increase or remote scale-up.
+
 If this gate passes, the next experiments are whole-cipher holdouts. Retrain
 without Dialga first to test 64-to-128-bit structural transfer, then retrain
 without uKNIT to test unseen heterogeneous round/S-box ownership. RECTANGLE
