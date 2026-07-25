@@ -63,6 +63,11 @@ class RuntimeParameterizedSpnSpec:
         "shuffled",
     ] = "none"
     typed_relation_scale: float = 0.1
+    relation_activity_pooling_mode: Literal[
+        "uniform",
+        "correct",
+        "shuffled",
+    ] = "uniform"
 
     def __post_init__(self) -> None:
         if min(self.hidden_dim, self.pair_embedding_dim, self.processor_steps) <= 0:
@@ -143,6 +148,14 @@ class RuntimeParameterizedSpnSpec:
             )
         if self.typed_relation_scale < 0.0:
             raise ValueError("typed_relation_scale must be non-negative")
+        if self.relation_activity_pooling_mode not in {
+            "uniform",
+            "correct",
+            "shuffled",
+        }:
+            raise ValueError(
+                "relation_activity_pooling_mode must be uniform, correct, or shuffled"
+            )
         active_conditioners = sum(
             mode != "none"
             for mode in (
@@ -846,6 +859,8 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             sequence,
             current_cells=current_cells,
             sbox_context=sbox_context,
+            structure=structure,
+            relation_mode=relation_mode,
             batch=batch,
             pair_count=pair_count,
         )
@@ -1005,6 +1020,8 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             sequence,
             current_cells=output_cells,
             sbox_context=aggregate_sbox_context,
+            structure=structure,
+            relation_mode=relation_mode,
             batch=batch,
             pair_count=pair_count,
         )
@@ -1312,12 +1329,26 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         *,
         current_cells: torch.Tensor,
         sbox_context: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        relation_mode: str,
         batch: int,
         pair_count: int,
     ) -> torch.Tensor:
         cell_count = current_cells.shape[2]
-        current_activity = current_cells.mean(dim=-1, keepdim=True).reshape(
-            batch * pair_count, cell_count, 1
+        relation_weights = self.relation_activity_weights(
+            structure,
+            mode=self.spec.relation_activity_pooling_mode,
+            relation_mode=relation_mode,
+            device=current_cells.device,
+            dtype=current_cells.dtype,
+        )
+        current_activity = (
+            (current_cells * relation_weights[None, None, :, :])
+            .mean(
+                dim=-1,
+                keepdim=True,
+            )
+            .reshape(batch * pair_count, cell_count, 1)
         )
         mean_embedding = sequence.mean(dim=1)
         max_embedding = sequence.max(dim=1).values
@@ -1348,6 +1379,65 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             ),
             dim=-1,
         )
+
+    @staticmethod
+    def relation_activity_weights(
+        structure: RuntimeSpnStructure,
+        *,
+        mode: Literal["uniform", "correct", "shuffled"],
+        relation_mode: str,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if mode not in {"uniform", "correct", "shuffled"}:
+            raise ValueError(
+                "relation activity pooling mode must be uniform, correct, or shuffled"
+            )
+        if relation_mode not in {"true", "independent"}:
+            raise ValueError("relation_mode must be true or independent")
+        if mode == "uniform" or relation_mode == "independent":
+            return torch.ones(
+                (structure.cells, 4),
+                device=device,
+                dtype=dtype,
+            )
+
+        inverse = structure.inverse_linear_matrices.to(device=device, dtype=dtype)
+        source_roles = torch.nn.functional.one_hot(
+            structure.bit_role.to(device=device),
+            num_classes=4,
+        ).to(dtype=dtype)
+        incoming_by_source_role = torch.einsum(
+            "rtb,bs->rts",
+            inverse,
+            source_roles,
+        )
+        row_fan_in = incoming_by_source_role.sum(dim=-1)
+        source_role_diversity = (incoming_by_source_role > 0).to(dtype).sum(dim=-1)
+        mean_relation_mass = (row_fan_in * source_role_diversity).mean(dim=0)
+        bit_indices = torch.arange(structure.block_bits, device=device)
+        cell_role_indices = torch.empty(
+            (structure.cells, 4),
+            dtype=torch.long,
+            device=device,
+        )
+        cell_role_indices[
+            structure.cell_membership.to(device=device),
+            structure.bit_role.to(device=device),
+        ] = bit_indices
+        weights = mean_relation_mass[cell_role_indices]
+        weights = weights / weights.mean().clamp_min(torch.finfo(dtype).eps)
+        if mode == "shuffled":
+            signatures, inverse_indices = torch.unique(
+                weights,
+                dim=0,
+                sorted=True,
+                return_inverse=True,
+            )
+            if signatures.shape[0] > 1:
+                return torch.roll(signatures, shifts=1, dims=0)[inverse_indices]
+            return torch.roll(weights, shifts=1, dims=1)
+        return weights
 
     @staticmethod
     def _validate_query_structure(

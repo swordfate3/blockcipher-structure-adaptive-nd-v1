@@ -438,6 +438,24 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_h1_representation_accessibility_invalid": (
         "H1-A4检查点、源缓存、闭式探针折分或零目标数据协议无效"
     ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_readiness_passed": (
+        "GF(2)关系活动池化实现门全部通过，可执行2048/class/source双seed诊断"
+    ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_readiness_failed": (
+        "GF(2)关系活动池化实现门未通过，只允许修复失败不变量"
+    ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_supported": (
+        "关系活动池化通过双seed源保持、同权重控制和RECTANGLE归因门，可设计第二独立留出"
+    ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_partial": (
+        "关系活动池化只形成SKINNY部分改善，保留机制证据并继续审计表示模式"
+    ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_not_supported": (
+        "关系活动池化未修复共享表示，关闭该原语并重设计结构表示"
+    ),
+    "innovation1_runtime_spn_h1_relation_activity_pooling_invalid": (
+        "A5 readiness、检查点、缓存、控制组或冲突投影协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2170,6 +2188,7 @@ STATUS_LABELS = {
     "pass": "通过",
     "fail": "失败",
     "hold": "暂缓",
+    "invalid": "协议无效",
     "running": "运行中",
     "results_available": "结果已生成",
     "fallback_retrieved": "原始回收 / 尚未验证",
@@ -2467,6 +2486,14 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_h1_relation_activity_pooling_a5_readiness"
+    ):
+        return "创新1 H1-A5：GF(2)关系活动池化实现门"
+    if run_id.startswith(
+        "i1_runtime_spn_h1_relation_activity_pooling_a5_2048_seed0_seed1"
+    ):
+        return "创新1 H1-A5：关系活动池化RECTANGLE留出双seed诊断"
     if run_id.startswith(
         "i1_runtime_spn_h1_representation_accessibility_a4_seed0_seed1"
     ):

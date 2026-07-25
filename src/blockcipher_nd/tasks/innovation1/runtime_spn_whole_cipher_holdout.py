@@ -594,6 +594,10 @@ def _plain_spec(model: dict[str, Any]) -> RuntimeParameterizedSpnSpec:
         sbox_context_mode=model["sbox_context_mode"],
         cell_input_mode=model["cell_input_mode"],
         round_window_mode=model["round_window_mode"],
+        relation_activity_pooling_mode=model.get(
+            "relation_activity_pooling_mode",
+            "uniform",
+        ),
     )
 
 

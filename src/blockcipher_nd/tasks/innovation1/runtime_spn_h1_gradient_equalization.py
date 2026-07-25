@@ -126,6 +126,13 @@ def run_h1_gradient_equalization(
     checkpoint_root = output_root / "checkpoints"
     checkpoint_root.mkdir(parents=True, exist_ok=True)
     candidates: dict[str, dict[str, Any]] = {}
+    candidate_model = {
+        **h1_config["model"],
+        "relation_activity_pooling_mode": config["candidate"].get(
+            "relation_activity_pooling_mode",
+            "uniform",
+        ),
+    }
 
     for seed in EXPECTED_SEEDS:
         tasks = _load_source_tasks(
@@ -136,7 +143,7 @@ def run_h1_gradient_equalization(
         )
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(seed)
-            model = RelationModeRuntimeE4(_plain_spec(h1_config["model"]), "true")
+            model = RelationModeRuntimeE4(_plain_spec(candidate_model), "true")
         _emit(progress_callback, "candidate_train_start", seed=seed)
         result = train_runtime_spn_joint(
             model,
@@ -162,6 +169,9 @@ def run_h1_gradient_equalization(
             "config_sha256": config_sha256_value,
             "source_h1_config_sha256": source["h1_config_sha256"],
             "gradient_combination": config["candidate"]["gradient_combination"],
+            "relation_activity_pooling_mode": candidate_model[
+                "relation_activity_pooling_mode"
+            ],
             "best_epoch": result.metadata["best_epoch"],
             "checkpoint_selection_tasks": list(EXPECTED_SOURCES),
             "holdout_cipher": HOLDOUT_CIPHER,
@@ -200,7 +210,7 @@ def run_h1_gradient_equalization(
         evaluations: dict[str, Any] = {}
         for name, intervention in config["target_evaluations"].items():
             model = RelationModeRuntimeE4(
-                _plain_spec(h1_config["model"]),
+                _plain_spec(candidate_model),
                 intervention["relation_mode"],
             )
             model.load_state_dict(checkpoint["state_dict"], strict=True)

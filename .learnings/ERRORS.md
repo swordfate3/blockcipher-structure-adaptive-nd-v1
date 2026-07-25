@@ -1684,3 +1684,60 @@ Read frozen authorities once as bytes, validate their hashes and parsed semantic
 - **Notes**: The OPD1 CLI now writes source-gate evidence from the already verified raw bytes. The completed remote result is recovered through the documented raw-fallback path without retraining.
 
 ---
+
+## [ERR-20260726-001] runtime_spn_holdout_control_identifiability
+
+**Logged**: 2026-07-26T07:52:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: config
+
+### Summary
+
+The first H1-A5 readiness gate allowed training even though its RECTANGLE
+pooling control was algebraically identical to the candidate and the frozen
+advance gate required a positive margin between them.
+
+### Error
+
+```text
+RECTANGLE correct pooling == uniform pooling == shuffled pooling, bit-exact
+required target margin     >= +0.005
+observed target margin      = 0.000000 for both seeds by construction
+```
+
+### Context
+
+- The parameter-free relation mass intentionally reduces to uniform weights on
+  one-to-one P layers.
+- RECTANGLE is the whole-cipher holdout and has a one-to-one linear layer.
+- Readiness checked the exact equivalence but omitted the logically prior
+  question of whether the frozen target control was identifiable.
+- The two-seed `2048/class/source` run completed before the contradiction was
+  caught; its first automatic decision was `not_supported`.
+
+### Suggested Fix
+
+Before training any topology-conditioned candidate, compute the candidate and
+all required controls on the actual held-out structure. Fail readiness when a
+required positive-margin control is algebraically or bit-exact equivalent to
+the candidate. Choose a holdout whose structure can express the changed
+primitive instead of weakening the observed gate after training.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: docs/experiments/innovation1-runtime-spn-h1-relation-activity-pooling-a5-plan.md, src/blockcipher_nd/tasks/innovation1/runtime_spn_h1_relation_activity_pooling.py
+- See Also: LRN-20260722-004
+- Pattern-Key: research.control_gate.requires_holdout_identifiability
+- Recurrence-Count: 1
+- First-Seen: 2026-07-26
+- Last-Seen: 2026-07-26
+
+### Resolution
+
+- **Resolved**: 2026-07-26T07:52:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added target-control identifiability to readiness and formal validation, reclassified the completed run as protocol-invalid without retraining, preserved raw metrics, and required a heterogeneous-GF(2) holdout next.
+
+---
