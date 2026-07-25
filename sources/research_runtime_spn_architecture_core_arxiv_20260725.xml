@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/V1oGEGkbQxFI7nno/QSitTPGI4I</id>
+  <title>arXiv Query: search_query=&amp;id_list=1609.09106,1709.07871,1904.04971,1906.12192,1703.06103,2003.01332,2101.03961,2202.08906,2304.02806,2302.11529&amp;start=0&amp;max_results=10</title>
+  <updated>2026-07-25T12:33:23Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=&amp;start=0&amp;max_results=10&amp;id_list=1609.09106,1709.07871,1904.04971,1906.12192,1703.06103,2003.01332,2101.03961,2202.08906,2304.02806,2302.11529" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>10</opensearch:itemsPerPage>
+  <opensearch:totalResults>10</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2302.11529v2</id>
+    <title>Modular Deep Learning</title>
+    <updated>2024-01-27T12:01:57Z</updated>
+    <link href="https://arxiv.org/abs/2302.11529v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2302.11529v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Transfer learning has recently become the dominant paradigm of machine learning. Pre-trained models fine-tuned for downstream tasks achieve better performance with fewer labelled examples. Nonetheless, it remains unclear how to develop models that specialise towards multiple tasks without incurring negative interference and that generalise systematically to non-identically distributed tasks. Modular deep learning has emerged as a promising solution to these challenges. In this framework, units of computation are often implemented as autonomous parameter-efficient modules. Information is conditionally routed to a subset of modules and subsequently aggregated. These properties enable positive transfer and systematic generalisation by separating computation from routing and updating modules locally. We offer a survey of modular architectures, providing a unified view over several threads of research that evolved independently in the scientific literature. Moreover, we explore various additional purposes of modularity, including scaling language models, causal inference, programme induction, and planning in reinforcement learning. Finally, we report various concrete applications where modularity has been successfully deployed such as cross-lingual and cross-modal knowledge transfer. Related talks and projects to this survey, are available at https://www.modulardeeplearning.com/.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2023-02-22T18:11:25Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Jonas Pfeiffer</name>
+    </author>
+    <author>
+      <name>Sebastian Ruder</name>
+    </author>
+    <author>
+      <name>Ivan Vulić</name>
+    </author>
+    <author>
+      <name>Edoardo Maria Ponti</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1609.09106v4</id>
+    <title>HyperNetworks</title>
+    <updated>2016-12-01T10:08:15Z</updated>
+    <link href="https://arxiv.org/abs/1609.09106v4" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1609.09106v4" rel="related" type="application/pdf" title="pdf"/>
+    <summary>This work explores hypernetworks: an approach of using a one network, also known as a hypernetwork, to generate the weights for another network. Hypernetworks provide an abstraction that is similar to what is found in nature: the relationship between a genotype - the hypernetwork - and a phenotype - the main network. Though they are also reminiscent of HyperNEAT in evolution, our hypernetworks are trained end-to-end with backpropagation and thus are usually faster. The focus of this work is to make hypernetworks useful for deep convolutional networks and long recurrent networks, where hypernetworks can be viewed as relaxed form of weight-sharing across layers. Our main result is that hypernetworks can generate non-shared weights for LSTM and achieve near state-of-the-art results on a variety of sequence modelling tasks including character-level language modelling, handwriting generation and neural machine translation, challenging the weight-sharing paradigm for recurrent networks. Our results also show that hypernetworks applied to convolutional networks still achieve respectable results for image recognition tasks compared to state-of-the-art baseline models while requiring fewer learnable parameters.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2016-09-27T05:57:00Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>David Ha</name>
+    </author>
+    <author>
+      <name>Andrew Dai</name>
+    </author>
+    <author>
+      <name>Quoc V. Le</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2003.01332v1</id>
+    <title>Heterogeneous Graph Transformer</title>
+    <updated>2020-03-03T04:49:21Z</updated>
+    <link href="https://arxiv.org/abs/2003.01332v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2003.01332v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Recent years have witnessed the emerging success of graph neural networks (GNNs) for modeling structured data. However, most GNNs are designed for homogeneous graphs, in which all nodes and edges belong to the same types, making them infeasible to represent heterogeneous structures. In this paper, we present the Heterogeneous Graph Transformer (HGT) architecture for modeling Web-scale heterogeneous graphs. To model heterogeneity, we design node- and edge-type dependent parameters to characterize the heterogeneous attention over each edge, empowering HGT to maintain dedicated representations for different types of nodes and edges. To handle dynamic heterogeneous graphs, we introduce the relative temporal encoding technique into HGT, which is able to capture the dynamic structural dependency with arbitrary durations. To handle Web-scale graph data, we design the heterogeneous mini-batch graph sampling algorithm---HGSampling---for efficient and scalable training. Extensive experiments on the Open Academic Graph of 179 million nodes and 2 billion edges show that the proposed HGT model consistently outperforms all the state-of-the-art GNN baselines by 9%--21% on various downstream tasks.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.SI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2020-03-03T04:49:21Z</published>
+    <arxiv:comment>Published on WWW 2020</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Ziniu Hu</name>
+    </author>
+    <author>
+      <name>Yuxiao Dong</name>
+    </author>
+    <author>
+      <name>Kuansan Wang</name>
+    </author>
+    <author>
+      <name>Yizhou Sun</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2101.03961v3</id>
+    <title>Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</title>
+    <updated>2022-06-16T20:36:07Z</updated>
+    <link href="https://arxiv.org/abs/2101.03961v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2101.03961v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>In deep learning, models typically reuse the same parameters for all inputs. Mixture of Experts (MoE) defies this and instead selects different parameters for each incoming example. The result is a sparsely-activated model -- with outrageous numbers of parameters -- but a constant computational cost. However, despite several notable successes of MoE, widespread adoption has been hindered by complexity, communication costs and training instability -- we address these with the Switch Transformer. We simplify the MoE routing algorithm and design intuitive improved models with reduced communication and computational costs. Our proposed training techniques help wrangle the instabilities and we show large sparse models may be trained, for the first time, with lower precision (bfloat16) formats. We design models based off T5-Base and T5-Large to obtain up to 7x increases in pre-training speed with the same computational resources. These improvements extend into multilingual settings where we measure gains over the mT5-Base version across all 101 languages. Finally, we advance the current scale of language models by pre-training up to trillion parameter models on the "Colossal Clean Crawled Corpus" and achieve a 4x speedup over the T5-XXL model.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2021-01-11T16:11:52Z</published>
+    <arxiv:comment>JMLR</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>William Fedus</name>
+    </author>
+    <author>
+      <name>Barret Zoph</name>
+    </author>
+    <author>
+      <name>Noam Shazeer</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2202.08906v2</id>
+    <title>ST-MoE: Designing Stable and Transferable Sparse Expert Models</title>
+    <updated>2022-04-29T23:24:20Z</updated>
+    <link href="https://arxiv.org/abs/2202.08906v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2202.08906v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Scale has opened new frontiers in natural language processing -- but at a high cost. In response, Mixture-of-Experts (MoE) and Switch Transformers have been proposed as an energy efficient path to even larger and more capable language models. But advancing the state-of-the-art across a broad set of natural language tasks has been hindered by training instabilities and uncertain quality during fine-tuning. Our work focuses on these issues and acts as a design guide. We conclude by scaling a sparse model to 269B parameters, with a computational cost comparable to a 32B dense encoder-decoder Transformer (Stable and Transferable Mixture-of-Experts or ST-MoE-32B). For the first time, a sparse model achieves state-of-the-art performance in transfer learning, across a diverse set of tasks including reasoning (SuperGLUE, ARC Easy, ARC Challenge), summarization (XSum, CNN-DM), closed book question answering (WebQA, Natural Questions), and adversarially constructed tasks (Winogrande, ANLI R3).</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2022-02-17T21:39:10Z</published>
+    <arxiv:comment>25 pages main text, 39 pages overall</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Barret Zoph</name>
+    </author>
+    <author>
+      <name>Irwan Bello</name>
+    </author>
+    <author>
+      <name>Sameer Kumar</name>
+    </author>
+    <author>
+      <name>Nan Du</name>
+    </author>
+    <author>
+      <name>Yanping Huang</name>
+    </author>
+    <author>
+      <name>Jeff Dean</name>
+    </author>
+    <author>
+      <name>Noam Shazeer</name>
+    </author>
+    <author>
+      <name>William Fedus</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2304.02806v2</id>
+    <title>Graph Mixture of Experts: Learning on Large-Scale Graphs with Explicit Diversity Modeling</title>
+    <updated>2023-10-17T04:50:19Z</updated>
+    <link href="https://arxiv.org/abs/2304.02806v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2304.02806v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Graph neural networks (GNNs) have found extensive applications in learning from graph data. However, real-world graphs often possess diverse structures and comprise nodes and edges of varying types. To bolster the generalization capacity of GNNs, it has become customary to augment training graph structures through techniques like graph augmentations and large-scale pre-training on a wider array of graphs. Balancing this diversity while avoiding increased computational costs and the notorious trainability issues of GNNs is crucial. This study introduces the concept of Mixture-of-Experts (MoE) to GNNs, with the aim of augmenting their capacity to adapt to a diverse range of training graph structures, without incurring explosive computational overhead. The proposed Graph Mixture of Experts (GMoE) model empowers individual nodes in the graph to dynamically and adaptively select more general information aggregation experts. These experts are trained to capture distinct subgroups of graph structures and to incorporate information with varying hop sizes, where those with larger hop sizes specialize in gathering information over longer distances. The effectiveness of GMoE is validated through a series of experiments on a diverse set of tasks, including graph, node, and link prediction, using the OGB benchmark. Notably, it enhances ROC-AUC by $1.81\%$ in ogbg-molhiv and by $1.40\%$ in ogbg-molbbbp, when compared to the non-MoE baselines. Our code is publicly available at https://github.com/VITA-Group/Graph-Mixture-of-Experts.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2023-04-06T01:09:36Z</published>
+    <arxiv:comment>NeurIPS 2023</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Haotao Wang</name>
+    </author>
+    <author>
+      <name>Ziyu Jiang</name>
+    </author>
+    <author>
+      <name>Yuning You</name>
+    </author>
+    <author>
+      <name>Yan Han</name>
+    </author>
+    <author>
+      <name>Gaowen Liu</name>
+    </author>
+    <author>
+      <name>Jayanth Srinivasa</name>
+    </author>
+    <author>
+      <name>Ramana Rao Kompella</name>
+    </author>
+    <author>
+      <name>Zhangyang Wang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1904.04971v3</id>
+    <title>CondConv: Conditionally Parameterized Convolutions for Efficient Inference</title>
+    <updated>2020-09-04T00:53:44Z</updated>
+    <link href="https://arxiv.org/abs/1904.04971v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1904.04971v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Convolutional layers are one of the basic building blocks of modern deep neural networks. One fundamental assumption is that convolutional kernels should be shared for all examples in a dataset. We propose conditionally parameterized convolutions (CondConv), which learn specialized convolutional kernels for each example. Replacing normal convolutions with CondConv enables us to increase the size and capacity of a network, while maintaining efficient inference. We demonstrate that scaling networks with CondConv improves the performance and inference cost trade-off of several existing convolutional neural network architectures on both classification and detection tasks. On ImageNet classification, our CondConv approach applied to EfficientNet-B0 achieves state-of-the-art performance of 78.3% accuracy with only 413M multiply-adds. Code and checkpoints for the CondConv Tensorflow layer and CondConv-EfficientNet models are available at: https://github.com/tensorflow/tpu/tree/master/models/official/efficientnet/condconv.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2019-04-10T01:46:48Z</published>
+    <arxiv:primary_category term="cs.CV"/>
+    <arxiv:journal_ref>NeurIPS 2019</arxiv:journal_ref>
+    <author>
+      <name>Brandon Yang</name>
+    </author>
+    <author>
+      <name>Gabriel Bender</name>
+    </author>
+    <author>
+      <name>Quoc V. Le</name>
+    </author>
+    <author>
+      <name>Jiquan Ngiam</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1703.06103v4</id>
+    <title>Modeling Relational Data with Graph Convolutional Networks</title>
+    <updated>2017-10-26T19:53:49Z</updated>
+    <link href="https://arxiv.org/abs/1703.06103v4" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1703.06103v4" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Knowledge graphs enable a wide variety of applications, including question answering and information retrieval. Despite the great effort invested in their creation and maintenance, even the largest (e.g., Yago, DBPedia or Wikidata) remain incomplete. We introduce Relational Graph Convolutional Networks (R-GCNs) and apply them to two standard knowledge base completion tasks: Link prediction (recovery of missing facts, i.e. subject-predicate-object triples) and entity classification (recovery of missing entity attributes). R-GCNs are related to a recent class of neural networks operating on graphs, and are developed specifically to deal with the highly multi-relational data characteristic of realistic knowledge bases. We demonstrate the effectiveness of R-GCNs as a stand-alone model for entity classification. We further show that factorization models for link prediction such as DistMult can be significantly improved by enriching them with an encoder model to accumulate evidence over multiple inference steps in the relational graph, demonstrating a large improvement of 29.8% on FB15k-237 over a decoder-only baseline.</summary>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.DB" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2017-03-17T17:09:14Z</published>
+    <arxiv:primary_category term="stat.ML"/>
+    <author>
+      <name>Michael Schlichtkrull</name>
+    </author>
+    <author>
+      <name>Thomas N. Kipf</name>
+    </author>
+    <author>
+      <name>Peter Bloem</name>
+    </author>
+    <author>
+      <name>Rianne van den Berg</name>
+    </author>
+    <author>
+      <name>Ivan Titov</name>
+    </author>
+    <author>
+      <name>Max Welling</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1709.07871v2</id>
+    <title>FiLM: Visual Reasoning with a General Conditioning Layer</title>
+    <updated>2017-12-18T21:25:53Z</updated>
+    <link href="https://arxiv.org/abs/1709.07871v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1709.07871v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We introduce a general-purpose conditioning method for neural networks called FiLM: Feature-wise Linear Modulation. FiLM layers influence neural network computation via a simple, feature-wise affine transformation based on conditioning information. We show that FiLM layers are highly effective for visual reasoning - answering image-related questions which require a multi-step, high-level process - a task which has proven difficult for standard deep learning methods that do not explicitly model reasoning. Specifically, we show on visual reasoning tasks that FiLM layers 1) halve state-of-the-art error for the CLEVR benchmark, 2) modulate features in a coherent manner, 3) are robust to ablations and architectural modifications, and 4) generalize well to challenging, new data from few examples or even zero-shot.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2017-09-22T17:54:12Z</published>
+    <arxiv:comment>AAAI 2018. Code available at http://github.com/ethanjperez/film . Extends arXiv:1707.03017</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Ethan Perez</name>
+    </author>
+    <author>
+      <name>Florian Strub</name>
+    </author>
+    <author>
+      <name>Harm de Vries</name>
+    </author>
+    <author>
+      <name>Vincent Dumoulin</name>
+    </author>
+    <author>
+      <name>Aaron Courville</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1906.12192v5</id>
+    <title>GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation</title>
+    <updated>2020-06-26T16:45:48Z</updated>
+    <link href="https://arxiv.org/abs/1906.12192v5" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/1906.12192v5" rel="related" type="application/pdf" title="pdf"/>
+    <summary>This paper presents a new Graph Neural Network (GNN) type using feature-wise linear modulation (FiLM). Many standard GNN variants propagate information along the edges of a graph by computing "messages" based only on the representation of the source of each edge. In GNN-FiLM, the representation of the target node of an edge is additionally used to compute a transformation that can be applied to all incoming messages, allowing feature-wise modulation of the passed information.
+  Results of experiments comparing different GNN architectures on three tasks from the literature are presented, based on re-implementations of baseline methods. Hyperparameters for all methods were found using extensive search, yielding somewhat surprising results: differences between baseline models are smaller than reported in the literature. Nonetheless, GNN-FiLM outperforms baseline methods on a regression task on molecular graphs and performs competitively on other tasks.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2019-06-28T13:07:22Z</published>
+    <arxiv:comment>As published in ICML 2020 proceedings</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Marc Brockschmidt</name>
+    </author>
+  </entry>
+</feed>

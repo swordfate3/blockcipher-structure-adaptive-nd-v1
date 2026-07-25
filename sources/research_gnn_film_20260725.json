@@ -1,0 +1,77 @@
+{
+  "provider": "tavily",
+  "query": "GNN-FiLM Graph Neural Networks Feature-wise Linear Modulation ICML 2020",
+  "results": [
+    {
+      "title": "[1906.12192] GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation",
+      "url": "https://arxiv.org/abs/1906.12192",
+      "snippet": "archive\n\n# Computer Science > Machine Learning\n\n# Title:GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation\n\n|  |  |\n --- |\n| Comments: | As published in ICML 2020 proceedings |\n| Subjects: | Machine Learning (cs.LG); Machine Learning (stat.ML) |\n| Cite as: | arXiv:1906.12192 [cs.LG] |\n|  | (or  arXiv:1906.12192v5 [cs.LG] for this version) |\n|  |  Focus to learn more  arXiv-issued DOI via DataCite |\n\n## Submission history\n\n## Access Paper:\n\n### Current browse context:\n\n### References & Citations\n\n### DBLP - CS Bibliography\n\n## BibTeX formatted citation\n\n### Bookmark\n\nBibSonomy\nReddit\n\n# Bibliographic and Citation Tools\n\n# Code, Data and Media Associated with this Article\n\n# Demos\n\n# Recommenders and Search Tools [...] # Demos\n\n# Recommenders and Search Tools\n\n# arXivLabs: experimental projects with community collaborators\n\narXivLabs is a framework that allows collaborators to develop and share new arXiv features directly on our website.\n\nBoth individuals and organizations that work with arXivLabs have embraced and accepted our values of openness, community, excellence, and user data privacy. arXiv is committed to these values and only works with partners that adhere to them.\n\nHave an idea for a project that will add value for arXiv's community? Learn more about arXivLabs.\n\nSimons Foundation\nSimons Foundation International\nSchmidt Sciences",
+      "score": 0.945
+    },
+    {
+      "title": "GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation",
+      "url": "https://proceedings.mlr.press/v119/brockschmidt20a.html",
+      "snippet": "`@InProceedings{pmlr-v119-brockschmidt20a,\ntitle = {{GNN}-{F}i{LM}: Graph Neural Networks with Feature-wise Linear Modulation},\nauthor = {Brockschmidt, Marc},\nbooktitle = {Proceedings of the 37th International Conference on Machine Learning},\npages = {1144--1152},\nyear = {2020},\neditor = {III, Hal Daumé and Singh, Aarti},\nvolume = {119},\nseries = {Proceedings of Machine Learning Research},\nmonth = {13--18 Jul},\npublisher = {PMLR},\npdf = {\nurl = { [...] `Brockschmidt, M.. (2020). GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation. Proceedings of the 37th International Conference on Machine Learning, in Proceedings of Machine Learning Research 119:1144-1152 Available from [...] }`\n`%0 Conference Paper\n%T GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation\n%A Marc Brockschmidt\n%B Proceedings of the 37th International Conference on Machine Learning\n%C Proceedings of Machine Learning Research\n%D 2020\n%E Hal Daumé III\n%E Aarti Singh\n%F pmlr-v119-brockschmidt20a\n%I PMLR\n%P 1144--1152\n%U \n%V 119",
+      "score": 0.909
+    },
+    {
+      "title": "Homomorphism counts for graph neural networks",
+      "url": "https://dl.acm.org/doi/10.5555/3692070.3692957",
+      "snippet": "Jul 21, 2024 — GNN-FiLM: Graph neural networks with feature-wise linear modulation. In ICML, 2020. Inductive representation learning on large graphs. Datasets",
+      "score": 0.855
+    },
+    {
+      "title": "Graph Neural Networks with Feature-wise Linear Modulation",
+      "url": "https://proceedings.mlr.press/v119/brockschmidt20a/brockschmidt20a.pdf",
+      "snippet": "Proceedings of the 37 th International Conference on Machine Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by the author(s). [...] GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation Marc Brockschmidt 1 Abstract This paper presents a new Graph Neural Network (GNN) type using feature-wise linear modulation (FiLM). Many standard GNN variants propagate information along the edges of a graph by com-puting messages based only on the representation of the source of each edge. In GNN-FiLM, the representation of the target node of an edge is used to compute a transformation that can be ap-plied to all incoming messages, allowing feature-wise modulation of the passed information. Dif-ferent GNN architectures are compared in exten-sive experiments on three tasks from the litera-ture, using re-implementations of many baseline methods. Hyperparameters for all methods were found using extensive search, yielding [...] hpt`1q v “ l ˜ ÿ u ℓ ÑvPE σ ´ γptq ℓ,v d Wℓhptq u ` βptq ℓ,v ¯ ; θl ¸ (8) GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation GGNN: A1 “GRUp A , W1 ¨ B ` W2 ¨ C ` W1 ¨ D q R-GCN: A1 “ σp Wö ¨ A ` W1 ¨ B ` W2 ¨ C ` W1 ¨ D q R-GAT: A1 “ σp paA1qAö ÑA ¨ Wö ¨ A ` paA1qB 1 ÑA ¨ W1 ¨ B ` paA1qC 2 ÑA ¨ W2 ¨ C ` paA1qD 1 ÑA ¨ W1 ¨ D q R-GIN: A1 “ σp MLPöpAq` MLP1pBq` MLP2pCq` MLP1pDqq GNN-MLP: A1 “ σp MLPöpA}Aq` MLP1pB}Aq` MLP2pC}Aq` MLP1pD}Aqq RGDCN: A1 “ σp W ö,A ¨ A ` W 1,A ¨ B ` W 2,A ¨ C ` W 1,A ¨ D q GNN-FiLM: A1 “ σpβö,A ` γö,A d Wö ¨ A `β1,A ` γ1,A d W1 ¨ B `β2,A ` γ2,A d W2 ¨ C `β1,A ` γ1,A d W1 ¨ D q Figure 2: Computation of A1 from Fig. 1 in different GNN implementations (see main text for deﬁnitions of αv, βℓ,v, γℓ,v, W ℓ, MLPℓ). Colours chosen to match colours of",
+      "score": 0.826
+    },
+    {
+      "title": "Graph Neural Networks with Feature-wise Linear Modulation",
+      "url": "https://arxiv.org/pdf/1906.12192",
+      "snippet": "Proceedings of the 37 th International Conference on Machine Learning, Vienna, Austria, PMLR 119, 2020. Copyright 2020 by the author(s). [...] A more general mitigation method is to restrict the structure of the computed network. Recently, “feature-wise linear modulations” (FiLM) were introduced in the visual ques-tion answering domain (Perez et al., 2017). Here, the hy-pernetwork is fed with an encoding of a question and pro-duces an element-wise afﬁne function that is applied to the arXiv:1906.12192v5 [cs.LG] 26 Jun 2020 GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation features extracted from a picture. This can be adapted to the graph message passing domain by using the representation of the target node to compute the afﬁne function. This com-promise between expressiveness and computational feasi-bility has been very effective in some domains and the re-sults presented in this article indicate that it is [...] GNN-FiLM: Graph Neural Networks with Feature-wise Linear Modulation Marc Brockschmidt 1 Abstract This paper presents a new Graph Neural Network (GNN) type using feature-wise linear modulation (FiLM). Many standard GNN variants propagate information along the edges of a graph by com-puting messages based only on the representation of the source of each edge. In GNN-FiLM, the representation of the target node of an edge is used to compute a transformation that can be ap-plied to all incoming messages, allowing feature-wise modulation of the passed information. Dif-ferent GNN architectures are compared in exten-sive experiments on three tasks from the litera-ture, using re-implementations of many baseline methods. Hyperparameters for all methods were found using extensive search, yielding",
+      "score": 0.826
+    },
+    {
+      "title": "GNN-FiLM: graph neural networks with feature-wise linear ...",
+      "url": "https://dl.acm.org/doi/10.5555/3524938.3525045",
+      "snippet": "This paper presents a new Graph Neural Network (GNN) type using feature-wise linear modulation (FiLM). Many standard GNN variants propagate information",
+      "score": 0.572
+    },
+    {
+      "title": "GNN-FILM: GRAPH NEURAL NETWORKS WITH ...",
+      "url": "https://openreview.net/attachment?id=HJe4Cp4KwH&name=original_pdf",
+      "snippet": "This paper presents a new Graph Neural Network (GNN) type using feature-wise linear modulation (FiLM). Many standard GNN variants propagate information.",
+      "score": 0.567
+    },
+    {
+      "title": "PANDA: Expanded Width-Aware Message Passing Beyond Rewiring",
+      "url": "https://arxiv.org/html/2406.03671v1",
+      "snippet": "Graph Neural Networks (GNNs) have emerged as a powerful tool for graph data processing and are being studied extensively in various domains, as evidenced by significant research contributions (Defferrard et al., 2016; Veličković et al., 2018; Chen et al., 2020; Chien et al., 2021; Choi et al., 2021; Chamberlain et al., 2021; Hwang et al., 2021; Choi & Park, 2023; Choi et al., 2023; Kang et al., 2023; Gruber et al., 2023). A key subclass within GNNs is Message Passing Neural Networks (MPNNs), which excel in propagating information through neighbouring nodes. As MPNNs propagate only for a 1-hop distance within a single layer, long-range interactions can only be captured when the depth of the network is comparable to the distance. However, increasing the number of layers for capturing [...] Recent research in the field of graph neural network (GNN) has identified a critical issue known as “over-squashing,” resulting from the bottleneck phenomenon in graph structures, which impedes the propagation of long-range information.\nPrior works have proposed a variety of graph rewiring concepts that aim at optimizing the spatial or spectral properties of graphs to promote the signal propagation.\nHowever, such approaches inevitably deteriorate the original graph topology, which may lead to a distortion of information flow. [...] Over-smoothing is another well-known problem that reduces the expressiveness of GNNs in deeper layers, resulting in a loss of discriminative power in the representation of node features (Li et al., 2018; Nt & Maehara, 2019; Oono & Suzuki, 2020). Rewiring methods to address the over-squashing problem focus on improving graph connectivity to ease the signal flow. However, one limitation of the rewiring method is that adding too many edges potentially leads to the over-smoothing issue (Karhadkar et al., 2023). To explore this trade-off between over-squashing and over-smoothing, FoSR (Karhadkar et al., 2023) analyzes the change in Dirichlet energy upon adding edges. Their results demonstrate that rewiring the graph to enhance information propagation leads to the over-smoothing problem.",
+      "score": 0.164
+    }
+  ],
+  "images": [],
+  "answer": "GNN-FiLM is a Graph Neural Network that uses feature-wise linear modulation to adjust incoming messages based on the target node's representation. It was presented in ICML 2020. The method allows for flexible information propagation in graphs.",
+  "routing": {
+    "auto_routed": false,
+    "provider": "tavily"
+  },
+  "_cache_timestamp": 1784982732.561087,
+  "_cache_key": "2edaeb57960a9200a58632a9d91d63f5",
+  "_cache_query": "GNN-FiLM Graph Neural Networks Feature-wise Linear Modulation ICML 2020",
+  "_cache_provider": "tavily",
+  "_cache_max_results": 8,
+  "_cache_params": {
+    "locale": "us:en",
+    "freshness": null,
+    "time_range": null,
+    "topic": "general",
+    "search_engines": null,
+    "include_news": true,
+    "search_type": "search",
+    "exa_type": "neural",
+    "category": null,
+    "similar_url": null
+  }
+}

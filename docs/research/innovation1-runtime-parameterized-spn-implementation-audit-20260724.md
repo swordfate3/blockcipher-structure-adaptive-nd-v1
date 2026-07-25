@@ -23,7 +23,7 @@ budget.
 | Non-round-aligned real SPN | uKNIT-BC descriptor with cell/round-specific S-boxes and 11 distinct GF(2) transitions | four official vectors, 11 prefix states, 13 round keys and descriptor windows match | implemented |
 | Cell relabeling invariance | cell-equivariant E4 mixer and invariant pooling | one recurrent E4 weight set is invariant on RECTANGLE non-contiguous cells, SKINNY general GF(2) and a heterogeneous uKNIT window | implemented |
 | Correct versus controls | equal-geometry correct, corrupted and no-topology adapters | GIFT two-seed local attribution passed; SKINNY `65536/class` and `262144/class` two-seed attribution passed; RECTANGLE RCT1 `2048/class` passed on both seeds | replicated multi-cipher diagnostic evidence supported |
-| General-GF(2) scale replication | frozen SKINNY r7 RTG2-A/RTG2-B/RTG3-A protocol | RTG3-A seed0 at `1000000/class`: correct `0.653192`, corrupted `0.607162`, no topology `0.511826`; seed1 is active under the remote watcher | one-seed formal evidence supported; second seed pending |
+| General-GF(2) scale replication | frozen SKINNY r7 RTG2-A/RTG2-B/RTG3-A protocol | RTG3-A at `1000000/class`: correct `0.653192/0.653624`, corrupted `0.607162/0.606954`, no topology `0.511826/0.515818` on seeds `0/1`; the joint gate passed | two-seed project-formal structure-attribution evidence supported |
 | Frozen cross-cipher representation | formal SKINNY Runtime-E4 extractor rebound to RECTANGLE with only an independent target head trained | X3-A/X3-A2 candidate `0.784894/0.753170` exceeds corrupted-source, corrupted-target and random-source controls on both target seeds | local dual-seed mechanism supported; medium transfer blocked on RCT2 |
 | Low-capacity cross-cipher readout | frozen formal SKINNY Runtime-E4 representation with `Linear(384,1)` target probe | X4 candidate `0.791652/0.761355`; all three control margins pass on both seeds with only `385` trainable parameters | direct linear accessibility supported locally |
 
@@ -160,26 +160,18 @@ and the repaired capability targets a different structural question.
 
 The implementation question and the empirical question are now separate. The
 runtime object, generic registry entry, permutation/GF(2) operators, variable
-cell count, S-box descriptors and invariant geometry are implemented. Do not
-add another cipher-specific frontend while the supported general-GF(2) scale
-replication is unresolved.
+cell count, S-box descriptors and invariant geometry are implemented. RTG3-A
+has also passed its two-seed project-formal SKINNY gate, so the unresolved
+question is no longer whether Runtime-E4 can exploit a general GF(2) topology.
 
-The current priority is the post-X2 selected RTG3-A seed0 matrix:
-
-```text
-question       = does the RTG2-B topology advantage survive project-formal scale?
-anchor         = frozen RTG2-B correct/corrupted/no-topology protocol
-changed field  = train samples_per_class 262144 -> 1000000 only
-execution      = remote A6000 GPU0 with disk-backed cache
-status         = plan, config, gate and watcher implementation in readiness
-```
-
-If seed0 passes all three frozen gates, prepare the identical conditional
-`1000000/class` seed1 confirmation. If seed0 holds, stop mechanical scale-up
-and inspect cache identity, complete five-epoch dynamics and the two topology
-margins without changing the network, data protocol or control semantics. A
-single-seed pass is project-formal evidence but is not a multi-seed formal
-conclusion.
+U3 instead shows that one shared recurrent transition update does not stably
+interpret the heterogeneous uKNIT window at local diagnostic scale. Do not
+mechanically add samples, epochs, recurrent depth or a cipher-named expert.
+The next architecture question is whether a parameter-matched, locally routed
+primitive adapter can separate one-to-one permutations from multi-source
+GF(2) updates while preserving one shared cipher-name-free Runtime-E4 backbone.
+The controlled local experiment is specified in
+`innovation1-runtime-spn-differentiated-architecture-review-20260725.md`.
 
 The uKNIT S-box-assignment route has already completed its bounded local loop.
 U2-F and the U2-G same-checkpoint audit supported one prefix-r4 delta-U query
@@ -286,7 +278,7 @@ the S-box self-gate, parameter geometry and compute path. End-to-end tests cover
 both `last_transition` and `recurrent_window`: independent logits are bit-exact
 under a correct-versus-corrupted linear-graph swap, while true-relation logits
 change. This change does not affect the completed GIFT/SKINNY attribution or
-active RTG3-A evidence because those frozen protocols use `late_pair`, not
+completed RTG3-A evidence because those frozen protocols use `late_pair`, not
 `edge_gate`. The only affected artifact was the untrained uKNIT recurrent
 readiness probe; it was rerun before U3 training, passed all checks, and replaced
 the no-topology output hash with
@@ -301,18 +293,20 @@ regression contract beyond the repaired `state_triplet + edge_gate` path to
 every currently supported Runtime-E4 view without changing model behavior or
 training geometry.
 
-## Formal-Scale Seed0 And Stable Representation API
+## Formal-Scale Two-Seed Evidence And Stable Representation API
 
-RTG3-A seed0 subsequently completed at the project formal evidence floor of
-`1000000/class` training rows and `500000/class` validation rows. The frozen
-SKINNY-64/64 r7 RuntimeE4 protocol produced AUC `0.653191631304` for correct
-GF(2) topology, `0.607162432806` for deterministic corrupted topology and
-`0.511826118586` for no topology. The correct-topology margins were therefore
-`+0.046029198498` and `+0.141365512718`. Result validation, strict best-
-checkpoint replay and rendered-figure visual QA passed. This is one-seed
-formal-scale structure-attribution evidence, not yet a multi-seed conclusion,
-paper-scale reproduction, attack, SOTA result or universal-SPN claim. The
-identical seed1 confirmation is active under the remote watcher.
+RTG3-A completed at the project formal evidence floor of `1000000/class`
+training rows and `500000/class` validation rows. On seeds `0/1`, the frozen
+SKINNY-64/64 r7 RuntimeE4 protocol produced correct-topology AUCs
+`0.653191631304/0.653623657884`, deterministic-corrupted AUCs
+`0.607162432806/0.606953760244` and no-topology AUCs
+`0.511826118586/0.515817817548`. The correct-topology margins over corrupted
+were `+0.046029198498/+0.046669897640`; margins over no topology were
+`+0.141365512718/+0.137805840336`. Both immutable per-seed gates and the joint
+gate passed with decision
+`innovation1_rtg3a_skinny_formal_two_seed_supported`. This is two-seed
+project-formal structure-attribution evidence, not a paper-scale reproduction,
+attack, SOTA result or universal-SPN claim.
 
 Cross-cipher X2 previously accessed `backbone.classifier` directly to obtain a
 frozen RuntimeE4 representation. Evaluation code now exposes
@@ -411,37 +405,36 @@ general-GF(2) support, heterogeneous recurrent windows, frozen representation
 extraction and low-capacity adaptation are implemented. The full method-level
 goal remains incomplete until the following evidence is available:
 
-1. **Formal general-GF(2) replication.** Retrieve and jointly adjudicate the
-   active SKINNY RTG3-A `1000000/class` seed1 panel. One formal seed is not a
-   multi-seed formal conclusion.
-2. **Second-cipher medium topology anchor.** Complete RECTANGLE RCT2 at
+1. **Second-cipher medium topology anchor.** Complete RECTANGLE RCT2 at
    `65536/class` with correct, corrupted and no-topology controls. RCT1 is only
    a local diagnostic and cannot authorize a medium transfer claim.
-3. **Heterogeneous multi-transition use.** Complete the queued local uKNIT U3
-   dual-seed recurrent-window panel. The candidate must beat repeat-last,
-   corrupted and no-topology controls; otherwise recurrent depth cannot be
-   attributed to earlier runtime structure.
-4. **Controlled medium cross-cipher confirmation.** Only if RCT2 passes,
+2. **Differentiated transition processing.** U3 completed with `hold`: seed1
+   passed every attribution gate, but seed0 remained near chance and below the
+   corrupted/no-topology controls. Test a small primitive-conditioned adapter
+   against parameter-matched dense, uniform-routing and shuffled-routing
+   controls before revisiting a learned MoE or uKNIT.
+3. **Controlled medium cross-cipher confirmation.** Only if RCT2 passes,
    perform one unchanged SKINNY-to-RECTANGLE X3-B medium confirmation and keep
    the `385`-parameter probe as the low-capacity mechanism control.
-5. **Breadth before universality.** A universal-SPN or broadly reusable-weight
+4. **Breadth before universality.** A universal-SPN or broadly reusable-weight
    statement requires another preregistered source-target direction or real
    cipher beyond the current SKINNY-to-RECTANGLE pair, with the same control
    logic and multiple seeds. Implementation compatibility alone is not that
    evidence.
 
-The current execution order is therefore fixed:
+The current execution order is therefore:
 
 ```text
-RTG3-A seed1 retrieval and joint gate
-    -> RECTANGLE RCT2 medium anchor
+RECTANGLE RCT2 medium anchor
     -> conditional X3-B medium transfer
 
-RTG3-A joint gate
-    -> local uKNIT U3 heterogeneous-window attribution
+local primitive-conditioned adapter diagnostic
+    -> whole-cipher holdout if the joint gate passes
+    -> learned soft/Top-2 structural MoE only after holdout support
 ```
 
-Do not fill remote idle time with another architecture family, DDT/trail
-features, related-key data, changed negatives or a broad cipher matrix. The
-missing evidence is controlled replication and scale alignment of the same
-runtime method.
+Do not fill remote idle time with a large MoE, another architecture family,
+DDT/trail features, related-key data, changed negatives or a broad cipher
+matrix. The differentiated branch must first establish local routing
+attribution at matched capacity; a hold means inspect the descriptor, sampler
+and parameter matching rather than increasing experts or compute.

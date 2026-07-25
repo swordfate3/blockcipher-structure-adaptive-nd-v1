@@ -5,14 +5,14 @@ Date: 2026-07-25
 ## Status
 
 ```text
-phase = deterministic readiness plus fail-closed execution authorization
+phase = completed local diagnostic and two-seed adjudication
 readiness = pass; re-adjudicated after strict no-topology edge-gate repair
-authorization_gate = implemented and verified; awaiting terminal RTG3 evidence
-conditional_successor = implemented; runtime state is recorded by local monitor markers
-training = not started
-execution_authorized = no
-blocking_decision = verified RTG3-A seed0 plus conditional two-seed joint adjudication
-result_gate = implemented and preregistered; no U3 AUC has been read
+authorization_gate = pass after verified RTG3-A two-seed joint adjudication
+training = completed locally; 10/10 rows and 100/100 epoch histories
+execution_authorized = consumed
+result_gate = hold
+decision = innovation1_runtime_spn_recurrent_window_not_supported
+remote_scale = no
 ```
 
 ## Research Question
@@ -51,6 +51,7 @@ samples_per_class       = 2048
 validation              = 1024/class through the standard runner
 seeds                   = 0, 1
 epochs                  = 10
+batch size              = 64
 loss                    = MSE
 optimizer               = Adam, lr 1e-4, weight decay 1e-5
 checkpoint              = best validation AUC
@@ -288,10 +289,71 @@ This proves plan/model construction plus finite forward/backward readiness
 only. It adds no AUC evidence and does not change
 `execution_authorized = no`.
 
+## Completed U3 Result
+
+The verified RTG3-A two-seed joint gate authorized the frozen U3 matrix. All ten
+rows then completed locally with `2048/class` training rows, `1024/class`
+validation rows and ten epochs. Plan validation passed with `10/10` result rows
+and `100/100` ordered epoch-history rows.
+
+| Seed | Last-transition anchor | Correct recurrent window | Repeat-last | Corrupted topology | No topology |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.504131317` | `0.501017094` | `0.495375633` | `0.513705730` | `0.514815331` |
+| 1 | `0.519538879` | `0.527083397` | `0.517245770` | `0.521578789` | `0.497512341` |
+
+Candidate margins were:
+
+```text
+seed0 candidate-anchor       = -0.003114223
+seed0 candidate-repeat-last  = +0.005641460
+seed0 candidate-corrupted    = -0.012688637
+seed0 candidate-no-topology  = -0.013798237
+
+seed1 candidate-anchor       = +0.007544518
+seed1 candidate-repeat-last  = +0.009837627
+seed1 candidate-corrupted    = +0.005504608
+seed1 candidate-no-topology  = +0.029571056
+```
+
+Seed1 passed the absolute AUC floor and all four margins. Seed0 passed only the
+equal-depth repeat-last margin: the candidate was near chance and below both
+the corrupted and no-topology controls. The preregistered two-seed gate therefore
+returned:
+
+```text
+status   = hold
+decision = innovation1_runtime_spn_recurrent_window_not_supported
+```
+
+The candidate also showed a large train-validation gap. Its final train AUC
+was `0.644991` on seed0 and `0.626094` on seed1, while the selected validation
+AUCs were `0.501017` and `0.527083`. This supports a generalization/inductive-
+bias redesign, not additional capacity or mechanical sample scaling.
+
+The first post-training gate invocation incorrectly rejected the frozen
+protocol because its checker expected `batch_size=256`. The frozen CSV and the
+standard runner both use `batch_size=64`. The checker and its fixture were
+corrected to the plan value, all protocol checks passed, and the persisted
+results were re-adjudicated without retraining, changing any metric or changing
+any threshold.
+
+Artifacts:
+
+```text
+outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/results.jsonl
+outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/history.csv
+outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/gate.json
+outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/curves.svg
+outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/visual_qa_passed.marker
+```
+
 ## Recommended Next Action
 
-Keep training held while RTG3-A is unresolved. Its completed local decision
-must explicitly authorize or stop this route. If authorized, execute the
-unchanged ten-row CSV and apply the already frozen result gate without changing
-thresholds. A pass advances only to a same-checkpoint window-swap attribution
-audit; a hold stops scale-up and returns to local redesign.
+Do not increase U3 samples, epochs, pairs, window length or move it to the
+remote GPU. Preserve Runtime-E4's supported general-GF(2) branch and replace
+only the failed assumption that one recurrent transition processor should fit
+every SPN transition equally. Rank small structure-primitive adapters, typed
+message modulation and a tightly controlled structural MoE against the same-
+budget Runtime-E4 anchor before implementing a new training matrix. Any next
+candidate must keep a same-parameter dense anchor, uniform-routing control,
+shuffled-structure routing control and cipher-name-free routing.

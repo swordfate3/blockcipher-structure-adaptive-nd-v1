@@ -347,7 +347,7 @@ def _frozen_protocol(row: dict[str, Any]) -> bool:
         and row.get("target_epochs") == 10
         and validation.get("samples_per_class") == 1024
         and training.get("epochs") == 10
-        and training.get("batch_size") == 256
+        and training.get("batch_size") == 64
         and training.get("optimizer") == "adam"
         and training.get("optimizer_state_transition") == "reset_each_stage"
         and training.get("learning_rate") == 0.0001

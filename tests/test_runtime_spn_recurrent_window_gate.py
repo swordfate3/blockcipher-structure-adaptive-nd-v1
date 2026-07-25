@@ -102,7 +102,7 @@ def _row(seed: int, role: str, auc: float) -> dict[str, object]:
             "best_epoch": 10,
             "stopped_epoch": 0,
             "best_checkpoint_metric": auc,
-            "batch_size": 256,
+            "batch_size": 64,
             "learning_rate": 0.0001,
             "optimizer": "adam",
             "optimizer_state_transition": "reset_each_stage",
@@ -230,6 +230,11 @@ def test_recurrent_window_cli_writes_gate_validation_and_summary(
     gate = json.loads((tmp_path / "gate.json").read_text(encoding="utf-8"))
     validation = json.loads((tmp_path / "validation.json").read_text(encoding="utf-8"))
     summary = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    svg = (tmp_path / "curves.svg").read_text(encoding="utf-8")
     assert gate["status"] == "pass"
     assert validation["status"] == "pass"
     assert summary["training_performed"] is True
+    assert "真实异构双窗口" in svg
+    assert "相对错误拓扑" in svg
+    assert "候选 AUC 门槛 0.520" in svg
+    assert "spn e4 equivariant" not in svg

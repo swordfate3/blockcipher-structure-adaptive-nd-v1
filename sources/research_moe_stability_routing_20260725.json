@@ -1,0 +1,77 @@
+{
+  "provider": "tavily",
+  "query": "Switch Transformers expert collapse load balancing router z-loss ST-MoE stable transferable sparse expert models",
+  "results": [
+    {
+      "title": "GatePro: Parameter-Free Expert Selection Optimization for ...",
+      "url": "https://arxiv.org/html/2510.13079v1",
+      "snippet": "MoE architectures scale model capacity through sparse activation and learned routing.\nAs a foundational contribution, Shazeer et al.  introduced sparsely-gated layers with token-choice routing.\nBuilding on this, Switch Transformer  simplified the original design and proposed the widely used load-balancing loss (LBL) to encourage balanced expert utilization in large language models.\nST-MoE  identified instability caused by LBL and introduced the z-loss, which regularizes router logits to maintain stable magnitude.\nGShard  further combined auxiliary balancing with expert capacity limits and a random routing strategy for secondary expert selection. [...] MoE designs have been widely adopted in recent open-source large language models, though routing and balancing strategies vary considerably.\nDeepSeek-V3  proposes a bias-based, auxiliary-loss-free strategy that dynamically adjusts per-expert biases to achieve balance without explicit loss terms, while DeepSeek-V2  uses dual balancing objectives (expert utilization and token allocation) and device-limited routing to minimize communication costs.\nQwen3-MoE  scales this paradigm with 128 experts and 8 active per token, introducing global-batch load balancing to aggregate statistics across devices for smoother gradients.\nOLMoE  provides a fully reproducible baseline, combining Top-kk token-choice routing, Switch-style LBL, and a router z-loss for logit stabilization.",
+      "score": 0.697
+    },
+    {
+      "title": "Routers Learn the Geometry of Their Experts: Geometric Coupling in Sparse Mixture-of-Experts",
+      "url": "https://arxiv.org/html/2605.12476v1",
+      "snippet": "We train two 11B SMoEs from scratch using the same setup as in Section 4, starting from the same initialization and training for the same number of tokens.\nThe models use the same SMoE architecture and differ only in the balancing rule.\nThe run without auxiliary loss uses the bias-only balancing rule , where no balancing gradients reach the router.\nThe run with auxiliary loss replaces the bias rule with the auxiliary load-balancing loss used by Switch Transformers  and the router zz-loss from ST-MoE , a recipe used in recent SMoEs such as OLMoE and Mixtral [21, 13].\nAfter training, we extract the router weight matrix Wr∈ℝN×dW\\_{r}\\in\\mathbb{R}^{N\\times d} at three stratified layers and report pairwise cosine similarities between its router weight vectors. [...] Figure 3 presents the results, showing a collapse in router geometry. With the auxiliary loss, the off-diagonal mean cosine similarity is μ=0.63\\mu=0.63, 0.630.63, and 0.570.57 at layers 0, 44, and 88, respectively. By contrast, under loss-free bias balancing the same architecture remains more diverse, with substantially lower similarity scores of μ=0.32\\mu=0.32, 0.180.18, and 0.130.13.\nOverall, this showcases that auxiliary load-balancing aligns otherwise distinct router weight vectors, making them nearly three times more similar. [...] #### Experimental setup\n\nTo evaluate our new router, we use the same 11B SMoE configuration as in Section 4,\nand train it from scratch on OLMoE-mix-0924  multiple times with different routing rules. Each run trains for 2121k steps (5050B tokens), using AdamW with β1=0.9\\beta\\_{1}{=}0.9, β2=0.95\\beta\\_{2}{=}0.95, a peak learning rate of 10−310^{-3} decayed to 10−410^{-4}, a 11k-step warmup, and a batch size of 2.362.36M tokens per step.\nWe compare four routing variants:\n\nAux-Loss: Uses the Switch-style auxiliary load-balancing loss together with the router zz-loss regularization [8, 34]. This is the same model analyzed in Section 5.\n\nLoss-Free: Uses the bias-only balancing rule of Wang et al. , adjusting per-expert routing biases while leaving router weights free of balancing gradients.",
+      "score": 0.693
+    },
+    {
+      "title": "UniPool: A Globally Shared Expert Pool for Mixture-of-Experts",
+      "url": "https://arxiv.org/html/2605.06665v1",
+      "snippet": "The modern MoE paradigm for language models was established by sparsely gated expert layers , then scaled through top-1 routing in Switch Transformer , expert-parallel distributed training in GShard , and stability improvements such as ST-MoE’s router z-loss .\nRecent large-scale systems including Mixtral  and the DeepSeek series [5, 6, 7] further show that sparse expert capacity is an effective way to scale language models.\nComplementary work studies expert granularity and scaling laws, finding that a larger number of smaller experts can improve performance when paired with appropriate routing , with extreme variants considering up to a million experts .",
+      "score": 0.66
+    },
+    {
+      "title": "Advancing Expert Specialization for Better MoE",
+      "url": "https://arxiv.org/html/2505.22323v5",
+      "snippet": "ST-MoE\nST-MoE (Sparsely-Trained Mixture-of-Experts) is a compute-efficient framework from Google that enhances MoE model stability through specialized training techniques. It employs a novel router design with expert dropout and auxiliary loss terms to prevent mode collapse during sparse activation. Scaling to 269 billion parameters with only 3 billion active parameters per token, ST-MoE achieves state-of-the-art results on language modeling and reasoning tasks while using 5-7x less compute than dense counterparts. The architecture incorporates parameter-sharing strategies across experts to improve sample efficiency and reduce memory footprint. [...] The specific form ℒa​u​x=∑j=1nfj⋅pj\\mathcal{L}\\_{aux}=\\sum\\_{j=1}^{n}f\\_{j}\\cdot p\\_{j} as given in the prompt, if fjf\\_{j} is interpreted as an average probability or fraction of tokens assigned, and pjp\\_{j} is the sum of probabilities, then fj⋅pjf\\_{j}\\cdot p\\_{j} would be (1N​∑isi​j)⋅(∑isi​j)(\\frac{1}{N}\\sum\\_{i}s\\_{ij})\\cdot(\\sum\\_{i}s\\_{ij}). However, a more standard auxiliary loss aims to balance the load, often by taking the form of the dot product of the vector of the fraction of tokens dispatched to each expert and the vector of the fraction of router probability dispatched to each expert, scaled by the number of experts. For example, a common auxiliary load balancing loss used in literature (e.g., Switch Transformers) is: [...] ##### Baselines.\n\nWe compare our method with 4 existing MoE training strategies. With Aux Loss  applies auxiliary load-balancing losses during routing to encourage expert utilization diversity.\nGShard  introduces a foundational sparse expert framework with automatic sharding and routing; ST-MoE  enhances training stability via router dropout and auxiliary losses; Loss-Free Balancing  achieves balanced expert routing without auxiliary objectives.\nDetail in Appendix G.\n\n##### Metrics.",
+      "score": 0.646
+    },
+    {
+      "title": "Sparse Layers are Critical to Scaling Looped Language Models",
+      "url": "https://arxiv.org/html/2605.09165v1",
+      "snippet": "To prevent expert collapse, we apply two standard MoE auxiliary losses: a load balancing loss , which encourages uniform token assignment across experts, and a router z-loss , which penalizes large logits to stabilize training:\n\n|  |  |  |\n --- \n|  | ℒLB=E​∑i=1Efi⋅p¯i,ℒRZ=1B​∑j=1B(log​∑i=1Eexp⁡(h​(xj)i))2\\mathcal{L}\\_{\\text{LB}}=E\\sum\\_{i=1}^{E}f\\_{i}\\cdot\\overline{p}\\_{i},\\qquad\\mathcal{L}\\_{\\text{RZ}}=\\frac{1}{B}\\sum\\_{j=1}^{B}\\left(\\log\\sum\\_{i=1}^{E}\\exp\\!\\left(h(x\\_{j})\\_{i}\\right)\\right)^{\\!2} |  |",
+      "score": 0.623
+    },
+    {
+      "title": "designing effective sparse expert models",
+      "url": "https://arxiv.org/pdf/2202.08906",
+      "snippet": "ST-MOE: DESIGNING STABLE AND TRANSFERABLE SPARSE EXPERT MODELS Barret Zoph∗ Google Brain Irwan Bello∗† Google Brain Sameer Kumar Google Nan Du Google Brain Yanping Huang Google Brain Jeff Dean Google Research Noam Shazeer† Google Brain William Fedus∗ Google Brain ABSTRACT Scale has opened new frontiers in natural language processing – but at a high cost.\nIn response, Mixture-of-Experts (MoE) and Switch Transformers have been pro-posed as an energy efﬁcient path to even larger and more capable language models.\nBut advancing the state-of-the-art across a broad set of natural language tasks has been hindered by training instabilities and uncertain quality during ﬁne-tuning. [...] 2. An introduction of the router z-loss that resolves instability issues, while slightly improv-ing model quality.\n3. A ﬁne-tuning analysis of sparse and dense models highlighting different hyperparameter sensitivity to the batch size and learning rate. We show bad hyperparameters result in virtually no ﬁne-tuning gain over dense models, despite large pre-training speed-ups.\n4. Architectural, routing and model design principles for designing Pareto efﬁcient sparse models in a distributed setting.\n5. A qualitative analysis tracing token routing decisions across expert layers.\n6. A 269B sparse model (the Stable Transferable Mixture-of-Experts or ST-MoE-32B) which achieves state-of-the-art performance across a diverse set of natural language benchmarks. [...] The router z-loss introduces another hyperparameter (cz), which is the coefﬁcient to weight this as part of the total loss optimized. The total loss is a linearly weighted combination of the cross entropy loss (LCE), the auxiliary load balance loss (LB), and the router z-loss (LZ), yielding a total loss Ltot = LCE + cBLB + czLZ (6) We choose a value of cz = 0.001 based on the best model quality after pre-training with a hyperpa-rameter sweep. Appendix B logs the resulting losses over the course of pre-training.",
+      "score": 0.611
+    },
+    {
+      "title": "MoSE: Mixture of Slimmable Experts for Efficient and Adaptive Language Models",
+      "url": "https://arxiv.org/html/2602.06154v1",
+      "snippet": "|  |  |  |  |  |\n ---  --- \n|  | ℒLMMoSE\\displaystyle\\mathcal{L}\\_{\\text{LM}}^{\\text{MoSE}} | =12​(ℒLM​(wmax)+ℒLM​(w)),\\displaystyle=\\frac{1}{2}\\big({\\mathcal{L}}\\_{\\text{LM}}(w\\_{\\max})+{\\mathcal{L}}\\_{\\text{LM}}(w)\\big), |  | (6) |\n|  |  | w∼Uniform​(wmin,wmax).\\displaystyle w\\sim\\textrm{Uniform}(w\\_{\\min},w\\_{\\max}). |  |\n\nAs in standard sparsely-gated MoE training (Shazeer et al., 2017), we incorporate auxiliary losses to stabilize routing and prevent expert collapse. Specifically, the auxiliary objective includes a load balancing loss, which encourages an even distribution of tokens across experts within a batch, and a router z-loss (Zoph et al., 2022), which penalizes large router logits and improves numerical stability.",
+      "score": 0.587
+    },
+    {
+      "title": "DTop-p MoE: Sparsity-Controlled Dynamic Top-p MoE for Foundation Model Pre-training",
+      "url": "https://arxiv.org/html/2512.13996v3",
+      "snippet": "Refer to caption\n\nObservation: As shown in Figure 17. ‣ G.3 Loss Designs ‣ Appendix G Detailed Additional Investigations ‣ DTop-p MoE: Sparsity-Controlled Dynamic Top-p MoE for Foundation Model Pre-training\"), the LM Z-Loss has a minor impact on DTop-pp performance. A small coefficient of 1×10−41\\times 10^{-4} yields the best results.\n\n##### Load Balancing Loss (LB Loss).\n\nWidely adopted in sparse MoE architectures (Shazeer et al., 2017; Lepikhin et al., 2020), the Load Balancing Loss prevents the router from collapsing into a trivial solution where only a few experts are utilized. It encourages a uniform distribution of tokens across all experts. The loss is formulated as: [...] Loss (Eq. 11. ‣ G.3 Loss Designs ‣ Appendix G Detailed Additional Investigations ‣ DTop-p MoE: Sparsity-Controlled Dynamic Top-p MoE for Foundation Model Pre-training\")), Dynamic Loss (Eq. 13), and Router Z-Loss (Eq. 14). Our ablation studies in Figures 17. ‣ G.3 Loss Designs ‣ Appendix G Detailed Additional Investigations ‣ DTop-p MoE: Sparsity-Controlled Dynamic Top-p MoE for Foundation Model Pre-training\"), 18. ‣ G.3 Loss Designs ‣ Appendix G Detailed Additional Investigations ‣ DTop-p MoE: Sparsity-Controlled Dynamic Top-p MoE for Foundation Model Pre-training\"), 19, and 20 reveal that while Load Balancing and Dynamic losses are essential for preventing router collapse and encouraging decisiveness, Router Z-Loss proves detrimental. By penalizing large logits, the Z-Loss forces the [...] Mixture-of-Experts (MoE) traces back to work in the early 1990s as a way to decompose a task into multiple specialized experts coordinated by a router. Shazeer et al. (2017) introduce a sparse MoE layer between LSTM blocks and report strong results on language modeling and machine translation. Fedus et al. (2022); Lepikhin et al. (2020) integrate sparse MoE into Transformers and adopt a Top-kk routing strategy for expert selection. As model scale grows, MoE becomes a prevailing approach for increasing capacity in foundation models without increasing activated computation (Yang et al., 2025; Guo et al., 2025; Bai et al., 2025). Several works focus on making expert selection more fine-grained or more stable (Dai et al., 2024; Lepikhin et al., 2020), on analyzing and improving scaling",
+      "score": 0.569
+    }
+  ],
+  "images": [],
+  "answer": "Switch Transformers use load-balancing loss and z-loss to stabilize routing in sparse expert models. ST-MoE introduced z-loss to prevent instability. Sparse expert models balance load to avoid expert collapse.",
+  "routing": {
+    "auto_routed": false,
+    "provider": "tavily"
+  },
+  "_cache_timestamp": 1784982735.5795448,
+  "_cache_key": "72e9ca9dc0d8db633858477711a67ff2",
+  "_cache_query": "Switch Transformers expert collapse load balancing router z-loss ST-MoE stable transferable sparse expert models",
+  "_cache_provider": "tavily",
+  "_cache_max_results": 8,
+  "_cache_params": {
+    "locale": "us:en",
+    "freshness": null,
+    "time_range": null,
+    "topic": "general",
+    "search_engines": null,
+    "include_news": true,
+    "search_type": "search",
+    "exa_type": "neural",
+    "category": null,
+    "similar_url": null
+  }
+}
