@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>六种SPN密码的状态排布与加密架构</title>
+  <link rel="stylesheet" href="assets/lesson.css">
+</head>
+<body class="spn-architectures">
+<main>
+  <h1>六种SPN密码到底怎样加密</h1>
+  <p class="lede">把 PRESENT、GIFT、SKINNY、RECTANGLE、uKNIT 和 Dialga 放在同一张地图上：先看状态怎样摆，再看一轮怎样走，最后理解为什么“运行时读取密码结构”的神经网络比单密码网络难得多。</p>
+
+  <div class="objective">
+    <strong>先记一句话：</strong>SPN 都在反复做“局部非线性变换 + 全局扩散 + 密钥注入”，但六种算法的 cell 划分、操作顺序、扩散方式和轮间变化并不相同。项目中的低轮实验只是截取完整加密流程的前缀，不等于攻击完整轮密码。
+  </div>
+
+  <h2>1. 先用一个小数据例子理解SPN</h2>
+
+  <p>假设一个玩具状态只有四个4-bit小块，写成十六进制就是：</p>
+
+  <div class="mini-example" aria-label="SPN玩具数据例子">
+    <div><strong>输入状态</strong><code>0 1 2 3</code></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div><strong>PRESENT S盒</strong><code>C 5 6 B</code></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div><strong>扩散层</strong><code>把16个输出bit重新接线</code></div>
+  </div>
+
+  <p>S盒像16本小字典：输入<code>0</code>查到<code>C</code>，输入<code>1</code>查到<code>5</code>。它负责制造非线性。扩散层再把每个小块的4个输出bit送往不同位置，使一个局部变化在后续轮传播到更大范围。</p>
+
+  <div class="warning">“扩散”不总是简单搬家。PRESENT/GIFT主要做一对一bit置换；SKINNY、uKNIT和Dialga会把多个来源bit做XOR，一个输出位置同时依赖多个输入位置。</div>
+
+  <h2>2. 六种算法的共同骨架</h2>
+
+  <div class="architecture-legend" aria-label="流程图颜色图例">
+    <span class="legend-item"><span class="legend-swatch key"></span>密钥、常数或tweak注入</span>
+    <span class="legend-item"><span class="legend-swatch nonlinear"></span>非线性S盒</span>
+    <span class="legend-item"><span class="legend-swatch linear"></span>置换或GF(2)扩散</span>
+    <span class="legend-item"><span class="legend-swatch control"></span>状态或流程控制</span>
+  </div>
+
+  <div class="flow-diagram" aria-label="通用SPN加密骨架">
+    <div class="flow-node control"><strong>明文状态</strong><span>64或128 bit</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node key"><strong>注入轮密钥</strong><span>位置和顺序因密码而异</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node nonlinear"><strong>并行S盒</strong><span>局部、非线性</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node linear"><strong>线性扩散</strong><span>把局部影响送到远处</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node control"><strong>重复多轮</strong><span>最后得到密文</span></div>
+  </div>
+
+  <p>上图只是概念骨架，不能拿来代替真实轮函数。例如 GIFT 是先做S盒和置换，再加轮密钥；SKINNY 在S盒后插入常数和tweakey；Dialga还有一条独立演化的tweak通路。</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>算法</th><th>分组/密钥</th><th>完整轮数</th><th>当前创新1研究前缀</th><th>线性层本质</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>PRESENT-80</td><td>64 / 80 bit</td><td>31</td><td>r7</td><td>一对一bit置换</td></tr>
+        <tr><td>GIFT-64</td><td>64 / 128 bit</td><td>28</td><td>r6</td><td>一对一bit置换</td></tr>
+        <tr><td>SKINNY-64/64</td><td>64 / 64 bit</td><td>32</td><td>r7</td><td>ShiftRows + 多源MixColumns</td></tr>
+        <tr><td>RECTANGLE-80</td><td>64 / 80 bit</td><td>25</td><td>r6</td><td>四条bit行分别循环移位</td></tr>
+        <tr><td>uKNIT-BC</td><td>64 / 128 bit</td><td>12</td><td>prefix-r5</td><td>每轮不同的GF(2)矩阵</td></tr>
+        <tr><td>Dialga-128</td><td>128 / 256 bit</td><td>16或20</td><td>prefix-r4</td><td>四种byte置换 + MixColumns</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="source-note">“当前研究前缀”只说明项目把完整算法截到第几轮生成区分数据，不表示这些完整轮数已被攻破。PRESENT r7当前还有百万/类正式项目规模任务在运行，不能写成已有最终AUC。</p>
+
+  <h2>3. 六种算法逐个拆开</h2>
+
+  <section class="architecture-band" id="present">
+    <h3>PRESENT：16个小盒子后做全局比特接线</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>16 × 4-bit nibble</span></div>
+      <div><strong>密钥</strong><span>80 bit寄存器</span></div>
+      <div><strong>完整轮数</strong><span>31轮 + 末次白化</span></div>
+      <div><strong>项目研究</strong><span>7轮前缀</span></div>
+    </div>
+
+    <div class="state-layout">
+      <div>
+        <div class="nibble-strip" aria-label="PRESENT的16个nibble">
+          <span>N0</span><span>N1</span><span>N2</span><span>N3</span>
+          <span>N4</span><span>N5</span><span>N6</span><span>N7</span>
+          <span>N8</span><span>N9</span><span>N10</span><span>N11</span>
+          <span>N12</span><span>N13</span><span>N14</span><span>N15</span>
+        </div>
+        <p class="state-caption">64 bit连续切成16个nibble，每个nibble独立查同一张4-bit S盒。</p>
+      </div>
+      <div>
+        <strong>P-layer的意思</strong>
+        <p>每个bit只搬到一个新位置：<code>i → 16i mod 63</code>，最后一位<code>63 → 63</code>。它不做XOR混合，但会把一个nibble的4个bit拆散到不同的下一轮S盒。</p>
+      </div>
+    </div>
+
+    <div class="flow-diagram" aria-label="PRESENT完整加密流程">
+      <div class="flow-node control"><strong>明文</strong><span>64-bit state</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddRoundKey</strong><span>state XOR 80-bit寄存器高64 bit</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node nonlinear"><strong>16个PRESENT S盒</strong><span>每4 bit独立代换</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>P-layer</strong><span>64根bit线重新接线</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>更新80-bit密钥</strong><span>左旋61、最高nibble过S盒、加轮常数</span></div>
+    </div>
+    <div class="round-brace">以上循环31次，循环结束后再 XOR 下一轮64-bit轮密钥，输出密文</div>
+
+    <p><strong>直观理解：</strong>PRESENT 像把16张四位小纸片逐张改写，然后把每张纸片剪成4条，按固定接线送给下一轮。对神经网络而言，cell边界很规则，但真正有价值的是bit级P-layer，而不是nibble编号本身。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/present.py">src/blockcipher_nd/ciphers/spn/present.py</a></p>
+  </section>
+
+  <section class="architecture-band" id="gift">
+    <h3>GIFT：外形像PRESENT，但密钥只注入特定bit角色</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>16 × 4-bit nibble</span></div>
+      <div><strong>密钥</strong><span>128 bit</span></div>
+      <div><strong>完整轮数</strong><span>28轮</span></div>
+      <div><strong>项目研究</strong><span>6轮</span></div>
+    </div>
+
+    <div class="flow-diagram" aria-label="GIFT-64完整加密流程">
+      <div class="flow-node control"><strong>本轮输入</strong><span>64-bit state</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node nonlinear"><strong>SubCells</strong><span>16个GIFT S盒</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>PermBits</strong><span>固定64-bit一对一置换</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddRoundKey</strong><span>只注入每个nibble的bit 0和bit 1位置</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>加轮常数</strong><span>6个指定位置 + 固定最高位</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node control"><strong>更新密钥</strong><span>nibble重排和局部旋转</span></div>
+    </div>
+    <div class="round-brace">以上循环28次；与PRESENT不同，项目实现没有循环后的额外完整64-bit白化</div>
+
+    <p><strong>最容易误画的地方：</strong>GIFT 不是先加密钥再进S盒。轮密钥也不是完整64 bit直接覆盖所有位置，而是抽取两组16 bit，分别注入每个nibble的两个指定bit角色。这使“密钥注入拓扑”也成为结构的一部分。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/gift.py">src/blockcipher_nd/ciphers/spn/gift.py</a></p>
+  </section>
+
+  <section class="architecture-band" id="skinny">
+    <h3>SKINNY：4×4个cell经过行移位和列混合</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>4 × 4个nibble</span></div>
+      <div><strong>密钥</strong><span>64-bit tweakey</span></div>
+      <div><strong>完整轮数</strong><span>32轮</span></div>
+      <div><strong>项目研究</strong><span>7轮</span></div>
+    </div>
+
+    <div class="state-layout">
+      <div class="cell-grid" aria-label="SKINNY的4乘4状态矩阵">
+        <span>s0</span><span>s1</span><span>s2</span><span>s3</span>
+        <span>s4</span><span>s5</span><span>s6</span><span>s7</span>
+        <span>s8</span><span>s9</span><span>s10</span><span>s11</span>
+        <span>s12</span><span>s13</span><span>s14</span><span>s15</span>
+      </div>
+      <div>
+        <strong>一列如何混合</strong>
+        <div class="formula-list">
+          <code>out0 = s0 XOR s2 XOR s3</code>
+          <code>out1 = s0</code>
+          <code>out2 = s1 XOR s2</code>
+          <code>out3 = s0 XOR s2</code>
+        </div>
+        <p class="state-caption">这里的s0、s1、s2、s3表示同一列的四个cell。一个输出cell会依赖多个输入cell。</p>
+      </div>
+    </div>
+
+    <div class="flow-diagram" aria-label="SKINNY-64单轮加密流程">
+      <div class="flow-node control"><strong>4×4状态</strong><span>16个4-bit cell</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node nonlinear"><strong>SubCells</strong><span>16个SKINNY S盒</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddConstants</strong><span>常数注入指定cell</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddRoundTweakey</strong><span>只XOR前两行8个cell</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>ShiftRows</strong><span>四行错位</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>MixColumns</strong><span>每列做多源XOR</span></div>
+    </div>
+    <div class="round-brace">每轮结束后置换tweakey的16个cell，再进入下一轮，共32轮</div>
+
+    <p><strong>直观理解：</strong>先把每个格子改写，再把每一行错开，最后把同列的几个格子异或混合。它不能只用一张“source bit搬到target bit”的置换表表示，必须用GF(2)关系矩阵描述。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/skinny.py">src/blockcipher_nd/ciphers/spn/skinny.py</a></p>
+  </section>
+
+  <section class="architecture-band" id="rectangle">
+    <h3>RECTANGLE：S盒沿列取bit，扩散却沿整行旋转</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>4条16-bit行</span></div>
+      <div><strong>密钥</strong><span>80 bit</span></div>
+      <div><strong>完整轮数</strong><span>25轮 + 末次白化</span></div>
+      <div><strong>项目研究</strong><span>6轮</span></div>
+    </div>
+
+    <div class="state-layout">
+      <div class="row-state" aria-label="RECTANGLE四行状态">
+        <div><strong>row 0</strong><span class="bit-row"></span><em>移0</em></div>
+        <div><strong>row 1</strong><span class="bit-row"></span><em>左移1</em></div>
+        <div><strong>row 2</strong><span class="bit-row"></span><em>左移12</em></div>
+        <div><strong>row 3</strong><span class="bit-row"></span><em>左移13</em></div>
+      </div>
+      <div>
+        <strong>一个S盒cell怎样取值</strong>
+        <p>固定列号<code>c</code>，分别从四行取<code>row0[c]</code>、<code>row1[c]</code>、<code>row2[c]</code>、<code>row3[c]</code>，拼成一个4-bit输入。16列同时执行16个S盒。</p>
+        <p class="state-caption">因此一个逻辑cell的4个bit在普通64-bit扁平数组里并不连续。</p>
+      </div>
+    </div>
+
+    <div class="flow-diagram" aria-label="RECTANGLE-80完整加密流程">
+      <div class="flow-node control"><strong>明文</strong><span>4 × 16-bit rows</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddRoundKey</strong><span>XOR轮密钥低64 bit</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node nonlinear"><strong>SubColumn</strong><span>每列跨四行组成S盒输入</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>ShiftRows</strong><span>四行左旋0/1/12/13</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>更新80-bit密钥</strong><span>列S盒、行变换、轮常数</span></div>
+    </div>
+    <div class="round-brace">以上循环25次，最后再 XOR 下一轮密钥低64 bit</div>
+
+    <p><strong>直观理解：</strong>RECTANGLE像四条横向纸带。S盒竖着读取同一列的四个bit，随后四条纸带各自转动不同距离。网络若误把连续4 bit当成cell，就会读错整个非线性结构。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/rectangle.py">src/blockcipher_nd/ciphers/spn/rectangle.py</a></p>
+  </section>
+
+  <section class="architecture-band" id="uknit">
+    <h3>uKNIT：每一轮、每一个位置都可能换S盒和扩散关系</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>16 × 4-bit nibble</span></div>
+      <div><strong>密钥</strong><span>128 bit</span></div>
+      <div><strong>完整轮数</strong><span>12轮</span></div>
+      <div><strong>项目研究</strong><span>5轮异构前缀</span></div>
+    </div>
+
+    <div class="flow-diagram" aria-label="uKNIT前十一轮中的一轮流程">
+      <div class="flow-node control"><strong>本轮输入</strong><span>64-bit state</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node key"><strong>AddRoundKey r</strong><span>64-bit轮密钥</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node nonlinear"><strong>SubCells r</strong><span>本轮16个位置各有指定S盒</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node linear"><strong>Linear r</strong><span>本轮专属64×64 GF(2)关系</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node control"><strong>下一轮</strong><span>结构随r改变</span></div>
+    </div>
+
+    <div class="round-timeline" aria-label="uKNIT十二轮异构时间线">
+      <span>R1<br>S1 + L1</span><span>R2<br>S2 + L2</span><span>R3<br>S3 + L3</span>
+      <span>R4<br>S4 + L4</span><span>R5<br>S5 + L5</span><span>R6<br>S6 + L6</span>
+      <span>R7<br>S7 + L7</span><span>R8<br>S8 + L8</span><span>R9<br>S9 + L9</span>
+      <span>R10<br>S10 + L10</span><span>R11<br>S11 + L11</span><span>R12<br>Key + S12 + Key</span>
+    </div>
+
+    <p>前11轮中，每个输出bit由本轮表中指定的三个来源bit异或得到；但不同轮使用不同来源表。第12轮不再做线性层，而是：</p>
+    <div class="equation">state XOR RK11 → 第12轮位置相关S盒 → state XOR RK12 → 密文</div>
+
+    <p>密钥调度把128-bit主密钥分成两个64-bit状态：两半都经历cell内扩散和cell置换，其中第二半还先过nibble LFSR；后续轮密钥由两半异或得到。</p>
+
+    <p><strong>直观理解：</strong>PRESENT像每层都用同一张接线图；uKNIT像一栋12层楼，每层不仅走廊布局不同，每个房间门锁的S盒也可能不同。这叫打破轮对齐，不能把“第1轮拓扑”复制12次。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/uknit.py">src/blockcipher_nd/ciphers/spn/uknit.py</a>；规范论文：<a href="../papers/%E7%AE%97%E6%B3%95/uKNIT%EF%BC%88%E8%BD%BB%E9%87%8F%E7%BA%A7%E7%AE%97%E6%B3%95%E8%AE%BE%E8%AE%A1%EF%BC%89.pdf">uKNIT: Breaking Round-Alignment for Cipher Design</a></p>
+  </section>
+
+  <section class="architecture-band" id="dialga">
+    <h3>Dialga：数据路径和tweak路径同时演化</h3>
+    <div class="architecture-meta">
+      <div><strong>状态</strong><span>16 bytes = 128 bit</span></div>
+      <div><strong>密钥/tweak</strong><span>256 / 128 bit</span></div>
+      <div><strong>完整版本</strong><span>16轮或20轮</span></div>
+      <div><strong>项目研究</strong><span>4轮前缀，固定零tweak</span></div>
+    </div>
+
+    <div class="state-layout">
+      <div class="cell-grid" aria-label="Dialga的4乘4 byte状态">
+        <span>B0</span><span>B1</span><span>B2</span><span>B3</span>
+        <span>B4</span><span>B5</span><span>B6</span><span>B7</span>
+        <span>B8</span><span>B9</span><span>B10</span><span>B11</span>
+        <span>B12</span><span>B13</span><span>B14</span><span>B15</span>
+      </div>
+      <div>
+        <strong>基本数据轮函数</strong>
+        <div class="equation">R<sub>t</sub>(X) = MixColumns(BytePerm<sub>t</sub>(SubCells(X)))</div>
+        <p>每个byte内部由两个4-bit S盒组成，但byte位置<code>index mod 4</code>决定使用哪一种bit共轭形式。线性层还会在四套byte置换中按轮型<code>t</code>选一套。</p>
+      </div>
+    </div>
+
+    <div class="formula-list">
+      <code>out0 = s1 XOR s2 XOR s3</code>
+      <code>out1 = s0 XOR s2 XOR s3</code>
+      <code>out2 = s0 XOR s1 XOR s3</code>
+      <code>out3 = s0 XOR s1 XOR s2</code>
+    </div>
+
+    <div class="lane-diagram" aria-label="Dialga数据与tweak双通路加密架构">
+      <div class="lane-label">阶段</div>
+      <div class="lane-flow">
+        <div class="lane-step">1 初始白化</div><div class="lane-step">2 前向段</div><div class="lane-step">3 中间段</div><div class="lane-step">4 后向段</div><div class="lane-step">5 最终白化</div>
+      </div>
+      <div class="lane-label">数据路径</div>
+      <div class="lane-flow">
+        <div class="lane-step data">P XOR T XOR K0 XOR K1</div>
+        <div class="lane-step data">2α次R<sub>t</sub><br>交替加key/tweak和常数</div>
+        <div class="lane-step data">2次R<sub>t</sub><br>含middle shuffle后的tweak</div>
+        <div class="lane-step data">2β次R<sub>t</sub><br>逆向使用tweak状态</div>
+        <div class="lane-step data">SubCells XOR K0 XOR K1</div>
+      </div>
+      <div class="lane-label">tweak路径</div>
+      <div class="lane-flow">
+        <div class="lane-step tweak">T</div>
+        <div class="lane-step tweak">随前向段演化<br>并混入交替key half</div>
+        <div class="lane-step tweak">Sub / InvSub<br>改变方向</div>
+        <div class="lane-step tweak">逆轮函数回走<br>经middle shuffle注入数据</div>
+        <div class="lane-step tweak">结束</div>
+      </div>
+    </div>
+
+    <p><code>α=4, β=3</code>时得到16个数据轮；<code>α=5, β=4</code>时得到20个数据轮。每段并不是机械复制同一轮，轮型、常数、key half和tweak注入位置随调度改变。</p>
+
+    <p><strong>直观理解：</strong>Dialga不是一条直线，而是两条同步运行的传送带。上面运送数据，下面运送tweak；tweak在指定位置回流到数据路径。只给网络一张静态P-layer图，会丢掉这种阶段性结构。</p>
+    <p class="source-note">实现依据：<a href="../src/blockcipher_nd/ciphers/spn/dialga.py">src/blockcipher_nd/ciphers/spn/dialga.py</a>，代码按 Banik 等 ToSC 2025(4) 规范实现。</p>
+  </section>
+
+  <h2>4. 真正差异一张表看懂</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>算法</th><th>cell怎样定义</th><th>S盒是否固定</th><th>扩散是否一对一</th><th>轮是否同构</th><th>最难适配点</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>PRESENT</td><td>连续4 bit</td><td>固定一张</td><td>是</td><td>基本是</td><td>学会准确bit接线</td></tr>
+        <tr><td>GIFT</td><td>连续4 bit</td><td>固定一张</td><td>是</td><td>基本是</td><td>不同P层与稀疏密钥注入</td></tr>
+        <tr><td>SKINNY</td><td>4×4 nibble矩阵</td><td>固定一张</td><td>否</td><td>基本是</td><td>多来源GF(2)列混合</td></tr>
+        <tr><td>RECTANGLE</td><td>跨四行同列4 bit</td><td>固定一张</td><td>置换型</td><td>基本是</td><td>逻辑cell在扁平内存中不连续</td></tr>
+        <tr><td>uKNIT</td><td>连续4 bit</td><td>按轮、按位置变化</td><td>否</td><td>否</td><td>异构S盒和11套GF(2)矩阵</td></tr>
+        <tr><td>Dialga</td><td>byte内两个nibble</td><td>四种位置共轭形式</td><td>否</td><td>否</td><td>128-bit宽度、多线性层、tweak双通路</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>5. 为什么一个通用SPN神经网络很难</h2>
+
+  <p>普通单密码网络可以把结构“焊死”在卷积核或输入排列里。例如为PRESENT写死16个nibble和一张P-layer，换成RECTANGLE后，连续4 bit已经不再是正确cell；换成SKINNY后，一对一边也表达不了列XOR；换成uKNIT或Dialga后，单张静态图又表达不了轮间变化。</p>
+
+  <p>当前 Runtime-E4 的目标不是让每个密码拥有一套专用主干，而是把密码本身转换成运行时结构描述：</p>
+
+  <div class="flow-diagram" aria-label="Runtime-E4如何读取SPN结构">
+    <div class="flow-node control"><strong>密文对bit节点</strong><span>真实样本内容</span></div>
+    <div class="flow-arrow" aria-hidden="true">+</div>
+    <div class="flow-node nonlinear"><strong>cell_membership</strong><span>哪些bit共同进入一个S盒</span></div>
+    <div class="flow-arrow" aria-hidden="true">+</div>
+    <div class="flow-node key"><strong>S-box真值表</strong><span>局部非线性函数是什么</span></div>
+    <div class="flow-arrow" aria-hidden="true">+</div>
+    <div class="flow-node linear"><strong>GF(2)关系矩阵</strong><span>每个输出bit依赖哪些输入bit</span></div>
+    <div class="flow-arrow" aria-hidden="true">→</div>
+    <div class="flow-node control"><strong>共享神经主干</strong><span>参数形状不随密码改变</span></div>
+  </div>
+
+  <p>项目现在已经能把六种算法的结构都编码进去，但“能表示”不等于“模型会正确使用”。正确拓扑必须稳定优于打乱拓扑、错误S盒和无拓扑控制，才能说明网络真的理解了结构，而不是借助某个密码的数据偏差。</p>
+
+  <h2>6. 一分钟自测</h2>
+
+  <details>
+    <summary>PRESENT和GIFT都是16个nibble，它们的轮函数是否相同？</summary>
+    <p>不同。S盒和P-layer不同；PRESENT先加完整64-bit轮密钥，GIFT先S盒、再置换，最后把轮密钥稀疏注入特定bit角色并加入轮常数。</p>
+  </details>
+
+  <details>
+    <summary>为什么SKINNY不能只用一张bit permutation描述？</summary>
+    <p>因为MixColumns的一个输出会异或多个输入，例如<code>out0=s0 XOR s2 XOR s3</code>。这不是把一个bit搬到另一个位置，而是一般GF(2)线性组合。</p>
+  </details>
+
+  <details>
+    <summary>为什么RECTANGLE的cell边界容易标错？</summary>
+    <p>它的一个4-bit S盒输入来自四条16-bit行的同一列。这4个bit在64-bit扁平表示里不连续，不能机械地每连续4 bit切成一个cell。</p>
+  </details>
+
+  <details>
+    <summary>uKNIT和Dialga为什么叫异构轮结构？</summary>
+    <p>uKNIT按轮改变S盒表和GF(2)线性矩阵；Dialga按阶段和轮型切换byte置换，并让tweak状态与数据状态双通路演化。它们都不能由“重复同一张轮图”准确表示。</p>
+  </details>
+
+  <div class="success">复习时先看<a href="reference/spn-cipher-architecture-cheatsheet.html">六种SPN加密架构速查表</a>。对任意新SPN，先回答四个问题：cell怎样切、S盒是否随位置或轮变化、线性层是一对一还是多源XOR、密钥/tweak在什么位置注入。</div>
+
+  <p class="footer-nav">上一课：<a href="0003-innovation2-current-method.html">创新2当前方法</a>。这是一节独立的创新1结构课，不改写创新2教学Mission。遇到任何一张图仍不清楚，可以直接指出算法名和框中的术语继续问我。</p>
+</main>
+</body>
+</html>

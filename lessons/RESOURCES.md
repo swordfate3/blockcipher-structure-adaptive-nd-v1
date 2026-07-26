@@ -2,6 +2,15 @@
 
 ## Knowledge
 
+- [Six-SPN implementation lesson](0004-runtime-spn-cipher-architectures.html)
+  Visual map of the project-authoritative PRESENT-80, GIFT-64, SKINNY-64/64, RECTANGLE-80, uKNIT-BC, and Dialga-128 encryption flows. It links each diagram back to the exact implementation.
+- [SPN architecture cheat sheet](reference/spn-cipher-architecture-cheatsheet.html)
+  Compressed operation order, state layout, and runtime-structure fields for the six Innovation 1 ciphers.
+- [Project SPN implementations](../src/blockcipher_nd/ciphers/spn/)
+  Primary authority for the encryption semantics used by experiments. Prefer these files over remembered textbook diagrams when reporting the current project.
+- [uKNIT specification](../papers/%E7%AE%97%E6%B3%95/uKNIT%EF%BC%88%E8%BD%BB%E9%87%8F%E7%BA%A7%E7%AE%97%E6%B3%95%E8%AE%BE%E8%AE%A1%EF%BC%89.pdf)
+  Published source for the 12-round non-round-aligned S-box and linear-layer schedule implemented by the project.
+
 - [Paper: _On Extending Integral Distinguishers_](../papers/innovation_two/pdf/On%20Extending%20Integral%20Distinguishers.pdf)
   Primary source for Split-and-Cancel, the left-kernel criterion, pullback theorems, and PRESENT/GIFT results. Use for all claims about the paper.
 - [Public implementation: `hadipourh/splitandcancel`](https://github.com/hadipourh/splitandcancel)

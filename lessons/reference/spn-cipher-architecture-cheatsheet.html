@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>六种SPN加密架构速查表</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body class="spn-architectures">
+<main>
+  <h1>六种SPN加密架构速查表</h1>
+  <p class="lede">复习时只看操作顺序、状态布局和最关键的结构差异。箭头左到右表示真实项目实现中的执行顺序。</p>
+
+  <div class="architecture-legend">
+    <span class="legend-item"><span class="legend-swatch key"></span>密钥/常数/tweak</span>
+    <span class="legend-item"><span class="legend-swatch nonlinear"></span>S盒</span>
+    <span class="legend-item"><span class="legend-swatch linear"></span>线性扩散</span>
+  </div>
+
+  <h2>PRESENT-80</h2>
+  <div class="equation">AddRoundKey → 16×S-box → 64-bit P-layer → 更新80-bit密钥；31轮后再AddRoundKey</div>
+  <p><strong>状态：</strong>16个连续4-bit nibble。<strong>记忆点：</strong>完整轮密钥先加，P-layer是一对一bit接线。</p>
+
+  <h2>GIFT-64</h2>
+  <div class="equation">16×S-box → PermBits → 稀疏AddRoundKey → AddConstant → 更新128-bit密钥；共28轮</div>
+  <p><strong>状态：</strong>16个连续4-bit nibble。<strong>记忆点：</strong>先S盒再加密钥；密钥只注入每个nibble的两个bit角色。</p>
+
+  <h2>SKINNY-64/64</h2>
+  <div class="equation">SubCells → AddConstants → AddRoundTweakey(前两行) → ShiftRows → MixColumns；共32轮</div>
+  <p><strong>状态：</strong>4×4个nibble。<strong>记忆点：</strong>列混合是多个cell的GF(2)异或，不是一对一置换。</p>
+
+  <h2>RECTANGLE-80</h2>
+  <div class="equation">AddRoundKey → 16×SubColumn → ShiftRows(0/1/12/13) → 更新密钥；25轮后再AddRoundKey</div>
+  <p><strong>状态：</strong>4条16-bit行。<strong>记忆点：</strong>一个S盒竖着读取同一列的四个bit，逻辑cell在扁平数组中不连续。</p>
+
+  <h2>uKNIT-BC</h2>
+  <div class="equation">R1...R11：AddRoundKey(r) → 位置/轮相关S-box(r) → GF(2)矩阵(r)；R12：Key → S-box(12) → Key</div>
+  <p><strong>状态：</strong>16个4-bit nibble。<strong>记忆点：</strong>12轮不是同一轮重复，每轮S盒和线性层都可能不同。</p>
+
+  <h2>Dialga-128</h2>
+  <div class="equation">初始P XOR T XOR K0 XOR K1 → 前向段 → 中间段 → 后向段 → SubCells XOR K0 XOR K1</div>
+  <p><strong>状态：</strong>16 bytes。<strong>基本轮：</strong><code>SubCells → 四选一BytePerm → MixColumns</code>。<strong>记忆点：</strong>数据和tweak双通路；完整版本为16或20数据轮。</p>
+
+  <h2>通用网络必须读懂什么</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>结构字段</th><th>回答的问题</th><th>典型难点</th></tr></thead>
+      <tbody>
+        <tr><td><code>cell_membership</code></td><td>哪些bit共同进一个S盒？</td><td>RECTANGLE非连续cell</td></tr>
+        <tr><td><code>bit_role</code></td><td>某bit是cell内第几位？</td><td>GIFT稀疏密钥角色</td></tr>
+        <tr><td><code>sbox_tables</code></td><td>局部非线性函数是什么？</td><td>uKNIT按轮/位置变化</td></tr>
+        <tr><td><code>linear_layers</code></td><td>输出bit依赖哪些输入bit？</td><td>SKINNY/Dialga多源XOR</td></tr>
+        <tr><td>轮序列</td><td>结构是否每轮相同？</td><td>uKNIT/Dialga异构调度</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warning">完整轮数与项目中的r4/r5/r6/r7前缀不是同一个概念。低轮神经结果不能表述为完整密码攻击。</div>
+
+  <p class="footer-nav">详细课：<a href="../0004-runtime-spn-cipher-architectures.html">六种SPN密码到底怎样加密</a></p>
+</main>
+</body>
+</html>
