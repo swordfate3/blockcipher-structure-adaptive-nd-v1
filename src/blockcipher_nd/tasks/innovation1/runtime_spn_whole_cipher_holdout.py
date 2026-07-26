@@ -623,11 +623,12 @@ def _load_source_tasks(
     seed: int,
     structures: dict[str, RuntimeSpnStructure],
     progress_callback: ProgressCallback | None,
+    source_ciphers: tuple[str, ...] = EXPECTED_SOURCES,
 ) -> list[RuntimeSpnJointTask]:
     protocol_by_name = {item["name"]: item for item in config["protocols"]}
     cache_root = Path(config["training"]["cache_source_root"]) / f"seed{seed}"
     tasks: list[RuntimeSpnJointTask] = []
-    for name in EXPECTED_SOURCES:
+    for name in source_ciphers:
         protocol = protocol_by_name[name]
         train = _load_dataset(
             config,
@@ -662,9 +663,10 @@ def _load_target_validation(
     *,
     seed: int,
     progress_callback: ProgressCallback | None,
+    holdout_cipher: str = HOLDOUT_CIPHER,
 ) -> DifferentialDataset:
     protocol = next(
-        item for item in config["protocols"] if item["name"] == HOLDOUT_CIPHER
+        item for item in config["protocols"] if item["name"] == holdout_cipher
     )
     cache_root = Path(config["training"]["cache_source_root"]) / f"seed{seed}"
     return _load_dataset(
@@ -747,9 +749,11 @@ def _evaluate_target(
     dataset: DifferentialDataset,
     structure: RuntimeSpnStructure,
     training: dict[str, Any],
+    *,
+    holdout_cipher: str = HOLDOUT_CIPHER,
 ) -> dict[str, float]:
     task = RuntimeSpnJointTask(
-        name=HOLDOUT_CIPHER,
+        name=holdout_cipher,
         group="holdout",
         structure=structure,
         train_dataset=dataset,
@@ -762,7 +766,7 @@ def _evaluate_target(
         batch_size=int(training["batch_size"]),
         device=torch.device("cpu"),
         loss=training["loss"],
-    )[HOLDOUT_CIPHER]
+    )[holdout_cipher]
 
 
 def _source_role_payload(

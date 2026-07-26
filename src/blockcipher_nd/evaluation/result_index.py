@@ -456,6 +456,24 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_h1_relation_activity_pooling_invalid": (
         "A5 readiness、检查点、缓存、控制组或冲突投影协议无效"
     ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_readiness_passed": (
+        "uKNIT异构GF(2)留出十五项实现门通过，可执行2048/class/source双seed诊断"
+    ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_readiness_failed": (
+        "uKNIT异构GF(2)留出实现门未通过，只允许修复失败不变量"
+    ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_supported": (
+        "双seed未见uKNIT结构归因、同预算锚点和四源保持全过，可设计第二独立异构留出"
+    ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_partial": (
+        "未见uKNIT结构归因成立但同预算保持未全过，保留机制并转源校准审计"
+    ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_not_supported": (
+        "关系活动池化未通过未见uKNIT结构控制，关闭该原语并重设计共享结构表示"
+    ),
+    "innovation1_runtime_spn_uknit_heterogeneous_holdout_invalid": (
+        "A6 readiness、初始化、缓存、检查点或零目标训练协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
@@ -2486,6 +2504,14 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_runtime_spn_uknit_heterogeneous_holdout_a6_readiness"
+    ):
+        return "创新1 H1-A6：uKNIT异构GF(2)整密码留出实现门"
+    if run_id.startswith(
+        "i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1"
+    ):
+        return "创新1 H1-A6：未见uKNIT异构GF(2)留出双seed诊断"
     if run_id.startswith(
         "i1_runtime_spn_h1_relation_activity_pooling_a5_readiness"
     ):

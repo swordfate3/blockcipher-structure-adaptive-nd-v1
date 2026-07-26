@@ -3974,6 +3974,85 @@ def test_result_index_labels_runtime_spn_h1_relation_activity_diagnostic(
     assert entries[0]["decision_display"] == expected_decision
 
 
+def test_result_index_labels_runtime_spn_uknit_holdout_readiness(
+    tmp_path: Path,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_readiness"
+        / "i1_runtime_spn_uknit_heterogeneous_holdout_a6_readiness_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "pass",
+            "decision": (
+                "innovation1_runtime_spn_uknit_heterogeneous_holdout_readiness_passed"
+            ),
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A6：uKNIT异构GF(2)整密码留出实现门"
+    )
+    assert entries[0]["decision_display"] == (
+        "uKNIT异构GF(2)留出十五项实现门通过，可执行2048/class/source双seed诊断"
+    )
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected_decision"),
+    (
+        (
+            "innovation1_runtime_spn_uknit_heterogeneous_holdout_supported",
+            "双seed未见uKNIT结构归因、同预算锚点和四源保持全过，可设计第二独立异构留出",
+        ),
+        (
+            "innovation1_runtime_spn_uknit_heterogeneous_holdout_partial",
+            "未见uKNIT结构归因成立但同预算保持未全过，保留机制并转源校准审计",
+        ),
+        (
+            "innovation1_runtime_spn_uknit_heterogeneous_holdout_not_supported",
+            "关系活动池化未通过未见uKNIT结构控制，关闭该原语并重设计共享结构表示",
+        ),
+        (
+            "innovation1_runtime_spn_uknit_heterogeneous_holdout_invalid",
+            "A6 readiness、初始化、缓存、检查点或零目标训练协议无效",
+        ),
+    ),
+)
+def test_result_index_labels_runtime_spn_uknit_holdout_diagnostic(
+    tmp_path: Path,
+    decision: str,
+    expected_decision: str,
+) -> None:
+    outputs = tmp_path / "outputs"
+    run_root = (
+        outputs
+        / "local_diagnostic"
+        / "i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726"
+    )
+    _write_json(
+        run_root / "gate.json",
+        {
+            "status": "invalid" if decision.endswith("_invalid") else "hold",
+            "decision": decision,
+        },
+    )
+
+    entries = build_result_index(outputs, limit=10)
+
+    assert entries[0]["display_name"] == (
+        "创新1 H1-A6：未见uKNIT异构GF(2)留出双seed诊断"
+    )
+    if decision.endswith("_invalid"):
+        assert entries[0]["status_display"] == "协议无效"
+    assert entries[0]["decision_display"] == expected_decision
+
+
 def test_result_index_supports_e4_final_synthesis_chinese_labels(
     tmp_path: Path,
 ) -> None:

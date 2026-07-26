@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_uknit_heterogeneous_holdout_a6",
+  "run_id": "i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726",
+  "source": {
+    "protocol_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "protocol_config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "a5_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_h1_relation_activity_pooling_a5_2048_seed0_seed1.json",
+    "a5_config_sha256": "5727f660d3bf31dabf4327d9bb6e615057d7980944872e1866a492203e902a42",
+    "a5_gate_path": "outputs/local_diagnostic/i1_runtime_spn_h1_relation_activity_pooling_a5_2048_seed0_seed1_20260726/gate.json",
+    "a5_required_decision": "innovation1_runtime_spn_h1_relation_activity_pooling_invalid",
+    "readiness_gate_path": "outputs/local_readiness/i1_runtime_spn_uknit_heterogeneous_holdout_a6_readiness_20260726/gate.json",
+    "readiness_required_decision": "innovation1_runtime_spn_uknit_heterogeneous_holdout_readiness_passed"
+  },
+  "source_ciphers": ["gift64", "skinny64", "rectangle80", "dialga128"],
+  "holdout_cipher": "uknit64",
+  "training_roles": {
+    "correct_pooling": {"relation_mode": "true", "pooling_mode": "correct"},
+    "uniform_pooling_anchor": {"relation_mode": "true", "pooling_mode": "uniform"}
+  },
+  "candidate": {
+    "gradient_combination": "representation_l2_equalized_pcgrad_fixed_order",
+    "representation_parameters": "all_except_shared_classifier",
+    "classifier_gradient_combination": "raw_arithmetic_mean",
+    "task_sampling": "unchanged_equal_one_batch_per_task",
+    "initialization": "same_state_per_seed_across_roles",
+    "expected_parameter_count": 442466,
+    "seeds": [0, 1]
+  },
+  "target_evaluations": {
+    "candidate_correct": {"source_role": "correct_pooling", "structure": "correct", "relation_mode": "true", "pooling_mode": "correct"},
+    "candidate_corrupted_target": {"source_role": "correct_pooling", "structure": "corrupted", "relation_mode": "true", "pooling_mode": "correct"},
+    "candidate_no_topology_target": {"source_role": "correct_pooling", "structure": "correct", "relation_mode": "independent", "pooling_mode": "correct"},
+    "candidate_uniform_same_checkpoint": {"source_role": "correct_pooling", "structure": "correct", "relation_mode": "true", "pooling_mode": "uniform"},
+    "candidate_shuffled_same_checkpoint": {"source_role": "correct_pooling", "structure": "correct", "relation_mode": "true", "pooling_mode": "shuffled"},
+    "uniform_trained_anchor": {"source_role": "uniform_pooling_anchor", "structure": "correct", "relation_mode": "true", "pooling_mode": "uniform"}
+  },
+  "gate": {
+    "target_auc_floor": 0.55,
+    "target_topology_margin": 0.005,
+    "target_pooling_margin": 0.005,
+    "trained_anchor_retention_tolerance": 0.01,
+    "source_macro_retention_tolerance": 0.005,
+    "minimum_conflict_projections_per_role_seed": 1,
+    "required_seeds": [0, 1]
+  }
+}
