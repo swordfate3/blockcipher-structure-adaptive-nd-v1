@@ -15,6 +15,53 @@ from blockcipher_nd.models.structure.spn.token_mixer_pairset import (
 )
 
 
+def inverse_sbox_anf_contributions(
+    values: torch.Tensor,
+    structure: RuntimeSpnStructure,
+    *,
+    round_index: int = -1,
+) -> torch.Tensor:
+    """Return exact per-output-bit ANF terms for each inverse-S-box lookup."""
+
+    if values.shape[-1] != structure.block_bits:
+        raise ValueError("S-box ANF values do not match runtime block width")
+    if not torch.all((values == 0) | (values == 1)):
+        raise ValueError("S-box ANF values must be binary")
+
+    indices = torch.empty(
+        structure.cells,
+        4,
+        dtype=torch.long,
+        device=values.device,
+    )
+    bit_indices = torch.arange(structure.block_bits, device=values.device)
+    indices[
+        structure.cell_membership.to(values.device),
+        structure.bit_role.to(values.device),
+    ] = bit_indices
+    cell_bits = values[..., indices].to(torch.long)
+    bit_weights = 1 << torch.arange(3, -1, -1, device=values.device)
+    cell_values = torch.sum(cell_bits * bit_weights, dim=-1)
+
+    inverse_tables = structure.inverse_sbox_tables(round_index).to(values.device)
+    output_bits = (
+        (inverse_tables[..., None] >> torch.arange(3, -1, -1, device=values.device))
+        & 1
+    ).permute(0, 2, 1)
+    coefficients = output_bits.clone()
+    for variable in range(4):
+        variable_mask = 1 << variable
+        for monomial_mask in range(16):
+            if monomial_mask & variable_mask:
+                coefficients[..., monomial_mask] ^= coefficients[
+                    ..., monomial_mask ^ variable_mask
+                ]
+
+    masks = torch.arange(16, dtype=torch.long, device=values.device)
+    monomials = ((cell_values[..., None] & masks) == masks).to(values.dtype)
+    return monomials.unsqueeze(-2) * coefficients.to(values.dtype)
+
+
 @dataclass(frozen=True)
 class RuntimeParameterizedSpnSpec:
     hidden_dim: int = 64
@@ -25,6 +72,11 @@ class RuntimeParameterizedSpnSpec:
     sbox_context_mode: Literal["early_add", "late_pair", "late_cell", "edge_gate"] = (
         "early_add"
     )
+    sbox_boolean_operator_mode: Literal[
+        "none",
+        "inverse_anf_contribution_gate",
+    ] = "none"
+    sbox_boolean_operator_scale: float = 0.25
     cell_input_mode: Literal[
         "difference_only",
         "state_triplet",
@@ -76,6 +128,8 @@ class RuntimeParameterizedSpnSpec:
             raise ValueError("dropout must be in [0, 1)")
         if self.sbox_context_scale < 0.0:
             raise ValueError("sbox_context_scale must be non-negative")
+        if self.sbox_boolean_operator_scale < 0.0:
+            raise ValueError("sbox_boolean_operator_scale must be non-negative")
         if self.sbox_context_mode not in {
             "early_add",
             "late_pair",
@@ -84,6 +138,14 @@ class RuntimeParameterizedSpnSpec:
         }:
             raise ValueError(
                 "sbox_context_mode must be early_add, late_pair, late_cell, or edge_gate"
+            )
+        if self.sbox_boolean_operator_mode not in {
+            "none",
+            "inverse_anf_contribution_gate",
+        }:
+            raise ValueError(
+                "sbox_boolean_operator_mode must be none or "
+                "inverse_anf_contribution_gate"
             )
         if self.cell_input_mode not in {
             "difference_only",
@@ -672,6 +734,13 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         )
         self.last_pair_attention: torch.Tensor | None = None
         self.last_primitive_adapter_traffic: dict[str, float] = {}
+        self.sbox_boolean_operator_projection: nn.Sequential | None = None
+        if spec.sbox_boolean_operator_mode == "inverse_anf_contribution_gate":
+            self.sbox_boolean_operator_projection = nn.Sequential(
+                nn.Linear(128, token_dim),
+                nn.ReLU(),
+                nn.LayerNorm(token_dim),
+            )
 
     def forward(
         self,
@@ -681,6 +750,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         relation_mode: str = "true",
         query_input_mode: Literal["delta_v", "delta_u"] | None = None,
         query_structure: RuntimeSpnStructure | None = None,
+        operator_structure: RuntimeSpnStructure | None = None,
     ) -> torch.Tensor:
         return self.classifier(
             self.encode(
@@ -689,6 +759,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 relation_mode=relation_mode,
                 query_input_mode=query_input_mode,
                 query_structure=query_structure,
+                operator_structure=operator_structure,
             )
         )
 
@@ -700,6 +771,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         relation_mode: str = "true",
         query_input_mode: Literal["delta_v", "delta_u"] | None = None,
         query_structure: RuntimeSpnStructure | None = None,
+        operator_structure: RuntimeSpnStructure | None = None,
     ) -> torch.Tensor:
         """Return the invariant pooled representation consumed by the classifier."""
         pairs = _RuntimeSpnEncoderBase._normalize_pairs(
@@ -723,6 +795,13 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             if active_query_mode != "delta_u":
                 raise ValueError("query_structure is valid only for a delta_u query")
             self._validate_query_structure(structure, query_structure)
+        if operator_structure is not None:
+            if self.spec.sbox_boolean_operator_mode == "none":
+                raise ValueError(
+                    "operator_structure requires an active S-box Boolean operator"
+                )
+            self._validate_operator_structure(structure, operator_structure)
+        active_operator_structure = operator_structure or structure
         if self.spec.round_window_mode == "recurrent_window":
             if active_query_mode is not None or query_structure is not None:
                 raise ValueError(
@@ -732,6 +811,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 pairs,
                 structure,
                 relation_mode=relation_mode,
+                operator_structure=active_operator_structure,
             )
         previous = (
             structure.exact_inverse(difference, -1)
@@ -832,6 +912,35 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                 structure,
                 relation_mode=relation_mode,
             )
+        if self.spec.sbox_boolean_operator_mode != "none":
+            if self.spec.cell_input_mode not in {
+                "state_triplet",
+                "inverse_sbox_triplet",
+                "dual_view_triplet",
+                "state_triplet_delta_v_query",
+                "state_triplet_delta_u_query",
+            }:
+                left = pairs[:, :, 0]
+                right = pairs[:, :, 1]
+                previous_left = (
+                    structure.exact_inverse(left, -1)
+                    if relation_mode == "true"
+                    else left
+                )
+                previous_right = (
+                    structure.exact_inverse(right, -1)
+                    if relation_mode == "true"
+                    else right
+                )
+            sequence = self._apply_sbox_boolean_operator(
+                sequence,
+                previous_left,
+                previous_right,
+                structure,
+                active_operator_structure,
+                relation_mode=relation_mode,
+                round_index=-1,
+            )
         sequence = self._apply_typed_relation_message(
             sequence,
             structure,
@@ -871,6 +980,7 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         structure: RuntimeSpnStructure,
         *,
         relation_mode: str,
+        operator_structure: RuntimeSpnStructure,
     ) -> torch.Tensor:
         """Consume every loaded transition with one shared E4 parameter stack."""
         left = pairs[:, :, 0]
@@ -986,6 +1096,15 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
                     relation_mode=relation_mode,
                     round_index=round_index,
                 )
+            sequence = self._apply_sbox_boolean_operator(
+                sequence,
+                previous_left,
+                previous_right,
+                structure,
+                operator_structure,
+                relation_mode=relation_mode,
+                round_index=round_index,
+            )
             sequence = self._apply_typed_relation_message(
                 sequence,
                 structure,
@@ -1456,6 +1575,24 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
             raise ValueError("query_structure may change only per-cell S-box ownership")
 
     @staticmethod
+    def _validate_operator_structure(
+        main: RuntimeSpnStructure,
+        operator: RuntimeSpnStructure,
+    ) -> None:
+        if not (
+            torch.equal(main.cell_membership, operator.cell_membership)
+            and torch.equal(main.bit_role, operator.bit_role)
+            and torch.equal(main.linear_matrices, operator.linear_matrices)
+            and torch.equal(
+                main.inverse_linear_matrices,
+                operator.inverse_linear_matrices,
+            )
+        ):
+            raise ValueError(
+                "operator_structure may change only per-cell S-box truth tables"
+            )
+
+    @staticmethod
     def _ordered_cell_values(
         values: torch.Tensor,
         structure: RuntimeSpnStructure,
@@ -1528,6 +1665,74 @@ class RuntimeE4EquivariantSpnDistinguisher(nn.Module):
         gate = torch.sigmoid(0.5 * (sbox_context + neighbor_sbox))
         return (
             sequence + self.spec.sbox_context_scale * gate[None, :, :] * graph_message
+        )
+
+    def _apply_sbox_boolean_operator(
+        self,
+        sequence: torch.Tensor,
+        previous_left: torch.Tensor,
+        previous_right: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        operator_structure: RuntimeSpnStructure,
+        *,
+        relation_mode: str,
+        round_index: int,
+    ) -> torch.Tensor:
+        if self.spec.sbox_boolean_operator_mode == "none":
+            return sequence
+        if self.sbox_boolean_operator_projection is None:
+            raise RuntimeError("S-box Boolean operator projection was not initialized")
+
+        left_terms = inverse_sbox_anf_contributions(
+            previous_left,
+            operator_structure,
+            round_index=round_index,
+        ).flatten(-2)
+        right_terms = inverse_sbox_anf_contributions(
+            previous_right,
+            operator_structure,
+            round_index=round_index,
+        ).flatten(-2)
+        symmetric_terms = torch.cat(
+            (
+                0.5 * (left_terms + right_terms),
+                torch.remainder(left_terms + right_terms, 2.0),
+            ),
+            dim=-1,
+        )
+        gate = torch.sigmoid(
+            self.sbox_boolean_operator_projection(symmetric_terms).reshape(
+                sequence.shape[0],
+                structure.cells,
+                self.token_dim,
+            )
+        )
+
+        membership = torch.nn.functional.one_hot(
+            structure.cell_membership.to(sequence.device),
+            num_classes=structure.cells,
+        ).to(sequence.dtype)
+        if relation_mode == "true":
+            adjacency = structure.inverse_linear_matrices[round_index].to(
+                device=sequence.device,
+                dtype=sequence.dtype,
+            )
+            cell_adjacency = membership.transpose(0, 1) @ adjacency @ membership
+        elif relation_mode == "independent":
+            cell_adjacency = torch.eye(
+                structure.cells,
+                device=sequence.device,
+                dtype=sequence.dtype,
+            )
+        else:
+            raise ValueError("relation_mode must be true or independent")
+        normalized = cell_adjacency / cell_adjacency.sum(
+            dim=1,
+            keepdim=True,
+        ).clamp_min(1.0)
+        graph_message = torch.einsum("ts,bsd->btd", normalized, sequence)
+        return sequence + (
+            self.spec.sbox_boolean_operator_scale * gate * graph_message
         )
 
 
