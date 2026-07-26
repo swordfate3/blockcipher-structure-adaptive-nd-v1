@@ -483,6 +483,24 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_holdout_qualification_protocol_invalid": (
         "A7冻结证据、同预算协议、结构覆盖或零训练审计不完整，禁止选择留出"
     ),
+    "innovation1_runtime_spn_dialga_holdout_readiness_passed": (
+        "A8 Dialga第二整密码留出的来源、缓存、同初始化与反事实实现门通过"
+    ),
+    "innovation1_runtime_spn_dialga_holdout_readiness_failed": (
+        "A8 Dialga留出实现门未通过，只允许修复失败不变量"
+    ),
+    "innovation1_runtime_spn_dialga_holdout_supported": (
+        "双seed未见Dialga同时通过信号、拓扑、S盒、重训锚点与源保持门"
+    ),
+    "innovation1_runtime_spn_dialga_holdout_partial": (
+        "未见Dialga结构归因成立但源保持未全过，保留结果并审计源校准"
+    ),
+    "innovation1_runtime_spn_dialga_holdout_not_supported": (
+        "未见Dialga有绝对与GF(2)拓扑信号，但错误S盒归因未通过，停止救援性扩样"
+    ),
+    "innovation1_runtime_spn_dialga_holdout_invalid": (
+        "A8 readiness、缓存、检查点、同权重反事实或零目标训练协议无效"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),
