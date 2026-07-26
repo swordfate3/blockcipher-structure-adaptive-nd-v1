@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_source_topology_diversity_d1_20260726",
+  "audit": {
+    "training_rows": 0,
+    "optimizer_steps": 0,
+    "remote": false
+  },
+  "structures": {
+    "present": {"factory": "present", "rounds": 1, "round_start": 0},
+    "gift": {"factory": "gift", "rounds": 1, "round_start": 0},
+    "rectangle": {"factory": "rectangle", "rounds": 1, "round_start": 0},
+    "skinny": {"factory": "skinny", "rounds": 1, "round_start": 0},
+    "uknit": {"factory": "uknit", "rounds": 10, "round_start": 0},
+    "dialga": {"factory": "dialga", "rounds": 4, "round_start": 0}
+  },
+  "generator": {
+    "name": "sparse_elementary_row_column_v1",
+    "seed_material": "source_gf2_topology_sha256",
+    "mutation_counts": [4, 8, 16, 32],
+    "seeds": [0, 1, 2, 3],
+    "alternate_row_column": true,
+    "dialga_width_lift": 2,
+    "require_cross_half_edge": true
+  },
+  "features": {
+    "name": "normalized_gf2_topology_v1",
+    "power_rank_exponents": [0, 1, 2, 3],
+    "distance": "root_mean_square_euclidean"
+  },
+  "gates": {
+    "minimum_unique_signature_fraction": 0.9,
+    "required_changed_from_source_fraction": 1.0,
+    "minimum_overall_median_relative_improvement": 0.1,
+    "minimum_cipher_median_relative_improvement": 0.1,
+    "minimum_improved_cipher_count": 4,
+    "required_uknit_median_relative_improvement": 0.1,
+    "required_dialga_median_relative_improvement": 0.1,
+    "maximum_holdout_signature_collisions": 0,
+    "distance_epsilon": 1e-12
+  }
+}
