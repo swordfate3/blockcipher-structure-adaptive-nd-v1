@@ -1,8 +1,9 @@
 # Innovation 1 PRESENT Runtime-E4 RTG3-B Formal Seed0 Plan
 
 ```text
-status = planned / local readiness pending
+status = local readiness passed / source publication verification hold
 phase = RTG3-B
+remote_training = not started
 remote_launch = prohibited until readiness and exact source publication pass
 ```
 
@@ -137,6 +138,40 @@ Before any SSH contact, require:
 The current GitHub live-SHA verification is temporarily unavailable. That
 state must hold launch even when an earlier normal push command reported
 success.
+
+## Local Readiness Result
+
+The completed launch gate is indexed as recent result `001`:
+
+```text
+run_id = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726
+source_commit = b46afd0eaf40e007c70a3c4d2663b9c0c3818a45
+status = hold
+decision = innovation1_rtg3b_present_seed0_source_not_live_verified
+evidence checks = 4/4 pass
+readiness checks = 7/7 pass
+publication checks = 0/2 pass
+should_ssh = true
+ssh_allowed = false
+launch_authorized = false
+live_remote_sha = null
+remote_training = not started
+```
+
+The normal `git push origin main` command reported success for
+`b46afd0eaf40e007c70a3c4d2663b9c0c3818a45`. An immediate live query and one
+bounded eight-attempt push-recovery process then failed with classified
+`transient_network` errors. Publication is therefore uncertain rather than
+verified. The only authorized next action is to rerun the same launch gate
+after GitHub connectivity returns. No SSH, alternate remote, source overlay,
+protocol change or new training run is allowed while this gate remains held.
+
+Local evidence:
+
+```text
+outputs/local_readiness/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726/
+```
 
 ## Research Gate
 
