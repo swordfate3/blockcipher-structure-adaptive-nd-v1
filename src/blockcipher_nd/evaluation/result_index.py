@@ -474,6 +474,15 @@ DECISION_LABELS = {
     "innovation1_runtime_spn_uknit_heterogeneous_holdout_invalid": (
         "A6 readiness、初始化、缓存、检查点或零目标训练协议无效"
     ),
+    "innovation1_runtime_spn_holdout_qualification_dialga128_selected": (
+        "A7零训练审计排除不可学或已用候选，选择Dialga作为第二个独立整密码留出"
+    ),
+    "innovation1_runtime_spn_holdout_qualification_none_selected": (
+        "A7零训练审计没有找到同时可学、结构覆盖完整且未使用的留出候选"
+    ),
+    "innovation1_runtime_spn_holdout_qualification_protocol_invalid": (
+        "A7冻结证据、同预算协议、结构覆盖或零训练审计不完整，禁止选择留出"
+    ),
     "innovation1_runtime_spn_window_same_checkpoint_attribution_supported": (
         "同一U3权重在两颗seed都依赖完整正确窗口，可准备跨密码同主干权重复用门"
     ),

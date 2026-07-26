@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_holdout_qualification_a7",
+  "run_id": "i1_runtime_spn_holdout_qualification_a7_20260726",
+  "protocol": {
+    "config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "runtime_rounds": 2,
+    "candidate_order": ["rectangle80", "uknit64", "dialga128"],
+    "source_panels": {
+      "rectangle80": ["gift64", "skinny64", "uknit64", "dialga128"],
+      "uknit64": ["gift64", "skinny64", "rectangle80", "dialga128"],
+      "dialga128": ["gift64", "skinny64", "rectangle80", "uknit64"]
+    },
+    "previous_whole_cipher_holdouts": ["rectangle80", "uknit64"]
+  },
+  "evidence": {
+    "rectangle80": {
+      "kind": "a3_zero_target_step_holdout",
+      "required_decision": "innovation1_runtime_spn_h1_equalized_pcgrad_partial",
+      "config": {
+        "path": "configs/experiment/innovation1/innovation1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1.json",
+        "sha256": "1d7377e0837963ac708127af0a65b09cb312ca7f76eafcbf6a20e008e202fc19"
+      },
+      "gate": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1_20260726/gate.json",
+        "sha256": "f88b2889df99a5d96f176da25ce8ff59792314a5b195495b5a7b0c151f4663b9"
+      },
+      "validation": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1_20260726/validation.json",
+        "sha256": "84fe458ca7d7ec61a30d07765a1197caa9f40fd13053de66d219b4415e28ff71"
+      },
+      "results": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_h1_equalized_pcgrad_a3_2048_seed0_seed1_20260726/results.jsonl",
+        "sha256": "10c1633794f9bbc2c120b3a6564542e82d40bb9bd97f9cc330154f043d155b5b"
+      }
+    },
+    "uknit64": {
+      "kind": "u3_target_trained_attribution",
+      "required_decision": "innovation1_runtime_spn_recurrent_window_not_supported",
+      "config": {
+        "path": "configs/experiment/innovation1/innovation1_spn_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1.csv",
+        "sha256": "060805c3e1e6793aa11b3e9758ddef738d646c77df596150032c8486b7bbd87f"
+      },
+      "gate": {
+        "path": "outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/gate.json",
+        "sha256": "4736559416052f924fab8d08d24d9de8db403f3a1da36336215b9baab2935332"
+      },
+      "validation": {
+        "path": "outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/validation.json",
+        "sha256": "336b1c7d70e6043ea037658ae519db26329e77e8be0b9dbad68de90aa236fd4f"
+      },
+      "results": {
+        "path": "outputs/local_diagnostic/i1_uknit64_runtime_e4_recurrent_window_r5_2048_seed0_seed1_20260725/results.jsonl",
+        "sha256": "d96b6e99c2798b54c82562f18886be47f8c0051024c21219a2f97702959fa312"
+      }
+    },
+    "dialga128": {
+      "kind": "d1_target_trained_plus_d2_same_checkpoint",
+      "required_decision": "innovation1_dialga_runtime_e4_d2_functional_topology_use_supported",
+      "d1_gate": {
+        "path": "outputs/local_diagnostic/i1_dialga128_runtime_e4_d1_r4_2048_seed0_seed1_20260725/gate.json",
+        "sha256": "e113227bbd541a3d5c11502793d5ebb5d75108c4f53e157326b5ac509cc10e67"
+      },
+      "d1_validation": {
+        "path": "outputs/local_diagnostic/i1_dialga128_runtime_e4_d1_r4_2048_seed0_seed1_20260725/validation.json",
+        "sha256": "fbb7aba04197f0f309e9f08b4b6eb2cf051fe4721d692971b1ee785480591454"
+      },
+      "d1_results": {
+        "path": "outputs/local_diagnostic/i1_dialga128_runtime_e4_d1_r4_2048_seed0_seed1_20260725/results.jsonl",
+        "sha256": "67d2591dae166feaf1fdd391a0e7c40dc1ad3029993661bbcc03b54c4309cc78"
+      },
+      "gate": {
+        "path": "outputs/local_audits/i1_dialga128_runtime_e4_d2_same_checkpoint_20260725/gate.json",
+        "sha256": "e7819ee9c1abb54b649cfcb1d3b78bb4364889563be67c96a459b69ab96a6501"
+      },
+      "validation": {
+        "path": "outputs/local_audits/i1_dialga128_runtime_e4_d2_same_checkpoint_20260725/validation.json",
+        "sha256": "175841b1e5d6995c79e740807f36a837059c6d50cd07ce2c91f212ada76390bd"
+      },
+      "results": {
+        "path": "outputs/local_audits/i1_dialga128_runtime_e4_d2_same_checkpoint_20260725/results.jsonl",
+        "sha256": "9290fe7a94ca87e5800c80334a1b4bb5754e6d322904f725f9278f7418b41be5"
+      }
+    },
+    "closed_mechanism": {
+      "required_decision": "innovation1_runtime_spn_uknit_heterogeneous_holdout_not_supported",
+      "config": {
+        "path": "configs/experiment/innovation1/innovation1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1.json",
+        "sha256": "b3e844918e55b5c9dca8c22478cd3e23e4ff94fb75e80e266455f23746323a86"
+      },
+      "gate": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726/gate.json",
+        "sha256": "abfeeb4f0f14367f7065dcf916a7db2fcf50381712618b3d0943f89ab6a94e29"
+      },
+      "validation": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726/validation.json",
+        "sha256": "c40ba0ff914a279835f9439a62713bfda934ec45fb61739f2b160d118a8d9979"
+      },
+      "results": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726/results.jsonl",
+        "sha256": "dbc91bc7338ddb0ffc3f4713be3fef61c5d32f8773d61cb2fc99175ac9ab7a50"
+      }
+    }
+  },
+  "audit": {
+    "training_performed": false,
+    "new_data_generated": false,
+    "seeds": [0, 1],
+    "samples_per_class": 2048,
+    "validation_samples_per_class": 1024,
+    "pairs_per_sample": 4,
+    "epochs": 10,
+    "negative_mode": "encrypted_random_plaintexts",
+    "atomic_gf2_type": "source_bit_role_to_target_bit_role",
+    "cell_relabel_probe_seed": 26072607,
+    "cell_relabel_probe_rows": 8
+  },
+  "gate": {
+    "correct_auc_floor": 0.55,
+    "topology_margin": 0.005,
+    "atomic_gf2_coverage": 1.0,
+    "cell_relabel_max_error": 0.000001,
+    "require_both_seeds": true,
+    "require_not_previously_used": true,
+    "selection_metric": "minimum_correct_auc_then_candidate_order"
+  }
+}
