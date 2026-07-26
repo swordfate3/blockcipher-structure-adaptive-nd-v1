@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_sbox_identifiability_s1",
+  "run_id": "i1_runtime_spn_sbox_identifiability_s1_20260726",
+  "source": {
+    "a8_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1.json",
+    "a8_config_sha256": "ea437b1737a7f0cb78d632fc46f6ce79c4a96787708b91a7d057fb434b6b37da",
+    "a8_gate_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/gate.json",
+    "a8_gate_sha256": "a6857bdfdd71ea1983bce082058e142c08a8afa46e24a01af6558832f32fde91",
+    "a8_required_decision": "innovation1_runtime_spn_dialga_holdout_not_supported",
+    "a8_validation_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/validation.json",
+    "a8_validation_sha256": "a6248b9eb03ad76a08ef2e97dde908d5a042bd448f08f098123c2b5e9f9fb0ec",
+    "a8_results_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/results.jsonl",
+    "a8_results_sha256": "18b3e7396dce9b37113725a0b618e69e933aae0d207b4233226da8594b852534",
+    "protocol_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "protocol_config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "checkpoints": {
+      "0": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/checkpoints/seed0-correct_candidate.pt",
+        "sha256": "91776b5e5d525b4db9e124fe4fbf97a7b9d079e4ffc8941e155ab2754f36ca07",
+        "role_result_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/role-results/seed0-correct_candidate.json",
+        "role_result_sha256": "68f77a67d54b90deeb7677d3071241852519ee39c51eeae407e6981e92f1ecc2"
+      },
+      "1": {
+        "path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/checkpoints/seed1-correct_candidate.pt",
+        "sha256": "ce4613b1a6e2c36b54d557fa21e0e472a56fbd7062c650d024274875116e99e9",
+        "role_result_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/role-results/seed1-correct_candidate.json",
+        "role_result_sha256": "e4ead2c6973a41cb89a480e5b00ae397df85dd0168e736d38b0622160a37dfb5"
+      }
+    }
+  },
+  "ciphers": ["gift64", "skinny64", "rectangle80", "uknit64", "dialga128"],
+  "source_ciphers": ["gift64", "skinny64", "rectangle80", "uknit64"],
+  "holdout_cipher": "dialga128",
+  "controls": [
+    "exact",
+    "broadcast_gift64",
+    "broadcast_skinny64",
+    "broadcast_rectangle80",
+    "broadcast_uknit64_reference",
+    "broadcast_dialga128",
+    "identity",
+    "input_permuted",
+    "zero_descriptor"
+  ],
+  "evaluation": {
+    "seeds": [0, 1],
+    "validation_samples_per_class": 1024,
+    "pairs_per_sample": 4,
+    "negative_mode": "encrypted_random_plaintexts",
+    "batch_size": 256,
+    "device": "cpu",
+    "relation_mode": "true",
+    "parameter_count": 442466,
+    "training_performed": false,
+    "optimizer_steps": 0
+  },
+  "gate": {
+    "probability_delta_floor": 0.000001,
+    "auc_margin": 0.005,
+    "required_seeds": [0, 1],
+    "expected_rows": 90
+  }
+}

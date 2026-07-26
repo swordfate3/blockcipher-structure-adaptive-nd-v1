@@ -45,6 +45,59 @@ of plan compatibility.
 
 ---
 
+## [LRN-20260726-001] best_practice
+
+**Logged**: 2026-07-26T11:42:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A structure descriptor changing neural outputs does not prove that the model
+identifies or uses the descriptor's correct cryptographic semantics.
+
+### Details
+
+The frozen-checkpoint Runtime-SPN S1 audit changed only the per-cell S-box
+truth-table tensor while preserving checkpoints, validation rows, labels,
+cell membership and exact GF(2) topology. All ten seed/cipher pairs were
+responsive, with maximum per-example probability changes from `0.1124` to
+`0.2919`. Correct S-boxes nevertheless failed to dominate foreign, identity,
+input-permuted and zero controls. On unseen Dialga, a broadcast RECTANGLE
+S-box exceeded the correct S-box by `0.062308/0.021152` AUC across the two
+seeds. The current truth-table MLP and edge gate therefore use the descriptor
+as an unconstrained conditioning signal, not as an identifiable Boolean
+operator.
+
+### Suggested Action
+
+For every learned structure-conditioning path, require separate responsiveness
+and semantic-identifiability gates. Freeze weights and data, replace only the
+descriptor, and require the correct descriptor to beat valid wrong,
+input-permuted and no-descriptor controls across seeds. When it does not, stop
+mechanical scale-up and replace free descriptor conditioning with an explicit
+local operator whose computation changes according to the supplied primitive.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_audit
+- Related Files: docs/experiments/innovation1-runtime-spn-sbox-identifiability-s1-plan.md, src/blockcipher_nd/tasks/innovation1/runtime_spn_sbox_identifiability.py, src/blockcipher_nd/models/structure/spn/runtime_parameterized.py
+- Tags: innovation1, runtime-spn, sbox, identifiability, descriptor-conditioning, controls
+- See Also: LRN-20260722-004, ERR-20260726-001
+- Pattern-Key: research.structure_descriptor.response_requires_semantic_identifiability
+- Recurrence-Count: 1
+- First-Seen: 2026-07-26
+- Last-Seen: 2026-07-26
+
+### Resolution
+
+- **Resolved**: 2026-07-26T11:42:00+08:00
+- **Commit/PR**: pending
+- **Notes**: S1 completed 90 frozen inference rows with 12/12 protocol checks and closed the unconstrained S-box truth-table gating path.
+
+---
+
 ## [LRN-20260723-002] correction
 
 **Logged**: 2026-07-23T12:16:20+08:00
