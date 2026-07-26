@@ -98,6 +98,63 @@ local operator whose computation changes according to the supplied primitive.
 
 ---
 
+## [LRN-20260726-002] correction
+
+**Logged**: 2026-07-26T22:56:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A structure-representation feasibility audit must use the exact runtime window
+planned for neural training, and cyclic operator powers must not be described
+as literal earlier-round cipher states.
+
+### Details
+
+Runtime-SPN C4 showed that the `0,1,2,4,8` inverse-GF(2) orbit was non-collapsed
+on broad descriptor windows: all ten uKNIT transitions and a four-transition
+Dialga cycle. The completed joint Runtime-E4 protocols actually load only two
+transitions per cipher, using uKNIT start `3` and Dialga start `2`. Treating the
+broad C4 pass as direct readiness for a two-transition C5 would therefore mix
+two representation protocols.
+
+C4-P repeated the zero-training audit on the exact intended two-transition
+windows and passed. Because depths four and eight cycle through those loaded
+matrices, they are periodic topology-operator powers, useful as graph-scale
+views, but are not physical states recovered four or eight encryption rounds
+earlier.
+
+### Suggested Action
+
+Before training a structure-conditioned representation, freeze and audit the
+same descriptor paths, window starts, window lengths, traversal rule and
+semantic label that training will consume. If traversal cycles beyond the
+loaded window, call the outputs periodic operator powers and use
+repeat-last/rotated-window controls for heterogeneous schedules. Require a
+separate causal/full-window experiment before claiming complete round-schedule
+consumption or partial decryption.
+
+### Metadata
+
+- Source: protocol_audit, verified_local_experiment
+- Related Files: docs/experiments/innovation1-runtime-spn-multiscale-orbit-protocol-alignment-c4p-plan.md, src/blockcipher_nd/tasks/innovation1/runtime_spn_multiscale_orbit_alignment.py
+- Tags: innovation1, runtime-spn, orbit, runtime-window, protocol-alignment, claim-boundary
+- See Also: LRN-20260725-001
+- Pattern-Key: research.runtime_spn.representation_window_must_match_training_protocol
+- Recurrence-Count: 1
+- First-Seen: 2026-07-26
+- Last-Seen: 2026-07-26
+
+### Resolution
+
+- **Resolved**: 2026-07-26T22:56:00+08:00
+- **Commit/PR**: pending
+- **Notes**: Added and passed C4-P on the exact two-transition joint-protocol windows; frozen wording distinguishes periodic topology powers from literal inverse-round states.
+
+---
+
 ## [LRN-20260723-002] correction
 
 **Logged**: 2026-07-23T12:16:20+08:00

@@ -139,25 +139,88 @@ def run_multiscale_orbit_audit(
     *,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    panel = build_structure_panel(config)
+    return run_multiscale_orbit_panel_audit(
+        panel=build_structure_panel(config),
+        config=config,
+        run_id=RUN_ID,
+        decisions={
+            "invalid": "innovation1_runtime_spn_multiscale_orbit_basis_invalid",
+            "pass": "innovation1_runtime_spn_multiscale_orbit_basis_feasible",
+            "hold": "innovation1_runtime_spn_multiscale_orbit_basis_not_ready",
+        },
+        next_actions={
+            "invalid": "repair only failed C4 protocol invariants and rerun",
+            "pass": (
+                "after C3 completes, preregister C5 same-budget local neural "
+                "diagnostic; C4 alone does not authorize training"
+            ),
+            "hold": (
+                "close the fixed multiscale orbit basis and keep C3 as the only "
+                "active training route; do not tune C4 after result reveal"
+            ),
+        },
+        claim_scope=(
+            "zero-training exact-operator representation feasibility only; not "
+            "differential signal, neural learnability, unseen-cipher transfer, "
+            "nonlinear composability, attack, SOTA or breakthrough evidence"
+        ),
+        blocked_actions=[
+            "implement or train C5 before C3 completion and a separate plan",
+            "change C4 depths, controls, metrics, seeds or thresholds after reveal",
+            "treat six known structures as an unseen-cipher result",
+            "modify or duplicate the running C3 protocol",
+        ],
+        progress_callback=progress_callback,
+    )
+
+
+def run_multiscale_orbit_panel_audit(
+    *,
+    panel: Mapping[str, RuntimeSpnStructure],
+    config: Mapping[str, Any],
+    run_id: str,
+    decisions: Mapping[str, str],
+    next_actions: Mapping[str, str],
+    claim_scope: str,
+    blocked_actions: Sequence[str],
+    progress_callback: ProgressCallback | None = None,
+    row_metadata: Mapping[str, Mapping[str, Any]] | None = None,
+    extra_protocol_checks: Mapping[str, bool] | None = None,
+) -> dict[str, Any]:
+    expected_states = {"invalid", "pass", "hold"}
+    if set(decisions) != expected_states or set(next_actions) != expected_states:
+        raise ValueError("multiscale orbit decisions must define invalid/pass/hold")
+    if not run_id:
+        raise ValueError("multiscale orbit run_id must be non-empty")
+    expected_ciphers = set(config["structures"])
+    if set(panel) != expected_ciphers:
+        raise ValueError("multiscale orbit panel does not match configured structures")
+    metadata = row_metadata or {}
+    if set(metadata) - expected_ciphers:
+        raise ValueError("multiscale orbit row metadata contains unknown ciphers")
     results = _build_result_rows(
         panel,
         config=config,
         progress_callback=progress_callback,
+        run_id=run_id,
+        row_metadata=metadata,
     )
     repeated_results = _build_result_rows(
         panel,
         config=config,
         progress_callback=None,
+        run_id=run_id,
+        row_metadata=metadata,
     )
     manifest_hash = _manifest_sha256(results)
     repeated_manifest_hash = _manifest_sha256(repeated_results)
     required_heterogeneous = set(config["gates"]["required_heterogeneous_ciphers"])
 
     protocol_checks = {
+        **dict(extra_protocol_checks or {}),
         "six_frozen_structures": (
             len(results) == int(config["gates"]["required_cipher_count"])
-            and {row["cipher"] for row in results} == set(_EXPECTED_STRUCTURES)
+            and {row["cipher"] for row in results} == expected_ciphers
         ),
         "depth_zero_identity": all(row["depth_zero_identity"] for row in results),
         "all_views_binary_and_full_rank": all(
@@ -187,7 +250,7 @@ def run_multiscale_orbit_audit(
     }
     errors = [name for name, passed in protocol_checks.items() if passed is not True]
     validation = {
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "status": "pass" if not errors else "fail",
         "checks": protocol_checks,
         "errors": errors,
@@ -234,25 +297,19 @@ def run_multiscale_orbit_audit(
     research_passed = all(research_checks.values())
     if validation["status"] != "pass":
         status = "invalid"
-        decision = "innovation1_runtime_spn_multiscale_orbit_basis_invalid"
-        next_action = "repair only failed C4 protocol invariants and rerun"
+        decision = decisions[status]
+        next_action = next_actions[status]
     elif research_passed:
         status = "pass"
-        decision = "innovation1_runtime_spn_multiscale_orbit_basis_feasible"
-        next_action = (
-            "after C3 completes, preregister C5 same-budget local neural diagnostic; "
-            "C4 alone does not authorize training"
-        )
+        decision = decisions[status]
+        next_action = next_actions[status]
     else:
         status = "hold"
-        decision = "innovation1_runtime_spn_multiscale_orbit_basis_not_ready"
-        next_action = (
-            "close the fixed multiscale orbit basis and keep C3 as the only active "
-            "training route; do not tune C4 after result reveal"
-        )
+        decision = decisions[status]
+        next_action = next_actions[status]
 
     gate = {
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -280,20 +337,11 @@ def run_multiscale_orbit_audit(
         "optimizer_steps": 0,
         "remote": False,
         "next_action": next_action,
-        "claim_scope": (
-            "zero-training exact-operator representation feasibility only; not "
-            "differential signal, neural learnability, unseen-cipher transfer, "
-            "nonlinear composability, attack, SOTA or breakthrough evidence"
-        ),
-        "blocked_actions": [
-            "implement or train C5 before C3 completion and a separate plan",
-            "change C4 depths, controls, metrics, seeds or thresholds after reveal",
-            "treat six known structures as an unseen-cipher result",
-            "modify or duplicate the running C3 protocol",
-        ],
+        "claim_scope": claim_scope,
+        "blocked_actions": list(blocked_actions),
     }
     summary = {
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "status": status,
         "decision": decision,
         "training_rows": 0,
@@ -325,6 +373,8 @@ def _build_result_rows(
     *,
     config: Mapping[str, Any],
     progress_callback: ProgressCallback | None,
+    run_id: str = RUN_ID,
+    row_metadata: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     depths = tuple(int(value) for value in config["orbit"]["depths"])
     corruption_seed = int(config["orbit"]["corruption_seed"])
@@ -402,7 +452,7 @@ def _build_result_rows(
             _views_binary_and_full_rank(views) for views in control_views
         )
         row = {
-            "run_id": RUN_ID,
+            "run_id": run_id,
             "cipher": cipher,
             "block_bits": structure.block_bits,
             "rounds": structure.rounds,
@@ -439,6 +489,7 @@ def _build_result_rows(
             "heterogeneous_controls_valid": heterogeneous_controls_valid,
             "cell_relabel_equivariant": torch.equal(restored_orbit, exact),
             "metrics_finite": all(math.isfinite(value) for value in distance_values),
+            **dict((row_metadata or {}).get(cipher, {})),
         }
         rows.append(row)
         _emit(
@@ -544,6 +595,7 @@ __all__ = [
     "exact_inverse_orbit",
     "load_and_validate_config",
     "run_multiscale_orbit_audit",
+    "run_multiscale_orbit_panel_audit",
     "support_jaccard_distance",
     "write_audit_artifacts",
 ]
