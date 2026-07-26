@@ -1,10 +1,10 @@
 # Innovation 1 PRESENT Runtime-E4 RTG3-B Formal Seed0 Plan
 
 ```text
-status = local readiness passed / source publication verification hold
+status = remote running / automatic retrieval monitor active
 phase = RTG3-B
-remote_training = not started
-remote_launch = prohibited until readiness and exact source publication pass
+remote_training = started and bounded-confirmed
+remote_launch_source = 233b2e2986578bb66bb95055f380a3ed21cbff1d
 ```
 
 ## Research Question
@@ -135,42 +135,52 @@ Before any SSH contact, require:
 8. the local launch gate says `should_ssh=true`, `ssh_allowed=true` and
    `launch_authorized=true`.
 
-The current GitHub live-SHA verification is temporarily unavailable. That
-state must hold launch even when an earlier normal push command reported
-success.
+If GitHub live-SHA verification is unavailable, the gate must hold launch even
+when a normal push command reports success. RTG3-B advanced only after a later
+live query returned the exact source commit.
 
-## Local Readiness Result
+## Launch Result
 
 The completed launch gate is indexed as recent result `001`:
 
 ```text
 run_id = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726
-source_commit = b46afd0eaf40e007c70a3c4d2663b9c0c3818a45
-status = hold
-decision = innovation1_rtg3b_present_seed0_source_not_live_verified
+source_commit = 233b2e2986578bb66bb95055f380a3ed21cbff1d
+status = pass
+decision = innovation1_rtg3b_present_seed0_remote_launch_authorized
 evidence checks = 4/4 pass
 readiness checks = 7/7 pass
-publication checks = 0/2 pass
+publication checks = 2/2 pass
 should_ssh = true
-ssh_allowed = false
-launch_authorized = false
-live_remote_sha = null
-remote_training = not started
+ssh_allowed = true
+launch_authorized = true
+live_remote_sha = 233b2e2986578bb66bb95055f380a3ed21cbff1d
+remote_launcher_returned = 2026-07-26T14:18:19+08:00
+bounded_start_confirmation = pass at 2026-07-26T14:18:39+08:00
+remote_training = running
+tmux_session = i1_rtg3b_present80_formal_seed0_monitor
 ```
 
-The normal `git push origin main` command reported success for
-`b46afd0eaf40e007c70a3c4d2663b9c0c3818a45`. An immediate live query and one
-bounded eight-attempt push-recovery process then failed with classified
-`transient_network` errors. Publication is therefore uncertain rather than
-verified. The only authorized next action is to rerun the same launch gate
-after GitHub connectivity returns. No SSH, alternate remote, source overlay,
-protocol change or new training run is allowed while this gate remains held.
+The first source-publication attempt for `b46afd0e` was temporarily unverifiable
+after eight classified `transient_network` failures. The scoped status commit
+`233b2e29` then pushed normally, a live query matched its exact SHA, and the
+full fail-closed gate passed before any SSH contact. The remote launcher and
+run-owned clean clone both checked out that exact commit under `G:\lxy`.
+
+The local tmux monitor received the remote started marker after eight bounded
+checks. It now owns log synchronization, result-branch detection, archive
+retrieval, Linux-side SHA-256 verification, local result validation,
+same-protocol re-adjudication and recent-result indexing. The main workflow
+must not SSH-poll the running job. No AUC or research conclusion exists until
+the complete result is retrieved and locally verified.
 
 Local evidence:
 
 ```text
 outputs/local_readiness/
   i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726/
+outputs/remote_results_incomplete/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726_monitor/
 ```
 
 ## Research Gate
