@@ -3,7 +3,7 @@
 Date: 2026-07-26
 
 ```text
-status = readiness passed / local diagnostic authorized
+status = completed / hold
 execution = local CPU sub-medium mechanism gate
 remote_scale = no
 ```
@@ -219,6 +219,56 @@ After a completed run, invoke `visual-qa-redraw`, refresh both recent-result
 indexes, update this record with metrics and an evidence-backed next action,
 then make a scoped commit and push.
 
+## Completed Diagnostic
+
+The preregistered two-seed diagnostic completed at:
+
+```text
+run_id = i1_runtime_spn_sbox_anf_operator_s2_2048_seed0_seed1_20260726
+result rows = 40/40
+history rows = 20/20
+protocol_valid = true
+target training rows = 0
+target optimizer steps = 0
+status = hold
+decision = innovation1_runtime_spn_sbox_anf_operator_not_supported
+```
+
+The candidate remained numerically responsive to the supplied Boolean
+operator, but the correct operator did not achieve semantic identifiability.
+The four-source macro AUCs and same-checkpoint margins were:
+
+| Seed | Correct ANF | Input-permuted | Identity | A8 anchor | Correct - permuted | Correct - identity | Correct - A8 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.561917305 | 0.560489297 | 0.560117602 | 0.575356722 | +0.001428008 | +0.001799703 | -0.013439417 |
+| 1 | 0.548926353 | 0.549696326 | 0.548798919 | 0.548085093 | -0.000769973 | +0.000127435 | +0.000841260 |
+
+The whole-cipher Dialga holdout results were:
+
+| Seed | Correct ANF | Input-permuted | Identity | A8 anchor | Correct - permuted | Correct - identity | Correct - A8 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.865126133 | 0.865277767 | 0.863101006 | 0.834955215 | -0.000151634 | +0.002025127 | +0.030170918 |
+| 1 | 0.818263531 | 0.819079876 | 0.817661285 | 0.848253727 | -0.000816346 | +0.000602245 | -0.029990196 |
+
+Dialga maximum probability changes under the input-permuted and identity
+operators were respectively `0.010865092/0.032540739` for seed 0 and
+`0.011311352/0.015547752` for seed 1. The operator is therefore active rather
+than a dead branch. Nevertheless, both seeds placed the input-permuted Dialga
+operator slightly above the correct operator, and neither seed met the frozen
+`+0.005` semantic margins on sources or holdout. Seed 0 also missed source
+anchor retention, while seed 1 missed Dialga anchor retention.
+
+This is a local `2048/class/source` mechanism diagnostic. It is not formal
+scale, a general SPN ceiling, an attack result, SOTA evidence or a breakthrough
+claim. The evidence rejects only this exact cell-local ANF residual hypothesis.
+Increasing samples, epochs or ciphertext pairs would not resolve the observed
+same-checkpoint semantic-control failure.
+
+The rendered SVG was inspected at 1800 px and 1280 px widths through the
+`visual-qa-redraw` workflow. The final rendering has no overlapping or clipped
+text, ambiguous labels, hidden legends or insufficient separation of the
+near-tied controls; the lower panels plot the control margins directly.
+
 ## Blocked Routes
 
 Regardless of result, do not revive dense DDT input, U2 inverse-triplet,
@@ -230,7 +280,9 @@ confirmation against the same Runtime-E4 anchor and controls.
 
 ## Evidence-Backed Next Action
 
-Implement the readiness gate and exact ANF contribution operator, then execute
-the frozen local two-seed candidate. Advance only on a complete two-seed pass;
-otherwise preserve the already supported exact-GF(2) topology contribution and
-stop relabeling failed S-box conditioning variants as new methods.
+Close S-box conditioning and retain the already supported exact-GF(2) topology
+contribution. Do not remotely scale or tune the ANF operator, and do not revive
+dense DDT, inverse-triplet, dual-view, delta-U query, S-box-specific expert,
+target-supervision or MoE rescue variants. The next Innovation 1 experiment
+must change a different, preregistered structure hypothesis while keeping this
+negative S-box result and its same-checkpoint controls intact.

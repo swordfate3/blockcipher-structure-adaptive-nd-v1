@@ -694,46 +694,132 @@ def render_sbox_anf_operator_svg(gate: dict[str, Any], output: Path) -> None:
         fig, axes = plt.subplots(2, 2, figsize=(14.5, 9.2))
         for column, seed in enumerate(EXPECTED_SEEDS):
             item = gate["per_seed"][str(seed)]
-            panels = (
-                (
-                    axes[0, column],
-                    item["source_macro_auc"],
-                    f"seed{seed}：四个训练来源的平均 AUC",
-                ),
-                (
-                    axes[1, column],
-                    item["dialga_auc"],
-                    f"seed{seed}：未参与训练的 Dialga AUC",
-                ),
+            source_values = item["source_macro_auc"]
+            source_axis = axes[0, column]
+            y = np.arange(len(modes))
+            bars = source_axis.barh(
+                y,
+                [source_values[mode] for mode in modes],
+                color=[colors[mode] for mode in modes],
+                height=0.62,
             )
-            for axis, values, title in panels:
-                y = np.arange(len(modes))
-                bars = axis.barh(
-                    y,
-                    [values[mode] for mode in modes],
-                    color=[colors[mode] for mode in modes],
-                    height=0.62,
+            source_axis.axvline(
+                0.5,
+                color="#475569",
+                linewidth=1.1,
+                linestyle="--",
+            )
+            source_axis.set_yticks(y, [CONTROL_LABELS[mode] for mode in modes])
+            source_axis.invert_yaxis()
+            source_axis.set_title(
+                f"seed{seed}：四个训练来源的平均 AUC",
+                fontsize=12,
+            )
+            source_axis.set_xlabel("AUC（绝对性能）")
+            source_axis.grid(axis="x", color="#E5E7EB", linewidth=0.8)
+            source_axis.set_axisbelow(True)
+            for bar, mode in zip(bars, modes, strict=True):
+                value = float(source_values[mode])
+                source_axis.text(
+                    value + 0.002,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{value:.4f}",
+                    va="center",
+                    fontsize=9,
                 )
-                axis.axvline(0.5, color="#475569", linewidth=1.1, linestyle="--")
-                axis.set_yticks(y, [CONTROL_LABELS[mode] for mode in modes])
-                axis.invert_yaxis()
-                axis.set_title(title, fontsize=12)
-                axis.set_xlabel("AUC（越高越好）")
-                axis.grid(axis="x", color="#E5E7EB", linewidth=0.8)
-                axis.set_axisbelow(True)
-                for bar, mode in zip(bars, modes, strict=True):
-                    value = float(values[mode])
-                    axis.text(
-                        value + 0.002,
-                        bar.get_y() + bar.get_height() / 2,
-                        f"{value:.4f}",
-                        va="center",
-                        fontsize=9,
-                    )
-                panel_values = [float(values[mode]) for mode in modes]
-                axis.set_xlim(
-                    min(0.47, min(panel_values) - 0.025),
-                    max(0.60, max(panel_values) + 0.055),
+            panel_values = [float(source_values[mode]) for mode in modes]
+            source_axis.set_xlim(
+                min(0.47, min(panel_values) - 0.025),
+                max(0.60, max(panel_values) + 0.055),
+            )
+
+            margin_axis = axes[1, column]
+            margin_labels = (
+                "训练来源：正确 - 输入打乱",
+                "训练来源：正确 - 恒等",
+                "训练来源：正确 - A8锚点",
+                "Dialga：正确 - 输入打乱",
+                "Dialga：正确 - 恒等",
+                "Dialga：正确 - A8锚点",
+            )
+            margin_keys = (
+                ("source_margins", "input_permuted"),
+                ("source_margins", "identity"),
+                ("source_margins", "a8_anchor"),
+                ("dialga_margins", "input_permuted"),
+                ("dialga_margins", "identity"),
+                ("dialga_margins", "a8_anchor"),
+            )
+            margin_values = [float(item[group][key]) for group, key in margin_keys]
+            margin_checks = (
+                "source_input_permuted_margin",
+                "source_identity_margin",
+                "source_anchor_retained",
+                "dialga_input_permuted_margin",
+                "dialga_identity_margin",
+                "dialga_anchor_retained",
+            )
+            passed = [bool(item["checks"][name]) for name in margin_checks]
+            margin_y = np.arange(len(margin_labels))
+            margin_bars = margin_axis.barh(
+                margin_y,
+                margin_values,
+                color=["#009E73" if value else "#C0392B" for value in passed],
+                height=0.58,
+            )
+            margin_axis.axvline(0.0, color="#111827", linewidth=1.1)
+            margin_axis.axvline(
+                0.005,
+                color="#0072B2",
+                linewidth=1.1,
+                linestyle="--",
+                label="错误算子语义门 +0.005",
+            )
+            margin_axis.axvline(
+                -0.005,
+                color="#8E44AD",
+                linewidth=1.1,
+                linestyle=":",
+                label="A8保持门 -0.005",
+            )
+            margin_axis.set_yticks(margin_y, margin_labels)
+            margin_axis.invert_yaxis()
+            margin_axis.set_title(
+                f"seed{seed}：放大查看正确算子的优势\n"
+                f"Dialga 正确算子 AUC = {item['dialga_auc']['exact']:.4f}",
+                fontsize=12,
+            )
+            margin_axis.set_xlabel("AUC 差值（正数表示正确算子更好）")
+            margin_axis.grid(axis="x", color="#E5E7EB", linewidth=0.8)
+            margin_axis.set_axisbelow(True)
+            margin_limit = max(
+                0.012,
+                max(abs(value) for value in margin_values) + 0.009,
+            )
+            margin_axis.set_xlim(-margin_limit, margin_limit)
+            for bar, value, is_pass in zip(
+                margin_bars,
+                margin_values,
+                passed,
+                strict=True,
+            ):
+                if value > 0.015:
+                    text_x = value - 0.001
+                    horizontal_alignment = "right"
+                else:
+                    text_x = value + 0.001
+                    horizontal_alignment = "left"
+                margin_axis.text(
+                    text_x,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{value:+.4f}  {'通过' if is_pass else '未过'}",
+                    ha=horizontal_alignment,
+                    va="center",
+                    fontsize=8.5,
+                )
+            if column == 0:
+                margin_legend_handles, margin_legend_labels = (
+                    margin_axis.get_legend_handles_labels()
                 )
         verdict = (
             "通过：正确算子双 seed 同时胜过错误算子"
@@ -748,7 +834,16 @@ def render_sbox_anf_operator_svg(gate: dict[str, Any], output: Path) -> None:
             fontweight="bold",
             y=0.985,
         )
-        fig.tight_layout(rect=(0.03, 0.035, 0.99, 0.87), h_pad=2.4, w_pad=2.8)
+        fig.legend(
+            margin_legend_handles,
+            margin_legend_labels,
+            loc="lower center",
+            ncol=2,
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.012),
+            fontsize=9,
+        )
+        fig.tight_layout(rect=(0.03, 0.085, 0.99, 0.89), h_pad=2.6, w_pad=3.2)
         fig.savefig(output, format="svg", bbox_inches="tight")
         plt.close(fig)
 
