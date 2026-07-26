@@ -26,6 +26,7 @@ from blockcipher_nd.models.structure.spn.runtime_structure import (
     runtime_spn_structure,
 )
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
+    dialga128_runtime_structure,
     gift64_runtime_structure,
     present_runtime_structure,
     rectangle80_runtime_structure,
@@ -458,8 +459,12 @@ def test_runtime_e4_equivariant_backbone_supports_widths_and_general_gf2() -> No
         wide = model(
             _binary((2, 5, 2, 128), 19), _synthetic_128_structure()
         )
+        dialga = model(
+            _binary((2, 4, 2, 128), 190),
+            dialga128_runtime_structure(2, round_start=2),
+        )
 
-    assert gift.shape == skinny.shape == wide.shape == (2, 1)
+    assert gift.shape == skinny.shape == wide.shape == dialga.shape == (2, 1)
     assert state_shapes == {
         name: tuple(value.shape) for name, value in model.state_dict().items()
     }
