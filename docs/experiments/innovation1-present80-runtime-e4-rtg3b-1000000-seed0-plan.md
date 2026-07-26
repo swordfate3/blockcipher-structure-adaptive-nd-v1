@@ -174,6 +174,22 @@ same-protocol re-adjudication and recent-result indexing. The main workflow
 must not SSH-poll the running job. No AUC or research conclusion exists until
 the complete result is retrieved and locally verified.
 
+The identical seed1 replication package is now prepared but remains
+fail-closed and unlaunched. Its successor watcher waits for the complete local
+seed0 evidence, including rendered-pixel visual QA, and then independently
+requires exact seed-only plan equivalence, unchanged protected training paths,
+remote disk-cache readiness and a live `origin/main` SHA equal to the pinned
+source commit. A seed0 hold or protocol failure writes a stopped marker and
+cannot contact the remote.
+
+```text
+seed1 plan = docs/experiments/
+  innovation1-present80-runtime-e4-rtg3b-1000000-seed1-plan.md
+successor watcher = configs/remote/generated/
+  monitor_i1_rtg3b_seed1_after_seed0_20260726.sh
+seed1 tmux = i1_rtg3b_present80_formal_seed1_monitor
+```
+
 Local evidence:
 
 ```text
