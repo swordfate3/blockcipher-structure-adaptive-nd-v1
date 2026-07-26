@@ -32,6 +32,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--seed", required=True, type=int)
+    parser.add_argument("--samples-per-class", type=int, default=2048)
+    parser.add_argument("--phase", choices=("t1", "rtg3b"), default="t1")
+    parser.add_argument("--no-plot", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -39,7 +42,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows = _read_jsonl(args.run_root / "results.jsonl")
     gate = adjudicate_runtime_spn_present_transfer(
-        run_id=args.run_id, rows=rows, expected_seed=args.seed
+        run_id=args.run_id,
+        rows=rows,
+        expected_seed=args.seed,
+        expected_samples_per_class=args.samples_per_class,
+        phase=args.phase,
     )
     validation = {
         "run_id": args.run_id,
@@ -49,11 +56,11 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": "innovation1_runtime_spn_present_transfer_t1",
+        "task": f"innovation1_runtime_spn_present_transfer_{args.phase}",
         "cipher": "PRESENT-80",
         "training_performed": True,
-        "samples_per_class": 2048,
-        "validation_samples_per_class": 1024,
+        "samples_per_class": args.samples_per_class,
+        "validation_samples_per_class": args.samples_per_class // 2,
         "epochs": 5,
         "seed": args.seed,
         "gate": gate,
@@ -62,7 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(args.run_root / "gate.json", gate)
     _write_json(args.run_root / "summary.json", summary)
     _write_history(args.run_root / "history.csv", rows)
-    render_present_transfer_svg(gate, args.run_root / "curves.svg")
+    if not args.no_plot:
+        render_present_transfer_svg(gate, args.run_root / "curves.svg")
     _append_progress(
         args.run_root / "progress.jsonl",
         "gate_done",
@@ -79,8 +87,7 @@ def main(argv: list[str] | None = None) -> int:
 def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
     labels = ("正确P层", "打乱P层", "无P层拓扑")
     values = [
-        float(gate["aucs"][role])
-        for role in ("true", "corrupted", "independent")
+        float(gate["aucs"][role]) for role in ("true", "corrupted", "independent")
     ]
     margins = [
         float(gate["margins"]["true_minus_corrupted"]),
@@ -88,6 +95,8 @@ def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
     ]
     passed = gate["status"] == "pass"
     seed = int(gate["seed"])
+    phase = str(gate.get("phase", "t1"))
+    samples_per_class = int(gate.get("samples_per_class", 2048))
     with plt.rc_context(
         {
             "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
@@ -102,9 +111,15 @@ def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
         }
     ):
         figure, axes = plt.subplots(1, 2, figsize=(14.2, 7.4))
-        figure.subplots_adjust(left=0.075, right=0.97, top=0.72, bottom=0.18, wspace=0.32)
+        figure.subplots_adjust(
+            left=0.075, right=0.97, top=0.72, bottom=0.18, wspace=0.32
+        )
         figure.suptitle(
-            "创新1 RTG1-T1：运行时结构参数化主干迁移到 PRESENT",
+            (
+                "创新1 RTG3-B：PRESENT 一对一 P 层正式规模拓扑归因"
+                if phase == "rtg3b"
+                else "创新1 RTG1-T1：运行时结构参数化主干迁移到 PRESENT"
+            ),
             x=0.075,
             y=0.96,
             ha="left",
@@ -114,16 +129,24 @@ def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
         figure.text(
             0.075,
             0.895,
-            f"seed{seed}；同一主干参数形状，仅从外部替换 PRESENT 的 cell、S盒和 P层；三行预算相同。",
+            f"seed{seed}；{samples_per_class}/class；同一主干参数形状，仅改变外部 P 层拓扑；三行预算相同。",
             ha="left",
             va="top",
             color="#475569",
             fontsize=10.5,
         )
-        if passed and seed == 0:
-            conclusion = "正确 PRESENT 拓扑通过信号门和两种控制门；下一步只做 seed1 原样复验。"
+        if passed and phase == "rtg3b" and seed == 0:
+            conclusion = "正式规模 seed0 通过；下一步只做完全相同的 seed1 复验。"
+        elif passed and phase == "rtg3b":
+            conclusion = "正式规模两颗 seed 均通过；下一步汇总一对一 P 层方法证据。"
+        elif passed and seed == 0:
+            conclusion = (
+                "正确 PRESENT 拓扑通过信号门和两种控制门；下一步只做 seed1 原样复验。"
+            )
         elif passed:
-            conclusion = "PRESENT 两颗 seed 均通过；下一步审计两密码稳定性，不扩大训练规模。"
+            conclusion = (
+                "PRESENT 两颗 seed 均通过；下一步审计两密码稳定性，不扩大训练规模。"
+            )
         else:
             conclusion = "PRESENT 迁移未通过冻结门；停止复验和扩样，保留为诊断结果。"
         figure.text(
@@ -166,7 +189,11 @@ def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
         figure.text(
             0.075,
             0.055,
-            "本图是 PRESENT r7、2048/class 的本地迁移诊断，不是论文规模、SOTA 或 Zhang/Wang 复现。",
+            (
+                "本图是 PRESENT r7 的项目正式规模拓扑归因，不是 Zhang/Wang 复现、SOTA 或通用 SPN 证明。"
+                if phase == "rtg3b"
+                else "本图是 PRESENT r7、2048/class 的本地迁移诊断，不是论文规模、SOTA 或 Zhang/Wang 复现。"
+            ),
             ha="left",
             va="bottom",
             color="#334155",

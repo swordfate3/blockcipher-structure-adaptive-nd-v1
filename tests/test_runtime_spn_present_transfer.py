@@ -8,13 +8,19 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_present_transfer import (
 )
 
 
-def _row(model: str, auc: float, *, seed: int = 0) -> dict:
+def _row(
+    model: str,
+    auc: float,
+    *,
+    seed: int = 0,
+    samples_per_class: int = 2048,
+) -> dict:
     return {
         "model": model,
         "cipher": "PRESENT-80",
         "rounds": 7,
         "seed": seed,
-        "samples_per_class": 2048,
+        "samples_per_class": samples_per_class,
         "dataset_label_mode": "balanced_per_class",
         "pairs_per_sample": 16,
         "feature_encoding": "ciphertext_pair_bits",
@@ -37,8 +43,8 @@ def _row(model: str, auc: float, *, seed: int = 0) -> dict:
             "checkpoint_metric": "val_auc",
             "restore_best_checkpoint": True,
             "selected_checkpoint": "best",
-            "train_rows": 4096,
-            "validation_rows": 2048,
+            "train_rows": 2 * samples_per_class,
+            "validation_rows": samples_per_class,
             "train_dataset_storage": "disk",
             "validation_dataset_storage": "disk",
             "model_options": {
@@ -65,7 +71,9 @@ def test_present_runtime_transfer_passes_signal_and_two_control_gates() -> None:
     )
 
     assert gate["status"] == "pass"
-    assert gate["decision"] == "innovation1_runtime_spn_present_transfer_seed0_supported"
+    assert (
+        gate["decision"] == "innovation1_runtime_spn_present_transfer_seed0_supported"
+    )
     assert all(gate["protocol_checks"].values())
     assert all(gate["research_checks"].values())
 
@@ -81,3 +89,50 @@ def test_present_runtime_transfer_seed1_plot_has_final_next_action(tmp_path) -> 
     assert "seed1" in svg
     assert "PRESENT 两颗 seed 均通过" in svg
     assert "下一步只做 seed1" not in svg
+
+
+def test_present_runtime_formal_gate_scales_only_the_row_contract() -> None:
+    rows = [
+        _row(
+            "present_runtime_e4_equivariant_true",
+            0.66,
+            samples_per_class=1_000_000,
+        ),
+        _row(
+            "present_runtime_e4_equivariant_corrupted",
+            0.60,
+            samples_per_class=1_000_000,
+        ),
+        _row(
+            "present_runtime_e4_equivariant_independent",
+            0.52,
+            samples_per_class=1_000_000,
+        ),
+    ]
+
+    gate = adjudicate_runtime_spn_present_transfer(
+        run_id="formal-unit",
+        rows=rows,
+        expected_seed=0,
+        expected_samples_per_class=1_000_000,
+        phase="rtg3b",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_runtime_spn_present_formal_seed0_supported"
+    assert gate["samples_per_class"] == 1_000_000
+    assert gate["validation_samples_per_class"] == 500_000
+    assert all(gate["protocol_checks"].values())
+
+
+def test_present_runtime_formal_gate_rejects_local_scale_rows() -> None:
+    gate = adjudicate_runtime_spn_present_transfer(
+        run_id="formal-invalid",
+        rows=_rows(),
+        expected_seed=0,
+        expected_samples_per_class=1_000_000,
+        phase="rtg3b",
+    )
+
+    assert gate["status"] == "fail"
+    assert gate["protocol_checks"]["frozen_transfer_scale"] is False
