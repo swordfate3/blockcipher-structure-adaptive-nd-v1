@@ -1,0 +1,89 @@
+{
+  "audit": {
+    "control_margin": 0.005,
+    "optimizer_steps": 0,
+    "remote": false,
+    "training_rows": 0
+  },
+  "evidence": {
+    "dialga_a8": {
+      "expected_run_id": "i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726",
+      "path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/gate.json",
+      "provenance": "local 2048/class/source zero-training whole-cipher holdout",
+      "sha256": "a6857bdfdd71ea1983bce082058e142c08a8afa46e24a01af6558832f32fde91"
+    },
+    "gift_r2g_seed0": {
+      "expected_run_id": "i1_rtg1_gift64_runtime_e4_role_aligned_r2g_2048_seed0",
+      "path": "outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_role_aligned_r2g_2048_seed0/gate.json",
+      "provenance": "local 2048/class repaired one-to-one P-layer diagnostic",
+      "sha256": "34649c8c21be44a8298a726b8dde8c1aa4b59106a54b6399c12f1624ef7c1ce5"
+    },
+    "gift_r2g_seed1": {
+      "expected_run_id": "i1_rtg1_gift64_runtime_e4_role_aligned_r2g_2048_seed1",
+      "path": "outputs/local_diagnostic/i1_rtg1_gift64_runtime_e4_role_aligned_r2g_2048_seed1/gate.json",
+      "provenance": "local 2048/class repaired one-to-one P-layer diagnostic",
+      "sha256": "4a790ac3aacd9a7af5577c442c6600dbdc9e406c16e9c05a0be05d03efb1fc7b"
+    },
+    "present_t1_seed0": {
+      "expected_run_id": "i1_rtg1_present_runtime_e4_transfer_t1_2048_seed0",
+      "path": "outputs/local_diagnostic/i1_rtg1_present_runtime_e4_transfer_t1_2048_seed0/gate.json",
+      "provenance": "local 2048/class one-to-one P-layer diagnostic",
+      "sha256": "397ada6e7733e8bc2c7e83e1f271f099f4c73173ea854102da308290baf244c0"
+    },
+    "present_t1_seed1": {
+      "expected_run_id": "i1_rtg1_present_runtime_e4_transfer_t1_2048_seed1",
+      "path": "outputs/local_diagnostic/i1_rtg1_present_runtime_e4_transfer_t1_2048_seed1/gate.json",
+      "provenance": "local 2048/class one-to-one P-layer diagnostic",
+      "sha256": "5d156152fc65ecfb63866fe3d116cb3c9a39d54979b7d531465453c3a7175d92"
+    },
+    "rectangle_h1": {
+      "expected_run_id": "i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726",
+      "path": "outputs/local_diagnostic/i1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1_20260726/gate.json",
+      "provenance": "local 2048/class/source zero-training whole-cipher holdout",
+      "sha256": "82f432ab430527a589013e945b48eb4f4e46fbbb69d1845444dd9c8a43c5edf2"
+    },
+    "runtime_r0": {
+      "expected_run_id": "i1_rtg1_runtime_parameterized_spn_r0_readiness_seed0_20260723",
+      "path": "outputs/local_readiness/i1_rtg1_runtime_parameterized_spn_r0_readiness_seed0_20260723/gate.json",
+      "provenance": "local zero-training implementation readiness",
+      "sha256": "5f4a8b7fcf656963c152d578fe71aef53053c162082f68541eba5e0dd71a4819"
+    },
+    "sbox_s1": {
+      "expected_run_id": "i1_runtime_spn_sbox_identifiability_s1_20260726",
+      "path": "outputs/local_audit/i1_runtime_spn_sbox_identifiability_s1_20260726/gate.json",
+      "provenance": "local frozen-checkpoint zero-training identifiability audit",
+      "sha256": "e67d3906fe88c85398243ff19293bffa9386ea013213ecf5a4856f429a784ade"
+    },
+    "sbox_s2": {
+      "expected_run_id": "i1_runtime_spn_sbox_anf_operator_s2_2048_seed0_seed1_20260726",
+      "path": "outputs/local_diagnostic/i1_runtime_spn_sbox_anf_operator_s2_2048_seed0_seed1_20260726/gate.json",
+      "provenance": "local 2048/class/source exact-ANF mechanism diagnostic",
+      "sha256": "72bbd250888b2b53a041d2824148e96afad33c58a6daeda14c33adef0b534fbc"
+    },
+    "skinny_rtg3a": {
+      "expected_run_id": "i1_rtg3a_skinny64_general_gf2_formal_1000000_joint_seed0_seed1_20260725",
+      "path": "outputs/remote_results_incomplete/i1_rtg3a_skinny64_general_gf2_formal_1000000_joint_seed0_seed1_20260725/gate.json",
+      "provenance": "fallback-retrieved project-formal 1000000/class two-seed gate",
+      "sha256": "13033004844b85136fb2d6d74e15f0de3e67d7e17429a4eaf1013990288b1d5a"
+    },
+    "skinny_t2a": {
+      "expected_run_id": "i1_rtg1_skinny64_general_gf2_data_readiness_t2a_20260724",
+      "path": "outputs/local_readiness/i1_rtg1_skinny64_general_gf2_data_readiness_t2a_20260724/gate.json",
+      "provenance": "local zero-training genuine general-GF(2) readiness",
+      "sha256": "3ca163414bf7f2ccc7d2330e3b2c6957bd0defc05b48ed039098f7d8db61258c"
+    },
+    "topology_c1": {
+      "expected_run_id": "i1_runtime_spn_topology_only_c1_2048_seed0_seed1_20260726",
+      "path": "outputs/local_diagnostic/i1_runtime_spn_topology_only_c1_2048_seed0_seed1_20260726/gate.json",
+      "provenance": "local 2048/class/source S-box-disabled topology diagnostic",
+      "sha256": "dca3f9e40d85169ce851bb450dba4422b4e10ea0c57a7e42d47474ebf4bb3a42"
+    },
+    "uknit_a6": {
+      "expected_run_id": "i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726",
+      "path": "outputs/local_diagnostic/i1_runtime_spn_uknit_heterogeneous_holdout_a6_2048_seed0_seed1_20260726/gate.json",
+      "provenance": "local 2048/class/source heterogeneous-window holdout",
+      "sha256": "abfeeb4f0f14367f7065dcf916a7db2fcf50381712618b3d0943f89ab6a94e29"
+    }
+  },
+  "run_id": "i1_runtime_spn_method_boundary_c2_20260726"
+}
