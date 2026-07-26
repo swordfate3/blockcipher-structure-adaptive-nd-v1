@@ -44,6 +44,75 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 
 ---
 
+## [ERR-20260727-001] scheduled_immediate_run_retriggered_at_midnight
+
+**Logged**: 2026-07-27T00:28:51+08:00
+**Priority**: critical
+**Status**: resolved
+**Area**: infra
+
+### Summary
+
+An RTG3-B task launched immediately with `schtasks /Run` retained its active
+23:59 one-time trigger, which started a second process against the same formal
+run directory and invalidated the evidence.
+
+### Error
+
+```text
+first instance = still training across midnight
+scheduled trigger = 2026-07-26 23:59:00
+duplicate PID = 21084, created 2026-07-26 23:59:08
+shared results.jsonl = truncated from 3 validated rows to 0 rows
+shared progress.jsonl = restarted
+post-training gate = ModuleNotFoundError: No module named 'blockcipher_nd'
+```
+
+### Context
+
+- Run id: `i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726`.
+- The launcher used `/SC ONCE /ST 23:59` followed by immediate `/Run`, but did
+  not disable the future trigger.
+- Both instances shared progress, results, checkpoints and logs without an
+  atomic single-writer lock.
+- The first instance's three-row validation passed, but no immutable archive
+  was created because the gate wrapper could not import the `src` package.
+- The raw AUC snapshot is diagnostic only; C3 must be rerun unchanged under a
+  new run id.
+
+### Suggested Fix
+
+Immediately disable a one-time scheduled task after successful manual `/Run`,
+then require bounded started-marker confirmation. Acquire an atomic run-owned
+directory lock before creating or touching logs, results or checkpoints, and
+fail closed when prior started evidence exists. Give protocol repairs a new
+run id. Set `PYTHONPATH` explicitly for thin Python wrappers that import from
+`src`, and add generated-text regression tests for both seeds.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: configs/remote/generated/launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd, configs/remote/generated/run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd, tests/test_runtime_spn_present_rtg3b_launch.py
+- See Also: ERR-20260715-005, ERR-20260714-002
+- Pattern-Key: remote.scheduler.immediate_run_must_disable_future_trigger
+- Recurrence-Count: 1
+- First-Seen: 2026-07-27
+- Last-Seen: 2026-07-27
+
+### Resolution
+
+- **Resolved**: 2026-07-27T02:35:00+08:00
+- **Commit/PR**: pending scoped commit
+- **Notes**: Added atomic run locks, existing-evidence guards, immediate schedule
+  disabling with fail-closed cleanup, explicit `PYTHONPATH`, independent retry
+  run roots and generated-text regression coverage for both seeds. The focused
+  launcher suite passed `10/10`, the project-structure suite passed `456/456`,
+  Ruff passed and `git diff --check` passed. A single bounded remote start
+  confirmation remains an experiment-launch gate, not part of the local code
+  repair claim.
+
+---
+
 ## [ERR-20260721-002] windows_schtasks_tr_path_limit
 
 **Logged**: 2026-07-21T23:12:00+08:00

@@ -1,10 +1,10 @@
 # Innovation 1 PRESENT Runtime-E4 RTG3-B Formal Seed1 Plan
 
 ```text
-status       = prepared / conditional / not launched
-run_id       = i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726
+status       = retry1 prepared / conditional / not launched
+run_id       = i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727
 execution    = remote lxy-a6000 GPU0 only after the seed0 publication gate passes
-dependency   = complete locally verified RTG3-B seed0 formal pass
+dependency   = complete locally verified RTG3-B retry1 seed0 formal pass
 one variable = seed 0 -> 1
 ```
 
@@ -18,6 +18,13 @@ contact the remote workstation until seed0 is retrieved from its verified
 result branch and passes local result validation, the frozen research gate and
 rendered-pixel visual QA. A local successor watcher waits only on those local
 artifacts. A seed0 hold or protocol failure stops the successor.
+
+The original seed1 package was never launched: its successor correctly stopped
+when the original seed0 monitor emitted `remote_failed.marker`. Retry1 retains
+the same seed-only research change but uses an independent run root, an atomic
+single-writer lock, an existing-evidence overwrite guard, immediate disabling
+of the future schedule trigger and explicit `PYTHONPATH` for the gate CLI.
+These are execution-protocol repairs, not model or benchmark changes.
 
 ## Same-Budget Anchor And One Variable
 
@@ -117,7 +124,7 @@ correct-S-box proof, unseen-cipher transfer result, or universal-SPN evidence.
 
 ```text
 G:\lxy\blockcipher-structure-adaptive-nd-runs\
-  i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726\
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727\
     cache\
     checkpoints\
     logs\progress.jsonl

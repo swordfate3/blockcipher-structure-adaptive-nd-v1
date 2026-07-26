@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 
 
-RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726"
-REMOTE_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726"
+RUN_ID = (
+    "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_launch_gate_20260727"
+)
+REMOTE_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727"
 C2_RUN_ID = "i1_runtime_spn_method_boundary_c2_20260726"
 C2_DECISION = "innovation1_runtime_spn_method_boundary_frozen"
 BASE_PLAN = Path(
@@ -22,7 +24,7 @@ FORMAL_PLAN = Path(
 )
 REMOTE_CONFIG = Path(
     "configs/remote/"
-    "innovation1_rtg3b_present80_one_to_one_formal_1000000_seed0_gpu0_20260726.json"
+    "innovation1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_gpu0_20260727.json"
 )
 REQUIRED_SOURCE_ASSETS = (
     FORMAL_PLAN,
@@ -32,15 +34,15 @@ REQUIRED_SOURCE_ASSETS = (
     ),
     Path(
         "configs/remote/generated/"
-        "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd"
+        "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd"
     ),
     Path(
         "configs/remote/generated/"
-        "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd"
+        "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd"
     ),
     Path(
         "configs/remote/generated/"
-        "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.sh"
+        "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.sh"
     ),
     Path("scripts/check-runtime-spn-present-rtg3b-launch"),
     Path("scripts/gate-runtime-spn-present-transfer"),

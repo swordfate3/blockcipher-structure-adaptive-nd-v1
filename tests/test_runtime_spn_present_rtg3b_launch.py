@@ -79,15 +79,15 @@ def test_rtg3b_generated_scripts_preserve_remote_path_and_cache_policy() -> None
     generated = ROOT / "configs/remote/generated"
     run_script = (
         generated
-        / "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd"
+        / "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd"
     ).read_text(encoding="utf-8")
     launch_script = (
         generated
-        / "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd"
+        / "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd"
     ).read_text(encoding="utf-8")
     monitor_script = (
         generated
-        / "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.sh"
+        / "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.sh"
     ).read_text(encoding="utf-8")
 
     assert "--dataset-cache-root" in run_script
@@ -95,12 +95,63 @@ def test_rtg3b_generated_scripts_preserve_remote_path_and_cache_policy() -> None
     assert "--progress-output" in run_script
     assert "--samples-per-class 1000000" in run_script
     assert "--phase rtg3b" in run_script
+    assert (
+        "set REMOTE_CONFIG=configs\\remote\\"
+        "innovation1_rtg3b_present80_one_to_one_formal_1000000_"
+        "seed0_retry1_gpu0_20260727.json"
+    ) in run_script
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in run_script
+    assert "set RUN_LOCK=%RUN_ROOT%\\run.lock" in run_script
+    assert '2> nul mkdir "%RUN_LOCK%" || goto duplicate_instance' in run_script
+    assert "goto existing_run_evidence" in run_script
+    assert "_cache_reuse_audit.txt" in run_script
+    assert "_cache_reuse_audit_stderr.txt" in run_script
+    assert "seed0_20260726\\cache" in run_script
     assert "cmd.exe /c" in launch_script
     assert "cmd.exe /k" not in launch_script
+    assert 'schtasks /Change /TN "%TASK_NAME%" /DISABLE' in launch_script
+    assert "_schedule_disabled.marker" in launch_script
+    assert ":schedule_disable_failed" in launch_script
+    assert 'schtasks /End /TN "%TASK_NAME%"' in launch_script
+    assert 'schtasks /Delete /TN "%TASK_NAME%" /F' in launch_script
+    assert launch_script.index("schtasks /Run") < launch_script.index(
+        "schtasks /Change"
+    )
     assert "cmd.exe /k" not in monitor_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launch_script
     assert "live_remote_sha" in monitor_script
+    assert "_schedule_disabled.marker" in monitor_script
+    assert "run.lock\\\\NUL" in monitor_script
+
+
+def test_all_rtg3b_batch_assets_fail_closed_against_duplicate_writers() -> None:
+    generated = ROOT / "configs/remote/generated"
+    run_paths = sorted(generated.glob("run_i1_rtg3b_present80_*.cmd"))
+    launch_paths = sorted(generated.glob("launch_i1_rtg3b_present80_*.cmd"))
+
+    assert len(run_paths) == 4
+    assert len(launch_paths) == 4
+    for path in run_paths:
+        text = path.read_text(encoding="utf-8")
+        assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in text
+        assert "set RUN_LOCK=%RUN_ROOT%\\run.lock" in text
+        assert '2> nul mkdir "%RUN_LOCK%" || goto duplicate_instance' in text
+        assert text.index('mkdir "%RUN_LOCK%"') < text.index(
+            'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"'
+        )
+        assert "goto existing_run_evidence" in text
+    for path in launch_paths:
+        text = path.read_text(encoding="utf-8")
+        assert "cmd.exe /c" in text
+        assert "cmd.exe /k" not in text
+        assert 'schtasks /Change /TN "%TASK_NAME%" /DISABLE' in text
+        assert "_schedule_disabled.marker" in text
+        assert ":schedule_disable_failed" in text
+        assert 'schtasks /End /TN "%TASK_NAME%"' in text
+        assert 'schtasks /Delete /TN "%TASK_NAME%" /F' in text
+        assert text.index("schtasks /Run") < text.index("schtasks /Change")
+        assert text.index("schtasks /Change") < text.index("schtasks /Query")
 
 
 def test_rtg3b_launch_requires_exact_live_remote_sha() -> None:

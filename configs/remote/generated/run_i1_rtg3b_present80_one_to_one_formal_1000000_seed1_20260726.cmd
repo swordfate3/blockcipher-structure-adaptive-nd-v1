@@ -12,6 +12,7 @@ set LOG_DIR=%RUN_ROOT%\logs
 set RESULTS_DIR=%RUN_ROOT%\results
 set CHECKPOINT_DIR=%RUN_ROOT%\checkpoints
 set CACHE_ROOT=%RUN_ROOT%\cache
+set RUN_LOCK=%RUN_ROOT%\run.lock
 set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
 set PLAN=configs\experiment\innovation1\innovation1_spn_present80_runtime_e4_formal_rtg3b_1000000_seed1.csv
 set REMOTE_CONFIG=configs\remote\innovation1_rtg3b_present80_one_to_one_formal_1000000_seed1_gpu0_20260726.json
@@ -20,8 +21,11 @@ set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 set CUDA_VISIBLE_DEVICES=%PHYSICAL_GPU%
 set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+set PYTHONPATH=%SOURCE_ROOT%\src
 
 if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
+2> nul mkdir "%RUN_LOCK%" || goto duplicate_instance
+if exist "%LOG_DIR%\%RUN_ID%_started.marker" goto existing_run_evidence
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 if not exist "%RESULTS_DIR%" mkdir "%RESULTS_DIR%"
 if not exist "%CHECKPOINT_DIR%" mkdir "%CHECKPOINT_DIR%"
@@ -135,6 +139,12 @@ exit /b 4
 
 :invalid_arguments
 exit /b 5
+
+:duplicate_instance
+exit /b 10
+
+:existing_run_evidence
+exit /b 11
 
 :failed
 echo failed>"%LOG_DIR%\%RUN_ID%_failed.marker"

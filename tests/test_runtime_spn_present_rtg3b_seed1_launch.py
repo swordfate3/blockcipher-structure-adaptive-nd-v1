@@ -110,12 +110,22 @@ def test_seed1_plan_changes_only_seed_and_descriptive_identity() -> None:
 
 def test_seed1_remote_package_is_disk_backed_and_complete() -> None:
     report = remote_readiness_report(ROOT / SEED1_REMOTE_CONFIG)
+    run_script = (
+        ROOT / "configs/remote/generated/"
+        "run_i1_rtg3b_present80_one_to_one_formal_1000000_"
+        "seed1_retry1_20260727.cmd"
+    ).read_text(encoding="utf-8")
 
     assert report["status"] == "pass"
     assert report["errors"] == []
     assert report["plan_rows"] == 3
     assert report["max_samples_per_class"] == 1_000_000
     assert all((ROOT / path).is_file() for path in REQUIRED_SOURCE_ASSETS)
+    assert (
+        "set REMOTE_CONFIG=configs\\remote\\"
+        "innovation1_rtg3b_present80_one_to_one_formal_1000000_"
+        "seed1_retry1_gpu0_20260727.json"
+    ) in run_script
 
 
 def test_seed1_launch_requires_complete_seed0_and_exact_live_sha() -> None:
@@ -139,18 +149,18 @@ def test_seed1_generated_scripts_preserve_remote_and_control_policy() -> None:
     generated = ROOT / "configs/remote/generated"
     run_script = (
         generated
-        / "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.cmd"
+        / "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.cmd"
     ).read_text(encoding="utf-8")
     launch_script = (
         generated
-        / "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.cmd"
+        / "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.cmd"
     ).read_text(encoding="utf-8")
     monitor_script = (
         generated
-        / "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.sh"
+        / "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.sh"
     ).read_text(encoding="utf-8")
     successor_script = (
-        generated / "monitor_i1_rtg3b_seed1_after_seed0_20260726.sh"
+        generated / "monitor_i1_rtg3b_seed1_after_seed0_retry1_20260727.sh"
     ).read_text(encoding="utf-8")
 
     assert "--dataset-cache-root" in run_script
@@ -158,10 +168,15 @@ def test_seed1_generated_scripts_preserve_remote_and_control_policy() -> None:
     assert "--seed 1" in run_script
     assert "--samples-per-class 1000000" in run_script
     assert "--phase rtg3b" in run_script
+    assert "set PYTHONPATH=%SOURCE_ROOT%\\src" in run_script
+    assert "set RUN_LOCK=%RUN_ROOT%\\run.lock" in run_script
     assert "cmd.exe /c" in launch_script
     assert "cmd.exe /k" not in launch_script
+    assert 'schtasks /Change /TN "%TASK_NAME%" /DISABLE' in launch_script
     assert "cmd.exe /k" not in monitor_script
     assert "cmd.exe /k" not in successor_script
+    assert "_schedule_disabled.marker" in monitor_script
+    assert "run.lock\\\\NUL" in monitor_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run_script
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launch_script
     assert "innovation1_runtime_spn_present_formal_seed0_supported" in launch_script

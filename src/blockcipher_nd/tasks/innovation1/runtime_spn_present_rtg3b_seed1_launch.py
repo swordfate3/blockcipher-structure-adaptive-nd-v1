@@ -9,9 +9,11 @@ from pathlib import Path
 from typing import Any
 
 
-RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed1_launch_gate_20260726"
-SEED0_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726"
-SEED1_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726"
+RUN_ID = (
+    "i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_launch_gate_20260727"
+)
+SEED0_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727"
+SEED1_RUN_ID = "i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727"
 SEED0_DECISION = "innovation1_runtime_spn_present_formal_seed0_supported"
 SEED0_TRAINING_COMMIT = "233b2e2986578bb66bb95055f380a3ed21cbff1d"
 SEED0_PLAN = Path(
@@ -24,7 +26,7 @@ SEED1_PLAN = Path(
 )
 SEED1_REMOTE_CONFIG = Path(
     "configs/remote/"
-    "innovation1_rtg3b_present80_one_to_one_formal_1000000_seed1_gpu0_20260726.json"
+    "innovation1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_gpu0_20260727.json"
 )
 EXPECTED_MODELS = (
     "present_runtime_e4_equivariant_true",
@@ -50,17 +52,19 @@ REQUIRED_SOURCE_ASSETS = (
     ),
     Path(
         "configs/remote/generated/"
-        "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.cmd"
+        "run_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.cmd"
     ),
     Path(
         "configs/remote/generated/"
-        "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.cmd"
+        "launch_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.cmd"
     ),
     Path(
         "configs/remote/generated/"
-        "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_20260726.sh"
+        "monitor_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.sh"
     ),
-    Path("configs/remote/generated/monitor_i1_rtg3b_seed1_after_seed0_20260726.sh"),
+    Path(
+        "configs/remote/generated/monitor_i1_rtg3b_seed1_after_seed0_retry1_20260727.sh"
+    ),
     Path("scripts/check-runtime-spn-present-rtg3b-seed1-launch"),
     Path("scripts/gate-runtime-spn-present-transfer"),
     Path("src/blockcipher_nd/cli/check_runtime_spn_present_rtg3b_seed1_launch.py"),

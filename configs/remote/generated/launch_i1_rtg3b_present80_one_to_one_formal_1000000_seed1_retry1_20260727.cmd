@@ -7,15 +7,17 @@ if "%SOURCE_COMMIT%"=="" exit /b 2
 if "%PHYSICAL_GPU%"=="" exit /b 2
 
 set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
-set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726
+set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727
+set SEED0_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
 set SOURCE_ROOT=%RUN_ROOT%\source
+set SEED0_GATE=%RUNS_ROOT%\%SEED0_ID%\source\results_archive\%SEED0_ID%\gate.json
 set SCHEDULE_ROOT=G:\lxy\scheduled-runs
-set SCHEDULE_CMD=%SCHEDULE_ROOT%\i1_rtg3b_present_s0.cmd
+set SCHEDULE_CMD=%SCHEDULE_ROOT%\i1_rtg3b_present_s1_retry1.cmd
 set LAUNCH_LOG_DIR=%RUNS_ROOT%\launcher_logs
-set TASK_NAME=I1_RTG3B_PRESENT80_S0_GPU%PHYSICAL_GPU%
-set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd
+set TASK_NAME=I1_RTG3B_PRESENT80_S1_RETRY1_GPU%PHYSICAL_GPU%
+set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 
@@ -23,6 +25,8 @@ if not exist "%RUNS_ROOT%" mkdir "%RUNS_ROOT%"
 if not exist "%SCHEDULE_ROOT%" mkdir "%SCHEDULE_ROOT%"
 if not exist "%LAUNCH_LOG_DIR%" mkdir "%LAUNCH_LOG_DIR%"
 if not exist "%RUN_ROOT%" mkdir "%RUN_ROOT%"
+
+"%PY%" -c "import json,pathlib,sys; p=pathlib.Path(r'%SEED0_GATE%'); g=json.loads(p.read_text(encoding='utf-8')) if p.is_file() else {}; ok=g.get('run_id') == '%SEED0_ID%' and g.get('phase') == 'rtg3b' and g.get('seed') == 0 and g.get('status') == 'pass' and g.get('decision') == 'innovation1_runtime_spn_present_formal_seed0_supported' and all(g.get('protocol_checks', {}).values()) and all(g.get('research_checks', {}).values()); sys.exit(0 if ok else 7)" || exit /b 7
 
 if exist "%SOURCE_ROOT%\.git" (
   cd /d "%SOURCE_ROOT%" || exit /b 1
@@ -40,6 +44,7 @@ if /I not "%ACTUAL_COMMIT%"=="%SOURCE_COMMIT%" exit /b 1
 git rev-parse HEAD > "%RUN_ROOT%\source_expected_commit.txt" || exit /b 1
 git rev-parse HEAD > "%RUN_ROOT%\source_revision_before_schedule.txt" || exit /b 1
 
+set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727.cmd
 >"%SCHEDULE_CMD%" echo @echo off
 >>"%SCHEDULE_CMD%" echo call "%RUN_CMD%" %PHYSICAL_GPU%
 

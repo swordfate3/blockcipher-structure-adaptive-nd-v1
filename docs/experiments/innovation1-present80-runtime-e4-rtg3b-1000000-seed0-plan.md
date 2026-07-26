@@ -1,10 +1,12 @@
 # Innovation 1 PRESENT Runtime-E4 RTG3-B Formal Seed0 Plan
 
 ```text
-status = remote running / automatic retrieval monitor active
+status = original run protocol-invalid / retry1 prepared
 phase = RTG3-B
-remote_training = started and bounded-confirmed
-remote_launch_source = 233b2e2986578bb66bb95055f380a3ed21cbff1d
+original_remote_training = stopped after duplicate-instance contamination
+original_remote_launch_source = 233b2e2986578bb66bb95055f380a3ed21cbff1d
+retry_run_id = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
+retry_research_protocol = unchanged
 ```
 
 ## Research Question
@@ -141,7 +143,7 @@ live query returned the exact source commit.
 
 ## Launch Result
 
-The completed launch gate is indexed as recent result `001`:
+The original completed launch gate was indexed on 2026-07-26:
 
 ```text
 run_id = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726
@@ -157,7 +159,7 @@ launch_authorized = true
 live_remote_sha = 233b2e2986578bb66bb95055f380a3ed21cbff1d
 remote_launcher_returned = 2026-07-26T14:18:19+08:00
 bounded_start_confirmation = pass at 2026-07-26T14:18:39+08:00
-remote_training = running
+remote_training = started
 tmux_session = i1_rtg3b_present80_formal_seed0_monitor
 ```
 
@@ -167,27 +169,24 @@ after eight classified `transient_network` failures. The scoped status commit
 full fail-closed gate passed before any SSH contact. The remote launcher and
 run-owned clean clone both checked out that exact commit under `G:\lxy`.
 
-The local tmux monitor received the remote started marker after eight bounded
-checks. It now owns log synchronization, result-branch detection, archive
-retrieval, Linux-side SHA-256 verification, local result validation,
-same-protocol re-adjudication and recent-result indexing. The main workflow
-must not SSH-poll the running job. No AUC or research conclusion exists until
-the complete result is retrieved and locally verified.
+The original local tmux monitor received the remote started marker after eight
+bounded checks and owned log synchronization until the failed marker appeared.
+It terminated with `remote_failed.marker`; it did not retrieve a verified
+result branch.
 
-The identical seed1 replication package is now prepared but remains
-fail-closed and unlaunched. Its successor watcher waits for the complete local
-seed0 evidence, including rendered-pixel visual QA, and then independently
-requires exact seed-only plan equivalence, unchanged protected training paths,
-remote disk-cache readiness and a live `origin/main` SHA equal to the pinned
-source commit. A seed0 hold or protocol failure writes a stopped marker and
-cannot contact the remote.
+The original seed1 successor observed the seed0 failure and terminated with
+`seed1_not_launched.marker`. The repaired retry1 seed1 package remains
+fail-closed and may launch only after complete retry1 seed0 retrieval,
+rendered-pixel visual QA, exact seed-only plan equivalence, unchanged protected
+training paths, remote disk-cache readiness and a live `origin/main` SHA equal
+to the pinned retry source commit.
 
 ```text
 seed1 plan = docs/experiments/
   innovation1-present80-runtime-e4-rtg3b-1000000-seed1-plan.md
 successor watcher = configs/remote/generated/
-  monitor_i1_rtg3b_seed1_after_seed0_20260726.sh
-seed1 tmux = i1_rtg3b_present80_formal_seed1_monitor
+  monitor_i1_rtg3b_seed1_after_seed0_retry1_20260727.sh
+seed1 tmux = i1_rtg3b_present80_formal_seed1_retry1_monitor
 ```
 
 Local evidence:
@@ -198,6 +197,85 @@ outputs/local_readiness/
 outputs/remote_results_incomplete/
   i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726_monitor/
 ```
+
+## Original Run Protocol Incident
+
+The original seed0 run is invalid research evidence. The launcher created a
+one-time task for `23:59` and also invoked it immediately with `schtasks /Run`.
+The first training instance crossed midnight, so the still-active time trigger
+started a second instance against the same run root:
+
+```text
+task = I1_RTG3B_PRESENT80_S0_GPU0
+scheduled trigger = 2026-07-26 23:59:00
+duplicate PID = 21084
+duplicate creation = 2026-07-26 23:59:08
+shared paths = progress / results / checkpoints
+```
+
+The first instance had already produced three result rows and
+`validate-results` reported `status=pass`, but the post-training gate then
+failed before archiving:
+
+```text
+ModuleNotFoundError: No module named 'blockcipher_nd'
+```
+
+The second instance subsequently truncated `results.jsonl` to zero bytes and
+restarted `progress.jsonl`. Because both instances owned the same evidence
+paths, neither the original three-row file nor the remaining checkpoints can
+be authenticated as a complete single-writer run. The scheduled task was
+ended, the duplicate process was confirmed absent and the seed1 successor
+stopped without launching.
+
+A pre-overwrite monitor snapshot is retained only as diagnostic context:
+
+| Role | AUC |
+| --- | ---: |
+| correct topology | `0.749477538094` |
+| corrupted topology | `0.601527151514` |
+| no topology | `0.597290895286` |
+
+```text
+correct - corrupted = +0.147950386580
+correct - no topology = +0.152186642808
+```
+
+These values do not pass or fail C3. They must not be reported as a retrieved,
+plan-aligned formal result. The raw post-incident snapshot is preserved under:
+
+```text
+outputs/remote_results_incomplete/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726_protocol_invalid_20260727/
+```
+
+## Retry1 Protocol Repair
+
+Retry1 keeps cipher, round, seed, keys, data arrays, pair organization, models,
+loss, optimizer, epochs, checkpoint rule and research thresholds unchanged.
+Only run ownership and post-processing execution are repaired:
+
+1. a new run id gives results, progress, checkpoints, logs and archive an
+   independent root;
+2. an atomic `run.lock` directory permits only one writer and any existing
+   started marker fails closed before evidence paths are touched;
+3. after immediate `schtasks /Run`, the future one-time trigger is disabled
+   before the launcher returns;
+4. `PYTHONPATH=%SOURCE_ROOT%\src` makes the gate CLI importable;
+5. the original seed0 cache may be reused only after metadata SHA-256, NPY
+   shapes, dtypes and label counts match the frozen protocol.
+
+```text
+retry run = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
+retry launch gate = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_launch_gate_20260727
+retry cache source = original seed0 cache, validated read/reuse only
+retry results/checkpoints/logs = independent retry1 root
+```
+
+The retry remains a protocol repair, not a new research variable. A clean
+seed0 pass authorizes only the matching retry1 seed1 replication. A research
+hold stops C3; another protocol failure permits repair only of the failed
+invariant.
 
 ## Research Gate
 
@@ -225,23 +303,30 @@ adaptation.
 
 ## Artifacts
 
-Planned remote root:
+Original protocol-invalid remote root:
 
 ```text
 G:\lxy\blockcipher-structure-adaptive-nd-runs\
   i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726\
 ```
 
-Planned local launch gate:
+Retry1 remote root:
+
+```text
+G:\lxy\blockcipher-structure-adaptive-nd-runs\
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727\
+```
+
+Retry1 local launch gate:
 
 ```text
 outputs/local_readiness/
-  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_launch_gate_20260726/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_launch_gate_20260727/
 ```
 
-Planned retrieved result:
+Planned retry1 retrieved result:
 
 ```text
 outputs/remote_results/
-  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727/
 ```

@@ -4,7 +4,7 @@ setlocal EnableExtensions
 set PHYSICAL_GPU=%~1
 if "%PHYSICAL_GPU%"=="" goto invalid_arguments
 
-set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726
+set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
 set SOURCE_ROOT=%RUN_ROOT%\source
@@ -14,8 +14,8 @@ set CHECKPOINT_DIR=%RUN_ROOT%\checkpoints
 set CACHE_ROOT=%RUN_ROOT%\cache
 set RUN_LOCK=%RUN_ROOT%\run.lock
 set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
-set PLAN=configs\experiment\innovation1\innovation1_spn_present80_runtime_e4_formal_rtg3b_1000000_seed0.csv
-set REMOTE_CONFIG=configs\remote\innovation1_rtg3b_present80_one_to_one_formal_1000000_seed0_gpu0_20260726.json
+set PLAN=configs\experiment\innovation1\innovation1_spn_present80_runtime_e4_formal_rtg3b_1000000_seed1.csv
+set REMOTE_CONFIG=configs\remote\innovation1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_gpu0_20260727.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
@@ -78,7 +78,7 @@ if errorlevel 1 goto failed
 "%PY%" scripts\gate-runtime-spn-present-transfer ^
   --run-id "%RUN_ID%" ^
   --run-root "%RESULTS_DIR%" ^
-  --seed 0 ^
+  --seed 1 ^
   --samples-per-class 1000000 ^
   --phase rtg3b ^
   --no-plot ^
@@ -116,7 +116,7 @@ git config user.name "remote-experiment"
 git config user.email "remote-experiment@local.invalid"
 git checkout -B results/%RUN_ID% > "%LOG_DIR%\%RUN_ID%_result_branch_checkout.txt" 2>&1 || goto failed
 git add "results_archive\%RUN_ID%" || goto failed
-git commit -m "results: %RUN_ID% formal scale replication" > "%LOG_DIR%\%RUN_ID%_result_branch_commit.txt" 2>&1 || goto failed
+git commit -m "results: %RUN_ID% formal seed confirmation" > "%LOG_DIR%\%RUN_ID%_result_branch_commit.txt" 2>&1 || goto failed
 git push origin HEAD:refs/heads/results/%RUN_ID% > "%LOG_DIR%\%RUN_ID%_result_branch_push.txt" 2>&1 || goto failed
 git rev-parse HEAD > "%LOG_DIR%\%RUN_ID%_result_branch_revision.txt" 2>&1 || goto failed
 echo pushed>"%LOG_DIR%\%RUN_ID%_result_branch_pushed.marker"

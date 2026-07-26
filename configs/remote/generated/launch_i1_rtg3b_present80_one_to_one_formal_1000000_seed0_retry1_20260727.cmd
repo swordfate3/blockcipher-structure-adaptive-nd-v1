@@ -7,15 +7,15 @@ if "%SOURCE_COMMIT%"=="" exit /b 2
 if "%PHYSICAL_GPU%"=="" exit /b 2
 
 set REPO_URL=git@github.com:swordfate3/blockcipher-structure-adaptive-nd-v1.git
-set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726
+set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
 set SOURCE_ROOT=%RUN_ROOT%\source
 set SCHEDULE_ROOT=G:\lxy\scheduled-runs
-set SCHEDULE_CMD=%SCHEDULE_ROOT%\i1_rtg3b_present_s0.cmd
+set SCHEDULE_CMD=%SCHEDULE_ROOT%\i1_rtg3b_present_s0_retry1.cmd
 set LAUNCH_LOG_DIR=%RUNS_ROOT%\launcher_logs
-set TASK_NAME=I1_RTG3B_PRESENT80_S0_GPU%PHYSICAL_GPU%
-set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726.cmd
+set TASK_NAME=I1_RTG3B_PRESENT80_S0_RETRY1_GPU%PHYSICAL_GPU%
+set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
 

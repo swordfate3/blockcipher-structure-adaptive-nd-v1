@@ -50,6 +50,13 @@ set RUN_CMD=%SOURCE_ROOT%\configs\remote\generated\run_i1_rtg3b_present80_one_to
 
 schtasks /Create /TN "%TASK_NAME%" /SC ONCE /ST 23:59 /RU SYSTEM /RL HIGHEST /TR "cmd.exe /c %SCHEDULE_CMD%" /F > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_create.txt" 2>&1 || exit /b 1
 schtasks /Run /I /TN "%TASK_NAME%" > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_run.txt" 2>&1 || exit /b 1
+schtasks /Change /TN "%TASK_NAME%" /DISABLE > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_disable.txt" 2>&1 || goto schedule_disable_failed
+echo disabled>"%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_disabled.marker"
 schtasks /Query /TN "%TASK_NAME%" /V /FO LIST > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_query.txt" 2>&1
 echo launched>"%LAUNCH_LOG_DIR%\%RUN_ID%_launched.marker"
 exit /b 0
+
+:schedule_disable_failed
+schtasks /End /TN "%TASK_NAME%" > "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_disable_cleanup.txt" 2>&1
+schtasks /Delete /TN "%TASK_NAME%" /F >> "%LAUNCH_LOG_DIR%\%RUN_ID%_schedule_disable_cleanup.txt" 2>&1
+exit /b 1

@@ -4,18 +4,18 @@ setlocal EnableExtensions
 set PHYSICAL_GPU=%~1
 if "%PHYSICAL_GPU%"=="" goto invalid_arguments
 
-set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726
+set RUN_ID=i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
 set RUNS_ROOT=G:\lxy\blockcipher-structure-adaptive-nd-runs
 set RUN_ROOT=%RUNS_ROOT%\%RUN_ID%
 set SOURCE_ROOT=%RUN_ROOT%\source
 set LOG_DIR=%RUN_ROOT%\logs
 set RESULTS_DIR=%RUN_ROOT%\results
 set CHECKPOINT_DIR=%RUN_ROOT%\checkpoints
-set CACHE_ROOT=%RUN_ROOT%\cache
+set CACHE_ROOT=%RUNS_ROOT%\i1_rtg3b_present80_one_to_one_formal_1000000_seed0_20260726\cache
 set RUN_LOCK=%RUN_ROOT%\run.lock
 set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
 set PLAN=configs\experiment\innovation1\innovation1_spn_present80_runtime_e4_formal_rtg3b_1000000_seed0.csv
-set REMOTE_CONFIG=configs\remote\innovation1_rtg3b_present80_one_to_one_formal_1000000_seed0_gpu0_20260726.json
+set REMOTE_CONFIG=configs\remote\innovation1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_gpu0_20260727.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new
@@ -39,6 +39,7 @@ git status --short --branch > "%LOG_DIR%\%RUN_ID%_git_status_before_run.txt" 2>&
 nvidia-smi > "%LOG_DIR%\%RUN_ID%_gpu_info.txt" 2>&1 || goto failed
 "%PY%" -c "import torch; assert torch.cuda.is_available(); assert torch.cuda.device_count() == 1; print('torch', torch.__version__); print('cuda', torch.version.cuda); print('available', torch.cuda.is_available()); print('visible_count', torch.cuda.device_count()); print('device0', torch.cuda.get_device_name(0))" > "%LOG_DIR%\%RUN_ID%_torch_info.txt" 2> "%LOG_DIR%\%RUN_ID%_torch_info_stderr.txt" || goto failed
 "%PY%" scripts\check-remote-readiness --config "%REMOTE_CONFIG%" > "%LOG_DIR%\%RUN_ID%_readiness.txt" 2> "%LOG_DIR%\%RUN_ID%_readiness_stderr.txt" || goto failed
+"%PY%" -c "import hashlib,json,numpy as np,pathlib; root=pathlib.Path(r'%CACHE_ROOT%'); metas=sorted(root.rglob('metadata.json')); assert len(metas) == 2; records=[(m,json.loads(m.read_text(encoding='utf-8')),np.load(m.parent/'features.npy',mmap_mode='r'),np.load(m.parent/'labels.npy',mmap_mode='r')) for m in metas]; assert sorted((int(x[1]['total_rows']),int(x[1]['input_bits'])) for x in records) == [(1000000,2048),(2000000,2048)]; assert all(x[2].shape == (int(x[1]['total_rows']),int(x[1]['input_bits'])) and x[2].dtype == np.uint8 and x[3].shape == (int(x[1]['total_rows']),) and x[3].dtype == np.uint8 and int(x[3].sum()) == int(x[1]['positive_rows']) and int(x[1]['positive_rows']) == int(x[1]['negative_rows']) for x in records); print([(str(x[0]),hashlib.sha256(x[0].read_bytes()).hexdigest(),x[2].shape,x[3].shape) for x in records])" > "%LOG_DIR%\%RUN_ID%_cache_reuse_audit.txt" 2> "%LOG_DIR%\%RUN_ID%_cache_reuse_audit_stderr.txt" || goto cache_reuse_invalid
 
 echo started>"%LOG_DIR%\%RUN_ID%_started.marker"
 "%PY%" scripts\train ^
@@ -145,6 +146,11 @@ exit /b 10
 
 :existing_run_evidence
 exit /b 11
+
+:cache_reuse_invalid
+echo cache_reuse_invalid>"%LOG_DIR%\%RUN_ID%_failed.marker"
+echo Original seed0 cache metadata, array shape, dtype, or label-count validation failed.>"%LOG_DIR%\%RUN_ID%_failure_reason.txt"
+exit /b 12
 
 :failed
 echo failed>"%LOG_DIR%\%RUN_ID%_failed.marker"
