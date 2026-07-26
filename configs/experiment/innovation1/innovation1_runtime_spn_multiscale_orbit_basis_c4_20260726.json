@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_runtime_spn_multiscale_orbit_basis_c4_20260726",
+  "audit": {
+    "training_rows": 0,
+    "optimizer_steps": 0,
+    "remote": false
+  },
+  "structures": {
+    "present": {"factory": "present", "rounds": 1, "round_start": 0},
+    "gift": {"factory": "gift", "rounds": 1, "round_start": 0},
+    "rectangle": {"factory": "rectangle", "rounds": 1, "round_start": 0},
+    "skinny": {"factory": "skinny", "rounds": 1, "round_start": 0},
+    "uknit": {"factory": "uknit", "rounds": 10, "round_start": 0},
+    "dialga": {"factory": "dialga", "rounds": 4, "round_start": 0}
+  },
+  "orbit": {
+    "depths": [0, 1, 2, 4, 8],
+    "traversal": "reverse_runtime_window_cyclic_v1",
+    "probe_basis": "all_unit_bits",
+    "corruption_seed": 20260724,
+    "cell_relabeling": "rotate_cells_by_one"
+  },
+  "controls": {
+    "corrupted_topology": true,
+    "no_topology": true,
+    "repeat_last_for_heterogeneous": true,
+    "rotate_window_for_heterogeneous": true
+  },
+  "gates": {
+    "minimum_unique_exact_views_per_cipher": 3,
+    "minimum_new_multihop_views_per_cipher": 1,
+    "minimum_exact_corrupted_support_distance_per_cipher": 0.25,
+    "minimum_exact_no_topology_support_distance_per_cipher": 0.25,
+    "minimum_heterogeneous_repeat_last_support_distance": 0.10,
+    "minimum_heterogeneous_rotated_window_support_distance": 0.10,
+    "required_cipher_count": 6,
+    "required_heterogeneous_ciphers": ["uknit", "dialga"]
+  }
+}
