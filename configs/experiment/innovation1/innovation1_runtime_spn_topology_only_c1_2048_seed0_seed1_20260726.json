@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "experiment": "innovation1_runtime_spn_topology_only_c1",
+  "run_id": "i1_runtime_spn_topology_only_c1_2048_seed0_seed1_20260726",
+  "source": {
+    "protocol_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_rectangle_whole_cipher_holdout_h1_2048_seed0_seed1.json",
+    "protocol_config_sha256": "0325ae699274df82d79848066a7aa2c0e685dea6538c18cc974055e49e92c0c0",
+    "a8_config_path": "configs/experiment/innovation1/innovation1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1.json",
+    "a8_config_sha256": "ea437b1737a7f0cb78d632fc46f6ce79c4a96787708b91a7d057fb434b6b37da",
+    "a8_gate_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/gate.json",
+    "a8_gate_sha256": "a6857bdfdd71ea1983bce082058e142c08a8afa46e24a01af6558832f32fde91",
+    "a8_validation_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/validation.json",
+    "a8_validation_sha256": "a6248b9eb03ad76a08ef2e97dde908d5a042bd448f08f098123c2b5e9f9fb0ec",
+    "a8_results_path": "outputs/local_diagnostic/i1_runtime_spn_dialga_holdout_a8_2048_seed0_seed1_20260726/results.jsonl",
+    "a8_results_sha256": "18b3e7396dce9b37113725a0b618e69e933aae0d207b4233226da8594b852534",
+    "a8_required_decision": "innovation1_runtime_spn_dialga_holdout_not_supported",
+    "s1_gate_path": "outputs/local_audit/i1_runtime_spn_sbox_identifiability_s1_20260726/gate.json",
+    "s1_gate_sha256": "e67d3906fe88c85398243ff19293bffa9386ea013213ecf5a4856f429a784ade",
+    "s1_required_decision": "innovation1_runtime_spn_sbox_responsive_but_not_identifiable",
+    "s2_gate_path": "outputs/local_diagnostic/i1_runtime_spn_sbox_anf_operator_s2_2048_seed0_seed1_20260726/gate.json",
+    "s2_gate_sha256": "72bbd250888b2b53a041d2824148e96afad33c58a6daeda14c33adef0b534fbc",
+    "s2_required_decision": "innovation1_runtime_spn_sbox_anf_operator_not_supported"
+  },
+  "source_ciphers": ["gift64", "skinny64", "rectangle80", "uknit64"],
+  "holdout_cipher": "dialga128",
+  "candidate": {
+    "backbone": "RuntimeE4EquivariantSpnDistinguisher",
+    "architecture_variant": "exact_gf2_topology_only",
+    "sbox_context_mode": "edge_gate",
+    "sbox_context_scale": 0.0,
+    "sbox_boolean_operator_mode": "none",
+    "sbox_boolean_operator_scale": 0.0,
+    "gradient_combination": "representation_l2_equalized_pcgrad_fixed_order",
+    "expected_parameter_count": 442466,
+    "seeds": [0, 1]
+  },
+  "training": {
+    "samples_per_class_per_source": 2048,
+    "validation_samples_per_class_per_source": 1024,
+    "pairs_per_sample": 4,
+    "negative_mode": "encrypted_random_plaintexts",
+    "epochs": 10,
+    "batch_size": 256,
+    "loss": "mse",
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.00001,
+    "checkpoint_metric": "val_macro_auc",
+    "restore_best_checkpoint": true,
+    "device": "cpu",
+    "target_training_rows": 0,
+    "target_optimizer_steps": 0
+  },
+  "target_evaluations": {
+    "candidate_correct": {"structure": "correct", "relation_mode": "true"},
+    "candidate_corrupted_target": {"structure": "corrupted", "relation_mode": "true"},
+    "candidate_no_topology_target": {"structure": "correct", "relation_mode": "independent"},
+    "candidate_wrong_sbox_target": {"structure": "wrong_sbox", "relation_mode": "true"}
+  },
+  "gate": {
+    "target_auc_floor": 0.55,
+    "target_topology_margin": 0.005,
+    "trained_no_topology_margin": 0.005,
+    "a8_retention_tolerance": 0.005,
+    "sbox_invariance_tolerance": 0.0000001,
+    "minimum_conflict_projections_per_seed": 1,
+    "required_seeds": [0, 1],
+    "expected_result_rows": 28,
+    "expected_history_rows": 20
+  }
+}
