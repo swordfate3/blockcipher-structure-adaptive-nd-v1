@@ -49,6 +49,9 @@ def model_metadata(model: Any) -> dict[str, Any]:
         "runtime_structure_unique_transition_count",
         "runtime_structure_homogeneous",
         "runtime_structure_mode",
+        "canonical_primitive",
+        "canonical_factor_manifest_sha256",
+        "canonical_schedule_control",
         "topology_residual_mode",
         "topology_gate_initial",
     ):

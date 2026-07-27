@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = K0 exact factorization passed / K1 planning
+status = K0 exact factorization passed / K1 implementation ready / launch interlock pending
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -132,9 +132,10 @@ ciphertext pairs
        L_r     -> pre-permutation
                   shared MIDORI-family linear operator
                   post-permutation
-  -> shared four-bit cell encoder for every canonical view
+  -> shared canonical primitive-edge encoder for every transition
+  -> edge-invariant mean/max/RMS transition summary
   -> small order-sensitive temporal convolution over the transition axis
-  -> pair-invariant and cell-invariant pooling
+  -> pair-invariant pooling
   -> shared binary distinguisher head
 ```
 
@@ -154,13 +155,22 @@ The closed uKNIT recurrent route accumulated raw-coordinate transition embedding
 inside one hidden state. CT-SPN instead exposes an explicit tensor:
 
 ```text
-[sample, pair, real_transition, cell, canonical_cell_feature]
+[sample, pair, real_transition, canonical_primitive_edge, endpoint_feature]
 ```
 
-The network can compare adjacent real transitions without requiring one recurrent
-state to remember which round-specific coordinate system produced an earlier view.
-The first candidate uses a shallow shared temporal convolution, not a larger GRU,
-LSTM or Transformer.
+Each primitive edge joins a canonical linear-layer input bit to an output bit. A
+valid graph factorization can choose different but automorphism-equivalent canonical
+bit labels; those choices only permute the edge tokens. Pooling edges before temporal
+fusion therefore removes graph-isomorphism and cell-relabel ambiguity without hiding
+the order of real transitions. The network can compare adjacent transition summaries
+without requiring one recurrent state to remember which round-specific coordinate
+system produced an earlier view. The first candidate uses a shallow shared temporal
+convolution, not a larger GRU, LSTM or Transformer.
+
+The earlier four-bit-cell draft was rejected during readiness: the linear factors do
+not preserve native S-box cell/bit-role labels, and forcing those labels into the
+highly symmetric graph matcher made compilation impractical. Exact nonlinear cell
+orientation remains a separate K2 question and is not smuggled into K1.
 
 ### 4.2 Extending To A New Cipher
 
@@ -246,6 +256,14 @@ The controls change only runtime structure. Data, labels, checkpoint and head re
 fixed. The active trainable-parameter difference between candidate and anchor must be
 at most one percent.
 
+K1 implementation readiness passed on 2026-07-27 with zero training rows and zero
+optimizer steps. The candidate has `438702` parameters versus the `442466`-parameter
+anchor (`-0.851%`), and its learned state-dict geometry is identical at 64 and 128
+bits. Exact unit inverse/edge reconstruction, five deterministic controls, strict
+same-checkpoint loading, zero anchor S-box gradient contribution, and cell relabeling
+invariance (`max error <= 7.0780516e-8`) all passed. Training remains unauthorized
+until the existing PRESENT formal seed1 result is locally retrieved and adjudicated.
+
 Advance only when both seeds satisfy:
 
 ```text
@@ -310,8 +328,8 @@ is intentional and testable.
 
 ## 8. Immediate Next Action
 
-Keep the active PRESENT seed1 monitor as the only remote training owner. K0 is now
-complete and retained. Preregister and implement K1 readiness without changing the
-frozen data protocol; execute its local training only after the PRESENT result is
-locally retrieved and adjudicated. Do not launch RCT3 or a remote uKNIT run before
+Keep the active PRESENT seed1 monitor as the only remote training owner. K0 and K1
+implementation readiness are complete and retained. When the PRESENT result is
+locally retrieved and adjudicated, rerun only the K1 launch interlock and then execute
+the frozen eight-row local diagnostic. Do not launch RCT3 or a remote uKNIT run before
 those gates are available.

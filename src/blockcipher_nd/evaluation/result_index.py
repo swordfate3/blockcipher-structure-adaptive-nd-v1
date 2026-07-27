@@ -45,6 +45,15 @@ ARTIFACT_LABELS = {
 }
 
 DECISION_LABELS = {
+    "innovation1_uknit_family_ctspn_k1_readiness_passed_waiting_present": (
+        "uKNIT/Dialga规范边CT-SPN零训练实现门通过，等待PRESENT正式seed1裁决后才允许训练"
+    ),
+    "innovation1_uknit_family_ctspn_k1_readiness_failed": (
+        "uKNIT/Dialga规范边CT-SPN实现或协议门失败，修复前保持零优化器步"
+    ),
+    "innovation1_uknit_family_ctspn_k1_training_authorized": (
+        "CT-SPN实现门与PRESENT外部联锁均通过，可执行冻结八行K1本地诊断"
+    ),
     "innovation1_runtime_spn_r0_readiness_passed": (
         "运行时SPN结构契约15项实现门通过，开放两密码seed0本地归因"
     ),
@@ -2531,6 +2540,10 @@ def _load_first_json(
 
 
 def display_name_for_run(run_id: str) -> str:
+    if run_id.startswith(
+        "i1_uknit_family_ctspn_linear_schedule_k1_readiness"
+    ):
+        return "创新1 K1：uKNIT/Dialga规范边CT-SPN零训练实现门"
     if run_id.startswith(
         "i1_runtime_spn_uknit_heterogeneous_holdout_a6_readiness"
     ):
