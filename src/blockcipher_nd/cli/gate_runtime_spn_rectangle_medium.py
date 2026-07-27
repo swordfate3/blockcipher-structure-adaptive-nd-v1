@@ -1,26 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault(
-    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "blockcipher_matplotlib")
-)
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-from matplotlib import pyplot as plt
-
-from blockcipher_nd.evaluation.plots import write_history_csv
 from blockcipher_nd.tasks.innovation1.runtime_spn_rectangle_attribution import (
-    adjudicate_runtime_spn_rectangle_medium,
+    adjudicate_runtime_spn_rectangle_scale,
 )
 
 
@@ -32,6 +20,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-root", required=True, type=Path)
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument("--seed", required=True, type=int, choices=(0, 1))
+    parser.add_argument("--phase", choices=("rct2", "rct3"), default="rct2")
     parser.add_argument("--progress", type=Path, default=None)
     parser.add_argument("--no-plot", action="store_true")
     return parser.parse_args(argv)
@@ -42,10 +31,12 @@ def main(argv: list[str] | None = None) -> int:
     output_root = args.output_root or args.run_root
     output_root.mkdir(parents=True, exist_ok=True)
     results_path = args.run_root / "results.jsonl"
-    gate = adjudicate_runtime_spn_rectangle_medium(
+    rows = _read_jsonl(results_path)
+    gate = adjudicate_runtime_spn_rectangle_scale(
         run_id=args.run_id,
-        rows=_read_jsonl(results_path),
+        rows=rows,
         expected_seed=args.seed,
+        phase=args.phase,
     )
     validation = {
         "run_id": args.run_id,
@@ -55,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary = {
         "run_id": args.run_id,
-        "task": "innovation1_rectangle_runtime_spn_rct2_medium_confirmation",
+        "task": f"innovation1_rectangle_runtime_spn_{args.phase}_scale_confirmation",
         "training_performed": True,
         "train_samples_per_class": gate["samples_per_class"],
         "train_samples_total": gate["train_rows"],
@@ -69,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(output_root / "validation.json", validation)
     _write_json(output_root / "gate.json", gate)
     _write_json(output_root / "summary.json", summary)
-    write_history_csv(results_path, output_root / "history.csv")
+    _write_history_csv(rows, output_root / "history.csv")
     if not args.no_plot:
         render_rectangle_medium_svg(gate, output_root / "curves.svg")
     _append_progress(
@@ -87,6 +78,17 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def render_rectangle_medium_svg(gate: dict[str, Any], output: Path) -> None:
+    import os
+    import tempfile
+
+    os.environ.setdefault(
+        "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "blockcipher_matplotlib")
+    )
+    import matplotlib
+
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+
     roles = ("true", "corrupted", "independent")
     labels = ("正确 ShiftRow 拓扑", "打乱 ShiftRow 拓扑", "无线性拓扑")
     colors = ("#059669", "#DC2626", "#64748B")
@@ -97,6 +99,9 @@ def render_rectangle_medium_svg(gate: dict[str, Any], output: Path) -> None:
     ]
     passed = gate["status"] == "pass"
     seed = int(gate["seed"])
+    phase = str(gate["phase"]).upper()
+    train_per_class = int(gate["samples_per_class"])
+    validation_per_class = int(gate["validation_rows"]) // 2
     with plt.rc_context(
         {
             "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
@@ -119,7 +124,7 @@ def render_rectangle_medium_svg(gate: dict[str, Any], output: Path) -> None:
             wspace=0.30,
         )
         figure.suptitle(
-            "创新1 RCT2：RECTANGLE 中等规模运行时拓扑确认",
+            f"创新1 {phase}：RECTANGLE 运行时拓扑规模确认",
             x=0.075,
             y=0.96,
             ha="left",
@@ -131,7 +136,7 @@ def render_rectangle_medium_svg(gate: dict[str, Any], output: Path) -> None:
             0.895,
             (
                 f"六轮；文献轨迹差分 0x0000002100010020；4 对/样本；seed{seed}；"
-                "训练 65536/class，验证 32768/class。"
+                f"训练 {train_per_class}/class，验证 {validation_per_class}/class。"
             ),
             ha="left",
             va="top",
@@ -208,7 +213,7 @@ def render_rectangle_medium_svg(gate: dict[str, Any], output: Path) -> None:
             0.075,
             0.055,
             (
-                "证据范围：RECTANGLE r6 单 seed 65536/class 中等规模拓扑确认；"
+                f"证据范围：RECTANGLE r6 单 seed {train_per_class}/class 拓扑确认；"
                 "不是正式规模、论文复现、攻击、SOTA 或通用 SPN 结论。"
             ),
             ha="left",
@@ -234,6 +239,34 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _write_history_csv(rows: list[dict[str, Any]], path: Path) -> None:
+    fieldnames = (
+        "model",
+        "seed",
+        "epoch",
+        "train_loss",
+        "train_eval_loss",
+        "train_accuracy",
+        "train_auc",
+        "val_loss",
+        "val_accuracy",
+        "val_auc",
+        "learning_rate",
+    )
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            for history_row in row.get("history", []):
+                writer.writerow(
+                    {
+                        "model": row.get("model"),
+                        "seed": row.get("seed"),
+                        **history_row,
+                    }
+                )
 
 
 def _append_progress(path: Path, event: str, payload: dict[str, Any]) -> None:

@@ -18,6 +18,9 @@ CONTROL_MARGIN = 0.005
 MEDIUM_SAMPLES_PER_CLASS = 65_536
 MEDIUM_TRAIN_ROWS = 131_072
 MEDIUM_VALIDATION_ROWS = 65_536
+SCALE_SAMPLES_PER_CLASS = 262_144
+SCALE_TRAIN_ROWS = 524_288
+SCALE_VALIDATION_ROWS = 262_144
 RUNTIME_E4_PARAMETER_COUNT = 442_466
 RUNTIME_E4_MODEL_OPTIONS = {
     "runtime_structure_path": "configs/runtime/spn/rectangle64.json",
@@ -50,9 +53,10 @@ def _history_replays_selected_checkpoint(row: dict[str, Any]) -> bool:
     for expected_epoch, epoch_row in enumerate(history, start=1):
         if not isinstance(epoch_row, dict):
             return False
-        if not _finite_number(epoch_row.get("epoch")) or int(
-            float(epoch_row["epoch"])
-        ) != expected_epoch:
+        if (
+            not _finite_number(epoch_row.get("epoch"))
+            or int(float(epoch_row["epoch"])) != expected_epoch
+        ):
             return False
         if not all(
             _finite_number(epoch_row.get(metric))
@@ -92,13 +96,10 @@ def adjudicate_runtime_spn_rectangle_attribution(
     rows: list[dict[str, Any]],
 ) -> dict[str, Any]:
     by_key = {
-        (int(row.get("seed", -1)), str(row.get("model", ""))): row
-        for row in rows
+        (int(row.get("seed", -1)), str(row.get("model", ""))): row for row in rows
     }
     expected_keys = {
-        (seed, model)
-        for seed in EXPECTED_SEEDS
-        for model in MODELS.values()
+        (seed, model) for seed in EXPECTED_SEEDS for model in MODELS.values()
     }
     reference = by_key.get((0, MODELS["true"]), {})
     static_fields = (
@@ -189,9 +190,9 @@ def adjudicate_runtime_spn_rectangle_attribution(
         and all(
             row.get("runtime_structure_descriptor_name")
             == "RECTANGLE-80 runtime SPN structure"
-            and str(row.get("runtime_structure_descriptor_path", "")).replace(
-                "\\", "/"
-            ).endswith("configs/runtime/spn/rectangle64.json")
+            and str(row.get("runtime_structure_descriptor_path", ""))
+            .replace("\\", "/")
+            .endswith("configs/runtime/spn/rectangle64.json")
             and row.get("runtime_structure_descriptor_sha256") == DESCRIPTOR_SHA256
             and row.get("runtime_structure_loaded_rounds") == 2
             and row.get("runtime_structure_unique_transition_count") == 1
@@ -276,19 +277,23 @@ def adjudicate_runtime_spn_rectangle_attribution(
     if not all(protocol_checks.values()):
         status = "fail"
         decision = "innovation1_runtime_spn_rectangle_attribution_protocol_invalid"
-        next_action = "repair only the failed RCT1 protocol check and rerun the frozen matrix"
-    elif all(
-        all(seed_checks.values()) for seed_checks in research_checks.values()
-    ):
+        next_action = (
+            "repair only the failed RCT1 protocol check and rerun the frozen matrix"
+        )
+    elif all(all(seed_checks.values()) for seed_checks in research_checks.values()):
         status = "pass"
-        decision = "innovation1_runtime_spn_rectangle_noncontiguous_attribution_supported"
+        decision = (
+            "innovation1_runtime_spn_rectangle_noncontiguous_attribution_supported"
+        )
         next_action = (
             "freeze a remote 65536/class seed0 confirmation with the identical data, "
             "model and three controls when the active remote lane is available"
         )
     else:
         status = "hold"
-        decision = "innovation1_runtime_spn_rectangle_noncontiguous_attribution_not_supported"
+        decision = (
+            "innovation1_runtime_spn_rectangle_noncontiguous_attribution_not_supported"
+        )
         next_action = (
             "do not scale; inspect the failed per-seed signal/control gate and rank one "
             "cell-orientation or topology-identifiability redesign"
@@ -327,14 +332,50 @@ def adjudicate_runtime_spn_rectangle_medium(
     rows: list[dict[str, Any]],
     expected_seed: int,
 ) -> dict[str, Any]:
+    return adjudicate_runtime_spn_rectangle_scale(
+        run_id=run_id,
+        rows=rows,
+        expected_seed=expected_seed,
+        phase="rct2",
+    )
+
+
+def adjudicate_runtime_spn_rectangle_scale(
+    *,
+    run_id: str,
+    rows: list[dict[str, Any]],
+    expected_seed: int,
+    phase: str,
+) -> dict[str, Any]:
     if expected_seed not in {0, 1}:
-        raise ValueError("RECTANGLE RCT2 supports seed0 and conditional seed1")
+        raise ValueError("RECTANGLE scale gates support seed0 and conditional seed1")
+    phase_protocol = {
+        "rct2": {
+            "samples_per_class": MEDIUM_SAMPLES_PER_CLASS,
+            "train_rows": MEDIUM_TRAIN_ROWS,
+            "validation_rows": MEDIUM_VALIDATION_ROWS,
+            "validation_samples_per_class": MEDIUM_VALIDATION_ROWS // 2,
+            "label": "65536/class medium",
+        },
+        "rct3": {
+            "samples_per_class": SCALE_SAMPLES_PER_CLASS,
+            "train_rows": SCALE_TRAIN_ROWS,
+            "validation_rows": SCALE_VALIDATION_ROWS,
+            "validation_samples_per_class": SCALE_VALIDATION_ROWS // 2,
+            "label": "262144/class scale",
+        },
+    }.get(phase)
+    if phase_protocol is None:
+        raise ValueError("RECTANGLE scale phase must be rct2 or rct3")
+    samples_per_class = int(phase_protocol["samples_per_class"])
+    train_rows = int(phase_protocol["train_rows"])
+    validation_rows = int(phase_protocol["validation_rows"])
+    validation_samples_per_class = int(phase_protocol["validation_samples_per_class"])
+    decision_scope = "medium" if phase == "rct2" else "scale"
 
     by_model = {str(row.get("model", "")): row for row in rows}
     complete = len(rows) == 3 and set(by_model) == set(MODELS.values())
-    by_role = {
-        role: by_model.get(model, {}) for role, model in MODELS.items()
-    }
+    by_role = {role: by_model.get(model, {}) for role, model in MODELS.items()}
     reference = by_role["true"]
     static_fields = (
         "cipher",
@@ -392,27 +433,25 @@ def adjudicate_runtime_spn_rectangle_medium(
             )
             for row in by_role.values()
         ),
-        "frozen_rct2_scale_and_task": complete
+        f"frozen_{phase}_scale_and_task": complete
         and all(
             row.get("cipher") == "RECTANGLE-80"
             and row.get("cipher_key") == "rectangle80"
             and row.get("rounds") == 6
             and row.get("seed") == expected_seed
-            and row.get("samples_per_class") == MEDIUM_SAMPLES_PER_CLASS
+            and row.get("samples_per_class") == samples_per_class
             and row.get("pairs_per_sample") == 4
             and row.get("difference_profile") == PROFILE
             and row.get("difference_member") == 0
             and row.get("input_difference") == INPUT_DIFFERENCE
             and row.get("train_key") == 0
             and row.get("validation_key") == 0x11111111111111111111
-            and row.get("training", {}).get("train_rows") == MEDIUM_TRAIN_ROWS
-            and row.get("training", {}).get("validation_rows")
-            == MEDIUM_VALIDATION_ROWS
+            and row.get("training", {}).get("train_rows") == train_rows
+            and row.get("training", {}).get("validation_rows") == validation_rows
             and row.get("training", {}).get("epochs") == 5
             and row.get("training", {}).get("batch_size") == 64
             and row.get("training", {}).get("train_eval_interval") == 1
-            and row.get("training", {}).get("model_options")
-            == RUNTIME_E4_MODEL_OPTIONS
+            and row.get("training", {}).get("model_options") == RUNTIME_E4_MODEL_OPTIONS
             for row in by_role.values()
         ),
         "strict_encrypted_random_plaintext_negatives": complete
@@ -432,9 +471,9 @@ def adjudicate_runtime_spn_rectangle_medium(
         and all(
             row.get("runtime_structure_descriptor_name")
             == "RECTANGLE-80 runtime SPN structure"
-            and str(row.get("runtime_structure_descriptor_path", "")).replace(
-                "\\", "/"
-            ).endswith("configs/runtime/spn/rectangle64.json")
+            and str(row.get("runtime_structure_descriptor_path", ""))
+            .replace("\\", "/")
+            .endswith("configs/runtime/spn/rectangle64.json")
             and row.get("runtime_structure_descriptor_sha256") == DESCRIPTOR_SHA256
             and row.get("runtime_structure_loaded_rounds") == 2
             and row.get("runtime_structure_unique_transition_count") == 1
@@ -442,18 +481,14 @@ def adjudicate_runtime_spn_rectangle_medium(
             for row in by_role.values()
         ),
         "runtime_control_modes_recorded": complete
-        and all(
-            by_role[role].get("runtime_structure_mode") == role
-            for role in MODELS
-        ),
+        and all(by_role[role].get("runtime_structure_mode") == role for role in MODELS),
         "corrupted_topology_is_distinct": complete
         and by_role["true"].get("runtime_structure_window_sha256")
         != by_role["corrupted"].get("runtime_structure_window_sha256"),
         "equal_parameter_geometry": complete
         and all(
             row.get("parameter_count") == RUNTIME_E4_PARAMETER_COUNT
-            and row.get("trainable_parameter_count")
-            == RUNTIME_E4_PARAMETER_COUNT
+            and row.get("trainable_parameter_count") == RUNTIME_E4_PARAMETER_COUNT
             for row in by_role.values()
         ),
         "runtime_bit_order_adapter_recorded": complete
@@ -473,20 +508,19 @@ def adjudicate_runtime_spn_rectangle_medium(
         ),
         "validation_geometry": complete
         and all(
-            row.get("validation", {}).get("samples_per_class") == 32_768
-            and row.get("validation", {}).get("samples_total")
-            == MEDIUM_VALIDATION_ROWS
-            and row.get("validation", {}).get("positive_rows") == 32_768
-            and row.get("validation", {}).get("negative_rows") == 32_768
+            row.get("validation", {}).get("samples_per_class")
+            == validation_samples_per_class
+            and row.get("validation", {}).get("samples_total") == validation_rows
+            and row.get("validation", {}).get("positive_rows")
+            == validation_samples_per_class
+            and row.get("validation", {}).get("negative_rows")
+            == validation_samples_per_class
             and row.get("validation", {}).get("negative_mode")
             == "encrypted_random_plaintexts"
             for row in by_role.values()
         ),
         "five_epoch_best_checkpoint_replay": complete
-        and all(
-            _history_replays_selected_checkpoint(row)
-            for row in by_role.values()
-        ),
+        and all(_history_replays_selected_checkpoint(row) for row in by_role.values()),
         "finite_auc_metrics": complete
         and all(
             _finite_number(row.get("metrics", {}).get("auc"))
@@ -512,20 +546,30 @@ def adjudicate_runtime_spn_rectangle_medium(
     }
     if not all(protocol_checks.values()):
         status = "fail"
-        decision = "innovation1_rct2_rectangle_medium_protocol_invalid"
+        decision = f"innovation1_{phase}_rectangle_{decision_scope}_protocol_invalid"
         next_action = "repair only the failed evidence check and rerun the frozen seed"
     elif all(research_checks.values()):
         status = "pass"
-        decision = "innovation1_rct2_rectangle_medium_seed_passed"
-        next_action = (
-            "run the identical 65536/class seed1 confirmation after visual QA and "
-            "verified result retrieval"
-            if expected_seed == 0
-            else "adjudicate the two distinct 65536/class seeds before any larger run"
-        )
+        decision = f"innovation1_{phase}_rectangle_{decision_scope}_seed_passed"
+        if phase == "rct2" and expected_seed == 0:
+            next_action = (
+                "after verified retrieval and visual QA, run the otherwise identical "
+                "seed0 262144/class RCT3 scale gate without adding seed1 first"
+            )
+        elif phase == "rct3" and expected_seed == 0:
+            next_action = (
+                "after verified retrieval and visual QA, freeze the otherwise "
+                "identical seed0 1000000/class project-formal candidate"
+            )
+        else:
+            next_action = (
+                "adjudicate the completed scale evidence before any larger run"
+            )
     else:
         status = "hold"
-        decision = "innovation1_rct2_rectangle_medium_signal_not_confirmed"
+        decision = (
+            f"innovation1_{phase}_rectangle_{decision_scope}_signal_not_confirmed"
+        )
         next_action = (
             "stop the scale ladder and diagnose the failed signal/control margin "
             "without increasing samples, pairs, epochs, or rounds"
@@ -533,11 +577,11 @@ def adjudicate_runtime_spn_rectangle_medium(
     return {
         "run_id": run_id,
         "cipher": "RECTANGLE-80",
-        "phase": "rct2",
+        "phase": phase,
         "seed": expected_seed,
-        "samples_per_class": MEDIUM_SAMPLES_PER_CLASS,
-        "train_rows": MEDIUM_TRAIN_ROWS,
-        "validation_rows": MEDIUM_VALIDATION_ROWS,
+        "samples_per_class": samples_per_class,
+        "train_rows": train_rows,
+        "validation_rows": validation_rows,
         "status": status,
         "decision": decision,
         "protocol_checks": protocol_checks,
@@ -549,14 +593,14 @@ def adjudicate_runtime_spn_rectangle_medium(
             "control_margin": CONTROL_MARGIN,
         },
         "claim_scope": (
-            "RECTANGLE-80 r6 single-seed 65536/class medium RuntimeE4 topology "
+            f"RECTANGLE-80 r6 single-seed {phase_protocol['label']} RuntimeE4 topology "
             "confirmation; not formal scale, paper reproduction, attack, SOTA, "
             "or universal-SPN evidence"
         ),
         "next_action": next_action,
         "blocked_actions": [
-            "call 65536/class formal training or paper-scale evidence",
-            "launch seed1 before verified seed0 gate and visual QA",
+            f"call {phase_protocol['label']} formal training or paper-scale evidence",
+            "launch the next scale before verified seed0 gate and visual QA",
             "increase samples, pairs, epochs, or rounds as a rescue",
         ],
     }
@@ -570,6 +614,9 @@ __all__ = [
     "MEDIUM_SAMPLES_PER_CLASS",
     "MEDIUM_TRAIN_ROWS",
     "MEDIUM_VALIDATION_ROWS",
+    "SCALE_SAMPLES_PER_CLASS",
+    "SCALE_TRAIN_ROWS",
+    "SCALE_VALIDATION_ROWS",
     "MODELS",
     "PROFILE",
     "RUNTIME_E4_MODEL_OPTIONS",
@@ -577,4 +624,5 @@ __all__ = [
     "TRUE_AUC_FLOOR",
     "adjudicate_runtime_spn_rectangle_attribution",
     "adjudicate_runtime_spn_rectangle_medium",
+    "adjudicate_runtime_spn_rectangle_scale",
 ]

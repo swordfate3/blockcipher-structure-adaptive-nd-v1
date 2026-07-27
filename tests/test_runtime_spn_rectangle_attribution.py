@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 from blockcipher_nd.cli.gate_runtime_spn_rectangle_medium import main as medium_main
 from blockcipher_nd.engine.matrix_runner import parse_args
@@ -14,21 +17,27 @@ from blockcipher_nd.tasks.innovation1.runtime_spn_rectangle_attribution import (
     MEDIUM_VALIDATION_ROWS,
     MODELS,
     PROFILE,
+    SCALE_SAMPLES_PER_CLASS,
+    SCALE_TRAIN_ROWS,
+    SCALE_VALIDATION_ROWS,
     adjudicate_runtime_spn_rectangle_attribution,
     adjudicate_runtime_spn_rectangle_medium,
+    adjudicate_runtime_spn_rectangle_scale,
 )
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = (
-    ROOT
-    / "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_"
+    ROOT / "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_"
     "noncontiguous_attribution_rct1_2048_seed0_seed1.csv"
 )
 MEDIUM_PLAN = (
-    ROOT
-    / "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_"
+    ROOT / "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_"
     "medium_rct2_65536_seed0.csv"
+)
+SCALE_PLAN = (
+    ROOT / "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_"
+    "scale_rct3_262144_seed0.csv"
 )
 
 
@@ -107,12 +116,19 @@ def _rows(
     return rows
 
 
-def _medium_rows(aucs: dict[str, float]) -> list[dict[str, object]]:
+def _scale_rows(
+    aucs: dict[str, float],
+    *,
+    samples_per_class: int = MEDIUM_SAMPLES_PER_CLASS,
+    train_rows: int = MEDIUM_TRAIN_ROWS,
+    validation_rows: int = MEDIUM_VALIDATION_ROWS,
+    cache_name: str = "rct2",
+) -> list[dict[str, object]]:
     rows = _rows({0: aucs, 1: aucs})[:3]
     for row in rows:
         role = str(row["runtime_structure_mode"])
         auc = aucs[role]
-        row["samples_per_class"] = MEDIUM_SAMPLES_PER_CLASS
+        row["samples_per_class"] = samples_per_class
         row["history"] = [
             {
                 "epoch": epoch,
@@ -129,14 +145,15 @@ def _medium_rows(aucs: dict[str, float]) -> list[dict[str, object]]:
             {
                 "batch_size": 64,
                 "train_eval_interval": 1,
-                "train_rows": MEDIUM_TRAIN_ROWS,
-                "validation_rows": MEDIUM_VALIDATION_ROWS,
-                "samples_total": MEDIUM_TRAIN_ROWS,
-                "positive_rows": MEDIUM_SAMPLES_PER_CLASS,
-                "negative_rows": MEDIUM_SAMPLES_PER_CLASS,
+                "train_rows": train_rows,
+                "validation_rows": validation_rows,
+                "samples_total": train_rows,
+                "positive_rows": samples_per_class,
+                "negative_rows": samples_per_class,
                 "pair_bits": 128,
                 "dataset_cache_root": (
-                    "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\rct2\\cache"
+                    "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
+                    f"{cache_name}\\cache"
                 ),
                 "dataset_cache_chunk_size": 1024,
                 "dataset_cache_workers": 1,
@@ -148,13 +165,17 @@ def _medium_rows(aucs: dict[str, float]) -> list[dict[str, object]]:
             }
         )
         row["validation"] = {
-            "samples_per_class": 32_768,
-            "samples_total": MEDIUM_VALIDATION_ROWS,
-            "positive_rows": 32_768,
-            "negative_rows": 32_768,
+            "samples_per_class": validation_rows // 2,
+            "samples_total": validation_rows,
+            "positive_rows": validation_rows // 2,
+            "negative_rows": validation_rows // 2,
             "negative_mode": "encrypted_random_plaintexts",
         }
     return rows
+
+
+def _medium_rows(aucs: dict[str, float]) -> list[dict[str, object]]:
+    return _scale_rows(aucs)
 
 
 def test_real_rectangle_rct1_plan_parses_exact_two_seed_matrix() -> None:
@@ -166,9 +187,7 @@ def test_real_rectangle_rct1_plan_parses_exact_two_seed_matrix() -> None:
     }
     assert {task["rounds"] for task in tasks} == {6}
     assert {task["train_key"] for task in tasks} == {0}
-    assert {task["validation_key"] for task in tasks} == {
-        0x11111111111111111111
-    }
+    assert {task["validation_key"] for task in tasks} == {0x11111111111111111111}
     assert {task["difference_profile"] for task in tasks} == {PROFILE}
     assert {task["model_options"]["runtime_structure_path"] for task in tasks} == {
         "configs/runtime/spn/rectangle64.json"
@@ -182,10 +201,24 @@ def test_real_rectangle_rct2_plan_changes_only_medium_scale_and_seed() -> None:
     assert {task["model_key"] for task in tasks} == set(MODELS.values())
     assert {task["rounds"] for task in tasks} == {6}
     assert {task["seed"] for task in tasks} == {0}
-    assert {task["samples_per_class"] for task in tasks} == {
-        MEDIUM_SAMPLES_PER_CLASS
-    }
+    assert {task["samples_per_class"] for task in tasks} == {MEDIUM_SAMPLES_PER_CLASS}
     assert {task["pairs_per_sample"] for task in tasks} == {4}
+    assert {task["difference_profile"] for task in tasks} == {PROFILE}
+    assert {task["model_options"]["runtime_structure_path"] for task in tasks} == {
+        "configs/runtime/spn/rectangle64.json"
+    }
+
+
+def test_real_rectangle_rct3_plan_preserves_protocol_at_scale() -> None:
+    tasks = build_tasks(parse_args(["--plan", str(SCALE_PLAN)]))
+
+    assert len(tasks) == 3
+    assert {task["model_key"] for task in tasks} == set(MODELS.values())
+    assert {task["rounds"] for task in tasks} == {6}
+    assert {task["seed"] for task in tasks} == {0}
+    assert {task["samples_per_class"] for task in tasks} == {SCALE_SAMPLES_PER_CLASS}
+    assert {task["pairs_per_sample"] for task in tasks} == {4}
+    assert {task["negative_mode"] for task in tasks} == {"encrypted_random_plaintexts"}
     assert {task["difference_profile"] for task in tasks} == {PROFILE}
     assert {task["model_options"]["runtime_structure_path"] for task in tasks} == {
         "configs/runtime/spn/rectangle64.json"
@@ -248,17 +281,13 @@ def test_rectangle_rct1_protocol_mismatch_fails_closed() -> None:
         "innovation1_runtime_spn_rectangle_attribution_protocol_invalid"
     )
     assert not gate["protocol_checks"]["exact_rectangle_descriptor"]
-    assert not gate["protocol_checks"][
-        "strict_encrypted_random_plaintext_negatives"
-    ]
+    assert not gate["protocol_checks"]["strict_encrypted_random_plaintext_negatives"]
 
 
 def test_rectangle_rct2_medium_passes_only_with_remote_cache_and_history() -> None:
     gate = adjudicate_runtime_spn_rectangle_medium(
         run_id="rct2-pass",
-        rows=_medium_rows(
-            {"true": 0.71, "corrupted": 0.62, "independent": 0.61}
-        ),
+        rows=_medium_rows({"true": 0.71, "corrupted": 0.62, "independent": 0.61}),
         expected_seed=0,
     )
 
@@ -266,12 +295,49 @@ def test_rectangle_rct2_medium_passes_only_with_remote_cache_and_history() -> No
     assert gate["decision"] == "innovation1_rct2_rectangle_medium_seed_passed"
     assert all(gate["protocol_checks"].values())
     assert all(gate["research_checks"].values())
+    assert "262144/class RCT3" in gate["next_action"]
+
+
+def test_rectangle_rct3_scale_passes_only_at_exact_scale() -> None:
+    rows = _scale_rows(
+        {"true": 0.71, "corrupted": 0.62, "independent": 0.61},
+        samples_per_class=SCALE_SAMPLES_PER_CLASS,
+        train_rows=SCALE_TRAIN_ROWS,
+        validation_rows=SCALE_VALIDATION_ROWS,
+        cache_name="rct3",
+    )
+
+    gate = adjudicate_runtime_spn_rectangle_scale(
+        run_id="rct3-pass",
+        rows=rows,
+        expected_seed=0,
+        phase="rct3",
+    )
+
+    assert gate["status"] == "pass"
+    assert gate["decision"] == "innovation1_rct3_rectangle_scale_seed_passed"
+    assert gate["samples_per_class"] == SCALE_SAMPLES_PER_CLASS
+    assert gate["validation_rows"] == SCALE_VALIDATION_ROWS
+    assert all(gate["protocol_checks"].values())
+    assert "1000000/class" in gate["next_action"]
+
+
+def test_rectangle_scale_gate_rejects_unknown_phase() -> None:
+    try:
+        adjudicate_runtime_spn_rectangle_scale(
+            run_id="invalid-phase",
+            rows=[],
+            expected_seed=0,
+            phase="unknown",
+        )
+    except ValueError as error:
+        assert str(error) == "RECTANGLE scale phase must be rct2 or rct3"
+    else:
+        raise AssertionError("unknown phase must fail closed")
 
 
 def test_rectangle_rct2_medium_fails_closed_on_cache_and_history_drift() -> None:
-    rows = _medium_rows(
-        {"true": 0.71, "corrupted": 0.62, "independent": 0.61}
-    )
+    rows = _medium_rows({"true": 0.71, "corrupted": 0.62, "independent": 0.61})
     for row in rows:
         training = row["training"]
         assert isinstance(training, dict)
@@ -294,9 +360,7 @@ def test_rectangle_rct2_cli_writes_fail_closed_evidence_without_plot(
 ) -> None:
     run_root = tmp_path / "run"
     run_root.mkdir()
-    rows = _medium_rows(
-        {"true": 0.71, "corrupted": 0.62, "independent": 0.61}
-    )
+    rows = _medium_rows({"true": 0.71, "corrupted": 0.62, "independent": 0.61})
     (run_root / "results.jsonl").write_text(
         "".join(json.dumps(row) + "\n" for row in rows),
         encoding="utf-8",
@@ -319,5 +383,52 @@ def test_rectangle_rct2_cli_writes_fail_closed_evidence_without_plot(
     assert gate["status"] == "pass"
     assert (run_root / "validation.json").is_file()
     assert (run_root / "summary.json").is_file()
+    assert (run_root / "history.csv").is_file()
+    assert not (run_root / "curves.svg").exists()
+
+
+def test_rectangle_scale_real_cli_no_plot_blocks_matplotlib_import(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    rows = _medium_rows({"true": 0.71, "corrupted": 0.62, "independent": 0.61})
+    (run_root / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    script = f"""
+import builtins
+import runpy
+import sys
+original_import = builtins.__import__
+def guarded_import(name, *args, **kwargs):
+    if name == 'matplotlib' or name.startswith('matplotlib.'):
+        raise ImportError('matplotlib import blocked by regression test')
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = guarded_import
+sys.argv = [
+    'scripts/gate-runtime-spn-rectangle-medium',
+    '--run-id', 'rct2-no-plot-subprocess',
+    '--run-root', {str(run_root)!r},
+    '--seed', '0',
+    '--phase', 'rct2',
+    '--no-plot',
+]
+runpy.run_path('scripts/gate-runtime-spn-rectangle-medium', run_name='__main__')
+"""
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (run_root / "gate.json").is_file()
+    assert (run_root / "validation.json").is_file()
     assert (run_root / "history.csv").is_file()
     assert not (run_root / "curves.svg").exists()
