@@ -3,22 +3,9 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-os.environ.setdefault(
-    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "blockcipher_matplotlib")
-)
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-import numpy as np
-from matplotlib import pyplot as plt
 
 from blockcipher_nd.tasks.innovation1.runtime_spn_present_transfer import (
     adjudicate_runtime_spn_present_transfer,
@@ -85,6 +72,20 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def render_present_transfer_svg(gate: dict[str, Any], output: Path) -> None:
+    import os
+    import tempfile
+
+    os.environ.setdefault(
+        "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "blockcipher_matplotlib")
+    )
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+
+    import numpy as np
+    from matplotlib import pyplot as plt
+
     labels = ("正确P层", "打乱P层", "无P层拓扑")
     values = [
         float(gate["aucs"][role]) for role in ("true", "corrupted", "independent")

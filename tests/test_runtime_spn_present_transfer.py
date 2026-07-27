@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+
 from blockcipher_nd.cli.gate_runtime_spn_present_transfer import (
     render_present_transfer_svg,
 )
@@ -33,6 +37,7 @@ def _row(
         "input_bit_order": "project_msb_to_runtime_lsb",
         "parameter_count": 442466,
         "trainable_parameter_count": 442466,
+        "history": [{"epoch": 1, "val_auc": auc}],
         "metrics": {"auc": auc},
         "training": {
             "epochs": 5,
@@ -136,3 +141,63 @@ def test_present_runtime_formal_gate_rejects_local_scale_rows() -> None:
 
     assert gate["status"] == "fail"
     assert gate["protocol_checks"]["frozen_transfer_scale"] is False
+
+
+def test_present_gate_no_plot_runs_without_matplotlib(tmp_path) -> None:
+    run_root = tmp_path / "results"
+    run_root.mkdir()
+    rows = [
+        _row(
+            "present_runtime_e4_equivariant_true",
+            0.66,
+            samples_per_class=1_000_000,
+        ),
+        _row(
+            "present_runtime_e4_equivariant_corrupted",
+            0.60,
+            samples_per_class=1_000_000,
+        ),
+        _row(
+            "present_runtime_e4_equivariant_independent",
+            0.52,
+            samples_per_class=1_000_000,
+        ),
+    ]
+    (run_root / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    code = f"""
+import builtins
+original_import = builtins.__import__
+def guarded_import(name, *args, **kwargs):
+    if name == 'matplotlib' or name.startswith('matplotlib.'):
+        raise ModuleNotFoundError('matplotlib intentionally unavailable')
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = guarded_import
+from blockcipher_nd.cli.gate_runtime_spn_present_transfer import main
+raise SystemExit(main([
+    '--run-id', 'formal-no-plot',
+    '--run-root', {str(run_root)!r},
+    '--seed', '0',
+    '--samples-per-class', '1000000',
+    '--phase', 'rtg3b',
+    '--no-plot',
+]))
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    gate = json.loads((run_root / "gate.json").read_text(encoding="utf-8"))
+    summary = json.loads((run_root / "summary.json").read_text(encoding="utf-8"))
+    assert gate["decision"] == "innovation1_runtime_spn_present_formal_seed0_supported"
+    assert summary["gate"]["status"] == "pass"
+    assert (run_root / "validation.json").is_file()
+    assert (run_root / "history.csv").is_file()
+    assert not (run_root / "curves.svg").exists()
