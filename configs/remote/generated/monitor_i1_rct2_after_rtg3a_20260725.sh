@@ -22,7 +22,7 @@ PROTECTED_PATHS=(
   "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_noncontiguous_attribution_rct1_2048_seed0_seed1.csv"
   "configs/experiment/innovation1/innovation1_spn_rectangle80_runtime_e4_medium_rct2_65536_seed0.csv"
   "configs/runtime/spn/rectangle64.json"
-  "configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_20260725.json"
+  "configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu1_20260725.json"
   "configs/remote/generated/run_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd"
   "configs/remote/generated/launch_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd"
   "configs/remote/generated/monitor_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.sh"
@@ -166,7 +166,7 @@ remote_status="$(
 [[ -z "${remote_status}" ]] || record_failure "run_owned_clone_dirty"
 
 ssh -o BatchMode=yes -o ConnectTimeout=15 "${REMOTE}" \
-  "cmd.exe /c call \"${REMOTE_LAUNCHER}\" ${SOURCE_COMMIT} 0" \
+  "cmd.exe /c call \"${REMOTE_LAUNCHER}\" ${SOURCE_COMMIT} 1" \
   > "${MONITOR_ROOT}/remote_launch_stdout.log" \
   2> "${MONITOR_ROOT}/remote_launch_stderr.log" \
   || record_failure "remote_launcher_failed"

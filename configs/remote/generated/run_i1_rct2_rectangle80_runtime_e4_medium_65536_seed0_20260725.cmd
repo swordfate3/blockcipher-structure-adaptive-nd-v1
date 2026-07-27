@@ -14,7 +14,7 @@ set CHECKPOINT_DIR=%RUN_ROOT%\checkpoints
 set CACHE_ROOT=%RUN_ROOT%\cache
 set ARCHIVE_DIR=%SOURCE_ROOT%\results_archive\%RUN_ID%
 set PLAN=configs\experiment\innovation1\innovation1_spn_rectangle80_runtime_e4_medium_rct2_65536_seed0.csv
-set REMOTE_CONFIG=configs\remote\innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_20260725.json
+set REMOTE_CONFIG=configs\remote\innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu1_20260725.json
 set PY=F:\Anaconda\envs\DWT\torch310\python.exe
 set GITHUB_SSH_KEY=C:/Users/1304Lijinlin/.ssh/github_blockcipher_20260612_result_pusher_ed25519
 set GIT_SSH_COMMAND=ssh -i %GITHUB_SSH_KEY% -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new

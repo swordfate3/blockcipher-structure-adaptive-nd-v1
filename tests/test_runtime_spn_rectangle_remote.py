@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REMOTE_CONFIG = (
     ROOT
     / "configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_"
-    "65536_seed0_gpu0_20260725.json"
+    "65536_seed0_gpu1_20260725.json"
 )
 RUN_SCRIPT = (
     ROOT
@@ -40,6 +40,7 @@ def test_rectangle_rct2_remote_config_passes_medium_cache_readiness() -> None:
     assert report["max_samples_per_class"] == 65_536
     assert "medium_scale_dataset_cache" in report["checked_invariants"]
     assert config["dataset_cache"] is True
+    assert config["physical_gpu"] == 1
     assert config["dataset_cache_root"].startswith(
         "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\"
     )

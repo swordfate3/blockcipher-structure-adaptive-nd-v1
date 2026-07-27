@@ -31,7 +31,7 @@ RCT2_PLAN = Path(
 )
 REMOTE_CONFIG = Path(
     "configs/remote/"
-    "innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_20260725.json"
+    "innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu1_20260725.json"
 )
 REQUIRED_SOURCE_ASSETS = (
     RCT1_PLAN,
@@ -257,7 +257,7 @@ def adjudicate_runtime_spn_rectangle_rct2_launch(
         decision = "innovation1_rct2_rectangle_remote_launch_authorized"
         next_action = (
             "bootstrap the run-owned clean clone from this exact commit, launch "
-            "RCT2 on GPU0, confirm a durable start artifact, and hand off to the "
+            "RCT2 on GPU1, confirm a durable start artifact, and hand off to the "
             "local result watcher"
         )
 
@@ -286,7 +286,7 @@ def adjudicate_runtime_spn_rectangle_rct2_launch(
             "launch from an unpublished or worktree-drifted source",
             "scp or dirty-overlay source publication",
             "change the frozen RCT1 model, data, controls, epochs, or thresholds",
-            "advance to seed1 or 262144/class before the retrieved seed0 gate",
+            "advance to 262144/class before the retrieved seed0 gate",
         ],
         "claim_scope": (
             "local RCT2 seed0 launch authorization only; no remote result, formal "

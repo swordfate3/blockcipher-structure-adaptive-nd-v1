@@ -5,10 +5,10 @@ Date: 2026-07-25
 ## Status
 
 ```text
-stage             = protocol and adjudicator frozen before training
+stage             = launch assets revised for concurrent GPU1 execution
 run_id            = i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725
 execution         = remote GPU only
-launch status     = queued behind exact pushed-SHA verification and the RTG3 remote lane
+launch status     = pending exact pushed-SHA authorization on physical GPU1
 result            = none
 claim scope       = single-seed medium topology confirmation only
 ```
@@ -136,20 +136,23 @@ correct - corrupted AUC >= +0.005
 correct - no-topology AUC >= +0.005
 ```
 
-`pass` opens an identical seed1 confirmation only after verified retrieval,
-local redraw, `visual-qa-redraw`, documentation and result-index refresh.
-`hold` stops the scale ladder and returns to a single local diagnosis.
+At the user's requested fast single-seed evidence setting, `pass` opens an
+otherwise identical seed0 `262144/class` RCT3 plan only after verified
+retrieval, local redraw, `visual-qa-redraw`, documentation and result-index
+refresh. It does not open a seed1 replication. `hold` stops the scale ladder
+and returns to a single local diagnosis.
 `fail` permits evidence/protocol repair only. Do not rescue a weak result by
-increasing pairs, epochs, rounds or moving directly to `262144/class`.
+increasing pairs, epochs or rounds. Do not start `262144/class` before this
+retrieved seed0 gate passes.
 
 ## Queue Decision
 
-At freeze time, the local tmux process list shows active Innovation 1 watchers
-for SKINNY RTG3-A seed0/seed1 and uKNIT U3/U4. RCT2 therefore remains prepared
-but unlaunched. This prevents GPU contention and does not count as a failed or
-running result. Launch assets and the local retrieval watcher must be verified
-after the exact source commit is published and the active remote lane becomes
-available.
+The original queue targeted GPU0. On 2026-07-27, PRESENT RTG3-B seed1 occupied
+physical GPU0 while the user prioritized a new-cipher result and accepted a
+single-seed evidence route. RCT2 is therefore rebound to physical GPU1 without
+changing its data, model, controls, epochs, thresholds or result gate. This
+permits concurrent execution without interrupting PRESENT. Preparation still
+does not count as a running or completed result.
 
 The queue handoff is now fail-closed. Its local authorization gate recomputes
 the six-row RCT1 result instead of trusting the stored status string, requires
@@ -204,7 +207,7 @@ pixel inspection before `visual_qa_passed.marker` is created.
 Remote assets are prepared:
 
 ```text
-configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0_20260725.json
+configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu1_20260725.json
 configs/remote/generated/run_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
 configs/remote/generated/launch_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.cmd
 configs/remote/generated/monitor_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.sh
@@ -237,8 +240,10 @@ under `local_adjudication/`. It copies only `gate.local.json` and `curves.svg`
 to the result root, refreshes the index, and leaves
 `visual_qa_pending.marker`; it cannot self-assert the visual-QA pass.
 
-After the queue assets are committed and the exact SHA is verified on GitHub,
+After the GPU1 assets are committed and the exact SHA is verified on GitHub,
 start only the local successor. Do not manually launch RCT2 or repeatedly poll
 the workstation. The successor and result monitor own the later remote start,
-retrieval and re-adjudication. A real retrieved `curves.svg` still requires a
-fresh `visual-qa-redraw` inspection before the result can be called complete.
+retrieval and re-adjudication. If the retrieved single-seed gate passes, freeze
+RCT3 at `262144/class` with every field except scale and run identity unchanged;
+do not request a second seed first. A real retrieved `curves.svg` still requires
+a fresh `visual-qa-redraw` inspection before the result can be called complete.

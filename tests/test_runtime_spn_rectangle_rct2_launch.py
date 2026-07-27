@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from blockcipher_nd.tasks.innovation1.runtime_spn_rectangle_rct2_launch import (
@@ -19,6 +20,11 @@ RCT2_PLAN = (
     "innovation1_spn_rectangle80_runtime_e4_medium_rct2_65536_seed0.csv"
 )
 SUCCESSOR = ROOT / "configs/remote/generated/monitor_i1_rct2_after_rtg3a_20260725.sh"
+REMOTE_CONFIG = (
+    ROOT
+    / "configs/remote/innovation1_rct2_rectangle80_runtime_e4_medium_65536_"
+    "seed0_gpu1_20260725.json"
+)
 
 
 def _authority() -> dict[str, object]:
@@ -67,6 +73,7 @@ def test_rct2_launch_gate_authorizes_only_released_published_lane() -> None:
     assert gate["should_ssh"] is True
     assert gate["ssh_allowed"] is True
     assert gate["launch_authorized"] is True
+    assert "GPU1" in gate["next_action"]
 
 
 def test_rct2_launch_gate_holds_without_ssh_while_rtg3_lane_is_busy() -> None:
@@ -135,3 +142,13 @@ def test_rct2_successor_is_fail_closed_clean_clone_handoff() -> None:
     assert "bounded_start_confirmation_passed" in script
     assert "i1_rct2_rectangle80_medium_monitor" in script
     assert "rct2_result_monitor_started.marker" in script
+    assert '\\"${REMOTE_LAUNCHER}\\" ${SOURCE_COMMIT} 1' in script
+
+
+def test_rct2_remote_config_reserves_gpu1() -> None:
+    config = json.loads(REMOTE_CONFIG.read_text(encoding="utf-8"))
+
+    assert config["physical_gpu"] == 1
+    assert config["validation_label"].endswith("_gpu1")
+    assert "GPU1" in config["launch_policy"]
+    assert "GPU0 remains reserved" in config["launch_policy"]

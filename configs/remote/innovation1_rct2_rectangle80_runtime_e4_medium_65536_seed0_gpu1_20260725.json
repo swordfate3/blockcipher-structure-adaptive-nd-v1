@@ -4,7 +4,7 @@
   "plan": "configs\\experiment\\innovation1\\innovation1_spn_rectangle80_runtime_e4_medium_rct2_65536_seed0.csv",
   "expected_rows": 3,
   "device": "cuda",
-  "physical_gpu": 0,
+  "physical_gpu": 1,
   "epochs": 5,
   "batch_size": 64,
   "hidden_bits": 64,
@@ -25,7 +25,7 @@
   "early_stopping_min_delta": 0.0,
   "train_eval_interval": 1,
   "archive_work_id": "i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725",
-  "validation_label": "i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu0",
+  "validation_label": "i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_gpu1",
   "monitor_script_name": "monitor_i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725.sh",
   "dataset_cache": true,
   "dataset_cache_root": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725\\cache",
@@ -42,5 +42,5 @@
   "result_sync": "local_tmux_monitor_scp_fallback",
   "launch_enabled": true,
   "claim_scope": "REMOTE MEDIUM DIAGNOSTIC 65536/class RECTANGLE-80 r6 RuntimeE4 non-contiguous topology confirmation seed0; 131072 total train rows, 65536 total validation rows, four ciphertext pairs per sample, strict encrypted-random-plaintext negatives; not formal, paper-scale, attack, SOTA, breakthrough, or universal-SPN evidence",
-  "launch_policy": "Launch only after the exact source commit is GitHub-verified and the active Innovation 1 remote lane is free; use cmd.exe /c, a clean run-owned clone, parameter-matched disk cache, durable progress, checkpoints, logs and result archive under G:\\lxy; require three equal-geometry rows, local re-adjudication, visual QA and result indexing"
+  "launch_policy": "Launch on physical GPU1 only after the exact source commit is GitHub-verified; GPU0 remains reserved for the active PRESENT seed1 run. Use cmd.exe /c, a clean run-owned clone, parameter-matched disk cache, durable progress, checkpoints, logs and result archive under G:\\lxy; require three equal-geometry rows, local re-adjudication, visual QA and result indexing"
 }
