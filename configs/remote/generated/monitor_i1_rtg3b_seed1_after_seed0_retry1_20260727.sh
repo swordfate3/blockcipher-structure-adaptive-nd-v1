@@ -47,10 +47,6 @@ required_seed0_artifacts_ready() {
 }
 
 while true; do
-  if [[ -f "${SEED0_MONITOR}/remote_failed.marker" ]]; then
-    stop_successor "seed0_remote_failed"
-  fi
-
   if [[ -f "${SEED0_ROOT}/gate.local.json" ]]; then
     seed0_decision="$(python -c "import json,pathlib; print(json.loads(pathlib.Path(r'${SEED0_ROOT}/gate.local.json').read_text(encoding='utf-8')).get('decision',''))" 2>/dev/null || true)"
     if [[ "${seed0_decision}" != "innovation1_runtime_spn_present_formal_seed0_supported" ]]; then
@@ -89,6 +85,11 @@ while true; do
       echo "$(timestamp) seed1_launch_gate_failed decision=${gate_decision:-missing}" >> "${MONITOR_ROOT}/monitor.log"
       exit 4
     fi
+  fi
+
+  # A recovered verified result supersedes the historical postprocess failure.
+  if [[ -f "${SEED0_MONITOR}/remote_failed.marker" ]]; then
+    stop_successor "seed0_remote_failed_without_verified_recovery"
   fi
 
   echo "$(timestamp) waiting_for_complete_local_seed0_evidence" >> "${MONITOR_ROOT}/monitor.log"

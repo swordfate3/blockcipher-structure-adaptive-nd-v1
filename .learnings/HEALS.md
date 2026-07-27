@@ -39,6 +39,56 @@ from outside the repository with an empty `PYTHONPATH` before launch.
 
 ---
 
+## [HEAL-20260727-001] no_plot_entrypoint_lazy_optional_dependency
+
+**Logged**: 2026-07-27T11:25:35+08:00
+**Status**: resolved
+**Area**: remote-postprocess
+
+### Symptom
+
+PRESENT RTG3-B retry1 completed all three `1000000/class` five-epoch rows and
+remote plan validation, then the gate failed before archiving even though it
+was invoked with `--no-plot`:
+
+```text
+ModuleNotFoundError: No module named 'matplotlib'
+```
+
+### Root Cause
+
+The gate CLI imported Matplotlib and NumPy at module load time. Argument
+parsing happened only afterward, so `--no-plot` could not prevent the optional
+plotting dependency from being imported in the remote `torch310` environment.
+
+### Verified Fix
+
+Commit `8d05e8bc` moved plotting imports inside the render function and added a
+subprocess regression that blocks every Matplotlib import while exercising the
+real `--no-plot` CLI. Recovery commit `902ad013` reused the completed results
+and three checkpoints without retraining, then revalidated, re-gated, replayed
+all checkpoints, generated and verified the immutable archive, pushed the
+normal result branch, retrieved it locally, reran adjudication, passed rendered-
+pixel visual QA and refreshed both recent-result indexes.
+
+### Prevention
+
+Remote no-plot paths must prove in a subprocess that optional plotting modules
+are never imported. Validation, gating and immutable archive publication must
+remain executable without Matplotlib; plotting stays deferred to verified
+local retrieval.
+
+### Metadata
+
+- Related Files: src/blockcipher_nd/cli/gate_runtime_spn_present_transfer.py, configs/remote/generated/recover_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd, tests/test_runtime_spn_present_rtg3b_launch.py
+- See Also: ERR-20260721-004, ERR-20260627-001
+- Pattern-Key: remote.postprocess.no_plot_lazy_optional_dependencies
+- Recurrence-Count: 3
+- First-Seen: 2026-06-27
+- Last-Seen: 2026-07-27
+
+---
+
 ## [HEAL-20260715-002] modern_scp_directory_contents_retrieval
 
 **Logged**: 2026-07-15T20:43:46+08:00

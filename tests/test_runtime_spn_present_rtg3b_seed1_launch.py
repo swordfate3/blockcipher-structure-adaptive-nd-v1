@@ -181,3 +181,8 @@ def test_seed1_generated_scripts_preserve_remote_and_control_policy() -> None:
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in launch_script
     assert "innovation1_runtime_spn_present_formal_seed0_supported" in launch_script
     assert "visual_qa_passed.marker" in successor_script
+    assert successor_script.index(
+        'if [[ -f "${SEED0_ROOT}/gate.local.json" ]]'
+    ) < successor_script.index(
+        'if [[ -f "${SEED0_MONITOR}/remote_failed.marker" ]]'
+    )

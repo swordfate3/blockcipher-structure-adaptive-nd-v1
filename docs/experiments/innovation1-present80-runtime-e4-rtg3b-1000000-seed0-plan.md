@@ -1,12 +1,17 @@
 # Innovation 1 PRESENT Runtime-E4 RTG3-B Formal Seed0 Plan
 
 ```text
-status = original run protocol-invalid / retry1 prepared
+status = retry1 completed / verified-branch retrieved / locally re-adjudicated
 phase = RTG3-B
 original_remote_training = stopped after duplicate-instance contamination
 original_remote_launch_source = 233b2e2986578bb66bb95055f380a3ed21cbff1d
 retry_run_id = i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727
 retry_research_protocol = unchanged
+retry_training_source = 3a34c74e2c5e3240bf3b4a84b91ec8a2e08fc706
+postprocess_recovery = 902ad01378f6a88906e108b4aca798676800c098
+result = pass / innovation1_runtime_spn_present_formal_seed0_supported
+visual_qa = pass / visual-qa-redraw
+next = identical 1000000/class seed1 replication
 ```
 
 ## Research Question
@@ -366,3 +371,67 @@ existing checkpoints, create an immutable SHA-256 archive, and push the normal
 branch retrieval, local re-adjudication, rendered-pixel visual QA and result
 index refresh may seed0 be treated as complete and the identical seed1 launch
 gate be evaluated.
+
+## Retrieved Retry1 Seed0 Result
+
+Recovery commit `902ad01378f6a88906e108b4aca798676800c098`
+ran only the frozen validation, gate, checkpoint-replay, archive and result-
+branch steps against the existing retry1 artifacts. It did not regenerate data,
+resume an optimizer or retrain any model. The normal verified result branch was
+then retrieved under:
+
+```text
+outputs/remote_results/
+  i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727/
+```
+
+The immutable manifest verifies every archived file after CRLF normalization.
+Local plan validation reports exactly three of three rows with no missing,
+unexpected, duplicate or mismatched keys. All three best-validation-AUC
+checkpoints load strictly into the frozen `442466`-parameter geometry and
+replay their recorded histories and final metrics exactly.
+
+| Role | Validation AUC | Validation accuracy | Difference from correct |
+| --- | ---: | ---: | ---: |
+| Correct PRESENT P-layer | `0.749477538094` | `0.680433` | - |
+| Deterministically corrupted P-layer | `0.601527151514` | `0.568519` | `+0.147950386580` |
+| No linear topology | `0.597290895286` | `0.566848` | `+0.152186642808` |
+
+Every protocol check and all three frozen research checks pass. Relative to the
+local T1 seed0 anchor, correct-topology AUC rises from `0.664596081` to
+`0.749477538094`, while correct-minus-corrupted grows from `+0.093934059` to
+`+0.147950386580` and correct-minus-no-topology grows from `+0.110160828` to
+`+0.152186642808`. The result therefore survives the scale increase with a
+large topology-attribution margin rather than merely crossing the absolute
+signal threshold.
+
+The final retrieved SVG was rendered to `1940 x 993` pixels and inspected with
+`visual-qa-redraw` at full composition and readable left/right detail views.
+Chinese glyphs, title, protocol subtitle, decision line, values, axes, random
+baseline, attribution threshold and claim-scope caption are readable without
+overlap, clipping or an ambiguous scale. No redraw was required, and
+`visual_qa_pending.marker` was replaced by `visual_qa_passed.marker`.
+
+This is strong single-seed project-formal evidence that the Runtime-E4 model
+uses the correct externally supplied one-to-one PRESENT topology. It is an
+attribution result, not an absolute-performance breakthrough: accuracy
+`0.680433` is below the older PRESENT-specific InvP-only seed0 result
+`0.721264`, and the strict Zhang/Wang `0.7205` reference has not been reproduced
+under this route. It is also not paper-scale evidence or proof of correct S-box
+semantics, unseen-cipher transfer or arbitrary-SPN adaptation.
+
+Evidence-backed next action:
+
+```text
+question = does the seed0 topology advantage replicate at seed1?
+anchor = this verified retry1 seed0 result
+change = seed only, 0 -> 1
+fixed = PRESENT-80 r7, keys, difference, 1000000/class train,
+        500000/class validation, 16 pairs, three controls, Runtime-E4,
+        442466 parameters, 5 epochs, optimizer, loss and checkpoint rule
+execution = remote A6000 through the strict seed1 publication/launch gate
+advance = valid archive/checkpoints, correct >= 0.520,
+          correct-corrupted >= 0.005 and correct-no-topology >= 0.005
+stop = research hold stops RTG3-B; protocol failure permits evidence repair only
+blocked = no extra samples, pairs, epochs, model rescue or C5 before seed1 closes C3
+```
