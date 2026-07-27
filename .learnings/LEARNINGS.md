@@ -1686,6 +1686,14 @@ Passing the first gate does not imply passing the second. Large-scale results
 from other PRESENT representations also cannot be used to fill the missing
 E4 typed cross-SPN performance gate.
 
+The 2026-07-27 PRESENT Runtime-E4 C3 result repeated this distinction at the
+same `1000000/class`, r7, Case2 `m=16` data scale. Its correct-topology model
+showed large attribution margins, but its observed accuracy/AUC
+(`0.680433`/`0.749477538094`) remained below the completed PRESENT-specific
+InvP-only seed0 anchor (`0.721264`/`0.797470988906`). Reports must therefore
+state both the absolute-performance comparison and the attribution result;
+the latter cannot be summarized as an overall performance improvement.
+
 ### Suggested Action
 Report the current E4-E6 outcome as a controlled method/attribution result
 only. Before claiming Innovation 1 has a competitive accuracy result, freeze a
@@ -1702,9 +1710,9 @@ failed E5/E6 source objectives or reuse unrelated 1M PRESENT rows as proof.
 - Tags: innovation1, claim-scope, attribution, mainstream-baseline, formal-scale, gift64
 - See Also: LRN-20260715-004, LRN-20260715-001, LRN-20260621-001
 - Pattern-Key: innovation1.attribution_is_not_mainstream_performance
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-15
-- Last-Seen: 2026-07-15
+- Last-Seen: 2026-07-27
 
 ---
 
