@@ -45,6 +45,58 @@ of plan compatibility.
 
 ---
 
+## [LRN-20260728-001] best_practice
+
+**Logged**: 2026-07-28T12:00:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Permutation-invariant SPN edge pooling must retain native endpoint identity when
+canonical-component-equivalent ciphers differ through native permutation schedules.
+
+### Details
+
+The K1 CT-SPN encoded each canonical linear edge without its native target/source
+cell and bit-role identity, then pooled edges with mean/max/RMS. In the K1-A
+same-checkpoint audit, rotating Dialga transitions changed 97.9% of native endpoint
+identities and raw edge values but changed the pooled transition summary by only
+about `7e-7` and final logits by only a few parts in `10^6`. Correct,
+repeated-last and rotated schedules therefore became effectively indistinguishable
+even though their native operators differed. K1-B readiness restored fixed-width
+native cell-position and directed bit-role channels and made the same schedule
+controls observable before training.
+
+### Suggested Action
+
+Before training a runtime structure-conditioned SPN model, use one shared state
+dictionary and deterministic inputs to compare correct and wrong schedules before
+and after every invariant aggregation. If native endpoints change while the pooled
+summary collapses, repair the representation before adding data, width, experts or
+new structural features. Preserve target/source endpoint identity whenever native
+permutation composition carries the cipher semantics.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_audit
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-endpoint-alignment-k1a-plan.md, src/blockcipher_nd/models/structure/spn/canonical_transition.py
+- Tags: innovation1, runtime-spn, uknit, dialga, endpoint-identity, invariant-pooling, attribution
+- See Also: LRN-20260725-001, LRN-20260726-002
+- Pattern-Key: research.runtime_spn.permutation_pooling_requires_native_endpoint_identity
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T12:00:00+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-A confirmed the collapse and K1-B readiness verified that the endpoint-preserving representation exposes schedule differences without changing backbone geometry.
+
+---
+
 ## [LRN-20260726-001] best_practice
 
 **Logged**: 2026-07-26T11:42:00+08:00

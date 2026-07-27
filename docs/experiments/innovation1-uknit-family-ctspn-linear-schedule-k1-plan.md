@@ -271,3 +271,29 @@ or indexing fails.
 
 Do not remotely scale K1, start K2, train a learned MoE, change the input difference,
 or add another cipher from this diagnostic alone.
+
+## 9. Completed Result
+
+K1 completed locally on 2026-07-27 with eight training rows, forty
+frozen-checkpoint control rows, eighty epoch rows and all fourteen protocol
+checks passing. The research gate returned `hold`:
+
+```text
+decision = innovation1_uknit_family_ctspn_k1_linear_schedule_not_supported
+
+uKNIT seed0: anchor 0.526651, candidate 0.494208, delta -0.032444
+uKNIT seed1: anchor 0.528809, candidate 0.500292, delta -0.028516
+
+Dialga seed0: anchor 0.961386, candidate 0.963836, delta +0.002450
+Dialga seed1: anchor 0.960392, candidate 0.963462, delta +0.003070
+```
+
+Dialga's correct candidate tied repeated-last and rotated schedules to within
+`9.54e-7` AUC, so its high absolute AUC did not establish ordered-transition
+use. uKNIT stayed near chance and below Runtime-E4 on both seeds. This is a
+local `2048/class` diagnostic miss, not a uKNIT ceiling.
+
+The regenerated Chinese figure passed rendered-pixel `visual-qa-redraw`: the
+large Dialga no-topology margin is shown on a separate scale so the near-zero
+order margins remain readable. The evidence-backed next action is K1-A
+endpoint-alignment inspection only; K1 must not be scaled or extended to K2.

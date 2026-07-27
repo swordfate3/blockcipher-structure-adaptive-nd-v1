@@ -27,6 +27,9 @@ class CanonicalTransitionSpnSpec:
     processor_steps: int = 2
     temporal_hidden_dim: int = 76
     dropout: float = 0.0
+    endpoint_identity_mode: Literal["edge_invariant", "native_cell_role"] = (
+        "edge_invariant"
+    )
 
     def __post_init__(self) -> None:
         if min(
@@ -38,6 +41,11 @@ class CanonicalTransitionSpnSpec:
             raise ValueError("CT-SPN dimensions must be positive")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("CT-SPN dropout must be in [0, 1)")
+        if self.endpoint_identity_mode not in {
+            "edge_invariant",
+            "native_cell_role",
+        }:
+            raise ValueError("unsupported CT-SPN endpoint identity mode")
 
 
 class CanonicalTransitionSpnDistinguisher(nn.Module):
@@ -49,8 +57,9 @@ class CanonicalTransitionSpnDistinguisher(nn.Module):
         token_dim = max(16, spec.hidden_dim * 2)
         pair_dim = spec.pair_embedding_dim
         self.token_dim = token_dim
+        edge_input_dim = 22 if spec.endpoint_identity_mode == "native_cell_role" else 12
         self.edge_encoder = nn.Sequential(
-            nn.Linear(12, token_dim),
+            nn.Linear(edge_input_dim, token_dim),
             nn.ReLU(),
             nn.LayerNorm(token_dim),
         )
@@ -144,6 +153,7 @@ class CanonicalTransitionSpnDistinguisher(nn.Module):
             structure,
             schedule,
             relation_mode=relation_mode,
+            endpoint_identity_mode=self.spec.endpoint_identity_mode,
         )
         batch, pair_count, transitions, edges, _ = views.shape
         hidden = self.edge_encoder(views).reshape(
@@ -192,6 +202,9 @@ class CanonicalTransitionSpnDistinguisher(nn.Module):
         schedule: CanonicalLinearSchedule,
         *,
         relation_mode: Literal["true", "independent"],
+        endpoint_identity_mode: Literal[
+            "edge_invariant", "native_cell_role"
+        ] = "edge_invariant",
     ) -> torch.Tensor:
         left = pairs[:, :, 0]
         right = pairs[:, :, 1]
@@ -249,6 +262,21 @@ class CanonicalTransitionSpnDistinguisher(nn.Module):
                         previous_endpoint,
                         endpoint_product,
                         endpoint_xor,
+                        *(
+                            (
+                                CanonicalTransitionSpnDistinguisher._native_endpoint_identity(
+                                    structure,
+                                    schedule,
+                                    round_index,
+                                    targets,
+                                    sources,
+                                    relation_mode=relation_mode,
+                                    reference=current_endpoint,
+                                ),
+                            )
+                            if endpoint_identity_mode == "native_cell_role"
+                            else ()
+                        ),
                     ),
                     dim=-1,
                 )
@@ -257,6 +285,65 @@ class CanonicalTransitionSpnDistinguisher(nn.Module):
                 left = native_previous_left
                 right = native_previous_right
         return torch.stack(tuple(reversed(reverse_views)), dim=2)
+
+    @staticmethod
+    def _native_endpoint_identity(
+        structure: RuntimeSpnStructure,
+        schedule: CanonicalLinearSchedule,
+        round_index: int,
+        targets: torch.Tensor,
+        sources: torch.Tensor,
+        *,
+        relation_mode: Literal["true", "independent"],
+        reference: torch.Tensor,
+    ) -> torch.Tensor:
+        if relation_mode == "true":
+            canonical_input_native, canonical_output_native = schedule.factors[
+                round_index
+            ]
+            native_targets = torch.tensor(
+                canonical_output_native,
+                dtype=torch.long,
+                device=reference.device,
+            )[targets]
+            native_sources = torch.tensor(
+                canonical_input_native,
+                dtype=torch.long,
+                device=reference.device,
+            )[sources]
+        else:
+            native_targets = targets
+            native_sources = sources
+        membership = structure.cell_membership.to(reference.device)
+        roles = structure.bit_role.to(reference.device)
+        denominator = max(1, structure.cells - 1)
+        target_cell = (
+            membership[native_targets].to(reference.dtype) * (2.0 / denominator)
+            - 1.0
+        )
+        source_cell = (
+            membership[native_sources].to(reference.dtype) * (2.0 / denominator)
+            - 1.0
+        )
+        target_role = torch.nn.functional.one_hot(
+            roles[native_targets], num_classes=4
+        ).to(reference.dtype)
+        source_role = torch.nn.functional.one_hot(
+            roles[native_sources], num_classes=4
+        ).to(reference.dtype)
+        identity = torch.cat(
+            (
+                target_cell[:, None],
+                source_cell[:, None],
+                target_role,
+                source_role,
+            ),
+            dim=-1,
+        )
+        return identity.reshape(1, 1, identity.shape[0], 10).expand(
+            *reference.shape[:-1],
+            10,
+        )
 
 
 class FixedCanonicalTransitionSpnProtocolAdapter(nn.Module):
@@ -310,6 +397,7 @@ class FixedCanonicalTransitionSpnProtocolAdapter(nn.Module):
             self.canonical_schedule.manifest_sha256
         )
         self.canonical_schedule_control = self.canonical_schedule.control
+        self.canonical_endpoint_identity_mode = spec.endpoint_identity_mode
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         runtime = features.reshape(

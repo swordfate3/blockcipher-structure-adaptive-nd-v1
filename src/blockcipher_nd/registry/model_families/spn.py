@@ -131,16 +131,41 @@ def build_spn_model(
     options: dict[str, object],
 ) -> nn.Module | None:
     canonical_transition_models = {
-        "runtime_spn_ct_k1_canonical_true": ("true", False, "true"),
+        "runtime_spn_ct_k1_canonical_true": (
+            "true",
+            False,
+            "true",
+            "edge_invariant",
+        ),
         "runtime_spn_ct_k1_canonical_corrupted": (
             "true",
             True,
             "corrupted",
+            "edge_invariant",
         ),
         "runtime_spn_ct_k1_canonical_independent": (
             "independent",
             False,
             "independent",
+            "edge_invariant",
+        ),
+        "runtime_spn_ct_k1b_endpoint_true": (
+            "true",
+            False,
+            "true",
+            "native_cell_role",
+        ),
+        "runtime_spn_ct_k1b_endpoint_corrupted": (
+            "true",
+            True,
+            "corrupted",
+            "native_cell_role",
+        ),
+        "runtime_spn_ct_k1b_endpoint_independent": (
+            "independent",
+            False,
+            "independent",
+            "native_cell_role",
         ),
     }
     if name in canonical_transition_models:
@@ -158,7 +183,9 @@ def build_spn_model(
             rounds=runtime_rounds,
             round_start=runtime_round_start,
         )
-        relation_mode, corrupt, structure_mode = canonical_transition_models[name]
+        relation_mode, corrupt, structure_mode, endpoint_identity_mode = (
+            canonical_transition_models[name]
+        )
         runtime_structure = descriptor.structure
         if corrupt:
             corruption_seed = int_option(
@@ -191,6 +218,7 @@ def build_spn_model(
                 processor_steps=processor_steps,
                 temporal_hidden_dim=temporal_hidden_dim,
                 dropout=float(options.get("dropout", 0.0)),
+                endpoint_identity_mode=endpoint_identity_mode,
             ),
             descriptor_name=descriptor.name,
             descriptor_path=str(descriptor.path),

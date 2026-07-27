@@ -228,7 +228,6 @@ def _plot_margin_panel(
         "corrupted",
         "no_topology",
     )
-    y_positions = list(reversed(range(len(margin_keys))))
     margins = {
         seed: {
             key: float(values[f"candidate_minus_{key}"])
@@ -236,48 +235,103 @@ def _plot_margin_panel(
         }
         for seed, values in seeds.items()
     }
-    for index, key in enumerate(margin_keys):
+    focus_values = [
+        margins[seed][key]
+        for seed in ("0", "1")
+        for key in margin_keys[:-1]
+    ]
+    no_topology_values = [margins[seed]["no_topology"] for seed in ("0", "1")]
+    separate_no_topology = max(abs(value) for value in no_topology_values) > max(
+        0.05,
+        8.0 * max(abs(value) for value in focus_values),
+    )
+    visible_keys = margin_keys[:-1] if separate_no_topology else margin_keys
+    y_positions = list(reversed(range(len(visible_keys))))
+    for index, key in enumerate(visible_keys):
         y = y_positions[index]
         color = CONDITION_COLORS[key]
         seed0 = margins["0"][key]
         seed1 = margins["1"][key]
-        axis.plot(
-            (seed0, seed1),
-            (y - 0.12, y + 0.12),
-            color=color,
-            linewidth=1.6,
-            alpha=0.55,
-        )
-        for value, offset, marker in ((seed0, -0.12, "o"), (seed1, 0.12, "s")):
-            axis.scatter(
-                value,
-                y + offset,
-                color=color,
-                marker=marker,
-                s=48,
-                zorder=3,
-            )
-            axis.annotate(
-                f"{value:+.4f}",
-                (value, y + offset),
-                xytext=(6, 0),
-                textcoords="offset points",
-                va="center",
-                fontsize=8.3,
-                color="#374151",
-            )
-    flat = [value for seed in margins.values() for value in seed.values()]
+        _plot_seed_pair(axis, seed0, seed1, y=y, color=color)
+    flat = [margins[seed][key] for seed in ("0", "1") for key in visible_keys]
     span = max(0.02, max(flat) - min(flat))
     axis.set_xlim(min(-0.01, min(flat) - 0.15 * span), max(0.02, max(flat) + 0.3 * span))
     axis.set_yticks(
         y_positions,
-        [f"候选 - {CONDITION_LABELS[key]}" for key in margin_keys],
+        [f"候选 - {CONDITION_LABELS[key]}" for key in visible_keys],
     )
     axis.set_title(f"{CIPHER_LABELS[cipher]}：正确顺序的净优势", loc="left", fontweight="bold")
     axis.set_xlabel("AUC 差值")
     axis.axvline(0.0, color="#9CA3AF", linewidth=1)
     axis.axvline(0.005, color="#047857", linestyle=(0, (4, 3)), linewidth=1.3)
     axis.grid(axis="x", color="#E5E7EB", linewidth=0.8)
+    if separate_no_topology:
+        _add_no_topology_inset(axis, no_topology_values)
+
+
+def _plot_seed_pair(
+    axis: plt.Axes,
+    seed0: float,
+    seed1: float,
+    *,
+    y: float,
+    color: str,
+) -> None:
+    axis.plot(
+        (seed0, seed1),
+        (y - 0.12, y + 0.12),
+        color=color,
+        linewidth=1.6,
+        alpha=0.55,
+    )
+    for value, offset, marker in ((seed0, -0.12, "o"), (seed1, 0.12, "s")):
+        axis.scatter(
+            value,
+            y + offset,
+            color=color,
+            marker=marker,
+            s=48,
+            zorder=3,
+        )
+        axis.annotate(
+            f"{value:+.4f}",
+            (value, y + offset),
+            xytext=(6, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=8.3,
+            color="#374151",
+        )
+
+
+def _add_no_topology_inset(axis: plt.Axes, values: list[float]) -> None:
+    position = axis.get_position()
+    axis.set_position(
+        [position.x0, position.y0, position.width * 0.68, position.height]
+    )
+    inset = axis.figure.add_axes(
+        [
+            position.x0 + position.width * 0.76,
+            position.y0 + position.height * 0.24,
+            position.width * 0.24,
+            position.height * 0.42,
+        ]
+    )
+    _plot_seed_pair(
+        inset,
+        values[0],
+        values[1],
+        y=0.0,
+        color=CONDITION_COLORS["no_topology"],
+    )
+    span = max(0.01, abs(values[1] - values[0]))
+    inset.set_xlim(min(values) - 0.5 * span, max(values) + 1.1 * span)
+    inset.set_ylim(-0.45, 0.45)
+    inset.set_yticks([])
+    inset.set_title("无拓扑优势（单独尺度）", fontsize=9, fontweight="bold")
+    inset.set_xlabel("AUC 差值", fontsize=8.5)
+    inset.tick_params(axis="x", labelsize=8)
+    inset.grid(axis="x", color="#E5E7EB", linewidth=0.8)
 
 
 def _auc_values(

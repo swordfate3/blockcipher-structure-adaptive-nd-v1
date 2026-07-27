@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = K0 exact factorization passed / K1 implementation and execution path ready / launch interlock pending
+status = K0 passed / K1 held / K1-A endpoint loss confirmed / K1-B readiness passed
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -344,3 +344,28 @@ is locally retrieved and adjudicated, run the guarded K1 command; it recomputes 
 launch interlock before executing the frozen eight-row local diagnostic and forty-row
 frozen attribution panel. Do not launch RCT3 or a remote uKNIT run before those gates
 are available.
+
+## 9. 2026-07-28 Evidence Update
+
+PRESENT seed1 completed and K1 ran. K1 was protocol-clean but held: uKNIT's
+candidate stayed near chance on both seeds, while Dialga's high AUC was
+indistinguishable under correct, repeated-last and rotated schedules. K1-A then
+replayed all four candidate checkpoints and located the failure at the
+edge-permutation-invariant aggregation. For Dialga, rotated schedules changed
+97.9% of native endpoint identities and the raw edge values, but changed the
+pooled transition summary by only about `7e-7`.
+
+The active hypothesis is therefore narrower than the original CT-SPN proposal:
+
+```text
+canonical exact-state views
+  + directed native target/source cell position
+  + directed target/source bit role
+  -> shared edge encoder and unchanged CT-SPN backbone
+```
+
+K1-B readiness confirms that this 22-value token restores schedule sensitivity
+with identical 64/128-bit state-dictionary geometry and fewer parameters than
+Runtime-E4. The next action is the frozen four-row K1-B local diagnostic. Do not
+add S-box composition, capacity, scale or learned routing until both ciphers and
+both seeds pass the K1-B attribution gate.

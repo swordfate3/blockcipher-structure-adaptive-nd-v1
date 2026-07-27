@@ -341,6 +341,12 @@ def test_ctspn_k1_chinese_plot_has_complete_labels(tmp_path: Path) -> None:
         training_rows=training_rows,
         control_rows=control_rows,
     )
+    gate["seed_results"]["dialga128"]["0"][
+        "candidate_minus_no_topology"
+    ] = 0.44
+    gate["seed_results"]["dialga128"]["1"][
+        "candidate_minus_no_topology"
+    ] = 0.43
     output = tmp_path / "curves.svg"
 
     render_ctspn_k1_svg(gate, output)
@@ -350,6 +356,7 @@ def test_ctspn_k1_chinese_plot_has_complete_labels(tmp_path: Path) -> None:
     assert "uKNIT-BC 五轮" in svg
     assert "Dialga-128 四轮" in svg
     assert "候选 - 无拓扑" in svg
+    assert "无拓扑优势（单独尺度）" in svg
 
 
 def _passing_k1_rows(
