@@ -91,6 +91,14 @@ from blockcipher_nd.models.structure.spn.canonical_transition import (
     CanonicalTransitionSpnSpec,
     FixedCanonicalTransitionSpnProtocolAdapter,
 )
+from blockcipher_nd.models.structure.spn.canonical_relative_path import (
+    FixedRelativePathSpnProtocolAdapter,
+    RelativePathSpnSpec,
+)
+from blockcipher_nd.models.structure.spn.canonical_cell_path_hypergraph import (
+    CellPathHypergraphSpnSpec,
+    FixedCellPathHypergraphSpnProtocolAdapter,
+)
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     gift64_runtime_structure,
     present_runtime_structure,
@@ -130,6 +138,143 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    cell_path_hypergraph_models = {
+        "runtime_spn_ct_k1f_hypergraph_true": ("true", "true", False, "true"),
+        "runtime_spn_ct_k1f_hypergraph_corrupted": (
+            "true",
+            "true",
+            True,
+            "corrupted",
+        ),
+        "runtime_spn_ct_k1f_hypergraph_independent": (
+            "independent",
+            "true",
+            False,
+            "independent",
+        ),
+        "runtime_spn_ct_k1f_hypergraph_incidence_shuffled": (
+            "true",
+            "shuffled",
+            False,
+            "true",
+        ),
+    }
+    if name in cell_path_hypergraph_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(
+                f"model {name} requires non-empty model option runtime_structure_path"
+            )
+        runtime_rounds = int_option(options, "runtime_rounds", 2)
+        assert runtime_rounds is not None
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_round_start is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=runtime_rounds,
+            round_start=runtime_round_start,
+        )
+        relation_mode, incidence_mode, corrupt, structure_mode = (
+            cell_path_hypergraph_models[name]
+        )
+        runtime_structure = descriptor.structure
+        if corrupt:
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260727)
+            assert corruption_seed is not None
+            runtime_structure = runtime_structure.corrupted(corruption_seed)
+        runtime_structure, window_control = _apply_runtime_structure_window_control(
+            runtime_structure,
+            options,
+        )
+        processor_steps = int_option(options, "processor_steps", 2)
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
+        assert processor_steps is not None
+        assert pair_embedding_dim is not None
+        return FixedCellPathHypergraphSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+            ),
+            structure=runtime_structure,
+            relation_mode=relation_mode,
+            incidence_mode=incidence_mode,
+            spec=CellPathHypergraphSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=pair_embedding_dim,
+                processor_steps=processor_steps,
+                dropout=float(options.get("dropout", 0.0)),
+            ),
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
+            runtime_structure_mode=structure_mode,
+            runtime_structure_window_control=window_control,
+        )
+    relative_path_models = {
+        "runtime_spn_ct_k1d_relative_path_true": ("true", False, "true"),
+        "runtime_spn_ct_k1d_relative_path_corrupted": (
+            "true",
+            True,
+            "corrupted",
+        ),
+        "runtime_spn_ct_k1d_relative_path_independent": (
+            "independent",
+            False,
+            "independent",
+        ),
+    }
+    if name in relative_path_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(
+                f"model {name} requires non-empty model option runtime_structure_path"
+            )
+        runtime_rounds = int_option(options, "runtime_rounds", 2)
+        assert runtime_rounds is not None
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_round_start is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=runtime_rounds,
+            round_start=runtime_round_start,
+        )
+        relation_mode, corrupt, structure_mode = relative_path_models[name]
+        runtime_structure = descriptor.structure
+        if corrupt:
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260727)
+            assert corruption_seed is not None
+            runtime_structure = runtime_structure.corrupted(corruption_seed)
+        runtime_structure, window_control = _apply_runtime_structure_window_control(
+            runtime_structure,
+            options,
+        )
+        processor_steps = int_option(options, "processor_steps", 2)
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
+        assert processor_steps is not None
+        assert pair_embedding_dim is not None
+        return FixedRelativePathSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+            ),
+            structure=runtime_structure,
+            relation_mode=relation_mode,
+            spec=RelativePathSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=pair_embedding_dim,
+                processor_steps=processor_steps,
+                dropout=float(options.get("dropout", 0.0)),
+            ),
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
+            runtime_structure_mode=structure_mode,
+            runtime_structure_window_control=window_control,
+        )
     canonical_transition_models = {
         "runtime_spn_ct_k1_canonical_true": (
             "true",
@@ -188,9 +333,7 @@ def build_spn_model(
         )
         runtime_structure = descriptor.structure
         if corrupt:
-            corruption_seed = int_option(
-                options, "topology_corruption_seed", 20260727
-            )
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260727)
             assert corruption_seed is not None
             runtime_structure = runtime_structure.corrupted(corruption_seed)
         runtime_structure, window_control = _apply_runtime_structure_window_control(
@@ -198,9 +341,7 @@ def build_spn_model(
             options,
         )
         processor_steps = int_option(options, "processor_steps", 2)
-        pair_embedding_dim = int_option(
-            options, "pair_embedding_dim", hidden_bits * 2
-        )
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", hidden_bits * 2)
         temporal_hidden_dim = int_option(options, "temporal_hidden_dim", 76)
         assert processor_steps is not None
         assert pair_embedding_dim is not None

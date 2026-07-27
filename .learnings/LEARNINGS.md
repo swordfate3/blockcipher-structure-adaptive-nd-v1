@@ -45,6 +45,55 @@ of plan compatibility.
 
 ---
 
+## [LRN-20260728-002] correction
+
+**Logged**: 2026-07-28T06:34:45+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A fixed-key train-versus-validation attribution audit cannot identify sample
+memorization when the split also changes the fixed key.
+
+### Details
+
+K1-E replayed K1-D checkpoints on their source training and validation caches and
+correctly established split-specific topology failure. The frozen protocol uses
+train key zero and a distinct all-ones validation key, so that two-panel audit
+changes both plaintext rows and key. Calling the result exact-row memorization is
+therefore stronger than the evidence: the failure may instead be key-specific, or
+may combine row and key effects. Dialga surviving the same protocol is useful
+calibration but does not remove the uKNIT confound.
+
+### Suggested Action
+
+When a fixed-key model fits training data but fails validation, add a fresh holdout
+under the original training key with a distinct RNG seed and prove zero row overlap.
+Compare `train_seen`, `same_key_fresh` and `cross_key_validation` under the same
+checkpoint and controls before choosing a model redesign. Use the outcomes to
+separate sample memorization, key-specific signal and structural relation underuse.
+
+### Metadata
+
+- Source: protocol_audit, self_correction
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-relative-path-attribution-k1e-plan.md, docs/experiments/innovation1-uknit-family-ctspn-same-key-attribution-k1g-plan.md
+- Tags: innovation1, uknit, fixed-key, generalization, attribution, sample-overfit
+- See Also: LRN-20260723-001
+- Pattern-Key: research.fixed_key_split.separate_rows_from_key_shift
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T06:34:45+08:00
+- **Commit/PR**: pending
+- **Notes**: Added the K1-G three-split zero-training audit with a fresh same-key holdout and exact row-overlap gate.
+
+---
+
 ## [LRN-20260728-001] best_practice
 
 **Logged**: 2026-07-28T12:00:00+08:00

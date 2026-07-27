@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from blockcipher_nd.cli.plot_uknit_family_ctspn_k1 import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(["--variant", "k1e", *sys.argv[1:]]))

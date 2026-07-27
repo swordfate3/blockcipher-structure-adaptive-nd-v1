@@ -44,6 +44,64 @@ For remote launcher clones, fall back to the already configured dedicated GitHub
 
 ---
 
+## [ERR-20260728-001] k1d_post_training_control_metadata_key
+
+**Logged**: 2026-07-28T05:05:25+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+
+K1-D completed all four frozen training rows and checkpoints, but its first
+post-training control replay stopped because the result wrapper expected a
+`model_class` entry that `model_metadata()` does not provide.
+
+### Error
+
+```text
+KeyError: 'model_class'
+src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1d.py
+  metadata["model_class"]
+```
+
+### Context
+
+- Run ID: `i1_uknit_family_ctspn_relative_path_k1d_2048_seed0_seed1_20260728`.
+- Four `2048/class`, ten-epoch rows, disk caches, and best checkpoints were
+  already complete; only the first control row's metadata assembly failed.
+- `model_metadata()` exposes parameter and protocol metadata but no class-name
+  field.
+- The active-runtime `self-healing` skill was unavailable in this session, so
+  the verified recovery is recorded here through the self-improvement fallback.
+
+### Suggested Fix
+
+Derive the class name from `type(model).__name__`, cover the exact control
+metadata path with a regression test, and give multi-stage experiment runners a
+fail-closed post-training resume mode that verifies plan hashes, result-row count,
+model keys, and checkpoint existence before reusing completed training.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1d.py, src/blockcipher_nd/cli/run_uknit_family_ctspn_k1d.py, tests/test_uknit_family_ctspn_k1d.py
+- See Also: ERR-20260722-001
+- Pattern-Key: experiment.post_training_failure_must_resume_without_retraining
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T05:05:25+08:00
+- **Commit/PR**: pending
+- **Notes**: Replaced the missing metadata lookup, added `--resume-controls`,
+  passed eleven focused tests, and completed all twenty frozen controls plus the
+  final hold gate without retraining any model.
+
+---
+
 ## [ERR-20260727-001] scheduled_immediate_run_retriggered_at_midnight
 
 **Logged**: 2026-07-27T00:28:51+08:00
