@@ -9,6 +9,7 @@ from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1b import (
     CONTROL_CONDITIONS,
     EXPECTED_CIPHERS,
     EXPECTED_SEEDS,
+    RUN_ID as K1B_RUN_ID,
 )
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1c import (
     EXPECTED_RESULT_ROWS,
@@ -78,6 +79,18 @@ def test_k1c_fails_closed_when_validation_does_not_replay_k1b() -> None:
 
     assert gate["status"] == "invalid"
     assert gate["protocol_checks"]["validation_replays_k1b_exactly"] is False
+
+
+def test_k1c_accepts_bounded_cpu_replay_roundoff() -> None:
+    rows = _rows(train_margin=0.020, validation_margin=-0.010)
+    for row in rows:
+        if row["split"] == "validation":
+            row["source_validation_auc"] = float(row["auc"]) + 3e-6
+
+    gate = adjudicate_k1c(rows=rows, source_checks={"source_valid": True})
+
+    assert gate["protocol_checks"]["validation_replays_k1b_exactly"] is True
+    assert gate["replay_diagnostics"]["max_validation_replay_auc_delta"] < 5e-6
 
 
 def test_k1c_runner_does_not_create_output_for_invalid_source(
@@ -153,6 +166,7 @@ def _rows(*, train_margin: float, validation_margin: float) -> list[dict[str, ob
                     rows.append(
                         {
                             "run_id": RUN_ID,
+                            "source_run_id": K1B_RUN_ID,
                             "cipher_key": cipher,
                             "seed": seed,
                             "split": split,

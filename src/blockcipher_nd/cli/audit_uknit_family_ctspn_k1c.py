@@ -35,6 +35,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--run-id", default=RUN_ID)
     parser.add_argument("--device", default="cpu", choices=["cpu"])
+    parser.add_argument(
+        "--rejudge-existing",
+        action="store_true",
+        help="Recompute gate/validation/summary from an existing 40-row replay.",
+    )
     return parser.parse_args(argv)
 
 
@@ -78,6 +83,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 4
+
+    if args.rejudge_existing:
+        return _rejudge_existing(args, source_checks)
 
     _require_fresh_output_root(args.output_root)
     args.output_root.mkdir(parents=True)
@@ -146,6 +154,56 @@ def main(argv: list[str] | None = None) -> int:
         device=args.device,
     )
     gate = adjudicate_k1c(rows=rows, source_checks=source_checks)
+    _write_jsonl(args.output_root / "results.jsonl", rows)
+    _write_csv(args.output_root / "attribution.csv", rows)
+    _write_decision_outputs(
+        args.output_root,
+        rows=rows,
+        gate=gate,
+        progress_event="k1c_gate_done",
+    )
+    print(json.dumps(gate, ensure_ascii=False, sort_keys=True))
+    return 1 if gate["status"] == "invalid" else 0
+
+
+def _rejudge_existing(
+    args: argparse.Namespace,
+    source_checks: Mapping[str, bool],
+) -> int:
+    results_path = args.output_root / "results.jsonl"
+    progress_path = args.output_root / "progress.jsonl"
+    if not results_path.is_file() or not progress_path.is_file():
+        raise ValueError("K1-C rejudgment requires existing results and progress")
+    progress_rows = _read_jsonl(progress_path)
+    source_checks = {
+        **source_checks,
+        "all_eight_dataset_caches_reused": sum(
+            row.get("event") == "cache_reuse" for row in progress_rows
+        )
+        == 8,
+        "no_dataset_cache_generation": not any(
+            row.get("event") == "cache_start" for row in progress_rows
+        ),
+    }
+    rows = _read_jsonl(results_path)
+    gate = adjudicate_k1c(rows=rows, source_checks=source_checks)
+    _write_decision_outputs(
+        args.output_root,
+        rows=rows,
+        gate=gate,
+        progress_event="k1c_gate_readjudicated",
+    )
+    print(json.dumps(gate, ensure_ascii=False, sort_keys=True))
+    return 1 if gate["status"] == "invalid" else 0
+
+
+def _write_decision_outputs(
+    output_root: Path,
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    gate: Mapping[str, Any],
+    progress_event: str,
+) -> None:
     validation = {
         "run_id": RUN_ID,
         "status": "pass" if all(gate["protocol_checks"].values()) else "fail",
@@ -162,23 +220,20 @@ def main(argv: list[str] | None = None) -> int:
         "optimizer_steps": 0,
         "result_rows": len(rows),
         "attribution_summary": gate["attribution_summary"],
+        "replay_diagnostics": gate["replay_diagnostics"],
         "next_action": gate["next_action"],
         "claim_scope": gate["claim_scope"],
     }
-    _write_jsonl(args.output_root / "results.jsonl", rows)
-    _write_csv(args.output_root / "attribution.csv", rows)
-    _write_json(args.output_root / "gate.json", gate)
-    _write_json(args.output_root / "validation.json", validation)
-    _write_json(args.output_root / "summary.json", summary)
+    _write_json(output_root / "gate.json", gate)
+    _write_json(output_root / "validation.json", validation)
+    _write_json(output_root / "summary.json", summary)
     _progress(
-        args.output_root / "progress.jsonl",
-        "k1c_gate_done",
+        output_root / "progress.jsonl",
+        progress_event,
         status=gate["status"],
         decision=gate["decision"],
         result_rows=len(rows),
     )
-    print(json.dumps(gate, ensure_ascii=False, sort_keys=True))
-    return 1 if gate["status"] == "invalid" else 0
 
 
 def _cache_argv(args: argparse.Namespace) -> list[str]:

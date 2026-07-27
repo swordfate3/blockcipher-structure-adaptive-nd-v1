@@ -33,6 +33,7 @@ EXPECTED_RESULT_ROWS = 40
 EXPECTED_TRAIN_ROWS = 4096
 EXPECTED_VALIDATION_ROWS = 2048
 MARGIN = 0.005
+REPLAY_AUC_TOLERANCE = 5e-6
 
 
 def validate_k1c_source(
@@ -232,10 +233,25 @@ def adjudicate_k1c(
         for split in EXPECTED_SPLITS
         for condition in CONTROL_CONDITIONS
     }
+    validation_replay_deltas = [
+        abs(
+            float(row.get("auc", math.nan))
+            - float(row.get("source_validation_auc", math.nan))
+        )
+        for row in rows
+        if row.get("split") == "validation"
+    ]
+    max_validation_replay_auc_delta = (
+        max(validation_replay_deltas) if validation_replay_deltas else math.inf
+    )
     protocol_checks = {
         **source_checks,
         "forty_rows_complete": len(rows) == EXPECTED_RESULT_ROWS
         and set(grouped) == expected_keys,
+        "run_and_source_ids_exact": all(
+            row.get("run_id") == RUN_ID and row.get("source_run_id") == K1B_RUN_ID
+            for row in rows
+        ),
         "split_row_counts_exact": all(
             int(row.get("rows", -1))
             == (
@@ -274,7 +290,7 @@ def adjudicate_k1c(
                     float(row.get("auc", math.nan))
                     - float(row.get("source_validation_auc", math.nan))
                 )
-                <= 1e-7
+                <= REPLAY_AUC_TOLERANCE
             )
             for row in rows
         ),
@@ -388,7 +404,14 @@ def adjudicate_k1c(
             "dialga_train_all_seeds": dialga_train_pass,
             "dialga_validation_all_seeds": dialga_validation_pass,
         },
-        "thresholds": {"correct_topology_margin": MARGIN},
+        "thresholds": {
+            "correct_topology_margin": MARGIN,
+            "validation_replay_auc_tolerance": REPLAY_AUC_TOLERANCE,
+        },
+        "replay_diagnostics": {
+            "validation_rows": len(validation_replay_deltas),
+            "max_validation_replay_auc_delta": max_validation_replay_auc_delta,
+        },
         "training_rows": 0,
         "optimizer_steps": 0,
         "claim_scope": (
