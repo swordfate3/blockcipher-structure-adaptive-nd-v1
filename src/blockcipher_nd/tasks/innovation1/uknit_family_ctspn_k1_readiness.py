@@ -25,6 +25,13 @@ INDEPENDENT_MODEL = "runtime_spn_ct_k1_canonical_independent"
 ANCHOR_PARAMETERS = 442466
 MAX_PARAMETER_RELATIVE_DELTA = 0.01
 RELABEL_LOGIT_TOLERANCE = 1e-6
+PRESENT_SEED1_RUN_ID = (
+    "i1_rtg3b_present80_one_to_one_formal_1000000_seed1_retry1_20260727"
+)
+PRESENT_TERMINAL_DECISIONS = {
+    "innovation1_runtime_spn_present_formal_seed1_supported",
+    "innovation1_runtime_spn_present_formal_not_supported",
+}
 
 CIPHER_PROTOCOLS = {
     "uknit64": {
@@ -575,12 +582,23 @@ def _no_cipher_identity_tensor(model: torch.nn.Module) -> bool:
 def _present_adjudicated(gate: Mapping[str, Any] | None) -> bool:
     if gate is None:
         return False
-    run_id = str(gate.get("run_id", ""))
-    decision = str(gate.get("decision", ""))
+    protocol_checks = gate.get("protocol_checks")
+    research_checks = gate.get("research_checks")
     return (
-        "rtg3b_present80_one_to_one_formal_1000000_seed1" in run_id
-        and gate.get("status") in {"pass", "fail"}
-        and "launch_authorized" not in decision
+        gate.get("run_id") == PRESENT_SEED1_RUN_ID
+        and gate.get("cipher") == "PRESENT-80"
+        and gate.get("seed") == 1
+        and gate.get("phase") == "rtg3b"
+        and gate.get("samples_per_class") == 1_000_000
+        and gate.get("validation_samples_per_class") == 500_000
+        and gate.get("status") in {"pass", "hold"}
+        and gate.get("decision") in PRESENT_TERMINAL_DECISIONS
+        and isinstance(protocol_checks, dict)
+        and bool(protocol_checks)
+        and all(value is True for value in protocol_checks.values())
+        and isinstance(research_checks, dict)
+        and bool(research_checks)
+        and all(isinstance(value, bool) for value in research_checks.values())
     )
 
 
@@ -634,6 +652,8 @@ __all__ = [
     "INDEPENDENT_MODEL",
     "K0_DECISION",
     "K0_RUN_ID",
+    "PRESENT_SEED1_RUN_ID",
+    "PRESENT_TERMINAL_DECISIONS",
     "RUN_ID",
     "build_ctspn_k1_readiness",
 ]

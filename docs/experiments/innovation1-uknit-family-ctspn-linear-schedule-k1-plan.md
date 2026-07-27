@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = implementation readiness passed / PRESENT launch interlock pending
+status = implementation and execution path ready / PRESENT launch interlock pending
 run_id = i1_uknit_family_ctspn_linear_schedule_k1_2048_seed0_seed1_20260727
 execution = local sub-medium diagnostic after active PRESENT evidence closes
 remote = no
@@ -40,6 +40,7 @@ routes.
 | Pairs per sample | 4 | 4 |
 | Seeds | 0, 1 | 0, 1 |
 | Epochs | 10 | 10 |
+| Batch size | 64 | 64 |
 | Loss / optimizer | MSE / Adam | MSE / Adam |
 | Learning rate / weight decay | `1e-4` / `1e-5` | `1e-4` / `1e-5` |
 | Checkpoint | best validation AUC | best validation AUC |
@@ -156,6 +157,35 @@ cell labels changed pooled logits by at most `7.0780516e-8`, below `1e-6`. The o
 closed item is the existing PRESENT formal seed1 result, which is not yet locally
 retrieved and adjudicated.
 
+### 5.2 Completed Execution-Path Readiness
+
+The guarded K1 runner and postprocessor are implemented without consuming the
+launch authorization:
+
+```text
+scripts/run-uknit-family-ctspn-k1
+scripts/plot-uknit-family-ctspn-k1
+```
+
+The runner recomputes K0/K1/PRESENT preflight evidence before creating a run root.
+It returns without writing run artifacts when `optimizer_step_authorized=false`.
+After authorization, it freezes `batch_size=64`, invokes the existing matrix trainer
+for exactly eight rows, writes one best-AUC checkpoint per row, and reuses one
+in-memory validation dataset per cipher and seed for all counterfactual evaluations.
+
+Both the Runtime-E4 anchor and CT-SPN candidate are evaluated under all five
+conditions. This produces `2 ciphers x 2 seeds x 2 trained roles x 5 controls = 40`
+inference-only rows. Every row records the validation-data digest, checkpoint and
+state-dict digests, control fingerprint, probability digest, AUC and zero optimizer
+steps. The result gate fails closed unless the correct condition exactly replays the
+source best-checkpoint AUC and every per-source control shares the same learned state
+and validation rows.
+
+Ten focused tests cover readiness, cross-width geometry, transition rotation,
+strict five-control state reuse, fail-closed launch, per-cipher/per-seed adjudication
+and complete Chinese chart labels. This is execution readiness only; no K1 training
+has started.
+
 ## 6. Advance Gate
 
 The candidate advances only if both seeds pass every per-cipher condition:
@@ -180,10 +210,52 @@ outputs/local_readiness/i1_uknit_family_ctspn_linear_schedule_k1_readiness_20260
 outputs/local_diagnostic/i1_uknit_family_ctspn_linear_schedule_k1_2048_seed0_seed1_20260727/
 ```
 
-The completed diagnostic must emit results, history, validation, gate, summary,
-progress and a readable Chinese comparison chart. The chart must pass the
-`visual-qa-redraw` workflow before completion. Both completed readiness and training
-results must refresh the recent-results index.
+The completed diagnostic must emit:
+
+```text
+results.jsonl              = exactly 8 trained rows
+controls.jsonl             = exactly 40 frozen-checkpoint inference rows
+history.csv                = exactly 80 epoch rows
+checkpoint_manifest.json   = exactly 8 selected best-AUC checkpoints
+preflight.json             = source hashes and launch authorization
+validation.json            = fail-closed protocol checks
+gate.json                  = per-cipher, per-seed research adjudication
+summary.json               = claim scope and evidence-backed next action
+progress.jsonl             = training and frozen-control progress
+curves.svg                 = Chinese AUC and attribution-margin comparison
+plot_report.json           = rendered-pending-visual-QA state
+```
+
+The chart must pass the `visual-qa-redraw` workflow before completion. Both completed
+readiness and training results must refresh the recent-results index.
+
+### 7.1 Guarded Execution
+
+After a real PRESENT seed1 adjudication is locally retrieved, run:
+
+```bash
+RUN_ROOT=outputs/local_diagnostic/i1_uknit_family_ctspn_linear_schedule_k1_2048_seed0_seed1_20260727
+
+UV_CACHE_DIR=/tmp/uv-cache uv run --frozen --no-sync python \
+  scripts/run-uknit-family-ctspn-k1 \
+  --plan configs/experiment/innovation1/innovation1_uknit_family_ctspn_linear_schedule_k1_2048_seed0_seed1.csv \
+  --k0-gate outputs/local_audit/i1_uknit_family_canonical_component_factorization_k0_20260727/gate.json \
+  --k0-validation outputs/local_audit/i1_uknit_family_canonical_component_factorization_k0_20260727/validation.json \
+  --present-gate <retrieved-present-seed1-result-gate.json> \
+  --output-root "${RUN_ROOT}" \
+  --device cpu
+
+UV_CACHE_DIR=/tmp/uv-cache uv run --frozen --no-sync python \
+  scripts/plot-uknit-family-ctspn-k1 \
+  --gate "${RUN_ROOT}/gate.json" \
+  --output "${RUN_ROOT}/curves.svg" \
+  --report "${RUN_ROOT}/plot_report.json"
+```
+
+Then invoke `visual-qa-redraw`, mark the visual gate only after rendered-pixel
+inspection passes, and refresh `outputs/00_RECENT_RESULTS.md` plus its JSON companion.
+The run is incomplete if training, frozen replay, adjudication, plotting, visual QA,
+or indexing fails.
 
 ## 8. Evidence-Dependent Next Action
 

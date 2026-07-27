@@ -116,8 +116,10 @@ def _apply_runtime_structure_window_control(
         return structure, control
     if control == "repeat_last":
         return structure.repeat_last_transition(), control
+    if control == "rotated":
+        return structure.rotate_transitions(), control
     raise ValueError(
-        "runtime_structure_window_control must be full or repeat_last"
+        "runtime_structure_window_control must be full, repeat_last, or rotated"
     )
 
 

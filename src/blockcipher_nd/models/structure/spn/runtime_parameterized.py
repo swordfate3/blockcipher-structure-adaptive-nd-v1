@@ -1852,9 +1852,13 @@ class FixedRuntimeSpnProtocolAdapter(nn.Module):
             raise ValueError("input_bits must contain complete ciphertext pairs")
         if relation_mode not in {"true", "independent"}:
             raise ValueError("relation_mode must be true or independent")
-        if runtime_structure_window_control not in {"full", "repeat_last"}:
+        if runtime_structure_window_control not in {
+            "full",
+            "repeat_last",
+            "rotated",
+        }:
             raise ValueError(
-                "runtime_structure_window_control must be full or repeat_last"
+                "runtime_structure_window_control must be full, repeat_last, or rotated"
             )
         if aggregation_mode == "bit_pair":
             self.backbone = RuntimeParameterizedSpnDistinguisher(spec)

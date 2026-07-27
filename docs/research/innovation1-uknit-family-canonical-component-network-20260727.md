@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = K0 exact factorization passed / K1 implementation ready / launch interlock pending
+status = K0 exact factorization passed / K1 implementation and execution path ready / launch interlock pending
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -264,6 +264,16 @@ same-checkpoint loading, zero anchor S-box gradient contribution, and cell relab
 invariance (`max error <= 7.0780516e-8`) all passed. Training remains unauthorized
 until the existing PRESENT formal seed1 result is locally retrieved and adjudicated.
 
+The guarded execution path is also prepared. It freezes `batch_size=64`, trains the
+eight preregistered rows through the existing disk-cached matrix engine only after a
+fresh authorization pass, and evaluates both trained roles under five controls with
+the same validation tensors and learned state. The forty inference-only rows bind
+dataset, checkpoint, state-dict, intervention and probability digests. A dedicated
+Chinese figure separates absolute AUC from candidate-control margins; the real chart
+remains unrendered until training evidence exists and must pass `visual-qa-redraw`
+before completion. These implementation facts add no neural efficacy evidence and do
+not relax the PRESENT interlock.
+
 Advance only when both seeds satisfy:
 
 ```text
@@ -329,7 +339,8 @@ is intentional and testable.
 ## 8. Immediate Next Action
 
 Keep the active PRESENT seed1 monitor as the only remote training owner. K0 and K1
-implementation readiness are complete and retained. When the PRESENT result is
-locally retrieved and adjudicated, rerun only the K1 launch interlock and then execute
-the frozen eight-row local diagnostic. Do not launch RCT3 or a remote uKNIT run before
-those gates are available.
+implementation/execution readiness are complete and retained. When the PRESENT result
+is locally retrieved and adjudicated, run the guarded K1 command; it recomputes the
+launch interlock before executing the frozen eight-row local diagnostic and forty-row
+frozen attribution panel. Do not launch RCT3 or a remote uKNIT run before those gates
+are available.

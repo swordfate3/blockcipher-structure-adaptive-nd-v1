@@ -294,6 +294,18 @@ class RuntimeSpnStructure:
             linear,
         )
 
+    def rotate_transitions(self) -> RuntimeSpnStructure:
+        """Move the first transition to the end without changing its contents."""
+        if self.rounds < 2:
+            raise ValueError("transition rotation requires at least two rounds")
+        indices = torch.roll(torch.arange(self.rounds), shifts=-1)
+        return runtime_spn_structure_from_truth_bits(
+            self.cell_membership,
+            self.bit_role,
+            self.sbox_truth_bits[indices],
+            self.linear_matrices[indices],
+        )
+
     def relabel_cells(
         self, cell_permutation: Sequence[int]
     ) -> tuple[RuntimeSpnStructure, torch.Tensor]:
