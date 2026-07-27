@@ -125,6 +125,32 @@ def test_rtg3b_generated_scripts_preserve_remote_path_and_cache_policy() -> None
     assert "run.lock\\\\NUL" in monitor_script
 
 
+def test_rtg3b_postprocess_recovery_reuses_results_without_training() -> None:
+    path = (
+        ROOT
+        / "configs/remote/generated/"
+        "recover_i1_rtg3b_present80_one_to_one_formal_1000000_"
+        "seed0_retry1_20260727.cmd"
+    )
+    text = path.read_text(encoding="utf-8")
+
+    assert "EnableExtensions DisableDelayedExpansion" in text
+    assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in text
+    assert "cmd.exe /k" not in text
+    assert "!" not in text
+    assert "scripts\\train" not in text
+    assert "_gate_stderr.txt" in text
+    assert "No module named 'matplotlib'" in text
+    assert "scripts\\validate-results" in text
+    assert "scripts\\gate-runtime-spn-present-transfer" in text
+    assert "--no-plot" in text
+    assert "_verify_checkpoint_payloads" in text
+    assert "recovered_without_retraining.marker" in text
+    assert "SHA256SUMS" in text
+    assert "results/%RUN_ID%" in text
+    assert "%RUN_ID%_result_branch_pushed.marker" in text
+
+
 def test_all_rtg3b_batch_assets_fail_closed_against_duplicate_writers() -> None:
     generated = ROOT / "configs/remote/generated"
     run_paths = sorted(generated.glob("run_i1_rtg3b_present80_*.cmd"))

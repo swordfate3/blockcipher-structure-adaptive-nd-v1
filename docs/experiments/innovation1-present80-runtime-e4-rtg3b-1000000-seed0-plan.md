@@ -330,3 +330,39 @@ Planned retry1 retrieved result:
 outputs/remote_results/
   i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727/
 ```
+
+## Retry1 Post-Processing Recovery
+
+Retry1 completed all three five-epoch model rows and remote plan validation,
+but the no-plot gate entrypoint still imported Matplotlib at module import time.
+The remote `torch310` environment does not contain that optional plotting
+dependency, so training stopped only in post-processing:
+
+```text
+correct topology AUC   = 0.749477538094
+corrupted topology AUC = 0.601527151514
+no-topology AUC        = 0.597290895286
+remote validate-results status = pass, 3/3 rows
+remote failure = ModuleNotFoundError: No module named 'matplotlib'
+```
+
+This is an active protocol recovery, not a new experiment and not authority to
+retrain. Commit `8d05e8bc14dbe9bee8f8fb8cf4deeffa40accf26` defers all plotting
+imports until `render_present_transfer_svg` is actually called. A subprocess
+regression test blocks every Matplotlib import and proves that `--no-plot`
+still writes the gate, summary, validation, history and progress artifacts.
+
+The bounded recovery script is:
+
+```text
+configs/remote/generated/
+  recover_i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727.cmd
+```
+
+It must verify the original training commit and exact Matplotlib failure,
+rerun plan validation and gate-only adjudication, strictly replay all three
+existing checkpoints, create an immutable SHA-256 archive, and push the normal
+`results/<run-id>` branch. It contains no training command. Only after verified
+branch retrieval, local re-adjudication, rendered-pixel visual QA and result
+index refresh may seed0 be treated as complete and the identical seed1 launch
+gate be evaluated.
