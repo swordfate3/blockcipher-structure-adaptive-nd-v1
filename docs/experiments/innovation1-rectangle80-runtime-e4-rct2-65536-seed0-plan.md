@@ -5,12 +5,24 @@ Date: 2026-07-25
 ## Status
 
 ```text
-stage             = launch assets revised for concurrent GPU1 execution
+stage             = running remotely on physical GPU1
 run_id            = i1_rct2_rectangle80_runtime_e4_medium_65536_seed0_20260725
 execution         = remote GPU only
-launch status     = pending exact pushed-SHA authorization on physical GPU1
+launch status     = started marker confirmed; local result watcher active
 result            = none
 claim scope       = single-seed medium topology confirmation only
+```
+
+Launch evidence recorded on 2026-07-27:
+
+```text
+source commit       = 04ab9aaf636ec0468a156a4b6641342cc7060b7d
+GitHub main         = exact source commit verified
+authorization       = should_ssh=true, ssh_allowed=true, launch_authorized=true
+physical GPU        = 1
+started confirmation= bounded_start_confirmation_passed, attempt=5
+result watcher      = i1_rct2_rectangle80_medium_monitor
+result state        = running; no AUC result yet
 ```
 
 RCT1 passed both local seeds, so RCT2 asks one narrower question: does the
