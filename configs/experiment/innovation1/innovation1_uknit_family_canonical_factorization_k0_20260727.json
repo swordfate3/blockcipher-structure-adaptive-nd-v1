@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "run_id": "i1_uknit_family_canonical_component_factorization_k0_20260727",
+  "audit": {
+    "training_rows": 0,
+    "optimizer_steps": 0,
+    "remote": false
+  },
+  "uknit_source": {
+    "repository": "https://github.com/syllab-ntu/UKNIT.git",
+    "commit": "f6493014fb7326cf3fffa2bb642b26cd59650e4f",
+    "path": "uknit-implementations/uKNIT-BC_alternative_representation.cpp"
+  },
+  "uknit": {
+    "full_vectors": [
+      {
+        "plaintext": "0x0000000000000000",
+        "key": "0x00000000000000000000000000000000",
+        "ciphertext": "0x034af0b3c687e424"
+      },
+      {
+        "plaintext": "0x0123456789abcdef",
+        "key": "0x0123456789abcdef0123456789abcdef",
+        "ciphertext": "0x7d4ef882c1f42dba"
+      },
+      {
+        "plaintext": "0xffffffffffffffff",
+        "key": "0xffffffffffffffffffffffffffffffff",
+        "ciphertext": "0xdb058583df8f186f"
+      },
+      {
+        "plaintext": "0x1111111111111111",
+        "key": "0xfedcba98765432100123456789abcdef",
+        "ciphertext": "0x7c8ddaf0fead3409"
+      }
+    ],
+    "prefix_zero_states": [
+      "0x305c0fbca20690c0",
+      "0x34c088e84448ec46",
+      "0x68256d854243d5a4",
+      "0x2516214a84948088",
+      "0x36c68a03f793f502",
+      "0x7e73bacada1a7b42",
+      "0x605a54c54e0811e4",
+      "0x8400d39e1401592b",
+      "0xf929663fa8ccb64b",
+      "0xf807067873ed0a40",
+      "0xcf719c1e491d2d2c"
+    ]
+  },
+  "dialga": {
+    "full_vectors": [
+      {
+        "total_rounds": 20,
+        "plaintext": "0x00112233445566778899aabbccddeeff",
+        "key": "0x00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00",
+        "tweak": "0x2233445566778899aabbccddee00ff11",
+        "ciphertext": "0xa4a1ea948919d8996e13b1b365bb0ce6"
+      },
+      {
+        "total_rounds": 20,
+        "plaintext": "0x0123456789abcdef0123456789abcdef",
+        "key": "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+        "tweak": "0x00001111222233334444555566668888",
+        "ciphertext": "0xdc355a6376d9617723efb9a98c1b4864"
+      },
+      {
+        "total_rounds": 16,
+        "plaintext": "0x00112233445566778899aabbccddeeff",
+        "key": "0x00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00",
+        "tweak": "0x2233445566778899aabbccddee00ff11",
+        "ciphertext": "0x838407143af9a876fbdc6be378e9045b"
+      },
+      {
+        "total_rounds": 16,
+        "plaintext": "0x0123456789abcdef0123456789abcdef",
+        "key": "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+        "tweak": "0x00001111222233334444555566668888",
+        "ciphertext": "0xa16812d9738333d238c23e67ac20ef16"
+      }
+    ],
+    "trace": {
+      "plaintext": "0x00112233445566778899aabbccddeeff",
+      "key": "0x00112233445566778899aabbccddeeff112233445566778899aabbccddeeff00",
+      "tweak": "0x2233445566778899aabbccddee00ff11",
+      "states": [
+        "0x9f95f3ff7a092a2c465dfdf31225ea00",
+        "0x98871f6b568e38c69b2df2b8fecc46c4",
+        "0x1d02f8badc70a734a02946d7584c6699",
+        "0x0924e3460275180560387c9d89ccaef7",
+        "0x7df1476adedc82fe587839dc0e43f31c",
+        "0xdd68245888f9cbed8c05065ddcffc56b",
+        "0x9da77dade1660eaf5a2877126d7bdeeb",
+        "0x4c31411fc08dd78da9c94db8175ca087",
+        "0x52ffe58da193d2b26faaa208042c1dfe",
+        "0xd7beb80383bb057a8a470b61e6f1cd19",
+        "0xd0f79a0ce3b4f519c8b06141af26a4ca",
+        "0xea549d58f095e1159158679953b8be8a",
+        "0x9ef0091d1fd39ce3f836b8d14d5040eb",
+        "0xefef7cf1a11eae91f1ed0ac3d8773621",
+        "0x87e87173805a0eac97de2f230432bcd0",
+        "0x92a33e3c3115979441131a892119bed7"
+      ]
+    }
+  }
+}

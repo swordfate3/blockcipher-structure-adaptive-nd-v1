@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = research direction frozen / implementation not started
+status = K0 exact factorization passed / K1 planning
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -196,6 +196,15 @@ all loaded round types and the existing public-vector checks.
 
 K0 failure permits only factorization repair. It does not authorize neural training.
 
+K0 completed on 2026-07-27. All `3072` uKNIT S-box probes, `704`
+uKNIT linear unit probes, `1024` Dialga byte-S-box probes and `512` Dialga
+linear unit probes matched exactly. The canonical operators also matched all four
+uKNIT vectors, eleven uKNIT prefix states, all four Dialga vectors and the complete
+sixteen-state Dialga trace. Repeated recovery produced the same manifest and all
+wrong bit/byte/order controls changed fingerprints. The gate passed with zero
+training rows and zero optimizer steps. This establishes the compiler boundary only;
+K1 is still required to test neural usefulness.
+
 ### K1: Linear-Schedule Specialist
 
 K1 changes one learned hypothesis only: raw Runtime-E4 transition fusion versus
@@ -301,8 +310,8 @@ is intentional and testable.
 
 ## 8. Immediate Next Action
 
-Keep the active PRESENT seed1 monitor as the only remote training owner. In parallel,
-prepare K0 as a local zero-training exact-factorization audit for uKNIT and Dialga.
-After K0 passes and the PRESENT result closes, preregister and implement K1 without
-changing the frozen data protocol. Do not launch RCT3 or a remote uKNIT run before
+Keep the active PRESENT seed1 monitor as the only remote training owner. K0 is now
+complete and retained. Preregister and implement K1 readiness without changing the
+frozen data protocol; execute its local training only after the PRESENT result is
+locally retrieved and adjudicated. Do not launch RCT3 or a remote uKNIT run before
 those gates are available.
