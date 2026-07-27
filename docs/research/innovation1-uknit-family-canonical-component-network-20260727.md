@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = K0 passed / K1 held / K1-A endpoint loss confirmed / K1-B held / K1-C audit planned
+status = K0 passed / K1 held / K1-A endpoint loss confirmed / K1-B held / K1-C topology overfit confirmed / K1-D planned
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -338,17 +338,16 @@ is intentional and testable.
 
 ## 8. Immediate Next Action
 
-K0 through K1-B are complete. Do not scale K1-B or start nonlinear K2. Run K1-C as a
-zero-training train-versus-validation topology-attribution audit using the four frozen
-K1-B checkpoints, exact cached training rows, unchanged validation rows and the same
-five topology conditions. The only changed variable is the evaluated data split.
+K0 through K1-C are complete. K1-C confirms split-specific topology overfit: both
+uKNIT seeds strongly prefer correct topology on their exact training caches but fail
+to preserve that ordering on unchanged validation data. Close absolute native cell
+positions as a learned input route.
 
-If correct topology dominates every wrong control on the training split but not on
-validation, the endpoint/temporal representation is fitting structure-specific
-shortcuts and the next learned candidate should replace absolute endpoint summaries
-with relative cross-transition paths. If correct topology also fails on training,
-close the learned endpoint-summary route and require an exact cross-transition
-composition operator before any further neural training.
+The next candidate is K1-D. Before training, prove at zero training that adjacent
+transition paths can be composed without absolute cell identifiers and that correct,
+repeated-last, rotated, corrupted and no-topology schedules remain distinguishable.
+If readiness passes, train exactly one relative-path candidate at the unchanged K1-B
+budget and controls. Do not add nonlinear K2, capacity, scale or learned routing.
 
 ## 9. 2026-07-28 Evidence Update
 
@@ -380,8 +379,15 @@ corrupted schedules on both seeds, but seed0's repeated-last margin was only
 `+0.002678`. The endpoint channels therefore repair part of the representation
 mechanism but do not establish a generalizing uKNIT result.
 
-K1-C is now the only authorized next step. It performs no training and changes
-only the evaluation split to determine whether the missing uKNIT attribution is
-training-set structural overfitting or complete failure to use correct topology.
-Do not add S-box composition, capacity, scale or learned routing before that
-mechanism question is resolved.
+K1-C then replayed the four frozen K1-B checkpoints on the exact training caches and
+unchanged validation data. Both uKNIT seeds passed all four topology margins on
+training: correct AUC was `0.638102/0.608175`, and the smallest correct-order margin
+was `+0.063330`. Both failed validation attribution: correct AUC returned to
+`0.510782/0.508569`, with corrupted winning seed0 and rotated winning seed1. The
+maximum validation replay deviation from K1-B was only `2.861e-6` under exact
+dataset/checkpoint/state SHA binding.
+
+This confirms a representation-specific generalization failure rather than complete
+failure to fit topology. The authorized K1-D hypothesis removes absolute cell
+positions and composes adjacent transitions into relative path tokens before any
+permutation-invariant pooling. No other architecture or scale variable may change.

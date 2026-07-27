@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-28
 **Run ID:** `i1_uknit_family_ctspn_train_validation_attribution_k1c_20260728`
-**Status:** planned / zero-training audit
+**Status:** completed / pass / split-specific topology overfit confirmed
 
 ## 1. Question
 
@@ -100,3 +100,75 @@ uKNIT seed.
 Implement a fail-closed K1-C replay runner that reads only the completed K1-B
 artifacts and cached datasets. Run it locally, validate all forty rows, document the
 decision and refresh the recent-result index before selecting any learned successor.
+
+## 8. Completed Result
+
+K1-C completed locally on 2026-07-28. It reused all eight source caches, loaded the
+four selected K1-B checkpoints strictly, performed no training and produced all
+forty planned rows. All twenty-three final protocol checks passed:
+
+```text
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1c_split_specific_topology_overfit_confirmed
+training_rows = 0
+optimizer_steps = 0
+
+uKNIT seed0 train:
+  correct AUC                    = 0.638102
+  correct - repeat/rotated       = +0.101195 / +0.132710
+  correct - corrupted/no-topology = +0.141390 / +0.158409
+
+uKNIT seed0 validation:
+  correct AUC                    = 0.510782
+  correct - repeat/rotated       = -0.004976 / +0.000111
+  correct - corrupted/no-topology = -0.011663 / +0.003957
+
+uKNIT seed1 train:
+  correct AUC                    = 0.608175
+  correct - repeat/rotated       = +0.063330 / +0.097402
+  correct - corrupted/no-topology = +0.112075 / +0.110766
+
+uKNIT seed1 validation:
+  correct AUC                    = 0.508569
+  correct - repeat/rotated       = +0.001423 / -0.015068
+  correct - corrupted/no-topology = +0.000561 / +0.010373
+```
+
+Dialga supplies the positive calibration. Both training splits passed every
+attribution margin. Validation retained the high correct AUC
+`0.960106/0.961374`; seed1 passed every control, while seed0 remained below the
+`+0.005` repeated-last margin at `+0.002678`. Dialga cannot hide the uKNIT split
+failure.
+
+The first gate used an over-strict `1e-7` exact-AUC replay tolerance and therefore
+returned protocol-invalid even though all twenty validation dataset SHA values and
+all checkpoint/state SHA values matched. The observed maximum CPU replay AUC delta
+was only `2.861e-6`. The protocol repair set an explicit `5e-6` tolerance, added
+the measured delta to the gate, retained exact dataset/checkpoint/state binding and
+re-adjudicated the existing forty rows without another inference or optimizer step.
+
+The result confirms that K1-B can fit the correct topology on its training rows but
+that its absolute native endpoint summaries do not generalize. The next eligible
+candidate is K1-D: one same-budget relative cross-transition path representation.
+It must remove absolute cell positions, compose adjacent transitions before
+invariant pooling and retain the same five topology controls. No remote scale-up,
+extra data, width, MoE or K2 nonlinear conditioning is justified by K1-C.
+
+Artifacts:
+
+```text
+outputs/local_audit/i1_uknit_family_ctspn_train_validation_attribution_k1c_20260728/
+  results.jsonl
+  attribution.csv
+  gate.json
+  validation.json
+  summary.json
+  progress.jsonl
+  curves.svg
+  visual_qa_passed.marker
+```
+
+The Chinese `curves.svg` was rendered at `1600 x 1020` and passed
+`visual-qa-redraw`: no overlap, clipping, missing glyphs, ambiguous scales or
+unreadable near-zero margins were observed. The run is entry `001` in
+`outputs/00_RECENT_RESULTS.md` immediately after indexing.
