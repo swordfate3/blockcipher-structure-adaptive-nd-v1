@@ -1,0 +1,48 @@
+{
+  "aucs": {
+    "corrupted": 0.601527151514,
+    "independent": 0.597290895286,
+    "true": 0.749477538094
+  },
+  "blocked_actions": [
+    "increase samples, epochs, or pairs after seeing this gate",
+    "change architecture together with scale",
+    "claim stable cross-cipher topology superiority"
+  ],
+  "cipher": "PRESENT-80",
+  "claim_scope": "PRESENT-80 r7 seed0 project-formal 1000000/class runtime-topology attribution; not a Zhang/Wang reproduction, paper-scale comparison, zero-step transfer, attack, SOTA, breakthrough, or universal-SPN claim",
+  "decision": "innovation1_runtime_spn_present_formal_seed0_supported",
+  "margins": {
+    "true_minus_corrupted": 0.14795038657999993,
+    "true_minus_independent": 0.15218664280799998
+  },
+  "next_action": "prepare the identical project-formal PRESENT RTG3-B seed1 replication",
+  "phase": "rtg3b",
+  "protocol_checks": {
+    "disk_backed_datasets": true,
+    "encrypted_random_plaintext_negatives": true,
+    "equal_parameter_geometry": true,
+    "finite_auc_metrics": true,
+    "frozen_transfer_scale": true,
+    "official_mcnd_sample_organization": true,
+    "raw_ciphertext_pair_input": true,
+    "runtime_bit_order_adapter_recorded": true,
+    "same_data_protocol": true,
+    "same_training_protocol": true,
+    "three_runtime_controls_complete": true
+  },
+  "research_checks": {
+    "true_auc_at_least_0p520": true,
+    "true_exceeds_corrupted_by_0p005": true,
+    "true_exceeds_independent_by_0p005": true
+  },
+  "run_id": "i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727",
+  "samples_per_class": 1000000,
+  "seed": 0,
+  "status": "pass",
+  "thresholds": {
+    "control_margin": 0.005,
+    "true_auc": 0.52
+  },
+  "validation_samples_per_class": 500000
+}

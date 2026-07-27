@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727\source\scripts\gate-runtime-spn-present-transfer", line 2, in <module>
+    from blockcipher_nd.cli.gate_runtime_spn_present_transfer import main
+  File "G:\lxy\blockcipher-structure-adaptive-nd-runs\i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727\source\src\blockcipher_nd\cli\gate_runtime_spn_present_transfer.py", line 16, in <module>
+    import matplotlib
+ModuleNotFoundError: No module named 'matplotlib'

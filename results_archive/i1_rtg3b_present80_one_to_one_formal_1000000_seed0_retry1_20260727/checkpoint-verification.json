@@ -1,0 +1,66 @@
+{
+  "actual_files": [
+    "row0001_present_runtime_e4_equivariant_true_seed0.pt",
+    "row0002_present_runtime_e4_equivariant_corrupted_seed0.pt",
+    "row0003_present_runtime_e4_equivariant_independent_seed0.pt"
+  ],
+  "checkpoint_dir": "G:\\lxy\\blockcipher-structure-adaptive-nd-runs\\i1_rtg3b_present80_one_to_one_formal_1000000_seed0_retry1_20260727\\checkpoints",
+  "entries": [
+    {
+      "checks": {
+        "file_exists": true,
+        "final_metrics_exact": true,
+        "history_exact": true,
+        "metadata_core_complete": true,
+        "metadata_payload_is_result_subset": true,
+        "parameter_count": true,
+        "payload_shape": true,
+        "selected_best_checkpoint": true,
+        "strict_state_dict_load": true
+      },
+      "filename": "row0001_present_runtime_e4_equivariant_true_seed0.pt",
+      "model": "present_runtime_e4_equivariant_true",
+      "sha256": "10ae44219e23132a0ece0043e4c3be083991e9bb9321694bda9475570cab6e08"
+    },
+    {
+      "checks": {
+        "file_exists": true,
+        "final_metrics_exact": true,
+        "history_exact": true,
+        "metadata_core_complete": true,
+        "metadata_payload_is_result_subset": true,
+        "parameter_count": true,
+        "payload_shape": true,
+        "selected_best_checkpoint": true,
+        "strict_state_dict_load": true
+      },
+      "filename": "row0002_present_runtime_e4_equivariant_corrupted_seed0.pt",
+      "model": "present_runtime_e4_equivariant_corrupted",
+      "sha256": "b4dee839681252501fe0bf4d6754232fef74de4cbe9045acb94165d781acb454"
+    },
+    {
+      "checks": {
+        "file_exists": true,
+        "final_metrics_exact": true,
+        "history_exact": true,
+        "metadata_core_complete": true,
+        "metadata_payload_is_result_subset": true,
+        "parameter_count": true,
+        "payload_shape": true,
+        "selected_best_checkpoint": true,
+        "strict_state_dict_load": true
+      },
+      "filename": "row0003_present_runtime_e4_equivariant_independent_seed0.pt",
+      "model": "present_runtime_e4_equivariant_independent",
+      "sha256": "565cbcb815e552a267a3e0c9c687e2eff1e1946b92bb73c44205f561c4daedf5"
+    }
+  ],
+  "errors": [],
+  "expected_files": [
+    "row0001_present_runtime_e4_equivariant_true_seed0.pt",
+    "row0002_present_runtime_e4_equivariant_corrupted_seed0.pt",
+    "row0003_present_runtime_e4_equivariant_independent_seed0.pt"
+  ],
+  "file_set_exact": true,
+  "status": "pass"
+}
