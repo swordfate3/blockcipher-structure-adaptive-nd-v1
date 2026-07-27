@@ -3,7 +3,7 @@
 Date: 2026-07-27
 
 ```text
-status = K0 passed / K1 held / K1-A endpoint loss confirmed / K1-B readiness passed
+status = K0 passed / K1 held / K1-A endpoint loss confirmed / K1-B held / K1-C audit planned
 priority = next Innovation 1 architecture study after active PRESENT evidence closes
 primary cipher = uKNIT-BC
 adjacent validation cipher = Dialga-128
@@ -338,12 +338,17 @@ is intentional and testable.
 
 ## 8. Immediate Next Action
 
-Keep the active PRESENT seed1 monitor as the only remote training owner. K0 and K1
-implementation/execution readiness are complete and retained. When the PRESENT result
-is locally retrieved and adjudicated, run the guarded K1 command; it recomputes the
-launch interlock before executing the frozen eight-row local diagnostic and forty-row
-frozen attribution panel. Do not launch RCT3 or a remote uKNIT run before those gates
-are available.
+K0 through K1-B are complete. Do not scale K1-B or start nonlinear K2. Run K1-C as a
+zero-training train-versus-validation topology-attribution audit using the four frozen
+K1-B checkpoints, exact cached training rows, unchanged validation rows and the same
+five topology conditions. The only changed variable is the evaluated data split.
+
+If correct topology dominates every wrong control on the training split but not on
+validation, the endpoint/temporal representation is fitting structure-specific
+shortcuts and the next learned candidate should replace absolute endpoint summaries
+with relative cross-transition paths. If correct topology also fails on training,
+close the learned endpoint-summary route and require an exact cross-transition
+composition operator before any further neural training.
 
 ## 9. 2026-07-28 Evidence Update
 
@@ -366,6 +371,17 @@ canonical exact-state views
 
 K1-B readiness confirms that this 22-value token restores schedule sensitivity
 with identical 64/128-bit state-dictionary geometry and fewer parameters than
-Runtime-E4. The next action is the frozen four-row K1-B local diagnostic. Do not
-add S-box composition, capacity, scale or learned routing until both ciphers and
-both seeds pass the K1-B attribution gate.
+Runtime-E4.
+
+K1-B training then held. uKNIT reached only `0.510782/0.508568`, below the
+Runtime-E4 anchors `0.526651/0.528809`, and failed most correct-versus-control
+gates. Dialga retained `0.960106/0.961374`; unlike K1 it separated rotated and
+corrupted schedules on both seeds, but seed0's repeated-last margin was only
+`+0.002678`. The endpoint channels therefore repair part of the representation
+mechanism but do not establish a generalizing uKNIT result.
+
+K1-C is now the only authorized next step. It performs no training and changes
+only the evaluation split to determine whether the missing uKNIT attribution is
+training-set structural overfitting or complete failure to use correct topology.
+Do not add S-box composition, capacity, scale or learned routing before that
+mechanism question is resolved.

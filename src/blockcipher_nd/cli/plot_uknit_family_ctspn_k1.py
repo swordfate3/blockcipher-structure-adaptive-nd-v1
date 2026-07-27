@@ -55,19 +55,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gate", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--variant", choices=("k1", "k1b"), default="k1")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    render_ctspn_k1_svg(gate, args.output)
+    if args.variant == "k1b":
+        render_ctspn_k1b_svg(gate, args.output)
+    else:
+        render_ctspn_k1_svg(gate, args.output)
     report = {
         "status": "rendered_pending_visual_qa",
         "run_id": gate.get("run_id"),
         "gate_status": gate.get("status"),
         "decision": gate.get("decision"),
         "output": str(args.output),
+        "variant": args.variant,
         "visual_qa_required": True,
     }
     if args.report is not None:
@@ -80,7 +85,54 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def render_ctspn_k1_svg(gate: Mapping[str, Any], output: Path) -> None:
+    _render_ctspn_svg(
+        gate,
+        output,
+        figure_title=(
+            "创新1 K1：规范化线性层顺序是否真正帮助 uKNIT 类 SPN 区分"
+        ),
+        subtitle=(
+            "相同数据与训练预算；候选和锚点分别训练，结构控制复用对应最佳权重且不重新训练。"
+        ),
+        candidate_label="CT-SPN 正确顺序",
+        anchor_label="Runtime-E4 锚点",
+        decision_text=_decision_text(gate),
+    )
+
+
+def render_ctspn_k1b_svg(gate: Mapping[str, Any], output: Path) -> None:
+    adapted = {**gate, "seed_results": _adapt_k1b_seed_results(gate)}
+    _render_ctspn_svg(
+        adapted,
+        output,
+        figure_title=(
+            "创新1 K1-B：保留原生端点身份能否恢复 uKNIT 类 SPN 结构归因"
+        ),
+        subtitle=(
+            "只增加来源/目标 cell 位置与 bit-role；数据、训练预算和主干保持不变，所有结构控制复用最佳权重。"
+        ),
+        candidate_label="K1-B 原生端点",
+        anchor_label="最强旧锚点",
+        decision_text=_k1b_decision_text(gate),
+    )
+
+
+def _render_ctspn_svg(
+    gate: Mapping[str, Any],
+    output: Path,
+    *,
+    figure_title: str,
+    subtitle: str,
+    candidate_label: str,
+    anchor_label: str,
+    decision_text: str,
+) -> None:
     seed_results = _validated_seed_results(gate)
+    condition_labels = {
+        **CONDITION_LABELS,
+        "candidate": candidate_label,
+        "anchor": anchor_label,
+    }
     with plt.rc_context(
         {
             "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
@@ -107,7 +159,7 @@ def render_ctspn_k1_svg(gate: Mapping[str, Any], output: Path) -> None:
             wspace=0.27,
         )
         figure.suptitle(
-            "创新1 K1：规范化线性层顺序是否真正帮助 uKNIT 类 SPN 区分",
+            figure_title,
             x=0.07,
             y=0.96,
             ha="left",
@@ -117,7 +169,7 @@ def render_ctspn_k1_svg(gate: Mapping[str, Any], output: Path) -> None:
         figure.text(
             0.07,
             0.905,
-            "相同数据与训练预算；候选和锚点分别训练，结构控制复用对应最佳权重且不重新训练。",
+            subtitle,
             ha="left",
             fontsize=10.5,
             color="#4B5563",
@@ -125,7 +177,7 @@ def render_ctspn_k1_svg(gate: Mapping[str, Any], output: Path) -> None:
         figure.text(
             0.07,
             0.855,
-            f"裁决：{_decision_text(gate)}",
+            f"裁决：{decision_text}",
             ha="left",
             fontsize=11,
             fontweight="bold",
@@ -141,8 +193,18 @@ def render_ctspn_k1_svg(gate: Mapping[str, Any], output: Path) -> None:
         )
 
         for column, cipher in enumerate(("uknit64", "dialga128")):
-            _plot_auc_panel(axes[0, column], cipher, seed_results[cipher])
-            _plot_margin_panel(axes[1, column], cipher, seed_results[cipher])
+            _plot_auc_panel(
+                axes[0, column],
+                cipher,
+                seed_results[cipher],
+                condition_labels=condition_labels,
+            )
+            _plot_margin_panel(
+                axes[1, column],
+                cipher,
+                seed_results[cipher],
+                condition_labels=condition_labels,
+            )
 
         handles = [
             plt.Line2D(
@@ -172,6 +234,8 @@ def _plot_auc_panel(
     axis: plt.Axes,
     cipher: str,
     seeds: Mapping[str, Mapping[str, float]],
+    *,
+    condition_labels: Mapping[str, str],
 ) -> None:
     values = _auc_values(seeds)
     y_positions = list(reversed(range(len(CONDITIONS))))
@@ -209,7 +273,7 @@ def _plot_auc_panel(
     lower = max(0.0, min(0.5, min(flat)) - 0.012)
     upper = min(1.0, max(flat) + max(0.035, (max(flat) - lower) * 0.2))
     axis.set_xlim(lower, upper)
-    axis.set_yticks(y_positions, [CONDITION_LABELS[key] for key in CONDITIONS])
+    axis.set_yticks(y_positions, [condition_labels[key] for key in CONDITIONS])
     axis.set_title(f"{CIPHER_LABELS[cipher]}：冻结验证 AUC", loc="left", fontweight="bold")
     axis.set_xlabel("AUC")
     axis.axvline(0.5, color="#9CA3AF", linestyle=(0, (3, 3)), linewidth=1)
@@ -220,6 +284,8 @@ def _plot_margin_panel(
     axis: plt.Axes,
     cipher: str,
     seeds: Mapping[str, Mapping[str, float]],
+    *,
+    condition_labels: Mapping[str, str],
 ) -> None:
     margin_keys = (
         "anchor",
@@ -258,7 +324,7 @@ def _plot_margin_panel(
     axis.set_xlim(min(-0.01, min(flat) - 0.15 * span), max(0.02, max(flat) + 0.3 * span))
     axis.set_yticks(
         y_positions,
-        [f"候选 - {CONDITION_LABELS[key]}" for key in visible_keys],
+        [f"候选 - {condition_labels[key]}" for key in visible_keys],
     )
     axis.set_title(f"{CIPHER_LABELS[cipher]}：正确顺序的净优势", loc="left", fontweight="bold")
     axis.set_xlabel("AUC 差值")
@@ -383,6 +449,71 @@ def _validated_seed_results(
     return result
 
 
+def _adapt_k1b_seed_results(
+    gate: Mapping[str, Any],
+) -> dict[str, dict[str, dict[str, float]]]:
+    raw = gate.get("seed_results")
+    if not isinstance(raw, dict) or set(raw) != {"uknit64", "dialga128"}:
+        raise ValueError("K1-B gate must contain uKNIT and Dialga seed results")
+    required = {
+        "candidate_auc",
+        "prior_anchor_auc",
+        "prior_edge_invariant_auc",
+        "candidate_minus_strongest_prior",
+        "candidate_repeat_last_auc",
+        "candidate_rotated_auc",
+        "candidate_corrupted_auc",
+        "candidate_no_topology_auc",
+        "candidate_minus_repeat_last",
+        "candidate_minus_rotated",
+        "candidate_minus_corrupted",
+        "candidate_minus_no_topology",
+    }
+    adapted: dict[str, dict[str, dict[str, float]]] = {}
+    for cipher, seeds in raw.items():
+        if not isinstance(seeds, dict) or set(seeds) != {"0", "1"}:
+            raise ValueError(f"K1-B {cipher} must contain seed0 and seed1")
+        adapted[cipher] = {}
+        for seed, values in seeds.items():
+            if not isinstance(values, dict) or not required.issubset(values):
+                raise ValueError(f"K1-B {cipher} seed{seed} metrics are incomplete")
+            if any(not isinstance(values[key], (int, float)) for key in required):
+                raise ValueError(f"K1-B {cipher} seed{seed} metrics must be numeric")
+            adapted[cipher][seed] = {
+                "candidate_auc": float(values["candidate_auc"]),
+                "anchor_auc": max(
+                    float(values["prior_anchor_auc"]),
+                    float(values["prior_edge_invariant_auc"]),
+                ),
+                "candidate_repeat_last_auc": float(
+                    values["candidate_repeat_last_auc"]
+                ),
+                "candidate_rotated_auc": float(values["candidate_rotated_auc"]),
+                "candidate_corrupted_auc": float(
+                    values["candidate_corrupted_auc"]
+                ),
+                "candidate_no_topology_auc": float(
+                    values["candidate_no_topology_auc"]
+                ),
+                "candidate_minus_anchor": float(
+                    values["candidate_minus_strongest_prior"]
+                ),
+                "candidate_minus_repeat_last": float(
+                    values["candidate_minus_repeat_last"]
+                ),
+                "candidate_minus_rotated": float(
+                    values["candidate_minus_rotated"]
+                ),
+                "candidate_minus_corrupted": float(
+                    values["candidate_minus_corrupted"]
+                ),
+                "candidate_minus_no_topology": float(
+                    values["candidate_minus_no_topology"]
+                ),
+            }
+    return adapted
+
+
 def _decision_text(gate: Mapping[str, Any]) -> str:
     status = str(gate.get("status", "unknown"))
     if status == "pass":
@@ -390,6 +521,15 @@ def _decision_text(gate: Mapping[str, Any]) -> str:
     if status == "hold":
         return "暂缓，至少一个密码、seed 或结构控制未达到预注册门槛"
     return "协议无效，必须修复证据绑定后按原计划重跑"
+
+
+def _k1b_decision_text(gate: Mapping[str, Any]) -> str:
+    status = str(gate.get("status", "unknown"))
+    if status == "pass":
+        return "通过，原生端点候选在两种密码和两颗 seed 上均满足绝对、旧锚点和结构控制门槛"
+    if status == "hold":
+        return "暂缓，原生端点身份单独不足以在所有密码、seed 和结构控制上建立稳定优势"
+    return "协议无效，必须修复数据、检查点或控制绑定后按原计划重跑"
 
 
 def _decision_color(status: str) -> str:

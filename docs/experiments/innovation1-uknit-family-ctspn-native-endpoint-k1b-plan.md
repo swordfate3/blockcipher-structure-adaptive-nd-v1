@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-28
 **Run ID:** `i1_uknit_family_ctspn_native_endpoint_k1b_2048_seed0_seed1_20260728`
-**Status:** readiness passed / local diagnostic authorized
+**Status:** completed / hold
 **Prerequisites:** K1 protocol-clean `hold`; K1-A endpoint-alignment-loss gate `pass`
 
 ## 1. Question
@@ -208,3 +208,63 @@ All readiness protocol and evidence checks passed. This only proves that the
 new representation no longer mathematically erases endpoint/schedule identity;
 the four-row K1-B training and twenty-row frozen control panel must still decide
 whether that information is useful.
+
+## 11. Completed Result
+
+K1-B completed locally on 2026-07-28 with four training rows, twenty
+same-checkpoint control rows and all eleven protocol checks passing:
+
+```text
+decision = innovation1_uknit_family_ctspn_k1b_native_endpoint_not_supported
+status   = hold
+
+uKNIT seed0:
+  K1-B candidate                    = 0.510782
+  strongest K1 prior               = 0.526651
+  candidate - strongest prior      = -0.015869
+  candidate - repeat/rotated       = -0.004974 / +0.000113
+  candidate - corrupted/no-topology = -0.011662 / +0.003957
+
+uKNIT seed1:
+  K1-B candidate                    = 0.508568
+  strongest K1 prior               = 0.528809
+  candidate - strongest prior      = -0.020240
+  candidate - repeat/rotated       = +0.001424 / -0.015071
+  candidate - corrupted/no-topology = +0.000560 / +0.010372
+
+Dialga seed0:
+  K1-B candidate                    = 0.960106
+  prior CT-SPN                      = 0.963836
+  candidate - repeat/rotated       = +0.002678 / +0.007235
+  candidate - corrupted/no-topology = +0.008107 / +0.440607
+
+Dialga seed1:
+  K1-B candidate                    = 0.961374
+  prior CT-SPN                      = 0.963462
+  candidate - repeat/rotated       = +0.005142 / +0.010541
+  candidate - corrupted/no-topology = +0.008962 / +0.438411
+```
+
+The native endpoint channels repaired part of K1's order blindness: Dialga now
+separates rotated and corrupted schedules on both seeds while retaining the
+prior absolute AUC within `0.005`. Seed0 still misses the repeated-last margin,
+and uKNIT remains below the Runtime-E4 anchor on both seeds. On uKNIT, a wrong
+corrupted topology wins seed0 and a rotated schedule wins seed1. Native endpoint
+identity is therefore observable but insufficient to produce a generalizing,
+correctly attributed uKNIT distinguisher.
+
+This is a local `2048/class` mechanism diagnostic, not a formal-scale failure or
+a uKNIT ceiling. Mechanical scale-up, extra width, K2 S-box composition, MoE,
+DDT/trail and remote training remain blocked.
+
+The evidence-backed next action is K1-C: replay these four frozen checkpoints
+under the same five topology conditions on both the exact training cache and
+the unchanged validation data. This zero-training split-attribution audit asks
+whether K1-B learned correct topology only on its training rows or failed to use
+correct topology even while fitting. It changes no model, data, checkpoint,
+metric or optimizer state. The result decides between a relative/cross-transition
+path representation and closing this endpoint route.
+
+The final Chinese `curves.svg` was rendered at `1600 x 1020` pixels and passed
+`visual-qa-redraw`: no text overlap, clipping, missing glyphs, ambiguous title or
+unreadable near-zero margin was observed.

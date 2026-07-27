@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from blockcipher_nd.cli.plot_uknit_family_ctspn_k1 import render_ctspn_k1b_svg
 from blockcipher_nd.cli.run_uknit_family_ctspn_k1b import main as run_k1b
 from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_endpoint_alignment import (
@@ -190,6 +191,29 @@ def test_k1b_runner_does_not_create_output_when_not_authorized(
 
     assert exit_code == 4
     assert not output_root.exists()
+
+
+def test_k1b_chinese_plot_explains_endpoint_candidate_and_anchor(
+    tmp_path: Path,
+) -> None:
+    training_rows, control_rows = _passing_rows()
+    gate = adjudicate_k1b(
+        tasks=_tasks(),
+        training_rows=training_rows,
+        control_rows=control_rows,
+        k1_gate=_k1_gate(),
+        k1a_gate=_k1a_gate(),
+    )
+    output = tmp_path / "curves.svg"
+
+    render_ctspn_k1b_svg(gate, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "保留原生端点身份能否恢复 uKNIT 类 SPN 结构归因" in svg
+    assert "K1-B 原生端点" in svg
+    assert "最强旧锚点" in svg
+    assert "重复末层" in svg
+    assert "错误拓扑" in svg
 
 
 def _passing_rows() -> tuple[list[dict[str, object]], list[dict[str, object]]]:
