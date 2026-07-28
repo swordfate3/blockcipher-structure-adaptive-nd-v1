@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Representation-Access Audit K1-S
 
 **Date:** 2026-07-28
-**Status:** frozen / implementation pending
+**Status:** completed / learned representation access not supported
 **Execution:** local CPU, zero neural training
 
 ## 1. Research Question
@@ -167,30 +167,27 @@ candidate position-preserving tap AUC               >= 0.550
 candidate position-preserving tap AUC - T3 AUC      >= +0.030
 ```
 
-The candidate position-preserving tap is the earliest of T1 then T2 that
-passes its AUC and label-shuffle gates on every fresh seed/split. The
-candidate-minus-T3 margin must also pass everywhere to identify invariant cell
-pooling as destructive. T0 is an upper anchor, not a learned candidate.
+Each learned tap passes only when its AUC and label-shuffle gates hold on every
+fresh seed/split. Invariant cell pooling is destructive only when T2 passes,
+T3 fails, and T2-minus-T3 passes everywhere. T0 is an upper anchor, not a
+learned candidate.
 
 ## 7. Frozen Decisions And Required Next Action
 
-- **T1 or T2 passes and beats T3 everywhere:** identify invariant cell pooling
-  as the first supported bottleneck. Next implement one active-relative,
+- **T2 passes, T3 fails and T2 beats T3 everywhere:** identify invariant cell
+  pooling as the first supported bottleneck. Next implement one active-relative,
   runtime-topology-derived position-preserving readout while freezing K1-R
   data, checkpoints, base branch, parameter budget and controls.
-- **T1 fails while T0 replays:** identify composition-bit encoding as the first
-  supported bottleneck. Next replace only the learned 15-channel compression
-  with an exact stage/cell histogram residual or a Boolean stage-role encoder;
-  do not change pooling first.
 - **T1 passes but T2 fails:** identify cell aggregation or topology message
   updates before pooling as the first supported bottleneck. Next audit only the
   bit-to-cell encoder versus the two ordered update slots before redesign.
 - **T3 passes while K1-R exact logits remain weak:** retain invariant pooling
   and isolate only residual pair projection, bounded-gate fusion and classifier
   scaling using the same checkpoint/data evidence.
-- **No learned tap passes although T0 replays:** hold the K1-N representation
-  route and retain a bounded deterministic position-histogram residual as the
-  next single-variable architecture hypothesis.
+- **Neither T1 nor T2 passes although T0 replays:** hold the K1-N learned
+  representation route and retain a bounded deterministic position-histogram
+  residual as the next single-variable architecture hypothesis. A T1 miss
+  alone does not identify the bit encoder if T2 reconstructs accessible signal.
 - **T0 does not replay:** mark the protocol invalid and repair source/tap
   binding only.
 
@@ -233,3 +230,108 @@ After completion, render the Chinese tap-attribution chart, pass
 `visual-qa-redraw` on a pixel rendering, refresh `outputs/00_RECENT_RESULTS.md`
 and `outputs/00_RECENT_RESULTS.json`, record the observed decision and its exact
 next action here, then commit and push only K1-S files.
+
+## 9. Completed Result
+
+K1-S completed all frozen zero-training rows and passed every protocol gate:
+
+```text
+feature rows = 24 / 24
+scorer rows  = 16 / 16
+result rows  = 48 / 48
+optimizer steps = 0
+neural epochs   = 0
+failed protocol checks = []
+T0 feature/scorer/AUC replay = exact
+ordinary logits before/after every tap extraction = bit-exact
+checkpoint state before/after every split = unchanged
+```
+
+Fresh interpreted AUC was:
+
+| Seed | Split | T0 exact histogram | T1 bit encoder | T2 topology delta | T3 invariant pool | K1-R final logits |
+|---:|---|---:|---:|---:|---:|---:|
+| 3 | same-key fresh | `0.825591` | `0.558223` | `0.525655` | `0.510297` | `0.522282` |
+| 3 | cross-key | `0.809460` | `0.536091` | `0.519584` | `0.521881` | `0.493238` |
+| 4 | same-key fresh | `0.806228` | `0.529227` | `0.519121` | `0.539947` | `0.513252` |
+| 4 | cross-key | `0.820532` | `0.557749` | `0.557799` | `0.533344` | `0.516200` |
+
+T0 beat its deterministic label-shuffle control by
+`+0.278514` to `+0.315833` on all four fresh rows. T1 retained a descriptive
+`+0.042659` to `+0.079441` label-shuffle margin, but missed the `0.550` AUC
+floor on seed3 cross-key and seed4 same-key. T2 passed both access thresholds
+only on seed4 cross-key. T3 missed the AUC floor everywhere. T2-minus-T3 ranged
+from `-0.020825` to `+0.024455`, so it never reached the frozen `+0.030` margin.
+
+The frozen decision is:
+
+```text
+status = hold
+decision = innovation1_uknit_family_ctspn_k1s_learned_representation_access_not_supported
+remote_scale = no
+```
+
+K1-S therefore rejects the narrower claim that invariant cell pooling alone is
+the first supported bottleneck. The learned 15-channel bit encoder sometimes
+retains weak linearly accessible signal, but not consistently across seeds and
+key scopes; the topology update does not repair that instability. The exact
+five-stage position histogram remains strong and reproducible on every fresh
+row, so the next experiment should retain that statistic explicitly rather
+than ask the current learned compression to rediscover it from `2048/class`.
+
+The first rendered chart was rejected because left-panel colorbar ticks
+overlapped the repeated long tap labels on the right. The corrected chart uses
+full Chinese tap names once on the left and aligned `T0-T3` labels on the
+right. It passed rendered-pixel `visual-qa-redraw` at `1920x1056` with no text
+overlap, clipping, missing glyphs, scale ambiguity or insufficient separation.
+
+## 10. Recommended Next Action: K1-T Deterministic Position Residual
+
+K1-T should ask one question:
+
+> Does retaining the exact `stage x native-cell x nibble-value` histogram as a
+> bounded residual make the confirmed uKNIT r5 cell11 signal learnable and
+> attributable to the correct runtime S-box and diffusion semantics?
+
+Freeze the six K1-Q caches, seed3/4 keys, `2048/class` train,
+`1024/class` fresh splits, four pairs/sample, strict encrypted-random-plaintext
+negatives, ten epochs, MSE/Adam, learning rate `1e-4`, weight decay `1e-5` and
+best-validation-AUC restoration. Change one representation variable only:
+project the deterministic five-stage position histogram into the existing
+K1-N embedding through a bounded residual while retaining the existing base
+branch and parameter budget as closely as possible.
+
+Use a lean independently trained matrix:
+
+```text
+seed3/4 x {
+  exact_position_histogram_residual,
+  wrong_sbox_position_histogram_residual,
+  invariant_histogram_residual,
+  current_k1r_exact_anchor
+}
+```
+
+The first three rows must have identical trainable geometry. The old K1-R exact
+row is the same-data, same-optimizer anchor; it may be replayed from the frozen
+result only if all dataset, checkpoint and metric digests remain exact. The
+only structural controls are wrong S-box semantics and erasing native cell
+position. Do not add more models unless readiness proves one of these controls
+algebraically identical to the candidate.
+
+Apply separately to both seeds and both fresh splits:
+
+```text
+exact residual AUC                         >= 0.600
+exact residual - current K1-R exact        >= +0.050
+exact residual - wrong S-box residual      >= +0.010
+exact residual - invariant residual        >= +0.030
+```
+
+Run a small deterministic readiness fixture and parameter/logit control first,
+then the frozen local `2048/class` diagnostic. A full local pass authorizes a
+separate remote `65536/class` medium diagnostic with disk-backed cache,
+progress and reuse; it remains non-formal and non-paper-scale. Any seed/split
+miss holds remote scale and selects only the failed attribution axis for one
+redesign. Do not add samples, positions, pairs, epochs, MoE, DDT/trails, cipher
+identity, a new cipher, or another network family inside K1-T.
