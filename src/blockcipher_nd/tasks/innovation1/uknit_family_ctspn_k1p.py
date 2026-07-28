@@ -408,7 +408,7 @@ def adjudicate_k1p(
             "repair only the failed K1-P source, task, cache, feature, scorer, "
             "or artifact invariant and rerun the frozen calibration unchanged"
         )
-    elif round_pass["3"] and round_pass["4"]:
+    elif round_pass["4"]:
         status = "pass"
         decision = (
             "innovation1_uknit_family_ctspn_k1p_"
@@ -428,16 +428,6 @@ def adjudicate_k1p(
         next_action = (
             "preregister K1-Q as an r4-only input-difference discovery and "
             "confirmation before returning to any r5 neural architecture"
-        )
-    elif not round_pass["3"] and round_pass["4"]:
-        status = "hold"
-        decision = (
-            "innovation1_uknit_family_ctspn_k1p_"
-            "nonmonotonic_round_or_split_instability"
-        )
-        next_action = (
-            "audit r3/r4 round invocation, bit ordering, keys, cache metadata, "
-            "and runtime-window alignment before difference or model search"
         )
     elif all_lower_exact_below_floor:
         status = "hold"

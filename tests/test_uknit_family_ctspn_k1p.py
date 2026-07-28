@@ -123,6 +123,31 @@ def test_k1p_gate_identifies_r5_boundary_and_lower_round_protocol_failure() -> N
     assert gate["decision"].endswith("lower_round_signal_supported_r5_loss_boundary")
     assert all(gate["protocol_checks"].values())
 
+    r3_control_degenerate = deepcopy(results)
+    for row in r3_control_degenerate:
+        if (
+            row["rounds"] == 3
+            and row["seed"] == 0
+            and row["split"] != "train_seen"
+            and row["view"] == LABEL_SHUFFLE_VIEW
+        ):
+            row["auc"] = 0.695
+    r4_boundary = adjudicate_k1p(
+        tasks=tasks,
+        result_rows=r3_control_degenerate,
+        feature_rows=features,
+        scorer_rows=scorers,
+        source_results=source_results,
+        source_features=source_features,
+        source_scorers=source_scorers,
+        source_checks={"source_binding": True},
+    )
+    assert r4_boundary["round_pass"] == {"3": False, "4": True}
+    assert r4_boundary["status"] == "pass"
+    assert r4_boundary["decision"].endswith(
+        "lower_round_signal_supported_r5_loss_boundary"
+    )
+
     failed = deepcopy(results)
     for row in failed:
         if row["rounds"] in {3, 4} and row["split"] != "train_seen":

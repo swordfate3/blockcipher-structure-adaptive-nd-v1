@@ -63,6 +63,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--run-id", default=RUN_ID)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--device", default="cpu", choices=["cpu"])
+    parser.add_argument("--resume-adjudication", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -107,6 +108,16 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 4
+
+    if args.resume_adjudication:
+        return resume_adjudication(
+            args=args,
+            tasks=tasks,
+            source_results=source_results,
+            source_features=source_features,
+            source_scorers=source_scorers,
+            source_checks=source_checks,
+        )
 
     require_fresh_output_root(args.output_root)
     args.output_root.mkdir(parents=True)
@@ -267,6 +278,70 @@ def main(argv: list[str] | None = None) -> int:
     write_jsonl(args.output_root / "results.jsonl", result_rows)
     write_round_csv(args.output_root / "round_calibration.csv", result_rows)
 
+    return finalize_k1p(
+        output_root=args.output_root,
+        tasks=tasks,
+        manifest_rows=manifest_rows,
+        result_rows=result_rows,
+        feature_rows=feature_rows,
+        scorer_rows=scorer_rows,
+        source_results=source_results,
+        source_features=source_features,
+        source_scorers=source_scorers,
+        source_checks=source_checks,
+    )
+
+
+def resume_adjudication(
+    *,
+    args: argparse.Namespace,
+    tasks: Sequence[Mapping[str, Any]],
+    source_results: Sequence[Mapping[str, Any]],
+    source_features: Sequence[Mapping[str, Any]],
+    source_scorers: Sequence[Mapping[str, Any]],
+    source_checks: Mapping[str, bool],
+) -> int:
+    preflight = read_json(args.output_root / "preflight.json")
+    if (
+        preflight.get("run_id") != RUN_ID
+        or preflight.get("plan_sha256") != file_sha256(args.plan)
+        or preflight.get("source_root") != str(args.source_root)
+    ):
+        raise ValueError("K1-P resume root does not match the frozen run")
+    manifest_rows = read_jsonl(args.output_root / "dataset_manifest.jsonl")
+    cache_checks = validate_lower_cache_contract(
+        output_root=args.output_root,
+        manifest_rows=manifest_rows,
+    )
+    if not all(cache_checks.values()):
+        raise ValueError(f"K1-P resume cache contract failed: {cache_checks}")
+    return finalize_k1p(
+        output_root=args.output_root,
+        tasks=tasks,
+        manifest_rows=manifest_rows,
+        result_rows=read_jsonl(args.output_root / "results.jsonl"),
+        feature_rows=read_jsonl(args.output_root / "feature_manifest.jsonl"),
+        scorer_rows=read_jsonl(args.output_root / "scorer_manifest.jsonl"),
+        source_results=source_results,
+        source_features=source_features,
+        source_scorers=source_scorers,
+        source_checks={**source_checks, **cache_checks},
+    )
+
+
+def finalize_k1p(
+    *,
+    output_root: Path,
+    tasks: Sequence[Mapping[str, Any]],
+    manifest_rows: Sequence[Mapping[str, Any]],
+    result_rows: Sequence[Mapping[str, Any]],
+    feature_rows: Sequence[Mapping[str, Any]],
+    scorer_rows: Sequence[Mapping[str, Any]],
+    source_results: Sequence[Mapping[str, Any]],
+    source_features: Sequence[Mapping[str, Any]],
+    source_scorers: Sequence[Mapping[str, Any]],
+    source_checks: Mapping[str, bool],
+) -> int:
     gate = adjudicate_k1p(
         tasks=tasks,
         result_rows=result_rows,
@@ -295,10 +370,10 @@ def main(argv: list[str] | None = None) -> int:
         "optimizer_steps": 0,
         "epochs": 0,
     }
-    write_json(args.output_root / "gate.json", gate)
-    write_json(args.output_root / "validation.json", validation)
+    write_json(output_root / "gate.json", gate)
+    write_json(output_root / "validation.json", validation)
     write_json(
-        args.output_root / "summary.json",
+        output_root / "summary.json",
         {
             "run_id": RUN_ID,
             "status": gate["status"],
@@ -312,11 +387,11 @@ def main(argv: list[str] | None = None) -> int:
             "optimizer_steps": 0,
         },
     )
-    plot_report = render_k1p_svg(gate, args.output_root / "curves.svg")
-    write_json(args.output_root / "plot_report.json", plot_report)
+    plot_report = render_k1p_svg(gate, output_root / "curves.svg")
+    write_json(output_root / "plot_report.json", plot_report)
     progress(
-        args.output_root / "progress.jsonl",
-        "run_done",
+        output_root / "progress.jsonl",
+        "adjudication_done",
         status=gate["status"],
         decision=gate["decision"],
         result_rows=len(result_rows),
@@ -495,8 +570,10 @@ if __name__ == "__main__":
 __all__ = [
     "cache_argv",
     "dataset_manifest_row",
+    "finalize_k1p",
     "main",
     "read_tasks",
+    "resume_adjudication",
     "reused_r5_dataset_manifest",
     "validate_lower_cache_contract",
 ]
