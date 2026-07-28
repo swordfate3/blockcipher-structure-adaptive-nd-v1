@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Gate Opening K1-M
 
 **Date:** 2026-07-28
-**Status:** frozen before implementation
+**Status:** completed / gate opened, uKNIT signal not supported
 **Execution:** local CPU readiness followed by a fixed-budget local diagnostic
 
 ## 1. Research Question
@@ -156,3 +156,90 @@ checkpoints, sixty evaluation rows, final learned gate values, gate, validation,
 history and progress. A result chart is required and must pass rendered-pixel
 `visual-qa-redraw`. Refresh both recent-result indexes after readiness and after
 the completed diagnostic.
+
+## 9. Completed Result
+
+The zero-training readiness gate passed before optimization:
+
+```text
+decision = innovation1_uknit_family_ctspn_k1m_execution_authorized
+initial effective gate = 0.049999997
+parameter count = 128707
+all residual parameter groups receive nonzero gradients = true
+K1-K default effective gate remains exact zero = true
+all twelve source caches are digest-bound and reusable = true
+training rows = 0
+optimizer steps = 0
+```
+
+The fixed local diagnostic then completed without regenerating any training or
+validation cache:
+
+```text
+training rows = 4 / 4
+evaluation rows = 60 / 60
+validation status = pass
+errors = []
+```
+
+Fresh-split candidate AUC and same-row K1-K deltas were:
+
+| Cipher | Seed | Split | K1-M AUC | K1-K anchor | Delta |
+|---|---:|---|---:|---:|---:|
+| uKNIT-BC r5 | 0 | same-key fresh | `0.508395` | `0.506373` | `+0.002022` |
+| uKNIT-BC r5 | 0 | cross-key | `0.518564` | `0.514879` | `+0.003685` |
+| uKNIT-BC r5 | 1 | same-key fresh | `0.490501` | `0.484057` | `+0.006444` |
+| uKNIT-BC r5 | 1 | cross-key | `0.509111` | `0.505805` | `+0.003307` |
+| Dialga-128 r4 | 0 | same-key fresh | `0.966957` | `0.965747` | `+0.001210` |
+| Dialga-128 r4 | 0 | cross-key | `0.959439` | `0.957891` | `+0.001548` |
+| Dialga-128 r4 | 1 | same-key fresh | `0.960375` | `0.958886` | `+0.001489` |
+| Dialga-128 r4 | 1 | cross-key | `0.956191` | `0.954312` | `+0.001879` |
+
+The learned effective gates remained active:
+
+```text
+uKNIT seed0 = 0.049259
+uKNIT seed1 = 0.050336
+Dialga seed0 = 0.080679
+Dialga seed1 = 0.095307
+```
+
+K1-M therefore repaired K1-K's gradient-starvation mechanism and preserved the
+Dialga calibration signal. It did not pass the frozen research gate: every
+uKNIT fresh AUC stayed below `0.520`, improvement over K1-K was not at least
+`+0.005` on every fresh row, and correct Dialga operators did not beat every
+wrong-operator control by `0.005` on either fresh split.
+
+```text
+status = hold
+decision = innovation1_uknit_family_ctspn_k1m_gate_opened_uknit_signal_not_supported
+remote_scale = no
+```
+
+This is evidence that nonzero gate initialization is not the remaining primary
+bottleneck. The claim is limited to the two-seed local `2048/class` mechanism
+diagnostic; it is not a formal-scale failure or a uKNIT-family ceiling.
+
+## 10. Recommended Next Action
+
+Proceed to K1-N with one architectural variable: retain the K1-M bounded
+position-preserving edge residual and effective-gate initialization, then add
+the exact runtime order of heterogeneous inverse S-box and inverse linear
+operators. The deterministic stage sequence must expose both ciphertext-pair
+endpoints and their XOR difference through:
+
+```text
+ciphertext
+-> inverse linear slot 1
+-> cell-specific inverse S-box slot 1
+-> inverse linear slot 0
+-> cell-specific inverse S-box slot 0
+```
+
+Use K1-M as the same-budget anchor and include correct S-box/correct-linear,
+shuffled-S-box/correct-linear, correct-S-box/reversed-linear,
+correct-S-box/corrupted-linear, no-S-box-composition and no-topology controls.
+Keep uKNIT-BC r5, Dialga-128 r4, `2048/class`, both fresh splits, four pairs,
+ten epochs, batch 64 and seeds 0/1 unchanged. K1-N must pass its local mechanism
+gate before any remote scale; do not add samples, epochs, pairs, seeds, width,
+MoE, DDT/trail features, key/cipher IDs, partial decryption or a raw bypass.

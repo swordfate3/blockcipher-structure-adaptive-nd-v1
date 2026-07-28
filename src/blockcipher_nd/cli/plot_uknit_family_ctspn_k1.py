@@ -68,6 +68,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "k1h",
             "k1i",
             "k1k",
+            "k1m",
         ),
         default="k1",
     )
@@ -77,7 +78,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    if args.variant == "k1k":
+    if args.variant == "k1m":
+        render_ctspn_k1m_svg(gate, args.output)
+    elif args.variant == "k1k":
         render_ctspn_k1k_svg(gate, args.output)
     elif args.variant == "k1i":
         render_ctspn_k1i_svg(gate, args.output)
@@ -635,6 +638,114 @@ def render_ctspn_k1k_svg(gate: Mapping[str, Any], output: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         figure.savefig(output, format="svg")
         plt.close(figure)
+
+
+def render_ctspn_k1m_svg(gate: Mapping[str, Any], output: Path) -> None:
+    seed_results = _validated_k1h_seed_results(gate)
+    with plt.rc_context(
+        {
+            "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+            "font.size": 10.0,
+            "axes.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#CBD5E1",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "text.color": "#111827",
+            "axes.labelcolor": "#374151",
+            "xtick.color": "#4B5563",
+            "ytick.color": "#374151",
+            "savefig.facecolor": "#FFFFFF",
+            "svg.fonttype": "none",
+        }
+    ):
+        figure, axes = plt.subplots(2, 2, figsize=(16, 10.2))
+        figure.subplots_adjust(
+            left=0.09,
+            right=0.97,
+            top=0.76,
+            bottom=0.11,
+            hspace=0.52,
+            wspace=0.25,
+        )
+        figure.suptitle(
+            "创新1 K1-M：打开残差门后，uKNIT 是否获得稳定结构信号",
+            x=0.06,
+            y=0.96,
+            ha="left",
+            fontsize=17,
+            fontweight="bold",
+        )
+        figure.text(
+            0.06,
+            0.905,
+            "仅把初始有效门从 0 改为 0.05；网络、数据、训练预算和错误拓扑控制全部保持 K1-K 不变。",
+            ha="left",
+            fontsize=10.5,
+            color="#4B5563",
+        )
+        figure.text(
+            0.06,
+            0.85,
+            _k1m_decision_text(gate),
+            ha="left",
+            fontsize=11,
+            fontweight="bold",
+            color=_decision_color(str(gate.get("status", ""))),
+        )
+        for column, cipher in enumerate(("uknit64", "dialga128")):
+            _plot_k1h_auc_panel(axes[0, column], cipher, seed_results[cipher])
+            axes[0, column].set_title(
+                f"{CIPHER_LABELS[cipher]}：K1-M 与 K1-K 锚点 AUC",
+                loc="left",
+                fontweight="bold",
+            )
+            if cipher == "dialga128":
+                _plot_k1i_dialga_margin_panel(axes[1, column], seed_results[cipher])
+            else:
+                _plot_k1h_margin_panel(axes[1, column], cipher, seed_results[cipher])
+        handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=6,
+                label=label,
+            )
+            for color, marker, linestyle, label in (
+                ("#0F766E", "o", "-", "K1-M 非零门 seed0"),
+                ("#0F766E", "s", "-", "K1-M 非零门 seed1"),
+                ("#2563EB", "o", "--", "K1-K 零门初始化锚点 seed0"),
+                ("#2563EB", "s", "--", "K1-K 零门初始化锚点 seed1"),
+            )
+        ]
+        figure.legend(
+            handles=handles,
+            loc="upper right",
+            bbox_to_anchor=(0.965, 0.965),
+            frameon=False,
+            ncol=2,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(output, format="svg")
+        plt.close(figure)
+
+
+def _k1m_decision_text(gate: Mapping[str, Any]) -> str:
+    decision = str(gate.get("decision", ""))
+    if decision.endswith("gate_opening_supported"):
+        return "裁决：非零门同时改善 uKNIT、保住 Dialga 并通过正确拓扑控制，可进入独立中等规模诊断。"
+    if decision.endswith("gate_opened_uknit_signal_not_supported"):
+        return (
+            "裁决：残差门已保持打开，但 uKNIT 新鲜数据仍无稳定信号；停止门控调整，转异构 S 盒/算子组合。"
+        )
+    if decision.endswith("uknit_gate_reclosed"):
+        return "裁决：uKNIT 训练后再次关闭残差门；停止扩样本，先审计固定有界门是否保留梯度。"
+    if decision.endswith("dialga_anchor_lost"):
+        return "裁决：非零门破坏 Dialga 校准锚点；丢弃 K1-M，返回 K1-K/K1-I。"
+    return "裁决：协议或正确拓扑控制未通过；不扩样本，仅允许修复失败项后原样重跑。"
 
 
 def _k1k_decision_text(gate: Mapping[str, Any]) -> str:

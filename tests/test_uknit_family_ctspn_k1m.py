@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from blockcipher_nd.cli.plot_uknit_family_ctspn_k1 import render_ctspn_k1m_svg
 from blockcipher_nd.data.differential import DifferentialDataset
 from blockcipher_nd.planning.matrix import tasks_from_plan
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1h import (
@@ -126,6 +127,24 @@ def test_k1m_gate_requires_every_fresh_anchor_control_and_active_gate() -> None:
 
     assert held["status"] == "hold"
     assert held["decision"].endswith("gate_opened_uknit_signal_not_supported")
+
+
+def test_k1m_plot_explains_gate_opening_result_in_chinese(tmp_path: Path) -> None:
+    gate = adjudicate_k1m(
+        tasks=tasks(),
+        training_rows=synthetic_training_rows(),
+        evaluation_rows=synthetic_evaluation_rows(),
+        readiness_gate=readiness_gate(),
+    )
+    output = tmp_path / "curves.svg"
+
+    render_ctspn_k1m_svg(gate, output)
+
+    svg = output.read_text(encoding="utf-8")
+    assert "打开残差门后，uKNIT 是否获得稳定结构信号" in svg
+    assert "K1-M 与 K1-K 锚点 AUC" in svg
+    assert "K1-M 非零门 seed0" in svg
+    assert "K1-K 零门初始化锚点 seed1" in svg
 
 
 def synthetic_datasets() -> dict[tuple[str, int, str], DifferentialDataset]:
