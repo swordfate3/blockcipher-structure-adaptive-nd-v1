@@ -288,6 +288,78 @@ class CompactSboxTransitionResidualSpnDistinguisher(
         return self.transition_projection(invariant.flatten(1))
 
 
+@dataclass(frozen=True)
+class CanonicalWalshTransitionResidualSpnSpec:
+    hidden_dim: int = 32
+    pair_embedding_dim: int = 128
+    walsh_features_per_stage: int = 64
+    dropout: float = 0.0
+    initial_edge_gate: float = 0.05
+    initial_transition_gate: float = 0.05
+
+    def __post_init__(self) -> None:
+        if (
+            min(
+                self.hidden_dim,
+                self.pair_embedding_dim,
+                self.walsh_features_per_stage,
+            )
+            <= 0
+        ):
+            raise ValueError("canonical Walsh dimensions must be positive")
+        if self.walsh_features_per_stage > 255:
+            raise ValueError("canonical Walsh features must exclude the DC term")
+        if self.pair_embedding_dim != 2 * self.walsh_features_per_stage:
+            raise ValueError(
+                "canonical Walsh embedding must concatenate exactly two stages"
+            )
+        if not 0.0 <= self.dropout < 1.0:
+            raise ValueError("canonical Walsh dropout must be in [0, 1)")
+        if not -1.0 < self.initial_edge_gate < 1.0:
+            raise ValueError("canonical Walsh edge gate must be in (-1, 1)")
+        if not -1.0 < self.initial_transition_gate < 1.0:
+            raise ValueError("canonical Walsh transition gate must be in (-1, 1)")
+
+
+class CanonicalWalshTransitionResidualSpnDistinguisher(
+    ExactOperatorCompositionSpnDistinguisher
+):
+    """Parameter-free low-degree Walsh readout for two S-box transitions."""
+
+    def __init__(self, spec: CanonicalWalshTransitionResidualSpnSpec) -> None:
+        super().__init__(
+            TopologyEdgeResidualSpnSpec(
+                hidden_dim=spec.hidden_dim,
+                pair_embedding_dim=spec.pair_embedding_dim,
+                dropout=spec.dropout,
+                initial_effective_gate=spec.initial_edge_gate,
+            )
+        )
+        self.walsh_spec = spec
+        self.transition_gate = nn.Parameter(
+            torch.tensor(
+                math.atanh(spec.initial_transition_gate),
+                dtype=torch.float32,
+            )
+        )
+
+    def transition_embedding(
+        self,
+        ciphertext_pairs: torch.Tensor,
+        structure: RuntimeSpnStructure,
+        *,
+        apply_sboxes: bool = True,
+    ) -> torch.Tensor:
+        features = deterministic_sbox_transition_walsh_features(
+            ciphertext_pairs,
+            structure,
+            apply_sboxes=apply_sboxes,
+            feature_count=self.walsh_spec.walsh_features_per_stage,
+        )
+        invariant = features.mean(dim=2).flatten(1)
+        return F.layer_norm(invariant, (self.walsh_spec.pair_embedding_dim,))
+
+
 class FixedPositionHistogramResidualSpnProtocolAdapter(nn.Module):
     """Bind K1-T to one external two-transition runtime descriptor."""
 
@@ -515,6 +587,8 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         descriptor_available_rounds: int,
         runtime_structure_mode: str,
         apply_sboxes: bool,
+        canonical_walsh_features: int | None = None,
+        transition_branch_enabled: bool = True,
     ) -> None:
         super().__init__()
         if pair_bits != 2 * structure.block_bits:
@@ -523,9 +597,23 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
             raise ValueError("K1-AK input_bits must contain complete pairs")
         if structure.rounds != 2:
             raise ValueError("K1-AK requires exactly two transitions")
-        self.backbone = CompactSboxTransitionResidualSpnDistinguisher(spec)
+        self.canonical_walsh_transition = canonical_walsh_features is not None
+        if canonical_walsh_features is None:
+            self.backbone = CompactSboxTransitionResidualSpnDistinguisher(spec)
+        else:
+            self.backbone = CanonicalWalshTransitionResidualSpnDistinguisher(
+                CanonicalWalshTransitionResidualSpnSpec(
+                    hidden_dim=spec.hidden_dim,
+                    pair_embedding_dim=spec.pair_embedding_dim,
+                    walsh_features_per_stage=canonical_walsh_features,
+                    dropout=spec.dropout,
+                    initial_edge_gate=spec.initial_edge_gate,
+                    initial_transition_gate=spec.initial_transition_gate,
+                )
+            )
         self.runtime_structure = structure
         self.apply_sboxes = bool(apply_sboxes)
+        self.transition_branch_enabled = bool(transition_branch_enabled)
         self.input_bit_order = "project_msb_to_runtime_lsb"
         self.runtime_structure_loaded_rounds = structure.rounds
         self.runtime_round_window_mode = (
@@ -557,15 +645,28 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         self.composition_stage_names = COMPOSITION_STAGE_NAMES
         self.sbox_transition_stage_pairs = ((1, 2), (3, 4))
         self.sbox_transition_histogram_shape = (2, structure.cells, 16, 16)
-        self.sbox_transition_value_dim = spec.transition_value_dim
-        self.virtual_projection_slots = spec.virtual_projection_slots
-        self.virtual_projection_parameter = (
-            "backbone.transition_projection.0.virtual_slot_weights"
-        )
-        self.virtual_projection_effective_weight_shape = (
-            spec.pair_embedding_dim,
-            2 * spec.transition_value_dim,
-        )
+        if canonical_walsh_features is None:
+            self.sbox_transition_value_dim = spec.transition_value_dim
+            self.virtual_projection_slots = spec.virtual_projection_slots
+            self.virtual_projection_parameter = (
+                "backbone.transition_projection.0.virtual_slot_weights"
+            )
+            self.virtual_projection_effective_weight_shape = (
+                spec.pair_embedding_dim,
+                2 * spec.transition_value_dim,
+            )
+        else:
+            self.sbox_transition_value_dim = canonical_walsh_features
+            self.canonical_walsh_features_per_stage = canonical_walsh_features
+            self.canonical_walsh_mask_pairs = canonical_walsh_mask_pairs(
+                canonical_walsh_features
+            )
+            self.canonical_walsh_fingerprint = canonical_walsh_fingerprint(
+                canonical_walsh_features
+            )
+            self.runtime_round_window_mode = (
+                "deterministic_canonical_walsh_sbox_transition_residual"
+            )
         self.deterministic_exact_composition = True
         self.deterministic_sbox_transition_histogram = True
         self.compact_invariant_sbox_transition = True
@@ -641,14 +742,15 @@ class FixedCompactSboxTransitionResidualSpnProtocolAdapter(nn.Module):
         combined = base_embedding + torch.tanh(
             self.backbone.residual_gate
         ) * torch.tanh(edge_residual)
-        transition = self.backbone.transition_embedding(
-            runtime,
-            structure,
-            apply_sboxes=apply_sboxes,
-        )
-        combined = combined + torch.tanh(self.backbone.transition_gate) * torch.tanh(
-            transition.repeat(1, 3)
-        )
+        if self.transition_branch_enabled:
+            transition = self.backbone.transition_embedding(
+                runtime,
+                structure,
+                apply_sboxes=apply_sboxes,
+            )
+            combined = combined + torch.tanh(
+                self.backbone.transition_gate
+            ) * torch.tanh(transition.repeat(1, 3))
         return self.backbone.base.classifier(combined)
 
     def compute_auxiliary_loss(
@@ -788,6 +890,80 @@ def deterministic_sbox_transition_histogram(
     return histogram
 
 
+def canonical_walsh_mask_pairs(feature_count: int = 64) -> tuple[tuple[int, int], ...]:
+    if not 1 <= feature_count <= 255:
+        raise ValueError("canonical Walsh feature count must be in [1, 255]")
+    pairs = [(left, right) for left in range(16) for right in range(16)]
+    pairs.remove((0, 0))
+    pairs.sort(
+        key=lambda pair: (
+            pair[0].bit_count() + pair[1].bit_count(),
+            pair[0].bit_count(),
+            pair[1].bit_count(),
+            pair[0],
+            pair[1],
+        )
+    )
+    return tuple(pairs[:feature_count])
+
+
+def deterministic_sbox_transition_walsh_features(
+    ciphertext_pairs: torch.Tensor,
+    structure: RuntimeSpnStructure,
+    *,
+    apply_sboxes: bool = True,
+    feature_count: int = 64,
+) -> torch.Tensor:
+    histogram = deterministic_sbox_transition_histogram(
+        ciphertext_pairs,
+        structure,
+        apply_sboxes=apply_sboxes,
+    ).reshape(
+        ciphertext_pairs.shape[0],
+        2,
+        structure.cells,
+        16,
+        16,
+    )
+    bit_counts = torch.tensor(
+        [value.bit_count() for value in range(16)],
+        dtype=torch.long,
+        device=histogram.device,
+    )
+    masks = torch.arange(16, dtype=torch.long, device=histogram.device)
+    values = torch.arange(16, dtype=torch.long, device=histogram.device)
+    parity = bit_counts[torch.bitwise_and(masks[:, None], values[None, :])] % 2
+    walsh = (1 - 2 * parity).to(histogram.dtype)
+    spectrum = torch.einsum(
+        "ux,nscxy,vy->nscuv",
+        walsh,
+        histogram,
+        walsh,
+    ).flatten(-2)
+    mask_indices = torch.tensor(
+        [
+            left * 16 + right
+            for left, right in canonical_walsh_mask_pairs(feature_count)
+        ],
+        dtype=torch.long,
+        device=histogram.device,
+    )
+    features = spectrum.index_select(-1, mask_indices)
+    expected = (ciphertext_pairs.shape[0], 2, structure.cells, feature_count)
+    if features.shape != expected:
+        raise ValueError("canonical Walsh transition geometry is invalid")
+    return features
+
+
+def canonical_walsh_fingerprint(feature_count: int = 64) -> str:
+    digest = hashlib.sha256()
+    digest.update(b"canonical-low-degree-sbox-transition-walsh-v1")
+    digest.update(feature_count.to_bytes(2, "big"))
+    for left, right in canonical_walsh_mask_pairs(feature_count):
+        digest.update(bytes((left, right)))
+    return digest.hexdigest()
+
+
 def histogram_semantics_fingerprint(
     structure: RuntimeSpnStructure,
     *,
@@ -817,6 +993,8 @@ def sbox_transition_semantics_fingerprint(
 
 
 __all__ = [
+    "CanonicalWalshTransitionResidualSpnDistinguisher",
+    "CanonicalWalshTransitionResidualSpnSpec",
     "CompactInvariantHistogramResidualSpnDistinguisher",
     "CompactSboxTransitionResidualSpnDistinguisher",
     "FixedCompactInvariantHistogramResidualSpnProtocolAdapter",
@@ -826,8 +1004,11 @@ __all__ = [
     "PositionHistogramResidualSpnSpec",
     "SboxTransitionResidualSpnSpec",
     "VirtualSlotSummedLinear",
+    "canonical_walsh_fingerprint",
+    "canonical_walsh_mask_pairs",
     "deterministic_position_histogram",
     "deterministic_sbox_transition_histogram",
+    "deterministic_sbox_transition_walsh_features",
     "histogram_semantics_fingerprint",
     "sbox_transition_semantics_fingerprint",
 ]

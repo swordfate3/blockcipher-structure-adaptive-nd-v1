@@ -180,6 +180,9 @@ def build_spn_model(
         "runtime_spn_ct_k1ak_sbox_transition_wrong_sbox": "wrong_sbox",
         "runtime_spn_ct_k1ak_sbox_transition_corrupted_linear": "corrupted_linear",
         "runtime_spn_ct_k1ak_sbox_transition_none": "none",
+        "runtime_spn_ct_k1an_walsh_transition_true": "true",
+        "runtime_spn_ct_k1an_walsh_transition_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1an_walsh_transition_branch_off": "true",
     }
     if name in position_histogram_models:
         descriptor_path = options.get("runtime_structure_path")
@@ -243,15 +246,27 @@ def build_spn_model(
                 "runtime_spn_ct_k1y_",
                 "runtime_spn_ct_k1aa_",
                 "runtime_spn_ct_k1ak_",
+                "runtime_spn_ct_k1an_",
             )
         )
-        if name.startswith("runtime_spn_ct_k1ak_"):
+        if name.startswith(("runtime_spn_ct_k1ak_", "runtime_spn_ct_k1an_")):
             transition_value_dim = int_option(options, "transition_value_dim", 20)
             virtual_slots = int_option(options, "virtual_projection_slots", 16)
             assert transition_value_dim is not None
             assert virtual_slots is not None
-            if virtual_slots != 16:
+            if name.startswith("runtime_spn_ct_k1ak_") and virtual_slots != 16:
                 raise ValueError("K1-AK virtual_projection_slots must remain 16")
+            canonical_walsh_features = None
+            transition_branch_enabled = True
+            if name.startswith("runtime_spn_ct_k1an_"):
+                canonical_walsh_features = int_option(
+                    options,
+                    "canonical_walsh_features",
+                    64,
+                )
+                if canonical_walsh_features != 64:
+                    raise ValueError("K1-AN canonical_walsh_features must remain 64")
+                transition_branch_enabled = not name.endswith("_branch_off")
             return FixedCompactSboxTransitionResidualSpnProtocolAdapter(
                 input_bits=input_bits,
                 pair_bits=(
@@ -278,6 +293,8 @@ def build_spn_model(
                 descriptor_available_rounds=descriptor.available_rounds,
                 runtime_structure_mode=control,
                 apply_sboxes=apply_sboxes,
+                canonical_walsh_features=canonical_walsh_features,
+                transition_branch_enabled=transition_branch_enabled,
             )
         adapter = (
             FixedCompactInvariantHistogramResidualSpnProtocolAdapter
