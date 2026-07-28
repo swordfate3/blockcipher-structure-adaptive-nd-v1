@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Cell11 Neural Attribution K1-R
 
 **Date:** 2026-07-28
-**Status:** planned / frozen before execution
+**Status:** completed / neural signal not supported
 **Execution:** local CPU fixed-budget diagnostic
 
 ## 1. Research Question
@@ -171,3 +171,98 @@ manifest, gate, validation, summary, history, progress, Chinese explanatory SVG
 and visual-QA report/marker. After completion, refresh
 `outputs/00_RECENT_RESULTS.md` and `outputs/00_RECENT_RESULTS.json` in the same
 turn and record the evidence-backed next action here.
+
+## 9. Completed Result
+
+K1-R completed the exact frozen matrix and all post-training evaluation rows:
+
+```text
+training rows = 8 / 8
+evaluation rows = 24 / 24
+checkpoint rows = 8 / 8
+validation status = pass
+failed protocol checks = []
+training/validation cache reuse events = 16 / 16
+cache regeneration = none
+```
+
+Fresh AUC and exact-structure margins were:
+
+| Seed | Split | Exact AUC | Wrong S-box | No S-box | No topology | Exact - wrong S-box | Exact - no S-box | Exact - no topology |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 3 | same-key fresh | `0.522282` | `0.517742` | `0.518846` | `0.501656` | `+0.004539` | `+0.003436` | `+0.020626` |
+| 3 | cross-key | `0.493238` | `0.499823` | `0.499725` | `0.517068` | `-0.006585` | `-0.006486` | `-0.023830` |
+| 4 | same-key fresh | `0.513252` | `0.511323` | `0.515407` | `0.469134` | `+0.001929` | `-0.002155` | `+0.044117` |
+| 4 | cross-key | `0.516200` | `0.513804` | `0.516692` | `0.512249` | `+0.002396` | `-0.000492` | `+0.003952` |
+
+Every exact fresh AUC missed the preregistered `0.550` floor. Exact structure
+also missed both semantic margins in every fresh row, and no-topology exceeded
+exact by `0.023830` on seed3 cross-key. The final exact residual gate remained
+open at approximately `0.04835`, so this is not another zero-gate result.
+
+The frozen decision is:
+
+```text
+status = hold
+decision = innovation1_uknit_family_ctspn_k1r_cell11_neural_signal_not_supported
+remote_scale = no
+```
+
+This result separates two earlier questions. K1-Q proved that cell11 has a
+strong deterministic five-stage r5 relation (`0.806228-0.825591` on untouched
+fresh seed/split combinations), so the old `0x40` position was indeed a major
+confounder. K1-R now shows that merely feeding the same exact inverse stages to
+the current K1-N architecture does not make that relation learnable or
+structure-attributable at this local budget. It does not prove a uKNIT r5 or
+neural ceiling.
+
+The final Chinese heatmap passed rendered-pixel `visual-qa-redraw` at
+`1920x1032`. The first rendering was rejected because the right colorbar label
+was clipped; the corrected rendering has no text overlap, clipping, missing
+glyphs, ambiguous scale or insufficient separation.
+
+## 10. Recommended Next Action: K1-S Representation-Access Audit
+
+K1-S should answer one narrower question before any architecture redesign:
+
+> At which exact stage does the confirmed K1-Q position-preserving signal
+> disappear inside the completed K1-R exact-composition model?
+
+Reuse only the completed seed3/4 exact K1-R checkpoints and the six K1-Q cell11
+caches. Do not retrain the network. For every sample, extract four frozen taps:
+
+```text
+T0 = K1-Q exact five-stage position histogram (deterministic upper anchor)
+T1 = composition_bit_encoder output before cell aggregation, position preserved
+T2 = topology_delta before invariant_pool, cell position preserved
+T3 = invariant_pool(topology_delta) / final residual embedding, position erased
+```
+
+Fit the same diagonal Fisher scorer independently at each tap on the frozen
+train split and evaluate same-key fresh and cross-key rows. Add a deterministic
+label-shuffle scorer at every tap. The only variable is the observation tap;
+datasets, checkpoints, labels, scorer, variance floor and fresh splits remain
+identical. Execution is local, zero optimizer steps and zero neural epochs.
+
+Apply these gates separately to both seeds and both fresh splits:
+
+```text
+T0 exactly replays the K1-Q confirmed AUC/dataset digests
+each interpreted tap - its label-shuffle AUC >= +0.030
+candidate position-preserved tap AUC            >= 0.550
+candidate position-preserved tap - T3 AUC       >= +0.030
+```
+
+- If T1 or T2 passes while T3 fails, the invariant readout is the isolated
+  bottleneck; only then design an active-relative, runtime-topology-derived
+  position-preserving readout.
+- If T1 already loses the T0 signal, redesign the exact bit encoder or retain a
+  deterministic histogram residual; do not change pooling first.
+- If T0 does not replay K1-Q exactly, mark K1-S invalid and repair source/tap
+  binding only.
+- If T3 retains signal but final logits do not, isolate residual fusion and
+  classifier scaling; do not add capacity or data.
+
+Do not start remote training, add samples, pairs, positions, MoE, a new cipher,
+or another neural architecture until K1-S localizes the first destructive
+representation stage.

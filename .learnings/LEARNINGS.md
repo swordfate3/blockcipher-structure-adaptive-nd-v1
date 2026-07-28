@@ -8686,3 +8686,62 @@ failed control after observing results.
 - **Notes**: Added an r4-pass/r5-fail regression and corrected K1-P decision priority without changing evidence artifacts.
 
 ---
+
+## [LRN-20260728-008] best_practice
+
+**Logged**: 2026-07-28T14:08:49+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A strong deterministic position-preserving cipher signal does not imply that
+an invariantly pooled neural architecture can access it; probe representation
+taps before changing the architecture or scaling data.
+
+### Details
+
+K1-Q confirmed a uKNIT r5 cell11 exact five-stage Fisher AUC of
+`0.806228-0.825591` across untouched seed3/4 same-key and cross-key splits.
+K1-R then held that difference, every cache, key, split and training setting
+fixed while independently training correct-composition, wrong-S-box,
+no-S-box and no-topology K1-N models. Correct-composition fresh AUC remained
+`0.493238-0.522282`; it missed every `0.550` signal floor and every semantic
+margin, despite a nonzero final residual gate near `0.04835`.
+
+The deterministic five-stage feature retains physical bit/cell position. The
+K1-N residual encodes those stages per bit but later applies
+`invariant_pool(topology_delta)`, so a plausible first destructive operation is
+position erasure rather than absent data signal or a closed residual gate.
+K1-R alone does not prove that pooling is the cause; it makes a tap-by-tap
+representation audit the controlled next test.
+
+### Suggested Action
+
+When deterministic features strongly separate fresh data but the matched
+neural model remains near chance, freeze the completed checkpoint and evaluate
+the same scorer on position-preserved pre-pool, cell-level pre-pool,
+post-invariant-pool and final representations. Require exact source replay and
+label-shuffle controls. Redesign only the first stage where signal disappears;
+do not infer that the differential failed, add capacity, switch architectures
+or scale data before this access audit.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_audit
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-cell11-neural-attribution-k1r-plan.md, src/blockcipher_nd/models/structure/spn/topology_edge_residual.py, outputs/local_diagnostic/i1_uknit_family_ctspn_cell11_neural_attribution_k1r_2048_seed3_seed4_20260728/gate.json
+- Tags: innovation1, uknit, deterministic-signal, neural-access, invariant-pooling, position-preserving, representation-probe
+- See Also: LRN-20260728-005, LRN-20260728-007
+- Pattern-Key: research.spn.deterministic_signal_requires_representation_access_audit
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T14:08:49+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-R selected a zero-neural-training K1-S tap-by-tap representation-access audit before any architecture redesign or scale.
+
+---

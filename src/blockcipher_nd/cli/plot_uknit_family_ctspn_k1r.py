@@ -100,7 +100,7 @@ def render_k1r_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure, axes = plt.subplots(1, 2, figsize=(16, 8.6))
         figure.subplots_adjust(
             left=0.17,
-            right=0.965,
+            right=0.91,
             top=0.70,
             bottom=0.13,
             wspace=0.36,
@@ -249,7 +249,7 @@ def _render_margin_heatmap(
             )
     axis.tick_params(length=0, axis="both", pad=8)
     colorbar = axis.figure.colorbar(image, ax=axis, fraction=0.046, pad=0.04)
-    colorbar.set_label("正确结构 AUC - 控制 AUC")
+    colorbar.set_label("AUC 差值")
 
 
 def _condition_auc(result: Mapping[str, Any], condition: str) -> float:
