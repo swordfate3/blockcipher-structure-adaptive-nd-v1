@@ -57,6 +57,31 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def render_k1ai_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
+    return render_midori_structure_heatmaps(
+        gate,
+        output,
+        title=("创新1 K1-AI：Midori64 第4轮中，正确 S盒和扩散结构是否真正帮助神经网络"),
+        subtitle=(
+            "固定 cell8 差分 0x0000000400000000、每样本4对密文和相同训练预算；"
+            "四种结构分别独立训练10轮。"
+        ),
+        conclusion=_decision_text(gate),
+        reading_guide=(
+            "左图看四种网络在新样本上的 AUC；右图单独放大正确结构的净优势，"
+            "避免相近曲线难以辨认。"
+        ),
+    )
+
+
+def render_midori_structure_heatmaps(
+    gate: Mapping[str, Any],
+    output: Path,
+    *,
+    title: str,
+    subtitle: str,
+    conclusion: str,
+    reading_guide: str,
+) -> dict[str, Any]:
     seed_results = gate.get("seed_results", {})
     expected_seed_keys = {str(seed) for seed in EXPECTED_SEEDS}
     if set(seed_results) != expected_seed_keys:
@@ -106,7 +131,7 @@ def render_k1ai_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
             wspace=0.44,
         )
         figure.suptitle(
-            "创新1 K1-AI：Midori64 第4轮中，正确 S盒和扩散结构是否真正帮助神经网络",
+            title,
             x=0.05,
             y=0.955,
             ha="left",
@@ -116,7 +141,7 @@ def render_k1ai_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.05,
             0.895,
-            "固定 cell8 差分 0x0000000400000000、每样本4对密文和相同训练预算；四种结构分别独立训练10轮。",
+            subtitle,
             ha="left",
             fontsize=10.8,
             color="#4B5563",
@@ -124,7 +149,7 @@ def render_k1ai_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.05,
             0.83,
-            _decision_text(gate),
+            conclusion,
             ha="left",
             fontsize=11.2,
             fontweight="bold",
@@ -133,7 +158,7 @@ def render_k1ai_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         figure.text(
             0.05,
             0.775,
-            "左图看四种网络在新样本上的 AUC；右图单独放大正确结构的净优势，避免相近曲线难以辨认。",
+            reading_guide,
             ha="left",
             fontsize=10.2,
             color="#4B5563",
@@ -278,4 +303,9 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["main", "parse_args", "render_k1ai_svg"]
+__all__ = [
+    "main",
+    "parse_args",
+    "render_k1ai_svg",
+    "render_midori_structure_heatmaps",
+]
