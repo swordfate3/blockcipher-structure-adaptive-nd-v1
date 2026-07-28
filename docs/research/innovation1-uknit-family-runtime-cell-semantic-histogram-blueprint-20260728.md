@@ -269,6 +269,35 @@ The readiness artifact must record the descriptor collision audit (`16/16`
 uKNIT unique signatures and `16/32` Dialga equivalence classes) rather than
 pretend every cell is structurally identifiable.
 
+### Pre-Implementation Formula Audit
+
+The deterministic formulas above were evaluated without adding a model or
+running an optimizer. A fixed binary fixture was transformed together with a
+random runtime cell relabeling. For each old cell, its four input bits, S-box
+table and every source/target endpoint in both inverse GF(2) matrices were moved
+to the corresponding new cell before the descriptor and histogram were
+recomputed.
+
+```text
+uKNIT:
+  descriptor shape             = [16, 192]
+  histogram shape              = [2, 5, 16, 16]
+  descriptor relabel equality  = exact
+  histogram relabel equality   = exact
+
+Dialga:
+  descriptor shape             = [32, 192]
+  histogram shape              = [2, 5, 32, 16]
+  descriptor relabel equality  = exact
+  histogram relabel equality   = exact
+```
+
+This is formula/readiness evidence only. It proves that the proposed
+deterministic inputs are jointly cell-equivariant for the two target widths; it
+does not prove that the future neural aggregation will learn, retain K1-T AUC,
+or transfer weights. The implemented model must repeat this audit end to end on
+its logits before training.
+
 ## Conditional First Training Gate
 
 Only after K1-U and zero-training readiness pass, create a formal experiment
