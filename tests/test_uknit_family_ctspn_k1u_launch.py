@@ -107,6 +107,7 @@ def test_k1u_generated_assets_are_fail_closed_and_remote_owned() -> None:
 
     assert "!" not in run
     assert "!" not in launch
+    assert "set -o pipefail" in monitor
     assert "cmd.exe /k" not in run + launch
     assert "cmd.exe /c" in launch
     assert "G:\\lxy\\blockcipher-structure-adaptive-nd-runs" in run + launch
@@ -124,6 +125,9 @@ def test_k1u_generated_assets_are_fail_closed_and_remote_owned() -> None:
     assert "source_expected_commit.txt" in launch
     assert "retrieved_from_verified_result_branch.marker" in monitor
     assert "RAW_RETRIEVAL_NOTICE.txt" in monitor
+    assert 'git fetch --force origin' in monitor
+    assert 'git archive "${result_ref}" "results_archive/${RUN_ID}"' in monitor
+    assert 'if [[ "${mode}" == "verified" ]]' in monitor
     assert "sed 's/\\r$//' SHA256SUMS | sha256sum -c -" in monitor
     assert "plot-uknit-family-ctspn-k1u" in monitor
     assert config["physical_gpu"] == 1

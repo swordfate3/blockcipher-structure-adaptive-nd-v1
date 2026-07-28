@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -u
+set -o pipefail
 
 REMOTE="lxy-a6000"
 RUN_ID="i1_uknit_family_ctspn_position_residual_k1u_medium_65536_seed3_seed4_20260728"
@@ -44,6 +45,7 @@ retrieve_archive() {
   local destination_root="${VERIFIED_ROOT}"
   local marker="retrieved_from_verified_result_branch.marker"
   local staging="${MONITOR_ROOT}/staging_${RUN_ID}_$(date +%s)"
+  local result_ref="refs/remotes/origin/results/${RUN_ID}"
   local destination
   local adjudication
   if [[ "${mode}" == "raw" ]]; then
@@ -62,9 +64,21 @@ retrieve_archive() {
     return 1
   fi
   mkdir -p "${staging}"
-  scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/source/results_archive/${RUN_ID}" \
-    "${staging}/" >> "${MONITOR_ROOT}/scp.log" \
-    2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  if [[ "${mode}" == "verified" ]]; then
+    mkdir -p "${staging}/${RUN_ID}"
+    git fetch --force origin \
+      "refs/heads/results/${RUN_ID}:${result_ref}" \
+      >> "${MONITOR_ROOT}/branch.log" \
+      2>> "${MONITOR_ROOT}/branch_stderr.log" || return 1
+    git archive "${result_ref}" "results_archive/${RUN_ID}" \
+      | tar -x -C "${staging}/${RUN_ID}" --strip-components=2 \
+      >> "${MONITOR_ROOT}/branch.log" \
+      2>> "${MONITOR_ROOT}/branch_stderr.log" || return 1
+  else
+    scp -r "${REMOTE}:${RUNS_ROOT}/${RUN_ID}/source/results_archive/${RUN_ID}" \
+      "${staging}/" >> "${MONITOR_ROOT}/scp.log" \
+      2>> "${MONITOR_ROOT}/scp_stderr.log" || return 1
+  fi
   (
     cd "${staging}/${RUN_ID}" || exit 1
     sed 's/\r$//' SHA256SUMS | sha256sum -c -
