@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family Difference-Position Discovery K1-Q
 
 **Date:** 2026-07-28
-**Status:** planned / protocol frozen
+**Status:** completed / two r5 positions confirmed on untouched seeds and keys
 **Execution:** local CPU, disk-backed data, deterministic zero-neural-training audit
 
 ## 1. Question
@@ -175,8 +175,99 @@ Inside K1-Q do not add another bit role, multi-bit differences, more pairs,
 more samples, more seeds, neural training, MoE, remote execution, DDT/trail
 features, candidate-specific thresholds, or post-result gate changes.
 
-## 7. Recommended Next Action
+## 7. Completed Result
 
-Implement and run this frozen two-phase audit locally. Advance to a neural
-architecture only if an untouched confirmation candidate passes all absolute
-and attribution gates; otherwise follow the appropriate stop branch above.
+```text
+status = pass
+decision = innovation1_uknit_family_ctspn_k1q_confirmed_r5_difference_position_supported
+remote_scale = no
+validation status = pass
+errors = []
+dataset rows = 66
+feature rows = 150
+scorer rows = 50
+result rows = 150
+training rows = 0
+neural parameters = 0
+optimizer steps = 0
+epochs = 0
+```
+
+### 7.1 Discovery
+
+The frozen seed2 ranking selected cell11 and cell0. The original `0x40`
+position was near chance and was excluded from selection:
+
+| Cell / difference | Same-key exact AUC | Cross-key exact AUC | Minimum exact - raw | Outcome |
+|---|---:|---:|---:|---|
+| 11 / `0x0000400000000000` | `0.939445` | `0.960564` | `+0.462402` | selected rank 1 |
+| 0 / `0x0000000000000004` | `0.647923` | `0.624786` | `+0.133270` | selected rank 2 |
+| 1 / `0x0000000000000040` | `0.503689` | `0.520794` | `-0.006351` | anchor failed |
+
+Eight additional non-anchor positions passed the discovery threshold, but the
+preregistered cap prevented post-hoc expansion beyond the top two.
+
+### 7.2 Untouched Confirmation
+
+Both selected positions passed every absolute and attribution gate on seed3/4
+with new train/validation key pairs:
+
+| Cell | Seed | Same-key exact AUC | Cross-key exact AUC |
+|---:|---:|---:|---:|
+| 11 | 3 | `0.825591` | `0.809460` |
+| 11 | 4 | `0.806228` | `0.820532` |
+| 0 | 3 | `0.665880` | `0.618431` |
+| 0 | 4 | `0.634613` | `0.644200` |
+| 1 (`0x40` anchor) | 3 | `0.518620` | `0.504206` |
+| 1 (`0x40` anchor) | 4 | `0.515451` | `0.504639` |
+
+Worst-case confirmation margins were:
+
+| Cell | Minimum exact - raw | Minimum exact - label shuffle | Confirmed |
+|---:|---:|---:|---|
+| 11 | `+0.293386` | `+0.278514` | yes |
+| 0 | `+0.111885` | `+0.136022` | yes |
+| 1 (`0x40` anchor) | `+0.009514` | `+0.003362` | no |
+
+This supports the position-dependent explanation: the K1-N/K1-O route was
+tested on an r5 input difference whose local-state signal had already
+collapsed, while two same-role positions preserve strong signal across unseen
+seeds and keys. It does not yet show that a neural model can learn that signal
+or that correct runtime structure beats neural controls.
+
+The final `curves.svg` passed rendered-pixel `visual-qa-redraw` at `1920x1344`.
+The first rendering was rejected because a failed `+0.0095` raw margin rounded
+to `+0.010` and could be mistaken for a pass. The final rendering uses four
+decimal places for confirmation margins and has no text overlap, clipping,
+missing glyphs, incomplete legend, structural ambiguity, or insufficient curve
+separation.
+
+## 8. Recommended Next Action: K1-R Neural Attribution
+
+K1-R should test one question only:
+
+> Can the K1-N-derived trainable model exploit the confirmed cell11 r5 signal,
+> and is its performance specifically attributable to the correct uKNIT S-box
+> and diffusion structure?
+
+Use only the strongest confirmed difference
+`0x0000400000000000`, retain the K1-Q seed3/4 disk-backed datasets and keys,
+and keep `2048/class` train, `1024/class` per fresh split, four pairs, ten
+epochs, strict negatives, optimizer, checkpoint rule, and runtime window fixed.
+Change only the structure condition. The lean matrix is eight rows:
+
+```text
+seed3/4 x {
+  exact composition,
+  wrong S-box semantics,
+  no S-box semantics,
+  no topology
+}
+```
+
+The same-budget no-topology row is the primary neural anchor. Require the
+exact row on both fresh splits and both seeds to reach AUC `>=0.550`, exceed
+no-topology by `>=+0.010`, and exceed both S-box controls by `>=+0.005` before
+claiming a uKNIT-specific structure contribution. Keep execution local at this
+budget. Do not add cell0, more positions, more pairs, MoE, remote scale, or
+another architecture until this attribution gate is adjudicated.

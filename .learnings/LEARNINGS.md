@@ -53,6 +53,64 @@ all pooled branches.
 
 ---
 
+## [LRN-20260728-007] best_practice
+
+**Logged**: 2026-07-28T13:27:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Before redesigning a structure-aware neural model on a weak cipher task,
+calibrate whether the chosen input-difference position preserves fresh signal;
+same-role positions can differ by more than 0.4 AUC after heterogeneous SPN
+diffusion.
+
+### Details
+
+K1-P showed that uKNIT difference `0x40` was perfectly visible at r3/r4 but
+returned to `0.510-0.527` at r5. K1-Q then moved only the same `bit_role=1`
+across all sixteen native cells. On discovery seed2, cell11 difference
+`0x0000400000000000` reached minimum fresh AUC `0.939445`, while the `0x40`
+anchor reached only `0.503689`. Cell0 difference `0x4` was the second frozen
+candidate at minimum AUC `0.624786`.
+
+Untouched seed3/4 confirmation with new key pairs retained cell11 AUC
+`0.806228-0.825591` and cell0 AUC `0.618431-0.665880` across same-key and
+cross-key splits. Both exceeded raw and label-shuffled controls on every
+combination. The `0x40` anchor remained at `0.504206-0.518620` and failed both
+attribution margins. Thus repeated weak neural runs on `0x40` confounded
+architecture quality with a position-specific r5 signal collapse.
+
+### Suggested Action
+
+For heterogeneous SPNs, run a preregistered same-role position calibration with
+strict negatives and fresh key scopes before spending architecture or scale
+budget. Select candidates on one seed, confirm on untouched seeds and keys,
+then hold the confirmed differential fixed while comparing the trainable exact
+structure against wrong-S-box, no-S-box, and no-topology controls. Do not treat
+the deterministic signal audit itself as neural or attack evidence.
+
+### Metadata
+
+- Source: verified_local_experiment, user_hypothesis
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-difference-position-discovery-k1q-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1q.py, outputs/local_audit/i1_uknit_family_ctspn_difference_position_discovery_k1q_seed2_confirm_seed3_seed4_20260728/gate.json
+- Tags: innovation1, uknit, input-difference, position, signal-calibration, strict-negatives, fresh-keys, architecture-attribution
+- See Also: LRN-20260728-006
+- Pattern-Key: research.spn.calibrate_difference_position_before_architecture
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T13:27:00+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-Q completed the frozen discovery/confirmation protocol and selected cell11 for the next neural attribution matrix.
+
+---
+
 ## [LRN-20260728-004] best_practice
 
 **Logged**: 2026-07-28T08:50:00+08:00

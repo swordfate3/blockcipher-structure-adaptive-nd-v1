@@ -330,7 +330,7 @@ def _heatmap(
             axis.text(
                 column,
                 row,
-                f"{value:+.3f}" if threshold is None else f"{value:.3f}",
+                f"{value:+.4f}" if threshold is None else f"{value:.3f}",
                 ha="center",
                 va="center",
                 fontsize=9,
