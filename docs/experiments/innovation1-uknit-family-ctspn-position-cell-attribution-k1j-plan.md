@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Position/Cell Attribution K1-J
 
 **Date:** 2026-07-28
-**Status:** frozen before implementation
+**Status:** completed / attribution passed
 **Execution:** local CPU, zero-training mechanism audit
 
 ## 1. Decision Context
@@ -225,3 +225,123 @@ visual_qa_passed.marker
 The completed result must refresh `outputs/00_RECENT_RESULTS.md` and JSON, and
 this document must record exact metrics, claim scope and the evidence-backed
 next action before the audit is considered handled.
+
+## 10. Completed Audit Result
+
+The frozen audit completed locally on 2026-07-28:
+
+```text
+run_id   = i1_uknit_family_ctspn_position_cell_attribution_k1j_20260728
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1j_joint_pool_branch_signal_supported
+pool attribution rows = 42
+input position rows    = 48
+training rows          = 0
+optimizer steps        = 0
+failed protocol checks = []
+```
+
+All twenty protocol checks passed. Native K1-I, no-topology and Runtime-E4 AUC
+replayed the K1-I source panel within `1e-7`; the manually exposed K1-I pooled
+path reproduced standard forward probabilities within `1e-7`; all four
+checkpoint state dictionaries were unchanged; all six caches were reused by
+digest without generating rows.
+
+The first execution was correctly rejected because the within-cell and
+whole-cell set-order controls retained identical AUC but floating reduction
+order changed probabilities by `3.58e-7` to `6.56e-7`, above the frozen
+`1e-7` equality gate. The repair did not relax the threshold or change an
+intervention. It applied the declared bijection and then restored canonical
+element order before the mathematically invariant floating reduction. The
+cross-cell interaction-destroying control remained uncanonicalized. The exact
+same audit then passed all protocol checks.
+
+## 11. Fresh-Split Attribution Evidence
+
+| Seed | Split | Native exact | Cross-cell mix | Explained | Shuffle bit branch | Explained | Shuffle cell branch | Explained | Shuffle both | Explained |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | same-key fresh | `0.965361` | `0.965079` | `0.0006` | `0.850813` | `0.2633` | `0.777762` | `0.4312` | `0.498992` | `1.0000` |
+| 0 | cross-key | `0.958006` | `0.959731` | `0.0000` | `0.842981` | `0.2642` | `0.772142` | `0.4269` | `0.489544` | `1.0000` |
+| 1 | same-key fresh | `0.958613` | `0.955756` | `0.0067` | `0.849150` | `0.2564` | `0.757105` | `0.4720` | `0.492161` | `1.0000` |
+| 1 | cross-key | `0.954252` | `0.950812` | `0.0079` | `0.852361` | `0.2337` | `0.762429` | `0.4400` | `0.491059` | `1.0000` |
+
+Cross-cell role-preserving regrouping explained only `0.0%-0.8%` of the
+native-minus-no-topology gap. The current cell branch therefore does not derive
+its strong AUC from the correct four-bit native cell grouping. A label-blind
+shuffle of the global-bit branch explained `23.4%-26.4%`; shuffling the cell
+summary branch explained `42.7%-47.2%`. Neither reached the frozen `80%` gate.
+Shuffling both branches together explained `100%` and produced
+`0.489544-0.498992` AUC in all four fresh rows. The frozen distributed-branch
+gate therefore passed.
+
+This means the two invariant summaries jointly carry sample-specific signal,
+but it does not mean that their joint computation identifies the correct
+operator. The near-zero cross-cell effect and K1-I's failed wrong-operator
+margin explicitly rule out that stronger claim.
+
+## 12. Runtime-E4 Position Reference
+
+The AUC loss caused by changing only input coordinates was:
+
+| Model | Seed | Split | Within-cell role roll | Whole-cell roll | Cross-cell role mix |
+|---|---:|---|---:|---:|---:|
+| K1-I | 0 | same-key fresh | `0.388954` | `0.379726` | `0.452732` |
+| K1-I | 0 | cross-key | `0.371574` | `0.364174` | `0.462910` |
+| K1-I | 1 | same-key fresh | `0.401781` | `0.358202` | `0.465103` |
+| K1-I | 1 | cross-key | `0.401142` | `0.388394` | `0.475338` |
+| Runtime-E4 | 0 | same-key fresh | `0.407728` | `0.397966` | `0.454795` |
+| Runtime-E4 | 0 | cross-key | `0.411993` | `0.383657` | `0.446816` |
+| Runtime-E4 | 1 | same-key fresh | `0.383972` | `0.377572` | `0.454394` |
+| Runtime-E4 | 1 | cross-key | `0.411865` | `0.398477` | `0.474002` |
+
+Both architectures depend strongly on native ciphertext coordinates. These
+supporting rows do not prove cryptographic-equivalent position semantics because
+the runtime descriptor was intentionally held fixed while the input was
+permuted. Together with the internal intervention, they show that useful signal
+exists in native coordinates but K1-I's post-operator pooling does not preserve
+the correct source-target relation needed to distinguish correct and wrong
+matrices.
+
+The Chinese result chart passed rendered-pixel `visual-qa-redraw`: all four
+fresh trajectories and the `80%` threshold are visible, titles and labels are
+unambiguous, no text is clipped or overlapping, and the source-gap panel states
+that its AUC axis begins at `0.48`.
+
+## 13. Claim Scope And Evidence-Backed Next Action
+
+K1-J supports only this mechanism statement:
+
+```text
+Dialga's K1-I signal requires the global-bit and cell-summary branches jointly,
+but current invariant pooling does not use the correct native cell grouping.
+```
+
+It is not uKNIT success, correct-operator attribution, formal-scale evidence,
+an attack, a SOTA result or arbitrary-SPN transfer evidence.
+
+The next single-variable hypothesis is K1-K: retain K1-I's exact Boolean
+invariant path as a calibrated base and add one bounded, topology-equivariant
+position-preserving residual before final pooling. The residual must:
+
+- keep four ordered bit roles together inside each runtime cell;
+- consume explicit target/source edges from each of the two runtime matrices;
+- use shared edge and cell functions independent of state width;
+- distinguish the two transition slots without absolute cell IDs or cipher IDs;
+- remain equivariant under joint input/operator/cell relabeling;
+- feed the classifier only through a bounded `tanh`-gated residual whose zero
+  gate exactly reproduces K1-I;
+- expose same-checkpoint reversed, corrupted and no-topology controls.
+
+K1-K must first pass a zero-training readiness proof: identical 64-/128-bit
+state geometry, exact zero-gate replay, both transitions and native endpoints
+observable, wrong operators changing residual logits, joint relabeling within
+`1e-6`, source-cache/checkpoint digest binding and no forbidden identity
+features. Only then may it train locally on the unchanged uKNIT r5 / Dialga r4
+`2048/class`, four-pair, ten-epoch, seed-0/1 protocol.
+
+The same-budget anchor is K1-I. Every uKNIT seed must reach `0.520` on both
+fresh splits, beat K1-I by `0.005`, and beat all same-checkpoint topology
+controls by `0.005`; Dialga must retain K1-I within `0.005` and pass the same
+control margin. Until those gates pass, do not remotely scale, add samples,
+epochs, width, pairs, seeds, MoE experts, S-box/DDT/trail features, keys, cipher
+IDs, partial decryption or an unrestricted raw bypass.

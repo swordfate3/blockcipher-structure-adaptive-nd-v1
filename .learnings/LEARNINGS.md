@@ -1,3 +1,58 @@
+## [LRN-20260728-005] best_practice
+
+**Logged**: 2026-07-28T09:32:50+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+Strong signal carried jointly by invariant bit and cell summaries does not
+establish native-cell or correct-operator semantics when cross-cell regrouping
+leaves AUC unchanged.
+
+### Details
+
+K1-J replayed frozen Dialga K1-I checkpoints without training and separated
+the exact Boolean view into its global-bit and cell-summary branches. Shuffling
+either branch alone explained only `23.4%-26.4%` or `42.7%-47.2%` of the
+native-minus-no-topology gap, while shuffling both reached chance and explained
+the full gap. However, regrouping the four ordered roles of each synthetic cell
+from four different native cells changed fresh AUC by only `0.0%-0.8%` of that
+gap. The two summaries therefore carry complementary sample signal, but the
+model does not use correct native-cell membership and cannot identify the
+correct runtime matrix from those pooled statistics.
+
+### Suggested Action
+
+Treat joint-branch necessity, native-cell interaction and correct-operator
+attribution as separate gates. Preserve the calibrated invariant path, but add
+only a bounded position-preserving edge residual that consumes explicit
+source/target endpoints and transition slots. Require same-checkpoint wrong
+operators and joint-relabeling equivariance before scale; do not infer topology
+understanding from a strong native AUC or from chance after jointly shuffling
+all pooled branches.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_audit
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-position-cell-attribution-k1j-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1j.py, outputs/local_audit/i1_uknit_family_ctspn_position_cell_attribution_k1j_20260728/gate.json
+- Tags: innovation1, uknit, dialga, invariant-pooling, cell-membership, topology-attribution, shortcut
+- See Also: LRN-20260728-004, LRN-20260728-003
+- Pattern-Key: research.runtime_spn.joint_pool_signal_not_native_topology_semantics
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T09:32:50+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-J selected a bounded topology-equivariant,
+  position-preserving edge residual as the single-variable K1-K hypothesis.
+
+---
+
 ## [LRN-20260728-004] best_practice
 
 **Logged**: 2026-07-28T08:50:00+08:00

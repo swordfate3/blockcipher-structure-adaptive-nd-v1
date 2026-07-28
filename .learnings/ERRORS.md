@@ -1,3 +1,58 @@
+## [ERR-20260728-002] k1j_invariant_reduction_order
+
+**Logged**: 2026-07-28T09:32:50+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Summary
+
+The first K1-J audit failed an exact mathematical-invariance gate because a
+set permutation changed floating-point reduction order by up to `6.56e-7`.
+
+### Error
+
+```text
+hidden_invariance_controls_exact = false
+max probability delta = 3.58e-7 to 6.56e-7
+frozen equality gate  = 1e-7
+```
+
+### Context
+
+- K1-J intentionally permuted hidden elements before mean, max and RMS
+  reductions that are mathematically invariant to set order.
+- Finite-precision `scatter_add` and reduction order changed probabilities even
+  though AUC and the declared mathematical value were unchanged.
+- The cross-cell control was intended to destroy native membership and could
+  not be normalized away.
+
+### Suggested Fix
+
+For an intervention declared mathematically invariant, apply the bijection,
+restore a canonical element order and only then perform floating reduction.
+Keep interaction-destroying controls uncanonicalized. Do not relax a frozen
+exactness gate to hide reduction-order noise.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1j.py, tests/test_uknit_family_ctspn_k1j.py, docs/experiments/innovation1-uknit-family-ctspn-position-cell-attribution-k1j-plan.md
+- See Also: LRN-20260728-005
+- Pattern-Key: tests.invariant_float_reduction_requires_canonical_order
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T09:32:50+08:00
+- **Commit/PR**: pending
+- **Notes**: Canonicalized only the two declared set-order invariance controls,
+  retained the `1e-7` gate and reran the unchanged audit to `20/20` checks.
+
+---
+
 ## [ERR-20260721-001] remote_launcher_https_clone_connection_reset
 
 **Logged**: 2026-07-21T21:20:00+08:00
