@@ -1,8 +1,8 @@
 # Innovation 1 uKNIT-Family CT-SPN Deterministic Position Residual K1-T
 
 **Date:** 2026-07-28
-**Status:** frozen / implementation pending
-**Execution:** local CPU fixed-budget diagnostic after zero-training readiness
+**Status:** completed / pass / remote medium diagnostic authorized
+**Execution:** completed local CPU fixed-budget diagnostic after zero-training readiness
 
 ## 1. Research Question
 
@@ -220,3 +220,81 @@ attribution CSV, gate, validation, summary, history, progress, Chinese SVG,
 plot report and `visual_qa_passed.marker`. After completion refresh both recent
 result indexes, record the observed decision and next executable action here,
 then commit and push only K1-T files.
+
+## 10. Completed Result
+
+The frozen run completed on 2026-07-28 under:
+
+```text
+outputs/local_diagnostic/
+  i1_uknit_family_ctspn_deterministic_position_residual_
+  k1t_2048_seed3_seed4_20260728/
+```
+
+The independent zero-step readiness gate passed before training. All three
+conditions had identical `214316`-parameter geometry, both bounded gates were
+open, correct/wrong/invariant semantics produced observable differences under
+a shared state, and the histogram branch had finite nonzero gradients. The
+runner then reused all twelve frozen train/validation cache bindings, completed
+six optimizer rows and restored six best checkpoints. The final evaluation
+contained the required twenty-four rows.
+
+### 10.1 Fresh-split metrics
+
+| Seed | Fresh split | Exact position residual | K1-R anchor | Wrong S-box | Position erased | Exact-anchor | Exact-wrong | Exact-invariant |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 3 | same-key | `0.735209` | `0.522282` | `0.511016` | `0.600709` | `+0.212928` | `+0.224194` | `+0.134500` |
+| 3 | cross-key | `0.713162` | `0.493238` | `0.506986` | `0.565424` | `+0.219924` | `+0.206177` | `+0.147738` |
+| 4 | same-key | `0.738803` | `0.513252` | `0.505732` | `0.594370` | `+0.225551` | `+0.233071` | `+0.144433` |
+| 4 | cross-key | `0.748229` | `0.516200` | `0.512875` | `0.594048` | `+0.232029` | `+0.235354` | `+0.154181` |
+
+Every fresh row passed all four frozen research thresholds. All protocol checks
+also passed, including source digests, plan alignment, cache reuse, checkpoint
+count and strict state replay. `validate-results` returned `status=pass`, six
+result rows and no errors.
+
+### 10.2 Decision and claim scope
+
+```text
+status = pass
+decision =
+  innovation1_uknit_family_ctspn_k1t_
+  deterministic_position_residual_supported
+remote_scale = authorized_65536_per_class
+```
+
+K1-T supports the bounded deterministic position-residual mechanism for this
+two-seed local uKNIT r5 cell11 diagnostic. It does not yet establish formal
+scale, another difference or round, transfer to another uKNIT-family cipher,
+an attack, a SOTA result or a family-wide architecture claim.
+
+The observed controls materially narrow the prior failure: the confirmed signal
+is not recovered merely by adding equal capacity. It requires the correct S-box
+semantics and retaining native cell positions under this protocol. The earlier
+K1-R route primarily lost this position-specific statistic inside its learned
+compression.
+
+### 10.3 Visual and artifact validation
+
+The Chinese two-panel heatmap was rendered to `1920x1056` pixels and inspected
+with `visual-qa-redraw`. The first preview exposed right-panel labels overlapping
+the left colorbar; shortened semantic labels removed the conflict. The final
+preview had no overlap, clipping, missing glyphs or structural ambiguity.
+
+### 10.4 Executable next action
+
+Preregister a separate remote `65536/class` medium diagnostic. Its question is
+whether the K1-T mechanism and attribution margins survive a 32x data increase.
+Keep uKNIT r5, cell11 role1, four pairs/sample, runtime window, architecture,
+loss, optimizer and ten epochs unchanged. Change only `samples_per_class` from
+`2048` to `65536`; use seeds 3 and 4 and train the exact residual, wrong-S-box
+semantic control and invariant position-erasure control at equal budget.
+
+Launch only from a pushed commit and only after a route-specific remote
+disk-cache readiness gate proves chunked `features.npy`/`labels.npy` or
+equivalent payloads, metadata, durable progress and parameter-matched reuse
+under `G:\lxy`. Advance beyond this medium run only if both seeds' fresh
+cross-key evaluations retain exact AUC `>=0.600`, exact-wrong `>=+0.010` and
+exact-invariant `>=+0.030`. Stop mechanical scale-up if any seed fails; inspect
+learning curves and the failed attribution control before changing capacity,
+epochs, pairs, difference or rounds.

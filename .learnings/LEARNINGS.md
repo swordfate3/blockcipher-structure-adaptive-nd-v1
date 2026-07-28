@@ -1,3 +1,61 @@
+## [LRN-20260728-009] best_practice
+
+**Logged**: 2026-07-28T15:21:29+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+When a deterministic SPN statistic is strong but a position-invariant neural
+path is near chance, retain the exact stage-by-native-cell histogram as a
+bounded residual and require wrong-S-box plus position-erasure controls.
+
+### Details
+
+K1-S replayed the uKNIT r5 cell11 exact five-stage position histogram at AUC
+`0.806228-0.825591`, while every learned K1-R tap and final logit remained weak
+or inconsistent. K1-T changed only the representation: a shared `16 -> 8`
+value encoder processed each ordered stage/cell histogram slot, the ordered
+`5 x 16 x 8` tensor was projected to the existing embedding width, and a
+bounded scalar gate fused it into the unchanged K1-N classifier.
+
+Across untouched seed3/4 same-key and cross-key splits, the exact residual
+reached AUC `0.713162-0.748229`. It exceeded the same-data K1-R anchor by
+`+0.212928` to `+0.232029`, the wrong-S-box control by `+0.206177` to
+`+0.235354`, and the position-erasure control by `+0.134500` to `+0.154181`.
+All sixteen frozen research checks passed. Equal capacity alone therefore did
+not explain the improvement: both correct nonlinear semantics and native cell
+position were necessary under this local diagnostic.
+
+### Suggested Action
+
+For heterogeneous SPNs, preserve an externally parameterized exact statistic
+through a small bounded residual before invariant aggregation instead of asking
+a narrow learned bottleneck to rediscover it. At each scale, compare the exact
+branch against equal-geometry wrong-semantic and position-erasure controls.
+Next run the unchanged uKNIT r5 mechanism at remote `65536/class`; do not yet
+claim family transfer or change difference, capacity, pairs, epochs or rounds.
+
+### Metadata
+
+- Source: verified_local_experiment, mechanism_redesign
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-deterministic-position-residual-k1t-plan.md, src/blockcipher_nd/models/structure/spn/position_histogram_residual.py, outputs/local_diagnostic/i1_uknit_family_ctspn_deterministic_position_residual_k1t_2048_seed3_seed4_20260728/gate.json
+- Tags: innovation1, uknit, spn, position-preserving, deterministic-residual, wrong-sbox-control, attribution
+- See Also: LRN-20260728-008, LRN-20260728-007, LRN-20260728-004
+- Pattern-Key: research.spn.exact_position_residual_with_semantic_controls
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T15:21:29+08:00
+- **Commit/PR**: pending
+- **Notes**: K1-T passed all local mechanism and attribution gates and authorized a separately preregistered remote medium diagnostic.
+
+---
+
 ## [LRN-20260728-005] best_practice
 
 **Logged**: 2026-07-28T09:32:50+08:00

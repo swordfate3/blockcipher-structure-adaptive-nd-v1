@@ -115,6 +115,10 @@ from blockcipher_nd.models.structure.spn.topology_edge_residual import (
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
     FixedExactOperatorCompositionSpnProtocolAdapter,
 )
+from blockcipher_nd.models.structure.spn.position_histogram_residual import (
+    FixedPositionHistogramResidualSpnProtocolAdapter,
+    PositionHistogramResidualSpnSpec,
+)
 from blockcipher_nd.models.structure.spn.runtime_structure_factories import (
     gift64_runtime_structure,
     present_runtime_structure,
@@ -155,6 +159,80 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    position_histogram_models = {
+        "runtime_spn_ct_k1t_position_histogram_true": "true",
+        "runtime_spn_ct_k1t_position_histogram_wrong_sbox": "wrong_sbox",
+        "runtime_spn_ct_k1t_position_histogram_invariant": "invariant",
+    }
+    if name in position_histogram_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(
+                f"model {name} requires non-empty model option runtime_structure_path"
+            )
+        runtime_rounds = int_option(options, "runtime_rounds", 2)
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_rounds is not None
+        assert runtime_round_start is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=runtime_rounds,
+            round_start=runtime_round_start,
+        )
+        control = position_histogram_models[name]
+        runtime_structure = descriptor.structure
+        if control == "wrong_sbox":
+            try:
+                runtime_structure = runtime_structure.shuffled_sbox_assignments(
+                    20260728
+                )
+            except ValueError as exc:
+                if "identical across all cells" not in str(exc):
+                    raise
+                tables = torch.stack(
+                    [
+                        runtime_structure.sbox_tables(slot)
+                        for slot in range(runtime_structure.rounds)
+                    ]
+                )
+                input_permutation = torch.roll(torch.arange(16), shifts=1)
+                runtime_structure = runtime_spn_structure_from_truth_bits(
+                    runtime_structure.cell_membership,
+                    runtime_structure.bit_role,
+                    _sbox_truth_bits_from_tables(tables[:, :, input_permutation]),
+                    runtime_structure.linear_matrices,
+                )
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", 128)
+        histogram_value_dim = int_option(options, "histogram_value_dim", 8)
+        assert pair_embedding_dim is not None
+        assert histogram_value_dim is not None
+        return FixedPositionHistogramResidualSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+            ),
+            structure=runtime_structure,
+            spec=PositionHistogramResidualSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=pair_embedding_dim,
+                histogram_value_dim=histogram_value_dim,
+                dropout=float(options.get("dropout", 0.0)),
+                initial_edge_gate=float(
+                    options.get("residual_gate_initial_effective", 0.05)
+                ),
+                initial_histogram_gate=float(
+                    options.get("histogram_gate_initial_effective", 0.05)
+                ),
+            ),
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
+            runtime_structure_mode=control,
+            apply_sboxes=True,
+            invariant_cells=control == "invariant",
+        )
     exact_composition_models = {
         "runtime_spn_ct_k1n_exact_composition_true": "true",
         "runtime_spn_ct_k1n_exact_composition_wrong_sbox": "wrong_sbox",
