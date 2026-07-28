@@ -67,6 +67,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "k1g",
             "k1h",
             "k1i",
+            "k1k",
         ),
         default="k1",
     )
@@ -76,7 +77,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     gate = _read_json(args.gate)
-    if args.variant == "k1i":
+    if args.variant == "k1k":
+        render_ctspn_k1k_svg(gate, args.output)
+    elif args.variant == "k1i":
         render_ctspn_k1i_svg(gate, args.output)
     elif args.variant == "k1h":
         render_ctspn_k1h_svg(gate, args.output)
@@ -539,6 +542,116 @@ def render_ctspn_k1i_svg(gate: Mapping[str, Any], output: Path) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         figure.savefig(output, format="svg")
         plt.close(figure)
+
+
+def render_ctspn_k1k_svg(gate: Mapping[str, Any], output: Path) -> None:
+    seed_results = _validated_k1h_seed_results(gate)
+    with plt.rc_context(
+        {
+            "font.family": ["Noto Sans CJK SC", "DejaVu Sans"],
+            "font.size": 10.0,
+            "axes.facecolor": "#FFFFFF",
+            "axes.edgecolor": "#CBD5E1",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "text.color": "#111827",
+            "axes.labelcolor": "#374151",
+            "xtick.color": "#4B5563",
+            "ytick.color": "#374151",
+            "savefig.facecolor": "#FFFFFF",
+            "svg.fonttype": "none",
+        }
+    ):
+        figure, axes = plt.subplots(2, 2, figsize=(16, 10.2))
+        figure.subplots_adjust(
+            left=0.09,
+            right=0.97,
+            top=0.76,
+            bottom=0.11,
+            hspace=0.52,
+            wspace=0.25,
+        )
+        figure.suptitle(
+            "创新1 K1-K：位置保持边残差能否识别正确 SPN 拓扑",
+            x=0.06,
+            y=0.96,
+            ha="left",
+            fontsize=17,
+            fontweight="bold",
+        )
+        figure.text(
+            0.06,
+            0.905,
+            "K1-I 精确 GF(2) 基座保持不变；新增有界残差沿两段运行时矩阵的显式源位→目标位边聚合。",
+            ha="left",
+            fontsize=10.5,
+            color="#4B5563",
+        )
+        figure.text(
+            0.06,
+            0.85,
+            _k1k_decision_text(gate),
+            ha="left",
+            fontsize=11,
+            fontweight="bold",
+            color=_decision_color(str(gate.get("status", ""))),
+        )
+        for column, cipher in enumerate(("uknit64", "dialga128")):
+            _plot_k1h_auc_panel(axes[0, column], cipher, seed_results[cipher])
+            axes[0, column].set_title(
+                f"{CIPHER_LABELS[cipher]}：边残差与 K1-I 基座 AUC",
+                loc="left",
+                fontweight="bold",
+            )
+            if cipher == "dialga128":
+                _plot_k1i_dialga_margin_panel(axes[1, column], seed_results[cipher])
+            else:
+                _plot_k1h_margin_panel(axes[1, column], cipher, seed_results[cipher])
+        handles = [
+            plt.Line2D(
+                [0],
+                [0],
+                color=color,
+                marker=marker,
+                linestyle=linestyle,
+                linewidth=1.5,
+                markersize=6,
+                label=label,
+            )
+            for color, marker, linestyle, label in (
+                ("#0F766E", "o", "-", "K1-K 边残差 seed0"),
+                ("#0F766E", "s", "-", "K1-K 边残差 seed1"),
+                ("#2563EB", "o", "--", "K1-I 精确 GF(2) 基座 seed0"),
+                ("#2563EB", "s", "--", "K1-I 精确 GF(2) 基座 seed1"),
+            )
+        ]
+        figure.legend(
+            handles=handles,
+            loc="upper right",
+            bbox_to_anchor=(0.965, 0.965),
+            frameon=False,
+            ncol=2,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(output, format="svg")
+        plt.close(figure)
+
+
+def _k1k_decision_text(gate: Mapping[str, Any]) -> str:
+    decision = str(gate.get("decision", ""))
+    if decision.endswith("topology_edge_residual_supported"):
+        return (
+            "裁决：双密码、双 seed、双新样本切分均通过信号、K1-I 锚点和错误拓扑三重门。"
+        )
+    if "dialga_operator_attribution_supported_uknit_not_supported" in decision:
+        return "裁决：Dialga 正确拓扑归因成立，但 uKNIT 未通过；停止扩样本，转精确 S 盒/算子组合。"
+    if "dialga_retained_operator_attribution_not_supported" in decision:
+        return (
+            "裁决：保住 Dialga 信号但未识别正确拓扑；停止扩样本，先审计残差门与边贡献。"
+        )
+    if decision.endswith("dialga_anchor_not_retained"):
+        return "裁决：边残差破坏了 Dialga 校准锚点；丢弃本分支并回到 K1-I。"
+    return "裁决：协议无效，仅允许修复失败的实现或证据绑定后原样重跑。"
 
 
 def _plot_k1h_auc_panel(
