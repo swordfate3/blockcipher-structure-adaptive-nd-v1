@@ -198,11 +198,20 @@ all cells, both ciphers and all five stages.
 ### 4. Cell-Count-Independent Pooling
 
 For each stage independently, aggregate its `C` 64-wide tokens with one shared
-64-wide attention pool and explicit mean/max/RMS summaries. Project the
-concatenated 256-wide summary through `Linear(256, 64)`, ReLU and LayerNorm.
-Concatenate the five ordered stage embeddings and project the resulting
-320-wide tensor through `Linear(320, 128)`, ReLU and LayerNorm to the same
-128-wide histogram residual used by K1-T.
+attention scorer:
+
+```text
+Linear(64, 64) -> ReLU -> LayerNorm(64) -> Linear(64, 1)
+```
+
+Apply softmax only over the runtime cell axis, then take the weighted sum of
+the original 64-wide tokens. Concatenate that attention summary with explicit
+mean/max/RMS summaries. Project the resulting 256-wide summary through
+`Linear(256, 64)`, ReLU and LayerNorm. Concatenate the five ordered stage
+embeddings and project the resulting 320-wide tensor through
+`Linear(320, 128)`, ReLU and LayerNorm to the same 128-wide histogram residual
+used by K1-T. The scorer is shared across every stage, cell count and cipher;
+there is no stage-specific or cipher-specific attention module.
 
 ```text
 C stage/cell tokens
@@ -264,6 +273,27 @@ step, require all of the following:
     parameters including its scalar gate and the whole model contains `214429`.
     This is exactly `113` parameters (`+0.0527%`) above K1-T's `214316`, well
     inside the one-percent capacity-matching gate.
+
+The exact frozen branch count is:
+
+| Component | Parameters |
+| --- | ---: |
+| Shared histogram value encoder `16 -> 8` | `136` |
+| Cell descriptor `192 -> 72 -> 32` plus `LayerNorm(32)` | `16296` |
+| Value/structure interaction `32 -> 8` | `264` |
+| Stage/cell token `53 -> 64` plus `LayerNorm(64)` | `3584` |
+| Shared attention scorer `64 -> 64 -> 1` plus `LayerNorm(64)` | `4353` |
+| Stage summary `256 -> 64` plus `LayerNorm(64)` | `16576` |
+| Ordered-stage projection `320 -> 128` plus `LayerNorm(128)` | `41344` |
+| Bounded histogram gate | `1` |
+| **New histogram branch total** | **`82554`** |
+
+K1-T's replaced fixed branch contains `82441` parameters: `136` in the shared
+value encoder, `82048` in `Linear(640, 128)`, `256` in `LayerNorm(128)` and one
+scalar gate. The successor therefore changes the whole-model capacity by only
+`82554 - 82441 = 113` parameters. Any implementation with a different scorer,
+an extra attention module per stage, or a learned stage/cell lookup fails this
+frozen capacity gate even if its total remains below the broad parameter cap.
 
 The readiness artifact must record the descriptor collision audit (`16/16`
 uKNIT unique signatures and `16/32` Dialga equivalence classes) rather than
