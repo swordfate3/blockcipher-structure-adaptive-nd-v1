@@ -439,9 +439,12 @@ Dialga joint-relabel error     = 8.940696716308594e-08
 The two real-runtime prototypes had identical state-dict names and shapes,
 strictly loaded one another's state, emitted finite `[7,1]` logits and had
 finite nonzero gradients for every trainable histogram parameter. All errors
-were below `1e-6`. If this branch activates, implementation must therefore
-generalize that single geometry guard and add a 32-cell regression test; it
-must not fork a separate Dialga histogram implementation.
+were below `1e-6`. A shared-weight wrong-S-box intervention remained
+non-degenerate after invariant pooling: the maximum histogram/logit changes
+were `0.140625/0.002902329` for uKNIT and `0.1015625/0.001866102` for Dialga.
+If this branch activates, implementation must therefore generalize that single
+geometry guard and add a 32-cell regression test; it must not fork a separate
+Dialga histogram implementation.
 
 1. compact and original invariant logits agree within `1e-6` on the exact
    cached cross-key validation rows;
