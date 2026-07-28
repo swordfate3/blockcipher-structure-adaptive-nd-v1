@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Exact GF(2) Boolean View K1-I
 
 **Date:** 2026-07-28
-**Status:** planned / zero-training readiness required
+**Status:** readiness passed / local diagnostic authorized
 **Execution:** local CPU mechanism diagnostic only
 
 ## 1. Evidence And Research Question
@@ -211,3 +211,35 @@ Readiness requires `preflight.json`, `results.jsonl`, `validation.json`,
 Every completed run must refresh `outputs/00_RECENT_RESULTS.md` and JSON. The
 completed experiment record must contain exact metrics, claim scope and the
 evidence-backed next action.
+
+## 10. Readiness Result
+
+The frozen zero-training readiness completed locally on 2026-07-28:
+
+```text
+run_id   = i1_uknit_family_ctspn_gf2_boolean_view_k1i_readiness_20260728
+status   = pass
+decision = innovation1_uknit_family_ctspn_k1i_execution_authorized
+training rows = 0
+optimizer steps = 0
+failed protocol checks = []
+failed evidence checks = []
+```
+
+All twelve K1-G caches and four Runtime-E4 anchors were digest-bound. Both real
+descriptors passed scalar/vectorized GF(2) agreement, transformed-difference
+identity, frozen composition order, binary/invertible binding, cross-width
+strict state loading and joint relabeling invariance. The learned parameter
+count is `94754` for both state widths.
+
+Replacing only the earlier or later operator changed fixed-weight logits by:
+
+| Cipher | Earlier operator | Later operator | Relabel max error |
+|---|---:|---:|---:|
+| uKNIT-BC | `0.052836` | `0.067777` | `1.19e-7` |
+| Dialga-128 | `0.030172` | `0.075081` | `1.19e-7` |
+
+Every reversed, corrupted and identity control strict-loaded the same state,
+retained a distinct Boolean-view fingerprint and changed fixed-weight logits.
+The exact four-row local diagnostic is therefore authorized without changing
+the preregistered protocol.

@@ -100,6 +100,10 @@ from blockcipher_nd.models.structure.spn.canonical_cell_path_hypergraph import (
     CellPathHypergraphSpnSpec,
     FixedCellPathHypergraphSpnProtocolAdapter,
 )
+from blockcipher_nd.models.structure.spn.gf2_boolean_view import (
+    FixedGf2BooleanViewSpnProtocolAdapter,
+    Gf2BooleanViewSpnSpec,
+)
 from blockcipher_nd.models.structure.spn.operator_tied_latent import (
     FixedOperatorTiedLatentSpnProtocolAdapter,
     OperatorTiedLatentSpnSpec,
@@ -144,6 +148,64 @@ def build_spn_model(
     pair_bits: int | None,
     options: dict[str, object],
 ) -> nn.Module | None:
+    boolean_view_models = {
+        "runtime_spn_ct_k1i_boolean_view_true": "true",
+        "runtime_spn_ct_k1i_boolean_view_reversed": "reversed",
+        "runtime_spn_ct_k1i_boolean_view_corrupted": "corrupted",
+        "runtime_spn_ct_k1i_boolean_view_none": "none",
+    }
+    if name in boolean_view_models:
+        descriptor_path = options.get("runtime_structure_path")
+        if not isinstance(descriptor_path, str) or not descriptor_path.strip():
+            raise ValueError(
+                f"model {name} requires non-empty model option runtime_structure_path"
+            )
+        runtime_rounds = int_option(options, "runtime_rounds", 2)
+        runtime_round_start = int_option(options, "runtime_round_start", 0)
+        assert runtime_rounds is not None
+        assert runtime_round_start is not None
+        descriptor = load_runtime_spn_descriptor(
+            descriptor_path,
+            rounds=runtime_rounds,
+            round_start=runtime_round_start,
+        )
+        control = boolean_view_models[name]
+        runtime_structure = descriptor.structure
+        if control == "reversed":
+            runtime_structure = runtime_structure.rotate_transitions()
+        elif control == "corrupted":
+            corruption_seed = int_option(options, "topology_corruption_seed", 20260728)
+            assert corruption_seed is not None
+            runtime_structure = runtime_structure.corrupted(corruption_seed)
+        elif control == "none":
+            identity = torch.eye(runtime_structure.block_bits, dtype=torch.uint8)
+            runtime_structure = runtime_spn_structure_from_truth_bits(
+                runtime_structure.cell_membership,
+                runtime_structure.bit_role,
+                runtime_structure.sbox_truth_bits,
+                identity.unsqueeze(0).repeat(runtime_structure.rounds, 1, 1),
+            )
+        pair_embedding_dim = int_option(options, "pair_embedding_dim", 128)
+        assert pair_embedding_dim is not None
+        return FixedGf2BooleanViewSpnProtocolAdapter(
+            input_bits=input_bits,
+            pair_bits=(
+                2 * runtime_structure.block_bits if pair_bits is None else pair_bits
+            ),
+            structure=runtime_structure,
+            spec=Gf2BooleanViewSpnSpec(
+                hidden_dim=hidden_bits,
+                pair_embedding_dim=pair_embedding_dim,
+                dropout=float(options.get("dropout", 0.0)),
+            ),
+            descriptor_name=descriptor.name,
+            descriptor_path=str(descriptor.path),
+            descriptor_sha256=descriptor.sha256,
+            descriptor_round_start=descriptor.round_start,
+            descriptor_available_rounds=descriptor.available_rounds,
+            runtime_structure_mode=control,
+            runtime_structure_window_control=control,
+        )
     operator_tied_models = {
         "runtime_spn_ct_k1h_operator_tied_true": "true",
         "runtime_spn_ct_k1h_operator_tied_reversed": "reversed",
