@@ -149,6 +149,18 @@ def literature_difference_profiles() -> dict[str, DifferenceProfile]:
             source="Shen/Song/Lu/Long/Tian 2024 GIFT neural distinguisher screening profile",
             note="Fixed xor input difference for first GIFT-64 SPN structure-alignment screening; refine after literature-specific reproduction.",
         ),
+        "uknit64_k1q_cell11_r5": DifferenceProfile(
+            name="uknit64_k1q_cell11_r5",
+            cipher="uknit64",
+            kind="fixed",
+            differences=(0x0000400000000000,),
+            source="Innovation 1 K1-Q untouched-seed uKNIT r5 position confirmation",
+            note=(
+                "Native cell11 bit-role-1 input difference confirmed on seed3/4 "
+                "same-key and cross-key fresh splits; local diagnostic evidence only."
+            ),
+            pairs_per_sample=4,
+        ),
         "rectangle80_weng_repo_best_trail_r6": DifferenceProfile(
             name="rectangle80_weng_repo_best_trail_r6",
             cipher="rectangle80",
