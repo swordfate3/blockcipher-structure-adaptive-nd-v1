@@ -161,6 +161,15 @@ No average may hide a failed seed.
 - **Protocol invalid:** repair only the failed source, cache, checkpoint or
   artifact binding and rerun unchanged.
 
+A failed `exact - invariant >= +0.030` margin does not prove that native cell
+position contains no cipher information or is useless for every uKNIT task.
+It proves only that the fixed position-preserving candidate did not establish a
+preregistered position-necessity advantage under this exact r5 cell11,
+four-pair, key-pair, seed and medium-data protocol. The compact invariant route
+is then preferred by parsimony because it matches or improves the observed
+signal while removing redundant fixed-sixteen-cell parameters; broader claims
+require separate protocols and evidence.
+
 Blocked inside K1-U: local execution, `262144/class`, more epochs, pairs,
 differences, rounds, seeds or keys; MoE; DDT/trails; cipher identity; another
 network family; and family-transfer claims before retrieved evidence passes.
