@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family CT-SPN Position Residual K1-U Medium Plan
 
 **Date:** 2026-07-28
-**Status:** frozen / launch assets validated / source publication pending
+**Status:** running remotely / launch confirmed / result pending
 **Execution:** remote A6000 only after exact GitHub source verification
 
 ## 1. Research Question
@@ -195,6 +195,25 @@ glyphs or ambiguous labels. This is template QA only. The retrieved result SVG
 still requires a fresh rendered-pixel inspection before its pending marker can
 be replaced by `visual_qa_passed.marker`.
 
-No remote training has been launched at this preparation checkpoint. Launch
-still requires a scoped commit, exact GitHub `main` SHA equality, a passing K1-U
-launch gate, one bounded GPU1/run-root check and durable remote start evidence.
+The frozen source was published and verified exactly as:
+
+```text
+source_commit = ab8ec16d5d62b18533952a2e49642951d1decc43
+github_main    = ab8ec16d5d62b18533952a2e49642951d1decc43
+```
+
+The route-specific launch gate passed with `should_ssh=true`,
+`ssh_allowed=true` and `launch_authorized=true`. One bounded pre-launch check
+found physical GPU1 at `111 MiB` and `0%` utilization, no Python training
+process and no existing K1-U run root. A clean run-owned source clone was made
+directly from GitHub under `G:\lxy`, and Task Scheduler accepted the pinned
+GPU1 launch. The bounded post-launch check observed the scheduled task in the
+running state and durable Git revision, GPU, Torch and readiness logs under the
+run root.
+
+Local monitoring is active in tmux session
+`i1_uknit_k1u_medium_monitor`. It will retrieve either a verified result-branch
+archive or an explicitly marked raw fallback, verify `SHA256SUMS`, re-run plan
+validation and the K1-U gate, generate the Chinese SVG and refresh both result
+indexes. The result remains pending; no AUC or completed-run claim is made at
+this launch checkpoint.
