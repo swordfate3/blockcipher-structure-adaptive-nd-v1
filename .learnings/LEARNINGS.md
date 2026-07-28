@@ -115,7 +115,7 @@ all pooled branches.
 
 **Logged**: 2026-07-28T13:27:00+08:00
 **Priority**: high
-**Status**: resolved
+**Status**: promoted_to_skill
 **Area**: research
 
 ### Summary
@@ -152,12 +152,12 @@ the deterministic signal audit itself as neural or attack evidence.
 
 ### Metadata
 
-- Source: verified_local_experiment, user_hypothesis
-- Related Files: docs/experiments/innovation1-uknit-family-ctspn-difference-position-discovery-k1q-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1q.py, outputs/local_audit/i1_uknit_family_ctspn_difference_position_discovery_k1q_seed2_confirm_seed3_seed4_20260728/gate.json
+- Source: verified_local_experiment, user_hypothesis, user_feedback
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-difference-position-discovery-k1q-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1q.py, outputs/local_audit/i1_uknit_family_ctspn_difference_position_discovery_k1q_seed2_confirm_seed3_seed4_20260728/gate.json, skills/blockcipher-auto-research/SKILL.md
 - Tags: innovation1, uknit, input-difference, position, signal-calibration, strict-negatives, fresh-keys, architecture-attribution
 - See Also: LRN-20260728-006
 - Pattern-Key: research.spn.calibrate_difference_position_before_architecture
-- Recurrence-Count: 1
+- Recurrence-Count: 2
 - First-Seen: 2026-07-28
 - Last-Seen: 2026-07-28
 
@@ -165,7 +165,8 @@ the deterministic signal audit itself as neural or attack evidence.
 
 - **Resolved**: 2026-07-28T13:27:00+08:00
 - **Commit/PR**: pending
-- **Notes**: K1-Q completed the frozen discovery/confirmation protocol and selected cell11 for the next neural attribution matrix.
+- **Notes**: K1-Q completed the frozen discovery/confirmation protocol and selected cell11 for the next neural attribution matrix. The user then required this distinction to become a durable project workflow rule, so the bounded discovery/untouched-confirmation protocol was promoted into `skills/blockcipher-auto-research/SKILL.md`.
+- **Skill-Path**: skills/blockcipher-auto-research/SKILL.md
 
 ---
 

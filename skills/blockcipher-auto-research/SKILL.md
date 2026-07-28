@@ -51,6 +51,42 @@ Follow this loop for local research work:
 9. Run relevant tests.
 10. Commit scoped source/doc/test/config changes and push when a remote exists.
 
+## Difference-Position Calibration Gate
+
+Do not search only for a better neural architecture when a differential task is
+weak. Before declaring an architecture ineffective, redesigning it, or scaling
+it remotely, separate two hypotheses:
+
+1. the network cannot represent the available cipher signal;
+2. the selected input-difference position no longer preserves learnable signal
+   at the target round count.
+
+For heterogeneous SPNs, use this bounded calibration protocol when fresh
+same-protocol evidence for the chosen position is missing or weak:
+
+1. Keep the cipher, rounds, difference value/bit role, pairs, negative
+   definition, data budget and metric fixed. Sweep only compatible native cell
+   positions on a preregistered discovery seed.
+2. Rank positions with an exact or deterministic structure statistic when one
+   is available, together with the raw same-budget anchor and a label-shuffled
+   control. The audit determines whether signal exists; it is not itself neural,
+   attack or SOTA evidence.
+3. Freeze the selected position before looking at confirmation results. Confirm
+   it on untouched seeds and both fresh same-key and cross-key scopes when the
+   task supports them.
+4. Require the confirmed position to beat the raw and label-shuffled controls
+   on every frozen seed/split. If it fails, hold architecture and scale claims;
+   the benchmark differential is not a valid network adjudication surface.
+5. Once a position passes, hold it fixed while comparing the candidate network
+   against same-budget architecture and topology/semantic controls. Do not tune
+   the position separately for each model.
+
+A full position sweep may be skipped only when a recent, plan-aligned artifact
+already establishes fresh signal for the exact cipher, rounds, difference,
+negative definition, key scopes and evaluation protocol. Cite that artifact in
+the new experiment plan. This gate prevents a position-specific diffusion
+collapse from being misreported as a neural-network ceiling.
+
 Default local smoke command shape:
 
 ```bash
