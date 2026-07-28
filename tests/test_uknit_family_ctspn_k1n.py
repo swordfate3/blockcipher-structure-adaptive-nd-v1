@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from blockcipher_nd.data.differential import DifferentialDataset
+from blockcipher_nd.cli.run_uknit_family_ctspn_k1k import checkpoint_manifest
 from blockcipher_nd.models.structure.spn.exact_operator_composition import (
     COMPOSITION_STAGE_NAMES,
     exact_operator_composition_views,
@@ -22,6 +23,7 @@ from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1n import (
     CONTROL_CONDITIONS,
     EXPECTED_EVALUATION_ROWS,
     READINESS_RUN_ID,
+    RUN_ID,
     adjudicate_k1n,
     build_k1n_readiness,
     candidate_protocol_frozen,
@@ -191,6 +193,27 @@ def test_k1n_gate_requires_every_fresh_anchor_and_semantic_control() -> None:
 
     assert held["status"] == "hold"
     assert held["decision"].endswith("semantic_attribution_not_supported")
+
+
+def test_k1n_checkpoint_manifest_accepts_explicit_candidate_model(
+    tmp_path: Path,
+) -> None:
+    rows = synthetic_training_rows()
+    for index, row in enumerate(rows):
+        checkpoint = tmp_path / f"row{index}.pt"
+        checkpoint.write_bytes(f"checkpoint-{index}".encode("ascii"))
+        row["training"]["checkpoint_output"] = str(checkpoint)
+
+    manifest = checkpoint_manifest(
+        rows,
+        candidate_model=CANDIDATE_MODEL,
+        run_id=RUN_ID,
+    )
+
+    assert manifest["run_id"] == RUN_ID
+    assert manifest["status"] == "pass"
+    assert len(manifest["entries"]) == 4
+    assert {row["model"] for row in manifest["entries"]} == {CANDIDATE_MODEL}
 
 
 def assert_triplet_matches_inverse_sbox(

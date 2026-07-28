@@ -30,6 +30,7 @@ from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1k import (
     EXPECTED_TRAINING_ROWS,
 )
 from blockcipher_nd.tasks.innovation1.uknit_family_ctspn_k1n import (
+    CANDIDATE_MODEL,
     EXPECTED_EVALUATION_ROWS,
     READINESS_RUN_ID,
     RUN_ID,
@@ -109,7 +110,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     if not all(cache_checks.values()):
         raise ValueError(f"K1-N source cache reuse failed: {cache_checks}")
-    manifest = checkpoint_manifest(training_rows)
+    manifest = checkpoint_manifest(
+        training_rows,
+        candidate_model=CANDIDATE_MODEL,
+        run_id=RUN_ID,
+    )
     write_json(args.output_root / "checkpoint_manifest.json", manifest)
     datasets = load_bound_datasets(dataset_manifest)
     progress(
@@ -208,7 +213,11 @@ def validate_resume_root(args: argparse.Namespace, source_cache_root: Path) -> N
         or len(rows) != EXPECTED_TRAINING_ROWS
     ):
         raise ValueError("K1-N resume root does not match frozen training")
-    checkpoint_manifest(rows)
+    checkpoint_manifest(
+        rows,
+        candidate_model=CANDIDATE_MODEL,
+        run_id=RUN_ID,
+    )
 
 
 def require_fresh_output_root(path: Path) -> None:

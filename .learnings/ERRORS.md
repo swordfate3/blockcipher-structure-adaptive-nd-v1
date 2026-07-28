@@ -1,3 +1,62 @@
+## [ERR-20260728-003] k1n_checkpoint_manifest_hardcoded_candidate
+
+**Logged**: 2026-07-28T12:20:00+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+
+K1-N completed all four frozen training rows and checkpoints, but post-training
+manifest generation rejected them because a reused K1-K helper hardcoded the
+K1-K candidate model key.
+
+### Error
+
+```text
+ValueError: K1-K missing candidate checkpoint
+src/blockcipher_nd/cli/run_uknit_family_ctspn_k1k.py
+  row.get("model") != CANDIDATE_MODEL
+```
+
+### Context
+
+- Run ID: `i1_uknit_family_ctspn_exact_operator_composition_k1n_2048_seed0_seed1_20260728`.
+- Four `2048/class`, ten-epoch training rows and all four best checkpoints were
+  already complete.
+- K1-N intentionally reused the K1-K checkpoint-manifest helper, but the helper
+  accepted neither a candidate model key nor a run ID.
+- No dataset cache, training row or checkpoint was lost. The supported recovery
+  path is post-training `--resume-evaluation`, not retraining.
+- The active-runtime `self-healing` skill was unavailable in this session, so
+  this verified recovery is recorded through the self-improvement fallback.
+
+### Suggested Fix
+
+Parameterize shared experiment manifest helpers by the expected candidate model
+and run ID while preserving existing defaults. Cover a non-default candidate
+with real temporary checkpoint files, and validate resume roots before reusing
+completed training.
+
+### Metadata
+
+- Reproducible: yes
+- Related Files: src/blockcipher_nd/cli/run_uknit_family_ctspn_k1k.py, src/blockcipher_nd/cli/run_uknit_family_ctspn_k1n.py, tests/test_uknit_family_ctspn_k1n.py
+- See Also: ERR-20260728-001
+- Pattern-Key: experiment.shared_manifest_helper_must_parameterize_candidate
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T12:25:00+08:00
+- **Commit/PR**: pending scoped commit
+- **Notes**: Added explicit `candidate_model` and `run_id` parameters with K1-K
+  defaults, updated K1-N call sites, and passed 18 focused K1-K/K1-M/K1-N tests.
+
+---
+
 ## [ERR-20260728-002] k1j_invariant_reduction_order
 
 **Logged**: 2026-07-28T09:32:50+08:00

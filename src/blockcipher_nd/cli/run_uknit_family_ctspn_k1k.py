@@ -242,12 +242,17 @@ def cache_reuse_checks(events: Sequence[Mapping[str, Any]]) -> dict[str, bool]:
     }
 
 
-def checkpoint_manifest(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def checkpoint_manifest(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    candidate_model: str = CANDIDATE_MODEL,
+    run_id: str = RUN_ID,
+) -> dict[str, Any]:
     entries = []
     for row in rows:
         checkpoint = Path(str(row["training"]["checkpoint_output"]))
-        if row.get("model") != CANDIDATE_MODEL or not checkpoint.is_file():
-            raise ValueError("K1-K missing candidate checkpoint")
+        if row.get("model") != candidate_model or not checkpoint.is_file():
+            raise ValueError(f"{run_id} missing candidate checkpoint")
         entries.append(
             {
                 "cipher_key": row["cipher_key"],
@@ -258,7 +263,7 @@ def checkpoint_manifest(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
                 "sha256": file_sha256(checkpoint),
             }
         )
-    return {"run_id": RUN_ID, "status": "pass", "entries": entries}
+    return {"run_id": run_id, "status": "pass", "entries": entries}
 
 
 def validate_resume_root(args: argparse.Namespace, source_cache_root: Path) -> None:
