@@ -74,6 +74,32 @@ def test_k1u_gate_holds_one_seed_failure_and_invalidates_memory_cache() -> None:
     assert "result_protocol_frozen" in invalid["failed_protocol_checks"]
 
 
+def test_k1u_gate_selects_compact_invariant_route_when_only_position_fails() -> None:
+    rows = synthetic_result_rows()
+    invariant_model = CONTROL_MODELS["invariant_histogram_residual"]
+    for row in rows:
+        if row["model"] == invariant_model:
+            row["metrics"]["auc"] = 0.75
+            row["training"]["best_checkpoint_metric"] = 0.75
+
+    gate = adjudicate_k1u(
+        tasks=read_tasks(PLAN),
+        result_rows=rows,
+        progress_events=synthetic_progress_events(),
+        source_checks={"source": True},
+    )
+
+    assert gate["status"] == "hold"
+    assert gate["decision"].endswith("medium_signal_without_position_necessity")
+    assert gate["descriptive_diagnostics"]["exact_signal_both_seeds"] is True
+    assert (
+        gate["descriptive_diagnostics"]["wrong_sbox_attribution_both_seeds"]
+        is True
+    )
+    assert gate["descriptive_diagnostics"]["position_necessity_both_seeds"] is False
+    assert gate["next_action"].endswith("the simpler invariant branch")
+
+
 def test_k1u_plot_explains_medium_candidate_and_controls(tmp_path: Path) -> None:
     gate = adjudicate_k1u(
         tasks=read_tasks(PLAN),
