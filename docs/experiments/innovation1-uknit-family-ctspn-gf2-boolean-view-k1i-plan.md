@@ -329,7 +329,7 @@ labels and metrics frozen.
 
 Executable protocol:
 
-- same-budget anchor: the four frozen Runtime-E4 Dialga checkpoints and the two
+- same-budget anchor: the two frozen Runtime-E4 Dialga checkpoints and the two
   trained K1-I Dialga checkpoints;
 - required controls: exact matrices, reversed matrices, corrupted matrices and
   identity/no-topology, all strict-loaded with no optimizer step;
