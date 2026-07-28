@@ -183,7 +183,7 @@ After readiness passes, run exactly:
 | Negative definition | encrypted random plaintexts |
 | Keys | frozen K1-I train and cross-key keys |
 | Epochs | `10` |
-| Batch size | `209` |
+| Batch size | `64` |
 | Loss / optimizer | MSE / Adam |
 | Learning rate / weight decay | `1e-4` / `1e-5` |
 | Checkpoint | best validation AUC, restored before all controls |
