@@ -8568,3 +8568,63 @@ controls.
 - **Notes**: Added a repeated-final runtime-structure control and corrected the readiness route to require a heterogeneous uKNIT window before training claims.
 
 ---
+
+## [LRN-20260728-006] best_practice
+
+**Logged**: 2026-07-28T12:52:33+08:00
+**Priority**: high
+**Status**: resolved
+**Area**: research
+
+### Summary
+
+A single label-shuffled Fisher scorer can produce AUC near zero or one when the
+true feature is saturated; use the nearest lower-round pass to locate a round
+boundary and do not mistake random scorer orientation for absent signal.
+
+### Details
+
+K1-P calibrated the same uKNIT `0x40` difference at r3, r4 and r5. The exact
+five-stage feature reached fresh AUC `1.0` for both seeds and both key scopes at
+r3 and r4, while the raw feature remained much lower. At r3, however, the
+single deterministic label-shuffle scorer reached approximately `0.9995` for
+seed0 and `0.0015` for seed1. With a saturated separating direction, the tiny
+finite-sample class imbalance induced by shuffled fit labels can orient the
+closed-form scorer either with or against the real class direction, producing
+an extreme AUC despite random training labels.
+
+The first K1-P decision implementation incorrectly required r3 and r4 to pass
+before declaring the r4-to-r5 loss boundary. The frozen plan required only the
+nearest lower round, r4, to pass while the reused r5 anchor failed. All four r4
+fresh rows passed AUC, raw-margin and label-shuffle-margin gates, whereas r5
+returned to `0.510-0.527`. Correcting the decision priority therefore changed
+the verdict without changing any data, scorer, metric or threshold.
+
+### Suggested Action
+
+For round-boundary calibration, prioritize the nearest lower-round pass named
+by the preregistered decision table. Report label-shuffle orientation
+degeneracy separately when exact AUC is saturated and the control flips from
+near zero to near one across seeds. If that control itself is the research
+question, preregister a multi-permutation null distribution or an
+orientation-invariant statistic before running; do not replace or relax a
+failed control after observing results.
+
+### Metadata
+
+- Source: verified_local_experiment, self_correction
+- Related Files: docs/experiments/innovation1-uknit-family-ctspn-partial-state-round-calibration-k1p-plan.md, src/blockcipher_nd/tasks/innovation1/uknit_family_ctspn_k1p.py, outputs/local_audit/i1_uknit_family_ctspn_partial_state_round_calibration_k1p_r3_r4_r5_seed0_seed1_20260728/gate.json
+- Tags: innovation1, uknit, round-calibration, label-shuffle, fisher-lda, saturated-signal, decision-priority
+- See Also: LRN-20260728-004, LRN-20260728-005
+- Pattern-Key: research.round_calibration.label_shuffle_orientation_degeneracy
+- Recurrence-Count: 1
+- First-Seen: 2026-07-28
+- Last-Seen: 2026-07-28
+
+### Resolution
+
+- **Resolved**: 2026-07-28T12:52:33+08:00
+- **Commit/PR**: 904219ca
+- **Notes**: Added an r4-pass/r5-fail regression and corrected K1-P decision priority without changing evidence artifacts.
+
+---

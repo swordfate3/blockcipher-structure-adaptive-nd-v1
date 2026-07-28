@@ -102,7 +102,8 @@ def render_k1p_svg(gate: Mapping[str, Any], output: Path) -> dict[str, Any]:
         )
         for column, split in enumerate(SPLIT_LABELS):
             _plot_auc_panel(axes[0, column], rounds, split)
-            _plot_margin_panel(axes[1, column], rounds, split)
+        _plot_margin_panel(axes[1, 0], rounds, selected_round=4)
+        _plot_margin_panel(axes[1, 1], rounds, selected_round=5)
         output.parent.mkdir(parents=True, exist_ok=True)
         figure.savefig(output, format="svg")
         plt.close(figure)
@@ -143,6 +144,8 @@ def _plot_auc_panel(
             label=f"seed{seed}",
         )
         for rounds, value in zip(x, values, strict=True):
+            if rounds != 5:
+                continue
             offset = (-8, 9) if seed == "0" else (8, -15)
             axis.annotate(
                 f"{value:.3f}",
@@ -154,7 +157,7 @@ def _plot_auc_panel(
                 color=color,
             )
     lower = min(0.485, min(all_values) - 0.018)
-    upper = max(0.575, max(all_values) + 0.022)
+    upper = max(1.035, max(all_values) + 0.022)
     axis.set_ylim(lower, upper)
     axis.set_xticks(x, ["3轮", "4轮", "5轮"])
     axis.axhline(0.5, color="#9CA3AF", linewidth=1, linestyle=(0, (3, 3)))
@@ -172,76 +175,83 @@ def _plot_auc_panel(
         loc="left",
         fontweight="bold",
     )
-    axis.legend(frameon=False, ncol=3, loc="upper right", fontsize=8.5)
+    axis.legend(frameon=False, ncol=1, loc="lower left", fontsize=8.5)
 
 
 def _plot_margin_panel(
     axis: plt.Axes,
     round_results: Mapping[str, Any],
-    split: str,
+    *,
+    selected_round: int,
 ) -> None:
-    x = [3, 4, 5]
+    combinations = (
+        ("0", "same_key_fresh", "seed0\n同密钥"),
+        ("0", "cross_key_validation", "seed0\n跨密钥"),
+        ("1", "same_key_fresh", "seed1\n同密钥"),
+        ("1", "cross_key_validation", "seed1\n跨密钥"),
+    )
+    x = list(range(len(combinations)))
+    width = 0.34
     metrics = (
-        ("exact_minus_raw", "超过原始密文", "#2563EB", "o", RAW_MARGIN),
+        ("exact_minus_raw", "超过原始密文", "#2563EB", RAW_MARGIN),
         (
             "exact_minus_label_shuffle",
             "超过标签打乱",
             "#7C3AED",
-            "s",
             LABEL_SHUFFLE_MARGIN,
         ),
     )
     all_values: list[float] = []
-    for seed_index, seed in enumerate(SEED_STYLES):
-        for metric_index, (key, label, color, marker, threshold) in enumerate(metrics):
-            values = [
-                float(round_results[str(rounds)][seed][split][key])
-                for rounds in x
-            ]
-            all_values.extend(values)
-            linestyle = "-" if seed == "0" else "--"
-            axis.plot(
-                x,
-                values,
-                color=color,
-                marker=marker,
-                linestyle=linestyle,
-                linewidth=1.5,
-                markersize=6,
-                label=f"{label} · seed{seed}",
-            )
-            for rounds, value in zip(x, values, strict=True):
-                direction = 1 if (seed_index + metric_index) % 2 == 0 else -1
-                axis.annotate(
-                    f"{value:+.3f}",
-                    (rounds, value),
-                    xytext=(0, 8 * direction),
-                    textcoords="offset points",
-                    ha="center",
-                    va="bottom" if direction > 0 else "top",
-                    fontsize=7.2,
-                    color=color,
-                )
-            axis.axhline(
-                threshold,
-                color=color,
-                linewidth=0.9,
-                alpha=0.45,
-                linestyle=(0, (2, 3)),
-            )
-    lower = min(-0.04, min(all_values) - 0.025)
-    upper = max(0.065, max(all_values) + 0.03)
+    for metric_index, (key, label, color, threshold) in enumerate(metrics):
+        values = [
+            float(round_results[str(selected_round)][seed][split][key])
+            for seed, split, _ in combinations
+        ]
+        all_values.extend(values)
+        offset = (metric_index - 0.5) * width
+        bars = axis.bar(
+            [position + offset for position in x],
+            values,
+            width=width,
+            color=color,
+            alpha=0.88,
+            label=f"{label}（门槛 {threshold:.3f}）",
+        )
+        axis.bar_label(
+            bars,
+            labels=[f"{value:+.3f}" for value in values],
+            padding=3,
+            fontsize=7.8,
+            color=color,
+        )
+        axis.axhline(
+            threshold,
+            color=color,
+            linewidth=1.0,
+            alpha=0.55,
+            linestyle=(0, (3, 3)),
+        )
+    if selected_round == 4:
+        lower = min(-0.03, min(all_values) - 0.04)
+        upper = max(0.80, max(all_values) + 0.08)
+    else:
+        lower = min(-0.018, min(all_values) - 0.01)
+        upper = max(0.070, max(all_values) + 0.014)
     axis.set_ylim(lower, upper)
-    axis.set_xticks(x, ["3轮", "4轮", "5轮"])
+    axis.set_xticks(x, [label for _, _, label in combinations])
     axis.axhline(0.0, color="#6B7280", linewidth=1)
     axis.grid(axis="y", color="#E5E7EB", linewidth=0.8)
     axis.set_ylabel("正确结构的 AUC 净优势")
     axis.set_title(
-        f"{SPLIT_LABELS[split]}：是否真正超过两个控制",
+        (
+            "4轮：四个 fresh 组合全部通过控制门槛"
+            if selected_round == 4
+            else "5轮：控制差值局部放大，但绝对 AUC 已失效"
+        ),
         loc="left",
         fontweight="bold",
     )
-    axis.legend(frameon=False, ncol=2, loc="best", fontsize=8.0)
+    axis.legend(frameon=False, ncol=1, loc="upper left", fontsize=8.2)
 
 
 def _decision_text(gate: Mapping[str, Any]) -> str:

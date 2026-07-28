@@ -1,7 +1,7 @@
 # Innovation 1 uKNIT-Family Partial-State Round Calibration K1-P
 
 **Date:** 2026-07-28
-**Status:** planned / protocol frozen
+**Status:** completed / r5 is the first unsupported anchor for `0x40`
 **Execution:** local CPU, disk-backed data, deterministic zero-neural-training audit
 
 ## 1. Question
@@ -182,9 +182,97 @@ formal scale, an attack, SOTA, a uKNIT ceiling, or arbitrary-SPN transfer.
 Inside K1-P do not add a neural model, remote scale, MoE, DDT/trail input,
 difference search, more pairs, more samples, more seeds, or more epochs.
 
-## 10. Recommended Next Action
+## 10. Completed Result
 
-Execute K1-P locally from this frozen plan. The result must choose exactly one
-of the decision branches above and name the next same-budget experiment or
-protocol audit. No architecture change is authorized until the round boundary
-is resolved.
+```text
+status = pass
+decision = innovation1_uknit_family_ctspn_k1p_lower_round_signal_supported_r5_loss_boundary
+validation status = pass
+errors = []
+dataset rows = 18 / 18
+feature rows = 54 / 54
+scorer rows = 18 / 18
+result rows = 54 / 54
+training rows = 0
+neural parameters = 0
+optimizer steps = 0
+epochs = 0
+```
+
+The exact five-stage position-preserving AUC was:
+
+| Round | Seed | Same-key fresh | Cross-key | Exact AUC floor passed |
+|---:|---:|---:|---:|---|
+| 3 | 0 | `1.000000` | `1.000000` | yes |
+| 3 | 1 | `1.000000` | `1.000000` | yes |
+| 4 | 0 | `1.000000` | `1.000000` | yes |
+| 4 | 1 | `1.000000` | `1.000000` | yes |
+| 5 | 0 | `0.527251` | `0.520643` | no |
+| 5 | 1 | `0.510181` | `0.526492` | no |
+
+Every r4 fresh row also passed both attribution controls:
+
+| Seed / split | Exact - raw | Exact - label shuffle |
+|---|---:|---:|
+| seed0 / same-key | `+0.502265` | `+0.139882` |
+| seed0 / cross-key | `+0.525743` | `+0.299244` |
+| seed1 / same-key | `+0.515104` | `+0.721369` |
+| seed1 / cross-key | `+0.497535` | `+0.712853` |
+
+All are far above the frozen `+0.010/+0.030` margins. The r5 rows exactly
+replayed K1-O feature, scorer and result values; no r5 refit or regeneration
+occurred.
+
+r3 needs one qualification. Its exact AUC was saturated at `1.0`, but the
+single label-shuffle scorer reached approximately `0.9995` for seed0 and
+`0.0015` for seed1. In a nearly one-dimensional perfectly separating feature,
+a tiny random shuffled-label imbalance can orient a closed-form scorer either
+with or against the true direction, producing AUC near one or zero. K1-P did
+not relax this failed r3 control after observing it. It applied the frozen
+decision table: the nearest lower round r4 passed every gate while r5 failed,
+so r5 is the supported loss boundary.
+
+This result rejects the simple explanation that `0x40` is already an invalid
+uKNIT input position. It supports a narrower conclusion: `0x40` carries very
+strong exact partial-state association through r4, but the same two-transition
+view does not retain stable fresh association at r5 under this local protocol.
+
+The final chart passed rendered-pixel `visual-qa-redraw` at `1920x1296`. The
+first rendering was rejected because saturated AUC labels competed with the
+legend and r5 margin labels overlapped. The final rendering separates r4 and
+r5 margins into distinct scales and has no overlap, clipping, missing glyphs,
+ambiguous title, incomplete legend, or insufficient local separation.
+
+## 11. Recommended Next Action: K1-Q r5 Difference-Position Discovery
+
+K1-Q must answer one question only:
+
+> Can a different single active input position preserve the same exact
+> partial-state association at uKNIT r5?
+
+Use the K1-P r5 `0x40` row as the same-protocol anchor. Keep uKNIT r5, four
+pairs, exact five-stage scorer, raw control, encrypted-random-plaintext
+negatives, keys, cache format and zero-neural-training contract fixed. Change
+only the active input position.
+
+Use a preregistered two-phase protocol:
+
+1. **Discovery:** seed2, `1024/class` train and `512/class` for each fresh
+   split. Screen one bit with the same intra-cell role as `0x40` in each of the
+   sixteen native cells. Include `0x40` as the anchor and select at most two
+   candidates by the minimum fresh exact AUC. A candidate is selectable only
+   if both fresh splits reach exact AUC `>=0.550` and exact-minus-raw
+   `>=+0.010`.
+2. **Confirmation:** regenerate only the selected candidates and `0x40` on
+   untouched seeds3/4 at `2048/class` train and `1024/class` per fresh split,
+   with independently frozen train/validation key pairs. Require every seed
+   and split to reach exact AUC `>=0.550`, exact-minus-raw `>=+0.010`, and
+   exact-minus-label-shuffle `>=+0.030`.
+
+Advance only a confirmed difference into the K1-N-derived neural architecture
+at the same local `2048/class` budget, with exact, wrong-S-box, no-S-box and
+no-topology controls. If no position confirms, stop mechanical position scans
+and preregister a trail/DDT-guided difference-ranking audit; trail information
+may rank data differences but must not be added as a neural input inside K1-Q.
+Do not launch remote scale, MoE, more pairs, or another architecture before a
+fresh r5 difference passes confirmation.
